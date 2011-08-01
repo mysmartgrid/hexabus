@@ -45,7 +45,7 @@ int main (int argc, char const* argv[]) {
   int numbytes;
 
   if (argc != 3) {
-	usage();
+    usage();
   }
 
 
@@ -55,33 +55,33 @@ int main (int argc, char const* argv[]) {
 
   strncpy(switchmsg.type, "HEXABUS", sizeof(switchmsg.type));
   switchmsg.source = 1;
-  
+
   if (strcmp(argv[2], "on") == 0) {
-	printf("sending ON command\r\n");
-	switchmsg.command=htons(ON);
+    printf("sending ON command\r\n");
+    switchmsg.command=htons(ON);
   } else if (strcmp(argv[2], "off") == 0) {
-	printf("sending OFF command\r\n");
-	switchmsg.command=htons(OFF);
+    printf("sending OFF command\r\n");
+    switchmsg.command=htons(OFF);
   } else if (strcmp(argv[2], "status") == 0) {
-	printf("sending STATUS command\r\n");
-	switchmsg.command=htons(STATUS_REQUEST);
+    printf("sending STATUS command\r\n");
+    switchmsg.command=htons(STATUS_REQUEST);
   }  else if (strcmp(argv[2], "value") == 0) {
-	printf("sending VALUE command\r\n");
-	switchmsg.command=htons(VALUE);
+    printf("sending VALUE command\r\n");
+    switchmsg.command=htons(VALUE);
   }else if (strcmp(argv[2], "set_default") == 0) {
-	printf("sending SET_DEFAULT command\r\n");
-	switchmsg.command=htons(SET_DEFAULT);
+    printf("sending SET_DEFAULT command\r\n");
+    switchmsg.command=htons(SET_DEFAULT);
   }else if (strcmp(argv[2], "reset") == 0) {
-	printf("sending RESET command\r\n");
-	switchmsg.command=htons(RESET);
+    printf("sending RESET command\r\n");
+    switchmsg.command=htons(RESET);
   }else if (strcmp(argv[2], "ack") == 0) {
-	printf("sending HEARTBEAT_ACK command\r\n");
-	switchmsg.command=htons(HEARTBEAT_ACK);
+    printf("sending HEARTBEAT_ACK command\r\n");
+    switchmsg.command=htons(HEARTBEAT_ACK);
   }else if (strcmp(argv[2], "update_server") == 0) {
-	printf("sending UPDATE_SERVER command\r\n");
-	switchmsg.command=htons(UPDATE_SERVER);
+    printf("sending UPDATE_SERVER command\r\n");
+    switchmsg.command=htons(UPDATE_SERVER);
   }else {
-	usage();
+    usage();
   }
 
   memset(&hints, 0, sizeof(hints));
@@ -89,34 +89,34 @@ int main (int argc, char const* argv[]) {
   hints.ai_socktype=SOCK_DGRAM;
 
   if ((rv = getaddrinfo(argv[1], SERVERPORT, &hints, &servinfo)) != 0) {
-	fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-	return 1;
+    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+    return 1;
   }
 
   // loop results & make socket
   for (p=servinfo; p != NULL; p = p->ai_next) {
-	if ((sockfd = socket(
-			p->ai_family,
-			p->ai_socktype,
-			p->ai_protocol)) == -1) {
-	  perror("6switch: socket");
-	  continue;
-	}
-	break;
+    if ((sockfd = socket(
+            p->ai_family,
+            p->ai_socktype,
+            p->ai_protocol)) == -1) {
+      perror("6switch: socket");
+      continue;
+    }
+    break;
   }
 
   if (p == NULL) {
-	fprintf(stderr, "6switch: failed to bind to socket.\r\n");
-	return 2;
+    fprintf(stderr, "6switch: failed to bind to socket.\r\n");
+    return 2;
   }
 
 
   printf("sent msg size %ld\n", sizeof(switchmsg));
   if ((numbytes = sendto(sockfd, &switchmsg,
-		  sizeof(switchmsg),
-		  0, p->ai_addr, p->ai_addrlen)) == -1){
-	perror("6switch: sendto");
-	exit(1);
+          sizeof(switchmsg),
+          0, p->ai_addr, p->ai_addrlen)) == -1){
+    perror("6switch: sendto");
+    exit(1);
   }
   freeaddrinfo(servinfo);
 

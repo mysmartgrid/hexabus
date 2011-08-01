@@ -14,9 +14,9 @@
 
 void* get_in_addr(struct sockaddr *sa) {
   if (sa->sa_family == AF_INET) {
-	return &(((struct sockaddr_in*)sa)->sin_addr);
+    return &(((struct sockaddr_in*)sa)->sin_addr);
   } else {
-	return &(((struct sockaddr_in6*)sa)->sin6_addr);
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
   }
 }
 
@@ -48,30 +48,30 @@ int main (int argc, char const* argv[]) {
 
 
   if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0 ){
-	fprintf(stderr, "getaddrinfo: %s\r\n", gai_strerror(rv));
+    fprintf(stderr, "getaddrinfo: %s\r\n", gai_strerror(rv));
   }
-  
+
   // Bind to the first available socket
   for (p=servinfo; p!=NULL; p=p->ai_next) {
-	if ((sockfd = socket( p->ai_family, 
-						  p->ai_socktype, 
-						  p->ai_protocol)) == -1) {
-	  perror("6switchd: socket");
-	  continue;
-	}
+    if ((sockfd = socket( p->ai_family, 
+            p->ai_socktype, 
+            p->ai_protocol)) == -1) {
+      perror("6switchd: socket");
+      continue;
+    }
 
-       
-	if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-	  close(sockfd);
-	  perror("6switchd: bind");
-	  continue;
-	}
-	break;
+
+    if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+      close(sockfd);
+      perror("6switchd: bind");
+      continue;
+    }
+    break;
   }
 
   if (p == NULL) {
-	fprintf(stderr, "6switchd: failed to bind socket\r\n");
-	return 2;
+    fprintf(stderr, "6switchd: failed to bind socket\r\n");
+    return 2;
   }
 
   freeaddrinfo(servinfo);
@@ -79,60 +79,60 @@ int main (int argc, char const* argv[]) {
   printf("6switchd: waiting to recvfrom.\r\n");
 
   addr_len = sizeof(their_addr);
-while(1)
-{  
-if (( numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1, 0,
-		  (struct sockaddr*)&their_addr, &addr_len)) == -1) {
-	perror("recvfrom");
-	exit(1);
+  while(1)
+  {  
+    if (( numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1, 0,
+            (struct sockaddr*)&their_addr, &addr_len)) == -1) {
+      perror("recvfrom");
+      exit(1);
+    }
+
+    printf("6switchd: got packet from %s\r\n",
+        inet_ntop(their_addr.ss_family,
+          get_in_addr((struct sockaddr*)&their_addr),
+          s, sizeof(s)));
+    printf("6switchd: packet is %d bytes long\r\n", numbytes);
+
+    //Create the answer to be shown
+    ans=(struct answer*)buf;
+    printf("6switchd: packet contains:\r\n");
+
+    strncpy(header, ans->header, 7);
+
+    printf("6switchd: header: \"%s\"\n", header);
+
+
+    if (ans->source == 2)
+      printf("6switchd: source: \"Socket\" \r\n");
+    else if (ans->source == 1)
+      printf("6switchd: source: \"Server\"\r\n");
+    else
+      printf("6switchd: source: unknown\r\n");
+
+
+    switch (ans->command){
+      case 0x22:
+        printf("6switchd: command: status reply\r\n");
+        break;
+      case 0x23:
+        printf("6switchd: command: value reply\r\n");
+        break;
+      case 0x2F:
+        printf("6switchd: command: reset reply\r\n");
+        break;
+      case 0xBE:
+        printf("6switchd: heartbeat received\r\n");
+        break;
+      default:
+        printf("6switchd: command: unknown\r\n");
+        break;
+    }
+    printf("6switchd: value: %d\r\n", ntohs(ans->value));
+    printf("\n");
+
+
+
   }
-
-  printf("6switchd: got packet from %s\r\n",
-	  inet_ntop(their_addr.ss_family,
-		  get_in_addr((struct sockaddr*)&their_addr),
-		  s, sizeof(s)));
-  printf("6switchd: packet is %d bytes long\r\n", numbytes);
-
-  //Create the answer to be shown
-  ans=(struct answer*)buf;
-  printf("6switchd: packet contains:\r\n");
- 
-  strncpy(header, ans->header, 7);
-
-  printf("6switchd: header: \"%s\"\n", header);
-  
-
-  if (ans->source == 2)
-  	printf("6switchd: source: \"Socket\" \r\n");
-  else if (ans->source == 1)
-        printf("6switchd: source: \"Server\"\r\n");
-  else
-        printf("6switchd: source: unknown\r\n");
-	
-
-switch (ans->command){
-case 0x22:
-	printf("6switchd: command: status reply\r\n");
-	break;
-case 0x23:
-	printf("6switchd: command: value reply\r\n");
-	break;
-case 0x2F:
-	printf("6switchd: command: reset reply\r\n");
-	break;
-case 0xBE:
-	printf("6switchd: heartbeat received\r\n");
-	break;
-default:
-	printf("6switchd: command: unknown\r\n");
-	break;
-}
-printf("6switchd: value: %d\r\n", ntohs(ans->value));
-printf("\n");
-
-  
-
-}
   close(sockfd);
 
   return 0;
