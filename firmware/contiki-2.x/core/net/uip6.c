@@ -111,6 +111,14 @@ struct uip_stats uip_stat;
 #endif /* UIP_STATISTICS == 1 */
  
 
+#define HEXABUS_SOCKET	4
+#define HEXABUS_USB		5
+#if RAVEN_REVISION == HEXABUS_SOCKET
+extern uint8_t forwarding_enabled;
+#else
+#define forwarding_enabled (0)
+#endif
+
 /*---------------------------------------------------------------------------*/
 /** @{ \name Layer 2 variables */
 /*---------------------------------------------------------------------------*/
@@ -1119,13 +1127,43 @@ uip_process(u8_t flag)
     }
   }
 #else /* UIP_CONF_ROUTER */
-  if(!uip_ds6_is_my_addr(&UIP_IP_BUF->destipaddr) &&
-     !uip_ds6_is_my_maddr(&UIP_IP_BUF->destipaddr) &&
-     !uip_is_addr_mcast(&UIP_IP_BUF->destipaddr)) {
-    PRINTF("Dropping packet, not for me\n");
-    UIP_STAT(++uip_stat.ip.drop);
-    goto drop;
-  }
+
+  PRINTF("Packet is for: %d %d %d\n.", !uip_ds6_is_my_addr(&UIP_IP_BUF->destipaddr), !uip_ds6_is_my_maddr(&UIP_IP_BUF->destipaddr),!uip_is_addr_mcast(&UIP_IP_BUF->destipaddr));
+
+    if (!uip_ds6_is_my_addr(&UIP_IP_BUF->destipaddr) &&
+  		     !uip_ds6_is_my_maddr(&UIP_IP_BUF->destipaddr) &&
+  		     !uip_is_addr_mcast(&UIP_IP_BUF->destipaddr)) {
+        /* Check Hop Limit */
+    	PRINTF("Packet for someone else\n ");
+         if(forwarding_enabled && UIP_IP_BUF->ttl > 1 && !uip_ds6_is_my_addr(&UIP_IP_BUF->srcipaddr)) {
+			 UIP_IP_BUF->ttl = UIP_IP_BUF->ttl - 1;
+			 PRINTF("Forwarding packet to ");
+			 PRINT6ADDR(&UIP_IP_BUF->destipaddr);
+			 PRINTF("\n");
+			 UIP_STAT(++uip_stat.ip.sent);
+			 goto send;
+         } else
+        	 goto drop;
+  	}
+
+  	  if (forwarding_enabled && (uip_ds6_is_my_maddr(&UIP_IP_BUF->destipaddr) ||
+  	        uip_is_addr_mcast(&UIP_IP_BUF->destipaddr)) && !uip_ds6_is_my_addr(&UIP_IP_BUF->destipaddr) &&
+  	        !uip_ds6_is_my_addr(&UIP_IP_BUF->srcipaddr))
+  	  {
+  		if(UIP_IP_BUF->ttl > 1) {
+
+  		  PRINTF("Forwarding packet, packet is for my muticast\n");
+  		  uint8_t tmp[UIP_BUFSIZE];
+  		  memcpy(tmp, uip_buf, UIP_BUFSIZE);
+  		  UIP_IP_BUF->ttl = UIP_IP_BUF->ttl - 1;
+  		  tcpip_output(NULL);
+  		  memcpy(uip_buf, tmp, UIP_BUFSIZE);
+
+  		  UIP_STAT(++uip_stat.ip.sent);
+  		}
+  	  }
+
+
 #endif /* UIP_CONF_ROUTER */
 
   /*

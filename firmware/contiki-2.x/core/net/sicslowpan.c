@@ -162,8 +162,8 @@ void uip_log(char *msg);
 /** @} */
 
 
-/** \brief Size of the 802.15.4 payload (127byte - 25 for MAC header) */
-#define MAC_MAX_PAYLOAD 102
+/** \brief Size of the 802.15.4 payload (127byte - 25 for MAC header - 6 for Security header) */
+#define MAC_MAX_PAYLOAD 96
 
 /** \name General variables
  *  @{

@@ -49,6 +49,15 @@
 #include "net/mac/rdc.h"
 #include "dev/radio.h"
 
+/** \brief 802.15.4 nonce. */
+typedef struct {
+  uint8_t  flags;
+  uint8_t  mac_addr[8];
+  uint32_t  frame_cnt;
+  uint8_t	key_cnt;
+  uint16_t	block_cnt;
+} nonce_802154_t;
+
 extern const struct rdc_driver sicslowmac_driver;
 
 #endif /* __SICSLOWMAC_H__ */
