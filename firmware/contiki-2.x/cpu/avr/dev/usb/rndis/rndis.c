@@ -426,7 +426,7 @@ void rndis_query_process(void)
 			                 
         case OID_GEN_VENDOR_DESCRIPTION:        
 			c->InformationBufferLength = 8;
-			memcpy_P(INFBUF, PSTR("Atmel\0\0\0\0"), 8);
+			memcpy_P(INFBUF, PSTR("HEXABUS\0\0"), 8);
 			break;
 
         case OID_GEN_CURRENT_PACKET_FILTER:     
@@ -605,6 +605,7 @@ void rndis_query_process(void)
 #define PARMVALUELENGTH	CFGBUF->ParameterValueLength
 #define PARM_NAME_LENGTH 25 /* Maximum parameter name length */
 
+#include "dev/leds.h"
 void
 rndis_handle_config_parm(const char* parmname,const uint8_t* parmvalue,size_t parmlength) {
 	if (strncmp_P(parmname, PSTR("rawmode"), 7) == 0) {
@@ -613,6 +614,18 @@ rndis_handle_config_parm(const char* parmname,const uint8_t* parmvalue,size_t pa
 		} else {
 			usbstick_mode.raw = 1;
 		}
+		leds_invert(LEDS_GREEN);
+	}
+	else if(strncmp_P(parmname, PSTR("promiscuous"), 7) == 0) {
+		if (parmvalue[0] == '0') {
+/*TODO check if needed
+			extern uint64_t macLongAddr;
+			rf212_set_promiscuous_mode(0,(uint8_t *)&macLongAddr);
+*/			} else {
+	leds_invert(LEDS_RED);
+			rf212_set_promiscuous_mode(1, NULL);
+		}
+
 	}
 
 }

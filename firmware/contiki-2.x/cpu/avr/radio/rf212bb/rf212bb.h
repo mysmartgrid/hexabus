@@ -195,8 +195,8 @@ uint8_t rf212_generate_random_byte(void);
 void rf212_generate_key(uint8_t* key);
 /* This function copies the given key to the rf212 transceivers SRAM */
 void rf212_key_setup(uint8_t *key);
-void rf212_encrypt(uint8_t *data);
-void rf212_decrypt(uint8_t *data);
+/* AES ciphering function. Input parameter: payload to be ciphered. Output: the same variable is encrypted and overwritten. */
+uint8_t rf212_cipher(uint8_t *data);
 /*
  *  This function enables (onoff==1) or disables (onoff==0) the promiscuous mode.
  *  The mac_address is a 8 byte MAC address that is set in the transceiver if the

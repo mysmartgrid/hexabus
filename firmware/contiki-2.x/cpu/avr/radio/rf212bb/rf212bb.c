@@ -59,6 +59,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include "contiki.h"
 
@@ -104,33 +105,10 @@ uint16_t RF212_sendpackets,RF212_receivepackets,RF212_sendfail,RF212_receivefail
 
 /* Show if we are in bootloader mode */
 extern volatile int bootloader_mode;
-/*N:
- *
- this is how it was:
-uint8_t RF212_radio_on;
-#define RADIOSTATS 0
-#if RADIOSTATS
-uint8_t RF212_rsigsi;
-uint16_t RF212_sendpackets,RF212_receivepackets,RF212_sendfail,RF212_receivefail;
-#endif
 
-option 2:
-uint8_t RF212_radio_on;
-#if WEBSERVER
-#define RADIOSTATS 1
-#endif
-#if RADIOSTATS
-uint8_t RF212_rsigsi;
-uint16_t RF212_sendpackets,RF212_receivepackets,RF212_sendfail,RF212_receivefail;
-#endif
+/* Show if we are in bootloader mode */
+uint8_t promiscuous_mode;
 
-
-
-// option 3
-uint8_t RF212_radio_on;
-uint8_t RF212_rsigsi;
-uint16_t RF212_sendpackets,RF212_receivepackets,RF212_sendfail,RF212_receivefail;
-*/
 #if RF212_CONF_TIMESTAMPS
 #include "net/rime/timesynch.h"
 #define TIMESTAMP_LEN 3
@@ -704,17 +682,6 @@ PROCESS_THREAD(rf212_process, ev, data)
     len = rf212_read(packetbuf_dataptr(), PACKETBUF_SIZE);
     RF212PROCESSFLAG(1);
     if(len > 0) {
-    
-#ifdef HEXABUS_FORWARDING
-	  extern uint8_t forwarding_enabled;
-	  if (forwarding_enabled)
-	  {
-		  char buf[PACKETBUF_SIZE];
-		  memcpy(buf,packetbuf_dataptr(), len);
-		  rf212_send(buf, len);
-	  }
-#endif
-
       packetbuf_set_datalen(len);
       RF212PROCESSFLAG(2);
       NETSTACK_RDC.input();
@@ -1027,23 +994,34 @@ rf212_generate_key(uint8_t* key)
 void
 rf212_key_setup(uint8_t *key)
 {
-	uint8_t aes_mode = 0x01; //see 9.1.3 in rf212 manual
+	uint8_t aes_mode = 0x10; //see 9.1.3 in rf212 manual
 	hal_sram_write(AES_CTRL, 1, &aes_mode);
 	hal_sram_write(AES_KEY_START, 16, key);
 	//TODO: combining of setting the control register and the key will increase speed
 }
 /*---------------------------------------------------------------------------*/
-void
-rf212_encrypt(uint8_t *data)
+uint8_t
+rf212_cipher(uint8_t *data)
 {
-	//TODO
-	uint8_t aes_mode = 0x02; //see 9.1.3 in rf212 manual
-	hal_sram_write(AES_CTRL, 1, &aes_mode);
+	uint8_t aes_mode_dir = 0x00; //ECB mode, see 9.1.4.1 in rf212 manual and AES encryption, see 9.1.4.1 in rf212 manual
+	uint8_t aes_request = 0x80;
+	uint8_t aes_status = 0x00;
+
+	hal_sram_write(AES_CTRL, 1, &(aes_mode_dir));
 	hal_sram_write(AES_KEY_START, 16, data);
-}
-void rf212_decrypt(uint8_t *data)
-{
-	//TODO
+	hal_sram_write(AES_CTRL_MIRROR, 1, &aes_request);
+
+	delay_us(24);
+	while(((aes_status & 0x01) != 0x01) && ((aes_status & 0x80) != 0x80))
+		hal_sram_read(AES_STATUS, 1, &aes_status); // check for finished security operation
+	if((aes_status & 0x80) != 0x80)
+	{
+		hal_sram_read(AES_KEY_START, 16, data); //read encrypted data
+		return 0;
+	}
+	else
+		PRINTF("rf212: cipher error\n");
+		return 1; //AES module error
 }
 
 
@@ -1200,6 +1178,8 @@ void rf212_set_promiscuous_mode(uint8_t onoff, uint8_t * mac_address)
 		hal_subregister_write(SR_AACK_FLTR_RES_FT, 0); //no frame filter
 		uint8_t prom_mode_mac_address[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 		rf212_set_pan_addr(0x0000, 0x0000, prom_mode_mac_address);
+		radio_set_trx_state(RX_ON);
+		promiscuous_mode = 1;
 	}
 	else
 	{
@@ -1208,6 +1188,7 @@ void rf212_set_promiscuous_mode(uint8_t onoff, uint8_t * mac_address)
 		hal_subregister_write(SR_AACK_DIS_ACK, 0);
 		hal_subregister_write(SR_RX_SAFE_MODE, 0);
 		rf212_set_pan_addr(IEEE802154_PANID, 0x0000, mac_address);
+		promiscuous_mode = 0;
 	}
 }/*---------------------------------------------------------------------------*/
 

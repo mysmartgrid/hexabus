@@ -88,14 +88,14 @@ unsigned long clock_seconds(void);
 /* Starting address for code received via the codeprop facility. Not tested on Raven */
 //#define EEPROMFS_ADDR_CODEPROP 0x8000
 
-//#define HEXABUS_FORWARDING 1
-
 /* Network setup. The new NETSTACK interface requires RF230BB (as does ip4) */
 #if RF230BB || RF212BB
 #undef PACKETBUF_CONF_HDR_SIZE                  //Use the packetbuf default for header size
 #else
 #define PACKETBUF_CONF_HDR_SIZE    0            //RF230 combined driver/mac handles headers internally
 #endif /*RF230BB || RF212BB*/
+
+#define HEXABUS_FORWARDING 1
 
 #define UIP_CONF_IPV6 1
 

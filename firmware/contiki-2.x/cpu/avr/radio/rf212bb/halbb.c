@@ -87,6 +87,14 @@
 volatile int bootloader_mode = 0;
 volatile int bootloader_pkt = 0;
 
+#if RAVEN_REVISION == HEXABUS_SOCKET
+extern uint8_t forwarding_enabled;
+#else
+#define forwarding_enabled (0)
+#endif
+
+extern uint8_t promiscuous_mode;
+
 /*============================ TYPDEFS =======================================*/
 /*============================ VARIABLES =====================================*/
 /** \brief This is a file internal variable that contains the 16 MSB of the
@@ -742,11 +750,18 @@ ISR(RADIO_VECT)
 				rf212_interrupt();
 			//       trx_end_callback(isr_timestamp);
 			/* Enable reception of next packet */
-			hal_subregister_write(SR_TRX_CMD, RX_AACK_ON);
+
+			if (forwarding_enabled || promiscuous_mode)
+				hal_subregister_write(SR_TRX_CMD, RX_ON);
+			else
+				hal_subregister_write(SR_TRX_CMD, RX_AACK_ON);
 		} else {
 			//transmission ended
 			/* Transition to receive mode*/
-			hal_subregister_write(SR_TRX_CMD, RX_AACK_ON);
+			if (forwarding_enabled || promiscuous_mode)
+				hal_subregister_write(SR_TRX_CMD, RX_ON);
+			else
+				hal_subregister_write(SR_TRX_CMD, RX_AACK_ON);
 		}
 
 	}

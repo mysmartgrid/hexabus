@@ -377,4 +377,5 @@
 #define AES_CTRL		0x83
 #define AES_KEY_START	0x84
 #define AES_KEY_END		0x93
+#define AES_CTRL_MIRROR	0x94
 #endif /* PHY212_REGISTERMAP_EXTERNAL_H */

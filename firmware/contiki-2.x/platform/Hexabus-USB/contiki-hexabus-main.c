@@ -105,6 +105,7 @@
 rimeaddr_t macLongAddr;
 #define	tmp_addr	macLongAddr
 
+ uint8_t encryption_enabled = 1; //global variable for AES encryption
 
 #if UIP_CONF_IPV6_RPL
 /*---------------------------------------------------------------------------*/
@@ -214,7 +215,7 @@ volatile uint8_t ee_mem[EESIZE] EEMEM =
   0xCD, 0xAB,                                           // ee_pan_id
   0x00,                                                 // ee_bootloader_flag
   0x00, 0x00,	 										//ee_bootloader_crc
-  0x00,													//ee_first_run
+  0x01,													//ee_first_run
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //ee_encryption_key
 };
 
