@@ -55,7 +55,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wno-non-virtual-dtor -Werror")
 set(CMAKE_CXX_FLAGS "-Wall ")
 
 #FIND_PACKAGE(Sqlite)
-FIND_PACKAGE(Boost 1.34.1 COMPONENTS asio )
+FIND_PACKAGE(Boost 1.34.1 COMPONENTS asio system)
 
 include_directories(${CMAKE_BINARY_DIR})
 
