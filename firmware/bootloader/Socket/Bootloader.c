@@ -184,7 +184,7 @@ void transceiver_init(void) {
 	_delay_us(1);
 	RST_HIGH;
 	_delay_us(26);
-	spi_regWrite(0x03, 0x14); // Set clock to 8 MHz
+	//spi_regWrite(0x03, 0x14); // Set clock to 8 MHz
 	spi_regWrite(0x02, 0x08); //TRX_OFF
 	_delay_us(600);
 
@@ -193,7 +193,7 @@ void transceiver_init(void) {
 	//spi_regWrite(0x05, 0xE8);
 	spi_regWrite(0x05, 0x62);
 	// 100/200/400 kbit/s modes. Spectral side lobes remain < -40 dBm.
-	spi_regWrite(0x0C, 0x00); //BPSK,100kbit/s
+	spi_regWrite(0x0C, 0x08); //OQPSK,100kbit/s
 	//spi_regWrite(0x0C, 0x24);
 	spi_regWrite(0x14, 0x00);
 
