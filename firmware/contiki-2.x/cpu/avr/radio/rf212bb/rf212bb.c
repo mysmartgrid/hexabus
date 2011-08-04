@@ -1178,8 +1178,8 @@ void rf212_set_promiscuous_mode(uint8_t onoff, uint8_t * mac_address)
 		hal_subregister_write(SR_AACK_FLTR_RES_FT, 0); //no frame filter
 		uint8_t prom_mode_mac_address[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 		rf212_set_pan_addr(0x0000, 0x0000, prom_mode_mac_address);
-		radio_set_trx_state(RX_ON);
 		promiscuous_mode = 1;
+		radio_set_trx_state(RX_ON);
 	}
 	else
 	{

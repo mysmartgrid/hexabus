@@ -99,7 +99,7 @@ extern uint8_t forwarding_enabled; //global variable for forwarding
 #else
 #define forwarding_enabled (0)
 #endif
-
+extern uint8_t promiscuous_mode; //global variable for promiscuous mode
 extern uint8_t encryption_enabled; //global variable for AES encryption
 
 
@@ -317,7 +317,7 @@ input_packet(void)
   if(frame802154_parse(packetbuf_dataptr(), len, &frame) &&
      packetbuf_hdrreduce(len - frame.payload_len)) {
     if(frame.fcf.dest_addr_mode) {
-      if(frame.dest_pid != mac_src_pan_id &&
+      if(!promiscuous_mode && frame.dest_pid != mac_src_pan_id &&
          frame.dest_pid != FRAME802154_BROADCASTPANDID) {
         /* Not broadcast or for our PAN */
         PRINTF("6MAC: for another pan %u\n", frame.dest_pid);
@@ -325,7 +325,7 @@ input_packet(void)
       }
       if(!is_broadcast_addr(frame.fcf.dest_addr_mode, frame.dest_addr)) {
         packetbuf_set_addr(PACKETBUF_ADDR_RECEIVER, (rimeaddr_t *)&frame.dest_addr);
-        if(!forwarding_enabled && !rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER),
+        if(!promiscuous_mode && !forwarding_enabled && !rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER),
                          &rimeaddr_node_addr)) {
           /* Not for this node */
           PRINTF("6MAC: not for us\n");
@@ -333,7 +333,7 @@ input_packet(void)
         }
       }
     }
-    if (frame.fcf.security_enabled)
+    if (frame.fcf.security_enabled && !promiscuous_mode)
     	decrypt_payload(&frame);
 
     packetbuf_set_addr(PACKETBUF_ADDR_SENDER, (rimeaddr_t *)&frame.src_addr);

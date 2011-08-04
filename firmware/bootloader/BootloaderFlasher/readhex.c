@@ -13,7 +13,7 @@
 
 #include "readhex.h"
 
-int	memory[65536];		/* the memory is global */
+int	memory[65536*2];		/* the memory is global */
 
 /* parses a line of intel hex code, stores the data in bytes[] */
 /* and the beginning address in addr, and returns a 1 if the */
@@ -59,6 +59,7 @@ int load_file(filename, min, max)
 char *filename;
 int *min, *max;
 {
+	int segment_addr = 0;
 	char line[1000];
 	FILE *fin;
 	int addr, n, status, bytes[256];
@@ -81,6 +82,7 @@ int *min, *max;
 		if (line[strlen(line)-1] == '\n') line[strlen(line)-1] = '\0';
 		if (line[strlen(line)-1] == '\r') line[strlen(line)-1] = '\0';
 		if (parse_hex_line(line, bytes, &addr, &n, &status)) {
+			addr = addr + segment_addr;
 			if (status == 0) {  /* data */
 				for(i=0; i<=(n-1); i++) {
 					memory[addr] = bytes[i] & 255;
@@ -89,6 +91,7 @@ int *min, *max;
 					if (addr > maxaddr) maxaddr = addr;
 					addr++;
 				}
+
 			}
 			if (status == 1) {  /* end of file */
 				fclose(fin);
@@ -98,7 +101,11 @@ int *min, *max;
 				*max = maxaddr;
 				return 1;
 			}
-			if (status == 2) ;  /* begin of file */
+			if (status == 2) {  /* begin of new segment */
+				
+				segment_addr = ((bytes[0] << 8) | bytes[1]) *16;
+				printf("   Begin of new segment with address: %d\n", segment_addr);
+			}
 		} else {
 			printf("   Error: '%s', line: %d\n", filename, lineno);
 		}

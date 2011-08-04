@@ -276,12 +276,16 @@ void menu_process(char c)
 			case 's':
 				PRINTF_P(PSTR("Jackdaw now in sniffer mode\n\r"));
 				rf212_set_promiscuous_mode(1, NULL);
+				usbstick_mode.sendToRf = 0;
+				usbstick_mode.translate = 0;
 				break;
 
 			case 'n':
 				PRINTF_P(PSTR("Jackdaw now in network mode\n\r"));
 				extern uint64_t macLongAddr;
 				rf212_set_promiscuous_mode(0,(uint8_t *)&macLongAddr);
+				usbstick_mode.sendToRf = 1;
+				usbstick_mode.translate = 1;
 				break;
 
 			case 'm':
@@ -325,7 +329,10 @@ void menu_process(char c)
 				PRINTF_P(PSTR("  * Configuration: %d, USB<->ETH is "), usb_configuration_nb);
 				if (usb_eth_is_active == 0) PRINTF_P(PSTR("not "));
 				PRINTF_P(PSTR("active\n\r"));
-
+				PRINTF_P(PSTR("  * Promiscuous mode is "));
+				extern uint8_t promiscuous_mode;
+				if (promiscuous_mode == 0) PRINTF_P(PSTR("not "));
+				PRINTF_P(PSTR("active\n\r"));
 				break;
 
 			case 'R':

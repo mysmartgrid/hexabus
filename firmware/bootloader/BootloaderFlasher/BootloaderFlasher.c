@@ -149,7 +149,7 @@ int programRS232(char* path, char* port, unsigned char id) {
 			printf("Wrong packet %d\n", currentaddr);
 		}
 		else {
-			printf("Writing %d\n", currentaddr);
+			printf("Writing %02x%02x\n", pre[2], pre[3]);
 		}
 		usleep(50);
 

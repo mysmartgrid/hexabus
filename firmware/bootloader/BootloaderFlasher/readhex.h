@@ -14,6 +14,6 @@ int load_file(char *filename, int *min, int *max);
 /* this is used by load_file to get each line of intex hex */
 int parse_hex_line(char *theline, int bytes[], int *addr, int *num, int *code);
 
-extern int	memory[65536];		/* the memory is global */
+extern int	memory[65536*2];		/* the memory is global */
 
 #endif /* READHEX_H_ */
