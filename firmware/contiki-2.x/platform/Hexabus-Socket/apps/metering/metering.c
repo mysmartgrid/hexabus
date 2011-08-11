@@ -2,7 +2,7 @@
  * metering.c
  *
  *  Created on: 20.04.2011
- *      Author: Günter Hildebrandt
+ *      Author: Gï¿½nter Hildebrandt
  */
 
 #include "metering.h"
@@ -119,7 +119,7 @@ ISR(METERING_VECT)
         }
       else {
 		  //get mean pulse period over 10 cycles
-		  if (clock_time() > metering_calibration_state++)
+		  if (clock_time() > metering_pulse_period)
 				metering_pulse_period = clock_time() - metering_pulse_period;
 		  else //overflow of clock_time()
 			  metering_pulse_period = 0xFFFF - metering_pulse_period + clock_time() + 1;
