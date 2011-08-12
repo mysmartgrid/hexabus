@@ -33,7 +33,7 @@
 #define ANNOUNCE_BOOT 1    //adds about 600 bytes to program size
 #define PRINTF(FORMAT,args...) printf_P(PSTR(FORMAT),##args)
 
-#define DEBUG 0
+#define DEBUG 1
 #if DEBUG
 #define PRINTFD(FORMAT,args...) printf_P(PSTR(FORMAT),##args)
 #else
@@ -106,7 +106,7 @@
 #include "mdns_responder.h"
 
 uint8_t forwarding_enabled; //global variable for forwarding
-
+ uint8_t encryption_enabled = 1; //global variable for AES encryption
 /*-------------------------------------------------------------------------*/
 /*----------------------Configuration of the .elf file---------------------*/
 #if 1
@@ -134,7 +134,7 @@ FUSES = {.low = 0xE2, .high = 0x90, .extended = 0xFF,};
 volatile uint8_t ee_mem[EESIZE] EEMEM =
 {
 	0x00, // ee_dummy
-	0x02, 0x11, 0x22, 0xff, 0xfe, 0x33, 0x44, 0x12, // ee_mac_addr
+	0x02, 0x11, 0x22, 0xff, 0xfe, 0x33, 0x44, 0x11, // ee_mac_addr
 	0x00, 0x00, // ee_pan_addr
 	0xCD, 0xAB, // ee_pan_id
 	0x00, 		//ee_bootloader_flag
@@ -172,15 +172,16 @@ uint8_t get_forwarding_from_eeprom(void) {
 	return eeprom_read_byte ((const void *)EE_FORWARDING);
 }
 
-void set_forwarding_to_eeprom(uint8_t val) {
-	 eeprom_write_byte ((void *)EE_FORWARDING, val);
-	 forwarding_enabled = val;
-	 PRINTF("val is: %d\n", val);
-}
-
 void get_aes128key_from_eeprom(uint8_t keyptr[16]) {
 	eeprom_read_block ((void *)keyptr, (const void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
 }
+
+void set_forwarding_to_eeprom(uint8_t val) {
+	 eeprom_write_byte ((void *)EE_FORWARDING, val);
+	 forwarding_enabled = val;
+}
+
+
 
 /*-------------------------Low level initialization------------------------*/
 /*------Done in a subroutine to keep main routine stack usage small--------*/

@@ -66,6 +66,7 @@
 #include "net/mac/frame802154.h"
 #include <string.h>
 
+
 /**
  *  \brief Structure that contains the lengths of the various addressing and security fields
  *  in the 802.15.4 header.  This structure is used in \ref frame802154_create()
@@ -124,7 +125,7 @@ field_len(frame802154_t *p, field_length_t *flen)
   /* Aux security header */
   if(p->fcf.security_enabled & 1) {
     /* TODO Aux security header not yet implemented */
-#if 0
+
     switch(p->aux_hdr.security_control.key_id_mode) {
     case 0:
       flen->aux_sec_len = 5; /* minimum value */
@@ -141,7 +142,7 @@ field_len(frame802154_t *p, field_length_t *flen)
     default:
       break;
     }
-#endif
+
   }
 }
 /*----------------------------------------------------------------------------*/
@@ -233,8 +234,14 @@ frame802154_create(frame802154_t *p, uint8_t *buf, uint8_t buf_len)
 
   /* Aux header */
   if(flen.aux_sec_len) {
-    /* TODO Aux security header not yet implemented */
-/*     pos += flen.aux_sec_len; */
+	  tx_frame_buffer[pos++] = (p->aux_hdr.security_control.security_level & 7) |
+			    ((p->aux_hdr.security_control.key_id_mode & 3) << 3) |
+			    ((p->aux_hdr.security_control.reserved & 7) << 5);
+	   tx_frame_buffer[pos++] = p->aux_hdr.frame_counter & 0xff;
+	   tx_frame_buffer[pos++] = (p->aux_hdr.frame_counter >> 8) & 0xff;
+	   tx_frame_buffer[pos++] = (p->aux_hdr.frame_counter >> 16) & 0xff;
+	   tx_frame_buffer[pos++] = (p->aux_hdr.frame_counter >> 24) & 0xff;
+	   tx_frame_buffer[pos++] = p->aux_hdr.key[0];
   }
 
   return pos;
@@ -255,7 +262,7 @@ frame802154_parse(uint8_t *data, uint8_t len, frame802154_t *pf)
   uint8_t *p;
   frame802154_fcf_t fcf;
   uint8_t c;
-
+  uint8_t tmp;
   if(len < 3) {
     return 0;
   }
@@ -339,8 +346,34 @@ frame802154_parse(uint8_t *data, uint8_t len, frame802154_t *pf)
   }
 
   if(fcf.security_enabled) {
-    /* TODO aux security header, not yet implemented */
-/*     return 0; */
+	  pf->aux_hdr.security_control.security_level = p[0] & 7;
+	  pf->aux_hdr.security_control.key_id_mode = (p[0] >> 3) & 3;
+	  pf->aux_hdr.security_control.reserved =	(p[0] >> 5) & 7;
+	  pf->aux_hdr.frame_counter = (uint32_t)p[1] + ((uint32_t)p[2] << 8) + ((uint32_t)p[3] << 16) + ((uint32_t)p[4]  << 24);
+	  p += 5;
+	    switch(pf->aux_hdr.security_control.key_id_mode) {
+	    case 0:
+	      c = 0;
+	      break;
+	    case 1:
+	      c = 1;
+	      break;
+	    case 2:
+	      c = 5;
+	      break;
+	    case 3:
+	      c = 9;
+	      break;
+	    default:
+	      break;
+	    }
+
+	  for(tmp = 0; tmp < c; tmp++) {
+		  pf->aux_hdr.key[tmp] = p[0];
+	  	  p++;
+	  }
+
+
   }
 
   /* header length */

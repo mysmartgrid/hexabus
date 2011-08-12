@@ -253,7 +253,7 @@ PGM_P usb_user_get_string(U8 string_type) {
 	switch (string_type)
 	{
 		case USB_STRING_MAN:
-			return PSTR("Atmel");
+			return PSTR("HEXABUS");
 
 		case USB_STRING_PRODUCT:
 			return PSTR("Jackdaw 6LoWPAN Adaptor");

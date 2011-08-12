@@ -34,6 +34,7 @@ extern volatile int bootloader_mode;
 extern volatile int bootloader_pkt;
 extern uint16_t get_panid_from_eeprom(void);
 extern void get_aes128key_from_eeprom(uint8_t*);
+extern uint8_t encryption_enabled;
 
 #define PROVISIONING_HEADER "PROVISIONING"
 
@@ -139,8 +140,11 @@ int provisioning_master(void) {
 			PRINTF("%x ", packet->aes_key[i]);
 		}
 		PRINTF("\n");
+		uint8_t tmp_enc = encryption_enabled;
+		encryption_enabled = 0;
 		NETSTACK_RDC.send(NULL,NULL);
 		packetbuf_clear();
+		encryption_enabled = tmp_enc;
 		provisioning_done_leds();
 		mac_dst_pan_id = prov_pan_id;
 		mac_src_pan_id = prov_pan_id;
@@ -173,6 +177,8 @@ int provisioning_slave(void) {
 	//set pan_id for frame creation to 0x0001
 	mac_dst_pan_id = 0x0001;
 	mac_src_pan_id = 0x0001;
+	uint8_t tmp_enc = encryption_enabled;
+	encryption_enabled = 0;
 
 	rf212_set_pan_addr(0x0001, 0, NULL);
 	time = clock_time();
@@ -202,6 +208,7 @@ int provisioning_slave(void) {
 		mac_src_pan_id = old_pan_id;
 		rf212_set_pan_addr(old_pan_id, 0, NULL);
 		bootloader_mode = 0;
+		encryption_enabled = tmp_enc;
 		//indicate normal operation
 		relay_leds();
 		return -1;
@@ -227,6 +234,7 @@ int provisioning_slave(void) {
 		rf212_key_setup(packet->aes_key);
 		rf212_set_pan_addr(packet->pan_id, 0, NULL);
 		bootloader_mode = 0;
+		encryption_enabled = tmp_enc;
 		//indicate normal operation
 		relay_leds();
 		return 0;

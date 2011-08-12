@@ -135,7 +135,7 @@ make_message(char* buf, uint16_t command, uint16_t value)
 	response = (uint16_t*) (hexabuscmd + 1);
 	*response = uip_htons(value);
 	PRINTF("udp_handler: Responding with message: ");
-	PRINTF("%s%2x%2x%4d\n", HEXABUS_HEADER, 2, command, value);
+	PRINTF("%s%02x%02x%04d\n", HEXABUS_HEADER, 2, command, value);
 }
 
 static void

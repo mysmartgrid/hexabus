@@ -184,7 +184,7 @@ void transceiver_init(void) {
 	_delay_us(1);
 	RST_HIGH;
 	_delay_us(26);
-	spi_regWrite(0x03, 0x14); // Set clock to 8 MHz
+	//spi_regWrite(0x03, 0x14); // Set clock to 8 MHz
 	spi_regWrite(0x02, 0x08); //TRX_OFF
 	_delay_us(600);
 
@@ -193,7 +193,7 @@ void transceiver_init(void) {
 	//spi_regWrite(0x05, 0xE8);
 	spi_regWrite(0x05, 0x62);
 	// 100/200/400 kbit/s modes. Spectral side lobes remain < -40 dBm.
-	spi_regWrite(0x0C, 0x00); //BPSK,100kbit/s
+	spi_regWrite(0x0C, 0x08); //OQPSK,100kbit/s
 	//spi_regWrite(0x0C, 0x24);
 	spi_regWrite(0x14, 0x00);
 
@@ -246,7 +246,8 @@ int ProgramFlash() {
 	bool nextLine;			// Indicates if there is a next line or not
 	uint16_t pagePos;		// Position in the boot-page buffer
 	uint8_t dataLength;		// Number of data-bytes of the current line
-	uint16_t startAddress;	// Start address for the data of the current data-line
+	uint32_t startAddress;	// Start address for the data of the current data-line
+	uint32_t segmentOffset;
 	uint16_t currentAddress;// Current address for the data of the current data-line
 	uint8_t type;			// Record type of the current line.
 	uint8_t checksum;		// In this variable the checksum of one line is calculated
@@ -256,10 +257,11 @@ int ProgramFlash() {
 	uint16_t lastStartAddr;	// Stores the last start addres from a received packet
 	bool packetSuccess;		// Indicates if the last packet was successfully written
 
+
 	packetSuccess = 0;
 	lastStartAddr = 0xFFFF;
-	startAddress = 0xFFFF;	// Invalid value, because no register is selected
-
+	startAddress = 0xFFFFFFFFLL;	// Invalid value, because no register is selected
+	segmentOffset = 0;
 	nextLine = 1;
 	pagePos = 0;
 
@@ -283,12 +285,9 @@ int ProgramFlash() {
 		linecount = buffer[3];
 
 
-		temp = ( buffer[6] << 8 );			// High byte
-		temp = temp | buffer[7];			// Low byte
-
 		// Checking if the usb-stick sent the same packet again
 		// This can happen if he didn't received the answer
-		if(temp == lastStartAddr && packetSuccess) {
+		if(( (buffer[6] << 8 ) | buffer[7]) == lastStartAddr && packetSuccess) {
 			l = linecount;
 		}
 		lastStartAddr = temp;
@@ -316,7 +315,8 @@ int ProgramFlash() {
 
 			type = buffer[currentpos+5];					// Record type
 			checksum += type;
-
+			if (currentAddress == 0x0000 && startAddress != 0xFFFFFFFFLL)
+				segmentOffset = segmentOffset + 0x10000;
 			// Read all bytes of one hex-line for calculating the checksum
 			int i;
 			for(i = currentpos+6; i < currentpos+6+dataLength; i++){
@@ -335,7 +335,7 @@ int ProgramFlash() {
 				// Only do something if the line contains data bytes
 				if(dataLength) {
 					// Setting new startaddress
-					if(startAddress == 0xFFFF) {
+					if(startAddress == 0xFFFFFFFFLL) {
 						// Calculating first position in page
 						temp = currentAddress / PAGESIZE;
 						startAddress = PAGESIZE * temp;;
@@ -344,17 +344,17 @@ int ProgramFlash() {
 							boot_erase_page(startAddress);						// Erase page
 					}
 					// Startaddress is outside of the current page
-					else if(startAddress > currentAddress || ( startAddress + PAGESIZE ) <= currentAddress) {
+					else if(startAddress > currentAddress + segmentOffset || ( startAddress + PAGESIZE ) <= currentAddress + segmentOffset) {
 						boot_write_page(startAddress);	// Write the page from the buffer to the flash
 						pagePos = 0;
 						// Calculating first position in page
 						temp = currentAddress / PAGESIZE;
-						startAddress = PAGESIZE * temp;
+						startAddress = segmentOffset + PAGESIZE * temp;
 						// If we want to write a new page we must first erase the data
 						if(pagePos == 0)
 							boot_erase_page(startAddress);						// Erase page
 					}
-					pagePos = currentAddress - startAddress;
+					pagePos = currentAddress + segmentOffset - startAddress;
 
 					for(bufferPos = currentpos+6; bufferPos < currentpos+dataLength+6; bufferPos+=2, pagePos+=2) {
 
@@ -362,7 +362,7 @@ int ProgramFlash() {
 						if(pagePos >= PAGESIZE) {
 
 							boot_write_page(startAddress);	// Write the page from the buffer to the flash
-							startAddress = currentAddress + bufferPos-6-currentpos;
+							startAddress = segmentOffset + currentAddress + bufferPos-6-currentpos;
 							pagePos = 0;
 							boot_erase_page(startAddress);						// Erase page
 						}

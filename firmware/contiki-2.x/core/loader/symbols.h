@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, Swedish Institute of Computer Science.
+ * Copyright (c) 2005, Swedish Institute of Computer Science
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,36 +28,18 @@
  *
  * This file is part of the Contiki operating system.
  *
- * $Id: sicslowmac.h,v 1.2 2010/02/23 20:09:11 nifi Exp $
+ * @(#)$Id: symbols.h,v 1.5 2007/01/30 18:04:59 bg- Exp $
  */
+#ifndef __SYMBOLS_H__
+#define __SYMBOLS_H__
 
-/**
- * \file
- *         MAC interface for packaging radio packets into 802.15.4 frames
- *
- * \author
- *         Adam Dunkels <adam@sics.se>
- *         Eric Gnoske <egnoske@gmail.com>
- *         Blake Leverett <bleverett@gmail.com>
- *         Niclas Finne <nfi@sics.se>
- *         Joakim Eriksson <joakime@sics.se>
- */
+struct symbols {
+  const char *name;
+  void *value;
+};
 
-#ifndef __SICSLOWMAC_H__
-#define __SICSLOWMAC_H__
+extern const int symbols_nelts;
 
-#include "net/mac/rdc.h"
-#include "dev/radio.h"
+extern const struct symbols symbols[/* symbols_nelts */];
 
-/** \brief 802.15.4 nonce. */
-typedef struct {
-  uint8_t  flags;
-  uint8_t  mac_addr[8];
-  uint32_t  frame_cnt;
-  uint8_t	key_cnt;
-  uint16_t	block_cnt;
-} nonce_802154_t;
-
-extern const struct rdc_driver sicslowmac_driver;
-
-#endif /* __SICSLOWMAC_H__ */
+#endif /* __SYMBOLS_H__ */
