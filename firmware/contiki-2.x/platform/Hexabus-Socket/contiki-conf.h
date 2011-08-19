@@ -177,7 +177,7 @@ unsigned long clock_seconds(void);
 #define RF230_CONF_AUTOACK        1
 #define RF212_CONF_AUTOACK        1
 /* Request 802.15.4 ACK on all packets sent (else autoretry). This is primarily for testing. */
-#define SICSLOWPAN_CONF_ACK_ALL   0
+#define SICSLOWPAN_CONF_ACK_ALL   1
 /* Number of auto retry attempts 0-15 (0 implies don't use extended TX_ARET_ON mode with CCA) */
 #define RF230_CONF_AUTORETRIES    2
 #define RF212_CONF_AUTORETRIES    2
