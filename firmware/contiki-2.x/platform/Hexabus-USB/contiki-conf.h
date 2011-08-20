@@ -274,13 +274,13 @@ extern void mac_log_802_15_4_rx(const uint8_t* buffer, size_t total_len);
 
 /* Request 802.15.4 ACK on all packets sent by sicslowpan.c (else autoretry) */
 /* Broadcasts will be duplicated by the retry count, since no one will ACK them! */
-#define SICSLOWPAN_CONF_ACK_ALL   0
+#define SICSLOWPAN_CONF_ACK_ALL   1
 /* Number of auto retry attempts 0-15 (0 implies don't use extended TX_ARET_ON mode with CCA) */
 
 #if RF230BB
-#define RF230_CONF_AUTORETRIES    1
+#define RF230_CONF_AUTORETRIES    2
 #elif RF212BB
-#define RF212_CONF_AUTORETRIES    1
+#define RF212_CONF_AUTORETRIES    2
 #endif
 
 /* CCA theshold energy -91 to -61 dBm (default -77). Set this smaller than the expected minimum rssi to avoid packet collisions */

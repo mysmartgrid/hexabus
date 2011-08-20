@@ -23,6 +23,7 @@
 #include "eeprom_variables.h"
 #include "bootloader_send.h"
 
+
 extern volatile int bootloader_mode;
 extern volatile int bootloader_pkt;
 
@@ -34,7 +35,7 @@ int bootloader_send_data() {
 	watchdog_periodic();
 	uint8_t addr_low;
 	uint8_t addr_high;
-	static uint8_t receive_data[20];
+	static uint8_t receive_data[127];
 	static uint8_t hex_data[MAX_HEX_LINE_SIZE];
 	hex_data[0] = 'p';
 	hex_data[1] = 'p';
@@ -44,7 +45,7 @@ int bootloader_send_data() {
 	hex_data[5] = 'p';
 	bootloader_pkt = 0;
 	bootloader_mode = 1;
-
+	clock_time_t time;
 	extern uint16_t mac_dst_pan_id;
 	extern uint16_t mac_src_pan_id;
 	uint16_t old_pan_id = mac_src_pan_id;
@@ -57,25 +58,27 @@ int bootloader_send_data() {
 	// Saying Socket bootloader that we want to start programming
 	rf212_send(hex_data, 5);
 	radio_set_trx_state(RX_ON);
-	while(!bootloader_pkt) {
-		watchdog_periodic();
-	}
-	bootloader_pkt = 0;
-	static volatile uint8_t length;
+	static volatile uint8_t length = 0;
+	time = clock_time();
 	do {
-		length = rf212_read(receive_data, 20);
-		if(length != 6) {
-			while(!bootloader_pkt);
-			bootloader_pkt = 0;
+		while(!bootloader_pkt && (clock_time() - time < CLOCK_SECOND)) {
+			watchdog_periodic();
 		}
-		watchdog_periodic();
+		if (clock_time() - time > CLOCK_SECOND) {
+			rf212_send(hex_data, 5);
+			radio_set_trx_state(RX_ON); 
+			time = clock_time();
+		} else {
+			length = rf212_read(receive_data, 20);
+			bootloader_pkt = 0;
+		}			
 	} while(length != 6);
-
 	if(receive_data[3] != 0x06) {
 		mac_dst_pan_id = old_pan_id;
 		mac_src_pan_id = old_pan_id;
 		rf212_set_pan_addr(old_pan_id, 0, NULL);
 		bootloader_mode = 0;
+		while (1);
 		return -1;
 	}
 	addr_low = receive_data[4];
@@ -93,10 +96,8 @@ int bootloader_send_data() {
 	while(!lastline) {
 		currentpos = 3;
 		for(l = 0; l < LINE_COUNT; l++) {
-			if(!lastline) {
-				checksum_failure = 0;
+			if(!lastline) {				
 				do {
-
 					uint8_t r = uart_usb_getchar();
 					if(r == ':') {
 						hex_data[currentpos+1] = r;
@@ -156,20 +157,22 @@ int bootloader_send_data() {
 		int valid = 0;
 		do {
 			valid = 0;
-			bootloader_pkt = 0;
+			receive_data[3] = 0;
+			receive_data[4] = 0;
+			receive_data[5] = 0;
 			// Sending the full line to the Socket bootloader
-			rf212_send(hex_data, currentpos+2);
+			rf212_send(hex_data, currentpos+3);
 			radio_set_trx_state(RX_ON);
-			clock_time_t time = clock_time();
+			time = clock_time();
+			bootloader_pkt = 0;			
 			while(!bootloader_pkt && (clock_time() - time < CLOCK_SECOND)) {
 				watchdog_periodic();
 			}
 			if(bootloader_pkt){
 				bootloader_pkt = 0;
 				int length;
-
 				do {
-					length = rf212_read(receive_data, 20);
+					length = rf212_read(receive_data, 127);
 					if(receive_data[4] != addr_low && receive_data[5] != addr_high) {
 						while(!bootloader_pkt  && (clock_time() - time < CLOCK_SECOND)){
 							watchdog_periodic();
@@ -178,8 +181,6 @@ int bootloader_send_data() {
 					}
 					watchdog_periodic();
 				} while(receive_data[4] != addr_low && receive_data[5] != addr_high  && (clock_time() - time < CLOCK_SECOND));
-
-				valid = 0;
 				if(receive_data[3] == 0x05)
 					valid = 1;
 				bootloader_pkt = 1;

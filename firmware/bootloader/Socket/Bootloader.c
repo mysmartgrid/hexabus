@@ -202,7 +202,7 @@ void transceiver_init(void) {
 	spi_regWrite(0x2C, 0x20);
 
 	spi_regWrite(0x02, 0x09); // State TX_ON
-	spi_regWrite( 0x0E, ( ( 0x08 ) | ( 0x04 ) | ( 0x80 ) | ( 0x20 ) ) );
+	spi_regWrite( 0x0E, ( ( 0x08 ) ) );
 	spi_regWrite(0x2E, 0x00);
 	spi_regWrite(0x15, 0x00);
 
@@ -239,7 +239,7 @@ void flash_led(void)
  */
 int ProgramFlash() {
 
-	uint8_t buffer[255];	// Buffer for reading a line
+	uint8_t buffer[127];	// Buffer for reading a line
 	uint8_t bufferPos;		// Position in buffer
 
 	uint8_t temp;			// Temp variable
@@ -277,7 +277,8 @@ int ProgramFlash() {
 		uint8_t pktLength;
 		// Wait until a packet with the correct address is received
 		do {
-			pktLength = receivePacket(255, buffer);
+			pktLength = receivePacket(127, buffer);
+			timer = false;
 		} while(buffer[1] != addr_low && buffer[2] != addr_high);
 
 
@@ -416,6 +417,7 @@ void sendAnswer(uint8_t responseByte) {
 	data[4] = addr_low;
 	data[5] = addr_high;
 	spi_regWrite(0x02, 0x09);
+	_delay_us(1);
 	while(spi_regRead(0x01) != 0x09);
 	spi_pktReceived = 0;
 	SLP_TR_LOW;
@@ -438,6 +440,7 @@ void sendAnswer(uint8_t responseByte) {
 int receivePacket(uint8_t bufferSize, uint8_t* buffer){
 	spi_regWrite(0x02, 0x06);	// Go to RX-Mode
 	spi_pktReceived = 0;
+	_delay_us(1);
 	while(!timer) {
 		_delay_us(1);
 		if(spi_pktReceived) {
@@ -529,7 +532,7 @@ ISR(TIMER0_OVF_vect) {
 	  Counter++;
 	  if(Counter%5 == 0)
 		  flash_led();
-	  if( Counter == 1000 && flashing_started == false ) {
+	  if( Counter == 1000 ) { //&& flashing_started == false ) {
 	    Counter = 0;
 	    timer = true;
 	    LED_DDR |= _BV(LED);
