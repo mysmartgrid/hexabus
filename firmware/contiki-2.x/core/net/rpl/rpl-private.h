@@ -269,7 +269,7 @@ extern rpl_instance_t *default_instance;
 /* ICMPv6 functions for RPL. */
 void dis_output(uip_ipaddr_t *addr);
 void dio_output(rpl_instance_t *, uip_ipaddr_t *uc_addr);
-void dao_output(rpl_parent_t *, uint8_t lifetime);
+void dao_output(rpl_parent_t *, uint8_t lifetime, uip_ipaddr_t *);
 void dao_ack_output(rpl_instance_t *, uip_ipaddr_t *, uint8_t);
 
 /* RPL logic functions. */

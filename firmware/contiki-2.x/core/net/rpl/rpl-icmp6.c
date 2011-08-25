@@ -698,7 +698,7 @@ dao_input(void)
 }
 /*---------------------------------------------------------------------------*/
 void
-dao_output(rpl_parent_t *n, uint8_t lifetime)
+dao_output(rpl_parent_t *n, uint8_t lifetime, uip_ipaddr_t * target)
 {
   rpl_dag_t *dag;
   rpl_instance_t *instance;
@@ -708,10 +708,13 @@ dao_output(rpl_parent_t *n, uint8_t lifetime)
   int pos;
 
   /* Destination Advertisement Object */
-
-  if(get_global_addr(&prefix) == 0) {
-    PRINTF("RPL: No global address set for this node - suppressing DAO\n");
-    return;
+  if(target == NULL) {
+    /* Caller didn't specify a target, try to use our own unicast global */
+    if(get_global_addr(&prefix) == 0) {
+      PRINTF("RPL: No global address set for this node - suppressing DAO\n");
+      return;
+    }
+    target = &prefix;
   }
 
   dag = n->dag;
@@ -743,12 +746,12 @@ dao_output(rpl_parent_t *n, uint8_t lifetime)
 #endif /* RPL_DAO_SPECIFY_DAG */
 
   /* create target subopt */
-  prefixlen = sizeof(prefix) * CHAR_BIT;
+  prefixlen = sizeof(uip_ipaddr_t) * CHAR_BIT;
   buffer[pos++] = RPL_OPTION_TARGET;
   buffer[pos++] = 2 + ((prefixlen + 7) / CHAR_BIT);
   buffer[pos++] = 0; /* reserved */
   buffer[pos++] = prefixlen;
-  memcpy(buffer + pos, &prefix, (prefixlen + 7) / CHAR_BIT);
+  memcpy(buffer + pos, target, (prefixlen + 7) / CHAR_BIT);
   pos += ((prefixlen + 7) / CHAR_BIT);
 
   /* Create a transit information sub-option. */

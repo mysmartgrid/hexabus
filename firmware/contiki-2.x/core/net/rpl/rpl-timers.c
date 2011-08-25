@@ -208,7 +208,7 @@ handle_dao_timer(void *ptr)
   if(instance->current_dag->preferred_parent != NULL) {
     PRINTF("RPL: handle_dao_timer - sending DAO\n");
     /* Set the route lifetime to the default value. */
-    dao_output(instance->current_dag->preferred_parent, instance->default_lifetime);
+    dao_output(instance->current_dag->preferred_parent, instance->default_lifetime, NULL);
   } else {
     PRINTF("RPL: No suitable DAO parent\n");
   }
