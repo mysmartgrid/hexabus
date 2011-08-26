@@ -95,23 +95,20 @@ void RPL_DEBUG_DAO_OUTPUT(rpl_parent_t *);
 extern rpl_of_t RPL_OF;
 
 /*---------------------------------------------------------------------------*/
-static int
-get_global_addr(uip_ipaddr_t *addr)
+static uip_ipaddr_t *
+get_global_addr()
 {
-  int i;
-  int state;
-
-  for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
-    state = uip_ds6_if.addr_list[i].state;
-    if(uip_ds6_if.addr_list[i].isused &&
-       (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
-      if(!uip_is_addr_link_local(&uip_ds6_if.addr_list[i].ipaddr)) {
-        memcpy(addr, &uip_ds6_if.addr_list[i].ipaddr, sizeof(uip_ipaddr_t));
-        return 1;
-      }
+  uip_ds6_addr_t * locipaddr;
+  for(locipaddr = uip_ds6_if.addr_list;
+      locipaddr <= &uip_ds6_if.addr_list[UIP_DS6_ADDR_NB - 1]; locipaddr++) {
+    if(locipaddr->isused
+        && (locipaddr->state == ADDR_TENTATIVE
+            || locipaddr->state == ADDR_PREFERRED)
+        && !uip_is_addr_link_local(&locipaddr->ipaddr)) {
+      return &locipaddr->ipaddr;
     }
   }
-  return 0;
+  return NULL;
 }
 /*---------------------------------------------------------------------------*/
 static uint32_t
@@ -710,11 +707,12 @@ dao_output(rpl_parent_t *n, uint8_t lifetime, uip_ipaddr_t * target)
   /* Destination Advertisement Object */
   if(target == NULL) {
     /* Caller didn't specify a target, try to use our own unicast global */
-    if(get_global_addr(&prefix) == 0) {
-      PRINTF("RPL: No global address set for this node - suppressing DAO\n");
-      return;
-    }
-    target = &prefix;
+    target = get_global_addr();
+  }
+
+  if(target == NULL) {
+    PRINTF("RPL: No global address set for this node - suppressing DAO\n");
+    return;
   }
 
   dag = n->dag;
