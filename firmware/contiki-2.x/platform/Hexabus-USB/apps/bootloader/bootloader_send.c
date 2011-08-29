@@ -161,7 +161,7 @@ int bootloader_send_data() {
 			receive_data[4] = 0;
 			receive_data[5] = 0;
 			// Sending the full line to the Socket bootloader
-			rf212_send(hex_data, currentpos+2);
+			rf212_send(hex_data, currentpos+3);
 			radio_set_trx_state(RX_ON);
 			time = clock_time();
 			bootloader_pkt = 0;			
