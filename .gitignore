@@ -1,0 +1,6 @@
+*.elf
+*.hex
+*.a
+*.map
+BootloaderFlasher
+hostsoftware/6switch/build
