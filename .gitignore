@@ -2,5 +2,6 @@
 *.hex
 *.a
 *.map
-BootloaderFlasher
+firmware/bootloader/BootloaderFlasher/BootloaderFlasher
 hostsoftware/6switch/build
+firmware/Hexabus-Socket/obj_Hexabus-Socket/
