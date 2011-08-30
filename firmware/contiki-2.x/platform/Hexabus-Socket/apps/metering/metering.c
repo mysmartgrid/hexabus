@@ -86,6 +86,18 @@ metering_reset(void)
 uint16_t
 metering_get_power(void)
 {
+  uint16_t tmp;
+  /*check whether measurement is up to date */
+  if (clock_time() > clock_old)
+	  tmp = (clock_time() - clock_old);
+  else
+	  tmp = (0xFFFF - clock_old + clock_time() + 1);
+
+  if (tmp > OUT_OF_DATE_TIME * CLOCK_SECOND)
+	  metering_power = 0;
+  else if (metering_power != 0 && tmp > 2 * (metering_reference_value / metering_power))
+	  metering_power = calc_power(tmp);
+
   return metering_power;
 }
 
