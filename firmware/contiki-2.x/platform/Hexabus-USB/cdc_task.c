@@ -219,6 +219,7 @@ void menu_print(void)
 		PRINTF_P(PSTR("*  m        Print current mode    *\n\r"));
 		PRINTF_P(PSTR("*  s        Set to sniffer mode   *\n\r"));
 		PRINTF_P(PSTR("*  n        Set to network mode   *\n\r"));
+		PRINTF_P(PSTR("*  r        set to raw mode       *\n\r"));
 		PRINTF_P(PSTR("*  f        Flash a Socket		 *\n\r"));
 		PRINTF_P(PSTR("*  c        Change PAN ID		 *\n\r"));
 		PRINTF_P(PSTR("*  R        Reset (via WDT)       *\n\r"));
@@ -279,6 +280,11 @@ void menu_process(char c)
 				usbstick_mode.sendToRf = 0;
 				usbstick_mode.translate = 0;
 				break;
+				
+			case 'r':
+				PRINTF_P(PSTR("Jackdaw now in raw mode\n\r"));
+				usbstick_mode.raw = 1;
+				break;				
 
 			case 'n':
 				PRINTF_P(PSTR("Jackdaw now in network mode\n\r"));
@@ -286,6 +292,7 @@ void menu_process(char c)
 				rf212_set_promiscuous_mode(0,(uint8_t *)&macLongAddr);
 				usbstick_mode.sendToRf = 1;
 				usbstick_mode.translate = 1;
+				usbstick_mode.raw = 0;
 				break;
 
 			case 'm':

@@ -105,7 +105,7 @@
 rimeaddr_t macLongAddr;
 #define	tmp_addr	macLongAddr
 
- uint8_t encryption_enabled = 1; //global variable for AES encryption
+uint8_t encryption_enabled = 1; //global variable for AES encryption, in provisioning this variable is set to 0
 
 #if UIP_CONF_IPV6_RPL
 /*---------------------------------------------------------------------------*/

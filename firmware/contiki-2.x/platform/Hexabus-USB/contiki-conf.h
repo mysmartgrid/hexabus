@@ -147,9 +147,9 @@ static inline uint8_t radio_is_ready_to_send_() {
 //#pragma mark RF230BB Hooks
 /* ************************************************************************** */
 
-#define RF230B_HOOK_TX_PACKET(buffer,total_len) mac_log_802_15_4_tx(buffer,total_len)
-#define RF230BB_HOOK_RX_PACKET(buffer,total_len) mac_log_802_15_4_rx(buffer,total_len)
-#define	RF230BB_HOOK_IS_SEND_ENABLED()	mac_is_send_enabled()
+#define RF212BB_HOOK_TX_PACKET(buffer,total_len) mac_log_802_15_4_tx(buffer,total_len)
+#define RF212BB_HOOK_RX_PACKET(buffer,total_len) mac_log_802_15_4_rx(buffer,total_len)
+#define	RF212BB_HOOK_IS_SEND_ENABLED()	mac_is_send_enabled()
 extern bool mac_is_send_enabled(void);
 
 

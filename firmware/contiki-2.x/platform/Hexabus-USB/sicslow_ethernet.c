@@ -489,7 +489,7 @@ void mac_LowpanToEthernet(void)
   //Check for broadcast message
   
 #if RF230BB || RF212BB
-  if(rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &rimeaddr_null)) {
+  if(usbstick_mode.raw == 0 && rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &rimeaddr_null)) {
 //  if(rimeaddr_cmp((const rimeaddr_t *)destAddr, &rimeaddr_null)) {
 #else
   if(  ( parsed_frame->fcf->destAddrMode == SHORTADDRMODE) &&
