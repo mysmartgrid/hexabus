@@ -102,6 +102,7 @@
 //HEXABUS includes
 #include "button.h"
 #include "metering.h"
+#include "temperature.h"
 #include "relay.h"
 #include "eeprom_variables.h"
 #include "udp_handler.h"
@@ -307,6 +308,9 @@ void initialize(void)
 
   /* Init Metering */
   metering_init();
+
+  /* Init Temp Sensor */
+  temperature_init();
 
   /*Init Relay */
   relay_init();
