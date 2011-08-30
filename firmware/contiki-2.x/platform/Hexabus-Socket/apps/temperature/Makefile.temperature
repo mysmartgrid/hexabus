@@ -1,0 +1,3 @@
+temperature_src = temperature.c crc8.c ds18x20.c onewire.c tempsensors.c
+
+
