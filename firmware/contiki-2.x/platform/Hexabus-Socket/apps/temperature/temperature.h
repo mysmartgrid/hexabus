@@ -27,6 +27,7 @@
  *
  **/
 float 	temperature_get(void);
+char* temperature_as_string(void);
 void 	temperature_init(void);
 void	temperature_start(void);
 void	temperature_stop(void);

@@ -8,6 +8,7 @@
 #include "temperature.h"
 #include <avr/io.h>
 #include <util/delay.h>
+#include <stdlib.h>
 #include "sys/clock.h"
 #include "contiki.h"
 #include "dev/leds.h"
@@ -19,17 +20,21 @@
 
 //local variables
 static float temperature_value=0.0;
+static char temperature_string_buffer[10];
+
+void _update_temp_string(void) {
+  dtostrf(temperature_value, 9, 4, &temperature_string_buffer);
+}
 
 void
 temperature_init(void)
 {
-  char buffer[10];
   PRINTF("-- Temperature: INIT\r\n");
   initTempSensors();
   loopTempSensors();
   temperature_value=getTemperatureFloat();
-  dtostrf(temperature_value, 9, 4, &buffer);
-  PRINTF("Current temp: %s deg C\r\n", buffer);
+  _update_temp_string();
+  PRINTF("Current temp: %s deg C\r\n", temperature_string_buffer);
 }
 
 void
@@ -57,4 +62,10 @@ temperature_get(void)
   return temperature_value;
 }
 
+char*
+temperature_as_string(void)
+{
+  PRINTF("-- Temperature: Get string value\r\n");
+  return &temperature_string_buffer;
+}
 
