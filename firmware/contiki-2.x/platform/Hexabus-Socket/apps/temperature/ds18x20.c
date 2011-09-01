@@ -54,11 +54,11 @@ void DS18X20_show_id_uart( uint8_t *id, size_t n )
 	size_t i;
 
 	for( i = 0; i < n; i++ ) {
-		if ( i == 0 ) { PRINTF ( " FC:" ); }
-		else if ( i == n-1 ) { PRINTF ( " CRC:" ); }
+		if ( i == 0 ) { PRINTF ( " FC: " ); }
+		else if ( i == n-1 ) { PRINTF ( " CRC: " ); }
 		if ( i == 1 ) { PRINTF ( " SN: " ); }
 		//uart_puthex_byte(id[i]);
-		PRINTF("%X:", id[i]);
+		PRINTF("%X", id[i]);
 		if ( i == 0 ) {
 			if ( id[0] == DS18S20_FAMILY_CODE ) { PRINTF (" (18S)"); }
 			else if ( id[0] == DS18B20_FAMILY_CODE ) { PRINTF (" (18B)"); }
