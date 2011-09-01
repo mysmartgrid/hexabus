@@ -23,11 +23,13 @@ static float temperature_value=0.0;
 void
 temperature_init(void)
 {
+  char buffer[10];
   PRINTF("-- Temperature: INIT\r\n");
   initTempSensors();
   loopTempSensors();
   temperature_value=getTemperatureFloat();
-  PRINTF("Current temp: %f deg C\r\n", temperature_value);
+  dtostrf(temperature_value, 9, 4, &buffer);
+  PRINTF("Current temp: %s deg C\r\n", buffer);
 }
 
 void
