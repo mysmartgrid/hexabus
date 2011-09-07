@@ -489,7 +489,7 @@ void mac_LowpanToEthernet(void)
   //Check for broadcast message
   
 #if RF230BB || RF212BB
-  if(usbstick_mode.raw == 0 && rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &rimeaddr_null)) {
+  if(rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &rimeaddr_null)) {
 //  if(rimeaddr_cmp((const rimeaddr_t *)destAddr, &rimeaddr_null)) {
 #else
   if(  ( parsed_frame->fcf->destAddrMode == SHORTADDRMODE) &&
@@ -546,8 +546,8 @@ void mac_LowpanToEthernet(void)
   PRINTF("Low2Eth: Sending packet to ethernet\n\r");
 
   uip_len += UIP_LLH_LEN;
-
-  usb_eth_send(uip_buf, uip_len, 1);
+  if (usbstick_mode.raw == 0)
+	  usb_eth_send(uip_buf, uip_len, 1);
 #if !RF230BB && !RF212BB
   usb_eth_stat.rxok++;
 #endif

@@ -196,8 +196,8 @@ udphandler(process_event_t ev, process_data_t data)
 				case SET_DEFAULT:
 					PRINTF("udp_handler: SET_DEFAULT\r\n");
 					cli();
-					eeprom_write_word((void *)EE_PAN_ID, 0xABCD); //set default pan id
-					eeprom_write_byte((void *)EE_METERING_CAL_FLAG, 0xFF);// enable metering calibration
+					eeprom_write_word((uint16_t *)EE_PAN_ID, 0xABCD); //set default pan id
+					eeprom_write_byte((uint8_t *)EE_METERING_CAL_FLAG, 0xFF);// enable metering calibration
 					uint8_t dns_name[] = {0x53, 0x6f, 0x63, 0x6b, 0x65, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // Socket is the default dns name
 					eeprom_write_block(dns_name, (void *)EE_DOMAIN_NAME, EE_DOMAIN_NAME_SIZE);
 					/* Execute reset via the watchdog */

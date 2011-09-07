@@ -102,7 +102,7 @@ set_relay_default(bool d_value)
 {
   if (relay_default_state != d_value)
     {
-      eeprom_write_byte((void*) EE_RELAY_DEFAULT, (unsigned char)d_value);
+      eeprom_write_byte((uint8_t *) EE_RELAY_DEFAULT, (unsigned char)d_value);
       relay_default_state = d_value;
     }
 }

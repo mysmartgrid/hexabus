@@ -95,8 +95,12 @@ PROCESS_THREAD(button_pressed_process, ev, data)
 					if (!metering_calibrate()) //start bootloader if calibration flag is not set
 					{
 						// bootloader (set flag in EEPROM and reboot)
-						eeprom_write_byte((void *)EE_BOOTLOADER_FLAG, 0x01);
+						eeprom_write_byte((uint8_t *)EE_BOOTLOADER_FLAG, 0x01);
 						watchdog_reboot();
+					}
+					else { //wait thus no second miss click can occur
+						etimer_set(&button_timer, CLOCK_SECOND * 4 * PAUSE_TIME / 1000);
+						PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&button_timer));
 					}
 				}
 			}

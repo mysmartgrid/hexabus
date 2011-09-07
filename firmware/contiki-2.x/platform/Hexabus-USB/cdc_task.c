@@ -204,7 +204,7 @@ void cdc_set_pan_id(void)
 	}
 	sscanf(pan_id_str, "%x", &pan_id);
 	PRINTF_P(PSTR("\n\rSetting new PAN ID to: %X\n\r"),pan_id);
-	eeprom_write_word ((void *)EE_PAN_ID, pan_id);
+	eeprom_write_word ((uint16_t *)EE_PAN_ID, pan_id);
 	PRINTF_P(PSTR("Reset the USB-Stick so that changes take effect!\n\r"));
 }
 

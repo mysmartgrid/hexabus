@@ -36,6 +36,7 @@ static uint16_t metering_reference_value;
 static uint8_t metering_calibration_state = 0;
 static uint16_t metering_power;
 static bool metering_calibration = false;
+
 /*calculates the consumed energy on the basis of the counted pulses (num_pulses) in i given period (integration_time)
  * P = 247.4W/Hz * f_CF */
 uint16_t
@@ -134,17 +135,17 @@ ISR(METERING_VECT)
 		  if (clock_time() > metering_pulse_period)
 				metering_pulse_period = clock_time() - metering_pulse_period;
 		  else //overflow of clock_time()
-			  metering_pulse_period = 0xFFFF - metering_pulse_period + clock_time() + 1;
+			  metering_pulse_period = (0xFFFF - metering_pulse_period) + clock_time() + 1;
 
 		  metering_pulse_period /= 10;
 
 		  metering_reference_value = metering_pulse_period * metering_calibration_power;
 
 		  //store calibration in EEPROM
-		  eeprom_write_word((void*) EE_METERING_REF, metering_reference_value);
+		  eeprom_write_word((uint16_t*) EE_METERING_REF, metering_reference_value);
 
 		  //lock calibration by setting flag in eeprom
-		  eeprom_write_byte((void*) EE_METERING_CAL_FLAG, 0x00);
+		  eeprom_write_byte((uint8_t*) EE_METERING_CAL_FLAG, 0x00);
 
 		  metering_calibration_state = 0;
 		  metering_calibration = false;
@@ -159,7 +160,7 @@ ISR(METERING_VECT)
 	 if (clock_time() > clock_old)
 		 metering_pulse_period = clock_time() - clock_old;
 	 else //overflow of clock_time()
-	  	 metering_pulse_period = 0xFFFF - clock_old + clock_time() + 1;
+	  	 metering_pulse_period = (0xFFFF - clock_old) + clock_time() + 1;
 
 	  clock_old = clock_time();
       //calculate and set electrical power

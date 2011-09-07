@@ -225,7 +225,7 @@ int provisioning_slave(void) {
 		}
 		PRINTF("\n");
 		AVR_ENTER_CRITICAL_REGION();
-		eeprom_write_word((void *)EE_PAN_ID, packet->pan_id);
+		eeprom_write_word((uint16_t *)EE_PAN_ID, packet->pan_id);
 		eeprom_write_block(packet->aes_key, (void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
 		AVR_LEAVE_CRITICAL_REGION();
 		provisioning_done_leds();
