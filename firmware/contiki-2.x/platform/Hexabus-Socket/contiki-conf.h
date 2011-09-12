@@ -33,9 +33,10 @@
 
 /**
  * \file
- *         Configuration for Atmel Raven
+ *         Configuration for HexaBus Socket
  *
  * \author
+ * 		   Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
  *         Simon Barner <barner@in.tum.de>
  *         David Kopf <dak664@embarqmail.com>
  */

@@ -28,6 +28,8 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
+ *Author: 	Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
+ *			Mathias Dalheimer <>
  */
 
 #include "udp_handler.h"

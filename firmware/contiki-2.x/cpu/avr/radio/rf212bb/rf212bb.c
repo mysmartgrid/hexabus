@@ -34,7 +34,8 @@
  *  \brief This module contains radio driver code for the Atmel
  *  AT86RF212. It is modified to use the contiki core MAC layer.
  *
- *  \author Blake Leverett <bleverett@gmail.com>
+ *  \author Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
+ *  		Blake Leverett <bleverett@gmail.com>
  *          Mike Vidales <mavida404@gmail.com>
  *          Eric Gnoske <egnoske@gmail.com>
  *          David Kopf <dak664@embarqmail.com>
@@ -893,7 +894,8 @@ int rf212_read(void *buf, unsigned short bufsize)
 		return 0;
 	}
 #ifdef RF212BB_HOOK_RX_PACKET
-	RF212BB_HOOK_RX_PACKET(buf,len);
+	if (RF212BB_HOOK_RX_PACKET(buf,len)) //don't process pakets in raw-mode
+		return 0;
 #endif
 
 	/* Here return just the data length. The checksum is however still in the buffer for packet sniffing */

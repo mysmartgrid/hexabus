@@ -28,7 +28,8 @@
  *
  * This file is part of the Contiki operating system.
  *
- * Author: Simon Barner <barner@in.tum.de>
+ * Author: 	Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
+ * 			Simon Barner <barner@in.tum.de>
  *
  * @(#)$$
  */

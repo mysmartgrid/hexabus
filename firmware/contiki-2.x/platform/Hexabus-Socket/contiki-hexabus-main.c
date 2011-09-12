@@ -28,6 +28,8 @@
  *
  * This file is part of the Contiki operating system.
  *
+ * Author: 	Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
+ *
  * @(#)$$
  */
 #define ANNOUNCE_BOOT 1    //adds about 600 bytes to program size

@@ -1,13 +1,13 @@
 /**
  * @file
- * @brief This file contains the register definitions for the AT86RF230.
- * $Id: at86rf230_registermap.h,v 1.1 2009/07/08 16:17:07 dak664 Exp $
+ * @brief This file contains the register definitions for the AT86RF212.
  */
 /*   Copyright (c) 2008, Swedish Institute of Computer Science
   All rights reserved. 
 
   Additional fixes for AVR contributed by:
 
+	Günter Hildebrandt guenter.hildebrandt@esk.fraunhofer.de
 	Colin O'Flynn coflynn@newae.com
 	Eric Gnoske egnoske@gmail.com
 	Blake Leverett bleverett@gmail.com

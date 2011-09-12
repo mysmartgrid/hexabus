@@ -33,9 +33,10 @@
 
 /**
  * \file
- *        Sample Contiki kernel for STK 501 development board
+ *        Sample Contiki kernel for HexaBus Socket
  *
  * \author
+ * 		   Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
  *         Simon Barner <barner@in.tum.de
  */
 

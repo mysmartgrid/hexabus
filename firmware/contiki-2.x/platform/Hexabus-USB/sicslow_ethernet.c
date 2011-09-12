@@ -4,6 +4,7 @@
  *
  * \author
  *         Colin O'Flynn <coflynn@newae.com>
+ *         Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
  *
  * \addtogroup usbstick 
  */
@@ -967,7 +968,7 @@ void slide(uint8_t * data, uint8_t length, int16_t slide)
 //#define ETHBUF(x) ((struct uip_eth_hdr *)x)
 //#define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 
-void
+uint8_t
 mac_log_802_15_4_tx(const uint8_t* buffer, size_t total_len) {
   if (usbstick_mode.raw != 0) {
     uint8_t sendlen;
@@ -1007,10 +1008,13 @@ mac_log_802_15_4_tx(const uint8_t* buffer, size_t total_len) {
 
     sendlen += UIP_LLH_LEN;
     usb_eth_send(raw_buf, sendlen, 0);
+    return 1;
+  } else {
+	return 0;
   }
 }
 
-void
+uint8_t
 mac_log_802_15_4_rx(const uint8_t* buf, size_t len) {
   if (usbstick_mode.raw != 0) {
     uint8_t sendlen;
@@ -1047,6 +1051,9 @@ mac_log_802_15_4_rx(const uint8_t* buf, size_t len) {
 
     sendlen += UIP_LLH_LEN;
     usb_eth_send(raw_buf, sendlen, 0);
+    return 1;
+  } else {
+	return 0;
   }
 }
 /* The rf230bb send driver may call this routine via  RF230BB_HOOK_IS_SEND_ENABLED */

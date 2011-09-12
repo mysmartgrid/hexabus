@@ -154,8 +154,8 @@ extern bool mac_is_send_enabled(void);
 
 
 extern bool mac_is_send_enabled(void);
-extern void mac_log_802_15_4_tx(const uint8_t* buffer, size_t total_len);
-extern void mac_log_802_15_4_rx(const uint8_t* buffer, size_t total_len);
+extern uint8_t mac_log_802_15_4_tx(const uint8_t* buffer, size_t total_len);
+extern uint8_t mac_log_802_15_4_rx(const uint8_t* buffer, size_t total_len);
 
 
 
