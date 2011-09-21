@@ -287,7 +287,6 @@ udphandler(process_event_t ev, process_data_t data)
             struct hxb_packet_int* event_packet = malloc(sizeof(struct hxb_packet_int));
             memcpy(event_packet, packet, sizeof(struct hxb_packet_int));
             process_post(PROCESS_BROADCAST, hxb_broadcast_received_event, event_packet);
-            printf("[%d]", event_packet);
           }
         }
         else
