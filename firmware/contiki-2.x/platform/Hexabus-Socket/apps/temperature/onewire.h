@@ -47,7 +47,7 @@ extern "C" {
 // Based on information from Sascha Schade. Experimental but worked in tests
 // with one DS18B20 and one DS18S20 on a rather short bus (60cm), where both 
 // sensores have been parasite-powered.
-#define OW_USE_INTERNAL_PULLUP     0  /* 0=external, 1=internal */
+#define OW_USE_INTERNAL_PULLUP     1  /* 0=external, 1=internal */
 
 /*******************************************/
 
