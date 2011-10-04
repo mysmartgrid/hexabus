@@ -18,9 +18,48 @@
 #include "debug.h"
 #include "tempsensors.h"
 
+static struct etimer temperature_periodic_timer;
+
 //local variables
 static float temperature_value=0.0;
 static char temperature_string_buffer[10];
+
+
+PROCESS(temperature_process, "HEXABUS Socket temperature Process");
+AUTOSTART_PROCESSES(&temperature_process);
+
+/*---------------------------------------------------------------------------*/
+static void
+pollhandler(void) {
+	PRINTF("----Socket_temperature_handler: Process polled\r\n");
+}
+
+static void
+exithandler(void) {
+	PRINTF("----Socket_temperature_handler: Process exits.\r\n");
+}
+/*---------------------------------------------------------------------------*/
+
+
+//static void
+//temperature(process_event_t ev, process_data_t data)
+//{
+//	if (ev == &temperature_periodic_timer) {
+//		temperature_get();
+//	}
+//	etimer_reset(&temperature_periodic_timer);
+//}
+
+
+
+
+
+
+
+
+
+
+
 
 void _update_temp_string(void) {
   dtostrf(temperature_value, 9, 4, &temperature_string_buffer);
@@ -34,7 +73,7 @@ temperature_init(void)
   loopTempSensors();
   temperature_value=getTemperatureFloat();
   _update_temp_string();
-  PRINTF("Current temp: %s deg C\r\n", temperature_string_buffer);
+  // PRINTF("Current temp: %s deg C\r\n", temperature_string_buffer);
 }
 
 void
@@ -55,11 +94,15 @@ temperature_reset(void)
   PRINTF("-- Temperature: RESET\r\n");
 }
 
-float
+void
 temperature_get(void)
 {
   PRINTF("-- Temperature: Get value\r\n");
-  return temperature_value;
+  loopTempSensors();
+  temperature_value=getTemperatureFloat();
+  _update_temp_string();
+  PRINTF("Current temp: %s deg C\r\n", temperature_string_buffer);
+  // return temperature_value;
 }
 
 char*
@@ -69,3 +112,39 @@ temperature_as_string(void)
   return &temperature_string_buffer;
 }
 
+
+/*---------------------------------------------------------------------------*/
+
+PROCESS_THREAD(temperature_process, ev, data) {
+	PROCESS_POLLHANDLER(pollhandler());
+	PROCESS_EXITHANDLER(exithandler());
+
+	// see: http://senstools.gforge.inria.fr/doku.php?id=contiki:examples
+	PROCESS_BEGIN();
+	PRINTF("temperature: process startup.\r\n");
+
+	// wait 3 second
+	etimer_set(&temperature_periodic_timer, CLOCK_CONF_SECOND*3);
+	// wait until the timer has expired
+	PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_TIMER);
+
+	temperature_init(); // Init the Tempsensors
+	
+	// wait 3 sec
+	etimer_set(&temperature_periodic_timer, CLOCK_CONF_SECOND*3);
+	// wait until the timer has expired
+	PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_TIMER);
+
+	// set the timer to 60 sec
+	etimer_set(&temperature_periodic_timer, 60*CLOCK_SECOND);
+
+	//everytime the timer event appears, get the temperature and rreset the timer
+	while(1){
+		if (ev == PROCESS_EVENT_TIMER) {
+			temperature_get();
+		}
+		etimer_reset(&temperature_periodic_timer);
+		PROCESS_WAIT_EVENT();
+	}
+	PROCESS_END();
+}

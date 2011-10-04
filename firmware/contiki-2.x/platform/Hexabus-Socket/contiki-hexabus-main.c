@@ -310,7 +310,8 @@ void initialize(void)
   metering_init();
 
   /* Init Temp Sensor */
-  temperature_init();
+  process_start(&temperature_process, NULL);
+  // temperature_init();
 
   /*Init Relay */
   relay_init();
