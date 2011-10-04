@@ -24,9 +24,6 @@ static struct etimer temperature_periodic_timer;
 static float temperature_value=0.0;
 static char temperature_string_buffer[10];
 
-PROCESS(temperature_process, "HEXABUS Socket temperature Process");
-AUTOSTART_PROCESSES(&temperature_process);
-
 /*---------------------------------------------------------------------------*/
 static void
 pollhandler(void) {
@@ -102,7 +99,6 @@ PROCESS_THREAD(temperature_process, ev, data) {
 	PRINTF("temperature: process startup.\r\n");
 
 	// wait 3 second
-	PRINTF("einmal 3sec warten\r\n");	
 	etimer_set(&temperature_periodic_timer, CLOCK_CONF_SECOND*3);
 	// wait until the timer has expired
 	PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_TIMER);
