@@ -24,6 +24,9 @@ static struct etimer temperature_periodic_timer;
 static float temperature_value=0.0;
 static char temperature_string_buffer[10];
 
+PROCESS(temperature_process, "HEXABUS Socket temperature Process");
+AUTOSTART_PROCESSES(&temperature_process);
+
 /*---------------------------------------------------------------------------*/
 static void
 pollhandler(void) {
