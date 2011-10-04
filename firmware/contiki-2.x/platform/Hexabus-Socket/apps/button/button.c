@@ -87,7 +87,6 @@ PROCESS_THREAD(button_pressed_process, ev, data)
 					if (!double_click && clock_time() - time < CLOCK_SECOND * CLICK_TIME / 1000)
 					{ //SHORT SINGLE CLICK
 						//TODO connection test
-
 					}
 					else if (!double_click && clock_time() - time < CLOCK_SECOND * LONG_CLICK_TIME / 1000)
 					{ //SINGLE CLICK (>2s)

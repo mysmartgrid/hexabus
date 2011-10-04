@@ -12,8 +12,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "process.h"
 
 
+PROCESS_NAME(temperature_process);
 #define METERING_VECT 		INT1_vect //Interrupt for the Metering
 
 
@@ -26,7 +28,7 @@
 /** \brief This function returns the measured electrical power in Watt.
  *
  **/
-float 	temperature_get(void);
+void 	temperature_get(void);
 char* temperature_as_string(void);
 void 	temperature_init(void);
 void	temperature_start(void);
