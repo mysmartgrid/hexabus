@@ -108,6 +108,8 @@
 #include "udp_handler.h"
 #include "mdns_responder.h"
 
+uint8_t nSensors = 0; //number of found temperature sensors
+
 uint8_t forwarding_enabled; //global variable for forwarding
  uint8_t encryption_enabled = 1; //global variable for AES encryption
 /*-------------------------------------------------------------------------*/
@@ -310,8 +312,12 @@ void initialize(void)
   metering_init();
 
   /* Init Temp Sensor */
-  process_start(&temperature_process, NULL);
-  // temperature_init();
+  temperature_init();
+  
+  //Check whether there are temperature sensors connected, if so start the process.
+  if(nSensors > 0){
+    process_start(&temperature_process, NULL);
+  }
 
   /*Init Relay */
   relay_init();

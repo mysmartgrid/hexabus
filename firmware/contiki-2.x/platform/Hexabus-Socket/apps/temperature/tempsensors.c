@@ -99,7 +99,7 @@ void uart_put_temp_maxres(int32_t tval) {
 
 #endif /* DS18X20_MAX_RESOLUTION */
 
-void initTempSensors(void) {
+uint8_t initTempSensors(void) {
   PRINTF("Searching for OneWire temperature sensors." NEWLINESTR );
   nSensors = search_sensors();
 #if DS18X20_VERBOSE
@@ -112,6 +112,7 @@ void initTempSensors(void) {
 	PRINTF( NEWLINESTR );
   }
 #endif
+  return nSensors;
 }	
 
 void loopTempSensors(void) {
