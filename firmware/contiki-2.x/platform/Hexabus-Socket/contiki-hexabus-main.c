@@ -101,6 +101,7 @@
 #include "button.h"
 #include "metering.h"
 #include "relay.h"
+#include "shutter.h"
 #include "eeprom_variables.h"
 #include "udp_handler.h"
 #include "mdns_responder.h"
@@ -306,6 +307,12 @@ void initialize(void)
   /* process handling received HEXABUS broadcasts */
   process_start(&hxb_broadcast_handler_process, NULL);
 
+  /*Init Relay */
+  relay_init();
+
+  /* process for shutter control*/
+  process_start(&shutter_button_process, NULL);
+
   mdns_responder_init();
 
   /* Button Process */
@@ -314,8 +321,8 @@ void initialize(void)
   /* Init Metering */
   metering_init();
 
-  /*Init Relay */
-  relay_init();
+  /*Init Shutter*/
+  shutter_init(); 
 
   /* Autostart other processes */
   autostart_start(autostart_processes);
