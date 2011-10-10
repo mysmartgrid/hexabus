@@ -3,6 +3,7 @@
  *
  *  Additional fixes for AVR contributed by:
  *
+ *	Günter Hildebrandt guenter.hildebrandt@esk.fraunhofer.de
  *	Colin O'Flynn coflynn@newae.com
  *	Eric Gnoske egnoske@gmail.com
  *	Blake Leverett bleverett@gmail.com

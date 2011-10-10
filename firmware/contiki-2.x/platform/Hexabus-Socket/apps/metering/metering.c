@@ -1,10 +1,36 @@
 /*
- * metering.c
+ * Copyright (c) 2011, Fraunhofer ESK
+ * All rights reserved.
  *
- *  Created on: 20.04.2011
- *      Author: Gï¿½nter Hildebrandt
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the Institute nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ *
+ *
+ * Author: 	Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
+ *
+ * @(#)$$
  */
-
 #include "metering.h"
 #include <avr/io.h>
 #include <util/delay.h>
@@ -36,6 +62,7 @@ static uint16_t metering_reference_value;
 static uint8_t metering_calibration_state = 0;
 static uint16_t metering_power;
 static bool metering_calibration = false;
+
 /*calculates the consumed energy on the basis of the counted pulses (num_pulses) in i given period (integration_time)
  * P = 247.4W/Hz * f_CF */
 uint16_t
@@ -86,6 +113,18 @@ metering_reset(void)
 uint16_t
 metering_get_power(void)
 {
+  uint16_t tmp;
+  /*check whether measurement is up to date */
+  if (clock_time() > clock_old)
+	  tmp = (clock_time() - clock_old);
+  else
+	  tmp = (0xFFFF - clock_old + clock_time() + 1);
+
+  if (tmp > OUT_OF_DATE_TIME * CLOCK_SECOND)
+	  metering_power = 0;
+  else if (metering_power != 0 && tmp > 2 * (metering_reference_value / metering_power))
+	  metering_power = calc_power(tmp);
+
   return metering_power;
 }
 
@@ -122,17 +161,17 @@ ISR(METERING_VECT)
 		  if (clock_time() > metering_pulse_period)
 				metering_pulse_period = clock_time() - metering_pulse_period;
 		  else //overflow of clock_time()
-			  metering_pulse_period = 0xFFFF - metering_pulse_period + clock_time() + 1;
+			  metering_pulse_period = (0xFFFF - metering_pulse_period) + clock_time() + 1;
 
 		  metering_pulse_period /= 10;
 
 		  metering_reference_value = metering_pulse_period * metering_calibration_power;
 
 		  //store calibration in EEPROM
-		  eeprom_write_word((void*) EE_METERING_REF, metering_reference_value);
+		  eeprom_write_word((uint16_t*) EE_METERING_REF, metering_reference_value);
 
 		  //lock calibration by setting flag in eeprom
-		  eeprom_write_byte((void*) EE_METERING_CAL_FLAG, 0x00);
+		  eeprom_write_byte((uint8_t*) EE_METERING_CAL_FLAG, 0x00);
 
 		  metering_calibration_state = 0;
 		  metering_calibration = false;
@@ -147,7 +186,7 @@ ISR(METERING_VECT)
 	 if (clock_time() > clock_old)
 		 metering_pulse_period = clock_time() - clock_old;
 	 else //overflow of clock_time()
-	  	 metering_pulse_period = 0xFFFF - clock_old + clock_time() + 1;
+	  	 metering_pulse_period = (0xFFFF - clock_old) + clock_time() + 1;
 
 	  clock_old = clock_time();
       //calculate and set electrical power

@@ -28,9 +28,10 @@
  *
  * This file is part of the Contiki operating system.
  *
- * Author: Adam Dunkels <adam@sics.se>
  *
- * $Id: httpd.c,v 1.6 2010/12/20 20:06:06 dak664 Exp $
+ * Author:  Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
+ * 			Adam Dunkels <adam@sics.se>
+ *
  */
 
 #include <string.h>

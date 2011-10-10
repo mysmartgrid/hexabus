@@ -147,15 +147,15 @@ static inline uint8_t radio_is_ready_to_send_() {
 //#pragma mark RF230BB Hooks
 /* ************************************************************************** */
 
-#define RF230B_HOOK_TX_PACKET(buffer,total_len) mac_log_802_15_4_tx(buffer,total_len)
-#define RF230BB_HOOK_RX_PACKET(buffer,total_len) mac_log_802_15_4_rx(buffer,total_len)
-#define	RF230BB_HOOK_IS_SEND_ENABLED()	mac_is_send_enabled()
+#define RF212BB_HOOK_TX_PACKET(buffer,total_len) mac_log_802_15_4_tx(buffer,total_len)
+#define RF212BB_HOOK_RX_PACKET(buffer,total_len) mac_log_802_15_4_rx(buffer,total_len)
+#define	RF212BB_HOOK_IS_SEND_ENABLED()	mac_is_send_enabled()
 extern bool mac_is_send_enabled(void);
 
 
 extern bool mac_is_send_enabled(void);
-extern void mac_log_802_15_4_tx(const uint8_t* buffer, size_t total_len);
-extern void mac_log_802_15_4_rx(const uint8_t* buffer, size_t total_len);
+extern uint8_t mac_log_802_15_4_tx(const uint8_t* buffer, size_t total_len);
+extern uint8_t mac_log_802_15_4_rx(const uint8_t* buffer, size_t total_len);
 
 
 
@@ -274,13 +274,13 @@ extern void mac_log_802_15_4_rx(const uint8_t* buffer, size_t total_len);
 
 /* Request 802.15.4 ACK on all packets sent by sicslowpan.c (else autoretry) */
 /* Broadcasts will be duplicated by the retry count, since no one will ACK them! */
-#define SICSLOWPAN_CONF_ACK_ALL   0
+#define SICSLOWPAN_CONF_ACK_ALL   1
 /* Number of auto retry attempts 0-15 (0 implies don't use extended TX_ARET_ON mode with CCA) */
 
 #if RF230BB
-#define RF230_CONF_AUTORETRIES    1
+#define RF230_CONF_AUTORETRIES    2
 #elif RF212BB
-#define RF212_CONF_AUTORETRIES    1
+#define RF212_CONF_AUTORETRIES    2
 #endif
 
 /* CCA theshold energy -91 to -61 dBm (default -77). Set this smaller than the expected minimum rssi to avoid packet collisions */

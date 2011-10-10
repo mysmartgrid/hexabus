@@ -92,8 +92,12 @@ uint16_t mac_dst_pan_id = IEEE802154_PANID;
  */
 uint16_t mac_src_pan_id = IEEE802154_PANID;
 
-#define HEXABUS_SOCKET	4
-#define HEXABUS_USB		5
+#ifndef HEXABUS_SOCKET
+	#define HEXABUS_SOCKET	4
+#endif
+#ifndef HEXABUS_SOCKET
+	#define HEXABUS_USB		5
+#endif
 #if RAVEN_REVISION == HEXABUS_SOCKET
 extern uint8_t forwarding_enabled; //global variable for forwarding
 #else
@@ -258,6 +262,8 @@ send_packet(mac_callback_t sent, void *ptr)
     params.fcf.dest_addr_mode = FRAME802154_SHORTADDRMODE;
     params.dest_addr[0] = 0xFF;
     params.dest_addr[1] = 0xFF;
+    /*Disable 802.15.4 ACK for broadcast messages, else broadcasts will be duplicated by the retry count, since no one will ACK them!*/
+    params.fcf.ack_required = 0;
 
   } else {
     rimeaddr_copy((rimeaddr_t *)&params.dest_addr,

@@ -111,8 +111,13 @@ struct uip_stats uip_stat;
 #endif /* UIP_STATISTICS == 1 */
  
 
-#define HEXABUS_SOCKET	4
-#define HEXABUS_USB		5
+#ifndef HEXABUS_SOCKET
+	#define HEXABUS_SOCKET	4
+#endif
+#ifndef HEXABUS_SOCKET
+	#define HEXABUS_USB		5
+#endif
+
 #if RAVEN_REVISION == HEXABUS_SOCKET
 extern uint8_t forwarding_enabled;
 #else

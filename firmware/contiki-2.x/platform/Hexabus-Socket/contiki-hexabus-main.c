@@ -104,6 +104,8 @@
 #include "eeprom_variables.h"
 #include "udp_handler.h"
 #include "mdns_responder.h"
+#include "value_broadcast.h"
+#include "hxb_broadcast_handler.h"
 
 uint8_t forwarding_enabled; //global variable for forwarding
  uint8_t encryption_enabled = 1; //global variable for AES encryption
@@ -142,9 +144,9 @@ volatile uint8_t ee_mem[EESIZE] EEMEM =
 	0x01,		//ee_first_run
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //ee_encryption_key
 	0x53, 0x6f, 0x63, 0x6b, 0x65, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // ee_domain_name (Socket)
-	0x78, 0xCD, //ee_metering_ref (247,4 * 125) = 30925;
-	0x00, 0x64, //ee_metering_cal_load (100 W)
-	0x00, 		//ee_metering_cal_flag (0xFF: calibration is unlocked, any other value: locked)
+	0xCD, 0x78, //ee_metering_ref (247,4 * 125) = 30925;
+	0x64, 0x00, //ee_metering_cal_load (100 W)
+	0xFF, 		//ee_metering_cal_flag (0xFF: calibration is unlocked, any other value: locked)
 	0x00, 		//ee_relay_default (0x00: off, 0x01: on)
 	0x00,		 //ee_forwarding (0x00: off, 0x01: forward all incoming traffic);
 };
@@ -177,7 +179,7 @@ void get_aes128key_from_eeprom(uint8_t keyptr[16]) {
 }
 
 void set_forwarding_to_eeprom(uint8_t val) {
-	 eeprom_write_byte ((void *)EE_FORWARDING, val);
+	 eeprom_write_byte ((uint8_t *)EE_FORWARDING, val);
 	 forwarding_enabled = val;
 }
 
@@ -297,6 +299,12 @@ void initialize(void)
 
   /* Handler for HEXABUS UDP Packets */
   process_start(&udp_handler_process, NULL);
+
+  /* Process for periodic sending of HEXABUS data */
+  process_start(&value_broadcast_process, NULL);
+
+  /* process handling received HEXABUS broadcasts */
+  process_start(&hxb_broadcast_handler_process, NULL);
 
   mdns_responder_init();
 
