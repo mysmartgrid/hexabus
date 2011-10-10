@@ -49,6 +49,14 @@ struct hxb_packet_error {
   uint16_t crc;
 } __attribute__ ((packed));
 
+// Data structure(s) for representig received values (broadcast or reply) on a device (for inter-process communication, where the IP information around the packet is gone)
+struct hxb_data_int {
+  char    source[16]; // IP address of the device that sent the broadcast
+  uint8_t datatype;
+  uint8_t vid;
+  uint8_t value;
+} __attribute__ ((packed));
+
 // Packet header - Hexabus Packets must begin with this character sequence
 #define HXB_HEADER "HX0B"
 
@@ -62,7 +70,7 @@ struct hxb_packet_error {
 #define HXB_PTYPE_SETVALUE  0x02  // Target device is requested to set [vid] := value
 #define HXB_PTYPE_REQVALUE  0x03  // Target device is requested to broadcast the value with the ID vid
 #define HXB_PTYPE_REPLY     0x04  // This is the reply to a REQVALUE - it looks the same as a BROADCAST, except ist not sent to a multicast address, but to the Device that sent the REQVALUE
-//TODO HXB_PTYPE_ACK, HXB_PTYPE_RESET, HXB_PTYPE_HEARTBEAT
+//TODO HXB_PTYPE_ACK, HXB_PTYPE_RESET, HXB_PTYPE_HEARTBEAT -- geht alles als INFO
 
 // Defines for flags
 #define HXB_FLAG_IMPORTANT  0x01  // Packet should be ACKnowledged, otherwise it is retransmitted

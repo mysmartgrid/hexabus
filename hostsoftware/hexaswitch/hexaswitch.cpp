@@ -81,7 +81,8 @@ void send_packet(boost::asio::ip::udp::socket* socket, char* addr, unsigned int 
 void usage()
 {
     printf("\nusage: hexaswitch hostname command\n");
-    printf("       hexaswitch listen\n\n");
+    printf("       hexaswitch listen\n");
+    printf("       hexaswitch send VID value\n\n");
     printf("commands are:\n");
     printf("  set VID value   set VID to VALUE\n");
     printf("  get VID         query the value of VID\n");
@@ -92,11 +93,11 @@ void usage()
     printf("  power           get power consumption (same as get 1)\n");
 }
 
-hxb_packet_bool build_setvalue_packet(uint8_t vid, uint8_t datatype, uint8_t value)
+hxb_packet_bool build_setvalue_packet(uint8_t vid, uint8_t datatype, uint8_t value, bool broadcast)
 {
   struct hxb_packet_bool packet;
   strncpy((char*)&packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_SETVALUE;
+  packet.type = broadcast ? HXB_PTYPE_BROADCAST : HXB_PTYPE_SETVALUE;
   packet.flags = 0;
   packet.vid = vid;
   packet.datatype = datatype;
@@ -157,12 +158,12 @@ int main(int argc, char** argv)
   // build the hexabus packet
   if(!strcmp(argv[2], "on"))            // on: set VID 0 to TRUE
   {
-    hxb_packet_bool packet = build_setvalue_packet(0, HXB_DTYPE_BOOL, HXB_TRUE);
+    hxb_packet_bool packet = build_setvalue_packet(0, HXB_DTYPE_BOOL, HXB_TRUE, false);
     send_packet(socket, argv[1], HEXABUS_PORT, (char*)&packet, sizeof(packet));
   }
   else if(!strcmp(argv[2], "off"))      // off: set VID 0 to FALSE
   {
-    hxb_packet_bool packet = build_setvalue_packet(0, HXB_DTYPE_BOOL, HXB_FALSE);
+    hxb_packet_bool packet = build_setvalue_packet(0, HXB_DTYPE_BOOL, HXB_FALSE, false);
     send_packet(socket, argv[1], HEXABUS_PORT, (char*)&packet, sizeof(packet));
   }
   else if(!strcmp(argv[2], "status"))   // status: query VID 0
@@ -183,7 +184,7 @@ int main(int argc, char** argv)
     {
       uint8_t val = atoi(argv[4]);
       uint8_t vid = atoi(argv[3]);
-      hxb_packet_bool packet = build_setvalue_packet(vid, 0, val); // TODO set datatype, otherwise this will be useless.
+      hxb_packet_bool packet = build_setvalue_packet(vid, HXB_DTYPE_UINT8, val, false);
       send_packet(socket, argv[1], HEXABUS_PORT, (char*)&packet, sizeof(packet));
     }
     else
@@ -200,6 +201,21 @@ int main(int argc, char** argv)
       hxb_packet_req packet = build_valuerequest_packet(vid);
       send_packet(socket, argv[1], HEXABUS_PORT, (char*)&packet, sizeof(packet));
       receive_packet(io_service, socket);
+    }
+    else
+    {
+      usage();
+      exit(1);
+    }
+  }
+  else if(!strcmp(argv[1], "send"))      // send: send a value broadcast
+  {
+    if(argc == 4)
+    {
+      uint8_t val = atoi(argv[3]);
+      uint8_t vid = atoi(argv[2]);
+      hxb_packet_bool packet = build_setvalue_packet(vid, HXB_DTYPE_UINT8, val, true);
+      send_packet(socket, (char*)"ff02::1" , HEXABUS_PORT, (char*)&packet, sizeof(packet));
     }
     else
     {
