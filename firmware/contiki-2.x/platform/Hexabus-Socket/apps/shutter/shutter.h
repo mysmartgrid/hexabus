@@ -17,6 +17,9 @@
 #define SHUTTER_ENC1 PA4
 #define SHUTTER_ENC2 PA5
 
+#define ENC_VECT INT1_vect
+
+
 #elif defined(__AVR_ATmega2561__)
 //TODO
 #else
@@ -24,7 +27,7 @@
 #endif
 
 #define DEBOUNCE_TIME		   50
-#define ENCODER_TIMEOUT        500
+#define ENCODER_TIMEOUT        50
 
 
 void    shutter_init(void);
@@ -44,6 +47,6 @@ bool    shutter_get_state(void);
 int     shutter_get_state_int(void);
 
 PROCESS_NAME(shutter_button_process);
-//PROCESS_NAME(shutter_hexabus_process);
+PROCESS_NAME(shutter_full_process);
 
 #endif /* SHUTTER_H_ */

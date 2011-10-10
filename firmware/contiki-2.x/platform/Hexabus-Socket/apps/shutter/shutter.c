@@ -46,36 +46,49 @@
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 
+static process_event_t encoder_event;
+static bool bTrue = true;
+static bool bFalse = false;
+
 
 void shutter_init(void) {
     PRINTF("Shutter init\n");
     SHUTTER_DDR = ( 0x00 | (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
     SHUTTER_PORT |= ( (1<<SHUTTER_BUTTON_UP) | (1<<SHUTTER_BUTTON_DOWN) );
-
+    //FIXME: PCINT und shit
+    EICRA |= (1 << ISC10);
+    EICRA &= (0 << ISC11); //Interrupt on every change
+    EIMSK |= (1 << INT1); //Enable interrupt
+    //
 }
 
 void shutter_open(void) {
     PRINTF("Shutter open\n");
+    process_exit(&shutter_full_process);
     SHUTTER_PORT &= ~(1<<SHUTTER_OUT_DOWN);
     SHUTTER_PORT |= (1<<SHUTTER_OUT_UP);
 }
 
 void shutter_close(void) {
     PRINTF("Shutter close\n");
+    process_exit(&shutter_full_process);
     SHUTTER_PORT &= ~(1<<SHUTTER_OUT_UP);
     SHUTTER_PORT |= (1<<SHUTTER_OUT_DOWN);
 }
 
 void shutter_open_full(void) {
-//    process_start(&shutter_hexabus_process, "1");
+    process_exit(&shutter_full_process);
+    process_start(&shutter_full_process, &bTrue);
 }
 
 void shutter_close_full(void) {
-//    process_start(&shutter_hexabus_process. "0");
+    process_exit(&shutter_full_process);
+    process_start(&shutter_full_process, &bFalse);
 }
 
 void shutter_stop(void) {
     PRINTF("Shutter stop\n");
+    process_exit(&shutter_full_process);
     SHUTTER_PORT &= ~( (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
 }
 
@@ -90,11 +103,11 @@ int shutter_get_state_int(void) {
 }
 
 PROCESS(shutter_button_process, "React to attached shutter buttons\n");
-//PROCESS(shutter_hexabus_process, "React to hexabus packets");
+PROCESS(shutter_full_process, "Open/Close shutter until motor stopps");
 AUTOSTART_PROCESSES(&shutter_button_process);
 
-/*
-PROCESS_THREAD(shutter_hexabus_process, ev, data) {
+
+PROCESS_THREAD(shutter_full_process, ev, data) {
 
     shutter_init();
 
@@ -102,23 +115,32 @@ PROCESS_THREAD(shutter_hexabus_process, ev, data) {
 
     PROCESS_BEGIN();
 
-    etimer_set(&debounce_timer, CLOCK_SECOND * ENCODER_TIMEOUT / 1000);
+    etimer_set(&encoder_timer, CLOCK_SECOND * ENCODER_TIMEOUT / 100);
 
-    shutter_open();
+    if((bool*)data) { //FIXME
+        PRINTF("Fully opening shutter\n");
+        shutter_open();
+    } else {
+        PRINTF("Fully closing shutter\n");
+        shutter_close();
+    }
 
     while(1) {
 
         PROCESS_WAIT_EVENT();
 
         if(ev == PROCESS_EVENT_TIMER) {
+            PRINTF("Encoder timed out\n");
             shutter_stop();
             break;
-        } else if(ev == ENCODER_EVENT) {
+        } else if(ev == encoder_event) {
+            PRINTF("Got encoder event\n");
             etimer_restart(&encoder_timer);
         }
     }
+
+    PROCESS_END();
 }
-*/
 
 
 PROCESS_THREAD(shutter_button_process, ev, data) {
@@ -147,7 +169,8 @@ PROCESS_THREAD(shutter_button_process, ev, data) {
                 PRINTF("Waiting for button release\n");
                 etimer_restart(&debounce_timer);
                 PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&debounce_timer));
-            } while(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) || bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN));
+            } while( (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) ||
+                    (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_UP)) );
             shutter_stop();
         }
         PROCESS_PAUSE();
@@ -157,4 +180,6 @@ PROCESS_THREAD(shutter_button_process, ev, data) {
 }
 
              
-                
+ISR(ENC_VECT) {
+    process_post(&shutter_full_process, encoder_event, NULL);
+}

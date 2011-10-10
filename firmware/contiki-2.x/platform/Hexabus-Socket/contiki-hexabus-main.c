@@ -310,6 +310,9 @@ void initialize(void)
   /*Init Relay */
   relay_init();
 
+  /*Init Shutter*/
+  shutter_init();
+
   /* process for shutter control*/
   process_start(&shutter_button_process, NULL);
 
@@ -321,8 +324,6 @@ void initialize(void)
   /* Init Metering */
   metering_init();
 
-  /*Init Shutter*/
-  shutter_init(); 
 
   /* Autostart other processes */
   autostart_start(autostart_processes);
