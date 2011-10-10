@@ -57,7 +57,7 @@ include(CMakeBackwardCompatibilityCXX)
 FIND_PACKAGE(Boost 1.40.0 REQUIRED COMPONENTS system)
 
 # Reflect the package structure
-#add_subdirectory(config)
+add_subdirectory(libhexabus)
 add_subdirectory(src)
 
 # add some files to the installation target

@@ -1,22 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <boost/crc.hpp>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
+#include <libhexabus/crc.hpp>
 
 #include "../../shared/hexabus_packet.h"
 
-uint16_t crc16(const char* input, unsigned int length)
-{
-  boost::crc_optimal<16, 0x1021, 0x0000, 0, true, true> crc; //TODO document this.
-  crc.process_bytes(input, length);
-  return crc.checksum();
-}
 
 void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::socket* socket) // Call with socket = NULL to listen on HEXABUS_PORT, or give a socket where it shall listen on (if you have sent a packet before and are expecting a reply on the port from which it was sent)
 {
   bool my_socket = false; // stores whether we were handed the socket pointer from outside or if we are using our own
+  hexabus::CRC::Ptr crc(new hexabus::CRC());
   if(socket == NULL)
   {
     boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::udp::v6(), HEXABUS_PORT);
@@ -38,19 +33,19 @@ void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::s
     {
       printf("Reply Message.\n");
       struct hxb_packet_bool* packet = (struct hxb_packet_bool*)recv_data;
-      if(packet->crc != crc16((char*)packet, sizeof(*packet)-2))
+      if(packet->crc != crc->crc16((char*)packet, sizeof(*packet)-2))
         printf("CRC check failed. Packet may be corrupted.\n");
       printf("Type:\t%d\nFlags:\t%d\nVID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->vid, packet->datatype, packet->value, packet->crc);
     } else if(header->type == HXB_PTYPE_ERROR) {
       printf("Error message.\n");
       struct hxb_packet_error* packet = (struct hxb_packet_error*)recv_data;
-      if(packet->crc != crc16((char*)packet, sizeof(*packet)-2))
+      if(packet->crc != crc->crc16((char*)packet, sizeof(*packet)-2))
         printf("CRC check failed. Packet may be corrupted.\n");
       printf("Type:\t%d\nFlags:\t%d\nError Code:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->errorcode, packet->crc);
     } else if(header->type == HXB_PTYPE_BROADCAST) {
       printf("Value Broadcast.\n");
       struct hxb_packet_int* packet = (struct hxb_packet_int*)recv_data;
-      if(packet->crc != crc16((char*)packet, sizeof(*packet)-2))
+      if(packet->crc != crc->crc16((char*)packet, sizeof(*packet)-2))
         printf("CRC check failed. Packet may be corrupted.\n");
       printf("Type:\t%d\nFlags:\t%d\nVID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->vid, packet->datatype, packet->value, packet->crc);
     } else {
@@ -95,6 +90,7 @@ void usage()
 
 hxb_packet_bool build_setvalue_packet(uint8_t vid, uint8_t datatype, uint8_t value, bool broadcast)
 {
+  hexabus::CRC::Ptr crc(new hexabus::CRC());
   struct hxb_packet_bool packet;
   strncpy((char*)&packet.header, HXB_HEADER, 4);
   packet.type = broadcast ? HXB_PTYPE_BROADCAST : HXB_PTYPE_SETVALUE;
@@ -102,7 +98,7 @@ hxb_packet_bool build_setvalue_packet(uint8_t vid, uint8_t datatype, uint8_t val
   packet.vid = vid;
   packet.datatype = datatype;
   packet.value = value;
-  packet.crc = crc16((char*)&packet, sizeof(packet)-2);
+  packet.crc = crc->crc16((char*)&packet, sizeof(packet)-2);
   // for test, output the Hexabus packet
   printf("Type:\t%d\nFlags:\t%d\nVID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.vid, packet.datatype, packet.value, packet.crc);
   //TODO implement -v
@@ -112,12 +108,13 @@ hxb_packet_bool build_setvalue_packet(uint8_t vid, uint8_t datatype, uint8_t val
 
 hxb_packet_req build_valuerequest_packet(uint8_t vid)
 {
+  hexabus::CRC::Ptr crc(new hexabus::CRC());
   struct hxb_packet_req packet;
   strncpy((char*)&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_REQVALUE;
   packet.flags = 0;
   packet.vid = vid;
-  packet.crc = crc16((char*)&packet, sizeof(packet)-2);
+  packet.crc = crc->crc16((char*)&packet, sizeof(packet)-2);
   // for test, output the Hexabus packet
   printf("Type:\t%d\nFlags:\t%d\nVID:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.vid, packet.crc);
   //TODO implement -v
