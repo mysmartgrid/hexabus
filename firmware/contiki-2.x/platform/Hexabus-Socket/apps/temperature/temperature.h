@@ -28,7 +28,7 @@ PROCESS_NAME(temperature_process);
 /** \brief This function returns the measured electrical power in Watt.
  *
  **/
-void 	temperature_get(void);
+float 	temperature_get(void);
 char* temperature_as_string(void);
 void 	temperature_init(void);
 void	temperature_start(void);

@@ -72,7 +72,7 @@ temperature_reset(void)
   PRINTF("-- Temperature: RESET\r\n");
 }
 
-void
+float
 temperature_get(void)
 {
   PRINTF("-- Temperature: Get value\r\n");
@@ -80,7 +80,7 @@ temperature_get(void)
   temperature_value=getTemperatureFloat();
   _update_temp_string();
   PRINTF("Current temp: %s deg C\r\n", temperature_string_buffer);
-  // return temperature_value;
+  return temperature_value;
 }
 
 char*
@@ -100,8 +100,9 @@ PROCESS_THREAD(temperature_process, ev, data) {
 	// see: http://senstools.gforge.inria.fr/doku.php?id=contiki:examples
 	PROCESS_BEGIN();
 	PRINTF("temperature: process startup.\r\n");
+	PROCESS_PAUSE();
 
-	// wait 3 second
+	// wait 3 seconds
 	etimer_set(&temperature_periodic_timer, CLOCK_CONF_SECOND*3);
 	// wait until the timer has expired
 	PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_TIMER);
@@ -109,15 +110,14 @@ PROCESS_THREAD(temperature_process, ev, data) {
 	// set the timer to 10 sec for use in the loop
 	etimer_set(&temperature_periodic_timer, 10*CLOCK_SECOND);
 
-	//temperature_init(); // Init the Tempsensors
-	
 	//everytime the timer event appears, get the temperature and reset the timer
+	
 	while(1){
-		PROCESS_WAIT_EVENT();
-		if (ev == PROCESS_EVENT_TIMER) {
+		PROCESS_YIELD();
+		if (etimer_expired(&temperature_periodic_timer)) {
+			etimer_reset(&temperature_periodic_timer);
 			temperature_get();
 		}
-		etimer_reset(&temperature_periodic_timer);
 	}
 	PROCESS_END();
 }
