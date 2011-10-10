@@ -7,7 +7,6 @@
 
 #include "process.h"
 
-
 PROCESS_NAME(hxb_broadcast_handler_process);
 
 #endif /* HXB_BROADCAST_HANDLER_H_ */
