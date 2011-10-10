@@ -65,18 +65,13 @@ struct hxb_data_int {
 #define HXB_FALSE 0
 
 // Defines for Packet types
-#define HXB_PTYPE_ERROR     0x00  // An error occured, check the errorcode for more information
-#define HXB_PTYPE_BROADCAST 0x01  // Broadcast of a sensor value, either following a REQVALUE or periodically
-#define HXB_PTYPE_SETVALUE  0x02  // Target device is requested to set [vid] := value
-#define HXB_PTYPE_REQVALUE  0x03  // Target device is requested to broadcast the value with the ID vid
-#define HXB_PTYPE_REPLY     0x04  // This is the reply to a REQVALUE - it looks the same as a BROADCAST, except ist not sent to a multicast address, but to the Device that sent the REQVALUE
-//TODO HXB_PTYPE_ACK, HXB_PTYPE_RESET, HXB_PTYPE_HEARTBEAT -- geht alles als INFO
+#define HXB_PTYPE_ERROR     0x00  // An error occured. check the error code for more information
+#define HXB_PTYPE_INFO      0x01  // Endpoint provides information -- VID refers to the VID on the sender
+#define HXB_PTYPE_QUERY     0x02  // Endpoint is requested to provide information -- VID refers to the VID on the receiver
+#define HXB_PTYPE_WRITE     0x03  // Endpoint is requested to set a value -- VID refers to the VID on the receiver
 
 // Defines for flags
-#define HXB_FLAG_IMPORTANT  0x01  // Packet should be ACKnowledged, otherwise it is retransmitted
-#define HXB_FLAG_RETRANSMIT 0x02  // Packet is a retransmission
-
-//TODO SET-AND-CONFIRM: Acknowledge the SETVALUE with a REPLY (or something new)
+#define HXB_FLAG_CONFIRM    0x01  // requests an acknowledgement
 
 // Defines for datatypes
 #define HXB_DTYPE_BOOL      0x01  // Boolean -- value is represented as 8 bit, but may only be HXB_TRUE or HXB_FALSE
@@ -84,9 +79,9 @@ struct hxb_data_int {
 //TODO int16 (power consumption), maybe float, fixed length string
 
 // Defines for error codes
-#define HXB_ERR_UNKNOWNVID  0x01  // A request for a VID which does not exist on the device was received
-#define HXB_ERR_SETREADONLY 0x02  // A SETVALUE was received for a read-only value
-#define HXB_ERR_CRCFAILED   0x03  // A packet failed the CRC check - TODO how can we find out what infomration was lost?
-#define HXB_ERR_DATATYPE    0x04  // A setvalue packet was received, but the datatype of the packet does not fit the value to be set.
+#define HXB_ERR_UNKNOWNVID    0x01  // A request for a VID which does not exist on the device was received
+#define HXB_ERR_WRITEREADONLY 0x02  // A SETVALUE was received for a read-only value
+#define HXB_ERR_CRCFAILED     0x03  // A packet failed the CRC check - TODO how can we find out what infomration was lost?
+#define HXB_ERR_DATATYPE      0x04  // A setvalue packet was received, but the datatype of the packet does not fit the value to be set.
 
 #endif

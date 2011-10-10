@@ -76,7 +76,7 @@ send_packet(void *ptr)
 
   struct hxb_packet_int packet;
   strncpy(&packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_BROADCAST;
+  packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
   packet.vid = 1;
   packet.datatype = HXB_DTYPE_UINT8;

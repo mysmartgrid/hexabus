@@ -34,9 +34,9 @@ void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::s
   {
     printf("Hexabus header not found.\n");
   } else {
-    if(header->type == HXB_PTYPE_REPLY)
+    if(header->type == HXB_PTYPE_INFO)
     {
-      printf("Reply Message.\n");
+      printf("Info Message.\n");
       struct hxb_packet_bool* packet = (struct hxb_packet_bool*)recv_data;
       if(packet->crc != crc16((char*)packet, sizeof(*packet)-2))
         printf("CRC check failed. Packet may be corrupted.\n");
@@ -47,12 +47,6 @@ void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::s
       if(packet->crc != crc16((char*)packet, sizeof(*packet)-2))
         printf("CRC check failed. Packet may be corrupted.\n");
       printf("Type:\t%d\nFlags:\t%d\nError Code:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->errorcode, packet->crc);
-    } else if(header->type == HXB_PTYPE_BROADCAST) {
-      printf("Value Broadcast.\n");
-      struct hxb_packet_int* packet = (struct hxb_packet_int*)recv_data;
-      if(packet->crc != crc16((char*)packet, sizeof(*packet)-2))
-        printf("CRC check failed. Packet may be corrupted.\n");
-      printf("Type:\t%d\nFlags:\t%d\nVID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->vid, packet->datatype, packet->value, packet->crc);
     } else {
       printf("Packet type not yet implemented.\n");
       printf("Type:\t%d\nFlags\t%d\nVID:\t%d\n", header->type, header->flags, header->vid);
@@ -97,7 +91,7 @@ hxb_packet_bool build_setvalue_packet(uint8_t vid, uint8_t datatype, uint8_t val
 {
   struct hxb_packet_bool packet;
   strncpy((char*)&packet.header, HXB_HEADER, 4);
-  packet.type = broadcast ? HXB_PTYPE_BROADCAST : HXB_PTYPE_SETVALUE;
+  packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
   packet.flags = 0;
   packet.vid = vid;
   packet.datatype = datatype;
@@ -114,7 +108,7 @@ hxb_packet_req build_valuerequest_packet(uint8_t vid)
 {
   struct hxb_packet_req packet;
   strncpy((char*)&packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_REQVALUE;
+  packet.type = HXB_PTYPE_QUERY;
   packet.flags = 0;
   packet.vid = vid;
   packet.crc = crc16((char*)&packet, sizeof(packet)-2);

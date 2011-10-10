@@ -145,7 +145,7 @@ static struct hxb_packet_int make_value_packet(uint8_t vid)
 {
   struct hxb_packet_int packet;
   strncpy(&packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_REPLY;
+  packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
   packet.vid = vid;
 
@@ -216,7 +216,7 @@ udphandler(process_event_t ev, process_data_t data)
       }
       else
       {
-        if(header->type == HXB_PTYPE_SETVALUE)
+        if(header->type == HXB_PTYPE_WRITE)
         {
           struct hxb_packet_bool* packet = (struct hxb_packet_bool*)uip_appdata;
           // check CRC
@@ -242,7 +242,7 @@ udphandler(process_event_t ev, process_data_t data)
                 send_packet(&error_packet, sizeof(error_packet));
               }
             } else if (packet->vid == 1) {
-              struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_SETREADONLY);
+              struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_WRITEREADONLY);
               send_packet(&error_packet, sizeof(error_packet));
             } else {
               struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNVID);
@@ -250,7 +250,7 @@ udphandler(process_event_t ev, process_data_t data)
             }
           }
         }
-        else if(header->type == HXB_PTYPE_REQVALUE)
+        else if(header->type == HXB_PTYPE_QUERY)
         {
           struct hxb_packet_req* packet = (struct hxb_packet_req*)uip_appdata;
           // check CRC
@@ -272,7 +272,7 @@ udphandler(process_event_t ev, process_data_t data)
             }
           }
         }
-        else if(header->type == HXB_PTYPE_BROADCAST)
+        else if(header->type == HXB_PTYPE_INFO)
         {
           struct hxb_packet_int* packet = (struct hxb_packet_int*)uip_appdata; // TODO this can only handle int for now - make it more flexible!
           // check CRC

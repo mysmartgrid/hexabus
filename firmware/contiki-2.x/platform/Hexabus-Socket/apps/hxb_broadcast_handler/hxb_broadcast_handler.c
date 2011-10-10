@@ -35,7 +35,7 @@ PROCESS_THREAD(hxb_broadcast_handler_process, ev, data)
     rules[i].op = HXB_OP_NULL;
   }
 
-  char ip[16] = { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x50, 0xc4, 0xff, 0xfe, 0x04, 0x00, 0x0e };
+  /* char ip[16] = { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x50, 0xc4, 0xff, 0xfe, 0x04, 0x00, 0x0e };
   // make a rule for testing
   memcpy(&rules[4].device, &ip, 16);
   memcpy(&rules[5].device, &ip, 16);
@@ -45,7 +45,7 @@ PROCESS_THREAD(hxb_broadcast_handler_process, ev, data)
   rules[4].constant = rules[5].constant = 5;
   rules[4].target_vid = rules[5].target_vid = 0;
   rules[4].target_value = 0;
-  rules[5].target_value = 1;
+  rules[5].target_value = 1; */
 
 
 
