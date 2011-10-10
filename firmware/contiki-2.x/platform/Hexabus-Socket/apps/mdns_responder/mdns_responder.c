@@ -61,14 +61,14 @@
 #define MDNS_PORT       5353
 #define MDNS_TTL        120ULL  //120 seconds is the default time
 
-static char domain_name[MDNS_NAME_SIZE];
-static uint8_t domain_name_size;
-static struct uip_udp_conn *mdns_conn = NULL;
-static bool mdns_probe_state; // Checks to see if the probing phase is still going on
-static bool domain_name_used; // Used in the probing phase: tells if someone else already uses the name
+static char 	domain_name[MDNS_NAME_SIZE];
+static uint8_t 	domain_name_size;
+static struct 	uip_udp_conn *mdns_conn = NULL;
+static bool 	mdns_probe_state; // Checks to see if the probing phase is still going on
+static bool 	domain_name_used; // Used in the probing phase: tells if someone else already uses the name
 static struct etimer mdns_timer;
-static uint8_t counter;      //Used in adding suffixes after the domain name, in case a specific name is already in use
-static int number_of_tries; // Used in the probing. It shouldn't be greater than 3
+static uint8_t 	counter;      //Used in adding suffixes after the domain name, in case a specific name is already in use
+static int 		number_of_tries; // Used in the probing. It shouldn't be greater than 3
 // The socket is waiting for 3 ACK-s that no one is using its name, before it announces it
 
 #define DNS_TYPE_A		(1)
