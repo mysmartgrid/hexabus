@@ -17,9 +17,6 @@
 #define PRINTLLADDR(addr)
 #endif
 
-#define HXB_MAX_RULES 16
-struct hxb_switching_rule rules[HXB_MAX_RULES];
-
 PROCESS(hxb_broadcast_handler_process, "Hexabus Broadcast Handler Process");
 AUTOSTART_PROCESSES(&hxb_broadcast_handler_process);
 
