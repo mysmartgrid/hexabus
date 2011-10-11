@@ -74,7 +74,7 @@ send_packet(void *ptr)
 {
   PRINTF("Broadcasting power value.\n");
 
-  struct hxb_packet_int packet;
+  struct hxb_packet_int8 packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
@@ -84,7 +84,7 @@ send_packet(void *ptr)
   packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
 
   uip_udp_packet_sendto(client_conn, &packet, sizeof(packet),
-                        &server_ipaddr, UIP_HTONS(HEXABUS_PORT));
+                        &server_ipaddr, UIP_HTONS(HXB_PORT));
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -147,9 +147,9 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
   print_local_addresses();
 
   /* new connection with remote host */
-  client_conn = udp_new(NULL, UIP_HTONS(HEXABUS_PORT), NULL); 
+  client_conn = udp_new(NULL, UIP_HTONS(HXB_PORT), NULL); 
   uip_ipaddr_copy(&client_conn->ripaddr, &server_ipaddr);
-  udp_bind(client_conn, UIP_HTONS(HEXABUS_PORT)); 
+  udp_bind(client_conn, UIP_HTONS(HXB_PORT)); 
 
   PRINTF("Created a connection");
   PRINT6ADDR(&client_conn->ripaddr);

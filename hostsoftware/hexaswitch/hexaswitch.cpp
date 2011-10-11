@@ -14,12 +14,12 @@ uint16_t crc16(const char* input, unsigned int length)
   return crc.checksum();
 }
 
-void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::socket* socket) // Call with socket = NULL to listen on HEXABUS_PORT, or give a socket where it shall listen on (if you have sent a packet before and are expecting a reply on the port from which it was sent)
+void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::socket* socket) // Call with socket = NULL to listen on HXB_PORT, or give a socket where it shall listen on (if you have sent a packet before and are expecting a reply on the port from which it was sent)
 {
   bool my_socket = false; // stores whether we were handed the socket pointer from outside or if we are using our own
   if(socket == NULL)
   {
-    boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::udp::v6(), HEXABUS_PORT);
+    boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::udp::v6(), HXB_PORT);
     socket = new boost::asio::ip::udp::socket(*io_service, endpoint);
     my_socket = true;
   }
@@ -37,7 +37,7 @@ void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::s
     if(header->type == HXB_PTYPE_INFO)
     {
       printf("Info Message.\n");
-      struct hxb_packet_bool* packet = (struct hxb_packet_bool*)recv_data;
+      struct hxb_packet_int8* packet = (struct hxb_packet_int8*)recv_data; // TODO distinguish between datatypes here.
       if(packet->crc != crc16((char*)packet, sizeof(*packet)-2))
         printf("CRC check failed. Packet may be corrupted.\n");
       printf("Type:\t%d\nFlags:\t%d\nVID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->vid, packet->datatype, packet->value, packet->crc);
@@ -87,9 +87,9 @@ void usage()
     printf("  power           get power consumption (same as get 1)\n");
 }
 
-hxb_packet_bool build_setvalue_packet(uint8_t vid, uint8_t datatype, uint8_t value, bool broadcast)
+hxb_packet_int8 build_setvalue_packet(uint8_t vid, uint8_t datatype, uint8_t value, bool broadcast)
 {
-  struct hxb_packet_bool packet;
+  struct hxb_packet_int8 packet;
   strncpy((char*)&packet.header, HXB_HEADER, 4);
   packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
   packet.flags = 0;
@@ -104,9 +104,9 @@ hxb_packet_bool build_setvalue_packet(uint8_t vid, uint8_t datatype, uint8_t val
   return packet;
 }
 
-hxb_packet_req build_valuerequest_packet(uint8_t vid)
+hxb_packet_query build_valuerequest_packet(uint8_t vid)
 {
-  struct hxb_packet_req packet;
+  struct hxb_packet_query packet;
   strncpy((char*)&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_QUERY;
   packet.flags = 0;
@@ -152,24 +152,24 @@ int main(int argc, char** argv)
   // build the hexabus packet
   if(!strcmp(argv[2], "on"))            // on: set VID 0 to TRUE
   {
-    hxb_packet_bool packet = build_setvalue_packet(0, HXB_DTYPE_BOOL, HXB_TRUE, false);
-    send_packet(socket, argv[1], HEXABUS_PORT, (char*)&packet, sizeof(packet));
+    hxb_packet_int8 packet = build_setvalue_packet(0, HXB_DTYPE_BOOL, HXB_TRUE, false);
+    send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
   }
   else if(!strcmp(argv[2], "off"))      // off: set VID 0 to FALSE
   {
-    hxb_packet_bool packet = build_setvalue_packet(0, HXB_DTYPE_BOOL, HXB_FALSE, false);
-    send_packet(socket, argv[1], HEXABUS_PORT, (char*)&packet, sizeof(packet));
+    hxb_packet_int8 packet = build_setvalue_packet(0, HXB_DTYPE_BOOL, HXB_FALSE, false);
+    send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
   }
   else if(!strcmp(argv[2], "status"))   // status: query VID 0
   {
-    hxb_packet_req packet = build_valuerequest_packet(0);
-    send_packet(socket, argv[1], HEXABUS_PORT, (char*)&packet, sizeof(packet));
+    hxb_packet_query packet = build_valuerequest_packet(0);
+    send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
     receive_packet(io_service, socket);
   }
   else if(!strcmp(argv[2], "power"))    // power: query VID 1
   {
-    hxb_packet_req packet = build_valuerequest_packet(1);
-    send_packet(socket, argv[1], HEXABUS_PORT, (char*)&packet, sizeof(packet));
+    hxb_packet_query packet = build_valuerequest_packet(1);
+    send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
     receive_packet(io_service, socket);
   }
   else if(!strcmp(argv[2], "set"))      // set: set an arbitrary VID
@@ -178,8 +178,8 @@ int main(int argc, char** argv)
     {
       uint8_t val = atoi(argv[4]);
       uint8_t vid = atoi(argv[3]);
-      hxb_packet_bool packet = build_setvalue_packet(vid, HXB_DTYPE_UINT8, val, false);
-      send_packet(socket, argv[1], HEXABUS_PORT, (char*)&packet, sizeof(packet));
+      hxb_packet_int8 packet = build_setvalue_packet(vid, HXB_DTYPE_UINT8, val, false);
+      send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
     }
     else
     {
@@ -192,8 +192,8 @@ int main(int argc, char** argv)
     if(argc == 4)
     {
       uint8_t vid = atoi(argv[3]);
-      hxb_packet_req packet = build_valuerequest_packet(vid);
-      send_packet(socket, argv[1], HEXABUS_PORT, (char*)&packet, sizeof(packet));
+      hxb_packet_query packet = build_valuerequest_packet(vid);
+      send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
       receive_packet(io_service, socket);
     }
     else
@@ -208,8 +208,8 @@ int main(int argc, char** argv)
     {
       uint8_t val = atoi(argv[3]);
       uint8_t vid = atoi(argv[2]);
-      hxb_packet_bool packet = build_setvalue_packet(vid, HXB_DTYPE_UINT8, val, true);
-      send_packet(socket, (char*)"ff02::1" , HEXABUS_PORT, (char*)&packet, sizeof(packet));
+      hxb_packet_int8 packet = build_setvalue_packet(vid, HXB_DTYPE_UINT8, val, true);
+      send_packet(socket, (char*)"ff02::1" , HXB_PORT, (char*)&packet, sizeof(packet));
     }
     else
     {

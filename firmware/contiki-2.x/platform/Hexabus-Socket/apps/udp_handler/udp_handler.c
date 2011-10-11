@@ -141,20 +141,39 @@ make_message(char* buf, uint16_t command, uint16_t value)
   PRINTF("%s%02x%02x%04d\n", HEXABUS_HEADER, 2, command, value);
 }
 
-static struct hxb_packet_int make_value_packet(uint8_t vid)
+static struct hxb_packet_int32 make_deviceinfo_packet()
 {
-  struct hxb_packet_int packet;
+  struct hxb_packet_int32 packet;
+  strncpy(&packet.header, HXB_HEADER, 4);
+  packet.type = HXB_PTYPE_INFO;
+  packet.flags = 0;
+  packet.vid = 0;
+
+  packet.datatype = HXB_DTYPE_UINT32;
+  packet.value = 0x00000007;
+
+  packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
+
+  PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nVID:\t%d\r\nValue:\t%lu\r\nCRC:\t%u\r\n\r\n",
+    packet.type, packet.flags, packet.vid, packet.value, packet.crc);
+
+  return packet;
+}
+
+static struct hxb_packet_int8 make_value_packet(uint8_t vid)
+{
+  struct hxb_packet_int8 packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
   packet.vid = vid;
 
-  if(vid == 0)
+  if(vid == 1)
   {
     packet.datatype = HXB_DTYPE_BOOL;
     packet.value = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
   }
-  else if(vid == 1)
+  else if(vid == 2)
   {
     packet.datatype = HXB_DTYPE_UINT8;
     packet.value = metering_get_power();
@@ -218,7 +237,7 @@ udphandler(process_event_t ev, process_data_t data)
       {
         if(header->type == HXB_PTYPE_WRITE)
         {
-          struct hxb_packet_bool* packet = (struct hxb_packet_bool*)uip_appdata;
+          struct hxb_packet_int8* packet = (struct hxb_packet_int8*)uip_appdata;
           // check CRC
           if(packet->crc != crc16_data((char*)packet, sizeof(*packet)-2, 0))
           {
@@ -227,7 +246,7 @@ udphandler(process_event_t ev, process_data_t data)
             send_packet(&error_packet, sizeof(error_packet));
           } else
           {
-            if(packet->vid == 0) // packet.vid = 0 -> main switch
+            if(packet->vid == 1) // packet.vid = 1 -> main switch
             {
               if(packet->datatype == HXB_DTYPE_BOOL)
               {
@@ -241,7 +260,7 @@ udphandler(process_event_t ev, process_data_t data)
                 struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_DATATYPE);
                 send_packet(&error_packet, sizeof(error_packet));
               }
-            } else if (packet->vid == 1) {
+            } else if (packet->vid == 2) {
               struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_WRITEREADONLY);
               send_packet(&error_packet, sizeof(error_packet));
             } else {
@@ -252,7 +271,7 @@ udphandler(process_event_t ev, process_data_t data)
         }
         else if(header->type == HXB_PTYPE_QUERY)
         {
-          struct hxb_packet_req* packet = (struct hxb_packet_req*)uip_appdata;
+          struct hxb_packet_query* packet = (struct hxb_packet_query*)uip_appdata;
           // check CRC
           printf("size of packet: %u\n", sizeof(*packet));
           if(packet->crc != crc16_data((char*)packet, sizeof(*packet)-2, 0))
@@ -262,9 +281,14 @@ udphandler(process_event_t ev, process_data_t data)
             send_packet(&error_packet, sizeof(error_packet));
           } else
           {
-            if(packet->vid == 0 || packet->vid == 1)
+            if(packet->vid == 0)
             {
-              struct hxb_packet_int value_packet = make_value_packet(packet->vid);
+              struct hxb_packet_int32 value_packet = make_deviceinfo_packet();
+              send_packet(&value_packet, sizeof(value_packet));
+            }
+            else if(packet->vid == 1 || packet->vid == 2)
+            {
+              struct hxb_packet_int8 value_packet = make_value_packet(packet->vid);
               send_packet(&value_packet, sizeof(value_packet));
             } else {
               struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNVID);
@@ -274,7 +298,7 @@ udphandler(process_event_t ev, process_data_t data)
         }
         else if(header->type == HXB_PTYPE_INFO)
         {
-          struct hxb_packet_int* packet = (struct hxb_packet_int*)uip_appdata; // TODO this can only handle int for now - make it more flexible!
+          struct hxb_packet_int8* packet = (struct hxb_packet_int8*)uip_appdata; // TODO this can only handle int for now - make it more flexible!
           // check CRC
           if(packet->crc != crc16_data((char*)packet, sizeof(*packet)-2, 0))
           {
@@ -285,11 +309,8 @@ udphandler(process_event_t ev, process_data_t data)
           {
             printf("Broadcast received.\r\n");
             printf("Type:\t%d\nFlags:\t%d\nVID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->vid, packet->datatype, packet->value, packet->crc);
-            // TODO use a dedicated struct type for this - e.g. we need to pass the sender IP adress, too, and we don't need the flags or the CRC and that stuff, this should already have been dealt with before we generate the event.
-            // struct hxb_packet_int* event_packet = malloc(sizeof(struct hxb_packet_int));
-            // memcpy(event_packet, packet, sizeof(struct hxb_packet_int));
 
-            struct hxb_data_int* value = malloc(sizeof(struct hxb_data_int));
+            struct hxb_data_int8* value = malloc(sizeof(struct hxb_data_int8));
             memcpy(value->source, &UDP_IP_BUF->srcipaddr, 16);
             // TODO only int for now... have to extend this once more datatypes are available
             value->datatype = packet->datatype;
