@@ -3,7 +3,6 @@
 #include "udp_handler.h"
 
 #include "../../../../../../shared/hexabus_packet.h"
-#include "hxb_switching_rules.h"
 
 #define DEBUG 1
 #if DEBUG
