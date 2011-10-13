@@ -14,10 +14,9 @@
 #define SHUTTER_BUTTON_DOWN PA1
 #define SHUTTER_OUT_UP PA2
 #define SHUTTER_OUT_DOWN PA3
-#define SHUTTER_ENC1 PA4
-#define SHUTTER_ENC2 PA5
+#define SHUTTER_ENC1 PCINT4
+#define SHUTTER_ENC2 PCINT5
 
-#define ENC_VECT INT1_vect
 
 
 #elif defined(__AVR_ATmega2561__)
@@ -27,7 +26,7 @@
 #endif
 
 #define DEBOUNCE_TIME		   50
-#define ENCODER_TIMEOUT        50
+#define ENCODER_TIMEOUT        200
 
 
 void    shutter_init(void);
