@@ -54,12 +54,11 @@ static bool bFalse = false;
 void shutter_init(void) {
     PRINTF("Shutter init\n");
     SHUTTER_DDR = ( 0x00 | (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
-    SHUTTER_PORT |= ( (1<<SHUTTER_BUTTON_UP) | (1<<SHUTTER_BUTTON_DOWN) );
-    //FIXME: PCINT und shit
-    EICRA |= (1 << ISC10);
-    EICRA &= (0 << ISC11); //Interrupt on every change
-    EIMSK |= (1 << INT1); //Enable interrupt
-    //
+    SHUTTER_PORT |= ( (1<<SHUTTER_BUTTON_UP) | (1<<SHUTTER_BUTTON_DOWN) | (1<<PA4) | (1<<PA5) );
+    PCMSK0 |= ( 1<<SHUTTER_ENC1 );
+    PCMSK0 |= ( 1<<SHUTTER_ENC2 );
+    PCICR |= ( 1<<PCIE0 );
+    sei();
 }
 
 void shutter_open(void) {
@@ -77,13 +76,13 @@ void shutter_close(void) {
 }
 
 void shutter_open_full(void) {
-    process_exit(&shutter_full_process);
-    process_start(&shutter_full_process, &bTrue);
+    //process_exit(&shutter_full_process);
+    //process_start(&shutter_full_process, &bTrue);
 }
 
 void shutter_close_full(void) {
-    process_exit(&shutter_full_process);
-    process_start(&shutter_full_process, &bFalse);
+    //process_exit(&shutter_full_process);
+    //process_start(&shutter_full_process, &bFalse);
 }
 
 void shutter_stop(void) {
@@ -115,7 +114,7 @@ PROCESS_THREAD(shutter_full_process, ev, data) {
 
     PROCESS_BEGIN();
 
-    etimer_set(&encoder_timer, CLOCK_SECOND * ENCODER_TIMEOUT / 100);
+    etimer_set(&encoder_timer, CLOCK_SECOND * ENCODER_TIMEOUT / 1000);
 
     if((bool*)data) { //FIXME
         PRINTF("Fully opening shutter\n");
@@ -180,6 +179,7 @@ PROCESS_THREAD(shutter_button_process, ev, data) {
 }
 
              
-ISR(ENC_VECT) {
-    process_post(&shutter_full_process, encoder_event, NULL);
+ISR(PCINT0_vect) {
+    //PRINTF("!Narf\n");
+    //process_post(&shutter_full_process, encoder_event, NULL);
 }
