@@ -315,7 +315,6 @@ void initialize(void)
 
   /* process for shutter control*/
   process_start(&shutter_button_process, NULL);
-  //process_start(&shutter_interupt_print, NULL);
   process_start(&shutter_full_process, NULL);
 
   mdns_responder_init();
