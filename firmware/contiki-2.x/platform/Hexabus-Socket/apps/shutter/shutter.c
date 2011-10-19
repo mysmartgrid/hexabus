@@ -49,7 +49,7 @@
 static process_event_t full_up_event;
 static process_event_t full_down_event;
 static process_event_t full_stop_event;
-
+static process_event_t full_cancel_event;
 
 void shutter_init(void) {
     PRINTF("Shutter init\n");
@@ -62,6 +62,11 @@ void shutter_init(void) {
     PCMSK0 |= ( 1<<SHUTTER_ENC2 );
     PCICR |= ( 1<<PCIE0 );
     sei();
+
+    full_up_event = process_alloc_event();
+    full_down_event = process_alloc_event();
+    full_stop_event = process_alloc_event();
+    full_cancel_event = process_alloc_event();
 }
 
 void shutter_open(void) {
@@ -77,12 +82,12 @@ void shutter_close(void) {
 }
 
 void shutter_open_full(void) {
-    process_post(&shutter_full_process, full_stop_event, NULL);
+    process_post(&shutter_full_process, full_cancel_event, NULL);
     process_post(&shutter_full_process, full_up_event, NULL);
 }
 
 void shutter_close_full(void) {
-    process_post(&shutter_full_process, full_stop_event, NULL);
+    process_post(&shutter_full_process, full_cancel_event, NULL);
     process_post(&shutter_full_process, full_down_event, NULL);
 }
 
@@ -103,14 +108,11 @@ int shutter_get_state_int(void) {
 
 PROCESS(shutter_button_process, "React to attached shutter buttons\n");
 PROCESS(shutter_full_process, "Open/Close shutter until motor stopps");
-PROCESS(shutter_interupt_print, "Prints a string");
 
-AUTOSTART_PROCESSES(&shutter_button_process, &shutter_interupt_print);
+AUTOSTART_PROCESSES(&shutter_button_process, &shutter_full_process);
 
 
 PROCESS_THREAD(shutter_full_process, ev, data) {
-
-    shutter_init();
 
     static struct etimer encoder_timer;
 
@@ -125,10 +127,10 @@ PROCESS_THREAD(shutter_full_process, ev, data) {
             etimer_restart(&encoder_timer);
 
             if(ev == full_up_event) {
-                PRINTF("Fully opening shutter\n");
+                PRINTF("-Fully opening shutter\n");
                 shutter_open();
             } else if(ev == full_down_event) {
-                PRINTF("Fully closing shutter\n");
+                PRINTF("-Fully closing shutter\n");
                 shutter_close();
             }
             
@@ -138,8 +140,11 @@ PROCESS_THREAD(shutter_full_process, ev, data) {
                 if(ev == PROCESS_EVENT_POLL) {
                     etimer_restart(&encoder_timer);
                 } else if((ev == PROCESS_EVENT_TIMER) || (ev == full_stop_event)) {
-                    PRINTF("Endoer timed out\n");
+                    PRINTF("-Encoder timed out\n");
                     shutter_stop();
+                    break;
+                } else if(ev == full_cancel_event) {
+                    PRINTF("-Full canceled\n");
                     break;
                 }
             }
@@ -155,10 +160,14 @@ PROCESS_THREAD(shutter_full_process, ev, data) {
 PROCESS_THREAD(shutter_button_process, ev, data) {
 
     static struct etimer debounce_timer;
+    static struct etimer doubleclick_timer;
 
     PROCESS_BEGIN();
 
     PRINTF("Shutter_button_process started\n");
+    etimer_set(&doubleclick_timer, CLOCK_SECOND * DOUBLE_CLICK_DELAY / 1000);
+    etimer_stop(&doubleclick_timer);
+
     while(1) {
         etimer_set(&debounce_timer, CLOCK_SECOND * DEBOUNCE_TIME / 1000);
 
@@ -166,42 +175,53 @@ PROCESS_THREAD(shutter_button_process, ev, data) {
             etimer_restart(&debounce_timer);
             PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&debounce_timer));
             
-            if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
-                process_post(&shutter_full_process, full_stop_event, NULL);
-                shutter_stop();
-            } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP))  {
-                process_post(&shutter_full_process, full_stop_event, NULL);
-                shutter_open();
-            } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
-                process_post(&shutter_full_process, full_stop_event, NULL);
-                shutter_close();
-            }
+            if(etimer_expired(&doubleclick_timer)){
+                PRINTF("###SINGLE###\n");
+                if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
+                    process_post(&shutter_full_process, full_cancel_event, NULL);
+                    shutter_stop();
+                } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP))  {
+                    process_post(&shutter_full_process, full_cancel_event, NULL);
+                    shutter_open();
+                } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
+                    process_post(&shutter_full_process, full_cancel_event, NULL);
+                    shutter_close();
+                }
+                etimer_restart(&doubleclick_timer);
 
-            do {
+                do {
                 //PRINTF("Waiting for button release\n");
                 etimer_restart(&debounce_timer);
                 PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&debounce_timer));
-            } while( (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) ||
+                } while( (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) ||
                     (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_UP)) );
-            process_post(&shutter_full_process, full_stop_event, NULL);
-            shutter_stop();
+                process_post(&shutter_full_process, full_cancel_event, NULL); 
+                shutter_stop();
+
+            } else {
+                PRINTF("###DOUBLE###\n");
+                if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
+                    process_post(&shutter_full_process, full_cancel_event, NULL);
+                    shutter_stop();
+                } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP))  {
+                    shutter_open_full();
+                } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
+                    shutter_close_full();
+                }
+                etimer_stop(&doubleclick_timer);
+
+                do {
+                //PRINTF("Waiting for button release\n");
+                etimer_restart(&debounce_timer);
+                PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&debounce_timer));
+                } while( (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) ||
+                    (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_UP)) );
+            }
+
         }
         PROCESS_PAUSE();
     }
 
-    PROCESS_END();
-}
-
-PROCESS_THREAD(shutter_interupt_print, ev, data) {
-    PROCESS_BEGIN();
-
-    PROCESS_PAUSE();
-
-    while(1) {
-        PROCESS_WAIT_EVENT();
-        PRINTF( "NARF!\n" );
-    }
-    
     PROCESS_END();
 }
 

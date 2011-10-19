@@ -27,7 +27,7 @@
 
 #define DEBOUNCE_TIME		   50
 #define ENCODER_TIMEOUT        200
-#define DOUBLE_CLICK_DELAY     200
+#define DOUBLE_CLICK_DELAY     300
 
 
 void    shutter_init(void);
@@ -48,6 +48,5 @@ int     shutter_get_state_int(void);
 
 PROCESS_NAME(shutter_button_process);
 PROCESS_NAME(shutter_full_process);
-PROCESS_NAME(shutter_interupt_print);
 
 #endif /* SHUTTER_H_ */
