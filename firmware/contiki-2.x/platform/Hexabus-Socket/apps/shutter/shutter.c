@@ -175,49 +175,48 @@ PROCESS_THREAD(shutter_button_process, ev, data) {
             etimer_restart(&debounce_timer);
             PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&debounce_timer));
             
-            if(etimer_expired(&doubleclick_timer)){
-                PRINTF("###SINGLE###\n");
-                if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
-                    process_post(&shutter_full_process, full_cancel_event, NULL);
-                    shutter_stop();
-                } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP))  {
-                    process_post(&shutter_full_process, full_cancel_event, NULL);
-                    shutter_open();
-                } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
-                    process_post(&shutter_full_process, full_cancel_event, NULL);
-                    shutter_close();
-                }
-                etimer_restart(&doubleclick_timer);
-
-                do {
-                //PRINTF("Waiting for button release\n");
-                etimer_restart(&debounce_timer);
-                PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&debounce_timer));
-                } while( (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) ||
-                    (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_UP)) );
-                process_post(&shutter_full_process, full_cancel_event, NULL); 
+            if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
+                process_post(&shutter_full_process, full_cancel_event, NULL);
                 shutter_stop();
-
-            } else {
-                PRINTF("###DOUBLE###\n");
-                if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
+            } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP)) {
+                if(etimer_expired(&doubleclick_timer)) {
                     process_post(&shutter_full_process, full_cancel_event, NULL);
-                    shutter_stop();
-                } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP))  {
-                    shutter_open_full();
-                } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
-                    shutter_close_full();
-                }
-                etimer_stop(&doubleclick_timer);
+                    etimer_restart(&doubleclick_timer);
 
-                do {
-                //PRINTF("Waiting for button release\n");
-                etimer_restart(&debounce_timer);
-                PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&debounce_timer));
-                } while( (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) ||
+                    do {
+                        etimer_restart(&debounce_timer);
+                        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&debounce_timer));
+
+                        if(etimer_expired(&doubleclick_timer)) {
+                            shutter_open();
+                        }
+                    } while( (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) ||
                     (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_UP)) );
-            }
+                    shutter_stop();
+                } else {
+                    shutter_open_full();
+                    etimer_stop(&doubleclick_timer);
+                }
+            } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
+                if(etimer_expired(&doubleclick_timer)) {
+                    process_post(&shutter_full_process, full_cancel_event, NULL);
+                    etimer_restart(&doubleclick_timer);
 
+                    do {
+                        etimer_restart(&debounce_timer);
+                        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&debounce_timer));
+
+                        if(etimer_expired(&doubleclick_timer)) {
+                            shutter_close();
+                        }
+                    } while( (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) ||
+                    (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_UP)) );
+                    shutter_stop();
+                } else {
+                    shutter_close_full();
+                    etimer_stop(&doubleclick_timer);
+                }
+            }
         }
         PROCESS_PAUSE();
     }
