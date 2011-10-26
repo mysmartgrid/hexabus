@@ -15,19 +15,19 @@ bool eval(uint8_t cond_index, uint8_t ip, uint8_t eid, uint8_t value) { 		// FIX
 	}
 
 	switch(cond->op) {
-		case eq: 
+		case eq:
 			cout << "Check for ==" << endl;
 			return (cond->value == value);
-		case leq: 
+		case leq:
 			cout << "Check for <=" << endl;
 			return (cond->value <= value);
-		case geq: 
+		case geq:
 			cout << "Check for >=" << endl;
 			return (cond->value >= value);
-		case lt: 
+		case lt:
 			cout << "Check for <" << endl;
 			return (cond->value < value);
-		case gt: 
+		case gt:
 			cout << "Check for >" << endl;
 			return (cond->value > value);
 		default:
