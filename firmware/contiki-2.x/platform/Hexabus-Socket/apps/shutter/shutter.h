@@ -26,8 +26,8 @@
 #endif
 
 #define DEBOUNCE_TIME		   50
-#define ENCODER_TIMEOUT        200
-#define DOUBLE_CLICK_DELAY     300
+#define ENCODER_TIMEOUT        200UL
+#define DOUBLE_CLICK_DELAY     300UL
 
 
 void    shutter_init(void);

@@ -163,10 +163,8 @@ PROCESS_THREAD(shutter_button_process, ev, data) {
     static struct etimer doubleclick_timer;
 
     PROCESS_BEGIN();
-
+    
     PRINTF("Shutter_button_process started\n");
-    etimer_set(&doubleclick_timer, CLOCK_SECOND * DOUBLE_CLICK_DELAY / 1000);
-    etimer_stop(&doubleclick_timer);
 
     while(1) {
         etimer_set(&debounce_timer, CLOCK_SECOND * DEBOUNCE_TIME / 1000);
@@ -181,7 +179,7 @@ PROCESS_THREAD(shutter_button_process, ev, data) {
             } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP)) {
                 if(etimer_expired(&doubleclick_timer)) {
                     process_post(&shutter_full_process, full_cancel_event, NULL);
-                    etimer_restart(&doubleclick_timer);
+                    etimer_set(&doubleclick_timer, CLOCK_SECOND * DOUBLE_CLICK_DELAY / 1000);
 
                     do {
                         etimer_restart(&debounce_timer);
@@ -195,12 +193,11 @@ PROCESS_THREAD(shutter_button_process, ev, data) {
                     shutter_stop();
                 } else {
                     shutter_open_full();
-                    etimer_stop(&doubleclick_timer);
                 }
             } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
                 if(etimer_expired(&doubleclick_timer)) {
                     process_post(&shutter_full_process, full_cancel_event, NULL);
-                    etimer_restart(&doubleclick_timer);
+                    etimer_set(&doubleclick_timer, CLOCK_SECOND * DOUBLE_CLICK_DELAY / 1000);
 
                     do {
                         etimer_restart(&debounce_timer);
@@ -214,7 +211,6 @@ PROCESS_THREAD(shutter_button_process, ev, data) {
                     shutter_stop();
                 } else {
                     shutter_close_full();
-                    etimer_stop(&doubleclick_timer);
                 }
             }
         }
