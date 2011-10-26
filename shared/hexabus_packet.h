@@ -99,6 +99,7 @@ struct hxb_data_int32 {
 #define HXB_FLAG_CONFIRM      0x01  // Requests an acknowledgement
 
 // Data types
+#define HXB_DTYPE_UNDEFINED   0x00  // Undefined: Nonexistent endpoint
 #define HXB_DTYPE_BOOL        0x01  // Boolean. Value still represented by 8 bits, but may only be HXB_TRUE or HXB_FALSE
 #define HXB_DTYPE_UINT8       0x02  // Unsigned 8 bit integer
 #define HXB_DTYPE_UINT32      0x03  // Unsigned 32 bit integer
