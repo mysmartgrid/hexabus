@@ -3,7 +3,11 @@
 
 using namespace std;
 
-bool eval(Condition *cond, uint8_t ip, uint8_t eid, uint8_t value) { 		// FIXME: Pointer to packet 
+Condition cond_table[1];
+
+bool eval(uint8_t cond_index, uint8_t ip, uint8_t eid, uint8_t value) { 		// FIXME: Pointer to packet 
+  cout << "Evaluating condition #" << (int)cond_index << endl;
+  Condition* cond = &cond_table[cond_index];
 	// Do nothing if ip and eid don't match
 	if(cond->ip != ip || cond->eid != eid) {
 		//cout << "Nope, Chuck Testa." << endl;
@@ -47,16 +51,18 @@ int main() {
 	trigger.op = eq;
 	trigger.value = 1;
 
+  cond_table[0] = trigger;
+
 	Transition offToOn;
 	offToOn.fromState = 0;
-	offToOn.cond = &trigger;
+	offToOn.cond = 0;
 	offToOn.action = 1;
 	offToOn.toCool = 1;
 	offToOn.toUncool = 0;
 
 	Transition onToOff;
 	onToOff.fromState = 1;
-	onToOff.cond = &trigger;
+	onToOff.cond = 0;
 	onToOff.action = 0;
 	onToOff.toCool = 0;
 	onToOff.toUncool = 1;

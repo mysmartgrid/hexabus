@@ -15,7 +15,7 @@ struct Condition {
 
 struct Transition {
 	uint8_t fromState; 	// The State the maschine is currently in
-	Condition *cond; 		// The Condition that must match for the transition
+	uint8_t cond; 		  // Index of condition that must match for the transition
 	uint8_t action; 		// Function pointer
 	uint8_t toCool; 		// New State if function was executed successfully
 	uint8_t toUncool; 	// New State if function was _not_ executed successfully
