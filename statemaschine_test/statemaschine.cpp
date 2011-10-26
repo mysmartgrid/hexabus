@@ -33,7 +33,10 @@ bool eval(Condition *cond, uint8_t ip, uint8_t eid, uint8_t value) { 		// FIXME:
 
 int testfunction(uint8_t i)
 {
-  return 0;
+  cout << "Function " << (int)i << " running. Return Value? (0 = Cool, anything else = Uncool): ";
+  int ret;
+  cin >> ret;
+  return ret;
 }
 
 int main() {
