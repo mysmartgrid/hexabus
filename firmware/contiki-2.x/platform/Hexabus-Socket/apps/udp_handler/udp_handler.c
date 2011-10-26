@@ -179,6 +179,11 @@ static struct hxb_packet_int8 make_value_packet(uint8_t vid)
     packet.datatype = HXB_DTYPE_UINT8;
     packet.value = metering_get_power();
   }
+  else if(vid == 23)
+  {
+      packet.datatype = HXB_DTYPE_UINT8;
+      packet.value = shutter_get_state();
+  }
 
   packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
 
@@ -304,7 +309,7 @@ udphandler(process_event_t ev, process_data_t data)
               struct hxb_packet_int32 value_packet = make_deviceinfo_packet();
               send_packet(&value_packet, sizeof(value_packet));
             }
-            else if(packet->vid == 1 || packet->vid == 2)
+            else if(packet->vid == 1 || packet->vid == 2 || packet->vid == 23)
             {
               struct hxb_packet_int8 value_packet = make_value_packet(packet->vid);
               send_packet(&value_packet, sizeof(value_packet));

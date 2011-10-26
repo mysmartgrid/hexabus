@@ -44,11 +44,17 @@
 #include <avr/interrupt.h>
 
 #include <stdio.h>
+
+#define DEBUG 1
+#if DEBUG
+#include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
+#else
+#define PRINTF(...)
+#endif
 
 static process_event_t full_up_event;
 static process_event_t full_down_event;
-static process_event_t full_stop_event;
 static process_event_t full_cancel_event;
 
 void shutter_init(void) {
@@ -65,7 +71,6 @@ void shutter_init(void) {
 
     full_up_event = process_alloc_event();
     full_down_event = process_alloc_event();
-    full_stop_event = process_alloc_event();
     full_cancel_event = process_alloc_event();
 }
 
@@ -97,14 +102,9 @@ void shutter_stop(void) {
     SHUTTER_PORT &= ~( (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
 }
 
-bool shutter_get_state(void) {
+uint8_t shutter_get_state(void) {
     //TODO
-    return false;
-}
-
-int shutter_get_state_int(void) {
-    //TODO
-    return 0;
+    return 128;
 }
 
 PROCESS(shutter_button_process, "React to attached shutter buttons\n");
@@ -140,7 +140,7 @@ PROCESS_THREAD(shutter_full_process, ev, data) {
 
                 if(ev == PROCESS_EVENT_POLL) {
                     etimer_restart(&encoder_timer);
-                } else if((ev == PROCESS_EVENT_TIMER) || (ev == full_stop_event)) {
+                } else if(ev == PROCESS_EVENT_TIMER) {
                     PRINTF("-Encoder timed out\n");
                     shutter_stop();
                     break;
@@ -149,8 +149,6 @@ PROCESS_THREAD(shutter_full_process, ev, data) {
                     break;
                 }
             }
-        } else if(ev == full_stop_event) {
-            shutter_stop();
         }
     }
 

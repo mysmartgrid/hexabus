@@ -42,9 +42,7 @@ void    shutter_close_full(void);
 
 void    shutter_stop(void);
 
-bool    shutter_get_state(void);
-
-int     shutter_get_state_int(void);
+uint8_t     shutter_get_state(void);
 
 PROCESS_NAME(shutter_button_process);
 PROCESS_NAME(shutter_full_process);
