@@ -11,25 +11,29 @@ bool eval(Condition *cond, uint8_t ip, uint8_t eid, uint8_t value) { 		// FIXME:
 	}
 	// Great, now we have to do actual work
 	switch(cond->op) {
-		case 0: 
+		case eq: 
 			cout << "Check for ==" << endl;
 			return (cond->value == value);
-		case 1: 
+		case leq: 
 			cout << "Check for <=" << endl;
 			return (cond->value <= value);
-		case 2: 
+		case geq: 
 			cout << "Check for >=" << endl;
 			return (cond->value >= value);
-		case 3: 
+		case lt: 
 			cout << "Check for <" << endl;
 			return (cond->value < value);
-		case 4: 
+		case gt: 
 			cout << "Check for >" << endl;
 			return (cond->value > value);
 		default:
 			return false;
 	}
+}
 
+int testfunction(int i)
+{
+  return 1;
 }
 
 int main() {
@@ -37,7 +41,7 @@ int main() {
 	Condition trigger;
 	trigger.ip = 1;
 	trigger.eid = 1;
-	trigger.op = 0;
+	trigger.op = eq;
 	trigger.value = 1;
 
 	Transition offToOn;
@@ -73,8 +77,12 @@ int main() {
 		if((table[i].fromState == curState) && (eval(table[i].cond, ip, eid, value))) {
 			// Found match
 			cout << "Executing function number " << (int)table[i].action << endl;
-			// TODO Error Handling
-			cout << "New State = Cool State = " << (int)table[i].toCool << endl;
+			if(testfunction((int)table[i].action) == 0)
+      {
+			  cout << "New State = Cool State = " << (int)table[i].toCool << endl;
+      } else {
+        cout << "New State = Uncool State = " << (int)table[i].toUncool << endl;
+      }
 			return 0;
 		}
 	}

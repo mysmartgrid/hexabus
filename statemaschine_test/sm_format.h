@@ -2,10 +2,13 @@
 
 #include <stdint.h>
 
+// Operators
+enum Oper { eq, leq, geq, lt, gt };
+
 struct Condition {
 	uint8_t ip; 		// FIXME IP
 	uint8_t eid; 		// Endpoint ID
-	uint8_t op; 		// predicate function
+	Oper op; 		    // predicate function
 	uint8_t value; 		// the constant the received value will be checked against
 	
 };
@@ -17,3 +20,4 @@ struct Transition {
 	uint8_t toCool; 		// New State if function was executed successfully
 	uint8_t toUncool; 	// New State if function was _not_ executed successfully
 };
+
