@@ -93,6 +93,7 @@ void shutter_close_full(void) {
 
 void shutter_stop(void) {
     PRINTF("Shutter stop\n");
+    process_post(&shutter_full_process, full_cancel_event, NULL);
     SHUTTER_PORT &= ~( (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
 }
 

@@ -44,6 +44,7 @@
 #include "httpd-cgi.h"
 #include "dev/leds.h"
 
+#include "shutter.h"
 #include "metering.h"
 #include "relay.h"
 #include "eeprom_variables.h"
@@ -263,6 +264,23 @@ udphandler(process_event_t ev, process_data_t data)
             } else if (packet->vid == 2) {
               struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_WRITEREADONLY);
               send_packet(&error_packet, sizeof(error_packet));
+            } else if(packet->vid == 23) {
+                if(packet->datatype == HXB_DTYPE_UINT8)
+                {
+                    if(packet->value == 0)
+                    {
+                        shutter_stop();
+                    } else if(packet->value == 1)
+                    {
+                        shutter_close_full();
+                    } else if(packet->value == 255)
+                    {
+                        shutter_open_full();
+                    }
+                } else {
+                    struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_DATATYPE);
+                    send_packet(&error_packet, sizeof(error_packet));
+                }       
             } else {
               struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNVID);
               send_packet(&error_packet, sizeof(error_packet));
