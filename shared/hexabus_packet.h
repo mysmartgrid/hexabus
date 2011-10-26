@@ -80,6 +80,17 @@ struct hxb_data_int32 {
 } __attribute__ ((packed));
 
 // ======================================================================
+// Struct for passing Hexabus values around
+// One struct for all data types, with a datatype flag indicating which
+// of the values is used. Used for passing values to and from
+// endpoint_access
+struct hxb_value {
+  uint8_t   datatype;   // Datatype that is used, or HXB_DTYPE_UNDEFINED
+  uint8_t   int8;       // used for HXB_DTYPE_BOOL and HXB_DTYPE_UINT8
+  uint32_t  int32;      // used for HXB_DTYPE_UINT32
+}
+
+// ======================================================================
 // Definitions for fields
 
 #define HXB_PORT              61616
@@ -88,6 +99,7 @@ struct hxb_data_int32 {
 // Boolean values
 #define HXB_TRUE              1
 #define HXB_FALSE             0
+// TODO Do we need a "toggle"?
 
 // Packet types
 #define HXB_PTYPE_ERROR       0x00  // An error occured -- check the error code field for more information
