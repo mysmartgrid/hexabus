@@ -68,13 +68,13 @@ int main() {
   while(true)
   {
     // ask user for input
-    cout << "Enter IP (uint8):";
+    cout << "Enter IP (uint8): ";
     cin >> tmp;
     ip = tmp;
-    cout << "Enter EID (uint8)";
+    cout << "Enter EID (uint8): ";
     cin >> tmp;
     eid = tmp;
-    cout << "Enter value (uint8)";
+    cout << "Enter value (uint8): ";
     cin >> tmp;
     value = tmp;
 
