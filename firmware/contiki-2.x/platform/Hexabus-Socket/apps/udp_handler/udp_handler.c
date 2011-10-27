@@ -141,45 +141,35 @@ make_message(char* buf, uint16_t command, uint16_t value)
   PRINTF("%s%02x%02x%04d\n", HEXABUS_HEADER, 2, command, value);
 }
 
-static struct hxb_packet_int32 make_deviceinfo_packet()
+static struct hxb_packet_int32 make_value_packet_int32(uint8_t vid, struct hxb_value* val)
 {
   struct hxb_packet_int32 packet;
-  strncpy(&packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_INFO;
-  packet.flags = 0;
-  packet.vid = 0;
-
-  packet.datatype = HXB_DTYPE_UINT32;
-  packet.value = 0x00000007;
-
-  packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
-
-  PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nVID:\t%d\r\nValue:\t%lu\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.vid, packet.value, packet.crc);
-
-  return packet;
-}
-
-static struct hxb_packet_int8 make_value_packet(uint8_t vid, struct hxb_value* val)
-{
-  struct hxb_packet_int8 packet;  // TODO other datatypes!
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
   packet.vid = vid;
 
   packet.datatype = val->datatype;
-  packet.value = val->int8; // TODO other datatypes!
-  /*if(vid == 1)
-  {
-    packet.datatype = HXB_DTYPE_BOOL;
-    packet.value = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
-  }
-  else if(vid == 2)
-  {
-    packet.datatype = HXB_DTYPE_UINT8;
-    packet.value = metering_get_power();
-  }*/
+  packet.value = val->int32;
+
+  packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
+
+  PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nVID:\t%d\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
+    packet.type, packet.flags, packet.vid, packet.value, packet.crc);
+  
+  return packet;
+}
+
+static struct hxb_packet_int8 make_value_packet_int8(uint8_t vid, struct hxb_value* val)
+{
+  struct hxb_packet_int8 packet;
+  strncpy(&packet.header, HXB_HEADER, 4);
+  packet.type = HXB_PTYPE_INFO;
+  packet.flags = 0;
+  packet.vid = vid;
+
+  packet.datatype = val->datatype;
+  packet.value = val->int8;
 
   packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
 
@@ -285,12 +275,19 @@ udphandler(process_event_t ev, process_data_t data)
             {
               case HXB_DTYPE_BOOL:;
               case HXB_DTYPE_UINT8:;
-                struct hxb_packet_int8 value_packet = make_value_packet(packet->vid, &value);
-                send_packet(&value_packet, sizeof(value_packet));
+                struct hxb_packet_int8 value_packet8 = make_value_packet_int8(packet->vid, &value);
+                send_packet(&value_packet8, sizeof(value_packet8));
+                break;
               case HXB_DTYPE_UINT32:; // TODO !
+                struct hxb_packet_int32 value_packet32 = make_value_packet_int32(packet->vid, &value);
+                send_packet(&value_packet32, sizeof(value_packet32));
+                break;
               case HXB_DTYPE_UNDEFINED:;
                 struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNVID);
                 send_packet(&error_packet, sizeof(error_packet));
+                break;
+              default:
+                break;
             }
             /*
             if(packet->vid == 0)
