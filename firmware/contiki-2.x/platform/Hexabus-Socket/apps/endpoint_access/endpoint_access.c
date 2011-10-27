@@ -4,7 +4,7 @@
 
 // TODO describe how to add new stuff once we know how it is done
 
-uint8_t get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
+uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
   switch(eid)
   {
@@ -19,17 +19,19 @@ uint8_t get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if 
   }
 }
 
-uint8_t write(uint8_t eid, struct hxb_value value) // write access to an endpoint - returns 0 if okay, 1 if read-only, 2 if nonexistent, 3 datatype mismatch
+uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to an endpoint - returns 0 if okay, 1 if read-only, 2 if nonexistent, 3 datatype mismatch
 // TODO more useful error codes, maybe one for "something went wrong", etc.
 // TODO documentation: If we need something more complicated than "relay_on", how is it done? (Add new function into this file, execute, wait for return, ...
 {
+  printf("endpoint_access: Set %d to %d, datatype %d.\r\n", eid, value->int8, value->datatype);
   switch(eid)
+  {
     case 0:   // Endpoint 0: Device descriptor
       return 1;
     case 1:   // Endpoint 1: Power switch on Hexabus Socket.
-      if(value.datatype = HXB_DTYPE_BOOL)
+      if(value->datatype == HXB_DTYPE_BOOL)
       {
-        if(value.int8 == HXB_TRUE)
+        if(value->int8 == HXB_TRUE)
         {
           relay_off();  // Note that the relay is connected in normally-closed position, so relay_off turns the power on and vice-versa
         } else {
@@ -43,28 +45,27 @@ uint8_t write(uint8_t eid, struct hxb_value value) // write access to an endpoin
       return 1;
     default:  // Default: Endpoint does not exist
       return 2;
+  }
 }
 
-struct hxb_value read(uint8_t eid) // read access to an endpoint
+void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endpoint
 {
-  struct hxb_value val;
   switch(eid)
   {
     case 0:   // Endpoint 0: Hexabus device descriptor
-      val.datatype = HXB_DTYPE_UINT32;
-      val.int32 = 0x07;
+      val->datatype = HXB_DTYPE_UINT32;
+      val->int32 = 0x07;
       break;
     case 1:   // Endpoint 1: Hexabus Socket power switch
-      val.datatype = HXB_DTYPE_BOOL;
-      val.int8 relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
+      val->datatype = HXB_DTYPE_BOOL;
+      val->int8 = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
       break;
     case 2:   // Endpoint 2: Hexabus Socket power metering
-      val.datatype = HXB_DTYPE_UINT8 // TODO needs more bits
-      val.int8 = metering_get_power();
+      val->datatype = HXB_DTYPE_UINT8; // TODO needs more bits
+      val->int8 = metering_get_power();
       break;
     default:
-      val.datatype = HXB_DTYPE_UNDEFINED;
+      val->datatype = HXB_DTYPE_UNDEFINED;
   }
-  valurn val;
 }
 

@@ -76,10 +76,10 @@ void usage()
     printf("  set VID value   set VID to VALUE\n");
     printf("  get VID         query the value of VID\n");
     printf("shortcut commands for Hexabus-Socket:\n");
-    printf("  on              switch device on (same as set 0 1)\n");
-    printf("  off             switch device off (same as set 0 0)\n");
-    printf("  status          query on/off status of device (same as get 0)\n");
-    printf("  power           get power consumption (same as get 1)\n");
+    printf("  on              switch device on (same as set 1 1)\n");
+    printf("  off             switch device off (same as set 1 0)\n");
+    printf("  status          query on/off status of device (same as get 1)\n");
+    printf("  power           get power consumption (same as get 2)\n");
 }
 
 hxb_packet_int8 build_setvalue_packet(uint8_t vid, uint8_t datatype, uint8_t value, bool broadcast)
@@ -147,25 +147,25 @@ int main(int argc, char** argv)
   }
 
   // build the hexabus packet
-  if(!strcmp(argv[2], "on"))            // on: set VID 0 to TRUE
+  if(!strcmp(argv[2], "on"))            // on: set VID 1 to TRUE
   {
-    hxb_packet_int8 packet = build_setvalue_packet(0, HXB_DTYPE_BOOL, HXB_TRUE, false);
+    hxb_packet_int8 packet = build_setvalue_packet(1, HXB_DTYPE_BOOL, HXB_TRUE, false);
     send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
   }
   else if(!strcmp(argv[2], "off"))      // off: set VID 0 to FALSE
   {
-    hxb_packet_int8 packet = build_setvalue_packet(0, HXB_DTYPE_BOOL, HXB_FALSE, false);
+    hxb_packet_int8 packet = build_setvalue_packet(1, HXB_DTYPE_BOOL, HXB_FALSE, false);
     send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
   }
-  else if(!strcmp(argv[2], "status"))   // status: query VID 0
+  else if(!strcmp(argv[2], "status"))   // status: query VID 1
   {
-    hxb_packet_query packet = build_valuerequest_packet(0);
+    hxb_packet_query packet = build_valuerequest_packet(1);
     send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
     receive_packet(io_service, socket);
   }
-  else if(!strcmp(argv[2], "power"))    // power: query VID 1
+  else if(!strcmp(argv[2], "power"))    // power: query VID 2
   {
-    hxb_packet_query packet = build_valuerequest_packet(1);
+    hxb_packet_query packet = build_valuerequest_packet(2);
     send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
     receive_packet(io_service, socket);
   }

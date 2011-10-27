@@ -237,16 +237,34 @@ udphandler(process_event_t ev, process_data_t data)
       {
         if(header->type == HXB_PTYPE_WRITE)
         {
-          struct hxb_packet_int8* packet = (struct hxb_packet_int8*)uip_appdata;
+          struct hxb_packet_int8* packet = (struct hxb_packet_int8*)uip_appdata; // TODO what if it's not INT8? Then CRC Check fails even though the packet was correctly received!
           // check CRC
           if(packet->crc != crc16_data((char*)packet, sizeof(*packet)-2, 0))
           {
             printf("CRC check failed.");
             struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
             send_packet(&error_packet, sizeof(error_packet));
-          } else
-          {
-            if(packet->vid == 1) // packet.vid = 1 -> main switch
+          } else {
+            printf("NEW HANDLER");
+            struct hxb_value value;
+            value.datatype = packet->datatype;
+            value.int8 = packet->value;
+            switch(endpoint_write(packet->vid, &value))
+            {
+              case 0:
+                break;    // everything okay. No need to do anything.
+              case 1:
+                // TODO Send error: Writereadonly
+              case 2:
+                // TODO Send error: Unknownvid
+              case 3:
+                // TODO Send error: Datatype mismatch
+              default:
+                // TODO ...? more errors!
+                break;
+            }
+            
+            /* if(packet->vid == 1) // packet.vid = 1 -> main switch
             {
               if(packet->datatype == HXB_DTYPE_BOOL)
               {
@@ -266,7 +284,7 @@ udphandler(process_event_t ev, process_data_t data)
             } else {
               struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNVID);
               send_packet(&error_packet, sizeof(error_packet));
-            }
+            } */
           }
         }
         else if(header->type == HXB_PTYPE_QUERY)
