@@ -118,6 +118,7 @@ struct hxb_value {
 // TODO Uint16 for power consumption; Sint... or float for temperature
 
 // Error codes
+//                            0x00     reserved: No error
 #define HXB_ERR_UNKNOWNVID    0x01  // A request for an endpoint which does not exist on the device was received
 #define HXB_ERR_WRITEREADONLY 0x02  // A WRITE was received for a readonly endpoint
 #define HXB_ERR_CRCFAILED     0x03  // A packet failed the CRC check -- TODO How can we find out what information was lost?

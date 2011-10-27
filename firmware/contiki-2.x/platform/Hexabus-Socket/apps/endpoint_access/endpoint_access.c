@@ -19,15 +19,14 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
   }
 }
 
-uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to an endpoint - returns 0 if okay, 1 if read-only, 2 if nonexistent, 3 datatype mismatch
-// TODO more useful error codes, maybe one for "something went wrong", etc.
+uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to an endpoint - returns 0 if okay, or some error code definde in hxb_packet.h
 // TODO documentation: If we need something more complicated than "relay_on", how is it done? (Add new function into this file, execute, wait for return, ...
 {
   printf("endpoint_access: Set %d to %d, datatype %d.\r\n", eid, value->int8, value->datatype);
   switch(eid)
   {
     case 0:   // Endpoint 0: Device descriptor
-      return 1;
+      return HXB_ERR_WRITEREADONLY;
     case 1:   // Endpoint 1: Power switch on Hexabus Socket.
       if(value->datatype == HXB_DTYPE_BOOL)
       {
@@ -39,12 +38,12 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
         }
         return 0;
       } else {
-        return 3;
+        return HXB_ERR_DATATYPE;
       }
     case 2:   // Endpoint 2: Power metering on Hexabus Socket -- read-only
-      return 1;
+      return HXB_ERR_WRITEREADONLY;
     default:  // Default: Endpoint does not exist
-      return 2;
+      return HXB_ERR_UNKNOWNVID;
   }
 }
 

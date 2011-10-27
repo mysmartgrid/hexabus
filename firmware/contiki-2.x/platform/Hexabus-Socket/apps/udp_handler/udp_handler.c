@@ -160,15 +160,17 @@ static struct hxb_packet_int32 make_deviceinfo_packet()
   return packet;
 }
 
-static struct hxb_packet_int8 make_value_packet(uint8_t vid)
+static struct hxb_packet_int8 make_value_packet(uint8_t vid, struct hxb_value* val)
 {
-  struct hxb_packet_int8 packet;
+  struct hxb_packet_int8 packet;  // TODO other datatypes!
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
   packet.vid = vid;
 
-  if(vid == 1)
+  packet.datatype = val->datatype;
+  packet.value = val->int8; // TODO other datatypes!
+  /*if(vid == 1)
   {
     packet.datatype = HXB_DTYPE_BOOL;
     packet.value = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
@@ -177,7 +179,7 @@ static struct hxb_packet_int8 make_value_packet(uint8_t vid)
   {
     packet.datatype = HXB_DTYPE_UINT8;
     packet.value = metering_get_power();
-  }
+  }*/
 
   packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
 
@@ -249,42 +251,20 @@ udphandler(process_event_t ev, process_data_t data)
             struct hxb_value value;
             value.datatype = packet->datatype;
             value.int8 = packet->value;
-            switch(endpoint_write(packet->vid, &value))
+            uint8_t retcode = endpoint_write(packet->vid, &value);
+            switch(retcode)
             {
               case 0:
                 break;    // everything okay. No need to do anything.
-              case 1:
-                // TODO Send error: Writereadonly
-              case 2:
-                // TODO Send error: Unknownvid
-              case 3:
-                // TODO Send error: Datatype mismatch
+              case HXB_ERR_UNKNOWNVID:;
+              case HXB_ERR_WRITEREADONLY:;
+              case HXB_ERR_DATATYPE:;
+                struct hxb_packet_error error_packet = make_error_packet(retcode);
+                send_packet(&error_packet, sizeof(error_packet));
+                break;
               default:
-                // TODO ...? more errors!
                 break;
             }
-            
-            /* if(packet->vid == 1) // packet.vid = 1 -> main switch
-            {
-              if(packet->datatype == HXB_DTYPE_BOOL)
-              {
-                if(packet->value == HXB_FALSE)
-                {
-                  relay_on();
-                } else {
-                  relay_off(); // main switch turn on
-                }
-              } else {
-                struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_DATATYPE);
-                send_packet(&error_packet, sizeof(error_packet));
-              }
-            } else if (packet->vid == 2) {
-              struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_WRITEREADONLY);
-              send_packet(&error_packet, sizeof(error_packet));
-            } else {
-              struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNVID);
-              send_packet(&error_packet, sizeof(error_packet));
-            } */
           }
         }
         else if(header->type == HXB_PTYPE_QUERY)
@@ -299,6 +279,20 @@ udphandler(process_event_t ev, process_data_t data)
             send_packet(&error_packet, sizeof(error_packet));
           } else
           {
+            struct hxb_value value;
+            endpoint_read(packet->vid, &value);
+            switch(value.datatype)
+            {
+              case HXB_DTYPE_BOOL:;
+              case HXB_DTYPE_UINT8:;
+                struct hxb_packet_int8 value_packet = make_value_packet(packet->vid, &value);
+                send_packet(&value_packet, sizeof(value_packet));
+              case HXB_DTYPE_UINT32:; // TODO !
+              case HXB_DTYPE_UNDEFINED:;
+                struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNVID);
+                send_packet(&error_packet, sizeof(error_packet));
+            }
+            /*
             if(packet->vid == 0)
             {
               struct hxb_packet_int32 value_packet = make_deviceinfo_packet();
@@ -311,7 +305,7 @@ udphandler(process_event_t ev, process_data_t data)
             } else {
               struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNVID);
               send_packet(&error_packet, sizeof(error_packet));
-            }
+            } */
           }
         }
         else if(header->type == HXB_PTYPE_INFO)
