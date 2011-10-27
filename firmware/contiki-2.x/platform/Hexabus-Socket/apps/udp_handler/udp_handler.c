@@ -233,11 +233,10 @@ udphandler(process_event_t ev, process_data_t data)
           // check CRC
           if(packet->crc != crc16_data((char*)packet, sizeof(*packet)-2, 0))
           {
-            printf("CRC check failed.");
+            PRINTF("CRC check failed.");
             struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
             send_packet(&error_packet, sizeof(error_packet));
           } else {
-            printf("NEW HANDLER");
             struct hxb_value value;
             value.datatype = packet->datatype;
             value.int8 = packet->value;
@@ -278,7 +277,7 @@ udphandler(process_event_t ev, process_data_t data)
                 struct hxb_packet_int8 value_packet8 = make_value_packet_int8(packet->vid, &value);
                 send_packet(&value_packet8, sizeof(value_packet8));
                 break;
-              case HXB_DTYPE_UINT32:; // TODO !
+              case HXB_DTYPE_UINT32:;
                 struct hxb_packet_int32 value_packet32 = make_value_packet_int32(packet->vid, &value);
                 send_packet(&value_packet32, sizeof(value_packet32));
                 break;
@@ -289,20 +288,6 @@ udphandler(process_event_t ev, process_data_t data)
               default:
                 break;
             }
-            /*
-            if(packet->vid == 0)
-            {
-              struct hxb_packet_int32 value_packet = make_deviceinfo_packet();
-              send_packet(&value_packet, sizeof(value_packet));
-            }
-            else if(packet->vid == 1 || packet->vid == 2)
-            {
-              struct hxb_packet_int8 value_packet = make_value_packet(packet->vid);
-              send_packet(&value_packet, sizeof(value_packet));
-            } else {
-              struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNVID);
-              send_packet(&error_packet, sizeof(error_packet));
-            } */
           }
         }
         else if(header->type == HXB_PTYPE_INFO)
@@ -327,7 +312,6 @@ udphandler(process_event_t ev, process_data_t data)
             value->value = packet->value;
 
             process_post(PROCESS_BROADCAST, hxb_broadcast_received_event, value);
-            printf("[%d]", value); // TODO remove this once it works.
           }
         }
         else
