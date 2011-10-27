@@ -1,9 +1,8 @@
 // Abstraction layer - transforms generic endpoint access to specific hardware function calls
 
-// TODO describe how to add new stuff once we know how it is done
+#include "endpoint_access.h"
 
-#include <stdint.h>
-#include "../../../../../../shared/hexabus_packet.h"
+// TODO describe how to add new stuff once we know how it is done
 
 uint8_t get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
@@ -20,9 +19,8 @@ uint8_t get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if 
   }
 }
 
-uint8_t write(uint8_t eid, hxb_value value) // write access to an endpoint - returns 0 if okay, 1 if read-only, 2 if nonexistent, 3 datatype mismatch
+uint8_t write(uint8_t eid, struct hxb_value value) // write access to an endpoint - returns 0 if okay, 1 if read-only, 2 if nonexistent, 3 datatype mismatch
 // TODO more useful error codes, maybe one for "something went wrong", etc.
-// TODO handle types other than uint8
 // TODO documentation: If we need something more complicated than "relay_on", how is it done? (Add new function into this file, execute, wait for return, ...
 {
   switch(eid)
@@ -47,7 +45,7 @@ uint8_t write(uint8_t eid, hxb_value value) // write access to an endpoint - ret
       return 2;
 }
 
-hxb_value read(uint8_t eid) // read access to an endpoint
+struct hxb_value read(uint8_t eid) // read access to an endpoint
 {
   struct hxb_value val;
   switch(eid)

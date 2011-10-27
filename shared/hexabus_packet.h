@@ -88,7 +88,7 @@ struct hxb_value {
   uint8_t   datatype;   // Datatype that is used, or HXB_DTYPE_UNDEFINED
   uint8_t   int8;       // used for HXB_DTYPE_BOOL and HXB_DTYPE_UINT8
   uint32_t  int32;      // used for HXB_DTYPE_UINT32
-}
+};
 
 // ======================================================================
 // Definitions for fields
