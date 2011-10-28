@@ -235,7 +235,7 @@ udphandler(process_event_t ev, process_data_t data)
           switch(header->datatype)
           {
             case HXB_DTYPE_BOOL:
-            case HXB_DTYPE_UINT8:;
+            case HXB_DTYPE_UINT8:
               if(((struct hxb_packet_int8*)header)->crc != crc16_data((char*)header, sizeof(struct hxb_packet_int8) - 2, 0))
               {
                 PRINTF("CRC check failed.\r\n");
@@ -271,8 +271,8 @@ udphandler(process_event_t ev, process_data_t data)
             {
               case 0:
                 break;    // everything okay. No need to do anything.
-              case HXB_ERR_UNKNOWNVID:;
-              case HXB_ERR_WRITEREADONLY:;
+              case HXB_ERR_UNKNOWNVID:
+              case HXB_ERR_WRITEREADONLY:
               case HXB_ERR_DATATYPE:;
                 struct hxb_packet_error error_packet = make_error_packet(retcode);
                 send_packet(&error_packet, sizeof(error_packet));
@@ -298,7 +298,7 @@ udphandler(process_event_t ev, process_data_t data)
             endpoint_read(packet->vid, &value);
             switch(value.datatype)
             {
-              case HXB_DTYPE_BOOL:;
+              case HXB_DTYPE_BOOL:
               case HXB_DTYPE_UINT8:;
                 struct hxb_packet_int8 value_packet8 = make_value_packet_int8(packet->vid, &value);
                 send_packet(&value_packet8, sizeof(value_packet8));
