@@ -153,10 +153,8 @@ static struct hxb_packet_int32 make_value_packet_int32(uint8_t vid, struct hxb_v
   packet.value = val->int32;
 
   packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
-
-  PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nVID:\t%d\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.vid, packet.value, packet.crc);
-  
+  PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nVID:\t%ld\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
+    packet.type, packet.flags, packet.vid, packet.value, packet.crc); // printf behaves strange here. Value seems to be in wrong byte order
   return packet;
 }
 
@@ -175,7 +173,7 @@ static struct hxb_packet_int8 make_value_packet_int8(uint8_t vid, struct hxb_val
 
   PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nVID:\t%d\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
     packet.type, packet.flags, packet.vid, packet.value, packet.crc);
-  
+
   return packet;
 }
 
@@ -229,18 +227,46 @@ udphandler(process_event_t ev, process_data_t data)
       {
         if(header->type == HXB_PTYPE_WRITE)
         {
-          struct hxb_packet_int8* packet = (struct hxb_packet_int8*)uip_appdata; // TODO what if it's not INT8? Then CRC Check fails even though the packet was correctly received!
-          // check CRC
-          if(packet->crc != crc16_data((char*)packet, sizeof(*packet)-2, 0))
+          struct hxb_value value;
+          value.datatype = HXB_DTYPE_UNDEFINED;
+          uint8_t eid;
+
+          // CRC check and how big the actual value is depend on what type of packet we have.
+          switch(header->datatype)
           {
-            PRINTF("CRC check failed.");
-            struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
-            send_packet(&error_packet, sizeof(error_packet));
-          } else {
-            struct hxb_value value;
-            value.datatype = packet->datatype;
-            value.int8 = packet->value;
-            uint8_t retcode = endpoint_write(packet->vid, &value);
+            case HXB_DTYPE_BOOL:
+            case HXB_DTYPE_UINT8:;
+              if(((struct hxb_packet_int8*)header)->crc != crc16_data((char*)header, sizeof(struct hxb_packet_int8) - 2, 0))
+              {
+                PRINTF("CRC check failed.\r\n");
+                struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
+                send_packet(&error_packet, sizeof(error_packet));
+              } else {
+                value.datatype = ((struct hxb_packet_int8*)header)->datatype;
+                value.int8 = ((struct hxb_packet_int8*)header)->value;
+                eid = ((struct hxb_packet_int8*)header)->vid;
+              }
+              break;
+            case HXB_DTYPE_UINT32:
+              if(((struct hxb_packet_int32*)header)->crc != crc16_data((char*)header, sizeof(struct hxb_packet_int32) - 2, 0))
+              {
+                PRINTF("CRC check failed.\r\n");
+                struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
+                send_packet(&error_packet, sizeof(error_packet));
+              } else {
+                value.datatype = ((struct hxb_packet_int32*)header)->datatype;
+                value.int32 = ((struct hxb_packet_int32*)header)->value;
+                eid = ((struct hxb_packet_int32*)header)->vid;
+              }
+              break;
+            default:
+              PRINTF("Packet of unknown datatype.\r\n");
+              break;
+          }
+
+          if(value.datatype != HXB_DTYPE_UNDEFINED) // only continue if actual data was received
+          {
+            uint8_t retcode = endpoint_write(eid, &value);
             switch(retcode)
             {
               case 0:

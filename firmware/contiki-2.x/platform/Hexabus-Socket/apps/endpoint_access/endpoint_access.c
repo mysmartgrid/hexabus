@@ -40,7 +40,6 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
 }
 
 uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to an endpoint - returns 0 if okay, or some error code definde in hxb_packet.h
-// TODO documentation: If we need something more complicated than "relay_on", how is it done? (Add new function into this file, execute, wait for return, ...
 {
   PRINTF("endpoint_access: Set %d to %d, datatype %d.\r\n", eid, value->int8, value->datatype);
   switch(eid)

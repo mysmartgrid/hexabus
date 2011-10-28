@@ -13,6 +13,7 @@ struct hxb_packet_header {
   uint8_t   type;       // Packet type
   uint8_t   flags;      // Flags
   uint8_t   vid;        // Value ID / Error code if it's an error packet
+  uint8_t   datatype;   // Datatype / first 8 bits of the CRC if it's an error packet
 } __attribute__ ((packed));
 
 // ERROR packet
