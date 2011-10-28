@@ -62,7 +62,7 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
     case 2:   // Endpoint 2: Power metering on Hexabus Socket -- read-only
       return HXB_ERR_WRITEREADONLY;
     default:  // Default: Endpoint does not exist
-      return HXB_ERR_UNKNOWNVID;
+      return HXB_ERR_UNKNOWNEID;
   }
 }
 

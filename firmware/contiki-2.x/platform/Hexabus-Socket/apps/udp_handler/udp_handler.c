@@ -141,38 +141,38 @@ make_message(char* buf, uint16_t command, uint16_t value)
   PRINTF("%s%02x%02x%04d\n", HEXABUS_HEADER, 2, command, value);
 }
 
-static struct hxb_packet_int32 make_value_packet_int32(uint8_t vid, struct hxb_value* val)
+static struct hxb_packet_int32 make_value_packet_int32(uint8_t eid, struct hxb_value* val)
 {
   struct hxb_packet_int32 packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
-  packet.vid = vid;
+  packet.eid = eid;
 
   packet.datatype = val->datatype;
   packet.value = val->int32;
 
   packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
-  PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nVID:\t%ld\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.vid, packet.value, packet.crc); // printf behaves strange here. Value seems to be in wrong byte order
+  PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%ld\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
+    packet.type, packet.flags, packet.eid, packet.value, packet.crc); // printf behaves strange here. Value seems to be in wrong byte order
   return packet;
 }
 
-static struct hxb_packet_int8 make_value_packet_int8(uint8_t vid, struct hxb_value* val)
+static struct hxb_packet_int8 make_value_packet_int8(uint8_t eid, struct hxb_value* val)
 {
   struct hxb_packet_int8 packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
-  packet.vid = vid;
+  packet.eid = eid;
 
   packet.datatype = val->datatype;
   packet.value = val->int8;
 
   packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
 
-  PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nVID:\t%d\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.vid, packet.value, packet.crc);
+  PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%d\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
+    packet.type, packet.flags, packet.eid, packet.value, packet.crc);
 
   return packet;
 }
@@ -244,7 +244,7 @@ udphandler(process_event_t ev, process_data_t data)
               } else {
                 value.datatype = ((struct hxb_packet_int8*)header)->datatype;
                 value.int8 = ((struct hxb_packet_int8*)header)->value;
-                eid = ((struct hxb_packet_int8*)header)->vid;
+                eid = ((struct hxb_packet_int8*)header)->eid;
               }
               break;
             case HXB_DTYPE_UINT32:
@@ -256,7 +256,7 @@ udphandler(process_event_t ev, process_data_t data)
               } else {
                 value.datatype = ((struct hxb_packet_int32*)header)->datatype;
                 value.int32 = ((struct hxb_packet_int32*)header)->value;
-                eid = ((struct hxb_packet_int32*)header)->vid;
+                eid = ((struct hxb_packet_int32*)header)->eid;
               }
               break;
             default:
@@ -271,7 +271,7 @@ udphandler(process_event_t ev, process_data_t data)
             {
               case 0:
                 break;    // everything okay. No need to do anything.
-              case HXB_ERR_UNKNOWNVID:
+              case HXB_ERR_UNKNOWNEID:
               case HXB_ERR_WRITEREADONLY:
               case HXB_ERR_DATATYPE:;
                 struct hxb_packet_error error_packet = make_error_packet(retcode);
@@ -295,20 +295,20 @@ udphandler(process_event_t ev, process_data_t data)
           } else
           {
             struct hxb_value value;
-            endpoint_read(packet->vid, &value);
+            endpoint_read(packet->eid, &value);
             switch(value.datatype)
             {
               case HXB_DTYPE_BOOL:
               case HXB_DTYPE_UINT8:;
-                struct hxb_packet_int8 value_packet8 = make_value_packet_int8(packet->vid, &value);
+                struct hxb_packet_int8 value_packet8 = make_value_packet_int8(packet->eid, &value);
                 send_packet(&value_packet8, sizeof(value_packet8));
                 break;
               case HXB_DTYPE_UINT32:;
-                struct hxb_packet_int32 value_packet32 = make_value_packet_int32(packet->vid, &value);
+                struct hxb_packet_int32 value_packet32 = make_value_packet_int32(packet->eid, &value);
                 send_packet(&value_packet32, sizeof(value_packet32));
                 break;
               case HXB_DTYPE_UNDEFINED:;
-                struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNVID);
+                struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNEID);
                 send_packet(&error_packet, sizeof(error_packet));
                 break;
               default:
@@ -328,13 +328,13 @@ udphandler(process_event_t ev, process_data_t data)
           } else
           {
             printf("Broadcast received.\r\n");
-            printf("Type:\t%d\nFlags:\t%d\nVID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->vid, packet->datatype, packet->value, packet->crc);
+            printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->eid, packet->datatype, packet->value, packet->crc);
 
             struct hxb_data_int8* value = malloc(sizeof(struct hxb_data_int8));
             memcpy(value->source, &UDP_IP_BUF->srcipaddr, 16);
             // TODO only int for now... have to extend this once more datatypes are available
             value->datatype = packet->datatype;
-            value->vid = packet->vid;
+            value->eid = packet->eid;
             value->value = packet->value;
 
             process_post(PROCESS_BROADCAST, hxb_broadcast_received_event, value);
