@@ -1,9 +1,11 @@
 #include <iostream>
 #include "sm_format.h"
+#include <fstream>
 
 using namespace std;
 
 Condition cond_table[1];
+Transition trans_table[2];
 
 bool eval(uint8_t cond_index, uint8_t ip, uint8_t eid, uint8_t value) { 		// FIXME: Pointer to packet 
   cout << "Evaluating condition #" << (int)cond_index << endl;
@@ -43,31 +45,32 @@ int testfunction(uint8_t i)
   return ret;
 }
 
+//Read transition and condition table from file
+int readConfig(const char *transFileName, uint8_t transTableLength, const char *condFileName, uint8_t condTableLength) {
+  //Read Transition table
+  ifstream transIn;
+  transIn.open(transFileName, ios::in | ios::binary);
+  transIn.read((char*)&trans_table, transTableLength*sizeof(struct Transition));
+  transIn.close();
+  cout << "Transition Table:" << endl;
+  for(int i = 0;i < transTableLength;i++) {
+	cout << (int)trans_table[i].fromState << " " << (int)trans_table[i].cond << " " << (int)trans_table[i].action << " " << (int)trans_table[i].toCool << " " << (int)trans_table[i].toUncool << endl;
+  }
+  
+  //Read Condition Table
+  ifstream condIn;
+  condIn.open(condFileName, ios::in | ios::binary);
+  condIn.read((char*)&cond_table, condTableLength*sizeof(struct Condition));
+  condIn.close();
+  cout << "Condition Table:" << endl;
+  for(int i = 0;i < condTableLength;i++) {
+	cout << (int)cond_table[i].ip<< " " << (int)cond_table[i].eid << " " << cond_table[i].op << " " << (int)cond_table[i].value << endl;
+  return 0;
+  }
+}
+
 int main() {
-	//Simple Example:
-	Condition trigger;
-	trigger.ip = 1;
-	trigger.eid = 1;
-	trigger.op = eq;
-	trigger.value = 1;
-
-  cond_table[0] = trigger;
-
-	Transition offToOn;
-	offToOn.fromState = 0;
-	offToOn.cond = 0;
-	offToOn.action = 1;
-	offToOn.toCool = 1;
-	offToOn.toUncool = 0;
-
-	Transition onToOff;
-	onToOff.fromState = 1;
-	onToOff.cond = 0;
-	onToOff.action = 0;
-	onToOff.toCool = 0;
-	onToOff.toUncool = 1;
-
-	Transition table[2] = {offToOn, onToOff};
+	readConfig("trans.dat", 2, "cond.dat", 1);
 	uint8_t curState;
 	uint8_t ip, eid, value;
 	int tmp;
@@ -76,7 +79,7 @@ int main() {
   curState = 0; // start out in State 0.
   while(true)
   {
-    // ask user for input
+	// ask user for input
     cout << "Enter IP (uint8): ";
     cin >> tmp;
     ip = tmp;
@@ -87,20 +90,20 @@ int main() {
     cin >> tmp;
     value = tmp;
 
-    for(uint8_t i = 0;i < (sizeof(table)/sizeof(Transition));i++)
+    for(uint8_t i = 0;i < (sizeof(trans_table)/sizeof(struct Transition));i++)
     {
-      if((table[i].fromState == curState) && (eval(table[i].cond, ip, eid, value)))
+      if((trans_table[i].fromState == curState) && (eval(trans_table[i].cond, ip, eid, value)))
       {
         // Found match
-        cout << "Executing function number " << (int)table[i].action << endl;
-        if(testfunction(table[i].action) == 0)
+        cout << "Executing function number " << (int)trans_table[i].action << endl;
+        if(testfunction(trans_table[i].action) == 0)
         {
-          cout << "New State = Cool State = " << (int)table[i].toCool << endl;
-          curState = table[i].toCool;
+          cout << "New State = Cool State = " << (int)trans_table[i].toCool << endl;
+          curState = trans_table[i].toCool;
           break;
         } else {
-          cout << "New State = Uncool State = " << (int)table[i].toUncool << endl;
-          curState = table[i].toUncool;
+          cout << "New State = Uncool State = " << (int)trans_table[i].toUncool << endl;
+          curState = trans_table[i].toUncool;
           break;
         }
       }
