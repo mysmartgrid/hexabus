@@ -1,18 +1,5 @@
 // Abstraction layer - transforms generic endpoint access to specific hardware function calls
 // ============================================================================
-// Hot to add a new endpoint
-// - Add a case for your endpoint ID in endpoint_get_datatype, return the
-//   datatype of your endpoint
-// - Add a case for your endpoint ID in endpoint_write. This is executed when
-//   someone sends a WRITE packet for your endpoint, or the state machine
-//   has a switching rule that changes your endpoint's value. Feel free to use
-//   events, function calls, or whatever. If your operation is too complicated,
-//   put it in a function somewhere else and call it from here, so that the list
-//   of  endpoint IDs doesn't get too cluttered. You can also use an error code
-//   if the write fails. The state machine will recognize this (TODO to be implemented).
-//   Make sure to check the DATATYPE before actually executing the WRITE ;)
-// - Add a case for your endpoint ID in endpoint_read. The code that's already
-//   there should pretty much explain how that's done.
 
 #define DEBUG 1
 #if DEBUG
