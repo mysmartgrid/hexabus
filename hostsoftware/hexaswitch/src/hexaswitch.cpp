@@ -97,16 +97,16 @@ void usage()
     printf("       hexaswitch listen\n");
     printf("       hexaswitch send EID value\n\n");
     printf("commands are:\n");
-    printf("  set EID value   set EID to VALUE\n");
-    printf("  get EID         query the value of EID\n");
-    printf("shortcut commands for Hexabus-Socket:\n");
-    printf("  on              switch device on (same as set 1 1)\n");
-    printf("  off             switch device off (same as set 1 0)\n");
-    printf("  status          query on/off status of device (same as get 1)\n");
-    printf("  power           get power consumption (same as get 2)\n");
+    printf("  set EID datatype value    set EID to VALUE (datatypes: 1 - Bool (0 or 1), 2 - 8bit Uint, 3 - 32bit Uint)\n");
+    printf("  get EID                   query the value of EID\n");
+    printf("shortcut commands           for Hexabus-Socket:\n");
+    printf("  on                        switch device on (same as set 1 1 1)\n");
+    printf("  off                       switch device off (same as set 1 1 0)\n");
+    printf("  status                    query on/off status of device (same as get 1)\n");
+    printf("  power                     get power consumption (same as get 2)\n");
 }
 
-hxb_packet_int8 build_setvalue_packet(uint8_t eid, uint8_t datatype, uint8_t value, bool broadcast)
+hxb_packet_int8 build_setvalue_packet8(uint8_t eid, uint8_t datatype, uint8_t value, bool broadcast)
 {
   hexabus::CRC::Ptr crc(new hexabus::CRC());
   struct hxb_packet_int8 packet;
@@ -119,7 +119,23 @@ hxb_packet_int8 build_setvalue_packet(uint8_t eid, uint8_t datatype, uint8_t val
   packet.crc = crc->crc16((char*)&packet, sizeof(packet)-2);
   // for test, output the Hexabus packet
   printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, packet.value, packet.crc);
-  //TODO implement -v
+
+  return packet;
+}
+
+hxb_packet_int32 build_setvalue_packet32(uint8_t eid, uint8_t datatype, uint32_t value, bool broadcast)
+{
+  hexabus::CRC::Ptr crc(new hexabus::CRC());
+  struct hxb_packet_int32 packet;
+  strncpy((char*)&packet.header, HXB_HEADER, 4);
+  packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
+  packet.flags = 0;
+  packet.eid = eid;
+  packet.datatype = datatype;
+  packet.value = value; // TODO Byte order problem here?
+  packet.crc = crc->crc16((char*)&packet, sizeof(packet)-2);
+  // for test, output the Hexabus packet
+  printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, packet.value, packet.crc);
 
   return packet;
 }
@@ -173,12 +189,12 @@ int main(int argc, char** argv)
   // build the hexabus packet
   if(!strcmp(argv[2], "on"))            // on: set EID 1 to TRUE
   {
-    hxb_packet_int8 packet = build_setvalue_packet(1, HXB_DTYPE_BOOL, HXB_TRUE, false);
+    hxb_packet_int8 packet = build_setvalue_packet8(1, HXB_DTYPE_BOOL, HXB_TRUE, false);
     send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
   }
   else if(!strcmp(argv[2], "off"))      // off: set EID 0 to FALSE
   {
-    hxb_packet_int8 packet = build_setvalue_packet(1, HXB_DTYPE_BOOL, HXB_FALSE, false);
+    hxb_packet_int8 packet = build_setvalue_packet8(1, HXB_DTYPE_BOOL, HXB_FALSE, false);
     send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
   }
   else if(!strcmp(argv[2], "status"))   // status: query EID 1
@@ -195,12 +211,32 @@ int main(int argc, char** argv)
   }
   else if(!strcmp(argv[2], "set"))      // set: set an arbitrary EID
   {
-    if(argc == 5)
+    if(argc == 6)
     {
-      uint8_t val = atoi(argv[4]);
       uint8_t eid = atoi(argv[3]);
-      hxb_packet_int8 packet = build_setvalue_packet(eid, HXB_DTYPE_UINT8, val, false);
-      send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
+      uint8_t dtype = atoi(argv[4]);
+      uint8_t val8;   // only the relevant one is used in the switch.
+      uint32_t val32;
+      
+      struct hxb_packet_int8 packet8;
+      struct hxb_packet_int32 packet32;
+
+      switch(dtype)
+      {
+        case HXB_DTYPE_BOOL:
+        case HXB_DTYPE_UINT8:
+          val8 = atoi(argv[5]);
+          packet8 = build_setvalue_packet8(eid, dtype, val8, false);
+          send_packet(socket, argv[1], HXB_PORT, (char*)&packet8, sizeof(packet8));
+          break;
+        case HXB_DTYPE_UINT32:
+          val32 = atoi(argv[5]);
+          packet32 = build_setvalue_packet32(eid, dtype, val32, false);
+          send_packet(socket, argv[1], HXB_PORT, (char*)&packet32, sizeof(packet32));
+          break;
+        default:
+          printf("unknown data type.\n");
+      }
     }
     else
     {
@@ -224,12 +260,12 @@ int main(int argc, char** argv)
     }
   }
   else if(!strcmp(argv[1], "send"))      // send: send a value broadcast
-  {
+  {  // TODO allow for diffrent data types
     if(argc == 4)
     {
       uint8_t val = atoi(argv[3]);
       uint8_t eid = atoi(argv[2]);
-      hxb_packet_int8 packet = build_setvalue_packet(eid, HXB_DTYPE_UINT8, val, true);
+      hxb_packet_int8 packet = build_setvalue_packet8(eid, HXB_DTYPE_UINT8, val, true);
       send_packet(socket, (char*)"ff02::1" , HXB_PORT, (char*)&packet, sizeof(packet));
     }
     else
