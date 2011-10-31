@@ -24,6 +24,7 @@
 
 #include "endpoint_access.h"
 
+// TODO use this for some kind of "get endpoint info" (which also includes a string and stuff, and is queried over the network)
 uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
   switch(eid)
@@ -33,7 +34,7 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
     case 1:   // Endpoint 1: Power switch on Hexabus Socket
       return HXB_DTYPE_BOOL;
     case 2:   // Endpoint 2: Power metering on Hexabus Socket
-      return HXB_DTYPE_UINT8;
+      return HXB_DTYPE_UINT32;
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
   }
@@ -79,8 +80,8 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
       val->int8 = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
       break;
     case 2:   // Endpoint 2: Hexabus Socket power metering
-      val->datatype = HXB_DTYPE_UINT8; // TODO needs more bits
-      val->int8 = metering_get_power();
+      val->datatype = HXB_DTYPE_UINT32; // TODO needs more bits
+      val->int32 = metering_get_power();
       break;
     default:
       val->datatype = HXB_DTYPE_UNDEFINED;
