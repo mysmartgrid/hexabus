@@ -72,7 +72,7 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
   {
     case 0:   // Endpoint 0: Hexabus device descriptor
       val->datatype = HXB_DTYPE_UINT32;
-      val->int32 = 0x07;
+      val->int32 = 0x07;    // 0x07: 0..00111: Enpoints 0, 1 and 2 exist.
       break;
     case 1:   // Endpoint 1: Hexabus Socket power switch
       val->datatype = HXB_DTYPE_BOOL;

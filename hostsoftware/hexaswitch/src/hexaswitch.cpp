@@ -32,10 +32,34 @@ void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::s
     if(header->type == HXB_PTYPE_INFO)
     {
       printf("Info Message.\n");
-      struct hxb_packet_int8* packet = (struct hxb_packet_int8*)recv_data; // TODO distinguish between datatypes here.
-      if(packet->crc != crc->crc16((char*)packet, sizeof(*packet)-2))
-        printf("CRC check failed. Packet may be corrupted.\n");
-      printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->eid, packet->datatype, packet->value, packet->crc);
+
+      // Declare pointers here - but use only the relevant one in the switch()
+      struct hxb_packet_int8* packet8;
+      struct hxb_packet_int32* packet32;
+
+      switch(header->datatype)
+      {
+        case HXB_DTYPE_UNDEFINED:
+          printf("Undefined datatype.\n");
+          break;
+        case HXB_DTYPE_BOOL:
+        case HXB_DTYPE_UINT8:
+          packet8 = (struct hxb_packet_int8*)recv_data;
+          if(packet8->crc != crc->crc16((char*)packet8, sizeof(*packet8)-2))
+            printf("CRC check failed. Data may be corrupted.\n");
+
+          printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet8->type, packet8->flags, packet8->eid, packet8->datatype, packet8->value, packet8->crc);
+          break;
+        case HXB_DTYPE_UINT32:
+          packet32 = (struct hxb_packet_int32*)recv_data;
+          if(packet32->crc != crc->crc16((char*)packet32, sizeof(*packet32)-2))
+            printf("CRC check failed. Data may be corrupted.\n");
+
+          printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet32->type, packet32->flags, packet32->eid, packet32->datatype, packet32->value, packet32->crc);
+          break;
+        default:
+          printf("hexaswitch: Datatype not implemented yet.\n");
+      }
     } else if(header->type == HXB_PTYPE_ERROR) {
       printf("Error message.\n");
       struct hxb_packet_error* packet = (struct hxb_packet_error*)recv_data;
