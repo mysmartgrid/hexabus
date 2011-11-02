@@ -20,8 +20,9 @@ void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::s
   }
   printf("waiting for data...\n");
   char recv_data[128];
-  socket->receive(boost::asio::buffer(recv_data, 127));
-  printf("recieved message.\n");
+  boost::asio::ip::udp::endpoint remote_endpoint;
+  socket->receive_from(boost::asio::buffer(recv_data, 127), remote_endpoint);
+  printf("recieved message from %s.\n", remote_endpoint.address().to_string().c_str());
 
   struct hxb_packet_header* header = (struct hxb_packet_header*)recv_data;
   
