@@ -34,6 +34,8 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
       return HXB_DTYPE_BOOL;
     case 2:   // Endpoint 2: Power metering on Hexabus Socket
       return HXB_DTYPE_UINT8;
+    case 23:
+      return HXB_DTYPE_UINT8;
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
   }
@@ -61,6 +63,18 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
       }
     case 2:   // Endpoint 2: Power metering on Hexabus Socket -- read-only
       return HXB_ERR_WRITEREADONLY;
+    case 23:
+      if(value->datatype == HXB_DTYPE_UINT8) {
+          if(value->int8 == 0) {
+              shutter_stop();
+          } else if(value->int8 == 1) {
+              shutter_close_full();
+          } else if(value->int8 == 255) {
+              shutter_open_full();
+          }
+      } else {
+          return HXB_ERR_DATATYPE;
+      }
     default:  // Default: Endpoint does not exist
       return HXB_ERR_UNKNOWNEID;
   }
@@ -81,6 +95,10 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case 2:   // Endpoint 2: Hexabus Socket power metering
       val->datatype = HXB_DTYPE_UINT8; // TODO needs more bits
       val->int8 = metering_get_power();
+      break;
+    case 23:
+      val->datatype = HXB_DTYPE_UINT8;
+      val->int8 = shutter_get_state();
       break;
     default:
       val->datatype = HXB_DTYPE_UNDEFINED;
