@@ -27,7 +27,8 @@ struct hxb_packet_header {
   char      header[4];  // HX0B
   uint8_t   type;       // Packet type
   uint8_t   flags;      // Flags
-  uint8_t   vid;        // Value ID / Error code if it's an error packet
+  uint8_t   eid;        // Endpoint ID / Error code if it's an error packet
+  uint8_t   datatype;   // Datatype / first 8 bits of the CRC if it's an error packet
 } __attribute__ ((packed));
 
 // ERROR packet
@@ -44,7 +45,7 @@ struct hxb_packet_query {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint8_t   vid;        // value ID
+  uint8_t   eid;        // Endpoint ID
   uint16_t  crc;       // CRC16-Kermit / Contiki's crc16_data()
 } __attribute__ ((packed));
 // TODO this used to be hxb_packet_req
@@ -55,7 +56,7 @@ struct hxb_packet_int8 {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint8_t   vid;
+  uint8_t   eid;
   uint8_t   datatype;
   uint8_t   value;
   uint16_t  crc;
@@ -67,7 +68,7 @@ struct hxb_packet_int32 {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint8_t   vid;
+  uint8_t   eid;
   uint8_t   datatype;
   uint32_t  value;
   uint16_t  crc;
@@ -95,14 +96,14 @@ struct hxb_packet_datetime {
 struct hxb_data_int8 {
   char      source[16]; // IP address of the device that sent the broadcast
   uint8_t   datatype;
-  uint8_t   vid;
+  uint8_t   eid;
   uint8_t   value;
 } __attribute__ ((packed));
 
 struct hxb_data_int32 {
   char      source[16]; // IP address of the device that sent the broadcast
   uint8_t   datatype;
-  uint8_t   vid;
+  uint8_t   eid;
   uint8_t   value;
 } __attribute__ ((packed));
 
@@ -155,7 +156,7 @@ struct hxb_value {
 
 // Error codes
 //                            0x00     reserved: No error
-#define HXB_ERR_UNKNOWNVID    0x01  // A request for an endpoint which does not exist on the device was received
+#define HXB_ERR_UNKNOWNEID    0x01  // A request for an endpoint which does not exist on the device was received
 #define HXB_ERR_WRITEREADONLY 0x02  // A WRITE was received for a readonly endpoint
 #define HXB_ERR_CRCFAILED     0x03  // A packet failed the CRC check -- TODO How can we find out what information was lost?
 #define HXB_ERR_DATATYPE      0x04  // A packet with a datatype that does not fit the endpoint was received
