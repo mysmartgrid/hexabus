@@ -45,6 +45,7 @@ void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::s
         case HXB_DTYPE_BOOL:
         case HXB_DTYPE_UINT8:
           packet8 = (struct hxb_packet_int8*)recv_data;
+          packet8->crc = ntohs(packet8->crc);
           if(packet8->crc != crc->crc16((char*)packet8, sizeof(*packet8)-2))
             printf("CRC check failed. Data may be corrupted.\n");
 
@@ -52,8 +53,11 @@ void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::s
           break;
         case HXB_DTYPE_UINT32:
           packet32 = (struct hxb_packet_int32*)recv_data;
+          packet32->crc = ntohs(packet32->crc);
           if(packet32->crc != crc->crc16((char*)packet32, sizeof(*packet32)-2))
             printf("CRC check failed. Data may be corrupted.\n");
+          // ntohl the value after the CRC check, CRC check is done with everything in network byte order
+          packet32->value = ntohl(packet32->value);
 
           printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet32->type, packet32->flags, packet32->eid, packet32->datatype, packet32->value, packet32->crc);
           break;
@@ -63,6 +67,7 @@ void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::s
     } else if(header->type == HXB_PTYPE_ERROR) {
       printf("Error message.\n");
       struct hxb_packet_error* packet = (struct hxb_packet_error*)recv_data;
+      packet->crc = ntohs(packet->crc);
       if(packet->crc != crc->crc16((char*)packet, sizeof(*packet)-2))
         printf("CRC check failed. Packet may be corrupted.\n");
       printf("Type:\t%d\nFlags:\t%d\nError Code:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->errorcode, packet->crc);
@@ -116,7 +121,7 @@ hxb_packet_int8 build_setvalue_packet8(uint8_t eid, uint8_t datatype, uint8_t va
   packet.eid = eid;
   packet.datatype = datatype;
   packet.value = value;
-  packet.crc = crc->crc16((char*)&packet, sizeof(packet)-2);
+  packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
   // for test, output the Hexabus packet
   printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, packet.value, packet.crc);
 
@@ -132,10 +137,10 @@ hxb_packet_int32 build_setvalue_packet32(uint8_t eid, uint8_t datatype, uint32_t
   packet.flags = 0;
   packet.eid = eid;
   packet.datatype = datatype;
-  packet.value = value; // TODO Byte order problem here?
-  packet.crc = crc->crc16((char*)&packet, sizeof(packet)-2);
+  packet.value = htonl(value);
+  packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
   // for test, output the Hexabus packet
-  printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, packet.value, packet.crc);
+  printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, ntohl(packet.value), ntohs(packet.crc));
 
   return packet;
 }
@@ -148,9 +153,9 @@ hxb_packet_query build_valuerequest_packet(uint8_t eid)
   packet.type = HXB_PTYPE_QUERY;
   packet.flags = 0;
   packet.eid = eid;
-  packet.crc = crc->crc16((char*)&packet, sizeof(packet)-2);
+  packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
   // for test, output the Hexabus packet
-  printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.crc);
+  printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, ntohs(packet.crc));
   //TODO implement -v
 
   return packet;

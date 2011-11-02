@@ -86,7 +86,7 @@ send_packet(void *ptr)
       packet8.eid = eid;
       packet8.datatype = val.datatype;
       packet8.value = val.int8;
-      packet8.crc = crc16_data((char*)&packet8, sizeof(packet8)-2, 0);
+      packet8.crc = uip_htons(crc16_data((char*)&packet8, sizeof(packet8)-2, 0));
 
       uip_udp_packet_sendto(client_conn, &packet8, sizeof(packet8),
                             &server_ipaddr, UIP_HTONS(HXB_PORT));
@@ -98,8 +98,8 @@ send_packet(void *ptr)
       packet32.flags = 0;
       packet32.eid = eid;
       packet32.datatype = val.datatype;
-      packet32.value = val.int32;
-      packet32.crc = crc16_data((char*)&packet32, sizeof(packet32)-2, 0);
+      packet32.value = uip_htonl(val.int32);
+      packet32.crc = uip_htons(crc16_data((char*)&packet32, sizeof(packet32)-2, 0));
 
       uip_udp_packet_sendto(client_conn, &packet32, sizeof(packet32),
                             &server_ipaddr, UIP_HTONS(HXB_PORT));
