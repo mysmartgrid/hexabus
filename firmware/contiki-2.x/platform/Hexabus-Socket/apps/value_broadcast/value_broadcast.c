@@ -71,19 +71,44 @@ tcpip_handler(void)
 static void
 send_packet(void *ptr)
 {
-  PRINTF("Broadcasting power value.\n");
+  uint8_t eid = 2;
+  struct hxb_value val; 
+  endpoint_read(eid, &val);
+  PRINTF("value_broadcast: Broadcasting EID %d.\n", eid);
+  switch(val.datatype)
+  {
+    case HXB_DTYPE_BOOL:
+    case HXB_DTYPE_UINT8:;
+      struct hxb_packet_int8 packet8;
+      strncpy(&packet8.header, HXB_HEADER, 4);
+      packet8.type = HXB_PTYPE_INFO;
+      packet8.flags = 0;
+      packet8.eid = eid;
+      packet8.datatype = val.datatype;
+      packet8.value = val.int8;
+      packet8.crc = uip_htons(crc16_data((char*)&packet8, sizeof(packet8)-2, 0));
 
-  struct hxb_packet_int8 packet;
-  strncpy(&packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_INFO;
-  packet.flags = 0;
-  packet.eid = 1;
-  packet.datatype = HXB_DTYPE_UINT8;
-  packet.value = metering_get_power();
-  packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
+      uip_udp_packet_sendto(client_conn, &packet8, sizeof(packet8),
+                            &server_ipaddr, UIP_HTONS(HXB_PORT));
+      break;
+    case HXB_DTYPE_UINT32:;
+      struct hxb_packet_int32 packet32;
+      strncpy(&packet32.header, HXB_HEADER, 4);
+      packet32.type = HXB_PTYPE_INFO;
+      packet32.flags = 0;
+      packet32.eid = eid;
+      packet32.datatype = val.datatype;
+      packet32.value = uip_htonl(val.int32);
+      packet32.crc = uip_htons(crc16_data((char*)&packet32, sizeof(packet32)-2, 0));
 
-  uip_udp_packet_sendto(client_conn, &packet, sizeof(packet),
-                        &server_ipaddr, UIP_HTONS(HXB_PORT));
+      uip_udp_packet_sendto(client_conn, &packet32, sizeof(packet32),
+                            &server_ipaddr, UIP_HTONS(HXB_PORT));
+      break;
+    default:
+      PRINTF("value_broadcast: Datatype unknown.\r\n");
+  }
+  
+
 }
 /*---------------------------------------------------------------------------*/
 static void

@@ -150,11 +150,11 @@ static struct hxb_packet_int32 make_value_packet_int32(uint8_t eid, struct hxb_v
   packet.eid = eid;
 
   packet.datatype = val->datatype;
-  packet.value = val->int32;
+  packet.value = uip_htonl(val->int32);
 
-  packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
+  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
   PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%ld\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.eid, packet.value, packet.crc); // printf behaves strange here. Value seems to be in wrong byte order
+    packet.type, packet.flags, packet.eid, uip_ntohl(packet.value), uip_ntohs(packet.crc)); // printf behaves strange here?
   return packet;
 }
 
@@ -169,10 +169,10 @@ static struct hxb_packet_int8 make_value_packet_int8(uint8_t eid, struct hxb_val
   packet.datatype = val->datatype;
   packet.value = val->int8;
 
-  packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
+  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
 
   PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%d\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.eid, packet.value, packet.crc);
+    packet.type, packet.flags, packet.eid, packet.value, uip_ntohs(packet.crc));
 
   return packet;
 }
@@ -185,10 +185,10 @@ static struct hxb_packet_error make_error_packet(uint8_t errorcode)
 
   packet.flags = 0;
   packet.errorcode = errorcode;
-  packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
+  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
 
   PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nError Code:\t%d\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.errorcode, packet.crc);
+    packet.type, packet.flags, packet.errorcode, uip_ntohs(packet.crc));
 
   return packet;
 }
@@ -236,7 +236,7 @@ udphandler(process_event_t ev, process_data_t data)
           {
             case HXB_DTYPE_BOOL:
             case HXB_DTYPE_UINT8:
-              if(((struct hxb_packet_int8*)header)->crc != crc16_data((char*)header, sizeof(struct hxb_packet_int8) - 2, 0))
+              if(uip_ntohs(((struct hxb_packet_int8*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_int8) - 2, 0))
               {
                 PRINTF("CRC check failed.\r\n");
                 struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
@@ -248,14 +248,14 @@ udphandler(process_event_t ev, process_data_t data)
               }
               break;
             case HXB_DTYPE_UINT32:
-              if(((struct hxb_packet_int32*)header)->crc != crc16_data((char*)header, sizeof(struct hxb_packet_int32) - 2, 0))
+              if(uip_ntohs(((struct hxb_packet_int32*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_int32) - 2, 0))
               {
                 PRINTF("CRC check failed.\r\n");
                 struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
                 send_packet(&error_packet, sizeof(error_packet));
               } else {
                 value.datatype = ((struct hxb_packet_int32*)header)->datatype;
-                value.int32 = ((struct hxb_packet_int32*)header)->value;
+                value.int32 = uip_ntohl(((struct hxb_packet_int32*)header)->value);
                 eid = ((struct hxb_packet_int32*)header)->eid;
               }
               break;
@@ -287,7 +287,7 @@ udphandler(process_event_t ev, process_data_t data)
           struct hxb_packet_query* packet = (struct hxb_packet_query*)uip_appdata;
           // check CRC
           printf("size of packet: %u\n", sizeof(*packet));
-          if(packet->crc != crc16_data((char*)packet, sizeof(*packet)-2, 0))
+          if(uip_ntohs(packet->crc) != crc16_data((char*)packet, sizeof(*packet)-2, 0))
           {
             printf("CRC check failed.");
             struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
@@ -320,7 +320,7 @@ udphandler(process_event_t ev, process_data_t data)
         {
           struct hxb_packet_int8* packet = (struct hxb_packet_int8*)uip_appdata; // TODO this can only handle int for now - make it more flexible!
           // check CRC
-          if(packet->crc != crc16_data((char*)packet, sizeof(*packet)-2, 0))
+          if(uip_ntohs(packet->crc) != crc16_data((char*)packet, sizeof(*packet)-2, 0))
           {
             printf("CRC check failed.");
             struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
@@ -328,14 +328,14 @@ udphandler(process_event_t ev, process_data_t data)
           } else
           {
             printf("Broadcast received.\r\n");
-            printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->eid, packet->datatype, packet->value, packet->crc);
+            printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->eid, packet->datatype, packet->value, uip_ntohs(packet->crc));
 
             struct hxb_data_int8* value = malloc(sizeof(struct hxb_data_int8));
             memcpy(value->source, &UDP_IP_BUF->srcipaddr, 16);
             // TODO only int for now... have to extend this once more datatypes are available
             value->datatype = packet->datatype;
             value->eid = packet->eid;
-            value->value = packet->value;
+            value->value = uip_ntohs(packet->value);
 
             process_post(PROCESS_BROADCAST, hxb_broadcast_received_event, value);
           }
