@@ -1,4 +1,3 @@
-
 /*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -78,7 +77,7 @@ send_packet(void *ptr)
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
-  packet.vid = 1;
+  packet.eid = 1;
   packet.datatype = HXB_DTYPE_UINT8;
   packet.value = metering_get_power();
   packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);

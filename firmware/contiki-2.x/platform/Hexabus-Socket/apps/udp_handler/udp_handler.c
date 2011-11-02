@@ -142,54 +142,39 @@ make_message(char* buf, uint16_t command, uint16_t value)
   PRINTF("%s%02x%02x%04d\n", HEXABUS_HEADER, 2, command, value);
 }
 
-static struct hxb_packet_int32 make_deviceinfo_packet()
+static struct hxb_packet_int32 make_value_packet_int32(uint8_t eid, struct hxb_value* val)
 {
   struct hxb_packet_int32 packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
-  packet.vid = 0;
+  packet.eid = eid;
 
-  packet.datatype = HXB_DTYPE_UINT32;
-  packet.value = 0x00000007;
+  packet.datatype = val->datatype;
+  packet.value = val->int32;
 
   packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
-
-  PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nVID:\t%d\r\nValue:\t%lu\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.vid, packet.value, packet.crc);
-
+  PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%ld\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
+    packet.type, packet.flags, packet.eid, packet.value, packet.crc); // printf behaves strange here. Value seems to be in wrong byte order
   return packet;
 }
 
-static struct hxb_packet_int8 make_value_packet(uint8_t vid)
+static struct hxb_packet_int8 make_value_packet_int8(uint8_t eid, struct hxb_value* val)
 {
   struct hxb_packet_int8 packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
-  packet.vid = vid;
+  packet.eid = eid;
 
-  if(vid == 1)
-  {
-    packet.datatype = HXB_DTYPE_BOOL;
-    packet.value = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
-  }
-  else if(vid == 2)
-  {
-    packet.datatype = HXB_DTYPE_UINT8;
-    packet.value = metering_get_power();
-  }
-  else if(vid == 23)
-  {
-      packet.datatype = HXB_DTYPE_UINT8;
-      packet.value = shutter_get_state();
-  }
+  packet.datatype = val->datatype;
+  packet.value = val->int8;
 
   packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
 
-  PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nVID:\t%d\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.vid, packet.value, packet.crc);
-  
+  PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%d\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
+    packet.type, packet.flags, packet.eid, packet.value, packet.crc);
+
   return packet;
 }
 
@@ -243,52 +228,58 @@ udphandler(process_event_t ev, process_data_t data)
       {
         if(header->type == HXB_PTYPE_WRITE)
         {
-          struct hxb_packet_int8* packet = (struct hxb_packet_int8*)uip_appdata;
-          // check CRC
-          if(packet->crc != crc16_data((char*)packet, sizeof(*packet)-2, 0))
+          struct hxb_value value;
+          value.datatype = HXB_DTYPE_UNDEFINED;
+          uint8_t eid;
+
+          // CRC check and how big the actual value is depend on what type of packet we have.
+          switch(header->datatype)
           {
-            printf("CRC check failed.");
-            struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
-            send_packet(&error_packet, sizeof(error_packet));
-          } else
-          {
-            if(packet->vid == 1) // packet.vid = 1 -> main switch
-            {
-              if(packet->datatype == HXB_DTYPE_BOOL)
+            case HXB_DTYPE_BOOL:
+            case HXB_DTYPE_UINT8:
+              if(((struct hxb_packet_int8*)header)->crc != crc16_data((char*)header, sizeof(struct hxb_packet_int8) - 2, 0))
               {
-                if(packet->value == HXB_FALSE)
-                {
-                  relay_on();
-                } else {
-                  relay_off(); // main switch turn on
-                }
-              } else {
-                struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_DATATYPE);
+                PRINTF("CRC check failed.\r\n");
+                struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
                 send_packet(&error_packet, sizeof(error_packet));
+              } else {
+                value.datatype = ((struct hxb_packet_int8*)header)->datatype;
+                value.int8 = ((struct hxb_packet_int8*)header)->value;
+                eid = ((struct hxb_packet_int8*)header)->eid;
               }
-            } else if (packet->vid == 2) {
-              struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_WRITEREADONLY);
-              send_packet(&error_packet, sizeof(error_packet));
-            } else if(packet->vid == 23) {
-                if(packet->datatype == HXB_DTYPE_UINT8)
-                {
-                    if(packet->value == 0)
-                    {
-                        shutter_stop();
-                    } else if(packet->value == 1)
-                    {
-                        shutter_close_full();
-                    } else if(packet->value == 255)
-                    {
-                        shutter_open_full();
-                    }
-                } else {
-                    struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_DATATYPE);
-                    send_packet(&error_packet, sizeof(error_packet));
-                }       
-            } else {
-              struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNVID);
-              send_packet(&error_packet, sizeof(error_packet));
+              break;
+            case HXB_DTYPE_UINT32:
+              if(((struct hxb_packet_int32*)header)->crc != crc16_data((char*)header, sizeof(struct hxb_packet_int32) - 2, 0))
+              {
+                PRINTF("CRC check failed.\r\n");
+                struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
+                send_packet(&error_packet, sizeof(error_packet));
+              } else {
+                value.datatype = ((struct hxb_packet_int32*)header)->datatype;
+                value.int32 = ((struct hxb_packet_int32*)header)->value;
+                eid = ((struct hxb_packet_int32*)header)->eid;
+              }
+              break;
+            default:
+              PRINTF("Packet of unknown datatype.\r\n");
+              break;
+          }
+
+          if(value.datatype != HXB_DTYPE_UNDEFINED) // only continue if actual data was received
+          {
+            uint8_t retcode = endpoint_write(eid, &value);
+            switch(retcode)
+            {
+              case 0:
+                break;    // everything okay. No need to do anything.
+              case HXB_ERR_UNKNOWNEID:
+              case HXB_ERR_WRITEREADONLY:
+              case HXB_ERR_DATATYPE:;
+                struct hxb_packet_error error_packet = make_error_packet(retcode);
+                send_packet(&error_packet, sizeof(error_packet));
+                break;
+              default:
+                break;
             }
           }
         }
@@ -304,18 +295,25 @@ udphandler(process_event_t ev, process_data_t data)
             send_packet(&error_packet, sizeof(error_packet));
           } else
           {
-            if(packet->vid == 0)
+            struct hxb_value value;
+            endpoint_read(packet->eid, &value);
+            switch(value.datatype)
             {
-              struct hxb_packet_int32 value_packet = make_deviceinfo_packet();
-              send_packet(&value_packet, sizeof(value_packet));
-            }
-            else if(packet->vid == 1 || packet->vid == 2 || packet->vid == 23)
-            {
-              struct hxb_packet_int8 value_packet = make_value_packet(packet->vid);
-              send_packet(&value_packet, sizeof(value_packet));
-            } else {
-              struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNVID);
-              send_packet(&error_packet, sizeof(error_packet));
+              case HXB_DTYPE_BOOL:
+              case HXB_DTYPE_UINT8:;
+                struct hxb_packet_int8 value_packet8 = make_value_packet_int8(packet->eid, &value);
+                send_packet(&value_packet8, sizeof(value_packet8));
+                break;
+              case HXB_DTYPE_UINT32:;
+                struct hxb_packet_int32 value_packet32 = make_value_packet_int32(packet->eid, &value);
+                send_packet(&value_packet32, sizeof(value_packet32));
+                break;
+              case HXB_DTYPE_UNDEFINED:;
+                struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNEID);
+                send_packet(&error_packet, sizeof(error_packet));
+                break;
+              default:
+                break;
             }
           }
         }
@@ -331,17 +329,16 @@ udphandler(process_event_t ev, process_data_t data)
           } else
           {
             printf("Broadcast received.\r\n");
-            printf("Type:\t%d\nFlags:\t%d\nVID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->vid, packet->datatype, packet->value, packet->crc);
+            printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->eid, packet->datatype, packet->value, packet->crc);
 
             struct hxb_data_int8* value = malloc(sizeof(struct hxb_data_int8));
             memcpy(value->source, &UDP_IP_BUF->srcipaddr, 16);
             // TODO only int for now... have to extend this once more datatypes are available
             value->datatype = packet->datatype;
-            value->vid = packet->vid;
+            value->eid = packet->eid;
             value->value = packet->value;
 
             process_post(PROCESS_BROADCAST, hxb_broadcast_received_event, value);
-            printf("[%d]", value); // TODO remove this once it works.
           }
         }
         else
