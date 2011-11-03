@@ -4,6 +4,7 @@
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
 #include <libhexabus/crc.hpp>
+#include <time.h>
 
 #include "../../shared/hexabus_packet.h"
 
@@ -102,7 +103,7 @@ void usage()
     printf("       hexaswitch listen\n");
     printf("       hexaswitch send EID value\n\n");
     printf("commands are:\n");
-    printf("  set EID datatype value    set EID to VALUE (datatypes: 1 - Bool (0 or 1), 2 - 8bit Uint, 3 - 32bit Uint)\n");
+    printf("  set EID datatype value    set EID to VALUE (datatypes: 1 - Bool (0 or 1), 2 - 8bit Uint, 3 - 32bit Uint, 4 - Date/Time (No value))\n");
     printf("  get EID                   query the value of EID\n");
     printf("shortcut commands           for Hexabus-Socket:\n");
     printf("  on                        switch device on (same as set 1 1 1)\n");
@@ -128,7 +129,7 @@ hxb_packet_int8 build_setvalue_packet8(uint8_t eid, uint8_t datatype, uint8_t va
   return packet;
 }
 
-hxb_packet_int32 build_setvalue_packet32(uint8_t eid, uint8_t datatype, uint32_t value, bool broadcast)
+hxb_packet_int32 build_setvalue_packet32(uint8_t eid, uint32_t value, bool broadcast)
 {
   hexabus::CRC::Ptr crc(new hexabus::CRC());
   struct hxb_packet_int32 packet;
@@ -136,7 +137,7 @@ hxb_packet_int32 build_setvalue_packet32(uint8_t eid, uint8_t datatype, uint32_t
   packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
   packet.flags = 0;
   packet.eid = eid;
-  packet.datatype = datatype;
+  packet.datatype = HXB_DTYPE_UINT32;
   packet.value = htonl(value);
   packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
   // for test, output the Hexabus packet
@@ -160,6 +161,42 @@ hxb_packet_query build_valuerequest_packet(uint8_t eid)
 
   return packet;
 }
+
+hxb_packet_datetime build_datetime_packet(uint8_t eid, datetime value, bool broadcast)
+{
+    hexabus::CRC::Ptr crc(new hexabus::CRC());
+    struct hxb_packet_datetime packet;
+    strncpy((char*)&packet.header, HXB_HEADER, 4);
+    packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
+    packet.flags = 0;
+    packet.eid = eid;
+    packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
+    // for test, output the Hexabus packet
+    printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue: %d.%d.%d \t%d:%d:%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.value.day, packet.value.month, packet.value.year, packet.datatype, packet.value.hour, packet.value.minute, packet.value.second, ntohs(packet.crc));
+
+    return packet;
+}
+
+datetime make_datetime_struct() {
+    struct datetime value;
+    time_t raw_time;
+    tm *tm_time;
+
+    time(&raw_time);
+    tm_time = gmtime(&raw_time);
+
+    value.hour = tm_time->tm_hour;
+    value.minute = tm_time->tm_min;
+    value.second = tm_time->tm_sec;
+    value.day = tm_time->tm_mday;
+    value.month = tm_time->tm_mon + 1;
+    value.year = tm_time->tm_year + 1900;
+    value.weekday = tm_time->tm_wday;
+
+    return value;
+
+}
+
 
 int main(int argc, char** argv)
 {
@@ -225,6 +262,7 @@ int main(int argc, char** argv)
       
       struct hxb_packet_int8 packet8;
       struct hxb_packet_int32 packet32;
+      struct hxb_packet_datetime packetdt;
 
       switch(dtype)
       {
@@ -236,8 +274,12 @@ int main(int argc, char** argv)
           break;
         case HXB_DTYPE_UINT32:
           val32 = atoi(argv[5]);
-          packet32 = build_setvalue_packet32(eid, dtype, val32, false);
+          packet32 = build_setvalue_packet32(eid, val32, false);
           send_packet(socket, argv[1], HXB_PORT, (char*)&packet32, sizeof(packet32));
+          break;
+        case HXB_DTYPE_DATETIME:
+          packetdt = build_datetime_packet(eid, make_datetime_struct(), true);
+          send_packet(socket, argv[1], HXB_PORT, (char*)&packetdt, sizeof(packetdt));
           break;
         default:
           printf("unknown data type.\n");

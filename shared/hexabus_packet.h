@@ -80,7 +80,7 @@ struct hxb_packet_datetime {
     char      header[4];
     uint8_t   type;
     uint8_t   flags;
-    uint8_t   vid;
+    uint8_t   eid;
     uint8_t   datatype;
     struct datetime  value;
     uint16_t  crc;
