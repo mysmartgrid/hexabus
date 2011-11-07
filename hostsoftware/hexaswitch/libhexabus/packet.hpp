@@ -7,6 +7,17 @@
 //#define ENABLE_LOGGING 0
 #include <config.h>
 
+/* Include TR1 shared ptrs in a portable way. */
+#include <cstddef> // for __GLIBCXX__
+#ifdef __GLIBCXX__
+#  include <tr1/memory>
+#else
+#  ifdef __IBMCPP__
+#    define __IBMCPP_TR1__
+#  endif
+#  include <memory>
+#endif
+
 #ifdef ENABLE_LOGGING
 #include <iostream>
 #define LOG(msg) std::cout << msg << std::endl;
@@ -17,6 +28,7 @@
 namespace hexabus {
   class Packet {
     public:
+      typedef std::tr1::shared_ptr<Packet> Ptr;
       Packet() {};
       virtual ~Packet() {};
 
