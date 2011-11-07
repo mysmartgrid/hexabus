@@ -1,13 +1,13 @@
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
+#include <libhexabus/common.hpp>
 #include <libhexabus/crc.hpp>
 
 #include "../../shared/hexabus_packet.h"
-
-
 void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::socket* socket) // Call with socket = NULL to listen on HXB_PORT, or give a socket where it shall listen on (if you have sent a packet before and are expecting a reply on the port from which it was sent)
 {
   bool my_socket = false; // stores whether we were handed the socket pointer from outside or if we are using our own
@@ -164,7 +164,8 @@ hxb_packet_query build_valuerequest_packet(uint8_t eid)
 
 int main(int argc, char** argv)
 {
-  printf("hexaswitch -- command line hexabus client\n");
+  hexabus::VersionInfo versionInfo;
+  std::cout << "hexaswitch -- command line hexabus client\nVersion " << versionInfo.getVersion() << std::endl;
 
   if(argc < 2)
   {
