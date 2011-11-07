@@ -6,6 +6,7 @@
 #include <boost/thread.hpp>
 #include <libhexabus/common.hpp>
 #include <libhexabus/crc.hpp>
+#include <libhexabus/packet.hpp>
 
 #include "../../shared/hexabus_packet.h"
 void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::socket* socket) // Call with socket = NULL to listen on HXB_PORT, or give a socket where it shall listen on (if you have sent a packet before and are expecting a reply on the port from which it was sent)
@@ -112,56 +113,6 @@ void usage()
     printf("  power                     get power consumption (same as get 2)\n");
 }
 
-hxb_packet_int8 build_setvalue_packet8(uint8_t eid, uint8_t datatype, uint8_t value, bool broadcast)
-{
-  hexabus::CRC::Ptr crc(new hexabus::CRC());
-  struct hxb_packet_int8 packet;
-  strncpy((char*)&packet.header, HXB_HEADER, 4);
-  packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
-  packet.flags = 0;
-  packet.eid = eid;
-  packet.datatype = datatype;
-  packet.value = value;
-  packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
-  // for test, output the Hexabus packet
-  printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, packet.value, packet.crc);
-
-  return packet;
-}
-
-hxb_packet_int32 build_setvalue_packet32(uint8_t eid, uint8_t datatype, uint32_t value, bool broadcast)
-{
-  hexabus::CRC::Ptr crc(new hexabus::CRC());
-  struct hxb_packet_int32 packet;
-  strncpy((char*)&packet.header, HXB_HEADER, 4);
-  packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
-  packet.flags = 0;
-  packet.eid = eid;
-  packet.datatype = datatype;
-  packet.value = htonl(value);
-  packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
-  // for test, output the Hexabus packet
-  printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, ntohl(packet.value), ntohs(packet.crc));
-
-  return packet;
-}
-
-hxb_packet_query build_valuerequest_packet(uint8_t eid)
-{
-  hexabus::CRC::Ptr crc(new hexabus::CRC());
-  struct hxb_packet_query packet;
-  strncpy((char*)&packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_QUERY;
-  packet.flags = 0;
-  packet.eid = eid;
-  packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
-  // for test, output the Hexabus packet
-  printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, ntohs(packet.crc));
-  //TODO implement -v
-
-  return packet;
-}
-
 int main(int argc, char** argv)
 {
   hexabus::VersionInfo versionInfo;
@@ -193,26 +144,28 @@ int main(int argc, char** argv)
     }
   }
 
+  hexabus::Packet packetm; // the packet making machine
+
   // build the hexabus packet
   if(!strcmp(argv[2], "on"))            // on: set EID 1 to TRUE
   {
-    hxb_packet_int8 packet = build_setvalue_packet8(1, HXB_DTYPE_BOOL, HXB_TRUE, false);
+    hxb_packet_int8 packet = packetm.write8(1, HXB_DTYPE_BOOL, HXB_TRUE, false);
     send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
   }
   else if(!strcmp(argv[2], "off"))      // off: set EID 0 to FALSE
   {
-    hxb_packet_int8 packet = build_setvalue_packet8(1, HXB_DTYPE_BOOL, HXB_FALSE, false);
+    hxb_packet_int8 packet = packetm.write8(1, HXB_DTYPE_BOOL, HXB_FALSE, false);
     send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
   }
   else if(!strcmp(argv[2], "status"))   // status: query EID 1
   {
-    hxb_packet_query packet = build_valuerequest_packet(1);
+    hxb_packet_query packet = packetm.query(1);
     send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
     receive_packet(io_service, socket);
   }
   else if(!strcmp(argv[2], "power"))    // power: query EID 2
   {
-    hxb_packet_query packet = build_valuerequest_packet(2);
+    hxb_packet_query packet = packetm.query(2);
     send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
     receive_packet(io_service, socket);
   }
@@ -233,12 +186,12 @@ int main(int argc, char** argv)
         case HXB_DTYPE_BOOL:
         case HXB_DTYPE_UINT8:
           val8 = atoi(argv[5]);
-          packet8 = build_setvalue_packet8(eid, dtype, val8, false);
+          packet8 = packetm.write8(eid, dtype, val8, false);
           send_packet(socket, argv[1], HXB_PORT, (char*)&packet8, sizeof(packet8));
           break;
         case HXB_DTYPE_UINT32:
           val32 = atoi(argv[5]);
-          packet32 = build_setvalue_packet32(eid, dtype, val32, false);
+          packet32 = packetm.write32(eid, dtype, val32, false);
           send_packet(socket, argv[1], HXB_PORT, (char*)&packet32, sizeof(packet32));
           break;
         default:
@@ -256,7 +209,7 @@ int main(int argc, char** argv)
     if(argc == 4)
     {
       uint8_t eid = atoi(argv[3]);
-      hxb_packet_query packet = build_valuerequest_packet(eid);
+      hxb_packet_query packet = packetm.query(eid);
       send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
       receive_packet(io_service, socket);
     }
@@ -272,7 +225,7 @@ int main(int argc, char** argv)
     {
       uint8_t val = atoi(argv[3]);
       uint8_t eid = atoi(argv[2]);
-      hxb_packet_int8 packet = build_setvalue_packet8(eid, HXB_DTYPE_UINT8, val, true);
+      hxb_packet_int8 packet = packetm.write8(eid, HXB_DTYPE_UINT8, val, true);
       send_packet(socket, (char*)"ff02::1" , HXB_PORT, (char*)&packet, sizeof(packet));
     }
     else

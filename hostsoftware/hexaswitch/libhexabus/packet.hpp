@@ -22,8 +22,8 @@ namespace hexabus {
 
       // TODO think about whether to return pointers here
       hxb_packet_query query(uint8_t eid);
-      hxb_packet_int8 setvalue8(uint8_t eid, uint8_t datatype, uint8_t value, bool broadcast);
-      hxb_packet_int32 setvalue32(uint8_t eid, uint8_t datatype, uint32_t value, bool broadcast);
+      hxb_packet_int8 write8(uint8_t eid, uint8_t datatype, uint8_t value, bool broadcast);
+      hxb_packet_int32 write32(uint8_t eid, uint8_t datatype, uint32_t value, bool broadcast);
     private:
   };
 };

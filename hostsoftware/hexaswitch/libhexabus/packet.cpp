@@ -25,7 +25,7 @@ hxb_packet_query Packet::query(uint8_t eid)
   return packet;
 }
 
-hxb_packet_int8 Packet::setvalue8(uint8_t eid, uint8_t datatype, uint8_t value, bool broadcast)
+hxb_packet_int8 Packet::write8(uint8_t eid, uint8_t datatype, uint8_t value, bool broadcast)
 {
   CRC::Ptr crc(new CRC());
   struct hxb_packet_int8 packet;
@@ -42,7 +42,7 @@ hxb_packet_int8 Packet::setvalue8(uint8_t eid, uint8_t datatype, uint8_t value, 
   return packet;
 }
 
-hxb_packet_int32 Packet::setvalue32(uint8_t eid, uint8_t datatype, uint32_t value, bool broadcast)
+hxb_packet_int32 Packet::write32(uint8_t eid, uint8_t datatype, uint32_t value, bool broadcast)
 {
   CRC::Ptr crc(new CRC());
   struct hxb_packet_int32 packet;
