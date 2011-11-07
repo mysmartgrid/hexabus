@@ -74,58 +74,59 @@ PacketHandling::PacketHandling(char* data)
   {
     okay = false;
   } else {
-  packet_type = header->type;
-  if(header->type == HXB_PTYPE_INFO)
-  {
-    // Declare pointers here - but use only the relevant one in the switch()
-    struct hxb_packet_int8* packet8;
-    struct hxb_packet_int32* packet32;
-
-    datatype = header->datatype;
-    value.datatype = datatype;
-    switch(datatype)
+    okay = true;
+    packet_type = header->type;
+    if(header->type == HXB_PTYPE_INFO)
     {
-      case HXB_DTYPE_UNDEFINED:
-        break;
-      case HXB_DTYPE_BOOL:
-      case HXB_DTYPE_UINT8:
-        packet8 = (struct hxb_packet_int8*)data;
-        packet8->crc = ntohs(packet8->crc);
-        crc_okay = packet8->crc == crc->crc16((char*)packet8, sizeof(*packet8)-2);
+      // Declare pointers here - but use only the relevant one in the switch()
+      struct hxb_packet_int8* packet8;
+      struct hxb_packet_int32* packet32;
 
-        eid = packet8->eid;
-        value.int8 = packet8->value;
-        break;
-      case HXB_DTYPE_UINT32:
-        packet32 = (struct hxb_packet_int32*)data;
-        packet32->crc = ntohs(packet32->crc);
-        crc_okay = packet32->crc == crc->crc16((char*)packet32, sizeof(*packet32)-2);
-        // ntohl the value after the CRC check, CRC check is done with everything in network byte order
-        packet32->value = ntohl(packet32->value);
+      datatype = header->datatype;
+      value.datatype = datatype;
+      switch(datatype)
+      {
+        case HXB_DTYPE_UNDEFINED:
+          break;
+        case HXB_DTYPE_BOOL:
+        case HXB_DTYPE_UINT8:
+          packet8 = (struct hxb_packet_int8*)data;
+          packet8->crc = ntohs(packet8->crc);
+          crc_okay = packet8->crc == crc->crc16((char*)packet8, sizeof(*packet8)-2);
 
-        eid = packet32->eid;
-        value.int32 = packet32->value;
-        break;
-      default:
-        // datatype not implemented here
-        break;
-    }
-  } else if(header->type == HXB_PTYPE_ERROR) {
-    struct hxb_packet_error* packet = (struct hxb_packet_error*)data;
-    packet->crc = ntohs(packet->crc);
-    crc_okay = packet->crc == crc->crc16((char*)packet, sizeof(*packet)-2);
-    errorcode = packet->errorcode; 
+          eid = packet8->eid;
+          value.int8 = packet8->value;
+          break;
+        case HXB_DTYPE_UINT32:
+          packet32 = (struct hxb_packet_int32*)data;
+          packet32->crc = ntohs(packet32->crc);
+          crc_okay = packet32->crc == crc->crc16((char*)packet32, sizeof(*packet32)-2);
+          // ntohl the value after the CRC check, CRC check is done with everything in network byte order
+          packet32->value = ntohl(packet32->value);
+
+          eid = packet32->eid;
+          value.int32 = packet32->value;
+          break;
+        default:
+          // datatype not implemented here
+          break;
+      }
+    } else if(header->type == HXB_PTYPE_ERROR) {
+      struct hxb_packet_error* packet = (struct hxb_packet_error*)data;
+      packet->crc = ntohs(packet->crc);
+      crc_okay = packet->crc == crc->crc16((char*)packet, sizeof(*packet)-2);
+      errorcode = packet->errorcode; 
     } else {
     // Packet type not implemented here
     }
   }
 }
 
-bool PacketHandling::getOkay()          { return okay; }
-bool PacketHandling::getCRCOkay()       { return crc_okay; }
-uint8_t PacketHandling::getPacketType() { return packet_type; }
-uint8_t PacketHandling::getErrorcode()  { return errorcode; }
-uint8_t PacketHandling::getDatatype()   { return datatype; }
-uint8_t PacketHandling::getEID()        { return eid; }
-struct hxb_value PacketHandling::getValue()             { return value; }
+bool PacketHandling::getOkay()              { return okay; }
+bool PacketHandling::getCRCOkay()           { return crc_okay; }
+uint8_t PacketHandling::getPacketType()     { return packet_type; }
+uint8_t PacketHandling::getErrorcode()      { return errorcode; }
+uint8_t PacketHandling::getDatatype()       { return datatype; }
+uint8_t PacketHandling::getEID()            { return eid; }
+struct hxb_value PacketHandling::getValue() { return value; }
 

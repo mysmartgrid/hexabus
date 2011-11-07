@@ -25,63 +25,70 @@ void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::s
   socket->receive_from(boost::asio::buffer(recv_data, 127), remote_endpoint);
   printf("recieved message from %s.\n", remote_endpoint.address().to_string().c_str());
 
-  struct hxb_packet_header* header = (struct hxb_packet_header*)recv_data;
+  hexabus::PacketHandling phandling(recv_data);
 
-  if(strncmp((char*)header, HXB_HEADER, 4))
+  std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
+  if(phandling.getPacketType() == HXB_PTYPE_ERROR)
   {
-    printf("Hexabus header not found.\n");
-  } else {
-    if(header->type == HXB_PTYPE_INFO)
+    std::cout << "Packet Type:\tError\nError Code:\t";
+    switch(phandling.getErrorcode())
     {
-      printf("Info Message.\n");
-
-      // Declare pointers here - but use only the relevant one in the switch()
-      struct hxb_packet_int8* packet8;
-      struct hxb_packet_int32* packet32;
-
-      switch(header->datatype)
-      {
-        case HXB_DTYPE_UNDEFINED:
-          printf("Undefined datatype.\n");
-          break;
-        case HXB_DTYPE_BOOL:
-        case HXB_DTYPE_UINT8:
-          packet8 = (struct hxb_packet_int8*)recv_data;
-          packet8->crc = ntohs(packet8->crc);
-          if(packet8->crc != crc->crc16((char*)packet8, sizeof(*packet8)-2))
-            printf("CRC check failed. Data may be corrupted.\n");
-
-          printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet8->type, packet8->flags, packet8->eid, packet8->datatype, packet8->value, packet8->crc);
-          break;
-        case HXB_DTYPE_UINT32:
-          packet32 = (struct hxb_packet_int32*)recv_data;
-          packet32->crc = ntohs(packet32->crc);
-          if(packet32->crc != crc->crc16((char*)packet32, sizeof(*packet32)-2))
-            printf("CRC check failed. Data may be corrupted.\n");
-          // ntohl the value after the CRC check, CRC check is done with everything in network byte order
-          packet32->value = ntohl(packet32->value);
-
-          printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet32->type, packet32->flags, packet32->eid, packet32->datatype, packet32->value, packet32->crc);
-          break;
-        default:
-          printf("hexaswitch: Datatype not implemented yet.\n");
-      }
-    } else if(header->type == HXB_PTYPE_ERROR) {
-      printf("Error message.\n");
-      struct hxb_packet_error* packet = (struct hxb_packet_error*)recv_data;
-      packet->crc = ntohs(packet->crc);
-      if(packet->crc != crc->crc16((char*)packet, sizeof(*packet)-2))
-        printf("CRC check failed. Packet may be corrupted.\n");
-      printf("Type:\t%d\nFlags:\t%d\nError Code:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->errorcode, packet->crc);
-    } else {
-      printf("Packet type not yet implemented.\n");
-      printf("Type:\t%d\nFlags\t%d\nEID:\t%d\n", header->type, header->flags, header->eid);
+      case HXB_ERR_UNKNOWNEID:
+        std::cout << "Unknown EID\n";
+        break;
+      case HXB_ERR_WRITEREADONLY:
+        std::cout << "Write for ReadOnly Endpoint\n";
+        break;
+      case HXB_ERR_CRCFAILED:
+        std::cout << "CRC Failed\n";
+        break;
+      case HXB_ERR_DATATYPE:
+        std::cout << "Datatype Mismatch\n";
+        break;
+      default:
+        std::cout << "(unknown)\n";
+        break;
     }
-
-    socket->close();
-    if(my_socket)
-      delete socket;
   }
+  else if(phandling.getPacketType() == HXB_PTYPE_INFO)
+  {
+    std::cout << "Datatype:\t";
+    switch(phandling.getDatatype())
+    {
+      case HXB_DTYPE_BOOL:
+        std::cout << "Bool\n";
+        break;
+      case HXB_DTYPE_UINT8:
+        std::cout << "Uint8\n";
+        break;
+      case HXB_DTYPE_UINT32:
+        std::cout << "Uint32\n";
+        break;
+      default:
+        std::cout << "(unknown)";
+        break;
+    }
+    std::cout << "Endpoint ID:\t" << (int)phandling.getEID() << "\nValue:\t\t";
+    struct hxb_value value = phandling.getValue();
+    switch(value.datatype)
+    {
+      case HXB_DTYPE_BOOL:
+      case HXB_DTYPE_UINT8:
+        std::cout << (int)value.int8;
+        break;
+      case HXB_DTYPE_UINT32:
+        std::cout << value.int32;
+        break;
+      default:
+        std::cout << "(unknown)";
+        break;
+    }
+    std::cout << std::endl;
+  }
+
+  socket->close();
+  if(my_socket)
+    delete socket;
 }
 
 void send_packet(boost::asio::ip::udp::socket* socket, char* addr, unsigned int port, const char* data, unsigned int length)
