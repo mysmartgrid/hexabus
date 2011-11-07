@@ -170,9 +170,11 @@ hxb_packet_datetime build_datetime_packet(uint8_t eid, datetime value, bool broa
     packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
     packet.flags = 0;
     packet.eid = eid;
+    packet.datatype = HXB_DTYPE_DATETIME;
+    packet.value = value;
     packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
     // for test, output the Hexabus packet
-    printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue: %d.%d.%d \t%d:%d:%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.value.day, packet.value.month, packet.value.year, packet.datatype, packet.value.hour, packet.value.minute, packet.value.second, ntohs(packet.crc));
+    printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nDate:\t%d.%d.%d\nTime:\t%d:%d:%d\nDay:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, packet.value.day, packet.value.month, packet.value.year, packet.value.hour, packet.value.minute, packet.value.second, packet.value.weekday, ntohs(packet.crc));
 
     return packet;
 }
@@ -183,15 +185,15 @@ datetime make_datetime_struct() {
     tm *tm_time;
 
     time(&raw_time);
-    tm_time = gmtime(&raw_time);
+    tm_time = localtime(&raw_time);
 
-    value.hour = tm_time->tm_hour;
-    value.minute = tm_time->tm_min;
-    value.second = tm_time->tm_sec;
-    value.day = tm_time->tm_mday;
-    value.month = tm_time->tm_mon + 1;
-    value.year = tm_time->tm_year + 1900;
-    value.weekday = tm_time->tm_wday;
+    value.hour = (uint8_t) tm_time->tm_hour;
+    value.minute = (uint8_t) tm_time->tm_min;
+    value.second = (uint8_t) tm_time->tm_sec;
+    value.day = (uint8_t) tm_time->tm_mday;
+    value.month = (uint8_t) tm_time->tm_mon + 1;
+    value.year = (uint8_t) tm_time->tm_year + 1900;
+    value.weekday = (uint8_t) tm_time->tm_wday;
 
     return value;
 
