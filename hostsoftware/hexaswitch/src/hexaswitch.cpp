@@ -26,7 +26,7 @@ void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::s
   printf("recieved message from %s.\n", remote_endpoint.address().to_string().c_str());
 
   struct hxb_packet_header* header = (struct hxb_packet_header*)recv_data;
-  
+
   if(strncmp((char*)header, HXB_HEADER, 4))
   {
     printf("Hexabus header not found.\n");

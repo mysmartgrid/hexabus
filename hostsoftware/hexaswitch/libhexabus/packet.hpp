@@ -38,6 +38,30 @@ namespace hexabus {
       hxb_packet_int32 write32(uint8_t eid, uint8_t datatype, uint32_t value, bool broadcast);
     private:
   };
+
+  class PacketHandling {
+    public:
+      PacketHandling(char* data);
+      ~PacketHandling() {};
+
+      bool getOkay();
+      bool getCRCOkay();
+      uint8_t getPacketType();
+      uint8_t getErrorcode();
+      uint8_t getDatatype();
+      uint8_t getEID();
+      struct hxb_value getValue();
+      // TODO think about whether it's better to calculate this on the fly (in the getters) instead of storing it locally...
+      // TODO getFlags (once someone starts actually using the flags)
+    private:
+      bool okay;
+      bool crc_okay;
+      uint8_t packet_type;
+      uint8_t errorcode;
+      uint8_t datatype;
+      uint8_t eid;
+      struct hxb_value value;
+  };
 };
 
 #endif
