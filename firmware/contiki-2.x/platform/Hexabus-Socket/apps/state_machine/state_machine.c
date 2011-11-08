@@ -24,8 +24,11 @@ AUTOSTART_PROCESSES(&state_machine_process);
 
 static struct condition *condTable;
 static struct transition *transTable;		
-static uint8_t transLength;							// length of transition table
+static uint8_t transLength = 2;							// length of transition table
 static uint8_t curState = 0;						// starting out in state 0
+/* Definition of an actual state machine */
+//condTable = malloc(sizeof(condition));
+/*----------------------------------------*/
 
 bool eval(uint8_t condIndex, struct hxb_value *value, uint8_t eid) {
 	struct condition *cond = &condTable[condIndex];
@@ -58,19 +61,22 @@ PROCESS_THREAD(state_machine_process, ev, data)
   while(1)
   {
     PROCESS_WAIT_EVENT();
-  	if(ev == data_received_event) {
+  	if(ev == sm_data_received_event) {
 			// something happened, better check our own tables
-			struct sm_data *receivedData = (struct sm_data*)data;			// TODO: casting ok?
+			//struct sm_data *receivedData = (struct sm_data*)data;			// TODO: casting ok?
+			struct hxb_value *value = (struct hxb_value*)data;
 			uint8_t i;
 			for(i = 0;i < transLength;i++) {
-				if((transTable[i].fromState == curState) && (eval(transTable[i].cond, &receivedData->value, receivedData->targetEID))) {
+				if((transTable[i].fromState == curState) && (eval(transTable[i].cond, value, 1))) {
 					// Match found
 					printf("Writing to endpoint %d", transTable[i].action);
-					if(endpoint_write(receivedData->targetEID, &receivedData->value) == 0) {			// Everything went fine
+					if(endpoint_write(1, value) == 0) {			// Everything went fine
 						curState = transTable[i].goodState;
+						printf("Everything is fine");
 						break;
 					} else {													// Something went wrong
 						curState = transTable[i].badState;
+						printf("Something bad happened");
 						break;
 					}
 				}
