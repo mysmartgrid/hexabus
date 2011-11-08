@@ -1,8 +1,8 @@
 #include "contiki.h"
 
-#include "udp_handler.h"
-
 #include "../../../../../../shared/hexabus_packet.h"
+#include "state_machine.h"
+#include <stdbool.h>
 
 #define DEBUG 1
 #if DEBUG
@@ -16,30 +16,59 @@
 #define PRINTLLADDR(addr)
 #endif
 
-PROCESS(hxb_broadcast_handler_process, "Hexabus Broadcast Handler Process");
-AUTOSTART_PROCESSES(&hxb_broadcast_handler_process);
+/*------------------------------------------------------*/
+PROCESS(state_machine_process, "State Machine Process");
+AUTOSTART_PROCESSES(&state_machine_process);
+/*------------------------------------------------------*/
 
-PROCESS_THREAD(hxb_broadcast_handler_process, ev, data)
+static struct Condition *condTable;
+static struct Transition *transTable;		
+static uint8_t transLength;							// length of transition table
+static uint8_t curState = 0;						// starting out in state 0
+
+bool eval(uint8_t condIndex, uint8_t value) {
+	struct Condition *cond = &condTable[condIndex];
+	// TODO: Check for IP&EID
+	
+	switch(cond->op) {
+		case eq:
+			return (cond->value == value);
+		case leq:
+			return (cond->value <= value);
+		case geq:
+			return (cond->value >= value);
+		case lt:
+			return (cond->value < value);
+		case gt:
+			return (cond->value > value);
+		default:
+			return false;
+	}
+}
+
+PROCESS_THREAD(state_machine_process, ev, data)
 {
   PROCESS_BEGIN();
-  PRINTF("Hexabus Broadcast Handler starting.");
+  PRINTF("State Machine starting.");
 
   while(1)
   {
     PROCESS_WAIT_EVENT();
-    
-    if(ev == hxb_broadcast_received_event)
-    {
-      PRINTF("Broadcast received by hxb_broadcast_handler_process:\r\n");
-      
-      // TODO implement at the dotted line
+  	// something happened, better check our own tables
+		uint8_t i;
+		uint8_t value = 0;
+		for(i = 0;i < transLength;i++) {
+			if((transTable[i].fromState == curState) && (eval(transTable[i].cond, value))) {
+				// Match found
+				printf("Executing function number %d", transTable[i].action);
+				// TODO: Do actual stuff using endpoint access
+				curState = transTable[i].goodState;
+				break;
+			}
+		}
+	
+	}
 
-      // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
-
-      free(data); // careful. It's gone now. If someone else also wants it, we need to think of something more sophisticated.
-    }
-  }
-
-  PROCESS_END();
+	PROCESS_END();
 }
 
