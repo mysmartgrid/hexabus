@@ -4,11 +4,7 @@ all: ipso
 	 avr-size -C --mcu=atmega1284p Hexabus-Socket.elf
 #	 avr-size -C --mcu=atmega2561 Hexabus-Socket.elf
 #	 avr-size -C --mcu=atxmega256d3 Hexabus-Socket.elf
-<<<<<<< HEAD
-APPS= hexabus-webserver udp_handler mdns_responder button metering relay provisioning value_broadcast hxb_broadcast_handler state_machine
-=======
-APPS= hexabus-webserver udp_handler mdns_responder button metering relay provisioning value_broadcast hxb_broadcast_handler endpoint_access
->>>>>>> origin/development
+APPS= hexabus-webserver udp_handler mdns_responder button metering relay provisioning value_broadcast hxb_broadcast_handler endpoint_access state_machine
 UIP_CONF_IPV6=1
 
 CONTIKI=../contiki-2.x
