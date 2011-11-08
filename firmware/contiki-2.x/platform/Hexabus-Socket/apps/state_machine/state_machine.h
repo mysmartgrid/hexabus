@@ -8,19 +8,26 @@
 #include "process.h"
 #include <stdint.h>
 
+// External stuff: struct for passing the relevant data around
+struct sm_data {
+	uint8_t sourceIP;						// What should we do with local host?
+	uint8_t sourceEID; 
+	uint8_t targetEID;
+	struct hxb_value value;
+};
+// Internal stuff: these structs implement a simple table layout
+
 // Operators for comparison
-enum Oper { eq, leq, geq, lt, gt};
+enum oper { eq, leq, geq, lt, gt};
 
-// these structs implement a simple table layout
-
-struct Condition {
-	uint8_t ip;					// TODO: IP
-	uint8_t eid;				// local endpoint id
-	enum Oper op;				// predicate function
+struct condition {
+	uint8_t sourceIP;		// TODO: IP
+	uint8_t targetEID;	// local endpoint id
+	enum oper op;				// predicate function
 	uint8_t value;			// the constant to compare with
 };
 
-struct Transition {
+struct transition {
 	uint8_t fromState;	// current state
 	uint8_t cond;				// index of condition that must be matched
 	uint8_t action;			// id of endpoint which should do something

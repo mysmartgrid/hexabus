@@ -2,6 +2,7 @@
 
 #include "../../../../../../shared/hexabus_packet.h"
 #include "state_machine.h"
+#include "endpoint_access.h"
 #include <stdbool.h>
 
 #define DEBUG 1
@@ -21,26 +22,29 @@ PROCESS(state_machine_process, "State Machine Process");
 AUTOSTART_PROCESSES(&state_machine_process);
 /*------------------------------------------------------*/
 
-static struct Condition *condTable;
-static struct Transition *transTable;		
+static struct condition *condTable;
+static struct transition *transTable;		
 static uint8_t transLength;							// length of transition table
 static uint8_t curState = 0;						// starting out in state 0
 
-bool eval(uint8_t condIndex, uint8_t value) {
-	struct Condition *cond = &condTable[condIndex];
-	// TODO: Check for IP&EID
+bool eval(uint8_t condIndex, struct hxb_value *value, uint8_t eid) {
+	struct condition *cond = &condTable[condIndex];
+	// TODO: Check for IP
+	if(cond->targetEID != eid) {
+		return false;
+	}
 	
 	switch(cond->op) {
 		case eq:
-			return (cond->value == value);
+			return (cond->value == value->int8);
 		case leq:
-			return (cond->value <= value);
+			return (cond->value <= value->int8);
 		case geq:
-			return (cond->value >= value);
+			return (cond->value >= value->int8);
 		case lt:
-			return (cond->value < value);
+			return (cond->value < value->int8);
 		case gt:
-			return (cond->value > value);
+			return (cond->value > value->int8);
 		default:
 			return false;
 	}
@@ -54,19 +58,24 @@ PROCESS_THREAD(state_machine_process, ev, data)
   while(1)
   {
     PROCESS_WAIT_EVENT();
-  	// something happened, better check our own tables
-		uint8_t i;
-		uint8_t value = 0;
-		for(i = 0;i < transLength;i++) {
-			if((transTable[i].fromState == curState) && (eval(transTable[i].cond, value))) {
-				// Match found
-				printf("Executing function number %d", transTable[i].action);
-				// TODO: Do actual stuff using endpoint access
-				curState = transTable[i].goodState;
-				break;
+  	if(ev == data_received_event) {
+			// something happened, better check our own tables
+			struct sm_data *receivedData = (struct sm_data*)data;			// TODO: casting ok?
+			uint8_t i;
+			for(i = 0;i < transLength;i++) {
+				if((transTable[i].fromState == curState) && (eval(transTable[i].cond, &receivedData->value, receivedData->targetEID))) {
+					// Match found
+					printf("Writing to endpoint %d", transTable[i].action);
+					if(endpoint_write(receivedData->targetEID, &receivedData->value) == 0) {			// Everything went fine
+						curState = transTable[i].goodState;
+						break;
+					} else {													// Something went wrong
+						curState = transTable[i].badState;
+						break;
+					}
+				}
 			}
 		}
-	
 	}
 
 	PROCESS_END();
