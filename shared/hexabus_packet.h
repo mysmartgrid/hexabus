@@ -92,26 +92,10 @@ struct hxb_packet_datetime {
 // Structs for passing Hexabus data around between processes
 // Since there the IP information is lost, we need a field for the IP address of the sender/receiver. But we can drop the CRC here.
 
-// Data struct for INT8 / BOOL
-struct hxb_data_int8 {
-  char      source[16]; // IP address of the device that sent the broadcast
-  uint8_t   datatype;
-  uint8_t   eid;
-  uint8_t   value;
-} __attribute__ ((packed));
-
-struct hxb_data_int32 {
-  char      source[16]; // IP address of the device that sent the broadcast
-  uint8_t   datatype;
-  uint8_t   eid;
-  uint8_t   value;
-} __attribute__ ((packed));
-
-struct hxb_data_datetime {
+struct hxb_data {
     char      source[16];
-    uint8_t   datatype;
-    uint8_t   vid;
-    struct datetime  value;
+    uint8_t   eid;
+    struct hxb_value value;
 }__attribute__ ((packed));
 
 // ======================================================================
