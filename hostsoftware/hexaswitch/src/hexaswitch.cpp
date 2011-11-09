@@ -107,17 +107,21 @@ void send_packet(boost::asio::ip::udp::socket* socket, char* addr, unsigned int 
 
 void usage()
 {
-    printf("\nusage: hexaswitch hostname command\n");
-    printf("       hexaswitch listen\n");
-    printf("       hexaswitch send EID value\n\n");
-    printf("commands are:\n");
-    printf("  set EID datatype value    set EID to VALUE (datatypes: 1 - Bool (0 or 1), 2 - 8bit Uint, 3 - 32bit Uint)\n");
-    printf("  get EID                   query the value of EID\n");
-    printf("shortcut commands           for Hexabus-Socket:\n");
-    printf("  on                        switch device on (same as set 1 1 1)\n");
-    printf("  off                       switch device off (same as set 1 1 0)\n");
-    printf("  status                    query on/off status of device (same as get 1)\n");
-    printf("  power                     get power consumption (same as get 2)\n");
+    std::cout << "\nusage: hexaswitch hostname command\n";
+    std::cout << "       hexaswitch listen\n";
+    std::cout << "       hexaswitch send EID value\n";
+    std::cout << "\ncommands are:\n";
+    std::cout << "  set EID datatype value    set EID to VALUE\n";
+    std::cout << "  get EID                   query the value of EID\n";
+    std::cout << "\nshortcut commands           for Hexabus-Socket:\n";
+    std::cout << "  on                        switch device on (same as set 1 1 1)\n";
+    std::cout << "  off                       switch device off (same as set 1 1 0)\n";
+    std::cout << "  status                    query on/off status of device (same as get 1)\n";
+    std::cout << "  power                     get power consumption (same as get 2)\n";
+    std::cout << "\ndatatypes are:\n";
+    std::cout << "  1                         Bool (Value = 0 or 1)\n";
+    std::cout << "  2                         8bit Uint\n";
+    std::cout << "  3                         32bit Uint\n" << std::endl;
 }
 
 int main(int argc, char** argv)
