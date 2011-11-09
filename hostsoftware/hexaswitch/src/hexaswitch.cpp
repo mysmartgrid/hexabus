@@ -1,107 +1,11 @@
 #include <iostream>
 #include <string.h>
-#include <boost/asio.hpp>
-#include <boost/thread.hpp>
 #include <libhexabus/common.hpp>
 #include <libhexabus/crc.hpp>
 #include <libhexabus/packet.hpp>
+#include <libhexabus/network.hpp>
 
 #include "../../shared/hexabus_packet.h"
-void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::socket* socket) // Call with socket = NULL to listen on HXB_PORT, or give a socket where it shall listen on (if you have sent a packet before and are expecting a reply on the port from which it was sent)
-{
-  bool my_socket = false; // stores whether we were handed the socket pointer from outside or if we are using our own
-  hexabus::CRC::Ptr crc(new hexabus::CRC());
-  if(socket == NULL)
-  {
-    boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::udp::v6(), HXB_PORT);
-    socket = new boost::asio::ip::udp::socket(*io_service, endpoint);
-    my_socket = true;
-  }
-  std::cout << "waiting for data...\n";
-  char recv_data[128];
-  boost::asio::ip::udp::endpoint remote_endpoint;
-  socket->receive_from(boost::asio::buffer(recv_data, 127), remote_endpoint);
-  std::cout << "recieved message from " << remote_endpoint.address().to_string() << std::endl;
-
-  hexabus::PacketHandling phandling(recv_data);
-
-  std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
-  if(phandling.getPacketType() == HXB_PTYPE_ERROR)
-  {
-    std::cout << "Packet Type:\tError\nError Code:\t";
-    switch(phandling.getErrorcode())
-    {
-      case HXB_ERR_UNKNOWNEID:
-        std::cout << "Unknown EID\n";
-        break;
-      case HXB_ERR_WRITEREADONLY:
-        std::cout << "Write for ReadOnly Endpoint\n";
-        break;
-      case HXB_ERR_CRCFAILED:
-        std::cout << "CRC Failed\n";
-        break;
-      case HXB_ERR_DATATYPE:
-        std::cout << "Datatype Mismatch\n";
-        break;
-      default:
-        std::cout << "(unknown)\n";
-        break;
-    }
-  }
-  else if(phandling.getPacketType() == HXB_PTYPE_INFO)
-  {
-    std::cout << "Datatype:\t";
-    switch(phandling.getDatatype())
-    {
-      case HXB_DTYPE_BOOL:
-        std::cout << "Bool\n";
-        break;
-      case HXB_DTYPE_UINT8:
-        std::cout << "Uint8\n";
-        break;
-      case HXB_DTYPE_UINT32:
-        std::cout << "Uint32\n";
-        break;
-      default:
-        std::cout << "(unknown)";
-        break;
-    }
-    std::cout << "Endpoint ID:\t" << (int)phandling.getEID() << "\nValue:\t\t";
-    struct hxb_value value = phandling.getValue();
-    switch(value.datatype)
-    {
-      case HXB_DTYPE_BOOL:
-      case HXB_DTYPE_UINT8:
-        std::cout << (int)value.int8;
-        break;
-      case HXB_DTYPE_UINT32:
-        std::cout << value.int32;
-        break;
-      default:
-        std::cout << "(unknown)";
-        break;
-    }
-    std::cout << std::endl;
-  }
-
-  socket->close();
-  if(my_socket)
-    delete socket;
-}
-
-void send_packet(boost::asio::ip::udp::socket* socket, char* addr, unsigned int port, const char* data, unsigned int length)
-{
-  boost::asio::ip::udp::endpoint remote_endpoint;
-
-  socket->open(boost::asio::ip::udp::v6());
-  // Für zum Broadcasten muss da noch einiges mehr -- siehe http://www.ce.unipr.it/~medici/udpserver.html
-  
-  remote_endpoint = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(addr), port);
-
-  boost::system::error_code error; // TODO error message?
-
-  socket->send_to(boost::asio::buffer(data, length), remote_endpoint, 0, error);
-}
 
 void usage()
 {
@@ -133,9 +37,7 @@ int main(int argc, char** argv)
     exit(1);
   }
 
-  // open a socket
-  boost::asio::io_service* io_service = new boost::asio::io_service();
-  boost::asio::ip::udp::socket* socket = new boost::asio::ip::udp::socket(*io_service);
+  hexabus::NetworkAccess network;
 
   if(argc == 2)
   {
@@ -143,7 +45,7 @@ int main(int argc, char** argv)
     {
       while(true)
       {
-        receive_packet(io_service, NULL);
+        network.receivePacket(false);
       }
     }
     else
@@ -159,24 +61,24 @@ int main(int argc, char** argv)
   if(!strcmp(argv[2], "on"))            // on: set EID 1 to TRUE
   {
     hxb_packet_int8 packet = packetm->write8(1, HXB_DTYPE_BOOL, HXB_TRUE, false);
-    send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
+    network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
   }
   else if(!strcmp(argv[2], "off"))      // off: set EID 0 to FALSE
   {
     hxb_packet_int8 packet = packetm->write8(1, HXB_DTYPE_BOOL, HXB_FALSE, false);
-    send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
+    network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
   }
   else if(!strcmp(argv[2], "status"))   // status: query EID 1
   {
     hxb_packet_query packet = packetm->query(1);
-    send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
-    receive_packet(io_service, socket);
+    network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
+    network.receivePacket(true);
   }
   else if(!strcmp(argv[2], "power"))    // power: query EID 2
   {
     hxb_packet_query packet = packetm->query(2);
-    send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
-    receive_packet(io_service, socket);
+    network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
+    network.receivePacket(true);
   }
   else if(!strcmp(argv[2], "set"))      // set: set an arbitrary EID
   {
@@ -196,12 +98,12 @@ int main(int argc, char** argv)
         case HXB_DTYPE_UINT8:
           val8 = atoi(argv[5]);
           packet8 = packetm->write8(eid, dtype, val8, false);
-          send_packet(socket, argv[1], HXB_PORT, (char*)&packet8, sizeof(packet8));
+          network.sendPacket(argv[1], HXB_PORT, (char*)&packet8, sizeof(packet8));
           break;
         case HXB_DTYPE_UINT32:
           val32 = atoi(argv[5]);
           packet32 = packetm->write32(eid, dtype, val32, false);
-          send_packet(socket, argv[1], HXB_PORT, (char*)&packet32, sizeof(packet32));
+          network.sendPacket(argv[1], HXB_PORT, (char*)&packet32, sizeof(packet32));
           break;
         default:
           std::cout << "unknown data type.\n";
@@ -219,8 +121,8 @@ int main(int argc, char** argv)
     {
       uint8_t eid = atoi(argv[3]);
       hxb_packet_query packet = packetm->query(eid);
-      send_packet(socket, argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
-      receive_packet(io_service, socket);
+      network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
+      network.receivePacket(true);
     }
     else
     {
@@ -235,7 +137,7 @@ int main(int argc, char** argv)
       uint8_t val = atoi(argv[3]);
       uint8_t eid = atoi(argv[2]);
       hxb_packet_int8 packet = packetm->write8(eid, HXB_DTYPE_UINT8, val, true);
-      send_packet(socket, (char*)"ff02::1" , HXB_PORT, (char*)&packet, sizeof(packet));
+      network.sendPacket((char*)"ff02::1" , HXB_PORT, (char*)&packet, sizeof(packet));
     }
     else
     {
@@ -248,8 +150,6 @@ int main(int argc, char** argv)
     usage();
     exit(1);
   }
-
-  delete socket;
 
   exit(0);
 }
