@@ -1,6 +1,4 @@
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
@@ -19,11 +17,11 @@ void receive_packet(boost::asio::io_service* io_service, boost::asio::ip::udp::s
     socket = new boost::asio::ip::udp::socket(*io_service, endpoint);
     my_socket = true;
   }
-  printf("waiting for data...\n");
+  std::cout << "waiting for data...\n";
   char recv_data[128];
   boost::asio::ip::udp::endpoint remote_endpoint;
   socket->receive_from(boost::asio::buffer(recv_data, 127), remote_endpoint);
-  printf("recieved message from %s.\n", remote_endpoint.address().to_string().c_str());
+  std::cout << "recieved message from " << remote_endpoint.address().to_string() << std::endl;
 
   hexabus::PacketHandling phandling(recv_data);
 
@@ -121,13 +119,13 @@ void usage()
     std::cout << "\ndatatypes are:\n";
     std::cout << "  1                         Bool (Value = 0 or 1)\n";
     std::cout << "  2                         8bit Uint\n";
-    std::cout << "  3                         32bit Uint\n" << std::endl;
+    std::cout << "  3                         32bit Uint" << std::endl;
 }
 
 int main(int argc, char** argv)
 {
   hexabus::VersionInfo versionInfo;
-  std::cout << "hexaswitch -- command line hexabus client\nVersion " << versionInfo.getVersion() << std::endl;
+  std::cout << "hexaswitch -- command line hexabus client\nlibhexabus version " << versionInfo.getVersion() << std::endl;
 
   if(argc < 2)
   {
@@ -188,7 +186,7 @@ int main(int argc, char** argv)
       uint8_t dtype = atoi(argv[4]);
       uint8_t val8;   // only the relevant one is used in the switch.
       uint32_t val32;
-      
+
       struct hxb_packet_int8 packet8;
       struct hxb_packet_int32 packet32;
 
@@ -206,7 +204,7 @@ int main(int argc, char** argv)
           send_packet(socket, argv[1], HXB_PORT, (char*)&packet32, sizeof(packet32));
           break;
         default:
-          printf("unknown data type.\n");
+          std::cout << "unknown data type.\n";
       }
     }
     else
