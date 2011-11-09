@@ -26,6 +26,70 @@ void usage()
     std::cout << "  3                         32bit Uint" << std::endl;
 }
 
+void print_packet(char* recv_data)
+{
+  hexabus::PacketHandling phandling(recv_data);
+
+  std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
+  if(phandling.getPacketType() == HXB_PTYPE_ERROR)
+  {
+    std::cout << "Packet Type:\tError\nError Code:\t";
+    switch(phandling.getErrorcode())
+    {
+      case HXB_ERR_UNKNOWNEID:
+        std::cout << "Unknown EID\n";
+        break;
+      case HXB_ERR_WRITEREADONLY:
+        std::cout << "Write for ReadOnly Endpoint\n";
+        break;
+      case HXB_ERR_CRCFAILED:
+        std::cout << "CRC Failed\n";
+        break;
+      case HXB_ERR_DATATYPE:
+        std::cout << "Datatype Mismatch\n";
+        break;
+      default:
+        std::cout << "(unknown)\n";
+        break;
+    }
+  }
+  else if(phandling.getPacketType() == HXB_PTYPE_INFO)
+  {
+    std::cout << "Datatype:\t";
+    switch(phandling.getDatatype())
+    {
+      case HXB_DTYPE_BOOL:
+        std::cout << "Bool\n";
+        break;
+      case HXB_DTYPE_UINT8:
+        std::cout << "Uint8\n";
+        break;
+      case HXB_DTYPE_UINT32:
+        std::cout << "Uint32\n";
+        break;
+      default:
+        std::cout << "(unknown)";
+        break;
+    }
+    std::cout << "Endpoint ID:\t" << (int)phandling.getEID() << "\nValue:\t\t";
+    struct hxb_value value = phandling.getValue();
+    switch(value.datatype)
+    {
+      case HXB_DTYPE_BOOL:
+      case HXB_DTYPE_UINT8:
+        std::cout << (int)value.int8;
+        break;
+      case HXB_DTYPE_UINT32:
+        std::cout << value.int32;
+        break;
+      default:
+        std::cout << "(unknown)";
+        break;
+    }
+    std::cout << std::endl;
+  }
+}
+
 int main(int argc, char** argv)
 {
   hexabus::VersionInfo versionInfo;
@@ -46,6 +110,9 @@ int main(int argc, char** argv)
       while(true)
       {
         network.receivePacket(false);
+        char* recv_data = network.getData();
+        std::cout << "Received packet from " << network.getSourceIP() << std::endl;
+        print_packet(recv_data);
       }
     }
     else
@@ -62,23 +129,27 @@ int main(int argc, char** argv)
   {
     hxb_packet_int8 packet = packetm->write8(1, HXB_DTYPE_BOOL, HXB_TRUE, false);
     network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
+    print_packet(network.getData());
   }
   else if(!strcmp(argv[2], "off"))      // off: set EID 0 to FALSE
   {
     hxb_packet_int8 packet = packetm->write8(1, HXB_DTYPE_BOOL, HXB_FALSE, false);
     network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
+    print_packet(network.getData());
   }
   else if(!strcmp(argv[2], "status"))   // status: query EID 1
   {
     hxb_packet_query packet = packetm->query(1);
     network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
     network.receivePacket(true);
+    print_packet(network.getData());
   }
   else if(!strcmp(argv[2], "power"))    // power: query EID 2
   {
     hxb_packet_query packet = packetm->query(2);
     network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
     network.receivePacket(true);
+    print_packet(network.getData());
   }
   else if(!strcmp(argv[2], "set"))      // set: set an arbitrary EID
   {
@@ -123,6 +194,7 @@ int main(int argc, char** argv)
       hxb_packet_query packet = packetm->query(eid);
       network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
       network.receivePacket(true);
+    print_packet(network.getData());
     }
     else
     {
