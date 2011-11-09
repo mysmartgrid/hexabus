@@ -20,7 +20,6 @@
 #include "common.hpp"
 #include <sstream>
 
-
 using namespace hexabus;
 
 const std::string VersionInfo::getVersion() {
@@ -28,3 +27,4 @@ const std::string VersionInfo::getVersion() {
   oss << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH;
   return oss.str();
 }
+

@@ -15,10 +15,8 @@ namespace hexabus {
     private:
       CRC (const CRC& original);
       CRC& operator= (const CRC& rhs);
-      
   };
 };
-
 
 #endif /* LIBHEXABUS_CRC_HPP */
 
