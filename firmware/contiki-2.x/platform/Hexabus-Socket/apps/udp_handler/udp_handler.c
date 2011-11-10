@@ -44,6 +44,7 @@
 #include "httpd-cgi.h"
 #include "dev/leds.h"
 
+#include "state_machine.h"
 #include "metering.h"
 #include "relay.h"
 #include "eeprom_variables.h"
@@ -98,7 +99,7 @@ static unsigned char heartbeat_no_ack;
 PROCESS(udp_handler_process, "HEXABUS Socket UDP handler Process");
 AUTOSTART_PROCESSES(&udp_handler_process);
 
-process_event_t hxb_broadcast_received_event;
+process_event_t sm_data_received_event;
 
 /*---------------------------------------------------------------------------*/
 
@@ -266,7 +267,7 @@ udphandler(process_event_t ev, process_data_t data)
 
           if(value.datatype != HXB_DTYPE_UNDEFINED) // only continue if actual data was received
           {
-						uint8_t retcode endpoint_write(eid, &value);
+						uint8_t retcode = endpoint_write(eid, &value);
             switch(retcode)
             {
               case 0:
@@ -337,7 +338,7 @@ udphandler(process_event_t ev, process_data_t data)
             value->eid = packet->eid;
             value->value = uip_ntohs(packet->value);
 
-            process_post(PROCESS_BROADCAST, hxb_broadcast_received_event, value);
+            process_post(PROCESS_BROADCAST, sm_data_received_event, value);
           }
         }
         else
@@ -482,7 +483,7 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   // see: http://senstools.gforge.inria.fr/doku.php?id=contiki:examples
   PROCESS_BEGIN();
   
-  hxb_broadcast_received_event = process_alloc_event();
+  sm_data_received_event = process_alloc_event();
 
   PRINTF("udp_handler: process startup.\r\n");
   // wait 3 second, in order to have the IP addresses well configured

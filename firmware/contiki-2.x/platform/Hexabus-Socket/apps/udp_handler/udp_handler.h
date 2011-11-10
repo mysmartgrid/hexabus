@@ -10,7 +10,7 @@
 
 #include "process.h"
 
-extern process_event_t hxb_broadcast_received_event;
+extern process_event_t sm_data_received_event;
 
 PROCESS_NAME(udp_handler_process);
 
