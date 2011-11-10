@@ -109,7 +109,7 @@ void print_packet(char* recv_data)
         std::cout << value.int32;
         break;
       case HXB_DTYPE_DATETIME:
-        std::cout << (int)value.datetime.day << "." << (int)value.datetime.month << "." << (int)value.datetime.year << " " << (int)value.datetime.hour << ":" << (int)value.datetime.minute << ":" << (int)value.datetime.second << " Weekday: " << (int)value.datetime.weekday;
+        std::cout << (int)value.datetime.day << "." << (int)value.datetime.month << "." << value.datetime.year << " " << (int)value.datetime.hour << ":" << (int)value.datetime.minute << ":" << (int)value.datetime.second << " Weekday: " << (int)value.datetime.weekday;
         break;
       default:
         std::cout << "(unknown)";
@@ -251,11 +251,13 @@ int main(int argc, char** argv)
               val8 = atoi(argv[4]);
               packet8 = packetm->write8(eid, dtype, val8, true);
               network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet8, sizeof(packet8));
+              print_packet((char*)&packet8);
               break;
           case HXB_DTYPE_UINT32:
               val32 = atoi(argv[4]);
               packet32 = packetm->write32(eid, dtype, val32, true);
               network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet32, sizeof(packet32));
+              print_packet((char*)&packet32);
               break;
           case HXB_DTYPE_DATETIME:
               valdt = make_datetime_struct();

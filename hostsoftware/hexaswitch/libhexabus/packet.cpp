@@ -6,6 +6,8 @@
 #include <string.h>
 #include <netinet/in.h>
 
+#include <iostream>
+
 using namespace hexabus;
 
 hxb_packet_query Packet::query(uint8_t eid)
@@ -51,7 +53,7 @@ hxb_packet_int32 Packet::write32(uint8_t eid, uint8_t datatype, uint32_t value, 
   packet.flags = 0;
   packet.eid = eid;
   packet.datatype = datatype;
-  packet.value = value;
+  packet.value = htonl(value);
   packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
   // for test, output the Hexabus packet
   // TODO cout! printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, packet.value, packet.crc);
@@ -68,6 +70,7 @@ hxb_packet_datetime Packet::writedt(uint8_t eid, uint8_t datatype, datetime valu
   packet.flags = 0;
   packet.eid = eid;
   packet.datatype = datatype;
+  value.year = htons(value.year);
   packet.value = value;
   packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
   // for test, output the Hexabus packet
@@ -129,7 +132,8 @@ PacketHandling::PacketHandling(char* data)
           packetdt = (struct hxb_packet_datetime*)data;
           packetdt->crc = ntohs(packetdt->crc);
           crc_okay = packetdt->crc == crc->crc16((char*)packetdt, sizeof(*packetdt)-2);
-          //TODO Byte order?
+          packetdt->value.year = ntohs(packetdt->value.year);
+
           eid = packetdt->eid;
           value.datetime = packetdt->value;
         default:
