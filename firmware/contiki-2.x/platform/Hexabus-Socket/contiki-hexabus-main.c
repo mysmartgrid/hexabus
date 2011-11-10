@@ -28,8 +28,6 @@
  *
  * This file is part of the Contiki operating system.
  *
- * Author: 	Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
- *
  * @(#)$$
  */
 #define ANNOUNCE_BOOT 1    //adds about 600 bytes to program size
@@ -107,6 +105,8 @@
 #include "eeprom_variables.h"
 #include "udp_handler.h"
 #include "mdns_responder.h"
+#include "value_broadcast.h"
+#include "hxb_broadcast_handler.h"
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -302,6 +302,12 @@ void initialize(void)
 
   /* Handler for HEXABUS UDP Packets */
   process_start(&udp_handler_process, NULL);
+
+  /* Process for periodic sending of HEXABUS data */
+  process_start(&value_broadcast_process, NULL);
+
+  /* process handling received HEXABUS broadcasts */
+  process_start(&hxb_broadcast_handler_process, NULL);
 
   mdns_responder_init();
 
