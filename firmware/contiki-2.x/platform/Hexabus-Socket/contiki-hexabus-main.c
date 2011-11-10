@@ -105,7 +105,7 @@
 #include "udp_handler.h"
 #include "mdns_responder.h"
 #include "value_broadcast.h"
-#include "hxb_broadcast_handler.h"
+#include "state_machine.h"
 
 uint8_t forwarding_enabled; //global variable for forwarding
  uint8_t encryption_enabled = 1; //global variable for AES encryption
@@ -304,7 +304,7 @@ void initialize(void)
   process_start(&value_broadcast_process, NULL);
 
   /* process handling received HEXABUS broadcasts */
-  process_start(&hxb_broadcast_handler_process, NULL);
+  process_start(&state_machine_process, NULL);
 
   mdns_responder_init();
 

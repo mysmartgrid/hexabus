@@ -7,6 +7,9 @@
 
 #include "process.h"
 #include <stdint.h>
+#include "../../../../../shared/hexabus_packet.h"
+
+PROCESS_NAME(state_machine_process);
 
 // External stuff: struct for passing the relevant data around
 struct sm_data {
@@ -35,10 +38,9 @@ struct transition {
 	uint8_t badState;		// new state if some went wrong
 };
 
-PROCESS_NAME(state_machine_process);
 
 // Defintion of events that are important to the state machine
 // One general event for all data that can be possibly received
- extern process_event_t sm_data_received_event;
+extern process_event_t sm_data_received_event;
 
 #endif /* STATE_MACHINE_H_*/

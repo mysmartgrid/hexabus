@@ -53,7 +53,10 @@ bool eval(uint8_t condIndex, struct hxb_value *value, uint8_t eid) {
 
 PROCESS_THREAD(state_machine_process, ev, data)
 {
-	/* Definition of an actual state machine */
+	  
+	PROCESS_BEGIN();
+  PRINTF("State Machine starting.");
+/* Definition of an actual state machine */
 	condTable = malloc(sizeof(struct condition));
 	transTable = malloc(sizeof(struct transition));
 	condTable[0].sourceIP = 0;
@@ -72,9 +75,6 @@ PROCESS_THREAD(state_machine_process, ev, data)
 	transTable[1].goodState = 0;
 	transTable[1].badState = 1;
 	/*----------------------------------------*/
-  
-	PROCESS_BEGIN();
-  PRINTF("State Machine starting.");
 
   while(1)
   {
