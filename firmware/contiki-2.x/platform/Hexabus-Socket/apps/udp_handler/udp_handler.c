@@ -43,7 +43,6 @@
 #include "webserver-nogui.h"
 #include "httpd-cgi.h"
 #include "dev/leds.h"
-#include "state_machine.h"
 
 #include "metering.h"
 #include "relay.h"
@@ -100,7 +99,6 @@ PROCESS(udp_handler_process, "HEXABUS Socket UDP handler Process");
 AUTOSTART_PROCESSES(&udp_handler_process);
 
 process_event_t hxb_broadcast_received_event;
-process_event_t sm_data_received_event;
 
 /*---------------------------------------------------------------------------*/
 
@@ -268,13 +266,7 @@ udphandler(process_event_t ev, process_data_t data)
 
           if(value.datatype != HXB_DTYPE_UNDEFINED) // only continue if actual data was received
           {
-						//struct sm_data stateMachineData;
-						//stateMachineData.sourceIP = 0;
-						//rdata.sourceEID = 0;
-						//rdata.targetEID = eid;
-						/*rdata.value = value;*/
-            process_post(PROCESS_BROADCAST, sm_data_received_event, &value);
-						uint8_t retcode = 0;/*endpoint_write(eid, &value);*/
+						uint8_t retcode endpoint_write(eid, &value);
             switch(retcode)
             {
               case 0:
@@ -491,7 +483,6 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   PROCESS_BEGIN();
   
   hxb_broadcast_received_event = process_alloc_event();
-  sm_data_received_event = process_alloc_event();
 
   PRINTF("udp_handler: process startup.\r\n");
   // wait 3 second, in order to have the IP addresses well configured
