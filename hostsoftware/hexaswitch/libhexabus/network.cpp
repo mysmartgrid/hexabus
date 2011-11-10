@@ -13,6 +13,7 @@ NetworkAccess::NetworkAccess() {
   io_service = new boost::asio::io_service();
   socket = new boost::asio::ip::udp::socket(*io_service);
   openSocket();
+  data = NULL;
 }
 
 NetworkAccess::~NetworkAccess() {
@@ -35,7 +36,8 @@ void NetworkAccess::receivePacket(bool related) {
   my_socket->receive_from(boost::asio::buffer(recv_data, 127), remote_endpoint);
   sourceIP = remote_endpoint.address().to_string();
 
-  data = (char*)malloc(128);
+  if(data == NULL)
+    data = (char*)malloc(128);
   memcpy(data, recv_data, 128);
 
   if(!related)
