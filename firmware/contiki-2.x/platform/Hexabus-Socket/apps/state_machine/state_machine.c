@@ -4,6 +4,7 @@
 #include "state_machine.h"
 #include "endpoint_access.h"
 #include <stdbool.h>
+#include <stdlib.h>
 
 #define DEBUG 1
 #if DEBUG
@@ -26,9 +27,6 @@ static struct condition *condTable;
 static struct transition *transTable;		
 static uint8_t transLength = 2;							// length of transition table
 static uint8_t curState = 0;						// starting out in state 0
-/* Definition of an actual state machine */
-//condTable = malloc(sizeof(condition));
-/*----------------------------------------*/
 
 bool eval(uint8_t condIndex, struct hxb_value *value, uint8_t eid) {
 	struct condition *cond = &condTable[condIndex];
@@ -55,7 +53,27 @@ bool eval(uint8_t condIndex, struct hxb_value *value, uint8_t eid) {
 
 PROCESS_THREAD(state_machine_process, ev, data)
 {
-  PROCESS_BEGIN();
+	/* Definition of an actual state machine */
+	condTable = malloc(sizeof(struct condition));
+	transTable = malloc(sizeof(struct transition));
+	condTable[0].sourceIP = 0;
+	condTable[0].targetEID = 1;
+	condTable[0].op = eq;
+	condTable[0].value = 1;
+
+	transTable[0].fromState = 0;
+	transTable[0].cond = 0;
+	transTable[0].action = 1;			// relay on
+	transTable[0].goodState = 1;
+	transTable[0].badState = 0;
+	transTable[1].fromState = 1;
+	transTable[1].cond = 0;
+	transTable[1].action = 1;			// relay off
+	transTable[1].goodState = 0;
+	transTable[1].badState = 1;
+	/*----------------------------------------*/
+  
+	PROCESS_BEGIN();
   PRINTF("State Machine starting.");
 
   while(1)
