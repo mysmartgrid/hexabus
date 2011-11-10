@@ -12,7 +12,7 @@ void usage()
 {
     std::cout << "\nusage: hexaswitch hostname command\n";
     std::cout << "       hexaswitch listen\n";
-    std::cout << "       hexaswitch send EID value\n";
+    std::cout << "       hexaswitch send EID datatype value\n";
     std::cout << "\ncommands are:\n";
     std::cout << "  set EID datatype value    set EID to VALUE\n";
     std::cout << "  get EID                   query the value of EID\n";
@@ -24,24 +24,8 @@ void usage()
     std::cout << "\ndatatypes are:\n";
     std::cout << "  1                         Bool (Value = 0 or 1)\n";
     std::cout << "  2                         8bit Uint\n";
-    std::cout << "  3                         32bit Uint" << std::endl;
-}
-
-hxb_packet_datetime build_datetime_packet(uint8_t eid, datetime value, bool broadcast)
-{
-    hexabus::CRC::Ptr crc(new hexabus::CRC());
-    struct hxb_packet_datetime packet;
-    strncpy((char*)&packet.header, HXB_HEADER, 4);
-    packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
-    packet.flags = 0;
-    packet.eid = eid;
-    packet.datatype = HXB_DTYPE_DATETIME;
-    packet.value = value;
-    packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
-    // for test, output the Hexabus packet
-    printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nDate:\t%d.%d.%d\nTime:\t%d:%d:%d\nDay:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, packet.value.day, packet.value.month, packet.value.year, packet.value.hour, packet.value.minute, packet.value.second, packet.value.weekday, ntohs(packet.crc));
-
-    return packet;
+    std::cout << "  3                         32bit Uint";
+    std::cout << "  4                         Date und Time (value is ignored but necessary)" << std::endl;
 }
 
 datetime make_datetime_struct() {
@@ -49,7 +33,8 @@ datetime make_datetime_struct() {
     time_t raw_time;
     tm *tm_time;
 
-    time(&raw_time);
+        time(&raw_time);
+
     tm_time = localtime(&raw_time);
 
     value.hour = (uint8_t) tm_time->tm_hour;
@@ -57,13 +42,82 @@ datetime make_datetime_struct() {
     value.second = (uint8_t) tm_time->tm_sec;
     value.day = (uint8_t) tm_time->tm_mday;
     value.month = (uint8_t) tm_time->tm_mon + 1;
-    value.year = (uint8_t) tm_time->tm_year + 1900;
+    value.year = (uint16_t) tm_time->tm_year + 1900;
     value.weekday = (uint8_t) tm_time->tm_wday;
 
     return value;
 
 }
 
+void print_packet(char* recv_data)
+{
+  hexabus::PacketHandling phandling(recv_data);
+
+  std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
+  if(phandling.getPacketType() == HXB_PTYPE_ERROR)
+  {
+    std::cout << "Packet Type:\tError\nError Code:\t";
+    switch(phandling.getErrorcode())
+    {
+      case HXB_ERR_UNKNOWNEID:
+        std::cout << "Unknown EID\n";
+        break;
+      case HXB_ERR_WRITEREADONLY:
+        std::cout << "Write for ReadOnly Endpoint\n";
+        break;
+      case HXB_ERR_CRCFAILED:
+        std::cout << "CRC Failed\n";
+        break;
+      case HXB_ERR_DATATYPE:
+        std::cout << "Datatype Mismatch\n";
+        break;
+      default:
+        std::cout << "(unknown)\n";
+        break;
+    }
+  }
+  else if(phandling.getPacketType() == HXB_PTYPE_INFO)
+  {
+    std::cout << "Datatype:\t";
+    switch(phandling.getDatatype())
+    {
+      case HXB_DTYPE_BOOL:
+        std::cout << "Bool\n";
+        break;
+      case HXB_DTYPE_UINT8:
+        std::cout << "Uint8\n";
+        break;
+      case HXB_DTYPE_UINT32:
+        std::cout << "Uint32\n";
+        break;
+      case HXB_DTYPE_DATETIME:
+        std::cout << "Datetime\n";
+      break;
+      default:
+        std::cout << "(unknown)";
+        break;
+    }
+    std::cout << "Endpoint ID:\t" << (int)phandling.getEID() << "\nValue:\t\t";
+    struct hxb_value value = phandling.getValue();
+    switch(value.datatype)
+    {
+      case HXB_DTYPE_BOOL:
+      case HXB_DTYPE_UINT8:
+        std::cout << (int)value.int8;
+        break;
+      case HXB_DTYPE_UINT32:
+        std::cout << value.int32;
+        break;
+      case HXB_DTYPE_DATETIME:
+        std::cout << (int)value.datetime.day << "." << (int)value.datetime.month << "." << (int)value.datetime.year << " " << (int)value.datetime.hour << ":" << (int)value.datetime.minute << ":" << (int)value.datetime.second << " Weekday: " << (int)value.datetime.weekday;
+        break;
+      default:
+        std::cout << "(unknown)";
+        break;
+    }
+    std::cout << std::endl;
+  }
+}
 
 int main(int argc, char** argv)
 {
@@ -85,6 +139,9 @@ int main(int argc, char** argv)
       while(true)
       {
         network.receivePacket(false);
+        char* recv_data = network.getData();
+        std::cout << "Received packet from " << network.getSourceIP() << std::endl;
+        print_packet(recv_data);
       }
     }
     else
@@ -101,23 +158,27 @@ int main(int argc, char** argv)
   {
     hxb_packet_int8 packet = packetm->write8(1, HXB_DTYPE_BOOL, HXB_TRUE, false);
     network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
+    print_packet(network.getData());
   }
   else if(!strcmp(argv[2], "off"))      // off: set EID 0 to FALSE
   {
     hxb_packet_int8 packet = packetm->write8(1, HXB_DTYPE_BOOL, HXB_FALSE, false);
     network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
+    print_packet(network.getData());
   }
   else if(!strcmp(argv[2], "status"))   // status: query EID 1
   {
     hxb_packet_query packet = packetm->query(1);
     network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
     network.receivePacket(true);
+    print_packet(network.getData());
   }
   else if(!strcmp(argv[2], "power"))    // power: query EID 2
   {
     hxb_packet_query packet = packetm->query(2);
     network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
     network.receivePacket(true);
+    print_packet(network.getData());
   }
   else if(!strcmp(argv[2], "set"))      // set: set an arbitrary EID
   {
@@ -130,7 +191,6 @@ int main(int argc, char** argv)
 
       struct hxb_packet_int8 packet8;
       struct hxb_packet_int32 packet32;
-      struct hxb_packet_datetime packetdt;
 
       switch(dtype)
       {
@@ -144,10 +204,6 @@ int main(int argc, char** argv)
           val32 = atoi(argv[5]);
           packet32 = packetm->write32(eid, dtype, val32, false);
           network.sendPacket(argv[1], HXB_PORT, (char*)&packet32, sizeof(packet32));
-          break;
-        case HXB_DTYPE_DATETIME:
-          packetdt = build_datetime_packet(eid, make_datetime_struct(), true);
-          send_packet(socket, argv[1], HXB_PORT, (char*)&packetdt, sizeof(packetdt));
           break;
         default:
           std::cout << "unknown data type.\n";
@@ -167,6 +223,7 @@ int main(int argc, char** argv)
       hxb_packet_query packet = packetm->query(eid);
       network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
       network.receivePacket(true);
+    print_packet(network.getData());
     }
     else
     {
@@ -175,13 +232,41 @@ int main(int argc, char** argv)
     }
   }
   else if(!strcmp(argv[1], "send"))      // send: send a value broadcast
-  {  // TODO allow for diffrent data types
-    if(argc == 4)
+  {
+    if(argc == 5)
     {
-      uint8_t val = atoi(argv[3]);
+      uint8_t dtype = atoi(argv[3]);
       uint8_t eid = atoi(argv[2]);
-      hxb_packet_int8 packet = packetm->write8(eid, HXB_DTYPE_UINT8, val, true);
-      network.sendPacket((char*)"ff02::1" , HXB_PORT, (char*)&packet, sizeof(packet));
+      uint8_t val8;
+      uint32_t val32;
+      struct datetime valdt;
+
+      struct hxb_packet_int8 packet8;
+      struct hxb_packet_int32 packet32;
+      struct hxb_packet_datetime packetdt;
+
+      switch(dtype) {
+          case HXB_DTYPE_BOOL:
+          case HXB_DTYPE_UINT8:
+              val8 = atoi(argv[4]);
+              packet8 = packetm->write8(eid, dtype, val8, true);
+              network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet8, sizeof(packet8));
+              break;
+          case HXB_DTYPE_UINT32:
+              val32 = atoi(argv[4]);
+              packet32 = packetm->write32(eid, dtype, val32, true);
+              network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet32, sizeof(packet32));
+              break;
+          case HXB_DTYPE_DATETIME:
+              valdt = make_datetime_struct();
+              packetdt = packetm->writedt(eid, dtype, valdt, true);
+              network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetdt, sizeof(packetdt));
+              print_packet((char*)&packetdt);
+              break;
+          default:
+              std::cout << "Unknown data type.\n";
+      }
+
     }
     else
     {

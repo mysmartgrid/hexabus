@@ -89,16 +89,6 @@ struct hxb_packet_datetime {
 // TODO hxb_packet_int16 (do we really need it?)
 
 // ======================================================================
-// Structs for passing Hexabus data around between processes
-// Since there the IP information is lost, we need a field for the IP address of the sender/receiver. But we can drop the CRC here.
-
-struct hxb_data {
-    char      source[16];
-    uint8_t   eid;
-    struct hxb_value value;
-}__attribute__ ((packed));
-
-// ======================================================================
 // Struct for passing Hexabus values around
 // One struct for all data types, with a datatype flag indicating which
 // of the values is used. Used for passing values to and from
@@ -109,6 +99,16 @@ struct hxb_value {
   uint32_t  int32;      // used for HXB_DTYPE_UINT32
   struct datetime  datetime;   // used for HXB_DTYPE_DATETIME
 };
+
+// ======================================================================
+// Structs for passing Hexabus data around between processes
+// Since there the IP information is lost, we need a field for the IP address of the sender/receiver. But we can drop the CRC here.
+
+struct hxb_data {
+    char      source[16];
+    uint8_t   eid;
+    struct hxb_value value;
+} __attribute__ ((packed));
 
 // ======================================================================
 // Definitions for fields
