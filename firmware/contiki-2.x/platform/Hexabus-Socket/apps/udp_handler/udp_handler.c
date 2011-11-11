@@ -47,6 +47,7 @@
 #include "state_machine.h"
 #include "metering.h"
 #include "relay.h"
+#include "datetime_service.h"
 #include "eeprom_variables.h"
 #include "../../../../../../shared/hexabus_packet.h"
 
@@ -346,7 +347,7 @@ udphandler(process_event_t ev, process_data_t data)
                   struct hxb_packet_int32* packet = (struct hxb_packet_int32*)header;
                   data->eid = packet->eid;
                   data->value.datatype = packet->datatype;
-                  data->value.int32 = packet->value;
+                  data->value.int32 = uip_ntohl(packet->value);
                   process_post(PROCESS_BROADCAST, sm_data_received_event, data);
                 }
                 break;
@@ -359,9 +360,11 @@ udphandler(process_event_t ev, process_data_t data)
                   struct hxb_packet_datetime* packet = (struct hxb_packet_datetime*)header;
                   data->eid = packet->eid;
                   data->value.datatype = packet->datatype;
+                  packet->value.year = uip_ntohs(packet->value.year);
                   memcpy(&(data->value.datetime), &(packet->value), sizeof(struct datetime));
-                  process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+                  updateDatetime(data);
                 }
+                break;
               default:
                 PRINTF("Received Broadcast, but no handler for datatype.\r\n");
           }

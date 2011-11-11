@@ -54,15 +54,16 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
 
     time_valid = false;
     etimer_set(&update_timer, CLOCK_SECOND * UPDATE_INTERVALL);
-    etimer_set(&valid_timer, CLOCK_SECOND * 60 * 30);
+    etimer_set(&valid_timer, CLOCK_SECOND * 10);
 
     while(1) {
         PROCESS_WAIT_EVENT();
 
+        PRINTF("Time: %d:%d:%d\t%d.%d.%d Day: %d Valid: %d\n", current_dt.hour, current_dt.minute, current_dt.second, current_dt.day, current_dt.month, current_dt.year, current_dt.weekday, time_valid);
         if(ev == PROCESS_EVENT_TIMER) {
-            etimer_reset(&update_timer);
 
-            if(!etimer_expired(&valid_timer)) {
+            etimer_reset(&update_timer);
+            if(!etimer_expired(&valid_timer)&& time_valid) {
                 current_dt.second+=1;
                 if(current_dt.second > 59) {
                     current_dt.second = 0;
@@ -93,18 +94,21 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
             }
         } else if(ev == dt_update_event) {
             
-            current_dt.second = ((struct datetime*)data)->second;
-            current_dt.minute = ((struct datetime*)data)->minute;
-            current_dt.hour = ((struct datetime*)data)->hour;
-            current_dt.day = ((struct datetime*)data)->day;
-            current_dt.month = ((struct datetime*)data)->month;
-            current_dt.year = ((struct datetime*)data)->year;
-            current_dt.weekday = ((struct datetime*)data)->weekday;
+            current_dt.second = ((struct hxb_data*)data)->value.datetime.second;
+            current_dt.minute = ((struct hxb_data*)data)->value.datetime.minute;
+            current_dt.hour = ((struct hxb_data*)data)->value.datetime.hour;
+            current_dt.day = ((struct hxb_data*)data)->value.datetime.day;
+            current_dt.month = ((struct hxb_data*)data)->value.datetime.month;
+            current_dt.year = ((struct hxb_data*)data)->value.datetime.year;
+            current_dt.weekday = ((struct hxb_data*)data)->value.datetime.weekday;
+            
+            free(data);
+
+            time_valid = true;
 
             etimer_restart(&valid_timer);
             etimer_reset(&update_timer);
         }
-        PROCESS_PAUSE();
     }
     PROCESS_END();
 }
