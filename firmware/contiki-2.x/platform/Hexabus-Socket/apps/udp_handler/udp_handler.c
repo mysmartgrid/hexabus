@@ -319,6 +319,55 @@ udphandler(process_event_t ev, process_data_t data)
         }
         else if(header->type == HXB_PTYPE_INFO)
         {
+          struct hxb_data* data = malloc(sizeof(struct hxb_data));
+          memcpy(data->source, &UDP_IP_BUF->srcipaddr, 16);
+          switch(header->datatype)
+          {
+              case HXB_DTYPE_BOOL:
+              case HXB_DTYPE_UINT8:
+                if(uip_ntohs(((struct hxb_packet_int8*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_int8) - 2, 0))
+                {
+                  PRINTF("CRC Check failed.\r\n");
+                  // Broadcast: Don't send an error packet.
+                } else {
+                  struct hxb_packet_int8* packet = (struct hxb_packet_int8*)header;
+                  data->eid = packet->eid;
+                  data->value.datatype = packet->datatype;
+                  data->value.int8 = packet->value;
+                  process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+                }
+                break;
+              case HXB_DTYPE_UINT32:
+                if(uip_ntohs(((struct hxb_packet_int32*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_int32) - 2, 0))
+                {
+                  PRINTF("CRC Check failed.\r\n");
+                  // Broadcast: Don't send an error packet.
+                } else {
+                  struct hxb_packet_int32* packet = (struct hxb_packet_int32*)header;
+                  data->eid = packet->eid;
+                  data->value.datatype = packet->datatype;
+                  data->value.int32 = packet->value;
+                  process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+                }
+                break;
+              case HXB_DTYPE_DATETIME:
+                if(uip_ntohs(((struct hxb_packet_datetime*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_datetime) - 2, 0))
+                {
+                  PRINTF("CRC Check failed.\r\n");
+                  // Broadcast: Don't send an error packet.
+                } else {
+                  struct hxb_packet_datetime* packet = (struct hxb_packet_datetime*)header;
+                  data->eid = packet->eid;
+                  data->value.datatype = packet->datatype;
+                  memcpy(&(data->value.datetime), &(packet->value), sizeof(struct datetime));
+                  process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+                }
+              default:
+                PRINTF("Received Broadcast, but no handler for datatype.\r\n");
+          }
+          PRINTF("Posted event for received broadcast.\r\n");
+
+          /*
           struct hxb_packet_int8* packet = (struct hxb_packet_int8*)uip_appdata; // TODO this can only handle int for now - make it more flexible!
           // check CRC
           if(uip_ntohs(packet->crc) != crc16_data((char*)packet, sizeof(*packet)-2, 0))
@@ -340,6 +389,7 @@ udphandler(process_event_t ev, process_data_t data)
 
             process_post(PROCESS_BROADCAST, sm_data_received_event, value);
           }
+            */
         }
         else
         {
