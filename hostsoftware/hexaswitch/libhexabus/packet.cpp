@@ -51,7 +51,7 @@ hxb_packet_int32 Packet::write32(uint8_t eid, uint8_t datatype, uint32_t value, 
   packet.flags = 0;
   packet.eid = eid;
   packet.datatype = datatype;
-  packet.value = value;
+  packet.value = htonl(value);
   packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
   // for test, output the Hexabus packet
   // TODO cout! printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, packet.value, packet.crc);
