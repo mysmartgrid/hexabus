@@ -366,30 +366,6 @@ udphandler(process_event_t ev, process_data_t data)
                 PRINTF("Received Broadcast, but no handler for datatype.\r\n");
           }
           PRINTF("Posted event for received broadcast.\r\n");
-
-          /*
-          struct hxb_packet_int8* packet = (struct hxb_packet_int8*)uip_appdata; // TODO this can only handle int for now - make it more flexible!
-          // check CRC
-          if(uip_ntohs(packet->crc) != crc16_data((char*)packet, sizeof(*packet)-2, 0))
-          {
-            printf("CRC check failed.");
-            struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
-            send_packet(&error_packet, sizeof(error_packet));
-          } else
-          {
-            printf("Broadcast received.\r\n");
-            printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet->type, packet->flags, packet->eid, packet->datatype, packet->value, uip_ntohs(packet->crc));
-
-            struct hxb_data_int8* value = malloc(sizeof(struct hxb_data_int8));
-            memcpy(value->source, &UDP_IP_BUF->srcipaddr, 16);
-            // TODO only int for now... have to extend this once more datatypes are available
-            value->datatype = packet->datatype;
-            value->eid = packet->eid;
-            value->value = uip_ntohs(packet->value);
-
-            process_post(PROCESS_BROADCAST, sm_data_received_event, value);
-          }
-            */
         }
         else
         {
