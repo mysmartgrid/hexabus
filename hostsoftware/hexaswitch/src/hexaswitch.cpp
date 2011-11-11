@@ -2,6 +2,7 @@
 #include <string.h>
 #include <libhexabus/common.hpp>
 #include <libhexabus/crc.hpp>
+#include <time.h>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/network.hpp>
 
@@ -11,7 +12,7 @@ void usage()
 {
     std::cout << "\nusage: hexaswitch hostname command\n";
     std::cout << "       hexaswitch listen\n";
-    std::cout << "       hexaswitch send EID value\n";
+    std::cout << "       hexaswitch send EID datatype value\n";
     std::cout << "\ncommands are:\n";
     std::cout << "  set EID datatype value    set EID to VALUE\n";
     std::cout << "  get EID                   query the value of EID\n";
@@ -23,7 +24,29 @@ void usage()
     std::cout << "\ndatatypes are:\n";
     std::cout << "  1                         Bool (Value = 0 or 1)\n";
     std::cout << "  2                         8bit Uint\n";
-    std::cout << "  3                         32bit Uint" << std::endl;
+    std::cout << "  3                         32bit Uint";
+    std::cout << "  4                         Date und Time (value is ignored but necessary)" << std::endl;
+}
+
+datetime make_datetime_struct() {
+    struct datetime value;
+    time_t raw_time;
+    tm *tm_time;
+
+        time(&raw_time);
+
+    tm_time = localtime(&raw_time);
+
+    value.hour = (uint8_t) tm_time->tm_hour;
+    value.minute = (uint8_t) tm_time->tm_min;
+    value.second = (uint8_t) tm_time->tm_sec;
+    value.day = (uint8_t) tm_time->tm_mday;
+    value.month = (uint8_t) tm_time->tm_mon + 1;
+    value.year = (uint16_t) tm_time->tm_year + 1900;
+    value.weekday = (uint8_t) tm_time->tm_wday;
+
+    return value;
+
 }
 
 void print_packet(char* recv_data)
@@ -67,6 +90,9 @@ void print_packet(char* recv_data)
       case HXB_DTYPE_UINT32:
         std::cout << "Uint32\n";
         break;
+      case HXB_DTYPE_DATETIME:
+        std::cout << "Datetime\n";
+      break;
       default:
         std::cout << "(unknown)";
         break;
@@ -81,6 +107,9 @@ void print_packet(char* recv_data)
         break;
       case HXB_DTYPE_UINT32:
         std::cout << value.int32;
+        break;
+      case HXB_DTYPE_DATETIME:
+        std::cout << (int)value.datetime.day << "." << (int)value.datetime.month << "." << value.datetime.year << " " << (int)value.datetime.hour << ":" << (int)value.datetime.minute << ":" << (int)value.datetime.second << " Weekday: " << (int)value.datetime.weekday;
         break;
       default:
         std::cout << "(unknown)";
@@ -203,13 +232,43 @@ int main(int argc, char** argv)
     }
   }
   else if(!strcmp(argv[1], "send"))      // send: send a value broadcast
-  {  // TODO allow for diffrent data types
-    if(argc == 4)
+  {
+    if(argc == 5)
     {
-      uint8_t val = atoi(argv[3]);
+      uint8_t dtype = atoi(argv[3]);
       uint8_t eid = atoi(argv[2]);
-      hxb_packet_int8 packet = packetm->write8(eid, HXB_DTYPE_UINT8, val, true);
-      network.sendPacket((char*)"ff02::1" , HXB_PORT, (char*)&packet, sizeof(packet));
+      uint8_t val8;
+      uint32_t val32;
+      struct datetime valdt;
+
+      struct hxb_packet_int8 packet8;
+      struct hxb_packet_int32 packet32;
+      struct hxb_packet_datetime packetdt;
+
+      switch(dtype) {
+          case HXB_DTYPE_BOOL:
+          case HXB_DTYPE_UINT8:
+              val8 = atoi(argv[4]);
+              packet8 = packetm->write8(eid, dtype, val8, true);
+              network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet8, sizeof(packet8));
+              print_packet((char*)&packet8);
+              break;
+          case HXB_DTYPE_UINT32:
+              val32 = atoi(argv[4]);
+              packet32 = packetm->write32(eid, dtype, val32, true);
+              network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet32, sizeof(packet32));
+              print_packet((char*)&packet32);
+              break;
+          case HXB_DTYPE_DATETIME:
+              valdt = make_datetime_struct();
+              packetdt = packetm->writedt(eid, dtype, valdt, true);
+              network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetdt, sizeof(packetdt));
+              print_packet((char*)&packetdt);
+              break;
+          default:
+              std::cout << "Unknown data type.\n";
+      }
+
     }
     else
     {
@@ -225,3 +284,4 @@ int main(int argc, char** argv)
 
   exit(0);
 }
+

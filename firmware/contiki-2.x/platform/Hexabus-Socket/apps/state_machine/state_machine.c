@@ -28,24 +28,23 @@ static struct transition *transTable;
 static uint8_t transLength = 2;							// length of transition table
 static uint8_t curState = 0;						// starting out in state 0
 
-bool eval(uint8_t condIndex, struct hxb_value *value, uint8_t eid) {
+bool eval(uint8_t condIndex, struct hxb_data *data) {
 	struct condition *cond = &condTable[condIndex];
 	// TODO: Check for IP
-	if(cond->targetEID != eid) {
+	if(cond->sourceEID != data->eid) {
 		return false;
 	}
-	
 	switch(cond->op) {
 		case eq:
-			return (cond->value == value->int8);
+			return (cond->value == data->value.int8);
 		case leq:
-			return (cond->value <= value->int8);
+			return (cond->value <= data->value.int8);
 		case geq:
-			return (cond->value >= value->int8);
+			return (cond->value >= data->value.int8);
 		case lt:
-			return (cond->value < value->int8);
+			return (cond->value < data->value.int8);
 		case gt:
-			return (cond->value > value->int8);
+			return (cond->value > data->value.int8);
 		default:
 			return false;
 	}
@@ -56,22 +55,28 @@ PROCESS_THREAD(state_machine_process, ev, data)
 	  
 	PROCESS_BEGIN();
   PRINTF("State Machine starting.");
-/* Definition of an actual state machine */
+/* Definition of an actual state machine. Simple relay-Trigger */
 	condTable = malloc(sizeof(struct condition));
 	transTable = malloc(sizeof(struct transition));
+	struct hxb_value wData;
+	wData.datatype = HXB_DTYPE_BOOL;
+	wData.int8 = HXB_TRUE;
+
 	condTable[0].sourceIP = 0;
-	condTable[0].targetEID = 1;
+	condTable[0].sourceEID = 1;
 	condTable[0].op = eq;
-	condTable[0].value = 1;
+	condTable[0].value = 10;
 
 	transTable[0].fromState = 0;
 	transTable[0].cond = 0;
-	transTable[0].action = 1;			// relay on
+	transTable[0].eid = 1;
+	memcpy(&(transTable[0].data), &wData, sizeof(struct hxb_value));
 	transTable[0].goodState = 1;
 	transTable[0].badState = 0;
 	transTable[1].fromState = 1;
 	transTable[1].cond = 0;
-	transTable[1].action = 1;			// relay off
+	transTable[1].eid = 1;
+	memcpy(&(transTable[1].data), &wData, sizeof(struct hxb_value));
 	transTable[1].goodState = 0;
 	transTable[1].badState = 1;
 	/*----------------------------------------*/
@@ -81,20 +86,19 @@ PROCESS_THREAD(state_machine_process, ev, data)
     PROCESS_WAIT_EVENT();
   	if(ev == sm_data_received_event) {
 			// something happened, better check our own tables
-			//struct sm_data *receivedData = (struct sm_data*)data;			// TODO: casting ok?
-			struct hxb_value *value = (struct hxb_value*)data;
+			struct hxb_data *edata = (struct hxb_data*)data;
 			uint8_t i;
 			for(i = 0;i < transLength;i++) {
-				if((transTable[i].fromState == curState) && (eval(transTable[i].cond, value, 1))) {
+				if((transTable[i].fromState == curState) && (eval(transTable[i].cond, edata))) {
 					// Match found
-					printf("Writing to endpoint %d", transTable[i].action);
-					if(endpoint_write(1, value) == 0) {			// Everything went fine
+					printf("state_machine: Writing to endpoint %d \r\n", transTable[i].eid);
+					if(endpoint_write(transTable[i].eid, &(transTable[i].data)) == 0) {			
 						curState = transTable[i].goodState;
-						printf("Everything is fine");
+						printf("state_machine: Everything is fine \r\n");
 						break;
 					} else {													// Something went wrong
 						curState = transTable[i].badState;
-						printf("Something bad happened");
+						printf("state_machine: Something bad happened \r\n");
 						break;
 					}
 				}

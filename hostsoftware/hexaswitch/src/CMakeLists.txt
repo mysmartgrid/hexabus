@@ -16,6 +16,7 @@ add_executable(hexaswitch ${hexaswitch_src})
 # Link the executable 
 target_link_libraries(hexaswitch 
   hexabus
+  pthread
   ${Boost_SYSTEM_LIBRARY}
 )
 

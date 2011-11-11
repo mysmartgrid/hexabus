@@ -6,6 +6,8 @@
 #include <string.h>
 #include <netinet/in.h>
 
+#include <iostream>
+
 using namespace hexabus;
 
 hxb_packet_query Packet::query(uint8_t eid)
@@ -59,6 +61,24 @@ hxb_packet_int32 Packet::write32(uint8_t eid, uint8_t datatype, uint32_t value, 
   return packet;
 }
 
+hxb_packet_datetime Packet::writedt(uint8_t eid, uint8_t datatype, datetime value, bool broadcast)
+{
+  CRC::Ptr crc(new CRC());
+  struct hxb_packet_datetime packet;
+  strncpy((char*)&packet.header, HXB_HEADER, 4);
+  packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
+  packet.flags = 0;
+  packet.eid = eid;
+  packet.datatype = datatype;
+  value.year = htons(value.year);
+  packet.value = value;
+  packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
+  // for test, output the Hexabus packet
+  // TODO cout! printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, packet.value, packet.crc);
+
+  return packet;
+}
+
 PacketHandling::PacketHandling(char* data)
 {
   CRC::Ptr crc(new hexabus::CRC());
@@ -81,6 +101,7 @@ PacketHandling::PacketHandling(char* data)
       // Declare pointers here - but use only the relevant one in the switch()
       struct hxb_packet_int8* packet8;
       struct hxb_packet_int32* packet32;
+      struct hxb_packet_datetime* packetdt;
 
       datatype = header->datatype;
       value.datatype = datatype;
@@ -107,6 +128,14 @@ PacketHandling::PacketHandling(char* data)
           eid = packet32->eid;
           value.int32 = packet32->value;
           break;
+        case HXB_DTYPE_DATETIME:
+          packetdt = (struct hxb_packet_datetime*)data;
+          packetdt->crc = ntohs(packetdt->crc);
+          crc_okay = packetdt->crc == crc->crc16((char*)packetdt, sizeof(*packetdt)-2);
+          packetdt->value.year = ntohs(packetdt->value.year);
+
+          eid = packetdt->eid;
+          value.datetime = packetdt->value;
         default:
           // datatype not implemented here
           break;

@@ -100,6 +100,7 @@
 //HEXABUS includes
 #include "button.h"
 #include "metering.h"
+#include "datetime_service.h"
 #include "relay.h"
 #include "eeprom_variables.h"
 #include "udp_handler.h"
@@ -307,6 +308,9 @@ void initialize(void)
   process_start(&state_machine_process, NULL);
 
   mdns_responder_init();
+
+  /* Datetime service*/
+  process_start(&datetime_service_process, NULL);
 
   /* Button Process */
   process_start(&button_pressed_process, NULL);
