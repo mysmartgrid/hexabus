@@ -430,6 +430,10 @@ uip_init(void)
     uip_udp_conns[c].lport = 0;
   }
 #endif /* UIP_UDP */
+
+#if UIP_IPV6_MULTICAST
+  uip_mcast6_init();
+#endif
 }
 /*---------------------------------------------------------------------------*/
 #if UIP_TCP && UIP_ACTIVE_OPEN
@@ -1142,6 +1146,24 @@ uip_process(uint8_t flag)
     }
   }
 
+  /*
+   * Process Packets with a routable multicast destination. We invoke the
+   * multicast engine and let it do its thing (cache, forward etc)
+   * Depending on the return value, we either discard or deliver up the stack
+   *
+   * All multicast engines must hook in here. After this function returns, we
+   * expect UIP_BUF to be unmodified
+   */
+#if UIP_IPV6_MULTICAST
+  if(uip_is_addr_mcast_routable(&UIP_IP_BUF->destipaddr)) {
+    if(uip_mcast6_in()) {
+      /* Bypass the forwarding code, the engine handled it */
+      goto process;
+    } else {
+      goto drop;
+    }
+  }
+#endif /* UIP_IPV6_MULTICAST */
 
   /* TBD Some Parameter problem messages */
   if(!uip_ds6_is_my_addr(&UIP_IP_BUF->destipaddr) &&
@@ -1210,6 +1232,10 @@ uip_process(uint8_t flag)
   uip_ext_len = 0;
   uip_ext_bitmap = 0;
 #endif /* UIP_CONF_ROUTER */
+
+#if UIP_IPV6_MULTICAST
+  process:
+#endif
 
   while(1) {
     switch(*uip_next_hdr){
@@ -1428,6 +1454,12 @@ uip_process(uint8_t flag)
     case ICMP6_ML_DONE:
       uip_len = 0;
       break;
+#if UIP_IPV6_MCAST_TRICKLE
+    case ICMP6_TRICKLE_MCAST:
+      roll_trickle_icmp_input();
+      uip_len = 0;
+      break;
+#endif
     default:
       PRINTF("Unknown icmp6 message type %d\n", UIP_ICMP_BUF->type);
       UIP_STAT(++uip_stat.icmp.drop);
