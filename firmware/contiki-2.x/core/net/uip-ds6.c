@@ -10,6 +10,7 @@
  *         and auto configuration (RFC 4862) state machines.
  * \author Mathilde Durvy <mdurvy@cisco.com>
  * \author Julien Abeille <jabeille@cisco.com>
+ * Contributors: George Oikonomou <oikonomou@users.sourceforge.net> (multicast)
  */
 /*
  * Copyright (c) 2006, Swedish Institute of Computer Science.
@@ -79,6 +80,9 @@ uip_ds6_nbr_t uip_ds6_nbr_cache[UIP_DS6_NBR_NB];                  /** \brief Nei
 uip_ds6_defrt_t uip_ds6_defrt_list[UIP_DS6_DEFRT_NB];             /** \brief Default rt list */
 uip_ds6_prefix_t uip_ds6_prefix_list[UIP_DS6_PREFIX_NB];          /** \brief Prefix list */
 uip_ds6_route_t uip_ds6_routing_table[UIP_DS6_ROUTE_NB];          /** \brief Routing table */
+#if UIP_IPV6_MULTICAST_RPL
+uip_ds6_mcastrt_t uip_ds6_mcast_table[UIP_DS6_MCAST_ROUTES];      /** \brief Multicast Routing table */
+#endif
 
 /* Used by Cooja to enable extraction of addresses from memory.*/
 uint8_t uip_ds6_addr_size;
@@ -98,6 +102,9 @@ static uip_ds6_prefix_t *locprefix;
 static uip_ds6_nbr_t *locnbr;
 static uip_ds6_defrt_t *locdefrt;
 static uip_ds6_route_t *locroute;
+#if UIP_IPV6_MULTICAST_RPL
+static uip_ds6_mcastrt_t *locmcastrt;
+#endif
 
 /*---------------------------------------------------------------------------*/
 void
@@ -848,6 +855,34 @@ uip_ds6_route_rm_by_nexthop(uip_ipaddr_t *nexthop)
   ANNOTATE("#L %u 0\n",nexthop->u8[sizeof(uip_ipaddr_t) - 1]);
 }
 
+/*---------------------------------------------------------------------------*/
+#if UIP_IPV6_MULTICAST_RPL
+uip_ds6_mcastrt_t *
+uip_ds6_mcast_route_lookup(uip_ipaddr_t *group)
+{
+  for(locmcastrt = uip_ds6_mcast_table;
+      locmcastrt < uip_ds6_mcast_table + UIP_DS6_MCAST_ROUTES;
+      locmcastrt++) {
+    if(locmcastrt->isused && uip_ipaddr_cmp(&locmcastrt->group, group)) {
+      return locmcastrt;
+    }
+  }
+  return NULL;
+}
+/*---------------------------------------------------------------------------*/
+uip_ds6_mcastrt_t *
+uip_ds6_mcast_route_add(uip_ipaddr_t *group)
+{
+  if(uip_ds6_list_loop
+     ((uip_ds6_element_t *)uip_ds6_mcast_table, UIP_DS6_MCAST_ROUTES,
+      sizeof(uip_ds6_mcastrt_t), group, 128,
+      (uip_ds6_element_t **)&locmcastrt) == FREESPACE) {
+    locmcastrt->isused = 1;
+    uip_ipaddr_copy(&(locmcastrt->group), group);
+  }
+  return locmcastrt;
+}
+#endif
 /*---------------------------------------------------------------------------*/
 void
 uip_ds6_select_src(uip_ipaddr_t *src, uip_ipaddr_t *dst)
