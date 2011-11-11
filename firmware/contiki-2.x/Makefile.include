@@ -74,6 +74,7 @@ ifdef UIP_CONF_IPV6
   ifneq ($(UIP_CONF_RPL),0)
     CFLAGS += -DUIP_CONF_IPV6_RPL=1
     include $(CONTIKI)/core/net/rpl/Makefile.rpl
+    include $(CONTIKI)/core/net/uip-mcast6/Makefile.uip-mcast6
   endif # UIP_CONF_RPL
 else # UIP_CONF_IPV6
   UIP   = uip.c uiplib.c resolv.c tcpip.c psock.c hc.c uip-split.c uip-fw.c \
