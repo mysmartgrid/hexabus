@@ -69,6 +69,11 @@
 #define ICMP6_REDIRECT                  137  /**< Redirect */
 
 #define ICMP6_RPL                       155  /**< RPL */
+#define ICMP6_PRIV_EXP_100              100  /**< Private Experimentation */
+#define ICMP6_PRIV_EXP_101              101  /**< Private Experimentation */
+#define ICMP6_PRIV_EXP_200              200  /**< Private Experimentation */
+#define ICMP6_PRIV_EXP_201              201  /**< Private Experimentation */
+#define ICMP6_TRICKLE_MCAST ICMP6_PRIV_EXP_200 /**< ROLL Trickle Multicast */
 /** @} */
 
 
