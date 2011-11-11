@@ -43,6 +43,7 @@
 #define __UIP_DS6_H__
 
 #include "net/uip.h"
+#include "net/uip-mcast6/uip-mcast6.h"
 #include "sys/stimer.h"
 /* The size of uip_ds6_addr_t depends on UIP_ND6_DEF_MAXDADNS. Include uip-nd6.h to define it. */
 #include "net/uip-nd6.h"
@@ -180,6 +181,14 @@ typedef struct uip_ds6_nbr {
 #define UIP_DS6_NBR_PACKET_LIFETIME CLOCK_SECOND * 4
 #endif                          /*UIP_CONF_QUEUE_PKT */
 } uip_ds6_nbr_t;
+
+/** \brief An entry in the multicast routing table */
+typedef struct uip_ds6_mcastrt {
+  uint8_t isused;
+  uip_ipaddr_t group;
+  uint32_t lifetime; /* seconds */
+  void * dag; /* Pointer to an rpl_dag_t struct */
+} uip_ds6_mcastrt_t;
 
 /** \brief An entry in the default router list */
 typedef struct uip_ds6_defrt {
@@ -390,6 +399,13 @@ uip_ds6_route_t *uip_ds6_route_add(uip_ipaddr_t *ipaddr, uint8_t length,
 void uip_ds6_route_rm(uip_ds6_route_t *route);
 void uip_ds6_route_rm_by_nexthop(uip_ipaddr_t *nexthop);
 
+/** @} */
+
+/** \name Multicast Routing Table Manipulation */
+/** @{ */
+uip_ds6_mcastrt_t *uip_ds6_mcast_route_lookup(uip_ipaddr_t *group);
+uip_ds6_mcastrt_t *uip_ds6_mcast_route_add(uip_ipaddr_t *group);
+#define uip_ds6_mcast_route_rm(group) do { (group)->isused = 0; } while(0)
 /** @} */
 
 /** \brief set the last 64 bits of an IP address based on the MAC address */
