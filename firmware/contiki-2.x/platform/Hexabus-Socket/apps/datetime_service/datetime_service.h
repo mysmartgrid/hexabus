@@ -5,7 +5,9 @@
 #include "process.h"
 #include "../../../../../../shared/hexabus_packet.h"
 
-#define UPDATE_INTERVALL 1
+#define UPDATE_INTERVALL 1UL
+#define VALID_TIME 300 //Valid for 5Minutes
+
 
 void updateDatetime(struct datetime *dt);
 int getDatetime(struct datetime *dt);
