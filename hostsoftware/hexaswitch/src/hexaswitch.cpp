@@ -27,13 +27,12 @@ void usage()
     std::cout << "  3                         32bit Uint" << std::endl;
 }
 
-void print_packet(char* recv_data, hexabus::NetworkAccess* network)
-{
+void print_packet(char* recv_data) {
   hexabus::PacketHandling phandling(recv_data);
 
-  //std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
+  std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
   if(phandling.getPacketType() == HXB_PTYPE_ERROR)
-  {/*
+  {
     std::cout << "Packet Type:\tError\nError Code:\t";
     switch(phandling.getErrorcode())
     {
@@ -52,10 +51,10 @@ void print_packet(char* recv_data, hexabus::NetworkAccess* network)
       default:
         std::cout << "(unknown)\n";
         break;
-    } */
+    } 
   }
   else if(phandling.getPacketType() == HXB_PTYPE_INFO)
-  { /*
+  { 
     std::cout << "Datatype:\t";
     switch(phandling.getDatatype())
     {
@@ -71,11 +70,11 @@ void print_packet(char* recv_data, hexabus::NetworkAccess* network)
       default:
         std::cout << "(unknown)";
         break;
-    } */
-    //std::cout << "Endpoint ID:\t" << (int)phandling.getEID() << "\nValue:\t\t";
+    }
+    std::cout << "Endpoint ID:\t" << (int)phandling.getEID() << "\nValue:\t\t";
     if( (int)phandling.getEID() == 3 ){
       struct hxb_value value = phandling.getValue();
-      std::cout << network->getSourceIP() << " ";
+      //std::cout << network->getSourceIP() << " ";
       time_t timestamp;
       timestamp = time(NULL);
       std::cout << timestamp << " " << (float)value.int32/10000;
@@ -105,9 +104,9 @@ int main(int argc, char** argv)
       {
         network.receivePacket(false);
         char* recv_data = network.getData();
-        //std::cout << "Received packet from " << network.getSourceIP() << std::endl;
-        //std::cout << network.getSourceIP() << " ";
-        print_packet(recv_data, &network);
+        std::cout << "Received packet from " << network.getSourceIP() << std::endl;
+        std::cout << network.getSourceIP() << " ";
+        print_packet(recv_data);
       }
     }
     else
@@ -116,7 +115,6 @@ int main(int argc, char** argv)
       exit(1);
     }
   }
-/*
   hexabus::Packet::Ptr packetm(new hexabus::Packet()); // the packet making machine
 
   // build the hexabus packet 
@@ -217,6 +215,5 @@ int main(int argc, char** argv)
     usage();
     exit(1);
   }
-*/
   exit(0);
 }
