@@ -3,26 +3,37 @@
 
 # load the files containing time and temperature values
 # first column is timestamp, second column is temperature value
-load temp8005;
-load temp8009;
-load temp8010;
-load temp428f;
+temp1=load("-ascii", 'fe80::2ce:4200:70:428f%usb0')
+temp2=load("-ascii", 'fe80::50:c4ff:fe04:8010%usb0'); % kappoth
+temp3=load("-ascii", 'fe80::50:c4ff:ff04:8005%usb0'); % hat offset +1°C
+temp4=load("-ascii", 'fe80::50:c4ff:fe04:8009%usb0');
 
+%temp1_time=[];
 
-plot(temp8005(:,1),temp8005(:,2), "-b;Sensor 1;");
+clf;
+figure(1);
+plot(temp1(:,1),temp1(:,2), "-b;Sensor 1;");
 hold on;
-plot(temp8009(:,1),temp8009(:,2), "-r;Senor 2;");
-plot(temp8010(:,1),temp8010(:,2), "-g;Sensor 3;");
+plot(temp2(:,1),temp2(:,2), "-r;Sensor 2;");
+plot(temp3(:,1),temp3(:,2), "-g;Sensor 3;");
+plot(temp4(:,1),temp4(:,2), "-k;Sensor 4;");
 hold off;
 
 # Add descriptions 
 grid;
-xlabel('t / s');
-ylabel('\vartheta / °C');
+xlabel('t [s]');
+ylabel('\vartheta [°C]');
 title('Temperature over time');
+time_labels=get(gca(), "xtick");
+time_reallabels = [];
+for i=1:size(time_labels, 2),
+  time_reallabels = [ time_reallabels; strftime('%d.%m %H:%M', localtime(time_labels(1,i))) ];
+end;
+
+set(gca(), "xticklabel", time_reallabels);
 
 # uncomment to limit the temperature-axis 
 # ylim([23.5 26]);
 
-# ave plot as a PNG file
-print('temperature.png','-dpng')
+# save plot as a PDF file
+#print('temperature.pdf','-dpdf')
