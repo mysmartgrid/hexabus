@@ -5,6 +5,7 @@
 #include "endpoint_access.h"
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>			// memcpy
 
 #define DEBUG 1
 #if DEBUG
@@ -30,21 +31,56 @@ static uint8_t curState = 0;						// starting out in state 0
 
 bool eval(uint8_t condIndex, struct hxb_data *data) {
 	struct condition *cond = &condTable[condIndex];
-	// TODO: Check for IP
-	if(cond->sourceEID != data->eid) {
+	
+	// Check IPs and EID
+	bool null = true;
+	bool equal = true;
+	uint8_t k = 0;
+	for(k = 0;k < 16;k++) {
+		if(cond->sourceIP[k] != 0) {
+			null = false;
+		}
+		if(cond->sourceIP[k] != data->source[k]) {
+			equal = false;
+		}
+	}
+	
+	if((!null && !equal) || (cond->sourceEID != data->eid)) {
 		return false;
 	}
+	
+	// Now check for the actual data. first of all, we have to check for compatible datatypes
+	if(data->value.datatype != cond->value.datatype) {
+		return false;
+	}
+
+	// Now lets check for the operator and then for datatypes. TODO: Datetime comperator
 	switch(cond->op) {
 		case eq:
-			return (cond->value == data->value.int8);
+			if((cond->value.datatype == HXB_DTYPE_UINT8) || (cond->value.datatype == HXB_DTYPE_BOOL))
+				return (cond->value.int8 == data->value.int8);
+			if(cond->value.datatype == HXB_DTYPE_UINT32)
+				return (cond->value.int32 == data->value.int32);
 		case leq:
-			return (cond->value <= data->value.int8);
+			if(cond->value.datatype == HXB_DTYPE_UINT8)
+				return (cond->value.int8 <= data->value.int8);
+			if(cond->value.datatype == HXB_DTYPE_UINT32)
+				return (cond->value.int32 <= data->value.int32);
 		case geq:
-			return (cond->value >= data->value.int8);
+			if(cond->value.datatype == HXB_DTYPE_UINT8)
+				return (cond->value.int8 >= data->value.int8);
+			if(cond->value.datatype == HXB_DTYPE_UINT32)
+				return (cond->value.int32 >= data->value.int32);
 		case lt:
-			return (cond->value < data->value.int8);
+			if(cond->value.datatype == HXB_DTYPE_UINT8)
+				return (cond->value.int8 < data->value.int8);
+			if(cond->value.datatype == HXB_DTYPE_UINT32)
+				return (cond->value.int32 < data->value.int32);
 		case gt:
-			return (cond->value > data->value.int8);
+			if(cond->value.datatype == HXB_DTYPE_UINT8)
+				return (cond->value.int8 > data->value.int8);
+			if(cond->value.datatype == HXB_DTYPE_UINT32)
+				return (cond->value.int32 > data->value.int32);
 		default:
 			return false;
 	}
@@ -54,18 +90,22 @@ PROCESS_THREAD(state_machine_process, ev, data)
 {
 	  
 	PROCESS_BEGIN();
-  PRINTF("State Machine starting.");
-/* Definition of an actual state machine. Simple relay-Trigger */
+  PRINTF("State Machine starting.\r\n");
+	/* Definition of an actual state machine. Simple relay-Trigger */
 	condTable = malloc(sizeof(struct condition));
-	transTable = malloc(sizeof(struct transition));
+	transTable = malloc(transLength*sizeof(struct transition));
 	struct hxb_value wData;
 	wData.datatype = HXB_DTYPE_BOOL;
-	wData.int8 = HXB_TRUE;
+	wData.int8 = HXB_FALSE;
 
-	condTable[0].sourceIP = 0;
+	uint8_t a = 0;
+	for(a = 0;a < 16;a++) {
+		condTable[0].sourceIP[a] = 0;
+	}
 	condTable[0].sourceEID = 1;
 	condTable[0].op = eq;
-	condTable[0].value = 10;
+	condTable[0].value.datatype = HXB_DTYPE_UINT8;
+	condTable[0].value.int8 = 10;
 
 	transTable[0].fromState = 0;
 	transTable[0].cond = 0;
@@ -76,15 +116,24 @@ PROCESS_THREAD(state_machine_process, ev, data)
 	transTable[1].fromState = 1;
 	transTable[1].cond = 0;
 	transTable[1].eid = 1;
+	wData.int8 = HXB_TRUE;
 	memcpy(&(transTable[1].data), &wData, sizeof(struct hxb_value));
 	transTable[1].goodState = 0;
 	transTable[1].badState = 1;
 	/*----------------------------------------*/
 
-  while(1)
+  /* DEBUG */
+		int k = 0;
+		printf("[State Machine Table]: From | Cond | EID | Good | Bad\r\n");
+		for(k = 0;k < transLength;k++) {
+			printf(" %d | %d | %d | %d | %d \r\n", transTable[k].fromState, transTable[k].cond, transTable[k].eid, transTable[k].goodState, transTable[k].badState);
+		}
+	/* END */
+	
+	while(1)
   {
-    PROCESS_WAIT_EVENT();
-  	if(ev == sm_data_received_event) {
+		PROCESS_WAIT_EVENT();
+		if(ev == sm_data_received_event) {
 			// something happened, better check our own tables
 			struct hxb_data *edata = (struct hxb_data*)data;
 			uint8_t i;
