@@ -4,3 +4,4 @@
 *.map
 BootloaderFlasher
 hostsoftware/6switch/build
+hostsoftware/hexaswitch/Makefile
