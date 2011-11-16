@@ -335,6 +335,7 @@ udphandler(process_event_t ev, process_data_t data)
                   data->value.datatype = packet->datatype;
                   data->value.int8 = packet->value;
                   process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+                  PRINTF("Posted event for received broadcast.\r\n");
                 }
                 break;
               case HXB_DTYPE_UINT32:
@@ -348,6 +349,7 @@ udphandler(process_event_t ev, process_data_t data)
                   data->value.datatype = packet->datatype;
                   data->value.int32 = packet->value;
                   process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+                  PRINTF("Posted event for received broadcast.\r\n");
                 }
                 break;
               case HXB_DTYPE_DATETIME:
@@ -361,11 +363,13 @@ udphandler(process_event_t ev, process_data_t data)
                   data->value.datatype = packet->datatype;
                   memcpy(&(data->value.datetime), &(packet->value), sizeof(struct datetime));
                   process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+                  PRINTF("Posted event for received broadcast.\r\n");
                 }
+                break;
               default:
                 PRINTF("Received Broadcast, but no handler for datatype.\r\n");
+                break;
           }
-          PRINTF("Posted event for received broadcast.\r\n");
 
           /*
           struct hxb_packet_int8* packet = (struct hxb_packet_int8*)uip_appdata; // TODO this can only handle int for now - make it more flexible!

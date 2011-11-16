@@ -84,15 +84,19 @@ PROCESS_THREAD(state_machine_process, ev, data)
   while(1)
   {
     PROCESS_WAIT_EVENT();
-  	if(ev == sm_data_received_event) {
+  	if(ev == sm_data_received_event)
+    {
 			// something happened, better check our own tables
 			struct hxb_data *edata = (struct hxb_data*)data;
 			uint8_t i;
-			for(i = 0;i < transLength;i++) {
-				if((transTable[i].fromState == curState) && (eval(transTable[i].cond, edata))) {
+			for(i = 0;i < transLength;i++)
+      {
+				if((transTable[i].fromState == curState) && (eval(transTable[i].cond, edata)))
+        {
 					// Match found
 					printf("state_machine: Writing to endpoint %d \r\n", transTable[i].eid);
-					if(endpoint_write(transTable[i].eid, &(transTable[i].data)) == 0) {			
+					if(endpoint_write(transTable[i].eid, &(transTable[i].data)) == 0)
+          {			
 						curState = transTable[i].goodState;
 						printf("state_machine: Everything is fine \r\n");
 						break;
@@ -103,6 +107,8 @@ PROCESS_THREAD(state_machine_process, ev, data)
 					}
 				}
 			}
+
+      free(data);
 		}
 	}
 
