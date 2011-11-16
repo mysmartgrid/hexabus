@@ -34,7 +34,7 @@ void NetworkAccess::receivePacket(bool related) {
   char recv_data[128];
   boost::asio::ip::udp::endpoint remote_endpoint;
   my_socket->receive_from(boost::asio::buffer(recv_data, 127), remote_endpoint);
-  sourceIP = remote_endpoint.address().to_string();
+  sourceIP = remote_endpoint.address();
 
   if(data == NULL)
     data = (char*)malloc(128);
@@ -57,4 +57,4 @@ void NetworkAccess::sendPacket(std::string addr, uint16_t port, const char* data
 void NetworkAccess::openSocket() { socket->open(boost::asio::ip::udp::v6()); }
 void NetworkAccess::closeSocket() { socket->close(); }
 char* NetworkAccess::getData() { return data; }
-std::string NetworkAccess::getSourceIP() { return sourceIP; }
+boost::asio::ip::address NetworkAccess::getSourceIP() { return sourceIP; }
