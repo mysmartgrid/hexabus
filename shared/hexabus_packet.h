@@ -17,7 +17,7 @@ struct datetime {
     uint8_t   month;
     uint16_t  year;
     uint8_t   weekday;  // numbers from 0 to 6, sunday as the first day of the week.
-};
+} __attribute__ ((packed));
 
 // ======================================================================
 // Structs for building and reading Hexabus packets

@@ -24,16 +24,20 @@ void usage()
     std::cout << "\ndatatypes are:\n";
     std::cout << "  1                         Bool (Value = 0 or 1)\n";
     std::cout << "  2                         8bit Uint\n";
-    std::cout << "  3                         32bit Uint";
-    std::cout << "  4                         Date und Time (value is ignored but necessary)" << std::endl;
+    std::cout << "  3                         32bit Uint\n";
+    std::cout << "  4                         Hexabus Date and Time. Value can be Unix time or -1 for current system time" << std::endl;
 }
 
-datetime make_datetime_struct() {
+datetime make_datetime_struct(time_t given_time = -1) {
     struct datetime value;
     time_t raw_time;
     tm *tm_time;
 
+    if(given_time == -1) {
         time(&raw_time);
+    } else {
+        raw_time = given_time;
+    }
 
     tm_time = localtime(&raw_time);
 
@@ -260,7 +264,7 @@ int main(int argc, char** argv)
               print_packet((char*)&packet32);
               break;
           case HXB_DTYPE_DATETIME:
-              valdt = make_datetime_struct();
+              valdt = make_datetime_struct(atol(argv[4]));
               packetdt = packetm->writedt(eid, dtype, valdt, true);
               network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetdt, sizeof(packetdt));
               print_packet((char*)&packetdt);
