@@ -17,19 +17,19 @@ PROCESS_NAME(state_machine_process);
 enum oper { eq, leq, geq, lt, gt};
 
 struct condition {
-	uint8_t sourceIP;		// TODO: IP
+	char sourceIP[16];		// TODO: IP
 	uint8_t sourceEID;	// EID we expect data from
 	enum oper op;				// predicate function
-	uint8_t value;			// the constant to compare with
+	struct hxb_value value;			// the constant to compare with
 };
 
 struct transition {
 	uint8_t fromState;					// current state
 	uint8_t cond;								// index of condition that must be matched
 	uint8_t eid;							// id of endpoint which should do something
-	struct hxb_value data;			// Data for the endpoint
 	uint8_t goodState;					// new state if everything went fine
 	uint8_t badState;						// new state if some went wrong
+	struct hxb_value data;			// Data for the endpoint
 };
 
 
