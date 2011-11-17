@@ -4,12 +4,12 @@ all: ipso
 	 avr-size -C --mcu=atmega1284p Hexabus-Socket.elf
 #	 avr-size -C --mcu=atmega2561 Hexabus-Socket.elf
 #	 avr-size -C --mcu=atxmega256d3 Hexabus-Socket.elf
-APPS= hexabus-webserver udp_handler mdns_responder button metering relay provisioning datetime_service value_broadcast hxb_broadcast_handler endpoint_access state_machine
+APPS= hexabus-webserver udp_handler mdns_responder button metering relay provisioning datetime_service value_broadcast hxb_broadcast_handler endpoint_access state_machine temperature
 UIP_CONF_IPV6=1
 
 CONTIKI=../contiki-2.x
 #CONTIKI=../contiki-2.4
 include $(CONTIKI)/Makefile.include
 
-flash-jtag2: Hexabus-Socket.hex
+flash-jtag2: 
 	avrdude -c jtag2 -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F 

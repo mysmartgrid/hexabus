@@ -5,6 +5,7 @@
 #include <time.h>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/network.hpp>
+#include <time.h>
 
 #include "../../shared/hexabus_packet.h"
 
@@ -53,8 +54,7 @@ datetime make_datetime_struct(time_t given_time = -1) {
 
 }
 
-void print_packet(char* recv_data)
-{
+void print_packet(char* recv_data) {
   hexabus::PacketHandling phandling(recv_data);
 
   std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
@@ -78,10 +78,10 @@ void print_packet(char* recv_data)
       default:
         std::cout << "(unknown)\n";
         break;
-    }
+    } 
   }
   else if(phandling.getPacketType() == HXB_PTYPE_INFO)
-  {
+  { 
     std::cout << "Datatype:\t";
     switch(phandling.getDatatype())
     {
@@ -119,7 +119,6 @@ void print_packet(char* recv_data)
         std::cout << "(unknown)";
         break;
     }
-    std::cout << std::endl;
   }
 }
 
@@ -145,6 +144,7 @@ int main(int argc, char** argv)
         network.receivePacket(false);
         char* recv_data = network.getData();
         std::cout << "Received packet from " << network.getSourceIP() << std::endl;
+        std::cout << network.getSourceIP() << " ";
         print_packet(recv_data);
       }
     }
@@ -154,10 +154,9 @@ int main(int argc, char** argv)
       exit(1);
     }
   }
-
   hexabus::Packet::Ptr packetm(new hexabus::Packet()); // the packet making machine
 
-  // build the hexabus packet
+  // build the hexabus packet 
   if(!strcmp(argv[2], "on"))            // on: set EID 1 to TRUE
   {
     hxb_packet_int8 packet = packetm->write8(1, HXB_DTYPE_BOOL, HXB_TRUE, false);
@@ -285,7 +284,6 @@ int main(int argc, char** argv)
     usage();
     exit(1);
   }
-
   exit(0);
 }
 

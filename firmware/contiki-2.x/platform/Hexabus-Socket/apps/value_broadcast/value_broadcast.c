@@ -71,7 +71,7 @@ tcpip_handler(void)
 static void
 send_packet(void *ptr)
 {
-  uint8_t eid = 2;
+  uint8_t eid = 3;
   struct hxb_value val; 
   endpoint_read(eid, &val);
   PRINTF("value_broadcast: Broadcasting EID %d.\n", eid);

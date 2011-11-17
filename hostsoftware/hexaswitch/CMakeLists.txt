@@ -8,6 +8,8 @@ endif(POLICY CMP0011)
 # have the full monty in makefiles
 set(CMAKE_VERBOSE_MAKEFILE true)
 
+SET(ENABLE_LOGGING 1)
+
 set(V_MAJOR 0)
 set(V_MINOR 2)
 set(V_PATCH 0)
@@ -77,6 +79,7 @@ SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch" "Send a switch command to the
 hexabus devices.")
 SET(CPACK_SOURCE_STRIP_FILES "")
 SET(CPACK_STRIP_FILES "bin/hexaswitch")
+SET(CPACK_STRIP_FILES "bin/hexalog")
 INCLUDE(CPack)
 
 ### print some output for the user

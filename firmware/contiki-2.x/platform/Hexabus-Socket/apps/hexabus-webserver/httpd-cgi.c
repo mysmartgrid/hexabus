@@ -56,6 +56,7 @@
 //#include "sensors.h"
 
 #include "metering.h"
+#include "temperature.h"
 #include "relay.h"
 #include "eeprom_variables.h"
 
@@ -410,6 +411,7 @@ generate_socket_readings(void *arg)
   static const char httpd_cgi_sensor1[] HTTPD_STRING_ATTR = "<em>Electrical power consumption:</em> %d Watt<br>";
   static const char httpd_cgi_sensor2[] HTTPD_STRING_ATTR = "<em>Current Relay state:</em> %s <br>";
   static const char httpd_cgi_sensor3[] HTTPD_STRING_ATTR = "<form action=\"socket_stat.shtml\" method=\"post\"><input type=\"submit\" value=\"%s\" ></form>";
+  static const char httpd_cgi_sensor4[] HTTPD_STRING_ATTR = "<em>Current temperature:</em> %s deg. C<br>";
   numprinted=0;
 
   //N:
@@ -427,10 +429,15 @@ generate_socket_readings(void *arg)
   //numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor2, !relay_get_state());
 
   if (!relay_get_state())
-
 	  numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor3, "Toggle Off");
   else
 	  numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor3, "Toggle On");
+
+  // Add Temperature
+ // char buffer[10];
+ // float temperature_value=getTemperatureFloat();
+ // dtostrf(temperature_value, 9, 4, &buffer);
+  numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor4, temperature_as_string());
 
 
   return numprinted;
