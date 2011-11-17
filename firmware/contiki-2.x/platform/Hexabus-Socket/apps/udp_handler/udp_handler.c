@@ -377,81 +377,6 @@ udphandler(process_event_t ev, process_data_t data)
         {
           PRINTF("packet of type %d received, but we do not know what to do with that (yet)\r\n", header->type);
         }
-
-        /* original code left in here for reference until I get the new code working
-        hexabuscmd = (struct hexabusmsg_t *)uip_appdata;
-        if ( !strncmp(hexabuscmd->header, HEXABUS_HEADER, sizeof(hexabuscmd->header)) && hexabuscmd->source == 1) {
-          switch(uip_ntohs(hexabuscmd->command)) {
-          case VALUE:
-            //it copies the source address of the udp packet into the remote peer address, to which the response is going to be sent.
-            uip_ipaddr_copy(&udpconn->ripaddr, &UDP_IP_BUF->srcipaddr);
-            udpconn->rport = UIP_HTONS(HEXABUS_PORT);
-            PRINTF("udp_handler: Sending metering value.\r\n");
-            make_message(buf, VALUE_REPLY, metering_get_power());
-            uip_udp_packet_send(udpconn, buf, sizeof(struct hexabusmsg_t) + sizeof(uint16_t));
-            break;
-          case STATUS_REQUEST:
-            PRINTF("udp_handler: Sending status.\r\n");
-            uip_ipaddr_copy(&udpconn->ripaddr, &UDP_IP_BUF->srcipaddr);
-            udpconn->rport = UIP_HTONS(HEXABUS_PORT);
-            make_message(buf, STATUS_REPLY,!relay_get_state());
-            uip_udp_packet_send(udpconn, buf, sizeof(struct hexabusmsg_t) + sizeof(uint16_t));
-            break;
-          case ON:
-            uip_ipaddr_copy(&udpconn->ripaddr, &UDP_IP_BUF->srcipaddr);
-            udpconn->rport = UIP_HTONS(HEXABUS_PORT);
-            PRINTF("udp_handler: Switch ON.\r\n");
-            relay_off();
-            make_message(buf, STATUS_REPLY,!relay_get_state());
-            uip_udp_packet_send(udpconn, buf, sizeof(struct hexabusmsg_t) + sizeof(uint16_t));
-            break;
-          case OFF:
-            uip_ipaddr_copy(&udpconn->ripaddr, &UDP_IP_BUF->srcipaddr);
-            udpconn->rport = UIP_HTONS(HEXABUS_PORT);
-            PRINTF("udp_handler: Switch OFF.\r\n");
-            relay_on();
-            make_message(buf, STATUS_REPLY,!relay_get_state());
-            uip_udp_packet_send(udpconn, buf, sizeof(struct hexabusmsg_t) + sizeof(uint16_t));
-            break;
-          case RESET:
-            uip_ipaddr_copy(&udpconn->ripaddr, &UDP_IP_BUF->srcipaddr);
-            udpconn->rport = UIP_HTONS(HEXABUS_PORT);
-            PRINTF("udp_handler: RESET\r\n");
-            make_message(buf, RESET_REPLY, 0);
-            uip_udp_packet_send(udpconn, buf, sizeof(struct hexabusmsg_t));
-            Execute reset via the watchdog
-            watchdog_reboot();
-            break;
-          case SET_DEFAULT:
-            PRINTF("udp_handler: SET_DEFAULT\r\n");
-            cli();
-            eeprom_write_word((void *)EE_PAN_ID, 0xABCD); //set default pan id
-            eeprom_write_byte((void *)EE_METERING_CAL_FLAG, 0xFF);// enable metering calibration
-            uint8_t dns_name[] = {0x53, 0x6f, 0x63, 0x6b, 0x65, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // Socket is the default dns name
-            eeprom_write_block(dns_name, (void *)EE_DOMAIN_NAME, EE_DOMAIN_NAME_SIZE);
-            Execute reset via the watchdog
-            watchdog_reboot();
-            break;
-          case HEARTBEAT_ACK:
-            PRINTF("udp_handler: Heartbeat ACK received.\r\n");
-            heartbeat_no_ack = 0;
-            break;
-          case UPDATE_SERVER:
-            PRINTF("udp_handler: Setting Heartbeat destination address to: ");
-            PRINT6ADDR(&UDP_IP_BUF->srcipaddr);
-            PRINTF("\r\n");
-            uip_ipaddr_copy(&heartbeat_ipaddr, &UDP_IP_BUF->srcipaddr);
-            heartbeat_ipaddr_set = true;
-            etimer_set(&udp_periodic_timer, 1); //reply with an heartbeat
-            break;
-          default:
-            PRINTF("udp_handler: Unknown command received, ignoring.\r\n");
-            break;
-          }
-        } else {
-          PRINTF("udp_handler: Discarding message which is wrong or not for me!\r\n");
-        } */
-        /* Restore server connection to allow data from any node */
         memset(&udpconn->ripaddr, 0, sizeof(udpconn->ripaddr));
         udpconn->rport = 0;
       }
@@ -546,7 +471,8 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   while(1){
     //   tcpip_poll_udp(udpconn);
     PROCESS_WAIT_EVENT();
-    //    PROCESS_YIELD();
+    // Yield to the other processes, so that they have a chance to take broadcast events out of the event queue
+    PROCESS_YIELD();
     udphandler(ev, data);
   }
 
