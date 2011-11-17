@@ -80,7 +80,7 @@ void print_packet(char* recv_data) {
         break;
     } 
   }
-  else if(phandling.getPacketType() == HXB_PTYPE_INFO)
+  else if(phandling.getPacketType() == HXB_PTYPE_INFO || phandling.getPacketType() == HXB_PTYPE_WRITE)
   { 
     std::cout << "Datatype:\t";
     switch(phandling.getDatatype())
@@ -119,7 +119,8 @@ void print_packet(char* recv_data) {
         std::cout << "(unknown)";
         break;
     }
-  }
+  	std::cout << std::endl;
+	}
 }
 
 int main(int argc, char** argv)
@@ -161,14 +162,14 @@ int main(int argc, char** argv)
   {
     hxb_packet_int8 packet = packetm->write8(1, HXB_DTYPE_BOOL, HXB_TRUE, false);
     network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
-    print_packet(network.getData());
+		print_packet((char*)&packet);
   }
   else if(!strcmp(argv[2], "off"))      // off: set EID 0 to FALSE
   {
     hxb_packet_int8 packet = packetm->write8(1, HXB_DTYPE_BOOL, HXB_FALSE, false);
     network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
-    print_packet(network.getData());
-  }
+		print_packet((char*)&packet);
+	}
   else if(!strcmp(argv[2], "status"))   // status: query EID 1
   {
     hxb_packet_query packet = packetm->query(1);
@@ -226,7 +227,7 @@ int main(int argc, char** argv)
       hxb_packet_query packet = packetm->query(eid);
       network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
       network.receivePacket(true);
-    print_packet(network.getData());
+    	print_packet(network.getData());
     }
     else
     {

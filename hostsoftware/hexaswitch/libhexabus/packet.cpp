@@ -96,7 +96,7 @@ PacketHandling::PacketHandling(char* data)
   } else {
     okay = true;
     packet_type = header->type;
-    if(header->type == HXB_PTYPE_INFO)
+    if(header->type == HXB_PTYPE_INFO || header->type == HXB_PTYPE_WRITE)
     {
       // Declare pointers here - but use only the relevant one in the switch()
       struct hxb_packet_int8* packet8;
@@ -145,8 +145,8 @@ PacketHandling::PacketHandling(char* data)
       packet->crc = ntohs(packet->crc);
       crc_okay = packet->crc == crc->crc16((char*)packet, sizeof(*packet)-2);
       errorcode = packet->errorcode; 
-    } else {
-    // Packet type not implemented here
+		} else {
+    	std::cout << "Packet Format not printable yet." << std::endl; // Packet type not implemented here
     }
   }
 }
