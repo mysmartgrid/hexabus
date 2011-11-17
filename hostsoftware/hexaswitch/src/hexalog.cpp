@@ -48,7 +48,7 @@ int main(int argc, char** argv)
         // Check if we have seen this sensor previously
         float converted_value = (float)value.int32/10000;
 
-        std::string sensor_name(network.getSourceIP());
+        std::string sensor_name(network.getSourceIP().to_string());
         it = sensors.find(sensor_name);
 
         if (it != sensors.end()) {
