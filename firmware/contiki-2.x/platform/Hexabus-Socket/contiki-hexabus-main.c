@@ -40,6 +40,8 @@
 #define PRINTFD(...)
 #endif
 
+#include <hexabus_config.h>
+
 #include <avr/pgmspace.h>
 #include <avr/fuse.h>
 #include <avr/eeprom.h>
@@ -100,14 +102,20 @@
 //HEXABUS includes
 #include "button.h"
 #include "metering.h"
-#include "datetime_service.h"
-#include "temperature.h"
 #include "relay.h"
 #include "eeprom_variables.h"
 #include "udp_handler.h"
 #include "mdns_responder.h"
 #include "value_broadcast.h"
 #include "state_machine.h"
+
+// optional HEXABUS apps
+#if DATETIME_SERVICE_ENABLE
+#include "datetime_service.h"
+#endif
+#if TEMPERATURE_ENABLE
+#include "temperature.h"
+#endif
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -313,7 +321,9 @@ void initialize(void)
   mdns_responder_init();
 
   /* Datetime service*/
+#if DATETIME_SERVICE_ENABLE
   process_start(&datetime_service_process, NULL);
+#endif
 
   /* Button Process */
   process_start(&button_pressed_process, NULL);
@@ -322,12 +332,14 @@ void initialize(void)
   metering_init();
 
   /* Init Temp Sensor */
+#if TEMPERATURE_ENABLE
   temperature_init();
   
   //Check whether there are temperature sensors connected, if so start the process.
   if(nSensors > 0){
     process_start(&temperature_process, NULL);
   }
+#endif
 
   /*Init Relay */
   relay_init();

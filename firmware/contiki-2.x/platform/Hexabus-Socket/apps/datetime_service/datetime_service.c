@@ -4,13 +4,13 @@
 #include "sys/etimer.h" //contiki event timer library
 #include "contiki.h"
 
+#include "hexabus_config.h"
 #include "eeprom_variables.h"
 #include <avr/eeprom.h>
 
 #include <stdio.h>
 
-#define DEBUG 1
-#if DEBUG
+#if DATETIME_SERVICE_DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 #else
