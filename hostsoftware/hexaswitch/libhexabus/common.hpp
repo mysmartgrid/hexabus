@@ -56,7 +56,6 @@ namespace hexabus {
     private:
       VersionInfo (const VersionInfo& original);
       VersionInfo& operator= (const VersionInfo& rhs);
-      
   };
 };
 

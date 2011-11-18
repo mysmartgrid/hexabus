@@ -34,6 +34,7 @@
 #include "net/uip-ds6.h"
 #include "net/uip-udp-packet.h"
 #include "sys/ctimer.h"
+#include "hexabus_config.h"
 
 #include "../../../../../../shared/hexabus_packet.h"
 
@@ -42,10 +43,10 @@
 
 #define UDP_EXAMPLE_ID  190
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG VALUE_BROADCAST_DEBUG
 #include "net/uip-debug.h"
 
-#define SEND_INTERVAL CLOCK_SECOND * 60
+#define SEND_INTERVAL CLOCK_SECOND * VALUE_BROADCAST_INTERVAL
 #define SEND_TIME (random_rand() % (SEND_INTERVAL))
 
 static struct uip_udp_conn *client_conn;
@@ -71,19 +72,43 @@ tcpip_handler(void)
 static void
 send_packet(void *ptr)
 {
-  PRINTF("Broadcasting power value.\n");
+  struct hxb_value val; 
+  endpoint_read(VALUE_BROADCAST_EID, &val);
+  PRINTF("value_broadcast: Broadcasting EID %d.\n", VALUE_BROADCAST_EID);
+  switch(val.datatype)
+  {
+    case HXB_DTYPE_BOOL:
+    case HXB_DTYPE_UINT8:;
+      struct hxb_packet_int8 packet8;
+      strncpy(&packet8.header, HXB_HEADER, 4);
+      packet8.type = HXB_PTYPE_INFO;
+      packet8.flags = 0;
+      packet8.eid = VALUE_BROADCAST_EID;
+      packet8.datatype = val.datatype;
+      packet8.value = val.int8;
+      packet8.crc = uip_htons(crc16_data((char*)&packet8, sizeof(packet8)-2, 0));
 
-  struct hxb_packet_int8 packet;
-  strncpy(&packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_INFO;
-  packet.flags = 0;
-  packet.eid = 1;
-  packet.datatype = HXB_DTYPE_UINT8;
-  packet.value = metering_get_power();
-  packet.crc = crc16_data((char*)&packet, sizeof(packet)-2, 0);
+      uip_udp_packet_sendto(client_conn, &packet8, sizeof(packet8),
+                            &server_ipaddr, UIP_HTONS(HXB_PORT));
+      break;
+    case HXB_DTYPE_UINT32:;
+      struct hxb_packet_int32 packet32;
+      strncpy(&packet32.header, HXB_HEADER, 4);
+      packet32.type = HXB_PTYPE_INFO;
+      packet32.flags = 0;
+      packet32.eid = VALUE_BROADCAST_EID;
+      packet32.datatype = val.datatype;
+      packet32.value = uip_htonl(val.int32);
+      packet32.crc = uip_htons(crc16_data((char*)&packet32, sizeof(packet32)-2, 0));
 
-  uip_udp_packet_sendto(client_conn, &packet, sizeof(packet),
-                        &server_ipaddr, UIP_HTONS(HXB_PORT));
+      uip_udp_packet_sendto(client_conn, &packet32, sizeof(packet32),
+                            &server_ipaddr, UIP_HTONS(HXB_PORT));
+      break;
+    default:
+      PRINTF("value_broadcast: Datatype unknown.\r\n");
+  }
+  
+
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -106,29 +131,7 @@ print_local_addresses(void)
     }
   }
 }
-/*---------------------------------------------------------------------------*/
-static void
-set_global_address(void)
-{
-  uip_ipaddr_t ipaddr;
 
-  uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
-  uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
-  uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
-
-/* The choice of server address determines its 6LoPAN header compression.
- * (Our address will be compressed Mode 3 since it is derived from our link-local address)
- * Obviously the choice made here must also be selected in udp-server.c.
- *
- * For correct Wireshark decoding using a sniffer, add the /64 prefix to the 6LowPAN protocol preferences,
- * e.g. set Context 0 to aaaa::.  At present Wireshark copies Context/128 and then overwrites it.
- * (Setting Context 0 to aaaa::1111:2222:3333:4444 will report a 16 bit compressed address of aaaa::1111:22ff:fe33:xxxx)
- *
- * Note the IPCMV6 checksum verification depends on the correct uncompressed addresses.
- */
- // uip_ip6addr(&server_ipaddr, 0xaaaa, 0, 0, 0, 0x0050, 0xc4ff, 0xfe04, 0x000e);
- uip_ip6addr(&server_ipaddr, 0xff02, 0, 0, 0, 0, 0, 0, 0x0001); // Link-Local Multicast
-}
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(value_broadcast_process, ev, data)
 {
@@ -139,7 +142,7 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
 
   PROCESS_PAUSE();
 
-  set_global_address();
+	uip_ip6addr(&server_ipaddr, 0xff02, 0, 0, 0, 0, 0, 0, 0x0001); // Link-Local Multicast
 
   PRINTF("UDP sender process started\n");
 

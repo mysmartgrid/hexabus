@@ -6,6 +6,13 @@ MFLAGS = -s
 all: $(CMAKEOUTPUT)
 	@cd $(BUILDDIR) && $(MAKE) $(MFLAGS)
 
+plot: $(CMAKEOUTPUT) all
+	@cd $(BUILDDIR) && ./src/ev-simanealing 
+	@cd $(BUILDDIR) && Rscript ../tools/plot-all.R
+
+plotref: $(CMAKEOUTPUT) all
+	@cd $(BUILDDIR) && ./src/ev-enumerate 
+	@cd $(BUILDDIR) && Rscript ../tools/plot-all.R
 # No tests for now
 #test: all
 #	@cd $(BUILDDIR) && $(MAKE) $(MFLAGS) test

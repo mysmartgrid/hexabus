@@ -102,7 +102,7 @@ BOOL RS232_SetParam (HRS232 hRS232, RS232_PARAM *pRS232_PARAM)
 	if ( tcsetattr (pDev->nDev, TCSANOW, &pDev->rs232_attr) == -1) 
 	{ 
 		fprintf (stderr, "error setting tcsetattr on \n");  
-		return FALSE;
+		//return FALSE;
 	}
 
 	return TRUE;

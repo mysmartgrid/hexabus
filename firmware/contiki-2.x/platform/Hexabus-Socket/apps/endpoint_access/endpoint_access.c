@@ -1,18 +1,5 @@
 // Abstraction layer - transforms generic endpoint access to specific hardware function calls
 // ============================================================================
-// Hot to add a new endpoint
-// - Add a case for your endpoint ID in endpoint_get_datatype, return the
-//   datatype of your endpoint
-// - Add a case for your endpoint ID in endpoint_write. This is executed when
-//   someone sends a WRITE packet for your endpoint, or the state machine
-//   has a switching rule that changes your endpoint's value. Feel free to use
-//   events, function calls, or whatever. If your operation is too complicated,
-//   put it in a function somewhere else and call it from here, so that the list
-//   of  endpoint IDs doesn't get too cluttered. You can also use an error code
-//   if the write fails. The state machine will recognize this (TODO to be implemented).
-//   Make sure to check the DATATYPE before actually executing the WRITE ;)
-// - Add a case for your endpoint ID in endpoint_read. The code that's already
-//   there should pretty much explain how that's done.
 
 #define DEBUG 1
 #if DEBUG
@@ -23,7 +10,9 @@
 #endif
 
 #include "endpoint_access.h"
+#include "temperature.h"
 
+// TODO use this for some kind of "get endpoint info" (which also includes a string and stuff, and is queried over the network)
 uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
   switch(eid)
@@ -33,9 +22,11 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
     case 1:   // Endpoint 1: Power switch on Hexabus Socket
       return HXB_DTYPE_BOOL;
     case 2:   // Endpoint 2: Power metering on Hexabus Socket
-      return HXB_DTYPE_UINT8;
-    case 23:
-      return HXB_DTYPE_UINT8;
+      return HXB_DTYPE_UINT32;
+#if TEMPERATURE_ENABLE
+    case 3:   // Endpoint 3: Temperature value 
+      return HXB_DTYPE_UINT32;
+#endif
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
   }
@@ -62,6 +53,9 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
         return HXB_ERR_DATATYPE;
       }
     case 2:   // Endpoint 2: Power metering on Hexabus Socket -- read-only
+#if TEMPERATURE_ENABLE
+    case 3:   // Endpoint 3: Temperature value on Hexabus Socket -- read-only
+#endif
       return HXB_ERR_WRITEREADONLY;
     case 23:
       if(value->datatype == HXB_DTYPE_UINT8) {
@@ -93,13 +87,16 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
       val->int8 = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
       break;
     case 2:   // Endpoint 2: Hexabus Socket power metering
-      val->datatype = HXB_DTYPE_UINT8; // TODO needs more bits
-      val->int8 = metering_get_power();
+      val->datatype = HXB_DTYPE_UINT32; // TODO needs more bits
+      val->int32 = metering_get_power();
       break;
-    case 23:
-      val->datatype = HXB_DTYPE_UINT8;
-      val->int8 = shutter_get_state();
+#if TEMPERATURE_ENABLE
+    case 3:   // Endpoint 3: Hexabus temperaure metering
+      val->datatype = HXB_DTYPE_UINT32; // TODO needs more bits
+      val->int32 =temperature_get() * 10000;
       break;
+#endif
+>>>>>>> origin/development
     default:
       val->datatype = HXB_DTYPE_UNDEFINED;
   }

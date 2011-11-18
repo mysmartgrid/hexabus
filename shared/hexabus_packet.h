@@ -5,6 +5,21 @@
 #include <stdint.h>
 
 // ======================================================================
+// Supporting structs
+
+// Struct containing time and date
+
+struct datetime {
+    uint8_t   hour;
+    uint8_t   minute;
+    uint8_t   second;
+    uint8_t   day;
+    uint8_t   month;
+    uint16_t  year;
+    uint8_t   weekday;  // numbers from 0 to 6, sunday as the first day of the week.
+} __attribute__ ((packed));
+
+// ======================================================================
 // Structs for building and reading Hexabus packets
 
 // Just the packet header. You can cast to a pointer to this in order to find out the packet type and flags
@@ -59,25 +74,15 @@ struct hxb_packet_int32 {
   uint16_t  crc;
 } __attribute__ ((packed));
 
-// TODO hxb_packet_int16 (do we really need it?)
-
-// ======================================================================
-// Structs for passing Hexabus data around between processes
-// Since there the IP information is lost, we need a field for the IP address of the sender/receiver. But we can drop the CRC here.
-
-// Data struct for INT8 / BOOL
-struct hxb_data_int8 {
-  char      source[16]; // IP address of the device that sent the broadcast
-  uint8_t   datatype;
-  uint8_t   eid;
-  uint8_t   value;
-} __attribute__ ((packed));
-
-struct hxb_data_int32 {
-  char      source[16]; // IP address of the device that sent the broadcast
-  uint8_t   datatype;
-  uint8_t   eid;
-  uint8_t   value;
+// DATE/TIME 
+struct hxb_packet_datetime {
+    char      header[4];
+    uint8_t   type;
+    uint8_t   flags;
+    uint8_t   eid;
+    uint8_t   datatype;
+    struct datetime  value;
+    uint16_t  crc;
 } __attribute__ ((packed));
 
 // ======================================================================
@@ -89,6 +94,17 @@ struct hxb_value {
   uint8_t   datatype;   // Datatype that is used, or HXB_DTYPE_UNDEFINED
   uint8_t   int8;       // used for HXB_DTYPE_BOOL and HXB_DTYPE_UINT8
   uint32_t  int32;      // used for HXB_DTYPE_UINT32
+  struct datetime  datetime;   // used for HXB_DTYPE_DATETIME
+};
+
+// ======================================================================
+// Structs for passing Hexabus data around between processes
+// Since there the IP information is lost, we need a field for the IP address of the sender/receiver. But we can drop the CRC here.
+
+struct hxb_data {
+    char      source[16];
+    uint8_t   eid;
+    struct hxb_value value;
 };
 
 // ======================================================================
@@ -116,6 +132,7 @@ struct hxb_value {
 #define HXB_DTYPE_BOOL        0x01  // Boolean. Value still represented by 8 bits, but may only be HXB_TRUE or HXB_FALSE
 #define HXB_DTYPE_UINT8       0x02  // Unsigned 8 bit integer
 #define HXB_DTYPE_UINT32      0x03  // Unsigned 32 bit integer
+#define HXB_DTYPE_DATETIME    0x04  // Date and time
 // TODO Uint16 for power consumption; Sint... or float for temperature
 
 // Error codes

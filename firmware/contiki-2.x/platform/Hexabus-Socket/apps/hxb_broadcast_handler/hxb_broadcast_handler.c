@@ -27,7 +27,7 @@ PROCESS_THREAD(hxb_broadcast_handler_process, ev, data)
   while(1)
   {
     PROCESS_WAIT_EVENT();
-    
+   /* 
     if(ev == hxb_broadcast_received_event)
     {
       PRINTF("Broadcast received by hxb_broadcast_handler_process:\r\n");
@@ -37,7 +37,7 @@ PROCESS_THREAD(hxb_broadcast_handler_process, ev, data)
       // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 
       free(data); // careful. It's gone now. If someone else also wants it, we need to think of something more sophisticated.
-    }
+    }*/
   }
 
   PROCESS_END();
