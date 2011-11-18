@@ -111,6 +111,7 @@
 // optional HEXABUS apps
 #if VALUE_BROADCAST_ENABLE
 #include "value_broadcast.h"
+<<<<<<< Updated upstream
 #endif
 #if DATETIME_SERVICE_ENABLE
 #include "datetime_service.h"
@@ -121,6 +122,9 @@
 #if STATE_MACHINE_ENABLE
 #include "state_machine.h"
 #endif
+
+
+#include "hexapush.h"
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -331,11 +335,13 @@ void initialize(void)
   relay_init();
 
   /*Init Shutter*/
-  shutter_init();
+  //shutter_init();
 
   /* process for shutter control*/
-  process_start(&shutter_button_process, NULL);
-  process_start(&shutter_full_process, NULL);
+  //process_start(&shutter_button_process, NULL);
+  //process_start(&shutter_full_process, NULL);
+
+  process_start(&hexapush_process, NULL);
 
   mdns_responder_init();
 

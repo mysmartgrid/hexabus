@@ -96,7 +96,6 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
       val->int32 =temperature_get() * 10000;
       break;
 #endif
->>>>>>> origin/development
     default:
       val->datatype = HXB_DTYPE_UNDEFINED;
   }
