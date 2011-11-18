@@ -1,5 +1,6 @@
 #include "contiki.h"
 
+#include "hexabus_config.h"
 #include "../../../../../../shared/hexabus_packet.h"
 #include "state_machine.h"
 #include "endpoint_access.h"
@@ -7,10 +8,9 @@
 #include <stdlib.h>
 #include <string.h>			// memcpy
 
-#define DEBUG 1
-#if DEBUG
+#if STATE_MACHINE_DEBUG 
 #include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
+#define PRINTF(...) PRINTF(__VA_ARGS__)
 #define PRINT6ADDR(addr) PRINTF(" %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x ", ((u8_t *)addr)[0], ((u8_t *)addr)[1], ((u8_t *)addr)[2], ((u8_t *)addr)[3], ((u8_t *)addr)[4], ((u8_t *)addr)[5], ((u8_t *)addr)[6], ((u8_t *)addr)[7], ((u8_t *)addr)[8], ((u8_t *)addr)[9], ((u8_t *)addr)[10], ((u8_t *)addr)[11], ((u8_t *)addr)[12], ((u8_t *)addr)[13], ((u8_t *)addr)[14], ((u8_t *)addr)[15])
 #define PRINTLLADDR(lladdr) PRINTF(" %02x:%02x:%02x:%02x:%02x:%02x ",(lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3],(lladdr)->addr[4], (lladdr)->addr[5])
 #else
@@ -124,9 +124,9 @@ PROCESS_THREAD(state_machine_process, ev, data)
 
   /* DEBUG */
 		int k = 0;
-		printf("[State Machine Table]: From | Cond | EID | Good | Bad\r\n");
+		PRINTF("[State Machine Table]: From | Cond | EID | Good | Bad\r\n");
 		for(k = 0;k < transLength;k++) {
-			printf(" %d | %d | %d | %d | %d \r\n", transTable[k].fromState, transTable[k].cond, transTable[k].eid, transTable[k].goodState, transTable[k].badState);
+			PRINTF(" %d | %d | %d | %d | %d \r\n", transTable[k].fromState, transTable[k].cond, transTable[k].eid, transTable[k].goodState, transTable[k].badState);
 		}
 	/* END */
 	
@@ -143,15 +143,15 @@ PROCESS_THREAD(state_machine_process, ev, data)
 				if((transTable[i].fromState == curState) && (eval(transTable[i].cond, edata)))
         {
 					// Match found
-					printf("state_machine: Writing to endpoint %d \r\n", transTable[i].eid);
+					PRINTF("state_machine: Writing to endpoint %d \r\n", transTable[i].eid);
 					if(endpoint_write(transTable[i].eid, &(transTable[i].data)) == 0)
           {			
 						curState = transTable[i].goodState;
-						printf("state_machine: Everything is fine \r\n");
+						PRINTF("state_machine: Everything is fine \r\n");
 						break;
 					} else {													// Something went wrong
 						curState = transTable[i].badState;
-						printf("state_machine: Something bad happened \r\n");
+						PRINTF("state_machine: Something bad happened \r\n");
 						break;
 					}
 				}

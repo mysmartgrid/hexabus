@@ -106,15 +106,19 @@
 #include "eeprom_variables.h"
 #include "udp_handler.h"
 #include "mdns_responder.h"
-#include "value_broadcast.h"
-#include "state_machine.h"
 
 // optional HEXABUS apps
+#if VALUE_BROADCAST_ENABLE
+#include "value_broadcast.h"
+#endif
 #if DATETIME_SERVICE_ENABLE
 #include "datetime_service.h"
 #endif
 #if TEMPERATURE_ENABLE
 #include "temperature.h"
+#endif
+#if STATE_MACHINE_ENABLE
+#include "state_machine.h"
 #endif
 
 uint8_t nSensors = 0; //number of found temperature sensors
@@ -313,10 +317,14 @@ void initialize(void)
   process_start(&udp_handler_process, NULL);
 
   /* Process for periodic sending of HEXABUS data */
+#if VALUE_BROADCAST_ENABLE
   process_start(&value_broadcast_process, NULL);
+#endif
 
   /* process handling received HEXABUS broadcasts */
+#if STATE_MACHINE_ENABLE
   process_start(&state_machine_process, NULL);
+#endif
 
   mdns_responder_init();
 

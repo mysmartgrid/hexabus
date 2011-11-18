@@ -34,6 +34,7 @@
 #include "net/uip-ds6.h"
 #include "net/uip-udp-packet.h"
 #include "sys/ctimer.h"
+#include "hexabus_config.h"
 
 #include "../../../../../../shared/hexabus_packet.h"
 
@@ -42,10 +43,10 @@
 
 #define UDP_EXAMPLE_ID  190
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG VALUE_BROADCAST_DEBUG
 #include "net/uip-debug.h"
 
-#define SEND_INTERVAL CLOCK_SECOND * 60
+#define SEND_INTERVAL CLOCK_SECOND * VALUE_BROADCAST_INTERVAL
 #define SEND_TIME (random_rand() % (SEND_INTERVAL))
 
 static struct uip_udp_conn *client_conn;
@@ -71,10 +72,9 @@ tcpip_handler(void)
 static void
 send_packet(void *ptr)
 {
-  uint8_t eid = 3;
   struct hxb_value val; 
-  endpoint_read(eid, &val);
-  PRINTF("value_broadcast: Broadcasting EID %d.\n", eid);
+  endpoint_read(VALUE_BROADCAST_EID, &val);
+  PRINTF("value_broadcast: Broadcasting EID %d.\n", VALUE_BROADCAST_EID);
   switch(val.datatype)
   {
     case HXB_DTYPE_BOOL:
@@ -83,7 +83,7 @@ send_packet(void *ptr)
       strncpy(&packet8.header, HXB_HEADER, 4);
       packet8.type = HXB_PTYPE_INFO;
       packet8.flags = 0;
-      packet8.eid = eid;
+      packet8.eid = VALUE_BROADCAST_EID;
       packet8.datatype = val.datatype;
       packet8.value = val.int8;
       packet8.crc = uip_htons(crc16_data((char*)&packet8, sizeof(packet8)-2, 0));
@@ -96,7 +96,7 @@ send_packet(void *ptr)
       strncpy(&packet32.header, HXB_HEADER, 4);
       packet32.type = HXB_PTYPE_INFO;
       packet32.flags = 0;
-      packet32.eid = eid;
+      packet32.eid = VALUE_BROADCAST_EID;
       packet32.datatype = val.datatype;
       packet32.value = uip_htonl(val.int32);
       packet32.crc = uip_htons(crc16_data((char*)&packet32, sizeof(packet32)-2, 0));

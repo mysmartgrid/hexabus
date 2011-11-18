@@ -23,8 +23,10 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
       return HXB_DTYPE_BOOL;
     case 2:   // Endpoint 2: Power metering on Hexabus Socket
       return HXB_DTYPE_UINT32;
+#if TEMPERATURE_ENABLE
     case 3:   // Endpoint 3: Temperature value 
       return HXB_DTYPE_UINT32;
+#endif
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
   }
@@ -51,7 +53,9 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
         return HXB_ERR_DATATYPE;
       }
     case 2:   // Endpoint 2: Power metering on Hexabus Socket -- read-only
+#if TEMPERATURE_ENABLE
     case 3:   // Endpoint 3: Temperature value on Hexabus Socket -- read-only
+#endif
       return HXB_ERR_WRITEREADONLY;
     default:  // Default: Endpoint does not exist
       return HXB_ERR_UNKNOWNEID;
@@ -74,10 +78,12 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
       val->datatype = HXB_DTYPE_UINT32; // TODO needs more bits
       val->int32 = metering_get_power();
       break;
+#if TEMPERATURE_ENABLE
     case 3:   // Endpoint 3: Hexabus temperaure metering
       val->datatype = HXB_DTYPE_UINT32; // TODO needs more bits
       val->int32 =temperature_get() * 10000;
       break;
+#endif
     default:
       val->datatype = HXB_DTYPE_UNDEFINED;
   }

@@ -12,7 +12,6 @@
 #include "sys/clock.h"
 #include "contiki.h"
 #include "dev/leds.h"
-//#include "hexabus_config.h"
 #include <avr/eeprom.h>
 #include "eeprom_variables.h"
 #include "dev/leds.h"
