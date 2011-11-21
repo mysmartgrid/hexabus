@@ -49,6 +49,7 @@
 #include "relay.h"
 #include "datetime_service.h"
 #include "eeprom_variables.h"
+#include "hexabus_config.h"
 #include "../../../../../../shared/hexabus_packet.h"
 
 #define DEBUG 1
@@ -353,7 +354,7 @@ udphandler(process_event_t ev, process_data_t data)
         else if(header->type == HXB_PTYPE_INFO)
         {
 // Only do this if state_machine is enabled.
-#ifdef STATE_MACHINE_ENABLE
+#if STATE_MACHINE_ENABLE
           struct hxb_data* data = malloc(sizeof(struct hxb_data));
           memcpy(data->source, &UDP_IP_BUF->srcipaddr, 16);
           switch(header->datatype)
