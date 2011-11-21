@@ -74,7 +74,18 @@ struct hxb_packet_int32 {
   uint16_t  crc;
 } __attribute__ ((packed));
 
-// DATE/TIME 
+// WRITE/INFO packet for FLOAT -- basically the same format as int32, but with datatype float instead, to save you the cast
+struct hxb_packet_int32 {
+  char      header[4];
+  uint8_t   type;
+  uint8_t   flags;
+  uint8_t   eid;
+  uint8_t   datatype;
+  float  value;
+  uint16_t  crc;
+} __attribute__ ((packed));
+
+// DATE/TIME
 struct hxb_packet_datetime {
     char      header[4];
     uint8_t   type;
@@ -94,6 +105,7 @@ struct hxb_value {
   uint8_t   datatype;   // Datatype that is used, or HXB_DTYPE_UNDEFINED
   uint8_t   int8;       // used for HXB_DTYPE_BOOL and HXB_DTYPE_UINT8
   uint32_t  int32;      // used for HXB_DTYPE_UINT32
+  float     float32;      // used for HXB_DTYPE_FLOAT
   struct datetime  datetime;   // used for HXB_DTYPE_DATETIME
 };
 
@@ -133,7 +145,7 @@ struct hxb_data {
 #define HXB_DTYPE_UINT8       0x02  // Unsigned 8 bit integer
 #define HXB_DTYPE_UINT32      0x03  // Unsigned 32 bit integer
 #define HXB_DTYPE_DATETIME    0x04  // Date and time
-// TODO Uint16 for power consumption; Sint... or float for temperature
+#define HXB_DTYPE_FLOAT       0x05  // 32bit floating point
 
 // Error codes
 //                            0x00     reserved: No error
