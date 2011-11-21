@@ -9,6 +9,7 @@
 #define PRINTF(...)
 #endif
 
+#include "hexabus_config.h"
 #include "endpoint_access.h"
 #include "temperature.h"
 
@@ -25,7 +26,7 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
       return HXB_DTYPE_UINT32;
 #if TEMPERATURE_ENABLE
     case 3:   // Endpoint 3: Temperature value 
-      return HXB_DTYPE_UINT32;
+      return HXB_DTYPE_FLOAT;
 #endif
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
@@ -69,19 +70,22 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case 0:   // Endpoint 0: Hexabus device descriptor
       val->datatype = HXB_DTYPE_UINT32;
       val->int32 = 0x07;    // 0x07: 0..00111: Enpoints 0, 1 and 2 exist.
+#if TEMPERATURE_ENABLE
+      val->int32 += 8;      // +8: Endpoint 3 also exists
+#endif
       break;
     case 1:   // Endpoint 1: Hexabus Socket power switch
       val->datatype = HXB_DTYPE_BOOL;
       val->int8 = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
       break;
     case 2:   // Endpoint 2: Hexabus Socket power metering
-      val->datatype = HXB_DTYPE_UINT32; // TODO needs more bits
+      val->datatype = HXB_DTYPE_UINT32;
       val->int32 = metering_get_power();
       break;
 #if TEMPERATURE_ENABLE
     case 3:   // Endpoint 3: Hexabus temperaure metering
-      val->datatype = HXB_DTYPE_UINT32; // TODO needs more bits
-      val->int32 =temperature_get() * 10000;
+      val->datatype = HXB_DTYPE_FLOAT;
+      val->float32 = temperature_get();
       break;
 #endif
     default:

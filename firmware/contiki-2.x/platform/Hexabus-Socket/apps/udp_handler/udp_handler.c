@@ -152,11 +152,11 @@ static struct hxb_packet_float make_value_packet_float(uint8_t eid, struct hxb_v
   packet.eid = eid;
 
   packet.datatype = val->datatype;
-  packet.value = uip_htonl(val->float32);
+  packet.value = val->float32;
 
   packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
   PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%ld\r\nValue:\t%f\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.eid, uip_ntohl(packet.value), uip_ntohs(packet.crc)); // printf can handle float?
+    packet.type, packet.flags, packet.eid, packet.value, uip_ntohs(packet.crc)); // printf can handle float?
   return packet;
 }
 
@@ -286,7 +286,7 @@ udphandler(process_event_t ev, process_data_t data)
                 send_packet(&error_packet, sizeof(error_packet));
               } else {
                 value.datatype = ((struct hxb_packet_float*)header)->datatype;
-                value.float32 = uip_ntohl(((struct hxb_packet_float*)header)->value);
+                value.float32 = ((struct hxb_packet_float*)header)->value;
                 eid = ((struct hxb_packet_float*)header)->eid;
               }
               break;
@@ -413,7 +413,7 @@ udphandler(process_event_t ev, process_data_t data)
                   struct hxb_packet_float* packet = (struct hxb_packet_float*)header;
                   data->eid = packet->eid;
                   data->value.datatype = packet->datatype;
-                  data->value.float32 = uip_ntohl(packet->value);
+                  data->value.float32 = packet->value;
                   process_post(PROCESS_BROADCAST, sm_data_received_event, data);
                   PRINTF("Posted event for received broadcast.\r\n");
                 }

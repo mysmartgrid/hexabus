@@ -12,7 +12,7 @@
 #define DATETIME_SERVICE_DEBUG 0
 
 // temperature
-#define TEMPERATURE_ENABLE 0
+#define TEMPERATURE_ENABLE 1
 #define TEMPERATURE_DEBUG 1
 
 // value_broadcast

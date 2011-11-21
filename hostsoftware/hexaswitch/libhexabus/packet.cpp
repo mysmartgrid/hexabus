@@ -62,7 +62,7 @@ hxb_packet_float Packet::writef(uint8_t eid, uint8_t datatype, float value, bool
   packet.flags = 0;
   packet.eid = eid;
   packet.datatype = datatype;
-  packet.value = htonl(value);
+  packet.value = value;
   packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
 
   return packet;
@@ -145,8 +145,7 @@ PacketHandling::PacketHandling(char* data)
           packetf = (struct hxb_packet_float*)data;
           packetf->crc = ntohs(packetf->crc);
           crc_okay = packetf->crc == crc->crc16((char*)packetf, sizeof(*packetf)-2);
-          // ntohl the value after the CRC check, CRC check is done with everything in network byte order
-          packetf->value = ntohl(packetf->value);
+          packetf->value = packetf->value;
 
           eid = packetf->eid;
           value.float32 = packetf->value;
