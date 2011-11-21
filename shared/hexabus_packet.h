@@ -75,13 +75,13 @@ struct hxb_packet_int32 {
 } __attribute__ ((packed));
 
 // WRITE/INFO packet for FLOAT -- basically the same format as int32, but with datatype float instead, to save you the cast
-struct hxb_packet_int32 {
+struct hxb_packet_float {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
   uint8_t   eid;
   uint8_t   datatype;
-  float  value;
+  float     value;
   uint16_t  crc;
 } __attribute__ ((packed));
 
