@@ -27,6 +27,7 @@ void usage()
     std::cout << "  2                         8bit Uint\n";
     std::cout << "  3                         32bit Uint\n";
     std::cout << "  4                         Hexabus Date and Time. Value can be Unix time or -1 for current system time" << std::endl;
+    std::cout << "  5                         32bit floating point\n";
 }
 
 datetime make_datetime_struct(time_t given_time = -1) {
@@ -81,7 +82,7 @@ void print_packet(char* recv_data) {
     } 
   }
   else if(phandling.getPacketType() == HXB_PTYPE_INFO)
-  { 
+  {
     std::cout << "Datatype:\t";
     switch(phandling.getDatatype())
     {
@@ -97,6 +98,9 @@ void print_packet(char* recv_data) {
       case HXB_DTYPE_DATETIME:
         std::cout << "Datetime\n";
       break;
+      case HXB_DTYPE_FLOAT:
+        std::cout << "Float\n";
+        break;
       default:
         std::cout << "(unknown)";
         break;
@@ -115,11 +119,15 @@ void print_packet(char* recv_data) {
       case HXB_DTYPE_DATETIME:
         std::cout << (int)value.datetime.day << "." << (int)value.datetime.month << "." << value.datetime.year << " " << (int)value.datetime.hour << ":" << (int)value.datetime.minute << ":" << (int)value.datetime.second << " Weekday: " << (int)value.datetime.weekday;
         break;
+      case HXB_DTYPE_FLOAT:
+        std::cout << value.float32;
+        break;
       default:
         std::cout << "(unknown)";
         break;
     }
   }
+	std::cout << std::endl;
 }
 
 int main(int argc, char** argv)
@@ -191,9 +199,11 @@ int main(int argc, char** argv)
       uint8_t dtype = atoi(argv[4]);
       uint8_t val8;   // only the relevant one is used in the switch.
       uint32_t val32;
+			float valf;
 
       struct hxb_packet_int8 packet8;
       struct hxb_packet_int32 packet32;
+      struct hxb_packet_float packetf;
 
       switch(dtype)
       {
@@ -207,6 +217,11 @@ int main(int argc, char** argv)
           val32 = atoi(argv[5]);
           packet32 = packetm->write32(eid, dtype, val32, false);
           network.sendPacket(argv[1], HXB_PORT, (char*)&packet32, sizeof(packet32));
+          break;
+        case HXB_DTYPE_FLOAT:
+          valf = atof(argv[5]);
+          packetf = packetm->writef(eid, dtype, valf, false);
+          network.sendPacket(argv[1], HXB_PORT, (char*)&packetf, sizeof(packetf));
           break;
         default:
           std::cout << "unknown data type.\n";
@@ -243,10 +258,12 @@ int main(int argc, char** argv)
       uint8_t val8;
       uint32_t val32;
       struct datetime valdt;
+      float valf;
 
       struct hxb_packet_int8 packet8;
       struct hxb_packet_int32 packet32;
       struct hxb_packet_datetime packetdt;
+      struct hxb_packet_float packetf;
 
       switch(dtype) {
           case HXB_DTYPE_BOOL:
@@ -268,10 +285,15 @@ int main(int argc, char** argv)
               network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetdt, sizeof(packetdt));
               print_packet((char*)&packetdt);
               break;
+          case HXB_DTYPE_FLOAT:
+              valf = atof(argv[4]);
+              packetf = packetm->writef(eid, dtype, valf, true);
+              network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetf, sizeof(packetf));
+              print_packet((char*)&packetf);
+              break;
           default:
               std::cout << "Unknown data type.\n";
       }
-
     }
     else
     {

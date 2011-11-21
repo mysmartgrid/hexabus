@@ -19,10 +19,6 @@ hxb_packet_query Packet::query(uint8_t eid)
   packet.flags = 0;
   packet.eid = eid;
   packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
-  // for test, output the Hexabus packet
-  // printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, ntohs(packet.crc));
-  // TODO either use cout, or delete this.
-  //TODO implement -v
 
   return packet;
 }
@@ -38,8 +34,6 @@ hxb_packet_int8 Packet::write8(uint8_t eid, uint8_t datatype, uint8_t value, boo
   packet.datatype = datatype;
   packet.value = value;
   packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
-  // for test, output the Hexabus packet
-  // TODO cout! printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, packet.value, packet.crc);
 
   return packet;
 }
@@ -55,8 +49,21 @@ hxb_packet_int32 Packet::write32(uint8_t eid, uint8_t datatype, uint32_t value, 
   packet.datatype = datatype;
   packet.value = htonl(value);
   packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
-  // for test, output the Hexabus packet
-  // TODO cout! printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, packet.value, packet.crc);
+
+  return packet;
+}
+
+hxb_packet_float Packet::writef(uint8_t eid, uint8_t datatype, float value, bool broadcast)
+{
+  CRC::Ptr crc(new CRC());
+  struct hxb_packet_float packet;
+  strncpy((char*)&packet.header, HXB_HEADER, 4);
+  packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
+  packet.flags = 0;
+  packet.eid = eid;
+  packet.datatype = datatype;
+  packet.value = htonl(value);
+  packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
 
   return packet;
 }
@@ -73,8 +80,6 @@ hxb_packet_datetime Packet::writedt(uint8_t eid, uint8_t datatype, datetime valu
   value.year = htons(value.year);
   packet.value = value;
   packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
-  // for test, output the Hexabus packet
-  // TODO cout! printf("Type:\t%d\nFlags:\t%d\nEID:\t%d\nData Type:\t%d\nValue:\t%d\nCRC:\t%d\n", packet.type, packet.flags, packet.eid, packet.datatype, packet.value, packet.crc);
 
   return packet;
 }
@@ -87,7 +92,6 @@ PacketHandling::PacketHandling(char* data)
   packet_type = datatype = eid = 0;
   value.datatype = 0; 
 
-  // TODO somehow make sure the data pointer points to something we can actually use
   struct hxb_packet_header* header = (struct hxb_packet_header*)data;
 
   if(strncmp((char*)header, HXB_HEADER, 4))
@@ -102,6 +106,7 @@ PacketHandling::PacketHandling(char* data)
       struct hxb_packet_int8* packet8;
       struct hxb_packet_int32* packet32;
       struct hxb_packet_datetime* packetdt;
+      struct hxb_packet_float* packetf;
 
       datatype = header->datatype;
       value.datatype = datatype;
@@ -136,6 +141,16 @@ PacketHandling::PacketHandling(char* data)
 
           eid = packetdt->eid;
           value.datetime = packetdt->value;
+        case HXB_DTYPE_FLOAT:
+          packetf = (struct hxb_packet_float*)data;
+          packetf->crc = ntohs(packetf->crc);
+          crc_okay = packetf->crc == crc->crc16((char*)packetf, sizeof(*packetf)-2);
+          // ntohl the value after the CRC check, CRC check is done with everything in network byte order
+          packetf->value = ntohl(packetf->value);
+
+          eid = packetf->eid;
+          value.float32 = packetf->value;
+          break;
         default:
           // datatype not implemented here
           break;
