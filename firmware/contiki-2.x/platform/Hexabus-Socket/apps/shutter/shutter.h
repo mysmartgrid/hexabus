@@ -10,8 +10,6 @@
 #define SHUTTER_IN     PINA
 #define SHUTTER_DDR    DDRA
 
-#define SHUTTER_BUTTON_UP PA0
-#define SHUTTER_BUTTON_DOWN PA1
 #define SHUTTER_OUT_UP PA2
 #define SHUTTER_OUT_DOWN PA3
 #define SHUTTER_ENC1 PCINT4
@@ -25,9 +23,7 @@
 #error Hardware not defined!
 #endif
 
-#define DEBOUNCE_TIME		   50
 #define ENCODER_TIMEOUT        200UL
-#define DOUBLE_CLICK_DELAY     300UL
 
 
 void    shutter_init(void);
@@ -44,7 +40,6 @@ void    shutter_stop(void);
 
 uint8_t     shutter_get_state(void);
 
-PROCESS_NAME(shutter_button_process);
-PROCESS_NAME(shutter_full_process);
+PROCESS_NAME(shutter_process);
 
 #endif /* SHUTTER_H_ */

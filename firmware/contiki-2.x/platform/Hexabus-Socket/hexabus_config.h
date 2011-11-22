@@ -25,4 +25,12 @@
 #define STATE_MACHINE_ENABLE 0
 #define STATE_MACHINE_DEBUG 1
 
+// shutter
+#define SHUTTER_ENABLE 1
+#define SHUTTER_DEBUG 1
+
+// hexapush
+#define HEXAPUSH_ENABLE 1
+#define HEXAPUSH_DEBUG 1
+
 #endif // HEXBAUS_CONFIG_H

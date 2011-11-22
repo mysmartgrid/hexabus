@@ -38,6 +38,7 @@
 #include "sys/etimer.h" //contiki event timer library
 #include "contiki.h"
 #include "dev/leds.h"
+#include "hexabus_config.h"
 
 #include "eeprom_variables.h"
 #include <avr/eeprom.h>
@@ -45,8 +46,7 @@
 
 #include <stdio.h>
 
-#define DEBUG 1
-#if DEBUG
+#if SHUTTER_DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 #else
@@ -59,8 +59,6 @@ static process_event_t full_cancel_event;
 
 void shutter_init(void) {
     PRINTF("Shutter init\n");
-    SHUTTER_DDR = ( 0x00 | (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
-    SHUTTER_PORT |= ( (1<<SHUTTER_BUTTON_UP) | (1<<SHUTTER_BUTTON_DOWN) ); //Activate internal pull-ups
     SHUTTER_PORT |= ( (1<<PA4) | (1<<PA5) ); //pull-ups for encoder inputs
     
     /* Enable pin interrupts for encoder ports */
@@ -87,18 +85,18 @@ void shutter_close(void) {
 }
 
 void shutter_open_full(void) {
-    process_post(&shutter_full_process, full_cancel_event, NULL);
-    process_post(&shutter_full_process, full_up_event, NULL);
+    process_post(&shutter_process, full_cancel_event, NULL);
+    process_post(&shutter_process, full_up_event, NULL);
 }
 
 void shutter_close_full(void) {
-    process_post(&shutter_full_process, full_cancel_event, NULL);
-    process_post(&shutter_full_process, full_down_event, NULL);
+    process_post(&shutter_process, full_cancel_event, NULL);
+    process_post(&shutter_process, full_down_event, NULL);
 }
 
 void shutter_stop(void) {
     PRINTF("Shutter stop\n");
-    process_post(&shutter_full_process, full_cancel_event, NULL);
+    process_post(&shutter_process, full_cancel_event, NULL);
     SHUTTER_PORT &= ~( (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
 }
 
@@ -107,13 +105,12 @@ uint8_t shutter_get_state(void) {
     return 128;
 }
 
-PROCESS(shutter_button_process, "React to attached shutter buttons\n");
-PROCESS(shutter_full_process, "Open/Close shutter until motor stopps");
+PROCESS(shutter_process, "Open/Close shutter until motor stopps");
 
-AUTOSTART_PROCESSES(&shutter_button_process, &shutter_full_process);
+AUTOSTART_PROCESSES(&shutter_process);
 
 
-PROCESS_THREAD(shutter_full_process, ev, data) {
+PROCESS_THREAD(shutter_process, ev, data) {
 
     static struct etimer encoder_timer;
 
@@ -155,70 +152,6 @@ PROCESS_THREAD(shutter_full_process, ev, data) {
     PROCESS_END();
 }
 
-
-PROCESS_THREAD(shutter_button_process, ev, data) {
-
-    static struct etimer debounce_timer;
-    static struct etimer doubleclick_timer;
-
-    PROCESS_BEGIN();
-    
-    PRINTF("Shutter_button_process started\n");
-
-    while(1) {
-        etimer_set(&debounce_timer, CLOCK_SECOND * DEBOUNCE_TIME / 1000);
-
-        if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) || bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
-            etimer_restart(&debounce_timer);
-            PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&debounce_timer));
-            
-            if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
-                process_post(&shutter_full_process, full_cancel_event, NULL);
-                shutter_stop();
-            } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP)) {
-                if(etimer_expired(&doubleclick_timer)) {
-                    process_post(&shutter_full_process, full_cancel_event, NULL);
-                    etimer_set(&doubleclick_timer, CLOCK_SECOND * DOUBLE_CLICK_DELAY / 1000);
-
-                    do {
-                        etimer_restart(&debounce_timer);
-                        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&debounce_timer));
-
-                        if(etimer_expired(&doubleclick_timer)) {
-                            shutter_open();
-                        }
-                    } while( (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) ||
-                    (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_UP)) );
-                    shutter_stop();
-                } else {
-                    shutter_open_full();
-                }
-            } else if(bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) {
-                if(etimer_expired(&doubleclick_timer)) {
-                    process_post(&shutter_full_process, full_cancel_event, NULL);
-                    etimer_set(&doubleclick_timer, CLOCK_SECOND * DOUBLE_CLICK_DELAY / 1000);
-
-                    do {
-                        etimer_restart(&debounce_timer);
-                        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&debounce_timer));
-
-                        if(etimer_expired(&doubleclick_timer)) {
-                            shutter_close();
-                        }
-                    } while( (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_UP) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_DOWN)) ||
-                    (bit_is_clear(SHUTTER_IN, SHUTTER_BUTTON_DOWN) && bit_is_set(SHUTTER_IN, SHUTTER_BUTTON_UP)) );
-                    shutter_stop();
-                } else {
-                    shutter_close_full();
-                }
-            }
-        }
-        PROCESS_PAUSE();
-    }
-
-    PROCESS_END();
-}
-
 ISR(PCINT0_vect) {
-    process_poll(&shutter_full_process);
+    process_poll(&shutter_process);
 }

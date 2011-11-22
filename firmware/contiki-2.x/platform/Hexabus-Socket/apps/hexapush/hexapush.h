@@ -13,12 +13,12 @@
 //Comment unneeded buttons
 #define HEXAPUSH_B1     PA0
 #define HEXAPUSH_B2     PA1
-#define HEXAPUSH_B3     PA2
-#define HEXAPUSH_B4     PA3
-#define HEXAPUSH_B5     PA4
-#define HEXAPUSH_B6     PA5
-#define HEXAPUSH_B7     PA6
-#define HEXAPUSH_B8     PA7
+//#define HEXAPUSH_B3     PA2
+//#define HEXAPUSH_B4     PA3
+//#define HEXAPUSH_B5     PA4
+//#define HEXAPUSH_B6     PA5
+//#define HEXAPUSH_B7     PA6
+//#define HEXAPUSH_B8     PA7
 
 #elif defined(__AVR_ATmega2561__)
 //TODO?
