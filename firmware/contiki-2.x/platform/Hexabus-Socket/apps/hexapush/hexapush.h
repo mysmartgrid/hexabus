@@ -26,8 +26,8 @@
 #error Hardware not defined!
 #endif
 
-#define DEBOUNCE_TIME		   50
-#define LONG_CLICK_DELAY     300UL
+#define DEBOUNCE_TIME		   50UL
+#define LONG_CLICK_MULT        6
 
 void hexapush_init(void);
 
