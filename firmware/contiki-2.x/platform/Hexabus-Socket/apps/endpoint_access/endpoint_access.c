@@ -35,7 +35,7 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
 
 uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to an endpoint - returns 0 if okay, or some error code definde in hxb_packet.h
 {
-  PRINTF("endpoint_access: Set %d to %d, datatype %d.\r\n", eid, value->int8, value->datatype);
+  // PRINTF("endpoint_access: Set %d to %d, datatype %d.\r\n", eid, (uint32_t)(value->float32*1000), value->datatype); TODO - print all the datatypes
   switch(eid)
   {
     case 0:   // Endpoint 0: Device descriptor
@@ -71,7 +71,7 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
       val->datatype = HXB_DTYPE_UINT32;
       val->int32 = 0x07;    // 0x07: 0..00111: Enpoints 0, 1 and 2 exist.
 #if TEMPERATURE_ENABLE
-      val->int32 += 8;      // +8: Endpoint 3 also exists
+      val->int32 += 0x08;      // +8: Endpoint 3 also exists
 #endif
       break;
     case 1:   // Endpoint 1: Hexabus Socket power switch

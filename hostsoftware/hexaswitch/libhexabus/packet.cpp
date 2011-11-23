@@ -62,7 +62,8 @@ hxb_packet_float Packet::writef(uint8_t eid, uint8_t datatype, float value, bool
   packet.flags = 0;
   packet.eid = eid;
   packet.datatype = datatype;
-  packet.value = value;
+  uint32_t value_nbo = htonl(*(uint32_t*)&value);
+  packet.value = *(float*)&value_nbo;
   packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
 
   return packet;
@@ -90,7 +91,7 @@ PacketHandling::PacketHandling(char* data)
 
   okay = crc_okay = false;
   packet_type = datatype = eid = 0;
-  value.datatype = 0; 
+  value.datatype = 0;
 
   struct hxb_packet_header* header = (struct hxb_packet_header*)data;
 
@@ -102,11 +103,6 @@ PacketHandling::PacketHandling(char* data)
     packet_type = header->type;
     if(header->type == HXB_PTYPE_INFO)
     {
-      // Declare pointers here - but use only the relevant one in the switch()
-      struct hxb_packet_int8* packet8;
-      struct hxb_packet_int32* packet32;
-      struct hxb_packet_datetime* packetdt;
-      struct hxb_packet_float* packetf;
 
       datatype = header->datatype;
       value.datatype = datatype;
@@ -116,39 +112,49 @@ PacketHandling::PacketHandling(char* data)
           break;
         case HXB_DTYPE_BOOL:
         case HXB_DTYPE_UINT8:
-          packet8 = (struct hxb_packet_int8*)data;
-          packet8->crc = ntohs(packet8->crc);
-          crc_okay = packet8->crc == crc->crc16((char*)packet8, sizeof(*packet8)-2);
+          {
+            struct hxb_packet_int8* packet8 = (struct hxb_packet_int8*)data;
+            packet8->crc = ntohs(packet8->crc);
+            crc_okay = packet8->crc == crc->crc16((char*)packet8, sizeof(*packet8)-2);
 
-          eid = packet8->eid;
-          value.int8 = packet8->value;
+            eid = packet8->eid;
+            value.int8 = packet8->value;
+          }
           break;
         case HXB_DTYPE_UINT32:
-          packet32 = (struct hxb_packet_int32*)data;
-          packet32->crc = ntohs(packet32->crc);
-          crc_okay = packet32->crc == crc->crc16((char*)packet32, sizeof(*packet32)-2);
-          // ntohl the value after the CRC check, CRC check is done with everything in network byte order
-          packet32->value = ntohl(packet32->value);
+          {
+            struct hxb_packet_int32* packet32 = (struct hxb_packet_int32*)data;
+            packet32->crc = ntohs(packet32->crc);
+            crc_okay = packet32->crc == crc->crc16((char*)packet32, sizeof(*packet32)-2);
+            // ntohl the value after the CRC check, CRC check is done with everything in network byte order
+            packet32->value = ntohl(packet32->value);
 
-          eid = packet32->eid;
-          value.int32 = packet32->value;
+            eid = packet32->eid;
+            value.int32 = packet32->value;
+          }
           break;
         case HXB_DTYPE_DATETIME:
-          packetdt = (struct hxb_packet_datetime*)data;
-          packetdt->crc = ntohs(packetdt->crc);
-          crc_okay = packetdt->crc == crc->crc16((char*)packetdt, sizeof(*packetdt)-2);
-          packetdt->value.year = ntohs(packetdt->value.year);
+          {
+            struct hxb_packet_datetime* packetdt = (struct hxb_packet_datetime*)data;
+            packetdt->crc = ntohs(packetdt->crc);
+            crc_okay = packetdt->crc == crc->crc16((char*)packetdt, sizeof(*packetdt)-2);
+            packetdt->value.year = ntohs(packetdt->value.year);
 
-          eid = packetdt->eid;
-          value.datetime = packetdt->value;
+            eid = packetdt->eid;
+            value.datetime = packetdt->value;
+          }
+          break;
         case HXB_DTYPE_FLOAT:
-          packetf = (struct hxb_packet_float*)data;
-          packetf->crc = ntohs(packetf->crc);
-          crc_okay = packetf->crc == crc->crc16((char*)packetf, sizeof(*packetf)-2);
-          packetf->value = packetf->value;
+          {
+            struct hxb_packet_float* packetf = (struct hxb_packet_float*)data;
+            packetf->crc = ntohs(packetf->crc);
+            crc_okay = packetf->crc == crc->crc16((char*)packetf, sizeof(*packetf)-2);
+            uint32_t value_hbo = ntohl(*(uint32_t*)&packetf->value);
+            packetf->value = *(float*)&value_hbo;
 
-          eid = packetf->eid;
-          value.float32 = packetf->value;
+            eid = packetf->eid;
+            value.float32 = packetf->value;
+          }
           break;
         default:
           // datatype not implemented here

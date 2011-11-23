@@ -74,7 +74,8 @@ struct hxb_packet_int32 {
   uint16_t  crc;
 } __attribute__ ((packed));
 
-// WRITE/INFO packet for FLOAT -- basically the same format as int32, but with datatype float instead, to save you the cast
+// WRITE/INFO packet for FLOAT -- basically the same format as int32, but with datatype float instead
+// TODO can't we just use the packet_int32 here? We're casting it to int32 for byte order conversions anyway
 struct hxb_packet_float {
   char      header[4];
   uint8_t   type;
