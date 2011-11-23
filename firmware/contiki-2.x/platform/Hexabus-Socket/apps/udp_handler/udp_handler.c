@@ -526,9 +526,9 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   while(1){
     //   tcpip_poll_udp(udpconn);
     PROCESS_WAIT_EVENT();
-    // Yield to the other processes, so that they have a chance to take broadcast events out of the event queue
-    PROCESS_YIELD();
     udphandler(ev, data);
+    // Yield to the other processes, so that they have a chance to take broadcast events out of the event queue
+    PROCESS_PAUSE();
   }
 
 

@@ -135,6 +135,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
     PROCESS_WAIT_EVENT();
   	if(ev == sm_data_received_event)
     {
+      PRINTF("State machine: Received event\r\n");
 			// something happened, better check our own tables
 			struct hxb_data *edata = (struct hxb_data*)data;
 			uint8_t i;
