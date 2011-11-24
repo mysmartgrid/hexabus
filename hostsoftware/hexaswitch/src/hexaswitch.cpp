@@ -19,6 +19,7 @@ void usage()
     std::cout << "  get EID                   query the value of EID\n";
     std::cout << "  epquery EID               query Endpoint metadata\n";
     std::cout << "\nshortcut commands           for Hexabus-Socket:\n";
+    std::cout << "  devinfo                   get device name (same as epquery 0)\n";
     std::cout << "  on                        switch device on (same as set 1 1 1)\n";
     std::cout << "  off                       switch device off (same as set 1 1 0)\n";
     std::cout << "  status                    query on/off status of device (same as get 1)\n";
@@ -130,31 +131,36 @@ void print_packet(char* recv_data) {
   }
   else if(phandling.getPacketType() == HXB_PTYPE_EPINFO)
   {
-    std::cout << "Endpoint Info\n";
-    std::cout << "Endpoint ID:\t" << (int)phandling.getEID() << "\n";
-    std::cout << "EP Datatype:\t"; // TODO code duplication -- maybe this should be a function
-    switch(phandling.getDatatype())
+    if(phandling.getEID() == 0)
     {
-      case HXB_DTYPE_BOOL:
-        std::cout << "Bool\n";
+      std::cout << "Device Info\nDevice Name:\t" << phandling.getString() << "\n";
+    } else {
+      std::cout << "Endpoint Info\n";
+      std::cout << "Endpoint ID:\t" << (int)phandling.getEID() << "\n";
+      std::cout << "EP Datatype:\t"; // TODO code duplication -- maybe this should be a function
+      switch(phandling.getDatatype())
+      {
+        case HXB_DTYPE_BOOL:
+          std::cout << "Bool\n";
+          break;
+        case HXB_DTYPE_UINT8:
+          std::cout << "Uint8\n";
+          break;
+        case HXB_DTYPE_UINT32:
+          std::cout << "Uint32\n";
+          break;
+        case HXB_DTYPE_DATETIME:
+          std::cout << "Datetime\n";
         break;
-      case HXB_DTYPE_UINT8:
-        std::cout << "Uint8\n";
-        break;
-      case HXB_DTYPE_UINT32:
-        std::cout << "Uint32\n";
-        break;
-      case HXB_DTYPE_DATETIME:
-        std::cout << "Datetime\n";
-      break;
-      case HXB_DTYPE_FLOAT:
-        std::cout << "Float\n";
-        break;
-      default:
-        std::cout << "(unknown)\n";
-        break;
+        case HXB_DTYPE_FLOAT:
+          std::cout << "Float\n";
+          break;
+        default:
+          std::cout << "(unknown)\n";
+          break;
+      }
+      std::cout << "EP Name:\t" << phandling.getString() << "\n";
     }
-    std::cout << "EP Name:\t" << phandling.getValue().string << "\n";
   }
 	std::cout << std::endl;
 }
@@ -284,6 +290,21 @@ int main(int argc, char** argv)
     {
       uint8_t eid = atoi(argv[3]);
       hxb_packet_query packet = packetm->query(eid, true);
+      network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
+      network.receivePacket(true);
+      print_packet(network.getData());
+    }
+    else
+    {
+      usage();
+      exit(1);
+    }
+  }
+  else if(!strcmp(argv[2], "devinfo"))   // epquery: request endpoint metadata
+  {
+    if(argc == 3)
+    {
+      hxb_packet_query packet = packetm->query(0, true);
       network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
       network.receivePacket(true);
       print_packet(network.getData());

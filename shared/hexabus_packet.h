@@ -119,7 +119,6 @@ struct hxb_value {
   uint32_t  int32;      // used for HXB_DTYPE_UINT32
   float     float32;      // used for HXB_DTYPE_FLOAT
   struct datetime  datetime;   // used for HXB_DTYPE_DATETIME
-  char      string[128]; // used for HXB_DTYPE_128STRING
 };
 
 // ======================================================================

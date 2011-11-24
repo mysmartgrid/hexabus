@@ -162,10 +162,9 @@ PacketHandling::PacketHandling(char* data)
     } else if(header->type == HXB_PTYPE_EPINFO) {
       struct hxb_packet_128string* packetepi = (struct hxb_packet_128string*)data;
       datatype = packetepi->datatype;
-      value.datatype = HXB_DTYPE_128STRING;
       eid = packetepi->eid;
-      strncpy(value.string, packetepi->value, 128);
-      value.string[127] = '\0'; // set last character to \0 in case someone sent a packet without it
+      packetepi->value[127] = '\0'; // set last character of string to 0 in case someone forgot that
+      strval = packetepi->value;
     } else if(header->type == HXB_PTYPE_ERROR) {
       struct hxb_packet_error* packet = (struct hxb_packet_error*)data;
       packet->crc = ntohs(packet->crc);
@@ -184,4 +183,5 @@ uint8_t PacketHandling::getErrorcode()      { return errorcode; }
 uint8_t PacketHandling::getDatatype()       { return datatype; }
 uint8_t PacketHandling::getEID()            { return eid; }
 struct hxb_value PacketHandling::getValue() { return value; }
+std::string PacketHandling::getString()     { return strval; }
 
