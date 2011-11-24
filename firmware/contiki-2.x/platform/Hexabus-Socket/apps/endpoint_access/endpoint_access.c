@@ -13,7 +13,6 @@
 #include "endpoint_access.h"
 #include "temperature.h"
 
-// TODO use this for some kind of "get endpoint info" (which also includes a string and stuff, and is queried over the network)
 uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
   switch(eid)
@@ -31,6 +30,35 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
   }
+}
+
+void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the endpoint into the buffer. Max 127 chars.
+{
+  // fill buffer with \0
+  int i;
+  for(i = 0; i < 127; i++)
+    buffer[i] = '\0';
+  switch(eid)
+  {
+    case 0:
+      strncpy(buffer, "Hexabus Socket - Development Version", 127);
+      break;
+    case 1:
+      strncpy(buffer, "Main Switch", 127);
+      break;
+    case 2:
+      strncpy(buffer, "Power Meter", 127);
+      break;
+#ifdef TEMPERATURE_ENABLE
+    case 3:
+      strncpy(buffer, "Temperature Sensor", 127);
+      break;
+#endif
+    default:
+      buffer[0] = '\0'; // put the empty String in the buffer (set first character to \0)
+      break;
+  }
+  buffer[127] = '\0'; // Set last character to \0 in case some string was too long
 }
 
 uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to an endpoint - returns 0 if okay, or some error code definde in hxb_packet.h

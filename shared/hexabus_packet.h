@@ -74,6 +74,17 @@ struct hxb_packet_int32 {
   uint16_t  crc;
 } __attribute__ ((packed));
 
+// DATE/TIME
+struct hxb_packet_datetime {
+    char      header[4];
+    uint8_t   type;
+    uint8_t   flags;
+    uint8_t   eid;
+    uint8_t   datatype;
+    struct datetime  value;
+    uint16_t  crc;
+} __attribute__ ((packed));
+
 // WRITE/INFO packet for FLOAT -- basically the same format as int32, but with datatype float instead
 // TODO can't we just use the packet_int32 here? We're casting it to int32 for byte order conversions anyway
 struct hxb_packet_float {
@@ -86,15 +97,15 @@ struct hxb_packet_float {
   uint16_t  crc;
 } __attribute__ ((packed));
 
-// DATE/TIME
-struct hxb_packet_datetime {
-    char      header[4];
-    uint8_t   type;
-    uint8_t   flags;
-    uint8_t   eid;
-    uint8_t   datatype;
-    struct datetime  value;
-    uint16_t  crc;
+// WRITE/INFO packet for 128 char fixed length string
+struct hxb_packet_128string {
+  char      header[4];
+  uint8_t   type;
+  uint8_t   flags;
+  uint8_t   eid;
+  uint8_t   datatype;
+  char      value[128];
+  uint16_t  crc;
 } __attribute__ ((packed));
 
 // ======================================================================
@@ -149,6 +160,7 @@ struct hxb_data {
 #define HXB_DTYPE_UINT32      0x03  // Unsigned 32 bit integer
 #define HXB_DTYPE_DATETIME    0x04  // Date and time
 #define HXB_DTYPE_FLOAT       0x05  // 32bit floating point
+#define HXB_DTYPE_128STRING   0x06  // 128char fixed length string
 
 // Error codes
 //                            0x00     reserved: No error

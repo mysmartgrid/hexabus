@@ -179,6 +179,21 @@ static struct hxb_packet_int32 make_value_packet_int32(uint8_t eid, struct hxb_v
   return packet;
 }
 
+static struct hxb_packet_128string make_epinfo_packet(uint8_t eid)
+{
+  struct hxb_packet_128string packet;
+  strncpy(&packet.header, HXB_HEADER, 4);
+  packet.type = HXB_PTYPE_EPINFO;
+  packet.flags = 0;
+  packet.eid = eid;
+
+  packet.datatype = HXB_PTYPE_EPINFO;
+  endpoint_get_name(eid, &packet.value);
+
+  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
+  return packet;
+}
+
 static struct hxb_packet_int8 make_value_packet_int8(uint8_t eid, struct hxb_value* val)
 {
   struct hxb_packet_int8 packet;
@@ -352,6 +367,23 @@ udphandler(process_event_t ev, process_data_t data)
               default:
                 break;
             }
+          }
+        }
+        else if(header->type == HXB_PTYPE_EPQUERY)
+        {
+          struct hxb_packet_query* packet = (struct hxb_packet_query*)uip_appdata;
+          // check CRC
+          printf("size of packet: %u\n", sizeof(*packet));
+          if(uip_ntohs(packet->crc) != crc16_data((char*)packet, sizeof(*packet)-2, 0))
+          {
+            printf("CRC check failed.");
+            struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
+            send_packet(&error_packet, sizeof(error_packet));
+          } else
+          {
+            PRINTF("Sending EndpointInfo packet...\n");
+            struct hxb_packet_128string epinfo_packet = make_epinfo_packet(packet->eid);
+            send_packet(&epinfo_packet, sizeof(epinfo_packet));
           }
         }
         else if(header->type == HXB_PTYPE_INFO)
