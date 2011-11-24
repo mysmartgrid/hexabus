@@ -10,12 +10,12 @@
 
 using namespace hexabus;
 
-hxb_packet_query Packet::query(uint8_t eid)
+hxb_packet_query Packet::query(uint8_t eid, bool ep_query)
 {
   CRC::Ptr crc(new CRC());
   struct hxb_packet_query packet;
   strncpy((char*)&packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_QUERY;
+  packet.type = ep_query ? HXB_PTYPE_EPQUERY : HXB_PTYPE_QUERY;
   packet.flags = 0;
   packet.eid = eid;
   packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));

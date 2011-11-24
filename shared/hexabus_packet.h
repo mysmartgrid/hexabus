@@ -136,6 +136,8 @@ struct hxb_data {
 #define HXB_PTYPE_INFO        0x01  // Endpoint provides information
 #define HXB_PTYPE_QUERY       0x02  // Endpoint is requested to provide information
 #define HXB_PTYPE_WRITE       0x04  // Endpoint is requested to set its value
+#define HXB_PTYPE_EPINFO      0x09  // Endpoint metadata
+#define HXB_PTYPE_EPQUERY     0x0A  // Request endpoint metadata
 
 // Flags
 #define HXB_FLAG_CONFIRM      0x01  // Requests an acknowledgement

@@ -17,17 +17,18 @@ void usage()
     std::cout << "\ncommands are:\n";
     std::cout << "  set EID datatype value    set EID to VALUE\n";
     std::cout << "  get EID                   query the value of EID\n";
+    std::cout << "  epquery EID               query Endpoint metadata\n";
     std::cout << "\nshortcut commands           for Hexabus-Socket:\n";
     std::cout << "  on                        switch device on (same as set 1 1 1)\n";
     std::cout << "  off                       switch device off (same as set 1 1 0)\n";
     std::cout << "  status                    query on/off status of device (same as get 1)\n";
     std::cout << "  power                     get power consumption (same as get 2)\n";
     std::cout << "\ndatatypes are:\n";
-    std::cout << "  1                         Bool (Value = 0 or 1)\n";
-    std::cout << "  2                         8bit Uint\n";
-    std::cout << "  3                         32bit Uint\n";
-    std::cout << "  4                         Hexabus Date and Time. Value can be Unix time or -1 for current system time" << std::endl;
-    std::cout << "  5                         32bit floating point\n";
+    std::cout << "1: Bool (Value = 0 or 1) - ";
+    std::cout << "2: 8bit Uint - ";
+    std::cout << "3: 32bit Uint - ";
+    std::cout << "4: Hexabus Date and Time. Value can be Unix time or -1 for current system time - ";
+    std::cout << "5: 32bit floating point" << std::endl;
 }
 
 datetime make_datetime_struct(time_t given_time = -1) {
@@ -241,7 +242,23 @@ int main(int argc, char** argv)
       hxb_packet_query packet = packetm->query(eid);
       network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
       network.receivePacket(true);
-    print_packet(network.getData());
+      print_packet(network.getData());
+    }
+    else
+    {
+      usage();
+      exit(1);
+    }
+  }
+  else if(!strcmp(argv[2], "epquery"))   // epquery: request endpoint metadata
+  {
+    if(argc == 4)
+    {
+      uint8_t eid = atoi(argv[3]);
+      hxb_packet_query packet = packetm->query(eid, true);
+      network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
+      network.receivePacket(true);
+      print_packet(network.getData());
     }
     else
     {
