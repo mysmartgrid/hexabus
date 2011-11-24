@@ -187,7 +187,7 @@ static struct hxb_packet_128string make_epinfo_packet(uint8_t eid)
   packet.flags = 0;
   packet.eid = eid;
 
-  packet.datatype = HXB_PTYPE_EPINFO;
+  packet.datatype = endpoint_get_datatype(eid);
   endpoint_get_name(eid, &packet.value);
 
   packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));

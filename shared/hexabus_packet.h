@@ -97,13 +97,13 @@ struct hxb_packet_float {
   uint16_t  crc;
 } __attribute__ ((packed));
 
-// WRITE/INFO packet for 128 char fixed length string
+// WRITE/INFO packet for 128 char fixed length string or EPINFO packet
 struct hxb_packet_128string {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
   uint8_t   eid;
-  uint8_t   datatype;
+  uint8_t   datatype;     // this is set to the datatype of the endpoint if it's an EPINFO packet!
   char      value[128];
   uint16_t  crc;
 } __attribute__ ((packed));
@@ -119,6 +119,7 @@ struct hxb_value {
   uint32_t  int32;      // used for HXB_DTYPE_UINT32
   float     float32;      // used for HXB_DTYPE_FLOAT
   struct datetime  datetime;   // used for HXB_DTYPE_DATETIME
+  char      string[128]; // used for HXB_DTYPE_128STRING
 };
 
 // ======================================================================

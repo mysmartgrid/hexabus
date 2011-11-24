@@ -103,7 +103,6 @@ PacketHandling::PacketHandling(char* data)
     packet_type = header->type;
     if(header->type == HXB_PTYPE_INFO)
     {
-
       datatype = header->datatype;
       value.datatype = datatype;
       switch(datatype)
@@ -160,6 +159,13 @@ PacketHandling::PacketHandling(char* data)
           // datatype not implemented here
           break;
       }
+    } else if(header->type == HXB_PTYPE_EPINFO) {
+      struct hxb_packet_128string* packetepi = (struct hxb_packet_128string*)data;
+      datatype = packetepi->datatype;
+      value.datatype = HXB_DTYPE_128STRING;
+      eid = packetepi->eid;
+      strncpy(value.string, packetepi->value, 128);
+      value.string[127] = '\0'; // set last character to \0 in case someone sent a packet without it
     } else if(header->type == HXB_PTYPE_ERROR) {
       struct hxb_packet_error* packet = (struct hxb_packet_error*)data;
       packet->crc = ntohs(packet->crc);

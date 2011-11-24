@@ -128,6 +128,34 @@ void print_packet(char* recv_data) {
         break;
     }
   }
+  else if(phandling.getPacketType() == HXB_PTYPE_EPINFO)
+  {
+    std::cout << "Endpoint Info\n";
+    std::cout << "Endpoint ID:\t" << (int)phandling.getEID() << "\n";
+    std::cout << "EP Datatype:\t"; // TODO code duplication -- maybe this should be a function
+    switch(phandling.getDatatype())
+    {
+      case HXB_DTYPE_BOOL:
+        std::cout << "Bool\n";
+        break;
+      case HXB_DTYPE_UINT8:
+        std::cout << "Uint8\n";
+        break;
+      case HXB_DTYPE_UINT32:
+        std::cout << "Uint32\n";
+        break;
+      case HXB_DTYPE_DATETIME:
+        std::cout << "Datetime\n";
+      break;
+      case HXB_DTYPE_FLOAT:
+        std::cout << "Float\n";
+        break;
+      default:
+        std::cout << "(unknown)\n";
+        break;
+    }
+    std::cout << "EP Name:\t" << phandling.getValue().string << "\n";
+  }
 	std::cout << std::endl;
 }
 
