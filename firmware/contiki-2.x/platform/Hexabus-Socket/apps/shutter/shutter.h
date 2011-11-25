@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "process.h"
 
+#include "hexabus_config.h"
 
 #if defined(__AVR_ATmega1284P__)
 #define SHUTTER_PORT   PORTA

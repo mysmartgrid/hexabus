@@ -13,17 +13,17 @@
 
 // temperature
 #define TEMPERATURE_ENABLE 0
-#define TEMPERATURE_DEBUG 1
+#define TEMPERATURE_DEBUG 0
 
 // value_broadcast
-#define VALUE_BROADCAST_ENABLE 0
+#define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 1
-#define VALUE_BROADCAST_EID 2
-#define VALUE_BROADCAST_INTERVAL 60
+#define VALUE_BROADCAST_AUTO_EID 24
+#define VALUE_BROADCAST_AUTO_INTERVAL 0 //0 to disable automatic broadcast
 
 // state_machine
 #define STATE_MACHINE_ENABLE 0
-#define STATE_MACHINE_DEBUG 1
+#define STATE_MACHINE_DEBUG 0
 
 // shutter
 #define SHUTTER_ENABLE 1

@@ -9,6 +9,7 @@
 #define PRINTF(...)
 #endif
 
+#include "hexabus_config.h"
 #include "endpoint_access.h"
 #include "temperature.h"
 
@@ -26,6 +27,10 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
 #if TEMPERATURE_ENABLE
     case 3:   // Endpoint 3: Temperature value 
       return HXB_DTYPE_UINT32;
+#endif
+#if SHUTTER_ENABLE
+    case 23:
+      return HXB_DTYPE_UINT8;
 #endif
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
@@ -57,6 +62,7 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
     case 3:   // Endpoint 3: Temperature value on Hexabus Socket -- read-only
 #endif
       return HXB_ERR_WRITEREADONLY;
+#if SHUTTER_ENABLE
     case 23:
       if(value->datatype == HXB_DTYPE_UINT8) {
           if(value->int8 == 0) {
@@ -69,6 +75,7 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
       } else {
           return HXB_ERR_DATATYPE;
       }
+#endif
     default:  // Default: Endpoint does not exist
       return HXB_ERR_UNKNOWNEID;
   }
@@ -94,6 +101,16 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case 3:   // Endpoint 3: Hexabus temperaure metering
       val->datatype = HXB_DTYPE_UINT32; // TODO needs more bits
       val->int32 =temperature_get() * 10000;
+      break;
+#endif
+#if HEXAPUSH_ENABLE
+    case 24:  //Pressed und released
+      val->datatype = HXB_DTYPE_UINT8;
+      val->int8 = get_buttonstate();
+      break;
+    case 25: //Clicked
+      val->datatype = HXB_DTYPE_UINT8;
+      val->int8 = get_clickstate();
       break;
 #endif
     default:

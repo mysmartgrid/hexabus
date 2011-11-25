@@ -31,11 +31,7 @@
 
 void hexapush_init(void);
 
-void button_clicked(uint8_t button, uint8_t vector);
-
-void button_pressed(uint8_t button, uint8_t vector);
-
-void button_released(uint8_t button, uint8_t vector);
+uint8_t get_buttonstate();
 
 PROCESS_NAME(hexapush_process);
 

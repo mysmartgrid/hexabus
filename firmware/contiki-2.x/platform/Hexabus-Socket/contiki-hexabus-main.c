@@ -324,7 +324,11 @@ void initialize(void)
 
   /* Process for periodic sending of HEXABUS data */
 #if VALUE_BROADCAST_ENABLE
+#if VALUE_BROADCAST_AUTO_INTERVAL
   process_start(&value_broadcast_process, NULL);
+#else
+  init_value_broadcast();
+#endif
 #endif
 
   /* process handling received HEXABUS broadcasts */

@@ -31,6 +31,7 @@
  *
  * @(#)$$
  */
+#include "hexabus_config.h"
 
 #include "shutter.h"
 #include <util/delay.h>
@@ -38,7 +39,6 @@
 #include "sys/etimer.h" //contiki event timer library
 #include "contiki.h"
 #include "dev/leds.h"
-#include "hexabus_config.h"
 
 #include "eeprom_variables.h"
 #include <avr/eeprom.h>
