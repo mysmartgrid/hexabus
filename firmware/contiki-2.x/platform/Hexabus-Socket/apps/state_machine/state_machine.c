@@ -33,55 +33,46 @@ bool eval(uint8_t condIndex, struct hxb_data *data) {
   struct condition *cond = &condTable[condIndex];
 
   // Check IPs and EID
-  bool null = true;
-  bool equal = true;
-  uint8_t k = 0;
-  for(k = 0;k < 16;k++) {
-    if(cond->sourceIP[k] != 0) {
-      null = false;
-    }
-    if(cond->sourceIP[k] != data->source[k]) {
-      equal = false;
-    }
-  }
-
-  if((!null && !equal) || (cond->sourceEID != data->eid)) {
+  if(memcmp(cond->sourceIP, data->source, 16) || (cond->sourceEID != data->eid))
     return false;
-  }
 
-  // Now check for the actual data. first of all, we have to check for compatible datatypes
+  // Check datatypes, return false if they don't match
   if(data->value.datatype != cond->value.datatype) {
     return false;
   }
 
-  // Now lets check for the operator and then for datatypes. TODO: Datetime comperator
-  switch(cond->op) {
-    case eq:
-      if((cond->value.datatype == HXB_DTYPE_UINT8) || (cond->value.datatype == HXB_DTYPE_BOOL))
-        return (cond->value.int8 == data->value.int8);
-      if(cond->value.datatype == HXB_DTYPE_UINT32)
-        return (cond->value.int32 == data->value.int32);
-    case leq:
-      if(cond->value.datatype == HXB_DTYPE_UINT8)
-        return (cond->value.int8 <= data->value.int8);
-      if(cond->value.datatype == HXB_DTYPE_UINT32)
-        return (cond->value.int32 <= data->value.int32);
-    case geq:
-      if(cond->value.datatype == HXB_DTYPE_UINT8)
-        return (cond->value.int8 >= data->value.int8);
-      if(cond->value.datatype == HXB_DTYPE_UINT32)
-        return (cond->value.int32 >= data->value.int32);
-    case lt:
-      if(cond->value.datatype == HXB_DTYPE_UINT8)
-        return (cond->value.int8 < data->value.int8);
-      if(cond->value.datatype == HXB_DTYPE_UINT32)
-        return (cond->value.int32 < data->value.int32);
-    case gt:
-      if(cond->value.datatype == HXB_DTYPE_UINT8)
-        return (cond->value.int8 > data->value.int8);
-      if(cond->value.datatype == HXB_DTYPE_UINT32)
-        return (cond->value.int32 > data->value.int32);
+  // check the actual condition
+  switch(cond->value.datatype)
+  {
+    case HXB_DTYPE_BOOL:
+    case HXB_DTYPE_UINT8:
+      if(cond->op == eq)  return data->value.int8 == cond->value.int8;
+      if(cond->op == leq) return data->value.int8 <= cond->value.int8;
+      if(cond->op == geq) return data->value.int8 >= cond->value.int8;
+      if(cond->op == lt)  return data->value.int8 <  cond->value.int8;
+      if(cond->op == gt)  return data->value.int8 >  cond->value.int8;
+      if(cond->op == neq) return data->value.int8 != cond->value.int8;
+      break;
+    case HXB_DTYPE_UINT32:
+      if(cond->op == eq)  return data->value.int32 == cond->value.int32;
+      if(cond->op == leq) return data->value.int32 <= cond->value.int32;
+      if(cond->op == geq) return data->value.int32 >= cond->value.int32;
+      if(cond->op == lt)  return data->value.int32 <  cond->value.int32;
+      if(cond->op == gt)  return data->value.int32 >  cond->value.int32;
+      if(cond->op == neq) return data->value.int32 != cond->value.int32;
+      break;
+    case HXB_DTYPE_FLOAT:
+      if(cond->op == eq)  return data->value.float32 == cond->value.float32;
+      if(cond->op == leq) return data->value.float32 <= cond->value.float32;
+      if(cond->op == geq) return data->value.float32 >= cond->value.float32;
+      if(cond->op == lt)  return data->value.float32 <  cond->value.float32;
+      if(cond->op == gt)  return data->value.float32 >  cond->value.float32;
+      if(cond->op == neq) return data->value.float32 != cond->value.float32;
+      break;
+    // TODO datetime... aaaargh...
+    // TODO maybe we should do datetime as a guard condition, because it's so complicated, and we probably need seperate tests for hour, day, etc.
     default:
+      PRINTF("Datatype not implemented in state machine (yet).\r\n");
       return false;
   }
 }
@@ -98,10 +89,22 @@ PROCESS_THREAD(state_machine_process, ev, data)
   wData.datatype = HXB_DTYPE_BOOL;
   wData.int8 = HXB_FALSE;
 
-  uint8_t a = 0;
-  for(a = 0;a < 16;a++) {
-    condTable[0].sourceIP[a] = 0;
-  }
+  condTable[0].sourceIP[0] = 0xfe;
+  condTable[0].sourceIP[1] = 0x80;
+  condTable[0].sourceIP[2] = 0x00;
+  condTable[0].sourceIP[3] = 0x00;
+  condTable[0].sourceIP[4] = 0x00;
+  condTable[0].sourceIP[5] = 0x00;
+  condTable[0].sourceIP[6] = 0x00;
+  condTable[0].sourceIP[7] = 0x00;
+  condTable[0].sourceIP[8] = 0x00;
+  condTable[0].sourceIP[9] = 0x50;
+  condTable[0].sourceIP[10] = 0xc4;
+  condTable[0].sourceIP[11] = 0xff;
+  condTable[0].sourceIP[12] = 0xfe;
+  condTable[0].sourceIP[13] = 0x04;
+  condTable[0].sourceIP[14] = 0x00;
+  condTable[0].sourceIP[15] = 0x0e;
 
   condTable[0].sourceEID = 1;
   condTable[0].op = eq;
@@ -124,11 +127,11 @@ PROCESS_THREAD(state_machine_process, ev, data)
   /*----------------------------------------*/
 
   /* DEBUG */
-    int k = 0;
-    PRINTF("[State Machine Table]: From | Cond | EID | Good | Bad\r\n");
-    for(k = 0;k < transLength;k++) {
-      PRINTF(" %d | %d | %d | %d | %d \r\n", transTable[k].fromState, transTable[k].cond, transTable[k].eid, transTable[k].goodState, transTable[k].badState);
-    }
+  int k = 0;
+  PRINTF("[State Machine Table]: From | Cond | EID | Good | Bad\r\n");
+  for(k = 0;k < transLength;k++) {
+    PRINTF(" %d | %d | %d | %d | %d \r\n", transTable[k].fromState, transTable[k].cond, transTable[k].eid, transTable[k].goodState, transTable[k].badState);
+  }
   /* END */
 
   while(1)
@@ -137,7 +140,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
     if(ev == sm_data_received_event)
     {
       PRINTF("State machine: Received event\r\n");
-      // something happened, better check our own tables
+
       struct hxb_data *edata = (struct hxb_data*)data;
       uint8_t i;
       for(i = 0;i < transLength;i++)

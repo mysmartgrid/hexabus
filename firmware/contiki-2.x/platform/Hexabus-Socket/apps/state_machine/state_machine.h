@@ -14,10 +14,10 @@ PROCESS_NAME(state_machine_process);
 // Internal stuff: these structs implement a simple table layout
 
 // Operators for comparison
-enum oper { eq, leq, geq, lt, gt };
+enum oper { eq, leq, geq, lt, gt, neq };
 
 struct condition {
-  char sourceIP[16];      // TODO: IP
+  uint8_t sourceIP[16];      // IP
   uint8_t sourceEID;      // EID we expect data from
   enum oper op;           // predicate function
   struct hxb_value value; // the constant to compare with
