@@ -1,6 +1,7 @@
 #include "contiki.h"
 
 #include "hexabus_config.h"
+#include "eeprom_variables.h"
 #include "../../../../../../shared/hexabus_packet.h"
 #include "state_machine.h"
 #include "endpoint_access.h"
@@ -71,6 +72,8 @@ bool eval(uint8_t condIndex, struct hxb_data *data) {
       break;
     // TODO datetime... aaaargh...
     // TODO maybe we should do datetime as a guard condition, because it's so complicated, and we probably need seperate tests for hour, day, etc.
+    // TODO oh, no, we don't need it.. just go into a different state "at 5 o'clock" when you want to do an action "only after 5"
+    // TODO for that we still need to check the hours, days, individually.
     default:
       PRINTF("Datatype not implemented in state machine (yet).\r\n");
       return false;
@@ -82,10 +85,14 @@ PROCESS_THREAD(state_machine_process, ev, data)
   PROCESS_BEGIN();
 
   PRINTF("State Machine starting.\r\n");
-  /* Definition of an actual state machine. Simple relay-Trigger */
   condTable = malloc(sizeof(struct condition));
   transTable = malloc(transLength*sizeof(struct transition));
-  struct hxb_value wData;
+
+  // read state machine tables from EEPROM
+  eeprom_read_block(condTable, (void*)EE_STATEMACHINE_CONDITIONS, sizeof(struct condition));
+  eeprom_read_block(transTable, (void*)EE_STATEMACHINE_TRANSITIONS, sizeof(struct transition) * transLength);
+
+  /* struct hxb_value wData;
   wData.datatype = HXB_DTYPE_BOOL;
   wData.int8 = HXB_FALSE;
 
@@ -124,7 +131,10 @@ PROCESS_THREAD(state_machine_process, ev, data)
   memcpy(&(transTable[1].data), &wData, sizeof(struct hxb_value));
   transTable[1].goodState = 0;
   transTable[1].badState = 1;
-  /*----------------------------------------*/
+
+  // save data to eeprom
+  eeprom_write_block(condTable, (void*)EE_STATEMACHINE_CONDITIONS, sizeof(struct condition));
+  eeprom_write_block(transTable, (void*)EE_STATEMACHINE_TRANSITIONS, transLength * sizeof(struct transition)); */
 
   /* DEBUG */
   int k = 0;
@@ -150,7 +160,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
           // Match found
           PRINTF("state_machine: Writing to endpoint %d \r\n", transTable[i].eid);
           if(endpoint_write(transTable[i].eid, &(transTable[i].data)) == 0)
-          {      
+          {
             curState = transTable[i].goodState;
             PRINTF("state_machine: Everything is fine \r\n");
             break;
