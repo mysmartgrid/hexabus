@@ -52,8 +52,7 @@
 #include "hexabus_config.h"
 #include "../../../../../../shared/hexabus_packet.h"
 
-#define DEBUG 1
-#if DEBUG
+#if UDP_HANDLER_DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 #define PRINT6ADDR(addr) PRINTF(" %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x ", ((u8_t *)addr)[0], ((u8_t *)addr)[1], ((u8_t *)addr)[2], ((u8_t *)addr)[3], ((u8_t *)addr)[4], ((u8_t *)addr)[5], ((u8_t *)addr)[6], ((u8_t *)addr)[7], ((u8_t *)addr)[8], ((u8_t *)addr)[9], ((u8_t *)addr)[10], ((u8_t *)addr)[11], ((u8_t *)addr)[12], ((u8_t *)addr)[13], ((u8_t *)addr)[14], ((u8_t *)addr)[15])
@@ -191,6 +190,8 @@ static struct hxb_packet_128string make_epinfo_packet(uint8_t eid)
   endpoint_get_name(eid, &packet.value);
 
   packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
+
+
   return packet;
 }
 
@@ -245,6 +246,20 @@ static void send_packet(char* data, size_t length)
 static void
 udphandler(process_event_t ev, process_data_t data)
 {
+  // Since we're having space issues at the moment: Print a ~ or #...
+#if UDP_HANDLER_DEBUG
+  void* p = malloc(1);
+  if(p != NULL)
+  {
+    printf("~");
+    free(p);
+  }
+  else
+  {
+    printf("#");
+  }
+#endif
+  // ================================================================
   char buf[UDP_DATA_LEN];
   if (ev == tcpip_event) {
     if(uip_newdata()) {
