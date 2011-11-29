@@ -29,11 +29,15 @@
 #define STATE_MACHINE_DEBUG 0
 
 // shutter
-#define SHUTTER_ENABLE 1
-#define SHUTTER_DEBUG 1
+#define SHUTTER_ENABLE 0
+#define SHUTTER_DEBUG 0
 
 // hexapush
 #define HEXAPUSH_ENABLE 1
 #define HEXAPUSH_DEBUG 1
+
+// presence detector
+#define PRESENCE_DETECTOR_ENABLE 1
+#define PRESENCE_DETECTOR_DEBUG 1
 
 #endif // HEXBAUS_CONFIG_H

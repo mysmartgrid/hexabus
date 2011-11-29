@@ -31,6 +31,15 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
     case 23:
       return HXB_DTYPE_UINT8;
 #endif
+#if HEXAPUSH_ENABLE
+    case 24:
+    case 25:
+      return HXB_DTYPE_UINT8;
+#endif
+#if PRESENCE_DETECTOR_ENABLE
+    case 26:
+      return HXB_DTYPE_BOOL;
+#endif
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
   }
@@ -142,6 +151,12 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case 25: //Clicked
       val->datatype = HXB_DTYPE_UINT8;
       val->int8 = get_clickstate();
+      break;
+#endif
+#if PRESENCE_DETECTOR_ENABLE
+    case 26:
+      val->datatype = HXB_DTYPE_BOOL;
+      val->int8 = presence_active() == 0 ? HXB_FALSE : HXB_TRUE;
       break;
 #endif
     default:

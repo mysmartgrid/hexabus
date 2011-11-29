@@ -114,7 +114,7 @@ void broadcast_value(uint8_t eid)
       strncpy(&packetf.header, HXB_HEADER, 4);
       packetf.type = HXB_PTYPE_INFO;
       packetf.flags = 0;
-      packetf.eid = VALUE_BROADCAST_EID;
+      packetf.eid = eid;
       packetf.datatype = val.datatype;
       packetf.value = uip_htonl(val.float32);
       packetf.crc = uip_htons(crc16_data((char*)&packetf, sizeof(packetf)-2, 0));

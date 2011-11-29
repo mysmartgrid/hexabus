@@ -106,7 +106,7 @@ PROCESS_THREAD(hexapush_process, ev, data) {
 
     hexapush_init();
 
-    etimer_set(&debounce_timer, CLOCK_SECOND * DEBOUNCE_TIME / 1000);
+    etimer_set(&debounce_timer, CLOCK_SECOND * HP_DEBOUNCE_TIME / 1000);
     PRINTF("Hexapush process ready!\n");
    
 

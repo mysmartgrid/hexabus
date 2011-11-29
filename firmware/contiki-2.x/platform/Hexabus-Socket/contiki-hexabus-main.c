@@ -126,6 +126,9 @@
 #if HEXAPUSH_ENABLE
 #include "hexapush.h"
 #endif
+#if PRESENCE_DETECTOR_ENABLE
+#include "presence_detector.h"
+#endif
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -349,6 +352,10 @@ void initialize(void)
 
 #if HEXAPUSH_ENABLE
   process_start(&hexapush_process, NULL);
+#endif
+
+#if PRESENCE_DETECTOR_ENABLE
+  process_start(&presence_detector_process, NULL);
 #endif
 
   mdns_responder_init();
