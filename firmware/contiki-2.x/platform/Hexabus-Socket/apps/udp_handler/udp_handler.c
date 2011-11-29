@@ -49,10 +49,10 @@
 #include "relay.h"
 #include "datetime_service.h"
 #include "eeprom_variables.h"
+#include "hexabus_config.h"
 #include "../../../../../../shared/hexabus_packet.h"
 
-#define DEBUG 1
-#if DEBUG
+#if UDP_HANDLER_DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 #define PRINT6ADDR(addr) PRINTF(" %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x ", ((u8_t *)addr)[0], ((u8_t *)addr)[1], ((u8_t *)addr)[2], ((u8_t *)addr)[3], ((u8_t *)addr)[4], ((u8_t *)addr)[5], ((u8_t *)addr)[6], ((u8_t *)addr)[7], ((u8_t *)addr)[8], ((u8_t *)addr)[9], ((u8_t *)addr)[10], ((u8_t *)addr)[11], ((u8_t *)addr)[12], ((u8_t *)addr)[13], ((u8_t *)addr)[14], ((u8_t *)addr)[15])
@@ -142,6 +142,25 @@ make_message(char* buf, uint16_t command, uint16_t value)
   PRINTF("%s%02x%02x%04d\n", HEXABUS_HEADER, 2, command, value);
 }
 
+static struct hxb_packet_float make_value_packet_float(uint8_t eid, struct hxb_value* val)
+{
+  struct hxb_packet_float packet;
+  strncpy(&packet.header, HXB_HEADER, 4);
+  packet.type = HXB_PTYPE_INFO;
+  packet.flags = 0;
+  packet.eid = eid;
+
+  packet.datatype = val->datatype;
+  // uip_htonl works on 32bit-int
+  uint32_t value_nbo = uip_htonl(*(uint32_t*)&val->float32);
+  packet.value = *(float*)&value_nbo;
+
+  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
+  PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%d\r\nValue:\t%lx\r\nCRC:\t%u\r\n\r\n",
+    packet.type, packet.flags, packet.eid, packet.value, uip_ntohs(packet.crc)); // printf can handle float?
+  return packet;
+}
+
 static struct hxb_packet_int32 make_value_packet_int32(uint8_t eid, struct hxb_value* val)
 {
   struct hxb_packet_int32 packet;
@@ -156,6 +175,23 @@ static struct hxb_packet_int32 make_value_packet_int32(uint8_t eid, struct hxb_v
   packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
   PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%ld\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
     packet.type, packet.flags, packet.eid, uip_ntohl(packet.value), uip_ntohs(packet.crc)); // printf behaves strange here?
+  return packet;
+}
+
+static struct hxb_packet_128string make_epinfo_packet(uint8_t eid)
+{
+  struct hxb_packet_128string packet;
+  strncpy(&packet.header, HXB_HEADER, 4);
+  packet.type = HXB_PTYPE_EPINFO;
+  packet.flags = 0;
+  packet.eid = eid;
+
+  packet.datatype = endpoint_get_datatype(eid);
+  endpoint_get_name(eid, &packet.value);
+
+  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
+
+
   return packet;
 }
 
@@ -210,6 +246,20 @@ static void send_packet(char* data, size_t length)
 static void
 udphandler(process_event_t ev, process_data_t data)
 {
+  // Since we're having space issues at the moment: Print a ~ or #...
+#if UDP_HANDLER_DEBUG
+  void* p = malloc(1);
+  if(p != NULL)
+  {
+    printf("~");
+    free(p);
+  }
+  else
+  {
+    printf("#");
+  }
+#endif
+  // ================================================================
   char buf[UDP_DATA_LEN];
   if (ev == tcpip_event) {
     if(uip_newdata()) {
@@ -260,6 +310,19 @@ udphandler(process_event_t ev, process_data_t data)
                 eid = ((struct hxb_packet_int32*)header)->eid;
               }
               break;
+            case HXB_DTYPE_FLOAT:
+              if(uip_ntohs(((struct hxb_packet_float*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_float) - 2, 0))
+              {
+                PRINTF("CRC check failed.\r\n");
+                struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
+                send_packet(&error_packet, sizeof(error_packet));
+              } else {
+                value.datatype = ((struct hxb_packet_float*)header)->datatype;
+                uint32_t value_hbo = uip_ntohl(*(uint32_t*)&((struct hxb_packet_float*)header)->value);
+                value.float32 = *(float*)&value_hbo;
+                eid = ((struct hxb_packet_float*)header)->eid;
+              }
+              break;
             default:
               PRINTF("Packet of unknown datatype.\r\n");
               break;
@@ -267,7 +330,7 @@ udphandler(process_event_t ev, process_data_t data)
 
           if(value.datatype != HXB_DTYPE_UNDEFINED) // only continue if actual data was received
           {
-						uint8_t retcode = endpoint_write(eid, &value);
+            uint8_t retcode = endpoint_write(eid, &value);
             switch(retcode)
             {
               case 0:
@@ -308,6 +371,10 @@ udphandler(process_event_t ev, process_data_t data)
                 struct hxb_packet_int32 value_packet32 = make_value_packet_int32(packet->eid, &value);
                 send_packet(&value_packet32, sizeof(value_packet32));
                 break;
+              case HXB_DTYPE_FLOAT:;
+                struct hxb_packet_float value_packetf = make_value_packet_float(packet->eid, &value);
+                send_packet(&value_packetf, sizeof(value_packetf));
+                break;
               case HXB_DTYPE_UNDEFINED:;
                 struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNEID);
                 send_packet(&error_packet, sizeof(error_packet));
@@ -317,10 +384,27 @@ udphandler(process_event_t ev, process_data_t data)
             }
           }
         }
+        else if(header->type == HXB_PTYPE_EPQUERY)
+        {
+          struct hxb_packet_query* packet = (struct hxb_packet_query*)uip_appdata;
+          // check CRC
+          printf("size of packet: %u\n", sizeof(*packet));
+          if(uip_ntohs(packet->crc) != crc16_data((char*)packet, sizeof(*packet)-2, 0))
+          {
+            printf("CRC check failed.");
+            struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
+            send_packet(&error_packet, sizeof(error_packet));
+          } else
+          {
+            PRINTF("Sending EndpointInfo packet...\n");
+            struct hxb_packet_128string epinfo_packet = make_epinfo_packet(packet->eid);
+            send_packet(&epinfo_packet, sizeof(epinfo_packet));
+          }
+        }
         else if(header->type == HXB_PTYPE_INFO)
         {
-					// Only do this if state_machine is enabled.
-#ifdef STATE_MACHINE_ENABLE
+// Only do this if state_machine is enabled.
+#if STATE_MACHINE_ENABLE
           struct hxb_data* data = malloc(sizeof(struct hxb_data));
           memcpy(data->source, &UDP_IP_BUF->srcipaddr, 16);
           switch(header->datatype)
@@ -368,6 +452,21 @@ udphandler(process_event_t ev, process_data_t data)
                   process_post(PROCESS_BROADCAST, sm_data_received_event, data);
                   PRINTF("Posted event for received broadcast.\r\n");
                   updateDatetime(data);
+                }
+                break;
+              case HXB_DTYPE_FLOAT:
+                if(uip_ntohs(((struct hxb_packet_float*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_float) - 2, 0))
+                {
+                  PRINTF("CRC Check failed.\r\n");
+                  // Broadcast: Don't send an error packet.
+                } else {
+                  struct hxb_packet_float* packet = (struct hxb_packet_float*)header;
+                  data->eid = packet->eid;
+                  data->value.datatype = packet->datatype;
+                  uint32_t value_hbo = uip_ntohl(*(uint32_t*)&packet->value);
+                  data->value.float32 = *(float*)&value_hbo;
+                  process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+                  PRINTF("Posted event for received broadcast.\r\n");
                 }
                 break;
               default:
@@ -474,9 +573,9 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   while(1){
     //   tcpip_poll_udp(udpconn);
     PROCESS_WAIT_EVENT();
-    // Yield to the other processes, so that they have a chance to take broadcast events out of the event queue
-    PROCESS_YIELD();
     udphandler(ev, data);
+    // Yield to the other processes, so that they have a chance to take broadcast events out of the event queue
+    PROCESS_PAUSE();
   }
 
 

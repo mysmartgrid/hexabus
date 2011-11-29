@@ -7,8 +7,11 @@
 #ifndef HEXABUS_CONFIG_H
 #define HEXABUS_CONFIG_H
 
+// udp_handler
+#define UDP_HANDLER_DEBUG 1
+
 // datetime_service
-#define DATETIME_SERVICE_ENABLE 1
+#define DATETIME_SERVICE_ENABLE 0
 #define DATETIME_SERVICE_DEBUG 0
 
 // temperature

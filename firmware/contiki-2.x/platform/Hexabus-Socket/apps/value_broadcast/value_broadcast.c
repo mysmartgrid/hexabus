@@ -109,6 +109,19 @@ void broadcast_value(uint8_t eid)
       uip_udp_packet_sendto(client_conn, &packet32, sizeof(packet32),
                             &server_ipaddr, UIP_HTONS(HXB_PORT));
       break;
+    case HXB_DTYPE_FLOAT:;
+      struct hxb_packet_float packetf;
+      strncpy(&packetf.header, HXB_HEADER, 4);
+      packetf.type = HXB_PTYPE_INFO;
+      packetf.flags = 0;
+      packetf.eid = VALUE_BROADCAST_EID;
+      packetf.datatype = val.datatype;
+      packetf.value = uip_htonl(val.float32);
+      packetf.crc = uip_htons(crc16_data((char*)&packetf, sizeof(packetf)-2, 0));
+
+      uip_udp_packet_sendto(client_conn, &packetf, sizeof(packetf),
+                            &server_ipaddr, UIP_HTONS(HXB_PORT));
+      break;
     default:
       PRINTF("value_broadcast: Datatype unknown.\r\n");
   }

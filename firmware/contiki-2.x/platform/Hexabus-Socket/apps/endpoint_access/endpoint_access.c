@@ -13,7 +13,6 @@
 #include "endpoint_access.h"
 #include "temperature.h"
 
-// TODO use this for some kind of "get endpoint info" (which also includes a string and stuff, and is queried over the network)
 uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
   switch(eid)
@@ -26,7 +25,7 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
       return HXB_DTYPE_UINT32;
 #if TEMPERATURE_ENABLE
     case 3:   // Endpoint 3: Temperature value 
-      return HXB_DTYPE_UINT32;
+      return HXB_DTYPE_FLOAT;
 #endif
 #if SHUTTER_ENABLE
     case 23:
@@ -37,9 +36,38 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
   }
 }
 
+void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the endpoint into the buffer. Max 127 chars.
+{
+  // fill buffer with \0
+  int i;
+  for(i = 0; i < 127; i++)
+    buffer[i] = '\0';
+  switch(eid)
+  {
+    case 0:
+      strncpy(buffer, "Hexabus Socket - Development Version", 127);
+      break;
+    case 1:
+      strncpy(buffer, "Main Switch", 127);
+      break;
+    case 2:
+      strncpy(buffer, "Power Meter", 127);
+      break;
+#ifdef TEMPERATURE_ENABLE
+    case 3:
+      strncpy(buffer, "Temperature Sensor", 127);
+      break;
+#endif
+    default:
+      buffer[0] = '\0'; // put the empty String in the buffer (set first character to \0)
+      break;
+  }
+  buffer[127] = '\0'; // Set last character to \0 in case some string was too long
+}
+
 uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to an endpoint - returns 0 if okay, or some error code definde in hxb_packet.h
 {
-  PRINTF("endpoint_access: Set %d to %d, datatype %d.\r\n", eid, value->int8, value->datatype);
+  // PRINTF("endpoint_access: Set %d to %d, datatype %d.\r\n", eid, (uint32_t)(value->float32*1000), value->datatype); TODO - print all the datatypes
   switch(eid)
   {
     case 0:   // Endpoint 0: Device descriptor
@@ -88,19 +116,22 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case 0:   // Endpoint 0: Hexabus device descriptor
       val->datatype = HXB_DTYPE_UINT32;
       val->int32 = 0x07;    // 0x07: 0..00111: Enpoints 0, 1 and 2 exist.
+#if TEMPERATURE_ENABLE
+      val->int32 += 0x08;      // +8: Endpoint 3 also exists
+#endif
       break;
     case 1:   // Endpoint 1: Hexabus Socket power switch
       val->datatype = HXB_DTYPE_BOOL;
       val->int8 = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
       break;
     case 2:   // Endpoint 2: Hexabus Socket power metering
-      val->datatype = HXB_DTYPE_UINT32; // TODO needs more bits
+      val->datatype = HXB_DTYPE_UINT32;
       val->int32 = metering_get_power();
       break;
 #if TEMPERATURE_ENABLE
     case 3:   // Endpoint 3: Hexabus temperaure metering
-      val->datatype = HXB_DTYPE_UINT32; // TODO needs more bits
-      val->int32 =temperature_get() * 10000;
+      val->datatype = HXB_DTYPE_FLOAT;
+      val->float32 = temperature_get();
       break;
 #endif
 #if HEXAPUSH_ENABLE
