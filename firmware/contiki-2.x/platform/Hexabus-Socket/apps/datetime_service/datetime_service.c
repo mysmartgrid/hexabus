@@ -43,14 +43,10 @@ int getDatetime(struct datetime *dt) {
 
 PROCESS(datetime_service_process, "Keeps the Date and Time up-to-date\n");
 
-AUTOSTART_PROCESSES(&datetime_service_process);
-
 PROCESS_THREAD(datetime_service_process, ev, data) {
 
     static struct etimer update_timer;
-    static struct etimer valid_timer;
     static int valid_counter;
-
 
     PROCESS_BEGIN();
 
