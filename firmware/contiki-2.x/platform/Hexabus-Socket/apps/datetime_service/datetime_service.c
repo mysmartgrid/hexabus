@@ -26,7 +26,6 @@ void updateDatetime(struct datetime* dt) {
 }
 
 int getDatetime(struct datetime *dt) {
-
     if(time_valid) {
         dt->hour = current_dt.hour;
         dt->minute = current_dt.minute;
@@ -59,9 +58,8 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
         PROCESS_WAIT_EVENT();
 
         if(ev == PROCESS_EVENT_TIMER) {
-
             PRINTF("Time: %d:%d:%d\t%d.%d.%d Day: %d Valid: %d\n", current_dt.hour, current_dt.minute, current_dt.second, current_dt.day, current_dt.month, current_dt.year, current_dt.weekday, time_valid);
-            
+
             if(etimer_expired(&update_timer)){
                 etimer_reset(&update_timer);
             }
@@ -98,9 +96,8 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
                 }
             }
         } else if(ev == dt_update_event) {
-
             PRINTF("Time: Got update.\n");
-            
+
             current_dt.second = ((struct hxb_data*)data)->value.datetime.second;
             current_dt.minute = ((struct hxb_data*)data)->value.datetime.minute;
             current_dt.hour = ((struct hxb_data*)data)->value.datetime.hour;
@@ -108,19 +105,14 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
             current_dt.month = ((struct hxb_data*)data)->value.datetime.month;
             current_dt.year = ((struct hxb_data*)data)->value.datetime.year;
             current_dt.weekday = ((struct hxb_data*)data)->value.datetime.weekday;
-            
-            free(data);
 
             time_valid = true;
             valid_counter = 0;
 
             etimer_restart(&update_timer);
+            free(data);
         }
     }
     PROCESS_END();
 }
-
-
-
-    
 

@@ -246,20 +246,6 @@ static void send_packet(char* data, size_t length)
 static void
 udphandler(process_event_t ev, process_data_t data)
 {
-  // Since we're having space issues at the moment: Print a ~ or #...
-#if UDP_HANDLER_DEBUG
-  void* p = malloc(1);
-  if(p != NULL)
-  {
-    printf("~");
-    free(p);
-  }
-  else
-  {
-    printf("#");
-  }
-#endif
-  // ================================================================
   char buf[UDP_DATA_LEN];
   if (ev == tcpip_event) {
     if(uip_newdata()) {
@@ -403,12 +389,12 @@ udphandler(process_event_t ev, process_data_t data)
         }
         else if(header->type == HXB_PTYPE_INFO)
         {
-// Only do this if state_machine is enabled.
-#if STATE_MACHINE_ENABLE
           struct hxb_data* data = malloc(sizeof(struct hxb_data));
           memcpy(data->source, &UDP_IP_BUF->srcipaddr, 16);
           switch(header->datatype)
           {
+// Only do this if state_machine is enabled.
+#if STATE_MACHINE_ENABLE
               case HXB_DTYPE_BOOL:
               case HXB_DTYPE_UINT8:
                 if(uip_ntohs(((struct hxb_packet_int8*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_int8) - 2, 0))
@@ -438,6 +424,9 @@ udphandler(process_event_t ev, process_data_t data)
                   PRINTF("Posted event for received broadcast.\r\n");
                 }
                 break;
+#endif // STATE_MACHINE_ENABLE
+// datetime_service related things should be done when datetime_service is activated
+#if DATETIME_SERVICE_ENABLE
               case HXB_DTYPE_DATETIME:
                 if(uip_ntohs(((struct hxb_packet_datetime*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_datetime) - 2, 0))
                 {
@@ -449,11 +438,14 @@ udphandler(process_event_t ev, process_data_t data)
                   data->value.datatype = packet->datatype;
                   packet->value.year = uip_ntohs(packet->value.year);
                   memcpy(&(data->value.datetime), &(packet->value), sizeof(struct datetime));
-                  process_post(PROCESS_BROADCAST, sm_data_received_event, data);
-                  PRINTF("Posted event for received broadcast.\r\n");
+                  // don't post an event here, just call datetime_service. datetime_service also deallocates the memory
+                  // process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+                  // PRINTF("Posted event for received broadcast.\r\n");
                   updateDatetime(data);
                 }
                 break;
+#endif // DATETIME_SERVICE_ENABLE
+#if STATE_MACHINE_ENABLE
               case HXB_DTYPE_FLOAT:
                 if(uip_ntohs(((struct hxb_packet_float*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_float) - 2, 0))
                 {
@@ -469,11 +461,11 @@ udphandler(process_event_t ev, process_data_t data)
                   PRINTF("Posted event for received broadcast.\r\n");
                 }
                 break;
+#endif // STATE_MACHINE_ENABLE
               default:
                 PRINTF("Received Broadcast, but no handler for datatype.\r\n");
                 break;
           }
-#endif // STATE_MACHINE_ENABLE
         }
         else
         {
