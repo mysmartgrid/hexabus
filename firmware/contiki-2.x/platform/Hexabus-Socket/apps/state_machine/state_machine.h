@@ -21,7 +21,7 @@ struct condition {
   uint8_t sourceEID;      // EID we expect data from
   enum oper op;           // predicate function
   struct hxb_value value; // the constant to compare with
-};
+} __attribute__ ((packed));
 
 struct transition {
   uint8_t fromState;      // current state
@@ -30,7 +30,7 @@ struct transition {
   uint8_t goodState;      // new state if everything went fine
   uint8_t badState;       // new state if some went wrong
   struct hxb_value data;  // Data for the endpoint
-};
+} __attribute__ ((packed));
 
 
 // Defintion of events that are important to the state machine

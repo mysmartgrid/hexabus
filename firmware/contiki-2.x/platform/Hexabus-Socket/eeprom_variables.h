@@ -78,5 +78,15 @@
 #define EE_FORWARDING        ( EE_RELAY_DEFAULT + EE_RELAY_DEFAULT_SIZE )   		// Flag for enabling forwarding of incoming traffic
 #define EE_FORWARDING_SIZE           1
 
+// Data structures for state machine / rule based switching
+#define EE_STATEMACHINE_CONDITIONS      ( EE_FORWARDING + EE_FORWARDING_SIZE )             // Memory area where state machine process may store its data
+#define EE_STATEMACHINE_CONDITIONS_SIZE 64
+
+#define EE_STATEMACHINE_TRANSITIONS     ( EE_STATEMACHINE_CONDITIONS + EE_STATEMACHINE_CONDITIONS_SIZE )
+#define EE_STATEMACHINE_TRANSITIONS_SIZE 64
+
+#pragma message(EE_STATEMACHINE_CONDITIONS)
+#pragma messate(EE_STATEMACHINE_TRANSITIONS)
+
 #endif /* EEPROM_VAR_H_ */
 
