@@ -86,7 +86,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
   PRINTF("State Machine starting.\r\n");
 
   // read state machine tables from EEPROM
-  transLength = 2; //= eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
+  transLength = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
 
   // output table so we see if reading it works
   struct transition* t = malloc(sizeof(struct transition));
@@ -96,7 +96,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
     PRINTF("[State machine table size: %d]: From | Cond | EID | Good | Bad\r\n", transLength);
     for(k = 0;k < transLength;k++)
     {
-      eeprom_read_block(t, (void*)(EE_STATEMACHINE_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
+      eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
       PRINTF(" %d | %d | %d | %d | %d \r\n", t->fromState, t->cond, t->eid, t->goodState, t->badState);
     }
   } else {
@@ -116,7 +116,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
       uint8_t i;
       for(i = 0;i < transLength;i++)
       {
-        eeprom_read_block(t, (void*)(EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+        eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
         if((t->fromState == curState) && (eval(t->cond, edata)))
         {
           // Match found
