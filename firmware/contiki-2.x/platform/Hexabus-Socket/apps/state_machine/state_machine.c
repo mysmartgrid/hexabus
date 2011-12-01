@@ -5,6 +5,7 @@
 #include "../../../../../../shared/hexabus_packet.h"
 #include "state_machine.h"
 #include "endpoint_access.h"
+#include "datetime_service.h"
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>      // memcpy
@@ -26,22 +27,27 @@ AUTOSTART_PROCESSES(&state_machine_process);
 /*------------------------------------------------------*/
 
 static uint8_t transLength; // length of transition table
+static uint8_t dtTransLength; // length of date/time transition table
 static uint8_t curState = 0;  // starting out in state 0
 
 bool eval(uint8_t condIndex, struct hxb_data *data) {
   struct condition cond;
   // get the condition from eeprom
+  PRINTF("Checking condition %d\r\n", condIndex);
   eeprom_read_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + (condIndex * sizeof(struct condition))), sizeof(struct condition));
 
-  // Check IPs and EID
-  if(memcmp(cond.sourceIP, data->source, 16) || (cond.sourceEID != data->eid))
+  // Check IPs and EID; ignore IP and EID for Datetime-Conditions
+  if((memcmp(cond.sourceIP, data->source, 16) || (cond.sourceEID != data->eid)) && cond.value.datatype != HXB_DTYPE_DATETIME)
     return false;
+
+  PRINTF("IP and EID match / or datetime condition\r\n");
 
   // Check datatypes, return false if they don't match
   if(data->value.datatype != cond.value.datatype) {
     return false;
   }
 
+  PRINTF("Now checking condition\r\n");
   // check the actual condition
   switch(cond.value.datatype)
   {
@@ -72,19 +78,19 @@ bool eval(uint8_t condIndex, struct hxb_data *data) {
       break;
     case HXB_DTYPE_DATETIME:
       if(cond.op & 0x01) // hour
-        return cond.op & 0x80 ? data->value.datetime.hour >= cond.value.datetime.hour : data->value.datetime.hour < cond.value.datetime.hour;
+        return (cond.op & 0x80) ? data->value.datetime.hour >= cond.value.datetime.hour : data->value.datetime.hour < cond.value.datetime.hour;
       if(cond.op & 0x02) // minute
-        return cond.op & 0x80 ? data->value.datetime.minute >= cond.value.datetime.minute : data->value.datetime.minute < cond.value.datetime.minute;
+        return (cond.op & 0x80) ? data->value.datetime.minute >= cond.value.datetime.minute : data->value.datetime.minute < cond.value.datetime.minute;
       if(cond.op & 0x04) // second
-        return cond.op & 0x80 ? data->value.datetime.second >= cond.value.datetime.second : data->value.datetime.second < cond.value.datetime.second;
+        return (cond.op & 0x80) ? data->value.datetime.second >= cond.value.datetime.second : data->value.datetime.second < cond.value.datetime.second;
       if(cond.op & 0x08) // day
-        return cond.op & 0x80 ? data->value.datetime.day >= cond.value.datetime.day : data->value.datetime.day < cond.value.datetime.day;
+        return (cond.op & 0x80) ? data->value.datetime.day >= cond.value.datetime.day : data->value.datetime.day < cond.value.datetime.day;
       if(cond.op & 0x10) // month
-        return cond.op & 0x80 ? data->value.datetime.month >= cond.value.datetime.month : data->value.datetime.month < cond.value.datetime.month;
+        return (cond.op & 0x80) ? data->value.datetime.month >= cond.value.datetime.month : data->value.datetime.month < cond.value.datetime.month;
       if(cond.op & 0x20) // year
-        return cond.op & 0x80 ? data->value.datetime.year >= cond.value.datetime.year : data->value.datetime.year < cond.value.datetime.year;
+        return (cond.op & 0x80) ? data->value.datetime.year >= cond.value.datetime.year : data->value.datetime.year < cond.value.datetime.year;
       if(cond.op & 0x40) // weekday
-        return cond.op & 0x80 ? data->value.datetime.weekday >= cond.value.datetime.weekday : data->value.datetime.weekday < cond.value.datetime.weekday;
+        return (cond.op & 0x80) ? data->value.datetime.weekday >= cond.value.datetime.weekday : data->value.datetime.weekday < cond.value.datetime.weekday;
       break;
     default:
       PRINTF("Datatype not implemented in state machine (yet).\r\n");
@@ -106,11 +112,12 @@ PROCESS_THREAD(state_machine_process, ev, data)
     int zero = 0;
     eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_TRANSITIONS + i), 1);
     eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_CONDITIONS + i), 1);
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_DATETIME_CONDITIONS + i), 1); // not yet implemented or thought through
+    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_DATETIME_TRANSITIONS + i), 1); // not yet implemented or thought through
   }
 
   // write transitions into the EEPROM
   {
+    //"normal" transitions
     int numberOfTransitions = 2;
     eeprom_write_block(&numberOfTransitions, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
     struct transition trans;
@@ -122,6 +129,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
     trans.data.datatype = HXB_DTYPE_BOOL;
     trans.data.int8 = HXB_TRUE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
+    PROCESS_PAUSE();
 
     trans.fromState = 1;
     trans.cond = 0; // condition index
@@ -131,18 +139,44 @@ PROCESS_THREAD(state_machine_process, ev, data)
     trans.data.datatype = HXB_DTYPE_BOOL;
     trans.data.int8 = HXB_FALSE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (sizeof(struct transition))), sizeof(struct transition));
+    PROCESS_PAUSE();
 
+    // datetime-transitions
+    numberOfTransitions = 2;
+    eeprom_write_block(&numberOfTransitions, (void*)EE_STATEMACHINE_DATETIME_TRANSITIONS, 1);
+
+    trans.fromState = 0;
+    trans.cond = 1; // condition index
+    trans.eid = 1;
+    trans.goodState = 2;
+    trans.badState = 2;
+    trans.data.datatype = HXB_DTYPE_BOOL;
+    trans.data.int8 = HXB_TRUE;
+    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS), sizeof(struct transition));
+    PROCESS_PAUSE();
+
+    trans.fromState = 2;
+    trans.cond = 2; // condition index
+    trans.eid = 1;
+    trans.goodState = 0;
+    trans.badState = 0;
+    trans.data.datatype = HXB_DTYPE_BOOL;
+    trans.data.int8 = HXB_FALSE;
+    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + sizeof(struct transition)), sizeof(struct transition));
+    PROCESS_PAUSE();
+
+    // conditions
     struct condition cond;
-    cond.sourceIP[0] = 0xfe;
-    cond.sourceIP[1] = 0x80;
-    cond.sourceIP[2] = 0x00;
-    cond.sourceIP[3] = 0x00;
-    cond.sourceIP[4] = 0x00;
-    cond.sourceIP[5] = 0x00;
-    cond.sourceIP[6] = 0x00;
-    cond.sourceIP[7] = 0x00;
-    cond.sourceIP[8] = 0x00;
-    cond.sourceIP[9] = 0x50;
+    cond.sourceIP[0]  = 0xfe;
+    cond.sourceIP[1]  = 0x80;
+    cond.sourceIP[2]  = 0x00;
+    cond.sourceIP[3]  = 0x00;
+    cond.sourceIP[4]  = 0x00;
+    cond.sourceIP[5]  = 0x00;
+    cond.sourceIP[6]  = 0x00;
+    cond.sourceIP[7]  = 0x00;
+    cond.sourceIP[8]  = 0x00;
+    cond.sourceIP[9]  = 0x50;
     cond.sourceIP[10] = 0xc4;
     cond.sourceIP[11] = 0xff;
     cond.sourceIP[12] = 0xfe;
@@ -154,16 +188,31 @@ PROCESS_THREAD(state_machine_process, ev, data)
     cond.value.datatype = HXB_DTYPE_UINT8;
     cond.value.int8 = 10;
     eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS, sizeof(struct condition));
+    PROCESS_PAUSE();
+
+    cond.sourceEID = 0;
+    cond.op = 0x04 | 0x80; // second, greater than or equal
+    cond.value.datatype = HXB_DTYPE_DATETIME;
+    cond.value.datetime.second = 30;
+    eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)), sizeof(struct condition));
+    PROCESS_PAUSE();
+
+    cond.sourceEID = 0;
+    cond.op = 0x04 | 0x00; // second, less than
+    cond.value.datatype = HXB_DTYPE_DATETIME;
+    cond.value.datetime.second = 30;
+    eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + 2 * sizeof(struct condition)), sizeof(struct condition));
+    PROCESS_PAUSE();
   }
   // **************************
-
 
   PRINTF("State Machine starting.\r\n");
 
   // read state machine table length from eeprom
   transLength = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
+  dtTransLength = eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
 
-  // output table so we see if reading it works
+  // output tables so we see if reading it works
   struct transition* t = malloc(sizeof(struct transition));
   if(t != NULL)
   {
@@ -172,6 +221,12 @@ PROCESS_THREAD(state_machine_process, ev, data)
     for(k = 0;k < transLength;k++)
     {
       eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
+      PRINTF(" %d | %d | %d | %d | %d \r\n", t->fromState, t->cond, t->eid, t->goodState, t->badState);
+    }
+    PRINTF("[date/time table size: %d]:\r\nFrom | Cond | EID | Good | Bad\r\n", dtTransLength);
+    for(k = 0;k < dtTransLength;k++)
+    {
+      eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
       PRINTF(" %d | %d | %d | %d | %d \r\n", t->fromState, t->cond, t->eid, t->goodState, t->badState);
     }
   } else {
@@ -185,13 +240,41 @@ PROCESS_THREAD(state_machine_process, ev, data)
     if(ev == sm_data_received_event)
     {
       PRINTF("State machine: Received event\r\n");
-
-      struct hxb_data *edata = (struct hxb_data*)data;
+      // Check date/time dependent transitions
+      // TODO do this periodically, not just on events... like, use a timer or somthing
+      PRINTF("state machine: Current state: %d\r\n", curState);
+      uint8_t i; // for the for-loops
       struct transition* t = malloc(sizeof(struct transition));
-      uint8_t i;
+      struct hxb_data dtdata;
+      dtdata.value.datatype = HXB_DTYPE_DATETIME;
+      if(!getDatetime(&dtdata.value.datetime)) // if the date/time is valid
+      {
+        for(i = 0; i < dtTransLength; i++)
+        {
+          PRINTF("checkDT - curState: %d -- fromState: %d", curState, t->fromState);
+          eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+          if((t->fromState == curState) && (eval(t->cond, &dtdata)))
+          {
+            // Matching transition found. Try executing the command
+            PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
+            if(endpoint_write(t->eid, &(t->data)) == 0)
+            {
+              curState = t->goodState;
+              PRINTF("state_machine: Everything is fine \r\n");
+              break;
+            } else {
+              curState = t->badState;
+              PRINTF("state_machine: Something bad happened \r\n");
+              break;
+            }
+          }
+        }
+      }
+
+      // Check value-dependent transitions
+      struct hxb_data *edata = (struct hxb_data*)data;
       for(i = 0;i < transLength;i++)
       {
-        // check value-dependet transitions
         eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
         // get next transition to check from eeprom
         if((t->fromState == curState) && (eval(t->cond, edata)))
@@ -212,6 +295,8 @@ PROCESS_THREAD(state_machine_process, ev, data)
       }
       free(t);
       free(data);
+
+      PRINTF("state machine: Now in state: %d\r\n", curState);
     }
   }
 

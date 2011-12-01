@@ -14,21 +14,20 @@ PROCESS_NAME(state_machine_process);
 // Internal stuff: these structs implement a simple table layout
 
 // Operators for comparison
-// TODO this is 2 bytes in memory. Maybe we can shorten it to one byte!
-// Changing it to defines now so we can also use the op for datetimey-things. Leaving it at 16 bit to not break the eeprom format until we have a proper programming interface
-#define STM_EQ   0x0000
-#define STM_LEQ  0x0001
-#define STM_GEQ  0x0002
-#define STM_LT   0x0003
-#define STM_GT   0x0004
-#define STM_NEQ  0x0005
+#define STM_EQ   0x00
+#define STM_LEQ  0x01
+#define STM_GEQ  0x02
+#define STM_LT   0x03
+#define STM_GT   0x04
+#define STM_NEQ  0x05
 
 // op for datetime: bits 0..6 denote dependency on hour, minute, second, ...; bit 7 sets whether to check for >= or <.
+// date/time transitions need to be stored separately. They are also executed seperately, each time before the "normal" transitions are executed
 
 struct condition {
   uint8_t sourceIP[16];      // IP
   uint8_t sourceEID;      // EID we expect data from
-  uint16_t op;           // predicate function
+  uint8_t op;           // predicate function
   struct hxb_value value; // the constant to compare with
 } __attribute__ ((packed));
 
