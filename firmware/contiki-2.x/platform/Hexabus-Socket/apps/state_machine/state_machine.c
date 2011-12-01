@@ -296,12 +296,20 @@ PROCESS_THREAD(state_machine_process, ev, data)
   }
   free(tt);
 
+  // initialize timers
+  static struct etimer check_timer;
+  etimer_set(&check_timer, CLOCK_SECOND * 5); // TODO do we want this configurable?
+
   while(1)
   {
     PROCESS_WAIT_EVENT();
     PRINTF("State machine: Received event\r\n");
     PRINTF("state machine: Current state: %d\r\n", curState);
-    check_datetime_transitions();
+    if(ev == PROCESS_EVENT_TIMER)
+    {
+      check_datetime_transitions();
+      etimer_reset(&check_timer);
+    }
     if(ev == sm_data_received_event)
     {
       check_value_transitions(data);
