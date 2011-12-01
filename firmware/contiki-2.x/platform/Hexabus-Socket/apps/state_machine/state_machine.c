@@ -98,6 +98,68 @@ bool eval(uint8_t condIndex, struct hxb_data *data) {
   }
 }
 
+void check_datetime_transitions()
+{
+  struct hxb_data dtdata;
+  dtdata.value.datatype = HXB_DTYPE_DATETIME;
+  if(!getDatetime(&dtdata.value.datetime)) // if the date/time is valid
+  {
+    struct transition* t = malloc(sizeof(struct transition));
+    uint8_t i;
+    for(i = 0; i < dtTransLength; i++)
+    {
+      PRINTF("checkDT - curState: %d -- fromState: %d", curState, t->fromState);
+      eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+      if((t->fromState == curState) && (eval(t->cond, &dtdata)))
+      {
+        // Matching transition found. Try executing the command
+        PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
+        if(endpoint_write(t->eid, &(t->data)) == 0)
+        {
+          curState = t->goodState;
+          PRINTF("state_machine: Everything is fine \r\n");
+          break;
+        } else {
+          curState = t->badState;
+          PRINTF("state_machine: Something bad happened \r\n");
+          break;
+        }
+      }
+    }
+    free(t);
+  }
+}
+
+void check_value_transitions(void* data)
+{
+  uint8_t i; // for the for-loops
+  struct transition* t = malloc(sizeof(struct transition));
+
+  // Check value-dependent transitions
+  struct hxb_data *edata = (struct hxb_data*)data;
+  for(i = 0;i < transLength;i++)
+  {
+    eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+    // get next transition to check from eeprom
+    if((t->fromState == curState) && (eval(t->cond, edata)))
+    {
+      // Match found
+      PRINTF("state_machine: Writing to endpoint %d \r\n", t->eid);
+      if(endpoint_write(t->eid, &(t->data)) == 0)
+      {
+        curState = t->goodState;
+        PRINTF("state_machine: Everything is fine \r\n");
+        break;
+      } else {                          // Something went wrong
+        curState = t->badState;
+        PRINTF("state_machine: Something bad happened \r\n");
+        break;
+      }
+    }
+  }
+  free(t);
+}
+
 PROCESS_THREAD(state_machine_process, ev, data)
 {
   PROCESS_BEGIN();
@@ -213,87 +275,36 @@ PROCESS_THREAD(state_machine_process, ev, data)
   dtTransLength = eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
 
   // output tables so we see if reading it works
-  struct transition* t = malloc(sizeof(struct transition));
-  if(t != NULL)
+  struct transition* tt = malloc(sizeof(struct transition));
+  if(tt != NULL)
   {
     int k = 0;
     PRINTF("[State machine table size: %d]:\r\nFrom | Cond | EID | Good | Bad\r\n", transLength);
     for(k = 0;k < transLength;k++)
     {
-      eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
-      PRINTF(" %d | %d | %d | %d | %d \r\n", t->fromState, t->cond, t->eid, t->goodState, t->badState);
+      eeprom_read_block(tt, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
+      PRINTF(" %d | %d | %d | %d | %d \r\n", tt->fromState, tt->cond, tt->eid, tt->goodState, tt->badState);
     }
     PRINTF("[date/time table size: %d]:\r\nFrom | Cond | EID | Good | Bad\r\n", dtTransLength);
     for(k = 0;k < dtTransLength;k++)
     {
-      eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
-      PRINTF(" %d | %d | %d | %d | %d \r\n", t->fromState, t->cond, t->eid, t->goodState, t->badState);
+      eeprom_read_block(tt, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
+      PRINTF(" %d | %d | %d | %d | %d \r\n", tt->fromState, tt->cond, tt->eid, tt->goodState, tt->badState);
     }
   } else {
     PRINTF("malloc failed!\r\n");
   }
-  free(t);
+  free(tt);
 
   while(1)
   {
     PROCESS_WAIT_EVENT();
+    PRINTF("State machine: Received event\r\n");
+    PRINTF("state machine: Current state: %d\r\n", curState);
+    check_datetime_transitions();
     if(ev == sm_data_received_event)
     {
-      PRINTF("State machine: Received event\r\n");
-      // Check date/time dependent transitions
-      // TODO do this periodically, not just on events... like, use a timer or somthing
-      PRINTF("state machine: Current state: %d\r\n", curState);
-      uint8_t i; // for the for-loops
-      struct transition* t = malloc(sizeof(struct transition));
-      struct hxb_data dtdata;
-      dtdata.value.datatype = HXB_DTYPE_DATETIME;
-      if(!getDatetime(&dtdata.value.datetime)) // if the date/time is valid
-      {
-        for(i = 0; i < dtTransLength; i++)
-        {
-          PRINTF("checkDT - curState: %d -- fromState: %d", curState, t->fromState);
-          eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
-          if((t->fromState == curState) && (eval(t->cond, &dtdata)))
-          {
-            // Matching transition found. Try executing the command
-            PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
-            if(endpoint_write(t->eid, &(t->data)) == 0)
-            {
-              curState = t->goodState;
-              PRINTF("state_machine: Everything is fine \r\n");
-              break;
-            } else {
-              curState = t->badState;
-              PRINTF("state_machine: Something bad happened \r\n");
-              break;
-            }
-          }
-        }
-      }
-
-      // Check value-dependent transitions
-      struct hxb_data *edata = (struct hxb_data*)data;
-      for(i = 0;i < transLength;i++)
-      {
-        eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
-        // get next transition to check from eeprom
-        if((t->fromState == curState) && (eval(t->cond, edata)))
-        {
-          // Match found
-          PRINTF("state_machine: Writing to endpoint %d \r\n", t->eid);
-          if(endpoint_write(t->eid, &(t->data)) == 0)
-          {
-            curState = t->goodState;
-            PRINTF("state_machine: Everything is fine \r\n");
-            break;
-          } else {                          // Something went wrong
-            curState = t->badState;
-            PRINTF("state_machine: Something bad happened \r\n");
-            break;
-          }
-        }
-      }
-      free(t);
+      check_value_transitions(data);
       free(data);
 
       PRINTF("state machine: Now in state: %d\r\n", curState);
