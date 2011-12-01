@@ -26,6 +26,6 @@
 
 // state_machine
 #define STATE_MACHINE_ENABLE 1
-#define STATE_MACHINE_DEBUG 1
+#define STATE_MACHINE_DEBUG 0
 
 #endif // HEXBAUS_CONFIG_H
