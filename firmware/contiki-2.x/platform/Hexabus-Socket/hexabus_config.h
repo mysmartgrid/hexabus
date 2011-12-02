@@ -8,11 +8,11 @@
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 1
+#define UDP_HANDLER_DEBUG 0
 
 // datetime_service
-#define DATETIME_SERVICE_ENABLE 1
-#define DATETIME_SERVICE_DEBUG 1
+#define DATETIME_SERVICE_ENABLE 0
+#define DATETIME_SERVICE_DEBUG 0
 
 // temperature
 #define TEMPERATURE_ENABLE 0
@@ -29,8 +29,8 @@
 #define STATE_MACHINE_DEBUG 1
 
 // shutter
-#define SHUTTER_ENABLE 0
-#define SHUTTER_DEBUG 0
+#define SHUTTER_ENABLE 1
+#define SHUTTER_DEBUG 1
 
 // hexapush
 #define HEXAPUSH_ENABLE 0

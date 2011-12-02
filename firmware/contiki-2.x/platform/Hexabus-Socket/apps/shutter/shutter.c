@@ -57,8 +57,11 @@ static process_event_t full_up_event;
 static process_event_t full_down_event;
 static process_event_t full_cancel_event;
 
+static uint8_t shutter_goal;
+
 void shutter_init(void) {
     PRINTF("Shutter init\n");
+    SHUTTER_DDR = ( 0x00 | (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
     SHUTTER_PORT |= ( (1<<PA4) | (1<<PA5) ); //pull-ups for encoder inputs
     
     /* Enable pin interrupts for encoder ports */
@@ -70,6 +73,8 @@ void shutter_init(void) {
     full_up_event = process_alloc_event();
     full_down_event = process_alloc_event();
     full_cancel_event = process_alloc_event();
+
+    shutter_goal = 0;
 }
 
 void shutter_open(void) {
@@ -98,16 +103,34 @@ void shutter_stop(void) {
     PRINTF("Shutter stop\n");
     process_post(&shutter_process, full_cancel_event, NULL);
     SHUTTER_PORT &= ~( (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
+    shutter_goal = 0;
+}
+
+void shutter_set(uint8_t val) {
+    if(val==0) {
+        shutter_stop();
+    } else if(val==1) {
+        shutter_close_full();
+    } else if(val==255) {
+        shutter_open_full();
+    }
+    shutter_goal=val;
+}
+
+void shutter_toggle(uint8_t val) {
+    if(shutter_goal==0){
+        shutter_set(val);
+    } else {
+        shutter_stop();
+    }
 }
 
 uint8_t shutter_get_state(void) {
     //TODO
-    return 128;
+    return 0;
 }
 
 PROCESS(shutter_process, "Open/Close shutter until motor stopps");
-
-AUTOSTART_PROCESSES(&shutter_process);
 
 
 PROCESS_THREAD(shutter_process, ev, data) {

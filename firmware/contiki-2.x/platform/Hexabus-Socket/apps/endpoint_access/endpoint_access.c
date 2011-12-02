@@ -102,13 +102,8 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
 #if SHUTTER_ENABLE
     case 23:
       if(value->datatype == HXB_DTYPE_UINT8) {
-          if(value->int8 == 0) {
-              shutter_stop();
-          } else if(value->int8 == 1) {
-              shutter_close_full();
-          } else if(value->int8 == 255) {
-              shutter_open_full();
-          }
+          shutter_toggle(value->int8);
+          return 0;
       } else {
           return HXB_ERR_DATATYPE;
       }
@@ -141,6 +136,12 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case 3:   // Endpoint 3: Hexabus temperaure metering
       val->datatype = HXB_DTYPE_FLOAT;
       val->float32 = temperature_get();
+      break;
+#endif
+#if SHUTTER_ENABLE
+    case 23:
+      val->datatype = HXB_DTYPE_UINT8;
+      val->int8 = shutter_get_state();
       break;
 #endif
 #if HEXAPUSH_ENABLE

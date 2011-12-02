@@ -29,13 +29,9 @@
 
 void    shutter_init(void);
 
-void    shutter_open(void);
+void    shutter_toggle(uint8_t);
 
-void    shutter_close(void);
-
-void    shutter_open_full(void);
-
-void    shutter_close_full(void);
+void    shutter_set(uint8_t);
 
 void    shutter_stop(void);
 
