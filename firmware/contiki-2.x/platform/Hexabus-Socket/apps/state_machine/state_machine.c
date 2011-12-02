@@ -37,14 +37,14 @@ bool eval(uint8_t condIndex, struct hxb_data *data) {
   PRINTF("Checking condition %d\r\n", condIndex);
   eeprom_read_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + (condIndex * sizeof(struct condition))), sizeof(struct condition));
 
-  // Check IPs and EID; ignore IP and EID for Datetime-Conditions
-  if((memcmp(cond.sourceIP, data->source, 16) || (cond.sourceEID != data->eid)) && cond.value.datatype != HXB_DTYPE_DATETIME)
+  // Check IPs and EID; ignore IP and EID for Datetime-Conditions and Timestamp-Conditions
+  if((memcmp(cond.sourceIP, data->source, 16) || (cond.sourceEID != data->eid)) && cond.value.datatype != HXB_DTYPE_DATETIME && cond.value.datatype != HXB_DTYPE_TIMESTAMP)
     return false;
 
   PRINTF("IP and EID match / or datetime condition\r\n");
 
-  // Check datatypes, return false if they don't match
-  if(data->value.datatype != cond.value.datatype) {
+  // Check datatypes, return false if they don't match -- TIMESTAMP is exempt from that because it's checked alongside the DATETIME conditions, getting DATETIME 'data's handled, not TIMESTAMPS
+  if(data->value.datatype != cond.value.datatype && cond.value.datatype != HXB_DTYPE_TIMESTAMP) {
     return false;
   }
 
@@ -92,6 +92,7 @@ bool eval(uint8_t condIndex, struct hxb_data *data) {
         return (cond.op & 0x80) ? data->value.datetime.year >= cond.value.datetime.year : data->value.datetime.year < cond.value.datetime.year;
       if(cond.op & 0x40) // weekday
         return (cond.op & 0x80) ? data->value.datetime.weekday >= cond.value.datetime.weekday : data->value.datetime.weekday < cond.value.datetime.weekday;
+    case HXB_DTYPE_TIMESTAMP:
       if(cond.op == 0x80) // in-state-since
       {
         PRINTF("Checking in-state-since Condition! Have been in this state for %lu sec.\r\n", getTimestamp() - inStateSince);
@@ -106,6 +107,7 @@ bool eval(uint8_t condIndex, struct hxb_data *data) {
 
 void check_datetime_transitions()
 {
+  // TODO maybe we should check timestamps separately, because as of now, they still need some special cases in the 'eval' function
   struct hxb_data dtdata;
   dtdata.value.datatype = HXB_DTYPE_DATETIME;
   if(!getDatetime(&dtdata.value.datetime)) // if the date/time is valid
@@ -143,7 +145,6 @@ void check_value_transitions(void* data)
   uint8_t i; // for the for-loops
   struct transition* t = malloc(sizeof(struct transition));
 
-  // Check value-dependent transitions
   struct hxb_data *edata = (struct hxb_data*)data;
   for(i = 0;i < transLength;i++)
   {
@@ -184,7 +185,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
     int zero = 0;
     eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_TRANSITIONS + i), 1);
     eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_CONDITIONS + i), 1);
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_DATETIME_TRANSITIONS + i), 1); // not yet implemented or thought through
+    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_DATETIME_TRANSITIONS + i), 1);
   }
 
   // write transitions into the EEPROM
@@ -288,8 +289,8 @@ PROCESS_THREAD(state_machine_process, ev, data)
 
     cond.sourceEID = 0;
     cond.op = 0x80; // in-state-since
-    cond.value.datatype = HXB_DTYPE_DATETIME;
-    cond.value.int32 = 30; // a bit of a hack, but somehow we need to a) get the condition-checker to the right condition and b) have a normal integer value. TODO think of something more readable here. Maybe a seperate condition check function for datetime-transitions
+    cond.value.datatype = HXB_DTYPE_TIMESTAMP;
+    cond.value.int32 = 30;
     eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + 3 * sizeof(struct condition)), sizeof(struct condition));
     PROCESS_PAUSE();
   }
