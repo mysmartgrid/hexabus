@@ -20,6 +20,7 @@
 static process_event_t dt_update_event;
 static struct datetime current_dt;
 static bool time_valid;
+static uint32_t timestamp; // seconds since datetime-service was started.
 
 void updateDatetime(struct datetime* dt) {
     process_post(&datetime_service_process, dt_update_event, dt);
@@ -40,6 +41,10 @@ int getDatetime(struct datetime *dt) {
     }
 }
 
+uint32_t getTimestamp() {
+    return timestamp;
+}
+
 PROCESS(datetime_service_process, "Keeps the Date and Time up-to-date\n");
 
 AUTOSTART_PROCESSES(&datetime_service_process);
@@ -53,6 +58,7 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
 
     PROCESS_BEGIN();
 
+    timestamp = 0;
     time_valid = false;
     valid_counter = VALID_TIME;
 
@@ -67,6 +73,8 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
             if(etimer_expired(&update_timer)){
                 etimer_reset(&update_timer);
             }
+
+            timestamp++; // update timestamp
 
             if(valid_counter < VALID_TIME) {
                 valid_counter+=1;

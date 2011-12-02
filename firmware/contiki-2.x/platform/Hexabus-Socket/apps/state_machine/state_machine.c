@@ -29,6 +29,7 @@ AUTOSTART_PROCESSES(&state_machine_process);
 static uint8_t transLength; // length of transition table
 static uint8_t dtTransLength; // length of date/time transition table
 static uint8_t curState = 0;  // starting out in state 0
+static uint32_t inStateSince; // when die we change into that state
 
 bool eval(uint8_t condIndex, struct hxb_data *data) {
   struct condition cond;
@@ -91,6 +92,11 @@ bool eval(uint8_t condIndex, struct hxb_data *data) {
         return (cond.op & 0x80) ? data->value.datetime.year >= cond.value.datetime.year : data->value.datetime.year < cond.value.datetime.year;
       if(cond.op & 0x40) // weekday
         return (cond.op & 0x80) ? data->value.datetime.weekday >= cond.value.datetime.weekday : data->value.datetime.weekday < cond.value.datetime.weekday;
+      if(cond.op == 0x80) // in-state-since
+      {
+        PRINTF("Checking in-state-since Condition! Have been in this state for %lu sec.\r\n", getTimestamp() - inStateSince);
+        return getTimestamp() - inStateSince >= cond.value.int32;
+      }
       break;
     default:
       PRINTF("Datatype not implemented in state machine (yet).\r\n");
@@ -108,18 +114,20 @@ void check_datetime_transitions()
     uint8_t i;
     for(i = 0; i < dtTransLength; i++)
     {
-      PRINTF("checkDT - curState: %d -- fromState: %d", curState, t->fromState);
       eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+      PRINTF("checkDT - curState: %d -- fromState: %d", curState, t->fromState);
       if((t->fromState == curState) && (eval(t->cond, &dtdata)))
       {
         // Matching transition found. Try executing the command
         PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
         if(endpoint_write(t->eid, &(t->data)) == 0)
         {
+          inStateSince = getTimestamp();
           curState = t->goodState;
           PRINTF("state_machine: Everything is fine \r\n");
           break;
         } else {
+          inStateSince = getTimestamp();
           curState = t->badState;
           PRINTF("state_machine: Something bad happened \r\n");
           break;
@@ -147,10 +155,12 @@ void check_value_transitions(void* data)
       PRINTF("state_machine: Writing to endpoint %d \r\n", t->eid);
       if(endpoint_write(t->eid, &(t->data)) == 0)
       {
+        inStateSince = getTimestamp();
         curState = t->goodState;
         PRINTF("state_machine: Everything is fine \r\n");
         break;
       } else {                          // Something went wrong
+        inStateSince = getTimestamp();
         curState = t->badState;
         PRINTF("state_machine: Something bad happened \r\n");
         break;
@@ -204,7 +214,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
     PROCESS_PAUSE();
 
     // datetime-transitions
-    numberOfTransitions = 2;
+    numberOfTransitions = 3;
     eeprom_write_block(&numberOfTransitions, (void*)EE_STATEMACHINE_DATETIME_TRANSITIONS, 1);
 
     trans.fromState = 0;
@@ -225,6 +235,16 @@ PROCESS_THREAD(state_machine_process, ev, data)
     trans.data.datatype = HXB_DTYPE_BOOL;
     trans.data.int8 = HXB_FALSE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + sizeof(struct transition)), sizeof(struct transition));
+    PROCESS_PAUSE();
+
+    trans.fromState = 1;
+    trans.cond = 3; // condition index
+    trans.eid = 1;
+    trans.goodState = 0;
+    trans.badState = 0;
+    trans.data.datatype = HXB_DTYPE_BOOL;
+    trans.data.int8 = HXB_FALSE;
+    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (2 * sizeof(struct transition))), sizeof(struct transition));
     PROCESS_PAUSE();
 
     // conditions
@@ -264,6 +284,13 @@ PROCESS_THREAD(state_machine_process, ev, data)
     cond.value.datatype = HXB_DTYPE_DATETIME;
     cond.value.datetime.second = 30;
     eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + 2 * sizeof(struct condition)), sizeof(struct condition));
+    PROCESS_PAUSE();
+
+    cond.sourceEID = 0;
+    cond.op = 0x80; // in-state-since
+    cond.value.datatype = HXB_DTYPE_DATETIME;
+    cond.value.int32 = 30; // a bit of a hack, but somehow we need to a) get the condition-checker to the right condition and b) have a normal integer value. TODO think of something more readable here. Maybe a seperate condition check function for datetime-transitions
+    eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + 3 * sizeof(struct condition)), sizeof(struct condition));
     PROCESS_PAUSE();
   }
   // **************************
