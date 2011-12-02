@@ -1,0 +1,103 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>State Machine Configurator</title>
+		<script type="text/javascript">
+			transTable = new Array();
+			condTable = new Array();
+		</script>
+	</head>
+	<body>
+		<p>Transition Table Input:</p>
+		<form id="TransTableForm" action="">
+			FromState: <input type="text" id="fromState" /><br />
+			Condition#: <select id="condID"></select><br />
+			EID: <input type="text" id="eid" /><br />
+			DataType: <select id="dTypeTrans">
+				<option value="Int8">Int8</option>
+				<option value="Int32">Int32</option>
+				<option value="Float">Float</option>
+				<option value="Bool">Bool</option>
+			</select><br />
+			Value: <input type="text" id="valueTrans" /><br />
+			GoodState: <input type="text" id="goodState" /><br />
+			BadState: <input type="text" id="badState" /><br />
+		</form>
+		<button type="button" onclick="javascript:addTableLine('TransTableForm', 'transTable');">Add Line</button>
+		<p>Current Transition Table:</p>
+		<table id="transTable" border="1">
+			<tr>
+				<th>FromState</th>
+				<th>Condition#</th>
+				<th>EID</th>
+				<th>DataType</th>
+				<th>Value</th>
+				<th>GoodState</th>
+				<th>BadState</th>
+			</tr>
+		</table>
+		<hr>
+		<p>Condition Table Input:</p>
+		<form id="CondTableForm" action="">
+			Source IP: <input type="text" id="sourceIP" /><br />
+			Source EID: <input type="text" id="sourceEID" /><br />
+			Operator: <select id="operator">
+				<option value="eq">==</option>
+				<option value="leq">&lt;=</option>
+				<option value="geq">&gt;=</option>
+				<option value="lt">&lt;</option>
+				<option value="gt">&gt;</option>
+			</select><br />
+			DataType: <select id="dTypeCond">
+				<option value="Int8">Int8</option>
+				<option value="Int32">Int32</option>
+				<option value="Float">Float</option>
+				<option value="Bool">Bool</option>
+			</select><br />
+			Value: <input type="text" id="valueCond" /><br />
+		<button type="button" onclick="javascript:addTableLine('CondTableForm', 'condTable');">Add Line</button>
+		</form>
+<p>Current Condition Table:</p>
+		<table id="condTable" border="1">
+			<tr>
+				<th>Source IP</th>
+				<th>Source EID</th>
+				<th>Operator</th>
+				<th>Datatype</th>
+				<th>Value</th>
+			</tr>
+		</table>
+		<hr>
+		<button type="button" onclick="javascript:submitTables">Submit Tables</button>
+	</body>
+	
+	<script type="text/javascript">
+		function submitTables() {
+
+		}
+
+		function addToDropDownMenu(i) {
+			var dropDown = document.getElementById("condID");
+			var option = document.createElement("option");
+			option.text = i;
+			option.value = i;
+			dropDown.add(option, null);
+		}
+		</script>
+	<script type="text/javascript">
+			function addTableLine(formName, tableName) {
+				var form = document.getElementById(formName);
+				var table = document.getElementById(tableName);
+				var row = table.insertRow(table.rows.length);
+				for(var i = 0; i < form.length - 1; i++) {
+						row.insertCell(i).innerHTML = form.elements[i].value;
+					}
+				if(formName == "TransTableForm") {
+					
+				} else {
+					condTable.push(condTable.length+1);
+					addToDropDownMenu(condTable.length);
+				}
+			}
+		</script>
+</html>
