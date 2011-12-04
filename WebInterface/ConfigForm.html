@@ -14,10 +14,10 @@
 			Condition#: <select id="condID"></select><br />
 			EID: <input type="text" id="eid" /><br />
 			DataType: <select id="dTypeTrans">
-				<option value="Int8">Int8</option>
-				<option value="Int32">Int32</option>
-				<option value="Float">Float</option>
-				<option value="Bool">Bool</option>
+				<option value="1">Bool</option>
+				<option value="2">Int8</option>
+				<option value="3">Int32</option>
+				<option value="5">Float</option>
 			</select><br />
 			Value: <input type="text" id="valueTrans" /><br />
 			GoodState: <input type="text" id="goodState" /><br />
@@ -49,14 +49,14 @@
 				<option value="gt">&gt;</option>
 			</select><br />
 			DataType: <select id="dTypeCond">
-				<option value="Int8">Int8</option>
-				<option value="Int32">Int32</option>
-				<option value="Float">Float</option>
-				<option value="Bool">Bool</option>
+				<option value="1">Bool</option>
+				<option value="2">Int8</option>
+				<option value="3">Int32</option>
+				<option value="5">Float</option>
 			</select><br />
 			Value: <input type="text" id="valueCond" /><br />
-		<button type="button" onclick="javascript:addTableLine('CondTableForm', 'condTable');">Add Line</button>
 		</form>
+		<button type="button" onclick="javascript:addTableLine('CondTableForm', 'condTable');">Add Line</button>
 <p>Current Condition Table:</p>
 		<table id="condTable" border="1">
 			<tr>
@@ -68,12 +68,37 @@
 			</tr>
 		</table>
 		<hr>
-		<button type="button" onclick="javascript:submitTables">Submit Tables</button>
+		<p>"Hidden" Field</p>
+		<form id="sendingForm">
+			<input type="text" id="generatedTables" />
+		</form>
+		<button type="button" onclick="javascript:submitTables()">Submit Tables</button>
 	</body>
 	
 	<script type="text/javascript">
 		function submitTables() {
-
+			// Collect ALL the data from Tables and store them into this one hidden field
+			// Tables are initiated and terminated with "|".
+			// "#" is used to seperate values, eg: |1#3#1...||3#2#4...|
+			var destForm = document.getElementById("sendingForm");
+			var hiddenInput = document.getElementById("generatedTables");
+			// First the Transition table. 
+			hiddenInput.value = decomposeTable(transTable);
+			// Now the Condition table
+			hiddenInput.value += decomposeTable(condTable);
+			// destForm.submit();
+		}
+		
+		function decomposeTable(table) {
+			var tableString = "|";
+			for(var i = 0;i < table.length;i++) {
+				for(var j = 0;j < table[0].length;j++) {		// This looks ugly
+					tableString += table[i][j];
+					tableString += "#";
+				}
+			}
+			tableString += "|";
+			return tableString;
 		}
 
 		function addToDropDownMenu(i) {
@@ -89,13 +114,15 @@
 				var form = document.getElementById(formName);
 				var table = document.getElementById(tableName);
 				var row = table.insertRow(table.rows.length);
-				for(var i = 0; i < form.length - 1; i++) {
-						row.insertCell(i).innerHTML = form.elements[i].value;
-					}
+				var tmpArray = new Array();
+				for(var i = 0; i < form.length; i++) {
+					row.insertCell(i).innerHTML = form.elements[i].value;
+					tmpArray.push(form.elements[i].value);
+				}
 				if(formName == "TransTableForm") {
-					
+					transTable.push(tmpArray);	
 				} else {
-					condTable.push(condTable.length+1);
+					condTable.push(tmpArray);
 					addToDropDownMenu(condTable.length);
 				}
 			}
