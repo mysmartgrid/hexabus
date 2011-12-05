@@ -113,16 +113,19 @@ void print_packet(char* recv_data) {
     {
       case HXB_DTYPE_BOOL:
       case HXB_DTYPE_UINT8:
-        std::cout << (int)value.int8;
+        std::cout << (int)*(uint8_t*)&value.data;
         break;
       case HXB_DTYPE_UINT32:
-        std::cout << value.int32;
+        std::cout << *(uint32_t*)&value.data;
         break;
       case HXB_DTYPE_DATETIME:
-        std::cout << (int)value.datetime.day << "." << (int)value.datetime.month << "." << value.datetime.year << " " << (int)value.datetime.hour << ":" << (int)value.datetime.minute << ":" << (int)value.datetime.second << " Weekday: " << (int)value.datetime.weekday;
+        {
+          struct datetime dt = *(datetime*)&value.data;
+          std::cout << (int)dt.day << "." << (int)dt.month << "." << dt.year << " " << (int)dt.hour << ":" << (int)dt.minute << ":" << (int)dt.second << " Weekday: " << (int)dt.weekday;
+        }
         break;
       case HXB_DTYPE_FLOAT:
-        std::cout << value.float32;
+        std::cout << *(float*)&value.data;
         break;
       default:
         std::cout << "(unknown)";

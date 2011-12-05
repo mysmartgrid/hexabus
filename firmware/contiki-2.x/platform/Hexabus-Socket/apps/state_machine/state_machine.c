@@ -54,49 +54,55 @@ bool eval(uint8_t condIndex, struct hxb_data *data) {
   {
     case HXB_DTYPE_BOOL:
     case HXB_DTYPE_UINT8:
-      if(cond.op == STM_EQ)  return data->value.int8 == cond.value.int8;
-      if(cond.op == STM_LEQ) return data->value.int8 <= cond.value.int8;
-      if(cond.op == STM_GEQ) return data->value.int8 >= cond.value.int8;
-      if(cond.op == STM_LT)  return data->value.int8 <  cond.value.int8;
-      if(cond.op == STM_GT)  return data->value.int8 >  cond.value.int8;
-      if(cond.op == STM_NEQ) return data->value.int8 != cond.value.int8;
+      if(cond.op == STM_EQ)  return *(uint8_t*)&data->value.data == *(uint8_t*)&cond.value.data;
+      if(cond.op == STM_LEQ) return *(uint8_t*)&data->value.data <= *(uint8_t*)&cond.value.data;
+      if(cond.op == STM_GEQ) return *(uint8_t*)&data->value.data >= *(uint8_t*)&cond.value.data;
+      if(cond.op == STM_LT)  return *(uint8_t*)&data->value.data <  *(uint8_t*)&cond.value.data;
+      if(cond.op == STM_GT)  return *(uint8_t*)&data->value.data >  *(uint8_t*)&cond.value.data;
+      if(cond.op == STM_NEQ) return *(uint8_t*)&data->value.data != *(uint8_t*)&cond.value.data;
       break;
     case HXB_DTYPE_UINT32:
-      if(cond.op == STM_EQ)  return data->value.int32 == cond.value.int32;
-      if(cond.op == STM_LEQ) return data->value.int32 <= cond.value.int32;
-      if(cond.op == STM_GEQ) return data->value.int32 >= cond.value.int32;
-      if(cond.op == STM_LT)  return data->value.int32 <  cond.value.int32;
-      if(cond.op == STM_GT)  return data->value.int32 >  cond.value.int32;
-      if(cond.op == STM_NEQ) return data->value.int32 != cond.value.int32;
+      if(cond.op == STM_EQ)  return *(uint32_t*)&data->value.data == *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_LEQ) return *(uint32_t*)&data->value.data <= *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_GEQ) return *(uint32_t*)&data->value.data >= *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_LT)  return *(uint32_t*)&data->value.data <  *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_GT)  return *(uint32_t*)&data->value.data >  *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_NEQ) return *(uint32_t*)&data->value.data != *(uint32_t*)&cond.value.data;
       break;
     case HXB_DTYPE_FLOAT:
-      if(cond.op == STM_EQ)  return data->value.float32 == cond.value.float32;
-      if(cond.op == STM_LEQ) return data->value.float32 <= cond.value.float32;
-      if(cond.op == STM_GEQ) return data->value.float32 >= cond.value.float32;
-      if(cond.op == STM_LT)  return data->value.float32 <  cond.value.float32;
-      if(cond.op == STM_GT)  return data->value.float32 >  cond.value.float32;
-      if(cond.op == STM_NEQ) return data->value.float32 != cond.value.float32;
+      if(cond.op == STM_EQ)  return *(float*)&data->value.data == *(float*)&cond.value.data;
+      if(cond.op == STM_LEQ) return *(float*)&data->value.data <= *(float*)&cond.value.data;
+      if(cond.op == STM_GEQ) return *(float*)&data->value.data >= *(float*)&cond.value.data;
+      if(cond.op == STM_LT)  return *(float*)&data->value.data <  *(float*)&cond.value.data;
+      if(cond.op == STM_GT)  return *(float*)&data->value.data >  *(float*)&cond.value.data;
+      if(cond.op == STM_NEQ) return *(float*)&data->value.data != *(float*)&cond.value.data;
       break;
     case HXB_DTYPE_DATETIME:
+    {
+      struct datetime val_dt;
+      struct datetime cond_dt;
+      val_dt = *(struct datetime*)&data->value.data; // just to make writing this down easier...
+      cond_dt = *(struct datetime*)&cond.value.data;
       if(cond.op & 0x01) // hour
-        return (cond.op & 0x80) ? data->value.datetime.hour >= cond.value.datetime.hour : data->value.datetime.hour < cond.value.datetime.hour;
+        return (cond.op & 0x80) ? val_dt.hour >= cond_dt.hour : val_dt.hour < cond_dt.hour;
       if(cond.op & 0x02) // minute
-        return (cond.op & 0x80) ? data->value.datetime.minute >= cond.value.datetime.minute : data->value.datetime.minute < cond.value.datetime.minute;
+        return (cond.op & 0x80) ? val_dt.minute >= cond_dt.minute : val_dt.minute < cond_dt.minute;
       if(cond.op & 0x04) // second
-        return (cond.op & 0x80) ? data->value.datetime.second >= cond.value.datetime.second : data->value.datetime.second < cond.value.datetime.second;
+        return (cond.op & 0x80) ? val_dt.second >= cond_dt.second : val_dt.second < cond_dt.second;
       if(cond.op & 0x08) // day
-        return (cond.op & 0x80) ? data->value.datetime.day >= cond.value.datetime.day : data->value.datetime.day < cond.value.datetime.day;
+        return (cond.op & 0x80) ? val_dt.day >= cond_dt.day : val_dt.day < cond_dt.day;
       if(cond.op & 0x10) // month
-        return (cond.op & 0x80) ? data->value.datetime.month >= cond.value.datetime.month : data->value.datetime.month < cond.value.datetime.month;
+        return (cond.op & 0x80) ? val_dt.month >= cond_dt.month : val_dt.month < cond_dt.month;
       if(cond.op & 0x20) // year
-        return (cond.op & 0x80) ? data->value.datetime.year >= cond.value.datetime.year : data->value.datetime.year < cond.value.datetime.year;
+        return (cond.op & 0x80) ? val_dt.year >= cond_dt.year : val_dt.year < cond_dt.year;
       if(cond.op & 0x40) // weekday
-        return (cond.op & 0x80) ? data->value.datetime.weekday >= cond.value.datetime.weekday : data->value.datetime.weekday < cond.value.datetime.weekday;
+        return (cond.op & 0x80) ? val_dt.weekday >= cond_dt.weekday : val_dt.weekday < cond_dt.weekday;
+    }
     case HXB_DTYPE_TIMESTAMP:
       if(cond.op == 0x80) // in-state-since
       {
         PRINTF("Checking in-state-since Condition! Have been in this state for %lu sec.\r\n", getTimestamp() - inStateSince);
-        return getTimestamp() - inStateSince >= cond.value.int32;
+        return getTimestamp() - inStateSince >= *(uint32_t*)&cond.value.data;
       }
       break;
     default:
@@ -110,7 +116,7 @@ void check_datetime_transitions()
   // TODO maybe we should check timestamps separately, because as of now, they still need some special cases in the 'eval' function
   struct hxb_data dtdata;
   dtdata.value.datatype = HXB_DTYPE_DATETIME;
-  if(!getDatetime(&dtdata.value.datetime)) // if the date/time is valid
+  if(!getDatetime(&dtdata.value.data)) // if the date/time is valid
   {
     struct transition* t = malloc(sizeof(struct transition));
     uint8_t i;
@@ -200,7 +206,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
     trans.goodState = 1;
     trans.badState = 0;
     trans.data.datatype = HXB_DTYPE_BOOL;
-    trans.data.int8 = HXB_TRUE;
+    *(uint8_t*)&trans.data.data = HXB_TRUE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
     PROCESS_PAUSE();
 
@@ -210,7 +216,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
     trans.goodState = 0;
     trans.badState = 1;
     trans.data.datatype = HXB_DTYPE_BOOL;
-    trans.data.int8 = HXB_FALSE;
+    *(uint8_t*)&trans.data.data = HXB_FALSE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (sizeof(struct transition))), sizeof(struct transition));
     PROCESS_PAUSE();
 
@@ -224,7 +230,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
     trans.goodState = 2;
     trans.badState = 2;
     trans.data.datatype = HXB_DTYPE_BOOL;
-    trans.data.int8 = HXB_TRUE;
+    *(uint8_t*)&trans.data.data = HXB_TRUE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS), sizeof(struct transition));
     PROCESS_PAUSE();
 
@@ -234,7 +240,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
     trans.goodState = 0;
     trans.badState = 0;
     trans.data.datatype = HXB_DTYPE_BOOL;
-    trans.data.int8 = HXB_FALSE;
+    *(uint8_t*)&trans.data.data = HXB_FALSE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + sizeof(struct transition)), sizeof(struct transition));
     PROCESS_PAUSE();
 
@@ -244,7 +250,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
     trans.goodState = 0;
     trans.badState = 0;
     trans.data.datatype = HXB_DTYPE_BOOL;
-    trans.data.int8 = HXB_FALSE;
+    *(uint8_t*)&trans.data.data = HXB_FALSE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (2 * sizeof(struct transition))), sizeof(struct transition));
     PROCESS_PAUSE();
 
@@ -269,28 +275,28 @@ PROCESS_THREAD(state_machine_process, ev, data)
     cond.sourceEID = 2;
     cond.op = STM_EQ;
     cond.value.datatype = HXB_DTYPE_UINT8;
-    cond.value.int8 = 10;
+    *(uint8_t*)&cond.value.data = 10;
     eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS, sizeof(struct condition));
     PROCESS_PAUSE();
 
     cond.sourceEID = 0;
     cond.op = 0x04 | 0x80; // second, greater than or equal
     cond.value.datatype = HXB_DTYPE_DATETIME;
-    cond.value.datetime.second = 30;
+    (*(struct datetime*)&(cond.value.data)).second = 30;
     eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)), sizeof(struct condition));
     PROCESS_PAUSE();
 
     cond.sourceEID = 0;
     cond.op = 0x04 | 0x00; // second, less than
     cond.value.datatype = HXB_DTYPE_DATETIME;
-    cond.value.datetime.second = 30;
+    (*(struct datetime*)&(cond.value.data)).second = 30;
     eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + 2 * sizeof(struct condition)), sizeof(struct condition));
     PROCESS_PAUSE();
 
     cond.sourceEID = 0;
     cond.op = 0x80; // in-state-since
     cond.value.datatype = HXB_DTYPE_TIMESTAMP;
-    cond.value.int32 = 30;
+    *(uint32_t*)&cond.value.data = 30;
     eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + 3 * sizeof(struct condition)), sizeof(struct condition));
     PROCESS_PAUSE();
   }
