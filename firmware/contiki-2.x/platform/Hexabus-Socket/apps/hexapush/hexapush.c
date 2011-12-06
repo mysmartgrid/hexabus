@@ -82,6 +82,7 @@ void hexapush_init(void) {
     #endif
 
     HEXAPUSH_DDR |= button_vector;
+    HEXAPUSH_DDR &= ~(1<<HEXAPUSH_B1);
     HEXAPUSH_PORT |= button_vector;
 }
 
