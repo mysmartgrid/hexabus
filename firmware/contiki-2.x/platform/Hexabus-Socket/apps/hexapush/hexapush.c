@@ -56,6 +56,9 @@ void hexapush_init(void) {
     PRINTF("Hexapush init\n");
 
 
+    #if defined(HEXAPUSH_B0)
+    button_vector |= (1<<HEXAPUSH_B0);
+    #endif
     #if defined(HEXAPUSH_B1)
     button_vector |= (1<<HEXAPUSH_B1);
     #endif
@@ -76,9 +79,6 @@ void hexapush_init(void) {
     #endif
     #if defined(HEXAPUSH_B7)
     button_vector |= (1<<HEXAPUSH_B7);
-    #endif
-    #if defined(HEXAPUSH_B8)
-    button_vector |= (1<<HEXAPUSH_B8);
     #endif
 
     HEXAPUSH_DDR &= ~button_vector;
@@ -124,14 +124,22 @@ PROCESS_THREAD(hexapush_process, ev, data) {
             } else if (button_state[i]==1) { //Debounce state
                 //PRINTF("Hexapush: %d is in state 1\n",i);
                 if(((~HEXAPUSH_IN&button_vector)&(1<<i))!=0) {
+                    #if HEXAPUSH_CLICK_ENABLE
                     button_state[i]=2; //Goto click state
+                    #elif HEXAPUSH_PRESS_RELEASE_ENABLE
+                    button_pressed(i);
+                    button_state[i]=3;
+                    #else
+                    button_state[i]=0;
+                    #endif
                 } else {
                     button_state[i]=0;
                 }
             } else if (button_state[i]==2) { //Click state
                 //PRINTF("Hexapush: %d is in state 2\n",i);
+                #if HEXAPUSH_PRESS_RELEASE_ENABLE
                 if(((~HEXAPUSH_IN&button_vector)&(1<<i))!=0) {
-                    if(longclick_counter[i]<LONG_CLICK_MULT) {
+                    if(longclick_counter[i]<HEXAPUSH_PRESS_DELAY) {
                         longclick_counter[i]++;
                     } else {
                         button_pressed(i);
@@ -143,10 +151,17 @@ PROCESS_THREAD(hexapush_process, ev, data) {
                     longclick_counter[i]=0;
                     button_state[i]=0;
                 }
+                #else
+                button_clicked(i);
+                button_state[i] = 3;
+                #endif
+
             } else if (button_state[i]==3) { //Long click state
                 //PRINTF("Hexapush: %d is in state 3\n",i);
                 if(((~HEXAPUSH_IN&button_vector)&(1<<i))==0) {
+                    #if HEXAPUSH_PRESS_RELEASE_ENABLE
                     button_released(i);
+                    #endif
                     button_state[i]=0;
                 }
             } else {

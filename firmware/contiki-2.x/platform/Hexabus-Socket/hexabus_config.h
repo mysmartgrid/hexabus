@@ -29,12 +29,15 @@
 #define STATE_MACHINE_DEBUG 1
 
 // shutter
-#define SHUTTER_ENABLE 1
-#define SHUTTER_DEBUG 1
+#define SHUTTER_ENABLE 0
+#define SHUTTER_DEBUG 0
 
 // hexapush
-#define HEXAPUSH_ENABLE 0
-#define HEXAPUSH_DEBUG 0
+#define HEXAPUSH_ENABLE 1
+#define HEXAPUSH_CLICK_ENABLE 0
+#define HEXAPUSH_PRESS_RELEASE_ENABLE 1
+#define HEXAPUSH_PRESS_DELAY 6   //multiplied by 50ms, only if Click and Press/Release are enabled
+#define HEXAPUSH_DEBUG 1
 
 // presence detector
 #define PRESENCE_DETECTOR_ENABLE 0

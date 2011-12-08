@@ -102,7 +102,7 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
 #if SHUTTER_ENABLE
     case 23:
       if(value->datatype == HXB_DTYPE_UINT8) {
-          shutter_toggle(value->int8);
+          shutter_toggle(*(uint8_t*)&value->data);
           return 0;
       } else {
           return HXB_ERR_DATATYPE;
@@ -141,23 +141,23 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
 #if SHUTTER_ENABLE
     case 23:
       val->datatype = HXB_DTYPE_UINT8;
-      val->int8 = shutter_get_state();
+      val->*(uint8_t*)&value->data = shutter_get_state();
       break;
 #endif
 #if HEXAPUSH_ENABLE
     case 24:  //Pressed und released
       val->datatype = HXB_DTYPE_UINT8;
-      val->int8 = get_buttonstate();
+      *(uint8_t*)&val->data = get_buttonstate();
       break;
     case 25: //Clicked
       val->datatype = HXB_DTYPE_UINT8;
-      val->int8 = get_clickstate();
+      *(uint8_t*)&val->data = get_clickstate();
       break;
 #endif
 #if PRESENCE_DETECTOR_ENABLE
     case 26:
       val->datatype = HXB_DTYPE_BOOL;
-      val->int8 = presence_active() == 0 ? HXB_FALSE : HXB_TRUE;
+      *(uint8_t*)&val->data = presence_active() == 0 ? HXB_FALSE : HXB_TRUE;
       break;
 #endif
     default:

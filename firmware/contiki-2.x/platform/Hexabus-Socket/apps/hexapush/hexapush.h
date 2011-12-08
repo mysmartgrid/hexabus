@@ -11,14 +11,14 @@
 #define HEXAPUSH_DDR    DDRA
 
 //Comment unneeded buttons
-#define HEXAPUSH_B1     PA0
-#define HEXAPUSH_B2     PA1
-//#define HEXAPUSH_B3     PA2
-//#define HEXAPUSH_B4     PA3
-//#define HEXAPUSH_B5     PA4
-//#define HEXAPUSH_B6     PA5
-//#define HEXAPUSH_B7     PA6
-//#define HEXAPUSH_B8     PA7
+#define HEXAPUSH_B0     PA0
+#define HEXAPUSH_B1     PA1
+//#define HEXAPUSH_B2     PA2
+//#define HEXAPUSH_B3     PA3
+//#define HEXAPUSH_B4     PA4
+//#define HEXAPUSH_B5     PA5
+//#define HEXAPUSH_B6     PA6
+//#define HEXAPUSH_B7     PA7
 
 #elif defined(__AVR_ATmega2561__)
 //TODO?
@@ -27,7 +27,6 @@
 #endif
 
 #define HP_DEBOUNCE_TIME		   50UL
-#define LONG_CLICK_MULT        6
 
 void hexapush_init(void);
 
