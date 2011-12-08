@@ -90,7 +90,7 @@ void broadcast_value(uint8_t eid)
       packet8.flags = 0;
       packet8.eid = eid;
       packet8.datatype = val.datatype;
-      packet8.value = val.int8;
+      packet8.value = *(uint8_t*)&val.data;
       packet8.crc = uip_htons(crc16_data((char*)&packet8, sizeof(packet8)-2, 0));
 
       uip_udp_packet_sendto(client_conn, &packet8, sizeof(packet8),
@@ -103,7 +103,7 @@ void broadcast_value(uint8_t eid)
       packet32.flags = 0;
       packet32.eid = eid;
       packet32.datatype = val.datatype;
-      packet32.value = uip_htonl(val.int32);
+      packet32.value = uip_htonl(*(uint32_t*)&val.data);
       packet32.crc = uip_htons(crc16_data((char*)&packet32, sizeof(packet32)-2, 0));
 
       uip_udp_packet_sendto(client_conn, &packet32, sizeof(packet32),
@@ -116,7 +116,7 @@ void broadcast_value(uint8_t eid)
       packetf.flags = 0;
       packetf.eid = eid;
       packetf.datatype = val.datatype;
-      packetf.value = uip_htonl(val.float32);
+      packetf.value = uip_htonl(*(float*)&val.data);
       packetf.crc = uip_htons(crc16_data((char*)&packetf, sizeof(packetf)-2, 0));
 
       uip_udp_packet_sendto(client_conn, &packetf, sizeof(packetf),

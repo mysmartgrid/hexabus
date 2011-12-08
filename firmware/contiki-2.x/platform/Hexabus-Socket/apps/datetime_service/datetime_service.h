@@ -11,6 +11,7 @@
 
 void updateDatetime(struct datetime *dt);
 int getDatetime(struct datetime *dt);
+uint32_t getTimestamp();
 
 PROCESS_NAME(datetime_service_process);
 

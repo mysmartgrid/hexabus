@@ -20,6 +20,7 @@
 static process_event_t dt_update_event;
 static struct datetime current_dt;
 static bool time_valid;
+static uint32_t timestamp; // seconds since datetime-service was started.
 
 void updateDatetime(struct datetime* dt) {
     process_post(&datetime_service_process, dt_update_event, dt);
@@ -40,6 +41,10 @@ int getDatetime(struct datetime *dt) {
     }
 }
 
+uint32_t getTimestamp() {
+    return timestamp;
+}
+
 PROCESS(datetime_service_process, "Keeps the Date and Time up-to-date\n");
 
 PROCESS_THREAD(datetime_service_process, ev, data) {
@@ -49,6 +54,7 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
 
     PROCESS_BEGIN();
 
+    timestamp = 0;
     time_valid = false;
     valid_counter = VALID_TIME;
 
@@ -63,6 +69,8 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
             if(etimer_expired(&update_timer)){
                 etimer_reset(&update_timer);
             }
+
+            timestamp++; // update timestamp
 
             if(valid_counter < VALID_TIME) {
                 valid_counter+=1;
@@ -98,14 +106,7 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
         } else if(ev == dt_update_event) {
             PRINTF("Time: Got update.\n");
 
-            current_dt.second = ((struct hxb_data*)data)->value.datetime.second;
-            current_dt.minute = ((struct hxb_data*)data)->value.datetime.minute;
-            current_dt.hour = ((struct hxb_data*)data)->value.datetime.hour;
-            current_dt.day = ((struct hxb_data*)data)->value.datetime.day;
-            current_dt.month = ((struct hxb_data*)data)->value.datetime.month;
-            current_dt.year = ((struct hxb_data*)data)->value.datetime.year;
-            current_dt.weekday = ((struct hxb_data*)data)->value.datetime.weekday;
-
+            current_dt = *(struct datetime*)&(((struct hxb_data*)data)->value.data);
             time_valid = true;
             valid_counter = 0;
 

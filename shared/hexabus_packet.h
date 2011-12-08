@@ -115,10 +115,7 @@ struct hxb_packet_128string {
 // endpoint_access
 struct hxb_value {
   uint8_t   datatype;   // Datatype that is used, or HXB_DTYPE_UNDEFINED
-  uint8_t   int8;       // used for HXB_DTYPE_BOOL and HXB_DTYPE_UINT8
-  uint32_t  int32;      // used for HXB_DTYPE_UINT32
-  float     float32;      // used for HXB_DTYPE_FLOAT
-  struct datetime  datetime;   // used for HXB_DTYPE_DATETIME
+  char      data[8];    // leave enough room for the largest datatype (datetime in this case)
 };
 
 // ======================================================================
@@ -161,6 +158,7 @@ struct hxb_data {
 #define HXB_DTYPE_DATETIME    0x04  // Date and time
 #define HXB_DTYPE_FLOAT       0x05  // 32bit floating point
 #define HXB_DTYPE_128STRING   0x06  // 128char fixed length string
+#define HXB_DTYPE_TIMESTAMP   0x07  // timestamp - used for measuring durations, time differences and so on - uint32; seconds
 
 // Error codes
 //                            0x00     reserved: No error
