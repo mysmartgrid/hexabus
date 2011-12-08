@@ -159,7 +159,7 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
 #if SHUTTER_ENABLE
     case 23:
       val->datatype = HXB_DTYPE_UINT8;
-      val->*(uint8_t*)&value->data = shutter_get_state();
+      *(uint8_t*)&val->data = shutter_get_state();
       break;
 #endif
 #if HEXAPUSH_ENABLE

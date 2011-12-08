@@ -61,7 +61,8 @@ static uint8_t shutter_goal;
 
 void shutter_init(void) {
     PRINTF("Shutter init\n");
-    SHUTTER_DDR = ( 0x00 | (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
+    SHUTTER_DDR |= ( 0x00 | (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
+    SHUTTER_DDR &= ~( (1<<PA4) | (1<<PA5) );
     SHUTTER_PORT |= ( (1<<PA4) | (1<<PA5) ); //pull-ups for encoder inputs
     
     /* Enable pin interrupts for encoder ports */

@@ -24,7 +24,7 @@
 #error Hardware not defined!
 #endif
 
-#define ENCODER_TIMEOUT        200UL
+#define ENCODER_TIMEOUT        300UL
 
 
 void    shutter_init(void);
