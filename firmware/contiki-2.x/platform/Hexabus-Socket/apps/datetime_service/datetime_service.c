@@ -10,12 +10,7 @@
 
 #include <stdio.h>
 
-<<<<<<< HEAD
-#define DEBUG 1
-#if DEBUG
-=======
 #if DATETIME_SERVICE_DEBUG
->>>>>>> bl-statemachine
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 #else
