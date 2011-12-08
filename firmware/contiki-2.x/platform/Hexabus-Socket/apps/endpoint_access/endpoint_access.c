@@ -62,9 +62,27 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
     case 2:
       strncpy(buffer, "Power Meter", 127);
       break;
-#ifdef TEMPERATURE_ENABLE
+#if TEMPERATURE_ENABLE
     case 3:
       strncpy(buffer, "Temperature Sensor", 127);
+      break;
+#endif
+#if SHUTTER_ENABLE
+    case 23:
+      strncpy(buffer, "Window Shutter", 127);
+      break;
+#endif
+#if HEXAPUSH_ENABLE
+    case 24:
+      strncpy(buffer, "Pressed Hexapush buttons", 127);
+      break;
+    case 25:
+      strncpy(buffer, "Clicked Hexapush buttons", 127);
+      break;
+#endif
+#if PRESENCE_DETECTOR_ENABLE
+    case 26:
+      strncpy(buffer, "Presence Detector", 127);
       break;
 #endif
     default:
