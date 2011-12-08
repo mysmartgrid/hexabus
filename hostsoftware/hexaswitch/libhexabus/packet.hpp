@@ -32,11 +32,11 @@ namespace hexabus {
       Packet() {};
       virtual ~Packet() {};
 
-      // TODO think about whether to return pointers here
-      hxb_packet_query query(uint8_t eid);
+      hxb_packet_query query(uint8_t eid, bool ep_query = false);
       hxb_packet_int8 write8(uint8_t eid, uint8_t datatype, uint8_t value, bool broadcast);
       hxb_packet_int32 write32(uint8_t eid, uint8_t datatype, uint32_t value, bool broadcast);
       hxb_packet_datetime writedt(uint8_t eid, uint8_t datatype, datetime value, bool broadcast);
+      hxb_packet_float writef(uint8_t eid, uint8_t datatype, float value, bool broadcast);
     private:
   };
 
@@ -52,7 +52,7 @@ namespace hexabus {
       uint8_t getDatatype();
       uint8_t getEID();
       struct hxb_value getValue();
-      // TODO think about whether it's better to calculate this on the fly (in the getters) instead of storing it locally...
+      std::string getString();
       // TODO getFlags (once someone starts actually using the flags)
     private:
       bool okay;
@@ -62,6 +62,7 @@ namespace hexabus {
       uint8_t datatype;
       uint8_t eid;
       struct hxb_value value;
+      std::string strval;
   };
 };
 

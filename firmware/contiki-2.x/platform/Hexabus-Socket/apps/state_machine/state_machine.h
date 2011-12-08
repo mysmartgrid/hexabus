@@ -14,23 +14,31 @@ PROCESS_NAME(state_machine_process);
 // Internal stuff: these structs implement a simple table layout
 
 // Operators for comparison
-enum oper { eq, leq, geq, lt, gt};
+#define STM_EQ   0x00
+#define STM_LEQ  0x01
+#define STM_GEQ  0x02
+#define STM_LT   0x03
+#define STM_GT   0x04
+#define STM_NEQ  0x05
+
+// op for datetime: bits 0..6 denote dependency on hour, minute, second, ...; bit 7 sets whether to check for >= or <.
+// date/time transitions need to be stored separately. They are also executed seperately, each time before the "normal" transitions are executed
 
 struct condition {
-	char sourceIP[16];		// TODO: IP
-	uint8_t sourceEID;	// EID we expect data from
-	enum oper op;				// predicate function
-	struct hxb_value value;			// the constant to compare with
-};
+  uint8_t sourceIP[16];      // IP
+  uint8_t sourceEID;      // EID we expect data from
+  uint8_t op;           // predicate function
+  struct hxb_value value; // the constant to compare with
+} __attribute__ ((packed));
 
 struct transition {
-	uint8_t fromState;					// current state
-	uint8_t cond;								// index of condition that must be matched
-	uint8_t eid;							// id of endpoint which should do something
-	uint8_t goodState;					// new state if everything went fine
-	uint8_t badState;						// new state if some went wrong
-	struct hxb_value data;			// Data for the endpoint
-};
+  uint8_t fromState;      // current state
+  uint8_t cond;           // index of condition that must be matched
+  uint8_t eid;            // id of endpoint which should do something
+  uint8_t goodState;      // new state if everything went fine
+  uint8_t badState;       // new state if some went wrong
+  struct hxb_value data;  // Data for the endpoint
+} __attribute__ ((packed));
 
 
 // Defintion of events that are important to the state machine

@@ -4,13 +4,18 @@
 #include "sys/etimer.h" //contiki event timer library
 #include "contiki.h"
 
+#include "hexabus_config.h"
 #include "eeprom_variables.h"
 #include <avr/eeprom.h>
 
 #include <stdio.h>
 
-#define DEBUG 0
+<<<<<<< HEAD
+#define DEBUG 1
 #if DEBUG
+=======
+#if DATETIME_SERVICE_DEBUG
+>>>>>>> bl-statemachine
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 #else
@@ -20,13 +25,13 @@
 static process_event_t dt_update_event;
 static struct datetime current_dt;
 static bool time_valid;
+static uint32_t timestamp; // seconds since datetime-service was started.
 
 void updateDatetime(struct datetime* dt) {
     process_post(&datetime_service_process, dt_update_event, dt);
 }
 
 int getDatetime(struct datetime *dt) {
-
     if(time_valid) {
         dt->hour = current_dt.hour;
         dt->minute = current_dt.minute;
@@ -39,6 +44,10 @@ int getDatetime(struct datetime *dt) {
     } else {
         return -1;
     }
+}
+
+uint32_t getTimestamp() {
+    return timestamp;
 }
 
 PROCESS(datetime_service_process, "Keeps the Date and Time up-to-date\n");
@@ -54,6 +63,7 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
 
     PROCESS_BEGIN();
 
+    timestamp = 0;
     time_valid = false;
     valid_counter = VALID_TIME;
 
@@ -63,12 +73,13 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
         PROCESS_WAIT_EVENT();
 
         if(ev == PROCESS_EVENT_TIMER) {
-
             PRINTF("Time: %d:%d:%d\t%d.%d.%d Day: %d Valid: %d\n", current_dt.hour, current_dt.minute, current_dt.second, current_dt.day, current_dt.month, current_dt.year, current_dt.weekday, time_valid);
-            
+
             if(etimer_expired(&update_timer)){
                 etimer_reset(&update_timer);
             }
+
+            timestamp++; // update timestamp
 
             if(valid_counter < VALID_TIME) {
                 valid_counter+=1;
@@ -102,9 +113,8 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
                 }
             }
         } else if(ev == dt_update_event) {
-
             PRINTF("Time: Got update.\n");
-            
+
             current_dt.second = ((struct hxb_data*)data)->value.datetime.second;
             current_dt.minute = ((struct hxb_data*)data)->value.datetime.minute;
             current_dt.hour = ((struct hxb_data*)data)->value.datetime.hour;
@@ -112,19 +122,14 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
             current_dt.month = ((struct hxb_data*)data)->value.datetime.month;
             current_dt.year = ((struct hxb_data*)data)->value.datetime.year;
             current_dt.weekday = ((struct hxb_data*)data)->value.datetime.weekday;
-            
-            free(data);
 
             time_valid = true;
             valid_counter = 0;
 
             etimer_restart(&update_timer);
+            free(data);
         }
     }
     PROCESS_END();
 }
-
-
-
-    
 

@@ -17,16 +17,19 @@ void usage()
     std::cout << "\ncommands are:\n";
     std::cout << "  set EID datatype value    set EID to VALUE\n";
     std::cout << "  get EID                   query the value of EID\n";
+    std::cout << "  epquery EID               query Endpoint metadata\n";
     std::cout << "\nshortcut commands           for Hexabus-Socket:\n";
+    std::cout << "  devinfo                   get device name (same as epquery 0)\n";
     std::cout << "  on                        switch device on (same as set 1 1 1)\n";
     std::cout << "  off                       switch device off (same as set 1 1 0)\n";
     std::cout << "  status                    query on/off status of device (same as get 1)\n";
     std::cout << "  power                     get power consumption (same as get 2)\n";
     std::cout << "\ndatatypes are:\n";
-    std::cout << "  1                         Bool (Value = 0 or 1)\n";
-    std::cout << "  2                         8bit Uint\n";
-    std::cout << "  3                         32bit Uint\n";
-    std::cout << "  4                         Hexabus Date and Time. Value can be Unix time or -1 for current system time" << std::endl;
+    std::cout << "1: Bool (Value = 0 or 1) - ";
+    std::cout << "2: 8bit Uint - ";
+    std::cout << "3: 32bit Uint - ";
+    std::cout << "4: Hexabus Date and Time. Value can be Unix time or -1 for current system time - ";
+    std::cout << "5: 32bit floating point" << std::endl;
 }
 
 datetime make_datetime_struct(time_t given_time = -1) {
@@ -80,8 +83,8 @@ void print_packet(char* recv_data) {
         break;
     } 
   }
-  else if(phandling.getPacketType() == HXB_PTYPE_INFO || phandling.getPacketType() == HXB_PTYPE_WRITE)
-  { 
+  else if(phandling.getPacketType() == HXB_PTYPE_INFO)
+  {
     std::cout << "Datatype:\t";
     switch(phandling.getDatatype())
     {
@@ -97,6 +100,9 @@ void print_packet(char* recv_data) {
       case HXB_DTYPE_DATETIME:
         std::cout << "Datetime\n";
       break;
+      case HXB_DTYPE_FLOAT:
+        std::cout << "Float\n";
+        break;
       default:
         std::cout << "(unknown)";
         break;
@@ -115,12 +121,48 @@ void print_packet(char* recv_data) {
       case HXB_DTYPE_DATETIME:
         std::cout << (int)value.datetime.day << "." << (int)value.datetime.month << "." << value.datetime.year << " " << (int)value.datetime.hour << ":" << (int)value.datetime.minute << ":" << (int)value.datetime.second << " Weekday: " << (int)value.datetime.weekday;
         break;
+      case HXB_DTYPE_FLOAT:
+        std::cout << value.float32;
+        break;
       default:
         std::cout << "(unknown)";
         break;
     }
-  	std::cout << std::endl;
-	}
+  }
+  else if(phandling.getPacketType() == HXB_PTYPE_EPINFO)
+  {
+    if(phandling.getEID() == 0)
+    {
+      std::cout << "Device Info\nDevice Name:\t" << phandling.getString() << "\n";
+    } else {
+      std::cout << "Endpoint Info\n";
+      std::cout << "Endpoint ID:\t" << (int)phandling.getEID() << "\n";
+      std::cout << "EP Datatype:\t"; // TODO code duplication -- maybe this should be a function
+      switch(phandling.getDatatype())
+      {
+        case HXB_DTYPE_BOOL:
+          std::cout << "Bool\n";
+          break;
+        case HXB_DTYPE_UINT8:
+          std::cout << "Uint8\n";
+          break;
+        case HXB_DTYPE_UINT32:
+          std::cout << "Uint32\n";
+          break;
+        case HXB_DTYPE_DATETIME:
+          std::cout << "Datetime\n";
+        break;
+        case HXB_DTYPE_FLOAT:
+          std::cout << "Float\n";
+          break;
+        default:
+          std::cout << "(unknown)\n";
+          break;
+      }
+      std::cout << "EP Name:\t" << phandling.getString() << "\n";
+    }
+  }
+	std::cout << std::endl;
 }
 
 int main(int argc, char** argv)
@@ -192,9 +234,11 @@ int main(int argc, char** argv)
       uint8_t dtype = atoi(argv[4]);
       uint8_t val8;   // only the relevant one is used in the switch.
       uint32_t val32;
+			float valf;
 
       struct hxb_packet_int8 packet8;
       struct hxb_packet_int32 packet32;
+      struct hxb_packet_float packetf;
 
       switch(dtype)
       {
@@ -208,6 +252,11 @@ int main(int argc, char** argv)
           val32 = atoi(argv[5]);
           packet32 = packetm->write32(eid, dtype, val32, false);
           network.sendPacket(argv[1], HXB_PORT, (char*)&packet32, sizeof(packet32));
+          break;
+        case HXB_DTYPE_FLOAT:
+          valf = atof(argv[5]);
+          packetf = packetm->writef(eid, dtype, valf, false);
+          network.sendPacket(argv[1], HXB_PORT, (char*)&packetf, sizeof(packetf));
           break;
         default:
           std::cout << "unknown data type.\n";
@@ -227,7 +276,38 @@ int main(int argc, char** argv)
       hxb_packet_query packet = packetm->query(eid);
       network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
       network.receivePacket(true);
-    	print_packet(network.getData());
+      print_packet(network.getData());
+    }
+    else
+    {
+      usage();
+      exit(1);
+    }
+  }
+  else if(!strcmp(argv[2], "epquery"))   // epquery: request endpoint metadata
+  {
+    if(argc == 4)
+    {
+      uint8_t eid = atoi(argv[3]);
+      hxb_packet_query packet = packetm->query(eid, true);
+      network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
+      network.receivePacket(true);
+      print_packet(network.getData());
+    }
+    else
+    {
+      usage();
+      exit(1);
+    }
+  }
+  else if(!strcmp(argv[2], "devinfo"))   // epquery: request endpoint metadata
+  {
+    if(argc == 3)
+    {
+      hxb_packet_query packet = packetm->query(0, true);
+      network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
+      network.receivePacket(true);
+      print_packet(network.getData());
     }
     else
     {
@@ -244,10 +324,12 @@ int main(int argc, char** argv)
       uint8_t val8;
       uint32_t val32;
       struct datetime valdt;
+      float valf;
 
       struct hxb_packet_int8 packet8;
       struct hxb_packet_int32 packet32;
       struct hxb_packet_datetime packetdt;
+      struct hxb_packet_float packetf;
 
       switch(dtype) {
           case HXB_DTYPE_BOOL:
@@ -269,10 +351,15 @@ int main(int argc, char** argv)
               network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetdt, sizeof(packetdt));
               print_packet((char*)&packetdt);
               break;
+          case HXB_DTYPE_FLOAT:
+              valf = atof(argv[4]);
+              packetf = packetm->writef(eid, dtype, valf, true);
+              network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetf, sizeof(packetf));
+              print_packet((char*)&packetf);
+              break;
           default:
               std::cout << "Unknown data type.\n";
       }
-
     }
     else
     {

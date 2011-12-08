@@ -11,7 +11,7 @@ set(CMAKE_VERBOSE_MAKEFILE true)
 SET(ENABLE_LOGGING 1)
 
 set(V_MAJOR 0)
-set(V_MINOR 2)
+set(V_MINOR 4)
 set(V_PATCH 0)
 
 # add a path where some libraries might be stored
