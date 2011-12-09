@@ -184,219 +184,122 @@ PROCESS_THREAD(state_machine_process, ev, data)
   /*  TESTING INIT (((o) (o)))
                         v
   */
-  /*
   // clear the eeprom
-  for(int i = 0 ; i <128 ; i++)
+
+  for(int i = 0 ; i < 127 ; i++)
   {
     int zero = 0;
     eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_TRANSITIONS + i), 1);
     eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_CONDITIONS + i), 1);
     eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_DATETIME_TRANSITIONS + i), 1);
   }
-  PROCESS_PAUSE();
-  for(int i = 128 ; i < 256 ; i++)
-  {
-    int zero = 0;
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_TRANSITIONS + i), 1);
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_CONDITIONS + i), 1);
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_DATETIME_TRANSITIONS + i), 1);
-  }
-  PROCESS_PAUSE();
-  for(int i = 256 ; i < 384 ; i++)
-  {
-    int zero = 0;
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_TRANSITIONS + i), 1);
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_CONDITIONS + i), 1);
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_DATETIME_TRANSITIONS + i), 1);
-  }
-  PROCESS_PAUSE();
-  for(int i = 384 ; i < 512 ; i++)
-  {
-    int zero = 0;
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_TRANSITIONS + i), 1);
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_CONDITIONS + i), 1);
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_DATETIME_TRANSITIONS + i), 1);
-  }
-  */
-  PROCESS_PAUSE();
 
   // write transitions into the EEPROM
-  
-  //Shutter statemachine
- 
   {
-    int numberOfTransitions = 5;
+    //"normal" transitions
+    int numberOfTransitions = 2;
     eeprom_write_block(&numberOfTransitions, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
-
     struct transition trans;
     trans.fromState = 0;
     trans.cond = 0; // condition index
-    trans.eid = 23;
-    trans.goodState = 0;
+    trans.eid = 1;
+    trans.goodState = 1;
     trans.badState = 0;
-    trans.data.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&trans.data.data = 1;
+    trans.data.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&trans.data.data = HXB_TRUE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
     PROCESS_PAUSE();
 
-    trans.fromState = 0;
-    trans.cond = 1; // condition index
-    trans.eid = 23;
+    trans.fromState = 1;
+    trans.cond = 0; // condition index
+    trans.eid = 1;
     trans.goodState = 0;
-    trans.badState = 0;
-    trans.data.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&trans.data.data = 255;
+    trans.badState = 1;
+    trans.data.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&trans.data.data = HXB_FALSE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (sizeof(struct transition))), sizeof(struct transition));
     PROCESS_PAUSE();
 
+    // datetime-transitions
+    numberOfTransitions = 3;
+    eeprom_write_block(&numberOfTransitions, (void*)EE_STATEMACHINE_DATETIME_TRANSITIONS, 1);
+
     trans.fromState = 0;
+    trans.cond = 1; // condition index
+    trans.eid = 1;
+    trans.goodState = 2;
+    trans.badState = 2;
+    trans.data.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&trans.data.data = HXB_TRUE;
+    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS), sizeof(struct transition));
+    PROCESS_PAUSE();
+
+    trans.fromState = 2;
     trans.cond = 2; // condition index
-    trans.eid = 23;
+    trans.eid = 1;
     trans.goodState = 0;
     trans.badState = 0;
-    trans.data.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&trans.data.data = 1;
-    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + 2*(sizeof(struct transition))), sizeof(struct transition));
+    trans.data.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&trans.data.data = HXB_FALSE;
+    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + sizeof(struct transition)), sizeof(struct transition));
     PROCESS_PAUSE();
 
-    trans.fromState = 0;
+    trans.fromState = 1;
     trans.cond = 3; // condition index
-    trans.eid = 23;
+    trans.eid = 1;
     trans.goodState = 0;
     trans.badState = 0;
-    trans.data.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&trans.data.data = 255;
-    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + 3*(sizeof(struct transition))), sizeof(struct transition));
+    trans.data.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&trans.data.data = HXB_FALSE;
+    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (2 * sizeof(struct transition))), sizeof(struct transition));
     PROCESS_PAUSE();
 
-    trans.fromState = 0;
-    trans.cond = 4; // condition index
-    trans.eid = 23;
-    trans.goodState = 0;
-    trans.badState = 0;
-    trans.data.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&trans.data.data = 0;
-    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + 4*(sizeof(struct transition))), sizeof(struct transition));
-    PROCESS_PAUSE();
     // conditions
     struct condition cond;
-
-    cond.sourceIP[0] = 0xfe;
-    cond.sourceIP[1] = 0x80;
-    cond.sourceIP[2] = 0x00;
-    cond.sourceIP[3] = 0x00;
-    cond.sourceIP[4] = 0x00;
-    cond.sourceIP[5] = 0x00;
-    cond.sourceIP[6] = 0x00;
-    cond.sourceIP[7] = 0x00;
-    cond.sourceIP[8] = 0x00;
-    cond.sourceIP[9] = 0x50;
+    cond.sourceIP[0]  = 0xfe;
+    cond.sourceIP[1]  = 0x80;
+    cond.sourceIP[2]  = 0x00;
+    cond.sourceIP[3]  = 0x00;
+    cond.sourceIP[4]  = 0x00;
+    cond.sourceIP[5]  = 0x00;
+    cond.sourceIP[6]  = 0x00;
+    cond.sourceIP[7]  = 0x00;
+    cond.sourceIP[8]  = 0x00;
+    cond.sourceIP[9]  = 0x50;
     cond.sourceIP[10] = 0xc4;
     cond.sourceIP[11] = 0xff;
     cond.sourceIP[12] = 0xfe;
     cond.sourceIP[13] = 0x04;
-    cond.sourceIP[14] = 0x90;
-    cond.sourceIP[15] = 0x02;
-    cond.sourceEID = 25;
+    cond.sourceIP[14] = 0x00;
+    cond.sourceIP[15] = 0x0e;
+    cond.sourceEID = 2;
     cond.op = STM_EQ;
     cond.value.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&cond.value.data = 2;
+    *(uint8_t*)&cond.value.data = 10;
     eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS, sizeof(struct condition));
     PROCESS_PAUSE();
 
-    cond.sourceIP[0] = 0xfe;
-    cond.sourceIP[1] = 0x80;
-    cond.sourceIP[2] = 0x00;
-    cond.sourceIP[3] = 0x00;
-    cond.sourceIP[4] = 0x00;
-    cond.sourceIP[5] = 0x00;
-    cond.sourceIP[6] = 0x00;
-    cond.sourceIP[7] = 0x00;
-    cond.sourceIP[8] = 0x00;
-    cond.sourceIP[9] = 0x50;
-    cond.sourceIP[10] = 0xc4;
-    cond.sourceIP[11] = 0xff;
-    cond.sourceIP[12] = 0xfe;
-    cond.sourceIP[13] = 0x04;
-    cond.sourceIP[14] = 0x90;
-    cond.sourceIP[15] = 0x02;
-    cond.sourceEID = 25;
-    cond.op = STM_EQ;
-    cond.value.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&cond.value.data = 1;
-    eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + (sizeof(struct condition)), sizeof(struct condition));
+    cond.sourceEID = 0;
+    cond.op = 0x04 | 0x80; // second, greater than or equal
+    cond.value.datatype = HXB_DTYPE_DATETIME;
+    (*(struct datetime*)&(cond.value.data)).second = 30;
+    eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)), sizeof(struct condition));
     PROCESS_PAUSE();
 
-    cond.sourceIP[0] = 0xfe;
-    cond.sourceIP[1] = 0x80;
-    cond.sourceIP[2] = 0x00;
-    cond.sourceIP[3] = 0x00;
-    cond.sourceIP[4] = 0x00;
-    cond.sourceIP[5] = 0x00;
-    cond.sourceIP[6] = 0x00;
-    cond.sourceIP[7] = 0x00;
-    cond.sourceIP[8] = 0x00;
-    cond.sourceIP[9] = 0x50;
-    cond.sourceIP[10] = 0xc4;
-    cond.sourceIP[11] = 0xff;
-    cond.sourceIP[12] = 0xfe;
-    cond.sourceIP[13] = 0x04;
-    cond.sourceIP[14] = 0x90;
-    cond.sourceIP[15] = 0x02;
-    cond.sourceEID = 24;
-    cond.op = STM_EQ;
-    cond.value.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&cond.value.data = 2;
-    eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + 2*(sizeof(struct condition)), sizeof(struct condition));
+    cond.sourceEID = 0;
+    cond.op = 0x04 | 0x00; // second, less than
+    cond.value.datatype = HXB_DTYPE_DATETIME;
+    (*(struct datetime*)&(cond.value.data)).second = 30;
+    eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + 2 * sizeof(struct condition)), sizeof(struct condition));
     PROCESS_PAUSE();
 
-    cond.sourceIP[0] = 0xfe;
-    cond.sourceIP[1] = 0x80;
-    cond.sourceIP[2] = 0x00;
-    cond.sourceIP[3] = 0x00;
-    cond.sourceIP[4] = 0x00;
-    cond.sourceIP[5] = 0x00;
-    cond.sourceIP[6] = 0x00;
-    cond.sourceIP[7] = 0x00;
-    cond.sourceIP[8] = 0x00;
-    cond.sourceIP[9] = 0x50;
-    cond.sourceIP[10] = 0xc4;
-    cond.sourceIP[11] = 0xff;
-    cond.sourceIP[12] = 0xfe;
-    cond.sourceIP[13] = 0x04;
-    cond.sourceIP[14] = 0x90;
-    cond.sourceIP[15] = 0x02;
-    cond.sourceEID = 24;
-    cond.op = STM_EQ;
-    cond.value.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&cond.value.data = 1;
-    eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + 3*(sizeof(struct condition)), sizeof(struct condition));
-    PROCESS_PAUSE();
-
-    cond.sourceIP[0] = 0xfe;
-    cond.sourceIP[1] = 0x80;
-    cond.sourceIP[2] = 0x00;
-    cond.sourceIP[3] = 0x00;
-    cond.sourceIP[4] = 0x00;
-    cond.sourceIP[5] = 0x00;
-    cond.sourceIP[6] = 0x00;
-    cond.sourceIP[7] = 0x00;
-    cond.sourceIP[8] = 0x00;
-    cond.sourceIP[9] = 0x50;
-    cond.sourceIP[10] = 0xc4;
-    cond.sourceIP[11] = 0xff;
-    cond.sourceIP[12] = 0xfe;
-    cond.sourceIP[13] = 0x04;
-    cond.sourceIP[14] = 0x90;
-    cond.sourceIP[15] = 0x02;
-    cond.sourceEID = 24;
-    cond.op = STM_EQ;
-    cond.value.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&cond.value.data = 0;
-    eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + 4*(sizeof(struct condition)), sizeof(struct condition));
+    cond.sourceEID = 0;
+    cond.op = 0x80; // in-state-since
+    cond.value.datatype = HXB_DTYPE_TIMESTAMP;
+    *(uint32_t*)&cond.value.data = 30;
+    eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + 3 * sizeof(struct condition)), sizeof(struct condition));
     PROCESS_PAUSE();
   }
-
   // **************************
 
   PRINTF("State Machine starting.\r\n");
@@ -440,8 +343,8 @@ PROCESS_THREAD(state_machine_process, ev, data)
     PRINTF("state machine: Current state: %d\r\n", curState);
     if(ev == PROCESS_EVENT_TIMER)
     {
-      //check_datetime_transitions();
-      //etimer_reset(&check_timer);
+      check_datetime_transitions();
+      etimer_reset(&check_timer);
     }
     if(ev == sm_data_received_event)
     {
