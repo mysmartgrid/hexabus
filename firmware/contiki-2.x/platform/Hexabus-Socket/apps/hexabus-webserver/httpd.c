@@ -35,6 +35,7 @@
  */
 
 #include <string.h>
+#include <stdio.h>
 
 #include "contiki-net.h"
 
@@ -45,6 +46,7 @@
 
 #include "relay.h"
 #include "mdns_responder.h"
+#include "state_machine.h"
 extern void set_forwarding_to_eeprom(uint8_t);
 
 
@@ -392,10 +394,30 @@ PT_THREAD(handle_output(struct httpd_state *s))
 	PT_END(&s->outputpt);
 }
 /*---------------------------------------------------------------------------*/
+	uint8_t pow10(uint8_t exp) {
+		uint8_t val = 1;
+		uint8_t i;
+		for(i = 0;i < exp;i++) {
+			val *= 10;
+		}
+		return val;
+	}
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+	uint8_t ctoi(const char *str, uint8_t length) {
+		uint8_t value = 0;
+		uint8_t i;
+		for(i = 0;i < length;i++) {
+			value += (str[i] - '0')*pow10(length - i - 1);
+		}
+		return value;
+	}
+/*--------------------------------------------------------------------------*/
 const char httpd_get[] HTTPD_STRING_ATTR = "GET ";
 const char httpd_ref[] HTTPD_STRING_ATTR = "Referer:";
 const char httpd_post[] HTTPD_STRING_ATTR = "POST ";
 const char httpd_config_file[] HTTPD_STRING_ATTR = "config.shtml ";
+const char httpd_sm_config[] HTTPD_STRING_ATTR = "sm_config.shtml ";
 const char httpd_socket_status_file[] HTTPD_STRING_ATTR = "socket_stat.shtml ";
 static
 PT_THREAD(handle_input(struct httpd_state *s))
@@ -503,7 +525,98 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			relay_toggle();
 
 		}
-		else
+		else if (httpd_strncmp(&s->inputbuf[1], httpd_sm_config, sizeof(httpd_sm_config)-1) == 0)  {
+			
+			printf("Received Statemachine-POST\n"); 
+			s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
+			strncpy(s->filename, &s->inputbuf[0], sizeof(s->filename));
+			/* Look for ?, if found strip file name*/
+			uint8_t i;
+			for (i=0;i<sizeof(s->inputbuf);i++) {
+				if (s->inputbuf[i]=='?') {
+					if (i<sizeof(s->filename)) s->filename[i]=0;
+				}
+				if (s->inputbuf[i]==0) break;
+			}
+			//parse config data
+			int found=0;
+			//look for the combination "\r\n\r\n"; the post data follow thereafter
+			while (!found)
+			{
+				PSOCK_READTO(&s->sin, ISO_nl);
+				PSOCK_READTO(&s->sin, ISO_cr);
+				if (PSOCK_DATALEN(&s->sin) == 1)
+				{
+					PSOCK_READTO(&s->sin, ISO_nl);
+					found=1;
+				}
+			}
+			PSOCK_READTO(&s->sin, ISO_equal);
+			// parse the string
+			struct transition trans;
+			PSOCK_READTO(&s->sin, '-');
+			// now the table entries
+			uint8_t end = 0;
+			static uint8_t position = 0;
+			while(!end) {
+				PSOCK_READTO(&s->sin, '.');
+				if(PSOCK_DATALEN(&s->sin) <= 1) { // TODO: Improve this
+					end = 1;
+					break;
+				}
+				// Extract the value out of string
+				switch(position) {
+					case 0: // FromState
+						trans.fromState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+						break;
+					case 1: // Condition#
+						trans.cond = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+						break;
+					case 2: // EID
+						trans.eid = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+						break;
+					case 3: // DataType
+						trans.data.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+						break;
+					case 4: // Value
+						break;
+					case 5: // Good State
+						trans.goodState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+						break;
+					case 6: // Bad State
+						trans.badState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+						break;
+				}
+				if(++position == 7) {
+					position = 0;
+					printf("Struct: From: %d Cond: %d EID: %d DataType: %d Good: %d Bad: %d\n", trans.fromState, trans.cond, trans.eid, trans.data.datatype, trans.goodState, trans.badState);
+					memset(&trans, 0, sizeof(struct transition));
+				}
+			}
+			printf("End of TransTable.\n");	
+			/*//check for domain_name
+			PSOCK_READTO(&s->sin, ISO_amper);
+			if(s->inputbuf[0] != ISO_amper) {
+				mdns_responder_set_domain_name(s->inputbuf, PSOCK_DATALEN(&s->sin) - 1);
+			}
+
+			PSOCK_READTO(&s->sin, ISO_equal);
+			//check for relay_default_state
+			PSOCK_READTO(&s->sin, ISO_amper);
+			if(s->inputbuf[0] == '1')
+				set_relay_default(0);
+			else if (s->inputbuf[0] == '0')
+				set_relay_default(1);
+
+			PSOCK_READTO(&s->sin, ISO_equal);
+			//check for forwarding
+			PSOCK_READBUF_LEN(&s->sin, 1);
+			if(s->inputbuf[0] == '1')
+				set_forwarding_to_eeprom(1);
+			else if (s->inputbuf[0] == '0')
+				set_forwarding_to_eeprom(0);*/
+		}
+else
 		{
 			PSOCK_CLOSE_EXIT(&s->sin);
 		}
