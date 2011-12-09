@@ -40,6 +40,7 @@
  * \author Joakim Eriksson <joakime@sics.se>, Nicolas Tsiftes <nvt@sics.se>
  * Contributors: Niclas Finne <nfi@sics.se>, Joel Hoglund <joel@sics.se>,
  *               Mathieu Pouillot <m.pouillot@watteco.com>
+ *               George Oikonomou <oikonomou@users.sourceforge.net> (multicast)
  */
 
 #include "net/tcpip.h"
@@ -94,6 +95,9 @@ void RPL_DEBUG_DAO_OUTPUT(rpl_parent_t *);
 
 extern rpl_of_t RPL_OF;
 
+#if UIP_IPV6_MULTICAST_RPL
+static uip_ds6_mcastrt_t * mcast_group;
+#endif
 /*---------------------------------------------------------------------------*/
 static uip_ipaddr_t *
 get_global_addr()
@@ -656,6 +660,16 @@ dao_input(void)
   PRINT6ADDR(&prefix);
   PRINTF("\n");
 
+#if UIP_IPV6_MULTICAST_RPL
+  if(uip_is_addr_mcast_global(&prefix)) {
+    mcast_group = uip_ds6_mcast_route_add(&prefix);
+    if(mcast_group) {
+      mcast_group->dag = dag;
+      mcast_group->lifetime = RPL_LIFETIME(instance, lifetime);
+    }
+  } else
+#endif
+  {
   rep = uip_ds6_route_lookup(&prefix);
 
   if(lifetime == RPL_ZERO_LIFETIME) {
@@ -679,6 +693,7 @@ dao_input(void)
 
   rep->state.lifetime = RPL_LIFETIME(instance, lifetime);
   rep->state.learned_from = learned_from;
+  }
 
   if(learned_from == RPL_ROUTE_FROM_UNICAST_DAO) {
     if(dag->preferred_parent) {

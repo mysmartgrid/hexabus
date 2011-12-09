@@ -38,6 +38,7 @@
  *         for Low-Power and Lossy Networks (IETF RFC 6550)
  *
  * \author Joakim Eriksson <joakime@sics.se>, Nicolas Tsiftes <nvt@sics.se>
+ * Contributors: George Oikonomou <oikonomou@users.sourceforge.net> (multicast)
  */
 
 #include "net/uip.h"
@@ -58,6 +59,9 @@ rpl_stats_t rpl_stats;
 
 /************************************************************************/
 extern uip_ds6_route_t uip_ds6_routing_table[UIP_DS6_ROUTE_NB];
+#if UIP_IPV6_MULTICAST_RPL
+extern uip_ds6_mcastrt_t uip_ds6_mcast_table[UIP_DS6_MCAST_ROUTES];
+#endif
 /************************************************************************/
 void
 rpl_purge_routes(void)
@@ -73,6 +77,18 @@ rpl_purge_routes(void)
       }
     }
   }
+
+#if UIP_IPV6_MULTICAST_RPL
+  for(i = 0; i < UIP_DS6_MCAST_ROUTES; i++) {
+    if(uip_ds6_mcast_table[i].isused) {
+      if(uip_ds6_mcast_table[i].lifetime <= 1) {
+        uip_ds6_mcast_table[i].isused = 0;
+      } else {
+        uip_ds6_mcast_table[i].lifetime--;
+      }
+    }
+  }
+#endif
 }
 /************************************************************************/
 void
@@ -85,6 +101,14 @@ rpl_remove_routes(rpl_dag_t *dag)
       uip_ds6_route_rm(&uip_ds6_routing_table[i]);
     }
   }
+
+#if UIP_IPV6_MULTICAST_RPL
+  for(i = 0; i < UIP_DS6_MCAST_ROUTES; i++) {
+    if(uip_ds6_mcast_table[i].dag == dag) {
+      uip_ds6_mcast_table[i].isused = 0;
+    }
+  }
+#endif
 }
 /************************************************************************/
 void

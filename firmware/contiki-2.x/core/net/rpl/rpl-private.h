@@ -44,6 +44,7 @@
 #include "sys/clock.h"
 #include "sys/ctimer.h"
 #include "net/uip-ds6.h"
+#include "net/uip-mcast6/uip-mcast6.h"
 
 /*---------------------------------------------------------------------------*/
 /** \brief Is IPv6 address addr the link-local, all-RPL-nodes
@@ -181,8 +182,24 @@
 
 #ifdef  RPL_CONF_MOP
 #define RPL_MOP_DEFAULT                 RPL_CONF_MOP
+#else /* RPL_CONF_MOP */
+#if UIP_IPV6_MULTICAST_RPL
+#define RPL_MOP_DEFAULT                 RPL_MOP_STORING_MULTICAST
 #else
 #define RPL_MOP_DEFAULT                 RPL_MOP_STORING_NO_MULTICAST
+#endif /* UIP_IPV6_MULTICAST_RPL */
+#endif /* RPL_CONF_MOP */
+
+/* Emit a pre-processor error if the user configured multicast with bad MOP */
+#if UIP_IPV6_MULTICAST_RPL && (RPL_MOP_DEFAULT != RPL_MOP_STORING_MULTICAST)
+#error "RPL Multicast requires RPL_MOP_DEFAULT==3. Check contiki-conf.h"
+#endif
+
+/* Multicast Route Lifetime. Unit: DIO current interval */
+#ifdef RPL_CONF_MCAST_LIFETIME
+#define RPL_MCAST_LIFETIME RPL_CONF_MCAST_LIFETIME
+#else
+#define RPL_MCAST_LIFETIME 3
 #endif
 
 /*

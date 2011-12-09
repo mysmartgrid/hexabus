@@ -37,6 +37,7 @@
  *         RPL timer management.
  *
  * \author Joakim Eriksson <joakime@sics.se>, Nicolas Tsiftes <nvt@sics.se>
+ * Contributors: George Oikonomou <oikonomou@users.sourceforge.net> (multicast)
  */
 
 #include "contiki-conf.h"
@@ -59,6 +60,10 @@ static uint16_t next_dis;
 /* dio_send_ok is true if the node is ready to send DIOs */
 static uint8_t dio_send_ok;
 
+#if UIP_IPV6_MULTICAST_RPL
+extern uip_ds6_mcastrt_t uip_ds6_mcast_table[UIP_DS6_MCAST_ROUTES];
+static uint8_t i;
+#endif
 /************************************************************************/
 static void
 handle_periodic_timer(void *ptr)
@@ -209,6 +214,28 @@ handle_dao_timer(void *ptr)
     PRINTF("RPL: handle_dao_timer - sending DAO\n");
     /* Set the route lifetime to the default value. */
     dao_output(instance->current_dag->preferred_parent, instance->default_lifetime, NULL);
+#if UIP_IPV6_MULTICAST_RPL
+    if(instance->mop == RPL_MOP_STORING_MULTICAST) {
+      /* Send a DAO for own multicast addresses */
+      for(i = 0; i < UIP_DS6_MADDR_NB; i++) {
+        if(uip_ds6_if.maddr_list[i].isused
+            && uip_is_addr_mcast_global(&uip_ds6_if.maddr_list[i].ipaddr)) {
+          dao_output(instance->current_dag->preferred_parent, RPL_MCAST_LIFETIME,
+              &uip_ds6_if.maddr_list[i].ipaddr);
+        }
+      }
+      /* Iterate multicast routes and send DAOs */
+      for(i = 0; i < UIP_DS6_MCAST_ROUTES; i++) {
+        /* Don't send if it's also our own address, done that already */
+        if(uip_ds6_mcast_table[i].isused) {
+          if(uip_ds6_maddr_lookup(&uip_ds6_mcast_table[i].group) == NULL) {
+            dao_output(instance->current_dag->preferred_parent, RPL_MCAST_LIFETIME,
+                &uip_ds6_mcast_table[i].group);
+          }
+        }
+      }
+    }
+#endif
   } else {
     PRINTF("RPL: No suitable DAO parent\n");
   }
