@@ -126,6 +126,21 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
           return HXB_ERR_DATATYPE;
       }
 #endif
+#if PRESENCE_DETECTOR_ENABLE
+    case 26:
+      if(value->datatype == HXB_DTYPE_BOOL)
+      {
+        if(*(uint8_t*)&value->data == HXB_TRUE)
+        {
+          no_motion_detected();
+        } else {
+          motion_detected();
+        }
+        return 0;
+      } else {
+        return HXB_ERR_DATATYPE;
+      }
+#endif
     default:  // Default: Endpoint does not exist
       return HXB_ERR_UNKNOWNEID;
   }
