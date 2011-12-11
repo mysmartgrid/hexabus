@@ -3,5 +3,6 @@
 *.a
 *.map
 firmware/bootloader/BootloaderFlasher/BootloaderFlasher
+*.swp
 hostsoftware/6switch/build
 firmware/Hexabus-Socket/obj_Hexabus-Socket/

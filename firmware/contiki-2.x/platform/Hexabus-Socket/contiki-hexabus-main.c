@@ -120,6 +120,15 @@
 #if STATE_MACHINE_ENABLE
 #include "state_machine.h"
 #endif
+#if SHUTTER_ENABLE
+#include "shutter.h"
+#endif
+#if HEXAPUSH_ENABLE
+#include "hexapush.h"
+#endif
+#if PRESENCE_DETECTOR_ENABLE
+#include "presence_detector.h"
+#endif
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -318,12 +327,35 @@ void initialize(void)
 
   /* Process for periodic sending of HEXABUS data */
 #if VALUE_BROADCAST_ENABLE
+#if VALUE_BROADCAST_AUTO_INTERVAL
   process_start(&value_broadcast_process, NULL);
+#else
+  init_value_broadcast();
+#endif
 #endif
 
   /* process handling received HEXABUS broadcasts */
 #if STATE_MACHINE_ENABLE
   process_start(&state_machine_process, NULL);
+#endif
+
+  /*Init Relay */
+  relay_init();
+
+#if SHUTTER_ENABLE
+  /*Init Shutter*/
+  shutter_init();
+
+  /* process for shutter control*/
+  process_start(&shutter_process, NULL);
+#endif
+
+#if HEXAPUSH_ENABLE
+  process_start(&hexapush_process, NULL);
+#endif
+
+#if PRESENCE_DETECTOR_ENABLE
+  process_start(&presence_detector_process, NULL);
 #endif
 
   mdns_responder_init();

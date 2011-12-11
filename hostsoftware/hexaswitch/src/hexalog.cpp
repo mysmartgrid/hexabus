@@ -46,7 +46,7 @@ int main(int argc, char** argv)
       if( (int)phandling.getEID() == 3 ) {
         struct hxb_value value = phandling.getValue();
         // Check if we have seen this sensor previously
-        float converted_value = (float)value.int32/10000;
+        float converted_value = (float)(*(uint32_t*)&value.data)/10000;
 
         std::string sensor_name(network.getSourceIP().to_string());
         it = sensors.find(sensor_name);

@@ -27,6 +27,19 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
     case 3:   // Endpoint 3: Temperature value 
       return HXB_DTYPE_FLOAT;
 #endif
+#if SHUTTER_ENABLE
+    case 23:
+      return HXB_DTYPE_UINT8;
+#endif
+#if HEXAPUSH_ENABLE
+    case 24:
+    case 25:
+      return HXB_DTYPE_UINT8;
+#endif
+#if PRESENCE_DETECTOR_ENABLE
+    case 26:
+      return HXB_DTYPE_BOOL;
+#endif
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
   }
@@ -41,7 +54,7 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
   switch(eid)
   {
     case 0:
-      strncpy(buffer, "Hexabus Socket - Development Version", 127);
+      strncpy(buffer, "Hexabus Socket - Development Version", 127); // TODO make this consistent with the MDNS name
       break;
     case 1:
       strncpy(buffer, "Main Switch", 127);
@@ -49,9 +62,27 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
     case 2:
       strncpy(buffer, "Power Meter", 127);
       break;
-#ifdef TEMPERATURE_ENABLE
+#if TEMPERATURE_ENABLE
     case 3:
       strncpy(buffer, "Temperature Sensor", 127);
+      break;
+#endif
+#if SHUTTER_ENABLE
+    case 23:
+      strncpy(buffer, "Window Shutter", 127);
+      break;
+#endif
+#if HEXAPUSH_ENABLE
+    case 24:
+      strncpy(buffer, "Pressed Hexapush buttons", 127);
+      break;
+    case 25:
+      strncpy(buffer, "Clicked Hexapush buttons", 127);
+      break;
+#endif
+#if PRESENCE_DETECTOR_ENABLE
+    case 26:
+      strncpy(buffer, "Presence Detector", 127);
       break;
 #endif
     default:
@@ -71,7 +102,7 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
     case 1:   // Endpoint 1: Power switch on Hexabus Socket.
       if(value->datatype == HXB_DTYPE_BOOL)
       {
-        if(value->int8 == HXB_TRUE)
+        if(*(uint8_t*)&value->data == HXB_TRUE)
         {
           relay_off();  // Note that the relay is connected in normally-closed position, so relay_off turns the power on and vice-versa
         } else {
@@ -86,6 +117,30 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
     case 3:   // Endpoint 3: Temperature value on Hexabus Socket -- read-only
 #endif
       return HXB_ERR_WRITEREADONLY;
+#if SHUTTER_ENABLE
+    case 23:
+      if(value->datatype == HXB_DTYPE_UINT8) {
+          shutter_toggle(*(uint8_t*)&value->data);
+          return 0;
+      } else {
+          return HXB_ERR_DATATYPE;
+      }
+#endif
+#if PRESENCE_DETECTOR_ENABLE
+    case 26:
+      if(value->datatype == HXB_DTYPE_BOOL)
+      {
+        if(*(uint8_t*)&value->data == HXB_TRUE)
+        {
+          no_motion_detected();
+        } else {
+          motion_detected();
+        }
+        return 0;
+      } else {
+        return HXB_ERR_DATATYPE;
+      }
+#endif
     default:  // Default: Endpoint does not exist
       return HXB_ERR_UNKNOWNEID;
   }
@@ -97,23 +152,45 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
   {
     case 0:   // Endpoint 0: Hexabus device descriptor
       val->datatype = HXB_DTYPE_UINT32;
-      val->int32 = 0x07;    // 0x07: 0..00111: Enpoints 0, 1 and 2 exist.
+      *(uint32_t*)&val->data = 0x07;    // 0x07: 0..00111: Enpoints 0, 1 and 2 exist.
 #if TEMPERATURE_ENABLE
-      val->int32 += 0x08;      // +8: Endpoint 3 also exists
+      *(uint32_t*)&val->data += 0x08;      // +8: Endpoint 3 also exists
 #endif
       break;
     case 1:   // Endpoint 1: Hexabus Socket power switch
       val->datatype = HXB_DTYPE_BOOL;
-      val->int8 = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
+      *(uint8_t*)&val->data = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
       break;
     case 2:   // Endpoint 2: Hexabus Socket power metering
       val->datatype = HXB_DTYPE_UINT32;
-      val->int32 = metering_get_power();
+      *(uint32_t*)&val->data = metering_get_power();
       break;
 #if TEMPERATURE_ENABLE
     case 3:   // Endpoint 3: Hexabus temperaure metering
       val->datatype = HXB_DTYPE_FLOAT;
-      val->float32 = temperature_get();
+      *(float*)&val->data = temperature_get();
+      break;
+#endif
+#if SHUTTER_ENABLE
+    case 23:
+      val->datatype = HXB_DTYPE_UINT8;
+      *(uint8_t*)&val->data = shutter_get_state();
+      break;
+#endif
+#if HEXAPUSH_ENABLE
+    case 24:  //Pressed und released
+      val->datatype = HXB_DTYPE_UINT8;
+      *(uint8_t*)&val->data = get_buttonstate();
+      break;
+    case 25: //Clicked
+      val->datatype = HXB_DTYPE_UINT8;
+      *(uint8_t*)&val->data = get_clickstate();
+      break;
+#endif
+#if PRESENCE_DETECTOR_ENABLE
+    case 26:
+      val->datatype = HXB_DTYPE_BOOL;
+      *(uint8_t*)&val->data = presence_active() == 0 ? HXB_FALSE : HXB_TRUE;
       break;
 #endif
     default:

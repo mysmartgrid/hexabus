@@ -117,7 +117,7 @@ PacketHandling::PacketHandling(char* data)
             crc_okay = packet8->crc == crc->crc16((char*)packet8, sizeof(*packet8)-2);
 
             eid = packet8->eid;
-            value.int8 = packet8->value;
+            *(uint8_t*)&value.data = packet8->value;
           }
           break;
         case HXB_DTYPE_UINT32:
@@ -129,7 +129,7 @@ PacketHandling::PacketHandling(char* data)
             packet32->value = ntohl(packet32->value);
 
             eid = packet32->eid;
-            value.int32 = packet32->value;
+            *(uint32_t*)&value.data = packet32->value;
           }
           break;
         case HXB_DTYPE_DATETIME:
@@ -140,7 +140,7 @@ PacketHandling::PacketHandling(char* data)
             packetdt->value.year = ntohs(packetdt->value.year);
 
             eid = packetdt->eid;
-            value.datetime = packetdt->value;
+            *(datetime*)&value.data = packetdt->value;
           }
           break;
         case HXB_DTYPE_FLOAT:
@@ -152,7 +152,7 @@ PacketHandling::PacketHandling(char* data)
             packetf->value = *(float*)&value_hbo;
 
             eid = packetf->eid;
-            value.float32 = packetf->value;
+            *(float*)&value.data = packetf->value;
           }
           break;
         default:

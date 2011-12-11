@@ -47,14 +47,10 @@ uint32_t getTimestamp() {
 
 PROCESS(datetime_service_process, "Keeps the Date and Time up-to-date\n");
 
-AUTOSTART_PROCESSES(&datetime_service_process);
-
 PROCESS_THREAD(datetime_service_process, ev, data) {
 
     static struct etimer update_timer;
-    static struct etimer valid_timer;
     static int valid_counter;
-
 
     PROCESS_BEGIN();
 
@@ -110,14 +106,7 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
         } else if(ev == dt_update_event) {
             PRINTF("Time: Got update.\n");
 
-            current_dt.second = ((struct hxb_data*)data)->value.datetime.second;
-            current_dt.minute = ((struct hxb_data*)data)->value.datetime.minute;
-            current_dt.hour = ((struct hxb_data*)data)->value.datetime.hour;
-            current_dt.day = ((struct hxb_data*)data)->value.datetime.day;
-            current_dt.month = ((struct hxb_data*)data)->value.datetime.month;
-            current_dt.year = ((struct hxb_data*)data)->value.datetime.year;
-            current_dt.weekday = ((struct hxb_data*)data)->value.datetime.weekday;
-
+            current_dt = *(struct datetime*)&(((struct hxb_data*)data)->value.data);
             time_valid = true;
             valid_counter = 0;
 
