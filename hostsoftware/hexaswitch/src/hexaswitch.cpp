@@ -207,13 +207,11 @@ int main(int argc, char** argv)
   {
     hxb_packet_int8 packet = packetm->write8(1, HXB_DTYPE_BOOL, HXB_TRUE, false);
     network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
-    print_packet(network.getData());
   }
   else if(!strcmp(argv[2], "off"))      // off: set EID 0 to FALSE
   {
     hxb_packet_int8 packet = packetm->write8(1, HXB_DTYPE_BOOL, HXB_FALSE, false);
     network.sendPacket(argv[1], HXB_PORT, (char*)&packet, sizeof(packet));
-    print_packet(network.getData());
   }
   else if(!strcmp(argv[2], "status"))   // status: query EID 1
   {
