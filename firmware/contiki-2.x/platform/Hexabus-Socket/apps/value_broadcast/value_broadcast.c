@@ -35,6 +35,7 @@
 #include "net/uip-udp-packet.h"
 #include "sys/ctimer.h"
 #include "hexabus_config.h"
+#include "state_machine.h"
 
 #include "../../../../../../shared/hexabus_packet.h"
 
@@ -93,6 +94,15 @@ void broadcast_value(uint8_t eid)
       packet8.value = *(uint8_t*)&val.data;
       packet8.crc = uip_htons(crc16_data((char*)&packet8, sizeof(packet8)-2, 0));
 
+#if STATE_MACHINE_ENABLE
+      struct hxb_data* data = malloc(sizeof(struct hxb_data));
+      memset(data->source, 0x00,15);
+      memset((data->source)+15,0x01,1);
+      data->eid = eid;
+      memcpy(&data->value, &val, sizeof(struct hxb_value));
+      process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+#endif
+
       uip_udp_packet_sendto(client_conn, &packet8, sizeof(packet8),
                             &server_ipaddr, UIP_HTONS(HXB_PORT));
       break;
@@ -106,6 +116,10 @@ void broadcast_value(uint8_t eid)
       packet32.value = uip_htonl(*(uint32_t*)&val.data);
       packet32.crc = uip_htons(crc16_data((char*)&packet32, sizeof(packet32)-2, 0));
 
+#if STATE_MACHINE_ENABLE
+      process_post(PROCESS_BROADCAST, sm_data_received_event, val.data);
+#endif
+
       uip_udp_packet_sendto(client_conn, &packet32, sizeof(packet32),
                             &server_ipaddr, UIP_HTONS(HXB_PORT));
       break;
@@ -118,6 +132,10 @@ void broadcast_value(uint8_t eid)
       packetf.datatype = val.datatype;
       packetf.value = uip_htonl(*(float*)&val.data);
       packetf.crc = uip_htons(crc16_data((char*)&packetf, sizeof(packetf)-2, 0));
+
+#if STATE_MACHINE_ENABLE
+      process_post(PROCESS_BROADCAST, sm_data_received_event, val.data);
+#endif
 
       uip_udp_packet_sendto(client_conn, &packetf, sizeof(packetf),
                             &server_ipaddr, UIP_HTONS(HXB_PORT));

@@ -225,7 +225,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
   //Shutter statemachine
  
   {
-    int numberOfTransitions = 5;
+    int numberOfTransitions = 10;
     eeprom_write_block(&numberOfTransitions, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
 
     struct transition trans;
@@ -277,6 +277,56 @@ PROCESS_THREAD(state_machine_process, ev, data)
     trans.data.datatype = HXB_DTYPE_UINT8;
     *(uint8_t*)&trans.data.data = 0;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + 4*(sizeof(struct transition))), sizeof(struct transition));
+    PROCESS_PAUSE();
+    
+    trans.fromState = 0;
+    trans.cond = 5; // condition index
+    trans.eid = 23;
+    trans.goodState = 0;
+    trans.badState = 0;
+    trans.data.datatype = HXB_DTYPE_UINT8;
+    *(uint8_t*)&trans.data.data = 1;
+    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + 5*(sizeof(struct transition))), sizeof(struct transition));
+    PROCESS_PAUSE();
+
+    trans.fromState = 0;
+    trans.cond = 6; // condition index
+    trans.eid = 23;
+    trans.goodState = 0;
+    trans.badState = 0;
+    trans.data.datatype = HXB_DTYPE_UINT8;
+    *(uint8_t*)&trans.data.data = 255;
+    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + 6*(sizeof(struct transition))), sizeof(struct transition));
+    PROCESS_PAUSE();
+
+    trans.fromState = 0;
+    trans.cond = 7; // condition index
+    trans.eid = 23;
+    trans.goodState = 0;
+    trans.badState = 0;
+    trans.data.datatype = HXB_DTYPE_UINT8;
+    *(uint8_t*)&trans.data.data = 1;
+    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + 7*(sizeof(struct transition))), sizeof(struct transition));
+    PROCESS_PAUSE();
+
+    trans.fromState = 0;
+    trans.cond = 8; // condition index
+    trans.eid = 23;
+    trans.goodState = 0;
+    trans.badState = 0;
+    trans.data.datatype = HXB_DTYPE_UINT8;
+    *(uint8_t*)&trans.data.data = 255;
+    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + 8*(sizeof(struct transition))), sizeof(struct transition));
+    PROCESS_PAUSE();
+
+    trans.fromState = 0;
+    trans.cond = 9; // condition index
+    trans.eid = 23;
+    trans.goodState = 0;
+    trans.badState = 0;
+    trans.data.datatype = HXB_DTYPE_UINT8;
+    *(uint8_t*)&trans.data.data = 0;
+    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + 9*(sizeof(struct transition))), sizeof(struct transition));
     PROCESS_PAUSE();
     // conditions
     struct condition cond;
@@ -394,6 +444,121 @@ PROCESS_THREAD(state_machine_process, ev, data)
     cond.value.datatype = HXB_DTYPE_UINT8;
     *(uint8_t*)&cond.value.data = 0;
     eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + 4*(sizeof(struct condition)), sizeof(struct condition));
+
+    PROCESS_PAUSE();
+    cond.sourceIP[0] = 0x00;
+    cond.sourceIP[1] = 0x00;
+    cond.sourceIP[2] = 0x00;
+    cond.sourceIP[3] = 0x00;
+    cond.sourceIP[4] = 0x00;
+    cond.sourceIP[5] = 0x00;
+    cond.sourceIP[6] = 0x00;
+    cond.sourceIP[7] = 0x00;
+    cond.sourceIP[8] = 0x00;
+    cond.sourceIP[9] = 0x00;
+    cond.sourceIP[10] = 0x00;
+    cond.sourceIP[11] = 0x00;
+    cond.sourceIP[12] = 0x00;
+    cond.sourceIP[13] = 0x00;
+    cond.sourceIP[14] = 0x00;
+    cond.sourceIP[15] = 0x01;
+    cond.sourceEID = 25;
+    cond.op = STM_EQ;
+    cond.value.datatype = HXB_DTYPE_UINT8;
+    *(uint8_t*)&cond.value.data = 2;
+    eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + 5*(sizeof(struct condition)), sizeof(struct condition));
+    PROCESS_PAUSE();
+
+    cond.sourceIP[0] = 0x00;
+    cond.sourceIP[1] = 0x00;
+    cond.sourceIP[2] = 0x00;
+    cond.sourceIP[3] = 0x00;
+    cond.sourceIP[4] = 0x00;
+    cond.sourceIP[5] = 0x00;
+    cond.sourceIP[6] = 0x00;
+    cond.sourceIP[7] = 0x00;
+    cond.sourceIP[8] = 0x00;
+    cond.sourceIP[9] = 0x00;
+    cond.sourceIP[10] = 0x00;
+    cond.sourceIP[11] = 0x00;
+    cond.sourceIP[12] = 0x00;
+    cond.sourceIP[13] = 0x00;
+    cond.sourceIP[14] = 0x00;
+    cond.sourceIP[15] = 0x01;
+    cond.sourceEID = 25;
+    cond.op = STM_EQ;
+    cond.value.datatype = HXB_DTYPE_UINT8;
+    *(uint8_t*)&cond.value.data = 1;
+    eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + 6*(sizeof(struct condition)), sizeof(struct condition));
+    PROCESS_PAUSE();
+
+    cond.sourceIP[0] = 0x00;
+    cond.sourceIP[1] = 0x00;
+    cond.sourceIP[2] = 0x00;
+    cond.sourceIP[3] = 0x00;
+    cond.sourceIP[4] = 0x00;
+    cond.sourceIP[5] = 0x00;
+    cond.sourceIP[6] = 0x00;
+    cond.sourceIP[7] = 0x00;
+    cond.sourceIP[8] = 0x00;
+    cond.sourceIP[9] = 0x00;
+    cond.sourceIP[10] = 0x00;
+    cond.sourceIP[11] = 0x00;
+    cond.sourceIP[12] = 0x00;
+    cond.sourceIP[13] = 0x00;
+    cond.sourceIP[14] = 0x00;
+    cond.sourceIP[15] = 0x01;
+    cond.sourceEID = 24;
+    cond.op = STM_EQ;
+    cond.value.datatype = HXB_DTYPE_UINT8;
+    *(uint8_t*)&cond.value.data = 2;
+    eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + 7*(sizeof(struct condition)), sizeof(struct condition));
+    PROCESS_PAUSE();
+
+    cond.sourceIP[0] = 0x00;
+    cond.sourceIP[1] = 0x00;
+    cond.sourceIP[2] = 0x00;
+    cond.sourceIP[3] = 0x00;
+    cond.sourceIP[4] = 0x00;
+    cond.sourceIP[5] = 0x00;
+    cond.sourceIP[6] = 0x00;
+    cond.sourceIP[7] = 0x00;
+    cond.sourceIP[8] = 0x00;
+    cond.sourceIP[9] = 0x00;
+    cond.sourceIP[10] = 0x00;
+    cond.sourceIP[11] = 0x00;
+    cond.sourceIP[12] = 0x00;
+    cond.sourceIP[13] = 0x00;
+    cond.sourceIP[14] = 0x00;
+    cond.sourceIP[15] = 0x01;
+    cond.sourceEID = 24;
+    cond.op = STM_EQ;
+    cond.value.datatype = HXB_DTYPE_UINT8;
+    *(uint8_t*)&cond.value.data = 1;
+    eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + 8*(sizeof(struct condition)), sizeof(struct condition));
+    PROCESS_PAUSE();
+
+    cond.sourceIP[0] = 0x00;
+    cond.sourceIP[1] = 0x00;
+    cond.sourceIP[2] = 0x00;
+    cond.sourceIP[3] = 0x00;
+    cond.sourceIP[4] = 0x00;
+    cond.sourceIP[5] = 0x00;
+    cond.sourceIP[6] = 0x00;
+    cond.sourceIP[7] = 0x00;
+    cond.sourceIP[8] = 0x00;
+    cond.sourceIP[9] = 0x00;
+    cond.sourceIP[10] = 0x00;
+    cond.sourceIP[11] = 0x00;
+    cond.sourceIP[12] = 0x00;
+    cond.sourceIP[13] = 0x00;
+    cond.sourceIP[14] = 0x00;
+    cond.sourceIP[15] = 0x01;
+    cond.sourceEID = 24;
+    cond.op = STM_EQ;
+    cond.value.datatype = HXB_DTYPE_UINT8;
+    *(uint8_t*)&cond.value.data = 0;
+    eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + 9*(sizeof(struct condition)), sizeof(struct condition));
     PROCESS_PAUSE();
   }
 
