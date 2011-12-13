@@ -75,6 +75,7 @@ PROCESS(presence_detector_process, "Monitors the motion detector");
 PROCESS_THREAD(presence_detector_process, ev, data) {
 
     static struct etimer motion_timeout_timer;
+    static struct etimer keep_alive_timer;
 
     PROCESS_BEGIN();
 
@@ -84,23 +85,33 @@ PROCESS_THREAD(presence_detector_process, ev, data) {
     etimer_set(&motion_timeout_timer, CLOCK_SECOND * (60*ACTIVE_TIME));
     etimer_stop(&motion_timeout_timer);
 
+    etimer_set(&keep_alive_timer, CLOCK_SECOND * (60*KEEP_ALIVE));
+    etimer_stop(&keep_alive_timer);
+    
     while(1) {
         PROCESS_WAIT_EVENT();
         
         if(ev == motion_event) {
-            presence = 1;
             etimer_stop(&motion_timeout_timer);
-
-            broadcast_value(26);
+            etimer_restart(&keep_alive_timer);
+           
+            if(!presence) {
+                presence = 1;
+                broadcast_value(26);
+            }
 
             PRINTF("Presence active\n");
         } else if (ev == no_motion_event) {
             etimer_restart(&motion_timeout_timer);
+            etimer_stop(&keep_alive_timer);
             PRINTF("Presence timer started\n");
         } else if (ev == PROCESS_EVENT_TIMER) {
-            presence = 0;
+            
+            if(presence) {
+                presence = 0;
 
-            broadcast_value(26);
+                broadcast_value(26);
+            }
 
             PRINTF("Presence inactive\n");
         }
