@@ -12,7 +12,7 @@
 
 // datetime_service
 #define DATETIME_SERVICE_ENABLE 1
-#define DATETIME_SERVICE_DEBUG 1
+#define DATETIME_SERVICE_DEBUG 0
 
 // temperature
 #define TEMPERATURE_ENABLE 0
@@ -29,11 +29,11 @@
 #define STATE_MACHINE_DEBUG 1
 
 // shutter
-#define SHUTTER_ENABLE 0
-#define SHUTTER_DEBUG 0
+#define SHUTTER_ENABLE 1
+#define SHUTTER_DEBUG 1
 
 // hexapush
-#define HEXAPUSH_ENABLE 0
+#define HEXAPUSH_ENABLE 1
 #define HEXAPUSH_CLICK_ENABLE 1
 #define HEXAPUSH_PRESS_RELEASE_ENABLE 1
 #define HEXAPUSH_PRESS_DELAY 6   //multiplied by 50ms, only if Click and Press/Release are enabled
