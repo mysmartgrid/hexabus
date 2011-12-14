@@ -22,8 +22,8 @@ static struct datetime current_dt;
 static bool time_valid;
 static uint32_t timestamp; // seconds since datetime-service was started.
 
-void updateDatetime(struct datetime* dt) {
-    process_post(&datetime_service_process, dt_update_event, dt);
+void updateDatetime(struct hxb_envelope* envelope) {
+    process_post(&datetime_service_process, dt_update_event, envelope);
 }
 
 int getDatetime(struct datetime *dt) {
@@ -106,7 +106,7 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
         } else if(ev == dt_update_event) {
             PRINTF("Time: Got update.\n");
 
-            current_dt = *(struct datetime*)&(((struct hxb_data*)data)->value.data);
+            current_dt = *(struct datetime*)&(((struct hxb_envelope*)data)->value.data);
             time_valid = true;
             valid_counter = 0;
 
