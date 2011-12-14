@@ -31,20 +31,20 @@ static uint8_t dtTransLength; // length of date/time transition table
 static uint8_t curState = 0;  // starting out in state 0
 static uint32_t inStateSince; // when die we change into that state
 
-bool eval(uint8_t condIndex, struct hxb_data *data) {
+bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   struct condition cond;
   // get the condition from eeprom
   PRINTF("Checking condition %d\r\n", condIndex);
   eeprom_read_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + (condIndex * sizeof(struct condition))), sizeof(struct condition));
 
   // Check IPs and EID; ignore IP and EID for Datetime-Conditions and Timestamp-Conditions
-  if((memcmp(cond.sourceIP, data->source, 16) || (cond.sourceEID != data->eid)) && cond.value.datatype != HXB_DTYPE_DATETIME && cond.value.datatype != HXB_DTYPE_TIMESTAMP)
+  if((memcmp(cond.sourceIP, envelope->source, 16) || (cond.sourceEID != envelope->eid)) && cond.value.datatype != HXB_DTYPE_DATETIME && cond.value.datatype != HXB_DTYPE_TIMESTAMP)
     return false;
 
   PRINTF("IP and EID match / or datetime condition\r\n");
 
-  // Check datatypes, return false if they don't match -- TIMESTAMP is exempt from that because it's checked alongside the DATETIME conditions, getting DATETIME 'data's handled, not TIMESTAMPS
-  if(data->value.datatype != cond.value.datatype && cond.value.datatype != HXB_DTYPE_TIMESTAMP) {
+  // Check datatypes, return false if they don't match -- TIMESTAMP is exempt from that because it's checked alongside the DATETIME conditions
+  if(envelope->value.datatype != cond.value.datatype && cond.value.datatype != HXB_DTYPE_TIMESTAMP) {
     return false;
   }
 
@@ -54,34 +54,34 @@ bool eval(uint8_t condIndex, struct hxb_data *data) {
   {
     case HXB_DTYPE_BOOL:
     case HXB_DTYPE_UINT8:
-      if(cond.op == STM_EQ)  return *(uint8_t*)&data->value.data == *(uint8_t*)&cond.value.data;
-      if(cond.op == STM_LEQ) return *(uint8_t*)&data->value.data <= *(uint8_t*)&cond.value.data;
-      if(cond.op == STM_GEQ) return *(uint8_t*)&data->value.data >= *(uint8_t*)&cond.value.data;
-      if(cond.op == STM_LT)  return *(uint8_t*)&data->value.data <  *(uint8_t*)&cond.value.data;
-      if(cond.op == STM_GT)  return *(uint8_t*)&data->value.data >  *(uint8_t*)&cond.value.data;
-      if(cond.op == STM_NEQ) return *(uint8_t*)&data->value.data != *(uint8_t*)&cond.value.data;
+      if(cond.op == STM_EQ)  return *(uint8_t*)&envelope->value.data == *(uint8_t*)&cond.value.data;
+      if(cond.op == STM_LEQ) return *(uint8_t*)&envelope->value.data <= *(uint8_t*)&cond.value.data;
+      if(cond.op == STM_GEQ) return *(uint8_t*)&envelope->value.data >= *(uint8_t*)&cond.value.data;
+      if(cond.op == STM_LT)  return *(uint8_t*)&envelope->value.data <  *(uint8_t*)&cond.value.data;
+      if(cond.op == STM_GT)  return *(uint8_t*)&envelope->value.data >  *(uint8_t*)&cond.value.data;
+      if(cond.op == STM_NEQ) return *(uint8_t*)&envelope->value.data != *(uint8_t*)&cond.value.data;
       break;
     case HXB_DTYPE_UINT32:
-      if(cond.op == STM_EQ)  return *(uint32_t*)&data->value.data == *(uint32_t*)&cond.value.data;
-      if(cond.op == STM_LEQ) return *(uint32_t*)&data->value.data <= *(uint32_t*)&cond.value.data;
-      if(cond.op == STM_GEQ) return *(uint32_t*)&data->value.data >= *(uint32_t*)&cond.value.data;
-      if(cond.op == STM_LT)  return *(uint32_t*)&data->value.data <  *(uint32_t*)&cond.value.data;
-      if(cond.op == STM_GT)  return *(uint32_t*)&data->value.data >  *(uint32_t*)&cond.value.data;
-      if(cond.op == STM_NEQ) return *(uint32_t*)&data->value.data != *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_EQ)  return *(uint32_t*)&envelope->value.data == *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_LEQ) return *(uint32_t*)&envelope->value.data <= *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_GEQ) return *(uint32_t*)&envelope->value.data >= *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_LT)  return *(uint32_t*)&envelope->value.data <  *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_GT)  return *(uint32_t*)&envelope->value.data >  *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_NEQ) return *(uint32_t*)&envelope->value.data != *(uint32_t*)&cond.value.data;
       break;
     case HXB_DTYPE_FLOAT:
-      if(cond.op == STM_EQ)  return *(float*)&data->value.data == *(float*)&cond.value.data;
-      if(cond.op == STM_LEQ) return *(float*)&data->value.data <= *(float*)&cond.value.data;
-      if(cond.op == STM_GEQ) return *(float*)&data->value.data >= *(float*)&cond.value.data;
-      if(cond.op == STM_LT)  return *(float*)&data->value.data <  *(float*)&cond.value.data;
-      if(cond.op == STM_GT)  return *(float*)&data->value.data >  *(float*)&cond.value.data;
-      if(cond.op == STM_NEQ) return *(float*)&data->value.data != *(float*)&cond.value.data;
+      if(cond.op == STM_EQ)  return *(float*)&envelope->value.data == *(float*)&cond.value.data;
+      if(cond.op == STM_LEQ) return *(float*)&envelope->value.data <= *(float*)&cond.value.data;
+      if(cond.op == STM_GEQ) return *(float*)&envelope->value.data >= *(float*)&cond.value.data;
+      if(cond.op == STM_LT)  return *(float*)&envelope->value.data <  *(float*)&cond.value.data;
+      if(cond.op == STM_GT)  return *(float*)&envelope->value.data >  *(float*)&cond.value.data;
+      if(cond.op == STM_NEQ) return *(float*)&envelope->value.data != *(float*)&cond.value.data;
       break;
     case HXB_DTYPE_DATETIME:
     {
       struct datetime val_dt;
       struct datetime cond_dt;
-      val_dt = *(struct datetime*)&data->value.data; // just to make writing this down easier...
+      val_dt = *(struct datetime*)&envelope->value.data; // just to make writing this down easier...
       cond_dt = *(struct datetime*)&cond.value.data;
       if(cond.op & 0x01) // hour
         return (cond.op & 0x80) ? val_dt.hour >= cond_dt.hour : val_dt.hour < cond_dt.hour;
@@ -114,9 +114,9 @@ bool eval(uint8_t condIndex, struct hxb_data *data) {
 void check_datetime_transitions()
 {
   // TODO maybe we should check timestamps separately, because as of now, they still need some special cases in the 'eval' function
-  struct hxb_data dtdata;
-  dtdata.value.datatype = HXB_DTYPE_DATETIME;
-  if(!getDatetime(&dtdata.value.data)) // if the date/time is valid
+  struct hxb_envelope dtenvelope;
+  dtenvelope.value.datatype = HXB_DTYPE_DATETIME;
+  if(!getDatetime(&dtenvelope.value.data)) // if the date/time is valid
   {
     struct transition* t = malloc(sizeof(struct transition));
     uint8_t i;
@@ -124,11 +124,11 @@ void check_datetime_transitions()
     {
       eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
       PRINTF("checkDT - curState: %d -- fromState: %d", curState, t->fromState);
-      if((t->fromState == curState) && (eval(t->cond, &dtdata)))
+      if((t->fromState == curState) && (eval(t->cond, &dtenvelope)))
       {
         // Matching transition found. Try executing the command
         PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
-        if(endpoint_write(t->eid, &(t->data)) == 0)
+        if(endpoint_write(t->eid, &(t->value)) == 0)
         {
           inStateSince = getTimestamp();
           curState = t->goodState;
@@ -151,16 +151,16 @@ void check_value_transitions(void* data)
   uint8_t i; // for the for-loops
   struct transition* t = malloc(sizeof(struct transition));
 
-  struct hxb_data *edata = (struct hxb_data*)data;
+  struct hxb_envelope* envelope = (struct hxb_envelope*)data;
   for(i = 0;i < transLength;i++)
   {
     eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
     // get next transition to check from eeprom
-    if((t->fromState == curState) && (eval(t->cond, edata)))
+    if((t->fromState == curState) && (eval(t->cond, envelope)))
     {
       // Match found
       PRINTF("state_machine: Writing to endpoint %d \r\n", t->eid);
-      if(endpoint_write(t->eid, &(t->data)) == 0)
+      if(endpoint_write(t->eid, &(t->value)) == 0)
       {
         inStateSince = getTimestamp();
         curState = t->goodState;
@@ -205,8 +205,8 @@ PROCESS_THREAD(state_machine_process, ev, data)
     trans.eid = 1;
     trans.goodState = 1;
     trans.badState = 0;
-    trans.data.datatype = HXB_DTYPE_BOOL;
-    *(uint8_t*)&trans.data.data = HXB_TRUE;
+    trans.value.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&trans.value.data = HXB_TRUE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
     PROCESS_PAUSE();
 
@@ -215,8 +215,8 @@ PROCESS_THREAD(state_machine_process, ev, data)
     trans.eid = 1;
     trans.goodState = 0;
     trans.badState = 1;
-    trans.data.datatype = HXB_DTYPE_BOOL;
-    *(uint8_t*)&trans.data.data = HXB_FALSE;
+    trans.value.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&trans.value.data = HXB_FALSE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (sizeof(struct transition))), sizeof(struct transition));
     PROCESS_PAUSE();
 
@@ -229,8 +229,8 @@ PROCESS_THREAD(state_machine_process, ev, data)
     trans.eid = 1;
     trans.goodState = 2;
     trans.badState = 2;
-    trans.data.datatype = HXB_DTYPE_BOOL;
-    *(uint8_t*)&trans.data.data = HXB_TRUE;
+    trans.value.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&trans.value.data = HXB_TRUE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS), sizeof(struct transition));
     PROCESS_PAUSE();
 
@@ -239,8 +239,8 @@ PROCESS_THREAD(state_machine_process, ev, data)
     trans.eid = 1;
     trans.goodState = 0;
     trans.badState = 0;
-    trans.data.datatype = HXB_DTYPE_BOOL;
-    *(uint8_t*)&trans.data.data = HXB_FALSE;
+    trans.value.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&trans.value.data = HXB_FALSE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + sizeof(struct transition)), sizeof(struct transition));
     PROCESS_PAUSE();
 
@@ -249,8 +249,8 @@ PROCESS_THREAD(state_machine_process, ev, data)
     trans.eid = 1;
     trans.goodState = 0;
     trans.badState = 0;
-    trans.data.datatype = HXB_DTYPE_BOOL;
-    *(uint8_t*)&trans.data.data = HXB_FALSE;
+    trans.value.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&trans.value.data = HXB_FALSE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (2 * sizeof(struct transition))), sizeof(struct transition));
     PROCESS_PAUSE();
 
