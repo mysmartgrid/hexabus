@@ -77,12 +77,12 @@ tcpip_handler(void)
 /*---------------------------------------------------------------------------*/
 void broadcast_to_self(struct hxb_value* val, uint8_t eid) {
     #if STATE_MACHINE_ENABLE
-    struct hxb_data* data = malloc(sizeof(struct hxb_data));
-    memset(data->source, 0x00,15);
-    memset((data->source)+15,0x01,1);
-    data->eid = eid;
-    memcpy(&data->value, val, sizeof(struct hxb_value));
-    process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+    struct hxb_envelope* envelope = malloc(sizeof(struct hxb_envelope));
+    memset(envelope->source, 0x00,15);
+    memset((envelope->source)+15,0x01,1);
+    envelope->eid = eid;
+    memcpy(&envelope->value, val, sizeof(struct hxb_value));
+    process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
     #endif
 }
 

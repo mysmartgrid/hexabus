@@ -37,7 +37,7 @@ struct transition {
   uint8_t eid;            // id of endpoint which should do something
   uint8_t goodState;      // new state if everything went fine
   uint8_t badState;       // new state if some went wrong
-  struct hxb_value data;  // Data for the endpoint
+  struct hxb_value value;  // Data for the endpoint
 } __attribute__ ((packed));
 
 

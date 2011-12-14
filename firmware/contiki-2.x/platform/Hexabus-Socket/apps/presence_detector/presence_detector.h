@@ -7,6 +7,7 @@
 #include "hexabus_config.h"
 
 #define ACTIVE_TIME   3
+#define KEEP_ALIVE    10
 
 void motion_detected(void);
 

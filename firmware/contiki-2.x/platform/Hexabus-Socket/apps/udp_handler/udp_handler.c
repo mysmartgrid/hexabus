@@ -389,8 +389,8 @@ udphandler(process_event_t ev, process_data_t data)
         }
         else if(header->type == HXB_PTYPE_INFO)
         {
-          struct hxb_data* data = malloc(sizeof(struct hxb_data));
-          memcpy(data->source, &UDP_IP_BUF->srcipaddr, 16);
+          struct hxb_envelope* envelope = malloc(sizeof(struct hxb_envelope));
+          memcpy(envelope->source, &UDP_IP_BUF->srcipaddr, 16);
           switch(header->datatype)
           {
 // Only do this if state_machine is enabled.
@@ -403,10 +403,10 @@ udphandler(process_event_t ev, process_data_t data)
                   // Broadcast: Don't send an error packet.
                 } else {
                   struct hxb_packet_int8* packet = (struct hxb_packet_int8*)header;
-                  data->eid = packet->eid;
-                  data->value.datatype = packet->datatype;
-                  *(uint8_t*)&data->value.data = packet->value;
-                  process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+                  envelope->eid = packet->eid;
+                  envelope->value.datatype = packet->datatype;
+                  *(uint8_t*)&envelope->value.data = packet->value;
+                  process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
                   PRINTF("Posted event for received broadcast.\r\n");
                 }
                 break;
@@ -417,10 +417,10 @@ udphandler(process_event_t ev, process_data_t data)
                   // Broadcast: Don't send an error packet.
                 } else {
                   struct hxb_packet_int32* packet = (struct hxb_packet_int32*)header;
-                  data->eid = packet->eid;
-                  data->value.datatype = packet->datatype;
-                  *(uint32_t*)&data->value.data = uip_ntohl(packet->value);
-                  process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+                  envelope->eid = packet->eid;
+                  envelope->value.datatype = packet->datatype;
+                  *(uint32_t*)&envelope->value.data = uip_ntohl(packet->value);
+                  process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
                   PRINTF("Posted event for received broadcast.\r\n");
                 }
                 break;
@@ -434,14 +434,14 @@ udphandler(process_event_t ev, process_data_t data)
                   // Broadcast: Don't send an error packet.
                 } else {
                   struct hxb_packet_datetime* packet = (struct hxb_packet_datetime*)header;
-                  data->eid = packet->eid;
-                  data->value.datatype = packet->datatype;
+                  envelope->eid = packet->eid;
+                  envelope->value.datatype = packet->datatype;
                   packet->value.year = uip_ntohs(packet->value.year);
-                  memcpy(&(data->value.data), &(packet->value), sizeof(struct datetime));
+                  memcpy(&(envelope->value.data), &(packet->value), sizeof(struct datetime));
                   // don't post an event here, just call datetime_service. datetime_service also deallocates the memory
-                  // process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+                  // process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
                   // PRINTF("Posted event for received broadcast.\r\n");
-                  updateDatetime(data);
+                  updateDatetime(envelope);
                 }
                 break;
 #endif // DATETIME_SERVICE_ENABLE
@@ -453,11 +453,11 @@ udphandler(process_event_t ev, process_data_t data)
                   // Broadcast: Don't send an error packet.
                 } else {
                   struct hxb_packet_float* packet = (struct hxb_packet_float*)header;
-                  data->eid = packet->eid;
-                  data->value.datatype = packet->datatype;
+                  envelope->eid = packet->eid;
+                  envelope->value.datatype = packet->datatype;
                   uint32_t value_hbo = uip_ntohl(*(uint32_t*)&packet->value);
-                  *(float*)&data->value.data = *(float*)&value_hbo;
-                  process_post(PROCESS_BROADCAST, sm_data_received_event, data);
+                  *(float*)&envelope->value.data = *(float*)&value_hbo;
+                  process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
                   PRINTF("Posted event for received broadcast.\r\n");
                 }
                 break;

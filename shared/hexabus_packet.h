@@ -122,7 +122,7 @@ struct hxb_value {
 // Structs for passing Hexabus data around between processes
 // Since there the IP information is lost, we need a field for the IP address of the sender/receiver. But we can drop the CRC here.
 
-struct hxb_data {
+struct hxb_envelope {
     char      source[16];
     uint8_t   eid;
     struct hxb_value value;
