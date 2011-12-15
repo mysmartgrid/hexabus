@@ -39,11 +39,12 @@
 			Source IP: <input type="text" id="sourceIP" /><br />
 			Source EID: <input type="text" id="sourceEID" /><br />
 			Operator: <select id="operator">
-				<option value="eq">==</option>
-				<option value="leq">&lt;=</option>
-				<option value="geq">&gt;=</option>
-				<option value="lt">&lt;</option>
-				<option value="gt">&gt;</option>
+				<option value="0">==</option>
+				<option value="1">&lt;=</option>
+				<option value="2">&gt;=</option>
+				<option value="3">&lt;</option>
+				<option value="4">&gt;</option>
+				<option value="5">!=</option>
 			</select><br />
 			DataType: <select id="dTypeCond">
 				<option value="1">Bool</option>

@@ -527,7 +527,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 		}
 		else if (httpd_strncmp(&s->inputbuf[1], httpd_sm_config, sizeof(httpd_sm_config)-1) == 0)  {
 			
-			printf("Received Statemachine-POST\n"); 
+			printf("State Machine Configurator: Received Statemachine-POST\n"); 
 			s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
 			strncpy(s->filename, &s->inputbuf[0], sizeof(s->filename));
 			/* Look for ?, if found strip file name*/
@@ -552,48 +552,100 @@ PT_THREAD(handle_input(struct httpd_state *s))
 				}
 			}
 			PSOCK_READTO(&s->sin, ISO_equal);
-			// parse the string
-			struct transition trans;
+			// Initializing stuff we need lateron	
+			static struct transition trans;
+			static struct condition cond;
+			memset(&trans, 0, sizeof(struct transition));
+			memset(&cond, 0, sizeof(struct condition));
+			static uint8_t end;
+			static uint8_t table;
+			static uint8_t position;
+			end = 0;
+			table = 0;
+			position = 0;
+			
 			PSOCK_READTO(&s->sin, '-');
-			// now the table entries
-			uint8_t end = 0;
-			static uint8_t position = 0;
 			while(!end) {
 				PSOCK_READTO(&s->sin, '.');
 				if(PSOCK_DATALEN(&s->sin) <= 1) { // TODO: Improve this
-					end = 1;
-					break;
+					if(table == 0) {
+						printf("End of TransTable.\n");	
+						table++;
+						PSOCK_READTO(&s->sin, '-');
+						continue;
+					} else {
+						end = 1;
+						printf("End of CondTable.\n");	
+						break;
+					}
 				}
 				// Extract the value out of string
-				switch(position) {
-					case 0: // FromState
-						trans.fromState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
-						break;
-					case 1: // Condition#
-						trans.cond = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
-						break;
-					case 2: // EID
-						trans.eid = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
-						break;
-					case 3: // DataType
-						trans.data.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
-						break;
-					case 4: // Value
-						break;
-					case 5: // Good State
-						trans.goodState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
-						break;
-					case 6: // Bad State
-						trans.badState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
-						break;
-				}
-				if(++position == 7) {
-					position = 0;
-					printf("Struct: From: %d Cond: %d EID: %d DataType: %d Good: %d Bad: %d\n", trans.fromState, trans.cond, trans.eid, trans.data.datatype, trans.goodState, trans.badState);
-					memset(&trans, 0, sizeof(struct transition));
-				}
+				if(table == 0) {
+					// TransTable
+					switch(position) {
+						case 0: // FromState
+							trans.fromState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							break;
+						case 1: // Condition#
+							trans.cond = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							break;
+						case 2: // EID
+							trans.eid = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							break;
+						case 3: // DataType
+							trans.data.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							break;
+						case 4: // Value
+							if(trans.data.datatype == HXB_DTYPE_UINT8 || trans.data.datatype == HXB_DTYPE_BOOL) {
+								trans.data.data[0] = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);		// TODO
+							} else {
+								trans.data.data[0] = 0;
+								printf("State Machine Configurator: Datatype not implemented yet\n");
+							}
+							break;
+						case 5: // Good State
+							trans.goodState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							break;
+						case 6: // Bad State
+							trans.badState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							break;
+					}
+					if(++position == 7) {
+						position = 0;
+						printf("Struct Trans: From: %d Cond: %d EID: %d DataType: %d Value: %d Good: %d Bad: %d\n", trans.fromState, trans.cond, trans.eid, trans.data.datatype, trans.data.data[0], trans.goodState, trans.badState);
+						memset(&trans, 0, sizeof(struct transition));
+					}
+				} else {
+					// CondTable	
+					switch(position) {
+							case 0: // SourceIP
+								memcpy(&cond.sourceIP, &s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+								break;
+							case 1: // SourceEID
+								cond.sourceEID = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+								break;
+							case 2: // Operator
+								cond.op = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+								break;
+							case 3: // DataType
+								cond.value.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+								break;
+							case 4: // Value
+								if(cond.value.datatype == HXB_DTYPE_UINT8 || cond.value.datatype == HXB_DTYPE_BOOL) {
+									cond.value.data[0] = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);		// TODO
+								} else {
+									cond.value.data[0] = 0;
+									printf("State Machine Configurator: Datatype not implemented yet\n");
+								}
+					}
+					if(++position == 5) {
+						position = 0;
+						printf("Struct Cond: IP: %s EID: %d Operator: %d DataType: %d Value: %d\n", cond.sourceIP, cond.sourceEID, cond.op, cond.value.datatype, cond.value.data[0]);
+						memset(&cond, 0, sizeof(struct condition));
+					}
 			}
-			printf("End of TransTable.\n");	
+		}
+		printf("State Machine Configurator: Done with parsing.\n");
 			/*//check for domain_name
 			PSOCK_READTO(&s->sin, ISO_amper);
 			if(s->inputbuf[0] != ISO_amper) {
@@ -615,13 +667,10 @@ PT_THREAD(handle_input(struct httpd_state *s))
 				set_forwarding_to_eeprom(1);
 			else if (s->inputbuf[0] == '0')
 				set_forwarding_to_eeprom(0);*/
-		}
-else
-		{
+	} else {
 			PSOCK_CLOSE_EXIT(&s->sin);
 		}
-	}
-	else {
+	}	else {
 		PSOCK_CLOSE_EXIT(&s->sin);
 	}
 	webserver_log_file(&uip_conn->ripaddr, s->filename);
