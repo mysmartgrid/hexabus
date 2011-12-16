@@ -127,7 +127,7 @@ void check_datetime_transitions()
       if((t->fromState == curState) && (eval(t->cond, &dtdata)))
       {
         // Matching transition found. Try executing the command
-        PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
+				PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
         if(endpoint_write(t->eid, &(t->data)) == 0)
         {
           inStateSince = getTimestamp();
@@ -154,12 +154,12 @@ void check_value_transitions(void* data)
   struct hxb_data *edata = (struct hxb_data*)data;
   for(i = 0;i < transLength;i++)
   {
-    eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+		eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
     // get next transition to check from eeprom
     if((t->fromState == curState) && (eval(t->cond, edata)))
     {
       // Match found
-      PRINTF("state_machine: Writing to endpoint %d \r\n", t->eid);
+			PRINTF("state_machine: Writing to endpoint %d \r\n", t->eid);
       if(endpoint_write(t->eid, &(t->data)) == 0)
       {
         inStateSince = getTimestamp();
@@ -186,16 +186,16 @@ PROCESS_THREAD(state_machine_process, ev, data)
   */
   // clear the eeprom
 
-  for(int i = 0 ; i < 127 ; i++)
+  /*for(int i = 0 ; i < 127 ; i++)
   {
     int zero = 0;
     eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_TRANSITIONS + i), 1);
     eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_CONDITIONS + i), 1);
     eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_DATETIME_TRANSITIONS + i), 1);
-  }
+  }*/
 
   // write transitions into the EEPROM
-  {
+  /*{
     //"normal" transitions
     int numberOfTransitions = 2;
     eeprom_write_block(&numberOfTransitions, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
@@ -299,7 +299,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
     *(uint32_t*)&cond.value.data = 30;
     eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + 3 * sizeof(struct condition)), sizeof(struct condition));
     PROCESS_PAUSE();
-  }
+  }*/
   // **************************
 
   PRINTF("State Machine starting.\r\n");
@@ -352,7 +352,14 @@ PROCESS_THREAD(state_machine_process, ev, data)
       free(data);
 
       PRINTF("state machine: Now in state: %d\r\n", curState);
-    }
+    } 
+		if(ev == sm_rulechange_event) {
+			// re-read state machine table length from eeprom
+  		transLength = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
+  		dtTransLength = eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
+			PRINTF("State Machine: Re-Reading Table length.\n");
+			PRINTF("TransLength: %d, dtTransLength:", transLength, dtTransLength);
+		}
   }
 
   PROCESS_END();

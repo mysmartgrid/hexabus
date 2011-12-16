@@ -114,8 +114,9 @@
 				if(formName == "TransTableForm") {
 					transTable.push(tmpArray);	
 				} else {
+					tmpArray[0] = (String(tmpArray[0]).replace(/:/g, ""));
 					condTable.push(tmpArray);
-					addToDropDownMenu(condTable.length);
+					addToDropDownMenu(condTable.length - 1);
 				}
 			}
 		</script>

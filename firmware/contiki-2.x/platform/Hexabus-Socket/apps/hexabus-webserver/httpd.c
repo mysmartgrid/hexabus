@@ -43,6 +43,8 @@
 #include "httpd-fs.h"
 #include "httpd-cgi.h"
 #include "httpd.h"
+#include "eeprom_variables.h"
+#include "hexabus_config.h"
 
 #include "relay.h"
 #include "mdns_responder.h"
@@ -67,14 +69,13 @@ extern void set_forwarding_to_eeprom(uint8_t);
  * ...
  */
 #define DEBUGLOGIC 0
-#define DEBUG 0
 #if DEBUGLOGIC
 struct httpd_state *sg;
 #define uip_mss(...) 512
 #define uip_appdata TCPBUF
 char TCPBUF[512];
 #endif
-#if DEBUG
+#if WEBSERVER_DEBUG
 #include <stdio.h>
 #if HTTPD_STRING_TYPE==PROGMEM_TYPE
 #define PRINTF(FORMAT,args...) printf_P(PSTR(FORMAT),##args)
@@ -419,6 +420,8 @@ const char httpd_post[] HTTPD_STRING_ATTR = "POST ";
 const char httpd_config_file[] HTTPD_STRING_ATTR = "config.shtml ";
 const char httpd_sm_config[] HTTPD_STRING_ATTR = "sm_config.shtml ";
 const char httpd_socket_status_file[] HTTPD_STRING_ATTR = "socket_stat.shtml ";
+process_event_t sm_rulechange_event;
+
 static
 PT_THREAD(handle_input(struct httpd_state *s))
 {
@@ -527,7 +530,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 		}
 		else if (httpd_strncmp(&s->inputbuf[1], httpd_sm_config, sizeof(httpd_sm_config)-1) == 0)  {
 			
-			printf("State Machine Configurator: Received Statemachine-POST\n"); 
+			PRINTF("State Machine Configurator: Received Statemachine-POST\n"); 
 			s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
 			strncpy(s->filename, &s->inputbuf[0], sizeof(s->filename));
 			/* Look for ?, if found strip file name*/
@@ -560,22 +563,27 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			static uint8_t end;
 			static uint8_t table;
 			static uint8_t position;
+			static uint8_t numberOfBlocks;
+			numberOfBlocks = 0;
 			end = 0;
 			table = 0;
 			position = 0;
-			
+			process_post(PROCESS_BROADCAST, sm_rulechange_event, NULL);	// TODO. NULL is not nice	
 			PSOCK_READTO(&s->sin, '-');
 			while(!end) {
 				PSOCK_READTO(&s->sin, '.');
 				if(PSOCK_DATALEN(&s->sin) <= 1) { // TODO: Improve this
 					if(table == 0) {
-						printf("End of TransTable.\n");	
+						PRINTF("End of TransTable.\n");	
+						// Write the Number of transitions
+    				eeprom_write_block(&numberOfBlocks, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
+						numberOfBlocks = 0;
 						table++;
 						PSOCK_READTO(&s->sin, '-');
 						continue;
 					} else {
 						end = 1;
-						printf("End of CondTable.\n");	
+						PRINTF("End of CondTable.\n");	
 						break;
 					}
 				}
@@ -597,10 +605,10 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							break;
 						case 4: // Value
 							if(trans.data.datatype == HXB_DTYPE_UINT8 || trans.data.datatype == HXB_DTYPE_BOOL) {
-								trans.data.data[0] = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);		// TODO
+								trans.data.data[0] = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);		// TODO: Other DTypes
 							} else {
 								trans.data.data[0] = 0;
-								printf("State Machine Configurator: Datatype not implemented yet\n");
+								PRINTF("State Machine Configurator: Datatype not implemented yet\n");
 							}
 							break;
 						case 5: // Good State
@@ -612,14 +620,37 @@ PT_THREAD(handle_input(struct httpd_state *s))
 					}
 					if(++position == 7) {
 						position = 0;
-						printf("Struct Trans: From: %d Cond: %d EID: %d DataType: %d Value: %d Good: %d Bad: %d\n", trans.fromState, trans.cond, trans.eid, trans.data.datatype, trans.data.data[0], trans.goodState, trans.badState);
+						PRINTF("Struct Trans: From: %d Cond: %d EID: %d DataType: %d Value: %d Good: %d Bad: %d\n", trans.fromState, trans.cond, trans.eid, trans.data.datatype, trans.data.data[0], trans.goodState, trans.badState);
+						
+						// Write Line to EEPROM. Too much data is just truncated.
+						if(numberOfBlocks < (EE_STATEMACHINE_TRANSITIONS_SIZE / sizeof(struct transition))) {
+							eeprom_write_block(&trans, (void*)(1 + numberOfBlocks*sizeof(struct transition) + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
+							numberOfBlocks++;
+						} else {
+							PRINTF("Warning: Transition Table too long! Data will not be written.\n");
+						}
 						memset(&trans, 0, sizeof(struct transition));
 					}
 				} else {
 					// CondTable	
 					switch(position) {
-							case 0: // SourceIP
-								memcpy(&cond.sourceIP, &s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							case 0:; // SourceIP. Empty expression is needed.
+								// Transform string to hex. A little bit hacked right now, TODO.
+								uint8_t tmp = 0;
+								uint8_t j = 0;
+								for(i = 0;i < 16;i++, j+=2) {
+									if(s->inputbuf[j] <= '9') {
+										tmp = s->inputbuf[j] - '0';
+									} else {
+										tmp = s->inputbuf[j] - 'a' + 10;
+									}
+									if(s->inputbuf[j+1] <= '9') {
+										cond.sourceIP[i] = s->inputbuf[j+1] - '0';
+									} else {
+										cond.sourceIP[i] = s->inputbuf[j+1] - 'a' + 10;
+									}
+									cond.sourceIP[i] += tmp*16;
+								}
 								break;
 							case 1: // SourceEID
 								cond.sourceEID = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
@@ -632,41 +663,34 @@ PT_THREAD(handle_input(struct httpd_state *s))
 								break;
 							case 4: // Value
 								if(cond.value.datatype == HXB_DTYPE_UINT8 || cond.value.datatype == HXB_DTYPE_BOOL) {
-									cond.value.data[0] = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);		// TODO
+									cond.value.data[0] = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);		// TODO: Other DTypes
 								} else {
 									cond.value.data[0] = 0;
-									printf("State Machine Configurator: Datatype not implemented yet\n");
+									PRINTF("State Machine Configurator: Datatype not implemented yet\n");
 								}
 					}
 					if(++position == 5) {
 						position = 0;
-						printf("Struct Cond: IP: %s EID: %d Operator: %d DataType: %d Value: %d\n", cond.sourceIP, cond.sourceEID, cond.op, cond.value.datatype, cond.value.data[0]);
+						PRINTF("IP: ");
+						for(i = 0;i < 16;i++) {
+							if(i != 0 && i % 2 == 0) {
+								PRINTF(":");
+							}
+							PRINTF("%02x", cond.sourceIP[i]);
+						}
+						PRINTF("\nStruct Cond: EID: %d Operator: %d DataType: %d Value: %d\n", cond.sourceEID, cond.op, cond.value.datatype, cond.value.data[0]);
+						// Write Line to EEPROM. Again, too much data will be truncated
+						if(numberOfBlocks < (EE_STATEMACHINE_CONDITIONS_SIZE / sizeof(struct condition))) {
+							eeprom_write_block(&cond, (void*)(numberOfBlocks*sizeof(struct condition) + EE_STATEMACHINE_CONDITIONS), sizeof(struct condition));
+							numberOfBlocks++;
+						} else {
+							PRINTF("Warning: Condition Table too long! Data will not be written.\n");
+						}
 						memset(&cond, 0, sizeof(struct condition));
 					}
 			}
 		}
-		printf("State Machine Configurator: Done with parsing.\n");
-			/*//check for domain_name
-			PSOCK_READTO(&s->sin, ISO_amper);
-			if(s->inputbuf[0] != ISO_amper) {
-				mdns_responder_set_domain_name(s->inputbuf, PSOCK_DATALEN(&s->sin) - 1);
-			}
-
-			PSOCK_READTO(&s->sin, ISO_equal);
-			//check for relay_default_state
-			PSOCK_READTO(&s->sin, ISO_amper);
-			if(s->inputbuf[0] == '1')
-				set_relay_default(0);
-			else if (s->inputbuf[0] == '0')
-				set_relay_default(1);
-
-			PSOCK_READTO(&s->sin, ISO_equal);
-			//check for forwarding
-			PSOCK_READBUF_LEN(&s->sin, 1);
-			if(s->inputbuf[0] == '1')
-				set_forwarding_to_eeprom(1);
-			else if (s->inputbuf[0] == '0')
-				set_forwarding_to_eeprom(0);*/
+		PRINTF("State Machine Configurator: Done with parsing.\n");
 	} else {
 			PSOCK_CLOSE_EXIT(&s->sin);
 		}
@@ -751,5 +775,6 @@ httpd_appcall(void *state)
 		tcp_listen(UIP_HTONS(80));
 		memb_init(&conns);
 		httpd_cgi_init();
+		sm_rulechange_event = process_alloc_event();
 	}
 	/*---------------------------------------------------------------------------*/
