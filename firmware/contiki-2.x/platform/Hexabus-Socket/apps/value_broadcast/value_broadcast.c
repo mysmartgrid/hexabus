@@ -116,7 +116,8 @@ void broadcast_value(uint8_t eid)
       packetf.flags = 0;
       packetf.eid = eid;
       packetf.datatype = val.datatype;
-      packetf.value = uip_htonl(*(float*)&val.data);
+      uint32_t value_nbo = uip_htonl(*(uint32_t*)&val.data);
+      packetf.value = *(float*)&value_nbo;
       packetf.crc = uip_htons(crc16_data((char*)&packetf, sizeof(packetf)-2, 0));
 
       uip_udp_packet_sendto(client_conn, &packetf, sizeof(packetf),
