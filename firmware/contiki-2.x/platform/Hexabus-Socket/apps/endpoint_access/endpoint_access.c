@@ -40,6 +40,11 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
     case 26:
       return HXB_DTYPE_BOOL;
 #endif
+#if HEXONOFF_ENABLE
+    case 27:
+    case 28:
+      return HXB_DTYPE_UINT8;
+#endif
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
   }
@@ -83,6 +88,14 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
 #if PRESENCE_DETECTOR_ENABLE
     case 26:
       strncpy(buffer, "Presence Detector", 127);
+      break;
+#endif
+#if HEXONOFF_ENABLE
+    case 27:
+      strncpy(buffer, "Hexonoff, your friendly output setter.", 127);
+      break;
+    case 28:
+      strncpy(buffer, "Hexonoff, your friendly output toggler.", 127);
       break;
 #endif
     default:
@@ -141,6 +154,22 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
         return HXB_ERR_DATATYPE;
       }
 #endif
+#if HEXONOFF_ENABLE
+    case 27:
+        if(value->datatype == HXB_DTYPE_UINT8) {
+            set_outputs(*(uint8_t*)&value->data);
+        } else {
+            return HXB_ERR_DATATYPE;
+        }
+        break;
+    case 28:
+        if(value->datatype == HXB_DTYPE_UINT8) {
+            toggle_outputs(*(uint8_t*)&value->data);
+        } else {
+            return HXB_ERR_DATATYPE;
+        }
+        break;
+#endif
     default:  // Default: Endpoint does not exist
       return HXB_ERR_UNKNOWNEID;
   }
@@ -192,6 +221,13 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
       val->datatype = HXB_DTYPE_BOOL;
       *(uint8_t*)&val->data = presence_active() == 0 ? HXB_FALSE : HXB_TRUE;
       break;
+#endif
+#if HEXONOFF_ENABLE
+    case 27:
+    case 28:
+        val->datatype = HXB_DTYPE_UINT8;
+        *(uint8_t*)&val->data = get_outputs();
+        break;
 #endif
     default:
       val->datatype = HXB_DTYPE_UNDEFINED;

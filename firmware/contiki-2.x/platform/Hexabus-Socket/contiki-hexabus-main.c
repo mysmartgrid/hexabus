@@ -129,6 +129,9 @@
 #if PRESENCE_DETECTOR_ENABLE
 #include "presence_detector.h"
 #endif
+#if HEXAPUSH_ENABLE
+#include "hexonoff.h"
+#endif
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -379,6 +382,9 @@ void initialize(void)
   if(nSensors > 0){
     process_start(&temperature_process, NULL);
   }
+#endif
+#if HEXONOFF_ENABLE
+  hexonoff_init();
 #endif
 
   /*Init Relay */
