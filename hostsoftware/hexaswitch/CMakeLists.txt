@@ -55,8 +55,10 @@ set(CMAKE_CXX_FLAGS "-Wall ")
 # Check for some compiler stuff
 include(CMakeBackwardCompatibilityCXX)
 
-# Find Boost.
-FIND_PACKAGE(Boost 1.40.0 REQUIRED COMPONENTS system)
+FIND_PACKAGE(Sqlite)
+# We depend on boost >= 1.46.1 because of the updated filesystem
+# library.
+FIND_PACKAGE(Boost 1.46.1 COMPONENTS iostreams program_options filesystem system)
 
 # Reflect the package structure
 add_subdirectory(libhexabus)
@@ -86,4 +88,10 @@ INCLUDE(CPack)
 message("")
 message("***** Configuration *****")
 message("  prefix: ${CMAKE_INSTALL_PREFIX}")
-message("  Boost lib: ${Boost_INCLUDE_DIRS}")
+message("  boost include: ${Boost_INCLUDE_DIRS}")
+message("  boost program options lib: ${Boost_PROGRAM_OPTIONS_LIBRARY}")
+message("  boost system lib: ${Boost_SYSTEM_LIBRARY}")
+message("  boost filesystem lib: ${Boost_FILESYSTEM_LIBRARY}")
+message("  sqlite3 include: ${SQLITE3_INCLUDE_DIR}, lib: ${SQLITE3_LIBRARIES}")
+message("  extended logging: ${ENABLE_LOGGING}")
+
