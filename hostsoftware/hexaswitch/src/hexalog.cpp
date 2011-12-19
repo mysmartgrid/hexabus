@@ -91,12 +91,33 @@ int main(int argc, char** argv)
       float reading=0.0;
       std::string sensor_unit;
       std::string sensor_timezone("HORST"); // TODO: consider USCHI.
+      
+      switch(phandling.getDatatype()){
+        case 1: 
+          reading = (float)(*(uint8_t*)&value.data);
+          break;
+        case 2: 
+          reading = (float)(*(uint8_t*)&value.data);
+          break;
+        case 3:
+          reading = (float)(*(uint32_t*)&value.data);
+          break;
+        //case 4: //date+time packet
+        case 5:
+          reading = (float)(*(float*)&value.data);
+          break;
+        //case 6: //128char string
+        case 7:
+          reading = (float)(*(uint32_t*)&value.data);
+          break;
+        default:
+        reading = (float)(*(uint32_t*)&value.data);
+      }
       if( (int)phandling.getEID() == 3 ) {
         // Hack for temp reading. TODO: Update to use new packet format.
         reading = (float)(*(uint32_t*)&value.data)/10000;
         sensor_unit=std::string("deg Celsius");
       } else {
-        reading = (float)(*(uint32_t*)&value.data);
         sensor_unit=std::string("Watt");
       }
 
