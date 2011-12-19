@@ -8,7 +8,10 @@
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 0
+#define UDP_HANDLER_DEBUG 1
+
+// WebServer
+#define WEBSERVER_DEBUG 1
 
 // datetime_service
 #define DATETIME_SERVICE_ENABLE 0
@@ -19,14 +22,14 @@
 #define TEMPERATURE_DEBUG 0
 
 // value_broadcast
-#define VALUE_BROADCAST_ENABLE 1
-#define VALUE_BROADCAST_DEBUG 1
+#define VALUE_BROADCAST_ENABLE 0
+#define VALUE_BROADCAST_DEBUG 0
 #define VALUE_BROADCAST_AUTO_EID 24
 #define VALUE_BROADCAST_AUTO_INTERVAL 0 //0 to disable automatic broadcast
 
 // state_machine
 #define STATE_MACHINE_ENABLE 1
-#define STATE_MACHINE_DEBUG 1
+#define STATE_MACHINE_DEBUG 0
 
 // shutter
 #define SHUTTER_ENABLE 0
@@ -34,8 +37,8 @@
 
 // hexapush
 #define HEXAPUSH_ENABLE 0
-#define HEXAPUSH_CLICK_ENABLE 1
-#define HEXAPUSH_PRESS_RELEASE_ENABLE 1
+#define HEXAPUSH_CLICK_ENABLE 0
+#define HEXAPUSH_PRESS_RELEASE_ENABLE 0
 #define HEXAPUSH_PRESS_DELAY 6   //multiplied by 50ms, only if Click and Press/Release are enabled
 #define HEXAPUSH_DEBUG 0
 
