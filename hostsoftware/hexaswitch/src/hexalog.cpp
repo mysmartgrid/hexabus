@@ -70,6 +70,11 @@ int main(int argc, char** argv)
     storefile=vm["storefile"].as<std::string>();
   }
   bfs::path db(storefile);
+  if (! bfs::exists(db)) {
+    std::cerr << "Database " << db << " does not exist, cannot continue." << std::endl;
+    std::cerr << "Hint: you can create a database using klio-store create <dbfile>" << std::endl;
+    return 2;
+  }
 
   std::map<std::string, hexabus::Sensor::Ptr> sensors;
   hexabus::NetworkAccess network;
@@ -131,8 +136,8 @@ int main(int argc, char** argv)
              */
             klio::timestamp_t timestamp=tc->get_timestamp();
             store->add_reading(loadedSensor, timestamp, reading);
-            std::cout << "Added reading to sensor " 
-              << loadedSensor->name() << std::endl;
+            //std::cout << "Added reading to sensor " 
+            //  << loadedSensor->name() << std::endl;
             break;
           }
         }
