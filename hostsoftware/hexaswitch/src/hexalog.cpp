@@ -114,7 +114,7 @@ int main(int argc, char** argv)
         default:
           reading = (float)(*(uint32_t*)&value.data);
       }
-      // use the correct datatype for the endpoints
+      // use the correct dataunit for the endpoints
       switch(phandling.getEID()){
         case 1: 
           sensor_unit=std::string("boolean");
