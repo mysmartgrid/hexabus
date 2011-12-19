@@ -96,13 +96,52 @@ int main(int argc, char** argv)
       float reading=0.0;
       std::string sensor_unit;
       std::string sensor_timezone("HORST"); // TODO: consider USCHI.
+
+      //use the use the right datatype for each recieved packet
+      switch(phandling.getDatatype()){
+        case 1: 
+          reading = (float)(*(uint8_t*)&value.data);
+          break;
+        case 2: 
+          reading = (float)(*(uint8_t*)&value.data);
+          break;
+        case 3:
+          reading = (float)(*(uint32_t*)&value.data);
+          break;
+        //case 4: //date+time packet
+        case 5:
+          reading = (float)(*(float*)&value.data);
+          break;
+        //case 6: //128char string
+        case 7:
+          reading = (float)(*(uint32_t*)&value.data);
+          break;
+        default:
+          reading = (float)(*(uint32_t*)&value.data);
+      }
+      // use the correct dataunit for the endpoints
+      switch(phandling.getEID()){
+        case 1: 
+          sensor_unit=std::string("boolean");
+          break;
+        case 2: 
+          sensor_unit=std::string("Watt");
+          break;
+        case 3:
+          sensor_unit=std::string("deg Celsius");
+          break;
+        case 23:
+        case 24:
+        case 25:
+        case 26:
+          sensor_unit=std::string("boolean");
+          break;
+        default:
+          sensor_unit=std::string("unknown");
+      }
       if( (int)phandling.getEID() == 3 ) {
         // Hack for temp reading. TODO: Update to use new packet format.
         reading = (float)(*(uint32_t*)&value.data)/10000;
-        sensor_unit=std::string("deg Celsius");
-      } else {
-        reading = (float)(*(uint32_t*)&value.data);
-        sensor_unit=std::string("Watt");
       }
 
       /**
