@@ -46,5 +46,6 @@
 // hexonoff
 #define HEXONOFF_ENABLE 1
 #define HEXONOFF_DEBUG 1
+#define INITIAL_VALUE 12
 
 #endif // HEXBAUS_CONFIG_H
