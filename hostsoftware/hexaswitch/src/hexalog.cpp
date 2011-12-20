@@ -139,10 +139,14 @@ int main(int argc, char** argv)
         default:
           sensor_unit=std::string("unknown");
       }
+
+      /* Uncomment this, if you use an old firmware, where temperature is 
+       * transmitted as uint32_t instead of float.
       if( (int)phandling.getEID() == 3 ) {
         // Hack for temp reading. TODO: Update to use new packet format.
         reading = (float)(*(uint32_t*)&value.data)/10000;
       }
+      */
 
       /**
        * 1. Create unique ID for each info message and sensor,
