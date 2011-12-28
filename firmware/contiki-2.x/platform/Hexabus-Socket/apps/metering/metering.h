@@ -60,4 +60,5 @@ void		metering_start(void);
 void		metering_stop(void);
 void		metering_reset(void);
 bool		metering_calibrate(void);
+void		metering_calibration_stop(void);
 #endif /* METERING_H_ */
