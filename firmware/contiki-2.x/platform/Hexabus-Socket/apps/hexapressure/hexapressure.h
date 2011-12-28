@@ -6,13 +6,17 @@
 
 #include "hexabus_config.h"
 
-#define ACTIVE_TIME   3
+#if defined(__AVR_ATmega1284P__)
+#define HEXAPRESSURE_PORT   PORTA
+#define HEXAPRESSURE_IN     PINA
+#define HEXAPRESSURE_DDR    DDRA
+#define SCL                 PA0
+#define SDA                 PA1
+#else
+#error Hardware not defined!
+#endif
 
-void motion_detected(void);
-
-void no_motion_detected(void);
-
-uint8_t presence_active(void);
+void hexapressure_init(void);
 
 PROCESS_NAME(hexapressure_process);
 

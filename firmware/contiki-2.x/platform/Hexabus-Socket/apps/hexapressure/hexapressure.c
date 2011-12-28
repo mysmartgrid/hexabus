@@ -56,16 +56,28 @@ static struct etimer pressure_periodic_timer;
 
 PROCESS(hexapressure_process, "Monitors the pressure sensor");
 
+
+void hexapressure_init(void) {
+    PRINTF("Hexapressure init\n");
+
+    HEXAPRESSURE_DDR |= (1<<SDA);
+    HEXAPRESSURE_DDR &= ~(1<<SCL);
+    HEXAPRESSURE_PORT |= (1<<SDA);
+    HEXAPRESSURE_PORT |= (1<<SCL);
+}
+
 PROCESS_THREAD(hexapressure_process, ev, data) {
     PROCESS_BEGIN();
     PRINTF("pressure: process startup.\r\n");
     PROCESS_PAUSE();
 
+    // init the sensor
+    hexapressure_init();
+
     // set the timer to 10 sec for use in the loop
     etimer_set(&pressure_periodic_timer, 10*CLOCK_SECOND);
 
     //everytime the timer event appears, get the pressure and reset the timer
-	
     while(1){
       PROCESS_YIELD();
       if (etimer_expired(&pressure_periodic_timer)) {
