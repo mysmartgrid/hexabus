@@ -11,8 +11,8 @@
 #define UDP_HANDLER_DEBUG 1
 
 // datetime_service
-#define DATETIME_SERVICE_ENABLE 1
-#define DATETIME_SERVICE_DEBUG 1
+#define DATETIME_SERVICE_ENABLE 0
+#define DATETIME_SERVICE_DEBUG 0
 
 // temperature
 #define TEMPERATURE_ENABLE 0
@@ -25,8 +25,8 @@
 #define VALUE_BROADCAST_AUTO_INTERVAL 0 //0 to disable automatic broadcast
 
 // state_machine
-#define STATE_MACHINE_ENABLE 1
-#define STATE_MACHINE_DEBUG 1
+#define STATE_MACHINE_ENABLE 0
+#define STATE_MACHINE_DEBUG 0
 
 // shutter
 #define SHUTTER_ENABLE 0
@@ -42,5 +42,9 @@
 // presence detector
 #define PRESENCE_DETECTOR_ENABLE 0
 #define PRESENCE_DETECTOR_DEBUG 0
+
+// pressure sensor
+#define HEXAPRESSURE_ENABLE 1
+#define HEXAPRESSURE_DEBUG 1
 
 #endif // HEXBAUS_CONFIG_H
