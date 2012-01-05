@@ -6,14 +6,11 @@
 
 #include "hexabus_config.h"
 
-#define ACTIVE_TIME   3
-#define KEEP_ALIVE    10
+void presence_detected(void);
 
-void motion_detected(void);
+void no_presence_detected(void);
 
-void no_motion_detected(void);
-
-uint8_t presence_active(void);
+uint8_t is_presence(void);
 
 PROCESS_NAME(presence_detector_process);
 

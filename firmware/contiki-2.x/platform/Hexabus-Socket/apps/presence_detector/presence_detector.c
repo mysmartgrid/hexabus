@@ -37,7 +37,7 @@
 #include "presence_detector.h"
 #include <util/delay.h>
 #include "sys/clock.h"
-#include "sys/etimer.h" //contiki event timer library
+#include "sys/ctimer.h"
 #include "contiki.h"
 #include "dev/leds.h"
 
@@ -52,70 +52,34 @@
 #define PRINTF(...)
 #endif
 
-static process_event_t motion_event;
-static process_event_t no_motion_event;
-
-
 static uint8_t presence = 0;
+static struct ctimer pd_timeout; 
 
-void motion_detected(void) {
-    process_post(&presence_detector_process,motion_event,NULL);
+
+void presence_detected(void) {
+#if PRESENCE_DETECTOR_SERVER
+    presence = 1;
+    ctimer_restart(&pd_timeout);
+    broadcast_value(26);
+#elif PRESENCE_DETECTOR_CLIENT
+    presence = PRESENCE_DETECTOR_CLIENT_GROUP;
+    broadcast_value(26);
+#endif
 }
 
-void no_motion_detected(void) {
-    process_post(&presence_detector_process,no_motion_event,NULL);
+void no_presence_detected(void) {
+    presence = 0;
+#if PRESENCE_DETECTOR_SERVER
+    broadcast_value(26);
+#endif
 }
 
-uint8_t presence_active(void) {
+uint8_t is_presence(void) {
     return presence;
 }
 
-PROCESS(presence_detector_process, "Monitors the motion detector");
-
-PROCESS_THREAD(presence_detector_process, ev, data) {
-
-    static struct etimer motion_timeout_timer;
-    static struct etimer keep_alive_timer;
-
-    PROCESS_BEGIN();
-
-    motion_event = process_alloc_event();
-    no_motion_event = process_alloc_event();
-
-    etimer_set(&motion_timeout_timer, CLOCK_SECOND * (60*ACTIVE_TIME));
-    etimer_stop(&motion_timeout_timer);
-
-    etimer_set(&keep_alive_timer, CLOCK_SECOND * (60*KEEP_ALIVE));
-    etimer_stop(&keep_alive_timer);
-    
-    while(1) {
-        PROCESS_WAIT_EVENT();
-        
-        if(ev == motion_event) {
-            etimer_stop(&motion_timeout_timer);
-            etimer_restart(&keep_alive_timer);
-           
-            if(!presence) {
-                presence = 1;
-                broadcast_value(26);
-            }
-
-            PRINTF("Presence active\n");
-        } else if (ev == no_motion_event) {
-            etimer_restart(&motion_timeout_timer);
-            etimer_stop(&keep_alive_timer);
-            PRINTF("Presence timer started\n");
-        } else if (ev == PROCESS_EVENT_TIMER) {
-            
-            if(presence) {
-                presence = 0;
-
-                broadcast_value(26);
-            }
-
-            PRINTF("Presence inactive\n");
-        }
-    }
-
-    PROCESS_END();
+void presence_detector_init() {
+    ctimer_set(&pd_timeout, CLOCK_SECOND*60*PRESENCE_DETECTOR_SERVER_TIMEOUT, no_presence_detected, NULL);
+    ctimer_stop(&pd_timeout);
 }
+

@@ -358,7 +358,7 @@ void initialize(void)
 #endif
 
 #if PRESENCE_DETECTOR_ENABLE
-  process_start(&presence_detector_process, NULL);
+  presence_detector_init();
 #endif
 
   mdns_responder_init();

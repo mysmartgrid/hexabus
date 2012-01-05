@@ -11,7 +11,7 @@
 #define UDP_HANDLER_DEBUG 0
 
 // datetime_service
-#define DATETIME_SERVICE_ENABLE 0
+#define DATETIME_SERVICE_ENABLE 1
 #define DATETIME_SERVICE_DEBUG 0
 
 // temperature
@@ -21,8 +21,8 @@
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 0
-#define VALUE_BROADCAST_AUTO_EID 24
-#define VALUE_BROADCAST_AUTO_INTERVAL 0 //0 to disable automatic broadcast
+#define VALUE_BROADCAST_AUTO_EID 26
+#define VALUE_BROADCAST_AUTO_INTERVAL 60 //0 to disable automatic broadcast
 
 // state_machine
 #define STATE_MACHINE_ENABLE 0
@@ -34,14 +34,18 @@
 
 // hexapush
 #define HEXAPUSH_ENABLE 1
-#define HEXAPUSH_CLICK_ENABLE 1
-#define HEXAPUSH_PRESS_RELEASE_ENABLE 0
+#define HEXAPUSH_CLICK_ENABLE 0
+#define HEXAPUSH_PRESS_RELEASE_ENABLE 1
 #define HEXAPUSH_PRESS_DELAY 6   //multiplied by 50ms, only if Click and Press/Release are enabled
 #define HEXAPUSH_DEBUG 0
 
 // presence detector
 #define PRESENCE_DETECTOR_ENABLE 0
 #define PRESENCE_DETECTOR_DEBUG 0
+#define PRESENCE_DETECTOR_SERVER 0
+#define PRESENCE_DETECTOR_CLIENT 0
+#define PRESENCE_DETECTOR_SERVER_TIMEOUT 3 //in Minutes
+#define PRESENCE_DETECTOR_CLIENT_GROUP 2 // 2 to 255
 
 // hexonoff
 #define HEXONOFF_ENABLE 1
