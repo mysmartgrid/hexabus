@@ -58,5 +58,5 @@ void hexonoff_init(void) {
 
     HEXONOFF_DDR |= output_vector;
     HEXONOFF_PORT &= ~output_vector;
-    set_outputs(INITIAL_VALUE);
+    set_outputs(HEXONOFF_INITIAL_VALUE);
 }
