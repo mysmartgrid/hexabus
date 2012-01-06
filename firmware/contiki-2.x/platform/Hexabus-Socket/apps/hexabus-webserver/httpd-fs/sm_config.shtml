@@ -7,6 +7,49 @@
 			transDT = false;
 			condDT = false;
 		</script>
+		<p>Condition Table Input:</p>
+			<form id="CondTableForm" action="">
+				Source IP: <input type="text" id="sourceIP" /><br />
+				Source EID: <input type="text" id="sourceEID" /><br />
+				Operator: <select id="operator">
+					<option value="0">==</option>
+					<option value="1">&lt;=</option>
+					<option value="2">&gt;=</option>
+					<option value="3">&lt;</option>
+					<option value="4">&gt;</option>
+					<option value="5">!=</option>
+				</select><br />
+				DataType: <select id="dTypeCond" onchange="alterValue(document.forms['TransTableForm'].elements[3].options[document.forms['CondTableForm'].elements[3].selectedIndex].value, 'cv')">
+					<option value="1">Bool</option>
+					<option value="2">Int8</option>
+					<option value="3">Int32</option>
+					<option value="4">DateTime</option>
+					<option value="5">Float</option>
+					<option value="7">Timestamp</option>
+				</select><br />
+				<div id="cvSimple">Value: <input type="text" id="valueCond" /><br /></div>
+				<div id="cvComplex" style="border:solid 1px black; display:none;">
+					Hour: <input type="text" id="cHour" /><br />
+					Minute: <input type="text" id="cMinute" /><br />
+					Second: <input type="text" id="cSecond" /><br />
+					Day: <input type="text" id="cDay" /><br />
+					Month: <input type="text" id="cMonth" /><br />
+					Year: <input type="text" id="cYear" /><br />
+					Weekday: <input type="text" id="cWeekday" /><br />
+				</div>
+			</form>
+			<button type="button" onclick="javascript:addTableLine('CondTableForm', 'condTable');">Add Line</button>
+	<p>Current Condition Table:</p>
+			<table id="condTable" border="1">
+				<tr>
+					<th>Source IP</th>
+					<th>Source EID</th>
+					<th>Operator</th>
+					<th>Datatype</th>
+					<th>Value</th>
+				</tr>
+			</table>
+			<hr>
 		<p>Transition Table Input:</p>
 		<form id="TransTableForm" action="">
 			FromState: <input type="text" id="fromState" /><br />
@@ -47,55 +90,11 @@
 			</tr>
 		</table>
 		<hr>
-		<p>Condition Table Input:</p>
-		<form id="CondTableForm" action="">
-			Source IP: <input type="text" id="sourceIP" /><br />
-			Source EID: <input type="text" id="sourceEID" /><br />
-			Operator: <select id="operator">
-				<option value="0">==</option>
-				<option value="1">&lt;=</option>
-				<option value="2">&gt;=</option>
-				<option value="3">&lt;</option>
-				<option value="4">&gt;</option>
-				<option value="5">!=</option>
-			</select><br />
-			DataType: <select id="dTypeCond" onchange="alterValue(document.forms['TransTableForm'].elements[3].options[document.forms['CondTableForm'].elements[3].selectedIndex].value, 'cv')">
-				<option value="1">Bool</option>
-				<option value="2">Int8</option>
-				<option value="3">Int32</option>
-				<option value="4">DateTime</option>
-				<option value="5">Float</option>
-				<option value="7">Timestamp</option>
-			</select><br />
-			<div id="cvSimple">Value: <input type="text" id="valueCond" /><br /></div>
-			<div id="cvComplex" style="border:solid 1px black; display:none;">
-				Hour: <input type="text" id="cHour" /><br />
-				Minute: <input type="text" id="cMinute" /><br />
-				Second: <input type="text" id="cSecond" /><br />
-				Day: <input type="text" id="cDay" /><br />
-				Month: <input type="text" id="cMonth" /><br />
-				Year: <input type="text" id="cYear" /><br />
-				Weekday: <input type="text" id="cWeekday" /><br />
-			</div>
-		</form>
-		<button type="button" onclick="javascript:addTableLine('CondTableForm', 'condTable');">Add Line</button>
-<p>Current Condition Table:</p>
-		<table id="condTable" border="1">
-			<tr>
-				<th>Source IP</th>
-				<th>Source EID</th>
-				<th>Operator</th>
-				<th>Datatype</th>
-				<th>Value</th>
-			</tr>
-		</table>
-		<hr>
-		<p>"Hidden" Field</p>
 		<form id="sendingForm" action="sm_config.shtml" method="POST">
-			<input type="text" id="generatedTables" name="tables" />
+			<button type="button" onclick="javascript:generateTables()">Parse Tables</button><p />
+			Parsed State Machine: <input type="text" id="generatedTables" name="tables" />
 			<input type="submit" value="submit" />
 		</form>
-		<button type="button" onclick="javascript:generateTables()">Generate Tables</button>
 	<script type="text/javascript">
 		function alterValue(dtype, divID) {
 			if(dtype == 4) {
@@ -174,7 +173,7 @@
 			} else {
 				tmpArray[0] = (String(tmpArray[0]).replace(/:/g, ""));
 				condTable.push(tmpArray);
-				addToDropDownMenu(condTable.length);
+				addToDropDownMenu(condTable.length - 1);
 			}
 		}
 </script>

@@ -106,6 +106,7 @@ MEMB(conns, struct httpd_state, CONNS);
 #define ISO_space   0x20
 #define ISO_bang    0x21
 #define ISO_percent 0x25
+#define ISO_comma		0x2c
 #define ISO_period  0x2e
 #define ISO_slash   0x2f
 #define ISO_colon   0x3a
@@ -395,24 +396,69 @@ PT_THREAD(handle_output(struct httpd_state *s))
 	PT_END(&s->outputpt);
 }
 /*---------------------------------------------------------------------------*/
-	uint8_t pow10(uint8_t exp) {
-		uint8_t val = 1;
+	float pow10(int exp) {
+		float val = 1;
 		uint8_t i;
-		for(i = 0;i < exp;i++) {
-			val *= 10;
+		if(exp >= 0) {
+			for(i = 0;i < exp;i++) {
+				val *= 10;
+			}
+			return val;
+		} else {
+			for(i = 0;i > (-1)*exp;i++) {
+				val /= 10.0f;
+			}
+			return val;
 		}
-		return val;
+
 	}
-/*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
 	uint8_t ctoi(const char *str, uint8_t length) {
 		uint8_t value = 0;
 		uint8_t i;
 		for(i = 0;i < length;i++) {
-			value += (str[i] - '0')*pow10(length - i - 1);
+			value += (str[i] - '0')*(uint8_t)pow10(length - i - 1);
 		}
 		return value;
 	}
+/*---------------------------------------------------------------------------*/
+void stodt(const char *str, struct hxb_value *val, uint8_t dtype, uint8_t length) {
+	uint8_t i = 0;
+	switch(dtype) {
+		case HXB_DTYPE_BOOL:
+		case HXB_DTYPE_UINT8:;
+			*(uint8_t*)&(val->data) = ctoi(str, length);
+			break;
+		case HXB_DTYPE_TIMESTAMP:
+		case HXB_DTYPE_UINT32:;
+			uint32_t val32 = 0;
+			for(i = 0;i < length;i++) {
+				val32 += (str[i] - '0')*(uint32_t)pow10(length - i - 1);
+			}
+			*(uint32_t*)&(val->data) = val32;
+			break;
+		case HXB_DTYPE_FLOAT:;
+			float valf = 0.f;
+			uint8_t k = 0;
+			for(i = 0;i < length && str[k] != '%';i++)  {			// Find the "decimal point"
+				k++;
+			}
+			printf("\n");
+			for(i = 0;i < length;i++) {
+				if(i < k) {
+					valf += ((str[i] - '0')*pow10(k - i - 1));
+				}
+				if(i > k + 2) {
+					valf += (float)((str[i] - '0')*pow10(k - i + 2));
+					//printf("%d\n", (int)(pow10(k - i + 2)*pow10((-1)*(k - i + 2))));
+				}
+			}
+			printf("k: %d ValFloat: %d\n", k, (int)(valf*10));
+			break;
+		default:
+			PRINTF("State Machine Configurator: Datatype not implemented (yet)");
+	}
+}
 /*--------------------------------------------------------------------------*/
 const char httpd_get[] HTTPD_STRING_ATTR = "GET ";
 const char httpd_ref[] HTTPD_STRING_ATTR = "Referer:";
@@ -564,15 +610,17 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			static uint8_t table;
 			static uint8_t position;
 			static uint8_t numberOfBlocks;
+			uint8_t *run = malloc(sizeof(uint8_t));
+			*run = 0;
 			numberOfBlocks = 0;
 			end = 0;
 			table = 0;
 			position = 0;
-			process_post(PROCESS_BROADCAST, sm_rulechange_event, NULL);	// TODO. NULL is not nice	
+			//process_post(PROCESS_BROADCAST, sm_rulechange_event, run);	TODO: Wait for an event of sm?
 			PSOCK_READTO(&s->sin, '-');
 			while(!end) {
 				PSOCK_READTO(&s->sin, '.');
-				if(PSOCK_DATALEN(&s->sin) <= 1) { // TODO: Improve this
+				if(PSOCK_DATALEN(&s->sin) <= 1) { 
 					if(table == 0) {
 						PRINTF("End of TransTable.\n");	
 						// Write the Number of transitions
@@ -604,12 +652,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							trans.data.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 							break;
 						case 4: // Value
-							if(trans.data.datatype == HXB_DTYPE_UINT8 || trans.data.datatype == HXB_DTYPE_BOOL) {
-								trans.data.data[0] = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);		// TODO: Other DTypes
-							} else {
-								trans.data.data[0] = 0;
-								PRINTF("State Machine Configurator: Datatype not implemented yet\n");
-							}
+							stodt(&s->inputbuf[0], &trans.data, trans.data.datatype, PSOCK_DATALEN(&s->sin) - 1);
 							break;
 						case 5: // Good State
 							trans.goodState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
@@ -635,7 +678,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 					// CondTable	
 					switch(position) {
 							case 0:; // SourceIP. Empty expression is needed.
-								// Transform string to hex. A little bit hacked right now, TODO.
+								// Transform string to hex. A little bit hacked but it works.
 								uint8_t tmp = 0;
 								uint8_t j = 0;
 								for(i = 0;i < 16;i++, j+=2) {
@@ -662,12 +705,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 								cond.value.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 								break;
 							case 4: // Value
-								if(cond.value.datatype == HXB_DTYPE_UINT8 || cond.value.datatype == HXB_DTYPE_BOOL) {
-									cond.value.data[0] = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);		// TODO: Other DTypes
-								} else {
-									cond.value.data[0] = 0;
-									PRINTF("State Machine Configurator: Datatype not implemented yet\n");
-								}
+								stodt(&s->inputbuf[0], &cond.value, cond.value.datatype, PSOCK_DATALEN(&s->sin) - 1);
 					}
 					if(++position == 5) {
 						position = 0;
@@ -691,6 +729,8 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			}
 		}
 		PRINTF("State Machine Configurator: Done with parsing.\n");
+		*run = 1;
+		process_post(PROCESS_BROADCAST, sm_rulechange_event, run);
 	} else {
 			PSOCK_CLOSE_EXIT(&s->sin);
 		}
