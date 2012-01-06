@@ -52,34 +52,71 @@
 #define PRINTF(...)
 #endif
 
-static uint8_t presence = 0;
-static struct ctimer pd_timeout; 
-
-
-void presence_detected(void) {
 #if PRESENCE_DETECTOR_SERVER
-    presence = 1;
+static struct ctimer pd_timeout; 
+#endif
+#if PRESENCE_DETECTOR_CLIENT
+static struct ctimer pd_keep_alive;
+static uint8_t presence = 0;
+#endif
+
+static uint8_t global_presence = 0;
+
+
+void global_presence_detected(void) {
+#if PRESENCE_DETECTOR_SERVER
+    if(global_presence != 1) {
+        global_presence = 1;
+        broadcast_value(26);
+    }
     ctimer_restart(&pd_timeout);
-    broadcast_value(26);
-#elif PRESENCE_DETECTOR_CLIENT
-    presence = PRESENCE_DETECTOR_CLIENT_GROUP;
+#endif
+}
+
+void no_global_presence(void) {
+#if PRESENCE_DETECTOR_SERVER
+    global_presence = 0;
     broadcast_value(26);
 #endif
 }
 
-void no_presence_detected(void) {
-    presence = 0;
-#if PRESENCE_DETECTOR_SERVER
+void raw_presence_detected(void) {
+#if PRESENCE_DETECTOR_CLIENT
+    uint8_t tmp = global_presence;
+    presence = PRESENCE_DETECTOR_CLIENT_GROUP;
+    global_presence = presence;
     broadcast_value(26);
+    global_presence = tmp;
+    ctimer_restart(&pd_keep_alive);
+#endif
+}
+
+void no_raw_presence(void) {
+#if PRESENCE_DETECTOR_CLIENT
+    presence = 0;
+#endif
+}
+
+void presence_keep_alive(void) {
+#if PRESENCE_DETECTOR_CLIENT
+    if(presence) {
+        raw_presence_detected();
+    }
 #endif
 }
 
 uint8_t is_presence(void) {
-    return presence;
+    return global_presence;
 }
 
 void presence_detector_init() {
-    ctimer_set(&pd_timeout, CLOCK_SECOND*60*PRESENCE_DETECTOR_SERVER_TIMEOUT, no_presence_detected, NULL);
+#if PRESENCE_DETECTOR_SERVER
+    ctimer_set(&pd_timeout, CLOCK_SECOND*60*PRESENCE_DETECTOR_SERVER_TIMEOUT, no_global_presence, NULL);
     ctimer_stop(&pd_timeout);
+#endif
+#if PRESENCE_DETECTOR_CLIENT
+    ctimer_set(&pd_keep_alive, CLOCK_SECOND*PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE, presence_keep_alive, NULL);
+    ctimer_stop(&pd_keep_alive);
+#endif
 }
 

@@ -38,7 +38,7 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
 #endif
 #if PRESENCE_DETECTOR_ENABLE
     case 26:
-      return HXB_DTYPE_BOOL;
+      return HXB_DTYPE_UINT8;
 #endif
 #if HEXONOFF_ENABLE
     case 27:
@@ -141,13 +141,15 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
 #endif
 #if PRESENCE_DETECTOR_ENABLE
     case 26:
-      if(value->datatype == HXB_DTYPE_BOOL)
+      if(value->datatype == HXB_DTYPE_UINT8)
       {
-        if(*(uint8_t*)&value->data == HXB_TRUE)
+        if(*(uint8_t*)&value->data == 1)
         {
-          no_motion_detected();
+            global_presence_detected();
+        } else if(*(uint8_t*)&value->data == 0) {
+            no_raw_presence();
         } else {
-          motion_detected();
+            raw_presence_detected();
         }
         return 0;
       } else {
@@ -218,8 +220,8 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
 #endif
 #if PRESENCE_DETECTOR_ENABLE
     case 26:
-      val->datatype = HXB_DTYPE_BOOL;
-      *(uint8_t*)&val->data = presence_active() == 0 ? HXB_FALSE : HXB_TRUE;
+      val->datatype = HXB_DTYPE_UINT8;
+      *(uint8_t*)&val->data = is_presence();
       break;
 #endif
 #if HEXONOFF_ENABLE
