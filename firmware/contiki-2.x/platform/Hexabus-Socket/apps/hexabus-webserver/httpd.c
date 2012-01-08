@@ -397,20 +397,19 @@ PT_THREAD(handle_output(struct httpd_state *s))
 }
 /*---------------------------------------------------------------------------*/
 	float pow10(int exp) {
-		float val = 1;
-		uint8_t i;
+		float val = 1.f;
+		uint8_t i = 0;
 		if(exp >= 0) {
 			for(i = 0;i < exp;i++) {
-				val *= 10;
+				val *= 10.f;
 			}
-			return val;
 		} else {
-			for(i = 0;i > (-1)*exp;i++) {
-				val /= 10.0f;
+			exp *= -1;
+			for(i = 0;i < exp;i++) {
+				val /= 10.f;
 			}
-			return val;
 		}
-
+		return val;
 	}
 /*---------------------------------------------------------------------------*/
 	uint8_t ctoi(const char *str, uint8_t length) {
@@ -443,17 +442,15 @@ void stodt(const char *str, struct hxb_value *val, uint8_t dtype, uint8_t length
 			for(i = 0;i < length && str[k] != '%';i++)  {			// Find the "decimal point"
 				k++;
 			}
-			printf("\n");
 			for(i = 0;i < length;i++) {
 				if(i < k) {
-					valf += ((str[i] - '0')*pow10(k - i - 1));
+					valf += (str[i] - '0')*pow10(k - i - 1);
 				}
 				if(i > k + 2) {
-					valf += (float)((str[i] - '0')*pow10(k - i + 2));
-					//printf("%d\n", (int)(pow10(k - i + 2)*pow10((-1)*(k - i + 2))));
+					valf += (str[i] - '0')*pow10(k - i + 2);
 				}
 			}
-			printf("k: %d ValFloat: %d\n", k, (int)(valf*10));
+			*(float*)&(val->data) = valf;
 			break;
 		default:
 			PRINTF("State Machine Configurator: Datatype not implemented (yet)");
