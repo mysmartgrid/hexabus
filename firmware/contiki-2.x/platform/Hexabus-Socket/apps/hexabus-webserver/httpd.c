@@ -619,9 +619,11 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			static uint8_t table;
 			static uint8_t position;
 			static uint8_t numberOfBlocks;
+			static uint8_t numberOfDT;
 			uint8_t *run = malloc(sizeof(uint8_t));
 			*run = 0;
 			numberOfBlocks = 0;
+			numberOfDT = 0;
 			end = 0;
 			table = 0;
 			position = 0;
@@ -641,6 +643,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 						PRINTF("End of TransTable.\n");	
 						// Write the Number of transitions
     				eeprom_write_block(&numberOfBlocks, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
+						eeprom_write_block(&numberOfDT, (void*)EE_STATEMACHINE_DATETIME_TRANSITIONS, 1);
 						break;
 					}
 				}
@@ -726,13 +729,26 @@ PT_THREAD(handle_input(struct httpd_state *s))
 						position = 0;
 						PRINTF("Struct Trans: From: %d Cond: %d EID: %d DataType: %d Good: %d Bad: %d\n", trans.fromState, trans.cond, trans.eid, trans.data.datatype, trans.goodState, trans.badState);
 						// Write Line to EEPROM. Too much data is just truncated.
-						if(numberOfBlocks < (EE_STATEMACHINE_TRANSITIONS_SIZE / sizeof(struct transition))) {
-							eeprom_write_block(&trans, (void*)(1 + numberOfBlocks*sizeof(struct transition) + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
-							numberOfBlocks++;
+						memset(&cond, 0, sizeof(struct condition));
+						eeprom_read_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + (trans.cond * sizeof(struct condition))), sizeof(struct condition));
+						if(cond.value.datatype == HXB_DTYPE_DATETIME) {
+							PRINTF("Writing DateTime Transition...\n");
+							if(numberOfDT < (EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE / sizeof(struct transition))) {
+									eeprom_write_block(&trans, (void*)(1 + numberOfDT*sizeof(struct transition) + EE_STATEMACHINE_DATETIME_TRANSITIONS), sizeof(struct transition));
+									numberOfDT++;
+								} else {
+									PRINTF("Warning: DateTime Transition Table too long! Data will not be written.\n");
+								}
+								memset(&trans, 0, sizeof(struct transition));
 						} else {
-							PRINTF("Warning: Transition Table too long! Data will not be written.\n");
+							if(numberOfBlocks < (EE_STATEMACHINE_TRANSITIONS_SIZE / sizeof(struct transition))) {
+									eeprom_write_block(&trans, (void*)(1 + numberOfBlocks*sizeof(struct transition) + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
+									numberOfBlocks++;
+								} else {
+									PRINTF("Warning: Transition Table too long! Data will not be written.\n");
+								}
+								memset(&trans, 0, sizeof(struct transition));
 						}
-						memset(&trans, 0, sizeof(struct transition));
 					}
 			}
 		}
