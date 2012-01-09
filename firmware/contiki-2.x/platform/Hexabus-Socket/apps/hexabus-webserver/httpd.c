@@ -452,6 +452,18 @@ void stodt(const char *str, struct hxb_value *val, uint8_t dtype, uint8_t length
 			}
 			*(float*)&(val->data) = valf;
 			break;
+		case HXB_DTYPE_DATETIME:;
+			uint8_t j = 0;
+			uint8_t ka = 0;
+			k = 0;
+			for(i = 0;i < length;i = j + 1) {
+				for(j = i;j < length && str[j] != '*';) {
+					j++;
+				}
+				val->data[k] = ctoi(str + i, j - i);
+				k++;
+			}
+			break;
 		default:
 			PRINTF("State Machine Configurator: Datatype not implemented (yet)");
 	}
@@ -619,59 +631,21 @@ PT_THREAD(handle_input(struct httpd_state *s))
 				PSOCK_READTO(&s->sin, '.');
 				if(PSOCK_DATALEN(&s->sin) <= 1) { 
 					if(table == 0) {
-						PRINTF("End of TransTable.\n");	
-						// Write the Number of transitions
-    				eeprom_write_block(&numberOfBlocks, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
+						PRINTF("End of CondTable.\n");	
 						numberOfBlocks = 0;
 						table++;
 						PSOCK_READTO(&s->sin, '-');
 						continue;
 					} else {
 						end = 1;
-						PRINTF("End of CondTable.\n");	
+						PRINTF("End of TransTable.\n");	
+						// Write the Number of transitions
+    				eeprom_write_block(&numberOfBlocks, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
 						break;
 					}
 				}
 				// Extract the value out of string
 				if(table == 0) {
-					// TransTable
-					switch(position) {
-						case 0: // FromState
-							trans.fromState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
-							break;
-						case 1: // Condition#
-							trans.cond = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
-							break;
-						case 2: // EID
-							trans.eid = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
-							break;
-						case 3: // DataType
-							trans.data.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
-							break;
-						case 4: // Value
-							stodt(&s->inputbuf[0], &trans.data, trans.data.datatype, PSOCK_DATALEN(&s->sin) - 1);
-							break;
-						case 5: // Good State
-							trans.goodState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
-							break;
-						case 6: // Bad State
-							trans.badState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
-							break;
-					}
-					if(++position == 7) {
-						position = 0;
-						PRINTF("Struct Trans: From: %d Cond: %d EID: %d DataType: %d Value: %d Good: %d Bad: %d\n", trans.fromState, trans.cond, trans.eid, trans.data.datatype, trans.data.data[0], trans.goodState, trans.badState);
-						
-						// Write Line to EEPROM. Too much data is just truncated.
-						if(numberOfBlocks < (EE_STATEMACHINE_TRANSITIONS_SIZE / sizeof(struct transition))) {
-							eeprom_write_block(&trans, (void*)(1 + numberOfBlocks*sizeof(struct transition) + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
-							numberOfBlocks++;
-						} else {
-							PRINTF("Warning: Transition Table too long! Data will not be written.\n");
-						}
-						memset(&trans, 0, sizeof(struct transition));
-					}
-				} else {
 					// CondTable	
 					switch(position) {
 							case 0:; // SourceIP. Empty expression is needed.
@@ -713,8 +687,8 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							}
 							PRINTF("%02x", cond.sourceIP[i]);
 						}
-						PRINTF("\nStruct Cond: EID: %d Operator: %d DataType: %d Value: %d\n", cond.sourceEID, cond.op, cond.value.datatype, cond.value.data[0]);
-						// Write Line to EEPROM. Again, too much data will be truncated
+						PRINTF("\nStruct Cond: EID: %d Operator: %d DataType: %d \n", cond.sourceEID, cond.op, cond.value.datatype);
+						// Write Line to EEPROM. Too much data will be truncated
 						if(numberOfBlocks < (EE_STATEMACHINE_CONDITIONS_SIZE / sizeof(struct condition))) {
 							eeprom_write_block(&cond, (void*)(numberOfBlocks*sizeof(struct condition) + EE_STATEMACHINE_CONDITIONS), sizeof(struct condition));
 							numberOfBlocks++;
@@ -722,6 +696,43 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							PRINTF("Warning: Condition Table too long! Data will not be written.\n");
 						}
 						memset(&cond, 0, sizeof(struct condition));
+					}
+				} else {
+					// TransTable
+					switch(position) {
+						case 0: // FromState
+							trans.fromState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							break;
+						case 1: // Condition#
+							trans.cond = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							break;
+						case 2: // EID
+							trans.eid = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							break;
+						case 3: // DataType
+							trans.data.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							break;
+						case 4: // Value
+							stodt(&s->inputbuf[0], &trans.data, trans.data.datatype, PSOCK_DATALEN(&s->sin) - 1);
+							break;
+						case 5: // Good State
+							trans.goodState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							break;
+						case 6: // Bad State
+							trans.badState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							break;
+					}
+					if(++position == 7) {
+						position = 0;
+						PRINTF("Struct Trans: From: %d Cond: %d EID: %d DataType: %d Good: %d Bad: %d\n", trans.fromState, trans.cond, trans.eid, trans.data.datatype, trans.goodState, trans.badState);
+						// Write Line to EEPROM. Too much data is just truncated.
+						if(numberOfBlocks < (EE_STATEMACHINE_TRANSITIONS_SIZE / sizeof(struct transition))) {
+							eeprom_write_block(&trans, (void*)(1 + numberOfBlocks*sizeof(struct transition) + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
+							numberOfBlocks++;
+						} else {
+							PRINTF("Warning: Transition Table too long! Data will not be written.\n");
+						}
+						memset(&trans, 0, sizeof(struct transition));
 					}
 			}
 		}
