@@ -12,6 +12,7 @@
 #include "hexabus_config.h"
 #include "endpoint_access.h"
 #include "temperature.h"
+#include "button.h"
 
 uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
@@ -26,6 +27,10 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
 #if TEMPERATURE_ENABLE
     case 3:   // Endpoint 3: Temperature value 
       return HXB_DTYPE_FLOAT;
+#endif
+#if BUTTON_HAS_EID
+    case 4:
+      return HXB_DTYPE_BOOL;
 #endif
 #if SHUTTER_ENABLE
     case 23:
@@ -70,6 +75,11 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
 #if TEMPERATURE_ENABLE
     case 3:
       strncpy(buffer, "Temperature Sensor", 127);
+      break;
+#endif
+#if BUTTON_HAS_EID
+    case 4:
+      strncpy(buffer, "Hexabus Socket Pushbutton", 127);
       break;
 #endif
 #if SHUTTER_ENABLE
@@ -129,6 +139,9 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
 #if TEMPERATURE_ENABLE
     case 3:   // Endpoint 3: Temperature value on Hexabus Socket -- read-only
 #endif
+#if BUTTON_HAS_EID
+    case 4:
+#endif
       return HXB_ERR_WRITEREADONLY;
 #if SHUTTER_ENABLE
     case 23:
@@ -187,6 +200,9 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
 #if TEMPERATURE_ENABLE
       *(uint32_t*)&val->data += 0x08;      // +8: Endpoint 3 also exists
 #endif
+#if BUTTON_HAS_EID
+      *(uint32_t*)&val->data += 0x10; // +10: Endpoint 4 also exists
+#endif
       break;
     case 1:   // Endpoint 1: Hexabus Socket power switch
       val->datatype = HXB_DTYPE_BOOL;
@@ -200,6 +216,12 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case 3:   // Endpoint 3: Hexabus temperaure metering
       val->datatype = HXB_DTYPE_FLOAT;
       *(float*)&val->data = temperature_get();
+      break;
+#endif
+#if BUTTON_HAS_EID
+    case 4:   // Endpoint 4: Pushbutton on the Hexabus-Socket
+      val->datatype = HXB_DTYPE_BOOL;
+      *(uint8_t*)&val->data = button_get_pushed();
       break;
 #endif
 #if SHUTTER_ENABLE

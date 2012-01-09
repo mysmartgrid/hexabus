@@ -60,6 +60,15 @@
 #define PRINTF(...)
 #endif
 
+#if BUTTON_HAS_EID
+  int button_pushed = 0;
+
+  uint8_t button_get_pushed()
+  {
+    return button_pushed;
+  }
+#endif
+
 PROCESS(button_pressed_process, "Check for pressed button process");
 AUTOSTART_PROCESSES(&button_pressed_process);
 
@@ -112,7 +121,9 @@ PROCESS_THREAD(button_pressed_process, ev, data)
 				if (!double_click && clock_time() - time < CLOCK_SECOND * CLICK_TIME / 1000)
 				{ //SHORT SINGLE CLICK
 #if BUTTON_HAS_EID
-          // TODO IMPLEMENT HERE!
+          button_pushed = 1;
+          broadcast_value(4);
+          button_pushed = 0;
 #endif
 #if BUTTON_TOGGLES_RELAY
 					//toggle relay

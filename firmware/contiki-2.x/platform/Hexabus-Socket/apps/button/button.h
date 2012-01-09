@@ -55,6 +55,10 @@
 #define	LONG_CLICK_TIME		7000UL
 #define	PAUSE_TIME			 500UL
 
+#if BUTTON_HAS_EID
+uint8_t button_get_pushed();
+#endif
+
 PROCESS_NAME(button_pressed_process);
 
 
