@@ -11,7 +11,7 @@
 #define UDP_HANDLER_DEBUG 1
 
 // button
-#define BUTTON_DEBUG 1
+#define BUTTON_DEBUG 0
 #define BUTTON_DOUBLE_CLICK_ENABLED 0
 #define BUTTON_HAS_EID 1 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
 #define BUTTON_TOGGLES_RELAY 0 // set to 1 to have the button toggle the relay directly
