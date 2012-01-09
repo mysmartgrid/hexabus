@@ -55,8 +55,6 @@
 #define	LONG_CLICK_TIME		7000UL
 #define	PAUSE_TIME			 500UL
 
-#define DOUBLE_CLICK_ENABLED	0
-
 PROCESS_NAME(button_pressed_process);
 
 

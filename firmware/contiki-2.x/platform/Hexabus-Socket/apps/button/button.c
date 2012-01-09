@@ -40,6 +40,8 @@
 #include "dev/leds.h"
 #include "contiki.h"
 
+#include "hexabus_config.h"
+
 #include "eeprom_variables.h"
 #include <avr/eeprom.h>
 #include <avr/wdt.h>
@@ -51,8 +53,7 @@
 #include "provisioning.h"
 
 
-#define DEBUG 0
-#if DEBUG
+#if BUTTON_DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 #else
@@ -93,7 +94,7 @@ PROCESS_THREAD(button_pressed_process, ev, data)
 						provisioning_leds();
 					}
 				} while ((clock_time() - time < CLOCK_SECOND * LONG_CLICK_TIME / 1000) && (bit_is_clear(BUTTON_PIN, BUTTON_BIT)));
-#if DOUBLE_CLICK_ENABLED
+#if BUTTON_DOUBLE_CLICK_ENABLED
 				/*button was released, check for a second click within DOUBLE_CLICK_TIME*/
 				if (clock_time() - time < CLOCK_SECOND * DOUBLE_CLICK_TIME / 1000) {
 					do {
@@ -110,8 +111,13 @@ PROCESS_THREAD(button_pressed_process, ev, data)
 				PRINTF("button_process: double click: %d, click time: %d\n",double_click, (clock_time() - time));
 				if (!double_click && clock_time() - time < CLOCK_SECOND * CLICK_TIME / 1000)
 				{ //SHORT SINGLE CLICK
+#if BUTTON_HAS_EID
+          // TODO IMPLEMENT HERE!
+#endif
+#if BUTTON_TOGGLES_RELAY
 					//toggle relay
 					relay_toggle();
+#endif
 				}
 				else if (!double_click && clock_time() - time < CLOCK_SECOND * LONG_CLICK_TIME / 1000)
 				{ //SINGLE CLICK (>2s)
