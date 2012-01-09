@@ -672,11 +672,11 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							case 1: // SourceEID
 								cond.sourceEID = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 								break;
-							case 2: // Operator
-								cond.op = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
-								break;
-							case 3: // DataType
+							case 2: // DataType 
 								cond.value.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+								break;
+							case 3: // Operator 
+								cond.op = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 								break;
 							case 4: // Value
 								stodt(&s->inputbuf[0], &cond.value, cond.value.datatype, PSOCK_DATALEN(&s->sin) - 1);
@@ -731,7 +731,8 @@ PT_THREAD(handle_input(struct httpd_state *s))
 						// Write Line to EEPROM. Too much data is just truncated.
 						memset(&cond, 0, sizeof(struct condition));
 						eeprom_read_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + (trans.cond * sizeof(struct condition))), sizeof(struct condition));
-						if(cond.value.datatype == HXB_DTYPE_DATETIME) {
+						
+						if(cond.value.datatype == HXB_DTYPE_DATETIME || cond.value.datatype == HXB_DTYPE_TIMESTAMP) {
 							PRINTF("Writing DateTime Transition...\n");
 							if(numberOfDT < (EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE / sizeof(struct transition))) {
 									eeprom_write_block(&trans, (void*)(1 + numberOfDT*sizeof(struct transition) + EE_STATEMACHINE_DATETIME_TRANSITIONS), sizeof(struct transition));

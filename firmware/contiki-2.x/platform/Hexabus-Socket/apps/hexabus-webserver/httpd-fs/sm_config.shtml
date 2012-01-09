@@ -1,25 +1,13 @@
 %!: /header.html
 
 <h1>State Machine Configurator</h1>
-		<script type="text/javascript">
-			transTable = new Array();
-			condTable = new Array();
-			transDT = false;
-			condDT = false;
+		<script type="text/javascript" src="minimal.js">
 		</script>
 		<p>Condition Table Input:</p>
 			<form id="CondTableForm" action="">
 				Source IP: <input type="text" id="sourceIP" /><br />
 				Source EID: <input type="text" id="sourceEID" /><br />
-				Operator: <select id="operator">
-					<option value="0">==</option>
-					<option value="1">&lt;=</option>
-					<option value="2">&gt;=</option>
-					<option value="3">&lt;</option>
-					<option value="4">&gt;</option>
-					<option value="5">!=</option>
-				</select><br />
-				DataType: <select id="dTypeCond" onchange="alterValue(document.forms['TransTableForm'].elements[3].options[document.forms['CondTableForm'].elements[3].selectedIndex].value, 'cv')">
+				DataType: <select id="dTypeCond" onchange="alterValue(document.forms['CondTableForm'].elements[2].options[document.forms['CondTableForm'].elements[2].selectedIndex].value, 'cv')">
 					<option value="1">Bool</option>
 					<option value="2">Int8</option>
 					<option value="3">Int32</option>
@@ -27,16 +15,32 @@
 					<option value="5">Float</option>
 					<option value="7">Timestamp</option>
 				</select><br />
-				<div id="cvSimple">Value: <input type="text" id="valueCond" /><br /></div>
-				<div id="cvComplex" style="border:solid 1px black; display:none;">
-					Hour: <input type="text" id="cHour" /><br />
-					Minute: <input type="text" id="cMinute" /><br />
-					Second: <input type="text" id="cSecond" /><br />
-					Day: <input type="text" id="cDay" /><br />
-					Month: <input type="text" id="cMonth" /><br />
-					Year: <input type="text" id="cYear" /><br />
-					Weekday: <input type="text" id="cWeekday" /><br />
+				<div id="cvSimple">
+					Operator: <select id="operatorSimple">
+						<option value="0">==</option>
+						<option value="1">&lt;=</option>
+						<option value="2">&gt;=</option>
+						<option value="3">&lt;</option>
+						<option value="4">&gt;</option>
+						<option value="5">!=</option>
+					</select>
 				</div>
+				<div id="cvComplex" style="border:solid 1px black; display:none;">
+					Operator: <select id="operatorDT">
+						<option value="128">&gt;=</option>
+						<option value="0">&lt;</option>
+					</select><br />
+					Relevant Field: <select id="field">
+						<option value="1">Hour</option>
+						<option value="2">Minute</option>
+						<option value="4">Second</option>
+						<option value="8">Day</option>
+						<option value="16">Month</option>
+						<option value="32">Year</option>
+						<option value="64">Weekday</option>
+					</select> 
+				</div>
+				Value: <input type="text" id="valueCond" /><br />
 			</form>
 			<button type="button" onclick="javascript:addTableLine('CondTableForm', 'condTable');">Add Line</button>
 	<p>Current Condition Table:</p>
@@ -45,8 +49,8 @@
 					<th>#</th>
 					<th>Source IP</th>
 					<th>Source EID</th>
-					<th>Operator</th>
 					<th>Datatype</th>
+					<th>Operator</th>
 					<th>Value</th>
 				</tr>
 			</table>
@@ -96,91 +100,3 @@
 			Parsed State Machine: <input type="text" id="generatedTables" name="tables" />
 			<input type="submit" value="submit" />
 		</form>
-	<script type="text/javascript">
-		function alterValue(dtype, divID) {
-			if(dtype == 4) {
-				document.getElementById(divID+'Simple').style.display = 'none';
-				document.getElementById(divID+'Complex').style.display = '';
-				if(divID == "cv") {
-					condDT = true;
-				} else {
-					transDT = true;
-				}
-			} else {
-				if(divID == "cv") {
-					condDT = false;
-				} else {
-					transDT = false;
-				}
-				document.getElementById(divID+'Simple').style.display = '';
-				document.getElementById(divID+'Complex').style.display = 'none';
-			}
-		}
-
-		function generateTables() {
-			var destForm = document.getElementById("sendingForm");
-			var hiddenInput = document.getElementById("generatedTables");
-			hiddenInput.value = decomposeTable(condTable);
-			hiddenInput.value += decomposeTable(transTable);
-		}
-		
-		function decomposeTable(table) {
-			var tableString = "-";
-			for(var i = 0;i < table.length;i++) {
-				for(var j = 0;j < table[0].length;j++) {
-					tableString += table[i][j];
-					tableString += ".";
-				}
-			}
-			tableString += ".";
-			return tableString;
-		}
-
-		function addToDropDownMenu(i) {
-			var dropDown = document.getElementById("condID");
-			var option = document.createElement("option");
-			option.text = i;
-			option.value = i;
-			dropDown.add(option, null);
-		}
-		function addTableLine(formName, tableName) {
-			var form = document.getElementById(formName);
-			var table = document.getElementById(tableName);
-			var row = table.insertRow(table.rows.length);
-			var tmpArray = new Array();
-			var i = 0;
-			var j = 0;
-			if(tableName == "condTable") {
-				row.insertCell(0).innerHTML = condTable.length;
-				j++;
-			}
-			for(;i < form.length;i++, j++) {
-				if(i == 4) {
-					if((transDT && formName == "TransTableForm") || (condDT && formName == "CondTableForm")) {
-						var val = "";
-						for(var k = 0;k < 7;k++) {
-							val += form.elements[k+5].value;
-							val += "*";
-						}
-						row.insertCell(j).innerHTML = val;
-						tmpArray.push(val);
-						i += 7;
-					} else {
-						row.insertCell(j).innerHTML = form.elements[i].value;
-						tmpArray.push(form.elements[i].value);
-						i += 7;
-					}
-				} else {
-					row.insertCell(j).innerHTML = form.elements[i].value;
-					tmpArray.push(form.elements[i].value);
-				}
-			}
-			if(formName == "TransTableForm") {
-				transTable.push(tmpArray);	
-			} else {
-				tmpArray[0] = (String(tmpArray[0]).replace(/:/g, ""));
-				condTable.push(tmpArray);
-				addToDropDownMenu(condTable.length - 1);
-			}
-		}
-</script>
