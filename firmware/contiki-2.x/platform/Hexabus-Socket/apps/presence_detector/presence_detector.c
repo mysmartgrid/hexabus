@@ -37,7 +37,7 @@
 #include "presence_detector.h"
 #include <util/delay.h>
 #include "sys/clock.h"
-#include "sys/etimer.h" //contiki event timer library
+#include "sys/ctimer.h"
 #include "contiki.h"
 #include "dev/leds.h"
 
@@ -52,59 +52,75 @@
 #define PRINTF(...)
 #endif
 
-static process_event_t motion_event;
-static process_event_t no_motion_event;
-
-
+#if PRESENCE_DETECTOR_SERVER
+static struct ctimer pd_timeout; 
+#endif
+#if PRESENCE_DETECTOR_CLIENT
+static struct ctimer pd_keep_alive;
 static uint8_t presence = 0;
+#endif
 
-void motion_detected(void) {
-    process_post(&presence_detector_process,motion_event,NULL);
-}
+static uint8_t global_presence = 0;
 
-void no_motion_detected(void) {
-    process_post(&presence_detector_process,no_motion_event,NULL);
-}
 
-uint8_t presence_active(void) {
-    return presence;
-}
-
-PROCESS(presence_detector_process, "Monitors the motion detector");
-
-PROCESS_THREAD(presence_detector_process, ev, data) {
-
-    static struct etimer motion_timeout_timer;
-
-    PROCESS_BEGIN();
-
-    motion_event = process_alloc_event();
-    no_motion_event = process_alloc_event();
-
-    etimer_set(&motion_timeout_timer, CLOCK_SECOND * (60*ACTIVE_TIME));
-    etimer_stop(&motion_timeout_timer);
-
-    while(1) {
-        PROCESS_WAIT_EVENT();
-        
-        if(ev == motion_event) {
-            presence = 1;
-            etimer_stop(&motion_timeout_timer);
-
-            broadcast_value(26);
-
-            PRINTF("Presence active\n");
-        } else if (ev == no_motion_event) {
-            etimer_restart(&motion_timeout_timer);
-            PRINTF("Presence timer started\n");
-        } else if (ev == PROCESS_EVENT_TIMER) {
-            presence = 0;
-
-            broadcast_value(26);
-
-            PRINTF("Presence inactive\n");
-        }
+void global_presence_detected(void) {
+#if PRESENCE_DETECTOR_SERVER
+    if(global_presence != 1) {
+        global_presence = 1;
+        broadcast_value(26);
     }
-
-    PROCESS_END();
+    ctimer_restart(&pd_timeout);
+#endif
 }
+
+void no_global_presence(void) {
+#if PRESENCE_DETECTOR_SERVER
+    global_presence = 0;
+    broadcast_value(26);
+#endif
+}
+
+void raw_presence_detected(void) {
+#if PRESENCE_DETECTOR_CLIENT
+    uint8_t tmp = global_presence;
+    presence = PRESENCE_DETECTOR_CLIENT_GROUP;
+    global_presence = presence;
+    broadcast_value(26);
+    global_presence = tmp;
+    if(PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE != 0) {
+        ctimer_restart(&pd_keep_alive);
+    }
+#endif
+}
+
+void no_raw_presence(void) {
+#if PRESENCE_DETECTOR_CLIENT
+    presence = 0;
+#endif
+}
+
+void presence_keep_alive(void) {
+#if PRESENCE_DETECTOR_CLIENT
+    if(presence) {
+        raw_presence_detected();
+    }
+#endif
+}
+
+uint8_t is_presence(void) {
+    return global_presence;
+}
+
+void presence_detector_init() {
+#if PRESENCE_DETECTOR_SERVER
+    ctimer_set(&pd_timeout, CLOCK_SECOND*60*PRESENCE_DETECTOR_SERVER_TIMEOUT, no_global_presence, NULL);
+    ctimer_stop(&pd_timeout);
+#endif
+#if PRESENCE_DETECTOR_CLIENT
+    if(PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE != 0) {
+        ctimer_set(&pd_keep_alive, CLOCK_SECOND*PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE, presence_keep_alive, NULL);
+        ctimer_stop(&pd_keep_alive);
+    }
+#endif
+}
+
