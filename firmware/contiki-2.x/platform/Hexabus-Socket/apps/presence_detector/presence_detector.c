@@ -87,7 +87,9 @@ void raw_presence_detected(void) {
     global_presence = presence;
     broadcast_value(26);
     global_presence = tmp;
-    ctimer_restart(&pd_keep_alive);
+    if(PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE != 0) {
+        ctimer_restart(&pd_keep_alive);
+    }
 #endif
 }
 
@@ -115,8 +117,10 @@ void presence_detector_init() {
     ctimer_stop(&pd_timeout);
 #endif
 #if PRESENCE_DETECTOR_CLIENT
-    ctimer_set(&pd_keep_alive, CLOCK_SECOND*PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE, presence_keep_alive, NULL);
-    ctimer_stop(&pd_keep_alive);
+    if(PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE != 0) {
+        ctimer_set(&pd_keep_alive, CLOCK_SECOND*PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE, presence_keep_alive, NULL);
+        ctimer_stop(&pd_keep_alive);
+    }
 #endif
 }
 
