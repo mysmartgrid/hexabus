@@ -33,14 +33,14 @@
 #define SHUTTER_DEBUG 0
 
 // hexapush
-#define HEXAPUSH_ENABLE 1
+#define HEXAPUSH_ENABLE 0
 #define HEXAPUSH_CLICK_ENABLE 0
 #define HEXAPUSH_PRESS_RELEASE_ENABLE 1
 #define HEXAPUSH_PRESS_DELAY 6   //multiplied by 50ms, only if Click and Press/Release are enabled
 #define HEXAPUSH_DEBUG 0
 
 // presence detector
-#define PRESENCE_DETECTOR_ENABLE 1
+#define PRESENCE_DETECTOR_ENABLE 0
 #define PRESENCE_DETECTOR_DEBUG 1
 #define PRESENCE_DETECTOR_SERVER 0
 #define PRESENCE_DETECTOR_CLIENT 1
