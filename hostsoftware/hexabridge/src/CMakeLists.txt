@@ -14,7 +14,6 @@ include_directories(
 add_executable(hexabridge ${hexabridge_src})
 # Link the executables
 target_link_libraries(hexabridge
-  hexabus
   pthread
   ${Boost_SYSTEM_LIBRARY}
 )
