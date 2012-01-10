@@ -1,0 +1,102 @@
+%!: /header.html
+
+<h1>State Machine Configurator</h1>
+		<script type="text/javascript" src="minimal.js">
+		</script>
+		<p>Condition Table Input:</p>
+			<form id="CondTableForm" action="">
+				Source IP: <input type="text" id="sourceIP" /><br />
+				Source EID: <input type="text" id="sourceEID" /><br />
+				DataType: <select id="dTypeCond" onchange="alterValue(document.forms['CondTableForm'].elements[2].options[document.forms['CondTableForm'].elements[2].selectedIndex].value, 'cv')">
+					<option value="1">Bool</option>
+					<option value="2">Int8</option>
+					<option value="3">Int32</option>
+					<option value="4">DateTime</option>
+					<option value="5">Float</option>
+					<option value="7">Timestamp</option>
+				</select><br />
+				<div id="cvSimple">
+					Operator: <select id="operatorSimple">
+						<option value="0">==</option>
+						<option value="1">&lt;=</option>
+						<option value="2">&gt;=</option>
+						<option value="3">&lt;</option>
+						<option value="4">&gt;</option>
+						<option value="5">!=</option>
+					</select>
+				</div>
+				<div id="cvComplex" style="border:solid 1px black; display:none;">
+					Operator: <select id="operatorDT">
+						<option value="128">&gt;=</option>
+						<option value="0">&lt;</option>
+					</select><br />
+					Relevant Field: <select id="field">
+						<option value="1">Hour</option>
+						<option value="2">Minute</option>
+						<option value="4">Second</option>
+						<option value="8">Day</option>
+						<option value="16">Month</option>
+						<option value="32">Year</option>
+						<option value="64">Weekday</option>
+					</select> 
+				</div>
+				Value: <input type="text" id="valueCond" /><br />
+			</form>
+			<button type="button" onclick="javascript:addTableLine('CondTableForm', 'condTable');">Add Line</button>
+	<p>Current Condition Table:</p>
+			<table id="condTable" border="1">
+				<tr>
+					<th>#</th>
+					<th>Source IP</th>
+					<th>Source EID</th>
+					<th>Datatype</th>
+					<th>Operator</th>
+					<th>Value</th>
+				</tr>
+			</table>
+			<hr>
+		<p>Transition Table Input:</p>
+		<form id="TransTableForm" action="">
+			FromState: <input type="text" id="fromState" /><br />
+			Condition#: <select id="condID"></select><br />
+			EID: <input type="text" id="eid" /><br />
+			DataType: <select id="dTypeTrans" onchange="alterValue(document.forms['TransTableForm'].elements[3].options[document.forms['TransTableForm'].elements[3].selectedIndex].value, 'tv')">
+				<option value="1">Bool</option>
+				<option value="2">Int8</option>
+				<option value="3">Int32</option>
+				<option value="4">DateTime</option>
+				<option value="5">Float</option>
+				<option value="7">Timestamp</option>
+			</select><br />
+			<div id="tvSimple">Value: <input type="text" id="valueTrans" /><br /></div>
+			<div id="tvComplex" style="border:solid 1px black; display:none;">
+				Hour: <input type="text" id="tHour" /><br />
+				Minute: <input type="text" id="tMinute" /><br />
+				Second: <input type="text" id="tSecond" /><br />
+				Day: <input type="text" id="tDay" /><br />
+				Month: <input type="text" id="tMonth" /><br />
+				Year: <input type="text" id="tYear" /><br />
+				Weekday: <input type="text" id="tWeekday" /><br />
+			</div>
+			GoodState: <input type="text" id="goodState" /><br />
+			BadState: <input type="text" id="badState" /><br />
+		</form>
+		<button type="button" onclick="javascript:addTableLine('TransTableForm', 'transTable');">Add Line</button>
+		<p>Current Transition Table:</p>
+		<table id="transTable" border="1">
+			<tr>
+				<th>FromState</th>
+				<th>Condition#</th>
+				<th>EID</th>
+				<th>DataType</th>
+				<th>Value</th>
+				<th>GoodState</th>
+				<th>BadState</th>
+			</tr>
+		</table>
+		<hr>
+		<form id="sendingForm" action="sm_config.shtml" method="POST">
+			<button type="button" onclick="javascript:generateTables()">Parse Tables</button><p />
+			Parsed State Machine: <input type="text" id="generatedTables" name="tables" />
+			<input type="submit" value="submit" />
+		</form>

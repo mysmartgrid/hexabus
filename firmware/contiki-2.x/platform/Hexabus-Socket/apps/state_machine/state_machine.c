@@ -154,7 +154,7 @@ void check_value_transitions(void* data)
   struct hxb_envelope* envelope = (struct hxb_envelope*)data;
   for(i = 0;i < transLength;i++)
   {
-    eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+		eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
     // get next transition to check from eeprom
     if((t->fromState == curState) && (eval(t->cond, envelope)))
     {
@@ -180,100 +180,8 @@ void check_value_transitions(void* data)
 PROCESS_THREAD(state_machine_process, ev, data)
 {
   PROCESS_BEGIN();
-
-  /*  TESTING INIT (((o) (o)))
-                        v
-  */
-  // clear the eeprom
-
-  for(int i = 0 ; i < 127 ; i++)
-  {
-    int zero = 0;
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_TRANSITIONS + i), 1);
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_CONDITIONS + i), 1);
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_DATETIME_TRANSITIONS + i), 1);
-  }
-
-  // write transitions into the EEPROM
   
-{
-    int numberOfTransitions = 2;
-    eeprom_write_block(&numberOfTransitions, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
-
-    struct transition trans;
-    trans.fromState = 0;
-    trans.cond = 0; // condition index
-    trans.eid = 26;
-    trans.goodState = 0;
-    trans.badState = 0;
-    trans.value.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&trans.value.data = 2;
-    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
-    PROCESS_PAUSE();
-
-    trans.fromState = 0;
-    trans.cond = 1; // condition index
-    trans.eid = 26;
-    trans.goodState = 0;
-    trans.badState = 0;
-    trans.value.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&trans.value.data = 0;
-    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (sizeof(struct transition))), sizeof(struct transition));
-    PROCESS_PAUSE();
-
-    // conditions
-    struct condition cond;
-
-    cond.sourceIP[0] = 0x00;
-    cond.sourceIP[1] = 0x00;
-    cond.sourceIP[2] = 0x00;
-    cond.sourceIP[3] = 0x00;
-    cond.sourceIP[4] = 0x00;
-    cond.sourceIP[5] = 0x00;
-    cond.sourceIP[6] = 0x00;
-    cond.sourceIP[7] = 0x00;
-    cond.sourceIP[8] = 0x00;
-    cond.sourceIP[9] = 0x00;
-    cond.sourceIP[10] = 0x00;
-    cond.sourceIP[11] = 0x00;
-    cond.sourceIP[12] = 0x00;
-    cond.sourceIP[13] = 0x00;
-    cond.sourceIP[14] = 0x00;
-    cond.sourceIP[15] = 0x01;
-    cond.sourceEID = 24;
-    cond.op = STM_EQ;
-    cond.value.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&cond.value.data = 1;
-    eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS, sizeof(struct condition));
-    PROCESS_PAUSE();
-
-    cond.sourceIP[0] = 0x00;
-    cond.sourceIP[1] = 0x00;
-    cond.sourceIP[2] = 0x00;
-    cond.sourceIP[3] = 0x00;
-    cond.sourceIP[4] = 0x00;
-    cond.sourceIP[5] = 0x00;
-    cond.sourceIP[6] = 0x00;
-    cond.sourceIP[7] = 0x00;
-    cond.sourceIP[8] = 0x00;
-    cond.sourceIP[9] = 0x00;
-    cond.sourceIP[10] = 0x00;
-    cond.sourceIP[11] = 0x00;
-    cond.sourceIP[12] = 0x00;
-    cond.sourceIP[13] = 0x00;
-    cond.sourceIP[14] = 0x00;
-    cond.sourceIP[15] = 0x01;
-    cond.sourceEID = 24;
-    cond.op = STM_EQ;
-    cond.value.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&cond.value.data = 0;
-    eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + (sizeof(struct condition)), sizeof(struct condition));
-    PROCESS_PAUSE();
-  }
-
-  // **************************
-
-  PRINTF("State Machine starting.\r\n");
+	PRINTF("State Machine starting.\r\n");
 
   // read state machine table length from eeprom
   transLength = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
@@ -323,7 +231,14 @@ PROCESS_THREAD(state_machine_process, ev, data)
       free(data);
 
       PRINTF("state machine: Now in state: %d\r\n", curState);
-    }
+    } 
+		if(ev == sm_rulechange_event) {
+			// re-read state machine table length from eeprom
+  		transLength = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
+  		dtTransLength = eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
+			PRINTF("State Machine: Re-Reading Table length.\n");
+			PRINTF("TransLength: %d, dtTransLength:", transLength, dtTransLength);
+		}
   }
 
   PROCESS_END();

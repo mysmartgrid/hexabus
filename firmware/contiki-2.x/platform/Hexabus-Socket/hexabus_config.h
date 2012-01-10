@@ -8,7 +8,10 @@
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 0
+#define UDP_HANDLER_DEBUG 1
+
+// WebServer
+#define WEBSERVER_DEBUG 1
 
 // datetime_service
 #define DATETIME_SERVICE_ENABLE 1
