@@ -8,13 +8,13 @@
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 1
+#define UDP_HANDLER_DEBUG 0
 
 // button
 #define BUTTON_DEBUG 0
 #define BUTTON_DOUBLE_CLICK_ENABLED 0
 #define BUTTON_HAS_EID 1 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
-#define BUTTON_TOGGLES_RELAY 0 // set to 1 to have the button toggle the relay directly
+#define BUTTON_TOGGLES_RELAY 1 // set to 1 to have the button toggle the relay directly
 
 // datetime_service
 #define DATETIME_SERVICE_ENABLE 1
@@ -28,11 +28,11 @@
 #define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 0
 #define VALUE_BROADCAST_AUTO_EID 2
-#define VALUE_BROADCAST_AUTO_INTERVAL 0 //0 to disable automatic broadcast
+#define VALUE_BROADCAST_AUTO_INTERVAL 30 //0 to disable automatic broadcast
 
 // state_machine
 #define STATE_MACHINE_ENABLE 1
-#define STATE_MACHINE_DEBUG 0
+#define STATE_MACHINE_DEBUG 1
 
 // shutter
 #define SHUTTER_ENABLE 0

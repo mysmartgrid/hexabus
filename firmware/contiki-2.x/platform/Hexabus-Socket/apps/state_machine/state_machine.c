@@ -197,28 +197,51 @@ PROCESS_THREAD(state_machine_process, ev, data)
   // write transitions into the EEPROM
   
 {
-    int numberOfTransitions = 2;
+    int numberOfTransitions = 3;
     eeprom_write_block(&numberOfTransitions, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
 
     struct transition trans;
     trans.fromState = 0;
     trans.cond = 0; // condition index
-    trans.eid = 26;
-    trans.goodState = 0;
-    trans.badState = 0;
-    trans.value.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&trans.value.data = 2;
+    trans.eid = 1;
+    trans.goodState = 1;
+    trans.badState = 1;
+    trans.value.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&trans.value.data = HXB_TRUE;
     eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
     PROCESS_PAUSE();
 
-    trans.fromState = 0;
+    trans.fromState = 1;
     trans.cond = 1; // condition index
-    trans.eid = 26;
+    trans.eid = 1;
+    trans.goodState = 2;
+    trans.badState = 2;
+    trans.value.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&trans.value.data = HXB_TRUE;
+    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (sizeof(struct transition))), sizeof(struct transition));
+    PROCESS_PAUSE();
+
+    trans.fromState = 2;
+    trans.cond = 2; // condition index
+    trans.eid = 1;
+    trans.goodState = 1;
+    trans.badState = 1;
+    trans.value.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&trans.value.data = HXB_TRUE;
+    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (sizeof(struct transition) * 2)), sizeof(struct transition));
+    PROCESS_PAUSE();
+
+    int numberOfDatetimeTransitions = 1;
+    eeprom_write_block(&numberOfDatetimeTransitions, (void*)EE_STATEMACHINE_DATETIME_TRANSITIONS, 1);
+
+    trans.fromState = 2;
+    trans.cond = 3; // condition index
+    trans.eid = 1;
     trans.goodState = 0;
     trans.badState = 0;
-    trans.value.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&trans.value.data = 0;
-    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (sizeof(struct transition))), sizeof(struct transition));
+    trans.value.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&trans.value.data = HXB_FALSE;
+    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS), sizeof(struct transition));
     PROCESS_PAUSE();
 
     // conditions
@@ -240,10 +263,10 @@ PROCESS_THREAD(state_machine_process, ev, data)
     cond.sourceIP[13] = 0x00;
     cond.sourceIP[14] = 0x00;
     cond.sourceIP[15] = 0x01;
-    cond.sourceEID = 24;
+    cond.sourceEID = 4;
     cond.op = STM_EQ;
-    cond.value.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&cond.value.data = 1;
+    cond.value.datatype = HXB_DTYPE_BOOL;
+    *(uint8_t*)&cond.value.data = HXB_TRUE;
     eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS, sizeof(struct condition));
     PROCESS_PAUSE();
 
@@ -263,11 +286,57 @@ PROCESS_THREAD(state_machine_process, ev, data)
     cond.sourceIP[13] = 0x00;
     cond.sourceIP[14] = 0x00;
     cond.sourceIP[15] = 0x01;
-    cond.sourceEID = 24;
-    cond.op = STM_EQ;
-    cond.value.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&cond.value.data = 0;
+    cond.sourceEID = 2;
+    cond.op = STM_LT;
+    cond.value.datatype = HXB_DTYPE_UINT32;
+    *(uint32_t*)&cond.value.data = 5;
     eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + (sizeof(struct condition)), sizeof(struct condition));
+    PROCESS_PAUSE();
+
+    cond.sourceIP[0] = 0x00;
+    cond.sourceIP[1] = 0x00;
+    cond.sourceIP[2] = 0x00;
+    cond.sourceIP[3] = 0x00;
+    cond.sourceIP[4] = 0x00;
+    cond.sourceIP[5] = 0x00;
+    cond.sourceIP[6] = 0x00;
+    cond.sourceIP[7] = 0x00;
+    cond.sourceIP[8] = 0x00;
+    cond.sourceIP[9] = 0x00;
+    cond.sourceIP[10] = 0x00;
+    cond.sourceIP[11] = 0x00;
+    cond.sourceIP[12] = 0x00;
+    cond.sourceIP[13] = 0x00;
+    cond.sourceIP[14] = 0x00;
+    cond.sourceIP[15] = 0x01;
+    cond.sourceEID = 2;
+    cond.op = STM_GT;
+    cond.value.datatype = HXB_DTYPE_UINT32;
+    *(uint32_t*)&cond.value.data = 5;
+    eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + (sizeof(struct condition) * 2), sizeof(struct condition));
+    PROCESS_PAUSE();
+
+    cond.sourceIP[0] = 0x00;
+    cond.sourceIP[1] = 0x00;
+    cond.sourceIP[2] = 0x00;
+    cond.sourceIP[3] = 0x00;
+    cond.sourceIP[4] = 0x00;
+    cond.sourceIP[5] = 0x00;
+    cond.sourceIP[6] = 0x00;
+    cond.sourceIP[7] = 0x00;
+    cond.sourceIP[8] = 0x00;
+    cond.sourceIP[9] = 0x00;
+    cond.sourceIP[10] = 0x00;
+    cond.sourceIP[11] = 0x00;
+    cond.sourceIP[12] = 0x00;
+    cond.sourceIP[13] = 0x00;
+    cond.sourceIP[14] = 0x00;
+    cond.sourceIP[15] = 0x01;
+    cond.sourceEID = 0;
+    cond.op = 0x08;
+    cond.value.datatype = HXB_DTYPE_UINT32;
+    *(uint8_t*)&cond.value.data = 60;
+    eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + (sizeof(struct condition) * 3), sizeof(struct condition));
     PROCESS_PAUSE();
   }
 
