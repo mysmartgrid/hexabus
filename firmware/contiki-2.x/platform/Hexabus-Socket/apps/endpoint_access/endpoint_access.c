@@ -196,12 +196,24 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
   {
     case 0:   // Endpoint 0: Hexabus device descriptor
       val->datatype = HXB_DTYPE_UINT32;
-      *(uint32_t*)&val->data = 0x07;    // 0x07: 0..00111: Enpoints 0, 1 and 2 exist.
+      *(uint32_t*)&val->data = 0x03;    // 0x07: 0..00011: Enpoints 1 and 2 exist.
 #if TEMPERATURE_ENABLE
-      *(uint32_t*)&val->data += 0x08;      // +8: Endpoint 3 also exists
+      *(uint32_t*)&val->data += 0x04;      // +4: Endpoint 3 also exists
 #endif
 #if BUTTON_HAS_EID
-      *(uint32_t*)&val->data += 0x10; // +10: Endpoint 4 also exists
+      *(uint32_t*)&val->data += 0x08; // +8: Endpoint 4 also exists
+#endif
+#if SHUTTER_ENABLE
+      *(uint32_t*)&val->data += 0x00400000; // set bit #22 for EID 23
+#endif
+#if HEXAPUSH_ENABLE
+      *(uint32_t*)&val->data += 0x01800000; // set bits 23 and 24 for EIDs 24 and 25
+#endif
+#if PRESENCE_DETECTOR_ENABLE
+      *(uint32_t*)&val->data += 0x02000000; // set bit 25 for EID 26
+#endif
+#if HEXONOFF_ENABLE
+      *(uint32_t*)&val->data += 0x0C000000; // set bits 26 and 27 for EIDs 27 and 28
 #endif
       break;
     case 1:   // Endpoint 1: Hexabus Socket power switch
