@@ -8,7 +8,7 @@
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 0
+#define UDP_HANDLER_DEBUG 1
 
 // button
 #define BUTTON_DEBUG 0

@@ -26,10 +26,11 @@ PROCESS(state_machine_process, "State Machine Process");
 AUTOSTART_PROCESSES(&state_machine_process);
 /*------------------------------------------------------*/
 
-static uint8_t transLength; // length of transition table
+static uint8_t transLength;   // length of transition table
 static uint8_t dtTransLength; // length of date/time transition table
 static uint8_t curState = 0;  // starting out in state 0
 static uint32_t inStateSince; // when die we change into that state
+static uint8_t dt_valid;      // internal clock has a valid date/time
 
 bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   struct condition cond;
@@ -79,24 +80,27 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
       break;
     case HXB_DTYPE_DATETIME:
     {
-      struct datetime val_dt;
-      struct datetime cond_dt;
-      val_dt = *(struct datetime*)&envelope->value.data; // just to make writing this down easier...
-      cond_dt = *(struct datetime*)&cond.value.data;
-      if(cond.op & 0x01) // hour
-        return (cond.op & 0x80) ? val_dt.hour >= cond_dt.hour : val_dt.hour < cond_dt.hour;
-      if(cond.op & 0x02) // minute
-        return (cond.op & 0x80) ? val_dt.minute >= cond_dt.minute : val_dt.minute < cond_dt.minute;
-      if(cond.op & 0x04) // second
-        return (cond.op & 0x80) ? val_dt.second >= cond_dt.second : val_dt.second < cond_dt.second;
-      if(cond.op & 0x08) // day
-        return (cond.op & 0x80) ? val_dt.day >= cond_dt.day : val_dt.day < cond_dt.day;
-      if(cond.op & 0x10) // month
-        return (cond.op & 0x80) ? val_dt.month >= cond_dt.month : val_dt.month < cond_dt.month;
-      if(cond.op & 0x20) // year
-        return (cond.op & 0x80) ? val_dt.year >= cond_dt.year : val_dt.year < cond_dt.year;
-      if(cond.op & 0x40) // weekday
-        return (cond.op & 0x80) ? val_dt.weekday >= cond_dt.weekday : val_dt.weekday < cond_dt.weekday;
+      if(dt_valid)
+      {
+        struct datetime val_dt;
+        struct datetime cond_dt;
+        val_dt = *(struct datetime*)&envelope->value.data; // just to make writing this down easier...
+        cond_dt = *(struct datetime*)&cond.value.data;
+        if(cond.op & 0x01) // hour
+          return (cond.op & 0x80) ? val_dt.hour >= cond_dt.hour : val_dt.hour < cond_dt.hour;
+        if(cond.op & 0x02) // minute
+          return (cond.op & 0x80) ? val_dt.minute >= cond_dt.minute : val_dt.minute < cond_dt.minute;
+        if(cond.op & 0x04) // second
+          return (cond.op & 0x80) ? val_dt.second >= cond_dt.second : val_dt.second < cond_dt.second;
+        if(cond.op & 0x08) // day
+          return (cond.op & 0x80) ? val_dt.day >= cond_dt.day : val_dt.day < cond_dt.day;
+        if(cond.op & 0x10) // month
+          return (cond.op & 0x80) ? val_dt.month >= cond_dt.month : val_dt.month < cond_dt.month;
+        if(cond.op & 0x20) // year
+          return (cond.op & 0x80) ? val_dt.year >= cond_dt.year : val_dt.year < cond_dt.year;
+        if(cond.op & 0x40) // weekday
+          return (cond.op & 0x80) ? val_dt.weekday >= cond_dt.weekday : val_dt.weekday < cond_dt.weekday;
+      }
     }
     case HXB_DTYPE_TIMESTAMP:
       if(cond.op == 0x80) // in-state-since
@@ -116,34 +120,33 @@ void check_datetime_transitions()
   // TODO maybe we should check timestamps separately, because as of now, they still need some special cases in the 'eval' function
   struct hxb_envelope dtenvelope;
   dtenvelope.value.datatype = HXB_DTYPE_DATETIME;
-  if(!getDatetime(&dtenvelope.value.data)) // if the date/time is valid
+  dt_valid = 1 - getDatetime(&dtenvelope.value.data);   // getDatetime returns 1 if it fails, 0 if it succeeds, so we have to "1 -" here
+  struct transition* t = malloc(sizeof(struct transition));
+
+  uint8_t i;
+  for(i = 0; i < dtTransLength; i++)
   {
-    struct transition* t = malloc(sizeof(struct transition));
-    uint8_t i;
-    for(i = 0; i < dtTransLength; i++)
+    eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+    PRINTF("checkDT - curState: %d -- fromState: %d", curState, t->fromState);
+    if((t->fromState == curState) && (eval(t->cond, &dtenvelope)))
     {
-      eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
-      PRINTF("checkDT - curState: %d -- fromState: %d", curState, t->fromState);
-      if((t->fromState == curState) && (eval(t->cond, &dtenvelope)))
+      // Matching transition found. Try executing the command
+      PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
+      if(endpoint_write(t->eid, &(t->value)) == 0)
       {
-        // Matching transition found. Try executing the command
-        PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
-        if(endpoint_write(t->eid, &(t->value)) == 0)
-        {
-          inStateSince = getTimestamp();
-          curState = t->goodState;
-          PRINTF("state_machine: Everything is fine \r\n");
-          break;
-        } else {
-          inStateSince = getTimestamp();
-          curState = t->badState;
-          PRINTF("state_machine: Something bad happened \r\n");
-          break;
-        }
+        inStateSince = getTimestamp();
+        curState = t->goodState;
+        PRINTF("state_machine: Everything is fine \r\n");
+        break;
+      } else {
+        inStateSince = getTimestamp();
+        curState = t->badState;
+        PRINTF("state_machine: Something bad happened \r\n");
+        break;
       }
     }
-    free(t);
   }
+  free(t);
 }
 
 void check_value_transitions(void* data)
