@@ -101,11 +101,13 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
         if(cond.op & 0x40) // weekday
           return (cond.op & 0x80) ? val_dt.weekday >= cond_dt.weekday : val_dt.weekday < cond_dt.weekday;
       }
+      break;
     }
     case HXB_DTYPE_TIMESTAMP:
       if(cond.op == 0x80) // in-state-since
       {
         PRINTF("Checking in-state-since Condition! Have been in this state for %lu sec.\r\n", getTimestamp() - inStateSince);
+        PRINTF("getTimestamp(): %lu - inStateSince: %lu >= cond.value.data: %lu\r\n", getTimestamp(), inStateSince, *(uint32_t*)&cond.value.data);
         return getTimestamp() - inStateSince >= *(uint32_t*)&cond.value.data;
       }
       break;
@@ -336,9 +338,9 @@ PROCESS_THREAD(state_machine_process, ev, data)
     cond.sourceIP[14] = 0x00;
     cond.sourceIP[15] = 0x01;
     cond.sourceEID = 0;
-    cond.op = 0x08;
-    cond.value.datatype = HXB_DTYPE_UINT32;
-    *(uint8_t*)&cond.value.data = 60;
+    cond.op = 0x80;
+    cond.value.datatype = HXB_DTYPE_TIMESTAMP;
+    *(uint32_t*)&cond.value.data = 240;
     eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS + (sizeof(struct condition) * 3), sizeof(struct condition));
     PROCESS_PAUSE();
   }
