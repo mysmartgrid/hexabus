@@ -20,6 +20,7 @@
 #define PRINT6ADDR(addr)
 #define PRINTLLADDR(addr)
 #endif
+#define TRUE_COND_INDEX 255
 
 /*------------------------------------------------------*/
 PROCESS(state_machine_process, "State Machine Process");
@@ -36,7 +37,10 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   struct condition cond;
   // get the condition from eeprom
   PRINTF("Checking condition %d\r\n", condIndex);
-  eeprom_read_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + (condIndex * sizeof(struct condition))), sizeof(struct condition));
+  if(condIndex == TRUE_COND_INDEX)		// If the condition is set to TRUE
+		return true;
+	
+	eeprom_read_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + (condIndex * sizeof(struct condition))), sizeof(struct condition));
 
   // check if host is set (something other than :: (all zeroes)) -- if source host is ::, don't care for the source IP (anyhost condition)
   uint8_t hostset = 16;
@@ -141,21 +145,27 @@ void check_datetime_transitions()
     PRINTF("checkDT - curState: %d -- fromState: %d", curState, t->fromState);
     if((t->fromState == curState) && (eval(t->cond, &dtenvelope)))
     {
-      // Matching transition found. Try executing the command
-      PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
-      if(endpoint_write(t->eid, &(t->value)) == 0)
-      {
-        inStateSince = getTimestamp();
-        curState = t->goodState;
-        PRINTF("state_machine: Everything is fine \r\n");
-        break;
-      } else {
-        inStateSince = getTimestamp();
-        curState = t->badState;
-        PRINTF("state_machine: Something bad happened \r\n");
-        break;
-      }
-    }
+      // Matching transition found. Check, if an action should be performed.
+      if(t->eid != 0 || t->value.datatype != 0)
+			{
+      	// Try executing the command
+				PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
+				if(endpoint_write(t->eid, &(t->value)) == 0)
+				{
+					inStateSince = getTimestamp();
+					curState = t->goodState;
+					PRINTF("state_machine: Everything is fine \r\n");
+					break;
+				} else {
+					inStateSince = getTimestamp();
+					curState = t->badState;
+					PRINTF("state_machine: Something bad happened \r\n");
+					break;
+				}
+    	} else {
+				PRINTF("state_machine: No action performed. \r\n");
+			}
+		}
   }
   free(t);
 }
@@ -173,20 +183,25 @@ void check_value_transitions(void* data)
     if((t->fromState == curState) && (eval(t->cond, envelope)))
     {
       // Match found
-      PRINTF("state_machine: Writing to endpoint %d \r\n", t->eid);
-      if(endpoint_write(t->eid, &(t->value)) == 0)
-      {
-        inStateSince = getTimestamp();
-        curState = t->goodState;
-        PRINTF("state_machine: Everything is fine \r\n");
-        break;
-      } else {                          // Something went wrong
-        inStateSince = getTimestamp();
-        curState = t->badState;
-        PRINTF("state_machine: Something bad happened \r\n");
-        break;
-      }
-    }
+      if(t->eid != 0 || t->value.datatype != 0)
+			{	
+				PRINTF("state_machine: Writing to endpoint %d \r\n", t->eid);
+				if(endpoint_write(t->eid, &(t->value)) == 0)
+				{
+					inStateSince = getTimestamp();
+					curState = t->goodState;
+					PRINTF("state_machine: Everything is fine \r\n");
+					break;
+				} else {                          // Something went wrong
+					inStateSince = getTimestamp();
+					curState = t->badState;
+					PRINTF("state_machine: Something bad happened \r\n");
+					break;
+				}
+    	} else {
+				PRINTF("state_machine: No action performed. \r\n");
+			}
+		}
   }
   free(t);
 }

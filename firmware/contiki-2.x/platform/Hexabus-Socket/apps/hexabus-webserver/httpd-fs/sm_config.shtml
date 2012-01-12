@@ -168,9 +168,10 @@ function addTableLine(formName, tableName) {
 		<p>Transition Table Input:</p>
 		<form id="TransTableForm" action="">
 			FromState: <input type="text" id="fromState" /><br />
-			Condition#: <select id="condID"></select><br />
+			Condition#: <select id="condID"><option value="255">True</option></select><br />
 			EID: <input type="text" id="eid" /><br />
 			DataType: <select id="dTypeTrans" onchange="javascript:alterValue(document.forms['TransTableForm'].elements[3].options[document.forms['TransTableForm'].elements[3].selectedIndex].value, 'tv')">
+				<option value="0">No Action (with eid = 0)</option>
 				<option value="1">Bool</option>
 				<option value="2">Int8</option>
 				<option value="3">Int32</option>
