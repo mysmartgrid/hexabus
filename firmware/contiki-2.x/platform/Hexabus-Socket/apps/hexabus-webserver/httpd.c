@@ -454,7 +454,6 @@ void stodt(const char *str, struct hxb_value *val, uint8_t dtype, uint8_t length
 			break;
 		case HXB_DTYPE_DATETIME:;
 			uint8_t j = 0;
-			uint8_t ka = 0;
 			k = 0;
 			for(i = 0;i < length;i = j + 1) {
 				for(j = i;j < length && str[j] != '*';) {
@@ -679,7 +678,18 @@ PT_THREAD(handle_input(struct httpd_state *s))
 								cond.op = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 								break;
 							case 4: // Value
-								stodt(&s->inputbuf[0], &cond.value, cond.value.datatype, PSOCK_DATALEN(&s->sin) - 1);
+								if(cond.value.datatype == HXB_DTYPE_DATETIME) {
+									for(i = 0;i < 8;i++) {
+										if(cond.op & (1<<i)) {
+											cond.value.data[i] = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+									} else {
+										cond.value.data[i] = 0;
+									}
+									printf("value.data[i]: %d\n", cond.value.data[i]);
+								}
+								} else {
+									stodt(&s->inputbuf[0], &cond.value, cond.value.datatype, PSOCK_DATALEN(&s->sin) - 1);
+								}
 					}
 					if(++position == 5) {
 						position = 0;
