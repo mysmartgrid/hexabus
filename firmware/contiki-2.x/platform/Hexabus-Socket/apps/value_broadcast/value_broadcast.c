@@ -214,9 +214,8 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
       uint8_t i;
       for(i = 0 ; i < VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS; i++)
       {
-        PRINTF("Would broadcast EID %d\r\n", auto_eids[i]);
+        ctimer_set(&backoff_timer[i], SEND_TIME, broadcast_value, auto_eids[i]);
       }
-      // ctimer_set(&backoff_timer, SEND_TIME, broadcast_value, VALUE_BROADCAST_AUTO_EID);
     }
   }
 
