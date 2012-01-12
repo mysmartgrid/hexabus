@@ -679,13 +679,12 @@ PT_THREAD(handle_input(struct httpd_state *s))
 								break;
 							case 4: // Value
 								if(cond.value.datatype == HXB_DTYPE_DATETIME) {
-									for(i = 0;i < 8;i++) {
+									for(i = 0;i < 7;i++) {
 										if(cond.op & (1<<i)) {
 											cond.value.data[i] = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 									} else {
 										cond.value.data[i] = 0;
 									}
-									printf("value.data[i]: %d\n", cond.value.data[i]);
 								}
 								} else {
 									stodt(&s->inputbuf[0], &cond.value, cond.value.datatype, PSOCK_DATALEN(&s->sin) - 1);
