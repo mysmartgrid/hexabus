@@ -27,14 +27,15 @@ void updateDatetime(struct hxb_envelope* envelope) {
 }
 
 int getDatetime(struct datetime *dt) {
+    dt->hour = current_dt.hour;
+    dt->minute = current_dt.minute;
+    dt->second = current_dt.second;
+    dt->day = current_dt.day;
+    dt->month = current_dt.month;
+    dt->year = current_dt.year;
+    dt->weekday = current_dt.weekday;
+
     if(time_valid) {
-        dt->hour = current_dt.hour;
-        dt->minute = current_dt.minute;
-        dt->second = current_dt.second;
-        dt->day = current_dt.day;
-        dt->month = current_dt.month;
-        dt->year = current_dt.year;
-        dt->weekday = current_dt.weekday;
         return 0;
     } else {
         return -1;
