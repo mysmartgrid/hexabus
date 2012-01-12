@@ -442,11 +442,12 @@ generate_socket_readings(void *arg)
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor4, temperature_as_string());
   // Add Date and Time
   struct datetime dt;
-	getDatetime(&dt);
-	char *time[30];
-	sprintf(time, "%d:%d:%d, %d.%d.%d", dt.hour, dt.minute, dt.second, dt.day, dt.month, dt.year);
-	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_datetime, time);
-
+	if(getDatetime(&dt) == 0) {
+		char *time[30];
+		sprintf(time, "%d:%d:%d, %d.%d.%d", dt.hour, dt.minute, dt.second, dt.day, dt.month, dt.year);
+	} else {
+		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_datetime, "Date and Time not valid.");
+	}
   return numprinted;
 }
 
