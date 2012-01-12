@@ -38,11 +38,20 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   PRINTF("Checking condition %d\r\n", condIndex);
   eeprom_read_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + (condIndex * sizeof(struct condition))), sizeof(struct condition));
 
+  // check if host is set (something other than :: (all zeroes)) -- if source host is ::, don't care for the source IP (anyhost condition)
+  uint8_t hostset = 16;
+  while(hostset)
+  {
+    if(cond.sourceIP[hostset - 1])
+      break;  // this breaks once it finds something other than zero, leaving hostset > 0. If all the address bytes are zero, hostset counts all the way down to 0.
+    hostset--;
+  }
+
   // Check IPs and EID; ignore IP and EID for Datetime-Conditions and Timestamp-Conditions
-  if((memcmp(cond.sourceIP, envelope->source, 16) || (cond.sourceEID != envelope->eid)) && cond.value.datatype != HXB_DTYPE_DATETIME && cond.value.datatype != HXB_DTYPE_TIMESTAMP)
+  if(hostset && (memcmp(cond.sourceIP, envelope->source, 16) || (cond.sourceEID != envelope->eid)) && cond.value.datatype != HXB_DTYPE_DATETIME && cond.value.datatype != HXB_DTYPE_TIMESTAMP)
     return false;
 
-  PRINTF("IP and EID match / or datetime condition\r\n");
+  PRINTF("IP and EID match / or datetime condition / or anyhost condition\r\n");
 
   // Check datatypes, return false if they don't match -- TIMESTAMP is exempt from that because it's checked alongside the DATETIME conditions
   if(envelope->value.datatype != cond.value.datatype && cond.value.datatype != HXB_DTYPE_TIMESTAMP) {
@@ -187,7 +196,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
   PROCESS_BEGIN();
   
   {
-    // PUT YOUR STATE MACHINE DEFINITION HERE
+    // PUT YOUR STATE MACHINE HERE
   }
 
   // read state machine table length from eeprom
