@@ -132,6 +132,9 @@
 #if HEXAPUSH_ENABLE
 #include "hexonoff.h"
 #endif
+#if LIGHTSENSOR_ENABLE
+#include "lightsensor.h"
+#endif
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -385,6 +388,10 @@ void initialize(void)
 #endif
 #if HEXONOFF_ENABLE
   hexonoff_init();
+#endif
+
+#if LIGHTSENSOR_ENABLE
+  lightsensor_init();
 #endif
 
   /*Init Relay */

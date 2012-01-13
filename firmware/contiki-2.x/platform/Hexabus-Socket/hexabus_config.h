@@ -8,7 +8,7 @@
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 1
+#define UDP_HANDLER_DEBUG 0
 
 // WebServer
 #define WEBSERVER_DEBUG 1
@@ -29,10 +29,10 @@
 
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
-#define VALUE_BROADCAST_DEBUG 1
-#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 2
-#define VALUE_BROADCAST_AUTO_EIDS 2, 4
-#define VALUE_BROADCAST_AUTO_INTERVAL 20 //0 to disable automatic broadcast
+#define VALUE_BROADCAST_DEBUG 0
+#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1
+#define VALUE_BROADCAST_AUTO_EIDS 29 //2, 4
+#define VALUE_BROADCAST_AUTO_INTERVAL 2 //0 to disable automatic broadcast
 
 // state_machine
 #define STATE_MACHINE_ENABLE 0
@@ -62,5 +62,9 @@
 #define HEXONOFF_ENABLE 0
 #define HEXONOFF_DEBUG 0
 #define HEXONOFF_INITIAL_VALUE 0
+
+// lightsensor
+#define LIGHTSENSOR_ENABLE 1
+#define LIGHTSENSOR_DEBUG 1
 
 #endif // HEXBAUS_CONFIG_H

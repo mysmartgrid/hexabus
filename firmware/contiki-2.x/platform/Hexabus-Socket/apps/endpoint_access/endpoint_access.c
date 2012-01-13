@@ -13,6 +13,7 @@
 #include "endpoint_access.h"
 #include "temperature.h"
 #include "button.h"
+#include "lightsensor.h"
 
 uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
@@ -49,6 +50,10 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
     case 27:
     case 28:
       return HXB_DTYPE_UINT8;
+#endif
+#if LIGHTSENSOR_ENABLE
+    case 29:
+      return HXB_DTYPE_UINT32;
 #endif
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
@@ -106,6 +111,11 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
       break;
     case 28:
       strncpy(buffer, "Hexonoff, your friendly output toggler.", 127);
+      break;
+#endif
+#if LIGHTSENSOR_ENABLE
+    case 29:
+      strncpy(buffer, "Lightsensor", 127);
       break;
 #endif
     default:
@@ -263,6 +273,12 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case 28:
         val->datatype = HXB_DTYPE_UINT8;
         *(uint8_t*)&val->data = get_outputs();
+        break;
+#endif
+#if LIGHTSENSOR_ENABLE
+    case 29:
+        val->datatype = HXB_DTYPE_UINT32;
+        *(uint32_t*)&val->data = get_lightvalue();
         break;
 #endif
     default:
