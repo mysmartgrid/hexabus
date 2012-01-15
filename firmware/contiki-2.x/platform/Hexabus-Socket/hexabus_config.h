@@ -11,7 +11,7 @@
 #define UDP_HANDLER_DEBUG 0
 
 // WebServer
-#define WEBSERVER_DEBUG 1
+#define WEBSERVER_DEBUG 0
 
 // button
 #define BUTTON_DEBUG 0
@@ -32,7 +32,7 @@
 #define VALUE_BROADCAST_DEBUG 0
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1
 #define VALUE_BROADCAST_AUTO_EIDS 29 //2, 4
-#define VALUE_BROADCAST_AUTO_INTERVAL 2 //0 to disable automatic broadcast
+#define VALUE_BROADCAST_AUTO_INTERVAL 30 //0 to disable automatic broadcast
 
 // state_machine
 #define STATE_MACHINE_ENABLE 0

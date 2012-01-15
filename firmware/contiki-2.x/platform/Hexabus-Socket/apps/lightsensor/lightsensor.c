@@ -6,7 +6,13 @@
 #include "hexabus_config.h"
 #include "value_broadcast.h"
 
+#if LIGHTSENSOR_DEBUG
 #include <stdio.h>
+#define PRINTF(...) printf(__VA_ARGS__)
+#else
+#define PRINTF(...)
+#endif
+
 void lightsensor_init() {
     ADMUX = (0<<REFS1) | (1<<REFS0); // AVCC as reference
     ADCSRA = (1<<ADPS0) | (1<<ADPS2); // prescaler 128
@@ -20,5 +26,9 @@ uint32_t get_lightvalue() {
     
     while(ADCSRA & (1<<ADSC)) {} // wait for conversion to finish
 
-    return ADCW;
+    float voltage = (float)ADCW * 2.441;
+    
+    PRINTF("%d mV\n", (uint32_t)voltage);
+
+    return (uint32_t)voltage;
 }
