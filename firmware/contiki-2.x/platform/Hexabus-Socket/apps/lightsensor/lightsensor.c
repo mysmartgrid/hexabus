@@ -15,7 +15,7 @@
 
 void lightsensor_init() {
     ADMUX = (0<<REFS1) | (1<<REFS0); // AVCC as reference
-    ADCSRA = (1<<ADPS0) | (1<<ADPS2); // prescaler 128
+    ADCSRA = (1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2); // prescaler 128
     ADCSRA |= (1<<ADSC); // initial conversion
     ADMUX = (ADMUX & ~(0x1F)) | (LIGHTSENSOR_PIN & 0x1F); // select pin
     ADCSRA |= (1<<ADEN); //enable ADC
