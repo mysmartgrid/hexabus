@@ -32,7 +32,7 @@
 #define VALUE_BROADCAST_DEBUG 0
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1
 #define VALUE_BROADCAST_AUTO_EIDS 29 //2, 4
-#define VALUE_BROADCAST_AUTO_INTERVAL 30 //0 to disable automatic broadcast
+#define VALUE_BROADCAST_AUTO_INTERVAL 5 //0 to disable automatic broadcast
 
 // state_machine
 #define STATE_MACHINE_ENABLE 0
@@ -64,7 +64,10 @@
 #define HEXONOFF_INITIAL_VALUE 0
 
 // lightsensor
-#define LIGHTSENSOR_ENABLE 1
-#define LIGHTSENSOR_DEBUG 1
+#define ANALOGREAD_ENABLE 1
+#define ANALOGREAD_DEBUG 1
+#define ANALOGREAD_PIN 0 // 0 to 7
+#define ANALOGREAD_MULT 0.0024414062 //  0.0024414062 for volts at 2.5V supply voltage
+#define ANALOGREAD_EID 29
 
 #endif // HEXBAUS_CONFIG_H
