@@ -40,6 +40,8 @@
 #define PRINTFD(...)
 #endif
 
+#include <hexabus_config.h>
+
 #include <avr/pgmspace.h>
 #include <avr/fuse.h>
 #include <avr/eeprom.h>
@@ -100,13 +102,38 @@
 //HEXABUS includes
 #include "button.h"
 #include "metering.h"
-#include "datetime_service.h"
 #include "relay.h"
 #include "eeprom_variables.h"
 #include "udp_handler.h"
 #include "mdns_responder.h"
+
+// optional HEXABUS apps
+#if VALUE_BROADCAST_ENABLE
 #include "value_broadcast.h"
+#endif
+#if DATETIME_SERVICE_ENABLE
+#include "datetime_service.h"
+#endif
+#if TEMPERATURE_ENABLE
+#include "temperature.h"
+#endif
+#if STATE_MACHINE_ENABLE
 #include "state_machine.h"
+#endif
+#if SHUTTER_ENABLE
+#include "shutter.h"
+#endif
+#if HEXAPUSH_ENABLE
+#include "hexapush.h"
+#endif
+#if PRESENCE_DETECTOR_ENABLE
+#include "presence_detector.h"
+#endif
+#if HEXAPUSH_ENABLE
+#include "hexonoff.h"
+#endif
+
+uint8_t nSensors = 0; //number of found temperature sensors
 
 uint8_t forwarding_enabled; //global variable for forwarding
  uint8_t encryption_enabled = 1; //global variable for AES encryption
@@ -302,21 +329,63 @@ void initialize(void)
   process_start(&udp_handler_process, NULL);
 
   /* Process for periodic sending of HEXABUS data */
+#if VALUE_BROADCAST_ENABLE
+#if VALUE_BROADCAST_AUTO_INTERVAL
   process_start(&value_broadcast_process, NULL);
+#else
+  init_value_broadcast();
+#endif
+#endif
 
   /* process handling received HEXABUS broadcasts */
+#if STATE_MACHINE_ENABLE
   process_start(&state_machine_process, NULL);
+#endif
+
+  /*Init Relay */
+  relay_init();
+
+#if SHUTTER_ENABLE
+  /*Init Shutter*/
+  shutter_init();
+
+  /* process for shutter control*/
+  process_start(&shutter_process, NULL);
+#endif
+
+#if HEXAPUSH_ENABLE
+  process_start(&hexapush_process, NULL);
+#endif
+
+#if PRESENCE_DETECTOR_ENABLE
+  presence_detector_init();
+#endif
 
   mdns_responder_init();
 
   /* Datetime service*/
+#if DATETIME_SERVICE_ENABLE
   process_start(&datetime_service_process, NULL);
+#endif
 
   /* Button Process */
   process_start(&button_pressed_process, NULL);
 
   /* Init Metering */
   metering_init();
+
+  /* Init Temp Sensor */
+#if TEMPERATURE_ENABLE
+  temperature_init();
+  
+  //Check whether there are temperature sensors connected, if so start the process.
+  if(nSensors > 0){
+    process_start(&temperature_process, NULL);
+  }
+#endif
+#if HEXONOFF_ENABLE
+  hexonoff_init();
+#endif
 
   /*Init Relay */
   relay_init();

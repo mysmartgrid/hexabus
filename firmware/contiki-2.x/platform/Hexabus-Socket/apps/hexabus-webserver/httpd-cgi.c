@@ -56,9 +56,11 @@
 //#include "sensors.h"
 
 #include "metering.h"
+#include "temperature.h"
 #include "relay.h"
 #include "eeprom_variables.h"
-
+#include "../../../../../shared/hexabus_packet.h"
+#include "datetime_service.h"
 
 #if RF230BB
 #include "radio/rf230bb/rf230bb.h"
@@ -410,7 +412,9 @@ generate_socket_readings(void *arg)
   static const char httpd_cgi_sensor1[] HTTPD_STRING_ATTR = "<em>Electrical power consumption:</em> %d Watt<br>";
   static const char httpd_cgi_sensor2[] HTTPD_STRING_ATTR = "<em>Current Relay state:</em> %s <br>";
   static const char httpd_cgi_sensor3[] HTTPD_STRING_ATTR = "<form action=\"socket_stat.shtml\" method=\"post\"><input type=\"submit\" value=\"%s\" ></form>";
-  numprinted=0;
+  static const char httpd_cgi_sensor4[] HTTPD_STRING_ATTR = "<em>Current temperature:</em> %s deg. C<br>";
+  static const char httpd_cgi_datetime[] HTTPD_STRING_ATTR = "<em>Current Date and Time:</em> %s <br>";
+	numprinted=0;
 
   //N:
   if(relay_get_state()==0)
@@ -427,12 +431,24 @@ generate_socket_readings(void *arg)
   //numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor2, !relay_get_state());
 
   if (!relay_get_state())
-
 	  numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor3, "Toggle Off");
   else
 	  numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor3, "Toggle On");
 
-
+  // Add Temperature
+ // char buffer[10];
+ // float temperature_value=getTemperatureFloat();
+ // dtostrf(temperature_value, 9, 4, &buffer);
+	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor4, temperature_as_string());
+  // Add Date and Time
+  struct datetime dt;
+	if(getDatetime(&dt) == 0) {
+		char *time[30];
+		sprintf(time, "%d:%d:%d, %d.%d.%d", dt.hour, dt.minute, dt.second, dt.day, dt.month, dt.year);
+		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_datetime, time);
+	} else {
+		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_datetime, "Date and Time not valid.");
+	}
   return numprinted;
 }
 

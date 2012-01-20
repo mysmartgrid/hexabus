@@ -3,7 +3,8 @@
 file(GLOB_RECURSE h_files "*.hpp,*.h")
 file(GLOB_RECURSE cpp_files "*.cpp")
 file(GLOB_RECURSE c_files "*.c")
-set(hexaswitch_src "${h_files}" "${cpp_files}" "${c_files}")
+set(hexaswitch_src "hexaswitch.cpp")
+set(hexalog_src "hexalog.cpp")
 
 include_directories(
   ${CMAKE_SOURCE_DIR} 
@@ -12,9 +13,15 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
 )
 add_executable(hexaswitch ${hexaswitch_src})
-
-# Link the executable 
+# Link the executables
 target_link_libraries(hexaswitch 
+  hexabus
+  pthread
+  ${Boost_SYSTEM_LIBRARY}
+)
+
+add_executable(hexalog ${hexalog_src})
+target_link_libraries(hexalog
   hexabus
   pthread
   ${Boost_SYSTEM_LIBRARY}
@@ -23,5 +30,6 @@ target_link_libraries(hexaswitch
 # add programs to the install target 
 INSTALL(PROGRAMS 
   ${CMAKE_CURRENT_BINARY_DIR}/hexaswitch
+  ${CMAKE_CURRENT_BINARY_DIR}/hexalog
   DESTINATION bin)
 

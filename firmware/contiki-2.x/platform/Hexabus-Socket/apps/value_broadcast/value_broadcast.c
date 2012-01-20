@@ -34,6 +34,8 @@
 #include "net/uip-ds6.h"
 #include "net/uip-udp-packet.h"
 #include "sys/ctimer.h"
+#include "hexabus_config.h"
+#include "state_machine.h"
 
 #include "../../../../../../shared/hexabus_packet.h"
 
@@ -42,18 +44,23 @@
 
 #define UDP_EXAMPLE_ID  190
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG VALUE_BROADCAST_DEBUG
 #include "net/uip-debug.h"
 
-#define SEND_INTERVAL CLOCK_SECOND * 60
+#define SEND_INTERVAL CLOCK_SECOND * VALUE_BROADCAST_AUTO_INTERVAL
 #define SEND_TIME (random_rand() % (SEND_INTERVAL))
 
 static struct uip_udp_conn *client_conn;
 static uip_ipaddr_t server_ipaddr;
 
 /*---------------------------------------------------------------------------*/
+#if VALUE_BROADCAST_AUTO_INTERVAL
 PROCESS(value_broadcast_process, "UDP value broadcast sender process");
 AUTOSTART_PROCESSES(&value_broadcast_process);
+#endif
+
+
+
 /*---------------------------------------------------------------------------*/
 // recieving should be handled in a different process
 /* static void
@@ -68,12 +75,22 @@ tcpip_handler(void)
   }
 } */
 /*---------------------------------------------------------------------------*/
-static void
-send_packet(void *ptr)
+void broadcast_to_self(struct hxb_value* val, uint8_t eid) {
+    #if STATE_MACHINE_ENABLE
+    struct hxb_envelope* envelope = malloc(sizeof(struct hxb_envelope));
+    memset(envelope->source, 0x00,15);
+    memset((envelope->source)+15,0x01,1);
+    envelope->eid = eid;
+    memcpy(&envelope->value, val, sizeof(struct hxb_value));
+    process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
+    #endif
+}
+
+void broadcast_value(uint8_t eid)
 {
-  uint8_t eid = 2;
   struct hxb_value val; 
   endpoint_read(eid, &val);
+  //TODO Broadcast also to own statemachine
   PRINTF("value_broadcast: Broadcasting EID %d.\n", eid);
   switch(val.datatype)
   {
@@ -85,8 +102,10 @@ send_packet(void *ptr)
       packet8.flags = 0;
       packet8.eid = eid;
       packet8.datatype = val.datatype;
-      packet8.value = val.int8;
+      packet8.value = *(uint8_t*)&val.data;
       packet8.crc = uip_htons(crc16_data((char*)&packet8, sizeof(packet8)-2, 0));
+
+      broadcast_to_self(&val, eid);
 
       uip_udp_packet_sendto(client_conn, &packet8, sizeof(packet8),
                             &server_ipaddr, UIP_HTONS(HXB_PORT));
@@ -98,10 +117,28 @@ send_packet(void *ptr)
       packet32.flags = 0;
       packet32.eid = eid;
       packet32.datatype = val.datatype;
-      packet32.value = uip_htonl(val.int32);
+      packet32.value = uip_htonl(*(uint32_t*)&val.data);
       packet32.crc = uip_htons(crc16_data((char*)&packet32, sizeof(packet32)-2, 0));
 
+      broadcast_to_self(&val, eid);
+
       uip_udp_packet_sendto(client_conn, &packet32, sizeof(packet32),
+                            &server_ipaddr, UIP_HTONS(HXB_PORT));
+      break;
+    case HXB_DTYPE_FLOAT:;
+      struct hxb_packet_float packetf;
+      strncpy(&packetf.header, HXB_HEADER, 4);
+      packetf.type = HXB_PTYPE_INFO;
+      packetf.flags = 0;
+      packetf.eid = eid;
+      packetf.datatype = val.datatype;
+      uint32_t value_nbo = uip_htonl(*(uint32_t*)&val.data);
+      packetf.value = *(float*)&value_nbo;
+      packetf.crc = uip_htons(crc16_data((char*)&packetf, sizeof(packetf)-2, 0));
+
+      broadcast_to_self(&val, eid);
+      
+      uip_udp_packet_sendto(client_conn, &packetf, sizeof(packetf),
                             &server_ipaddr, UIP_HTONS(HXB_PORT));
       break;
     default:
@@ -131,68 +168,58 @@ print_local_addresses(void)
     }
   }
 }
-/*---------------------------------------------------------------------------*/
-static void
-set_global_address(void)
-{
-  uip_ipaddr_t ipaddr;
 
-  uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
-  uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
-  uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
+void init_value_broadcast(void) {
 
-/* The choice of server address determines its 6LoPAN header compression.
- * (Our address will be compressed Mode 3 since it is derived from our link-local address)
- * Obviously the choice made here must also be selected in udp-server.c.
- *
- * For correct Wireshark decoding using a sniffer, add the /64 prefix to the 6LowPAN protocol preferences,
- * e.g. set Context 0 to aaaa::.  At present Wireshark copies Context/128 and then overwrites it.
- * (Setting Context 0 to aaaa::1111:2222:3333:4444 will report a 16 bit compressed address of aaaa::1111:22ff:fe33:xxxx)
- *
- * Note the IPCMV6 checksum verification depends on the correct uncompressed addresses.
- */
- // uip_ip6addr(&server_ipaddr, 0xaaaa, 0, 0, 0, 0x0050, 0xc4ff, 0xfe04, 0x000e);
- uip_ip6addr(&server_ipaddr, 0xff02, 0, 0, 0, 0, 0, 0, 0x0001); // Link-Local Multicast
+    PRINTF("Value Broadcast init\n");
+    uip_ip6addr(&server_ipaddr, 0xff02, 0, 0, 0, 0, 0, 0, 0x0001); // Link-Local Multicast
+    print_local_addresses();
+
+    /* new connection with remote host */
+    client_conn = udp_new(NULL, UIP_HTONS(HXB_PORT), NULL); 
+    uip_ipaddr_copy(&client_conn->ripaddr, &server_ipaddr);
+    udp_bind(client_conn, UIP_HTONS(HXB_PORT)); 
+
+    PRINTF("Created a connection");
+    PRINT6ADDR(&client_conn->ripaddr);
+    PRINTF(" local/remote port %u/%u\n",
+	UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 }
+
 /*---------------------------------------------------------------------------*/
+#if VALUE_BROADCAST_AUTO_INTERVAL 
+
 PROCESS_THREAD(value_broadcast_process, ev, data)
 {
   static struct etimer periodic;
-  static struct ctimer backoff_timer;
+  static struct ctimer backoff_timer[VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS];
+  static uint8_t auto_eids[] = { VALUE_BROADCAST_AUTO_EIDS };
 
   PROCESS_BEGIN();
 
   PROCESS_PAUSE();
 
-  set_global_address();
+  init_value_broadcast();
 
   PRINTF("UDP sender process started\n");
 
-  print_local_addresses();
-
-  /* new connection with remote host */
-  client_conn = udp_new(NULL, UIP_HTONS(HXB_PORT), NULL); 
-  uip_ipaddr_copy(&client_conn->ripaddr, &server_ipaddr);
-  udp_bind(client_conn, UIP_HTONS(HXB_PORT)); 
-
-  PRINTF("Created a connection");
-  PRINT6ADDR(&client_conn->ripaddr);
-  PRINTF(" local/remote port %u/%u\n",
-	UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
   etimer_set(&periodic, SEND_INTERVAL);
   while(1) {
     PROCESS_YIELD();
-    /* if(ev == tcpip_event) {
-      tcpip_handler();
-    } */
 
     if(etimer_expired(&periodic)) {
       etimer_reset(&periodic);
-      ctimer_set(&backoff_timer, SEND_TIME, send_packet, NULL);
+
+      uint8_t i;
+      for(i = 0 ; i < VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS; i++)
+      {
+        ctimer_set(&backoff_timer[i], SEND_TIME, broadcast_value, auto_eids[i]);
+      }
     }
   }
 
   PROCESS_END();
 }
+#endif
 /*---------------------------------------------------------------------------*/
