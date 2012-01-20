@@ -8,10 +8,10 @@
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 1
+#define UDP_HANDLER_DEBUG 0
 
 // WebServer
-#define WEBSERVER_DEBUG 1
+#define WEBSERVER_DEBUG 0
 
 // button
 #define BUTTON_DEBUG 0
@@ -33,9 +33,11 @@
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 2
 #define VALUE_BROADCAST_AUTO_EIDS 2, 4
 #define VALUE_BROADCAST_AUTO_INTERVAL 20 //0 to disable automatic broadcast
+#define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 1
+#define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2
 
 // state_machine
-#define STATE_MACHINE_ENABLE 0
+#define STATE_MACHINE_ENABLE 1
 #define STATE_MACHINE_DEBUG 0
 
 // shutter
