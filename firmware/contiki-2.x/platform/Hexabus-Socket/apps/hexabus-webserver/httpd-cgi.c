@@ -45,6 +45,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "contiki-net.h"
 #include "httpd.h"
@@ -61,6 +62,7 @@
 #include "eeprom_variables.h"
 #include "../../../../../shared/hexabus_packet.h"
 #include "datetime_service.h"
+#include "state_machine.h"
 
 #if RF230BB
 #include "radio/rf230bb/rf230bb.h"
@@ -104,7 +106,7 @@ static const char   adrs_name[] HTTPD_STRING_ATTR = "addresses";
 static const char   nbrs_name[] HTTPD_STRING_ATTR = "neighbors";
 static const char   rtes_name[] HTTPD_STRING_ATTR = "routes";
 static const char config_name[] HTTPD_STRING_ATTR = "config";
-
+static const char get_sm_name[] HTTPD_STRING_ATTR = "get_sm";
 
 /*Process states for processes cgi*/
 static const char      closed[] HTTPD_STRING_ATTR = "CLOSED";
@@ -530,6 +532,84 @@ generate_radio_stats(void *arg)
 }
 #endif
 /*---------------------------------------------------------------------------*/
+void hxbtos(char *dest, struct hxb_value *value)
+{
+	struct datetime *dt;
+	switch(value->datatype) {
+		case HXB_DTYPE_BOOL:
+		case HXB_DTYPE_UINT8:
+			sprintf(dest, "%d", *(uint8_t*)&(value->data));
+			break;
+		case HXB_DTYPE_UINT32:
+		case HXB_DTYPE_TIMESTAMP:
+			sprintf(dest, "%d", *(uint32_t*)&(value->data));
+			break;
+		case HXB_DTYPE_DATETIME:
+			dt = (struct datetime*)&(value->data);
+			sprintf(dest, "%d*%d*%d*%d*%d*%d*%d", dt->hour, dt->minute, dt->second, dt->day, dt->month, dt->year, dt->weekday); 
+			break;
+		case HXB_DTYPE_FLOAT:
+			dtostrf(*(float*)&(value->data), 1, 6, dest);
+			uint8_t i;
+			for(i = 0;dest[i] != '.';) {
+				i++;
+			}
+			dest[i] = ',';
+			break;
+	}
+}
+/*---------------------------------------------------------------------------*/
+static unsigned short
+get_sm_tables(void *arg)
+{
+  static const char httpd_cgi_trans_table_line[] HTTPD_STRING_ATTR = "%c%d.%d.%d.%d.%s.%d.%d.%c";
+  static const char httpd_cgi_cond_table_line[] HTTPD_STRING_ATTR = "%c%s.%d.%d.%d.%s.%c";
+	static const char httpd_cgi_char[] HTTPD_STRING_ATTR = "%c";
+	uint16_t numprinted = 0;
+	uint8_t length = 0;
+  uint8_t i, j;
+	struct transition *trans;
+	struct condition *cond;
+	char buffer[30];
+	char ip[33];
+
+	// Read Condition Table. Unused conditions will have a datatype equal to 0
+	cond = malloc(sizeof(struct condition));
+	length = eeprom_read_byte((void*)EE_STATEMACHINE_CONDITIONS); 
+	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-'); 
+	for(i = 0;i < length;i++) {
+		eeprom_read_block(cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (i * sizeof(struct condition))), sizeof(struct condition));
+		hxbtos(buffer, &(cond->value));
+		for(j = 0;j < 16;j++){
+			sprintf(ip + 2*j, "%02x", cond->sourceIP[j]);
+		}
+		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_cond_table_line, NULL, 
+				ip, cond->sourceEID, cond->value.datatype, cond->op, buffer, NULL);
+	}
+	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '.'); 
+	free(cond);
+		
+	// Now the transition tables
+	length = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
+	trans = malloc(sizeof(struct transition));
+	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-'); 
+	for(i = 0;i < length;i++) {
+  	eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+		hxbtos(buffer, &(trans->value));
+		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_trans_table_line, NULL, 
+				trans->fromState, trans->cond, trans->eid, trans->value.datatype, buffer, trans->goodState, trans->badState, NULL);
+	}
+	length = eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS); 
+	for(i = 0;i < length;i++) {
+  	eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+			numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_trans_table_line, NULL, 
+					trans->fromState, trans->cond, trans->eid, trans->value.datatype, buffer, trans->goodState, trans->badState, NULL);
+	}
+	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '.'); 
+	free(trans);
+	return numprinted;
+}
+/*---------------------------------------------------------------------------*/
 static
 PT_THREAD(socket_readings(struct httpd_state *s, char *ptr))
 {
@@ -549,6 +629,17 @@ PT_THREAD(set_config(struct httpd_state *s, char *ptr))
   PSOCK_BEGIN(&s->sout);
 
   PSOCK_GENERATOR_SEND(&s->sout, generate_config, s);
+
+  PSOCK_END(&s->sout);
+}
+
+/*---------------------------------------------------------------------------*/
+static
+PT_THREAD(get_statemachine(struct httpd_state *s, char *ptr))
+{
+  PSOCK_BEGIN(&s->sout);
+
+  PSOCK_GENERATOR_SEND(&s->sout, get_sm_tables, s);
 
   PSOCK_END(&s->sout);
 }
@@ -581,7 +672,7 @@ HTTPD_CGI_CALL(   rtes,   rtes_name, routes         );
 #endif
 HTTPD_CGI_CALL(socket_stat, socket_status_name, socket_readings);
 HTTPD_CGI_CALL(config, config_name, set_config);
-
+HTTPD_CGI_CALL(get_sm, get_sm_name, get_statemachine);
 
 void
 httpd_cgi_init(void)
@@ -598,6 +689,7 @@ httpd_cgi_init(void)
 #endif
   httpd_cgi_add(&socket_stat);
   httpd_cgi_add(&config);
+	httpd_cgi_add(&get_sm);
 }
 /*---------------------------------------------------------------------------*/
 

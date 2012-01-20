@@ -40,7 +40,7 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   if(condIndex == TRUE_COND_INDEX)		// If the condition is set to TRUE
 		return true;
 	
-	eeprom_read_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + (condIndex * sizeof(struct condition))), sizeof(struct condition));
+	eeprom_read_block(&cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (condIndex * sizeof(struct condition))), sizeof(struct condition));
 
   // check if host is set (something other than :: (all zeroes)) -- if source host is ::, don't care for the source IP (anyhost condition)
   uint8_t hostset = 16;

@@ -633,6 +633,8 @@ PT_THREAD(handle_input(struct httpd_state *s))
 				if(PSOCK_DATALEN(&s->sin) <= 1) { 
 					if(table == 0) {
 						PRINTF("End of CondTable.\n");	
+    				// Write length of condition table
+						eeprom_write_block(&numberOfBlocks, (void*)EE_STATEMACHINE_CONDITIONS, 1);
 						numberOfBlocks = 0;
 						table++;
 						PSOCK_READTO(&s->sin, '-');
@@ -702,7 +704,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 						PRINTF("\nStruct Cond: EID: %d Operator: %d DataType: %d \n", cond.sourceEID, cond.op, cond.value.datatype);
 						// Write Line to EEPROM. Too much data will be truncated
 						if(numberOfBlocks < (EE_STATEMACHINE_CONDITIONS_SIZE / sizeof(struct condition))) {
-							eeprom_write_block(&cond, (void*)(numberOfBlocks*sizeof(struct condition) + EE_STATEMACHINE_CONDITIONS), sizeof(struct condition));
+							eeprom_write_block(&cond, (void*)(numberOfBlocks*sizeof(struct condition) + 1 + EE_STATEMACHINE_CONDITIONS), sizeof(struct condition));
 							numberOfBlocks++;
 						} else {
 							PRINTF("Warning: Condition Table too long! Data will not be written.\n");
