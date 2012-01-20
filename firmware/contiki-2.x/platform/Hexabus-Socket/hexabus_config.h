@@ -8,10 +8,10 @@
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 1
+#define UDP_HANDLER_DEBUG 0
 
 // WebServer
-#define WEBSERVER_DEBUG 1
+#define WEBSERVER_DEBUG 0
 
 // button
 #define BUTTON_DEBUG 0
@@ -28,7 +28,7 @@
 #define TEMPERATURE_DEBUG 0
 
 // value_broadcast
-#define VALUE_BROADCAST_ENABLE 1
+#define VALUE_BROADCAST_ENABLE 0
 #define VALUE_BROADCAST_DEBUG 1
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 2
 #define VALUE_BROADCAST_AUTO_EIDS 2, 4
