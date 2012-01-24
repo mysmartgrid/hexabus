@@ -532,24 +532,24 @@ generate_radio_stats(void *arg)
 }
 #endif
 /*---------------------------------------------------------------------------*/
-void hxbtos(char *dest, struct hxb_value *value)
+void hxbtos(char *dest, char *data, uint8_t datatype)
 {
 	struct datetime *dt;
-	switch(value->datatype) {
+	switch(datatype) {
 		case HXB_DTYPE_BOOL:
 		case HXB_DTYPE_UINT8:
-			sprintf(dest, "%d", *(uint8_t*)&(value->data));
+			sprintf(dest, "%d", *(uint8_t*)data);
 			break;
 		case HXB_DTYPE_UINT32:
 		case HXB_DTYPE_TIMESTAMP:
-			sprintf(dest, "%d", *(uint32_t*)&(value->data));
+			sprintf(dest, "%d", *(uint32_t*)data);
 			break;
 		case HXB_DTYPE_DATETIME:
-			dt = (struct datetime*)&(value->data);
+			dt = (struct datetime*)data;
 			sprintf(dest, "%d*%d*%d*%d*%d*%d*%d", dt->hour, dt->minute, dt->second, dt->day, dt->month, dt->year, dt->weekday); 
 			break;
 		case HXB_DTYPE_FLOAT:
-			dtostrf(*(float*)&(value->data), 1, 6, dest);
+			dtostrf(*(float*)data, 1, 6, dest);
 			uint8_t i;
 			for(i = 0;dest[i] != '.';) {
 				i++;
@@ -579,12 +579,16 @@ get_sm_tables(void *arg)
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-'); 
 	for(i = 0;i < length;i++) {
 		eeprom_read_block(cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (i * sizeof(struct condition))), sizeof(struct condition));
-		hxbtos(buffer, &(cond->value));
+		if(cond->datatype == HXB_DTYPE_DATETIME) {
+		//TODO	
+		} else {
+			hxbtos(buffer, cond->data, cond->datatype);
+		}
 		for(j = 0;j < 16;j++){
 			sprintf(ip + 2*j, "%02x", cond->sourceIP[j]);
 		}
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_cond_table_line, NULL, 
-				ip, cond->sourceEID, cond->value.datatype, cond->op, buffer, NULL);
+				ip, cond->sourceEID, cond->datatype, cond->op, buffer, NULL);
 	}
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '.'); 
 	free(cond);
@@ -595,7 +599,7 @@ get_sm_tables(void *arg)
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-'); 
 	for(i = 0;i < length;i++) {
   	eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
-		hxbtos(buffer, &(trans->value));
+		hxbtos(buffer, trans->value.data, trans->value.datatype);
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_trans_table_line, NULL, 
 				trans->fromState, trans->cond, trans->eid, trans->value.datatype, buffer, trans->goodState, trans->badState, NULL);
 	}

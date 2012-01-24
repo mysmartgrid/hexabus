@@ -421,12 +421,13 @@ PT_THREAD(handle_output(struct httpd_state *s))
 		return value;
 	}
 /*---------------------------------------------------------------------------*/
-void stodt(const char *str, struct hxb_value *val, uint8_t dtype, uint8_t length) {
+// TODO
+void stodt(const char *str, char *data, uint8_t dtype, uint8_t length) {
 	uint8_t i = 0;
 	switch(dtype) {
 		case HXB_DTYPE_BOOL:
 		case HXB_DTYPE_UINT8:;
-			*(uint8_t*)&(val->data) = ctoi(str, length);
+			*(uint8_t*)(data) = ctoi(str, length);
 			break;
 		case HXB_DTYPE_TIMESTAMP:
 		case HXB_DTYPE_UINT32:;
@@ -434,7 +435,7 @@ void stodt(const char *str, struct hxb_value *val, uint8_t dtype, uint8_t length
 			for(i = 0;i < length;i++) {
 				val32 += (str[i] - '0')*(uint32_t)pow10(length - i - 1);
 			}
-			*(uint32_t*)&(val->data) = val32;
+			*(uint32_t*)(data) = val32;
 			break;
 		case HXB_DTYPE_FLOAT:;
 			float valf = 0.f;
@@ -450,7 +451,7 @@ void stodt(const char *str, struct hxb_value *val, uint8_t dtype, uint8_t length
 					valf += (str[i] - '0')*pow10(k - i + 2);
 				}
 			}
-			*(float*)&(val->data) = valf;
+			*(float*)(data) = valf;
 			break;
 		case HXB_DTYPE_DATETIME:;
 			uint8_t j = 0;
@@ -459,7 +460,7 @@ void stodt(const char *str, struct hxb_value *val, uint8_t dtype, uint8_t length
 				for(j = i;j < length && str[j] != '*';) {
 					j++;
 				}
-				val->data[k] = ctoi(str + i, j - i);
+				data[k] = ctoi(str + i, j - i);
 				k++;
 			}
 			break;
@@ -674,22 +675,20 @@ PT_THREAD(handle_input(struct httpd_state *s))
 								cond.sourceEID = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 								break;
 							case 2: // DataType 
-								cond.value.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+								cond.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 								break;
 							case 3: // Operator 
 								cond.op = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 								break;
 							case 4: // Value
-								if(cond.value.datatype == HXB_DTYPE_DATETIME) {
-									for(i = 0;i < 7;i++) {
-										if(cond.op & (1<<i)) {
-											cond.value.data[i] = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+								if(cond.datatype == HXB_DTYPE_DATETIME) {
+									if(cond.op == 0x20) {		// year field, uint16_t in contrast to the other uint8_t's
+										stodt(&s->inputbuf[0], cond.data, HXB_DTYPE_UINT32, PSOCK_DATALEN(&s->sin) - 1);
 									} else {
-										cond.value.data[i] = 0;
+										stodt(&s->inputbuf[0], cond.data, HXB_DTYPE_UINT8, PSOCK_DATALEN(&s->sin) - 1);
 									}
-								}
 								} else {
-									stodt(&s->inputbuf[0], &cond.value, cond.value.datatype, PSOCK_DATALEN(&s->sin) - 1);
+										stodt(&s->inputbuf[0], cond.data, cond.datatype, PSOCK_DATALEN(&s->sin) - 1);
 								}
 					}
 					if(++position == 5) {
@@ -701,7 +700,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							}
 							PRINTF("%02x", cond.sourceIP[i]);
 						}
-						PRINTF("\nStruct Cond: EID: %d Operator: %d DataType: %d \n", cond.sourceEID, cond.op, cond.value.datatype);
+						PRINTF("\nStruct Cond: EID: %d Operator: %d DataType: %d \n", cond.sourceEID, cond.op, cond.datatype);
 						// Write Line to EEPROM. Too much data will be truncated
 						if(numberOfBlocks < (EE_STATEMACHINE_CONDITIONS_SIZE / sizeof(struct condition))) {
 							eeprom_write_block(&cond, (void*)(numberOfBlocks*sizeof(struct condition) + 1 + EE_STATEMACHINE_CONDITIONS), sizeof(struct condition));
@@ -727,7 +726,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							trans.value.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 							break;
 						case 4: // Value
-							stodt(&s->inputbuf[0], &trans.value, trans.value.datatype, PSOCK_DATALEN(&s->sin) - 1);
+							stodt(&s->inputbuf[0], trans.value.data, trans.value.datatype, PSOCK_DATALEN(&s->sin) - 1);
 							break;
 						case 5: // Good State
 							trans.goodState = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
@@ -743,7 +742,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 						memset(&cond, 0, sizeof(struct condition));
 						eeprom_read_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + (trans.cond * sizeof(struct condition))), sizeof(struct condition));
 						
-						if(cond.value.datatype == HXB_DTYPE_DATETIME || cond.value.datatype == HXB_DTYPE_TIMESTAMP) {
+						if(cond.datatype == HXB_DTYPE_DATETIME || cond.datatype == HXB_DTYPE_TIMESTAMP) {
 							PRINTF("Writing DateTime Transition...\n");
 							if(numberOfDT < (EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE / sizeof(struct transition))) {
 									eeprom_write_block(&trans, (void*)(1 + numberOfDT*sizeof(struct transition) + EE_STATEMACHINE_DATETIME_TRANSITIONS), sizeof(struct transition));
