@@ -32,21 +32,21 @@
 #define VALUE_BROADCAST_DEBUG 1
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 2
 #define VALUE_BROADCAST_AUTO_EIDS 2, 4
-#define VALUE_BROADCAST_AUTO_INTERVAL 20 //0 to disable automatic broadcast
-#define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 1
+#define VALUE_BROADCAST_AUTO_INTERVAL 0 //0 to disable automatic broadcast
+#define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0
 #define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2
 
 // state_machine
 #define STATE_MACHINE_ENABLE 1
-#define STATE_MACHINE_DEBUG 0
+#define STATE_MACHINE_DEBUG 1
 
 // shutter
-#define SHUTTER_ENABLE 0
-#define SHUTTER_DEBUG 0
+#define SHUTTER_ENABLE 1
+#define SHUTTER_DEBUG 1
 
 // hexapush
-#define HEXAPUSH_ENABLE 0
-#define HEXAPUSH_CLICK_ENABLE 0
+#define HEXAPUSH_ENABLE 1
+#define HEXAPUSH_CLICK_ENABLE 1
 #define HEXAPUSH_PRESS_RELEASE_ENABLE 1
 #define HEXAPUSH_PRESS_DELAY 6   //multiplied by 50ms, only if Click and Press/Release are enabled
 #define HEXAPUSH_DEBUG 0

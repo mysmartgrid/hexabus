@@ -53,11 +53,12 @@
 #define PRINTF(...)
 #endif
 
-static process_event_t full_up_event;
-static process_event_t full_down_event;
-static process_event_t full_cancel_event;
+static process_event_t cancel_event;
 
-static uint8_t shutter_goal;
+static int8_t shutter_direction;
+static int shutter_goal;
+static int shutter_pos;
+static int shutter_upperbound;
 
 void shutter_init(void) {
     PRINTF("Shutter init\n");
@@ -71,55 +72,47 @@ void shutter_init(void) {
     PCICR |= ( 1<<PCIE0 );
     sei();
 
-    full_up_event = process_alloc_event();
-    full_down_event = process_alloc_event();
-    full_cancel_event = process_alloc_event();
+    cancel_event = process_alloc_event();
 
     shutter_goal = 0;
+    shutter_direction = 0;
+    shutter_pos = 1;
+    shutter_upperbound = 254;
 }
 
 void shutter_open(void) {
-    PRINTF("Shutter open\n");
+    PRINTF("Shutter opening\n");
+    shutter_direction = 1;
     SHUTTER_PORT &= ~(1<<SHUTTER_OUT_DOWN);
     SHUTTER_PORT |= (1<<SHUTTER_OUT_UP);
 }
 
 void shutter_close(void) {
-    PRINTF("Shutter close\n");
+    PRINTF("Shutter closing\n");
+    shutter_direction = -1;
     SHUTTER_PORT &= ~(1<<SHUTTER_OUT_UP);
     SHUTTER_PORT |= (1<<SHUTTER_OUT_DOWN);
 }
 
-void shutter_open_full(void) {
-    process_post(&shutter_process, full_cancel_event, NULL);
-    process_post(&shutter_process, full_up_event, NULL);
-}
-
-void shutter_close_full(void) {
-    process_post(&shutter_process, full_cancel_event, NULL);
-    process_post(&shutter_process, full_down_event, NULL);
-}
-
 void shutter_stop(void) {
     PRINTF("Shutter stop\n");
-    process_post(&shutter_process, full_cancel_event, NULL);
+    shutter_direction = 0;
+    process_post(&shutter_process, cancel_event, NULL);
     SHUTTER_PORT &= ~( (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
-    shutter_goal = 0;
 }
 
 void shutter_set(uint8_t val) {
-    if(val==0) {
-        shutter_stop();
-    } else if(val==1) {
-        shutter_close_full();
-    } else if(val==255) {
-        shutter_open_full();
+    shutter_goal = val * (shutter_upperbound / 254);
+    PRINTF("-Moving to %d\n", shutter_goal);
+    if(shutter_goal > shutter_pos) {
+        shutter_open();
+    } else {
+        shutter_close();
     }
-    shutter_goal=val;
 }
 
 void shutter_toggle(uint8_t val) {
-    if(shutter_goal==0){
+    if(shutter_direction==0 && val!=0){
         shutter_set(val);
     } else {
         shutter_stop();
@@ -127,8 +120,7 @@ void shutter_toggle(uint8_t val) {
 }
 
 uint8_t shutter_get_state(void) {
-    //TODO
-    return 0;
+    return shutter_pos / 254;
 }
 
 PROCESS(shutter_process, "Open/Close shutter until motor stopps");
@@ -145,37 +137,29 @@ PROCESS_THREAD(shutter_process, ev, data) {
     while(1) {
         PROCESS_WAIT_EVENT();
 
-        if((ev == full_up_event) || (ev == full_down_event)) { 
+        if(ev == PROCESS_EVENT_POLL) {
             etimer_restart(&encoder_timer);
-
-            if(ev == full_up_event) {
-                PRINTF("-Fully opening shutter\n");
-                shutter_open();
-            } else if(ev == full_down_event) {
-                PRINTF("-Fully closing shutter\n");
-                shutter_close();
+            if((shutter_direction == 1 && shutter_pos >= shutter_goal) || (shutter_direction == -1 && shutter_pos <= shutter_goal)) {
+                shutter_stop();
+                PRINTF("-Position reached");
             }
-            
-            while(1) {
-                PROCESS_WAIT_EVENT();
-
-                if(ev == PROCESS_EVENT_POLL) {
-                    etimer_restart(&encoder_timer);
-                } else if(ev == PROCESS_EVENT_TIMER) {
-                    PRINTF("-Encoder timed out\n");
-                    shutter_stop();
-                    break;
-                } else if(ev == full_cancel_event) {
-                    PRINTF("-Full canceled\n");
-                    break;
-                }
+        } else if(ev == PROCESS_EVENT_TIMER) {
+            PRINTF("-Encoder timed out\n");
+            if(shutter_direction==1) {
+                shutter_upperbound = shutter_pos;
+                PRINTF("-New upperbound %d\n", shutter_upperbound);
+            } else {
+                shutter_pos = 1;
             }
+            shutter_stop();
+        } else if(ev == cancel_event) {
+            PRINTF("-Canceled\n");
         }
     }
-
     PROCESS_END();
 }
 
 ISR(PCINT0_vect) {
+    shutter_pos += shutter_direction;
     process_poll(&shutter_process);
 }
