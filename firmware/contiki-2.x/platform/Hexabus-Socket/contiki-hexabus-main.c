@@ -377,12 +377,8 @@ void initialize(void)
   /* Init Temp Sensor */
 #if TEMPERATURE_ENABLE
   temperature_init();
-  
-  //Check whether there are temperature sensors connected, if so start the process.
-  if(nSensors > 0){
-    process_start(&temperature_process, NULL);
-  }
 #endif
+
 #if HEXONOFF_ENABLE
   hexonoff_init();
 #endif
