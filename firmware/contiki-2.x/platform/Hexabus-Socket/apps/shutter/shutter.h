@@ -25,6 +25,7 @@
 #endif
 
 #define ENCODER_TIMEOUT        300UL
+#define SHUTTER_INITIAL_BOUND  30000
 
 
 void    shutter_init(void);

@@ -53,12 +53,12 @@
 #define PRINTF(...)
 #endif
 
-static process_event_t cancel_event;
-
 static int8_t shutter_direction;
 static int shutter_goal;
 static int shutter_pos;
 static int shutter_upperbound;
+
+static process_event_t shutter_poke;
 
 void shutter_init(void) {
     PRINTF("Shutter init\n");
@@ -72,12 +72,12 @@ void shutter_init(void) {
     PCICR |= ( 1<<PCIE0 );
     sei();
 
-    cancel_event = process_alloc_event();
+    shutter_poke = process_alloc_event();
 
     shutter_goal = 0;
     shutter_direction = 0;
-    shutter_pos = 1;
-    shutter_upperbound = 254;
+    shutter_pos = SHUTTER_INITIAL_BOUND/2;
+    shutter_upperbound = SHUTTER_INITIAL_BOUND;
 }
 
 void shutter_open(void) {
@@ -85,6 +85,7 @@ void shutter_open(void) {
     shutter_direction = 1;
     SHUTTER_PORT &= ~(1<<SHUTTER_OUT_DOWN);
     SHUTTER_PORT |= (1<<SHUTTER_OUT_UP);
+    process_post(&shutter_process, shutter_poke, NULL);
 }
 
 void shutter_close(void) {
@@ -92,21 +93,28 @@ void shutter_close(void) {
     shutter_direction = -1;
     SHUTTER_PORT &= ~(1<<SHUTTER_OUT_UP);
     SHUTTER_PORT |= (1<<SHUTTER_OUT_DOWN);
+    process_post(&shutter_process, shutter_poke, NULL);
 }
 
 void shutter_stop(void) {
     PRINTF("Shutter stop\n");
     shutter_direction = 0;
-    process_post(&shutter_process, cancel_event, NULL);
     SHUTTER_PORT &= ~( (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
 }
 
 void shutter_set(uint8_t val) {
-    shutter_goal = val * (shutter_upperbound / 254);
+
+    if(val == 255) {
+        shutter_goal == SHUTTER_INITIAL_BOUND;
+    } else if(val == 1) {
+        shutter_goal == -SHUTTER_INITIAL_BOUND;
+    }
+    shutter_goal = val * ((float)shutter_upperbound/255.0);
+
     PRINTF("-Moving to %d\n", shutter_goal);
     if(shutter_goal > shutter_pos) {
         shutter_open();
-    } else {
+    } else if(shutter_goal < shutter_pos){
         shutter_close();
     }
 }
@@ -120,7 +128,7 @@ void shutter_toggle(uint8_t val) {
 }
 
 uint8_t shutter_get_state(void) {
-    return shutter_pos / 254;
+    return shutter_pos * ((float)shutter_upperbound/255.0);
 }
 
 PROCESS(shutter_process, "Open/Close shutter until motor stopps");
@@ -129,7 +137,7 @@ PROCESS(shutter_process, "Open/Close shutter until motor stopps");
 PROCESS_THREAD(shutter_process, ev, data) {
 
     static struct etimer encoder_timer;
-
+    
     PROCESS_BEGIN();
 
     etimer_set(&encoder_timer, CLOCK_SECOND * ENCODER_TIMEOUT / 1000);
@@ -139,27 +147,28 @@ PROCESS_THREAD(shutter_process, ev, data) {
 
         if(ev == PROCESS_EVENT_POLL) {
             etimer_restart(&encoder_timer);
-            if((shutter_direction == 1 && shutter_pos >= shutter_goal) || (shutter_direction == -1 && shutter_pos <= shutter_goal)) {
+            shutter_pos += shutter_direction;
+            PRINTF("Pos: %d\n", shutter_pos);
+            if (((shutter_pos >= shutter_goal)&&(shutter_direction == 1)) || ((shutter_pos <= shutter_goal)&&(shutter_direction == -1))) {
                 shutter_stop();
-                PRINTF("-Position reached");
             }
         } else if(ev == PROCESS_EVENT_TIMER) {
             PRINTF("-Encoder timed out\n");
-            if(shutter_direction==1) {
+            if(shutter_direction == 1) {
                 shutter_upperbound = shutter_pos;
-                PRINTF("-New upperbound %d\n", shutter_upperbound);
-            } else {
+                PRINTF("New upperbound: %d\n", shutter_upperbound);
+            } else if(shutter_direction == -1) {
                 shutter_pos = 1;
+                PRINTF("Reset Pos to 1\n");
             }
             shutter_stop();
-        } else if(ev == cancel_event) {
-            PRINTF("-Canceled\n");
+        } else if(ev = shutter_poke) {
+            etimer_restart(&encoder_timer);
         }
     }
     PROCESS_END();
 }
 
 ISR(PCINT0_vect) {
-    shutter_pos += shutter_direction;
     process_poll(&shutter_process);
 }

@@ -16,7 +16,7 @@
 // button
 #define BUTTON_DEBUG 0
 #define BUTTON_DOUBLE_CLICK_ENABLED 0
-#define BUTTON_HAS_EID 1 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
+#define BUTTON_HAS_EID 0 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
 #define BUTTON_TOGGLES_RELAY 1 // set to 1 to have the button toggle the relay directly
 
 // datetime_service
@@ -38,7 +38,7 @@
 
 // state_machine
 #define STATE_MACHINE_ENABLE 1
-#define STATE_MACHINE_DEBUG 1
+#define STATE_MACHINE_DEBUG 0
 
 // shutter
 #define SHUTTER_ENABLE 1
