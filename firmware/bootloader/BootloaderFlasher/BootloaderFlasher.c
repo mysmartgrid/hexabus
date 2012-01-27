@@ -116,7 +116,7 @@ int programRS232(char* path, char* port, unsigned char id) {
 
 	// Sending the data to the usb-board
 	while(currentaddr < maxaddr) {
-		pre[1] = (maxaddr-currentaddr < 0x10) ? maxaddr-currentaddr : 0x10;	// We always send 16 bytes (can be changed)
+		pre[1] = (maxaddr-currentaddr < 0x20) ? maxaddr-currentaddr : 0x20;	// We always send 16 bytes (can be changed) -- changed to 32, seems to work better -B.L.
 		pre[2] = (char)(currentaddr >> 8);	// High-byte of the address
 		pre[3] = (char)(currentaddr % 256);	// Low-byte of the address
 		pre[4] = 0x00;	// Record type
