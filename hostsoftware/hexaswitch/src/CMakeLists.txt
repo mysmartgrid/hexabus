@@ -24,7 +24,10 @@ add_executable(hexalog ${hexalog_src})
 target_link_libraries(hexalog
   hexabus
   pthread
-  ${Boost_SYSTEM_LIBRARY}
+  ${Boost_LIBRARIES}
+  ${SQLITE3_LIBRARIES}
+  klio
+  klio_sqlite3
 )
 
 # add programs to the install target 
