@@ -25,7 +25,6 @@
 
 void    shutter_init(void);
 
-
 void    shutter_toggle(uint8_t);
 
 void    shutter_set(uint8_t);

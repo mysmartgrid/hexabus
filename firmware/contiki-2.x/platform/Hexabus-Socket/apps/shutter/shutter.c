@@ -42,10 +42,6 @@ void shutter_init(void) {
 
 }
 
-void shutter_setup() {
-    
-}
-
 void shutter_open(void) {
     PRINTF("Shutter opening\n");
     shutter_direction = 1;
