@@ -105,17 +105,20 @@ void shutter_stop(void) {
 void shutter_set(uint8_t val) {
 
     if(val == 255) {
-        shutter_goal == SHUTTER_INITIAL_BOUND;
+        shutter_goal = SHUTTER_INITIAL_BOUND;
     } else if(val == 1) {
-        shutter_goal == -SHUTTER_INITIAL_BOUND;
+        shutter_goal = -SHUTTER_INITIAL_BOUND;
+    } else {
+        shutter_goal = val * ((float)shutter_upperbound/255.0);
     }
-    shutter_goal = val * ((float)shutter_upperbound/255.0);
 
     PRINTF("-Moving to %d\n", shutter_goal);
     if(shutter_goal > shutter_pos) {
         shutter_open();
     } else if(shutter_goal < shutter_pos){
         shutter_close();
+    } else {
+        PRINTF("Not moving, already at %d\n", shutter_goal);
     }
 }
 
@@ -162,7 +165,7 @@ PROCESS_THREAD(shutter_process, ev, data) {
                 PRINTF("Reset Pos to 1\n");
             }
             shutter_stop();
-        } else if(ev = shutter_poke) {
+        } else if(ev == shutter_poke) {
             etimer_restart(&encoder_timer);
         }
     }
