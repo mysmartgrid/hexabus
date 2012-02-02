@@ -25,6 +25,7 @@
 
 void    shutter_init(void);
 
+
 void    shutter_toggle(uint8_t);
 
 void    shutter_set(uint8_t);
@@ -34,5 +35,6 @@ void    shutter_stop(void);
 uint8_t     shutter_get_state(void);
 
 PROCESS_NAME(shutter_process);
+PROCESS_NAME(shutter_setup_process);
 
 #endif /* SHUTTER_H_ */

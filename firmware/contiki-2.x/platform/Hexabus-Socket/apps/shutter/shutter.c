@@ -39,6 +39,11 @@ void shutter_init(void) {
     shutter_direction = 0;
     shutter_pos = SHUTTER_INITIAL_BOUND/2;
     shutter_upperbound = SHUTTER_INITIAL_BOUND;
+
+}
+
+void shutter_setup() {
+    
 }
 
 void shutter_open(void) {
@@ -97,7 +102,36 @@ uint8_t shutter_get_state(void) {
 }
 
 PROCESS(shutter_process, "Open/Close shutter until motor stopps");
+PROCESS(shutter_setup_process, "Initial calibration and position");
 
+PROCESS_THREAD(shutter_setup_process, ev, data) {
+    
+    PROCESS_BEGIN();
+
+
+    if(SHUTTER_CALIBRATE_ON_BOOT) {
+        PRINTF("Shutter calibrating...\n");
+        shutter_toggle(1);
+        while(shutter_direction != 0) {
+            PROCESS_PAUSE();
+        }
+
+        shutter_toggle(255);
+        while(shutter_direction != 0) {
+            PROCESS_PAUSE();
+        }
+        PRINTF("Shutter calibration finished\n");
+
+    }
+    if(SHUTTER_INITIAL_POSITON) {
+        PRINTF("Shutter moving to initial position");
+        shutter_toggle(SHUTTER_INITIAL_POSITON);
+    }
+
+    PROCESS_END();
+
+
+}
 
 PROCESS_THREAD(shutter_process, ev, data) {
 
@@ -106,7 +140,7 @@ PROCESS_THREAD(shutter_process, ev, data) {
     PROCESS_BEGIN();
 
     etimer_set(&encoder_timer, CLOCK_SECOND * ENCODER_TIMEOUT / 1000);
-
+    
     while(1) {
         PROCESS_WAIT_EVENT();
 

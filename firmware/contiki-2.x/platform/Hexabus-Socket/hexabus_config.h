@@ -43,6 +43,8 @@
 // shutter
 #define SHUTTER_ENABLE 1
 #define SHUTTER_DEBUG 1
+#define SHUTTER_CALIBRATE_ON_BOOT 1
+#define SHUTTER_INITIAL_POSITON 1
 
 // hexapush
 #define HEXAPUSH_ENABLE 1
