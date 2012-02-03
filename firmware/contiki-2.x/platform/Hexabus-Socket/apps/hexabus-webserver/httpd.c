@@ -474,14 +474,7 @@ void stodt(const char *str, char *data, uint8_t dtype, uint8_t length) {
 					j++;
 				}
 				if(k == 5) {		// Year field
-					/*uint8_t n = 0;
-					for(n = i;n < j - i;n++) {
-						printf("%c", str[n]);
-						val16 += (str[n] - '0')*(uint16_t)exp10(j - i - n);
-					}*/
 					stodt(str + i, (char*)&(((struct datetime*)data)->year), WS_HXB_DTYPE_UINT16, j - i);
-					printf("Datetime year: %u", ((struct datetime*)data)->year);
-					//((struct datetime*)data)->year = val16;	// TODO
 					k++;
 				} else {
 					data[k] = ctoi(str + i, j - i);
