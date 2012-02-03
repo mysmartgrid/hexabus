@@ -83,7 +83,7 @@ extern char TCPBUF[512];
 // TODO #define RADIOSTATS 1
 #endif
 
-
+#define WS_HXB_DTYPE_UINT16 0x08
 
 /*
 #if RADIOSTATS
@@ -446,7 +446,7 @@ generate_socket_readings(void *arg)
   struct datetime dt;
 	if(getDatetime(&dt) == 0) {
 		char *time[30];
-		sprintf(time, "%d:%d:%d, %d.%d.%d", dt.hour, dt.minute, dt.second, dt.day, dt.month, dt.year);
+		sprintf(time, "%u:%u:%u, %u.%u.%u", dt.hour, dt.minute, dt.second, dt.day, dt.month, dt.year);
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_datetime, time);
 	} else {
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_datetime, "Date and Time not valid.");
@@ -536,17 +536,22 @@ void hxbtos(char *dest, char *data, uint8_t datatype)
 {
 	struct datetime *dt;
 	switch(datatype) {
+		case HXB_DTYPE_UNDEFINED:	// "Do nothing" Datatype
+			sprintf(dest, "0");		// 0 so the format does not break
+			break;
 		case HXB_DTYPE_BOOL:
 		case HXB_DTYPE_UINT8:
-			sprintf(dest, "%d", *(uint8_t*)data);
+			sprintf(dest, "%u", *(uint8_t*)data);
 			break;
 		case HXB_DTYPE_UINT32:
 		case HXB_DTYPE_TIMESTAMP:
-			sprintf(dest, "%d", *(uint32_t*)data);
+			sprintf(dest, "%u", *(uint32_t*)data);
 			break;
+		case WS_HXB_DTYPE_UINT16:
+			sprintf(dest, "%u", *(uint16_t*)data);
 		case HXB_DTYPE_DATETIME:
 			dt = (struct datetime*)data;
-			sprintf(dest, "%d*%d*%d*%d*%d*%d*%d", dt->hour, dt->minute, dt->second, dt->day, dt->month, dt->year, dt->weekday); 
+			sprintf(dest, "%u*%u*%u*%u*%u*%u*%u*", dt->hour, dt->minute, dt->second, dt->day, dt->month, (uint16_t)dt->year, dt->weekday); 
 			break;
 		case HXB_DTYPE_FLOAT:
 			dtostrf(*(float*)data, 1, 6, dest);
@@ -562,15 +567,15 @@ void hxbtos(char *dest, char *data, uint8_t datatype)
 static unsigned short
 get_sm_tables(void *arg)
 {
-  static const char httpd_cgi_trans_table_line[] HTTPD_STRING_ATTR = "%c%d.%d.%d.%d.%s.%d.%d.%c";
-  static const char httpd_cgi_cond_table_line[] HTTPD_STRING_ATTR = "%c%s.%d.%d.%d.%s.%c";
+  static const char httpd_cgi_trans_table_line[] HTTPD_STRING_ATTR = "%c%u.%u.%u.%u.%s.%u.%u.%c";
+  static const char httpd_cgi_cond_table_line[] HTTPD_STRING_ATTR = "%c%s.%u.%u.%u.%s.%c";
 	static const char httpd_cgi_char[] HTTPD_STRING_ATTR = "%c";
 	uint16_t numprinted = 0;
 	uint8_t length = 0;
   uint8_t i, j;
 	struct transition *trans;
 	struct condition *cond;
-	char buffer[30];
+	char buffer[30];	// Max. size because of datetime: 6*3 Digits (uint8) + 1*5 Digits (uint16) + 7*'*' = 18 + 5 + 7 = 30 Byte
 	char ip[33];
 
 	// Read Condition Table. Unused conditions will have a datatype equal to 0
@@ -580,7 +585,7 @@ get_sm_tables(void *arg)
 	for(i = 0;i < length;i++) {
 		eeprom_read_block(cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (i * sizeof(struct condition))), sizeof(struct condition));
 		if(cond->datatype == HXB_DTYPE_DATETIME) {
-		//TODO	
+			hxbtos(buffer, cond->data, HXB_DTYPE_UINT32);
 		} else {
 			hxbtos(buffer, cond->data, cond->datatype);
 		}

@@ -36,6 +36,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "contiki-net.h"
 
@@ -94,6 +95,8 @@ char TCPBUF[512];
 
 #define STATE_WAITING 0
 #define STATE_OUTPUT  1
+
+#define WS_HXB_DTYPE_UINT16 0x08
 
 //#define SEND_STRING(s, str) PSOCK_SEND(s, (uint8_t *)str, (unsigned int)strlen(str))
 MEMB(conns, struct httpd_state, CONNS);
@@ -396,7 +399,7 @@ PT_THREAD(handle_output(struct httpd_state *s))
 	PT_END(&s->outputpt);
 }
 /*---------------------------------------------------------------------------*/
-	float pow10(int exp) {
+	float expb10(int exp) {
 		float val = 1.f;
 		uint8_t i = 0;
 		if(exp >= 0) {
@@ -416,15 +419,18 @@ PT_THREAD(handle_output(struct httpd_state *s))
 		uint8_t value = 0;
 		uint8_t i;
 		for(i = 0;i < length;i++) {
-			value += (str[i] - '0')*(uint8_t)pow10(length - i - 1);
+			value += (str[i] - '0')*(uint8_t)expb10(length - i - 1);
 		}
 		return value;
 	}
 /*---------------------------------------------------------------------------*/
-// TODO
 void stodt(const char *str, char *data, uint8_t dtype, uint8_t length) {
 	uint8_t i = 0;
 	switch(dtype) {
+		case HXB_DTYPE_UNDEFINED:
+			// Do "nothing"
+			*(uint8_t*)(data) = 0;
+			break;
 		case HXB_DTYPE_BOOL:
 		case HXB_DTYPE_UINT8:;
 			*(uint8_t*)(data) = ctoi(str, length);
@@ -433,9 +439,16 @@ void stodt(const char *str, char *data, uint8_t dtype, uint8_t length) {
 		case HXB_DTYPE_UINT32:;
 			uint32_t val32 = 0;
 			for(i = 0;i < length;i++) {
-				val32 += (str[i] - '0')*(uint32_t)pow10(length - i - 1);
+				val32 += (str[i] - '0')*(uint32_t)expb10(length - i - 1);
 			}
 			*(uint32_t*)(data) = val32;
+			break;
+		case WS_HXB_DTYPE_UINT16:;
+			uint16_t val16 = 0;
+			for(i = 0;i < length;i++) {
+				val16 += (str[i] - '0')*(uint16_t)expb10(length - i -1);
+			}
+			*(uint16_t*)(data) = val16;
 			break;
 		case HXB_DTYPE_FLOAT:;
 			float valf = 0.f;
@@ -445,10 +458,10 @@ void stodt(const char *str, char *data, uint8_t dtype, uint8_t length) {
 			}
 			for(i = 0;i < length;i++) {
 				if(i < k) {
-					valf += (str[i] - '0')*pow10(k - i - 1);
+					valf += (str[i] - '0')*expb10(k - i - 1);
 				}
 				if(i > k + 2) {
-					valf += (str[i] - '0')*pow10(k - i + 2);
+					valf += (str[i] - '0')*expb10(k - i + 2);
 				}
 			}
 			*(float*)(data) = valf;
@@ -460,12 +473,24 @@ void stodt(const char *str, char *data, uint8_t dtype, uint8_t length) {
 				for(j = i;j < length && str[j] != '*';) {
 					j++;
 				}
-				data[k] = ctoi(str + i, j - i);
+				if(k == 5) {		// Year field
+					/*uint8_t n = 0;
+					for(n = i;n < j - i;n++) {
+						printf("%c", str[n]);
+						val16 += (str[n] - '0')*(uint16_t)exp10(j - i - n);
+					}*/
+					stodt(str + i, (char*)&(((struct datetime*)data)->year), WS_HXB_DTYPE_UINT16, j - i);
+					printf("Datetime year: %u", ((struct datetime*)data)->year);
+					//((struct datetime*)data)->year = val16;	// TODO
+					k++;
+				} else {
+					data[k] = ctoi(str + i, j - i);
+				}
 				k++;
 			}
 			break;
 		default:
-			PRINTF("State Machine Configurator: Datatype not implemented (yet)");
+			PRINTF("State Machine Configurator: Datatype not implemented (yet)\n");
 	}
 }
 /*--------------------------------------------------------------------------*/
@@ -473,7 +498,7 @@ const char httpd_get[] HTTPD_STRING_ATTR = "GET ";
 const char httpd_ref[] HTTPD_STRING_ATTR = "Referer:";
 const char httpd_post[] HTTPD_STRING_ATTR = "POST ";
 const char httpd_config_file[] HTTPD_STRING_ATTR = "config.shtml ";
-const char httpd_sm_config[] HTTPD_STRING_ATTR = "sm_config.shtml ";
+const char httpd_sm_post[] HTTPD_STRING_ATTR = "sm_post.shtml ";
 const char httpd_socket_status_file[] HTTPD_STRING_ATTR = "socket_stat.shtml ";
 process_event_t sm_rulechange_event;
 
@@ -583,7 +608,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			relay_toggle();
 
 		}
-		else if (httpd_strncmp(&s->inputbuf[1], httpd_sm_config, sizeof(httpd_sm_config)-1) == 0)  {
+		else if (httpd_strncmp(&s->inputbuf[1], httpd_sm_post, sizeof(httpd_sm_post)-1) == 0)  {
 			
 			PRINTF("State Machine Configurator: Received Statemachine-POST\n"); 
 			s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
@@ -620,8 +645,6 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			static uint8_t position;
 			static uint8_t numberOfBlocks;
 			static uint8_t numberOfDT;
-			uint8_t *run = malloc(sizeof(uint8_t));
-			*run = 0;
 			numberOfBlocks = 0;
 			numberOfDT = 0;
 			end = 0;
@@ -682,8 +705,8 @@ PT_THREAD(handle_input(struct httpd_state *s))
 								break;
 							case 4: // Value
 								if(cond.datatype == HXB_DTYPE_DATETIME) {
-									if(cond.op == 0x20) {		// year field, uint16_t in contrast to the other uint8_t's
-										stodt(&s->inputbuf[0], cond.data, HXB_DTYPE_UINT32, PSOCK_DATALEN(&s->sin) - 1);
+									if(cond.op & 0x20) {		// year field, uint16_t in contrast to the other uint8_t's
+										stodt(&s->inputbuf[0], cond.data, WS_HXB_DTYPE_UINT16, PSOCK_DATALEN(&s->sin) - 1);
 									} else {
 										stodt(&s->inputbuf[0], cond.data, HXB_DTYPE_UINT8, PSOCK_DATALEN(&s->sin) - 1);
 									}
@@ -700,7 +723,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							}
 							PRINTF("%02x", cond.sourceIP[i]);
 						}
-						PRINTF("\nStruct Cond: EID: %d Operator: %d DataType: %d \n", cond.sourceEID, cond.op, cond.datatype);
+						PRINTF("\nStruct Cond: EID: %u Operator: %u DataType: %u \n", cond.sourceEID, cond.op, cond.datatype);
 						// Write Line to EEPROM. Too much data will be truncated
 						if(numberOfBlocks < (EE_STATEMACHINE_CONDITIONS_SIZE / sizeof(struct condition))) {
 							eeprom_write_block(&cond, (void*)(numberOfBlocks*sizeof(struct condition) + 1 + EE_STATEMACHINE_CONDITIONS), sizeof(struct condition));
@@ -737,7 +760,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 					}
 					if(++position == 7) {
 						position = 0;
-						PRINTF("Struct Trans: From: %d Cond: %d EID: %d DataType: %d Good: %d Bad: %d\n", trans.fromState, trans.cond, trans.eid, trans.value.datatype, trans.goodState, trans.badState);
+						PRINTF("Struct Trans: From: %u Cond: %u EID: %u DataType: %u Good: %u Bad: %u\n", trans.fromState, trans.cond, trans.eid, trans.value.datatype, trans.goodState, trans.badState);
 						// Write Line to EEPROM. Too much data is just truncated.
 						memset(&cond, 0, sizeof(struct condition));
 						eeprom_read_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + (trans.cond * sizeof(struct condition))), sizeof(struct condition));
@@ -764,7 +787,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			}
 		}
 		PRINTF("State Machine Configurator: Done with parsing.\n");
-		*run = 1;
+		uint8_t run = 1;
 		process_post(PROCESS_BROADCAST, sm_rulechange_event, run);
 	} else {
 			PSOCK_CLOSE_EXIT(&s->sin);
