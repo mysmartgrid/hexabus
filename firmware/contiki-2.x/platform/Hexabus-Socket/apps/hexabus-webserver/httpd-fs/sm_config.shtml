@@ -8,7 +8,7 @@ transDT = false;
 condDT = false;
 
 function alterValue(dtype, divID) {
-	if(dtype == 4) {
+	if(dtype == 4 || dtype == 7) {
 		document.getElementById(divID+'Simple').style.display = 'none';
 		document.getElementById(divID+'Complex').style.display = '';
 		if(divID == "cv") {
@@ -68,7 +68,11 @@ function addTableLine(formName, tableName) {
 			if(i == 3) {
 				if(condDT) {
 					i++;
-					var op = Number(form.elements[i].value) + Number(form.elements[i+1].value);
+					if(form.elements[2].value == 7) {
+						var op = Number(form.elements[i].value);
+					} else {
+						var op = Number(form.elements[i].value) + Number(form.elements[i+1].value);
+					}
 					row.insertCell(j).innerHTML = op;
 					tmpArray.push(op);
 					i++;
@@ -168,9 +172,10 @@ function addTableLine(formName, tableName) {
 		<p>Transition Table Input:</p>
 		<form id="TransTableForm" action="">
 			FromState: <input type="text" id="fromState" /><br />
-			Condition#: <select id="condID"></select><br />
+			Condition#: <select id="condID"><option value="255">True</option></select><br />
 			EID: <input type="text" id="eid" /><br />
 			DataType: <select id="dTypeTrans" onchange="javascript:alterValue(document.forms['TransTableForm'].elements[3].options[document.forms['TransTableForm'].elements[3].selectedIndex].value, 'tv')">
+				<option value="0">No Action (with eid = 0)</option>
 				<option value="1">Bool</option>
 				<option value="2">Int8</option>
 				<option value="3">Int32</option>
@@ -205,7 +210,7 @@ function addTableLine(formName, tableName) {
 			</tr>
 		</table>
 		<hr>
-		<form id="sendingForm" action="sm_config.shtml" method="POST">
+		<form id="sendingForm" action="sm_post.shtml" method="POST">
 			<button type="button" onclick="javascript:generateTables()">Parse Tables</button><p />
 			Parsed State Machine: <input type="text" id="generatedTables" name="tables" />
 			<input type="submit" value="submit" />
