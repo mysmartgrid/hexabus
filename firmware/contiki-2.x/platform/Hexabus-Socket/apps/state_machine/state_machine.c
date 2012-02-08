@@ -59,7 +59,7 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
 
   // Check datatypes, return false if they don't match -- TIMESTAMP is exempt from that because it's checked alongside the DATETIME conditions
   if(envelope->value.datatype != cond.datatype && cond.datatype != HXB_DTYPE_TIMESTAMP) {
-    return false;
+		return false;
   }
 
   PRINTF("Now checking condition\r\n");
@@ -133,10 +133,10 @@ void check_datetime_transitions()
   // TODO maybe we should check timestamps separately, because as of now, they still need some special cases in the 'eval' function
   struct hxb_envelope dtenvelope;
   dtenvelope.value.datatype = HXB_DTYPE_DATETIME;
-  dt_valid = 1 - getDatetime(&dtenvelope.value.data);   // getDatetime returns 1 if it fails, 0 if it succeeds, so we have to "1 -" here
+	dt_valid = 1 + getDatetime(&dtenvelope.value.data);   // getDatetime returns -1 if it fails, 0 if it succeeds, so we have to "1 +" here
   struct transition* t = malloc(sizeof(struct transition));
-
-  uint8_t i;
+  
+	uint8_t i;
   for(i = 0; i < dtTransLength; i++)
   {
     eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
