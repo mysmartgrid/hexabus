@@ -140,7 +140,7 @@ void check_datetime_transitions()
   for(i = 0; i < dtTransLength; i++)
   {
     eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
-    PRINTF("checkDT - curState: %d -- fromState: %d\n", curState, t->fromState);
+    PRINTF("checkDT - curState: %d -- fromState: %d\r\n", curState, t->fromState);
     if((t->fromState == curState) && (eval(t->cond, &dtenvelope)))
     {
       // Matching transition found. Check, if an action should be performed.
