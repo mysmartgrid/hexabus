@@ -354,6 +354,10 @@ void initialize(void)
 
   /* process for shutter control*/
   process_start(&shutter_process, NULL);
+
+  /* calibrate and go to initial position */
+  process_start(&shutter_setup_process, NULL);
+
 #endif
 
 #if HEXAPUSH_ENABLE
