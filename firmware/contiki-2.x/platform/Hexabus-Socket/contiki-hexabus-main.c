@@ -132,6 +132,9 @@
 #if HEXAPUSH_ENABLE
 #include "hexonoff.h"
 #endif
+#if ANALOGREAD_ENABLE
+#include "analogread.h"
+#endif
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -381,6 +384,10 @@ void initialize(void)
 
 #if HEXONOFF_ENABLE
   hexonoff_init();
+#endif
+
+#if ANALOGREAD_ENABLE
+  analogread_init();
 #endif
 
   /*Init Relay */
