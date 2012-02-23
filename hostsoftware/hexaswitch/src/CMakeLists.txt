@@ -27,7 +27,6 @@ target_link_libraries(hexalog
   ${Boost_LIBRARIES}
   ${SQLITE3_LIBRARIES}
   klio
-  klio_sqlite3
 )
 
 # add programs to the install target 
