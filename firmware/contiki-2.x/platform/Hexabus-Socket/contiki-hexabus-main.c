@@ -135,6 +135,9 @@
 #if ANALOGREAD_ENABLE
 #include "analogread.h"
 #endif
+#if IR_RECEIVER_ENABLE
+#include "ir_receiver.h"
+#endif
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -392,6 +395,10 @@ void initialize(void)
 
 #if ANALOGREAD_ENABLE
   analogread_init();
+#endif
+
+#if IR_RECEIVER_ENABLE
+  ir_receiver_init();
 #endif
 
   /*Init Relay */

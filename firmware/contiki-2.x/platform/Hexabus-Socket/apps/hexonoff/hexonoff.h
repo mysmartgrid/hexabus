@@ -11,14 +11,14 @@
 #define HEXONOFF_DDR    DDRA
 
 //Comment unneeded outputs
-//#define HEXONOFF_OUT1     PA0
-//#define HEXONOFF_OUT2     PA1
-#define HEXONOFF_OUT3     PA2
-#define HEXONOFF_OUT5     PA3
-//#define HEXONOFF_OUT6     PA4
-//#define HEXONOFF_OUT7     PA5
-//#define HEXONOFF_OUT8     PA6
-//#define HEXONOFF_OUT9     PA7
+//#define HEXONOFF_OUT0     PA0
+//#define HEXONOFF_OUT1     PA1
+//#define HEXONOFF_OUT2     PA2
+//#define HEXONOFF_OUT3     PA3
+//#define HEXONOFF_OUT4     PA4
+//#define HEXONOFF_OUT5     PA5
+//#define HEXONOFF_OUT6     PA6
+#define HEXONOFF_OUT7     PA7
 
 #elif defined(__AVR_ATmega2561__)
 //TODO?

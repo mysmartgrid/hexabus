@@ -86,9 +86,9 @@ relay_on(void)
 {
   if (!relay_state)
     {
-	  ENABLE_RELAY_PWM();
+	  //ENABLE_RELAY_PWM();
 	  //set PWM to 100% duty cycle
-      SET_RELAY_PWM(RELAY_PWM_START);
+      //SET_RELAY_PWM(RELAY_PWM_START);
 #if RELAY_POWER_SAVING
       //sleep RELAY_OPERATE_TIME
       _delay_ms(RELAY_OPERATE_TIME);
@@ -104,8 +104,8 @@ relay_on(void)
 void
 relay_off(void)
 {
-  DISABLE_RELAY_PWM();
-  SET_RELAY_PWM(0x00);
+  //DISABLE_RELAY_PWM();
+  //SET_RELAY_PWM(0x00);
   relay_state = 0;
   relay_leds();
   metering_reset();
@@ -141,8 +141,8 @@ relay_init(void)
   relay_default_state = (bool) eeprom_read_byte((void*) EE_RELAY_DEFAULT);
 
   /*PWM Specific Initialization.*/
-  SET_RELAY_TCCRxA();
-  SET_RELAY_TCCRxB();
+  //SET_RELAY_TCCRxA();
+  //SET_RELAY_TCCRxB();
 
   //relay is off at init
   relay_state = 0;
