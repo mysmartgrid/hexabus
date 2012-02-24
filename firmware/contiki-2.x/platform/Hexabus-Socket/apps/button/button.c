@@ -96,7 +96,6 @@ PROCESS_THREAD(button_pressed_process, ev, data)
 				do {
 					PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&button_timer));
 					etimer_restart(&button_timer);
-					PRINTF("button_process: button_state: %d, click time: %d\n",bit_is_clear(BUTTON_PIN, BUTTON_BIT), (clock_time() - time));
 					/* led feedback for provisioning */
 					if (clock_time() - time > CLOCK_SECOND * CLICK_TIME / 1000){
 						leds_off(LEDS_GREEN);
@@ -117,7 +116,6 @@ PROCESS_THREAD(button_pressed_process, ev, data)
 				{ //DOUBLE CLICK
 				}
 #endif
-				PRINTF("button_process: double click: %d, click time: %d\n",double_click, (clock_time() - time));
 				if (!double_click && clock_time() - time < CLOCK_SECOND * CLICK_TIME / 1000)
 				{ //SHORT SINGLE CLICK
 #if BUTTON_HAS_EID

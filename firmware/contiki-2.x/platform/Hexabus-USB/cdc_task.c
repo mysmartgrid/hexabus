@@ -214,15 +214,17 @@ void cdc_set_pan_id(void)
 void menu_print(void)
 {
 		PRINTF_P(PSTR("\n\r*********** Jackdaw Menu **********\n\r"));
-		PRINTF_P(PSTR("        [Built "__DATE__"]    	  \n\r"));
+		PRINTF_P(PSTR("        [Built "__DATE__"]         \n\r"));
 //		PRINTF_P(PSTR("*                                 *\n\r"));
 		PRINTF_P(PSTR("*  m        Print current mode    *\n\r"));
 		PRINTF_P(PSTR("*  s        Set to sniffer mode   *\n\r"));
 		PRINTF_P(PSTR("*  n        Set to network mode   *\n\r"));
 		PRINTF_P(PSTR("*  r        set to raw mode       *\n\r"));
-		PRINTF_P(PSTR("*  f        Flash a Socket		 *\n\r"));
-		PRINTF_P(PSTR("*  c        Change PAN ID		 *\n\r"));
+		PRINTF_P(PSTR("*  f        Flash a Socket        *\n\r"));
+		PRINTF_P(PSTR("*  c        Change PAN ID         *\n\r"));
 		PRINTF_P(PSTR("*  R        Reset (via WDT)       *\n\r"));
+		PRINTF_P(PSTR("*  G        Generate new random   *\n\r"));
+		PRINTF_P(PSTR("*           PAN ID and AES128 key *\n\r"));
 		PRINTF_P(PSTR("*  h,?      Print this menu       *\n\r"));
 		PRINTF_P(PSTR("*                                 *\n\r"));
 		PRINTF_P(PSTR("* Make selection at any time by   *\n\r"));
@@ -353,6 +355,19 @@ void menu_process(char c)
 					watchdog_reboot();
 				}
 				break;
+			case 'G':
+				{
+					PRINTF_P(PSTR("Generating new random PAN ID and AES128 key...\n\r"));
+					eeprom_write_byte ((uint8_t *)EE_FIRST_RUN_FLAG, 1);
+					PRINTF_P(PSTR("Resetting...\n\r"));
+					uart_usb_flush();
+					leds_on(LEDS_ALL);
+					for(i = 0; i < 10; i++)_delay_ms(100);
+					Usb_detach();
+					for(i = 0; i < 20; i++)_delay_ms(100);
+					watchdog_reboot();
+				}
+				break;
 
 			case 'f':
 				stdout = 0;
@@ -375,4 +390,3 @@ void menu_process(char c)
 }
 
 /** @}  */
-

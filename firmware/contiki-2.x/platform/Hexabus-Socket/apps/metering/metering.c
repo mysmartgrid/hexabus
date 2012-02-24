@@ -57,11 +57,12 @@
 //local variables
 static clock_time_t metering_pulse_period = 0;
 static clock_time_t clock_old;
-static uint16_t metering_calibration_power;
-static uint16_t metering_reference_value;
-static uint8_t metering_calibration_state = 0;
-static uint16_t metering_power;
-static bool metering_calibration = false;
+static uint16_t 	metering_calibration_power;
+static uint16_t 	metering_reference_value;
+static uint8_t 		metering_calibration_state = 0;
+static uint16_t 	metering_power;
+static bool 		metering_calibration = false;
+static struct ctimer metering_stop_timer;
 
 /*calculates the consumed energy on the basis of the counted pulses (num_pulses) in i given period (integration_time)
  * P = 247.4W/Hz * f_CF */
@@ -128,6 +129,7 @@ metering_get_power(void)
   return metering_power;
 }
 
+/* starts the metering calibration if the calibration flag is 0xFF else returns 0*/
 bool
 metering_calibrate(void)
 {
@@ -135,10 +137,29 @@ metering_calibrate(void)
 	if (cal_flag == 0xFF) {
 		metering_calibration = true;
 		leds_on(LEDS_ALL);
+		//stop calibration if there was no pulse in 60 seconds
+		ctimer_set(&metering_stop_timer, CLOCK_SECOND*60,(void *)(void *) metering_calibration_stop,NULL);
 		return true;
 	}
 	else
 		return false;
+}
+
+
+/* if socket is not equipped with metering than calibration should stop automatically after some time */
+void
+metering_calibration_stop(void)
+{
+	//store calibration in EEPROM
+	eeprom_write_word((uint16_t*) EE_METERING_REF, 0);
+
+	//lock calibration by setting flag in eeprom
+	eeprom_write_byte((uint8_t*) EE_METERING_CAL_FLAG, 0x00);
+
+	metering_calibration_state = 0;
+	metering_calibration = false;
+	relay_leds();
+	ctimer_stop(&metering_stop_timer);
 }
 
 //interrupt service routine for the metering interrupt
@@ -151,8 +172,10 @@ ISR(METERING_VECT)
         {
           if (metering_calibration_state == 0)
             {
-              //reset Timer
+              //get current time
               metering_pulse_period = clock_time();
+              //stop callback timer
+              ctimer_stop(&metering_stop_timer);
             }
           metering_calibration_state++;
         }
