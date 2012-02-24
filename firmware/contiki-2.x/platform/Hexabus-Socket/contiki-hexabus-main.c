@@ -132,6 +132,9 @@
 #if HEXAPUSH_ENABLE
 #include "hexonoff.h"
 #endif
+#if ANALOGREAD_ENABLE
+#include "analogread.h"
+#endif
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -351,6 +354,10 @@ void initialize(void)
 
   /* process for shutter control*/
   process_start(&shutter_process, NULL);
+
+  /* calibrate and go to initial position */
+  process_start(&shutter_setup_process, NULL);
+
 #endif
 
 #if HEXAPUSH_ENABLE
@@ -381,6 +388,10 @@ void initialize(void)
 
 #if HEXONOFF_ENABLE
   hexonoff_init();
+#endif
+
+#if ANALOGREAD_ENABLE
+  analogread_init();
 #endif
 
   /*Init Relay */
