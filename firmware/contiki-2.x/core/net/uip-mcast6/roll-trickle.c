@@ -465,7 +465,6 @@ static uint16_t last_seq;
 #define UIP_IP_BUF        ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 #define UIP_ICMP_BUF      ((struct uip_icmp_hdr *)&uip_buf[uip_l2_l3_hdr_len])
 #define UIP_ICMP_PAYLOAD  ((unsigned char *)&uip_buf[uip_l2_l3_icmp_hdr_len])
-extern u16_t uip_len;
 extern uint16_t uip_slen;
 /*---------------------------------------------------------------------------*/
 /* Local function prototypes */
