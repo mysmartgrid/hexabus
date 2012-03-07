@@ -24,6 +24,14 @@ static uint8_t ir_bit = 0;
 static uint8_t ir_byte = 0;
 static uint8_t ir_last_data[4];
 
+#if IR_SERVO_ENABLE
+static uint8_t servo_time = 0;
+static uint8_t servo_next = 150;
+static uint8_t servo_pos = IR_SERVO_INITIAL_POS;
+static uint8_t servo_active = 0;
+static struct ctimer servo_timeout;
+#endif
+
 void ir_receiver_init() {
 
     //set_outputs(128);
@@ -33,9 +41,15 @@ void ir_receiver_init() {
     TCCR0A |= (1<<WGM01);
     TIMSK0 |= (1<<OCIE0A);
     OCR0A=COMP_VAL;
-    TCCR0B |= ((1<<CS00));
+    TCCR0B |= ((1<<CS01));
 
     process_start(&ir_receiver_process, NULL);
+#if IR_SERVO_ENABLE
+    process_start(&servo_process, NULL);
+#if IR_SERVO_HOLD_POSITION
+    servo_active = 1;
+#endif
+#endif
     sei();
 }
 
@@ -180,8 +194,52 @@ PROCESS_THREAD(ir_receiver_process, ev, data) {
     PROCESS_END();
 }
 
+#if IR_SERVO_ENABLE
+PROCESS(servo_process, "Servos");
+PROCESS_THREAD(servo_process, ev ,data) {
+
+    PROCESS_BEGIN();
+
+    
+    while(1) {
+        PROCESS_WAIT_EVENT();
+
+        if(ev == PROCESS_EVENT_POLL) {
+            if(servo_next == 150) {
+                toggle_outputs(128);
+                servo_time = 0;
+                servo_next = servo_pos;
+            } else {
+                toggle_outputs(128);
+                servo_time = 0;
+                servo_next = 150;
+            }
+        }
+        
+    }
+
+
+    PROCESS_END();
+}
+
+void servo_off() {
+    servo_active = 0;
+}
+
+void set_servo(uint8_t pos) {
+    servo_pos = pos;
+    ctimer_set(&servo_timeout, CLOCK_SECOND*3, servo_off, NULL );
+    servo_active = 1;
+}
+
+uint8_t get_servo() {
+    return servo_pos;
+}
+
+#endif
+
 ISR(INT2_vect) {
-    toggle_outputs(128);
+    //toggle_outputs(128);
     EIMSK &= ~(1<<INT2);
 
     ir_time_since_last = ir_time;
@@ -195,9 +253,9 @@ ISR(INT2_vect) {
                 ir_edge_dir = 1;
             } else {             // Possible end of burst
 #if IR_SAMSUNG
-                if( (ir_time_since_last>430)&&(ir_time_since_last<470) ) {
+                if( (ir_time_since_last>43)&&(ir_time_since_last<47) ) {
 #else
-                if( (ir_time_since_last>880)&&(ir_time_since_last<920) ) {
+                if( (ir_time_since_last>88)&&(ir_time_since_last<92) ) {
 #endif
                     ir_state = 1;
                     EICRA &= ~((1<<ISC21)|(1<<ISC20));
@@ -210,7 +268,7 @@ ISR(INT2_vect) {
             break;
 
         case 1:                  //Waiting for AFC gap
-            if( (ir_time_since_last>430)&&(ir_time_since_last<470) ) {
+            if( (ir_time_since_last>43)&&(ir_time_since_last<47) ) {
 
                 ir_state = 2;
                 ir_bit = 0;
@@ -219,7 +277,7 @@ ISR(INT2_vect) {
                 EICRA |= ((1<<ISC21)|(1<<ISC20));
                 ir_edge_dir = 1;
 
-            } else if( (ir_time_since_last>205)&&(ir_time_since_last<245) ) {
+            } else if( (ir_time_since_last>20)&&(ir_time_since_last<25) ) {
                 ir_repeat = 1;
                 process_poll(&ir_receiver_process);
                 ir_receiver_reset();
@@ -233,7 +291,7 @@ ISR(INT2_vect) {
                     memcpy(ir_last_data, ir_data, 4);
                     process_poll(&ir_receiver_process);
                     ir_receiver_reset();
-                } else if( (ir_time_since_last>50)&&(ir_time_since_last<70) ) {
+                } else if( (ir_time_since_last>5)&&(ir_time_since_last<7) ) {
                     EICRA &= ~((1<<ISC21)|(1<<ISC20));
                     EICRA |= (1<<ISC21);
                     ir_edge_dir = 0;
@@ -241,7 +299,7 @@ ISR(INT2_vect) {
                     ir_receiver_reset();
                 }
             } else {
-                if( (ir_time_since_last>40)&&(ir_time_since_last<60) ) {
+                if( (ir_time_since_last>4)&&(ir_time_since_last<6) ) {
                     ir_bit++;
                     if(ir_bit > 7) {
                         ir_bit = 0;
@@ -249,7 +307,7 @@ ISR(INT2_vect) {
                     }
                     EICRA |= ((1<<ISC21)|(1<<ISC20));
                     ir_edge_dir = 1;
-                } else if( (ir_time_since_last>150)&&(ir_time_since_last<190)) {
+                } else if( (ir_time_since_last>15)&&(ir_time_since_last<19)) {
                     ir_data[ir_byte] |= (1<<ir_bit);
                     ir_bit++;
                     if(ir_bit > 7) {
@@ -273,5 +331,11 @@ ISR(INT2_vect) {
 
 ISR(TIMER0_COMPA_vect) {
     ir_time++;
+#if IR_SERVO_ENABLE
+    servo_time++;
+    if(servo_time >= servo_next && servo_active) {
+        process_poll(&servo_process);
+    }
+#endif
 }
 
