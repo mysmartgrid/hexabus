@@ -19,12 +19,24 @@ static uint8_t button_vector = 0;
 static uint8_t pressed_vector = 0;
 static uint8_t clicked_vector = 0;
 
-void button_clicked(uint8_t button) {
+static uint8_t seqnums[8];
 
-    PRINTF("Clicked %d\n", button);
-   
+void button_clicked(uint8_t button) {
+    
+    if(seqnums[button] == HEXAPUSH_MAX_SEQNUM) {
+        seqnums[button] = 0;
+    } else {
+        seqnums[button]++;
+    }
+
+    PRINTF("Clicked %d, seqn %d\n", button, seqnums[button]);
+
     clicked_vector|=(1<<button);
+#if HEXAPUSH_SEND_SEQNUM
+    broadcast_value(40+button);
+#else
     broadcast_value(25);
+#endif
     clicked_vector&=~(1<<button);
 }
 
@@ -50,6 +62,10 @@ uint8_t get_buttonstate() {
 
 uint8_t get_clickstate() {
     return clicked_vector;
+}
+
+uint8_t get_seqnum(uint8_t button) {
+    return seqnums[button];
 }
 
 void hexapush_init(void) {
@@ -80,6 +96,11 @@ void hexapush_init(void) {
     #if defined(HEXAPUSH_B7)
     button_vector |= (1<<HEXAPUSH_B7);
     #endif
+    
+    int i;
+    for(i=0;i<8;i++) {
+        seqnums[i] = HEXAPUSH_MAX_SEQNUM;
+    }
 
     HEXAPUSH_DDR &= ~button_vector;
     HEXAPUSH_PORT |= button_vector;

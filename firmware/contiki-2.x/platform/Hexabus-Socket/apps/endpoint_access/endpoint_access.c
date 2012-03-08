@@ -55,6 +55,17 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
     case ANALOGREAD_EID:
       return HXB_DTYPE_FLOAT;
 #endif
+#if HEXAPUSH_ENABLE && HEXAPUSH_SEND_SEQNUM
+    case 40:
+    case 41:
+    case 42:
+    case 43:
+    case 44:
+    case 45:
+    case 46:
+    case 47:
+      return HXB_DTYPE_UINT8;
+#endif
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
   }
@@ -279,6 +290,19 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case ANALOGREAD_EID:
         val->datatype = HXB_DTYPE_FLOAT;
         *(float*)&val->data = get_analogvalue();
+        break;
+#endif
+#if HEXAPUSH_ENABLE && HEXAPUSH_SEND_SEQNUM
+    case 40:
+    case 41:
+    case 42:
+    case 43:
+    case 44:
+    case 45:
+    case 46:
+    case 47:
+        val->datatype = HXB_DTYPE_UINT8;
+        *(uint8_t*)&val->data = get_seqnum(eid-40);
         break;
 #endif
     default:

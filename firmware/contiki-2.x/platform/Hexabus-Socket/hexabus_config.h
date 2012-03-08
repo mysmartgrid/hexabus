@@ -30,14 +30,14 @@
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 1
-#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1 // Number of endpoints to broadcast automatically - set to 0 to disable
+#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 0 // Number of endpoints to broadcast automatically - set to 0 to disable
 #define VALUE_BROADCAST_AUTO_EIDS 2 // Comma-separated list of endpoints to broadcast automatically
 #define VALUE_BROADCAST_AUTO_INTERVAL 60 // Timeout in seconds
 #define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0 // Number of endpoints to "broadcast" to the local state machine
 #define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2 // Comma-separated list of eids to be sent to local state machine
 
 // state_machine
-#define STATE_MACHINE_ENABLE 1
+#define STATE_MACHINE_ENABLE 0
 #define STATE_MACHINE_DEBUG 0
 
 // window blind shutter motor control
@@ -47,11 +47,13 @@
 #define SHUTTER_INITIAL_POSITON 1
 
 // hexapush
-#define HEXAPUSH_ENABLE 0
+#define HEXAPUSH_ENABLE 1
 #define HEXAPUSH_CLICK_ENABLE 1
-#define HEXAPUSH_PRESS_RELEASE_ENABLE 1
+#define HEXAPUSH_PRESS_RELEASE_ENABLE 0
 #define HEXAPUSH_PRESS_DELAY 6   //multiplied by 50ms, only if Click and Press/Release are enabled
-#define HEXAPUSH_DEBUG 0
+#define HEXAPUSH_SEND_SEQNUM 1
+#define HEXAPUSH_MAX_SEQNUM 10  // max 255
+#define HEXAPUSH_DEBUG 1
 
 // presence detector
 #define PRESENCE_DETECTOR_ENABLE 0

@@ -31,6 +31,7 @@
 void hexapush_init(void);
 
 uint8_t get_buttonstate();
+uint8_t get_seqnum(uint8_t button);
 
 PROCESS_NAME(hexapush_process);
 
