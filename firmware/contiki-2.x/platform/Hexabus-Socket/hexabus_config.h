@@ -79,7 +79,7 @@
 #define IR_RECEIVER_DEBUG 1
 #define IR_RECEIVER_RAW_MODE 0
 #define IR_SERVO_ENABLE 1
-#define IR_SERVO_HOLD_POSITION 0
+#define IR_SERVO_HOLD_POSITION 1
 #define IR_SERVO_INITIAL_POS 15
 #define IR_SERVO_OUTPUT 128   // hexonoff compatible
 
