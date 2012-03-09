@@ -170,14 +170,28 @@ PacketHandling::PacketHandling(char* data)
             *(float*)&value.data = packetf->value;
           }
           break;
+        case HXB_DTYPE_128STRING:
+          {
+            struct hxb_packet_128string* packetstr = (struct hxb_packet_128string*)data;
+            packetstr->crc = ntohs(packetstr->crc);
+            crc_okay = packetstr->crc == crc->crc16((char*)packetstr, sizeof(*packetstr)-2);
+
+            // make sure it's not too long
+            packetstr->value[127] = '\0';
+
+            eid = packetstr->eid;
+            strval = packetstr->value;
+          }
+          break;
         default:
-            std::cout << "not implemented here!";
+            // not implemented here
           break;
       }
     } else if(header->type == HXB_PTYPE_EPINFO) {
       struct hxb_packet_128string* packetepi = (struct hxb_packet_128string*)data;
       datatype = packetepi->datatype;
       eid = packetepi->eid;
+      crc_okay = packetepi->crc == crc->crc16((char*)packetepi, sizeof(*packetepi)-2);
       packetepi->value[127] = '\0'; // set last character of string to 0 in case someone forgot that
       strval = packetepi->value;
     } else if(header->type == HXB_PTYPE_ERROR) {

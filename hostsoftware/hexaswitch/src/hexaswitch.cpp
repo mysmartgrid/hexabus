@@ -29,7 +29,8 @@ void usage()
     std::cout << "2: 8bit Uint - ";
     std::cout << "3: 32bit Uint - ";
     std::cout << "4: Hexabus Date and Time. Value can be Unix time or -1 for current system time - ";
-    std::cout << "5: 32bit floating point" << std::endl;
+    std::cout << "5: 32bit floating point - ";
+    std::cout << "6: String (max 127 chars)"<< std::endl;
 }
 
 datetime make_datetime_struct(time_t given_time = -1) {
@@ -103,6 +104,9 @@ void print_packet(char* recv_data) {
       case HXB_DTYPE_FLOAT:
         std::cout << "Float\n";
         break;
+      case HXB_DTYPE_128STRING:
+        std::cout << "String\n";
+        break;
       default:
         std::cout << "(unknown)";
         break;
@@ -126,6 +130,9 @@ void print_packet(char* recv_data) {
         break;
       case HXB_DTYPE_FLOAT:
         std::cout << *(float*)&value.data;
+        break;
+      case HXB_DTYPE_128STRING:
+        std::cout << phandling.getString();
         break;
       default:
         std::cout << "(unknown)";
@@ -157,6 +164,9 @@ void print_packet(char* recv_data) {
         break;
         case HXB_DTYPE_FLOAT:
           std::cout << "Float\n";
+          break;
+        case HXB_DTYPE_128STRING:
+          std::cout << "String\n";
           break;
         default:
           std::cout << "(unknown)\n";
@@ -233,32 +243,43 @@ int main(int argc, char** argv)
     {
       uint8_t eid = atoi(argv[3]);
       uint8_t dtype = atoi(argv[4]);
-      uint8_t val8;   // only the relevant one is used in the switch.
-      uint32_t val32;
-			float valf;
 
-      struct hxb_packet_int8 packet8;
-      struct hxb_packet_int32 packet32;
-      struct hxb_packet_float packetf;
 
       switch(dtype)
       {
         case HXB_DTYPE_BOOL:
         case HXB_DTYPE_UINT8:
-          val8 = atoi(argv[5]);
-          packet8 = packetm->write8(eid, dtype, val8, false);
-          network.sendPacket(argv[1], HXB_PORT, (char*)&packet8, sizeof(packet8));
+          {
+            struct hxb_packet_int8 packet8;
+            uint8_t val8 = atoi(argv[5]);
+            packet8 = packetm->write8(eid, dtype, val8, false);
+            network.sendPacket(argv[1], HXB_PORT, (char*)&packet8, sizeof(packet8));
+          }
           break;
         case HXB_DTYPE_UINT32:
-          val32 = atoi(argv[5]);
-          packet32 = packetm->write32(eid, dtype, val32, false);
-          network.sendPacket(argv[1], HXB_PORT, (char*)&packet32, sizeof(packet32));
+          {
+            struct hxb_packet_int32 packet32;
+            uint32_t val32 = atoi(argv[5]);
+            packet32 = packetm->write32(eid, dtype, val32, false);
+            network.sendPacket(argv[1], HXB_PORT, (char*)&packet32, sizeof(packet32));
+          }
           break;
         case HXB_DTYPE_FLOAT:
-          valf = atof(argv[5]);
-          packetf = packetm->writef(eid, dtype, valf, false);
-          network.sendPacket(argv[1], HXB_PORT, (char*)&packetf, sizeof(packetf));
+          {
+            struct hxb_packet_float packetf;
+            float valf = atof(argv[5]);
+            packetf = packetm->writef(eid, dtype, valf, false);
+            network.sendPacket(argv[1], HXB_PORT, (char*)&packetf, sizeof(packetf));
+          }
           break;
+        case HXB_DTYPE_128STRING:
+          {
+            struct hxb_packet_128string packetstr;
+            std::string value(argv[5]);
+            packetstr = packetm->writestr(eid, dtype, value, false);
+            network.sendPacket(argv[1], HXB_PORT, (char*)&packetstr, sizeof(packetstr));
+          }
+        break;
         default:
           std::cout << "unknown data type.\n";
       }
@@ -322,41 +343,52 @@ int main(int argc, char** argv)
     {
       uint8_t dtype = atoi(argv[3]);
       uint8_t eid = atoi(argv[2]);
-      uint8_t val8;
-      uint32_t val32;
-      struct datetime valdt;
-      float valf;
-
-      struct hxb_packet_int8 packet8;
-      struct hxb_packet_int32 packet32;
-      struct hxb_packet_datetime packetdt;
-      struct hxb_packet_float packetf;
 
       switch(dtype) {
           case HXB_DTYPE_BOOL:
           case HXB_DTYPE_UINT8:
-              val8 = atoi(argv[4]);
+            {
+              struct hxb_packet_int8 packet8;
+              uint8_t val8 = atoi(argv[4]);
               packet8 = packetm->write8(eid, dtype, val8, true);
               network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet8, sizeof(packet8));
               print_packet((char*)&packet8);
-              break;
+            }
+            break;
           case HXB_DTYPE_UINT32:
-              val32 = atoi(argv[4]);
+            {
+              struct hxb_packet_int32 packet32;
+              uint32_t val32 = atoi(argv[4]);
               packet32 = packetm->write32(eid, dtype, val32, true);
               network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet32, sizeof(packet32));
               print_packet((char*)&packet32);
-              break;
+            }
+            break;
           case HXB_DTYPE_DATETIME:
-              valdt = make_datetime_struct(atol(argv[4]));
+            {
+              struct hxb_packet_datetime packetdt;
+              struct datetime valdt = make_datetime_struct(atol(argv[4]));
               packetdt = packetm->writedt(eid, dtype, valdt, true);
               network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetdt, sizeof(packetdt));
               print_packet((char*)&packetdt);
-              break;
+            }
+            break;
           case HXB_DTYPE_FLOAT:
-              valf = atof(argv[4]);
+            {
+              struct hxb_packet_float packetf;
+              float valf = atof(argv[4]);
               packetf = packetm->writef(eid, dtype, valf, true);
               network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetf, sizeof(packetf));
               print_packet((char*)&packetf);
+            }
+            break;
+          case HXB_DTYPE_128STRING:
+              {
+                std::string value(argv[4]);  
+                hxb_packet_128string packet = packetm->writestr(eid, dtype, value, true);
+                network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet, sizeof(packet));
+                print_packet((char*)&packet);
+              }
               break;
           default:
               std::cout << "Unknown data type.\n";

@@ -31,14 +31,14 @@ void NetworkAccess::receivePacket(bool related) {
   } else {
     my_socket = socket;
   }
-  char recv_data[128];
+  char recv_data[256];
   boost::asio::ip::udp::endpoint remote_endpoint;
-  my_socket->receive_from(boost::asio::buffer(recv_data, 127), remote_endpoint);
+  my_socket->receive_from(boost::asio::buffer(recv_data, 256), remote_endpoint);
   sourceIP = remote_endpoint.address();
 
   if(data == NULL)
-    data = (char*)malloc(128);
-  memcpy(data, recv_data, 128);
+    data = (char*)malloc(256);
+  memcpy(data, recv_data, 256);
 
   if(!related)
   {
