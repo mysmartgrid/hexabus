@@ -228,7 +228,9 @@ void servo_off() {
 
 void set_servo(uint8_t pos) {
     servo_pos = pos;
+#if !IR_SERVO_HOLD_POSITION
     ctimer_set(&servo_timeout, CLOCK_SECOND*3, servo_off, NULL );
+#endif
     servo_active = 1;
 }
 
