@@ -85,6 +85,21 @@ hxb_packet_datetime Packet::writedt(uint8_t eid, uint8_t datatype, datetime valu
   return packet;
 }
 
+hxb_packet_128string Packet::writestr(uint8_t eid, uint8_t datatype, char* value, bool broadcast)
+{
+  CRC::Ptr crc(new CRC());
+  struct hxb_packet_128string packet;
+  strncpy((char*)&packet.header, HXB_HEADER, 4);
+  packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
+  packet.flags = 0;
+  packet.eid = eid;
+  packet.datatype = datatype;
+  strncpy((char*)&packet.value, value, 128);
+  packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet) - 2));
+
+  return packet;
+}
+
 PacketHandling::PacketHandling(char* data)
 {
   CRC::Ptr crc(new hexabus::CRC());
@@ -156,7 +171,7 @@ PacketHandling::PacketHandling(char* data)
           }
           break;
         default:
-          // datatype not implemented here
+            std::cout << "not implemented here!";
           break;
       }
     } else if(header->type == HXB_PTYPE_EPINFO) {
