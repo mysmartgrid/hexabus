@@ -85,7 +85,7 @@ hxb_packet_datetime Packet::writedt(uint8_t eid, uint8_t datatype, datetime valu
   return packet;
 }
 
-hxb_packet_128string Packet::writestr(uint8_t eid, uint8_t datatype, char* value, bool broadcast)
+hxb_packet_128string Packet::writestr(uint8_t eid, uint8_t datatype, std::string value, bool broadcast)
 {
   CRC::Ptr crc(new CRC());
   struct hxb_packet_128string packet;
@@ -94,7 +94,7 @@ hxb_packet_128string Packet::writestr(uint8_t eid, uint8_t datatype, char* value
   packet.flags = 0;
   packet.eid = eid;
   packet.datatype = datatype;
-  strncpy((char*)&packet.value, value, 128);
+  strncpy((char*)&packet.value, value.c_str(), 128);
   packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet) - 2));
 
   return packet;

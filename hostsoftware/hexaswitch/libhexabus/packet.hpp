@@ -37,7 +37,7 @@ namespace hexabus {
       hxb_packet_int32 write32(uint8_t eid, uint8_t datatype, uint32_t value, bool broadcast);
       hxb_packet_datetime writedt(uint8_t eid, uint8_t datatype, datetime value, bool broadcast);
       hxb_packet_float writef(uint8_t eid, uint8_t datatype, float value, bool broadcast);
-      hxb_packet_128string writestr(uint8_t eid, uint8_t datatype, char* value, bool broadcast);
+      hxb_packet_128string writestr(uint8_t eid, uint8_t datatype, std::string value, bool broadcast);
     private:
   };
 
