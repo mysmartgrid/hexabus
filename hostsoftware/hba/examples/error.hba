@@ -1,8 +1,13 @@
 startstate bar;
-condition bar {
-  if foo {
-    gjeroijeoirjoe
-  }
+condition uschi {
+  ip := aa::bb:cc:dd:ee ;
+  eid := 25; 
+  value > 3;
+}
+condition barij3oi {
+  ip := aa::bb:cc:dd:ee ;
+  eid := 25; 
+  value < 3;
 }
 state foo {
   djwieojioewd
