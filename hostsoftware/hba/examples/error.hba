@@ -1,0 +1,9 @@
+startstate bar;
+condition bar {
+  if foo {
+    gjeroijeoirjoe
+  }
+}
+state foo {
+  djwieojioewd
+}
