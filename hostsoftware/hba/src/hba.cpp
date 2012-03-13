@@ -1,4 +1,7 @@
-//#define BOOST_SPIRIT_USE_PHOENIX_V3 1
+#include <libhba/common.hpp>
+#include <libhba/ast_datatypes.hpp>
+#include <libhba/hba_printer.hpp>
+
 #include <boost/config/warning_disable.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix_core.hpp>
@@ -6,9 +9,8 @@
 #include <boost/spirit/include/phoenix_fusion.hpp>
 #include <boost/spirit/include/phoenix_stl.hpp>
 #include <boost/spirit/include/phoenix_object.hpp>
-#include <boost/fusion/include/adapt_struct.hpp>
+
 #include <boost/variant/recursive_variant.hpp>
-#include <boost/foreach.hpp>
 #include <boost/spirit/home/qi.hpp> 
 #include <boost/spirit/home/support/info.hpp> 
 #include <boost/spirit/home/phoenix.hpp> 
@@ -26,86 +28,6 @@
 
 namespace qi = boost::spirit::qi;
 namespace classic = boost::spirit::classic;
-
-namespace hexabus
-{
-  namespace fusion = boost::fusion;
-  namespace phoenix = boost::phoenix;
-  namespace ascii = boost::spirit::ascii;
-
-  ///////////////////////////////////////////////////////////////////////////
-  //  HexaBus assembler representation
-  ///////////////////////////////////////////////////////////////////////////
-  struct if_clause_doc {
-	unsigned int lineno;
-	std::string name;
-	unsigned int eid;
-	unsigned int value;
-	std::string goodstate;
-	std::string badstate;
-  };
-
-  struct state_doc {
-	unsigned int lineno;
-	std::string name;
-	std::vector<if_clause_doc> if_clauses;
-  };
-
-  struct condition_doc {
-	unsigned int lineno;
-	std::string name;
-	std::string ipv6_address;
-	unsigned int eid;
-	unsigned int op;
-	unsigned int value;
-  };
-
-  typedef
-	boost::variant<
-	state_doc              // one state definition
-	, condition_doc          // one condition definition
-	>
-	hba_doc_block;
-
-  struct hba_doc
-  {
-	std::string start_state;
-	std::vector<hba_doc_block> blocks;                           
-  };
-}
-
-// We need to tell fusion about our hba struct
-// to make it a first-class fusion citizen
-
-BOOST_FUSION_ADAPT_STRUCT(
-	hexabus::if_clause_doc,
-	(std::string, name)
-	(unsigned int, eid)
-	(unsigned int, value)
-	(std::string, goodstate)
-	(std::string, badstate)
-	)
-
-BOOST_FUSION_ADAPT_STRUCT(
-	hexabus::state_doc,
-	(std::string, name)
-	(std::vector<hexabus::if_clause_doc>, if_clauses)
-	)
-
-BOOST_FUSION_ADAPT_STRUCT(
-	hexabus::condition_doc,
-	(std::string, name)
-	(std::string, ipv6_address)
-	(unsigned int, eid)
-	(unsigned int, op)
-	(unsigned int, value)
-	)
-
-BOOST_FUSION_ADAPT_STRUCT(
-	hexabus::hba_doc,
-	(std::string, start_state)
-	(std::vector<hexabus::hba_doc_block>, blocks)
-	)
 
 struct error_traceback_t
 {
@@ -165,120 +87,6 @@ std::vector<std::string> error_traceback_t::stack;
 namespace hexabus
 {
   ///////////////////////////////////////////////////////////////////////////
-  //  Print out the HexaBus Assembler
-  ///////////////////////////////////////////////////////////////////////////
-  int const tabsize = 4;
-
-  void tab(int indent)
-  {
-	for (int i = 0; i < indent; ++i)
-	  std::cout << ' ';
-  }
-
-  struct hba_printer
-  {
-	hba_printer(int indent = 0)
-	  : indent(indent)
-	{
-	}
-
-	void operator()(hba_doc const& xml) const;
-
-	int indent;
-  };
-
-  struct mini_xml_node_printer : boost::static_visitor<>
-  {
-	mini_xml_node_printer(int indent = 0)
-	  : indent(indent)
-	{ }
-
-	void operator()(if_clause_doc const& clause) const {
-	  tab(indent);
-	  std::cout << "if clause (line " << clause.lineno << "): " 
-		<< clause.name << std::endl;
-	  tab(tabsize);
-	  std::cout << " set eid " << clause.eid 
-				<< " := " << clause.value << std::endl;
-	  tab(tabsize);
-	  std::cout << " goodstate: " << clause.goodstate << std::endl;
-	  tab(tabsize);
-	  std::cout << " badstate: " << clause.badstate << std::endl;
-	  tab(indent);
-	}
-	
-	void operator()(state_doc const& xml) const
-	{
-	  tab(indent);
-	  std::cout << "state: " << xml.name << " (line "
-		<< xml.lineno << ")" << std::endl;
-	  tab(indent);
-	  std::cout << '{' << std::endl;
-
-	  BOOST_FOREACH(if_clause_doc const& if_clause, xml.if_clauses)
-	  {
-		    mini_xml_node_printer p(indent);
-		    p(if_clause);
-		//boost::apply_visitor(mini_xml_node_printer(indent), if_clause);
-	  }
-
-	  tab(indent);
-	  std::cout << '}' << std::endl;
-
-	  tab(indent);
-	}
-
-	
-
-	void operator()(condition_doc const& xml) const
-	{
-	  tab(indent);
-	  std::cout << "condition (line " << xml.lineno << "): " << xml.name << std::endl;
-	  tab(tabsize);
-	  std::cout << "IPv6 addr: " << xml.ipv6_address;
-	  // for( unsigned int i = 0; i < xml.ipv6_address.size(); i += 1) {
-	  //   std::cout << std::setw(2) << std::setfill('0') 
-	  //     << std::hex << (int)(xml.ipv6_address[i] & 0xFF);
-	  // }
-	  std::cout << ", size=" << xml.ipv6_address.size() << std::endl;
-	  tab(tabsize);
-	  std::cout << "EID: " << xml.eid << std::endl;
-	  tab(tabsize);
-	  std::cout << "Operator: " << xml.op << std::endl;
-	  tab(tabsize);
-	  std::cout << "Value: " << xml.value << std::endl;
-	  tab(indent);
-	}
-
-
-	void operator()(std::string const& text) const
-	{
-	  tab(indent+tabsize);
-	  std::cout << "text: \"" << text << '"' << std::endl;
-	}
-
-	int indent;
-  };
-
-  void hba_printer::operator()(hba_doc const& xml) const
-  {
-	tab(indent);
-	std::cout << "start state: " << xml.start_state << std::endl;
-	tab(indent);
-	std::cout << '{' << std::endl;
-
-	BOOST_FOREACH(hba_doc_block const& block, xml.blocks)
-	{
-	  //    mini_xml_node_printer p(indent);
-	  //    p(block);
-	  boost::apply_visitor(mini_xml_node_printer(indent), block);
-	}
-
-	tab(indent);
-	std::cout << '}' << std::endl;
-  }
-
-  ///////////////////////////////////////////////////////////////////////////
   //  Our comment parser definition
   ///////////////////////////////////////////////////////////////////////////
 
@@ -300,11 +108,9 @@ namespace hexabus
   ///////////////////////////////////////////////////////////////////////////
   template <typename Iterator>
 	struct hexabus_asm_grammar
-	//: public qi::grammar<Iterator, hba_doc(), ascii::space_type> 
 	: public qi::grammar<Iterator, hba_doc(), skipper<Iterator> >
 	{
 	  typedef skipper<Iterator> Skip;
-	  //typedef ascii::space_type Skip;
 
 	  hexabus_asm_grammar(std::vector<std::string>& error_hints)
 		: hexabus_asm_grammar::base_type(start),
@@ -345,6 +151,7 @@ namespace hexabus
 		 ***********************************************************/
 
 		is = eps > lit(":=");
+		//TODO: Introduce ENUM for operators.
 		equals = lit("==") [_val = 1];
 		notequals = lit("!=") [_val = 2];
 		lessthan = lit("<") [_val = 3];
@@ -525,31 +332,20 @@ int main(int argc, char **argv)
 	std::cout << "Exception occured: " << e.what() << std::endl;
   }
 
-  hexabus::hba_printer printer;
   if (r && position_begin == position_end) {
 	std::cout << "-------------------------\n";
 	std::cout << "Parsing succeeded\n";
 	std::cout << "-------------------------\n";
+	hexabus::hba_printer printer;
 	printer(ast);
 	return 0;
   } else {
 	if (!r)
 	  std::cout << "Parsing failed." << std::endl;
 	if (r)
-	  std::cout << "Parsing succeded, but we haven't "
+	  std::cout << "Parsing failed: we haven't "
 		<< "reached the end of the input." << std::endl;
 	return 1;
   }
-
-  //  else {
-  //    //std::string::const_iterator some = position_begin+30;
-  //    //std::string context(position_begin, (some>position_end)?position_end:some);
-  //    std::cout << "-------------------------\n";
-  //    std::cout << "Parsing failed\n";
-  //    //std::cout << "stopped at: " << context << std::endl;
-  //    std::cout << "-------------------------\n";
-  //    printer(ast);
-  //    return 1;
-  //  }
 } 
 

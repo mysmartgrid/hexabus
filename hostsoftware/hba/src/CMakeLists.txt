@@ -14,6 +14,7 @@ include_directories(
 add_executable(hba ${hba_src})
 # Link the executables
 target_link_libraries(hba 
+  hexabus_assembler
   ${Boost_LIBRARIES}
 )
 

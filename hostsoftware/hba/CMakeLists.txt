@@ -60,6 +60,7 @@ include(CMakeBackwardCompatibilityCXX)
 FIND_PACKAGE(Boost 1.46.1 COMPONENTS program_options system)
 
 # Reflect the package structure
+add_subdirectory(libhba)
 add_subdirectory(src)
 
 # add some files to the installation target
