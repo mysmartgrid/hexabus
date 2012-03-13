@@ -96,8 +96,6 @@ BOOST_FUSION_ADAPT_STRUCT(
 	(std::vector<hexabus::hba_doc_block>, blocks)
 	)
 
-  
-
 
 #endif /* LIBHBA_AST_DATATYPES_HPP */
 
