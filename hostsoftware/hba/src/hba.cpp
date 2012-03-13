@@ -36,9 +36,19 @@ namespace hexabus
   ///////////////////////////////////////////////////////////////////////////
   //  HexaBus assembler representation
   ///////////////////////////////////////////////////////////////////////////
-  struct state_doc {
+  struct if_clause_doc {
+	unsigned int lineno;
 	std::string name;
-	std::string state_string;
+	unsigned int eid;
+	unsigned int value;
+	std::string goodstate;
+	std::string badstate;
+  };
+
+  struct state_doc {
+	unsigned int lineno;
+	std::string name;
+	std::vector<if_clause_doc> if_clauses;
   };
 
   struct condition_doc {
@@ -66,11 +76,20 @@ namespace hexabus
 
 // We need to tell fusion about our hba struct
 // to make it a first-class fusion citizen
+
+BOOST_FUSION_ADAPT_STRUCT(
+	hexabus::if_clause_doc,
+	(std::string, name)
+	(unsigned int, eid)
+	(unsigned int, value)
+	(std::string, goodstate)
+	(std::string, badstate)
+	)
+
 BOOST_FUSION_ADAPT_STRUCT(
 	hexabus::state_doc,
 	(std::string, name)
-	(std::string, state_string)
-	//(std::vector<hexabus::mini_xml_node>, children)
+	(std::vector<hexabus::if_clause_doc>, if_clauses)
 	)
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -86,7 +105,6 @@ BOOST_FUSION_ADAPT_STRUCT(
 	hexabus::hba_doc,
 	(std::string, start_state)
 	(std::vector<hexabus::hba_doc_block>, blocks)
-	//(std::vector<hexabus::mini_xml_node>, children)
 	)
 
 struct error_traceback_t
@@ -173,17 +191,44 @@ namespace hexabus
   {
 	mini_xml_node_printer(int indent = 0)
 	  : indent(indent)
-	{
-	}
+	{ }
 
+	void operator()(if_clause_doc const& clause) const {
+	  tab(indent);
+	  std::cout << "if clause (line " << clause.lineno << "): " 
+		<< clause.name << std::endl;
+	  tab(tabsize);
+	  std::cout << " set eid " << clause.eid 
+				<< " := " << clause.value << std::endl;
+	  tab(tabsize);
+	  std::cout << " goodstate: " << clause.goodstate << std::endl;
+	  tab(tabsize);
+	  std::cout << " badstate: " << clause.badstate << std::endl;
+	  tab(indent);
+	}
+	
 	void operator()(state_doc const& xml) const
 	{
 	  tab(indent);
-	  std::cout << "state: " << xml.name << std::endl;
-	  std::cout << "body: " << xml.state_string << std::endl;
+	  std::cout << "state: " << xml.name << " (line "
+		<< xml.lineno << ")" << std::endl;
+	  tab(indent);
+	  std::cout << '{' << std::endl;
+
+	  BOOST_FOREACH(if_clause_doc const& if_clause, xml.if_clauses)
+	  {
+		    mini_xml_node_printer p(indent);
+		    p(if_clause);
+		//boost::apply_visitor(mini_xml_node_printer(indent), if_clause);
+	  }
+
+	  tab(indent);
+	  std::cout << '}' << std::endl;
+
 	  tab(indent);
 	}
 
+	
 
 	void operator()(condition_doc const& xml) const
 	{
@@ -326,7 +371,7 @@ namespace hexabus
 
 		condition %= 
 		  lit("condition") [bind(&condition_doc::lineno, _val) = 23]
-//		  lit("condition") [UpdateFileInfo(file_state)]
+		  //		  lit("condition") [UpdateFileInfo(file_state)]
 		  > identifier
 		  > '{'
 		  > lit("ip") > is > ipv6_address > ';' 
@@ -339,17 +384,25 @@ namespace hexabus
 			error_traceback_t("Invalid condition") 
 			);
 
-		state_definition %= lexeme[+(char_ - '}')];
+		if_clause %=
+		    lit("if")
+		  > identifier
+		  > '{'
+		  > lit("set") > eid_value > is > uint_ > ';'
+		  > lit("goodstate") > identifier > ';'
+		  > lit("badstate") > identifier > ';'
+		  > '}'
+		  ;
 		on_error<rethrow> (
-			state_definition,
-			error_traceback_t("Invalid state body") 
+			if_clause,
+			error_traceback_t("Invalid if clause in state") 
 			);
 
 		state %= lit("state") 
 		  > identifier
 		  > '{'
-		  > state_definition
-		  > '}'       //[TODO: mark line for this state]
+		  > *(if_clause)
+		  > '}'       
 		  ;
 		on_error<rethrow> (
 			state,
@@ -365,9 +418,8 @@ namespace hexabus
 		identifier.name("identifier");
 		state.name("state");
 		condition.name("condition");
-		//         condition_definition.name("condition definition");
 		startstate.name("start state definition");
-		state_definition.name("state definition");
+		if_clause.name("if clause definition");
 
 		on_error<rethrow> (
 			start,
@@ -377,7 +429,7 @@ namespace hexabus
 
 	  qi::rule<Iterator, std::string(), Skip> startstate;
 	  qi::rule<Iterator, state_doc(), Skip> state;
-	  qi::rule<Iterator, std::string(), Skip> state_definition;
+	  qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
 	  qi::rule<Iterator, condition_doc(), Skip> condition;
 	  //        qi::rule<Iterator, std::string(), Skip> condition_definition;
 	  qi::rule<Iterator, std::string(), Skip> identifier;

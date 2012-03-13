@@ -8,7 +8,26 @@ condition barij3oi {
   ip := aa::bb:cc:dd:ee ;
   eid := 25; 
   value < 3;
+# this is a comment
 }
+# this is a comment
 state foo {
-  djwieojioewd
+  if barbaz {
+	set 25 := 1;
+	goodstate lool;
+	badstate trooooot;
+  }
+  if barbaz2 {
+	set 23 := 42;
+	goodstate lool;
+	badstate trooooot;
+  }
 }
+state horst {
+  if uschi {
+	set 25 := 1;
+	goodstate lool;
+	badstate trooooot;
+  }
+}
+
