@@ -12,7 +12,7 @@
 
 //Comment unneeded buttons
 #define HEXAPUSH_B0     PA0
-#define HEXAPUSH_B1     PA1
+//#define HEXAPUSH_B1     PA1
 //#define HEXAPUSH_B2     PA2
 //#define HEXAPUSH_B3     PA3
 //#define HEXAPUSH_B4     PA4
@@ -31,6 +31,10 @@
 void hexapush_init(void);
 
 uint8_t get_buttonstate();
+
+extern process_event_t demo_licht_pressed_event;
+extern process_event_t demo_licht_released_event;
+extern process_event_t demo_licht_clicked_event;
 
 PROCESS_NAME(hexapush_process);
 

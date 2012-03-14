@@ -16,9 +16,9 @@
 #define PRINTF(...)
 #endif
 
-extern process_event_t demo_licht_pressed_event;
-extern process_event_t demo_licht_released_event;
-extern process_event_t demo_licht_clicked_event;
+process_event_t demo_licht_pressed_event;
+process_event_t demo_licht_released_event;
+process_event_t demo_licht_clicked_event;
 
 static uint8_t button_vector = 0;
 static uint8_t pressed_vector = 0;
@@ -104,6 +104,10 @@ PROCESS_THREAD(hexapush_process, ev, data) {
     static uint8_t longclick_counter[8];
 
     PROCESS_BEGIN();
+
+    demo_licht_pressed_event = process_alloc_event();
+    demo_licht_released_event = process_alloc_event();
+    demo_licht_clicked_event = process_alloc_event();
 
     int i;
     for(i=0;i<8;i++) {
