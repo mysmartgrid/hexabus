@@ -1,33 +1,39 @@
 startstate bar;
-condition uschi {
+condition first {
   ip := aa::bb:cc:dd:ee ;
   eid := 25; 
   value > 3;
 }
-condition barij3oi {
+condition second {
   ip := aa::bb:cc:dd:ee ;
   eid := 25; 
   value < 3;
 # this is a comment
 }
 # this is a comment
-state foo {
-  if barbaz {
+state uschi {
+  if first {
 	set 25 := 1;
-	goodstate lool;
-	badstate trooooot;
+	goodstate horst;
+	badstate uschi;
   }
-  if barbaz2 {
+  if second {
 	set 23 := 42;
-	goodstate lool;
-	badstate trooooot;
+	goodstate horst;
+	badstate uschi;
   }
 }
 state horst {
-  if uschi {
+  if first {
 	set 25 := 1;
-	goodstate lool;
-	badstate trooooot;
+	goodstate uschi;
+	badstate horst;
   }
+  if bar {
+	set 25 := 1;
+	goodstate uschi;
+	badstate horst;
+  }
+
 }
 

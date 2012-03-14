@@ -1,6 +1,7 @@
 #include <libhba/common.hpp>
 #include <libhba/ast_datatypes.hpp>
 #include <libhba/hba_printer.hpp>
+#include <libhba/graph_builder.hpp>
 
 #include <boost/config/warning_disable.hpp>
 #include <boost/spirit/include/qi.hpp>
@@ -321,13 +322,13 @@ int main(int argc, char **argv)
 	  "'" << e.first.get_currentline() << "'" << std::endl
 	  << std::setw(pos.column) << " " 
 	  << "^- " << *error_traceback_t::stack.begin()<< std::endl;
-	std::cout << "parser backtrace: " << std::endl;
-	std::vector<std::string>::iterator it;
-	for(  it = error_traceback_t::stack.begin();
-		it != error_traceback_t::stack.end(); ++it ) 
-	{
-	  std::cout << "- " << (*it) << std::endl;
-	}
+//	std::cout << "parser backtrace: " << std::endl;
+//	std::vector<std::string>::iterator it;
+//	for(  it = error_traceback_t::stack.begin();
+//		it != error_traceback_t::stack.end(); ++it ) 
+//	{
+//	  std::cout << "- " << (*it) << std::endl;
+//	}
   } catch (const std::runtime_error& e) {
 	std::cout << "Exception occured: " << e.what() << std::endl;
   }
@@ -336,8 +337,16 @@ int main(int argc, char **argv)
 	std::cout << "-------------------------\n";
 	std::cout << "Parsing succeeded\n";
 	std::cout << "-------------------------\n";
-	hexabus::hba_printer printer;
-	printer(ast);
+	//hexabus::hba_printer printer;
+	//printer(ast);
+	hexabus::GraphBuilder gBuilder;
+	gBuilder(ast);
+	std::ofstream ofs;
+	ofs.open("foo.dot");
+
+	//graph_t g=gBuilder.get_graph();
+	gBuilder.write_graphviz(ofs);
+	ofs.close();
 	return 0;
   } else {
 	if (!r)
