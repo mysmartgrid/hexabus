@@ -19,6 +19,11 @@
 #include <boost/spirit/include/support_multi_pass.hpp>
 #include <boost/spirit/include/classic_position_iterator.hpp>
 
+// commandline parsing.
+#include <boost/program_options.hpp>
+#include <boost/program_options/positional_options.hpp>
+namespace po = boost::program_options;
+
 #include <iostream>
 #include <fstream>
 #include <istream>
@@ -265,21 +270,50 @@ namespace hexabus
 ///////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv)
 {
-  char const* filename;
-  if (argc > 1) {
-	filename = argv[1];
+
+  std::ostringstream oss;
+  oss << "Usage: " << argv[0] << " [-i] inputfile";
+  po::options_description desc(oss.str());
+  desc.add_options()
+    ("help,h", "produce help message")
+    ("version,v", "print libklio version and exit")
+    ("print,p", "print parsed version of the input file")
+    ("graph,g", po::value<std::string>(), "generate a dot file")
+    ("input,i", po::value<std::string>(), "the hexabus assembler input file")
+    ;
+  po::positional_options_description p;
+  p.add("infile", 1);
+
+  po::variables_map vm;
+  po::store(po::command_line_parser(argc, argv).
+      options(desc).positional(p).run(), vm);
+  po::notify(vm);
+
+  // Begin processing of commandline parameters.
+  std::string infile;
+  if (vm.count("help")) {
+    std::cout << desc << std::endl;
+    return 1;
+  }
+  if (vm.count("version")) {
+    hexabus::VersionInfo::Ptr vi(new hexabus::VersionInfo());
+    std::cout << "hexabus assembler version " << vi->getVersion() << std::endl;
+    return 0;
+  }
+  if (! vm.count("input")) {
+    std::cerr << "Error: You must specify an input file." << std::endl;
+    return 1;
   } else {
-	std::cerr << "Error: No input file provided." << std::endl;
-	return 1;
+    infile=vm["input"].as<std::string>();
   }
 
-  std::ifstream in(filename, std::ios_base::in);
+  std::ifstream in(infile.c_str(), std::ios_base::in);
 
   if (!in) {
 	std::cerr << "Error: Could not open input file: "
-	  << filename << std::endl;
+	  << infile << std::endl;
 	return 1;
-  }
+  } 
 
   in.unsetf(std::ios::skipws); // No white space skipping!
 
@@ -289,7 +323,7 @@ int main(int argc, char **argv)
   forward_iterator_type fwd_begin=boost::spirit::make_default_multi_pass(in_begin);
   forward_iterator_type fwd_end;
   typedef classic::position_iterator2<forward_iterator_type> pos_iterator_type;
-  pos_iterator_type position_begin(fwd_begin, fwd_end, filename);
+  pos_iterator_type position_begin(fwd_begin, fwd_end, infile);
   pos_iterator_type position_end;
 
   std::vector<std::string> error_hints;
@@ -334,19 +368,26 @@ int main(int argc, char **argv)
   }
 
   if (r && position_begin == position_end) {
-	std::cout << "-------------------------\n";
-	std::cout << "Parsing succeeded\n";
-	std::cout << "-------------------------\n";
-	//hexabus::hba_printer printer;
-	//printer(ast);
-	hexabus::GraphBuilder gBuilder;
-	gBuilder(ast);
-	std::ofstream ofs;
-	ofs.open("foo.dot");
-
-	//graph_t g=gBuilder.get_graph();
-	gBuilder.write_graphviz(ofs);
-	ofs.close();
+	if (vm.count("print")) {
+	  hexabus::hba_printer printer;
+	  printer(ast);
+	} 
+	else if (vm.count("graph")) {
+	  hexabus::GraphBuilder gBuilder;
+	  gBuilder(ast);
+	  std::ofstream ofs;
+	  std::string outfile=vm["graph"].as<std::string>();
+	  ofs.open(outfile.c_str());
+	  if (!ofs) {
+		std::cerr << "Error: Could not open graph output file: "
+		  << outfile << std::endl;
+		return 1;
+	  }
+	  gBuilder.write_graphviz(ofs);
+	  ofs.close();
+	} else {
+	  std::cout << "Parsing succeeded." << std::endl;
+	}
 	return 0;
   } else {
 	if (!r)
