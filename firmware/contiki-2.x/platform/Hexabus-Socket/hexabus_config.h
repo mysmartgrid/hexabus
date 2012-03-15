@@ -63,8 +63,8 @@
 #define PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE 60 // in seconds, 0 to disable
 
 // hexonoff
-#define HEXONOFF_ENABLE 0
-#define HEXONOFF_DEBUG 0
+#define HEXONOFF_ENABLE 1
+#define HEXONOFF_DEBUG 1
 #define HEXONOFF_INITIAL_VALUE 0
 
 // read analog input pin
