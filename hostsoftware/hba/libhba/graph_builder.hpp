@@ -19,7 +19,8 @@ namespace hexabus {
   typedef boost::adjacency_list<  // adjacency_list is a template depending on :
 	boost::listS,               //  The container used for egdes : here, std::list.
 	boost::vecS,                //  The container used for vertices: here, std::vector.
-	boost::directedS,           //  directed or undirected edges ?.
+	//boost::directedS,           //  directed or undirected edges ?.
+	boost::bidirectionalS,           //  directed or undirected edges ?.
 	vertex_t,                     //  The type that describes a Vertex.
 	edge_t                        //  The type that describes an Edge
   > graph_t; 
@@ -39,6 +40,9 @@ namespace hexabus {
 	private:
 	  GraphBuilder (const GraphBuilder& original);
 	  GraphBuilder& operator= (const GraphBuilder& rhs);
+
+	  void check_unreachable_states() const;
+
 	  graph_t _g;
 
   };

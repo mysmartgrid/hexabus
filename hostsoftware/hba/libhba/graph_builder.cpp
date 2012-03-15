@@ -71,7 +71,8 @@ struct second_pass : boost::static_visitor<> {
 		<< from_state_name << " and " << clause.badstate<< std::endl;
 	} catch (VertexNotFoundException& vnfe) {
 	  std::cerr << vnfe.what() << " while processing clause "
-		<< clause.name << "(line " << clause.lineno << ")"
+		<< clause.name << " of state " << from_state_name 
+		<< " (line " << clause.lineno << ")"
 		<< std::endl << "Aborting." << std::endl;
 	  exit(-1);
 	}
@@ -94,8 +95,30 @@ struct second_pass : boost::static_visitor<> {
 
 };
 
+void GraphBuilder::check_unreachable_states() const {
+  // an unreachable state has no incoming edge. So, iterate over
+  // all vertices and compute the number of incoming edges. Raise exception
+  // if an vertex has no incoming edges, i.e. is unreachable.
+
+  // 1. iterate over all vertices.
+  graph_t::vertex_iterator vertexIt, vertexEnd;
+  boost::tie(vertexIt, vertexEnd) = vertices(graph);
+  for (; vertexIt != vertexEnd; ++vertexIt){
+	vertex_id_t vertexID = *vertexIt; // dereference vertexIt, get the ID
+	vertex_t & vertex = graph[vertexID];
+
+	// 2. Check number of incoming edges.
+//	graph_t::in_edge_iterator inedgeIt, inedgeEnd;
+//	boost::tie(inedgeIt, inedgeEnd) = 
+//	  in_edges(vertexID, graph);
+	graph_t::inv_adjacency_iterator inedgeIt, inedgeEnd;
+    boost::tie(inedgeIt, inedgeEnd) = inv_adjacent_vertices(vertexID, graph);
+	if (inedgeIt == inedgeEnd)
+	  std::cout << vertex.name << " ist HORST!1!!" << std::endl;
+  }
+}
+
 void GraphBuilder::operator()(hba_doc const& hba) const {
-  std::cout << "start state: " << hba.start_state << std::endl;
   // 1st pass: grab all the states from the hba_doc
   BOOST_FOREACH(hba_doc_block const& block, hba.blocks)
   {
@@ -106,6 +129,9 @@ void GraphBuilder::operator()(hba_doc const& hba) const {
   {
 	boost::apply_visitor(second_pass(), block);
   }
+  check_unreachable_states();
+  // initialize our graph instance
+  //_g=graph;
 }
 
 
