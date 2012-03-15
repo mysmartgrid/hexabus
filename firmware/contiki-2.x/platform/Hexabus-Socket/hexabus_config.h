@@ -21,15 +21,15 @@
 
 // datetime_service
 #define DATETIME_SERVICE_ENABLE 1
-#define DATETIME_SERVICE_DEBUG 0
+#define DATETIME_SERVICE_DEBUG 1
 
 // temperature
 #define TEMPERATURE_ENABLE 0
 #define TEMPERATURE_DEBUG 0
 
 // value_broadcast
-#define VALUE_BROADCAST_ENABLE 1
-#define VALUE_BROADCAST_DEBUG 1
+#define VALUE_BROADCAST_ENABLE 0
+#define VALUE_BROADCAST_DEBUG 0
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1 // Number of endpoints to broadcast automatically - set to 0 to disable
 #define VALUE_BROADCAST_AUTO_EIDS 2 // Comma-separated list of endpoints to broadcast automatically
 #define VALUE_BROADCAST_AUTO_INTERVAL 60 // Timeout in seconds
@@ -42,16 +42,16 @@
 
 // window blind shutter motor control
 #define SHUTTER_ENABLE 0
-#define SHUTTER_DEBUG 1
+#define SHUTTER_DEBUG 0
 #define SHUTTER_CALIBRATE_ON_BOOT 1
 #define SHUTTER_INITIAL_POSITON 1
 
 // hexapush
-#define HEXAPUSH_ENABLE 0
+#define HEXAPUSH_ENABLE 1
 #define HEXAPUSH_CLICK_ENABLE 1
 #define HEXAPUSH_PRESS_RELEASE_ENABLE 1
 #define HEXAPUSH_PRESS_DELAY 6   //multiplied by 50ms, only if Click and Press/Release are enabled
-#define HEXAPUSH_DEBUG 0
+#define HEXAPUSH_DEBUG 1
 
 // presence detector
 #define PRESENCE_DETECTOR_ENABLE 0
@@ -69,9 +69,15 @@
 
 // read analog input pin
 #define ANALOGREAD_ENABLE 0
-#define ANALOGREAD_DEBUG 1
+#define ANALOGREAD_DEBUG 0
 #define ANALOGREAD_PIN 0 // 0 to 7
 #define ANALOGREAD_MULT 0.0024414062 // readings are multiplied with this value to calculate the value sent to the endpoint. Set to 0.0024414062 to get the Voltage reading (in Volts) at 2.5V supply voltage
 #define ANALOGREAD_EID 29 // EID to be used for analogread
+
+// switch between day and night
+#define DAY_NIGHT_SWITCH_ENABLE 1
+#define DAY_NIGHT_SWITCH_DEBUG 1
+#define DAY_NIGHT_SWITCH_DAY_HOUR 8
+#define DAY_NIGHT_SWITCH_NIGHT_HOUR 20
 
 #endif // HEXBAUS_CONFIG_H

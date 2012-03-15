@@ -6,6 +6,12 @@
 
 #include "hexabus_config.h"
 
+#if DAY_NIGHT_SWITCH_DEBUG
+#define PRINTF(...) printf(__VA_ARGS__)
+#else
+#define PRINTF(...)
+#endif
+
 //TODO: initial value
 //static uint8_t is_day = TREPPENHAUSLICHT_IS_DAY;
 struct datetime time;
@@ -18,7 +24,7 @@ AUTOSTART_PROCESSES(&day_night_switch_process);
 
 PROCESS_THREAD(day_night_switch_process, ev, data)
 {
-	printf("day/night switch: init\n");
+	PRINTF("day/night switch: init\n");
 	PROCESS_BEGIN();
 
 	while(1) {
@@ -26,8 +32,8 @@ PROCESS_THREAD(day_night_switch_process, ev, data)
 		//TODO: Reset time to prevent invalid datetime
 
 		if(ev == day_night_switch_pressed_event) {
-			printf("day/night switch: pressed event received\n");
-			time.hour = 12;
+			PRINTF("day/night switch: pressed event received\n");
+			time.hour = DAY_NIGHT_SWITCH_DAY_HOUR;
 			time.minute = 0;
 			time.second = 0;
 			time.day = 1;
@@ -39,9 +45,9 @@ PROCESS_THREAD(day_night_switch_process, ev, data)
 			updateDatetime(envelope);
 		} 
 		if(ev == day_night_switch_released_event) {
-			printf("day/night switch: released event received\n");
+			PRINTF("day/night switch: released event received\n");
 
-			time.hour = 22;
+			time.hour = DAY_NIGHT_SWITCH_NIGHT_HOUR;
 			time.minute = 0;
 			time.second = 0;
 			time.day = 1;
