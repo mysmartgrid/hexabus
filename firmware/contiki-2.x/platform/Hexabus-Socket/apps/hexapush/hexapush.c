@@ -16,9 +16,9 @@
 #define PRINTF(...)
 #endif
 
-process_event_t demo_licht_pressed_event;
-process_event_t demo_licht_released_event;
-process_event_t demo_licht_clicked_event;
+process_event_t day_night_switch_pressed_event;
+process_event_t day_night_switch_released_event;
+process_event_t day_night_switch_clicked_event;
 
 static uint8_t button_vector = 0;
 static uint8_t pressed_vector = 0;
@@ -30,6 +30,7 @@ void button_clicked(uint8_t button) {
    
     clicked_vector|=(1<<button);
     broadcast_value(25);
+    process_post(PROCESS_BROADCAST, day_night_switch_clicked_event, NULL); // TODO: pass button as data
     clicked_vector&=~(1<<button);
 }
 
@@ -39,7 +40,7 @@ void button_pressed(uint8_t button) {
     pressed_vector|=(1<<button);
 
     broadcast_value(24);
-	process_post(PROCESS_BROADCAST, demo_licht_pressed_event, NULL); // TODO: pass button as data
+    process_post(PROCESS_BROADCAST, day_night_switch_pressed_event, NULL); // TODO: pass button as data
 }
 
 void button_released(uint8_t button){
@@ -48,7 +49,7 @@ void button_released(uint8_t button){
     pressed_vector&=~(1<<button);
    
     broadcast_value(24);
-	process_post(PROCESS_BROADCAST, demo_licht_released_event, NULL); // TODO: pass button as data
+    process_post(PROCESS_BROADCAST, day_night_switch_released_event, NULL); // TODO: pass button as data
 }
 
 uint8_t get_buttonstate() {
@@ -105,9 +106,9 @@ PROCESS_THREAD(hexapush_process, ev, data) {
 
     PROCESS_BEGIN();
 
-    demo_licht_pressed_event = process_alloc_event();
-    demo_licht_released_event = process_alloc_event();
-    demo_licht_clicked_event = process_alloc_event();
+    day_night_switch_pressed_event = process_alloc_event();
+    day_night_switch_released_event = process_alloc_event();
+    day_night_switch_clicked_event = process_alloc_event();
 
     int i;
     for(i=0;i<8;i++) {

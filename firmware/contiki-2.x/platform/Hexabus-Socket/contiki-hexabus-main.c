@@ -135,7 +135,7 @@
 #if ANALOGREAD_ENABLE
 #include "analogread.h"
 #endif
-#include "treppenlichtdemo.h"
+#include "day_night_switch.h"
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -395,7 +395,7 @@ void initialize(void)
   analogread_init();
 #endif
 
-process_start(&treppenlicht_demo_process, NULL);
+process_start(&day_night_switch_process, NULL);
 
   /*Init Relay */
   relay_init();

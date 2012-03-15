@@ -32,9 +32,9 @@ void hexapush_init(void);
 
 uint8_t get_buttonstate();
 
-extern process_event_t demo_licht_pressed_event;
-extern process_event_t demo_licht_released_event;
-extern process_event_t demo_licht_clicked_event;
+extern process_event_t day_night_switch_pressed_event;
+extern process_event_t day_night_switch_released_event;
+extern process_event_t day_night_switch_clicked_event;
 
 PROCESS_NAME(hexapush_process);
 
