@@ -74,4 +74,8 @@
 #define ANALOGREAD_MULT 0.0024414062 // readings are multiplied with this value to calculate the value sent to the endpoint. Set to 0.0024414062 to get the Voltage reading (in Volts) at 2.5V supply voltage
 #define ANALOGREAD_EID 29 // EID to be used for analogread
 
+//i2c master
+#define I2C_ENABLE 1
+#define I2C_DEBUG 1
+
 #endif // HEXBAUS_CONFIG_H

@@ -135,6 +135,9 @@
 #if ANALOGREAD_ENABLE
 #include "analogread.h"
 #endif
+#if I2C_ENABLE
+#include "i2c.h"
+#endif
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -392,6 +395,10 @@ void initialize(void)
 
 #if ANALOGREAD_ENABLE
   analogread_init();
+#endif
+
+#if I2C_ENABLE
+  i2c_init();
 #endif
 
   /*Init Relay */
