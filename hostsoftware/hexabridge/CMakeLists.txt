@@ -1,5 +1,5 @@
 # -*- mode: cmake; -*-
-project(hexaswitch)
+project(hexabridge)
 cmake_minimum_required(VERSION "2.8" FATAL_ERROR)
 if(POLICY CMP0011)
   cmake_policy(SET CMP0011 NEW)
@@ -11,7 +11,7 @@ set(CMAKE_VERBOSE_MAKEFILE true)
 SET(ENABLE_LOGGING 1)
 
 set(V_MAJOR 0)
-set(V_MINOR 4)
+set(V_MINOR 2)
 set(V_PATCH 0)
 
 # add a path where some libraries might be stored
@@ -55,43 +55,32 @@ set(CMAKE_CXX_FLAGS "-Wall ")
 # Check for some compiler stuff
 include(CMakeBackwardCompatibilityCXX)
 
-FIND_PACKAGE(Sqlite)
-# We depend on boost >= 1.46.1 because of the updated filesystem
-# library.
-FIND_PACKAGE(Boost 1.46.1 COMPONENTS iostreams program_options filesystem system)
+# Find Boost.
+FIND_PACKAGE(Boost 1.40.0 REQUIRED COMPONENTS system)
 
 # Reflect the package structure
-add_subdirectory(libhexabus)
 add_subdirectory(src)
 
 # add some files to the installation target
-INSTALL(FILES README.txt LICENSE.txt DESTINATION share/doc/hexaswitch)
+INSTALL(FILES README.txt LICENSE.txt DESTINATION share/doc/hexabridge)
 
 # CPACK packaging
-INCLUDE(InstallRequiredSystemLibraries)
-SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "hexaswitch")
-SET(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
-SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.txt")
-SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
-SET(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
-SET(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
-SET(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
-SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
-SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch" "Send a switch command to the
-hexabus devices.")
-SET(CPACK_SOURCE_STRIP_FILES "")
-SET(CPACK_STRIP_FILES "bin/hexaswitch")
-SET(CPACK_STRIP_FILES "bin/hexalog")
-INCLUDE(CPack)
+#INCLUDE(InstallRequiredSystemLibraries)
+#SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "hexabridge")
+#SET(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
+#SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.txt")
+#SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
+#SET(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
+#SET(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
+#SET(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
+#SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
+#SET(CPACK_PACKAGE_EXECUTABLES "hexabridge" "Simple bridging Daemon between hexabus Networks.")
+#SET(CPACK_SOURCE_STRIP_FILES "")
+#SET(CPACK_STRIP_FILES "bin/hexabridge")
+#INCLUDE(CPack)
 
 ### print some output for the user
 message("")
 message("***** Configuration *****")
 message("  prefix: ${CMAKE_INSTALL_PREFIX}")
-message("  boost include: ${Boost_INCLUDE_DIRS}")
-message("  boost program options lib: ${Boost_PROGRAM_OPTIONS_LIBRARY}")
-message("  boost system lib: ${Boost_SYSTEM_LIBRARY}")
-message("  boost filesystem lib: ${Boost_FILESYSTEM_LIBRARY}")
-message("  sqlite3 include: ${SQLITE3_INCLUDE_DIR}, lib: ${SQLITE3_LIBRARIES}")
-message("  extended logging: ${ENABLE_LOGGING}")
-
+message("  Boost lib: ${Boost_INCLUDE_DIRS}")

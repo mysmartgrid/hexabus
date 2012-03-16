@@ -55,7 +55,9 @@
 #define	LONG_CLICK_TIME		7000UL
 #define	PAUSE_TIME			 500UL
 
-#define DOUBLE_CLICK_ENABLED	0
+#if BUTTON_HAS_EID
+uint8_t button_get_pushed();
+#endif
 
 PROCESS_NAME(button_pressed_process);
 

@@ -3,8 +3,7 @@
 file(GLOB_RECURSE h_files "*.hpp,*.h")
 file(GLOB_RECURSE cpp_files "*.cpp")
 file(GLOB_RECURSE c_files "*.c")
-set(hexaswitch_src "hexaswitch.cpp")
-set(hexalog_src "hexalog.cpp")
+set(hexabridge_src "hexabridge.cpp")
 
 include_directories(
   ${CMAKE_SOURCE_DIR} 
@@ -12,26 +11,15 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR} 
   ${Boost_INCLUDE_DIRS}
 )
-add_executable(hexaswitch ${hexaswitch_src})
+add_executable(hexabridge ${hexabridge_src})
 # Link the executables
-target_link_libraries(hexaswitch 
-  hexabus
+target_link_libraries(hexabridge
   pthread
   ${Boost_SYSTEM_LIBRARY}
 )
 
-add_executable(hexalog ${hexalog_src})
-target_link_libraries(hexalog
-  hexabus
-  pthread
-  ${Boost_LIBRARIES}
-  klio
-  ${SQLITE3_LIBRARIES}
-)
-
 # add programs to the install target 
 INSTALL(PROGRAMS 
-  ${CMAKE_CURRENT_BINARY_DIR}/hexaswitch
-  ${CMAKE_CURRENT_BINARY_DIR}/hexalog
+  ${CMAKE_CURRENT_BINARY_DIR}/hexabridge
   DESTINATION bin)
 

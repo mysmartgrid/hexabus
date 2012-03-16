@@ -132,7 +132,12 @@
 #if HEXAPRESSURE_ENABLE
 #include "hexapressure.h"
 #endif
-
+#if HEXAPUSH_ENABLE
+#include "hexonoff.h"
+#endif
+#if ANALOGREAD_ENABLE
+#include "analogread.h"
+#endif
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -352,6 +357,10 @@ void initialize(void)
 
   /* process for shutter control*/
   process_start(&shutter_process, NULL);
+
+  /* calibrate and go to initial position */
+  process_start(&shutter_setup_process, NULL);
+
 #endif
 
 #if HEXAPUSH_ENABLE
@@ -359,7 +368,7 @@ void initialize(void)
 #endif
 
 #if PRESENCE_DETECTOR_ENABLE
-  process_start(&presence_detector_process, NULL);
+  presence_detector_init();
 #endif
 
   mdns_responder_init();
@@ -378,11 +387,14 @@ void initialize(void)
   /* Init Temp Sensor */
 #if TEMPERATURE_ENABLE
   temperature_init();
-  
-  //Check whether there are temperature sensors connected, if so start the process.
-  if(nSensors > 0){
-    process_start(&temperature_process, NULL);
-  }
+#endif
+
+#if HEXONOFF_ENABLE
+  hexonoff_init();
+#endif
+
+#if ANALOGREAD_ENABLE
+  analogread_init();
 #endif
 
 #if HEXAPRESSURE_ENABLE

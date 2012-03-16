@@ -27,8 +27,9 @@ PROCESS_NAME(state_machine_process);
 struct condition {
   uint8_t sourceIP[16];      // IP
   uint8_t sourceEID;      // EID we expect data from
-  uint8_t op;           // predicate function
-  struct hxb_value value; // the constant to compare with
+  uint8_t op;           // predicate function						|
+  uint8_t datatype;			// The constant to compare with v
+	char 		data[4];			// Leave enough room for largest chunk of data, uint32_t/float in this case
 } __attribute__ ((packed));
 
 struct transition {
@@ -44,5 +45,5 @@ struct transition {
 // Defintion of events that are important to the state machine
 // One general event for all data that can be possibly received
 extern process_event_t sm_data_received_event;
-
+extern process_event_t sm_rulechange_event;
 #endif /* STATE_MACHINE_H_*/

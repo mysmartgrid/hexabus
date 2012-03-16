@@ -1,0 +1,4 @@
+%!: /header.html
+<h3> Current State Machine String:</h3>
+%! get_sm
+%!: /footer.html

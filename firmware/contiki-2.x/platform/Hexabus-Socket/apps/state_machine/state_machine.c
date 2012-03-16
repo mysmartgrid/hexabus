@@ -20,89 +20,106 @@
 #define PRINT6ADDR(addr)
 #define PRINTLLADDR(addr)
 #endif
+#define TRUE_COND_INDEX 255
 
 /*------------------------------------------------------*/
 PROCESS(state_machine_process, "State Machine Process");
 AUTOSTART_PROCESSES(&state_machine_process);
 /*------------------------------------------------------*/
 
-static uint8_t transLength; // length of transition table
+static uint8_t transLength;   // length of transition table
 static uint8_t dtTransLength; // length of date/time transition table
 static uint8_t curState = 0;  // starting out in state 0
 static uint32_t inStateSince; // when die we change into that state
+static uint8_t dt_valid;      // internal clock has a valid date/time
 
 bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   struct condition cond;
   // get the condition from eeprom
   PRINTF("Checking condition %d\r\n", condIndex);
-  eeprom_read_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + (condIndex * sizeof(struct condition))), sizeof(struct condition));
+  if(condIndex == TRUE_COND_INDEX)		// If the condition is set to TRUE
+		return true;
+	
+	eeprom_read_block(&cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (condIndex * sizeof(struct condition))), sizeof(struct condition));
+
+  // check if host is set (something other than :: (all zeroes)) -- if source host is ::, don't care for the source IP (anyhost condition)
+  uint8_t hostset = 16;
+  while(hostset)
+  {
+    if(cond.sourceIP[hostset - 1])
+      break;  // this breaks once it finds something other than zero, leaving hostset > 0. If all the address bytes are zero, hostset counts all the way down to 0.
+    hostset--;
+  }
 
   // Check IPs and EID; ignore IP and EID for Datetime-Conditions and Timestamp-Conditions
-  if((memcmp(cond.sourceIP, envelope->source, 16) || (cond.sourceEID != envelope->eid)) && cond.value.datatype != HXB_DTYPE_DATETIME && cond.value.datatype != HXB_DTYPE_TIMESTAMP)
+  if((hostset && memcmp(cond.sourceIP, envelope->source, 16) || (cond.sourceEID != envelope->eid)) && cond.datatype != HXB_DTYPE_DATETIME && cond.datatype != HXB_DTYPE_TIMESTAMP)
     return false;
 
-  PRINTF("IP and EID match / or datetime condition\r\n");
+  PRINTF("IP and EID match / or datetime condition / or anyhost condition\r\n");
 
   // Check datatypes, return false if they don't match -- TIMESTAMP is exempt from that because it's checked alongside the DATETIME conditions
-  if(envelope->value.datatype != cond.value.datatype && cond.value.datatype != HXB_DTYPE_TIMESTAMP) {
-    return false;
+  if(envelope->value.datatype != cond.datatype && cond.datatype != HXB_DTYPE_TIMESTAMP) {
+		return false;
   }
 
   PRINTF("Now checking condition\r\n");
   // check the actual condition
-  switch(cond.value.datatype)
+  switch(cond.datatype)
   {
     case HXB_DTYPE_BOOL:
     case HXB_DTYPE_UINT8:
-      if(cond.op == STM_EQ)  return *(uint8_t*)&envelope->value.data == *(uint8_t*)&cond.value.data;
-      if(cond.op == STM_LEQ) return *(uint8_t*)&envelope->value.data <= *(uint8_t*)&cond.value.data;
-      if(cond.op == STM_GEQ) return *(uint8_t*)&envelope->value.data >= *(uint8_t*)&cond.value.data;
-      if(cond.op == STM_LT)  return *(uint8_t*)&envelope->value.data <  *(uint8_t*)&cond.value.data;
-      if(cond.op == STM_GT)  return *(uint8_t*)&envelope->value.data >  *(uint8_t*)&cond.value.data;
-      if(cond.op == STM_NEQ) return *(uint8_t*)&envelope->value.data != *(uint8_t*)&cond.value.data;
+      if(cond.op == STM_EQ)  return *(uint8_t*)&envelope->value.data == *(uint8_t*)&cond.data;
+      if(cond.op == STM_LEQ) return *(uint8_t*)&envelope->value.data <= *(uint8_t*)&cond.data;
+      if(cond.op == STM_GEQ) return *(uint8_t*)&envelope->value.data >= *(uint8_t*)&cond.data;
+      if(cond.op == STM_LT)  return *(uint8_t*)&envelope->value.data <  *(uint8_t*)&cond.data;
+      if(cond.op == STM_GT)  return *(uint8_t*)&envelope->value.data >  *(uint8_t*)&cond.data;
+      if(cond.op == STM_NEQ) return *(uint8_t*)&envelope->value.data != *(uint8_t*)&cond.data;
       break;
     case HXB_DTYPE_UINT32:
-      if(cond.op == STM_EQ)  return *(uint32_t*)&envelope->value.data == *(uint32_t*)&cond.value.data;
-      if(cond.op == STM_LEQ) return *(uint32_t*)&envelope->value.data <= *(uint32_t*)&cond.value.data;
-      if(cond.op == STM_GEQ) return *(uint32_t*)&envelope->value.data >= *(uint32_t*)&cond.value.data;
-      if(cond.op == STM_LT)  return *(uint32_t*)&envelope->value.data <  *(uint32_t*)&cond.value.data;
-      if(cond.op == STM_GT)  return *(uint32_t*)&envelope->value.data >  *(uint32_t*)&cond.value.data;
-      if(cond.op == STM_NEQ) return *(uint32_t*)&envelope->value.data != *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_EQ)  return *(uint32_t*)&envelope->value.data == *(uint32_t*)&cond.data;
+      if(cond.op == STM_LEQ) return *(uint32_t*)&envelope->value.data <= *(uint32_t*)&cond.data;
+      if(cond.op == STM_GEQ) return *(uint32_t*)&envelope->value.data >= *(uint32_t*)&cond.data;
+      if(cond.op == STM_LT)  return *(uint32_t*)&envelope->value.data <  *(uint32_t*)&cond.data;
+      if(cond.op == STM_GT)  return *(uint32_t*)&envelope->value.data >  *(uint32_t*)&cond.data;
+      if(cond.op == STM_NEQ) return *(uint32_t*)&envelope->value.data != *(uint32_t*)&cond.data;
       break;
     case HXB_DTYPE_FLOAT:
-      if(cond.op == STM_EQ)  return *(float*)&envelope->value.data == *(float*)&cond.value.data;
-      if(cond.op == STM_LEQ) return *(float*)&envelope->value.data <= *(float*)&cond.value.data;
-      if(cond.op == STM_GEQ) return *(float*)&envelope->value.data >= *(float*)&cond.value.data;
-      if(cond.op == STM_LT)  return *(float*)&envelope->value.data <  *(float*)&cond.value.data;
-      if(cond.op == STM_GT)  return *(float*)&envelope->value.data >  *(float*)&cond.value.data;
-      if(cond.op == STM_NEQ) return *(float*)&envelope->value.data != *(float*)&cond.value.data;
+      if(cond.op == STM_EQ)  return *(float*)&envelope->value.data == *(float*)&cond.data;
+      if(cond.op == STM_LEQ) return *(float*)&envelope->value.data <= *(float*)&cond.data;
+      if(cond.op == STM_GEQ) return *(float*)&envelope->value.data >= *(float*)&cond.data;
+      if(cond.op == STM_LT)  return *(float*)&envelope->value.data <  *(float*)&cond.data;
+      if(cond.op == STM_GT)  return *(float*)&envelope->value.data >  *(float*)&cond.data;
+      if(cond.op == STM_NEQ) return *(float*)&envelope->value.data != *(float*)&cond.data;
       break;
     case HXB_DTYPE_DATETIME:
     {
-      struct datetime val_dt;
-      struct datetime cond_dt;
-      val_dt = *(struct datetime*)&envelope->value.data; // just to make writing this down easier...
-      cond_dt = *(struct datetime*)&cond.value.data;
-      if(cond.op & 0x01) // hour
-        return (cond.op & 0x80) ? val_dt.hour >= cond_dt.hour : val_dt.hour < cond_dt.hour;
-      if(cond.op & 0x02) // minute
-        return (cond.op & 0x80) ? val_dt.minute >= cond_dt.minute : val_dt.minute < cond_dt.minute;
-      if(cond.op & 0x04) // second
-        return (cond.op & 0x80) ? val_dt.second >= cond_dt.second : val_dt.second < cond_dt.second;
-      if(cond.op & 0x08) // day
-        return (cond.op & 0x80) ? val_dt.day >= cond_dt.day : val_dt.day < cond_dt.day;
-      if(cond.op & 0x10) // month
-        return (cond.op & 0x80) ? val_dt.month >= cond_dt.month : val_dt.month < cond_dt.month;
-      if(cond.op & 0x20) // year
-        return (cond.op & 0x80) ? val_dt.year >= cond_dt.year : val_dt.year < cond_dt.year;
-      if(cond.op & 0x40) // weekday
-        return (cond.op & 0x80) ? val_dt.weekday >= cond_dt.weekday : val_dt.weekday < cond_dt.weekday;
+      if(dt_valid)
+      {
+        struct datetime val_dt;
+        val_dt = *(struct datetime*)&envelope->value.data; // just to make writing this down easier...
+        if(cond.op & 0x01) // hour
+          return (cond.op & 0x80) ? val_dt.hour >= *(uint8_t*)&(cond.data) : val_dt.hour < *(uint8_t*)&(cond.data);
+        if(cond.op & 0x02) // minute
+          return (cond.op & 0x80) ? val_dt.minute >= *(uint8_t*)&(cond.data) : val_dt.minute < *(uint8_t*)&(cond.data);
+        if(cond.op & 0x04) // second
+          return (cond.op & 0x80) ? val_dt.second >= *(uint8_t*)&(cond.data) : val_dt.second < *(uint8_t*)&(cond.data);
+        if(cond.op & 0x08) // day
+          return (cond.op & 0x80) ? val_dt.day >= *(uint8_t*)&(cond.data) : val_dt.day < *(uint8_t*)&(cond.data);
+        if(cond.op & 0x10) // month
+          return (cond.op & 0x80) ? val_dt.month >= *(uint8_t*)&(cond.data) : val_dt.month < *(uint8_t*)&(cond.data);
+        if(cond.op & 0x20) // year
+          return (cond.op & 0x80) ? val_dt.year >= *(uint16_t*)&(cond.data) : val_dt.year < *(uint16_t*)&(cond.data);
+        if(cond.op & 0x40) // weekday
+          return (cond.op & 0x80) ? val_dt.weekday >= *(uint8_t*)&(cond.data) : val_dt.weekday < *(uint8_t*)&(cond.data);
+      }
+      break;
     }
     case HXB_DTYPE_TIMESTAMP:
       if(cond.op == 0x80) // in-state-since
       {
         PRINTF("Checking in-state-since Condition! Have been in this state for %lu sec.\r\n", getTimestamp() - inStateSince);
-        return getTimestamp() - inStateSince >= *(uint32_t*)&cond.value.data;
+        PRINTF("getTimestamp(): %lu - inStateSince: %lu >= cond.data: %lu\r\n", getTimestamp(), inStateSince, *(uint32_t*)&cond.data);
+        return getTimestamp() - inStateSince >= *(uint32_t*)&cond.data;
       }
       break;
     default:
@@ -116,34 +133,41 @@ void check_datetime_transitions()
   // TODO maybe we should check timestamps separately, because as of now, they still need some special cases in the 'eval' function
   struct hxb_envelope dtenvelope;
   dtenvelope.value.datatype = HXB_DTYPE_DATETIME;
-  if(!getDatetime(&dtenvelope.value.data)) // if the date/time is valid
+	dt_valid = 1 + getDatetime(&dtenvelope.value.data);   // getDatetime returns -1 if it fails, 0 if it succeeds, so we have to "1 +" here
+  struct transition* t = malloc(sizeof(struct transition));
+  
+	uint8_t i;
+  for(i = 0; i < dtTransLength; i++)
   {
-    struct transition* t = malloc(sizeof(struct transition));
-    uint8_t i;
-    for(i = 0; i < dtTransLength; i++)
+    eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+    PRINTF("checkDT - curState: %d -- fromState: %d\r\n", curState, t->fromState);
+    if((t->fromState == curState) && (eval(t->cond, &dtenvelope)))
     {
-      eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
-      PRINTF("checkDT - curState: %d -- fromState: %d", curState, t->fromState);
-      if((t->fromState == curState) && (eval(t->cond, &dtenvelope)))
-      {
-        // Matching transition found. Try executing the command
-        PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
-        if(endpoint_write(t->eid, &(t->value)) == 0)
-        {
-          inStateSince = getTimestamp();
-          curState = t->goodState;
-          PRINTF("state_machine: Everything is fine \r\n");
-          break;
-        } else {
-          inStateSince = getTimestamp();
-          curState = t->badState;
-          PRINTF("state_machine: Something bad happened \r\n");
-          break;
-        }
-      }
-    }
-    free(t);
+      // Matching transition found. Check, if an action should be performed.
+      if(t->eid != 0 || t->value.datatype != 0)
+			{
+      	// Try executing the command
+				PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
+				if(endpoint_write(t->eid, &(t->value)) == 0)
+				{
+					inStateSince = getTimestamp();
+					curState = t->goodState;
+					PRINTF("state_machine: Everything is fine \r\n");
+					break;
+				} else {
+					inStateSince = getTimestamp();
+					curState = t->badState;
+					PRINTF("state_machine: Something bad happened \r\n");
+					break;
+				}
+    	} else {
+		inStateSince = getTimestamp();
+		curState = t->goodState;
+		PRINTF("state_machine: No action performed. \r\n");
+			}
+		}
   }
+  free(t);
 }
 
 void check_value_transitions(void* data)
@@ -154,25 +178,32 @@ void check_value_transitions(void* data)
   struct hxb_envelope* envelope = (struct hxb_envelope*)data;
   for(i = 0;i < transLength;i++)
   {
-    eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+		eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
     // get next transition to check from eeprom
     if((t->fromState == curState) && (eval(t->cond, envelope)))
     {
       // Match found
-      PRINTF("state_machine: Writing to endpoint %d \r\n", t->eid);
-      if(endpoint_write(t->eid, &(t->value)) == 0)
-      {
-        inStateSince = getTimestamp();
-        curState = t->goodState;
-        PRINTF("state_machine: Everything is fine \r\n");
-        break;
-      } else {                          // Something went wrong
-        inStateSince = getTimestamp();
-        curState = t->badState;
-        PRINTF("state_machine: Something bad happened \r\n");
-        break;
-      }
-    }
+      if(t->eid != 0 || t->value.datatype != 0)
+			{	
+				PRINTF("state_machine: Writing to endpoint %d \r\n", t->eid);
+				if(endpoint_write(t->eid, &(t->value)) == 0)
+				{
+					inStateSince = getTimestamp();
+					curState = t->goodState;
+					PRINTF("state_machine: Everything is fine \r\n");
+					break;
+				} else {                          // Something went wrong
+					inStateSince = getTimestamp();
+					curState = t->badState;
+					PRINTF("state_machine: Something bad happened \r\n");
+					break;
+				}
+    	} else {
+		inStateSince = getTimestamp();
+		curState = t->goodState;
+		PRINTF("state_machine: No action performed. \r\n");
+			}
+		}
   }
   free(t);
 }
@@ -180,129 +211,10 @@ void check_value_transitions(void* data)
 PROCESS_THREAD(state_machine_process, ev, data)
 {
   PROCESS_BEGIN();
-
-  /*  TESTING INIT (((o) (o)))
-                        v
-  */
-  // clear the eeprom
-
-  for(int i = 0 ; i < 127 ; i++)
+  
   {
-    int zero = 0;
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_TRANSITIONS + i), 1);
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_CONDITIONS + i), 1);
-    eeprom_write_block(&zero, (void*)(EE_STATEMACHINE_DATETIME_TRANSITIONS + i), 1);
+    // PUT YOUR STATE MACHINE HERE
   }
-
-  // write transitions into the EEPROM
-  {
-    //"normal" transitions
-    int numberOfTransitions = 2;
-    eeprom_write_block(&numberOfTransitions, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
-    struct transition trans;
-    trans.fromState = 0;
-    trans.cond = 0; // condition index
-    trans.eid = 1;
-    trans.goodState = 1;
-    trans.badState = 0;
-    trans.value.datatype = HXB_DTYPE_BOOL;
-    *(uint8_t*)&trans.value.data = HXB_TRUE;
-    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
-    PROCESS_PAUSE();
-
-    trans.fromState = 1;
-    trans.cond = 0; // condition index
-    trans.eid = 1;
-    trans.goodState = 0;
-    trans.badState = 1;
-    trans.value.datatype = HXB_DTYPE_BOOL;
-    *(uint8_t*)&trans.value.data = HXB_FALSE;
-    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (sizeof(struct transition))), sizeof(struct transition));
-    PROCESS_PAUSE();
-
-    // datetime-transitions
-    numberOfTransitions = 3;
-    eeprom_write_block(&numberOfTransitions, (void*)EE_STATEMACHINE_DATETIME_TRANSITIONS, 1);
-
-    trans.fromState = 0;
-    trans.cond = 1; // condition index
-    trans.eid = 1;
-    trans.goodState = 2;
-    trans.badState = 2;
-    trans.value.datatype = HXB_DTYPE_BOOL;
-    *(uint8_t*)&trans.value.data = HXB_TRUE;
-    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS), sizeof(struct transition));
-    PROCESS_PAUSE();
-
-    trans.fromState = 2;
-    trans.cond = 2; // condition index
-    trans.eid = 1;
-    trans.goodState = 0;
-    trans.badState = 0;
-    trans.value.datatype = HXB_DTYPE_BOOL;
-    *(uint8_t*)&trans.value.data = HXB_FALSE;
-    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + sizeof(struct transition)), sizeof(struct transition));
-    PROCESS_PAUSE();
-
-    trans.fromState = 1;
-    trans.cond = 3; // condition index
-    trans.eid = 1;
-    trans.goodState = 0;
-    trans.badState = 0;
-    trans.value.datatype = HXB_DTYPE_BOOL;
-    *(uint8_t*)&trans.value.data = HXB_FALSE;
-    eeprom_write_block(&trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (2 * sizeof(struct transition))), sizeof(struct transition));
-    PROCESS_PAUSE();
-
-    // conditions
-    struct condition cond;
-    cond.sourceIP[0]  = 0xfe;
-    cond.sourceIP[1]  = 0x80;
-    cond.sourceIP[2]  = 0x00;
-    cond.sourceIP[3]  = 0x00;
-    cond.sourceIP[4]  = 0x00;
-    cond.sourceIP[5]  = 0x00;
-    cond.sourceIP[6]  = 0x00;
-    cond.sourceIP[7]  = 0x00;
-    cond.sourceIP[8]  = 0x00;
-    cond.sourceIP[9]  = 0x50;
-    cond.sourceIP[10] = 0xc4;
-    cond.sourceIP[11] = 0xff;
-    cond.sourceIP[12] = 0xfe;
-    cond.sourceIP[13] = 0x04;
-    cond.sourceIP[14] = 0x00;
-    cond.sourceIP[15] = 0x0e;
-    cond.sourceEID = 2;
-    cond.op = STM_EQ;
-    cond.value.datatype = HXB_DTYPE_UINT8;
-    *(uint8_t*)&cond.value.data = 10;
-    eeprom_write_block(&cond, (void*)EE_STATEMACHINE_CONDITIONS, sizeof(struct condition));
-    PROCESS_PAUSE();
-
-    cond.sourceEID = 0;
-    cond.op = 0x04 | 0x80; // second, greater than or equal
-    cond.value.datatype = HXB_DTYPE_DATETIME;
-    (*(struct datetime*)&(cond.value.data)).second = 30;
-    eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)), sizeof(struct condition));
-    PROCESS_PAUSE();
-
-    cond.sourceEID = 0;
-    cond.op = 0x04 | 0x00; // second, less than
-    cond.value.datatype = HXB_DTYPE_DATETIME;
-    (*(struct datetime*)&(cond.value.data)).second = 30;
-    eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + 2 * sizeof(struct condition)), sizeof(struct condition));
-    PROCESS_PAUSE();
-
-    cond.sourceEID = 0;
-    cond.op = 0x80; // in-state-since
-    cond.value.datatype = HXB_DTYPE_TIMESTAMP;
-    *(uint32_t*)&cond.value.data = 30;
-    eeprom_write_block(&cond, (void*)(EE_STATEMACHINE_CONDITIONS + 3 * sizeof(struct condition)), sizeof(struct condition));
-    PROCESS_PAUSE();
-  }
-  // **************************
-
-  PRINTF("State Machine starting.\r\n");
 
   // read state machine table length from eeprom
   transLength = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
@@ -352,7 +264,14 @@ PROCESS_THREAD(state_machine_process, ev, data)
       free(data);
 
       PRINTF("state machine: Now in state: %d\r\n", curState);
-    }
+    } 
+		if(ev == sm_rulechange_event) {
+			// re-read state machine table length from eeprom
+  		transLength = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
+  		dtTransLength = eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
+			PRINTF("State Machine: Re-Reading Table length.\n");
+			PRINTF("TransLength: %d, dtTransLength:", transLength, dtTransLength);
+		}
   }
 
   PROCESS_END();

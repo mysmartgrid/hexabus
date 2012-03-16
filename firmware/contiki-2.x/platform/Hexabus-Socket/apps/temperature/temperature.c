@@ -24,9 +24,6 @@ static struct etimer temperature_periodic_timer;
 static float temperature_value=0.0;
 static char temperature_string_buffer[10];
 
-PROCESS(temperature_process, "HEXABUS Socket temperature Process");
-AUTOSTART_PROCESSES(&temperature_process);
-
 /*---------------------------------------------------------------------------*/
 static void
 pollhandler(void) {
@@ -88,36 +85,4 @@ temperature_as_string(void)
 {
   PRINTF("-- Temperature: Get string value\r\n");
   return &temperature_string_buffer;
-}
-
-
-/*---------------------------------------------------------------------------*/
-
-PROCESS_THREAD(temperature_process, ev, data) {
-	PROCESS_POLLHANDLER(pollhandler());
-	PROCESS_EXITHANDLER(exithandler());
-
-	// see: http://senstools.gforge.inria.fr/doku.php?id=contiki:examples
-	PROCESS_BEGIN();
-	PRINTF("temperature: process startup.\r\n");
-	PROCESS_PAUSE();
-
-	// wait 3 seconds
-	etimer_set(&temperature_periodic_timer, CLOCK_CONF_SECOND*3);
-	// wait until the timer has expired
-	PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_TIMER);
-
-	// set the timer to 10 sec for use in the loop
-	etimer_set(&temperature_periodic_timer, 10*CLOCK_SECOND);
-
-	//everytime the timer event appears, get the temperature and reset the timer
-	
-	while(1){
-		PROCESS_YIELD();
-		if (etimer_expired(&temperature_periodic_timer)) {
-			etimer_reset(&temperature_periodic_timer);
-			temperature_get();
-		}
-	}
-	PROCESS_END();
 }

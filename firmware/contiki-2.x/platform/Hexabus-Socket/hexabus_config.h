@@ -8,10 +8,19 @@
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 1
+#define UDP_HANDLER_DEBUG 0
+
+// WebServer
+#define WEBSERVER_DEBUG 0
+
+// button
+#define BUTTON_DEBUG 0
+#define BUTTON_DOUBLE_CLICK_ENABLED 0
+#define BUTTON_HAS_EID 0 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
+#define BUTTON_TOGGLES_RELAY 1 // set to 1 to have the button toggle the relay directly
 
 // datetime_service
-#define DATETIME_SERVICE_ENABLE 0
+#define DATETIME_SERVICE_ENABLE 1
 #define DATETIME_SERVICE_DEBUG 0
 
 // temperature
@@ -21,16 +30,21 @@
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 1
-#define VALUE_BROADCAST_AUTO_EID 24
-#define VALUE_BROADCAST_AUTO_INTERVAL 0 //0 to disable automatic broadcast
+#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1 // Number of endpoints to broadcast automatically - set to 0 to disable
+#define VALUE_BROADCAST_AUTO_EIDS 2 // Comma-separated list of endpoints to broadcast automatically
+#define VALUE_BROADCAST_AUTO_INTERVAL 60 // Timeout in seconds
+#define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0 // Number of endpoints to "broadcast" to the local state machine
+#define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2 // Comma-separated list of eids to be sent to local state machine
 
 // state_machine
-#define STATE_MACHINE_ENABLE 0
+#define STATE_MACHINE_ENABLE 1
 #define STATE_MACHINE_DEBUG 0
 
-// shutter
+// window blind shutter motor control
 #define SHUTTER_ENABLE 0
-#define SHUTTER_DEBUG 0
+#define SHUTTER_DEBUG 1
+#define SHUTTER_CALIBRATE_ON_BOOT 1
+#define SHUTTER_INITIAL_POSITON 1
 
 // hexapush
 #define HEXAPUSH_ENABLE 0
@@ -42,6 +56,23 @@
 // presence detector
 #define PRESENCE_DETECTOR_ENABLE 0
 #define PRESENCE_DETECTOR_DEBUG 0
+#define PRESENCE_DETECTOR_SERVER 0
+#define PRESENCE_DETECTOR_CLIENT 1
+#define PRESENCE_DETECTOR_SERVER_TIMEOUT 3 // in Minutes
+#define PRESENCE_DETECTOR_CLIENT_GROUP 2 // 2 to 255
+#define PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE 60 // in seconds, 0 to disable
+
+// hexonoff
+#define HEXONOFF_ENABLE 0
+#define HEXONOFF_DEBUG 0
+#define HEXONOFF_INITIAL_VALUE 0
+
+// read analog input pin
+#define ANALOGREAD_ENABLE 0
+#define ANALOGREAD_DEBUG 1
+#define ANALOGREAD_PIN 0 // 0 to 7
+#define ANALOGREAD_MULT 0.0024414062 // readings are multiplied with this value to calculate the value sent to the endpoint. Set to 0.0024414062 to get the Voltage reading (in Volts) at 2.5V supply voltage
+#define ANALOGREAD_EID 29 // EID to be used for analogread
 
 // pressure sensor
 #define HEXAPRESSURE_ENABLE 1

@@ -158,6 +158,7 @@ clean:
         *.cprg *.bin *.data contiki*.a *.firmware core-labels.S *.ihex *.ini \
         *.ce *.co $(CLEAN)
 	-rm -rf $(OBJECTDIR)
+	-rm -f $(WEBCSOURCE)httpd-fsdata.c
 
 ifndef CUSTOM_RULE_C_TO_CE
 %.ce: %.c

@@ -12,6 +12,8 @@
 #include "hexabus_config.h"
 #include "endpoint_access.h"
 #include "temperature.h"
+#include "button.h"
+#include "analogread.h"
 
 uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
@@ -27,6 +29,10 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
     case 3:   // Endpoint 3: Temperature value 
       return HXB_DTYPE_FLOAT;
 #endif
+#if BUTTON_HAS_EID
+    case 4:
+      return HXB_DTYPE_BOOL;
+#endif
 #if SHUTTER_ENABLE
     case 23:
       return HXB_DTYPE_UINT8;
@@ -38,7 +44,16 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
 #endif
 #if PRESENCE_DETECTOR_ENABLE
     case 26:
-      return HXB_DTYPE_BOOL;
+      return HXB_DTYPE_UINT8;
+#endif
+#if HEXONOFF_ENABLE
+    case 27:
+    case 28:
+      return HXB_DTYPE_UINT8;
+#endif
+#if ANALOGREAD_ENABLE
+    case ANALOGREAD_EID:
+      return HXB_DTYPE_FLOAT;
 #endif
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
@@ -67,6 +82,11 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
       strncpy(buffer, "Temperature Sensor", 127);
       break;
 #endif
+#if BUTTON_HAS_EID
+    case 4:
+      strncpy(buffer, "Hexabus Socket Pushbutton", 127);
+      break;
+#endif
 #if SHUTTER_ENABLE
     case 23:
       strncpy(buffer, "Window Shutter", 127);
@@ -83,6 +103,19 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
 #if PRESENCE_DETECTOR_ENABLE
     case 26:
       strncpy(buffer, "Presence Detector", 127);
+      break;
+#endif
+#if HEXONOFF_ENABLE
+    case 27:
+      strncpy(buffer, "Hexonoff, your friendly output setter.", 127);
+      break;
+    case 28:
+      strncpy(buffer, "Hexonoff, your friendly output toggler.", 127);
+      break;
+#endif
+#if ANALOGREAD_ENABLE
+    case ANALOGREAD_EID:
+      strncpy(buffer, "Analog reader", 127);
       break;
 #endif
     default:
@@ -116,6 +149,9 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
 #if TEMPERATURE_ENABLE
     case 3:   // Endpoint 3: Temperature value on Hexabus Socket -- read-only
 #endif
+#if BUTTON_HAS_EID
+    case 4:
+#endif
       return HXB_ERR_WRITEREADONLY;
 #if SHUTTER_ENABLE
     case 23:
@@ -128,18 +164,36 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
 #endif
 #if PRESENCE_DETECTOR_ENABLE
     case 26:
-      if(value->datatype == HXB_DTYPE_BOOL)
+      if(value->datatype == HXB_DTYPE_UINT8)
       {
-        if(*(uint8_t*)&value->data == HXB_TRUE)
+        if(*(uint8_t*)&value->data == 1)
         {
-          no_motion_detected();
+            global_presence_detected();
+        } else if(*(uint8_t*)&value->data == 0) {
+            no_raw_presence();
         } else {
-          motion_detected();
+            raw_presence_detected();
         }
         return 0;
       } else {
         return HXB_ERR_DATATYPE;
       }
+#endif
+#if HEXONOFF_ENABLE
+    case 27:
+        if(value->datatype == HXB_DTYPE_UINT8) {
+            set_outputs(*(uint8_t*)&value->data);
+        } else {
+            return HXB_ERR_DATATYPE;
+        }
+        break;
+    case 28:
+        if(value->datatype == HXB_DTYPE_UINT8) {
+            toggle_outputs(*(uint8_t*)&value->data);
+        } else {
+            return HXB_ERR_DATATYPE;
+        }
+        break;
 #endif
     default:  // Default: Endpoint does not exist
       return HXB_ERR_UNKNOWNEID;
@@ -152,9 +206,24 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
   {
     case 0:   // Endpoint 0: Hexabus device descriptor
       val->datatype = HXB_DTYPE_UINT32;
-      *(uint32_t*)&val->data = 0x07;    // 0x07: 0..00111: Enpoints 0, 1 and 2 exist.
+      *(uint32_t*)&val->data = 0x03;    // 0x07: 0..00011: Enpoints 1 and 2 exist.
 #if TEMPERATURE_ENABLE
-      *(uint32_t*)&val->data += 0x08;      // +8: Endpoint 3 also exists
+      *(uint32_t*)&val->data += 0x04;      // +4: Endpoint 3 also exists
+#endif
+#if BUTTON_HAS_EID
+      *(uint32_t*)&val->data += 0x08; // +8: Endpoint 4 also exists
+#endif
+#if SHUTTER_ENABLE
+      *(uint32_t*)&val->data += 0x00400000; // set bit #22 for EID 23
+#endif
+#if HEXAPUSH_ENABLE
+      *(uint32_t*)&val->data += 0x01800000; // set bits 23 and 24 for EIDs 24 and 25
+#endif
+#if PRESENCE_DETECTOR_ENABLE
+      *(uint32_t*)&val->data += 0x02000000; // set bit 25 for EID 26
+#endif
+#if HEXONOFF_ENABLE
+      *(uint32_t*)&val->data += 0x0C000000; // set bits 26 and 27 for EIDs 27 and 28
 #endif
       break;
     case 1:   // Endpoint 1: Hexabus Socket power switch
@@ -169,6 +238,12 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case 3:   // Endpoint 3: Hexabus temperaure metering
       val->datatype = HXB_DTYPE_FLOAT;
       *(float*)&val->data = temperature_get();
+      break;
+#endif
+#if BUTTON_HAS_EID
+    case 4:   // Endpoint 4: Pushbutton on the Hexabus-Socket
+      val->datatype = HXB_DTYPE_BOOL;
+      *(uint8_t*)&val->data = button_get_pushed();
       break;
 #endif
 #if SHUTTER_ENABLE
@@ -189,9 +264,22 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
 #endif
 #if PRESENCE_DETECTOR_ENABLE
     case 26:
-      val->datatype = HXB_DTYPE_BOOL;
-      *(uint8_t*)&val->data = presence_active() == 0 ? HXB_FALSE : HXB_TRUE;
+      val->datatype = HXB_DTYPE_UINT8;
+      *(uint8_t*)&val->data = is_presence();
       break;
+#endif
+#if HEXONOFF_ENABLE
+    case 27:
+    case 28:
+        val->datatype = HXB_DTYPE_UINT8;
+        *(uint8_t*)&val->data = get_outputs();
+        break;
+#endif
+#if ANALOGREAD_ENABLE
+    case ANALOGREAD_EID:
+        val->datatype = HXB_DTYPE_FLOAT;
+        *(float*)&val->data = get_analogvalue();
+        break;
 #endif
     default:
       val->datatype = HXB_DTYPE_UNDEFINED;
