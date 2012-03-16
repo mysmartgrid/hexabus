@@ -14,7 +14,7 @@ include_directories(
 )
 file(GLOB all_hba_src *.cpp *.hpp)
 set(hba_src ${all_hba_src})
-ADD_LIBRARY(hexabus_assembler ${hba_src})
+ADD_LIBRARY(hba ${hba_src})
 
 #target_link_libraries(hexabus ${Boost_IOSTREAMS_LIBRARY})
 
