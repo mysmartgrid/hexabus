@@ -55,6 +55,16 @@ namespace hexabus {
 
   };
 
+  class UnreachableStateException : public GenericException{
+	public:
+	  typedef std::tr1::shared_ptr<UnreachableStateException> Ptr;
+	  UnreachableStateException (const std::string reason) :
+		hexabus::GenericException(reason) {};
+	  virtual ~UnreachableStateException() throw() {};
+
+  };
+
+
 }
 
 #endif /* LIBHBA_ERROR_HPP */

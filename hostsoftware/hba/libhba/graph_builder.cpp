@@ -95,6 +95,8 @@ struct second_pass : boost::static_visitor<> {
 
 };
 
+
+// TODO: Refactoring, move to separate class
 void GraphBuilder::check_unreachable_states() const {
   // an unreachable state has no incoming edge. So, iterate over
   // all vertices and compute the number of incoming edges. Raise exception
@@ -113,8 +115,11 @@ void GraphBuilder::check_unreachable_states() const {
 //	  in_edges(vertexID, graph);
 	graph_t::inv_adjacency_iterator inedgeIt, inedgeEnd;
     boost::tie(inedgeIt, inedgeEnd) = inv_adjacent_vertices(vertexID, graph);
-	if (inedgeIt == inedgeEnd)
-	  std::cout << vertex.name << " ist HORST!1!!" << std::endl;
+	if (inedgeIt == inedgeEnd) {
+	  std::ostringstream oss;
+	  oss << "State " << vertex.name << " is not reachable." << std::endl;
+	  throw UnreachableStateException(oss.str());
+	}
   }
 }
 
@@ -129,7 +134,12 @@ void GraphBuilder::operator()(hba_doc const& hba) const {
   {
 	boost::apply_visitor(second_pass(), block);
   }
+  try {
   check_unreachable_states();
+  } catch (UnreachableStateException& use) {
+	std::cout << "ERROR: " << use.what() << std::endl;
+	exit(-1);
+  }
   // initialize our graph instance
   //_g=graph;
 }
