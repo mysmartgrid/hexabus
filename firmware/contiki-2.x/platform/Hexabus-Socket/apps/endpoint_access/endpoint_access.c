@@ -60,10 +60,6 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
     case 30:
       return HXB_DTYPE_UINT32;
 #endif
-#if IR_SERVO_ENABLE
-    case 31:
-      return HXB_DTYPE_UINT8;
-#endif
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
   }
@@ -130,11 +126,6 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
 #if IR_RECEIVER_ENABLE
     case 30:
       strncpy(buffer, "IR remote control receiver", 127);
-      break;
-#endif
-#if IR_SERVO_ENABLE
-    case 31:
-      strncpy(buffer, "Servo controller", 127);
       break;
 #endif
     default:
@@ -209,15 +200,6 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
     case 28:
         if(value->datatype == HXB_DTYPE_UINT8) {
             toggle_outputs(*(uint8_t*)&value->data);
-        } else {
-            return HXB_ERR_DATATYPE;
-        }
-        break;
-#endif
-#if IR_SERVO_ENABLE
-    case 31:
-        if(value->datatype == HXB_DTYPE_UINT8) {
-            set_servo(*(uint8_t*)&value->data);
         } else {
             return HXB_ERR_DATATYPE;
         }
@@ -313,12 +295,6 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case 30:
         val->datatype = HXB_DTYPE_UINT32;
         *(uint32_t*)&val->data = ir_get_last_command();
-        break;
-#endif
-#if IR_SERVO_ENABLE
-    case 31:
-        val->datatype = HXB_DTYPE_UINT8;
-        *(uint8_t*)&val->data = get_servo();
         break;
 #endif
     default:

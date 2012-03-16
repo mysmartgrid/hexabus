@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include "process.h"
 
-#define COMP_VAL 100
+#define COMP_VAL 80
 #define IR_SAMSUNG 1   // 0 for standard NEC protocol
 
 //Code mapping (Samsung BN59-00940A remote)
@@ -44,10 +44,6 @@
 void ir_receiver_init();
 uint32_t ir_get_last_command();
 
-uint8_t get_servo(void);
-void set_servo(uint8_t pos);
-
 PROCESS_NAME(ir_receiver_process);
-PROCESS_NAME(servo_process);
 
 #endif /* IR_RECEIVER_H_ */
