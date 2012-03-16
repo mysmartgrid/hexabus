@@ -14,14 +14,13 @@
 #endif
 
 //TODO: initial value
-//static uint8_t is_day = TREPPENHAUSLICHT_IS_DAY;
+static uint8_t is_day = 0;
 struct datetime time;
 extern process_event_t day_night_switch_pressed_event;
 extern process_event_t day_night_switch_released_event;
 extern process_event_t day_night_switch_clicked_event;
 
 PROCESS(day_night_switch_process, "day/night switch process");
-//AUTOSTART_PROCESSES(&day_night_switch_process);
 
 PROCESS_THREAD(day_night_switch_process, ev, data)
 {
@@ -33,13 +32,35 @@ PROCESS_THREAD(day_night_switch_process, ev, data)
 	*(uint8_t*)&value->data = 8;
 	endpoint_write(27, value); // Set initial day/night signal to night
 	free(value);
+	// initialize timer
+	static struct etimer check_timer;
+	etimer_set(&check_timer, CLOCK_SECOND * 5);
 
 	while(1) {
 		PROCESS_WAIT_EVENT();
-		//TODO: Reset time to prevent invalid datetime
 
+		if(ev == PROCESS_EVENT_TIMER) {
+			//Reset time to prevent invalid datetime
+			PRINTF("day/night switch: timer event - resetting datetime\n");
+			if(is_day) {
+				time.hour = DAY_NIGHT_SWITCH_DAY_HOUR;
+			} else {
+				time.hour = DAY_NIGHT_SWITCH_NIGHT_HOUR;
+			}
+			time.minute = 0;
+			time.second = 0;
+			time.day = 1;
+			time.month = 1;
+			time.year = 1970;
+			time.weekday = 4;
+			struct hxb_envelope* envelope = malloc(sizeof(struct hxb_envelope));
+			memcpy(&(envelope->value.data), &(time), sizeof(struct datetime));
+			updateDatetime(envelope);
+			etimer_reset(&check_timer);
+		}
 		if(ev == day_night_switch_pressed_event) {
 			PRINTF("day/night switch: pressed event received\n");
+			is_day = 1;
 			time.hour = DAY_NIGHT_SWITCH_DAY_HOUR;
 			time.minute = 0;
 			time.second = 0;
@@ -59,6 +80,7 @@ PROCESS_THREAD(day_night_switch_process, ev, data)
 		if(ev == day_night_switch_released_event) {
 			PRINTF("day/night switch: released event received\n");
 
+			is_day = 0;
 			time.hour = DAY_NIGHT_SWITCH_NIGHT_HOUR;
 			time.minute = 0;
 			time.second = 0;
