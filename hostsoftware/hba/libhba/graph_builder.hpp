@@ -17,7 +17,7 @@ namespace hexabus {
   };
 
   typedef boost::adjacency_list<  // adjacency_list is a template depending on :
-	boost::listS,               //  The container used for egdes : here, std::list.
+	boost::vecS,               //  The container used for egdes : here, std::list.
 	boost::vecS,                //  The container used for vertices: here, std::vector.
 	//boost::directedS,           //  directed or undirected edges ?.
 	boost::bidirectionalS,           //  directed or undirected edges ?.
@@ -26,14 +26,15 @@ namespace hexabus {
   > graph_t; 
   typedef boost::graph_traits<graph_t>::vertex_descriptor vertex_id_t;
   typedef boost::graph_traits<graph_t>::edge_descriptor edge_id_t;
+  typedef std::tr1::shared_ptr<graph_t> graph_t_ptr;
 
   class GraphBuilder {
 	public:
 	  typedef std::tr1::shared_ptr<GraphBuilder> Ptr;
-	  GraphBuilder () : _g() {};
+	  GraphBuilder () : _g(new graph_t()) {};
 	  virtual ~GraphBuilder() {};
 
-	  const graph_t get_graph() const { return _g; };
+	  graph_t_ptr get_graph() const { return _g; };
 	  void write_graphviz(std::ostream& os);
 	  void operator()(hba_doc const& hba) const;
 
@@ -42,8 +43,8 @@ namespace hexabus {
 	  GraphBuilder& operator= (const GraphBuilder& rhs);
 
 	  void check_unreachable_states() const;
+	  graph_t_ptr _g;
 
-	  graph_t _g;
 
   };
 

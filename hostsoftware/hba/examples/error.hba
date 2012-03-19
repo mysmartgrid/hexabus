@@ -26,7 +26,7 @@ state uschi {
 state horst {
   if first {
 	set 25 := 1;
-	goodstate uschi;
+	goodstate pluto;
 	badstate horst;
   }
   if bar {
