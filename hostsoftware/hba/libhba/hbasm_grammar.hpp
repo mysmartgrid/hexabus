@@ -17,9 +17,18 @@
 #include <boost/spirit/include/support_multi_pass.hpp>
 #include <boost/spirit/include/classic_position_iterator.hpp>
 
+// File position helper
+//#include <boost/spirit/repository/home/qi/primitive/iter_pos.hpp>
+#include <libhba/file_pos.hpp>
+
+
 
 namespace qi = boost::spirit::qi;
 namespace classic = boost::spirit::classic;
+
+typedef std::istreambuf_iterator<char> base_iterator_type;
+typedef boost::spirit::multi_pass<base_iterator_type> forward_iterator_type;
+typedef classic::position_iterator2<forward_iterator_type> pos_iterator_type;
 
 namespace hexabus {
 
@@ -39,44 +48,58 @@ namespace hexabus {
   };
   std::vector<std::string> error_traceback_t::stack;
 
-//struct FileState
-//{
-//  FileState()
-//	: line (1)
-//  {}
-//
-//  int line;
-//};
-//
-//struct UpdateFileInfo
-//{
-//  UpdateFileInfo (FileState & state)
-//	: m_state (state)
-//  {}
-//
-//  template <typename ArgT1, typename ArgT2, typename ArgT3>
-//	void operator () (ArgT1 a1, ArgT2 a2, ArgT3 a3) const
-//	{
-//	  m_state.line++;
-//	  std::cout << "updatefileinfo(a1, a2, a3): " << std::endl
-//				<< "   " << typeid(a1).name() << std::endl
-//				 << "   " << typeid(a2).name() << std::endl
-//				<< "   " << typeid(a3).name() << std::endl
-//			 ;
-//	}
-//
-//  template <typename IteratorType>
-//	void operator () (IteratorType begin, IteratorType end) const
-//	{
-//	  m_state.line++;
-//	  std::cout << "updatefileinfo(b, e): " << std::endl
-//			    << "   " << typeid(begin).name() << std::endl
-//			    << "   " << typeid(end).name() << std::endl
-//																									 ;
-//	}
-//
-//  FileState & m_state;
-//};
+struct FileState
+{
+  FileState()
+	: line (1)
+  {}
+
+  int line;
+};
+
+struct UpdateFileInfo
+{
+  UpdateFileInfo (FileState & state)
+	: m_state (state)
+  {}
+
+  template <typename Iterator, typename ArgT1, typename ArgT2, typename ArgT3>
+	void operator () (Iterator begin, Iterator end, ArgT1 a1, ArgT2 a2, ArgT3 a3) const
+	{
+	  m_state.line++;
+	  std::cout << "updatefileinfo(begin, end, a1, a2, a3): " << std::endl
+				<< "   " << typeid(begin).name() << std::endl
+				<< "   " << typeid(end).name() << std::endl
+				<< "   " << typeid(a1).name() << std::endl
+				 << "   " << typeid(a2).name() << std::endl
+				<< "   " << typeid(a3).name() << std::endl
+			 ;
+	}
+
+
+  template <typename ArgT1, typename ArgT2, typename ArgT3>
+	void operator () (ArgT1 a1, ArgT2 a2, ArgT3 a3) const
+	{
+	  m_state.line++;
+	  std::cout << "updatefileinfo(a1, a2, a3): " << std::endl
+				<< "   " << typeid(a1).name() << std::endl
+				 << "   " << typeid(a2).name() << std::endl
+				<< "   " << typeid(a3).name() << std::endl
+			 ;
+	}
+
+  template <typename IteratorType>
+	void operator () (IteratorType begin, IteratorType end) const
+	{
+	  m_state.line++;
+	  std::cout << "updatefileinfo(b, e): " << std::endl
+			    << "   " << typeid(begin).name() << std::endl
+			    << "   " << typeid(end).name() << std::endl
+																									 ;
+	}
+
+  FileState & m_state;
+};
 
 
 
@@ -90,9 +113,12 @@ namespace hexabus {
 	{
 	  typedef skipper<Iterator> Skip;
 
-	  hexabus_asm_grammar(std::vector<std::string>& error_hints)
-		: hexabus_asm_grammar::base_type(start),
-		_error_hints(error_hints)
+	  hexabus_asm_grammar(
+		  std::vector<std::string>& error_hints,
+		  pos_iterator_type& current_position
+		) : hexabus_asm_grammar::base_type(start), 
+			_error_hints(error_hints),
+			_current_position(current_position)
 	  {
 		using qi::lit;
 		using qi::lexeme;
@@ -111,6 +137,7 @@ namespace hexabus {
 		using boost::spirit::_4;
 		using boost::spirit::eps;
 		using boost::spirit::eoi;
+		using boost::spirit::repository::qi::file_pos;
 
 		using phoenix::construct;
 		using phoenix::val;
@@ -155,8 +182,8 @@ namespace hexabus {
 			);
 
 		condition %= 
-		  lit("condition") [bind(&condition_doc::lineno, _val) = 23]
-		  //		  lit("condition") [UpdateFileInfo(file_state)]
+		  lit("condition") 
+		  >> file_pos	
 		  > identifier
 		  > '{'
 		  > lit("ip") > is > ipv6_address > ';' 
@@ -171,6 +198,7 @@ namespace hexabus {
 
 		if_clause %=
 		  lit("if")
+		  >> file_pos	
 		  > identifier
 		  > '{'
 		  > lit("set") > eid_value > is > uint_ > ';'
@@ -184,6 +212,7 @@ namespace hexabus {
 			);
 
 		state %= lit("state") 
+		  >> file_pos	
 		  > identifier
 		  > '{'
 		  > *(if_clause)
@@ -229,8 +258,9 @@ namespace hexabus {
 	  // TODO: Write a custom rule to extract the line number (see eps parser in boost)
 
 	  std::vector<std::string>& _error_hints;
+	  pos_iterator_type& _current_position;
 
-	  //FileState file_state; 
+	  FileState file_state; 
 	};
 
 

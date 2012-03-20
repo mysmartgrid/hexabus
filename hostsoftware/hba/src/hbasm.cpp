@@ -83,10 +83,12 @@ int main(int argc, char **argv)
 
   std::vector<std::string> error_hints;
   typedef hexabus::hexabus_asm_grammar<pos_iterator_type> hexabus_asm_grammar;
-  hexabus_asm_grammar grammar(error_hints); // Our grammar
+  hexabus_asm_grammar grammar(error_hints, position_begin); // Our grammar
   typedef hexabus::skipper<pos_iterator_type> Skip;
   Skip skipper;
   hexabus::hba_doc ast; // Our tree
+
+  std::cout << "Starting in line " << (position_begin.get_position()).line << std::endl;
 
   using boost::spirit::ascii::space;
   using boost::spirit::ascii::char_;

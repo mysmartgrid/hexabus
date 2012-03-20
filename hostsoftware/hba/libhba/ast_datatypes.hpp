@@ -68,6 +68,7 @@ namespace hexabus {
 
 BOOST_FUSION_ADAPT_STRUCT(
 	hexabus::if_clause_doc,
+	(unsigned int, lineno)
 	(std::string, name)
 	(unsigned int, eid)
 	(unsigned int, value)
@@ -77,12 +78,14 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
 	hexabus::state_doc,
+	(unsigned int, lineno)
 	(std::string, name)
 	(std::vector<hexabus::if_clause_doc>, if_clauses)
 	)
 
 BOOST_FUSION_ADAPT_STRUCT(
 	hexabus::condition_doc,
+	(unsigned int, lineno)
 	(std::string, name)
 	(std::string, ipv6_address)
 	(unsigned int, eid)
