@@ -8,12 +8,16 @@
 #include <string>
 
 namespace hexabus {
+  enum vertex_type {CONDITION, STATE, STARTSTATE};
   struct vertex_t{
 	std::string name; 
+	vertex_type type;
   };
 
+  enum edge_type {GOOD_STATE, BAD_STATE, FROM_STATE};
   struct edge_t{
 	std::string name; 
+	edge_type type;
   };
 
   typedef boost::adjacency_list<  // adjacency_list is a template depending on :
@@ -36,13 +40,14 @@ namespace hexabus {
 
 	  graph_t_ptr get_graph() const { return _g; };
 	  void write_graphviz(std::ostream& os);
-	  void operator()(hba_doc const& hba) const;
+	  void operator()(hba_doc const& hba);
 
 	private:
 	  GraphBuilder (const GraphBuilder& original);
 	  GraphBuilder& operator= (const GraphBuilder& rhs);
 
 	  void check_unreachable_states() const;
+	  void mark_start_state(const std::string& name);
 	  graph_t_ptr _g;
 
 

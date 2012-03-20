@@ -1,4 +1,5 @@
 #include "graph_builder.hpp"
+#include <libhba/label_writer.hpp>
 #include <boost/foreach.hpp>
 #include <boost/utility.hpp>
 #include <boost/graph/graphviz.hpp>
@@ -20,11 +21,15 @@ struct first_pass : boost::static_visitor<> {
 	//std::cout << '{' << std::endl;
 	vertex_id_t v_id=boost::add_vertex((*_g));
 	(*_g)[v_id].name = std::string(hba_state.name);
+	(*_g)[v_id].type = STATE;
   }
 
-  // we do not evaluate the conditions.
-  void operator()(condition_doc const& hba) const
-  {}
+  void operator()(condition_doc const& hba_cond) const
+  {
+	vertex_id_t v_id=boost::add_vertex((*_g));
+	(*_g)[v_id].name = std::string(hba_cond.name);
+	(*_g)[v_id].type = CONDITION;
+  }
 
   graph_t_ptr _g;
 
@@ -56,23 +61,45 @@ struct second_pass : boost::static_visitor<> {
 	bool ok;
 	try {
 	  vertex_id_t from_state = find_vertex(from_state_name);
+	  vertex_id_t condition = find_vertex(clause.name);
 	  vertex_id_t good_state = find_vertex(clause.goodstate);
 	  vertex_id_t bad_state = find_vertex(clause.badstate);
 
 	  edge_id_t edge;
-	  boost::tie(edge, ok) = boost::add_edge(from_state, good_state, (*_g));
-	  if (ok)
-		(*_g)[edge].name=std::string("G:")+clause.name;
-	  else std::cout << "Cannot link states " 
-		<< from_state_name << " and " << clause.goodstate << std::endl;
+	  boost::tie(edge, ok) = boost::add_edge(from_state, condition, (*_g));
+	  if (ok) {
+		(*_g)[edge].type = FROM_STATE;
+	  } else {
+		std::ostringstream oss;
+		oss << "Cannot link state " 
+		  << from_state_name << " with condition " << clause.name;
+		throw EdgeLinkException(oss.str());
+	  }
 
-	  boost::tie(edge, ok) = boost::add_edge(from_state, bad_state, (*_g));
-	  if (ok)
-		(*_g)[edge].name=std::string("B:")+clause.name;
-	  else std::cout << "Cannot link states " 
-		<< from_state_name << " and " << clause.badstate<< std::endl;
-	} catch (VertexNotFoundException& vnfe) {
-	  std::cerr << vnfe.what() << " while processing clause "
+	  boost::tie(edge, ok) = boost::add_edge(condition, good_state, (*_g));
+	  if (ok) {
+		(*_g)[edge].name=std::string("G");
+		(*_g)[edge].type = GOOD_STATE;
+	  } else {
+		std::ostringstream oss;
+		oss << "Cannot link condition " 
+		<< clause.name << " with good state " << clause.badstate<< std::endl;
+		throw EdgeLinkException(oss.str());
+	  }
+
+	  boost::tie(edge, ok) = boost::add_edge(condition, bad_state, (*_g));
+	  if (ok) {
+		(*_g)[edge].name=std::string("B");
+		(*_g)[edge].type = BAD_STATE;
+	  } else {
+		std::ostringstream oss;
+		oss << "Cannot link condition " 
+		  << clause.name << " with bad state " << clause.badstate<< std::endl;
+		throw EdgeLinkException(oss.str());
+	  }
+		
+	} catch (GenericException & ge) {
+	  std::cerr << ge.what() << " while processing clause "
 		<< clause.name << " of state " << from_state_name 
 		<< " (line " << clause.lineno << ")"
 		<< std::endl << "Aborting." << std::endl;
@@ -91,7 +118,7 @@ struct second_pass : boost::static_visitor<> {
 	}
   }
 
-  // We don't evaluate conditions.
+  // We don't evaluate conditions here.
   void operator()(condition_doc const& hba) const
   { }
 
@@ -113,9 +140,6 @@ void GraphBuilder::check_unreachable_states() const {
 	vertex_t & vertex = (*_g)[vertexID];
 
 	// 2. Check number of incoming edges.
-//	graph_t::in_edge_iterator inedgeIt, inedgeEnd;
-//	boost::tie(inedgeIt, inedgeEnd) = 
-//	  in_edges(vertexID, graph);
 	graph_t::inv_adjacency_iterator inedgeIt, inedgeEnd;
     boost::tie(inedgeIt, inedgeEnd) = inv_adjacent_vertices(vertexID, (*_g));
 	if (inedgeIt == inedgeEnd) {
@@ -126,11 +150,35 @@ void GraphBuilder::check_unreachable_states() const {
   }
 }
 
-void GraphBuilder::operator()(hba_doc const& hba) const {
+void GraphBuilder::mark_start_state(const std::string& name) {
+	graph_t::vertex_iterator vertexIt, vertexEnd;
+	boost::tie(vertexIt, vertexEnd) = vertices((*_g));
+	for (; vertexIt != vertexEnd; ++vertexIt){
+	  vertex_id_t vertexID = *vertexIt; // dereference vertexIt, get the ID
+	  vertex_t & vertex = (*_g)[vertexID];
+	  if (name == vertex.name) {
+		vertex.type=STARTSTATE;
+		return;
+	  } 
+	}
+	// we have not found an vertex id.
+	std::ostringstream oss;
+	oss << "state " << name << " not found.";
+	throw VertexNotFoundException(oss.str());
+}
+
+
+void GraphBuilder::operator()(hba_doc const& hba) {
   // 1st pass: grab all the states from the hba_doc
   BOOST_FOREACH(hba_doc_block const& block, hba.blocks)
   {
 	boost::apply_visitor(first_pass(_g), block);
+  }
+  // pass 1.1: mark the start state (which should be defined now)
+  try {
+	mark_start_state(hba.start_state);
+  } catch (VertexNotFoundException& vnfe) {
+	std::cout << "ERROR: cannot assign start state, " << vnfe.what() << std::endl;
   }
   // 2nd pass: now add the edges in the second pass
   BOOST_FOREACH(hba_doc_block const& block, hba.blocks)
@@ -138,34 +186,50 @@ void GraphBuilder::operator()(hba_doc const& hba) const {
 	boost::apply_visitor(second_pass(_g), block);
   }
   try {
-	check_unreachable_states();
+	;;
+//	check_unreachable_states();
   } catch (UnreachableStateException& use) {
 	std::cout << "ERROR: " << use.what() << std::endl;
 	exit(-1);
   }
-  // initialize our graph instance
-  //copy_graph(graph, _g);
-
 }
 
 
 void GraphBuilder::write_graphviz(std::ostream& os) {
   std::map<std::string,std::string> graph_attr, vertex_attr, edge_attr;
-  graph_attr["size"] = "3,3";
+  //graph_attr["size"] = "3,3";
   graph_attr["rankdir"] = "LR";
   graph_attr["ratio"] = "fill";
   vertex_attr["shape"] = "circle";
 
-  boost::dynamic_properties dp;
-  dp.property("label", boost::get(&vertex_t::name, (*_g)));
-  dp.property("node_id", boost::get(boost::vertex_index, (*_g)));
-  dp.property("label", boost::get(&edge_t::name, (*_g)));
+  //boost::dynamic_properties dp;
+  //dp.property("label", boost::get(&vertex_t::name, (*_g)));
+  //dp.property("node_id", boost::get(boost::vertex_index, (*_g)));
+  //dp.property("label", boost::get(&edge_t::name, (*_g)));
+
+ // graph_t::vertex_iterator vertexIt, vertexEnd;
+ // boost::tie(vertexIt, vertexEnd) = vertices((*_g));
+ // for (; vertexIt != vertexEnd; ++vertexIt){
+ //   vertex_id_t vertexID = *vertexIt; // dereference vertexIt, get the ID
+ //   make_state_cond_label_writer(
+ //   	boost::get(&vertex_t::name, (*_g)),
+ //   	boost::get(&vertex_t::type, (*_g))
+ //     )(std::cout, vertexID);
+ //   std::cout << std::endl;
+ // }
+
 
   boost::write_graphviz(os, (*_g), 
-	  boost::make_label_writer(boost::get(&vertex_t::name, (*_g))), //_names[0]),
-	boost::make_label_writer(boost::get(&edge_t::name, (*_g))), //_names[0]),
+	//boost::make_label_writer(boost::get(&vertex_t::name, (*_g))), //_names[0]),
+	make_state_cond_label_writer(
+		boost::get(&vertex_t::name, (*_g)),
+		boost::get(&vertex_t::type, (*_g))),
+	//boost::make_label_writer(boost::get(&edge_t::name, (*_g))), //_names[0]),
+	make_edge_label_writer(
+		boost::get(&edge_t::name, (*_g)),
+		boost::get(&edge_t::type, (*_g))),
 	boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr)
-	  );
+  );
 }
 
 

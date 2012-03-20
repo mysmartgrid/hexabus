@@ -37,12 +37,12 @@ namespace hexabus {
 	  std::string _reason;
   };
 
-  class CommunicationException : public GenericException{
+  class EdgeLinkException : public GenericException{
 	public:
-	  typedef std::tr1::shared_ptr<CommunicationException> Ptr;
-	  CommunicationException (const std::string reason) :
+	  typedef std::tr1::shared_ptr<EdgeLinkException> Ptr;
+	  EdgeLinkException (const std::string reason) :
 		hexabus::GenericException(reason) {};
-	  virtual ~CommunicationException() throw() {};
+	  virtual ~EdgeLinkException() throw() {};
 
   };
   

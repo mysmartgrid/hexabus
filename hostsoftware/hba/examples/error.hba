@@ -1,4 +1,4 @@
-startstate bar;
+startstate uschi;
 condition first {
   ip := aa::bb:cc:dd:ee ;
   eid := 25; 
@@ -29,7 +29,7 @@ state horst {
 	goodstate pluto;
 	badstate horst;
   }
-  if bar {
+  if second {
 	set 25 := 1;
 	goodstate uschi;
 	badstate horst;

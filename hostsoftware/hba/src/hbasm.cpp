@@ -88,8 +88,6 @@ int main(int argc, char **argv)
   Skip skipper;
   hexabus::hba_doc ast; // Our tree
 
-  std::cout << "Starting in line " << (position_begin.get_position()).line << std::endl;
-
   using boost::spirit::ascii::space;
   using boost::spirit::ascii::char_;
 
