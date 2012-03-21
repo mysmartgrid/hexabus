@@ -11,12 +11,14 @@ namespace hexabus {
   enum vertex_type {CONDITION, STATE, STARTSTATE};
   struct vertex_t{
 	std::string name; 
+	unsigned int lineno;
 	vertex_type type;
   };
 
   enum edge_type {GOOD_STATE, BAD_STATE, FROM_STATE};
   struct edge_t{
 	std::string name; 
+	unsigned int lineno;
 	edge_type type;
   };
 
@@ -46,7 +48,10 @@ namespace hexabus {
 	  GraphBuilder (const GraphBuilder& original);
 	  GraphBuilder& operator= (const GraphBuilder& rhs);
 
-	  void check_unreachable_states() const;
+	  void check_states_incoming() const;
+	  void check_states_outgoing() const;
+	  void check_conditions_incoming() const;
+	  void check_conditions_outgoing() const;
 	  void mark_start_state(const std::string& name);
 	  graph_t_ptr _g;
 

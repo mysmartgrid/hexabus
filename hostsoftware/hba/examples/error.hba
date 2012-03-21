@@ -10,6 +10,17 @@ condition second {
   value < 3;
 # this is a comment
 }
+condition third {
+  ip := aa::bb:cc:dd:ee ;
+  eid := 25; 
+  value > 3;
+}
+condition fourth {
+  ip := aa::bb:cc:dd:ee ;
+  eid := 25; 
+  value < 3;
+# this is a comment
+}
 # this is a comment
 state uschi {
   if first {
@@ -24,18 +35,16 @@ state uschi {
   }
 }
 state horst {
-  if first {
+  if third {
 	set 25 := 1;
-	goodstate pluto;
+	goodstate uschi;
 	badstate horst;
   }
-  if second {
+  if fourth {
 	set 25 := 1;
 	goodstate uschi;
 	badstate horst;
   }
 }
-state pluto {
 
-}
 

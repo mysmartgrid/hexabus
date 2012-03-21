@@ -14,11 +14,11 @@ namespace hexabus {
     template <class VertexOrEdge>
     void operator()(std::ostream& out, const VertexOrEdge& v) const {
 	  if (type[v] == STATE) {
-		out << "[shape=oval,label=\"" << name[v] << "\"]";
+		out << "[shape=oval,rank=source,label=\"" << name[v] << "\"]";
 	  } else if (type[v] == CONDITION) {
-		out << "[shape=box,label=\"" << name[v] << "\"]";
+		out << "[shape=box,rank=min,label=\"" << name[v] << "\"]";
 	  } else if (type[v] == STARTSTATE) {
-		out << "[shape=hexagon,label=\"" << name[v] << "\"]";
+		out << "[shape=hexagon,rank=max,label=\"" << name[v] << "\"]";
 	  } else {
 		std::ostringstream oss;
 		oss << "Unknown vertex type for vertex " << name[v]; 

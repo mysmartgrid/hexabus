@@ -55,12 +55,22 @@ namespace hexabus {
 
   };
 
-  class UnreachableStateException : public GenericException{
+  class UnreachableException : public GenericException{
 	public:
-	  typedef std::tr1::shared_ptr<UnreachableStateException> Ptr;
-	  UnreachableStateException (const std::string reason) :
+	  typedef std::tr1::shared_ptr<UnreachableException> Ptr;
+	  UnreachableException (const std::string reason) :
 		hexabus::GenericException(reason) {};
-	  virtual ~UnreachableStateException() throw() {};
+	  virtual ~UnreachableException() throw() {};
+
+  };
+
+
+  class UnleavableException : public GenericException{
+	public:
+	  typedef std::tr1::shared_ptr<UnleavableException> Ptr;
+	  UnleavableException (const std::string reason) :
+		hexabus::GenericException(reason) {};
+	  virtual ~UnleavableException() throw() {};
 
   };
 

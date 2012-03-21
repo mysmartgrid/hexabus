@@ -21,6 +21,7 @@ struct first_pass : boost::static_visitor<> {
 	//std::cout << '{' << std::endl;
 	vertex_id_t v_id=boost::add_vertex((*_g));
 	(*_g)[v_id].name = std::string(hba_state.name);
+	(*_g)[v_id].lineno = hba_state.lineno;
 	(*_g)[v_id].type = STATE;
   }
 
@@ -28,6 +29,7 @@ struct first_pass : boost::static_visitor<> {
   {
 	vertex_id_t v_id=boost::add_vertex((*_g));
 	(*_g)[v_id].name = std::string(hba_cond.name);
+	(*_g)[v_id].lineno = hba_cond.lineno;
 	(*_g)[v_id].type = CONDITION;
   }
 
@@ -126,30 +128,6 @@ struct second_pass : boost::static_visitor<> {
 };
 
 
-// TODO: Refactoring, move to separate class
-void GraphBuilder::check_unreachable_states() const {
-  // an unreachable state has no incoming edge. So, iterate over
-  // all vertices and compute the number of incoming edges. Raise exception
-  // if an vertex has no incoming edges, i.e. is unreachable.
-
-  // 1. iterate over all vertices.
-  graph_t::vertex_iterator vertexIt, vertexEnd;
-  boost::tie(vertexIt, vertexEnd) = vertices((*_g));
-  for (; vertexIt != vertexEnd; ++vertexIt){
-	vertex_id_t vertexID = *vertexIt; // dereference vertexIt, get the ID
-	vertex_t & vertex = (*_g)[vertexID];
-
-	// 2. Check number of incoming edges.
-	graph_t::inv_adjacency_iterator inedgeIt, inedgeEnd;
-    boost::tie(inedgeIt, inedgeEnd) = inv_adjacent_vertices(vertexID, (*_g));
-	if (inedgeIt == inedgeEnd) {
-	  std::ostringstream oss;
-	  oss << "State " << vertex.name << " is not reachable." << std::endl;
-	  throw UnreachableStateException(oss.str());
-	}
-  }
-}
-
 void GraphBuilder::mark_start_state(const std::string& name) {
 	graph_t::vertex_iterator vertexIt, vertexEnd;
 	boost::tie(vertexIt, vertexEnd) = vertices((*_g));
@@ -166,6 +144,122 @@ void GraphBuilder::mark_start_state(const std::string& name) {
 	oss << "state " << name << " not found.";
 	throw VertexNotFoundException(oss.str());
 }
+
+
+// TODO: Refactoring, move to separate class
+void GraphBuilder::check_states_incoming() const {
+  // an unreachable state has no incoming edge. So, iterate over
+  // all vertices and compute the number of incoming edges. Raise exception
+  // if an vertex has no incoming edges, i.e. is unreachable.
+
+  // 1. iterate over all vertices.
+  graph_t::vertex_iterator vertexIt, vertexEnd;
+  boost::tie(vertexIt, vertexEnd) = vertices((*_g));
+  for (; vertexIt != vertexEnd; ++vertexIt){
+	vertex_id_t vertexID = *vertexIt; // dereference vertexIt, get the ID
+	vertex_t & vertex = (*_g)[vertexID];
+	// if this vertex is a state - ignore conditions
+	if (vertex.type == STATE || vertex.type == STARTSTATE) {
+	  // 2. Check number of incoming edges.
+	  graph_t::inv_adjacency_iterator inedgeIt, inedgeEnd;
+	  boost::tie(inedgeIt, inedgeEnd) = inv_adjacent_vertices(vertexID, (*_g));
+	  if (std::distance(inedgeIt, inedgeEnd) == 0) {
+		std::ostringstream oss;
+		oss << "State " << vertex.name << " (line " 
+		  << vertex.lineno << ") is not reachable." << std::endl;
+		throw UnreachableException(oss.str());
+	  }
+	}
+  }
+}
+
+void GraphBuilder::check_states_outgoing() const {
+  // an end state has no outgoing edges. So, iterate over
+  // all vertices and compute the number of outgoing edges. Raise exception
+  // if an vertex has no outgoing edges, i.e. is an endstate.
+
+  // 1. iterate over all vertices.
+  graph_t::vertex_iterator vertexIt, vertexEnd;
+  boost::tie(vertexIt, vertexEnd) = vertices((*_g));
+  for (; vertexIt != vertexEnd; ++vertexIt){
+	vertex_id_t vertexID = *vertexIt; // dereference vertexIt, get the ID
+	vertex_t & vertex = (*_g)[vertexID];
+	// if this vertex is a state - ignore conditions
+	if (vertex.type == STATE || vertex.type == STARTSTATE) {
+	  // 2. Check number of outgoing edges.
+	  graph_t::adjacency_iterator inedgeIt, inedgeEnd;
+	  boost::tie(inedgeIt, inedgeEnd) = adjacent_vertices(vertexID, (*_g));
+	  if (std::distance(inedgeIt, inedgeEnd) == 0) {
+		std::ostringstream oss;
+		oss << "State " << vertex.name << " (line " 
+		  << vertex.lineno << ") cannot be left." << std::endl;
+		throw UnleavableException(oss.str());
+	  }
+	}
+  }
+}
+
+void GraphBuilder::check_conditions_incoming() const {
+  // an unreachable condition has no incoming edge. So, iterate over
+  // all vertices and compute the number of incoming edges. Raise exception
+  // if a condition has no incoming edges, i.e. is unreachable.
+
+  // 1. iterate over all vertices.
+  graph_t::vertex_iterator vertexIt, vertexEnd;
+  boost::tie(vertexIt, vertexEnd) = vertices((*_g));
+  for (; vertexIt != vertexEnd; ++vertexIt){
+	vertex_id_t vertexID = *vertexIt; // dereference vertexIt, get the ID
+	vertex_t & vertex = (*_g)[vertexID];
+	// if this vertex is a condition
+	if (vertex.type == CONDITION) {
+	  // 2. Check number of incoming edges.
+	  graph_t::inv_adjacency_iterator inedgeIt, inedgeEnd;
+	  boost::tie(inedgeIt, inedgeEnd) = inv_adjacent_vertices(vertexID, (*_g));
+	  if (std::distance(inedgeIt, inedgeEnd) == 0) {
+		std::ostringstream oss;
+		oss << "Condition " << vertex.name << " (line " 
+		  << vertex.lineno << ") is not reachable." << std::endl;
+		throw UnreachableException(oss.str());
+	  }
+	}
+  }
+}
+
+void GraphBuilder::check_conditions_outgoing() const {
+  // an end condition has no outgoing edges. So, iterate over
+  // all vertices and compute the number of outgoing edges. Raise exception
+  // if an vertex has not two outgoing edges, i.e. goodstate and badstate 
+  // are missing.
+
+  // 1. iterate over all vertices.
+  graph_t::vertex_iterator vertexIt, vertexEnd;
+  boost::tie(vertexIt, vertexEnd) = vertices((*_g));
+  for (; vertexIt != vertexEnd; ++vertexIt){
+	vertex_id_t vertexID = *vertexIt; // dereference vertexIt, get the ID
+	vertex_t & vertex = (*_g)[vertexID];
+	// if this vertex is a condition
+	if (vertex.type == CONDITION) {
+	  // 2. Check number of outgoing edges.
+	  graph_t::adjacency_iterator inedgeIt, inedgeEnd;
+	  boost::tie(inedgeIt, inedgeEnd) = adjacent_vertices(vertexID, (*_g));
+	  size_t num_follow_states=std::distance(inedgeIt, inedgeEnd);
+	  if (num_follow_states != 2) {
+		std::ostringstream oss;
+		oss << "Condition " << vertex.name << " (line " 
+		  << vertex.lineno << ") has " << num_follow_states 
+		  << " following states - expected two." << std::endl;
+		oss << "Follow-up states are:" << std::endl;
+		for (; inedgeIt != inedgeEnd; ++inedgeIt) {
+		  vertex_id_t f_vertexID = *inedgeIt; // dereference vertexIt, get the ID
+		  vertex_t & f_vertex = (*_g)[f_vertexID];
+		  oss << "- " << f_vertex.name << std::endl;
+		}
+		throw UnleavableException(oss.str());
+	  }
+	}
+  }
+}
+
 
 
 void GraphBuilder::operator()(hba_doc const& hba) {
@@ -186,10 +280,12 @@ void GraphBuilder::operator()(hba_doc const& hba) {
 	boost::apply_visitor(second_pass(_g), block);
   }
   try {
-	;;
-//	check_unreachable_states();
-  } catch (UnreachableStateException& use) {
-	std::cout << "ERROR: " << use.what() << std::endl;
+	check_states_incoming();
+	check_states_outgoing();
+	check_conditions_incoming();
+	check_conditions_outgoing();
+  } catch (GenericException& ge) {
+	std::cout << "ERROR: " << ge.what() << std::endl;
 	exit(-1);
   }
 }
@@ -198,7 +294,7 @@ void GraphBuilder::operator()(hba_doc const& hba) {
 void GraphBuilder::write_graphviz(std::ostream& os) {
   std::map<std::string,std::string> graph_attr, vertex_attr, edge_attr;
   //graph_attr["size"] = "3,3";
-  graph_attr["rankdir"] = "LR";
+ // graph_attr["rankdir"] = "LR";
   graph_attr["ratio"] = "fill";
   vertex_attr["shape"] = "circle";
 
@@ -207,20 +303,20 @@ void GraphBuilder::write_graphviz(std::ostream& os) {
   //dp.property("node_id", boost::get(boost::vertex_index, (*_g)));
   //dp.property("label", boost::get(&edge_t::name, (*_g)));
 
- // graph_t::vertex_iterator vertexIt, vertexEnd;
- // boost::tie(vertexIt, vertexEnd) = vertices((*_g));
- // for (; vertexIt != vertexEnd; ++vertexIt){
- //   vertex_id_t vertexID = *vertexIt; // dereference vertexIt, get the ID
- //   make_state_cond_label_writer(
- //   	boost::get(&vertex_t::name, (*_g)),
- //   	boost::get(&vertex_t::type, (*_g))
- //     )(std::cout, vertexID);
- //   std::cout << std::endl;
- // }
+  // graph_t::vertex_iterator vertexIt, vertexEnd;
+  // boost::tie(vertexIt, vertexEnd) = vertices((*_g));
+  // for (; vertexIt != vertexEnd; ++vertexIt){
+  //   vertex_id_t vertexID = *vertexIt; // dereference vertexIt, get the ID
+  //   make_state_cond_label_writer(
+  //   	boost::get(&vertex_t::name, (*_g)),
+  //   	boost::get(&vertex_t::type, (*_g))
+  //     )(std::cout, vertexID);
+  //   std::cout << std::endl;
+  // }
 
 
   boost::write_graphviz(os, (*_g), 
-	//boost::make_label_writer(boost::get(&vertex_t::name, (*_g))), //_names[0]),
+	  //boost::make_label_writer(boost::get(&vertex_t::name, (*_g))), //_names[0]),
 	make_state_cond_label_writer(
 		boost::get(&vertex_t::name, (*_g)),
 		boost::get(&vertex_t::type, (*_g))),
@@ -229,7 +325,7 @@ void GraphBuilder::write_graphviz(std::ostream& os) {
 		boost::get(&edge_t::name, (*_g)),
 		boost::get(&edge_t::type, (*_g))),
 	boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr)
-  );
+	  );
 }
 
 
