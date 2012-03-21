@@ -138,6 +138,9 @@
 #if I2C_ENABLE
 #include "i2c.h"
 #endif
+#if HUMIDITY_ENABLE
+#include "humidity.h"
+#endif
 
 uint8_t nSensors = 0; //number of found temperature sensors
 

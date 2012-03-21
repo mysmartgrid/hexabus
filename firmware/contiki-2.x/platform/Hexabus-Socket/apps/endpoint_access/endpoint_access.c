@@ -14,6 +14,7 @@
 #include "temperature.h"
 #include "button.h"
 #include "analogread.h"
+#include "humidity.h"
 
 uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
@@ -32,6 +33,10 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
 #if BUTTON_HAS_EID
     case 4:
       return HXB_DTYPE_BOOL;
+#endif
+#if HUMIDITY_ENABLE
+    case 5:
+      return HXB_DTYPE_FLOAT;
 #endif
 #if SHUTTER_ENABLE
     case 23:
@@ -85,6 +90,11 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
 #if BUTTON_HAS_EID
     case 4:
       strncpy(buffer, "Hexabus Socket Pushbutton", 127);
+      break;
+#endif
+#if HUMIDITY_ENABLE
+    case 5:
+      strncpy(buffer, "Humidity sensor", 127);
       break;
 #endif
 #if SHUTTER_ENABLE
@@ -151,6 +161,9 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
 #endif
 #if BUTTON_HAS_EID
     case 4:
+#endif
+#if HUMIDITY_ENABLE
+    case 5:
 #endif
       return HXB_ERR_WRITEREADONLY;
 #if SHUTTER_ENABLE
@@ -244,6 +257,12 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case 4:   // Endpoint 4: Pushbutton on the Hexabus-Socket
       val->datatype = HXB_DTYPE_BOOL;
       *(uint8_t*)&val->data = button_get_pushed();
+      break;
+#endif
+#if HUMIDITY_ENABLE
+    case 5:
+      val->datatype = HXB_DTYPE_FLOAT;
+      *(float*)&val->data = read_humidity();
       break;
 #endif
 #if SHUTTER_ENABLE

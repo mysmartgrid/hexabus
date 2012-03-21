@@ -31,7 +31,7 @@
 #define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 1
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1 // Number of endpoints to broadcast automatically - set to 0 to disable
-#define VALUE_BROADCAST_AUTO_EIDS 2 // Comma-separated list of endpoints to broadcast automatically
+#define VALUE_BROADCAST_AUTO_EIDS 5 // Comma-separated list of endpoints to broadcast automatically
 #define VALUE_BROADCAST_AUTO_INTERVAL 60 // Timeout in seconds
 #define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0 // Number of endpoints to "broadcast" to the local state machine
 #define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2 // Comma-separated list of eids to be sent to local state machine
@@ -76,6 +76,10 @@
 
 //i2c master
 #define I2C_ENABLE 1
-#define I2C_DEBUG 1
+#define I2C_DEBUG 0
+
+//humidity sensor
+#define HUMIDITY_ENABLE 1
+#define HUMIDITY_DEBUG 0
 
 #endif // HEXBAUS_CONFIG_H
