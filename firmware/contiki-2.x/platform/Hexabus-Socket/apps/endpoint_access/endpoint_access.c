@@ -15,6 +15,7 @@
 #include "button.h"
 #include "analogread.h"
 #include "humidity.h"
+#include "pressure.h"
 
 uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
@@ -36,6 +37,10 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
 #endif
 #if HUMIDITY_ENABLE
     case 5:
+      return HXB_DTYPE_FLOAT;
+#endif
+#if PRESSURE_ENABLE
+    case 6:
       return HXB_DTYPE_FLOAT;
 #endif
 #if SHUTTER_ENABLE
@@ -95,6 +100,11 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
 #if HUMIDITY_ENABLE
     case 5:
       strncpy(buffer, "Humidity sensor", 127);
+      break;
+#endif
+#if PRESSURE_ENABLE
+    case 6:
+      strncpy(buffer, "Barometric pressure sensor", 127);
       break;
 #endif
 #if SHUTTER_ENABLE
@@ -164,6 +174,9 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
 #endif
 #if HUMIDITY_ENABLE
     case 5:
+#endif
+#if PRESSURE_ENABLE
+    case 6:
 #endif
       return HXB_ERR_WRITEREADONLY;
 #if SHUTTER_ENABLE
@@ -263,6 +276,12 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case 5:
       val->datatype = HXB_DTYPE_FLOAT;
       *(float*)&val->data = read_humidity();
+      break;
+#endif
+#if PRESSURE_ENABLE
+    case 6:
+      val->datatype = HXB_DTYPE_FLOAT;
+      *(float*)&val->data = read_pressure();
       break;
 #endif
 #if SHUTTER_ENABLE

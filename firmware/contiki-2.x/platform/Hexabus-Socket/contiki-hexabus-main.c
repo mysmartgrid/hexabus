@@ -141,6 +141,9 @@
 #if HUMIDITY_ENABLE
 #include "humidity.h"
 #endif
+#if PRESSURE_ENABLE
+#include "pressure.h"
+#endif
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -402,6 +405,10 @@ void initialize(void)
 
 #if I2C_ENABLE
   i2c_init();
+#endif
+ 
+#if PRESSURE_ENABLE
+  pressure_init();
 #endif
 
   /*Init Relay */
