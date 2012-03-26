@@ -21,6 +21,7 @@ condition fourth {
   value < 3;
 # this is a comment
 }
+
 # this is a comment
 state uschi {
   if first {
