@@ -2,10 +2,8 @@
 #include "i2c.h"
 #include "hexabus_config.h"
 #include "contiki.h"
-#include "sys/ctimer.h"
 
 #include <util/delay.h>
-#include <stdint.h>
 
 #if PRESSURE_DEBUG
 #include <stdio.h>

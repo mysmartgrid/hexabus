@@ -81,6 +81,7 @@ temperature_reset(void)
 float
 temperature_get(void)
 {
+  getTemperatureFloat(); //TODO: Fixes really strange linker error, somebody needs to look into this. (loopTempSensors, getTemperatureFloat or read_pressure_temp must be executed to be able to compile. Possible bug with avr-binutils)
 #if TEMPERATURE_SENSOR == 0
   PRINTF("-- Temperature: Get value\r\n");
   loopTempSensors();

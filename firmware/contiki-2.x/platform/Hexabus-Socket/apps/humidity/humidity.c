@@ -48,7 +48,7 @@ float read_humidity_temp() {
         return 0;
     }
 
-    uint16_t rawtemp = bytes[3]<<6 | (bytes[4]&0x3F);
+    uint16_t rawtemp = bytes[2]<<6 | (bytes[3]&0x3F);
 
     PRINTF("Raw Temperature: %d\n", rawtemp);
 

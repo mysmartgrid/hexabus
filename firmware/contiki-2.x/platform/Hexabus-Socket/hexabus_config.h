@@ -26,7 +26,7 @@
 // temperature
 #define TEMPERATURE_ENABLE 1
 #define TEMPERATURE_DEBUG 0
-#define TEMPERATURE_SENSOR 1             // 0 - ds80x20, 1 - HYT321, 2 - BMP085
+#define TEMPERATURE_SENSOR 2             // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
