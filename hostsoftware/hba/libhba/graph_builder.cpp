@@ -1,5 +1,6 @@
 #include "graph_builder.hpp"
 #include <libhba/label_writer.hpp>
+#include <libhba/graph.hpp>
 #include <boost/foreach.hpp>
 #include <boost/utility.hpp>
 #include <boost/graph/graphviz.hpp>
@@ -15,22 +16,25 @@ static unsigned int _state_id=0;
 struct first_pass : boost::static_visitor<> {
   first_pass(graph_t_ptr graph) : _g(graph) { }
 
-  void operator()(state_doc const& hba_state) const
+  void operator()(state_doc& hba_state) const
   {
+    // issue an unique id
+    hba_state.id = _state_id++;
     vertex_id_t v_id=boost::add_vertex((*_g));
     (*_g)[v_id].name = std::string(hba_state.name);
     (*_g)[v_id].lineno = hba_state.lineno;
     (*_g)[v_id].type = STATE;
-    (*_g)[v_id].id = _state_id++;
+    (*_g)[v_id].id = hba_state.id;
   }
 
-  void operator()(condition_doc const& hba_cond) const
+  void operator()(condition_doc& hba_cond) const
   {
+    hba_cond.id=_condition_id++;
     vertex_id_t v_id=boost::add_vertex((*_g));
     (*_g)[v_id].name = std::string(hba_cond.name);
     (*_g)[v_id].lineno = hba_cond.lineno;
     (*_g)[v_id].type = CONDITION;
-    (*_g)[v_id].id = _condition_id++;
+    (*_g)[v_id].id = hba_cond.id;
   }
 
   graph_t_ptr _g;
@@ -42,30 +46,13 @@ struct first_pass : boost::static_visitor<> {
 struct second_pass : boost::static_visitor<> {
   second_pass(graph_t_ptr graph) : _g(graph)  { }
 
-  vertex_id_t find_vertex(const std::string& name) const {
-    graph_t::vertex_iterator vertexIt, vertexEnd;
-    boost::tie(vertexIt, vertexEnd) = vertices((*_g));
-    for (; vertexIt != vertexEnd; ++vertexIt){
-      vertex_id_t vertexID = *vertexIt; // dereference vertexIt, get the ID
-      vertex_t & vertex = (*_g)[vertexID];
-      if (name == vertex.name) {
-        return vertexID;
-      } 
-    }
-    // we have not found an vertex id.
-    std::ostringstream oss;
-    oss << "cannot find state " << name;
-    throw VertexNotFoundException(oss.str());
-  }
-
-
   void operator()(std::string const& from_state_name, if_clause_doc const& clause) const {
     bool ok;
     try {
-      vertex_id_t from_state = find_vertex(from_state_name);
-      vertex_id_t condition = find_vertex(clause.name);
-      vertex_id_t good_state = find_vertex(clause.goodstate);
-      vertex_id_t bad_state = find_vertex(clause.badstate);
+      vertex_id_t from_state = find_vertex(_g, from_state_name);
+      vertex_id_t condition = find_vertex(_g, clause.name);
+      vertex_id_t good_state = find_vertex(_g, clause.goodstate);
+      vertex_id_t bad_state = find_vertex(_g, clause.badstate);
 
       edge_id_t edge;
       boost::tie(edge, ok) = boost::add_edge(from_state, condition, (*_g));
@@ -146,9 +133,9 @@ void GraphBuilder::mark_start_state(const std::string& name) {
 }
 
 
-void GraphBuilder::operator()(hba_doc const& hba) {
+void GraphBuilder::operator()(hba_doc& hba) {
   // 1st pass: grab all the states from the hba_doc
-  BOOST_FOREACH(hba_doc_block const& block, hba.blocks)
+  BOOST_FOREACH(hba_doc_block& block, hba.blocks)
   {
     boost::apply_visitor(first_pass(_g), block);
   }
@@ -159,7 +146,7 @@ void GraphBuilder::operator()(hba_doc const& hba) {
     std::cout << "ERROR: cannot assign start state, " << vnfe.what() << std::endl;
   }
   // 2nd pass: now add the edges in the second pass
-  BOOST_FOREACH(hba_doc_block const& block, hba.blocks)
+  BOOST_FOREACH(hba_doc_block& block, hba.blocks)
   {
     boost::apply_visitor(second_pass(_g), block);
   }

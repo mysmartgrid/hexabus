@@ -17,7 +17,7 @@ namespace hexabus {
 
       graph_t_ptr get_graph() const { return _g; };
       void write_graphviz(std::ostream& os);
-      void operator()(hba_doc const& hba);
+      void operator()(hba_doc& hba);
 
     private:
       GraphBuilder& operator= (const GraphBuilder& rhs);

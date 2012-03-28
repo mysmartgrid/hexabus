@@ -38,6 +38,7 @@ namespace hexabus {
     unsigned int lineno;
     std::string name;
     std::vector<if_clause_doc> if_clauses;
+    unsigned int id;
   };
 
   struct condition_doc {
@@ -47,6 +48,7 @@ namespace hexabus {
     unsigned int eid;
     unsigned int op;
     unsigned int value;
+    unsigned int id;
   };
 
   typedef

@@ -2,8 +2,11 @@
 #define LIBHBA_GRAPH_HPP 1
 
 #include <libhba/common.hpp>
+#include <libhba/error.hpp>
 #include <libhba/ast_datatypes.hpp>
 #include <boost/graph/adjacency_list.hpp>
+#include <sstream>
+
 
 namespace hexabus {
  enum vertex_type {CONDITION, STATE, STARTSTATE};
@@ -35,7 +38,8 @@ namespace hexabus {
   typedef boost::graph_traits<graph_t>::edge_descriptor edge_id_t;
   typedef std::tr1::shared_ptr<graph_t> graph_t_ptr;
 
- 
+  vertex_id_t find_vertex(graph_t_ptr g, const std::string& name);
+  unsigned int find_vertex_id(graph_t_ptr g, const std::string& name);
 };
 
 

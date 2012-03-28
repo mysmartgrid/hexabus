@@ -6,6 +6,7 @@
 #include <libhba/graph_checks.hpp>
 #include <libhba/skipper.hpp>
 #include <libhba/hbasm_grammar.hpp>
+#include <libhba/generator_flash.hpp>
 
 // commandline parsing.
 #include <boost/program_options.hpp>
@@ -171,19 +172,21 @@ int main(int argc, char **argv)
         std::cout << "ERROR: " << ge.what() << std::endl;
         exit(-1);
       }
-      std::ofstream ofs;
-      std::string outfile(vm["output"].as<std::string>());
-      if (std::string("") == outfile) {
-        std::cout << "No output file specified." << std::endl;
-        exit(-1);
-      }
-      ofs.open(outfile.c_str());
-      if (!ofs) {
-        std::cerr << "Error: Could not open output file: "
-          << outfile << std::endl;
-        return 1;
-      }
-            ofs.close();
+      hexabus::generator_flash gf(gBuilder.get_graph(), ast);
+      gf(std::cout);
+      //std::ofstream ofs;
+      //std::string outfile(vm["output"].as<std::string>());
+      //if (std::string("") == outfile) {
+      //  std::cout << "No output file specified." << std::endl;
+      //  exit(-1);
+      //}
+      //ofs.open(outfile.c_str());
+      //if (!ofs) {
+      //  std::cerr << "Error: Could not open output file: "
+      //    << outfile << std::endl;
+      //  return 1;
+      //}
+      //ofs.close();
 
     } else {
       std::cout << "Parsing succeeded." << std::endl;

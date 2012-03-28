@@ -2,7 +2,7 @@
 #define LIBHBA_LABEL_WRITER_HPP 1
 
 #include <libhba/common.hpp>
-#include <libhba/graph_builder.hpp>
+#include <libhba/graph.hpp>
 
 namespace hexabus {
 
