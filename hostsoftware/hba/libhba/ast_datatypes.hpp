@@ -26,40 +26,40 @@ namespace hexabus {
   //  HexaBus assembler representation
   ///////////////////////////////////////////////////////////////////////////
   struct if_clause_doc {
-	unsigned int lineno;
-	std::string name;
-	unsigned int eid;
-	unsigned int value;
-	std::string goodstate;
-	std::string badstate;
+    unsigned int lineno;
+    std::string name;
+    unsigned int eid;
+    unsigned int value;
+    std::string goodstate;
+    std::string badstate;
   };
 
   struct state_doc {
-	unsigned int lineno;
-	std::string name;
-	std::vector<if_clause_doc> if_clauses;
+    unsigned int lineno;
+    std::string name;
+    std::vector<if_clause_doc> if_clauses;
   };
 
   struct condition_doc {
-	unsigned int lineno;
-	std::string name;
-	std::string ipv6_address;
-	unsigned int eid;
-	unsigned int op;
-	unsigned int value;
+    unsigned int lineno;
+    std::string name;
+    std::string ipv6_address;
+    unsigned int eid;
+    unsigned int op;
+    unsigned int value;
   };
 
   typedef
-	boost::variant<
-	state_doc              // one state definition
-	, condition_doc          // one condition definition
-	>
-	hba_doc_block;
+    boost::variant<
+    state_doc              // one state definition
+    , condition_doc          // one condition definition
+    >
+    hba_doc_block;
 
   struct hba_doc
   {
-	std::string start_state;
-	std::vector<hba_doc_block> blocks;                           
+    std::string start_state;
+    std::vector<hba_doc_block> blocks;                           
   };
 };
 
@@ -67,37 +67,37 @@ namespace hexabus {
 // to make it a first-class fusion citizen
 
 BOOST_FUSION_ADAPT_STRUCT(
-	hexabus::if_clause_doc,
-	(unsigned int, lineno)
-	(std::string, name)
-	(unsigned int, eid)
-	(unsigned int, value)
-	(std::string, goodstate)
-	(std::string, badstate)
-	)
+    hexabus::if_clause_doc,
+    (unsigned int, lineno)
+    (std::string, name)
+    (unsigned int, eid)
+    (unsigned int, value)
+    (std::string, goodstate)
+    (std::string, badstate)
+    )
 
 BOOST_FUSION_ADAPT_STRUCT(
-	hexabus::state_doc,
-	(unsigned int, lineno)
-	(std::string, name)
-	(std::vector<hexabus::if_clause_doc>, if_clauses)
-	)
+    hexabus::state_doc,
+    (unsigned int, lineno)
+    (std::string, name)
+    (std::vector<hexabus::if_clause_doc>, if_clauses)
+    )
 
 BOOST_FUSION_ADAPT_STRUCT(
-	hexabus::condition_doc,
-	(unsigned int, lineno)
-	(std::string, name)
-	(std::string, ipv6_address)
-	(unsigned int, eid)
-	(unsigned int, op)
-	(unsigned int, value)
-	)
+    hexabus::condition_doc,
+    (unsigned int, lineno)
+    (std::string, name)
+    (std::string, ipv6_address)
+    (unsigned int, eid)
+    (unsigned int, op)
+    (unsigned int, value)
+    )
 
 BOOST_FUSION_ADAPT_STRUCT(
-	hexabus::hba_doc,
-	(std::string, start_state)
-	(std::vector<hexabus::hba_doc_block>, blocks)
-	)
+    hexabus::hba_doc,
+    (std::string, start_state)
+    (std::vector<hexabus::hba_doc_block>, blocks)
+    )
 
 
 #endif /* LIBHBA_AST_DATATYPES_HPP */

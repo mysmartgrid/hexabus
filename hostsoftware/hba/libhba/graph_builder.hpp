@@ -3,57 +3,28 @@
 
 #include <libhba/common.hpp>
 #include <libhba/ast_datatypes.hpp>
-#include <boost/graph/adjacency_list.hpp>
+#include <libhba/graph.hpp>
 #include <iostream>
 #include <string>
 
 namespace hexabus {
-  enum vertex_type {CONDITION, STATE, STARTSTATE};
-  struct vertex_t{
-	std::string name; 
-	unsigned int lineno;
-	vertex_type type;
-  };
+    class GraphBuilder {
+    public:
+      typedef std::tr1::shared_ptr<GraphBuilder> Ptr;
+      GraphBuilder () : 
+        _g(new graph_t()) {};
+      virtual ~GraphBuilder() {};
 
-  enum edge_type {GOOD_STATE, BAD_STATE, FROM_STATE};
-  struct edge_t{
-	std::string name; 
-	unsigned int lineno;
-	edge_type type;
-  };
+      graph_t_ptr get_graph() const { return _g; };
+      void write_graphviz(std::ostream& os);
+      void operator()(hba_doc const& hba);
 
-  typedef boost::adjacency_list<  // adjacency_list is a template depending on :
-	boost::vecS,               //  The container used for egdes : here, std::list.
-	boost::vecS,                //  The container used for vertices: here, std::vector.
-	//boost::directedS,           //  directed or undirected edges ?.
-	boost::bidirectionalS,           //  directed or undirected edges ?.
-	vertex_t,                     //  The type that describes a Vertex.
-	edge_t                        //  The type that describes an Edge
-  > graph_t; 
-  typedef boost::graph_traits<graph_t>::vertex_descriptor vertex_id_t;
-  typedef boost::graph_traits<graph_t>::edge_descriptor edge_id_t;
-  typedef std::tr1::shared_ptr<graph_t> graph_t_ptr;
+    private:
+      GraphBuilder& operator= (const GraphBuilder& rhs);
 
-  class GraphBuilder {
-	public:
-	  typedef std::tr1::shared_ptr<GraphBuilder> Ptr;
-	  GraphBuilder () : _g(new graph_t()) {};
-	  virtual ~GraphBuilder() {};
+      void mark_start_state(const std::string& name);
+      graph_t_ptr _g;
 
-	  graph_t_ptr get_graph() const { return _g; };
-	  void write_graphviz(std::ostream& os);
-	  void operator()(hba_doc const& hba);
-
-	private:
-	  GraphBuilder (const GraphBuilder& original);
-	  GraphBuilder& operator= (const GraphBuilder& rhs);
-
-	  void check_states_incoming() const;
-	  void check_states_outgoing() const;
-	  void check_conditions_incoming() const;
-	  void check_conditions_outgoing() const;
-	  void mark_start_state(const std::string& name);
-	  graph_t_ptr _g;
 
 
   };

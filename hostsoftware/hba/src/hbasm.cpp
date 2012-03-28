@@ -1,7 +1,9 @@
 #include <libhba/common.hpp>
+#include <libhba/error.hpp>
 #include <libhba/ast_datatypes.hpp>
 #include <libhba/hba_printer.hpp>
 #include <libhba/graph_builder.hpp>
+#include <libhba/graph_checks.hpp>
 #include <libhba/skipper.hpp>
 #include <libhba/hbasm_grammar.hpp>
 
@@ -35,6 +37,7 @@ int main(int argc, char **argv)
     ("print,p", "print parsed version of the input file")
     ("graph,g", po::value<std::string>(), "generate a dot file")
     ("input,i", po::value<std::string>(), "the hexabus assembler input file")
+    ("output,o", po::value<std::string>(), "the hexabus assembler output file")
     ;
   po::positional_options_description p;
   p.add("infile", 1);
@@ -123,38 +126,76 @@ int main(int argc, char **argv)
   }
 
   if (r && position_begin == position_end) {
-	if (vm.count("print")) {
-	  hexabus::hba_printer printer;
-	  printer(ast);
-	} 
-	else if (vm.count("graph")) {
-	  hexabus::GraphBuilder gBuilder;
-	  gBuilder(ast);
-	  std::ofstream ofs;
-	  std::string outfile=vm["graph"].as<std::string>();
-	  if (outfile == "") {
-		std::cout << "No graph output file specified." << std::endl;
-		exit(-1);
-	  }
-	  ofs.open(outfile.c_str());
-	  if (!ofs) {
-		std::cerr << "Error: Could not open graph output file: "
-		  << outfile << std::endl;
-		return 1;
-	  }
-	  gBuilder.write_graphviz(ofs);
-	  ofs.close();
-	} else {
-	  std::cout << "Parsing succeeded." << std::endl;
-	}
-	return 0;
+    if (vm.count("print")) {
+      hexabus::hba_printer printer;
+      printer(ast);
+    } 
+    else if (vm.count("graph")) {
+      hexabus::GraphBuilder gBuilder;
+      gBuilder(ast);
+      hexabus::GraphChecks gChecks(gBuilder.get_graph());
+      try {
+        gChecks.check_states_incoming();
+        gChecks.check_states_outgoing();
+        gChecks.check_conditions_incoming();
+        gChecks.check_conditions_outgoing();
+      } catch (hexabus::GenericException& ge) {
+        std::cout << "ERROR: " << ge.what() << std::endl;
+        exit(-1);
+      }
+      std::ofstream ofs;
+      std::string outfile(vm["graph"].as<std::string>());
+      if (std::string("") == outfile) {
+        std::cout << "No graph output file specified." << std::endl;
+        exit(-1);
+      }
+      ofs.open(outfile.c_str());
+      if (!ofs) {
+        std::cerr << "Error: Could not open graph output file: "
+          << outfile << std::endl;
+        return 1;
+      }
+      gBuilder.write_graphviz(ofs);
+      ofs.close();
+    }
+    else if (vm.count("output")) {
+      hexabus::GraphBuilder gBuilder;
+      gBuilder(ast);
+      hexabus::GraphChecks gChecks(gBuilder.get_graph());
+      try {
+        gChecks.check_states_incoming();
+        gChecks.check_states_outgoing();
+        gChecks.check_conditions_incoming();
+        gChecks.check_conditions_outgoing();
+      } catch (hexabus::GenericException& ge) {
+        std::cout << "ERROR: " << ge.what() << std::endl;
+        exit(-1);
+      }
+      std::ofstream ofs;
+      std::string outfile(vm["output"].as<std::string>());
+      if (std::string("") == outfile) {
+        std::cout << "No output file specified." << std::endl;
+        exit(-1);
+      }
+      ofs.open(outfile.c_str());
+      if (!ofs) {
+        std::cerr << "Error: Could not open output file: "
+          << outfile << std::endl;
+        return 1;
+      }
+            ofs.close();
+
+    } else {
+      std::cout << "Parsing succeeded." << std::endl;
+    }
+    return 0;
   } else {
-	if (!r)
-	  std::cout << "Parsing failed." << std::endl;
-	if (r)
-	  std::cout << "Parsing failed: we haven't "
-		<< "reached the end of the input." << std::endl;
-	return 1;
+    if (!r)
+      std::cout << "Parsing failed." << std::endl;
+    if (r)
+      std::cout << "Parsing failed: we haven't "
+        << "reached the end of the input." << std::endl;
+    return 1;
   }
 } 
 
