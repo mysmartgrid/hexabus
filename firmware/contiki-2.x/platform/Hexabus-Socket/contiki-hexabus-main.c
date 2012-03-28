@@ -214,6 +214,49 @@ void set_forwarding_to_eeprom(uint8_t val) {
 	 forwarding_enabled = val;
 }
 
+void get_condition_from_eeprom(uint8_t position, struct condition *cond) {
+	eeprom_read_block((void *)cond, (const void *)(1 + EE_STATEMACHINE_CONDITIONS + position*sizeof(struct condition)), sizeof(struct condition));
+}
+
+void write_condition_to_eeprom(uint8_t position, struct condition *cond) {
+	eeprom_write_block((void *)cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + position*sizeof(struct condition)), sizeof(struct condition));
+}
+
+void write_transition_to_eeprom(uint8_t position, struct transition *trans, bool datetime) {
+	if(datetime) {
+		eeprom_write_block((void *)trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + position*sizeof(struct transition)), sizeof(struct transition));
+	} else {
+		eeprom_write_block((void *)trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + position*sizeof(struct transition)), sizeof(struct transition));
+	}
+}
+
+void get_transition_from_eeprom(uint8_t position, struct transition *trans) {
+	eeprom_read_block((void *)trans, (const void *)(1 + EE_STATEMACHINE_TRANSITIONS + position*sizeof(struct transition)), sizeof(struct transition));
+}
+
+uint8_t get_tablelength_from_eeprom(uint8_t type) {
+	switch(type) {
+		case SM_CONDITION_LENGTH:
+			return eeprom_read_byte((const void *)EE_STATEMACHINE_CONDITIONS);
+		case SM_TRANSITION_LENGTH:
+			return eeprom_read_byte((const void*)EE_STATEMACHINE_TRANSITIONS);
+		case SM_DATETIME_TRANSITION_LENGTH:
+			return eeprom_read_byte((const void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
+		default:
+			return 0;
+	}
+}
+
+void write_tablelength_to_eeprom(uint8_t type, uint8_t length) {
+	switch(type) {
+		case SM_CONDITION_LENGTH:
+			eeprom_write_byte((uint8_t *)EE_STATEMACHINE_CONDITIONS, length);
+		case SM_TRANSITION_LENGTH:
+			eeprom_write_byte((uint8_t *)EE_STATEMACHINE_TRANSITIONS, length);
+		case SM_DATETIME_TRANSITION_LENGTH:
+			eeprom_write_byte((uint8_t *)EE_STATEMACHINE_DATETIME_TRANSITIONS, length);
+	}
+}
 
 
 /*-------------------------Low level initialization------------------------*/
