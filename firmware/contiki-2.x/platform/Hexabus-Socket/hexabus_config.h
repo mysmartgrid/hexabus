@@ -26,19 +26,19 @@
 // temperature
 #define TEMPERATURE_ENABLE 1
 #define TEMPERATURE_DEBUG 0
-#define TEMPERATURE_SENSOR 2             // 0 - ds80x20, 1 - HYT321, 2 - BMP085
+#define TEMPERATURE_SENSOR 1             // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 1
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 2 // Number of endpoints to broadcast automatically - set to 0 to disable
 #define VALUE_BROADCAST_AUTO_EIDS 3,5 // Comma-separated list of endpoints to broadcast automatically
-#define VALUE_BROADCAST_AUTO_INTERVAL 5 // Timeout in seconds
+#define VALUE_BROADCAST_AUTO_INTERVAL 60 // Timeout in seconds
 #define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0 // Number of endpoints to "broadcast" to the local state machine
 #define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2 // Comma-separated list of eids to be sent to local state machine
 
 // state_machine
-#define STATE_MACHINE_ENABLE 1
+#define STATE_MACHINE_ENABLE 0
 #define STATE_MACHINE_DEBUG 0
 
 // window blind shutter motor control
@@ -85,7 +85,7 @@
 
 //pressure sensor
 #define PRESSURE_ENABLE 0
-#define PRESSURE_DEBUG 1
+#define PRESSURE_DEBUG 0
 #define PRESSURE_OVERSAMPLING 3  //0 to 3
 
 #endif // HEXBAUS_CONFIG_H
