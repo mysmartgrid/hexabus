@@ -15,17 +15,20 @@
 
 float read_humidity() {
     
-    uint8_t bytes[2];
+    uint8_t bytes[HYT321_HUMIDITY_LENGTH];
 
-    if (i2c_write_bytes(0x50,NULL,0)){
+    //Start conversion
+    if (i2c_write_bytes(HYT321_ADDR,NULL,0)){
         return 0;
     }
 
-    _delay_ms(5);
+    _delay_ms(HYT321_CONV_DELAY);
 
-    if (i2c_read_bytes(0x50,bytes,2)){
+    if (i2c_read_bytes(HYT321_ADDR,bytes,HYT321_HUMIDITY_LENGTH)){
         return 0;
     }
+
+    //Convert to %r.h. (refer datasheet)
 
     uint16_t rawhum = ((bytes[0]<<8 | bytes[1]) & 0x3FFF);
 
@@ -36,18 +39,20 @@ float read_humidity() {
 
 float read_humidity_temp() {
     
-    uint8_t bytes[4];
+    uint8_t bytes[HYT321_TEMPERATURE_LENGTH];
 
-    if (i2c_write_bytes(0x50,NULL,0)){
+    if (i2c_write_bytes(HYT321_ADDR,NULL,0)){
         return 0;
     }
 
-    _delay_ms(5);
+    _delay_ms(HYT321_CONV_DELAY);
 
-    if (i2c_read_bytes(0x50,bytes,4)){
+    if (i2c_read_bytes(HYT321_ADDR,bytes,HYT321_TEMPERATURE_LENGTH)){
         return 0;
     }
 
+    //Convert to degrees celcius (refer datasheet)
+    
     uint16_t rawtemp = bytes[2]<<6 | (bytes[3]&0x3F);
 
     PRINTF("Raw Temperature: %d\n", rawtemp);
