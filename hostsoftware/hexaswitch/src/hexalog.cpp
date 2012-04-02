@@ -130,6 +130,15 @@ int main(int argc, char** argv)
         case 3:
           sensor_unit=std::string("deg Celsius");
           break;
+        case 4:
+          sensor_unit=std::string("boolean");
+          break;
+        case 5:
+          sensor_unit=std::string("% r.h.");
+          break;
+        case 6:
+          sensor_unit=std::string("hPa");
+          break;
         case 23:
         case 24:
         case 25:
