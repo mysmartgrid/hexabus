@@ -19,7 +19,7 @@ state off {
 }
 state on {
   if toggle_off {
-    set 1 := 1;
+    set 1 := 0;
     goodstate off;
     badstate on;
   }

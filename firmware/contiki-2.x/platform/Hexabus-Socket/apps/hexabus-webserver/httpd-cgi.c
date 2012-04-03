@@ -42,6 +42,13 @@
  * the web server should move along to the next script line.
  *
  */ 
+#define DEBUG 1
+#if DEBUG
+#define PRINTFD(FORMAT,args...) printf_P(PSTR(FORMAT),##args)
+#include "mem-debug.h"
+#else
+#define PRINTFD(...)
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -69,7 +76,6 @@
 #elif RF212BB
 #include "radio/rf212bb/rf212bb.h"
 #endif
-
 
 #define DEBUGLOGIC 0        //See httpd.c, if 1 must also set it there!
 #if DEBUGLOGIC
@@ -580,10 +586,22 @@ get_sm_tables(void *arg)
 
 	// Read Condition Table. Unused conditions will have a datatype equal to 0
 	cond = malloc(sizeof(struct condition));
+  if (cond == NULL)
+    PRINTFD("Allocation of condition table storage failed.\n");
+  else
+    PRINTFD("Allocation of condition table storage succeeded.\n");
 	length = eeprom_read_byte((void*)EE_STATEMACHINE_CONDITIONS); 
-	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-'); 
-	for(i = 0;i < length;i++) {
-		eeprom_read_block(cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (i * sizeof(struct condition))), sizeof(struct condition));
+  printf("length is %d\n", length);
+	numprinted+=httpd_snprintf(
+      (char *)uip_appdata+numprinted, 
+      uip_mss()-numprinted, 
+      httpd_cgi_char, 
+      '-'); 
+	for(i = 0; i < 4;i++) {
+    PRINTFD("loop %d free %d bytes\n", i,  get_current_free_bytes());
+		eeprom_read_block(cond, 
+        (void*)(1 + EE_STATEMACHINE_CONDITIONS + (i * sizeof(struct condition))), 
+        sizeof(struct condition));
 		if(cond->datatype == HXB_DTYPE_DATETIME) {
 			hxbtos(buffer, cond->data, HXB_DTYPE_UINT32);
 		} else {
@@ -597,10 +615,15 @@ get_sm_tables(void *arg)
 	}
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '.'); 
 	free(cond);
+  PRINTFD("Freeing condition table storage");
 		
 	// Now the transition tables
 	length = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
 	trans = malloc(sizeof(struct transition));
+  if (trans == NULL)
+    PRINTFD("Allocation of transition table storage failed.");
+  else
+    PRINTFD("Allocation of transition table storage succeeded.");
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-'); 
 	for(i = 0;i < length;i++) {
   	eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
@@ -616,6 +639,7 @@ get_sm_tables(void *arg)
 	}
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '.'); 
 	free(trans);
+  PRINTFD("Freeing condition table storage");
 	return numprinted;
 }
 /*---------------------------------------------------------------------------*/

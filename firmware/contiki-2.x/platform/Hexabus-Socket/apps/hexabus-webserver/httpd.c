@@ -601,7 +601,10 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			relay_toggle();
 
 		}
-		else if (httpd_strncmp(&s->inputbuf[1], httpd_sm_post, sizeof(httpd_sm_post)-1) == 0)  {
+		else if (httpd_strncmp(
+          &s->inputbuf[1], 
+          httpd_sm_post, 
+          sizeof(httpd_sm_post)-1) == 0)  {
 			
 			PRINTF("State Machine Configurator: Received Statemachine-POST\n"); 
 			s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
