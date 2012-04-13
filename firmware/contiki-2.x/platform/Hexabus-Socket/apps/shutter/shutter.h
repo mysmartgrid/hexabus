@@ -20,7 +20,11 @@
 #endif
 
 #define ENCODER_TIMEOUT        300UL
-#define SHUTTER_INITIAL_BOUND  30000
+#define SHUTTER_MAX_BOUND  30000
+
+#define SHUTTER_DIR_UP 1
+#define SHUTTER_DIR_DOWN -1
+#define SHUTTER_DIR_STOP 0
 
 
 void    shutter_init(void);
