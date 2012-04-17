@@ -45,59 +45,28 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 	
-	// Initialize network TODO: Open/Close Socket?!
+	std::string ipAddress = argv[1];
+
 	hexabus::NetworkAccess network;
 	hexabus::Packet::Ptr pFactory(new hexabus::Packet());
-	
-	// MaxEID: Maximum EID of the specific device. This value is updated at run time, because the current eid usage vector indicates whether there are more eids to come.
-	// At the beginning we assume, that there are only 32 used EIDs.
-	int maxEID = EIDS_PER_VECTOR;
-	
-	char *ipAddress = argv[1];
-	
-	// Create a new query packet to endpoint 0
-	hxb_packet_query packet = pFactory->query(0, false);
-	
-	// Send query to specified IP Address
-	std::cout << "Sending Query..." << std::endl;
-	network.sendPacket(ipAddress, HXB_PORT, (char*)&packet, sizeof(packet));
-	network.receivePacket(true);
-	
-	// Extract data from recv. packet
-	// Used Enpoints are stored in a EIDS_PER_VECTOR-bit vector where 1 indicates an used and 0 an unused endpoint
-	hexabus::PacketHandling *pHandler = new hexabus::PacketHandling(network.getData());
-	hxb_value val = pHandler->getValue();
-	uint32_t eidVector = *((uint32_t*)&(val.data));
-	delete pHandler;
-	std::cout << "Used Endpoints: " << std::endl;
-	
-	for(int i = 0;i < maxEID;i++) {
-		// Check, if current index matches an used EID
-		if(eidVector & 1<<i) {
-			if(i + 1 == maxEID) {
-				// This is a special case: There are more endpoints with EID > maxEID ~> we need to get another vector.
-				maxEID += EIDS_PER_VECTOR;
-				packet = pFactory->query(i + 1, false);
-				network.sendPacket(ipAddress, HXB_PORT, (char*)&packet, sizeof(packet));
-				network.receivePacket(true);
-				// Extract next used EID vector
-				pHandler = new hexabus::PacketHandling(network.getData());
-				val = pHandler->getValue();
-				eidVector = *((uint32_t*)&(val.data));
-				delete pHandler;
-			} else {
-				// Endpoint is used, send a query to get datatype. TODO: Read/Write info in epquery?
-				std::cout << "EID " << i + 1 << ":" << std::endl;
-				packet = pFactory->query(i + 1, true);
-				network.sendPacket(ipAddress, HXB_PORT, (char*)&packet, sizeof(packet));
-				network.receivePacket(true);
-				// Extract data
-				pHandler = new hexabus::PacketHandling(network.getData());
-				std::cout << "\t Endpoint Name: " << pHandler->getString() << std::endl;
-				std::cout << "\t DataType: " << datatypeToString(pHandler->getDatatype()) << std::endl;
-				delete pHandler;
-			}
-		}
+	hexabus::PacketHandling *pHandler;
+	hxb_packet_query packet;
+	DeviceInfo devInfo(argv[1]);	
+	// Get the available endpoints
+	std::vector<int> endpoints = 	devInfo.getDeviceDescriptor();	
+		
+	// Why C++ needs for each...
+	for (int i = 0;i < (int)endpoints.size();i++) {
+		// Send a query to get endpoint data. TODO: Read/Write info in epquery?
+		std::cout << "EID " << endpoints[i] << ":" << std::endl;
+		packet = pFactory->query(endpoints[i], true);
+		network.sendPacket(ipAddress, HXB_PORT, (char*)&packet, sizeof(packet));
+		network.receivePacket(true);
+		// Extract data
+		pHandler = new hexabus::PacketHandling(network.getData());
+		std::cout << "\t Endpoint Name: " << pHandler->getString() << std::endl;
+		std::cout << "\t DataType: " << datatypeToString(pHandler->getDatatype()) << std::endl;
+		delete pHandler;
  	}
 	std::cout << std::endl;
 
