@@ -3,7 +3,8 @@
 file(GLOB_RECURSE h_files "*.hpp,*.h")
 file(GLOB_RECURSE cpp_files "*.cpp")
 file(GLOB_RECURSE c_files "*.c")
-set(hexinfo_src "hexinfo.cpp")
+file(GLOB all_hexinfo_src *.cpp *.hpp)
+set(hexinfo_src ${all_hexinfo_src})
 
 include_directories(
   ${CMAKE_SOURCE_DIR} 

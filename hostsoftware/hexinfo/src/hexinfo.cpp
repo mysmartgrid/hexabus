@@ -8,9 +8,7 @@
 #include <libhexabus/network.hpp>
 #include "../../../shared/hexabus_packet.h"
 #include <string>
-
-// A vector with used EIDs contains 32 values
-const int EIDS_PER_VECTOR = 32;
+#include "DeviceInfo.hpp"
 
 void usage() {
 	std::cout << "Usage: hexinfo <IPv6 Address of Device> <Options>" << std::endl;
