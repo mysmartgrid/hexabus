@@ -67,7 +67,7 @@ DeviceInfo::DeviceInfo(std::string ipAddress) throw(std::invalid_argument) {
 	boost::asio::ip::address::from_string(ipAddress, ec);
 	if(ec) {
 		network.closeSocket();
-		throw new std::invalid_argument(ec.message());
+		throw std::invalid_argument(ec.message());
 	}
 	this->pFactory = hexabus::Packet::Ptr(new hexabus::Packet());
 }
@@ -77,17 +77,25 @@ DeviceInfo::~DeviceInfo() {
 }
 
 EndpointInfo DeviceInfo::getEndpointInfo(int eid) {
-	// Create a query to the specified endpoint. TODO: EID 0?
+	// Create a query to the specified endpoint. 
 	hxb_packet_query packet = pFactory->query(eid, true);
 	
 	network.sendPacket(ipAddress, HXB_PORT, (char*)&packet, sizeof(packet));
 	network.receivePacket(true);
 	
-	// Extract Data
+	// Extract Data and check if the endpoint exists.
+	// TODO: CRC Check, CRC Error and maybe defining a custom "NoSuchEndpoint" exception (with boost?)?
+	
 	hexabus::PacketHandling *pHandler = new hexabus::PacketHandling(network.getData());
-	EndpointInfo epInfo(eid, pHandler->getString(), "test this", pHandler->getDatatype(), false);
-	delete pHandler;
-	return epInfo;
+	if(pHandler->getPacketType() == HXB_PTYPE_ERROR && pHandler->getErrorcode() == HXB_ERR_UNKNOWNEID) {
+		throw std::runtime_error("No such endpoint");
+	} else {
+		// Everything went fine
+		EndpointInfo epInfo(eid, pHandler->getString(), "test this", pHandler->getDatatype(), false);
+		delete pHandler;
+		return epInfo;
+	}
+	
 }
 
 std::vector<int> DeviceInfo::getDeviceDescriptor() {
@@ -133,10 +141,15 @@ std::vector<int> DeviceInfo::getDeviceDescriptor() {
 
 std::vector<EndpointInfo> DeviceInfo::getEndpointInfo(std::vector<int> eidList) {
 	std::vector<EndpointInfo> endpoints;
-
+	
 	// For each would be nicer...
 	for(int i = 0;i < (int)eidList.size();i++) {
-		endpoints.push_back(getEndpointInfo(eidList[i]));	
+		try {
+			endpoints.push_back(getEndpointInfo(eidList[i]));
+		} catch(std::runtime_error& e) {
+			// For now just ignore the missing endpoint and continue
+			continue;
+		}
 	}
 	return endpoints;
 }
