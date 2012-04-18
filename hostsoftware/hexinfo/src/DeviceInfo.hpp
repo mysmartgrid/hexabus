@@ -5,6 +5,7 @@
 #include <sstream>
 #include <libhexabus/network.hpp>
 #include <libhexabus/packet.hpp>
+#include "../../shared/hexabus_packet.h"
 
 // A vector width used EIDs contains 32 values
 const int EIDS_PER_VECTOR = 32;
@@ -18,30 +19,12 @@ class EndpointInfo {
 		bool writable;
 
 	public:
-		EndpointInfo(uint8_t eid, std::string name, std::string description, uint8_t datatype, bool writable) {
-		
-		}
-
-		std::string getName() {return name;}
-		std::string getDescription() {return description;}
-		uint8_t getDatatype() {return datatype;}
-		bool isWritable() {return writable;}
-		std::string toString() {
-			std::string tmpDT;
-			switch(datatype) {
-				default:
-					tmpDT = "Unknown";
-					break;
-			}
-			std::stringstream sstm;
-			sstm << "EID: " << eid << " Name: " << name << " Description: " << description
-				<< " Datatype: " << tmpDT << " Writable: ";
-			if(writable)
-				sstm << "Yes";
-			else
-				sstm << "No";
-			return sstm.str();
-		}
+		EndpointInfo(uint8_t eid, std::string name, std::string description, uint8_t datatype, bool writable);
+		std::string getName();
+		std::string getDescription();
+		uint8_t getDatatype();
+		bool isWritable();
+		std::string toString();
 };
 
 class DeviceInfo {
@@ -51,12 +34,12 @@ class DeviceInfo {
 		hexabus::Packet::Ptr pFactory;
 
 	public:
-		DeviceInfo(std::string ipAddress);
+		DeviceInfo(std::string ipAddress) throw (std::invalid_argument);
+		~DeviceInfo();
 		EndpointInfo getEndpointInfo(int eid);
 		std::vector<int> getDeviceDescriptor();
 		std::vector<EndpointInfo> getEndpointInfo(std::vector<int> eidList);
-		//std::string getEndpointInfoAsJSON(int startEID, int endEID);
-
+		std::vector<EndpointInfo> getAllEndpointInfo();
 };
 
 

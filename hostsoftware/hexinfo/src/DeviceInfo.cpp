@@ -1,12 +1,79 @@
 #include "DeviceInfo.hpp"
 #include "../../shared/hexabus_packet.h"
 
-// TODO: Validation/Error Handling
+// TODO: Error Handling
 // What is open/close socket in libhexabus used for?
 
-DeviceInfo::DeviceInfo(std::string ipAddress) {
+
+EndpointInfo::EndpointInfo(uint8_t eid, std::string name, std::string description, uint8_t datatype, bool writable) {
+			this->eid = eid;
+			this->name = name;
+			this->description = description;
+			this->datatype = datatype;
+			this->writable = writable;
+}
+
+std::string EndpointInfo::getName() {return name;}
+
+std::string EndpointInfo::getDescription() {return description;}
+
+uint8_t EndpointInfo::getDatatype() {return datatype;}
+
+bool EndpointInfo::isWritable() {return writable;}
+
+std::string EndpointInfo::toString() {
+	std::string tmpDT;
+	switch(datatype) {
+		case HXB_DTYPE_BOOL:
+			tmpDT = "Bool";
+			break;
+		case HXB_DTYPE_UINT8:
+			tmpDT = "UInt8";
+			break;
+		case HXB_DTYPE_UINT32:
+			tmpDT = "UInt32";
+			break;
+		case HXB_DTYPE_DATETIME:
+			tmpDT = "DateTime";
+			break;
+		case HXB_DTYPE_FLOAT:
+			tmpDT = "Float";
+			break;
+		case HXB_DTYPE_128STRING:
+			tmpDT = "String (128 Bit)";
+			break;
+		case HXB_DTYPE_TIMESTAMP:
+			tmpDT = "Timestamp";
+			break;
+		default:
+			tmpDT = "Unknown";
+			break;
+	}
+	std::stringstream sstm;
+	sstm << "EID: " << eid << " Name: " << name << " Description: " << description
+		<< " Datatype: " << tmpDT << " Writable: ";
+	if(writable)
+		sstm << "Yes";
+	else
+		sstm << "No";
+	return sstm.str();
+}
+
+
+DeviceInfo::DeviceInfo(std::string ipAddress) throw(std::invalid_argument) {
 	this->ipAddress = ipAddress;
-	this->pFactory = hexabus::Packet::Ptr(new hexabus::Packet());	// TODO
+	// Validate input
+	boost::system::error_code ec;
+	boost::asio::ip::address::from_string(ipAddress, ec);
+	if(ec) {
+		network.closeSocket();
+		throw new std::invalid_argument(ec.message());
+	}
+	this->pFactory = hexabus::Packet::Ptr(new hexabus::Packet());
+}
+
+DeviceInfo::~DeviceInfo() {
+	network.closeSocket();
 }
 
 EndpointInfo DeviceInfo::getEndpointInfo(int eid) {
@@ -18,8 +85,9 @@ EndpointInfo DeviceInfo::getEndpointInfo(int eid) {
 	
 	// Extract Data
 	hexabus::PacketHandling *pHandler = new hexabus::PacketHandling(network.getData());
-
-	return EndpointInfo(eid, pHandler->getString(), "todo", pHandler->getDatatype(), false);
+	EndpointInfo epInfo(eid, pHandler->getString(), "test this", pHandler->getDatatype(), false);
+	delete pHandler;
+	return epInfo;
 }
 
 std::vector<int> DeviceInfo::getDeviceDescriptor() {
@@ -65,5 +133,14 @@ std::vector<int> DeviceInfo::getDeviceDescriptor() {
 
 std::vector<EndpointInfo> DeviceInfo::getEndpointInfo(std::vector<int> eidList) {
 	std::vector<EndpointInfo> endpoints;
+
+	// For each would be nicer...
+	for(int i = 0;i < (int)eidList.size();i++) {
+		endpoints.push_back(getEndpointInfo(eidList[i]));	
+	}
 	return endpoints;
+}
+
+std::vector<EndpointInfo> DeviceInfo::getAllEndpointInfo() {
+	return getEndpointInfo(getDeviceDescriptor());
 }
