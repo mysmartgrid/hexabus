@@ -1,7 +1,5 @@
 // TODO:
-// 1. Validation
-// 2. JSON Export
-// 3. Testing
+// 1. JSON Export
 
 #include <iostream>
 #include <libhexabus/packet.hpp>
@@ -20,17 +18,13 @@ int main(int argc, char **argv) {
 	
 	if(argc != 2) {
 		usage();
-		//exit(1);
 		return 1;
 	}
 	
 	std::string ipAddress = argv[1];
 	std::vector<EndpointInfo> eps;
-
 	DeviceInfo devInfo(argv[1]);	
-	
-	// Get information on all the available endpoints
-	devInfo.getAllEndpointInfo();	
+	eps = devInfo.getAllEndpointInfo();
 	
 	// Why C++ needs for each...
 	for (int i = 0;i < (int)eps.size();i++) {

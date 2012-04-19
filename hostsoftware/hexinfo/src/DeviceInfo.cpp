@@ -1,21 +1,19 @@
 #include "DeviceInfo.hpp"
 #include "../../shared/hexabus_packet.h"
+#include <sstream>
 
-// TODO: Error Handling
+// TODO: Finish Error Handling
 // What is open/close socket in libhexabus used for?
 
 
-EndpointInfo::EndpointInfo(uint8_t eid, std::string name, std::string description, uint8_t datatype, bool writable) {
+EndpointInfo::EndpointInfo(uint8_t eid, std::string name, uint8_t datatype, bool writable) {
 			this->eid = eid;
 			this->name = name;
-			this->description = description;
 			this->datatype = datatype;
 			this->writable = writable;
 }
 
 std::string EndpointInfo::getName() {return name;}
-
-std::string EndpointInfo::getDescription() {return description;}
 
 uint8_t EndpointInfo::getDatatype() {return datatype;}
 
@@ -50,12 +48,13 @@ std::string EndpointInfo::toString() {
 			break;
 	}
 	std::stringstream sstm;
-	sstm << "EID: " << eid << " Name: " << name << " Description: " << description
-		<< " Datatype: " << tmpDT << " Writable: ";
+	sstm << "EID: " << (int)eid << std::endl << " Name: " << name << std::endl
+		<< " Datatype: " << tmpDT << std::endl;
+	/*	<< " Writable: " << std::endl;
 	if(writable)
 		sstm << "Yes";
 	else
-		sstm << "No";
+		sstm << "No";*/
 	return sstm.str();
 }
 
@@ -87,11 +86,11 @@ EndpointInfo DeviceInfo::getEndpointInfo(int eid) {
 	// TODO: CRC Check, CRC Error and maybe defining a custom "NoSuchEndpoint" exception (with boost?)?
 	
 	hexabus::PacketHandling *pHandler = new hexabus::PacketHandling(network.getData());
-	if(pHandler->getPacketType() == HXB_PTYPE_ERROR && pHandler->getErrorcode() == HXB_ERR_UNKNOWNEID) {
+	if(pHandler->getPacketType() == HXB_PTYPE_ERROR /*&& pHandler->getErrorcode() == HXB_ERR_UNKNOWNEID*/) {
 		throw std::runtime_error("No such endpoint");
 	} else {
 		// Everything went fine
-		EndpointInfo epInfo(eid, pHandler->getString(), "test this", pHandler->getDatatype(), false);
+		EndpointInfo epInfo(eid, pHandler->getString(), pHandler->getDatatype(), false);
 		delete pHandler;
 		return epInfo;
 	}
@@ -99,7 +98,7 @@ EndpointInfo DeviceInfo::getEndpointInfo(int eid) {
 }
 
 std::vector<int> DeviceInfo::getDeviceDescriptor() {
-	std::vector<int> devDescriptor;
+	std::vector<int> devDescriptor(1, 0);		// Endpoint 0 exists on all devices
 	int maxEID = EIDS_PER_VECTOR;
 
 	// Query eid 0 for the first device descriptor. Repeat until there is no further descriptor available
@@ -116,11 +115,8 @@ std::vector<int> DeviceInfo::getDeviceDescriptor() {
 	
 	for(int i = 0;i < maxEID;i++) {
 		if(eidVector & 1<<i) {
-			// Endpoint is used ~> Add it to our List
-			devDescriptor.push_back(i + 1);
 			
 			if(i + 1 == maxEID) {
-				
 				// There are more endpoints
 				maxEID += EIDS_PER_VECTOR;
 				query = pFactory->query(i + 1, false);
@@ -132,6 +128,9 @@ std::vector<int> DeviceInfo::getDeviceDescriptor() {
 				val = pHandler->getValue();
 				eidVector = *((uint32_t*)&(val.data));
 				delete pHandler;
+			} else {
+					// Endpoint is used ~> Add it to our List
+					devDescriptor.push_back(i + 1);
 			}
 		}
 	}

@@ -2,7 +2,6 @@
 #define DEVICE_INFO_HPP
 
 #include <string>
-#include <sstream>
 #include <libhexabus/network.hpp>
 #include <libhexabus/packet.hpp>
 #include "../../shared/hexabus_packet.h"
@@ -15,13 +14,11 @@ class EndpointInfo {
 		uint8_t eid;
 		std::string name;
 		uint8_t datatype;
-		std::string description;
 		bool writable;
 
 	public:
-		EndpointInfo(uint8_t eid, std::string name, std::string description, uint8_t datatype, bool writable);
+		EndpointInfo(uint8_t eid, std::string name, uint8_t datatype, bool writable);
 		std::string getName();
-		std::string getDescription();
 		uint8_t getDatatype();
 		bool isWritable();
 		std::string toString();
