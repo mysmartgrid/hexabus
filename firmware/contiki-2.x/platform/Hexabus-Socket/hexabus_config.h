@@ -76,7 +76,7 @@
 
 //ir_receiver
 #define IR_RECEIVER_ENABLE 1
-#define IR_RECEIVER_DEBUG 1
+#define IR_RECEIVER_DEBUG 0
 #define IR_RECEIVER_RAW_MODE 0
 
 #endif // HEXBAUS_CONFIG_H

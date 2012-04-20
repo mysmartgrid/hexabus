@@ -41,6 +41,14 @@
 #define IR30 3091662599 //Play
 #define IR31 3108374279 //Stop
 
+
+#define IR_IDLE_STATE 0
+#define IR_START_STATE 1
+#define IR_DATA_STATE 2
+
+#define IR_EDGE_DOWN 0
+#define IR_EDGE_UP 1
+
 void ir_receiver_init();
 uint32_t ir_get_last_command();
 

@@ -17,8 +17,8 @@
 static uint32_t ir_time = 0;
 static uint32_t ir_time_since_last = 0;
 static uint8_t ir_data[4] = {0,0,0,0};
-static uint8_t ir_state = 0;
-static uint8_t ir_edge_dir = 0;
+static uint8_t ir_state = IR_IDLE_STATE;
+static uint8_t ir_edge_dir = IR_EDGE_DOWN;
 static uint8_t ir_repeat = 0;
 static uint8_t ir_bit = 0;
 static uint8_t ir_byte = 0;
@@ -27,7 +27,6 @@ static uint8_t ir_last_data[4];
 void ir_receiver_init() {
 
     PRINTF("IR receiver init\n");
-    //set_outputs(128);
     EICRA |= (1<<ISC21 );
     EIMSK |= (1<<INT2 );
 
@@ -45,10 +44,10 @@ void ir_receiver_reset() {
     ir_data[1] = 0;
     ir_data[2] = 0;
     ir_data[3] = 0;
-    ir_state = 0;
+    ir_state = IR_IDLE_STATE;
     EICRA &= ~((1<<ISC21)|(1<<ISC20));
     EICRA |= (1<<ISC21);
-    ir_edge_dir = 0;
+    ir_edge_dir = IR_EDGE_DOWN;
 }
 
 uint32_t ir_get_last_command() {
@@ -189,20 +188,20 @@ ISR(INT2_vect) {
     TCNT0 = 0;
 
     switch(ir_state) {
-        case 0:                  //Waiting for AGC burst
+        case IR_IDLE_STATE:                  //Waiting for AGC burst
             if(!ir_edge_dir) {   // Beginning of possible burst
                 EICRA |= ((1<<ISC21)|(1<<ISC20));
-                ir_edge_dir = 1;
+                ir_edge_dir = IR_EDGE_UP;
             } else {             // Possible end of burst
 #if IR_SAMSUNG
                 if( (ir_time_since_last>40)&&(ir_time_since_last<47) ) {
 #else
                 if( (ir_time_since_last>85)&&(ir_time_since_last<95) ) {
 #endif
-                    ir_state = 1;
+                    ir_state = IR_START_STATE;
                     EICRA &= ~((1<<ISC21)|(1<<ISC20));
                     EICRA |= (1<<ISC21);
-                    ir_edge_dir = 0;
+                    ir_edge_dir = IR_EDGE_DOWN;
     EIMSK &= ~(1<<INT2);
                 } else {
                     ir_receiver_reset();
@@ -210,15 +209,15 @@ ISR(INT2_vect) {
             }
             break;
 
-        case 1:                  //Waiting for AFC gap
+        case IR_START_STATE:                  //Waiting for AFC gap
             if( (ir_time_since_last>40)&&(ir_time_since_last<47) ) {
 
-                ir_state = 2;
+                ir_state = IR_DATA_STATE;
                 ir_bit = 0;
                 ir_byte = 0;
 
                 EICRA |= ((1<<ISC21)|(1<<ISC20));
-                ir_edge_dir = 1;
+                ir_edge_dir = IR_EDGE_UP;
 
             } else if( (ir_time_since_last>20)&&(ir_time_since_last<25) ) {
                 ir_repeat = 1;
@@ -228,7 +227,7 @@ ISR(INT2_vect) {
                 ir_receiver_reset();
             }
             break;
-        case 2:              //Waiting for bits
+        case IR_DATA_STATE:              //Waiting for bits
             if(ir_edge_dir) {
                 if( ir_byte > 3) {
                     memcpy(ir_last_data, ir_data, 4);
@@ -237,7 +236,7 @@ ISR(INT2_vect) {
                 } else if( (ir_time_since_last>1)&&(ir_time_since_last<7) ) {
                     EICRA &= ~((1<<ISC21)|(1<<ISC20));
                     EICRA |= (1<<ISC21);
-                    ir_edge_dir = 0;
+                    ir_edge_dir = IR_EDGE_DOWN;
                 } else {
                     ir_receiver_reset();
                 }
@@ -249,7 +248,7 @@ ISR(INT2_vect) {
                         ir_byte++;
                     }
                     EICRA |= ((1<<ISC21)|(1<<ISC20));
-                    ir_edge_dir = 1;
+                    ir_edge_dir = IR_EDGE_UP;
                 } else if( (ir_time_since_last>14)&&(ir_time_since_last<19)) {
                     ir_data[ir_byte] |= (1<<ir_bit);
                     ir_bit++;
@@ -258,7 +257,7 @@ ISR(INT2_vect) {
                         ir_byte++;
                     }
                     EICRA |= ((1<<ISC21)|(1<<ISC20));
-                    ir_edge_dir = 1;
+                    ir_edge_dir = IR_EDGE_UP;
                 } else {
                     ir_receiver_reset();
                 }
