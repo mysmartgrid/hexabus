@@ -21,8 +21,7 @@
 #include <boost/program_options/positional_options.hpp>
 namespace po = boost::program_options;
 
-
-
+#pragma GCC diagnostic warning "-Wstrict-aliasing"
 
 // TODO: Remove this, only for debugging.
 using namespace boost::posix_time;
