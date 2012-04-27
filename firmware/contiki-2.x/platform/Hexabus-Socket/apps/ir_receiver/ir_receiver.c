@@ -24,6 +24,8 @@ static uint8_t ir_bit = 0;
 static uint8_t ir_byte = 0;
 static uint8_t ir_last_data[4];
 
+static struct timer ir_rep_timer;
+
 void ir_receiver_init() {
 
     PRINTF("IR receiver init\n");
@@ -34,6 +36,8 @@ void ir_receiver_init() {
     TIMSK0 |= (1<<OCIE0A);
     OCR0A=COMP_VAL;
     TCCR0B |= ((1<<CS01));
+
+    timer_set(&ir_rep_timer,CLOCK_SECOND*IR_REP_DELAY);
 
     process_start(&ir_receiver_process, NULL);
     sei();
@@ -57,100 +61,68 @@ uint32_t ir_get_last_command() {
     switch(*(uint32_t*) ir_last_data) {
         case IR0:
             return 0x1;
-            break;
         case IR1:
             return 0x2;
-            break;
         case IR2:
             return 0x4;
-            break;
         case IR3:
             return 0x8;
-            break;
         case IR4:
             return 0x10;
-            break;
         case IR5:
             return 0x20;
-            break;
         case IR6:
             return 0x40;
-            break;
         case IR7:
             return 0x80;
-            break;
         case IR8:
             return 0x100;
-            break;
         case IR9:
             return 0x200;
-            break;
         case IR10:
             return 0x400;
-            break;
         case IR11:
             return 0x800;
-            break;
         case IR12:
             return 0x1000;
-            break;
         case IR13:
             return 0x2000;
-            break;
         case IR14:
             return 0x4000;
-            break;
         case IR15:
             return 0x8000;
-            break;
         case IR16:
             return 0x10000;
-            break;
         case IR17:
             return 0x20000;
-            break;
         case IR18:
             return 0x40000;
-            break;
         case IR19:
             return 0x80000;
-            break;
         case IR20:
             return 0x100000;
-            break;
         case IR21:
             return 0x200000;
-            break;
         case IR22:
             return 0x400000;
-            break;
         case IR23:
             return 0x800000;
-            break;
         case IR24:
             return 0x1000000;
-            break;
         case IR25:
             return 0x2000000;
-            break;
         case IR26:
             return 0x4000000;
-            break;
         case IR27:
             return 0x8000000;
-            break;
         case IR28:
             return 0x10000000;
-            break;
         case IR29:
             return 0x20000000;
-            break;
         case IR30:
             return 0x40000000;
-            break;
         case IR31:
             return 0x80000000;
-            break;
         default:
             return 0;
     }
@@ -173,7 +145,10 @@ PROCESS_THREAD(ir_receiver_process, ev, data) {
             } else {
                 PRINTF("Got new command %d,%d,%d,%d!\n", ir_last_data[0],ir_last_data[1],ir_last_data[2],ir_last_data[3]);
             }
-            broadcast_value(30);
+            if(timer_expired(&ir_rep_timer)) {
+                broadcast_value(30);
+                timer_restart(&ir_rep_timer);
+            }
         }
     }
 
