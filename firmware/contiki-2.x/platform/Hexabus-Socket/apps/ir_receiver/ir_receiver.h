@@ -5,6 +5,7 @@
 #include "process.h"
 
 #define COMP_VAL 100
+#define IR_REP_DELAY 0.3
 #define IR_SAMSUNG 1   // 0 for standard NEC protocol
 
 //Code mapping (Samsung BN59-00940A remote)

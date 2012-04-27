@@ -17,6 +17,7 @@
 static uint32_t ir_time = 0;
 static uint32_t ir_time_since_last = 0;
 static uint8_t ir_data[4] = {0,0,0,0};
+static uint8_t ir_prev_data[4] = {0,0,0,0};
 static uint8_t ir_state = IR_IDLE_STATE;
 static uint8_t ir_edge_dir = IR_EDGE_DOWN;
 static uint8_t ir_repeat = 0;
@@ -143,11 +144,14 @@ PROCESS_THREAD(ir_receiver_process, ev, data) {
                 PRINTF("Got repeat signal %d \n", ir_time_since_last);
                 ir_repeat = 0;
             } else {
-                PRINTF("Got new command %d,%d,%d,%d!\n", ir_last_data[0],ir_last_data[1],ir_last_data[2],ir_last_data[3]);
-            }
-            if(timer_expired(&ir_rep_timer)) {
-                broadcast_value(30);
-                timer_restart(&ir_rep_timer);
+                if(*(int32_t*)ir_prev_data != *(int32_t*)ir_last_data || timer_expired(&ir_rep_timer) || IR_REPEAT) {
+                    memcpy(ir_prev_data, ir_last_data, 4);
+                    timer_restart(&ir_rep_timer);
+                    PRINTF("Got new command %d,%d,%d,%d!\n", ir_last_data[0],ir_last_data[1],ir_last_data[2],ir_last_data[3]);
+                    broadcast_value(30);
+                } else {
+                    timer_restart(&ir_rep_timer);
+                }
             }
         }
     }
