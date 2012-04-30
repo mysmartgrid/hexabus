@@ -5,13 +5,9 @@ How to install
 --------------
 
 You need:
-1. boost 1.48 or newer
 
-   Note: If you install boost from the sources on Ubuntu, make sure that libbz2-dev is installed beforehand. (b2 should compile everything and not complain that anything was not updated)
-
-2. libklio
-
-   You can grab it from https://github.com/mysmartgrid/libklio
+1. boost 1.48 or newer -- Note: If you install boost from the sources on Ubuntu, make sure that libbz2-dev is installed beforehand. (b2 should compile everything and not complain that anything was not updated)
+2. libklio -- You can grab it from https://github.com/mysmartgrid/libklio
 
 Now just run make in this folder (hexaswitch). It should drop two executable into build/src: hexaswitch and hexalog. If you want to install system wide, you can run (sudo) make install, too.
 
