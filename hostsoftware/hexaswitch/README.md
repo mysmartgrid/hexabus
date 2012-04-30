@@ -20,10 +20,10 @@ Just run `hexaswitch listen`. It dumps all the broadcasts to the console.
 
 ### Controlling devices (sending WRITE, QUERY or EPQUERY packets)
 
-Run `hexaswitch <hostname> <command>`, substituting <hostname> for your device's IP address. Commands are:
+Run `hexaswitch <hostname> <command>`, substituting `<hostname>` for your device's IP address. Commands are:
 
-* `get <EID>` -- sends a QUERY for the endpoint with the ID <EID> and waits for a reply, which is printed on the console
-* `set <EID> <datatype> <value>` -- sends a WRITE to the endpoint with the ID <EID>. <value> is the value you want to write. For datatypes, see the output of hexaswitch when called without arguments.
+* `get <EID>` -- sends a QUERY for the endpoint with the ID `<EID>` and waits for a reply, which is printed on the console
+* `set <EID> <datatype> <value>` -- sends a WRITE to the endpoint with the ID `<EID>`. `<value>` is the value you want to write. For datatypes, see the output of hexaswitch when called without arguments.
 * `epquery <EID>` -- sends an EPQUERY, waits for the response and prints it to the console.
 
 There are several shorthand commands. Just run hexaswitch without any arguments to see a list.
