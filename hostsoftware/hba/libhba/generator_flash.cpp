@@ -78,7 +78,7 @@ struct hba_doc_visitor : boost::static_visitor<> {
     oss
       << condition.ipv6_address << COND_TABLE_SEPARATOR
       << condition.eid << COND_TABLE_SEPARATOR
-      << "X" << COND_TABLE_SEPARATOR
+      << condition.dtype << COND_TABLE_SEPARATOR
       << condition.op << COND_TABLE_SEPARATOR
       << condition.value << COND_TABLE_SEPARATOR
       ;

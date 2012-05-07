@@ -48,6 +48,7 @@ namespace hexabus {
     unsigned int eid;
     unsigned int op;
     unsigned int value;
+    unsigned int dtype;
     unsigned int id;
   };
 
@@ -91,6 +92,7 @@ BOOST_FUSION_ADAPT_STRUCT(
     (std::string, name)
     (std::string, ipv6_address)
     (unsigned int, eid)
+    (unsigned int, dtype)
     (unsigned int, op)
     (unsigned int, value)
     )
