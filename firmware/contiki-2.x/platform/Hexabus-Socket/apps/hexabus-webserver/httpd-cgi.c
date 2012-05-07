@@ -551,7 +551,7 @@ void hxbtos(char *dest, char *data, uint8_t datatype)
 			break;
 		case HXB_DTYPE_UINT32:
 		case HXB_DTYPE_TIMESTAMP:
-			sprintf(dest, "%u", *(uint32_t*)data);
+			sprintf(dest, "%lu", *(uint32_t*)data);
 			break;
 		case WS_HXB_DTYPE_UINT16:
 			sprintf(dest, "%u", *(uint16_t*)data);
