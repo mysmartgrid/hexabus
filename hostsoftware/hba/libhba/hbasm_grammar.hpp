@@ -10,10 +10,10 @@
 #include <boost/spirit/include/phoenix_object.hpp>
 
 #include <boost/variant/recursive_variant.hpp>
-#include <boost/spirit/home/qi.hpp> 
-#include <boost/spirit/home/support/info.hpp> 
-#include <boost/spirit/home/phoenix.hpp> 
-#include <boost/spirit/home/phoenix/statement/sequence.hpp> 
+#include <boost/spirit/home/qi.hpp>
+#include <boost/spirit/home/support/info.hpp>
+#include <boost/spirit/home/phoenix.hpp>
+#include <boost/spirit/home/phoenix/statement/sequence.hpp>
 #include <boost/spirit/include/support_multi_pass.hpp>
 #include <boost/spirit/include/classic_position_iterator.hpp>
 
@@ -36,7 +36,7 @@ namespace hexabus {
   {
 	error_traceback_t (std::string const & msg)
 	{
-	  stack.push_back(msg); 
+	  stack.push_back(msg);
 	}
 
 	template <typename ArgsT, typename ContextT, typename RT>
@@ -94,8 +94,7 @@ struct UpdateFileInfo
 	  m_state.line++;
 	  std::cout << "updatefileinfo(b, e): " << std::endl
 			    << "   " << typeid(begin).name() << std::endl
-			    << "   " << typeid(end).name() << std::endl
-																									 ;
+			    << "   " << typeid(end).name() << std::endl;
 	}
 
   FileState & m_state;
@@ -116,7 +115,7 @@ struct UpdateFileInfo
 	  hexabus_asm_grammar(
 		  std::vector<std::string>& error_hints,
 		  pos_iterator_type& current_position
-		) : hexabus_asm_grammar::base_type(start), 
+		) : hexabus_asm_grammar::base_type(start),
 			_error_hints(error_hints),
 			_current_position(current_position)
 	  {
@@ -163,16 +162,26 @@ struct UpdateFileInfo
 		greaterthan = lit(">") [_val = 4];
 		ipv6_address = (+char_("a-fA-F0-9:") [_val+=_1]);
 		eid_value = (uint_ [_val=_1]);
+		//TODO: Datatypes should be autodetected in the future
+		dt_undef = lit("undef") [_val = 0];
+		dt_bool = lit("bool") [_val = 1];
+		dt_uint8 = lit("uint8") [_val = 2];
+		dt_uint32 = lit("uint32") [_val = 3];
+		dt_datetime = lit("datetime") [_val = 4];
+		dt_float = lit("float") [_val = 5];
+		dt_string = lit("string") [_val = 6]; // TODO check length, max. 127 chars!
+		dt_timestamp = lit("timestamp") [_val = 7];
+		dtype = (dt_undef|dt_bool|dt_uint8|dt_uint32|dt_datetime|dt_float|dt_string|dt_timestamp);
 
 		identifier %= eps
-		  > char_("a-zA-Z_") 
+		  > char_("a-zA-Z_")
 		  > *char_("a-zA-Z0-9_");
 		on_error<rethrow> (
 			identifier,
 			error_traceback_t("Invalid identifier")
 			);
 
-		startstate %= lit("startstate") 
+		startstate %= lit("startstate")
 		  > identifier
 		  > ';'
 		  ;
@@ -181,19 +190,20 @@ struct UpdateFileInfo
 			error_traceback_t("Invalid start state definition")
 			);
 
-		condition %= 
-		  lit("condition") 
-		  >> file_pos	
+		condition %=
+		  lit("condition")
+		  >> file_pos
 		  > identifier
 		  > '{'
-		  > lit("ip") > is > ipv6_address > ';' 
-		  > lit("eid") > is > eid_value > ';' 
-		  > lit("value") > (equals|notequals|lessthan|greaterthan) > uint_ > ';' 
+		  > lit("ip") > is > ipv6_address > ';'
+		  > lit("eid") > is > eid_value > ';'
+			> lit("datatype") > is > dtype > ';'
+		  > lit("value") > (equals|notequals|lessthan|greaterthan) > uint_ > ';'
 		  > '}'
 		  ;
 		on_error<rethrow> (
 			condition,
-			error_traceback_t("Invalid condition") 
+			error_traceback_t("Invalid condition")
 			);
 
 		if_clause %=
@@ -202,25 +212,26 @@ struct UpdateFileInfo
 		  > identifier
 		  > '{'
 		  > lit("set") > eid_value > is > uint_ > ';'
+			> lit("datatype") > is > dtype > ';'
 		  > lit("goodstate") > identifier > ';'
 		  > lit("badstate") > identifier > ';'
 		  > '}'
 		  ;
 		on_error<rethrow> (
 			if_clause,
-			error_traceback_t("Invalid if clause in state") 
+			error_traceback_t("Invalid if clause in state")
 			);
 
-		state %= lit("state") 
+		state %= lit("state")
 		  >> file_pos	
 		  > identifier
 		  > '{'
 		  > *(if_clause)
-		  > '}'       
+		  > '}'
 		  ;
 		on_error<rethrow> (
 			state,
-			error_traceback_t("Invalid state definition") 
+			error_traceback_t("Invalid state definition")
 			);
 
 		start %= startstate
@@ -251,6 +262,15 @@ struct UpdateFileInfo
 	  qi::rule<Iterator, int(), Skip> notequals;
 	  qi::rule<Iterator, int(), Skip> greaterthan;
 	  qi::rule<Iterator, int(), Skip> lessthan;
+		qi::rule<Iterator, int(), Skip> dt_undef;
+		qi::rule<Iterator, int(), Skip> dt_bool;
+		qi::rule<Iterator, int(), Skip> dt_uint8;
+		qi::rule<Iterator, int(), Skip> dt_uint32;
+		qi::rule<Iterator, int(), Skip> dt_datetime;
+		qi::rule<Iterator, int(), Skip> dt_float;
+		qi::rule<Iterator, int(), Skip> dt_string;
+		qi::rule<Iterator, int(), Skip> dt_timestamp;
+		qi::rule<Iterator, void(), Skip> dtype;
 	  qi::rule<Iterator, std::string(), Skip> ipv6_address;
 	  qi::rule<Iterator, unsigned(), Skip> eid_value;
 	  qi::rule<Iterator, hba_doc(), Skip> start;
@@ -260,7 +280,7 @@ struct UpdateFileInfo
 	  std::vector<std::string>& _error_hints;
 	  pos_iterator_type& _current_position;
 
-	  FileState file_state; 
+	  FileState file_state;
 	};
 
 
