@@ -38,7 +38,7 @@ struct hba_doc_visitor : boost::static_visitor<> {
     std::cout << state_id << ": clause " << clause.name 
       << " (id " << cond_id << ")" << std::endl;
     std::cout << " set eid " << clause.eid 
-      << " := " << clause.value << std::endl;
+      << " := " << clause.value << " datatype " << clause.dtype << std::endl;
     std::cout << " goodstate: " << goodstate_id << std::endl;
     std::cout << " badstate: " << badstate_id << std::endl;
     std::ostringstream oss;
@@ -74,6 +74,7 @@ struct hba_doc_visitor : boost::static_visitor<> {
     std::cout << "EID: " << condition.eid << std::endl;
     std::cout << "Operator: " << condition.op << std::endl;
     std::cout << "Value: " << condition.value << std::endl;
+    std::cout << "Datatype: " << condition.dtype << std::endl;
     std::ostringstream oss;
     oss
       << condition.ipv6_address << COND_TABLE_SEPARATOR
