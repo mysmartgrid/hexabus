@@ -171,7 +171,6 @@ struct UpdateFileInfo
 		dt_float = lit("float") [_val = 5];
 		dt_string = lit("string") [_val = 6]; // TODO check length, max. 127 chars!
 		dt_timestamp = lit("timestamp") [_val = 7];
-		//dtype = (dt_undef|dt_bool|dt_uint8|dt_uint32|dt_datetime|dt_float|dt_string|dt_timestamp);
 
 		identifier %= eps
 		  > char_("a-zA-Z_")
@@ -197,7 +196,8 @@ struct UpdateFileInfo
 		  > '{'
 		  > lit("ip") > is > ipv6_address > ';'
 		  > lit("eid") > is > eid_value > ';'
-			> lit("datatype") > is > uint_ > ';'// dtype > ';' // TODO should be ==, not :=
+			> lit("datatype") > is > (dt_undef|dt_bool|dt_uint8|dt_uint32|dt_datetime|dt_float|dt_string|dt_timestamp) > ';' // TODO should be ==, not :=
+		
 		  > lit("value") > (equals|notequals|lessthan|greaterthan) > uint_ > ';'
 		  > '}'
 		  ;
@@ -212,7 +212,7 @@ struct UpdateFileInfo
 		  > identifier
 		  > '{'
 		  > lit("set") > eid_value > is > uint_ > ';'
-			//> lit("datatype") > is > dtype > ';'
+			> lit("datatype") > is > (dt_undef|dt_bool|dt_uint8|dt_uint32|dt_datetime|dt_float|dt_string|dt_timestamp) > ';'
 		  > lit("goodstate") > identifier > ';'
 		  > lit("badstate") > identifier > ';'
 		  > '}'

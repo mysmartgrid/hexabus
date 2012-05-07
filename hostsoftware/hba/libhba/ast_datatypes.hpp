@@ -30,6 +30,7 @@ namespace hexabus {
     std::string name;
     unsigned int eid;
     unsigned int value;
+    unsigned int dtype;
     std::string goodstate;
     std::string badstate;
   };
@@ -75,6 +76,7 @@ BOOST_FUSION_ADAPT_STRUCT(
     (std::string, name)
     (unsigned int, eid)
     (unsigned int, value)
+    (unsigned int, dtype)
     (std::string, goodstate)
     (std::string, badstate)
     )

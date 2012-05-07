@@ -46,7 +46,7 @@ struct hba_doc_visitor : boost::static_visitor<> {
       << state_id << STATE_TABLE_SEPARATOR
       << cond_id << STATE_TABLE_SEPARATOR
       << clause.eid << STATE_TABLE_SEPARATOR
-      << "X" << STATE_TABLE_SEPARATOR
+      << clause.dtype << STATE_TABLE_SEPARATOR
       << clause.value << STATE_TABLE_SEPARATOR
       << goodstate_id << STATE_TABLE_SEPARATOR
       << badstate_id << STATE_TABLE_SEPARATOR
