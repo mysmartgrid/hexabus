@@ -17,7 +17,7 @@ void analogread_init() {
     ADMUX = (0<<REFS1) | (1<<REFS0); // AVCC as reference
     ADCSRA = (1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2); // prescaler 128
     ADCSRA |= (1<<ADSC); // initial conversion
-    ADMUX = (ADMUX & ~(0x1F)) | (ANALOGREAD_PIN & 0x1F); // select pin
+    ADMUX = (ADMUX & ~(ANALOGREAD_MUX_BITS)) | (ANALOGREAD_PIN & ANALOGREAD_MUX_BITS); // select pin
     ADCSRA |= (1<<ADEN); //enable ADC
 }
 
