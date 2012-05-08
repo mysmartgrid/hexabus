@@ -173,7 +173,6 @@ int main(int argc, char **argv)
         exit(-1);
       }
       hexabus::generator_flash gf(gBuilder.get_graph(), ast);
-      // gf(std::cout);
 
       std::ofstream ofs;
       std::string outfile(vm["output"].as<std::string>());

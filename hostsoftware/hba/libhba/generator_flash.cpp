@@ -5,18 +5,18 @@
 #include <map>
 using namespace hexabus;
 
-
 const char COND_TABLE_BEGIN_TOKEN='-';
 const char COND_TABLE_SEPARATOR='.';
+const char COND_TABLE_END_TOKEN = '.';
 const char STATE_TABLE_BEGIN_TOKEN='-';
 const char STATE_TABLE_SEPARATOR='.';
+const char STATE_TABLE_END_TOKEN = '.';
 
 typedef std::map<unsigned int, std::string> flash_format_map_t;
 typedef std::map<unsigned int, std::string>::iterator flash_format_map_it_t;
 
 // TODO: Zwei listen fuer conditions und states
 // TODO: States am Ende so sortieren, dass der Startstate der erste ist.
-
 
 struct hba_doc_visitor : boost::static_visitor<> {
   hba_doc_visitor(
@@ -120,12 +120,13 @@ void generator_flash::operator()(std::ostream& os) const {
     os << (*it).second;
   }
   // table separator
-  os << STATE_TABLE_BEGIN_TOKEN;
+  os << COND_TABLE_END_TOKEN << STATE_TABLE_BEGIN_TOKEN;
   // write transitions
   for(flash_format_map_it_t it = states.begin(); it != states.end(); ++it)
   {
     os << (*it).second; // TODO can't we write it->second?
   }
+  os << STATE_TABLE_END_TOKEN;
   std::cout << "done." << std::endl;
 }
 

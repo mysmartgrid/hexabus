@@ -24,10 +24,7 @@ namespace hexabus {
       generator_flash& operator= (const generator_flash& rhs);
       graph_t_ptr _g;
       hba_doc _ast;
-      
   };
 };
-
-
 
 #endif /* LIBHBA_GENERATOR_FLASH_HPP */
