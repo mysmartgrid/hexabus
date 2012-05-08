@@ -173,20 +173,24 @@ int main(int argc, char **argv)
         exit(-1);
       }
       hexabus::generator_flash gf(gBuilder.get_graph(), ast);
-      gf(std::cout);
-      //std::ofstream ofs;
-      //std::string outfile(vm["output"].as<std::string>());
-      //if (std::string("") == outfile) {
-      //  std::cout << "No output file specified." << std::endl;
-      //  exit(-1);
-      //}
-      //ofs.open(outfile.c_str());
-      //if (!ofs) {
-      //  std::cerr << "Error: Could not open output file: "
-      //    << outfile << std::endl;
-      //  return 1;
-      //}
-      //ofs.close();
+      // gf(std::cout);
+
+      std::ofstream ofs;
+      std::string outfile(vm["output"].as<std::string>());
+      if (std::string("") == outfile) {
+        std::cout << "No output file specified." << std::endl;
+        exit(-1);
+      }
+      ofs.open(outfile.c_str());
+      if (!ofs) {
+        std::cerr << "Error: Could not open output file: "
+          << outfile << std::endl;
+        return 1;
+      }
+
+      gf(ofs);
+
+      ofs.close();
 
     } else {
       std::cout << "Parsing succeeded." << std::endl;

@@ -7,10 +7,8 @@ using namespace hexabus;
 
 
 const char COND_TABLE_BEGIN_TOKEN='-';
-const char COND_TABLE_END_TOKEN='.';
 const char COND_TABLE_SEPARATOR='.';
 const char STATE_TABLE_BEGIN_TOKEN='-';
-const char STATE_TABLE_END_TOKEN='.';
 const char STATE_TABLE_SEPARATOR='.';
 
 typedef std::map<unsigned int, std::string> flash_format_map_t;
@@ -102,18 +100,32 @@ void generator_flash::operator()(std::ostream& os) const {
   }
 
   std::cout << "Created condition table:" << std::endl;
-  for( flash_format_map_it_t it = conditions.begin(); 
+  for(flash_format_map_it_t it = conditions.begin(); 
       it != conditions.end(); ++it) {
     std::cout << (*it).first << ": " << (*it).second << std::endl;
   }
- 
+
   std::cout << "Created state table:" << std::endl;
-  for( flash_format_map_it_t it = states.begin(); 
-      it != states.end(); ++it) {
+  for(flash_format_map_it_t it = states.begin(); it != states.end(); ++it)
+  {
     std::cout << (*it).first << ": " << (*it).second << std::endl;
   }
- 
 
+  std::cout << "Writing output file..." << std::endl;
+  // preamble
+  os << COND_TABLE_BEGIN_TOKEN;
+  // write conditions
+  for(flash_format_map_it_t it = conditions.begin(); it != conditions.end(); it++)
+  {
+    os << (*it).second;
+  }
+  // table separator
+  os << STATE_TABLE_BEGIN_TOKEN;
+  // write transitions
+  for(flash_format_map_it_t it = states.begin(); it != states.end(); ++it)
+  {
+    os << (*it).second; // TODO can't we write it->second?
+  }
+  std::cout << "done." << std::endl;
 }
-
 
