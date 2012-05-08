@@ -9,6 +9,8 @@
 
 #include "../../shared/hexabus_packet.h"
 
+#pragma GCC diagnostic warning "-Wstrict-aliasing"
+
 void usage()
 {
     std::cout << "\nusage: hexaswitch hostname command\n";

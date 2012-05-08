@@ -11,7 +11,12 @@
 #define UDP_HANDLER_DEBUG 0
 
 // WebServer
-#define WEBSERVER_DEBUG 0
+#define WEBSERVER_DEBUG 1
+
+// Memory debugger process
+#define MEMORY_DEBUGGER_ENABLE 1
+// Print a line every MEMORY_DEBUGGER_INTERVAL seconds
+#define MEMORY_DEBUGGER_INTERVAL 10
 
 // button
 #define BUTTON_DEBUG 0
@@ -20,7 +25,7 @@
 #define BUTTON_TOGGLES_RELAY 1 // set to 1 to have the button toggle the relay directly
 
 // datetime_service
-#define DATETIME_SERVICE_ENABLE 1
+#define DATETIME_SERVICE_ENABLE 0
 #define DATETIME_SERVICE_DEBUG 0
 
 // temperature
@@ -38,7 +43,7 @@
 
 // state_machine
 #define STATE_MACHINE_ENABLE 1
-#define STATE_MACHINE_DEBUG 0
+#define STATE_MACHINE_DEBUG 1
 
 // window blind shutter motor control
 #define SHUTTER_ENABLE 0

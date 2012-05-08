@@ -21,8 +21,7 @@
 #include <boost/program_options/positional_options.hpp>
 namespace po = boost::program_options;
 
-
-
+#pragma GCC diagnostic warning "-Wstrict-aliasing"
 
 // TODO: Remove this, only for debugging.
 using namespace boost::posix_time;
@@ -129,6 +128,15 @@ int main(int argc, char** argv)
           break;
         case 3:
           sensor_unit=std::string("deg Celsius");
+          break;
+        case 4:
+          sensor_unit=std::string("boolean");
+          break;
+        case 5:
+          sensor_unit=std::string("% r.h.");
+          break;
+        case 6:
+          sensor_unit=std::string("hPa");
           break;
         case 23:
         case 24:

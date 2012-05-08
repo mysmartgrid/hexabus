@@ -135,11 +135,16 @@
 #if ANALOGREAD_ENABLE
 #include "analogread.h"
 #endif
+#if MEMORY_DEBUGGER_ENABLE
+#include "memory_debugger.h"
+#endif
+
+
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
 uint8_t forwarding_enabled; //global variable for forwarding
- uint8_t encryption_enabled = 1; //global variable for AES encryption
+uint8_t encryption_enabled = 1; //global variable for AES encryption
 /*-------------------------------------------------------------------------*/
 /*----------------------Configuration of the .elf file---------------------*/
 #if 1
@@ -328,6 +333,12 @@ void initialize(void)
   process_start(&webserver_nogui_process, NULL);
 #endif
 
+#if MEMORY_DEBUGGER_ENABLE 
+  memory_debugger_init();
+  /* periodically print memory usage */
+  process_start(&memory_debugger_process, NULL);
+#endif
+
   /* Handler for HEXABUS UDP Packets */
   process_start(&udp_handler_process, NULL);
 
@@ -480,9 +491,6 @@ main(void)
   while(1) {
     process_run();
     watchdog_periodic();
-
-
-
 
 }
   return 0;
