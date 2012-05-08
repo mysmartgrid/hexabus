@@ -22,7 +22,7 @@
 #include <libhba/file_pos.hpp>
 
 // We need this for the hexabus datatype definitions
-#include "../../../shared/hexabus_packet.h"
+#include "../../../shared/hexabus_definitions.h"
 
 
 namespace qi = boost::spirit::qi;
@@ -155,12 +155,12 @@ struct UpdateFileInfo
 
     is = eps > lit(":=");
     //TODO: Introduce ENUM for operators. -- at the moment thos are defined in state_machine.h in the state macfhine app folder -- put them into a global define
-    equals = lit("==") [_val = 0];
-    lessequal = lit("<=") [_val = 1];
-    greaterequal = lit(">=") [_val = 2];
-    lessthan = lit("<") [_val = 3];
-    greaterthan = lit(">") [_val = 4];
-    notequal = lit("!=") [_val = 5];
+    equals = lit("==") [_val = STM_EQ];
+    lessequal = lit("<=") [_val = STM_LEQ];
+    greaterequal = lit(">=") [_val = STM_GEQ];
+    lessthan = lit("<") [_val = STM_LT];
+    greaterthan = lit(">") [_val = STM_GT];
+    notequal = lit("!=") [_val = STM_NEQ];
     ipv6_address = (+char_("a-fA-F0-9:") [_val+=_1]);
     eid_value = (uint_ [_val=_1]);
     //TODO: Datatypes should be autodetected in the future
