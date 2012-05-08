@@ -1,21 +1,21 @@
 # this is a comment
 startstate off;
 condition toggle_on {
-  ip := fe80:0000:0000:0000:00b5:5aff:fe0b:0302;
-  eid := 25;
-  datatype := float;
+  ip := 00000000000000000000000000000001;
+  eid := 4;
+  datatype := bool;
   value == 1;
 }
 condition toggle_off {
-  ip := fe80:0000:0000:0000:00b5:5aff:fe0b:0302;
-  eid := 25;
-  datatype := uint32;
+  ip := 00000000000000000000000000000001;
+  eid := 4;
+  datatype := bool;
   value == 1;
 }
 state off {
   if toggle_on {
     set 1 := 1;
-    datatype := float;
+    datatype := bool;
     goodstate on;
     badstate off;
   }
@@ -23,7 +23,7 @@ state off {
 state on {
   if toggle_off {
     set 1 := 0;
-    datatype := timestamp;
+    datatype := bool;
     goodstate off;
     badstate on;
   }

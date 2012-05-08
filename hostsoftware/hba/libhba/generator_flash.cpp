@@ -18,24 +18,26 @@ typedef std::map<unsigned int, std::string>::iterator flash_format_map_it_t;
 // TODO: Zwei listen fuer conditions und states
 // TODO: States am Ende so sortieren, dass der Startstate der erste ist.
 
-struct hba_doc_visitor : boost::static_visitor<> {
+struct hba_doc_visitor : boost::static_visitor<>
+{
   hba_doc_visitor(
       flash_format_map_t& states,
       flash_format_map_t& conditions,
-      const graph_t_ptr g) 
+      const graph_t_ptr g)
     : _states(states),
       _conditions(conditions),
      _g(g)
   { }
 
-  void operator()(if_clause_doc const& clause, unsigned int state_id) const {
+  void operator()(if_clause_doc const& clause, unsigned int state_id) const
+  {
     unsigned int cond_id = find_vertex_id(_g, clause.name);
     unsigned int goodstate_id = find_vertex_id(_g, clause.goodstate);
     unsigned int badstate_id = find_vertex_id(_g, clause.badstate);
 
-    std::cout << state_id << ": clause " << clause.name 
+    std::cout << state_id << ": clause " << clause.name
       << " (id " << cond_id << ")" << std::endl;
-    std::cout << " set eid " << clause.eid 
+    std::cout << " set eid " << clause.eid
       << " := " << clause.value << " datatype " << clause.dtype << std::endl;
     std::cout << " goodstate: " << goodstate_id << std::endl;
     std::cout << " badstate: " << badstate_id << std::endl;
@@ -64,7 +66,7 @@ struct hba_doc_visitor : boost::static_visitor<> {
   void operator()(condition_doc const& condition) const
   {
     std::cout << "condition " << condition.id << ":" << std::endl;
-    std::cout << "IPv6 addr: " << condition.ipv6_address << std::endl; 
+    std::cout << "IPv6 addr: " << condition.ipv6_address << std::endl;
     // for( unsigned int i = 0; i < condition.ipv6_address.size(); i += 1) {
     //   std::cout << std::setw(2) << std::setfill('0') 
     //     << std::hex << (int)(condition.ipv6_address[i] & 0xFF);
@@ -89,7 +91,8 @@ struct hba_doc_visitor : boost::static_visitor<> {
   graph_t_ptr _g;
 };
 
-void generator_flash::operator()(std::ostream& os) const {
+void generator_flash::operator()(std::ostream& os) const
+{
   flash_format_map_t conditions;
   flash_format_map_t states;
 
@@ -100,15 +103,15 @@ void generator_flash::operator()(std::ostream& os) const {
   }
 
   std::cout << "Created condition table:" << std::endl;
-  for(flash_format_map_it_t it = conditions.begin(); 
-      it != conditions.end(); ++it) {
-    std::cout << (*it).first << ": " << (*it).second << std::endl;
+  for(flash_format_map_it_t it = conditions.begin(); it != conditions.end(); ++it)
+  {
+    std::cout << it->first << ": " << it->second << std::endl;
   }
 
   std::cout << "Created state table:" << std::endl;
   for(flash_format_map_it_t it = states.begin(); it != states.end(); ++it)
   {
-    std::cout << (*it).first << ": " << (*it).second << std::endl;
+    std::cout << it->first << ": " << it->second << std::endl;
   }
 
   std::cout << "Writing output file..." << std::endl;
@@ -117,14 +120,14 @@ void generator_flash::operator()(std::ostream& os) const {
   // write conditions
   for(flash_format_map_it_t it = conditions.begin(); it != conditions.end(); it++)
   {
-    os << (*it).second;
+    os << it->second;
   }
   // table separator
   os << COND_TABLE_END_TOKEN << STATE_TABLE_BEGIN_TOKEN;
   // write transitions
   for(flash_format_map_it_t it = states.begin(); it != states.end(); ++it)
   {
-    os << (*it).second; // TODO can't we write it->second?
+    os << it->second;
   }
   os << STATE_TABLE_END_TOKEN;
   std::cout << "done." << std::endl;

@@ -6,7 +6,6 @@
 #include <libhba/graph.hpp>
 #include <iostream>
 
-
 namespace hexabus {
  
   class generator_flash {
