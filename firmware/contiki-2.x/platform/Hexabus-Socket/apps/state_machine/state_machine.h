@@ -13,14 +13,6 @@ PROCESS_NAME(state_machine_process);
 
 // Internal stuff: these structs implement a simple table layout
 
-// Operators for comparison
-#define STM_EQ   0x00
-#define STM_LEQ  0x01
-#define STM_GEQ  0x02
-#define STM_LT   0x03
-#define STM_GT   0x04
-#define STM_NEQ  0x05
-
 // op for datetime: bits 0..6 denote dependency on hour, minute, second, ...; bit 7 sets whether to check for >= or <.
 // date/time transitions need to be stored separately. They are also executed seperately, each time before the "normal" transitions are executed
 
