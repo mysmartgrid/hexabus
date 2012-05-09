@@ -31,10 +31,11 @@
 // temperature
 #define TEMPERATURE_ENABLE 0
 #define TEMPERATURE_DEBUG 0
+#define TEMPERATURE_SENSOR 0             // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
-#define VALUE_BROADCAST_DEBUG 1
+#define VALUE_BROADCAST_DEBUG 0
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1 // Number of endpoints to broadcast automatically - set to 0 to disable
 #define VALUE_BROADCAST_AUTO_EIDS 2 // Comma-separated list of endpoints to broadcast automatically
 #define VALUE_BROADCAST_AUTO_INTERVAL 60 // Timeout in seconds
@@ -78,5 +79,18 @@
 #define ANALOGREAD_PIN 0 // 0 to 7
 #define ANALOGREAD_MULT 0.0024414062 // readings are multiplied with this value to calculate the value sent to the endpoint. Set to 0.0024414062 to get the Voltage reading (in Volts) at 2.5V supply voltage
 #define ANALOGREAD_EID 29 // EID to be used for analogread
+
+//i2c master
+#define I2C_ENABLE 0
+#define I2C_DEBUG 0
+
+//humidity sensor
+#define HUMIDITY_ENABLE 0
+#define HUMIDITY_DEBUG 0
+
+//pressure sensor
+#define PRESSURE_ENABLE 0
+#define PRESSURE_DEBUG 0
+#define PRESSURE_OVERSAMPLING 3  //0 to 3
 
 #endif // HEXBAUS_CONFIG_H
