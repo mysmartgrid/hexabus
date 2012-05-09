@@ -161,7 +161,6 @@ struct UpdateFileInfo
     lessthan = lit("<") [_val = STM_LT];
     greaterthan = lit(">") [_val = STM_GT];
     notequal = lit("!=") [_val = STM_NEQ];
-    ipv6_address = (+char_("a-fA-F0-9:") [_val+=_1]);
     eid_value = (uint_ [_val=_1]);
     //TODO: Datatypes should be autodetected in the future
     dt_undef = lit("undef") [_val = HXB_DTYPE_UNDEFINED];
@@ -172,6 +171,12 @@ struct UpdateFileInfo
     dt_float = lit("float") [_val = HXB_DTYPE_FLOAT];
     dt_string = lit("string") [_val = HXB_DTYPE_128STRING]; // TODO check length, max. 127 chars!
     dt_timestamp = lit("timestamp") [_val = HXB_DTYPE_TIMESTAMP];
+
+    ipv6_address = ((ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
+                   (ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
+                   (ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
+                   (ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]));
+    ipv6_address_block = char_("0-9a-fA-F") > char_("0-9a-fA-F") > char_("0-9a-fA-F") > char_("0-9a-fA-F");
 
     identifier %= eps
       > char_("a-zA-Z_")
@@ -275,6 +280,7 @@ struct UpdateFileInfo
     qi::rule<Iterator, int(), Skip> dt_timestamp;
     qi::rule<Iterator, void(), Skip> dtype;
     qi::rule<Iterator, std::string(), Skip> ipv6_address;
+    qi::rule<Iterator, std::string(), Skip> ipv6_address_block;
     qi::rule<Iterator, unsigned(), Skip> eid_value;
     qi::rule<Iterator, hba_doc(), Skip> start;
 
