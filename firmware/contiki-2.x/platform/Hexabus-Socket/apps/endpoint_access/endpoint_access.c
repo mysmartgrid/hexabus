@@ -239,6 +239,12 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
 #if BUTTON_HAS_EID
       *(uint32_t*)&val->data += 0x08; // +8: Endpoint 4 also exists
 #endif
+#if HUMIDITY_ENABLE
+      *(uint32_t*)&val->data += 0x10;      // set bit for EID 5
+#endif
+#if PRESSURE_ENABLE
+      *(uint32_t*)&val->data += 0x20;      // set bit for EID 6
+#endif
 #if SHUTTER_ENABLE
       *(uint32_t*)&val->data += 0x00400000; // set bit #22 for EID 23
 #endif
