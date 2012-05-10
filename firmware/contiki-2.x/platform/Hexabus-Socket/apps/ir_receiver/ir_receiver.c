@@ -130,6 +130,17 @@ uint32_t ir_get_last_command() {
 #endif
 }
 
+uint32_t to_be_repeated() {
+   if(!IR_REPEAT) { 
+       return 0;
+   } else if(IR_RECEIVER_RAW_MODE) {
+        return 1;
+   } else {
+        return (ir_get_last_command() & IR_REPEAT_MASK);
+   }
+
+}
+
 PROCESS(ir_receiver_process, "Listen for IR commands");
 
 PROCESS_THREAD(ir_receiver_process, ev, data) {
@@ -141,10 +152,10 @@ PROCESS_THREAD(ir_receiver_process, ev, data) {
 
         if(ev == PROCESS_EVENT_POLL) {
             if(ir_repeat) {
-                PRINTF("Got repeat signal %d \n", ir_time_since_last);
+                PRINTF("Got repeat signal \n");
                 ir_repeat = 0;
             } else {
-                if(*(int32_t*)ir_prev_data != *(int32_t*)ir_last_data || timer_expired(&ir_rep_timer) || IR_REPEAT) {
+                if(*(int32_t*)ir_prev_data != *(int32_t*)ir_last_data || timer_expired(&ir_rep_timer) || to_be_repeated()) {
                     memcpy(ir_prev_data, ir_last_data, 4);
                     timer_restart(&ir_rep_timer);
                     PRINTF("Got new command %d,%d,%d,%d!\n", ir_last_data[0],ir_last_data[1],ir_last_data[2],ir_last_data[3]);

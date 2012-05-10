@@ -8,6 +8,9 @@
 #define IR_REP_DELAY 0.3
 #define IR_SAMSUNG 1   // 0 for standard NEC protocol
 
+                       //IR31.........................IR0     
+#define IR_REPEAT_MASK 0b00010100001111000111100000000000
+
 //Code mapping (Samsung BN59-00940A remote)
 #define IR0 3994093319 //0
 #define IR1 4211345159 //1
@@ -42,7 +45,7 @@
 #define IR30 3091662599 //Play
 #define IR31 3108374279 //Stop
 
-
+//State machine
 #define IR_IDLE_STATE 0
 #define IR_START_STATE 1
 #define IR_DATA_STATE 2
