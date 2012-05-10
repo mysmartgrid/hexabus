@@ -53,6 +53,7 @@ namespace hexabus {
       uint8_t getDatatype();
       uint8_t getEID();
       struct hxb_value getValue();
+      int getValuePtr(struct hxb_value*);
       std::string getString();
       // TODO getFlags (once someone starts actually using the flags)
     private:
@@ -60,7 +61,7 @@ namespace hexabus {
       bool crc_okay;
       uint8_t packet_type;
       uint8_t errorcode;
-      uint8_t datatype;
+      volatile uint8_t datatype;
       uint8_t eid;
       struct hxb_value value;
       std::string strval;
