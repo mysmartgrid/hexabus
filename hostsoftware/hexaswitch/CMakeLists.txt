@@ -58,7 +58,10 @@ include(CMakeBackwardCompatibilityCXX)
 FIND_PACKAGE(Sqlite)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
-FIND_PACKAGE(Boost 1.46.1 COMPONENTS iostreams program_options filesystem system)
+SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
+  "1.49.0" "1.49" "1.50.0" "1.50")
+SET(Boost_DETAILED_FAILURE_MSG true)
+FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS iostreams program_options filesystem system)
 
 # Reflect the package structure
 add_subdirectory(libhexabus)
@@ -89,6 +92,7 @@ message("")
 message("***** Configuration *****")
 message("  prefix: ${CMAKE_INSTALL_PREFIX}")
 message("  boost include: ${Boost_INCLUDE_DIRS}")
+message("  boost libraries shortcut: ${Boost_LIBRARIES}")
 message("  boost program options lib: ${Boost_PROGRAM_OPTIONS_LIBRARY}")
 message("  boost system lib: ${Boost_SYSTEM_LIBRARY}")
 message("  boost filesystem lib: ${Boost_FILESYSTEM_LIBRARY}")
