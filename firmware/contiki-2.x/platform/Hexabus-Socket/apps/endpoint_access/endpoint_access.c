@@ -16,6 +16,7 @@
 #include "analogread.h"
 #include "humidity.h"
 #include "pressure.h"
+#include "ir_receiver.h"
 
 uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
@@ -64,6 +65,10 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
 #if ANALOGREAD_ENABLE
     case ANALOGREAD_EID:
       return HXB_DTYPE_FLOAT;
+#endif
+#if IR_RECEIVER_ENABLE
+    case 30:
+      return HXB_DTYPE_UINT32;
 #endif
     default:  // Default: Endpoint does not exist.
       return HXB_DTYPE_UNDEFINED;
@@ -136,6 +141,11 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
 #if ANALOGREAD_ENABLE
     case ANALOGREAD_EID:
       strncpy(buffer, "Analog reader", 127);
+      break;
+#endif
+#if IR_RECEIVER_ENABLE
+    case 30:
+      strncpy(buffer, "IR remote control receiver", 127);
       break;
 #endif
     default:
@@ -266,6 +276,10 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
 #if HEXONOFF_ENABLE
       *(uint32_t*)&val->data += 0x0C000000; // set bits 26 and 27 for EIDs 27 and 28
 #endif
+#if IR_RECEIVER_ENABLE
+      *(uint32_t*)&val->data += 0x20000000; // set bit for EID 30
+#endif
+
       break;
     case 1:   // Endpoint 1: Hexabus Socket power switch
       val->datatype = HXB_DTYPE_BOOL;
@@ -332,6 +346,12 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case ANALOGREAD_EID:
         val->datatype = HXB_DTYPE_FLOAT;
         *(float*)&val->data = get_analogvalue();
+        break;
+#endif
+#if IR_RECEIVER_ENABLE
+    case 30:
+        val->datatype = HXB_DTYPE_UINT32;
+        *(uint32_t*)&val->data = ir_get_last_command();
         break;
 #endif
     default:

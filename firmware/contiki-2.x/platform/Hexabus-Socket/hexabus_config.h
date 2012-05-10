@@ -21,7 +21,7 @@
 // button
 #define BUTTON_DEBUG 0
 #define BUTTON_DOUBLE_CLICK_ENABLED 0
-#define BUTTON_HAS_EID 0 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
+#define BUTTON_HAS_EID 1 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
 #define BUTTON_TOGGLES_RELAY 1 // set to 1 to have the button toggle the relay directly
 
 // datetime_service
@@ -92,5 +92,11 @@
 #define PRESSURE_ENABLE 0
 #define PRESSURE_DEBUG 0
 #define PRESSURE_OVERSAMPLING 3  //0 to 3
+
+//ir_receiver
+#define IR_RECEIVER_ENABLE 0
+#define IR_RECEIVER_DEBUG 0
+#define IR_REPEAT 1                  // 0 disables repeat, 1 enables repeat for buttons configured in ir_receiver.h
+#define IR_RECEIVER_RAW_MODE 0
 
 #endif // HEXBAUS_CONFIG_H
