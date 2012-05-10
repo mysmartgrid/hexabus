@@ -8,6 +8,8 @@
 
 #include <iostream>
 
+#pragma GCC diagnostic warning "-Wstrict-aliasing"
+
 using namespace hexabus;
 
 hxb_packet_query Packet::query(uint8_t eid, bool ep_query)

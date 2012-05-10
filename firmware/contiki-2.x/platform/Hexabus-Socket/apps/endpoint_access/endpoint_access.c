@@ -162,6 +162,11 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
           return HXB_ERR_DATATYPE;
       }
 #endif
+#if HEXAPUSH_ENABLE
+    case 24:
+    case 25:
+      return HXB_ERR_WRITEREADONLY;
+#endif
 #if PRESENCE_DETECTOR_ENABLE
     case 26:
       if(value->datatype == HXB_DTYPE_UINT8)
@@ -194,6 +199,10 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
             return HXB_ERR_DATATYPE;
         }
         break;
+#endif
+#if ANALOGREAD_ENABLE
+    case ANALOGREAD_EID:
+      return HXB_ERR_WRITEREADONLY;
 #endif
     default:  // Default: Endpoint does not exist
       return HXB_ERR_UNKNOWNEID;

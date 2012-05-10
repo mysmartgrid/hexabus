@@ -93,8 +93,11 @@ char TCPBUF[512];
 #define CONNS WEBSERVER_CONF_CGI_CONNS
 #endif /* WEBSERVER_CONF_CGI_CONNS */
 
+// Connection state
 #define STATE_WAITING 0
 #define STATE_OUTPUT  1
+#define STATE_ERROR 2 // we still are working on the input, but an error has already occured
+#define STATE_OUTPUT_ERROR 3 // we go to OUTPUT state, but were in ERROR before
 
 #define WS_HXB_DTYPE_UINT16 0x08
 
@@ -370,6 +373,8 @@ const char httpd_indexfn [] HTTPD_STRING_ATTR = "/index.html";
 const char httpd_404fn   [] HTTPD_STRING_ATTR = "/404.html";
 const char httpd_404notf [] HTTPD_STRING_ATTR = "404 Not found";
 const char httpd_200ok   [] HTTPD_STRING_ATTR = "200 OK";
+const char httpd_413fn   [] HTTPD_STRING_ATTR = "/413.html";
+const char httpd_413error [] HTTPD_STRING_ATTR = "413 Request entity too large.";
 static
 PT_THREAD(handle_output(struct httpd_state *s))
 {
@@ -386,14 +391,31 @@ PT_THREAD(handle_output(struct httpd_state *s))
 		PT_WAIT_THREAD(&s->outputpt, send_file(s));
 	} else {
 
-		PT_WAIT_THREAD(&s->outputpt, send_headers(s, httpd_200ok));
-		ptr = strchr(s->filename, ISO_period);
-		if((ptr != NULL && httpd_strncmp(ptr, httpd_shtml, 6) == 0) || httpd_strcmp(s->filename,httpd_indexfn)==0) {
-			PT_INIT(&s->scriptpt);
-			PT_WAIT_THREAD(&s->outputpt, handle_script(s));
-		} else {
-			PT_WAIT_THREAD(&s->outputpt, send_file(s));
-		}
+    PRINTF("s->state: %d\r\n", s->state);
+
+    if(s->state == STATE_OUTPUT)
+    {
+      PT_WAIT_THREAD(&s->outputpt, send_headers(s, httpd_200ok));
+
+      ptr = strchr(s->filename, ISO_period);
+      if((ptr != NULL && httpd_strncmp(ptr, httpd_shtml, 6) == 0) || httpd_strcmp(s->filename,httpd_indexfn)==0) {
+        PT_INIT(&s->scriptpt);
+        PT_WAIT_THREAD(&s->outputpt, handle_script(s));
+      } else {
+        PT_WAIT_THREAD(&s->outputpt, send_file(s));
+      }
+    } else { // state == STATE_OUTPUT_ERROR
+      if(s->error_number == 413)
+      {
+        // Send the error message file instead.
+        httpd_strcpy(s->filename, httpd_413fn);
+        httpd_fs_open(s->filename, &s->file);
+
+        PT_WAIT_THREAD(&s->outputpt, send_headers(s, httpd_413error));
+        PT_WAIT_THREAD(&s->outputpt, send_file(s));
+      }
+      // other error messages can be added here.
+    }
 	}
 	PSOCK_CLOSE(&s->sout);
 	PT_END(&s->outputpt);
@@ -726,6 +748,8 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							numberOfBlocks++;
 						} else {
 							PRINTF("Warning: Condition Table too long! Data will not be written.\n");
+              s->state = STATE_ERROR;
+              s->error_number = 413;
 						}
 						memset(&cond, 0, sizeof(struct condition));
 					}
@@ -770,6 +794,8 @@ PT_THREAD(handle_input(struct httpd_state *s))
 									numberOfDT++;
 								} else {
 									PRINTF("Warning: DateTime Transition Table too long! Data will not be written.\n");
+                  s->state = STATE_ERROR;
+                  s->error_number = 413;
 								}
 								memset(&trans, 0, sizeof(struct transition));
 						} else {
@@ -778,6 +804,8 @@ PT_THREAD(handle_input(struct httpd_state *s))
 									numberOfBlocks++;
 								} else {
 									PRINTF("Warning: Transition Table too long! Data will not be written.\n");
+                  s->state = STATE_ERROR;
+                  s->error_number = 413;
 								}
 								memset(&trans, 0, sizeof(struct transition));
 						}
@@ -795,7 +823,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 	}
 	webserver_log_file(&uip_conn->ripaddr, s->filename);
 
-	s->state = STATE_OUTPUT;
+	s->state = (s->state == STATE_ERROR) ? STATE_OUTPUT_ERROR : STATE_OUTPUT;
 
 	while(1) {
 		PSOCK_READTO(&s->sin, ISO_nl);
@@ -815,7 +843,7 @@ handle_connection(struct httpd_state *s)
 	handle_output(s);
 #else
 	handle_input(s);
-	if(s->state == STATE_OUTPUT) {
+	if(s->state == STATE_OUTPUT || s->state == STATE_OUTPUT_ERROR) {
 		handle_output(s);
 	}
 #endif

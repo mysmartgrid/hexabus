@@ -47,6 +47,7 @@ struct httpd_state {
   char inputbuf[50];
   char filename[20];
   char state;
+  uint16_t error_number; // HTTP error code (if not 404 or 200)
   struct httpd_fs_file file;  
   int len;
   char *scriptptr;

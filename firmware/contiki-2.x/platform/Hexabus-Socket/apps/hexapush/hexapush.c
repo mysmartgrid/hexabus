@@ -24,7 +24,7 @@ void button_clicked(uint8_t button) {
     PRINTF("Clicked %d\n", button);
    
     clicked_vector|=(1<<button);
-    broadcast_value(25);
+    broadcast_value(HEXAPUSH_CLICK_EID);
     clicked_vector&=~(1<<button);
 }
 
@@ -33,7 +33,7 @@ void button_pressed(uint8_t button) {
     
     pressed_vector|=(1<<button);
 
-    broadcast_value(24);
+    broadcast_value(HEXAPUSH_PRESS_EID);
 }
 
 void button_released(uint8_t button){
@@ -41,7 +41,7 @@ void button_released(uint8_t button){
     
     pressed_vector&=~(1<<button);
    
-    broadcast_value(24);
+    broadcast_value(HEXAPUSH_PRESS_EID);
 }
 
 uint8_t get_buttonstate() {
@@ -116,26 +116,26 @@ PROCESS_THREAD(hexapush_process, ev, data) {
          int i;
 
          for(i=0; i<8; i++) {
-            if(button_state[i]==0) { //Not pressed state
+            if(button_state[i]==HEXAPUSH_NOTPRESSED_STATE) {
                 //PRINTF("Hexapush: %d is in state 0\n",i);
                 if(((~HEXAPUSH_IN&button_vector)&(1<<i))!=0) {
-                    button_state[i]=1; //Goto debounce state
+                    button_state[i]=HEXAPUSH_DEBOUNCE_STATE;
                 }
-            } else if (button_state[i]==1) { //Debounce state
+            } else if (button_state[i]==HEXAPUSH_DEBOUNCE_STATE) {
                 //PRINTF("Hexapush: %d is in state 1\n",i);
                 if(((~HEXAPUSH_IN&button_vector)&(1<<i))!=0) {
                     #if HEXAPUSH_CLICK_ENABLE
-                    button_state[i]=2; //Goto click state
+                    button_state[i]=HEXAPUSH_CLICK_STATE;
                     #elif HEXAPUSH_PRESS_RELEASE_ENABLE
                     button_pressed(i);
-                    button_state[i]=3;
+                    button_state[i]=HEXAPUSH_PRESSED_STATE;
                     #else
-                    button_state[i]=0;
+                    button_state[i]=HEXAPUSH_NOTPRESSED_STATE;
                     #endif
                 } else {
-                    button_state[i]=0;
+                    button_state[i]=HEXAPUSH_NOTPRESSED_STATE;
                 }
-            } else if (button_state[i]==2) { //Click state
+            } else if (button_state[i]==HEXAPUSH_CLICK_STATE) {
                 //PRINTF("Hexapush: %d is in state 2\n",i);
                 #if HEXAPUSH_PRESS_RELEASE_ENABLE
                 if(((~HEXAPUSH_IN&button_vector)&(1<<i))!=0) {
@@ -144,25 +144,25 @@ PROCESS_THREAD(hexapush_process, ev, data) {
                     } else {
                         button_pressed(i);
                         longclick_counter[i]=0;
-                        button_state[i]=3;
+                        button_state[i]=HEXAPUSH_PRESSED_STATE;
                     }
                 } else {
                     button_clicked(i);
                     longclick_counter[i]=0;
-                    button_state[i]=0;
+                    button_state[i]=HEXAPUSH_NOTPRESSED_STATE;
                 }
                 #else
                 button_clicked(i);
-                button_state[i] = 3;
+                button_state[i] = HEXAPUSH_PRESSED_STATE;
                 #endif
 
-            } else if (button_state[i]==3) { //Long click state
+            } else if (button_state[i]==HEXAPUSH_PRESSED_STATE) { //Long click state
                 //PRINTF("Hexapush: %d is in state 3\n",i);
                 if(((~HEXAPUSH_IN&button_vector)&(1<<i))==0) {
                     #if HEXAPUSH_PRESS_RELEASE_ENABLE
                     button_released(i);
                     #endif
-                    button_state[i]=0;
+                    button_state[i]=HEXAPUSH_NOTPRESSED_STATE;
                 }
             } else {
                 PRINTF("Hexapush error: Unknown state\n");
