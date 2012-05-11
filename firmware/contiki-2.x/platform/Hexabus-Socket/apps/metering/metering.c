@@ -27,7 +27,7 @@
  * SUCH DAMAGE.
  *
  *
- * Author: 	Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
+ * Author:   Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
  *
  * @(#)$$
  */
@@ -41,6 +41,8 @@
 #include "eeprom_variables.h"
 #include "dev/leds.h"
 #include "relay.h"
+#include "hexabus_config.h"
+#include "value_broadcast.h"
 
 /** \brief This is a file internal variable that contains the 16 MSB of the
  *         metering pulse period.
@@ -57,12 +59,15 @@
 //local variables
 static clock_time_t metering_pulse_period = 0;
 static clock_time_t clock_old;
-static uint16_t 	metering_calibration_power;
-static uint16_t 	metering_reference_value;
-static uint8_t 		metering_calibration_state = 0;
-static uint16_t 	metering_power;
-static bool 		metering_calibration = false;
+static uint16_t   metering_calibration_power;
+static uint16_t   metering_reference_value;
+static uint8_t     metering_calibration_state = 0;
+static uint16_t   metering_power;
+static bool     metering_calibration = false;
 static struct ctimer metering_stop_timer;
+#if METERING_IMMEDIATE_BROADCAST
+static uint8_t ticks_until_broadcast = METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS;
+#endif
 
 /*calculates the consumed energy on the basis of the counted pulses (num_pulses) in i given period (integration_time)
  * P = 247.4W/Hz * f_CF */
@@ -117,14 +122,14 @@ metering_get_power(void)
   uint16_t tmp;
   /*check whether measurement is up to date */
   if (clock_time() > clock_old)
-	  tmp = (clock_time() - clock_old);
+    tmp = (clock_time() - clock_old);
   else
-	  tmp = (0xFFFF - clock_old + clock_time() + 1);
+    tmp = (0xFFFF - clock_old + clock_time() + 1);
 
   if (tmp > OUT_OF_DATE_TIME * CLOCK_SECOND)
-	  metering_power = 0;
+    metering_power = 0;
   else if (metering_power != 0 && tmp > 2 * (metering_reference_value / metering_power))
-	  metering_power = calc_power(tmp);
+    metering_power = calc_power(tmp);
 
   return metering_power;
 }
@@ -133,16 +138,16 @@ metering_get_power(void)
 bool
 metering_calibrate(void)
 {
-	unsigned char cal_flag = eeprom_read_byte((void*)EE_METERING_CAL_FLAG);
-	if (cal_flag == 0xFF) {
-		metering_calibration = true;
-		leds_on(LEDS_ALL);
-		//stop calibration if there was no pulse in 60 seconds
-		ctimer_set(&metering_stop_timer, CLOCK_SECOND*60,(void *)(void *) metering_calibration_stop,NULL);
-		return true;
-	}
-	else
-		return false;
+  unsigned char cal_flag = eeprom_read_byte((void*)EE_METERING_CAL_FLAG);
+  if (cal_flag == 0xFF) {
+    metering_calibration = true;
+    leds_on(LEDS_ALL);
+    //stop calibration if there was no pulse in 60 seconds
+    ctimer_set(&metering_stop_timer, CLOCK_SECOND*60,(void *)(void *) metering_calibration_stop,NULL);
+    return true;
+  }
+  else
+    return false;
 }
 
 
@@ -150,72 +155,80 @@ metering_calibrate(void)
 void
 metering_calibration_stop(void)
 {
-	//store calibration in EEPROM
-	eeprom_write_word((uint16_t*) EE_METERING_REF, 0);
+  //store calibration in EEPROM
+  eeprom_write_word((uint16_t*) EE_METERING_REF, 0);
 
-	//lock calibration by setting flag in eeprom
-	eeprom_write_byte((uint8_t*) EE_METERING_CAL_FLAG, 0x00);
+  //lock calibration by setting flag in eeprom
+  eeprom_write_byte((uint8_t*) EE_METERING_CAL_FLAG, 0x00);
 
-	metering_calibration_state = 0;
-	metering_calibration = false;
-	relay_leds();
-	ctimer_stop(&metering_stop_timer);
+  metering_calibration_state = 0;
+  metering_calibration = false;
+  relay_leds();
+  ctimer_stop(&metering_stop_timer);
 }
 
 //interrupt service routine for the metering interrupt
 ISR(METERING_VECT)
 {
   //calibration
-  if (metering_calibration == true)    {
-	  //do 10 measurements
-      if (metering_calibration_state < 10)
-        {
-          if (metering_calibration_state == 0)
-            {
-              //get current time
-              metering_pulse_period = clock_time();
-              //stop callback timer
-              ctimer_stop(&metering_stop_timer);
-            }
-          metering_calibration_state++;
-        }
-      else {
-		  //get mean pulse period over 10 cycles
-		  if (clock_time() > metering_pulse_period)
-				metering_pulse_period = clock_time() - metering_pulse_period;
-		  else //overflow of clock_time()
-			  metering_pulse_period = (0xFFFF - metering_pulse_period) + clock_time() + 1;
+   if (metering_calibration == true)
+   {
+     //do 10 measurements
+     if (metering_calibration_state < 10)
+     {
+       if (metering_calibration_state == 0)
+       {
+         //get current time
+         metering_pulse_period = clock_time();
+         //stop callback timer
+         ctimer_stop(&metering_stop_timer);
+       }
+       metering_calibration_state++;
+     }
+     else {
+       //get mean pulse period over 10 cycles
+       if (clock_time() > metering_pulse_period)
+         metering_pulse_period = clock_time() - metering_pulse_period;
+       else //overflow of clock_time()
+         metering_pulse_period = (0xFFFF - metering_pulse_period) + clock_time() + 1;
 
-		  metering_pulse_period /= 10;
+       metering_pulse_period /= 10;
 
-		  metering_reference_value = metering_pulse_period * metering_calibration_power;
+       metering_reference_value = metering_pulse_period * metering_calibration_power;
 
-		  //store calibration in EEPROM
-		  eeprom_write_word((uint16_t*) EE_METERING_REF, metering_reference_value);
+       //store calibration in EEPROM
+       eeprom_write_word((uint16_t*) EE_METERING_REF, metering_reference_value);
 
-		  //lock calibration by setting flag in eeprom
-		  eeprom_write_byte((uint8_t*) EE_METERING_CAL_FLAG, 0x00);
+       //lock calibration by setting flag in eeprom
+       eeprom_write_byte((uint8_t*) EE_METERING_CAL_FLAG, 0x00);
 
-		  metering_calibration_state = 0;
-		  metering_calibration = false;
-		  relay_leds();
-      }
-    }
+       metering_calibration_state = 0;
+       metering_calibration = false;
+       relay_leds();
+     }
+   }
 
   //measurement
   else
-    {
-	  //get pulse period
-	 if (clock_time() > clock_old)
-		 metering_pulse_period = clock_time() - clock_old;
-	 else //overflow of clock_time()
-	  	 metering_pulse_period = (0xFFFF - clock_old) + clock_time() + 1;
+  {
+    //get pulse period
+    if (clock_time() > clock_old)
+      metering_pulse_period = clock_time() - clock_old;
+    else //overflow of clock_time()
+      metering_pulse_period = (0xFFFF - clock_old) + clock_time() + 1;
 
-	  clock_old = clock_time();
-      //calculate and set electrical power
-      metering_power = calc_power(metering_pulse_period);
-    }
+    clock_old = clock_time();
+    //calculate and set electrical power
+    metering_power = calc_power(metering_pulse_period);
+  }
+
+#if METERING_IMMEDIATE_BROADCAST
+  if(!--ticks_until_broadcast)
+  {
+    // the last argument is a void* that can be used for anything. We use it to tell value_broadcast our EID.
+    process_post(&value_broadcast_process, immediate_broadcast_event, (void*)2);
+    ticks_until_broadcast = METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS;
+  }
+#endif
 }
-
-
 

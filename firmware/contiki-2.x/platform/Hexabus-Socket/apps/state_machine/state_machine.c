@@ -37,10 +37,10 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   struct condition cond;
   // get the condition from eeprom
   PRINTF("Checking condition %d\r\n", condIndex);
-  if(condIndex == TRUE_COND_INDEX)		// If the condition is set to TRUE
-		return true;
-	
-	eeprom_read_block(&cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (condIndex * sizeof(struct condition))), sizeof(struct condition));
+  if(condIndex == TRUE_COND_INDEX)    // If the condition is set to TRUE
+    return true;
+
+  eeprom_read_block(&cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (condIndex * sizeof(struct condition))), sizeof(struct condition));
 
   // check if host is set (something other than :: (all zeroes)) -- if source host is ::, don't care for the source IP (anyhost condition)
   uint8_t hostset = 16;
@@ -59,7 +59,7 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
 
   // Check datatypes, return false if they don't match -- TIMESTAMP is exempt from that because it's checked alongside the DATETIME conditions
   if(envelope->value.datatype != cond.datatype && cond.datatype != HXB_DTYPE_TIMESTAMP) {
-		return false;
+    return false;
   }
 
   PRINTF("Now checking condition\r\n");
@@ -133,10 +133,10 @@ void check_datetime_transitions()
   // TODO maybe we should check timestamps separately, because as of now, they still need some special cases in the 'eval' function
   struct hxb_envelope dtenvelope;
   dtenvelope.value.datatype = HXB_DTYPE_DATETIME;
-	dt_valid = 1 + getDatetime(&dtenvelope.value.data);   // getDatetime returns -1 if it fails, 0 if it succeeds, so we have to "1 +" here
+  dt_valid = 1 + getDatetime(&dtenvelope.value.data);   // getDatetime returns -1 if it fails, 0 if it succeeds, so we have to "1 +" here
   struct transition* t = malloc(sizeof(struct transition));
-  
-	uint8_t i;
+
+  uint8_t i;
   for(i = 0; i < dtTransLength; i++)
   {
     eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
@@ -145,27 +145,27 @@ void check_datetime_transitions()
     {
       // Matching transition found. Check, if an action should be performed.
       if(t->eid != 0 || t->value.datatype != 0)
-			{
-      	// Try executing the command
-				PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
-				if(endpoint_write(t->eid, &(t->value)) == 0)
-				{
-					inStateSince = getTimestamp();
-					curState = t->goodState;
-					PRINTF("state_machine: Everything is fine \r\n");
-					break;
-				} else {
-					inStateSince = getTimestamp();
-					curState = t->badState;
-					PRINTF("state_machine: Something bad happened \r\n");
-					break;
-				}
-    	} else {
-		inStateSince = getTimestamp();
-		curState = t->goodState;
-		PRINTF("state_machine: No action performed. \r\n");
-			}
-		}
+      {
+        // Try executing the command
+        PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
+        if(endpoint_write(t->eid, &(t->value)) == 0)
+        {
+          inStateSince = getTimestamp();
+          curState = t->goodState;
+          PRINTF("state_machine: Everything is fine \r\n");
+          break;
+        } else {
+          inStateSince = getTimestamp();
+          curState = t->badState;
+          PRINTF("state_machine: Something bad happened \r\n");
+          break;
+        }
+      } else {
+    inStateSince = getTimestamp();
+    curState = t->goodState;
+    PRINTF("state_machine: No action performed. \r\n");
+      }
+    }
   }
   free(t);
 }
@@ -178,32 +178,32 @@ void check_value_transitions(void* data)
   struct hxb_envelope* envelope = (struct hxb_envelope*)data;
   for(i = 0;i < transLength;i++)
   {
-		eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+    eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
     // get next transition to check from eeprom
     if((t->fromState == curState) && (eval(t->cond, envelope)))
     {
       // Match found
       if(t->eid != 0 || t->value.datatype != 0)
-			{	
-				PRINTF("state_machine: Writing to endpoint %d \r\n", t->eid);
-				if(endpoint_write(t->eid, &(t->value)) == 0)
-				{
-					inStateSince = getTimestamp();
-					curState = t->goodState;
-					PRINTF("state_machine: Everything is fine \r\n");
-					break;
-				} else {                          // Something went wrong
-					inStateSince = getTimestamp();
-					curState = t->badState;
-					PRINTF("state_machine: Something bad happened \r\n");
-					break;
-				}
-    	} else {
-		inStateSince = getTimestamp();
-		curState = t->goodState;
-		PRINTF("state_machine: No action performed. \r\n");
-			}
-		}
+      {
+        PRINTF("state_machine: Writing to endpoint %d \r\n", t->eid);
+        if(endpoint_write(t->eid, &(t->value)) == 0)
+        {
+          inStateSince = getTimestamp();
+          curState = t->goodState;
+          PRINTF("state_machine: Everything is fine \r\n");
+          break;
+        } else {                          // Something went wrong
+          inStateSince = getTimestamp();
+          curState = t->badState;
+          PRINTF("state_machine: Something bad happened \r\n");
+          break;
+        }
+      } else {
+    inStateSince = getTimestamp();
+    curState = t->goodState;
+    PRINTF("state_machine: No action performed. \r\n");
+      }
+    }
   }
   free(t);
 }
@@ -211,13 +211,13 @@ void check_value_transitions(void* data)
 PROCESS_THREAD(state_machine_process, ev, data)
 {
   PROCESS_BEGIN();
-  
+
   {
     // PUT YOUR STATE MACHINE HERE
   }
 
   // read state machine table length from eeprom
-  transLength = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
+  transLength = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
   dtTransLength = eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
 
 #if STATE_MACHINE_DEBUG
@@ -264,14 +264,14 @@ PROCESS_THREAD(state_machine_process, ev, data)
       free(data);
 
       PRINTF("state machine: Now in state: %d\r\n", curState);
-    } 
-		if(ev == sm_rulechange_event) {
-			// re-read state machine table length from eeprom
-  		transLength = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
-  		dtTransLength = eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
-			PRINTF("State Machine: Re-Reading Table length.\n");
-			PRINTF("TransLength: %d, dtTransLength:", transLength, dtTransLength);
-		}
+    }
+    if(ev == sm_rulechange_event) {
+      // re-read state machine table length from eeprom
+      transLength = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
+      dtTransLength = eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
+      PRINTF("State Machine: Re-Reading Table length.\n");
+      PRINTF("TransLength: %d, dtTransLength:", transLength, dtTransLength);
+    }
   }
 
   PROCESS_END();

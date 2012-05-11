@@ -2,7 +2,7 @@
  * state_machine.h
  */
 
-#ifndef STATE_MACHINE_H_ 
+#ifndef STATE_MACHINE_H_
 #define STATE_MACHINE_H_
 
 #include "process.h"
@@ -17,11 +17,11 @@ PROCESS_NAME(state_machine_process);
 // date/time transitions need to be stored separately. They are also executed seperately, each time before the "normal" transitions are executed
 
 struct condition {
-  uint8_t sourceIP[16];      // IP
-  uint8_t sourceEID;      // EID we expect data from
-  uint8_t op;           // predicate function						|
-  uint8_t datatype;			// The constant to compare with v
-	char 		data[4];			// Leave enough room for largest chunk of data, uint32_t/float in this case
+  uint8_t sourceIP[16]; // IP
+  uint8_t sourceEID;    // EID we expect data from
+  uint8_t op;           // predicate function
+  uint8_t datatype;     // The constant to compare with
+  char    data[4];      // Leave enough room for largest chunk of data, uint32_t/float in this case
 } __attribute__ ((packed));
 
 struct transition {
