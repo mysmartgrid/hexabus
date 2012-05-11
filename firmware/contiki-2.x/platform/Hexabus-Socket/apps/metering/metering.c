@@ -67,6 +67,7 @@ static bool     metering_calibration = false;
 static struct ctimer metering_stop_timer;
 #if METERING_IMMEDIATE_BROADCAST
 static uint8_t ticks_until_broadcast = METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS;
+static clock_time_t last_broadcast;
 #endif
 
 /*calculates the consumed energy on the basis of the counted pulses (num_pulses) in i given period (integration_time)
@@ -99,6 +100,9 @@ metering_start(void)
   metering_pulse_period = 0;
   metering_power = 0;
   clock_old = clock_time();
+#if METERING_IMMEDIATE_BROADCAST
+  last_broadcast = clock_time();
+#endif
 
   ENABLE_METERING_INTERRUPT(); /* Enable external interrupt. */
 }
@@ -170,7 +174,7 @@ metering_calibration_stop(void)
 //interrupt service routine for the metering interrupt
 ISR(METERING_VECT)
 {
-  //calibration
+   //calibration
    if (metering_calibration == true)
    {
      //do 10 measurements
@@ -185,7 +189,8 @@ ISR(METERING_VECT)
        }
        metering_calibration_state++;
      }
-     else {
+     else
+     {
        //get mean pulse period over 10 cycles
        if (clock_time() > metering_pulse_period)
          metering_pulse_period = clock_time() - metering_pulse_period;
@@ -220,15 +225,27 @@ ISR(METERING_VECT)
     clock_old = clock_time();
     //calculate and set electrical power
     metering_power = calc_power(metering_pulse_period);
-  }
 
 #if METERING_IMMEDIATE_BROADCAST
-  if(!--ticks_until_broadcast)
-  {
-    // the last argument is a void* that can be used for anything. We use it to tell value_broadcast our EID.
-    process_post(&value_broadcast_process, immediate_broadcast_event, (void*)2);
-    ticks_until_broadcast = METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS;
-  }
+    uint16_t broadcast_timeout;
+    if(!--ticks_until_broadcast)
+    {
+      ticks_until_broadcast = METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS;
+      // check overflow
+      if(clock_time() > last_broadcast)
+        broadcast_timeout = (clock_time() - last_broadcast);
+      else
+        broadcast_timeout = (0xFFFF - last_broadcast) + clock_time() + 1;
+
+      if(broadcast_timeout > METERING_IMMEDIATE_BROADCAST_MINIMUM_TIMEOUT * CLOCK_SECOND)
+      {
+        // the last argument is a void* that can be used for anything. We use it to tell value_broadcast our EID.
+        // process_post(&value_broadcast_process, immediate_broadcast_event, (void*)2);
+        last_broadcast = clock_time();
+        process_post(&value_broadcast_process, immediate_broadcast_event, (void*)2);
+      }
+    }
 #endif
+  }
 }
 
