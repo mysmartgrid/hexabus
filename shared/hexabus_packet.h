@@ -3,6 +3,7 @@
 
 // Hexabus packet definition
 #include "hexabus_definitions.h"
+#include "hexabus_value.h"
 #include <stdint.h>
 
 // ======================================================================
@@ -108,16 +109,6 @@ struct hxb_packet_128string {
   char      value[128];
   uint16_t  crc;
 } __attribute__ ((packed));
-
-// ======================================================================
-// Struct for passing Hexabus values around
-// One struct for all data types (except 128string, because that'd need too much memory), with a datatype flag indicating which
-// of the values is used. Used for passing values to and from
-// endpoint_access
-struct hxb_value {
-  uint8_t   datatype;   // Datatype that is used, or HXB_DTYPE_UNDEFINED
-  char      data[8];    // leave enough room for the largest datatype (datetime in this case)
-};
 
 // ======================================================================
 // Structs for passing Hexabus data around between processes
