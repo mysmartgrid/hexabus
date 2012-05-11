@@ -1,6 +1,13 @@
 #ifndef HEXABUS_STATEMACHINE_STRUCTS_H_
 #define HEXABUS_STATEMACHINE_STRUCTS_H_
 
+// TODO AAAAH remove this from here because it is already in hexabus_packet.h (or at least #ifndef HXB_PACKET_H_ it!)
+struct hxb_value {
+  uint8_t   datatype;   // Datatype that is used, or HXB_DTYPE_UNDEFINED
+  char      data[8];    // leave enough room for the largest datatype (datetime in this case)
+};
+
+
 // these structs implement a simple table layout
 
 // op for datetime: bits 0..6 denote dependency on hour, minute, second, ...; bit 7 sets whether to check for >= or <.
