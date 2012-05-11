@@ -1,17 +1,9 @@
-/*
- * state_machine.h
- */
+#ifndef HEXABUS_STATEMACHINE_STRUCTS_H_
+#define HEXABUS_STATEMACHINE_STRUCTS_H_
 
-#ifndef STATE_MACHINE_H_ 
-#define STATE_MACHINE_H_
+#include "hexabus_value.h"
 
-#include "process.h"
-#include <stdint.h>
-#include "../../../../../shared/hexabus_packet.h"
-
-PROCESS_NAME(state_machine_process);
-
-// Internal stuff: these structs implement a simple table layout
+// these structs implement a simple table layout
 
 // op for datetime: bits 0..6 denote dependency on hour, minute, second, ...; bit 7 sets whether to check for >= or <.
 // date/time transitions need to be stored separately. They are also executed seperately, each time before the "normal" transitions are executed
@@ -33,9 +25,5 @@ struct transition {
   struct hxb_value value;  // Data for the endpoint
 } __attribute__ ((packed));
 
+#endif
 
-// Defintion of events that are important to the state machine
-// One general event for all data that can be possibly received
-extern process_event_t sm_data_received_event;
-extern process_event_t sm_rulechange_event;
-#endif /* STATE_MACHINE_H_*/
