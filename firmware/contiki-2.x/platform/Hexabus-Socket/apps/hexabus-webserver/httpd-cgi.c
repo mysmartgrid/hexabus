@@ -581,7 +581,7 @@ get_sm_tables(void *arg)
 	// Read Condition Table. Unused conditions will have a datatype equal to 0
 	cond = malloc(sizeof(struct condition));
 	length = eeprom_read_byte((void*)EE_STATEMACHINE_CONDITIONS); 
-	printf("cond-length: %u\n");
+	printf("cond-length: %u\n", length);
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-'); 
 	for(i = 0;i < length;i++) {
 		eeprom_read_block(cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (i * sizeof(struct condition))), sizeof(struct condition));
@@ -601,7 +601,7 @@ get_sm_tables(void *arg)
 		
 	// Now the transition tables
 	length = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
-	printf("trans-length: %u\n");
+	printf("trans-length: %u\n", length);
 	trans = malloc(sizeof(struct transition));
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-'); 
 	for(i = 0;i < length;i++) {

@@ -776,15 +776,19 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							break;
 					}
 					if(++position == 7) {
-						// TODO: true condition (#255)
 						position = 0;
 						PRINTF("Struct Trans: From: %u Cond: %u EID: %u DataType: %u Good: %u Bad: %u\n", trans.fromState, trans.cond, trans.eid, trans.value.datatype, trans.goodState, trans.badState);
-						// Write Line to EEPROM. Too much data is just truncated.
-						memset(&cond, 0, sizeof(struct condition));
-						eeprom_read_block(&cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (trans.cond * sizeof(struct condition))), sizeof(struct condition));
 						
-						printf("cond.datatype: %u\n", cond.datatype);
-						if(cond.datatype == HXB_DTYPE_DATETIME || cond.datatype == HXB_DTYPE_TIMESTAMP) {
+						// Check for condition #255 (always true)
+						bool isDateTime = false;
+						if(trans.cond != 255) {
+							memset(&cond, 0, sizeof(struct condition));
+							eeprom_read_block(&cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (trans.cond * sizeof(struct condition))), sizeof(struct condition));
+							isDateTime = (cond.datatype == HXB_DTYPE_DATETIME || cond.datatype == HXB_DTYPE_TIMESTAMP);
+						}
+						// Write Line to EEPROM. Too much data is just truncated.
+						printf("is DateTime?: %u\n", isDateTime);	
+						if(isDateTime) {
 							PRINTF("Writing DateTime Transition...\n");
 							if(numberOfDT < (EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE / sizeof(struct transition))) {
 									eeprom_write_block(&trans, (void*)(1 + numberOfDT*sizeof(struct transition) + EE_STATEMACHINE_DATETIME_TRANSITIONS), sizeof(struct transition));
