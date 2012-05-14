@@ -106,6 +106,7 @@
 #include "eeprom_variables.h"
 #include "udp_handler.h"
 #include "mdns_responder.h"
+#include "state_machine.h"
 
 // optional HEXABUS apps
 #if VALUE_BROADCAST_ENABLE
@@ -116,9 +117,6 @@
 #endif
 #if TEMPERATURE_ENABLE
 #include "temperature.h"
-#endif
-#if STATE_MACHINE_ENABLE
-#include "state_machine.h"
 #endif
 #if SHUTTER_ENABLE
 #include "shutter.h"
@@ -227,6 +225,49 @@ void get_aes128key_from_eeprom(uint8_t keyptr[16]) {
 void set_forwarding_to_eeprom(uint8_t val) {
 	 eeprom_write_byte ((uint8_t *)EE_FORWARDING, val);
 	 forwarding_enabled = val;
+}
+
+// State Machine eeprom access
+
+uint8_t sm_get_number_of_conditions() {
+	return eeprom_read_byte ((const void *)EE_STATEMACHINE_N_CONDITIONS);
+}
+
+void sm_set_number_of_conditions(uint8_t number) {
+	eeprom_write_byte ((uint8_t *)EE_STATEMACHINE_N_CONDITIONS, number);
+}
+
+uint8_t sm_get_number_of_transitions(bool datetime) {
+	return (datetime ? eeprom_read_byte ((const void*)EE_STATEMACHINE_N_DT_TRANSITIONS) : eeprom_read_byte ((const void*)EE_STATEMACHINE_N_TRANSITIONS));
+}
+
+void sm_set_number_of_transitions(bool datetime, uint8_t number) {
+	if(datetime)
+		eeprom_write_byte ((uint8_t *)EE_STATEMACHINE_N_DT_TRANSITIONS, number);
+	else 
+		eeprom_write_byte ((uint8_t *)EE_STATEMACHINE_N_TRANSITIONS, number);
+}
+
+void sm_write_condition(uint8_t index, struct condition *cond) {
+	eeprom_write_block(cond, (void *)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)*index), sizeof(struct condition));
+}
+
+void sm_get_condition(uint8_t index, struct condition *cond) {
+	eeprom_read_block(cond, (void *)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)*index), sizeof(struct condition));
+}
+
+void sm_write_transition(bool datetime, uint8_t index, struct transition *trans) {
+	if(datetime)
+		eeprom_write_block(trans, (void *)(EE_STATEMACHINE_DATETIME_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
+	else
+		eeprom_write_block(trans, (void *)(EE_STATEMACHINE_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
+}
+
+void sm_get_transition(bool datetime, uint8_t index, struct transition *trans) {
+	if(datetime)
+		eeprom_read_block(trans, (void *)(EE_STATEMACHINE_DATETIME_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
+	else
+		eeprom_read_block(trans, (void *)(EE_STATEMACHINE_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
 }
 
 
