@@ -673,7 +673,8 @@ PT_THREAD(handle_input(struct httpd_state *s))
 					if(table == 0) {
 						PRINTF("End of CondTable.\n");	
     				// Write length of condition table
-						eeprom_write_block(&numberOfBlocks, (void*)EE_STATEMACHINE_CONDITIONS, 1);
+						//eeprom_write_block(&numberOfBlocks, (void*)EE_STATEMACHINE_CONDITIONS, 1);
+						sm_set_number_of_conditions(numberOfBlocks);	
 						numberOfBlocks = 0;
 						table++;
 						PSOCK_READTO(&s->sin, '-');
@@ -682,8 +683,10 @@ PT_THREAD(handle_input(struct httpd_state *s))
 						end = 1;
 						PRINTF("End of TransTable.\n");	
 						// Write the Number of transitions
-    				eeprom_write_block(&numberOfBlocks, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
-						eeprom_write_block(&numberOfDT, (void*)EE_STATEMACHINE_DATETIME_TRANSITIONS, 1);
+    				//eeprom_write_block(&numberOfBlocks, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
+						//eeprom_write_block(&numberOfDT, (void*)EE_STATEMACHINE_DATETIME_TRANSITIONS, 1);
+						sm_set_number_of_transitions(false, numberOfBlocks);
+						sm_set_number_of_transitions(true, numberOfDT);
 						break;
 					}
 				}
@@ -741,7 +744,8 @@ PT_THREAD(handle_input(struct httpd_state *s))
 						PRINTF("\nStruct Cond: EID: %u Operator: %u DataType: %u \n", cond.sourceEID, cond.op, cond.datatype);
 						// Write Line to EEPROM. Too much data will be truncated
 						if(numberOfBlocks < (EE_STATEMACHINE_CONDITIONS_SIZE / sizeof(struct condition))) {
-							eeprom_write_block(&cond, (void*)(numberOfBlocks*sizeof(struct condition) + 1 + EE_STATEMACHINE_CONDITIONS), sizeof(struct condition));
+							//eeprom_write_block(&cond, (void*)(numberOfBlocks*sizeof(struct condition) + 1 + EE_STATEMACHINE_CONDITIONS), sizeof(struct condition));
+							sm_write_condition(numberOfBlocks, &cond);
 							numberOfBlocks++;
 						} else {
 							PRINTF("Warning: Condition Table too long! Data will not be written.\n");
@@ -783,7 +787,8 @@ PT_THREAD(handle_input(struct httpd_state *s))
 						bool isDateTime = false;
 						if(trans.cond != 255) {
 							memset(&cond, 0, sizeof(struct condition));
-							eeprom_read_block(&cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (trans.cond * sizeof(struct condition))), sizeof(struct condition));
+							//eeprom_read_block(&cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (trans.cond * sizeof(struct condition))), sizeof(struct condition));
+							sm_get_condition(trans.cond, &cond);
 							isDateTime = (cond.datatype == HXB_DTYPE_DATETIME || cond.datatype == HXB_DTYPE_TIMESTAMP);
 						}
 						// Write Line to EEPROM. Too much data is just truncated.
@@ -791,9 +796,10 @@ PT_THREAD(handle_input(struct httpd_state *s))
 						if(isDateTime) {
 							PRINTF("Writing DateTime Transition...\n");
 							if(numberOfDT < (EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE / sizeof(struct transition))) {
-									eeprom_write_block(&trans, (void*)(1 + numberOfDT*sizeof(struct transition) + EE_STATEMACHINE_DATETIME_TRANSITIONS), sizeof(struct transition));
-									numberOfDT++;
-								} else {
+								//eeprom_write_block(&trans, (void*)(1 + numberOfDT*sizeof(struct transition) + EE_STATEMACHINE_DATETIME_TRANSITIONS), sizeof(struct transition));
+								sm_write_transition(true, numberOfDT, &trans);		
+								numberOfDT++;
+							} else {
 									PRINTF("Warning: DateTime Transition Table too long! Data will not be written.\n");
                   s->state = STATE_ERROR;
                   s->error_number = 413;
@@ -801,9 +807,10 @@ PT_THREAD(handle_input(struct httpd_state *s))
 								memset(&trans, 0, sizeof(struct transition));
 						} else {
 							if(numberOfBlocks < (EE_STATEMACHINE_TRANSITIONS_SIZE / sizeof(struct transition))) {
-									eeprom_write_block(&trans, (void*)(1 + numberOfBlocks*sizeof(struct transition) + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
-									numberOfBlocks++;
-								} else {
+								//eeprom_write_block(&trans, (void*)(1 + numberOfBlocks*sizeof(struct transition) + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
+								sm_write_transition(false, numberOfBlocks, &trans);		
+								numberOfBlocks++;
+							} else {
 									PRINTF("Warning: Transition Table too long! Data will not be written.\n");
                   s->state = STATE_ERROR;
                   s->error_number = 413;
