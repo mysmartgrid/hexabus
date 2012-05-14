@@ -581,8 +581,8 @@ get_sm_tables(void *arg)
 	// Read Condition Table. Unused conditions will have a datatype equal to 0
 	cond = malloc(sizeof(struct condition));
 	length = sm_get_number_of_conditions();	//eeprom_read_byte((void*)EE_STATEMACHINE_CONDITIONS); 
-	printf("cond-length: %u\n", length);
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-'); 
+	
 	for(i = 0;i < length;i++) {
 		//eeprom_read_block(cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (i * sizeof(struct condition))), sizeof(struct condition));
 		sm_get_condition(i, cond);
@@ -602,9 +602,9 @@ get_sm_tables(void *arg)
 		
 	// Now the transition tables
 	length = sm_get_number_of_transitions(false);	//eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
-	printf("trans-length: %u\n", length);
 	trans = malloc(sizeof(struct transition));
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-'); 
+	
 	for(i = 0;i < length;i++) {
   	//eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
 		sm_get_transition(false, i, trans);
@@ -612,7 +612,9 @@ get_sm_tables(void *arg)
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_trans_table_line, NULL, 
 				trans->fromState, trans->cond, trans->eid, trans->value.datatype, buffer, trans->goodState, trans->badState, NULL);
 	}
+	
 	length = sm_get_number_of_transitions(true);	//eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS); 
+	
 	for(i = 0;i < length;i++) {
   	//eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
 		sm_get_transition(true, i, trans);

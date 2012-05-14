@@ -792,7 +792,6 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							isDateTime = (cond.datatype == HXB_DTYPE_DATETIME || cond.datatype == HXB_DTYPE_TIMESTAMP);
 						}
 						// Write Line to EEPROM. Too much data is just truncated.
-						printf("is DateTime?: %u\n", isDateTime);	
 						if(isDateTime) {
 							PRINTF("Writing DateTime Transition...\n");
 							if(numberOfDT < (EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE / sizeof(struct transition))) {
