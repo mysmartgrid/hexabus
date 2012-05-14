@@ -109,6 +109,7 @@ struct hxb_packet_128string {
   char      value[128];
   uint16_t  crc;
 } __attribute__ ((packed));
+#define HXB_STRING_PACKET_MAX_BUFFER_LENGTH 127
 
 // ======================================================================
 // Structs for passing Hexabus data around between processes
