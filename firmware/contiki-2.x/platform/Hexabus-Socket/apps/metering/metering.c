@@ -69,6 +69,9 @@ static struct ctimer metering_stop_timer;
 static uint8_t ticks_until_broadcast = METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS;
 static clock_time_t last_broadcast;
 #endif
+#if METERING_ENERGY
+static uint32_t metering_pulses;
+#endif
 
 /*calculates the consumed energy on the basis of the counted pulses (num_pulses) in i given period (integration_time)
  * P = 247.4W/Hz * f_CF */
@@ -88,6 +91,11 @@ metering_init(void)
   metering_reference_value = eeprom_read_word((void*) EE_METERING_REF );
   metering_calibration_power = eeprom_read_word((void*)EE_METERING_CAL_LOAD);
 
+#if METERING_ENERGY
+  // reset energy metering value (TODO we could also EEPROM this so it is saved over a power outage)
+  metering_pulses = 0;
+#endif
+
   SET_METERING_INT();
 
   metering_start();
@@ -100,6 +108,7 @@ metering_start(void)
   metering_pulse_period = 0;
   metering_power = 0;
   clock_old = clock_time();
+
 #if METERING_IMMEDIATE_BROADCAST
   last_broadcast = clock_time();
 #endif
@@ -119,6 +128,15 @@ metering_reset(void)
 {
   metering_power = 0;
 }
+
+#if METERING_ENERGY
+float metering_get_energy(void)
+{
+  // metering_reference_value are (wattseconds * CLOCK_SECOND) per pulse
+  // then divide by 3600 * 1000 to geht kilowatthours
+  return (float)(metering_pulses * (metering_reference_value / CLOCK_SECOND)) / 3600000;
+}
+#endif
 
 uint16_t
 metering_get_power(void)
@@ -245,6 +263,9 @@ ISR(METERING_VECT)
         process_post(&value_broadcast_process, immediate_broadcast_event, (void*)2);
       }
     }
+#endif
+#if METERING_ENERGY
+    metering_pulses++;
 #endif
   }
 }

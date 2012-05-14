@@ -17,6 +17,7 @@
 #include "humidity.h"
 #include "pressure.h"
 #include "ir_receiver.h"
+#include "metering.h"
 
 uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
@@ -44,6 +45,11 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
     case 6:
       return HXB_DTYPE_FLOAT;
 #endif
+#if METERING_ENERGY
+    case 7:
+      return HXB_DTYPE_FLOAT;
+#endif
+
 #if SHUTTER_ENABLE
     case 23:
       return HXB_DTYPE_UINT8;
@@ -110,6 +116,11 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
 #if PRESSURE_ENABLE
     case 6:
       strncpy(buffer, "Barometric pressure sensor", 127);
+      break;
+#endif
+#if METERING_ENERGY
+    case 7:
+      strncpy(buffer, "Energy Meter", 127);
       break;
 #endif
 #if SHUTTER_ENABLE
@@ -188,6 +199,9 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
 #if PRESSURE_ENABLE
     case 6:
 #endif
+#if METERING_ENERGY
+    case 7:
+#endif
       return HXB_ERR_WRITEREADONLY;
 #if SHUTTER_ENABLE
     case 23:
@@ -249,7 +263,8 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
 {
   switch(eid)
   {
-    case 0:   // Endpoint 0: Hexabus device descriptor
+/* ============ Endpoint 0: Hexabus Device Descriptor ======================*/
+    case 0:
       val->datatype = HXB_DTYPE_UINT32;
       *(uint32_t*)&val->data = 0x03;    // 0x07: 0..00011: Enpoints 1 and 2 exist.
 #if TEMPERATURE_ENABLE
@@ -263,6 +278,9 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
 #endif
 #if PRESSURE_ENABLE
       *(uint32_t*)&val->data += 0x20;      // set bit for EID 6
+#endif
+#if METERING_ENERGY
+      *(uint32_t*)&val->data += 0x40;     // set bit for EID 7
 #endif
 #if SHUTTER_ENABLE
       *(uint32_t*)&val->data += 0x00400000; // set bit #22 for EID 23
@@ -279,8 +297,9 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
 #if IR_RECEIVER_ENABLE
       *(uint32_t*)&val->data += 0x20000000; // set bit for EID 30
 #endif
-
       break;
+/*==========================================================================*/
+
     case 1:   // Endpoint 1: Hexabus Socket power switch
       val->datatype = HXB_DTYPE_BOOL;
       *(uint8_t*)&val->data = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
@@ -311,6 +330,12 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     case 6:
       val->datatype = HXB_DTYPE_FLOAT;
       *(float*)&val->data = read_pressure();
+      break;
+#endif
+#if METERING_ENERGY
+    case 7:
+      val->datatype = HXB_DTYPE_FLOAT;
+      *(float*)&val->data = metering_get_energy();
       break;
 #endif
 #if SHUTTER_ENABLE
