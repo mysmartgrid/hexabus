@@ -2,7 +2,7 @@
  * state_machine.h
  */
 
-#ifndef STATE_MACHINE_H_ 
+#ifndef STATE_MACHINE_H_
 #define STATE_MACHINE_H_
 
 #include "process.h"
@@ -13,23 +13,15 @@ PROCESS_NAME(state_machine_process);
 
 // Internal stuff: these structs implement a simple table layout
 
-// Operators for comparison
-#define STM_EQ   0x00
-#define STM_LEQ  0x01
-#define STM_GEQ  0x02
-#define STM_LT   0x03
-#define STM_GT   0x04
-#define STM_NEQ  0x05
-
 // op for datetime: bits 0..6 denote dependency on hour, minute, second, ...; bit 7 sets whether to check for >= or <.
 // date/time transitions need to be stored separately. They are also executed seperately, each time before the "normal" transitions are executed
 
 struct condition {
-  uint8_t sourceIP[16];      // IP
-  uint8_t sourceEID;      // EID we expect data from
-  uint8_t op;           // predicate function						|
-  uint8_t datatype;			// The constant to compare with v
-	char 		data[4];			// Leave enough room for largest chunk of data, uint32_t/float in this case
+  uint8_t sourceIP[16]; // IP
+  uint8_t sourceEID;    // EID we expect data from
+  uint8_t op;           // predicate function
+  uint8_t datatype;     // The constant to compare with
+  char    data[4];      // Leave enough room for largest chunk of data, uint32_t/float in this case
 } __attribute__ ((packed));
 
 struct transition {
