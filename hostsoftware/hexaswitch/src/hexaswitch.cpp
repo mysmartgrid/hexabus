@@ -126,20 +126,9 @@ void print_packet(char* recv_data) {
         break;
       case HXB_DTYPE_UINT32:
         {
-        //printf("0x");
-        //for (size_t i = 0 ; i < sizeof(value.data); ++i)
-        //{
-        //  printf("%x", value.data[i]);
-        //}
-        //printf("\n");
         uint32_t v;
         memcpy(&v, &value.data[0], sizeof(uint32_t));  // damit gehts..
         std::cout << v << std::endl;
-   //     std::cout << (void*)&value.data << std::endl;
-   //     std::cout << (void*)&value.data[0] << std::endl;
-   //     std::cout << "value (cast): " << *(uint32_t*)(&value.data[0]) << std::endl;
-   //     char *c = &(value.data[0]);
-   //     std::cout << "value (cast2): " << *(uint32_t*)(c) << std::endl;
         }
         break;
       case HXB_DTYPE_DATETIME:

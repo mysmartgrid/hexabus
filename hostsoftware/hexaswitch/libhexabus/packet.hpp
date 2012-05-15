@@ -61,7 +61,7 @@ namespace hexabus {
       bool crc_okay;
       uint8_t packet_type;
       uint8_t errorcode;
-      volatile uint8_t datatype;
+      uint8_t datatype;
       uint8_t eid;
       struct hxb_value value;
       std::string strval;
