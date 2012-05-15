@@ -409,7 +409,14 @@ void initialize(void)
 #endif
 
   /*Init Relay */
-  relay_init();
+  //Do not init the relay, because we use the PWM elsewhere
+  //relay_init();
+
+  /*Init PWM*/
+  pwm_init();
+
+  /*Set PWM ratio to some value just for testing*/
+  SET_PWM(PWM_UPPER_LIMIT);
 
 #if SHUTTER_ENABLE
   /*Init Shutter*/
