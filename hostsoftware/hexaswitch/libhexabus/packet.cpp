@@ -7,6 +7,8 @@
 #include <netinet/in.h>
 
 #include <iostream>
+#include <cstdio>
+#include <errno.h>
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
@@ -139,14 +141,17 @@ PacketHandling::PacketHandling(char* data)
           break;
         case HXB_DTYPE_UINT32:
           {
-            struct hxb_packet_int32* packet32 = (struct hxb_packet_int32*)data;
+            struct hxb_packet_int32* packet32 = 
+              (struct hxb_packet_int32*)data;
             packet32->crc = ntohs(packet32->crc);
-            crc_okay = packet32->crc == crc->crc16((char*)packet32, sizeof(*packet32)-2);
+            crc_okay = 
+                packet32->crc == crc->crc16((char*)packet32, sizeof(*packet32)-2);
             // ntohl the value after the CRC check, CRC check is done with everything in network byte order
             packet32->value = ntohl(packet32->value);
 
             eid = packet32->eid;
-            *(uint32_t*)&value.data = packet32->value;
+            memset(value.data, 0, sizeof(value.data));
+            memcpy(&value.data[0], &packet32->value, sizeof(uint32_t));
           }
           break;
         case HXB_DTYPE_DATETIME:
@@ -214,5 +219,16 @@ uint8_t PacketHandling::getErrorcode()      { return errorcode; }
 uint8_t PacketHandling::getDatatype()       { return datatype; }
 uint8_t PacketHandling::getEID()            { return eid; }
 struct hxb_value PacketHandling::getValue() { return value; }
+int PacketHandling::getValuePtr(struct hxb_value *v) {
+   if (v)
+   {
+     memcpy(v, &value, sizeof(value));
+     return 0;
+   }
+   else
+   {
+     return EINVAL;
+   }
+}
 std::string PacketHandling::getString()     { return strval; }
 

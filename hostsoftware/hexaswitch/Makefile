@@ -29,7 +29,7 @@ install: $(BUILDDIR)
 	@cd $(BUILDDIR) && $(MAKE) $(MFLAGS) install
 
 $(BUILDDIR):
-	@mkdir $(BUILDDIR)
+	@-mkdir $(BUILDDIR)
 
 clean:
 	@cd $(BUILDDIR) && $(MAKE) $(MFLAGS) clean

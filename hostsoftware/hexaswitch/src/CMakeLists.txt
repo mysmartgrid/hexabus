@@ -25,6 +25,7 @@ target_link_libraries(hexalog
   hexabus
   pthread
   ${Boost_LIBRARIES}
+  ${Boost_SYSTEM_LIBRARY}
   klio
   ${SQLITE3_LIBRARIES}
 )
