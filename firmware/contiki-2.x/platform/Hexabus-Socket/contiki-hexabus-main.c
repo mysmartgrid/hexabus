@@ -107,6 +107,7 @@
 #include "udp_handler.h"
 #include "mdns_responder.h"
 #include "state_machine.h"
+#include "pwm.h"
 
 // optional HEXABUS apps
 #if VALUE_BROADCAST_ENABLE
