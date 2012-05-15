@@ -37,19 +37,76 @@
 #include <util/delay.h>
 #include "dev/leds.h"
 #include <avr/eeprom.h>
-#include "eeprom_variables.h"
-
+//#include <avr/io.h>
+//#include <util/delay.h>
+//#include <stdlib.h>
+//#include "sys/clock.h"
+#include "contiki.h"
+//#include "dev/leds.h"
 
 #define PRINTF(...) printf(__VA_ARGS__)
 
 void pwm_start(void){
   ENABLE_PWM();
+  PRINTF("PWM enabled\r\n");
 }
 
 
 void pwm_init(void){
   /*PWM Specific Initialization.*/
-  SET_RELAY_TCCRxA();
-  SET_RELAY_TCCRxB();
+  SET_PWM_TCCRxA();
+  SET_PWM_TCCRxB();
+  PRINTF("PWM init'd\r\n");
 }
 
+
+static struct etimer pwm_periodic_timer;
+uint8_t pwm_ratio=0;
+uint8_t counter=0;
+
+PROCESS(pwm_process, "HEXABUS PWM Process");
+AUTOSTART_PROCESSES(&pwm_process);
+
+/*---------------------------------------------------------------------------*/
+static void
+pollhandler(void) {
+  PRINTF("----Socket_pwm_handler: Process polled\r\n");
+}
+
+static void
+exithandler(void) {
+  PRINTF("----Socket_pwm_handler: Process exits.\r\n");
+}
+/*---------------------------------------------------------------------------*/
+PROCESS_THREAD(pwm_process, ev, data) {
+  PROCESS_POLLHANDLER(pollhandler());
+  PROCESS_EXITHANDLER(exithandler());
+
+  // see: http://senstools.gforge.inria.fr/doku.php?id=contiki:examples
+  PROCESS_BEGIN();
+  PRINTF("pwm: process startup.\r\n");
+  PROCESS_PAUSE();
+
+  // set the timer to 1 sec for use in the loop
+  etimer_set(&pwm_periodic_timer, 0.02*CLOCK_SECOND);
+  PRINTF("PWM staring up\r\n");
+	
+  while(1){
+    PROCESS_YIELD();
+    if(etimer_expired(&pwm_periodic_timer)) {
+      etimer_reset(&pwm_periodic_timer);
+
+      if (counter < PWM_LOWER_LIMIT)
+        pwm_ratio=PWM_LOWER_LIMIT;
+      else
+        pwm_ratio=counter;
+      
+      SET_PWM(pwm_ratio);
+      PRINTF("PWM: %d, counter: %d \r\n", pwm_ratio, counter);
+      counter++;
+      if (counter > PWM_UPPER_LIMIT)
+        counter=0;
+    }
+  }
+  PROCESS_END();
+}

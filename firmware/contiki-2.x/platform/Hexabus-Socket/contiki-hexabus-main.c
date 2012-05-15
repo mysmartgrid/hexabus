@@ -416,7 +416,11 @@ void initialize(void)
   pwm_init();
 
   /*Set PWM ratio to some value just for testing*/
-  SET_PWM(PWM_UPPER_LIMIT);
+  pwm_start();
+  //SET_PWM(0x7F);
+  
+  /* process for pwm*/
+  process_start(&pwm_process, NULL);
 
 #if SHUTTER_ENABLE
   /*Init Shutter*/
