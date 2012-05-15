@@ -34,7 +34,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define TEMPERATURE_SENSOR 0             // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
 // value_broadcast
-#define VALUE_BROADCAST_ENABLE 1
+#define VALUE_BROADCAST_ENABLE 0
 #define VALUE_BROADCAST_DEBUG 1
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1 // Number of endpoints to broadcast automatically - set to 0 to disable
 #define VALUE_BROADCAST_AUTO_EIDS 2 // Comma-separated list of endpoints to broadcast automatically
