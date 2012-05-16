@@ -24,57 +24,58 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
 {
   switch(eid)
   {
-    case EP_DEVICE_DESCRIPTOR_EID:   // Endpoint 0: Hexabus device descriptor
+    case EP_DEVICE_DESCRIPTOR:   // Endpoint 0: Hexabus device descriptor
       return HXB_DTYPE_UINT32;
-    case EP_POWER_SWITCH_EID:   // Endpoint 1: Power switch on Hexabus Socket
+    case EP_POWER_SWITCH:   // Endpoint 1: Power switch on Hexabus Socket
       return HXB_DTYPE_BOOL;
-    case EP_POWER_METER_EID:   // Endpoint 2: Power metering on Hexabus Socket
+    case EP_POWER_METER:   // Endpoint 2: Power metering on Hexabus Socket
       return HXB_DTYPE_UINT32;
 #if TEMPERATURE_ENABLE
-    case EP_TEMPERATURE_EID:   // Endpoint 3: Temperature value
+    case EP_TEMPERATURE:   // Endpoint 3: Temperature value
       return HXB_DTYPE_FLOAT;
 #endif
-#if BUTTON_HAS_EID
-    case EP_BUTTON_EID:
+#if BUTTON_HAS
+    case EP_BUTTON:
       return HXB_DTYPE_BOOL;
 #endif
 #if HUMIDITY_ENABLE
-    case EP_HUMIDITY_EID:
+    case EP_HUMIDITY:
       return HXB_DTYPE_FLOAT;
 #endif
 #if PRESSURE_ENABLE
-    case EP_PRESSURE_EID:
+    case EP_PRESSURE:
       return HXB_DTYPE_PRESSURE;
 #endif
 #if METERING_ENERGY
-    case 7:
+    case EP_ENERGY_METER_TOTAL:
+    case EP_ENERGY_METER:
       return HXB_DTYPE_FLOAT;
 #endif
 
 #if SHUTTER_ENABLE
-    case EP_SHUTTER_EID:
+    case EP_SHUTTER:
       return HXB_DTYPE_UINT8;
 #endif
 #if HEXAPUSH_ENABLE
-    case EP_HEXAPUSH_EID_PRESSED:
-    case EP_HEXAPUSH_EID_CLICKED:
+    case EP_HEXAPUSH_PRESSED:
+    case EP_HEXAPUSH_CLICKED:
       return HXB_DTYPE_UINT8;
 #endif
 #if PRESENCE_DETECTOR_ENABLE
-    case EP_PRESENCE_DETECTOR_EID:
+    case EP_PRESENCE_DETECTOR:
       return HXB_DTYPE_UINT8;
 #endif
 #if HEXONOFF_ENABLE
     case EP_HEXONOFF_SET:
-    case EP_HEXONOFF_EID_TOGGLE:
+    case EP_HEXONOFF_TOGGLE:
       return HXB_DTYPE_UINT8;
 #endif
 #if ANALOGREAD_ENABLE
-    case ANALOGREAD_EID:  // TODO move definition to endpoints.h
+    case ANALOGREAD:  // TODO move definition to endpoints.h
       return HXB_DTYPE_FLOAT;
 #endif
 #if IR_RECEIVER_ENABLE
-    case EP_IR_RECEIVER_EID:
+    case EP_IR_RECEIVER:
       return HXB_DTYPE_UINT32;
 #endif
     default:  // Default: Endpoint does not exist.
@@ -90,73 +91,76 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
     buffer[i] = '\0';
   switch(eid)
   {
-    case EP_DEVICE_DESCRIPTOR_EID:
+    case EP_DEVICE_DESCRIPTOR:
       strncpy(buffer, "Hexabus Socket - Development Version", HXB_STRING_PACKET_MAX_BUFFER_LENGTH); // TODO make this consistent with the MDNS name
       break;
-    case EP_POWER_SWITCH_EID:
+    case EP_POWER_SWITCH:
       strncpy(buffer, "Main Switch", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
-    case EP_POWER_METER_EID:
+    case EP_POWER_METER:
       strncpy(buffer, "Power Meter", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #if TEMPERATURE_ENABLE
-    case EP_TEMPERATURE_EID:
+    case EP_TEMPERATURE:
       strncpy(buffer, "Temperature Sensor", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
-#if BUTTON_HAS_EID
-    case EP_BUTTON_EID:
+#if BUTTON_HAS
+    case EP_BUTTON:
       strncpy(buffer, "Hexabus Socket Pushbutton", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
 #if HUMIDITY_ENABLE
-    case EP_HUMIDITY_EID:
+    case EP_HUMIDITY:
       strncpy(buffer, "Humidity sensor", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
 #if PRESSURE_ENABLE
-    case EP_PRESSURE_EID:
+    case EP_PRESSURE:
       strncpy(buffer, "Barometric pressure sensor", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
 #if METERING_ENERGY
-    case EP_ENERGY_METER_EID:
-      strncpy(buffer, "Energy Meter", 127);
+    case EP_ENERGY_METER_TOTAL:
+      strncpy(buffer, "Energy Meter Total", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
+      break;
+    case EP_ENERGY_METER:
+      strncpy(buffer, "Energy Meter", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
 #if SHUTTER_ENABLE
-    case EP_SHUTTER_EID:
+    case EP_SHUTTER:
       strncpy(buffer, "Window Shutter", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
 #if HEXAPUSH_ENABLE
-    case EP_HEXAPUSH_EID_PRESSED:
+    case EP_HEXAPUSH_PRESSED:
       strncpy(buffer, "Pressed Hexapush buttons", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
-    case EP_HEXAPUSH_EID_CLICKED:
+    case EP_HEXAPUSH_CLICKED:
       strncpy(buffer, "Clicked Hexapush buttons", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
 #if PRESENCE_DETECTOR_ENABLE
-    case EP_PRESENCE_DETECTOR_EID:
+    case EP_PRESENCE_DETECTOR:
       strncpy(buffer, "Presence Detector", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
 #if HEXONOFF_ENABLE
-    case EP_HEXONOFF_EID_SET:
+    case EP_HEXONOFF_SET:
       strncpy(buffer, "Hexonoff, your friendly output setter.", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
-    case EP_HEXONOFF_EID_TOGGLE:
+    case EP_HEXONOFF_TOGGLE:
       strncpy(buffer, "Hexonoff, your friendly output toggler.", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
 #if ANALOGREAD_ENABLE
-    case ANALOGREAD_EID: // TODO!
+    case ANALOGREAD: // TODO!
       strncpy(buffer, "Analog reader", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
 #if IR_RECEIVER_ENABLE
-    case EP_IR_RECEIVER_EID:
+    case EP_IR_RECEIVER:
       strncpy(buffer, "IR remote control receiver", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
@@ -171,9 +175,9 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
 {
   switch(eid)
   {
-    case EP_DEVICE_DESCRIPTOR_EID:   // Endpoint 0: Device descriptor
+    case EP_DEVICE_DESCRIPTOR:   // Endpoint 0: Device descriptor
       return HXB_ERR_WRITEREADONLY;
-    case EP_POWER_SWITCH_EID:   // Endpoint 1: Power switch on Hexabus Socket.
+    case EP_POWER_SWITCH:   // Endpoint 1: Power switch on Hexabus Socket.
       if(value->datatype == HXB_DTYPE_BOOL)
       {
         if(*(uint8_t*)&value->data == HXB_TRUE)
@@ -186,25 +190,37 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
       } else {
         return HXB_ERR_DATATYPE;
       }
-    case EP_POWER_METER_EID:   // Endpoint 2: Power metering on Hexabus Socket -- read-only
+    case EP_POWER_METER:   // Endpoint 2: Power metering on Hexabus Socket -- read-only
 #if TEMPERATURE_ENABLE
-    case EP_TEMPERATURE_EID:   // Endpoint 3: Temperature value on Hexabus Socket -- read-only
+    case EP_TEMPERATURE:   // Endpoint 3: Temperature value on Hexabus Socket -- read-only
 #endif
-#if BUTTON_HAS_EID
-    case EP_BUTTON_EID:
+#if BUTTON_HAS
+    case EP_BUTTON:
+      return HXB_ERR_WRITEREADONLY;
 #endif
 #if HUMIDITY_ENABLE
-    case EP_HUMIDITY_EID:
+    case EP_HUMIDITY:
+      return HXB_ERR_WRITEREADONLY;
 #endif
 #if PRESSURE_ENABLE
-    case EP_PRESSURE_EID:
+    case EP_PRESSURE:
+      return HXB_ERR_WRITEREADONLY;
 #endif
 #if METERING_ENERGY
-    case 7:
+    case EP_ENERGY_METER_TOTAL:
+      return HXB_ERR_WRITEREADONLY;
+    case EP_ENERGY_METER:
+      if(value->datatype == HXB_DTYPE_FLOAT)
+      {
+        metering_reset_energy();
+        return 0;
+      } else {
+        return HXB_ERR_DATATYPE;
+      }
 #endif
       return HXB_ERR_WRITEREADONLY;
 #if SHUTTER_ENABLE
-    case EP_SHUTTER_EID:
+    case EP_SHUTTER:
       if(value->datatype == HXB_DTYPE_UINT8) {
           shutter_toggle(*(uint8_t*)&value->data);
           return 0;
@@ -213,12 +229,12 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
       }
 #endif
 #if HEXAPUSH_ENABLE
-    case EP_HEXAPUSH_EID_PRESSED:
-    case EP_HEXAPUSH_EID_CLICKED:
+    case EP_HEXAPUSH_PRESSED:
+    case EP_HEXAPUSH_CLICKED:
       return HXB_ERR_WRITEREADONLY;
 #endif
 #if PRESENCE_DETECTOR_ENABLE
-    case EP_PRESENCE_DETECTOR_EID:
+    case EP_PRESENCE_DETECTOR:
       if(value->datatype == HXB_DTYPE_UINT8)
       {
         if(*(uint8_t*)&value->data == 1)
@@ -235,14 +251,14 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
       }
 #endif
 #if HEXONOFF_ENABLE
-    case EP_HEXONOFF_EID_SET:
+    case EP_HEXONOFF_SET:
         if(value->datatype == HXB_DTYPE_UINT8) {
             set_outputs(*(uint8_t*)&value->data);
         } else {
             return HXB_ERR_DATATYPE;
         }
         break;
-    case EP_HEXONOFF_EID_TOGGLE:
+    case EP_HEXONOFF_TOGGLE:
         if(value->datatype == HXB_DTYPE_UINT8) {
             toggle_outputs(*(uint8_t*)&value->data);
         } else {
@@ -251,7 +267,7 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
         break;
 #endif
 #if ANALOGREAD_ENABLE
-    case ANALOGREAD_EID: // TODO define it where it should be defined
+    case ANALOGREAD: // TODO define it where it should be defined
       return HXB_ERR_WRITEREADONLY;
 #endif
     default:  // Default: Endpoint does not exist
@@ -264,97 +280,102 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
   switch(eid)
   {
     /* -========== Endpoint 0: Hexabus Device Descriptor ==================- */
-    case EP_DEVICE_DESCRIPTOR_EID:
+    case EP_DEVICE_DESCRIPTOR:
       val->datatype = HXB_DTYPE_UINT32;
       *(uint32_t*)&val->data = 0;       // start out with zero.
       // endpoints 1 and 2 are not optional
-      *(uint32_t*)&val->data += 1 << (EP_POWER_SWITCH_EID - 1); // shifted EID minus one so that Bit#0 corresponds to EID 1, Bit#1 to EID 2, ...
-      *(uint32_t*)&val->data += 1 << (EP_POWER_METER_EID - 1);
+      *(uint32_t*)&val->data += 1 << (EP_POWER_SWITCH - 1); // shifted EID minus one so that Bit#0 corresponds to EID 1, Bit#1 to EID 2, ...
+      *(uint32_t*)&val->data += 1 << (EP_POWER_METER - 1);
 #if TEMPERATURE_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_TEMPWERATURE_EID - 1);
+      *(uint32_t*)&val->data += 1 << (EP_TEMPERATURE - 1);
 #endif
-#if BUTTON_HAS_EID
-      *(uint32_t*)&val->data += 1 << (EP_BUTTON_EID - 1);
+#if BUTTON_HAS
+      *(uint32_t*)&val->data += 1 << (EP_BUTTON - 1);
 #endif
 #if HUMIDITY_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_HUMIDITY_EID - 1);
+      *(uint32_t*)&val->data += 1 << (EP_HUMIDITY - 1);
 #endif
 #if PRESSURE_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_PRESSURE_EID - 1);
+      *(uint32_t*)&val->data += 1 << (EP_PRESSURE - 1);
 #endif
 #if METERING_ENERGY
-      *(uint32_t*)&val->data += 0x40;     // set bit for EID 7
+      *(uint32_t*)&val->data += 1 << (EP_ENERGY_METER_TOTAL - 1);
+      *(uint32_t*)&val->data += 1 << (EP_ENERGY_METER - 1);
 #endif
 #if SHUTTER_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_SHUTTER_EID - 1);
+      *(uint32_t*)&val->data += 1 << (EP_SHUTTER - 1);
 #endif
 #if HEXAPUSH_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_HEXAPUSH_EID_PRESSED - 1);
-      *(uint32_t*)&val->data += 1 << (EP_HEXAPUSH_EID_CLICKED - 1);
+      *(uint32_t*)&val->data += 1 << (EP_HEXAPUSH_PRESSED - 1);
+      *(uint32_t*)&val->data += 1 << (EP_HEXAPUSH_CLICKED - 1);
 #endif
 #if PRESENCE_DETECTOR_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_PRESENCE_DETECTOR_EID - 1);
+      *(uint32_t*)&val->data += 1 << (EP_PRESENCE_DETECTOR - 1);
 #endif
 #if HEXONOFF_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_HEXONOFF_EID_SET - 1);
-      *(uint32_t*)&val->data += 1 << (EP_HEXONOFF_EID_TOGGLE - 1);
+      *(uint32_t*)&val->data += 1 << (EP_HEXONOFF_SET - 1);
+      *(uint32_t*)&val->data += 1 << (EP_HEXONOFF_TOGGLE - 1);
 #endif
 #if IR_RECEIVER_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_IR_RECEIVER_EID - 1);
+      *(uint32_t*)&val->data += 1 << (EP_IR_RECEIVER - 1);
 #endif
       break;
     /* -==================================================================- */
 
-    case EP_POWER_SWITCH_EID:   // Endpoint 1: Hexabus Socket power switch
+    case EP_POWER_SWITCH:   // Endpoint 1: Hexabus Socket power switch
       val->datatype = HXB_DTYPE_BOOL;
       *(uint8_t*)&val->data = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
       break;
-    case EP_POWER_METER_EID:   // Endpoint 2: Hexabus Socket power metering
+    case EP_POWER_METER:   // Endpoint 2: Hexabus Socket power metering
       val->datatype = HXB_DTYPE_UINT32;
       *(uint32_t*)&val->data = metering_get_power();
       break;
 #if TEMPERATURE_ENABLE
-    case EP_TEMPERATURE_EID:   // Endpoint 3: Hexabus temperaure metering
+    case EP_TEMPERATURE:   // Endpoint 3: Hexabus temperaure metering
       val->datatype = HXB_DTYPE_FLOAT;
       *(float*)&val->data = temperature_get();
       break;
 #endif
-#if BUTTON_HAS_EID
-    case EP_BUTTON_EID:   // Endpoint 4: Pushbutton on the Hexabus-Socket
+#if BUTTON_HAS
+    case EP_BUTTON:   // Endpoint 4: Pushbutton on the Hexabus-Socket
       val->datatype = HXB_DTYPE_BOOL;
       *(uint8_t*)&val->data = button_get_pushed();
       break;
 #endif
 #if HUMIDITY_ENABLE
-    case HUMIDITY_EID:
+    case HUMIDITY:
       val->datatype = HXB_DTYPE_FLOAT;
       *(float*)&val->data = read_humidity();
       break;
 #endif
 #if PRESSURE_ENABLE
-    case EP_PRESSURE_EID:
+    case EP_PRESSURE:
       val->datatype = HXB_DTYPE_FLOAT;
       *(float*)&val->data = read_pressure();
       break;
 #endif
 #if METERING_ENERGY
-    case 7:
+    case EP_ENERGY_METER_TOTAL:
+      val->datatype = HXB_DTYPE_FLOAT;
+      *(float*)&val->data = metering_get_energy_total();
+      break;
+    case EP_ENERGY_METER:
       val->datatype = HXB_DTYPE_FLOAT;
       *(float*)&val->data = metering_get_energy();
       break;
 #endif
 #if SHUTTER_ENABLE
-    case EP_SHUTTER_EID:
+    case EP_SHUTTER:
       val->datatype = HXB_DTYPE_UINT8;
       *(uint8_t*)&val->data = shutter_get_state();
       break;
 #endif
 #if HEXAPUSH_ENABLE
-    case EP_HEXAPUSH_EID_PRESSED:  //Pressed und released
+    case EP_HEXAPUSH_PRESSED:  //Pressed und released
       val->datatype = HXB_DTYPE_UINT8;
       *(uint8_t*)&val->data = get_buttonstate();
       break;
-    case EP_HEXAPUSH_EID_CLICKED: //Clicked
+    case EP_HEXAPUSH_CLICKED: //Clicked
       val->datatype = HXB_DTYPE_UINT8;
       *(uint8_t*)&val->data = get_clickstate();
       break;
@@ -366,20 +387,20 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
       break;
 #endif
 #if HEXONOFF_ENABLE
-    case EP_HEXONOFF_EID_SET:
-    case EP_HEXONOFF_EID_TOGGLE:
+    case EP_HEXONOFF_SET:
+    case EP_HEXONOFF_TOGGLE:
         val->datatype = HXB_DTYPE_UINT8;
         *(uint8_t*)&val->data = get_outputs();
         break;
 #endif
 #if ANALOGREAD_ENABLE
-    case ANALOGREAD_EID: // TODO put the define where it belongs
+    case ANALOGREAD: // TODO put the define where it belongs
         val->datatype = HXB_DTYPE_FLOAT;
         *(float*)&val->data = get_analogvalue();
         break;
 #endif
 #if IR_RECEIVER_ENABLE
-    case EP_IR_RECEIVER_EID:
+    case EP_IR_RECEIVER:
         val->datatype = HXB_DTYPE_UINT32;
         *(uint32_t*)&val->data = ir_get_last_command();
         break;
