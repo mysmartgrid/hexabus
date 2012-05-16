@@ -43,7 +43,6 @@
 #include "relay.h"
 #include "hexabus_config.h"
 #include "value_broadcast.h"
-#include "dev/leds.h" // only for testing TODO remove once it works
 
 /** \brief This is a file internal variable that contains the 16 MSB of the
  *         metering pulse period.
@@ -93,16 +92,14 @@ metering_init(void)
   metering_calibration_power = eeprom_read_word((void*)EE_METERING_CAL_LOAD);
 
 #if METERING_ENERGY
-  // reset energy metering value (TODO we could also EEPROM this so it is saved over a power outage)
+  // reset energy metering value
   metering_pulses = 0;
 #if METERING_ENERGY_PERSISTENT
-  DDRB &= ~(1<<PB3); // Set PB3 as input -> Cut trace to relay, add voltage divider instead.
-  DDRB &= ~(1<<PB2); // Set PB2 as input
-  PORTB &= ~(1<<PB3); // no internal pullup
-  PORTB &= ~(1<<PB2); // no internal pullup
-  // ADCSRA &= ~(1<<ADEN); // disable ADC so that multiplexer works
-  //ADCSRB |= (1<<ACME); // enable analog comparator multiplexer
-  ACSR =
+  DDRB &= ~(1 << METERING_POWERDOWN_DETECT_PIN); // Set PB3 as input -> Cut trace to relay, add voltage divider instead.
+  DDRB &= ~(1 << METERING_ANALOG_COMPARATOR_REF_PIN); // Set PB2 as input
+  PORTB &= ~(1 << METERING_POWERDOWN_DETECT_PIN); // no internal pullup
+  PORTB &= ~(1 << METERING_ANALOG_COMPARATOR_REF_PIN); // no internal pullup
+  ACSR = // setup analog comparator interrupt:
     (0 << ACD) | // Comparator on (Analog Comparator Disable := 0)
     (1 << ACBG) | // internal bandgap ref. voltage (1.23V) to AIN0
     (0 << ACO) | // Comparator output disable
@@ -110,8 +107,11 @@ metering_init(void)
     (0 << ACIC) | // input capture off
     (1 << ACIE) | // comparator interrupt enable
     (1 << ACIS1) | (1 << ACIS0); // Interrupt on RISING edge (since the supply voltage is connected to negative input and Vbg is connected to positive input, rising edge means dropping supply voltage.
-#endif
-#endif
+    sei(); // global interrupt enable
+
+    eeprom_read((uint8_t*)EE_ENERGY_METERING_PULSES, (uint8_t*)&metering_pulses, sizeof(metering_pulses));
+#endif // METERING_ENERGY_PERSISTENT
+#endif // METERING_ENERGY
 
   SET_METERING_INT();
 
@@ -280,14 +280,21 @@ ISR(METERING_VECT)
         process_post(&value_broadcast_process, immediate_broadcast_event, (void*)2);
       }
     }
-#endif
+#endif // METERING_IMMEDIATE_BROADCAST
 #if METERING_ENERGY
     metering_pulses++;
 #endif
   }
 }
 
+#if METERING_ENERGY_PERSISTENT
 ISR(ANALOG_COMP_vect)
 {
-  leds_on(LEDS_RED);
+  if(metering_calibration == false && clock_time() > CLOCK_SECOND) // Don't do anything if calibration is enabled; don't do anything within one second after bootup.
+  {
+    eeprom_write((uint8_t*)EE_ENERGY_METERING_PULSES, (uint8_t*)&metering_pulses, sizeof(metering_pulses)); // write number of pulses to eeprom
+    while(1); // wait until power fails completely or watchdog timer resets us if power comes back
+  }
 }
+#endif // METERING_ENERGY_PERSISTENT
+

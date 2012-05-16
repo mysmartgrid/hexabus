@@ -50,6 +50,8 @@ for 80s: P_min = 3W */
 #define ENABLE_METERING_INTERRUPT( )       ( EIMSK |= ( 1 << INT1 ) )
 #define DISABLE_METERING_INTERRUPT( )       ( EIMSK &= ~( 1 << INT1 ) )
 
+#define METERING_POWERDOWN_DETECT_PIN PB3
+#define METERING_ANALOG_COMPARATOR_REF_PIN PB2
 
 /** \brief This function returns the measured electrical power in Watt.
  *
@@ -61,8 +63,10 @@ void    metering_stop(void);
 void    metering_reset(void);
 bool    metering_calibrate(void);
 void    metering_calibration_stop(void);
+
 #if METERING_ENERGY
 float metering_get_energy(void);
-#endif
+#endif // METERING_ENERGY
 
 #endif /* METERING_H_ */
+
