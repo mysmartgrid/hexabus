@@ -263,10 +263,6 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
 {
   switch(eid)
   {
-<<<<<<< HEAD
-/* ============ Endpoint 0: Hexabus Device Descriptor ======================*/
-    case 0:
-=======
     /* -========== Endpoint 0: Hexabus Device Descriptor ==================- */
     case EP_DEVICE_DESCRIPTOR_EID:
       val->datatype = HXB_DTYPE_UINT32;

@@ -38,6 +38,7 @@
 #include "dev/leds.h"
 #include <avr/eeprom.h>
 #include "eeprom_variables.h"
+#include "hexabus_config.h"
 
 
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -84,6 +85,7 @@ relay_toggle(void)
 void
 relay_on(void)
 {
+/*
   if (!relay_state)
     {
 #if RELAY_POWER_SAVING
@@ -101,11 +103,13 @@ relay_on(void)
       relay_leds();
       metering_reset();
     }
+*/
 }
 
 void
 relay_off(void)
 {
+/*
 #if RELAY_POWER_SAVING
   DISABLE_RELAY_PWM();
   SET_RELAY_PWM(0x00);
@@ -116,6 +120,7 @@ relay_off(void)
   relay_state = 0;
   relay_leds();
   metering_reset();
+*/
 }
 
 void
@@ -144,10 +149,11 @@ set_relay_default(bool d_value)
 void
 relay_init(void)
 {
-  /* Load reference values from EEPROM */
+/*
+  // Load reference values from EEPROM
   relay_default_state = (bool) eeprom_read_byte((void*) EE_RELAY_DEFAULT);
 
-  /*PWM Specific Initialization.*/
+  // PWM Specific Initialization.
 #if RELAY_POWER_SAVING
   SET_RELAY_TCCRxA();
   SET_RELAY_TCCRxB();
@@ -160,5 +166,6 @@ relay_init(void)
 
   //set default state according to eeprom value
   relay_default();
+*/
 }
 

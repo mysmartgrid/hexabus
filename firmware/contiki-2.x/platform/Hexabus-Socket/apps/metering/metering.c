@@ -43,6 +43,7 @@
 #include "relay.h"
 #include "hexabus_config.h"
 #include "value_broadcast.h"
+#include "dev/leds.h" // only for testing TODO remove once it works
 
 /** \brief This is a file internal variable that contains the 16 MSB of the
  *         metering pulse period.
@@ -94,6 +95,22 @@ metering_init(void)
 #if METERING_ENERGY
   // reset energy metering value (TODO we could also EEPROM this so it is saved over a power outage)
   metering_pulses = 0;
+#if METERING_ENERGY_PERSISTENT
+  DDRB &= ~(1<<PB3); // Set PB3 as input -> Cut trace to relay, add voltage divider instead.
+  DDRB &= ~(1<<PB2); // Set PB2 as input
+  PORTB &= ~(1<<PB3); // no internal pullup
+  PORTB &= ~(1<<PB2); // no internal pullup
+  // ADCSRA &= ~(1<<ADEN); // disable ADC so that multiplexer works
+  //ADCSRB |= (1<<ACME); // enable analog comparator multiplexer
+  ACSR =
+    (0 << ACD) | // Comparator on (Analog Comparator Disable := 0)
+    (1 << ACBG) | // internal bandgap ref. voltage (1.23V) to AIN0
+    (0 << ACO) | // Comparator output disable
+    (1 << ACI) | // comparator interrupt flag
+    (0 << ACIC) | // input capture off
+    (1 << ACIE) | // comparator interrupt enable
+    (1 << ACIS1) | (1 << ACIS0); // Interrupt on RISING edge (since the supply voltage is connected to negative input and Vbg is connected to positive input, rising edge means dropping supply voltage.
+#endif
 #endif
 
   SET_METERING_INT();
@@ -270,3 +287,7 @@ ISR(METERING_VECT)
   }
 }
 
+ISR(ANALOG_COMP_vect)
+{
+  leds_on(LEDS_RED);
+}
