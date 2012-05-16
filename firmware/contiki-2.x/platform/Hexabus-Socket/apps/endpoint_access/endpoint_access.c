@@ -45,6 +45,10 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
     case EP_PRESSURE_EID:
       return HXB_DTYPE_PRESSURE;
 #endif
+#if LIGHTSENSOR_ENABLE
+    case EP_LIGHTSENSOR_EID:
+      return HXB_DTYPE_FLOAT;
+#endif
 #if SHUTTER_ENABLE
     case EP_SHUTTER_EID:
       return HXB_DTYPE_UINT8;
@@ -59,12 +63,12 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
       return HXB_DTYPE_UINT8;
 #endif
 #if HEXONOFF_ENABLE
-    case EP_HEXONOFF_SET:
+    case EP_HEXONOFF_EID_SET:
     case EP_HEXONOFF_EID_TOGGLE:
       return HXB_DTYPE_UINT8;
 #endif
 #if ANALOGREAD_ENABLE
-    case ANALOGREAD_EID:  // TODO move definition to endpoints.h
+    case EP_ANALOGREAD_EID:
       return HXB_DTYPE_FLOAT;
 #endif
 #if IR_RECEIVER_ENABLE
@@ -113,6 +117,11 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
       strncpy(buffer, "Barometric pressure sensor", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
+#if LIGHTSENSOR_ENABLE
+    case EP_LIGHTSENSOR_EID:
+      strncpy(buffer, "Lightsensor", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
+      break;
+#endif
 #if SHUTTER_ENABLE
     case EP_SHUTTER_EID:
       strncpy(buffer, "Window Shutter", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
@@ -140,7 +149,7 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
       break;
 #endif
 #if ANALOGREAD_ENABLE
-    case ANALOGREAD_EID: // TODO!
+    case EP_ANALOGREAD_EID:
       strncpy(buffer, "Analog reader", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
@@ -187,6 +196,9 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
 #endif
 #if PRESSURE_ENABLE
     case EP_PRESSURE_EID:
+#endif
+#if ANALOGREAD_ENABLE
+    case EP_ANALOGREAD_EID:
 #endif
       return HXB_ERR_WRITEREADONLY;
 #if SHUTTER_ENABLE
@@ -236,8 +248,8 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
         }
         break;
 #endif
-#if ANALOGREAD_ENABLE
-    case ANALOGREAD_EID: // TODO define it where it should be defined
+#if LIGHTSENSOR_ENABLE
+    case EP_LIGHTSENSOR_EID:
       return HXB_ERR_WRITEREADONLY;
 #endif
     default:  // Default: Endpoint does not exist
@@ -257,7 +269,7 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
       *(uint32_t*)&val->data += 1 << (EP_POWER_SWITCH_EID - 1); // shifted EID minus one so that Bit#0 corresponds to EID 1, Bit#1 to EID 2, ...
       *(uint32_t*)&val->data += 1 << (EP_POWER_METER_EID - 1);
 #if TEMPERATURE_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_TEMPWERATURE_EID - 1);
+      *(uint32_t*)&val->data += 1 << (EP_TEMPERATURE_EID - 1);
 #endif
 #if BUTTON_HAS_EID
       *(uint32_t*)&val->data += 1 << (EP_BUTTON_EID - 1);
@@ -267,6 +279,9 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
 #endif
 #if PRESSURE_ENABLE
       *(uint32_t*)&val->data += 1 << (EP_PRESSURE_EID - 1);
+#endif
+#if ANALOGREAD_ENABLE
+      *(uint32_t*)&val->data += 1 << (EP_ANALOGREAD_EID - 1);
 #endif
 #if SHUTTER_ENABLE
       *(uint32_t*)&val->data += 1 << (EP_SHUTTER_EID - 1);
@@ -281,6 +296,9 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
 #if HEXONOFF_ENABLE
       *(uint32_t*)&val->data += 1 << (EP_HEXONOFF_EID_SET - 1);
       *(uint32_t*)&val->data += 1 << (EP_HEXONOFF_EID_TOGGLE - 1);
+#endif
+#if LIGHTSENSOR_ENABLE
+      *(uint32_t*)&val->data += 1 << (EP_LIGHTSENSOR_EID - 1);
 #endif
 #if IR_RECEIVER_ENABLE
       *(uint32_t*)&val->data += 1 << (EP_IR_RECEIVER_EID - 1);
@@ -320,6 +338,12 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
       *(float*)&val->data = read_pressure();
       break;
 #endif
+#if LIGHTSENSOR_ENABLE
+    case EP_LIGHTSENSOR_EID:
+        val->datatype = HXB_DTYPE_FLOAT;
+        *(float*)&val->data = get_lightvalue();
+        break;
+#endif
 #if SHUTTER_ENABLE
     case EP_SHUTTER_EID:
       val->datatype = HXB_DTYPE_UINT8;
@@ -350,7 +374,7 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
         break;
 #endif
 #if ANALOGREAD_ENABLE
-    case ANALOGREAD_EID: // TODO put the define where it belongs
+    case EP_ANALOGREAD_EID:
         val->datatype = HXB_DTYPE_FLOAT;
         *(float*)&val->data = get_analogvalue();
         break;
