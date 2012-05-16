@@ -122,7 +122,8 @@ int main(int argc, char **argv) {
 		std::vector<BridgeEndpoint*> endpoints(argc - 1, (BridgeEndpoint*)0);
 		// TODO: Check the Input.
 		for(int i = 0;i < argc - 1;i++) {
-			endpoints.at(i) = new BridgeEndpoint(boost::asio::ip::address::from_string(argv[i+1]), ioservice, i+1);
+			endpoints.at(i) = new BridgeEndpoint(
+				boost::asio::ip::address::from_string(argv[i+1]), ioservice, i+1);
 		}
 		
 		std::cout << "Initializing PacketFilter..." << std::endl;
