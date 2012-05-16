@@ -169,31 +169,6 @@ void print_packet(char* recv_data) {
 	std::cout << std::endl;
 }
 
-void usage()
-{
-    std::cout << "\nusage: hexaswitch hostname command\n";
-    std::cout << "       hexaswitch listen\n";
-    std::cout << "       hexaswitch send EID datatype value\n";
-    std::cout << "\ncommands are:\n";
-    std::cout << "  set EID datatype value    set EID to VALUE\n";
-    std::cout << "  get EID                   query the value of EID\n";
-    std::cout << "  epquery EID               query Endpoint metadata\n";
-    std::cout << "\nshortcut commands           for Hexabus-Socket:\n";
-    std::cout << "  devinfo                   get device name (same as epquery 0)\n";
-    std::cout << "  on                        switch device on (same as set 1 1 1)\n";
-    std::cout << "  off                       switch device off (same as set 1 1 0)\n";
-    std::cout << "  status                    query on/off status of device (same as get 1)\n";
-    std::cout << "  power                     get power consumption (same as get 2)\n";
-    std::cout << "\ndatatypes are:\n";
-    std::cout << "1: Bool (Value = 0 or 1) - ";
-    std::cout << "2: 8bit Uint - ";
-    std::cout << "3: 32bit Uint - ";
-    std::cout << "4: Hexabus Date and Time. Value can be Unix time or -1 for current system time - ";
-    std::cout << "5: 32bit floating point - ";
-    std::cout << "6: String (max 127 chars)"<< std::endl;
-}
-
-
 po::variable_value get_mandatory_parameter(
     po::variables_map vm,
     std::string param_id,
@@ -226,6 +201,7 @@ int main(int argc, char** argv) {
     ("version", "print libhexabus version and exit")
     ("command,c", po::value<std::string>(), "{get|set|epquery|send|listen|on|off|status|power|devinfo}")
     ("ip,i", po::value<std::string>(), "the hostname to connect to")
+    ("interface,I", po::value<std::string>(), "the interface to use for outgoing messages")
     ("eid,e", po::value<unsigned int>(), "Endpoint ID (EID)")
     ("datatype,d", po::value<unsigned int>(), "{1: Bool | 2: UInt8 | 3: UInt32 | 4: HexaTime | 5: Float | 6: String}")
     ("value,v", po::value<std::string>(), "Value")
@@ -269,16 +245,25 @@ int main(int argc, char** argv) {
     command=(vm["command"].as<std::string>());
   }
 
-  hexabus::NetworkAccess network;
+  hexabus::NetworkAccess* network;
+
+  if (vm.count("interface")) {
+    std::string interface=(vm["interface"].as<std::string>());
+    std::cout << "Using interface " << interface << std::endl;
+    network=new hexabus::NetworkAccess(interface);
+  } else {
+    network=new hexabus::NetworkAccess();
+  }
+  
   if(boost::iequals(command, std::string("LISTEN")))
   {
     std::cout << "Entering listen mode." << std::endl;
     while(true)
     {
-      network.receivePacket(false);
-      char* recv_data = network.getData();
-      std::cout << "Received packet from " << network.getSourceIP() << std::endl;
-      std::cout << network.getSourceIP() << " ";
+      network->receivePacket(false);
+      char* recv_data = network->getData();
+      std::cout << "Received packet from " << network->getSourceIP() << std::endl;
+      std::cout << network->getSourceIP() << " ";
       print_packet(recv_data);
     }
   }
@@ -293,21 +278,21 @@ int main(int argc, char** argv) {
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command ON needs an IP address").as<std::string>();
     hxb_packet_int8 packet = packetm->write8(1, HXB_DTYPE_BOOL, HXB_TRUE, false);
-    network.sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
+    network->sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
   }
   else if(boost::iequals(command, std::string("OFF"))) {// off: set EID 0 to FALSE
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command OFF needs an IP address").as<std::string>();
     hxb_packet_int8 packet = packetm->write8(1, HXB_DTYPE_BOOL, HXB_FALSE, false);
-    network.sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
+    network->sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
   }
   else if(boost::iequals(command, std::string("STATUS"))) { // status: query EID 1
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command STATUS needs an IP address").as<std::string>();
     hxb_packet_query packet = packetm->query(1);
-    network.sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
-    network.receivePacket(true);
-    print_packet(network.getData());
+    network->sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
+    network->receivePacket(true);
+    print_packet(network->getData());
 
   }
   else if(boost::iequals(command, std::string("POWER")))  // power: query EID 2
@@ -315,9 +300,9 @@ int main(int argc, char** argv) {
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command STATUS needs an IP address").as<std::string>();
     hxb_packet_query packet = packetm->query(2);
-    network.sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
-    network.receivePacket(true);
-    print_packet(network.getData());
+    network->sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
+    network->receivePacket(true);
+    print_packet(network->getData());
   }
 
   /*
@@ -343,7 +328,7 @@ int main(int argc, char** argv) {
                   "value", "command SET needs a value").as<std::string>());
             packet8 = packetm->write8(eid, dtype, val8, false);
             std::cout << "Sending value " << val8 << std::endl;
-            network.sendPacket(ip, HXB_PORT, (char*)&packet8, sizeof(packet8));
+            network->sendPacket(ip, HXB_PORT, (char*)&packet8, sizeof(packet8));
           }
           break;
         case HXB_DTYPE_UINT32:
@@ -352,7 +337,7 @@ int main(int argc, char** argv) {
             uint32_t val32 = boost::lexical_cast<uint32_t>(get_mandatory_parameter(vm,
                   "value", "command SET needs a value").as<std::string>());
             packet32 = packetm->write32(eid, dtype, val32, false);
-            network.sendPacket(argv[1], HXB_PORT, (char*)&packet32, sizeof(packet32));
+            network->sendPacket(argv[1], HXB_PORT, (char*)&packet32, sizeof(packet32));
           }
           break;
         case HXB_DTYPE_FLOAT:
@@ -361,7 +346,7 @@ int main(int argc, char** argv) {
             float valf = boost::lexical_cast<float>(get_mandatory_parameter(vm,
                   "value", "command SET needs a value").as<std::string>());
             packetf = packetm->writef(eid, dtype, valf, false);
-            network.sendPacket(argv[1], HXB_PORT, (char*)&packetf, sizeof(packetf));
+            network->sendPacket(argv[1], HXB_PORT, (char*)&packetf, sizeof(packetf));
           }
           break;
         case HXB_DTYPE_128STRING:
@@ -370,7 +355,7 @@ int main(int argc, char** argv) {
             std::string value(get_mandatory_parameter(vm,
                   "value", "command SET needs a value").as<std::string>());
             packetstr = packetm->writestr(eid, dtype, value, false);
-            network.sendPacket(argv[1], HXB_PORT, (char*)&packetstr, sizeof(packetstr));
+            network->sendPacket(argv[1], HXB_PORT, (char*)&packetstr, sizeof(packetstr));
           }
           break;
         default:
@@ -388,9 +373,9 @@ int main(int argc, char** argv) {
     unsigned int eid = get_mandatory_parameter(vm,
           "eid", "command GET needs an EID").as<unsigned int>();
     hxb_packet_query packet = packetm->query(eid);
-    network.sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
-    network.receivePacket(true);
-    print_packet(network.getData());
+    network->sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
+    network->receivePacket(true);
+    print_packet(network->getData());
   }
 
   else if (boost::iequals(command, std::string("EPQUERY")))   // epquery: request endpoint metadata
@@ -400,9 +385,9 @@ int main(int argc, char** argv) {
     unsigned int eid = get_mandatory_parameter(vm,
         "eid", "command GET needs an EID").as<unsigned int>();
     hxb_packet_query packet = packetm->query(eid, true);
-    network.sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
-    network.receivePacket(true);
-    print_packet(network.getData());
+    network->sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
+    network->receivePacket(true);
+    print_packet(network->getData());
   }
   else if (boost::iequals(command, std::string("DEVINFO"))) 
     // epquery: request endpoint metadata
@@ -410,9 +395,9 @@ int main(int argc, char** argv) {
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command STATUS needs an IP address").as<std::string>();
     hxb_packet_query packet = packetm->query(0, true);
-    network.sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
-    network.receivePacket(true);
-    print_packet(network.getData());
+    network->sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
+    network->receivePacket(true);
+    print_packet(network->getData());
   }
   else if (boost::iequals(command, std::string("SEND")))      // send: send a value broadcast
   {
@@ -428,7 +413,7 @@ int main(int argc, char** argv) {
           uint8_t val8 = boost::lexical_cast<uint8_t>(get_mandatory_parameter(vm,
                   "value", "command SEND needs a value").as<std::string>());
           packet8 = packetm->write8(eid, dtype, val8, true);
-          network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet8, sizeof(packet8));
+          network->sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet8, sizeof(packet8));
           print_packet((char*)&packet8);
         }
         break;
@@ -438,7 +423,7 @@ int main(int argc, char** argv) {
           uint32_t val32 = boost::lexical_cast<uint32_t>(get_mandatory_parameter(vm,
                   "value", "command SEND needs a value").as<std::string>());
           packet32 = packetm->write32(eid, dtype, val32, true);
-          network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet32, sizeof(packet32));
+          network->sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet32, sizeof(packet32));
           print_packet((char*)&packet32);
         }
         break;
@@ -450,7 +435,7 @@ int main(int argc, char** argv) {
                   "value", "command SEND needs a value").as<std::string>())
               );
           packetdt = packetm->writedt(eid, dtype, valdt, true);
-          network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetdt, sizeof(packetdt));
+          network->sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetdt, sizeof(packetdt));
           print_packet((char*)&packetdt);
         }
         break;
@@ -460,7 +445,7 @@ int main(int argc, char** argv) {
           float valf = boost::lexical_cast<float>(get_mandatory_parameter(vm,
                   "value", "command SEND needs a value").as<std::string>());
           packetf = packetm->writef(eid, dtype, valf, true);
-          network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetf, sizeof(packetf));
+          network->sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetf, sizeof(packetf));
           print_packet((char*)&packetf);
         }
         break;
@@ -470,7 +455,7 @@ int main(int argc, char** argv) {
                   "value", "command SEND needs a value").as<std::string>()
               );  
           hxb_packet_128string packet = packetm->writestr(eid, dtype, value, true);
-          network.sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet, sizeof(packet));
+          network->sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet, sizeof(packet));
           print_packet((char*)&packet);
         }
         break;
