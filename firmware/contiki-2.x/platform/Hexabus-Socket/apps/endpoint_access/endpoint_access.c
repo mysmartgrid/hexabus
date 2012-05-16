@@ -266,42 +266,42 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
       val->datatype = HXB_DTYPE_UINT32;
       *(uint32_t*)&val->data = 0;       // start out with zero.
       // endpoints 1 and 2 are not optional
-      *(uint32_t*)&val->data += 1 << (EP_POWER_SWITCH_EID - 1); // shifted EID minus one so that Bit#0 corresponds to EID 1, Bit#1 to EID 2, ...
-      *(uint32_t*)&val->data += 1 << (EP_POWER_METER_EID - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_POWER_SWITCH_EID - 1); // shifted EID minus one so that Bit#0 corresponds to EID 1, Bit#1 to EID 2, ...
+      *(uint32_t*)&val->data += 1UL << (EP_POWER_METER_EID - 1);
 #if TEMPERATURE_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_TEMPERATURE_EID - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_TEMPERATURE_EID - 1);
 #endif
 #if BUTTON_HAS_EID
-      *(uint32_t*)&val->data += 1 << (EP_BUTTON_EID - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_BUTTON_EID - 1);
 #endif
 #if HUMIDITY_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_HUMIDITY_EID - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_HUMIDITY_EID - 1);
 #endif
 #if PRESSURE_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_PRESSURE_EID - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_PRESSURE_EID - 1);
 #endif
 #if ANALOGREAD_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_ANALOGREAD_EID - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_ANALOGREAD_EID - 1);
 #endif
 #if SHUTTER_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_SHUTTER_EID - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_SHUTTER_EID - 1);
 #endif
 #if HEXAPUSH_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_HEXAPUSH_EID_PRESSED - 1);
-      *(uint32_t*)&val->data += 1 << (EP_HEXAPUSH_EID_CLICKED - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_HEXAPUSH_EID_PRESSED - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_HEXAPUSH_EID_CLICKED - 1);
 #endif
 #if PRESENCE_DETECTOR_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_PRESENCE_DETECTOR_EID - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_PRESENCE_DETECTOR_EID - 1);
 #endif
 #if HEXONOFF_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_HEXONOFF_EID_SET - 1);
-      *(uint32_t*)&val->data += 1 << (EP_HEXONOFF_EID_TOGGLE - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_HEXONOFF_EID_SET - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_HEXONOFF_EID_TOGGLE - 1);
 #endif
 #if LIGHTSENSOR_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_LIGHTSENSOR_EID - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_LIGHTSENSOR_EID - 1);
 #endif
 #if IR_RECEIVER_ENABLE
-      *(uint32_t*)&val->data += 1 << (EP_IR_RECEIVER_EID - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_IR_RECEIVER_EID - 1);
 #endif
       break;
     /* -==================================================================- */
