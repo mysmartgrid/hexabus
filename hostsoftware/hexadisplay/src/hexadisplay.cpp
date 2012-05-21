@@ -19,22 +19,14 @@
  */
 
 #include <QApplication>
-#include <QLabel>
-#include <common.hpp>
+#include <libhexadisplay/common.hpp>
+#include <libhexadisplay/main_window.hpp>
 #include <iostream>
 
-#include <libklio/store.hpp>
-#include <libklio/store-factory.hpp>
-#include <libklio/sensor.hpp>
-#include <libklio/sensorfactory.hpp>
-#include <libklio/sensor.hpp>
-#include <libklio/time.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
 #include <boost/program_options/positional_options.hpp>
-#include <boost/filesystem.hpp>
-namespace bfs = boost::filesystem; 
 namespace po = boost::program_options;
 
 
@@ -46,11 +38,11 @@ int main (int argc, char* argv[]) {
     po::options_description desc(oss.str());
     desc.add_options()
       ("help,h", "produce help message")
-      ("version,v", "print libklio version and exit")
-      ("storefile,s", po::value<std::string>(), "the data store to use")
+      ("version,v", "print version and exit")
+      ("configfile,s", po::value<std::string>(), "the data store to use")
       ;
     po::positional_options_description p;
-    p.add("storefile", 1);
+    p.add("configfile", 1);
 
     po::variables_map vm;
     po::store(po::command_line_parser(argc, argv).
@@ -58,7 +50,7 @@ int main (int argc, char* argv[]) {
     po::notify(vm);
 
     // Begin processing of commandline parameters.
-    std::string storefile;
+    std::string configfile;
 
     if (vm.count("help")) {
       std::cout << desc << std::endl;
@@ -68,48 +60,30 @@ int main (int argc, char* argv[]) {
     if (vm.count("version")) {
       hexadisplay::VersionInfo::Ptr version(new hexadisplay::VersionInfo());
       std::cout << "HexaDisplay version " << version->getVersion() << std::endl;
-      klio::VersionInfo::Ptr vi(new klio::VersionInfo());
-      std::cout << "klio library version " << vi->getVersion() << std::endl;
       return 0;
     }
 
-    if (! vm.count("storefile")) {
-      std::cerr << "You must specify a store to work on." << std::endl;
+    if (! vm.count("configfile")) {
+      std::cerr << "You must specify a klio store to work on." << std::endl;
       return 1;
     } else {
-      storefile=vm["storefile"].as<std::string>();
+      configfile=vm["configfile"].as<std::string>();
     }
 
-    bfs::path db(storefile);
-    klio::StoreFactory::Ptr factory(new klio::StoreFactory()); 
-    klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
 
     try {
-      klio::Store::Ptr store(factory->openStore(klio::SQLITE3, db));
-      std::cout << "opened store: " << store->str() << std::endl;
-      std::vector<klio::Sensor::uuid_t> uuids = store->getSensorUUIDs();
-      std::cout << "Found " << uuids.size() 
-        << " sensor(s) in the database." << std::endl;
-      std::vector<klio::Sensor::uuid_t>::iterator it;
-      for(  it = uuids.begin(); it < uuids.end(); it++) {
-        klio::Sensor::Ptr loadedSensor(store->getSensor(*it));
-        std::cout << " * " << loadedSensor->str() << std::endl;
-        klio::reading_t reading = store->get_last_reading(loadedSensor);
-        klio::timestamp_t ts1=reading.first;
-        double val1=reading.second;
-        std::cout << ts1 << "\t" << val1 << std::endl;
-      }
+      QApplication app(argc, argv);
+      hexadisplay::ValueProvider::Ptr valueProvider(
+          new hexadisplay::ValueProvider(configfile));
+      hexadisplay::MainWindow mainWindow(valueProvider);
+      mainWindow.show();
+      return app.exec();
 
     } catch (klio::StoreException const& ex) {
       std::cout << "Failed to access store: " << ex.what() << std::endl;
       exit(-1);
     }
 
-    //  QApplication app(argc, argv);
-    //  QLabel testLabel("foobar");
-    //  testLabel.show();
-    //
-    //  return app.exec();
   } catch(std::exception& e) {
     std::cerr << "error: " << e.what() << std::endl;
     return 1;
