@@ -5,6 +5,12 @@ if(POLICY CMP0011)
   cmake_policy(SET CMP0011 NEW)
 endif(POLICY CMP0011)
 
+if( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+   message(STATUS "Do not run cmake in the source directory")
+   message(STATUS "create an extra binary directory")
+   message(FATAL_ERROR "Exiting cmake here.")
+endif( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+
 # have the full monty in makefiles
 set(CMAKE_VERBOSE_MAKEFILE true)
 
