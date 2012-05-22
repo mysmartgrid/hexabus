@@ -96,22 +96,16 @@ metering_init(void)
   // reset energy metering value
   metering_pulses = metering_pulses_total = 0;
 #if METERING_ENERGY_PERSISTENT
+  // setup the input pins for the comparator measuring the power supply voltage
   DDRB &= ~(1 << METERING_POWERDOWN_DETECT_PIN); // Set PB3 as input -> Cut trace to relay, add voltage divider instead.
   DDRB &= ~(1 << METERING_ANALOG_COMPARATOR_REF_PIN); // Set PB2 as input
   PORTB &= ~(1 << METERING_POWERDOWN_DETECT_PIN); // no internal pullup
   PORTB &= ~(1 << METERING_ANALOG_COMPARATOR_REF_PIN); // no internal pullup
-  ACSR = // setup analog comparator interrupt:
-    (0 << ACD) | // Comparator on (Analog Comparator Disable := 0)
-    (1 << ACBG) | // internal bandgap ref. voltage (1.23V) to AIN0
-    (0 << ACO) | // Comparator output disable
-    (1 << ACI) | // comparator interrupt flag
-    (0 << ACIC) | // input capture off
-    (1 << ACIE) | // comparator interrupt enable
-    (1 << ACIS1) | (1 << ACIS0); // Interrupt on RISING edge (since the supply voltage is connected to negative input and Vbg is connected to positive input, rising edge means dropping supply voltage.
-    sei(); // global interrupt enable
+  SET_POWERDOWN_INT(); // enable comparator interrupt
+  sei(); // global interrupt enable
 
-    eeprom_read((uint8_t*)EE_ENERGY_METERING_PULSES_TOTAL, (uint8_t*)&metering_pulses_total, sizeof(metering_pulses));
-    eeprom_read((uint8_t*)EE_ENERGY_METERING_PULSES, (uint8_t*)&metering_pulses, sizeof(metering_pulses));
+  eeprom_read((uint8_t*)EE_ENERGY_METERING_PULSES_TOTAL, (uint8_t*)&metering_pulses_total, sizeof(metering_pulses));
+  eeprom_read((uint8_t*)EE_ENERGY_METERING_PULSES, (uint8_t*)&metering_pulses, sizeof(metering_pulses));
 #endif // METERING_ENERGY_PERSISTENT
 #endif // METERING_ENERGY
 
