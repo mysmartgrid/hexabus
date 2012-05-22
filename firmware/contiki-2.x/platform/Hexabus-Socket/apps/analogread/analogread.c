@@ -32,3 +32,7 @@ float get_analogvalue() {
 
     return voltage;
 }
+
+float get_lightvalue() {
+    return get_analogvalue()/2.5;
+}

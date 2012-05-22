@@ -110,6 +110,8 @@ struct hxb_packet_128string {
   uint16_t  crc;
 } __attribute__ ((packed));
 
+#define HXB_STRING_PACKET_MAX_BUFFER_LENGTH 127
+
 // ======================================================================
 // Structs for passing Hexabus data around between processes
 // Since there the IP information is lost, we need a field for the IP address of the sender/receiver. But we can drop the CRC here.

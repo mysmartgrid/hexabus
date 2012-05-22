@@ -27,7 +27,7 @@
  * SUCH DAMAGE.
  *
  *
- * Author: 	Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
+ * Author:   Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
  *
  * @(#)$$
  */
@@ -40,25 +40,46 @@
 /*if no interrupt happens in this time then the old measurement out of date and therefore discarded and set to 0 Watt
 by reducing this value the accuracy for high power consumptions could be increased but the minimum measurable power consumption increases
 for 80s: P_min = 3W */
-#define OUT_OF_DATE_TIME 	80
+#define OUT_OF_DATE_TIME   80
 
-#define METERING_VECT 		INT1_vect //Interrupt for the Metering
+#define METERING_VECT     INT1_vect //Interrupt for the Metering
 
 
 #define SET_METERING_INT( ) ( EICRA |= ((1 << ISC11) | (1 << ISC10)) ) // rising edge on INT1 generates interrupt
 
-#define ENABLE_METERING_INTERRUPT( ) 			( EIMSK |= ( 1 << INT1 ) )
-#define DISABLE_METERING_INTERRUPT( ) 			( EIMSK &= ~( 1 << INT1 ) )
+#define ENABLE_METERING_INTERRUPT( )       ( EIMSK |= ( 1 << INT1 ) )
+#define DISABLE_METERING_INTERRUPT( )      ( EIMSK &= ~( 1 << INT1 ) )
 
+#define METERING_POWERDOWN_DETECT_PIN PB3
+#define METERING_ANALOG_COMPARATOR_REF_PIN PB2
+// setup internal comparator and enable interrupt
+#define SET_POWERDOWN_INT( )       ( ACSR = ((0 << ACD) | (1 << ACBG) | (0 << ACO) | (1 << ACI) | (0 << ACIC) | (1 << ACIE) | (1 << ACIS1) | (1 << ACIS0)) )
+/*
+    (0 << ACD) | // Comparator on (Analog Comparator Disable := 0)
+    (1 << ACBG) | // internal bandgap ref. voltage (1.23V) to AIN0
+    (0 << ACO) | // Comparator output disable
+    (1 << ACI) | // comparator interrupt flag
+    (0 << ACIC) | // input capture off
+    (1 << ACIE) | // comparator interrupt enable
+    (1 << ACIS1) | (1 << ACIS0); // Interrupt on RISING edge (since the supply voltage is connected to negative input and Vbg is connected to positive input, rising edge means dropping supply voltage.
+*/
 
 /** \brief This function returns the measured electrical power in Watt.
  *
  **/
-uint16_t 	metering_get_power(void);
-void 		metering_init(void);
-void		metering_start(void);
-void		metering_stop(void);
-void		metering_reset(void);
-bool		metering_calibrate(void);
-void		metering_calibration_stop(void);
+uint16_t   metering_get_power(void);
+void     metering_init(void);
+void    metering_start(void);
+void    metering_stop(void);
+void    metering_reset(void);
+bool    metering_calibrate(void);
+void    metering_calibration_stop(void);
+
+#if METERING_ENERGY
+float metering_get_energy(void);
+float metering_get_energy_total(void);
+float metering_reset_energy(void);
+#endif // METERING_ENERGY
+
 #endif /* METERING_H_ */
+

@@ -2,7 +2,7 @@
  * state_machine.h
  */
 
-#ifndef STATE_MACHINE_H_ 
+#ifndef STATE_MACHINE_H_
 #define STATE_MACHINE_H_
 
 #include "process.h"

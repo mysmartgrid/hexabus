@@ -53,6 +53,7 @@ namespace hexabus {
       uint8_t getDatatype();
       uint8_t getEID();
       struct hxb_value getValue();
+      int getValuePtr(struct hxb_value*);
       std::string getString();
       // TODO getFlags (once someone starts actually using the flags)
     private:

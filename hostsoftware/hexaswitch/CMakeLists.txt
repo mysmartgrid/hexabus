@@ -5,6 +5,12 @@ if(POLICY CMP0011)
   cmake_policy(SET CMP0011 NEW)
 endif(POLICY CMP0011)
 
+if( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+   message(STATUS "Do not run cmake in the source directory")
+   message(STATUS "create an extra binary directory")
+   message(FATAL_ERROR "Exiting cmake here.")
+endif( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+
 # have the full monty in makefiles
 set(CMAKE_VERBOSE_MAKEFILE true)
 
@@ -12,7 +18,7 @@ SET(ENABLE_LOGGING 1)
 
 set(V_MAJOR 0)
 set(V_MINOR 4)
-set(V_PATCH 0)
+set(V_PATCH 1)
 
 # add a path where some libraries might be stored
 set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where many locally installed libraries can be found")
@@ -60,7 +66,8 @@ FIND_PACKAGE(Sqlite)
 # library.
 SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
   "1.49.0" "1.49" "1.50.0" "1.50")
-FIND_PACKAGE(Boost 1.46.1 COMPONENTS iostreams program_options filesystem system)
+SET(Boost_DETAILED_FAILURE_MSG true)
+FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS program_options filesystem system)
 
 # Reflect the package structure
 add_subdirectory(libhexabus)
@@ -91,6 +98,7 @@ message("")
 message("***** Configuration *****")
 message("  prefix: ${CMAKE_INSTALL_PREFIX}")
 message("  boost include: ${Boost_INCLUDE_DIRS}")
+message("  boost libraries shortcut: ${Boost_LIBRARIES}")
 message("  boost program options lib: ${Boost_PROGRAM_OPTIONS_LIBRARY}")
 message("  boost system lib: ${Boost_SYSTEM_LIBRARY}")
 message("  boost filesystem lib: ${Boost_FILESYSTEM_LIBRARY}")

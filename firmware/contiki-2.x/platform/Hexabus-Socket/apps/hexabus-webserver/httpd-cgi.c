@@ -551,7 +551,7 @@ void hxbtos(char *dest, char *data, uint8_t datatype)
 			break;
 		case HXB_DTYPE_UINT32:
 		case HXB_DTYPE_TIMESTAMP:
-			sprintf(dest, "%u", *(uint32_t*)data);
+			sprintf(dest, "%lu", *(uint32_t*)data);
 			break;
 		case WS_HXB_DTYPE_UINT16:
 			sprintf(dest, "%u", *(uint16_t*)data);
@@ -586,22 +586,12 @@ get_sm_tables(void *arg)
 
 	// Read Condition Table. Unused conditions will have a datatype equal to 0
 	cond = malloc(sizeof(struct condition));
-  if (cond == NULL)
-    PRINTFD("Allocation of condition table storage failed.\n");
-  else
-    PRINTFD("Allocation of condition table storage succeeded.\n");
-	length = eeprom_read_byte((void*)EE_STATEMACHINE_CONDITIONS); 
-  printf("length is %d\n", length);
-	numprinted+=httpd_snprintf(
-      (char *)uip_appdata+numprinted, 
-      uip_mss()-numprinted, 
-      httpd_cgi_char, 
-      '-'); 
-	for(i = 0; i < 4;i++) {
-    PRINTFD("loop %d free %d bytes\n", i,  get_current_free_bytes());
-		eeprom_read_block(cond, 
-        (void*)(1 + EE_STATEMACHINE_CONDITIONS + (i * sizeof(struct condition))), 
-        sizeof(struct condition));
+	length = sm_get_number_of_conditions();	//eeprom_read_byte((void*)EE_STATEMACHINE_CONDITIONS); 
+	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-'); 
+	
+	for(i = 0;i < length;i++) {
+		//eeprom_read_block(cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (i * sizeof(struct condition))), sizeof(struct condition));
+		sm_get_condition(i, cond);
 		if(cond->datatype == HXB_DTYPE_DATETIME) {
 			hxbtos(buffer, cond->data, HXB_DTYPE_UINT32);
 		} else {
@@ -618,23 +608,28 @@ get_sm_tables(void *arg)
   PRINTFD("Freeing condition table storage");
 		
 	// Now the transition tables
-	length = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
+	length = sm_get_number_of_transitions(false);	//eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
 	trans = malloc(sizeof(struct transition));
   if (trans == NULL)
     PRINTFD("Allocation of transition table storage failed.");
   else
     PRINTFD("Allocation of transition table storage succeeded.");
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-'); 
+	
 	for(i = 0;i < length;i++) {
-  	eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+  	//eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+		sm_get_transition(false, i, trans);
 		hxbtos(buffer, trans->value.data, trans->value.datatype);
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_trans_table_line, NULL, 
 				trans->fromState, trans->cond, trans->eid, trans->value.datatype, buffer, trans->goodState, trans->badState, NULL);
 	}
-	length = eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS); 
+	
+	length = sm_get_number_of_transitions(true);	//eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS); 
+	
 	for(i = 0;i < length;i++) {
-  	eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
-			numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_trans_table_line, NULL, 
+  	//eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+		sm_get_transition(true, i, trans);
+		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_trans_table_line, NULL, 
 					trans->fromState, trans->cond, trans->eid, trans->value.datatype, buffer, trans->goodState, trans->badState, NULL);
 	}
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '.'); 
