@@ -56,6 +56,7 @@ set(CMAKE_CXX_FLAGS "-Wall ")
 include(CMakeBackwardCompatibilityCXX)
 
 FIND_PACKAGE(Sqlite)
+FIND_PACKAGE(Hexabus)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
 SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
@@ -65,30 +66,20 @@ FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS program_options filesystem system)
 
 # by default only QtCore and QtGui modules are enabled
 # other modules must be enabled like this:
-  SET( QT_USE_QT3SUPPORT TRUE )
-  SET( QT_USE_QTXML TRUE )
+SET( QT_USE_QT3SUPPORT TRUE )
+SET( QT_USE_QTXML TRUE )
 
-  # this command finds Qt4 libraries and sets all required variables
-  # note that it's Qt4, not QT4 or qt4
-  FIND_PACKAGE( Qt4 REQUIRED )
+# this command finds Qt4 libraries and sets all required variables
+# note that it's Qt4, not QT4 or qt4
+FIND_PACKAGE( Qt4 REQUIRED )
 
-  # add some useful macros and variables
-  # (QT_USE_FILE is a variable defined by FIND_PACKAGE( Qt4 ) that contains a path to CMake script)
-  INCLUDE( ${QT_USE_FILE} )
+# add some useful macros and variables
+# (QT_USE_FILE is a variable defined by FIND_PACKAGE( Qt4 ) that contains a path to CMake script)
+INCLUDE( ${QT_USE_FILE} )
 
-  # this command will generate rules that will run rcc on all files from SAMPLE_RCS
-  # in result SAMPLE_RC_SRCS variable will contain paths to files produced by rcc
-  QT4_ADD_RESOURCES( SAMPLE_RC_SRCS ${SAMPLE_RCS} )
-
-  # this will run uic on .ui files:
-  QT4_WRAP_UI( SAMPLE_UI_HDRS ${SAMPLE_UIS} )
-
-  # and finally this will run moc:
-  QT4_WRAP_CPP( SAMPLE_MOC_SRCS ${SAMPLE_MOC_HDRS} )
-
-  # we need this to be able to include headers produced by uic in our code
-  # (CMAKE_BINARY_DIR holds a path to the build directory, while INCLUDE_DIRECTORIES() works just like INCLUDEPATH from qmake)
-  INCLUDE_DIRECTORIES( ${CMAKE_BINARY_DIR} )
+# we need this to be able to include headers produced by uic in our code
+# (CMAKE_BINARY_DIR holds a path to the build directory, while INCLUDE_DIRECTORIES() works just like INCLUDEPATH from qmake)
+INCLUDE_DIRECTORIES( ${CMAKE_BINARY_DIR} )
 
 # Reflect the package structure
 add_subdirectory(libhexadisplay)
@@ -123,5 +114,6 @@ message("  boost program options lib: ${Boost_PROGRAM_OPTIONS_LIBRARY}")
 message("  boost system lib: ${Boost_SYSTEM_LIBRARY}")
 message("  boost filesystem lib: ${Boost_FILESYSTEM_LIBRARY}")
 message("  sqlite3 include: ${SQLITE3_INCLUDE_DIR}, lib: ${SQLITE3_LIBRARIES}")
+message("  hexabus include: ${HXB_INCLUDE_DIR}, lib: ${HXB_LIBRARIES}")
 message("  extended logging: ${ENABLE_LOGGING}")
 

@@ -23,6 +23,7 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
+  ${HXB_INCLUDE_DIR}
 )
 
 ADD_LIBRARY(hexadisplay 
@@ -30,7 +31,10 @@ ADD_LIBRARY(hexadisplay
   ${hexadisplay_hdr_moc}
   ${hexadisplay_hdr_forms}
   )
-target_link_libraries(hexadisplay ${QT_LIBRARIES})
+target_link_libraries(hexadisplay 
+  ${QT_LIBRARIES}
+  ${HXB_LIBRARIES}
+  )
 
 if(BUILD_SHARED_LIBS)
   install(TARGETS hexadisplay LIBRARY DESTINATION lib)

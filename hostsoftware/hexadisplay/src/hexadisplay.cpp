@@ -74,7 +74,10 @@ int main (int argc, char* argv[]) {
       QApplication app(argc, argv);
       hexadisplay::ValueProvider::Ptr valueProvider(
           new hexadisplay::ValueProvider(configfile));
-      hexadisplay::MainWindow mainWindow(valueProvider);
+      hexadisplay::SwitchDevice::Ptr switchDevice(
+          new hexadisplay::SwitchDevice(configfile));
+      hexadisplay::MainWindow mainWindow(
+          valueProvider, switchDevice);
       mainWindow.show();
       return app.exec();
 

@@ -10,7 +10,7 @@ ValueProvider::ValueProvider(const std::string& configfile)
   /**
    * Read the config file.
    */
-  std::cout << "Using config file " << configfile << std::endl;
+//  std::cout << "Using config file " << configfile << std::endl;
   QSettings settings(QString(configfile.c_str()), QSettings::IniFormat);
   std::string db_path(
       settings.value( "database/path", "").toString()

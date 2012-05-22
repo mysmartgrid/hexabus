@@ -5,6 +5,7 @@
 #include <QVBoxLayout>
 #include <libhexadisplay/common.hpp>
 #include <libhexadisplay/value_provider.hpp>
+#include <libhexadisplay/switch_device.hpp>
 #include <libhexadisplay/ui_simple.h>
 
 namespace hexadisplay {
@@ -14,7 +15,10 @@ namespace hexadisplay {
 
     public:
       typedef std::tr1::shared_ptr<MainWindow> Ptr;
-      MainWindow (hexadisplay::ValueProvider::Ptr value_provider);
+      MainWindow (
+          hexadisplay::ValueProvider::Ptr value_provider,
+          hexadisplay::SwitchDevice::Ptr switch_device
+          );
       virtual ~MainWindow();
     private slots:
       void on_refresh_PB_clicked();
@@ -27,6 +31,7 @@ namespace hexadisplay {
       MainWindow (const MainWindow& original);
       MainWindow& operator= (const MainWindow& rhs);
       hexadisplay::ValueProvider::Ptr _value_provider;
+      hexadisplay::SwitchDevice::Ptr _switch_device;
       Ui::SimpleUI* _ui;
       //QVBoxLayout* _vbox;
       //QLabel* _temperature;
