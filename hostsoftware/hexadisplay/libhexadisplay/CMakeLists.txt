@@ -14,6 +14,8 @@ configure_file(config.h.in ${CMAKE_BINARY_DIR}/config.h)
 file(GLOB all_hexadisplay_src *.cpp *.hpp)
 set(hexadisplay_src ${all_hexadisplay_src})
 set(hexadisplay_hdr main_window.hpp)
+set(hexadisplay_forms simple.ui)
+QT4_WRAP_UI(hexadisplay_hdr_forms ${hexadisplay_forms})
 QT4_WRAP_CPP(hexadisplay_hdr_moc ${hexadisplay_hdr})
 
 include_directories(
@@ -23,7 +25,11 @@ include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-ADD_LIBRARY(hexadisplay ${hexadisplay_src} ${hexadisplay_hdr_moc})
+ADD_LIBRARY(hexadisplay 
+  ${hexadisplay_src} 
+  ${hexadisplay_hdr_moc}
+  ${hexadisplay_hdr_forms}
+  )
 target_link_libraries(hexadisplay ${QT_LIBRARIES})
 
 if(BUILD_SHARED_LIBS)

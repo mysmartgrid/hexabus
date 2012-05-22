@@ -58,8 +58,8 @@ ValueProvider::ValueProvider(const std::string& configfile)
 
 QString ValueProvider::get_last_reading(klio::Sensor::Ptr sensor) {
   klio::reading_t reading = _store->get_last_reading(sensor);
-  klio::timestamp_t ts1=reading.first;
+  //klio::timestamp_t ts1=reading.first;
   double val1=reading.second;
-  std::cout << ts1 << "\t" << val1 << std::endl;
+  //std::cout << ts1 << "\t" << val1 << std::endl;
   return QString("%1").arg(val1,0,'f',2);
 }

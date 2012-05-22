@@ -64,12 +64,11 @@ int main (int argc, char* argv[]) {
     }
 
     if (! vm.count("configfile")) {
-      std::cerr << "You must specify a klio store to work on." << std::endl;
+      std::cerr << "You must specify a configuration file." << std::endl;
       return 1;
     } else {
       configfile=vm["configfile"].as<std::string>();
     }
-
 
     try {
       QApplication app(argc, argv);

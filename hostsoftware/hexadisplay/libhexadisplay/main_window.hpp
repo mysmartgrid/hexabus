@@ -5,30 +5,35 @@
 #include <QVBoxLayout>
 #include <libhexadisplay/common.hpp>
 #include <libhexadisplay/value_provider.hpp>
+#include <libhexadisplay/ui_simple.h>
 
 namespace hexadisplay {
 
-  class MainWindow : public QWidget{
+  class MainWindow : public QWidget, private Ui::SimpleUI {
     Q_OBJECT 
 
     public:
       typedef std::tr1::shared_ptr<MainWindow> Ptr;
       MainWindow (hexadisplay::ValueProvider::Ptr value_provider);
       virtual ~MainWindow();
-    public slots:
-      void updateValues();
+    private slots:
+      void on_refresh_PB_clicked();
+      void on_on_PB_clicked();
+      void on_off_PB_clicked();
+
     protected:
       void closeEvent(QCloseEvent *event);
     private:
       MainWindow (const MainWindow& original);
       MainWindow& operator= (const MainWindow& rhs);
       hexadisplay::ValueProvider::Ptr _value_provider;
-      QVBoxLayout* _vbox;
-      QLabel* _temperature;
-      QLabel* _pressure;
-      QLabel* _humidity;
-      QLabel* _power;
-      QPushButton* _refresh;
+      Ui::SimpleUI* _ui;
+      //QVBoxLayout* _vbox;
+      //QLabel* _temperature;
+      //QLabel* _pressure;
+      //QLabel* _humidity;
+      //QLabel* _power;
+      //QPushButton* _refresh;
 
   };
 
