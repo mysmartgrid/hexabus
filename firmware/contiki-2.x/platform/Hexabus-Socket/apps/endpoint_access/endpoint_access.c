@@ -292,48 +292,48 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
     /* -========== Endpoint 0: Hexabus Device Descriptor ==================- */
     case EP_DEVICE_DESCRIPTOR:
       val->datatype = HXB_DTYPE_UINT32;
-      *(uint32_t*)&val->data = 0;       // start out with zero.
+      *(uint32_t*)&val->data = 1UL;       // start out with last bit set: EID0 always exists
       // endpoints 1 and 2 are not optional
-      *(uint32_t*)&val->data += 1UL << (EP_POWER_SWITCH - 1); // shifted EID minus one so that Bit#0 corresponds to EID 1, Bit#1 to EID 2, ...
-      *(uint32_t*)&val->data += 1UL << (EP_POWER_METER - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_POWER_SWITCH); // shift by EID: nth bit set equals EID n exists
+      *(uint32_t*)&val->data += 1UL << (EP_POWER_METER);
 #if TEMPERATURE_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_TEMPERATURE - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_TEMPERATURE);
 #endif
 #if BUTTON_HAS_EID
-      *(uint32_t*)&val->data += 1UL << (EP_BUTTON - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_BUTTON);
 #endif
 #if HUMIDITY_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_HUMIDITY - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_HUMIDITY);
 #endif
 #if PRESSURE_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_PRESSURE - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_PRESSURE);
 #endif
 #if ANALOGREAD_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_ANALOGREAD - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_ANALOGREAD);
 #endif
 #if METERING_ENERGY
-      *(uint32_t*)&val->data += 1UL << (EP_ENERGY_METER_TOTAL - 1);
-      *(uint32_t*)&val->data += 1UL << (EP_ENERGY_METER - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_ENERGY_METER_TOTAL);
+      *(uint32_t*)&val->data += 1UL << (EP_ENERGY_METER);
 #endif
 #if SHUTTER_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_SHUTTER - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_SHUTTER);
 #endif
 #if HEXAPUSH_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_HEXAPUSH_PRESSED - 1);
-      *(uint32_t*)&val->data += 1UL << (EP_HEXAPUSH_CLICKED - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_HEXAPUSH_PRESSED);
+      *(uint32_t*)&val->data += 1UL << (EP_HEXAPUSH_CLICKED);
 #endif
 #if PRESENCE_DETECTOR_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_PRESENCE_DETECTOR - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_PRESENCE_DETECTOR);
 #endif
 #if HEXONOFF_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_HEXONOFF_SET - 1);
-      *(uint32_t*)&val->data += 1UL << (EP_HEXONOFF_TOGGLE - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_HEXONOFF_SET);
+      *(uint32_t*)&val->data += 1UL << (EP_HEXONOFF_TOGGLE);
 #endif
 #if LIGHTSENSOR_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_LIGHTSENSOR - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_LIGHTSENSOR);
 #endif
 #if IR_RECEIVER_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_IR_RECEIVER - 1);
+      *(uint32_t*)&val->data += 1UL << (EP_IR_RECEIVER);
 #endif
       break;
     /* -==================================================================- */
