@@ -3,7 +3,10 @@
 #include <string>
 #include <sstream>
 #include <map>
+#include <iomanip> // for hexadecimal output TODO probably not needed later!
 #include "../../../shared/hexabus_statemachine_structs.h"
+
+#pragma GCC diagnostic warning "-Wstrict-aliasing"
 
 using namespace hexabus;
 
@@ -16,6 +19,10 @@ const char STATE_TABLE_END_TOKEN = '.';
 
 typedef std::map<unsigned int, std::string> flash_format_map_t;
 typedef std::map<unsigned int, std::string>::iterator flash_format_map_it_t;
+typedef std::map<unsigned int, struct transition> flash_format_state_map_t;
+typedef std::map<unsigned int, struct transition>::iterator flash_format_state_map_it_t;
+typedef std::map<unsigned int, struct condition> flash_format_cond_map_t;
+typedef std::map<unsigned int, struct condition>::iterator flash_format_cond_map_it_t;
 
 // TODO: Zwei listen fuer conditions und states
 // TODO: States am Ende so sortieren, dass der Startstate der erste ist.
@@ -24,14 +31,14 @@ struct hba_doc_visitor : boost::static_visitor<>
 {
   hba_doc_visitor(
       flash_format_map_t& states,
-      std::map<unsigned int, struct transition>& states_bin,
+      flash_format_state_map_t& states_bin,
       flash_format_map_t& conditions,
-      std::map<unsigned int, struct condition>& conditions_bin,
+      flash_format_cond_map_t& conditions_bin,
       const graph_t_ptr g)
     : _states(states),
-      _states_bin(states),
+      _states_bin(states_bin),
       _conditions(conditions),
-      _conditions_bin(conditions),
+      _conditions_bin(conditions_bin),
       _g(g)
   { }
 
@@ -63,14 +70,17 @@ struct hba_doc_visitor : boost::static_visitor<>
 
 
     // construct binary representation
-    transition t;
+    struct transition t;
     t.fromState = state_id; // TODO need to cast here?
     t.cond = cond_id;
     t.eid = clause.eid;
     t.goodState = goodstate_id;
     t.badState = badstate_id;
     t.value.datatype = clause.dtype;
-    t.value.data[0] = 0; // TODO how do we get this in there? memcpy?
+    memset(t.value.data, 0, sizeof(t.value.data)); // most of the time only four bytes needes, so keep the rest at 0
+    std::stringstream ss;
+    ss << std::hex << clause.value;
+    ss >> *(uint32_t*)t.value.data; // TODO check endianness!
     _states_bin.insert(std::pair<unsigned int, struct transition>(state_id, t));
   }
 
@@ -104,21 +114,40 @@ struct hba_doc_visitor : boost::static_visitor<>
       << condition.value << COND_TABLE_SEPARATOR
       ;
     _conditions.insert(std::pair<unsigned int, std::string>(condition.id, oss.str()));
+
+    //construct binary representation
+    struct condition c;
+    // convert IP adress string to binary -- TODO: Check endianness - either this or the data field is wrong.
+    for(unsigned int i = 0; i < sizeof(c.sourceIP); i++)
+    {
+      std::stringstream ss;
+      unsigned int ipbyte;
+      ss << std::hex << condition.ipv6_address.substr(2 * i, 2); // read two bytes from the string, since two hex digits correspond to one byte in binary
+      ss >> ipbyte;
+      c.sourceIP[i] = ipbyte;
+    }
+    c.sourceEID = condition.eid;
+    c.op = condition.op;
+    c.datatype = condition.dtype;
+    std::stringstream ss;
+    ss << std::hex << condition.value;
+    ss >> *(uint32_t*)c.data; // TODO check endianness!
+    _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
   }
 
   flash_format_map_t& _states;
-  std::map<unsigned int, struct transition>& _states_bin;
+  flash_format_state_map_t& _states_bin;
   flash_format_map_t& _conditions;
-  std::map<unsigned int, struct condition>& _conditions_bin;
+  flash_format_cond_map_t& _conditions_bin;
   graph_t_ptr _g;
 };
 
 void generator_flash::operator()(std::ostream& os) const
 {
   flash_format_map_t conditions;
-  flash_format_map_t conditions_bin;
+  flash_format_cond_map_t conditions_bin;
   flash_format_map_t states;
-  flash_format_map_t states_bin;
+  flash_format_state_map_t states_bin;
 
   std::cout << "start state: " << _ast.start_state << std::endl;
   BOOST_FOREACH(hba_doc_block const& block, _ast.blocks)
@@ -136,6 +165,32 @@ void generator_flash::operator()(std::ostream& os) const
   for(flash_format_map_it_t it = states.begin(); it != states.end(); ++it)
   {
     std::cout << it->first << ": " << it->second << std::endl;
+  }
+
+  std::cout << "Binary condition table:" << std::endl;
+  for(flash_format_cond_map_it_t it = conditions_bin.begin(); it != conditions_bin.end(); it++)
+  {
+    std::cout << it->first << ": ";
+    struct condition cond = it->second;
+    char* c = (char*)&cond;
+    for(unsigned int i = 0; i < sizeof(condition); i++)
+    {
+      std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)c[i] << " ";
+    }
+    std::cout << std::endl;
+  }
+
+  std::cout << "Binary transition table:" << std::endl;
+  for(flash_format_state_map_it_t it = states_bin.begin(); it != states_bin.end(); it++)
+  {
+    std::cout << it->first << ": ";
+    struct transition t = it->second;
+    char* c = (char*)&t;
+    for(unsigned int i = 0; i < sizeof(transition); i++)
+    {
+      std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)c[i] << " ";
+    }
+    std::cout << std::endl;
   }
 
   std::cout << "Writing output file..." << std::endl;
