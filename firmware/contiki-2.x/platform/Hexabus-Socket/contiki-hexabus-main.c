@@ -412,12 +412,9 @@ void initialize(void)
   //Do not init the relay, because we use the PWM elsewhere
   //relay_init();
 
-  /*Init PWM*/
+  /* Init PWM and enable*/
   pwm_init();
-
-  /*Set PWM ratio to some value just for testing*/
   pwm_start();
-  //SET_PWM(0x7F);
   
   /* process for pwm*/
   process_start(&pwm_process, NULL);

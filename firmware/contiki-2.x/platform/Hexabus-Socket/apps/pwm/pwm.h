@@ -59,6 +59,6 @@ PROCESS_NAME(pwm_process);
 #define DISABLE_PWM()	TCCR0A &= ~( 1 << COM0A1 ); DDRB &= ~(1 << PWM_PORT)
 
 #define PWM_UPPER_LIMIT		255 //off->on PWM
-#define PWM_LOWER_LIMIT		10 //hold on PWM (0x7F: 50%)
+#define PWM_LOWER_LIMIT		5 //hold on PWM (0x7F: 50%)
 
 #endif /* PWM_H_ */

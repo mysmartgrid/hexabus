@@ -85,7 +85,7 @@ PROCESS_THREAD(pwm_process, ev, data) {
 
   // set the timer to 1 sec for use in the loop
   etimer_set(&pwm_periodic_timer, 0.01*CLOCK_SECOND);
-  PRINTF("PWM staring up\r\n");
+  PRINTF("PWM starting up\r\n");
 	
   while(1){
     PROCESS_YIELD();
@@ -93,6 +93,8 @@ PROCESS_THREAD(pwm_process, ev, data) {
       etimer_reset(&pwm_periodic_timer);
 
       pwm_ratio=counter;
+
+      // do some math to compensate for the non linear behavior of the LED
       uint32_t pwm_ratio_mod=(pwm_ratio*pwm_ratio)/(255);
       pwm_ratio=(pwm_ratio_mod*pwm_ratio)/(255);
       SET_PWM(pwm_ratio);
