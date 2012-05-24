@@ -11,7 +11,12 @@ include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR} 
   ${Boost_INCLUDE_DIRS}
+  ${LIBKLIO_INCLUDE_DIR}
 )
+link_directories(
+  ${SQLITE3_STATIC_LIBRARY_DIRS}
+  )
+
 add_executable(hexaswitch ${hexaswitch_src})
 # Link the executables
 target_link_libraries(hexaswitch 
@@ -26,7 +31,7 @@ target_link_libraries(hexalog
   pthread
   ${Boost_LIBRARIES}
   ${Boost_SYSTEM_LIBRARY}
-  klio
+  ${LIBKLIO_LIBRARY}
   ${SQLITE3_LIBRARIES}
 )
 

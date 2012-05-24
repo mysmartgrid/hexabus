@@ -55,6 +55,12 @@ set(CMAKE_CXX_FLAGS "-Wall ")
 # Check for some compiler stuff
 include(CMakeBackwardCompatibilityCXX)
 
+# find libklio
+find_package(Libklio)
+if( NOT LIBKLIO_FOUND)
+  message(FATAL_ERROR "libklio is required.You may set LIBKLIO_HOME")
+endif( NOT LIBKLIO_FOUND)
+
 FIND_PACKAGE(Sqlite)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
