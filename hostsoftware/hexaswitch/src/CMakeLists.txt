@@ -22,7 +22,7 @@ add_executable(hexaswitch ${hexaswitch_src})
 target_link_libraries(hexaswitch 
   hexabus
   pthread
-  ${Boost_SYSTEM_LIBRARY}
+  ${Boost_LIBRARIES}
 )
 
 add_executable(hexalog ${hexalog_src})

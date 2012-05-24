@@ -9,5 +9,6 @@
 void analogread_init(void);
 
 float get_analogvalue(void);
+float get_lightvalue(void);
 
 #endif /* ANALOGREAD_H_ */
