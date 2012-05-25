@@ -611,8 +611,8 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			PSOCK_READTO(&s->sin, ISO_equal);
 			//check for s0 calibration value
 			PSOCK_READTO(&s->sin, ISO_amper);
-			if(s->inputbuf[0] != '\n') {
-                set_s0_calibration(atoi(s->inputbuf));
+			if(s->inputbuf[0] != ISO_amper) {
+                metering_set_s0_calibration((uint16_t)atoi(s->inputbuf));
             }
 		}
 		else if (httpd_strncmp(&s->inputbuf[1], httpd_socket_status_file, sizeof(httpd_socket_status_file)-1) == 0){

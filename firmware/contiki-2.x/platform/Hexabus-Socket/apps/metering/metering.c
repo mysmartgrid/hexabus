@@ -75,8 +75,12 @@ static clock_time_t last_broadcast;
 uint16_t
 calc_power(uint16_t pulse_period)
 {
-  uint16_t P;
+  uint32_t P;
+#if S0_ENABLE
+  P = ((uint32_t)metering_reference_value*10) / (uint32_t)pulse_period;
+#else
   P = metering_reference_value / pulse_period;
+#endif
 
   return P;
 }
@@ -132,10 +136,24 @@ metering_get_power(void)
 
   if (tmp > OUT_OF_DATE_TIME * CLOCK_SECOND)
     metering_power = 0;
+#if S0_ENABLE
+  else if (metering_power != 0 && tmp > 2 * (((uint32_t)metering_reference_value*10) / (uint32_t)metering_power))
+#else
   else if (metering_power != 0 && tmp > 2 * (metering_reference_value / metering_power))
+#endif
     metering_power = calc_power(tmp);
 
   return metering_power;
+}
+
+/* sets calibration value for s0 meters */
+void
+metering_set_s0_calibration(uint16_t value) {
+    metering_stop();
+    eeprom_write_word((uint16_t*) EE_METERING_REF, ((3600000*CLOCK_SECOND)/(value*10))); 
+    metering_init();
+    metering_start();
+    
 }
 
 /* starts the metering calibration if the calibration flag is 0xFF else returns 0*/
