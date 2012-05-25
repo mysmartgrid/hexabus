@@ -1,14 +1,12 @@
 # -*- mode: cmake; -*-
 
-#set(hdrs 
-#  common.hpp
-#)
-#install(FILES ${hdrs} DESTINATION include/hexabus)
 
-configure_file(config.h.in ${CMAKE_BINARY_DIR}/config.h)
+file(GLOB hdrs *.h *.hpp)
+install(FILES ${hdrs} DESTINATION include/libhexabus)
 
-#add_subdirectory(messages)
-#ADD_DEPENDENCIES(hexabus hexabus_sqlite3)
+configure_file(config.h.in ${CMAKE_BINARY_DIR}/libhexabus/config.h)
+install(FILES ${CMAKE_BINARY_DIR}/libhexabus/config.h DESTINATION
+  include/libhexabus)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
