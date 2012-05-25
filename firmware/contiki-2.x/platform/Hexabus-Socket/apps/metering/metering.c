@@ -69,10 +69,6 @@ static struct ctimer metering_stop_timer;
 static uint8_t ticks_until_broadcast = METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS;
 static clock_time_t last_broadcast;
 #endif
-#if METERING_ENERGY
-static uint32_t metering_pulses_total;
-static uint32_t metering_pulses;
-#endif
 
 /*calculates the consumed energy on the basis of the counted pulses (num_pulses) in i given period (integration_time)
  * P = 247.4W/Hz * f_CF */
@@ -92,23 +88,6 @@ metering_init(void)
   metering_reference_value = eeprom_read_word((void*) EE_METERING_REF );
   metering_calibration_power = eeprom_read_word((void*)EE_METERING_CAL_LOAD);
 
-#if METERING_ENERGY
-  // reset energy metering value
-  metering_pulses = metering_pulses_total = 0;
-#if METERING_ENERGY_PERSISTENT
-  // setup the input pins for the comparator measuring the power supply voltage
-  DDRB &= ~(1 << METERING_POWERDOWN_DETECT_PIN); // Set PB3 as input -> Cut trace to relay, add voltage divider instead.
-  DDRB &= ~(1 << METERING_ANALOG_COMPARATOR_REF_PIN); // Set PB2 as input
-  PORTB &= ~(1 << METERING_POWERDOWN_DETECT_PIN); // no internal pullup
-  PORTB &= ~(1 << METERING_ANALOG_COMPARATOR_REF_PIN); // no internal pullup
-  SET_POWERDOWN_INT(); // enable comparator interrupt
-  sei(); // global interrupt enable
-
-  eeprom_read((uint8_t*)EE_ENERGY_METERING_PULSES_TOTAL, (uint8_t*)&metering_pulses_total, sizeof(metering_pulses));
-  eeprom_read((uint8_t*)EE_ENERGY_METERING_PULSES, (uint8_t*)&metering_pulses, sizeof(metering_pulses));
-#endif // METERING_ENERGY_PERSISTENT
-#endif // METERING_ENERGY
-
   SET_METERING_INT();
 
   metering_start();
@@ -121,7 +100,6 @@ metering_start(void)
   metering_pulse_period = 0;
   metering_power = 0;
   clock_old = clock_time();
-
 #if METERING_IMMEDIATE_BROADCAST
   last_broadcast = clock_time();
 #endif
@@ -141,27 +119,6 @@ metering_reset(void)
 {
   metering_power = 0;
 }
-
-#if METERING_ENERGY
-float metering_get_energy(void)
-{
-  // metering_reference_value are (wattseconds * CLOCK_SECOND) per pulse
-  // then divide by 3600 * 1000 to geht kilowatthours
-  return (float)(metering_pulses * (metering_reference_value / CLOCK_SECOND)) / 3600000;
-}
-
-float metering_get_energy_total(void)
-{
-  // metering_reference_value are (wattseconds * CLOCK_SECOND) per pulse
-  // then divide by 3600 * 1000 to geht kilowatthours
-  return (float)(metering_pulses_total * (metering_reference_value / CLOCK_SECOND)) / 3600000;
-}
-
-void metering_reset_energy(void)
-{
-  metering_pulses = 0;
-}
-#endif
 
 uint16_t
 metering_get_power(void)
@@ -288,23 +245,7 @@ ISR(METERING_VECT)
         process_post(&value_broadcast_process, immediate_broadcast_event, (void*)2);
       }
     }
-#endif // METERING_IMMEDIATE_BROADCAST
-#if METERING_ENERGY
-    metering_pulses++;
-    metering_pulses_total++;
 #endif
   }
 }
-
-#if METERING_ENERGY_PERSISTENT
-ISR(ANALOG_COMP_vect)
-{
-  if(metering_calibration == false && clock_time() > CLOCK_SECOND) // Don't do anything if calibration is enabled; don't do anything within one second after bootup.
-  {
-    eeprom_write((uint8_t*)EE_ENERGY_METERING_PULSES, (uint8_t*)&metering_pulses, sizeof(metering_pulses)); // write number of pulses to eeprom
-    eeprom_write((uint8_t*)EE_ENERGY_METERING_PULSES_TOTAL, (uint8_t*)&metering_pulses_total, sizeof(metering_pulses_total));
-    while(1); // wait until power fails completely or watchdog timer resets us if power comes back
-  }
-}
-#endif // METERING_ENERGY_PERSISTENT
 
