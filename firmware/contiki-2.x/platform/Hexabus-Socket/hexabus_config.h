@@ -35,11 +35,10 @@ There should be an ENABLE option that enables compilation and execution of the a
 
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
-#define VALUE_BROADCAST_DEBUG 1
+#define VALUE_BROADCAST_DEBUG 0
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1 // Number of endpoints to broadcast automatically - set to 0 to disable
 #define VALUE_BROADCAST_AUTO_EIDS 2 // Comma-separated list of endpoints to broadcast automatically
-#define VALUE_BROADCAST_AUTO_INTERVAL 5 // Timeout in seconds
-#define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0 // Number of endpoints to "broadcast" to the local state machine
+#define VALUE_BROADCAST_AUTO_INTERVAL 30 // Timeout in seconds
 #define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2 // Comma-separated list of eids to be sent to local state machine
 
 // metering
@@ -113,5 +112,8 @@ EXPERIMENTAL!
 #define IR_RECEIVER_DEBUG 0
 #define IR_REPEAT 1                  // 0 disables repeat, 1 enables repeat for buttons configured in ir_receiver.h
 #define IR_RECEIVER_RAW_MODE 0
+
+//S0 meter
+#define S0_ENABLE 1
 
 #endif // HEXBAUS_CONFIG_H
