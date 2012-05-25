@@ -54,9 +54,14 @@ ValueProvider::ValueProvider(const std::string& configfile)
     else if (boost::iequals(loadedSensor->name(), humidityid)) 
       _humiditysensor = loadedSensor;
   }
+
 }
 
 QString ValueProvider::get_last_reading(klio::Sensor::Ptr sensor) {
+  if (sensor == NULL) {
+    std::cout << "Sensor not available in database - ignoring." << std::endl;
+    return QString("n/a");
+  }
   klio::reading_t reading = _store->get_last_reading(sensor);
   //klio::timestamp_t ts1=reading.first;
   double val1=reading.second;

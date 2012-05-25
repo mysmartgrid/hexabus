@@ -72,6 +72,8 @@ int main (int argc, char* argv[]) {
 
     try {
       QApplication app(argc, argv);
+      Q_INIT_RESOURCE(default);
+      //app.setStyle("plastique");
       hexadisplay::ValueProvider::Ptr valueProvider(
           new hexadisplay::ValueProvider(configfile));
       hexadisplay::SwitchDevice::Ptr switchDevice(
@@ -80,7 +82,6 @@ int main (int argc, char* argv[]) {
           valueProvider, switchDevice);
       mainWindow.show();
       return app.exec();
-
     } catch (klio::StoreException const& ex) {
       std::cout << "Failed to access store: " << ex.what() << std::endl;
       exit(-1);

@@ -10,6 +10,7 @@ MainWindow::MainWindow(
   , _ui(new Ui::SimpleUI)
 {
   _ui->setupUi(this);
+  _ui->off_PB->setEnabled(false);
 }
 
 MainWindow::~MainWindow() {
@@ -31,10 +32,28 @@ void MainWindow::on_refresh_PB_clicked() {
 void MainWindow::on_on_PB_clicked() {
   std::cout << "Switching on..." << std::endl;
   _switch_device->on();
+  _ui->on_PB->setEnabled(false);
+  _ui->off_PB->setEnabled(true);
 }
+
 void MainWindow::on_off_PB_clicked() {
   std::cout << "Switching off..." << std::endl;
   _switch_device->off();
+  _ui->on_PB->setEnabled(true);
+  _ui->off_PB->setEnabled(false);
+}
+
+void MainWindow::on_toggle_PB_clicked() {
+  std::cout << "Toggling ..." << std::endl;
+  _switch_device->toggle();
+  if (_switch_device->is_on()) {
+    _ui->on_PB->setEnabled(false);
+    _ui->off_PB->setEnabled(true);
+
+  } else {
+    _ui->on_PB->setEnabled(true);
+    _ui->off_PB->setEnabled(false);
+  }
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {

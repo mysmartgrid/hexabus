@@ -18,6 +18,8 @@ namespace hexadisplay {
       virtual ~SwitchDevice();
       void on();
       void off();
+      void toggle();
+      bool is_on() {return _switch_state;};
 
     private:
       SwitchDevice (const SwitchDevice& original);
@@ -25,6 +27,7 @@ namespace hexadisplay {
       hexabus::NetworkAccess* _network;
       hexabus::Packet::Ptr _packetm;
       std::string _ip;
+      bool _switch_state;
 
   };
 };

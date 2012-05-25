@@ -24,6 +24,7 @@ namespace hexadisplay {
       void on_refresh_PB_clicked();
       void on_on_PB_clicked();
       void on_off_PB_clicked();
+      void on_toggle_PB_clicked();
 
     protected:
       void closeEvent(QCloseEvent *event);
@@ -33,13 +34,6 @@ namespace hexadisplay {
       hexadisplay::ValueProvider::Ptr _value_provider;
       hexadisplay::SwitchDevice::Ptr _switch_device;
       Ui::SimpleUI* _ui;
-      //QVBoxLayout* _vbox;
-      //QLabel* _temperature;
-      //QLabel* _pressure;
-      //QLabel* _humidity;
-      //QLabel* _power;
-      //QPushButton* _refresh;
-
   };
 
 };
