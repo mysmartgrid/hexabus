@@ -50,6 +50,7 @@
 #include "relay.h"
 #include "mdns_responder.h"
 #include "state_machine.h"
+#include "metering.h"
 extern void set_forwarding_to_eeprom(uint8_t);
 
 
@@ -572,6 +573,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			}
 			//parse config data
 			int found=0;
+
 			//look for the combination "\r\n\r\n"; the post data follow thereafter
 			while (!found)
 			{
@@ -583,12 +585,12 @@ PT_THREAD(handle_input(struct httpd_state *s))
 					found=1;
 				}
 			}
+
 			PSOCK_READTO(&s->sin, ISO_equal);
 			//check for domain_name
 			PSOCK_READTO(&s->sin, ISO_amper);
-			if(s->inputbuf[0] != ISO_amper) {
+			if(s->inputbuf[0] != ISO_amper)
 				mdns_responder_set_domain_name(s->inputbuf, PSOCK_DATALEN(&s->sin) - 1);
-			}
 
 			PSOCK_READTO(&s->sin, ISO_equal);
 			//check for relay_default_state
@@ -600,11 +602,18 @@ PT_THREAD(handle_input(struct httpd_state *s))
 
 			PSOCK_READTO(&s->sin, ISO_equal);
 			//check for forwarding
-			PSOCK_READBUF_LEN(&s->sin, 1);
+			PSOCK_READTO(&s->sin, ISO_amper);
 			if(s->inputbuf[0] == '1')
 				set_forwarding_to_eeprom(1);
 			else if (s->inputbuf[0] == '0')
 				set_forwarding_to_eeprom(0);
+
+			PSOCK_READTO(&s->sin, ISO_equal);
+			//check for s0 calibration value
+			PSOCK_READTO(&s->sin, ISO_amper);
+			if(s->inputbuf[0] != '\n') {
+                set_s0_calibration(atoi(s->inputbuf));
+            }
 		}
 		else if (httpd_strncmp(&s->inputbuf[1], httpd_socket_status_file, sizeof(httpd_socket_status_file)-1) == 0){
 			// toggle button has been pressed
