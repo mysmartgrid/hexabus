@@ -12,6 +12,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}
   ${Boost_INCLUDE_DIRS}
   ${CMAKE_BINARY_DIR}
+  ${CMAKE_CURRENT_BINARY_DIR}
 )
 file(GLOB all_hexabus_src *.cpp *.hpp)
 set(hexabus_src ${all_hexabus_src})
