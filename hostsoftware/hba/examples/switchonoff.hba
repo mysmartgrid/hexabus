@@ -27,4 +27,10 @@ state on {
     goodstate off;
     badstate on;
   }
+  if toggle_on {
+    set 1 := 1;
+    datatype := bool;
+    goodstate on;
+    badstate off;
+  }
 }

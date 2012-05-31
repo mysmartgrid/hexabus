@@ -203,7 +203,7 @@ struct UpdateFileInfo
       > lit("ip") > is > ipv6_address > ';'
       > lit("eid") > is > eid_value > ';'
       > lit("datatype") > is > (dt_undef|dt_bool|dt_uint8|dt_uint32|dt_datetime|dt_float|dt_string|dt_timestamp) > ';' // TODO should it be ==, not := ?
-    
+
       > lit("value") > (equals|lessequal|greaterequal|lessthan|greaterthan|notequal) > uint_ > ';'
       > '}'
       ;

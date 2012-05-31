@@ -26,6 +26,8 @@ typedef std::map<unsigned int, struct condition>::iterator flash_format_cond_map
 
 // TODO: States am Ende so sortieren, dass der Startstate der erste ist.
 
+unsigned int state_index = 0; // TODO make this a little more elegant
+
 struct hba_doc_visitor : boost::static_visitor<>
 {
   hba_doc_visitor(
@@ -41,8 +43,9 @@ struct hba_doc_visitor : boost::static_visitor<>
       _g(g)
   { }
 
-  void operator()(if_clause_doc const& clause, unsigned int state_id) const
+  void operator()(if_clause_doc const& clause, unsigned int state_id, unsigned int state_index) const
   {
+    std::cout << "if clause vistör (state " << state_id << ")" << std::endl;
     unsigned int cond_id = find_vertex_id(_g, clause.name);
     unsigned int goodstate_id = find_vertex_id(_g, clause.goodstate);
     unsigned int badstate_id = find_vertex_id(_g, clause.badstate);
@@ -65,8 +68,8 @@ struct hba_doc_visitor : boost::static_visitor<>
       << goodstate_id << STATE_TABLE_SEPARATOR
       << badstate_id << STATE_TABLE_SEPARATOR
       ;
-    _states.insert(std::pair<unsigned int, std::string>(state_id, oss.str()));
-
+    // _states.insert(std::pair<unsigned int, std::string>(state_id, oss.str()));
+    _states.insert(std::pair<unsigned int, std::string>(state_index, oss.str()));
 
     // construct binary representation
     struct transition t;
@@ -80,15 +83,17 @@ struct hba_doc_visitor : boost::static_visitor<>
     std::stringstream ss;
     ss << std::hex << clause.value;
     ss >> *(uint32_t*)t.value.data;
-    _states_bin.insert(std::pair<unsigned int, struct transition>(state_id, t));
+    // _states_bin.insert(std::pair<unsigned int, struct transition>(state_id, t));
+    _states_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
   }
 
   void operator()(state_doc const& hba) const
   {
     BOOST_FOREACH(if_clause_doc const& if_clause, hba.if_clauses)
     {
+      std::cout << "If clause! (" << hba.id << ")" << std::endl;
       hba_doc_visitor p(_states, _states_bin, _conditions, _conditions_bin, _g);
-      p(if_clause, hba.id);
+      p(if_clause, hba.id, state_index++);
     }
   }
 

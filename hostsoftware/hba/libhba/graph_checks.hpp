@@ -19,9 +19,7 @@ namespace hexabus {
       GraphChecks (const GraphChecks& original);
       GraphChecks& operator= (const GraphChecks& rhs);
       graph_t_ptr _g;
-      
   };
-  
 };
 
 
