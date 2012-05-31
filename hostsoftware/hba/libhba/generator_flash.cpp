@@ -24,7 +24,6 @@ typedef std::map<unsigned int, struct transition>::iterator flash_format_state_m
 typedef std::map<unsigned int, struct condition> flash_format_cond_map_t;
 typedef std::map<unsigned int, struct condition>::iterator flash_format_cond_map_it_t;
 
-// TODO: Zwei listen fuer conditions und states
 // TODO: States am Ende so sortieren, dass der Startstate der erste ist.
 
 struct hba_doc_visitor : boost::static_visitor<>
@@ -80,7 +79,7 @@ struct hba_doc_visitor : boost::static_visitor<>
     memset(t.value.data, 0, sizeof(t.value.data)); // most of the time only four bytes needes, so keep the rest at 0
     std::stringstream ss;
     ss << std::hex << clause.value;
-    ss >> *(uint32_t*)t.value.data; // TODO check endianness!
+    ss >> *(uint32_t*)t.value.data;
     _states_bin.insert(std::pair<unsigned int, struct transition>(state_id, t));
   }
 
@@ -117,7 +116,7 @@ struct hba_doc_visitor : boost::static_visitor<>
 
     //construct binary representation
     struct condition c;
-    // convert IP adress string to binary -- TODO: Check endianness - either this or the data field is wrong.
+    // convert IP adress string to binary
     for(unsigned int i = 0; i < sizeof(c.sourceIP); i++)
     {
       std::stringstream ss;
@@ -131,7 +130,7 @@ struct hba_doc_visitor : boost::static_visitor<>
     c.datatype = condition.dtype;
     std::stringstream ss;
     ss << std::hex << condition.value;
-    ss >> *(uint32_t*)c.data; // TODO check endianness!
+    ss >> *(uint32_t*)c.data;
     _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
   }
 
