@@ -10,6 +10,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR} 
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR} 
+  ${CMAKE_BINARY_DIR}/libhexabus
   ${Boost_INCLUDE_DIRS}
   ${LIBKLIO_INCLUDE_DIR}
 )

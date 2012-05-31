@@ -7,8 +7,6 @@
 #define EP_BUTTON                4
 #define EP_HUMIDITY              5
 #define EP_PRESSURE              6
-#define EP_ENERGY_METER_TOTAL    7
-#define EP_ENERGY_METER          8
 #define EP_ANALOGREAD            22
 #define EP_SHUTTER               23
 #define EP_HEXAPUSH_PRESSED      24
