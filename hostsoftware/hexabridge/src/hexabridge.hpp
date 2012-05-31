@@ -5,7 +5,7 @@ const int maxPacketLength = 1024;		// TODO: Exact definition in hexabus_packet.h
 
 class BridgeEndpoint {
 	public:
-		BridgeEndpoint(boost::asio::ip::address address, boost::asio::io_service *io_service, int id);
+		BridgeEndpoint(std::string address, boost::asio::io_service *io_service, int id);
 		~BridgeEndpoint();
 		void sendBroadcast(std::vector<char> *data);
 		boost::asio::ip::udp::endpoint getEndpoint();
@@ -14,6 +14,7 @@ class BridgeEndpoint {
 		boost::asio::io_service *io_service;
 		boost::asio::ip::udp::endpoint *nic;
 		boost::asio::ip::udp::socket *socket;
+		boost::asio::ip::udp::resolver *resolver;
 };
 
 
