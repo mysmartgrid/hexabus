@@ -1,13 +1,13 @@
 # this is a comment
 startstate off;
 condition toggle_on {
-  ip := 00000000000000000000000000000001;
+  ip := abcd:1234:0000:0000:0000:0000:0000:0001;
   eid := 4;
   datatype := bool;
   value == 1;
 }
 condition toggle_off {
-  ip := 00000000000000000000000000000001;
+  ip := f000:f000:f000:f000:f000:f000:f000:0001;
   eid := 4;
   datatype := bool;
   value == 1;
