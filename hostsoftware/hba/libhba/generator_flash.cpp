@@ -4,6 +4,7 @@
 #include <sstream>
 #include <map>
 #include <iomanip> // for hexadecimal output TODO probably not needed later!
+#include <libhba/hba_datatypes.hpp>
 #include "../../../shared/hexabus_statemachine_structs.h"
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
@@ -35,7 +36,8 @@ struct hba_doc_visitor : boost::static_visitor<>
       flash_format_state_map_t& states_bin,
       flash_format_map_t& conditions,
       flash_format_cond_map_t& conditions_bin,
-      const graph_t_ptr g)
+      const graph_t_ptr g,
+      Datatypes* datatypes)
     : _states(states),
       _states_bin(states_bin),
       _conditions(conditions),
@@ -45,7 +47,6 @@ struct hba_doc_visitor : boost::static_visitor<>
 
   void operator()(if_clause_doc const& clause, unsigned int state_id, unsigned int state_index) const
   {
-    std::cout << "if clause vistör (state " << state_id << ")" << std::endl;
     unsigned int cond_id = find_vertex_id(_g, clause.name);
     unsigned int goodstate_id = find_vertex_id(_g, clause.goodstate);
     unsigned int badstate_id = find_vertex_id(_g, clause.badstate);
@@ -53,7 +54,7 @@ struct hba_doc_visitor : boost::static_visitor<>
     std::cout << state_id << ": clause " << clause.name
       << " (id " << cond_id << ")" << std::endl;
     std::cout << " set eid " << clause.eid
-      << " := " << clause.value << " datatype " << clause.dtype << std::endl;
+      << " := " << clause.value << " datatype " << (unsigned int)datatypes->getDatatype(clause.eid) /*clause.dtype TODO */ << std::endl;
     std::cout << " goodstate: " << goodstate_id << std::endl;
     std::cout << " badstate: " << badstate_id << std::endl;
 
@@ -63,7 +64,7 @@ struct hba_doc_visitor : boost::static_visitor<>
       << state_id << STATE_TABLE_SEPARATOR
       << cond_id << STATE_TABLE_SEPARATOR
       << clause.eid << STATE_TABLE_SEPARATOR
-      << clause.dtype << STATE_TABLE_SEPARATOR
+      << (unsigned int)datatypes->getDatatype(clause.eid) /*clause.dtype TODO */ << STATE_TABLE_SEPARATOR
       << clause.value << STATE_TABLE_SEPARATOR
       << goodstate_id << STATE_TABLE_SEPARATOR
       << badstate_id << STATE_TABLE_SEPARATOR
@@ -78,7 +79,7 @@ struct hba_doc_visitor : boost::static_visitor<>
     t.eid = clause.eid;
     t.goodState = goodstate_id;
     t.badState = badstate_id;
-    t.value.datatype = clause.dtype;
+    t.value.datatype = datatypes->getDatatype(clause.eid) /*clause.dtype TODO */;
     memset(t.value.data, 0, sizeof(t.value.data)); // most of the time only four bytes needes, so keep the rest at 0
     std::stringstream ss;
     ss << std::hex << clause.value;
@@ -91,8 +92,8 @@ struct hba_doc_visitor : boost::static_visitor<>
   {
     BOOST_FOREACH(if_clause_doc const& if_clause, hba.if_clauses)
     {
-      std::cout << "If clause! (" << hba.id << ")" << std::endl;
-      hba_doc_visitor p(_states, _states_bin, _conditions, _conditions_bin, _g);
+      Datatypes* dt = new Datatypes(); // TODO where is this gonna live? Make it a shared ptr?
+      hba_doc_visitor p(_states, _states_bin, _conditions, _conditions_bin, _g, dt);
       p(if_clause, hba.id, state_index++);
     }
   }
@@ -103,17 +104,17 @@ struct hba_doc_visitor : boost::static_visitor<>
     std::cout << "IPv6 addr: " << condition.ipv6_address << std::endl;
     // for( unsigned int i = 0; i < condition.ipv6_address.size(); i += 1) {
     //   std::cout << std::setw(2) << std::setfill('0') 
-    //     << std::hex << (int)(condition.ipv6_address[i] & 0xFF);
+    //     << std::hex << (unsigned int)(condition.ipv6_address[i] & 0xFF);
     // }
     std::cout << "EID: " << condition.eid << std::endl;
     std::cout << "Operator: " << condition.op << std::endl;
     std::cout << "Value: " << condition.value << std::endl;
-    std::cout << "Datatype: " << condition.dtype << std::endl;
+    std::cout << "Datatype: " << (unsigned int)datatypes->getDatatype(condition.eid) /* condition.dtype TODO */ << std::endl;
     std::ostringstream oss;
     oss
       << condition.ipv6_address << COND_TABLE_SEPARATOR
       << condition.eid << COND_TABLE_SEPARATOR
-      << condition.dtype << COND_TABLE_SEPARATOR
+      << (unsigned int)datatypes->getDatatype(condition.eid) /* condition.dtype TODO */ << COND_TABLE_SEPARATOR
       << condition.op << COND_TABLE_SEPARATOR
       << condition.value << COND_TABLE_SEPARATOR
       ;
@@ -132,7 +133,7 @@ struct hba_doc_visitor : boost::static_visitor<>
     }
     c.sourceEID = condition.eid;
     c.op = condition.op;
-    c.datatype = condition.dtype;
+    c.datatype = datatypes->getDatatype(condition.eid) /* condition.dtype TODO */;
     std::stringstream ss;
     ss << std::hex << condition.value;
     ss >> *(uint32_t*)c.data;
@@ -144,6 +145,7 @@ struct hba_doc_visitor : boost::static_visitor<>
   flash_format_map_t& _conditions;
   flash_format_cond_map_t& _conditions_bin;
   graph_t_ptr _g;
+  Datatypes* datatypes;
 };
 
 void generator_flash::operator()(std::ostream& os) const
@@ -156,7 +158,8 @@ void generator_flash::operator()(std::ostream& os) const
   std::cout << "start state: " << _ast.start_state << std::endl;
   BOOST_FOREACH(hba_doc_block const& block, _ast.blocks)
   {
-    boost::apply_visitor(hba_doc_visitor(states, states_bin, conditions, conditions_bin, _g), block);
+    Datatypes* dt = new Datatypes(); // TODO one object is enough.
+      boost::apply_visitor(hba_doc_visitor(states, states_bin, conditions, conditions_bin, _g, dt), block);
   }
 
   std::cout << "Created condition table:" << std::endl;
