@@ -42,7 +42,8 @@ struct hba_doc_visitor : boost::static_visitor<>
       _states_bin(states_bin),
       _conditions(conditions),
       _conditions_bin(conditions_bin),
-      _g(g)
+      _g(g),
+      _datatypes(datatypes)
   { }
 
   void operator()(if_clause_doc const& clause, unsigned int state_id, unsigned int state_index) const
@@ -54,7 +55,7 @@ struct hba_doc_visitor : boost::static_visitor<>
     std::cout << state_id << ": clause " << clause.name
       << " (id " << cond_id << ")" << std::endl;
     std::cout << " set eid " << clause.eid
-      << " := " << clause.value << " datatype " << (unsigned int)datatypes->getDatatype(clause.eid) /*clause.dtype TODO */ << std::endl;
+      << " := " << clause.value << " datatype " << (unsigned int)_datatypes->getDatatype(clause.eid) /*clause.dtype TODO */ << std::endl;
     std::cout << " goodstate: " << goodstate_id << std::endl;
     std::cout << " badstate: " << badstate_id << std::endl;
 
@@ -64,7 +65,7 @@ struct hba_doc_visitor : boost::static_visitor<>
       << state_id << STATE_TABLE_SEPARATOR
       << cond_id << STATE_TABLE_SEPARATOR
       << clause.eid << STATE_TABLE_SEPARATOR
-      << (unsigned int)datatypes->getDatatype(clause.eid) /*clause.dtype TODO */ << STATE_TABLE_SEPARATOR
+      << (unsigned int)_datatypes->getDatatype(clause.eid) /*clause.dtype TODO */ << STATE_TABLE_SEPARATOR
       << clause.value << STATE_TABLE_SEPARATOR
       << goodstate_id << STATE_TABLE_SEPARATOR
       << badstate_id << STATE_TABLE_SEPARATOR
@@ -79,7 +80,7 @@ struct hba_doc_visitor : boost::static_visitor<>
     t.eid = clause.eid;
     t.goodState = goodstate_id;
     t.badState = badstate_id;
-    t.value.datatype = datatypes->getDatatype(clause.eid) /*clause.dtype TODO */;
+    t.value.datatype = _datatypes->getDatatype(clause.eid) /*clause.dtype TODO */;
     memset(t.value.data, 0, sizeof(t.value.data)); // most of the time only four bytes needes, so keep the rest at 0
     std::stringstream ss;
     ss << std::hex << clause.value;
@@ -109,12 +110,12 @@ struct hba_doc_visitor : boost::static_visitor<>
     std::cout << "EID: " << condition.eid << std::endl;
     std::cout << "Operator: " << condition.op << std::endl;
     std::cout << "Value: " << condition.value << std::endl;
-    std::cout << "Datatype: " << (unsigned int)datatypes->getDatatype(condition.eid) /* condition.dtype TODO */ << std::endl;
+    std::cout << "Datatype: " << (unsigned int)_datatypes->getDatatype(condition.eid) /* condition.dtype TODO */ << std::endl;
     std::ostringstream oss;
     oss
       << condition.ipv6_address << COND_TABLE_SEPARATOR
       << condition.eid << COND_TABLE_SEPARATOR
-      << (unsigned int)datatypes->getDatatype(condition.eid) /* condition.dtype TODO */ << COND_TABLE_SEPARATOR
+      << (unsigned int)_datatypes->getDatatype(condition.eid) /* condition.dtype TODO */ << COND_TABLE_SEPARATOR
       << condition.op << COND_TABLE_SEPARATOR
       << condition.value << COND_TABLE_SEPARATOR
       ;
@@ -133,7 +134,7 @@ struct hba_doc_visitor : boost::static_visitor<>
     }
     c.sourceEID = condition.eid;
     c.op = condition.op;
-    c.datatype = datatypes->getDatatype(condition.eid) /* condition.dtype TODO */;
+    c.datatype = _datatypes->getDatatype(condition.eid) /* condition.dtype TODO */;
     std::stringstream ss;
     ss << std::hex << condition.value;
     ss >> *(uint32_t*)c.data;
@@ -145,7 +146,7 @@ struct hba_doc_visitor : boost::static_visitor<>
   flash_format_map_t& _conditions;
   flash_format_cond_map_t& _conditions_bin;
   graph_t_ptr _g;
-  Datatypes* datatypes;
+  Datatypes* _datatypes;
 };
 
 void generator_flash::operator()(std::ostream& os) const
