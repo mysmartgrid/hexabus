@@ -2,6 +2,7 @@
 #include <string>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/lexical_cast.hpp>
 #include "../../../shared/hexabus_packet.h"
 #include "hexabridge.hpp"
 
@@ -48,11 +49,15 @@ void BroadcastListener::receiveHandler(const boost::system::error_code &error, s
 
 
 // BridgeEndpoint implementation
-BridgeEndpoint::BridgeEndpoint(boost::asio::ip::address address, boost::asio::io_service *io_service, int id) {
-	nic = new boost::asio::ip::udp::endpoint(address, HXB_PORT+id);
-	socket = new boost::asio::ip::udp::socket(*io_service, *nic);
-	boost::asio::socket_base::broadcast bcast(true);									// Enable broadcasts
-	socket->set_option(bcast);
+BridgeEndpoint::BridgeEndpoint(std::string address, boost::asio::io_service *io_service, int id) {
+	resolver = new boost::asio::ip::udp::resolver(*io_service);
+	nic = new boost::asio::ip::udp::endpoint();
+	boost::asio::ip::udp::resolver::query query(address, boost::lexical_cast<std::string>(HXB_PORT+id));
+	boost::asio::ip::udp::resolver::iterator iterator = resolver->resolve(query);
+	*nic = iterator->endpoint();
+	socket = new boost::asio::ip::udp::socket(*io_service, iterator->endpoint());
+	//boost::asio::socket_base::broadcast bcast(true);									// Enable broadcasts
+	//socket->set_option(bcast);
 	i = id;
 }
 		
@@ -122,8 +127,7 @@ int main(int argc, char **argv) {
 		std::vector<BridgeEndpoint*> endpoints(argc - 1, (BridgeEndpoint*)0);
 		// TODO: Check the Input.
 		for(int i = 0;i < argc - 1;i++) {
-			endpoints.at(i) = new BridgeEndpoint(
-				boost::asio::ip::address::from_string(argv[i+1]), ioservice, i+1);
+			endpoints.at(i) = new BridgeEndpoint(argv[i+1], ioservice, i+1);
 		}
 		
 		std::cout << "Initializing PacketFilter..." << std::endl;

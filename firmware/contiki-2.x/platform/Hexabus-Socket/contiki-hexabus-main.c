@@ -227,49 +227,49 @@ void set_forwarding_to_eeprom(uint8_t val) {
 	 forwarding_enabled = val;
 }
 
-// State Machine eeprom access
-
-uint8_t sm_get_number_of_conditions() {
-	return eeprom_read_byte ((const void *)EE_STATEMACHINE_N_CONDITIONS);
+void get_condition_from_eeprom(uint8_t position, struct condition *cond) {
+	eeprom_read_block((void *)cond, (const void *)(1 + EE_STATEMACHINE_CONDITIONS + position*sizeof(struct condition)), sizeof(struct condition));
 }
 
-void sm_set_number_of_conditions(uint8_t number) {
-	eeprom_write_byte ((uint8_t *)EE_STATEMACHINE_N_CONDITIONS, number);
+void write_condition_to_eeprom(uint8_t position, struct condition *cond) {
+	eeprom_write_block((void *)cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + position*sizeof(struct condition)), sizeof(struct condition));
 }
 
-uint8_t sm_get_number_of_transitions(bool datetime) {
-	return (datetime ? eeprom_read_byte ((const void*)EE_STATEMACHINE_N_DT_TRANSITIONS) : eeprom_read_byte ((const void*)EE_STATEMACHINE_N_TRANSITIONS));
+void write_transition_to_eeprom(uint8_t position, struct transition *trans, bool datetime) {
+	if(datetime) {
+		eeprom_write_block((void *)trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + position*sizeof(struct transition)), sizeof(struct transition));
+	} else {
+		eeprom_write_block((void *)trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + position*sizeof(struct transition)), sizeof(struct transition));
+	}
 }
 
-void sm_set_number_of_transitions(bool datetime, uint8_t number) {
-	if(datetime)
-		eeprom_write_byte ((uint8_t *)EE_STATEMACHINE_N_DT_TRANSITIONS, number);
-	else 
-		eeprom_write_byte ((uint8_t *)EE_STATEMACHINE_N_TRANSITIONS, number);
+void get_transition_from_eeprom(uint8_t position, struct transition *trans) {
+	eeprom_read_block((void *)trans, (const void *)(1 + EE_STATEMACHINE_TRANSITIONS + position*sizeof(struct transition)), sizeof(struct transition));
 }
 
-void sm_write_condition(uint8_t index, struct condition *cond) {
-	eeprom_write_block(cond, (void *)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)*index), sizeof(struct condition));
+uint8_t get_tablelength_from_eeprom(uint8_t type) {
+	switch(type) {
+		case SM_CONDITION_LENGTH:
+			return eeprom_read_byte((const void *)EE_STATEMACHINE_CONDITIONS);
+		case SM_TRANSITION_LENGTH:
+			return eeprom_read_byte((const void*)EE_STATEMACHINE_TRANSITIONS);
+		case SM_DATETIME_TRANSITION_LENGTH:
+			return eeprom_read_byte((const void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
+		default:
+			return 0;
+	}
 }
 
-void sm_get_condition(uint8_t index, struct condition *cond) {
-	eeprom_read_block(cond, (void *)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)*index), sizeof(struct condition));
+void write_tablelength_to_eeprom(uint8_t type, uint8_t length) {
+	switch(type) {
+		case SM_CONDITION_LENGTH:
+			eeprom_write_byte((uint8_t *)EE_STATEMACHINE_CONDITIONS, length);
+		case SM_TRANSITION_LENGTH:
+			eeprom_write_byte((uint8_t *)EE_STATEMACHINE_TRANSITIONS, length);
+		case SM_DATETIME_TRANSITION_LENGTH:
+			eeprom_write_byte((uint8_t *)EE_STATEMACHINE_DATETIME_TRANSITIONS, length);
+	}
 }
-
-void sm_write_transition(bool datetime, uint8_t index, struct transition *trans) {
-	if(datetime)
-		eeprom_write_block(trans, (void *)(EE_STATEMACHINE_DATETIME_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
-	else
-		eeprom_write_block(trans, (void *)(EE_STATEMACHINE_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
-}
-
-void sm_get_transition(bool datetime, uint8_t index, struct transition *trans) {
-	if(datetime)
-		eeprom_read_block(trans, (void *)(EE_STATEMACHINE_DATETIME_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
-	else
-		eeprom_read_block(trans, (void *)(EE_STATEMACHINE_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
-}
-
 
 
 /*-------------------------Low level initialization------------------------*/
