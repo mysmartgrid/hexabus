@@ -77,12 +77,12 @@ calc_power(uint16_t pulse_period)
 {
   uint32_t P;
 #if S0_ENABLE
-  P = ((uint32_t)metering_reference_value*10) / (uint32_t)pulse_period;
+  P = ((uint32_t)metering_reference_value*10) / (uint32_t)pulse_period; //S0 measuring is scaled to fit calibration vlaue into eeprom.
 #else
   P = metering_reference_value / pulse_period;
 #endif
 
-  return P;
+  return (uint16_t)P;
 }
 
 void
@@ -137,7 +137,7 @@ metering_get_power(void)
   if (tmp > OUT_OF_DATE_TIME * CLOCK_SECOND)
     metering_power = 0;
 #if S0_ENABLE
-  else if (metering_power != 0 && tmp > 2 * (((uint32_t)metering_reference_value*10) / (uint32_t)metering_power))
+  else if (metering_power != 0 && tmp > 2 * (((uint32_t)metering_reference_value*10) / (uint32_t)metering_power)) //S0 calibration is scaled
 #else
   else if (metering_power != 0 && tmp > 2 * (metering_reference_value / metering_power))
 #endif

@@ -608,12 +608,14 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			else if (s->inputbuf[0] == '0')
 				set_forwarding_to_eeprom(0);
 
+#if S0_ENABLE
 			PSOCK_READTO(&s->sin, ISO_equal);
 			//check for s0 calibration value
 			PSOCK_READTO(&s->sin, ISO_amper);
 			if(s->inputbuf[0] != ISO_amper) {
                 metering_set_s0_calibration((uint16_t)atoi(s->inputbuf));
             }
+#endif
 		}
 		else if (httpd_strncmp(&s->inputbuf[1], httpd_socket_status_file, sizeof(httpd_socket_status_file)-1) == 0){
 			// toggle button has been pressed
