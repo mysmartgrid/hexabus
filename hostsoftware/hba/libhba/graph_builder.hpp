@@ -11,7 +11,7 @@ namespace hexabus {
     class GraphBuilder {
     public:
       typedef std::tr1::shared_ptr<GraphBuilder> Ptr;
-      GraphBuilder () : 
+      GraphBuilder () :
         _g(new graph_t()) {};
       virtual ~GraphBuilder() {};
 
@@ -24,12 +24,7 @@ namespace hexabus {
 
       void mark_start_state(const std::string& name);
       graph_t_ptr _g;
-
-
-
   };
-
 };
-
 
 #endif /* LIBHBA_GRAPH_BUILDER_HPP */

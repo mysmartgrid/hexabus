@@ -3,19 +3,16 @@ startstate off;
 condition toggle_on {
   ip := abcd:1234:0000:0000:0000:0000:0000:0001;
   eid := 4;
-  datatype := bool;
   value == 1;
 }
 condition toggle_off {
   ip := f000:f000:f000:f000:f000:f000:f000:0001;
   eid := 4;
-  datatype := bool;
   value == 1;
 }
 state off {
   if toggle_on {
     set 1 := 1;
-    datatype := bool;
     goodstate on;
     badstate off;
   }
@@ -23,13 +20,11 @@ state off {
 state on {
   if toggle_off {
     set 1 := 0;
-    datatype := bool;
     goodstate off;
     badstate on;
   }
   if toggle_on {
     set 1 := 1;
-    datatype := bool;
     goodstate on;
     badstate off;
   }

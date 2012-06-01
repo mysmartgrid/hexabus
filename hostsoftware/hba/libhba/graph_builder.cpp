@@ -38,7 +38,6 @@ struct first_pass : boost::static_visitor<> {
   }
 
   graph_t_ptr _g;
-
 };
 
 
@@ -94,8 +93,6 @@ struct second_pass : boost::static_visitor<> {
         << std::endl << "Aborting." << std::endl;
       exit(-1);
     }
-
-
   }
 
   void operator()(state_doc const& hba_state) const
@@ -124,7 +121,7 @@ void GraphBuilder::mark_start_state(const std::string& name) {
     if (name == vertex.name) {
       vertex.type=STARTSTATE;
       return;
-    } 
+    }
   }
   // we have not found an vertex id.
   std::ostringstream oss;
@@ -177,7 +174,7 @@ void GraphBuilder::write_graphviz(std::ostream& os) {
   // }
 
 
-  boost::write_graphviz(os, (*_g), 
+  boost::write_graphviz(os, (*_g),
       //boost::make_label_writer(boost::get(&vertex_t::name, (*_g))), //_names[0]),
     make_state_cond_label_writer(
         boost::get(&vertex_t::name, (*_g)),
@@ -190,5 +187,4 @@ void GraphBuilder::write_graphviz(std::ostream& os) {
     boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr)
       );
 }
-
 
