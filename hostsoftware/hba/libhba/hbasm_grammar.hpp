@@ -126,6 +126,7 @@ struct UpdateFileInfo
     using qi::accept;
     using ascii::char_;
     using qi::uint_;
+    using qi::float_;
     using ascii::string;
     using ascii::space;
     using namespace qi::labels;
@@ -162,7 +163,7 @@ struct UpdateFileInfo
     greaterthan = lit(">") [_val = STM_GT];
     notequal = lit("!=") [_val = STM_NEQ];
     eid_value = (uint_ [_val=_1]);
-    //TODO: Datatypes should be autodetected in the future
+    //TODO: Datatypes should be autodetected in the future -- can this be removed already??
     dt_undef = lit("undef") [_val = HXB_DTYPE_UNDEFINED];
     dt_bool = lit("bool") [_val = HXB_DTYPE_BOOL];
     dt_uint8 = lit("uint8") [_val = HXB_DTYPE_UINT8];
@@ -204,7 +205,7 @@ struct UpdateFileInfo
       > lit("eid") > is > eid_value > ';'
       // > lit("datatype") > is > (dt_undef|dt_bool|dt_uint8|dt_uint32|dt_datetime|dt_float|dt_string|dt_timestamp) > ';' // TODO should it be ==, not := ?
 
-      > lit("value") > (equals|lessequal|greaterequal|lessthan|greaterthan|notequal) > uint_ > ';'
+      > lit("value") > (equals|lessequal|greaterequal|lessthan|greaterthan|notequal) > float_ > ';'
       > '}'
       ;
     on_error<rethrow> (
@@ -217,7 +218,7 @@ struct UpdateFileInfo
       >> file_pos
       > identifier
       > '{'
-      > lit("set") > eid_value > is > uint_ > ';'
+      > lit("set") > eid_value > is > float_ > ';'
       // > lit("datatype") > is > (dt_undef|dt_bool|dt_uint8|dt_uint32|dt_datetime|dt_float|dt_string|dt_timestamp) > ';'
       > lit("goodstate") > identifier > ';'
       > lit("badstate") > identifier > ';'

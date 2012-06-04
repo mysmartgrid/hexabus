@@ -75,7 +75,7 @@ struct hba_doc_visitor : boost::static_visitor<>
 
     // construct binary representation
     struct transition t;
-    t.fromState = state_id; // TODO need to cast here?
+    t.fromState = state_id; // TODO need to cast here? // beter: Make sure only valid IDs are generated
     t.cond = cond_id;
     t.eid = clause.eid;
     t.goodState = goodstate_id;
