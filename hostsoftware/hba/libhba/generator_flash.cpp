@@ -88,7 +88,7 @@ struct hba_doc_visitor : boost::static_visitor<>
     {
       ss >> *(float*)t.value.data;
     } else { // TODO for now, act as if everything were uint32
-      ss >> *(uint32_t*)t.value.data;
+      ss >> std::dec >> *(uint32_t*)t.value.data;
     }
     // _states_bin.insert(std::pair<unsigned int, struct transition>(state_id, t));
     _states_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
@@ -146,7 +146,7 @@ struct hba_doc_visitor : boost::static_visitor<>
     {
       ss >> *(float*)c.data;
     } else { // TODO for now just treat everything as uint32
-      ss >> *(uint32_t*)c.data;
+      ss >> std::dec >> *(uint32_t*)c.data;
     }
     _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
   }
