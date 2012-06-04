@@ -2,6 +2,7 @@
 #include <QSettings>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <libklio/error.hpp>
 namespace bfs = boost::filesystem; 
 using namespace hexadisplay;
 
@@ -62,9 +63,14 @@ QString ValueProvider::get_last_reading(klio::Sensor::Ptr sensor) {
     std::cout << "Sensor not available in database - ignoring." << std::endl;
     return QString("n/a");
   }
-  klio::reading_t reading = _store->get_last_reading(sensor);
-  //klio::timestamp_t ts1=reading.first;
-  double val1=reading.second;
-  //std::cout << ts1 << "\t" << val1 << std::endl;
-  return QString("%1").arg(val1,0,'f',2);
+  try {
+    klio::reading_t reading = _store->get_last_reading(sensor);
+    //klio::timestamp_t ts1=reading.first;
+    double val1=reading.second;
+    //std::cout << ts1 << "\t" << val1 << std::endl;
+    return QString("%1").arg(val1,0,'f',2);
+  } catch (const klio::GenericException& ge) {
+    std::cout << "Cannot find sensor, error was: " << ge.what() << std::endl;
+    return QString("n/a");
+  }
 }
