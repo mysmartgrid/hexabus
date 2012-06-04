@@ -66,7 +66,7 @@ struct hba_doc_visitor : boost::static_visitor<>
       << cond_id << STATE_TABLE_SEPARATOR
       << clause.eid << STATE_TABLE_SEPARATOR
       << (unsigned int)_datatypes->getDatatype(clause.eid) << STATE_TABLE_SEPARATOR
-      << clause.value << STATE_TABLE_SEPARATOR
+      << clause.value << STATE_TABLE_SEPARATOR // TODO find out what is correct in the webinterface "spec"!
       << goodstate_id << STATE_TABLE_SEPARATOR
       << badstate_id << STATE_TABLE_SEPARATOR
       ;
@@ -84,7 +84,12 @@ struct hba_doc_visitor : boost::static_visitor<>
     memset(t.value.data, 0, sizeof(t.value.data)); // most of the time only four bytes needes, so keep the rest at 0
     std::stringstream ss;
     ss << std::hex << clause.value;
-    ss >> *(uint32_t*)t.value.data;
+    if(_datatypes->getDatatype(clause.eid) == HXB_DTYPE_FLOAT) // TODO implement ALL the datatypes
+    {
+      ss >> *(float*)t.value.data;
+    } else { // TODO for now, act as if everything were uint32
+      ss >> *(uint32_t*)t.value.data;
+    }
     // _states_bin.insert(std::pair<unsigned int, struct transition>(state_id, t));
     _states_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
   }
@@ -117,7 +122,7 @@ struct hba_doc_visitor : boost::static_visitor<>
       << condition.eid << COND_TABLE_SEPARATOR
       << (unsigned int)_datatypes->getDatatype(condition.eid) << COND_TABLE_SEPARATOR
       << condition.op << COND_TABLE_SEPARATOR
-      << condition.value << COND_TABLE_SEPARATOR
+      << condition.value << COND_TABLE_SEPARATOR // TODO find out what is correct in the webinterface "spec"!
       ;
     _conditions.insert(std::pair<unsigned int, std::string>(condition.id, oss.str()));
 
@@ -137,7 +142,12 @@ struct hba_doc_visitor : boost::static_visitor<>
     c.datatype = _datatypes->getDatatype(condition.eid);
     std::stringstream ss;
     ss << std::hex << condition.value;
-    ss >> *(uint32_t*)c.data;
+    if(_datatypes->getDatatype(condition.eid) == HXB_DTYPE_FLOAT) // TODO implement ALL the datatypes
+    {
+      ss >> *(float*)c.data;
+    } else { // TODO for now just treat everything as uint32
+      ss >> *(uint32_t*)c.data;
+    }
     _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
   }
 

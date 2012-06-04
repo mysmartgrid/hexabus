@@ -29,7 +29,7 @@ namespace hexabus {
     unsigned int lineno;
     std::string name;
     unsigned int eid;
-    unsigned int value;
+    float value;
     std::string goodstate;
     std::string badstate;
   };
@@ -47,7 +47,7 @@ namespace hexabus {
     std::string ipv6_address;
     unsigned int eid;
     unsigned int op;
-    unsigned int value;
+    float value;
     unsigned int id;
   };
 
@@ -73,7 +73,7 @@ BOOST_FUSION_ADAPT_STRUCT(
     (unsigned int, lineno)
     (std::string, name)
     (unsigned int, eid)
-    (unsigned int, value)
+    (float, value)
     (std::string, goodstate)
     (std::string, badstate)
     )
@@ -92,7 +92,7 @@ BOOST_FUSION_ADAPT_STRUCT(
     (std::string, ipv6_address)
     (unsigned int, eid)
     (unsigned int, op)
-    (unsigned int, value)
+    (float, value)
     )
 
 BOOST_FUSION_ADAPT_STRUCT(
