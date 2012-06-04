@@ -22,7 +22,7 @@ void MainWindow::on_refresh_PB_clicked() {
     _ui->temperature_display->setText(_value_provider->get_temperature());
     _ui->pressure_display->setText(_value_provider->get_pressure());
     _ui->humidity_display->setText(_value_provider->get_humidity());
-    _ui->power_display->setText(_value_provider->get_power());
+//    _ui->power_display->setText(_value_provider->get_power());
   } catch (klio::StoreException const& ex) {
     std::cout << "Failed to access store: " << ex.what() << std::endl;
     exit(-1);
