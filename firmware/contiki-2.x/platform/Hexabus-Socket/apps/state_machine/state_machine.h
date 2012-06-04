@@ -16,6 +16,14 @@ PROCESS_NAME(state_machine_process);
 // op for datetime: bits 0..6 denote dependency on hour, minute, second, ...; bit 7 sets whether to check for >= or <.
 // date/time transitions need to be stored separately. They are also executed seperately, each time before the "normal" transitions are executed
 
+// Used for wrapping the eeprom access
+
+#define SM_CONDITION_LENGTH 0
+#define SM_TRANSITION_LENGTH 1
+#define SM_DATETIME_TRANSITION_LENGTH 2
+
+// Actual structs
+
 struct condition {
   uint8_t sourceIP[16]; // IP
   uint8_t sourceEID;    // EID we expect data from
