@@ -149,7 +149,28 @@ struct hba_doc_visitor : boost::static_visitor<>
       }
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     } else { // timeout
-      std::cout << "COND_TIMEOUT" << std::endl;
+      cond_timeout_doc cond = boost::get<cond_timeout_doc>(condition.cond);
+      std::cout << "Timeout: " << cond.value << std::endl;
+
+      // construct state machine table representation
+      std::ostringstream oss;
+      oss
+        << "00000000000000000000000000000001" << COND_TABLE_SEPARATOR // localhost
+        << "0" << COND_TABLE_SEPARATOR // state machine does not care about EID
+        << "128" << COND_TABLE_SEPARATOR // operator 0x80 for timestamp comparison
+        << cond.value << COND_TABLE_SEPARATOR
+        ;
+      _conditions.insert(std::pair<unsigned int, std::string>(condition.id, oss.str()));
+
+      // construct binary representation
+      struct condition c;
+      memset(&c.sourceIP, 0, 15);
+      c.sourceIP[15] = 1; // set IP address to ::1 for localost
+      c.sourceEID = 0; // set to 0 because state machine won't care about the EID in a timestamp condition
+      c.op = 0x80; // operator 0x80 for timestamp comparison -- TODO put this in some define
+      c.datatype = HXB_DTYPE_TIMESTAMP;
+      *(uint32_t*)&c.data = cond.value;
+      _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     }
   }
 
