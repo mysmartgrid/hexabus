@@ -41,13 +41,23 @@ namespace hexabus {
     unsigned int id;
   };
 
-  struct condition_doc {
+  struct cond_eidvalue_doc {
     unsigned int lineno;
-    std::string name;
     std::string ipv6_address;
     unsigned int eid;
     unsigned int op;
     float value;
+  };
+
+  struct cond_timeout_doc {
+    unsigned int lineno;
+    unsigned int value;
+  };
+
+  struct condition_doc {
+    unsigned int lineno;
+    std::string name;
+    boost::variant<cond_eidvalue_doc, cond_timeout_doc> cond;
     unsigned int id;
   };
 
@@ -57,6 +67,8 @@ namespace hexabus {
     , condition_doc          // one condition definition
     >
     hba_doc_block;
+
+  typedef boost::variant<cond_eidvalue_doc, cond_timeout_doc> hba_cond;
 
   struct hba_doc
   {
@@ -89,10 +101,20 @@ BOOST_FUSION_ADAPT_STRUCT(
     hexabus::condition_doc,
     (unsigned int, lineno)
     (std::string, name)
+    (hexabus::hba_cond, cond)
+    )
+
+BOOST_FUSION_ADAPT_STRUCT(
+    hexabus::cond_eidvalue_doc,
     (std::string, ipv6_address)
     (unsigned int, eid)
     (unsigned int, op)
     (float, value)
+    )
+
+BOOST_FUSION_ADAPT_STRUCT(
+    hexabus::cond_timeout_doc,
+    (unsigned int, value)
     )
 
 BOOST_FUSION_ADAPT_STRUCT(

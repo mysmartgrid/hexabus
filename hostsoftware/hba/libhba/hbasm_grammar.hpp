@@ -164,6 +164,11 @@ struct UpdateFileInfo
     notequal = lit("!=") [_val = STM_NEQ];
     eid_value = (uint_ [_val=_1]);
 
+    cond_eidvalue = lit("ip") > is > ipv6_address > ';'
+      > lit("eid") > is > eid_value > ';'
+      > lit("value") > (equals|lessequal|greaterequal|lessthan|greaterthan|notequal) > float_ > ';';
+    cond_timeout = lit("timeout") > is > uint_ > ';';
+
     ipv6_address = ((ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
                    (ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
                    (ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
@@ -192,11 +197,7 @@ struct UpdateFileInfo
       >> file_pos
       > identifier
       > '{'
-      > lit("ip") > is > ipv6_address > ';'
-      > lit("eid") > is > eid_value > ';'
-      // > lit("datatype") > is > (dt_undef|dt_bool|dt_uint8|dt_uint32|dt_datetime|dt_float|dt_string|dt_timestamp) > ';' // TODO should it be ==, not := ?
-
-      > lit("value") > (equals|lessequal|greaterequal|lessthan|greaterthan|notequal) > float_ > ';'
+      >  ( cond_eidvalue | cond_timeout )
       > '}'
       ;
     on_error<rethrow> (
@@ -255,6 +256,8 @@ struct UpdateFileInfo
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
     qi::rule<Iterator, condition_doc(), Skip> condition;
     qi::rule<Iterator, std::string(), Skip> identifier;
+    qi::rule<Iterator, cond_eidvalue_doc(), Skip> cond_eidvalue;
+    qi::rule<Iterator, cond_timeout_doc(), Skip> cond_timeout;
     qi::rule<Iterator, void(), Skip> is;
     qi::rule<Iterator, int(), Skip> equals;
     qi::rule<Iterator, int(), Skip> lessequal;
@@ -262,15 +265,6 @@ struct UpdateFileInfo
     qi::rule<Iterator, int(), Skip> lessthan;
     qi::rule<Iterator, int(), Skip> greaterthan;
     qi::rule<Iterator, int(), Skip> notequal;
-    qi::rule<Iterator, int(), Skip> dt_undef;
-    qi::rule<Iterator, int(), Skip> dt_bool;
-    qi::rule<Iterator, int(), Skip> dt_uint8;
-    qi::rule<Iterator, int(), Skip> dt_uint32;
-    qi::rule<Iterator, int(), Skip> dt_datetime;
-    qi::rule<Iterator, int(), Skip> dt_float;
-    qi::rule<Iterator, int(), Skip> dt_string;
-    qi::rule<Iterator, int(), Skip> dt_timestamp;
-    qi::rule<Iterator, void(), Skip> dtype;
     qi::rule<Iterator, std::string(), Skip> ipv6_address;
     qi::rule<Iterator, std::string(), Skip> ipv6_address_block;
     qi::rule<Iterator, unsigned(), Skip> eid_value;

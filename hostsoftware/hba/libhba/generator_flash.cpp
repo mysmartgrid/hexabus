@@ -107,48 +107,50 @@ struct hba_doc_visitor : boost::static_visitor<>
   void operator()(condition_doc const& condition) const
   {
     std::cout << "condition " << condition.id << ":" << std::endl;
-    std::cout << "IPv6 addr: " << condition.ipv6_address << std::endl;
-    // for( unsigned int i = 0; i < condition.ipv6_address.size(); i += 1) {
-    //   std::cout << std::setw(2) << std::setfill('0') 
-    //     << std::hex << (unsigned int)(condition.ipv6_address[i] & 0xFF);
-    // }
-    std::cout << "EID: " << condition.eid << std::endl;
-    std::cout << "Operator: " << condition.op << std::endl;
-    std::cout << "Value: " << condition.value << std::endl;
-    std::cout << "Datatype: " << (unsigned int)_datatypes->getDatatype(condition.eid) << std::endl;
-    std::ostringstream oss;
-    oss
-      << condition.ipv6_address << COND_TABLE_SEPARATOR
-      << condition.eid << COND_TABLE_SEPARATOR
-      << (unsigned int)_datatypes->getDatatype(condition.eid) << COND_TABLE_SEPARATOR
-      << condition.op << COND_TABLE_SEPARATOR
-      << condition.value << COND_TABLE_SEPARATOR // TODO find out what is correct in the webinterface "spec"!
-      ;
-    _conditions.insert(std::pair<unsigned int, std::string>(condition.id, oss.str()));
+    if(condition.cond.which() == 0) // eidvalue
+    {
+      cond_eidvalue_doc cond = boost::get<cond_eidvalue_doc>(condition.cond);
+      std::cout << "IPv6 addr: " << cond.ipv6_address << std::endl;
+      std::cout << "EID: " << cond.eid << std::endl;
+      std::cout << "Operator: " << cond.op << std::endl;
+      std::cout << "Value: " << cond.value << std::endl;
+      std::cout << "Datatype: " << (unsigned int)_datatypes->getDatatype(cond.eid) << std::endl;
+      std::ostringstream oss;
+      oss
+        << cond.ipv6_address << COND_TABLE_SEPARATOR
+        << cond.eid << COND_TABLE_SEPARATOR
+        << (unsigned int)_datatypes->getDatatype(cond.eid) << COND_TABLE_SEPARATOR
+        << cond.op << COND_TABLE_SEPARATOR
+        << cond.value << COND_TABLE_SEPARATOR // TODO find out what is correct in the webinterface "spec"!
+        ;
+      _conditions.insert(std::pair<unsigned int, std::string>(condition.id, oss.str()));
 
-    //construct binary representation
-    struct condition c;
-    // convert IP adress string to binary
-    for(unsigned int i = 0; i < sizeof(c.sourceIP); i++)
-    {
+      //construct binary representation
+      struct condition c;
+      // convert IP adress string to binary
+      for(unsigned int i = 0; i < sizeof(c.sourceIP); i++)
+      {
+        std::stringstream ss;
+        unsigned int ipbyte;
+        ss << std::hex << cond.ipv6_address.substr(2 * i, 2); // read two bytes from the string, since two hex digits correspond to one byte in binary
+        ss >> ipbyte;
+        c.sourceIP[i] = ipbyte;
+      }
+      c.sourceEID = cond.eid;
+      c.op = cond.op;
+      c.datatype = _datatypes->getDatatype(cond.eid);
       std::stringstream ss;
-      unsigned int ipbyte;
-      ss << std::hex << condition.ipv6_address.substr(2 * i, 2); // read two bytes from the string, since two hex digits correspond to one byte in binary
-      ss >> ipbyte;
-      c.sourceIP[i] = ipbyte;
+      ss << std::hex << cond.value;
+      if(_datatypes->getDatatype(cond.eid) == HXB_DTYPE_FLOAT) // TODO implement ALL the datatypes
+      {
+        ss >> *(float*)c.data;
+      } else { // TODO for now just treat everything as uint32
+        ss >> std::dec >> *(uint32_t*)c.data;
+      }
+      _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
+    } else { // timeout
+      std::cout << "COND_TIMEOUT" << std::endl;
     }
-    c.sourceEID = condition.eid;
-    c.op = condition.op;
-    c.datatype = _datatypes->getDatatype(condition.eid);
-    std::stringstream ss;
-    ss << std::hex << condition.value;
-    if(_datatypes->getDatatype(condition.eid) == HXB_DTYPE_FLOAT) // TODO implement ALL the datatypes
-    {
-      ss >> *(float*)c.data;
-    } else { // TODO for now just treat everything as uint32
-      ss >> std::dec >> *(uint32_t*)c.data;
-    }
-    _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
   }
 
   flash_format_map_t& _states;
@@ -170,7 +172,7 @@ void generator_flash::operator()(std::ostream& os) const
   BOOST_FOREACH(hba_doc_block const& block, _ast.blocks)
   {
     Datatypes* dt = new Datatypes(); // TODO one object is enough.
-      boost::apply_visitor(hba_doc_visitor(states, states_bin, conditions, conditions_bin, _g, dt), block);
+    boost::apply_visitor(hba_doc_visitor(states, states_bin, conditions, conditions_bin, _g, dt), block);
   }
 
   std::cout << "Created condition table:" << std::endl;

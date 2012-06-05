@@ -54,21 +54,30 @@ struct hba_node_printer : boost::static_visitor<> {
 		tab(indent);
 		std::cout << "condition (line " << hba.lineno << "): " << hba.name << std::endl;
 		tab(tabsize);
-		std::cout << "IPv6 addr: " << hba.ipv6_address;
-		// for( unsigned int i = 0; i < hba.ipv6_address.size(); i += 1) {
-		//   std::cout << std::setw(2) << std::setfill('0')
-		//     << std::hex << (int)(hba.ipv6_address[i] & 0xFF);
-		// }
-		std::cout << ", size=" << hba.ipv6_address.size() << std::endl;
-		tab(tabsize);
-		std::cout << "EID: " << hba.eid << std::endl;
-		tab(tabsize);
-		std::cout << "Operator: " << hba.op << std::endl;
-		tab(tabsize);
-		std::cout << "Value: " << hba.value << std::endl;
-		tab(indent);
+		hba_node_printer p(indent);
+    if(hba.cond.which() == 0)
+      p(boost::get<cond_eidvalue_doc>(hba.cond));
+    else
+      p(boost::get<cond_timeout_doc>(hba.cond));
 	}
 
+  void operator()(cond_eidvalue_doc const& hba) const
+  {
+    tab(indent);
+    std::cout << "EID: " << hba.eid << std::endl;
+    tab(tabsize);
+    std::cout << "Operator: " << hba.op << std::endl;
+    tab(tabsize);
+    std::cout << "Value: " << hba.value << std::endl;
+    tab(indent);
+  }
+
+  void operator()(cond_timeout_doc const& hba) const
+  {
+    tab(indent);
+    std::cout << "Timeout: " << hba.value << std::endl;
+    tab(indent);
+  }
 
 	void operator()(std::string const& text) const
 	{
