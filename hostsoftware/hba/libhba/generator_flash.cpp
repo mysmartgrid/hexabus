@@ -148,7 +148,7 @@ struct hba_doc_visitor : boost::static_visitor<>
         ss >> std::dec >> *(uint32_t*)c.data;
       }
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
-    } else { // timeout
+    } else if(condition.cond.which() == 1) { // timeout
       cond_timeout_doc cond = boost::get<cond_timeout_doc>(condition.cond);
       std::cout << "Timeout: " << cond.value << std::endl;
 
@@ -171,6 +171,8 @@ struct hba_doc_visitor : boost::static_visitor<>
       c.datatype = HXB_DTYPE_TIMESTAMP;
       *(uint32_t*)&c.data = cond.value;
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
+    } else {
+      std::cout << "DATETIME CONDITION" << std::endl;
     }
   }
 

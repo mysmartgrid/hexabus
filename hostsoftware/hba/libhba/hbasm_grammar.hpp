@@ -163,11 +163,21 @@ struct UpdateFileInfo
     greaterthan = lit(">") [_val = STM_GT];
     notequal = lit("!=") [_val = STM_NEQ];
     eid_value = (uint_ [_val=_1]);
+    hour = lit("hour") [_val = 0x01]; // TODO  these are also used in state_machine.c => put them into a global file!
+    minute = lit("minute") [_val = 0x02];
+    second = lit("second") [_val = 0x04];
+    day = lit("day") [_val = 0x08];
+    month = lit("month") [_val = 0x10];
+    year = lit("year") [_val = 0x20];
+    weekday = lit("weekday") [_val = 0x40];
+    before = lit("before") [_val = 0x00];
+    after = lit("after") [_val = 0x80];
 
     cond_eidvalue = lit("ip") > is > ipv6_address > ';'
       > lit("eid") > is > eid_value > ';'
       > lit("value") > (equals|lessequal|greaterequal|lessthan|greaterthan|notequal) > float_ > ';';
     cond_timeout = lit("timeout") > is > uint_ > ';';
+    cond_datetime = (hour|minute|second|day|month|year|weekday) > (before|after) > uint_ > ';';
 
     ipv6_address = ((ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
                    (ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
@@ -197,7 +207,7 @@ struct UpdateFileInfo
       >> file_pos
       > identifier
       > '{'
-      >  ( cond_eidvalue | cond_timeout )
+      >  ( cond_eidvalue | cond_timeout | cond_datetime )
       > '}'
       ;
     on_error<rethrow> (
@@ -258,6 +268,7 @@ struct UpdateFileInfo
     qi::rule<Iterator, std::string(), Skip> identifier;
     qi::rule<Iterator, cond_eidvalue_doc(), Skip> cond_eidvalue;
     qi::rule<Iterator, cond_timeout_doc(), Skip> cond_timeout;
+    qi::rule<Iterator, cond_datetime_doc(), Skip> cond_datetime;
     qi::rule<Iterator, void(), Skip> is;
     qi::rule<Iterator, int(), Skip> equals;
     qi::rule<Iterator, int(), Skip> lessequal;
@@ -265,6 +276,15 @@ struct UpdateFileInfo
     qi::rule<Iterator, int(), Skip> lessthan;
     qi::rule<Iterator, int(), Skip> greaterthan;
     qi::rule<Iterator, int(), Skip> notequal;
+    qi::rule<Iterator, int(), Skip> hour;
+    qi::rule<Iterator, int(), Skip> minute;
+    qi::rule<Iterator, int(), Skip> second;
+    qi::rule<Iterator, int(), Skip> day;
+    qi::rule<Iterator, int(), Skip> month;
+    qi::rule<Iterator, int(), Skip> year;
+    qi::rule<Iterator, int(), Skip> weekday;
+    qi::rule<Iterator, int(), Skip> before;
+    qi::rule<Iterator, int(), Skip> after;
     qi::rule<Iterator, std::string(), Skip> ipv6_address;
     qi::rule<Iterator, std::string(), Skip> ipv6_address_block;
     qi::rule<Iterator, unsigned(), Skip> eid_value;

@@ -54,10 +54,19 @@ namespace hexabus {
     unsigned int value;
   };
 
+  struct cond_datetime_doc {
+    unsigned int lineno;
+    unsigned int field;
+    unsigned int op;
+    unsigned int value;
+  };
+
+  typedef boost::variant<cond_eidvalue_doc, cond_timeout_doc, cond_datetime_doc> hba_cond;
+
   struct condition_doc {
     unsigned int lineno;
     std::string name;
-    boost::variant<cond_eidvalue_doc, cond_timeout_doc> cond;
+    hba_cond cond;
     unsigned int id;
   };
 
@@ -67,8 +76,6 @@ namespace hexabus {
     , condition_doc          // one condition definition
     >
     hba_doc_block;
-
-  typedef boost::variant<cond_eidvalue_doc, cond_timeout_doc> hba_cond;
 
   struct hba_doc
   {
@@ -114,6 +121,13 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
     hexabus::cond_timeout_doc,
+    (unsigned int, value)
+    )
+
+BOOST_FUSION_ADAPT_STRUCT(
+    hexabus::cond_datetime_doc,
+    (unsigned int, field)
+    (unsigned int, op)
     (unsigned int, value)
     )
 

@@ -57,8 +57,10 @@ struct hba_node_printer : boost::static_visitor<> {
 		hba_node_printer p(indent);
     if(hba.cond.which() == 0)
       p(boost::get<cond_eidvalue_doc>(hba.cond));
-    else
+    else if (hba.cond.which() == 1)
       p(boost::get<cond_timeout_doc>(hba.cond));
+    else
+      p(boost::get<cond_datetime_doc>(hba.cond));
 	}
 
   void operator()(cond_eidvalue_doc const& hba) const
@@ -77,6 +79,11 @@ struct hba_node_printer : boost::static_visitor<> {
     tab(indent);
     std::cout << "Timeout: " << hba.value << std::endl;
     tab(indent);
+  }
+
+  void operator()(cond_datetime_doc const& hba) const
+  {
+    // TODO TODO
   }
 
 	void operator()(std::string const& text) const
