@@ -163,15 +163,6 @@ struct UpdateFileInfo
     greaterthan = lit(">") [_val = STM_GT];
     notequal = lit("!=") [_val = STM_NEQ];
     eid_value = (uint_ [_val=_1]);
-    //TODO: Datatypes should be autodetected in the future -- can this be removed already??
-    dt_undef = lit("undef") [_val = HXB_DTYPE_UNDEFINED];
-    dt_bool = lit("bool") [_val = HXB_DTYPE_BOOL];
-    dt_uint8 = lit("uint8") [_val = HXB_DTYPE_UINT8];
-    dt_uint32 = lit("uint32") [_val = HXB_DTYPE_UINT32];
-    dt_datetime = lit("datetime") [_val = HXB_DTYPE_DATETIME];
-    dt_float = lit("float") [_val = HXB_DTYPE_FLOAT];
-    dt_string = lit("string") [_val = HXB_DTYPE_128STRING]; // TODO check length, max. 127 chars!
-    dt_timestamp = lit("timestamp") [_val = HXB_DTYPE_TIMESTAMP];
 
     ipv6_address = ((ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
                    (ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
