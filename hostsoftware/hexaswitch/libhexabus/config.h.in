@@ -18,12 +18,14 @@
  *
  */
 
-#ifndef LIBKLIO_CONFIG_H_IN
-#define LIBKLIO_CONFIG_H_IN 1
+#ifndef LIBKLIO_CONFIG_H
+#define LIBKLIO_CONFIG_H 1
 
 #cmakedefine ENABLE_LOGGING 1
+#cmakedefine HAS_MACOS @HAS_MACOS@
+#cmakedefine HAS_LINUX @HAS_LINUX@
 #define VERSION_MAJOR ${V_MAJOR}
 #define VERSION_MINOR ${V_MINOR}
 #define VERSION_PATCH ${V_PATCH}
 
-#endif /* LIBKLIO_CONFIG_H_IN */
+#endif /* LIBKLIO_CONFIG_H */

@@ -74,20 +74,25 @@ void NetworkAccess::openSocket() {
 // TODO: Proper error handling.
 void NetworkAccess::openSocket(const std::string& interface) { 
   socket->open(boost::asio::ip::udp::v6()); 
+#ifdef HAS_LINUX
   int native_sock = socket->native();
   int result = -1;
   if (native_sock != -1) {
-	result = setsockopt(native_sock, SOL_SOCKET, SO_BINDTODEVICE, 
-		interface.c_str(), sizeof(interface.c_str()));
-	if (result) {
-	  std::cerr << "Cannot use interface " << interface << ": ";
-	  std::cerr << " " << strerror(errno) << std::endl;
-	}
+    result = setsockopt(native_sock, SOL_SOCKET, SO_BINDTODEVICE, 
+        interface.c_str(), sizeof(interface.c_str()));
+    if (result) {
+      std::cerr << "Cannot use interface " << interface << ": ";
+      std::cerr << " " << strerror(errno) << std::endl;
+    }
   } else {
-	std::cerr << "Cannot use interface " << interface 
-	  << ", no native socket aquired: ";
-	std::cerr << strerror(errno) << std::endl;
+    std::cerr << "Cannot use interface " << interface 
+      << ", no native socket aquired: ";
+    std::cerr << strerror(errno) << std::endl;
   }
+#endif // HAS_LINUX
+#ifdef MAC_OS
+  std::cout << "Currently no support for setting the device on Mac OS." << std::endl;
+#endif // MAC_OS
 }
 
 
