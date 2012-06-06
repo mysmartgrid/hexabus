@@ -24,6 +24,8 @@ typedef std::map<unsigned int, struct transition> flash_format_state_map_t;
 typedef std::map<unsigned int, struct transition>::iterator flash_format_state_map_it_t;
 typedef std::map<unsigned int, struct condition> flash_format_cond_map_t;
 typedef std::map<unsigned int, struct condition>::iterator flash_format_cond_map_it_t;
+typedef std::map<unsigned int, struct condition> flash_format_date_time_cond_map_t;
+typedef std::map<unsigned int, struct condition>::iterator flash_format_date_time_cond_map_it_t;
 
 // TODO: States am Ende so sortieren, dass der Startstate der erste ist.
 
@@ -36,12 +38,14 @@ struct hba_doc_visitor : boost::static_visitor<>
       flash_format_state_map_t& states_bin,
       flash_format_map_t& conditions,
       flash_format_cond_map_t& conditions_bin,
+      flash_format_date_time_cond_map_t& dt_cond_bin,
       const graph_t_ptr g,
       Datatypes* datatypes)
     : _states(states),
       _states_bin(states_bin),
       _conditions(conditions),
       _conditions_bin(conditions_bin),
+      _dt_cond_bin(dt_cond_bin),
       _g(g),
       _datatypes(datatypes)
   { }
@@ -99,7 +103,7 @@ struct hba_doc_visitor : boost::static_visitor<>
     BOOST_FOREACH(if_clause_doc const& if_clause, hba.if_clauses)
     {
       Datatypes* dt = new Datatypes(); // TODO where is this gonna live? Make it a shared ptr?
-      hba_doc_visitor p(_states, _states_bin, _conditions, _conditions_bin, _g, dt);
+      hba_doc_visitor p(_states, _states_bin, _conditions, _conditions_bin, _dt_cond_bin, _g, dt);
       p(if_clause, hba.id, state_index++);
     }
   }
@@ -207,7 +211,16 @@ struct hba_doc_visitor : boost::static_visitor<>
       std::cout << cond.value << std::endl;
 
       // TODO tabelle bauen, dazu sebi fragen
-      // TODO binary f00 bauen, dazu eigene Liste anlegen.
+
+      struct condition c;
+      memset(&c.sourceIP, 0, 15);
+      c.sourceIP[15] = 1; // set IP address to ::1 (localhost)
+      c.sourceEID = 0;
+      c.op = cond.field | cond.op;
+      c.datatype = HXB_DTYPE_DATETIME;
+      *(uint32_t*)&c.data = cond.value;
+
+      _dt_cond_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     }
   }
 
@@ -215,6 +228,7 @@ struct hba_doc_visitor : boost::static_visitor<>
   flash_format_state_map_t& _states_bin;
   flash_format_map_t& _conditions;
   flash_format_cond_map_t& _conditions_bin;
+  flash_format_date_time_cond_map_t& _dt_cond_bin;
   graph_t_ptr _g;
   Datatypes* _datatypes;
 };
@@ -223,6 +237,7 @@ void generator_flash::operator()(std::ostream& os) const
 {
   flash_format_map_t conditions;
   flash_format_cond_map_t conditions_bin;
+  flash_format_date_time_cond_map_t dt_cond_bin;
   flash_format_map_t states;
   flash_format_state_map_t states_bin;
 
@@ -230,7 +245,7 @@ void generator_flash::operator()(std::ostream& os) const
   BOOST_FOREACH(hba_doc_block const& block, _ast.blocks)
   {
     Datatypes* dt = new Datatypes(); // TODO one object is enough.
-    boost::apply_visitor(hba_doc_visitor(states, states_bin, conditions, conditions_bin, _g, dt), block);
+    boost::apply_visitor(hba_doc_visitor(states, states_bin, conditions, conditions_bin, dt_cond_bin, _g, dt), block);
   }
 
   std::cout << "Created condition table:" << std::endl;
@@ -247,6 +262,19 @@ void generator_flash::operator()(std::ostream& os) const
 
   std::cout << "Binary condition table:" << std::endl;
   for(flash_format_cond_map_it_t it = conditions_bin.begin(); it != conditions_bin.end(); it++)
+  {
+    std::cout << it->first << ": ";
+    struct condition cond = it->second;
+    char* c = (char*)&cond;
+    for(unsigned int i = 0; i < sizeof(condition); i++)
+    {
+      std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)c[i] << " ";
+    }
+    std::cout << std::endl;
+  }
+
+  std::cout << "Binary date/time condition table:" << std::endl;
+  for(flash_format_date_time_cond_map_it_t it = dt_cond_bin.begin(); it != dt_cond_bin.end(); it++)
   {
     std::cout << it->first << ": ";
     struct condition cond = it->second;
