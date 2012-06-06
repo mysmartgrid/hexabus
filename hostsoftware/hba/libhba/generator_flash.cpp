@@ -172,7 +172,42 @@ struct hba_doc_visitor : boost::static_visitor<>
       *(uint32_t*)&c.data = cond.value;
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     } else {
-      std::cout << "DATETIME CONDITION" << std::endl;
+      cond_datetime_doc cond = boost::get<cond_datetime_doc>(condition.cond);
+      std::cout << "Date/Time - ";
+      switch(cond.field)
+      {
+        case HXB_SM_HOUR:
+          std::cout << "hour";
+          break;
+        case HXB_SM_MINUTE:
+          std::cout << "minute";
+          break;
+        case HXB_SM_SECOND:
+          std::cout << "second";
+          break;
+        case HXB_SM_DAY:
+          std::cout << "day";
+          break;
+        case HXB_SM_MONTH:
+          std::cout << "month";
+          break;
+        case HXB_SM_YEAR:
+          std::cout << "year";
+          break;
+        case HXB_SM_WEEKDAY:
+          std::cout << "weekday";
+          break;
+        default:
+          std::cout << "Date/time field definition error!" << std::endl;
+      }
+      if(cond.op == 0x80)
+        std::cout << " >= ";
+      else
+        std::cout << " < ";
+      std::cout << cond.value << std::endl;
+
+      // TODO tabelle bauen, dazu sebi fragen
+      // TODO binary f00 bauen, dazu eigene Liste anlegen.
     }
   }
 

@@ -8,7 +8,11 @@ condition toggle_on {
 condition toggle_off {
   ip := f000:f000:f000:f000:f000:f000:f000:0001;
   eid := 4;
-  value == 1;
+  value == 15;
+}
+condition timer {
+  # timeout := 100663296;
+  hour before 10;
 }
 state off {
   if toggle_on {
@@ -23,9 +27,9 @@ state on {
     goodstate off;
     badstate on;
   }
-  if toggle_on {
-    set 1 := 1;
-    goodstate on;
-    badstate off;
+  if timer {
+    set 1 := 0;
+    goodstate off;
+    badstate on;
   }
 }
