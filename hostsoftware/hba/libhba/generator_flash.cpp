@@ -161,7 +161,7 @@ struct hba_doc_visitor : boost::static_visitor<>
       oss
         << "00000000000000000000000000000001" << COND_TABLE_SEPARATOR // localhost
         << "0" << COND_TABLE_SEPARATOR // state machine does not care about EID
-        << "128" << COND_TABLE_SEPARATOR // operator 0x80 for timestamp comparison
+        << HXB_SM_TIMESTAMP_OP << COND_TABLE_SEPARATOR // operator 0x80 for timestamp comparison
         << cond.value << COND_TABLE_SEPARATOR
         ;
       _conditions.insert(std::pair<unsigned int, std::string>(condition.id, oss.str()));
@@ -171,7 +171,7 @@ struct hba_doc_visitor : boost::static_visitor<>
       memset(&c.sourceIP, 0, 15);
       c.sourceIP[15] = 1; // set IP address to ::1 for localost
       c.sourceEID = 0; // set to 0 because state machine won't care about the EID in a timestamp condition
-      c.op = 0x80; // operator 0x80 for timestamp comparison -- TODO put this in some define
+      c.op = HXB_SM_TIMESTAMP_OP; // operator 0x80 for timestamp comparison
       c.datatype = HXB_DTYPE_TIMESTAMP;
       *(uint32_t*)&c.data = cond.value;
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
@@ -204,7 +204,7 @@ struct hba_doc_visitor : boost::static_visitor<>
         default:
           std::cout << "Date/time field definition error!" << std::endl;
       }
-      if(cond.op == 0x80)
+      if(cond.op == HXB_SM_DATETIME_OP_GEQ)
         std::cout << " >= ";
       else
         std::cout << " < ";

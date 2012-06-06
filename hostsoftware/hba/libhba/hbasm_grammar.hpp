@@ -23,6 +23,7 @@
 
 // We need this for the hexabus datatype definitions
 #include "../../../shared/hexabus_definitions.h"
+#include "../../../shared/hexabus_statemachine_structs.h"
 
 
 namespace qi = boost::spirit::qi;
@@ -155,7 +156,6 @@ struct UpdateFileInfo
      ***********************************************************/
 
     is = eps > lit(":=");
-    //TODO: Introduce ENUM for operators. -- at the moment those are defined in state_machine.h in the shared define file
     equals = lit("==") [_val = STM_EQ];
     lessequal = lit("<=") [_val = STM_LEQ];
     greaterequal = lit(">=") [_val = STM_GEQ];
@@ -163,15 +163,15 @@ struct UpdateFileInfo
     greaterthan = lit(">") [_val = STM_GT];
     notequal = lit("!=") [_val = STM_NEQ];
     eid_value = (uint_ [_val=_1]);
-    hour = lit("hour") [_val = 0x01]; // TODO  these are also used in state_machine.c => put them into a global file!
-    minute = lit("minute") [_val = 0x02];
-    second = lit("second") [_val = 0x04];
-    day = lit("day") [_val = 0x08];
-    month = lit("month") [_val = 0x10];
-    year = lit("year") [_val = 0x20];
-    weekday = lit("weekday") [_val = 0x40];
-    before = lit("before") [_val = 0x00];
-    after = lit("after") [_val = 0x80];
+    hour = lit("hour") [_val = HXB_SM_HOUR];
+    minute = lit("minute") [_val = HXB_SM_MINUTE];
+    second = lit("second") [_val = HXB_SM_SECOND];
+    day = lit("day") [_val = HXB_SM_DAY];
+    month = lit("month") [_val = HXB_SM_MONTH];
+    year = lit("year") [_val = HXB_SM_YEAR];
+    weekday = lit("weekday") [_val = HXB_SM_WEEKDAY];
+    before = lit("before") [_val = 0];
+    after = lit("after") [_val = HXB_SM_DATETIME_OP_GEQ];
 
     cond_eidvalue = lit("ip") > is > ipv6_address > ';'
       > lit("eid") > is > eid_value > ';'

@@ -25,6 +25,7 @@ struct transition {
   struct hxb_value value;  // Data for the endpoint
 } __attribute__ ((packed));
 
+// flags for date/time conditions
 #define HXB_SM_HOUR    0x01
 #define HXB_SM_MINUTE  0x02
 #define HXB_SM_SECOND  0x04
@@ -32,6 +33,10 @@ struct transition {
 #define HXB_SM_MONTH   0x10
 #define HXB_SM_YEAR    0x20
 #define HXB_SM_WEEKDAY 0x40
+#define HXB_SM_DATETIME_OP_GEQ 0x80
+
+// operator for timestamp comparison
+#define HXB_SM_TIMESTAMP_OP 0x80
 
 #endif
 

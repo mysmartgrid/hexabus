@@ -99,24 +99,24 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
         struct datetime val_dt;
         val_dt = *(struct datetime*)&envelope->value.data; // just to make writing this down easier...
         if(cond.op & HXB_SM_HOUR)
-          return (cond.op & 0x80) ? val_dt.hour >= *(uint8_t*)&(cond.data) : val_dt.hour < *(uint8_t*)&(cond.data);
+          return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.hour >= *(uint8_t*)&(cond.data) : val_dt.hour < *(uint8_t*)&(cond.data);
         if(cond.op & HXB_SM_MINUTE)
-          return (cond.op & 0x80) ? val_dt.minute >= *(uint8_t*)&(cond.data) : val_dt.minute < *(uint8_t*)&(cond.data);
+          return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.minute >= *(uint8_t*)&(cond.data) : val_dt.minute < *(uint8_t*)&(cond.data);
         if(cond.op & HXB_SM_SECOND)
-          return (cond.op & 0x80) ? val_dt.second >= *(uint8_t*)&(cond.data) : val_dt.second < *(uint8_t*)&(cond.data);
+          return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.second >= *(uint8_t*)&(cond.data) : val_dt.second < *(uint8_t*)&(cond.data);
         if(cond.op & HXB_SM_DAY)
-          return (cond.op & 0x80) ? val_dt.day >= *(uint8_t*)&(cond.data) : val_dt.day < *(uint8_t*)&(cond.data);
+          return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.day >= *(uint8_t*)&(cond.data) : val_dt.day < *(uint8_t*)&(cond.data);
         if(cond.op & HXB_SM_MONTH)
-          return (cond.op & 0x80) ? val_dt.month >= *(uint8_t*)&(cond.data) : val_dt.month < *(uint8_t*)&(cond.data);
+          return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.month >= *(uint8_t*)&(cond.data) : val_dt.month < *(uint8_t*)&(cond.data);
         if(cond.op & HXB_SM_YEAR)
-          return (cond.op & 0x80) ? val_dt.year >= *(uint16_t*)&(cond.data) : val_dt.year < *(uint16_t*)&(cond.data);
+          return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.year >= *(uint16_t*)&(cond.data) : val_dt.year < *(uint16_t*)&(cond.data);
         if(cond.op & HXB_SM_WEEKDAY)
-          return (cond.op & 0x80) ? val_dt.weekday >= *(uint8_t*)&(cond.data) : val_dt.weekday < *(uint8_t*)&(cond.data);
+          return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.weekday >= *(uint8_t*)&(cond.data) : val_dt.weekday < *(uint8_t*)&(cond.data);
       }
       break;
     }
     case HXB_DTYPE_TIMESTAMP:
-      if(cond.op == 0x80) // in-state-since
+      if(cond.op == HXB_SM_TIMESTAMP_OP) // in-state-since
       {
         PRINTF("Checking in-state-since Condition! Have been in this state for %lu sec.\r\n", getTimestamp() - inStateSince);
         PRINTF("getTimestamp(): %lu - inStateSince: %lu >= cond.data: %lu\r\n", getTimestamp(), inStateSince, *(uint32_t*)&cond.data);
