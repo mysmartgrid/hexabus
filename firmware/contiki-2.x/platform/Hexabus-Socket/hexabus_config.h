@@ -45,7 +45,6 @@ There should be an ENABLE option that enables compilation and execution of the a
 // metering
 #define METERING_IMMEDIATE_BROADCAST 0  // immediately broadcast metering value when change is measured (you still should have the EID in the VALUE_BROADCAST_AUTO_EIDS with some reasonable timeout, so that the value is also broadcast when it reaches and stays at zero)
 #define METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS 3 // number of ticks from the meter until a broadcast is triggered. 1: broadcast every tick ~ roughly every 2 seconds at 100W
-#define METERING_IMMEDIATE_BROADCAST 1  // immediately broadcast metering value when change is measured (you still should have the EID in the VALUE_BROADCAST_AUTO_EIDS with some reasonable timeout, so that the value is also broadcast when it reaches and stays at zero)
 #define METERING_ENERGY 1
 /*
 CAUTION:
