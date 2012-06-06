@@ -25,5 +25,13 @@ struct transition {
   struct hxb_value value;  // Data for the endpoint
 } __attribute__ ((packed));
 
+#define HXB_SM_HOUR    0x01
+#define HXB_SM_MINUTE  0x02
+#define HXB_SM_SECOND  0x04
+#define HXB_SM_DAY     0x08
+#define HXB_SM_MONTH   0x10
+#define HXB_SM_YEAR    0x20
+#define HXB_SM_WEEKDAY 0x40
+
 #endif
 
