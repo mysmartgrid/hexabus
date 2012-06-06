@@ -28,6 +28,7 @@ typedef std::map<unsigned int, struct condition> flash_format_date_time_cond_map
 typedef std::map<unsigned int, struct condition>::iterator flash_format_date_time_cond_map_it_t;
 
 // TODO: States am Ende so sortieren, dass der Startstate der erste ist.
+// TODO: Lücken, die durch date-time-conditions enstehen vermeiden, d/t-conditions brauche keine/eigene Indizes, da eigene Tabelle
 
 unsigned int state_index = 0; // TODO make this a little more elegant
 
@@ -161,7 +162,7 @@ struct hba_doc_visitor : boost::static_visitor<>
       oss
         << "00000000000000000000000000000001" << COND_TABLE_SEPARATOR // localhost
         << "0" << COND_TABLE_SEPARATOR // state machine does not care about EID
-        << HXB_SM_TIMESTAMP_OP << COND_TABLE_SEPARATOR // operator 0x80 for timestamp comparison
+        << HXB_SM_TIMESTAMP_OP << COND_TABLE_SEPARATOR // operator for timestamp comparison
         << cond.value << COND_TABLE_SEPARATOR
         ;
       _conditions.insert(std::pair<unsigned int, std::string>(condition.id, oss.str()));
@@ -171,7 +172,7 @@ struct hba_doc_visitor : boost::static_visitor<>
       memset(&c.sourceIP, 0, 15);
       c.sourceIP[15] = 1; // set IP address to ::1 for localost
       c.sourceEID = 0; // set to 0 because state machine won't care about the EID in a timestamp condition
-      c.op = HXB_SM_TIMESTAMP_OP; // operator 0x80 for timestamp comparison
+      c.op = HXB_SM_TIMESTAMP_OP; // operator for timestamp comparison
       c.datatype = HXB_DTYPE_TIMESTAMP;
       *(uint32_t*)&c.data = cond.value;
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
