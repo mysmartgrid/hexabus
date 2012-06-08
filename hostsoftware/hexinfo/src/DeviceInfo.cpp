@@ -2,8 +2,8 @@
 #include "../../shared/hexabus_packet.h"
 #include <sstream>
 
-// TODO: Finish Error Handling
-// What is open/close socket in libhexabus used for?
+// TODO: * Finish Error Handling
+// * specific interface
 
 
 EndpointInfo::EndpointInfo(uint8_t eid, std::string name, uint8_t datatype, bool writable) {
@@ -19,7 +19,7 @@ uint8_t EndpointInfo::getDatatype() {return datatype;}
 
 bool EndpointInfo::isWritable() {return writable;}
 
-std::string EndpointInfo::toString() {
+std::string EndpointInfo::toString(bool json) {
 	std::string tmpDT;
 	switch(datatype) {
 		case HXB_DTYPE_BOOL:
@@ -48,8 +48,13 @@ std::string EndpointInfo::toString() {
 			break;
 	}
 	std::stringstream sstm;
-	sstm << "EID: " << (int)eid << std::endl << " Name: " << name << std::endl
+	if(json) {
+		sstm << "{ \"EID\": " << (int)eid << std::endl << ", \"Name\": " << name << std::endl
+		<< ", \"Datatype\": " << tmpDT << " }" << std::endl;
+	} else {
+		sstm << "EID: " << (int)eid << std::endl << " Name: " << name << std::endl
 		<< " Datatype: " << tmpDT << std::endl;
+	}
 	/*	<< " Writable: " << std::endl;
 	if(writable)
 		sstm << "Yes";
@@ -98,7 +103,7 @@ EndpointInfo DeviceInfo::getEndpointInfo(int eid) {
 }
 
 std::vector<int> DeviceInfo::getDeviceDescriptor() {
-	std::vector<int> devDescriptor(1, 0);		// Endpoint 0 exists on all devices
+	std::vector<int> devDescriptor;		// Endpoint 0 exists on all devices
 	int maxEID = EIDS_PER_VECTOR;
 
 	// Query eid 0 for the first device descriptor. Repeat until there is no further descriptor available
@@ -119,7 +124,7 @@ std::vector<int> DeviceInfo::getDeviceDescriptor() {
 			if(i + 1 == maxEID) {
 				// There are more endpoints
 				maxEID += EIDS_PER_VECTOR;
-				query = pFactory->query(i + 1, false);
+				query = pFactory->query(i, false);
 				network.sendPacket(ipAddress, HXB_PORT, (char*)&query, sizeof(query));
 				network.receivePacket(true);
 				
@@ -130,7 +135,7 @@ std::vector<int> DeviceInfo::getDeviceDescriptor() {
 				delete pHandler;
 			} else {
 					// Endpoint is used ~> Add it to our List
-					devDescriptor.push_back(i + 1);
+					devDescriptor.push_back(i);
 			}
 		}
 	}

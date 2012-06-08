@@ -17,7 +17,7 @@ add_executable(hexinfo ${hexinfo_src})
 target_link_libraries(hexinfo 
   hexabus
   pthread
-  ${Boost_SYSTEM_LIBRARY}
+	${Boost_LIBRARIES}
 )
 
 # add programs to the install target 

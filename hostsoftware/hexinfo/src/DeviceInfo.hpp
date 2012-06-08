@@ -21,7 +21,7 @@ class EndpointInfo {
 		std::string getName();
 		uint8_t getDatatype();
 		bool isWritable();
-		std::string toString();
+		std::string toString(bool json);
 };
 
 class DeviceInfo {
