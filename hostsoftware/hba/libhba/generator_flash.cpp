@@ -242,6 +242,16 @@ void generator_flash::operator()(std::ostream& os) const
   flash_format_map_t states;
   flash_format_state_map_t states_bin;
 
+  unsigned char conditions_buffer[512];
+  unsigned char* conditions_pos = &conditions_buffer[0];
+  memset(conditions_buffer, 0, sizeof(conditions_buffer));
+  unsigned char conditions_dt_buffer[512];
+  unsigned char* conditions_dt_pos = &conditions_dt_buffer[0];
+  memset(conditions_dt_buffer, 0, sizeof(conditions_dt_buffer));
+  unsigned char transitions_buffer[512];
+  unsigned char* transitions_pos = &transitions_buffer[0];
+  memset(transitions_buffer, 0, sizeof(transitions_buffer));
+
   std::cout << "start state: " << _ast.start_state << std::endl;
   BOOST_FOREACH(hba_doc_block const& block, _ast.blocks)
   {
@@ -266,12 +276,19 @@ void generator_flash::operator()(std::ostream& os) const
   {
     std::cout << it->first << ": ";
     struct condition cond = it->second;
-    char* c = (char*)&cond;
+    unsigned char* c = (unsigned char*)&cond;
     for(unsigned int i = 0; i < sizeof(condition); i++)
     {
       std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)c[i] << " ";
     }
     std::cout << std::endl;
+
+    // insert into buffer
+    if(conditions_pos < conditions_buffer + sizeof(conditions_buffer) - sizeof(condition))
+    {
+      memcpy(conditions_pos, &cond, sizeof(cond));
+      conditions_pos += sizeof(cond);
+    }
   }
 
   std::cout << "Binary date/time condition table:" << std::endl;
@@ -279,12 +296,19 @@ void generator_flash::operator()(std::ostream& os) const
   {
     std::cout << it->first << ": ";
     struct condition cond = it->second;
-    char* c = (char*)&cond;
+    unsigned char* c = (unsigned char*)&cond;
     for(unsigned int i = 0; i < sizeof(condition); i++)
     {
       std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)c[i] << " ";
     }
     std::cout << std::endl;
+
+    // insert into buffer
+    if(conditions_dt_pos < conditions_dt_buffer + sizeof(conditions_dt_buffer) - sizeof(condition))
+    {
+      memcpy(conditions_dt_pos, &cond, sizeof(cond));
+      conditions_dt_pos += sizeof(cond);
+    }
   }
 
   std::cout << "Binary transition table:" << std::endl;
@@ -298,7 +322,41 @@ void generator_flash::operator()(std::ostream& os) const
       std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)c[i] << " ";
     }
     std::cout << std::endl;
+
+   // insert into buffer
+    if(transitions_pos < transitions_buffer + sizeof(transitions_buffer) - sizeof(transition))
+    {
+      memcpy(transitions_pos, &t, sizeof(t));
+      transitions_pos += sizeof(t);
+    }
   }
+
+  //for debug purposes
+  std::cout << "Buffers to send to EEPROM:" << std::endl;
+  std::cout << "Conditions:" << std::endl;
+  for(unsigned int i = 0; i < sizeof(conditions_buffer); i++)
+  {
+    std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)conditions_buffer[i] << " ";
+    if(i % 12 == 11)
+      std::cout << std::endl;
+  }
+  std::cout << std::endl << std::endl;
+  std::cout << "Date-Time Conditions:" << std::endl;
+  for(unsigned int i = 0; i < sizeof(conditions_dt_buffer); i++)
+  {
+    std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)conditions_dt_buffer[i] << " ";
+    if(i % 12 == 11)
+      std::cout << std::endl;
+  }
+  std::cout << std::endl << std::endl;
+  std::cout << "Transitions:" << std::endl;
+  for(unsigned int i = 0; i < sizeof(transitions_buffer); i++)
+  {
+    std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)transitions_buffer[i] << " ";
+    if(i % 12 == 11)
+      std::cout << std::endl;
+  }
+  std::cout << std::endl << std::endl;
 
   std::cout << "Writing output file..." << std::endl;
   // preamble
