@@ -21,7 +21,6 @@ Datatypes* Datatypes::getInstance(std::string filename)
 
 Datatypes::Datatypes(std::string filename)
 {
-  std::cout << "KONSTRUKTEUR!!!" << std::endl;
   // clear array
   for(unsigned int i = 0; i < NUMBER_OF_EIDS; i++)
     datatypes[i] = 0;
