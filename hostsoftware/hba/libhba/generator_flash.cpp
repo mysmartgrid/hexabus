@@ -103,7 +103,7 @@ struct hba_doc_visitor : boost::static_visitor<>
   {
     BOOST_FOREACH(if_clause_doc const& if_clause, hba.if_clauses)
     {
-      Datatypes* dt = new Datatypes(); // TODO where is this gonna live? Make it a shared ptr?
+      Datatypes* dt = Datatypes::getInstance();
       hba_doc_visitor p(_states, _states_bin, _conditions, _conditions_bin, _dt_cond_bin, _g, dt);
       p(if_clause, hba.id, state_index++);
     }
@@ -255,7 +255,7 @@ void generator_flash::operator()(std::ostream& os) const
   std::cout << "start state: " << _ast.start_state << std::endl;
   BOOST_FOREACH(hba_doc_block const& block, _ast.blocks)
   {
-    Datatypes* dt = new Datatypes(); // TODO one object is enough.
+    Datatypes* dt = Datatypes::getInstance();
     boost::apply_visitor(hba_doc_visitor(states, states_bin, conditions, conditions_bin, dt_cond_bin, _g, dt), block);
   }
 
