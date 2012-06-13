@@ -17,7 +17,7 @@ std::string hexabus::to_base64(std::vector<unsigned char> data) {
   }
 
   std::vector<unsigned int> result;
-  
+
   // we are sure that data.size is a multiple of 3, therefore we can increment by steps of 3
   for(unsigned int i = 0; i < data.size(); i += 3)
   {
@@ -25,13 +25,15 @@ std::string hexabus::to_base64(std::vector<unsigned char> data) {
     result.push_back(base64codes[ ((data[i] << 4) & 0x3f) | (data[i+1] >> 4) ]);
     result.push_back(base64codes[ ((data[i+1] << 2) & 0x3f)   | (data[i+2] >> 6) ]);
     result.push_back(base64codes[ (data[i+2] & 0x3f) ]);
-  }
 
-  // add '=' to indicate padding to the decoder
-  if(pad)
-    result.push_back('='); // add a '=' if 1 or two charactes were padded.
-  if(pad == 1)
-    result.push_back('='); // add another '=' if exactly one was padded.
+    if(i == data.size() - 3) // we are in last triplet of bytes
+    {
+      if(pad == 2) // if two bytes were padded, last two sextets are turned into '='.
+        result[result.size() - 2] = result[result.size() - 1] = '=';
+      else if(pad == 1) // if one byte were padded, only the last sextet is '='.
+        result.back() = '=';
+    }
+  }
 
   // convert vector to string -- TODO work with a string from the beginning.
   std::string res(result.begin(), result.end());

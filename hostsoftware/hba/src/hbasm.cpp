@@ -194,7 +194,7 @@ int main(int argc, char **argv)
 
 
       // Base64 experiment
-      std::string data_string("The quick brown fox jumps over the lazy dog.!!");
+      std::string data_string("The quick brown fox jumps over the lazy dog.!\n");
       std::vector<uint8_t> data(data_string.begin(), data_string.end());
       std::string encoded(hexabus::to_base64(data));
       std::cout << encoded << std::endl;
