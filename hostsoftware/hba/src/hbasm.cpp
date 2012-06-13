@@ -194,17 +194,11 @@ int main(int argc, char **argv)
 
 
       // Base64 experiment
-      std::string data_string("The quick brown fox jumps over the lazy dog.");
+      std::string data_string("The quick brown fox jumps over the lazy dog.!!");
       std::vector<uint8_t> data(data_string.begin(), data_string.end());
       std::string encoded(hexabus::to_base64(data));
       std::cout << encoded << std::endl;
-      std::vector<uint8_t> data2 =
-          hexabus::from_base64(encoded);
-      if (data == data2) {
-        std::cout << "horst" << std::endl;
-      } else {
-        std::cout << "uschi" << std::endl;
-      }
+
     } else {
       std::cout << "Parsing succeeded." << std::endl;
     }
