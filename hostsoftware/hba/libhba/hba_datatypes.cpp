@@ -6,8 +6,22 @@
 
 using namespace hexabus;
 
+Datatypes* Datatypes::instance = NULL; // Singleton
+Datatypes* Datatypes::getInstance(std::string filename)
+{
+  if(instance == NULL)
+    instance = new Datatypes(filename);
+
+  return instance;
+
+  // Note: This only works under the assumption that the "filename" stays the same throughout one hbasm-run.
+  // If we want to have multiple datatype definition files (we don't need that at the moment), we have to
+  // keep track of multiple instances (vector<Datatypes*> instances)!
+}
+
 Datatypes::Datatypes(std::string filename)
 {
+  std::cout << "KONSTRUKTEUR!!!" << std::endl;
   // clear array
   for(unsigned int i = 0; i < NUMBER_OF_EIDS; i++)
     datatypes[i] = 0;
