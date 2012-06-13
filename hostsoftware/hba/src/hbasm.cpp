@@ -211,5 +211,5 @@ int main(int argc, char **argv)
         << "reached the end of the input." << std::endl;
     return 1;
   }
-} 
+}
 

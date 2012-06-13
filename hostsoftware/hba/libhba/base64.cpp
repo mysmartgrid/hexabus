@@ -28,14 +28,14 @@ std::string hexabus::to_base64(std::vector<unsigned char> data) {
 
     if(i == data.size() - 3) // we are in last triplet of bytes
     {
-      if(pad == 2) // if two bytes were padded, last two sextets are turned into '='.
+      if(pad == 2) // if two bytes were padded, last two bit sextets are turned into '='.
         result[result.size() - 2] = result[result.size() - 1] = '=';
       else if(pad == 1) // if one byte were padded, only the last sextet is '='.
         result.back() = '=';
     }
   }
 
-  // convert vector to string -- TODO work with a string from the beginning.
+  // convert vector to string
   std::string res(result.begin(), result.end());
   return res;
 }
