@@ -80,7 +80,7 @@ struct hba_doc_visitor : boost::static_visitor<>
 
     // construct binary representation
     struct transition t;
-    t.fromState = state_id; // TODO need to cast here? // beter: Make sure only valid IDs are generated
+    t.fromState = state_id; // TODO need to cast here? // better: Make sure only valid IDs are generated
     t.cond = cond_id;
     t.eid = clause.eid;
     t.goodState = goodstate_id;
@@ -234,7 +234,7 @@ struct hba_doc_visitor : boost::static_visitor<>
   Datatypes* _datatypes;
 };
 
-void generator_flash::operator()(std::ostream& os) const
+void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8_t>& cond_dt_v, std::vector<uint8_t>& trans_v) const
 {
   flash_format_map_t conditions;
   flash_format_cond_map_t conditions_bin;
@@ -339,6 +339,8 @@ void generator_flash::operator()(std::ostream& os) const
     std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)conditions_buffer[i] << " ";
     if(i % 12 == 11)
       std::cout << std::endl;
+
+    cond_v.push_back(conditions_buffer[i]);
   }
   std::cout << std::endl << std::endl;
   std::cout << "Date-Time Conditions:" << std::endl;
@@ -347,6 +349,8 @@ void generator_flash::operator()(std::ostream& os) const
     std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)conditions_dt_buffer[i] << " ";
     if(i % 12 == 11)
       std::cout << std::endl;
+
+    cond_dt_v.push_back(conditions_dt_buffer[i]);
   }
   std::cout << std::endl << std::endl;
   std::cout << "Transitions:" << std::endl;
@@ -355,9 +359,13 @@ void generator_flash::operator()(std::ostream& os) const
     std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)transitions_buffer[i] << " ";
     if(i % 12 == 11)
       std::cout << std::endl;
+
+    trans_v.push_back(transitions_buffer[i]);
   }
   std::cout << std::endl << std::endl;
 
+  /* This is the output of state machine web interface code
+  // TODO remove all the state machine web interface code if it is no longer needed
   std::cout << "Writing output file..." << std::endl;
   // preamble
   os << COND_TABLE_BEGIN_TOKEN;
@@ -373,9 +381,8 @@ void generator_flash::operator()(std::ostream& os) const
   {
     os << it->second;
   }
-  os << STATE_TABLE_END_TOKEN;
+  os << STATE_TABLE_END_TOKEN; */
 
-  // output to file
   std::cout << "done." << std::endl;
 }
 

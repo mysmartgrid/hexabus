@@ -188,17 +188,13 @@ int main(int argc, char **argv)
         return 1;
       }
 
-      gf(ofs);
+      std::vector<uint8_t> data;
+      gf(data, data, data); // TODO maybe we want to write to three different files here, or figure out some other way to store this
+
+      std::string b64str(hexabus::to_base64(data));
+      ofs << b64str;
 
       ofs.close();
-
-
-      // Base64 experiment
-      std::string data_string("The quick brown fox jumps over the lazy dog.!\n");
-      std::vector<uint8_t> data(data_string.begin(), data_string.end());
-      std::string encoded(hexabus::to_base64(data));
-      std::cout << encoded << std::endl;
-
     } else {
       std::cout << "Parsing succeeded." << std::endl;
     }
