@@ -5,6 +5,7 @@
 #include <string>
 #include <boost/program_options.hpp>
 #include "DeviceInfo.hpp"
+#include "config.h"
 
 namespace po = boost::program_options;
 
@@ -16,6 +17,7 @@ int main(int argc, char **argv) {
 	po::options_description desc(usage.str());
 	desc.add_options()
 		("help,h", "Print help message")
+		("version,v", "Prints the version and exits")
 		("ipAddr", po::value<std::string>(), "IPv6 Address of Device")
 		("json,j", "Enable JSON Output")
 		("interface,i", po::value<std::string>(), "Interface to be used for communication")
@@ -34,6 +36,11 @@ int main(int argc, char **argv) {
 	
 	if(vm.count("help")) {
 		std::cout << desc << std::endl;
+		return 0;
+	}
+
+	if(vm.count("version")) {
+		std::cout << "Hexinfo version: " << HEXINFO_VERSION_MAJOR << "." << HEXINFO_VERSION_MINOR << "." << HEXINFO_VERSION_PATCH << std::endl;
 		return 0;
 	}
 

@@ -5,6 +5,7 @@ file(GLOB_RECURSE cpp_files "*.cpp")
 file(GLOB_RECURSE c_files "*.c")
 file(GLOB all_hexinfo_src *.cpp *.hpp)
 set(hexinfo_src ${all_hexinfo_src})
+configure_file(config.h.in ${CMAKE_BINARY_DIR}/config.h)
 
 include_directories(
   ${CMAKE_SOURCE_DIR} 
