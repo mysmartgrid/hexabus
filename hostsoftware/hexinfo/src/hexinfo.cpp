@@ -15,9 +15,10 @@ int main(int argc, char **argv) {
 	
 	po::options_description desc(usage.str());
 	desc.add_options()
-		("help", "Print help message")
+		("help,h", "Print help message")
 		("ipAddr", po::value<std::string>(), "IPv6 Address of Device")
-		("json", "Enable JSON Output")
+		("json,j", "Enable JSON Output")
+		("interface,i", po::value<std::string>(), "Interface to be used for communication")
 	;
 	po::positional_options_description pos;
 	pos.add("ipAddr", 1);
@@ -46,9 +47,14 @@ int main(int argc, char **argv) {
 	}
 	
 	std::vector<EndpointInfo> eps;
+	DeviceInfo *devInfo;
 	try {
-		DeviceInfo devInfo(vm["ipAddr"].as<std::string>());
-		eps = devInfo.getAllEndpointInfo();
+		if(vm.count("interface")) {
+			devInfo = new DeviceInfo(vm["ipAddr"].as<std::string>(), vm["interface"].as<std::string>());
+		} else {
+			devInfo = new DeviceInfo(vm["ipAddr"].as<std::string>());
+		}
+		eps = devInfo->getAllEndpointInfo();
 	} catch(std::invalid_argument& e) {
 		std::cerr << e.what() << std::endl << usage.str() << "Try --help for more information" << std::endl;
 		return 1;
