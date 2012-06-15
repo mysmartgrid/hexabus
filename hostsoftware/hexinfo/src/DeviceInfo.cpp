@@ -49,11 +49,11 @@ std::string EndpointInfo::toString(bool json) {
 	}
 	std::stringstream sstm;
 	if(json) {
-		sstm << "{ \"EID\": " << (int)eid << std::endl << ", \"Name\": " << name << std::endl
-		<< ", \"Datatype\": " << tmpDT << " }" << std::endl;
+		sstm << "{ \"EID\": " << (int)eid <<  ", " << std::endl << "\"Name\": " << "\"" << name << "\"" << ", " << std::endl
+		<< "\"Datatype\": " << "\"" << tmpDT << "\"" << " }";
 	} else {
 		sstm << "EID: " << (int)eid << std::endl << " Name: " << name << std::endl
-		<< " Datatype: " << tmpDT << std::endl;
+		<< " Datatype: " << tmpDT;
 	}
 	/*	<< " Writable: " << std::endl;
 	if(writable)
@@ -91,7 +91,7 @@ EndpointInfo DeviceInfo::getEndpointInfo(int eid) {
 	// TODO: CRC Check, CRC Error and maybe defining a custom "NoSuchEndpoint" exception (with boost?)?
 	
 	hexabus::PacketHandling *pHandler = new hexabus::PacketHandling(network.getData());
-	if(pHandler->getPacketType() == HXB_PTYPE_ERROR /*&& pHandler->getErrorcode() == HXB_ERR_UNKNOWNEID*/) {
+	if(pHandler->getPacketType() == HXB_PTYPE_ERROR && pHandler->getErrorcode() == HXB_ERR_UNKNOWNEID) {
 		throw std::runtime_error("No such endpoint");
 	} else {
 		// Everything went fine
