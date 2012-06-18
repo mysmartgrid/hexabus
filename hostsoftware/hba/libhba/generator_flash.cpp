@@ -41,6 +41,7 @@ struct hba_doc_visitor : boost::static_visitor<>
 
   void operator()(if_clause_doc const& clause, unsigned int state_id, unsigned int state_index) const
   {
+    std::cout << "STATE INDEX: " << state_index << " ===== STATE ID: " << state_id << std::endl << std::endl;
     unsigned int cond_id = find_vertex_id(_g, clause.name);
     unsigned int goodstate_id = find_vertex_id(_g, clause.goodstate);
     unsigned int badstate_id = find_vertex_id(_g, clause.badstate);
