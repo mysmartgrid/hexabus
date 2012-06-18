@@ -112,6 +112,8 @@ struct hba_doc_visitor : boost::static_visitor<>
         std::cout << std::endl;
       }
     }
+
+    std::cout << std::endl;
   }
 
   void operator()(state_doc const& hba) const
@@ -236,6 +238,7 @@ struct hba_doc_visitor : boost::static_visitor<>
 
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     }
+    std::cout << std::endl;
   }
 
   flash_format_map_t& _states;
@@ -272,18 +275,6 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
     boost::apply_visitor(hba_doc_visitor(states, states_bin, trans_dt_bin, conditions, conditions_bin, _g, dt), block);
   }
 
-  std::cout << "Created condition table:" << std::endl;
-  for(flash_format_map_it_t it = conditions.begin(); it != conditions.end(); ++it)
-  {
-    std::cout << it->first << ": " << it->second << std::endl;
-  }
-
-  std::cout << "Created state table:" << std::endl;
-  for(flash_format_map_it_t it = states.begin(); it != states.end(); ++it)
-  {
-    std::cout << it->first << ": " << it->second << std::endl;
-  }
-
   std::cout << "Binary condition table:" << std::endl;
   for(flash_format_cond_map_it_t it = conditions_bin.begin(); it != conditions_bin.end(); it++)
   {
@@ -303,6 +294,7 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
       conditions_pos += sizeof(cond);
     }
   }
+  std::cout << std::endl;
 
   std::cout << "Binary transition table:" << std::endl;
   for(flash_format_state_map_it_t it = states_bin.begin(); it != states_bin.end(); it++)
@@ -323,6 +315,7 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
       transitions_pos += sizeof(t);
     }
   }
+  std::cout << std::endl;
 
   std::cout << "Binary date/time transition table:" << std::endl;
   for(flash_format_trans_dt_map_it_t it = trans_dt_bin.begin(); it != trans_dt_bin.end(); it++)
@@ -342,6 +335,7 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
       trans_dt_pos += sizeof(t);
     }
   }
+  std::cout << std::endl;
 
   //for debug purposes
   std::cout << "Buffers to send to EEPROM:" << std::endl;
@@ -349,7 +343,7 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
   for(unsigned int i = 0; i < sizeof(conditions_buffer); i++)
   {
     std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)conditions_buffer[i] << " ";
-    if(i % 12 == 11)
+    if(i % 24 == 23)
       std::cout << std::endl;
 
     cond_v.push_back(conditions_buffer[i]);
@@ -360,7 +354,7 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
   for(unsigned int i = 0; i < sizeof(transitions_buffer); i++)
   {
     std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)transitions_buffer[i] << " ";
-    if(i % 12 == 11)
+    if(i % 24 == 23)
       std::cout << std::endl;
 
     trans_v.push_back(transitions_buffer[i]);
@@ -371,31 +365,12 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
   for(unsigned int i = 0; i < sizeof(trans_dt_buffer); i++)
   {
     std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)trans_dt_buffer[i] << " ";
-    if(i % 12 == 11)
+      if(i % 24 == 23)
       std::cout << std::endl;
 
     trans_dt_v.push_back(trans_dt_buffer[i]);
   }
   std::cout << std::endl << std::endl;
-
-  /* This is the output of state machine web interface code
-  // TODO remove all the state machine web interface code if it is no longer needed
-  std::cout << "Writing output file..." << std::endl;
-  // preamble
-  os << COND_TABLE_BEGIN_TOKEN;
-  // write conditions
-  for(flash_format_map_it_t it = conditions.begin(); it != conditions.end(); it++)
-  {
-    os << it->second;
-  }
-  // table separator
-  os << COND_TABLE_END_TOKEN << STATE_TABLE_BEGIN_TOKEN;
-  // write transitions
-  for(flash_format_map_it_t it = states.begin(); it != states.end(); ++it)
-  {
-    os << it->second;
-  }
-  os << STATE_TABLE_END_TOKEN; */
 
   std::cout << "done." << std::endl;
 }
