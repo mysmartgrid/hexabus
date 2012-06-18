@@ -54,6 +54,7 @@ Needs external circuitry (see the Wiki)!
 EXPERIMENTAL!
 */
 #define METERING_ENERGY_PERSISTENT 0 // Persistently store energy value (number of pulses) in EEPROM. 
+#define S0_ENABLE 0 //S0 meter
 
 // state_machine
 #define STATE_MACHINE_ENABLE 0
@@ -113,8 +114,5 @@ EXPERIMENTAL!
 #define IR_RECEIVER_DEBUG 0
 #define IR_REPEAT 1                  // 0 disables repeat, 1 enables repeat for buttons configured in ir_receiver.h
 #define IR_RECEIVER_RAW_MODE 0
-
-//S0 meter
-#define S0_ENABLE 1
 
 #endif // HEXBAUS_CONFIG_H
