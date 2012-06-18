@@ -22,13 +22,12 @@ typedef std::map<unsigned int, std::string> flash_format_map_t;
 typedef std::map<unsigned int, std::string>::iterator flash_format_map_it_t;
 typedef std::map<unsigned int, struct transition> flash_format_state_map_t;
 typedef std::map<unsigned int, struct transition>::iterator flash_format_state_map_it_t;
+typedef std::map<unsigned int, struct transition> flash_format_trans_dt_map_t;
+typedef std::map<unsigned int, struct transition>::iterator flash_format_trans_dt_map_it_t;
 typedef std::map<unsigned int, struct condition> flash_format_cond_map_t;
 typedef std::map<unsigned int, struct condition>::iterator flash_format_cond_map_it_t;
-typedef std::map<unsigned int, struct condition> flash_format_date_time_cond_map_t;
-typedef std::map<unsigned int, struct condition>::iterator flash_format_date_time_cond_map_it_t;
 
 // TODO: States am Ende so sortieren, dass der Startstate der erste ist.
-// TODO: Lücken, die durch date-time-conditions enstehen vermeiden, d/t-conditions brauche keine/eigene Indizes, da eigene Tabelle
 
 unsigned int state_index = 0; // TODO make this a little more elegant
 
@@ -37,16 +36,16 @@ struct hba_doc_visitor : boost::static_visitor<>
   hba_doc_visitor(
       flash_format_map_t& states,
       flash_format_state_map_t& states_bin,
+      flash_format_trans_dt_map_t& trans_dt_bin,
       flash_format_map_t& conditions,
       flash_format_cond_map_t& conditions_bin,
-      flash_format_date_time_cond_map_t& dt_cond_bin,
       const graph_t_ptr g,
       Datatypes* datatypes)
     : _states(states),
       _states_bin(states_bin),
+      _trans_dt_bin(trans_dt_bin),
       _conditions(conditions),
       _conditions_bin(conditions_bin),
-      _dt_cond_bin(dt_cond_bin),
       _g(g),
       _datatypes(datatypes)
   { }
@@ -95,8 +94,24 @@ struct hba_doc_visitor : boost::static_visitor<>
     } else { // TODO for now, act as if everything were uint32
       ss >> std::dec >> *(uint32_t*)t.value.data;
     }
-    // _states_bin.insert(std::pair<unsigned int, struct transition>(state_id, t));
-    _states_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
+
+    // look for condition corresponding to our transition -- if it's a date/time-transition, put it in a separate table
+    // Assumption: Condition table is complete at this point; condition ID is unique in table
+    for(flash_format_cond_map_it_t it = _conditions_bin.begin(); it != _conditions_bin.end(); it++)
+    {
+      if(it->first == cond_id)
+      {
+        if(it->second.datatype == HXB_DTYPE_DATETIME)
+        {
+          _trans_dt_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
+          break;
+        } else {
+          _states_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
+          break;
+        }
+        std::cout << std::endl;
+      }
+    }
   }
 
   void operator()(state_doc const& hba) const
@@ -104,7 +119,7 @@ struct hba_doc_visitor : boost::static_visitor<>
     BOOST_FOREACH(if_clause_doc const& if_clause, hba.if_clauses)
     {
       Datatypes* dt = Datatypes::getInstance();
-      hba_doc_visitor p(_states, _states_bin, _conditions, _conditions_bin, _dt_cond_bin, _g, dt);
+      hba_doc_visitor p(_states, _states_bin, _trans_dt_bin, _conditions, _conditions_bin, _g, dt);
       p(if_clause, hba.id, state_index++);
     }
   }
@@ -211,8 +226,6 @@ struct hba_doc_visitor : boost::static_visitor<>
         std::cout << " < ";
       std::cout << cond.value << std::endl;
 
-      // TODO tabelle bauen, dazu sebi fragen
-
       struct condition c;
       memset(&c.sourceIP, 0, 15);
       c.sourceIP[15] = 1; // set IP address to ::1 (localhost)
@@ -221,42 +234,42 @@ struct hba_doc_visitor : boost::static_visitor<>
       c.datatype = HXB_DTYPE_DATETIME;
       *(uint32_t*)&c.data = cond.value;
 
-      _dt_cond_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
+      _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     }
   }
 
   flash_format_map_t& _states;
   flash_format_state_map_t& _states_bin;
+  flash_format_trans_dt_map_t& _trans_dt_bin;
   flash_format_map_t& _conditions;
   flash_format_cond_map_t& _conditions_bin;
-  flash_format_date_time_cond_map_t& _dt_cond_bin;
   graph_t_ptr _g;
   Datatypes* _datatypes;
 };
 
-void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8_t>& cond_dt_v, std::vector<uint8_t>& trans_v) const
+void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8_t>& trans_v, std::vector<uint8_t>& trans_dt_v) const
 {
   flash_format_map_t conditions;
   flash_format_cond_map_t conditions_bin;
-  flash_format_date_time_cond_map_t dt_cond_bin;
   flash_format_map_t states;
   flash_format_state_map_t states_bin;
+  flash_format_trans_dt_map_t trans_dt_bin;
 
   unsigned char conditions_buffer[512];
   unsigned char* conditions_pos = &conditions_buffer[0];
   memset(conditions_buffer, 0, sizeof(conditions_buffer));
-  unsigned char conditions_dt_buffer[512];
-  unsigned char* conditions_dt_pos = &conditions_dt_buffer[0];
-  memset(conditions_dt_buffer, 0, sizeof(conditions_dt_buffer));
   unsigned char transitions_buffer[512];
   unsigned char* transitions_pos = &transitions_buffer[0];
   memset(transitions_buffer, 0, sizeof(transitions_buffer));
+  unsigned char trans_dt_buffer[512]; // TODO 512 should be a #define!
+  unsigned char* trans_dt_pos = &trans_dt_buffer[0];
+  memset(trans_dt_buffer, 0, sizeof(trans_dt_buffer));
 
   std::cout << "start state: " << _ast.start_state << std::endl;
   BOOST_FOREACH(hba_doc_block const& block, _ast.blocks)
   {
     Datatypes* dt = Datatypes::getInstance();
-    boost::apply_visitor(hba_doc_visitor(states, states_bin, conditions, conditions_bin, dt_cond_bin, _g, dt), block);
+    boost::apply_visitor(hba_doc_visitor(states, states_bin, trans_dt_bin, conditions, conditions_bin, _g, dt), block);
   }
 
   std::cout << "Created condition table:" << std::endl;
@@ -291,26 +304,6 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
     }
   }
 
-  std::cout << "Binary date/time condition table:" << std::endl;
-  for(flash_format_date_time_cond_map_it_t it = dt_cond_bin.begin(); it != dt_cond_bin.end(); it++)
-  {
-    std::cout << it->first << ": ";
-    struct condition cond = it->second;
-    unsigned char* c = (unsigned char*)&cond;
-    for(unsigned int i = 0; i < sizeof(condition); i++)
-    {
-      std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)c[i] << " ";
-    }
-    std::cout << std::endl;
-
-    // insert into buffer
-    if(conditions_dt_pos < conditions_dt_buffer + sizeof(conditions_dt_buffer) - sizeof(condition))
-    {
-      memcpy(conditions_dt_pos, &cond, sizeof(cond));
-      conditions_dt_pos += sizeof(cond);
-    }
-  }
-
   std::cout << "Binary transition table:" << std::endl;
   for(flash_format_state_map_it_t it = states_bin.begin(); it != states_bin.end(); it++)
   {
@@ -331,6 +324,25 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
     }
   }
 
+  std::cout << "Binary date/time transition table:" << std::endl;
+  for(flash_format_trans_dt_map_it_t it = trans_dt_bin.begin(); it != trans_dt_bin.end(); it++)
+  {
+    std::cout << it->first << ": ";
+    struct transition t = it->second;
+    char* c = (char*)&t;
+    for(unsigned int i = 0; i < sizeof(transition); i++)
+    {
+      std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)c[i] << " ";
+    }
+    std::cout << std::endl;
+
+    if(trans_dt_pos < trans_dt_buffer + sizeof(trans_dt_buffer) - sizeof(transition))
+    {
+      memcpy(trans_dt_pos, &t, sizeof(t));
+      trans_dt_pos += sizeof(t);
+    }
+  }
+
   //for debug purposes
   std::cout << "Buffers to send to EEPROM:" << std::endl;
   std::cout << "Conditions:" << std::endl;
@@ -343,16 +355,7 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
     cond_v.push_back(conditions_buffer[i]);
   }
   std::cout << std::endl << std::endl;
-  std::cout << "Date-Time Conditions:" << std::endl;
-  for(unsigned int i = 0; i < sizeof(conditions_dt_buffer); i++)
-  {
-    std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)conditions_dt_buffer[i] << " ";
-    if(i % 12 == 11)
-      std::cout << std::endl;
 
-    cond_dt_v.push_back(conditions_dt_buffer[i]);
-  }
-  std::cout << std::endl << std::endl;
   std::cout << "Transitions:" << std::endl;
   for(unsigned int i = 0; i < sizeof(transitions_buffer); i++)
   {
@@ -361,6 +364,17 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
       std::cout << std::endl;
 
     trans_v.push_back(transitions_buffer[i]);
+  }
+  std::cout << std::endl << std::endl;
+
+  std::cout << "Date/Time-Transitions:" << std::endl;
+  for(unsigned int i = 0; i < sizeof(trans_dt_buffer); i++)
+  {
+    std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)trans_dt_buffer[i] << " ";
+    if(i % 12 == 11)
+      std::cout << std::endl;
+
+    trans_dt_v.push_back(trans_dt_buffer[i]);
   }
   std::cout << std::endl << std::endl;
 
