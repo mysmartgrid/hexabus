@@ -11,13 +11,6 @@
 
 using namespace hexabus;
 
-const char COND_TABLE_BEGIN_TOKEN='-';
-const char COND_TABLE_SEPARATOR='.';
-const char COND_TABLE_END_TOKEN = '.';
-const char STATE_TABLE_BEGIN_TOKEN='-';
-const char STATE_TABLE_SEPARATOR='.';
-const char STATE_TABLE_END_TOKEN = '.';
-
 typedef std::map<unsigned int, std::string> flash_format_map_t;
 typedef std::map<unsigned int, std::string>::iterator flash_format_map_it_t;
 typedef std::map<unsigned int, struct transition> flash_format_state_map_t;
@@ -34,17 +27,13 @@ unsigned int state_index = 0; // TODO make this a little more elegant
 struct hba_doc_visitor : boost::static_visitor<>
 {
   hba_doc_visitor(
-      flash_format_map_t& states,
       flash_format_state_map_t& states_bin,
       flash_format_trans_dt_map_t& trans_dt_bin,
-      flash_format_map_t& conditions,
       flash_format_cond_map_t& conditions_bin,
       const graph_t_ptr g,
       Datatypes* datatypes)
-    : _states(states),
-      _states_bin(states_bin),
+    : _states_bin(states_bin),
       _trans_dt_bin(trans_dt_bin),
-      _conditions(conditions),
       _conditions_bin(conditions_bin),
       _g(g),
       _datatypes(datatypes)
@@ -62,20 +51,6 @@ struct hba_doc_visitor : boost::static_visitor<>
       << " := " << clause.value << " datatype " << (unsigned int)_datatypes->getDatatype(clause.eid) << std::endl;
     std::cout << " goodstate: " << goodstate_id << std::endl;
     std::cout << " badstate: " << badstate_id << std::endl;
-
-    // construct webinterface representation (string)
-    std::ostringstream oss;
-    oss
-      << state_id << STATE_TABLE_SEPARATOR
-      << cond_id << STATE_TABLE_SEPARATOR
-      << clause.eid << STATE_TABLE_SEPARATOR
-      << (unsigned int)_datatypes->getDatatype(clause.eid) << STATE_TABLE_SEPARATOR
-      << clause.value << STATE_TABLE_SEPARATOR // TODO find out what is correct in the webinterface "spec"!
-      << goodstate_id << STATE_TABLE_SEPARATOR
-      << badstate_id << STATE_TABLE_SEPARATOR
-      ;
-    // _states.insert(std::pair<unsigned int, std::string>(state_id, oss.str()));
-    _states.insert(std::pair<unsigned int, std::string>(state_index, oss.str()));
 
     // construct binary representation
     struct transition t;
@@ -121,7 +96,7 @@ struct hba_doc_visitor : boost::static_visitor<>
     BOOST_FOREACH(if_clause_doc const& if_clause, hba.if_clauses)
     {
       Datatypes* dt = Datatypes::getInstance();
-      hba_doc_visitor p(_states, _states_bin, _trans_dt_bin, _conditions, _conditions_bin, _g, dt);
+      hba_doc_visitor p(_states_bin, _trans_dt_bin, _conditions_bin, _g, dt);
       p(if_clause, hba.id, state_index++);
     }
   }
@@ -137,15 +112,6 @@ struct hba_doc_visitor : boost::static_visitor<>
       std::cout << "Operator: " << cond.op << std::endl;
       std::cout << "Value: " << cond.value << std::endl;
       std::cout << "Datatype: " << (unsigned int)_datatypes->getDatatype(cond.eid) << std::endl;
-      std::ostringstream oss;
-      oss
-        << cond.ipv6_address << COND_TABLE_SEPARATOR
-        << cond.eid << COND_TABLE_SEPARATOR
-        << (unsigned int)_datatypes->getDatatype(cond.eid) << COND_TABLE_SEPARATOR
-        << cond.op << COND_TABLE_SEPARATOR
-        << cond.value << COND_TABLE_SEPARATOR // TODO find out what is correct in the webinterface "spec"!
-        ;
-      _conditions.insert(std::pair<unsigned int, std::string>(condition.id, oss.str()));
 
       //construct binary representation
       struct condition c;
@@ -173,16 +139,6 @@ struct hba_doc_visitor : boost::static_visitor<>
     } else if(condition.cond.which() == 1) { // timeout
       cond_timeout_doc cond = boost::get<cond_timeout_doc>(condition.cond);
       std::cout << "Timeout: " << cond.value << std::endl;
-
-      // construct state machine table representation
-      std::ostringstream oss;
-      oss
-        << "00000000000000000000000000000001" << COND_TABLE_SEPARATOR // localhost
-        << "0" << COND_TABLE_SEPARATOR // state machine does not care about EID
-        << HXB_SM_TIMESTAMP_OP << COND_TABLE_SEPARATOR // operator for timestamp comparison
-        << cond.value << COND_TABLE_SEPARATOR
-        ;
-      _conditions.insert(std::pair<unsigned int, std::string>(condition.id, oss.str()));
 
       // construct binary representation
       struct condition c;
@@ -241,10 +197,8 @@ struct hba_doc_visitor : boost::static_visitor<>
     std::cout << std::endl;
   }
 
-  flash_format_map_t& _states;
   flash_format_state_map_t& _states_bin;
   flash_format_trans_dt_map_t& _trans_dt_bin;
-  flash_format_map_t& _conditions;
   flash_format_cond_map_t& _conditions_bin;
   graph_t_ptr _g;
   Datatypes* _datatypes;
@@ -252,9 +206,7 @@ struct hba_doc_visitor : boost::static_visitor<>
 
 void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8_t>& trans_v, std::vector<uint8_t>& trans_dt_v) const
 {
-  flash_format_map_t conditions;
   flash_format_cond_map_t conditions_bin;
-  flash_format_map_t states;
   flash_format_state_map_t states_bin;
   flash_format_trans_dt_map_t trans_dt_bin;
 
@@ -272,7 +224,7 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
   BOOST_FOREACH(hba_doc_block const& block, _ast.blocks)
   {
     Datatypes* dt = Datatypes::getInstance();
-    boost::apply_visitor(hba_doc_visitor(states, states_bin, trans_dt_bin, conditions, conditions_bin, _g, dt), block);
+    boost::apply_visitor(hba_doc_visitor(states_bin, trans_dt_bin, conditions_bin, _g, dt), block);
   }
 
   std::cout << "Binary condition table:" << std::endl;
