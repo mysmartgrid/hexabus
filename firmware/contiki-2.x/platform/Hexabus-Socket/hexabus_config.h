@@ -36,9 +36,9 @@ There should be an ENABLE option that enables compilation and execution of the a
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 1
-#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1 // Number of endpoints to broadcast automatically - set to 0 to disable
-#define VALUE_BROADCAST_AUTO_EIDS 2 // Comma-separated list of endpoints to broadcast automatically
-#define VALUE_BROADCAST_AUTO_INTERVAL 30 // Timeout in seconds
+#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 3 // Number of endpoints to broadcast automatically - set to 0 to disable
+#define VALUE_BROADCAST_AUTO_EIDS 2, 7, 8 // Comma-separated list of endpoints to broadcast automatically
+#define VALUE_BROADCAST_AUTO_INTERVAL 90 // Timeout in seconds
 #define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0 // Number of endpoints to "broadcast" to the local state machine
 #define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2 // Comma-separated list of eids to be sent to local state machine
 
@@ -53,7 +53,7 @@ Needs external circuitry (see the Wiki)!
 -- Disables relay output!
 EXPERIMENTAL!
 */
-#define METERING_ENERGY_PERSISTENT 0 // Persistently store energy value (number of pulses) in EEPROM. 
+#define METERING_ENERGY_PERSISTENT 1 // Persistently store energy value (number of pulses) in EEPROM. 
 #define S0_ENABLE 0 //S0 meter
 
 // state_machine
