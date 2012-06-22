@@ -14,14 +14,21 @@ int main(int argc, char **argv) {
 	usage << "Usage: " << argv[0] << " <IPv6 Address of Device> " << " [additional Options]" << std::endl;
 	bool json = false;
 	
-	po::options_description desc(usage.str());
-	desc.add_options()
+	po::options_description visible(usage.str() + "Additional Options");
+	po::options_description hidden("Hidden options");
+	po::options_description desc;
+	
+	hidden.add_options()
+		("ipAddr", po::value<std::string>());
+
+	visible.add_options()
 		("help,h", "Print help message")
 		("version,v", "Prints the version and exits")
-		("ipAddr", po::value<std::string>(), "IPv6 Address of Device")
 		("json,j", "Enable JSON Output")
-		("interface,i", po::value<std::string>(), "Interface to be used for communication")
-	;
+		("interface,i", po::value<std::string>(), "Interface to be used for communication");
+	
+	desc.add(visible).add(hidden);
+
 	po::positional_options_description pos;
 	pos.add("ipAddr", 1);
 	po::variables_map vm;
@@ -35,7 +42,7 @@ int main(int argc, char **argv) {
 	}
 	
 	if(vm.count("help")) {
-		std::cout << desc << std::endl;
+		std::cout << visible << std::endl;
 		return 0;
 	}
 
