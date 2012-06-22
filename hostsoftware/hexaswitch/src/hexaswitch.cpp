@@ -120,7 +120,11 @@ void print_packet(char* recv_data) {
         }
         break;
       case HXB_DTYPE_FLOAT:
-        std::cout << *(float*)&value.data;
+        {
+          float v;
+          memcpy(&v, &value.data[0], sizeof(float));
+          std::cout << v;
+        }
         break;
       case HXB_DTYPE_128STRING:
         std::cout << phandling.getString();

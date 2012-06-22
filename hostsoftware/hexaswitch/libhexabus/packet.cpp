@@ -164,6 +164,7 @@ PacketHandling::PacketHandling(char* data)
           }
           break;
         case HXB_DTYPE_FLOAT:
+
           {
             struct hxb_packet_float* packetf = (struct hxb_packet_float*)data;
             packetf->crc = ntohs(packetf->crc);
