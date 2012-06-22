@@ -6,7 +6,7 @@
 #include <libhexabus/packet.hpp>
 #include "../../shared/hexabus_packet.h"
 
-// A vector width used EIDs contains 32 values
+// A vector with used EIDs contains 32 values
 const int EIDS_PER_VECTOR = 32;
 
 class EndpointInfo {
@@ -21,17 +21,19 @@ class EndpointInfo {
 		std::string getName();
 		uint8_t getDatatype();
 		bool isWritable();
-		std::string toString();
+		std::string toString(bool json);
 };
 
 class DeviceInfo {
 	private:
 		std::string ipAddress;
-		hexabus::NetworkAccess network;
+		hexabus::NetworkAccess *network;
 		hexabus::Packet::Ptr pFactory;
+		void checkPacket(hexabus::PacketHandling *pHandler);
 
 	public:
-		DeviceInfo(std::string ipAddress) throw (std::invalid_argument);
+		DeviceInfo(const std::string& ipAddress) throw (std::invalid_argument);
+		DeviceInfo(const std::string& ipAddress, std::string interface) throw (std::invalid_argument);
 		~DeviceInfo();
 		EndpointInfo getEndpointInfo(int eid);
 		std::vector<int> getDeviceDescriptor();

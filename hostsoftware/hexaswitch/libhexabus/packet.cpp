@@ -198,7 +198,7 @@ PacketHandling::PacketHandling(char* data)
       struct hxb_packet_128string* packetepi = (struct hxb_packet_128string*)data;
       datatype = packetepi->datatype;
       eid = packetepi->eid;
-      crc_okay = packetepi->crc == crc->crc16((char*)packetepi, sizeof(*packetepi)-2);
+      crc_okay = ntohs(packetepi->crc) == crc->crc16((char*)packetepi, sizeof(*packetepi)-2);
       packetepi->value[127] = '\0'; // set last character of string to 0 in case someone forgot that
       strval = packetepi->value;
     } else if(header->type == HXB_PTYPE_ERROR) {

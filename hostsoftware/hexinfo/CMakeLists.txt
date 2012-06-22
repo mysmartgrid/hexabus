@@ -11,7 +11,7 @@ set(CMAKE_VERBOSE_MAKEFILE true)
 SET(ENABLE_LOGGING 1)
 
 set(V_MAJOR 0)
-set(V_MINOR 1)
+set(V_MINOR 3)
 set(V_PATCH 0)
 
 # add a path where some libraries might be stored
@@ -55,17 +55,16 @@ set(CMAKE_CXX_FLAGS "-Wall ")
 # Check for some compiler stuff
 include(CMakeBackwardCompatibilityCXX)
 
-#FIND_PACKAGE(Sqlite)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
 FIND_PACKAGE(Boost 1.46.1 COMPONENTS iostreams program_options filesystem system)
+FIND_PACKAGE(Hexabus)
 
 # Reflect the package structure
-add_subdirectory(libhexabus)
 add_subdirectory(src)
 
 # add some files to the installation target
-INSTALL(FILES README.txt LICENSE.txt DESTINATION share/doc/hexaswitch)
+INSTALL(FILES README.txt LICENSE.txt DESTINATION share/doc/hexinfo)
 
 # CPACK packaging
 INCLUDE(InstallRequiredSystemLibraries)
@@ -90,5 +89,6 @@ message("  boost include: ${Boost_INCLUDE_DIRS}")
 message("  boost program options lib: ${Boost_PROGRAM_OPTIONS_LIBRARY}")
 message("  boost system lib: ${Boost_SYSTEM_LIBRARY}")
 message("  boost filesystem lib: ${Boost_FILESYSTEM_LIBRARY}")
+message("  hexabus include: ${HXB_INCLUDE_DIR}, lib: ${HXB_LIBRARIES}")  
 message("  extended logging: ${ENABLE_LOGGING}")
 
