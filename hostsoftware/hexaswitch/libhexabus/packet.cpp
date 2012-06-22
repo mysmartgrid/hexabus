@@ -144,9 +144,7 @@ PacketHandling::PacketHandling(char* data)
             struct hxb_packet_int32* packet32 = 
               (struct hxb_packet_int32*)data;
             packet32->crc = ntohs(packet32->crc);
-            crc_okay = 
-                packet32->crc == crc->crc16((char*)packet32, sizeof(*packet32)-2);
-            // ntohl the value after the CRC check, CRC check is done with everything in network byte order
+            crc_okay = packet32->crc == crc->crc16((char*)packet32, sizeof(*packet32)-2); // ntohl the value after the CRC check, CRC check is done with everything in network byte order
             packet32->value = ntohl(packet32->value);
 
             eid = packet32->eid;
@@ -174,7 +172,8 @@ PacketHandling::PacketHandling(char* data)
             packetf->value = *(float*)&value_hbo;
 
             eid = packetf->eid;
-            *(float*)&value.data = packetf->value;
+            memset(value.data, 0, sizeof(value.data));
+            memcpy(&value.data[0], &packetf->value, sizeof(float));
           }
           break;
         case HXB_DTYPE_128STRING:
