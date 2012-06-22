@@ -29,6 +29,7 @@ class DeviceInfo {
 		std::string ipAddress;
 		hexabus::NetworkAccess *network;
 		hexabus::Packet::Ptr pFactory;
+		void checkPacket(hexabus::PacketHandling *pHandler);
 
 	public:
 		DeviceInfo(const std::string& ipAddress) throw (std::invalid_argument);

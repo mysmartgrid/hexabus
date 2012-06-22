@@ -94,6 +94,14 @@ DeviceInfo::~DeviceInfo() {
 	delete network;
 }
 
+void DeviceInfo::checkPacket(hexabus::PacketHandling *pHandler) {
+	if(pHandler->getPacketType() == HXB_PTYPE_ERROR && pHandler->getErrorcode() == HXB_ERR_UNKNOWNEID) {
+		throw std::runtime_error("No such endpoint.");
+	} else if(!pHandler->getOkay() || !pHandler->getCRCOkay()) {
+		throw std::runtime_error("CRC Check failed.");	
+	}
+}
+
 EndpointInfo DeviceInfo::getEndpointInfo(int eid) {
 	// Create a query to the specified endpoint. 
 	hxb_packet_query packet = pFactory->query(eid, true);
@@ -102,17 +110,13 @@ EndpointInfo DeviceInfo::getEndpointInfo(int eid) {
 	network->receivePacket(true);
 	
 	// Extract Data and check if the endpoint exists.
-	// TODO: CRC Check, CRC Error and maybe defining a custom "NoSuchEndpoint" exception (with boost?)?
 	
 	hexabus::PacketHandling *pHandler = new hexabus::PacketHandling(network->getData());
-	if(pHandler->getPacketType() == HXB_PTYPE_ERROR && pHandler->getErrorcode() == HXB_ERR_UNKNOWNEID) {
-		throw std::runtime_error("No such endpoint");
-	} else {
-		// Everything went fine
-		EndpointInfo epInfo(eid, pHandler->getString(), pHandler->getDatatype(), false);
-		delete pHandler;
-		return epInfo;
-	}
+	checkPacket(pHandler);	
+	// Everything went fine
+	EndpointInfo epInfo(eid, pHandler->getString(), pHandler->getDatatype(), false);
+	delete pHandler;
+	return epInfo;
 	
 }
 
@@ -128,6 +132,7 @@ std::vector<int> DeviceInfo::getDeviceDescriptor() {
 	// Extract data from recv. packet
 	// Enpoints are stored in a EIDS_PER_VECTOR-bit vector where 1 indicates an used and 0 an unused endpoint.
 	hexabus::PacketHandling *pHandler = new hexabus::PacketHandling(network->getData());
+	checkPacket(pHandler);
 	hxb_value val = pHandler->getValue();
 	uint32_t eidVector = *((uint32_t*)&(val.data));
 	delete pHandler;
@@ -144,6 +149,7 @@ std::vector<int> DeviceInfo::getDeviceDescriptor() {
 				
 				// Extract the next vector
 				pHandler = new hexabus::PacketHandling(network->getData());
+				checkPacket(pHandler);
 				val = pHandler->getValue();
 				eidVector = *((uint32_t*)&(val.data));
 				delete pHandler;
