@@ -39,7 +39,7 @@ int main (int argc, char* argv[]) {
     desc.add_options()
       ("help,h", "produce help message")
       ("version,v", "print version and exit")
-      ("configfile,s", po::value<std::string>(), "the data store to use")
+      ("configfile,c", po::value<std::string>(), "the configuration file (ini format)")
       ;
     po::positional_options_description p;
     p.add("configfile", 1);

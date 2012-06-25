@@ -38,13 +38,13 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define VALUE_BROADCAST_DEBUG 1
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1 // Number of endpoints to broadcast automatically - set to 0 to disable
 #define VALUE_BROADCAST_AUTO_EIDS 2 // Comma-separated list of endpoints to broadcast automatically
-#define VALUE_BROADCAST_AUTO_INTERVAL 5 // Timeout in seconds
+#define VALUE_BROADCAST_AUTO_INTERVAL 30 // Timeout in seconds
 #define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0 // Number of endpoints to "broadcast" to the local state machine
 #define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2 // Comma-separated list of eids to be sent to local state machine
 
 // metering
 #define METERING_IMMEDIATE_BROADCAST 1  // immediately broadcast metering value when change is measured (you still should have the EID in the VALUE_BROADCAST_AUTO_EIDS with some reasonable timeout, so that the value is also broadcast when it reaches and stays at zero)
-#define METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS 3 // number of ticks from the meter until a broadcast is triggered. 1: broadcast every tick ~ roughly every 2 seconds at 100W
+#define METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS 1 // number of ticks from the meter until a broadcast is triggered. 1: broadcast every tick ~ roughly every 2 seconds at 100W
 #define METERING_IMMEDIATE_BROADCAST_MINIMUM_TIMEOUT 20 // minimum number of seconds between two broadcasts, to prevent flooding the network
 #define METERING_ENERGY 1
 /*
@@ -54,6 +54,7 @@ Needs external circuitry (see the Wiki)!
 EXPERIMENTAL!
 */
 #define METERING_ENERGY_PERSISTENT 0 // Persistently store energy value (number of pulses) in EEPROM. 
+#define S0_ENABLE 0 //S0 meter
 
 // state_machine
 #define STATE_MACHINE_ENABLE 0

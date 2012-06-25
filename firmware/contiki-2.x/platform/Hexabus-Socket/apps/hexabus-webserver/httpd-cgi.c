@@ -47,6 +47,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "hexabus_config.h"
+
 #include "contiki-net.h"
 #include "httpd.h"
 #include "httpd-cgi.h"
@@ -465,7 +467,8 @@ generate_config(void *arg)
 	static const char httpd_cgi_config_line1[] HTTPD_STRING_ATTR = "<td><input name=\"domain_name\" type=\"text\" size=\"50\" maxlength=\"30\" value=\"%s\"></td></tr>";
 	static const char httpd_cgi_config_line2[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">Default Relay State</td><td><input type=\"radio\" name=\"relay\" value=\"1\" %s>On<input type=\"radio\" name=\"relay\" value=\"0\" %s>Off</td></tr>";
 	static const char httpd_cgi_config_line3[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">Forwarding</td><td><input type=\"radio\" name=\"routing\" value=\"1\" %s>On<input type=\"radio\" name=\"routing\" value=\"0\" %s>Off</td></tr>";
-    static const char httpd_cgi_config_line4[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">Submit:</td><td><input type=\"submit\" value=\" Submit \" ></td></tr></table></form>";
+	static const char httpd_cgi_config_line4[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">S0 meter (Imp./kWh)</td><td><input type=\"text\" size=\"4\" maxlength=\"4\" name=\"s0\" value=\"%s\"></td></tr>";
+    static const char httpd_cgi_config_line5[] HTTPD_STRING_ATTR = "<tr><input type=\"hidden\" name=\"terminator\" value=\"\"><td align=\"right\">Submit:</td><td><input type=\"submit\" value=\" Submit \" ></td></tr></table></form>"; //additional ampersand from the hidden value simplifies parsing
 
     char* checked = "checked";
 	numprinted=0;
@@ -483,7 +486,17 @@ generate_config(void *arg)
 	else
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line3, "", checked);
 
-	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line4);
+#if S0_ENABLE
+    char s0val[5];
+    uint32_t refval= (eeprom_read_word((void*) EE_METERING_REF));
+    refval = ((3600000*CLOCK_SECOND)/(refval*10));            // 1h*1000(for kilowatts) / refval*10(to fit into 16bits)
+
+    ltoa(refval, s0val, 10);
+
+   numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line4, s0val);
+#endif
+
+	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line5);
 
 	return numprinted;
 
