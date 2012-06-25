@@ -8,7 +8,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 0
+#define UDP_HANDLER_DEBUG 1
 
 // WebServer
 #define WEBSERVER_DEBUG 1
