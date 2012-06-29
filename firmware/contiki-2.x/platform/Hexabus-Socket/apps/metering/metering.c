@@ -297,7 +297,7 @@ ISR(METERING_VECT)
 #if METERING_ENERGY_PERSISTENT
 ISR(ANALOG_COMP_vect)
 {
-  if(metering_calibration == false && clock_time() > CLOCK_SECOND) // Don't do anything if calibration is enabled; don't do anything within one second after bootup.
+  if(metering_calibration == false && clock_time() > CLOCK_SECOND) // Don't do anything if calibration is enabled; don't do anything within one second after bootup. TODO: can the clock overflow?
   {
     eeprom_write((uint8_t*)EE_ENERGY_METERING_PULSES, (uint8_t*)&metering_pulses, sizeof(metering_pulses)); // write number of pulses to eeprom
     eeprom_write((uint8_t*)EE_ENERGY_METERING_PULSES_TOTAL, (uint8_t*)&metering_pulses_total, sizeof(metering_pulses_total));
