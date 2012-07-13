@@ -71,9 +71,10 @@ public class HexabusDevice {
 		ArrayList<HexabusEndpoint> oldEndpoints = endpoints;
 		endpoints = new ArrayList<HexabusEndpoint>();
 		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
+		long reply = 0;
 		try {
-		long reply = endpoints.get(0).queryUint32Endpoint(); // First Endpoint is Device Descriptor
-		} catch(HexabusException e) {
+		reply = endpoints.get(0).queryUint32Endpoint(); // First Endpoint is Device Descriptor
+		} catch(Hexabus.HexabusException e) {
 			if(e.getMessage().substring(1,21).equals("Error packet received")) {
 				endpoints = oldEndpoints;
 				//TODO rethrow?
@@ -106,8 +107,9 @@ public class HexabusDevice {
 				}
 			}
 
-			HexabusPacket packet = new HexabusQueryPacket(eid);
-			int port = packet.sendPacket(device.getInetAddress());
+			eidOffset+=32;
+			HexabusPacket packet = new HexabusQueryPacket(eidOffset);
+			int port = packet.sendPacket(address);
 			// Receive reply
 			packet = Hexabus.receivePacket(port);
 			switch(packet.getPacketType()) {
@@ -116,7 +118,6 @@ public class HexabusDevice {
 					break;
 				case INFO:
 					reply = ((HexabusInfoPacket) packet).getUint32();
-					eidOffset+=32;
 					addEndpoint(eidOffset, Hexabus.DataType.UINT32, "Hexabus device descriptor");
 					break;
 				default:
