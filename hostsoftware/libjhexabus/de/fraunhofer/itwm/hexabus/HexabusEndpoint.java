@@ -25,12 +25,28 @@ public class HexabusEndpoint {
 		this.description = "";
 	}
 
+	public int getEid() {
+		return eid;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public Hexabus.DataType getDataType() {
+		return dataType;
+	}
+
+	public String toString() {
+		return eid+" "+description+" "+dataType;
+	}
+
 	public void writeEndpoint(boolean value) throws Hexabus.HexabusException, IOException {
 		if(dataType != Hexabus.DataType.BOOL) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
 		}
 		HexabusPacket packet = new HexabusWritePacket(eid, value);
-		packet.sendPacket(device.getIP());
+		packet.sendPacket(device.getInetAddress());
 	}
 
 	public void writeEndpoint(String value) throws Hexabus.HexabusException, IOException {
@@ -38,7 +54,7 @@ public class HexabusEndpoint {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
 		HexabusPacket packet = new HexabusWritePacket(eid, value);
-		packet.sendPacket(device.getIP());
+		packet.sendPacket(device.getInetAddress());
 	}
 
 	public void writeEndpoint(short value) throws Hexabus.HexabusException, IOException {
@@ -46,7 +62,7 @@ public class HexabusEndpoint {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
 		HexabusPacket packet = new HexabusWritePacket(eid, value);
-		packet.sendPacket(device.getIP());
+		packet.sendPacket(device.getInetAddress());
 	}
 
 	public void writeEndpoint(float value) throws Hexabus.HexabusException, IOException {
@@ -54,7 +70,7 @@ public class HexabusEndpoint {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
 		HexabusPacket packet = new HexabusWritePacket(eid, value);
-		packet.sendPacket(device.getIP());
+		packet.sendPacket(device.getInetAddress());
 	}
 
 	public void writeEndpoint(long value) throws Hexabus.HexabusException, IOException {
@@ -62,7 +78,7 @@ public class HexabusEndpoint {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
 		HexabusPacket packet = new HexabusWritePacket(eid, value);
-		packet.sendPacket(device.getIP());
+		packet.sendPacket(device.getInetAddress());
 	}
 
 	public void writeEndpoint(Timestamp value) throws Hexabus.HexabusException, IOException {
@@ -70,7 +86,7 @@ public class HexabusEndpoint {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
 		HexabusPacket packet = new HexabusWritePacket(eid, value);
-		packet.sendPacket(device.getIP());
+		packet.sendPacket(device.getInetAddress());
 	}
 
 	public void writeEndpoint(Calendar value) throws Hexabus.HexabusException, IOException {
@@ -78,131 +94,131 @@ public class HexabusEndpoint {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
 		HexabusPacket packet = new HexabusWritePacket(eid, value);
-		packet.sendPacket(device.getIP());
+		packet.sendPacket(device.getInetAddress());
 	}
 
 	// TODO use setSoTimeout
-	public boolean queryEndpoint(boolean value) throws Hexabus.HexabusException, IOException {
+	public boolean queryBoolEndpoint() throws Hexabus.HexabusException, IOException {
 		if(dataType != Hexabus.DataType.BOOL) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
 		}
 		HexabusPacket packet = new HexabusQueryPacket(eid);
-		int port = packet.sendPacket(device.getIP());
+		int port = packet.sendPacket(device.getInetAddress());
 		// Receive reply
 		packet = Hexabus.receivePacket(port);
 		switch(packet.getPacketType()) {
 			case ERROR:
 				throw new Hexabus.HexabusException("Error packet received: "+((HexabusErrorPacket) packet).getErrorCode());
 			case INFO:
-				return ((HexabusInfoPacket) packet).getValue(value);
+				return ((HexabusInfoPacket) packet).getBool();
 			default:
 				throw new Hexabus.HexabusException("Unexpected reply received");
 		}
 	}
 
-	public String queryEndpoint(String value) throws Hexabus.HexabusException, IOException {
+	public String queryStringEndpoint() throws Hexabus.HexabusException, IOException {
 		if(dataType != Hexabus.DataType.STRING) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
 		HexabusPacket packet = new HexabusQueryPacket(eid);
-		int port = packet.sendPacket(device.getIP());
+		int port = packet.sendPacket(device.getInetAddress());
 		// Receive reply
 		packet = Hexabus.receivePacket(port);
 		switch(packet.getPacketType()) {
 			case ERROR:
 				throw new Hexabus.HexabusException("Error packet received: "+((HexabusErrorPacket) packet).getErrorCode());
 			case INFO:
-				return ((HexabusInfoPacket) packet).getValue(value);
+				return ((HexabusInfoPacket) packet).getString();
 			default:
 				throw new Hexabus.HexabusException("Unexpected reply received");
 		}
 	}
 
-	public short queryEndpoint(short value) throws Hexabus.HexabusException, IOException {
+	public short queryUint8Endpoint() throws Hexabus.HexabusException, IOException {
 		if(dataType != Hexabus.DataType.UINT8) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
 		HexabusPacket packet = new HexabusQueryPacket(eid);
-		int port = packet.sendPacket(device.getIP());
+		int port = packet.sendPacket(device.getInetAddress());
 		// Receive reply
 		packet = Hexabus.receivePacket(port);
 		switch(packet.getPacketType()) {
 			case ERROR:
 				throw new Hexabus.HexabusException("Error packet received: "+((HexabusErrorPacket) packet).getErrorCode());
 			case INFO:
-				return ((HexabusInfoPacket) packet).getValue(value);
+				return ((HexabusInfoPacket) packet).getUint8();
 			default:
 				throw new Hexabus.HexabusException("Unexpected reply received");
 		}
 	}
 
-	public float queryEndpoint(float value) throws Hexabus.HexabusException, IOException {
+	public float queryFloatEndpoint() throws Hexabus.HexabusException, IOException {
 		if(dataType != Hexabus.DataType.FLOAT) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
 		HexabusPacket packet = new HexabusQueryPacket(eid);
-		int port = packet.sendPacket(device.getIP());
+		int port = packet.sendPacket(device.getInetAddress());
 		// Receive reply
 		packet = Hexabus.receivePacket(port);
 		switch(packet.getPacketType()) {
 			case ERROR:
 				throw new Hexabus.HexabusException("Error packet received: "+((HexabusErrorPacket) packet).getErrorCode());
 			case INFO:
-				return ((HexabusInfoPacket) packet).getValue(value);
+				return ((HexabusInfoPacket) packet).getFloat();
 			default:
 				throw new Hexabus.HexabusException("Unexpected reply received");
 		}
 	}
 
-	public long queryEndpoint(long value) throws Hexabus.HexabusException, IOException {
+	public long queryUint32Endpoint() throws Hexabus.HexabusException, IOException {
 		if(dataType != Hexabus.DataType.UINT32) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
 		HexabusPacket packet = new HexabusQueryPacket(eid);
-		int port = packet.sendPacket(device.getIP());
+		int port = packet.sendPacket(device.getInetAddress());
 		// Receive reply
 		packet = Hexabus.receivePacket(port);
 		switch(packet.getPacketType()) {
 			case ERROR:
 				throw new Hexabus.HexabusException("Error packet received: "+((HexabusErrorPacket) packet).getErrorCode());
 			case INFO:
-				return ((HexabusInfoPacket) packet).getValue(value);
+				return ((HexabusInfoPacket) packet).getUint32();
 			default:
 				throw new Hexabus.HexabusException("Unexpected reply received");
 		}
 	}
 
-	public Timestamp queryEndpoint(Timestamp value) throws Hexabus.HexabusException, IOException {
+	public Timestamp queryTimestampEndpoint() throws Hexabus.HexabusException, IOException {
 		if(dataType != Hexabus.DataType.TIMESTAMP) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
 		HexabusPacket packet = new HexabusQueryPacket(eid);
-		int port = packet.sendPacket(device.getIP());
+		int port = packet.sendPacket(device.getInetAddress());
 		// Receive reply
 		packet = Hexabus.receivePacket(port);
 		switch(packet.getPacketType()) {
 			case ERROR:
 				throw new Hexabus.HexabusException("Error packet received: "+((HexabusErrorPacket) packet).getErrorCode());
 			case INFO:
-				return ((HexabusInfoPacket) packet).getValue(value);
+				return ((HexabusInfoPacket) packet).getTimestamp();
 			default:
 				throw new Hexabus.HexabusException("Unexpected reply received");
 		}
 	}
 
-	public Calendar queryEndpoint(Calendar value) throws Hexabus.HexabusException, IOException {
+	public Calendar queryDatetimeEndpoint() throws Hexabus.HexabusException, IOException {
 		if(dataType != Hexabus.DataType.DATETIME) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
 		HexabusPacket packet = new HexabusQueryPacket(eid);
-		int port = packet.sendPacket(device.getIP());
+		int port = packet.sendPacket(device.getInetAddress());
 		// Receive reply
 		packet = Hexabus.receivePacket(port);
 		switch(packet.getPacketType()) {
 			case ERROR:
 				throw new Hexabus.HexabusException("Error packet received: "+((HexabusErrorPacket) packet).getErrorCode());
 			case INFO:
-				return ((HexabusInfoPacket) packet).getValue(value);
+				return ((HexabusInfoPacket) packet).getDatetime();
 			default:
 				throw new Hexabus.HexabusException("Unexpected reply received");
 		}
