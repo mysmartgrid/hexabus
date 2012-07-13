@@ -8,8 +8,8 @@ import java.util.Calendar;
 
 public class HexabusInfoPacket extends HexabusPacket {
 	
-	private Hexabus.DataType dataType;
-	private byte[] payload;
+	protected Hexabus.DataType dataType;
+	protected byte[] payload;
 	protected byte eid;
 
 	public HexabusInfoPacket(int eid, Hexabus.DataType dataType, byte[] payload) throws Hexabus.HexabusException {
@@ -140,49 +140,49 @@ public class HexabusInfoPacket extends HexabusPacket {
 	}
 
 
-	public boolean getValue(boolean value) throws Hexabus.HexabusException {
+	public boolean getBool() throws Hexabus.HexabusException {
 		if(dataType != Hexabus.DataType.BOOL) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
 		}
 		return Hexabus.parseBool(payload);
 	}
 
-	public short getValue(short value) throws Hexabus.HexabusException {
+	public short getUint8() throws Hexabus.HexabusException {
 		if(dataType != Hexabus.DataType.UINT8) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
 		}
 		return Hexabus.parseUint8(payload);
 	}
 
-	public String getValue(String value) throws Hexabus.HexabusException {
+	public String getString() throws Hexabus.HexabusException {
 		if(dataType != Hexabus.DataType.STRING) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
 		}
 		return Hexabus.parseString(payload);
 	}
 
-	public float getValue(float value) throws Hexabus.HexabusException {
+	public float getFloat() throws Hexabus.HexabusException {
 		if(dataType != Hexabus.DataType.FLOAT) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
 		}
 		return Hexabus.parseFloat(payload);
 	}
 
-	public long getValue(long value) throws Hexabus.HexabusException {
+	public long getUint32() throws Hexabus.HexabusException {
 		if(dataType != Hexabus.DataType.UINT32) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
 		}
 		return Hexabus.parseUint32(payload);
 	}
 
-	public Timestamp getValue(Timestamp value) throws Hexabus.HexabusException {
+	public Timestamp getTimestamp() throws Hexabus.HexabusException {
 		if(dataType != Hexabus.DataType.TIMESTAMP) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
 		}
 		return Hexabus.parseTimestamp(payload);
 	}
 
-	public Calendar getValue(Calendar value) throws Hexabus.HexabusException {
+	public Calendar getDatetime() throws Hexabus.HexabusException {
 		if(dataType != Hexabus.DataType.DATETIME) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
 		}
