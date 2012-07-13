@@ -16,6 +16,12 @@ public abstract class HexabusPacket {
 
 	//TODO: use source{Address,Port}
 	//return value is source port
+	/**
+	 * Sends the packet to specified address on port { @value Hexabus#PORT }
+	 *
+	 * @param address The InetAddress where the packet should be sent to
+	 * @return The source port on which the packet has been sent out
+	 */
 	public int sendPacket(InetAddress address) throws Hexabus.HexabusException, IOException {
 		byte[] data = buildPacket();
 		crc = crc(data);
@@ -34,6 +40,13 @@ public abstract class HexabusPacket {
 		return sourcePort;
 	}
 
+	/**
+	 * Sends the packet to specified address on specified port
+	 *
+	 * @param address The InetAddress where the packet to should be sent to
+	 * @param port The port where the packet should be sent to
+	 * @return The source port on which the packet has been sent out
+	 */
 	public int sendPacket(InetAddress address, int port) throws Hexabus.HexabusException, IOException {
 		byte[] data = buildPacket();
 		crc = crc(data);
@@ -51,6 +64,9 @@ public abstract class HexabusPacket {
 		return socket.getLocalPort();
 	}
 	
+	/**
+	 * @return The source address where a packet came from
+	 */
 	public InetAddress getSourceAddress() {
 		return sourceAddress;
 	}
@@ -60,6 +76,9 @@ public abstract class HexabusPacket {
 		sourceAddress = address;
 	}
 	
+	/**
+	 * @return The source port where a packet came from
+	 */
 	public int getSourcePort() {
 		return sourcePort;
 	}
@@ -69,6 +88,9 @@ public abstract class HexabusPacket {
 		sourcePort = port;
 	}
 
+	/**
+	 * @return The packet type of this packet
+	 */
 	public Hexabus.PacketType getPacketType() {
 		return packetType;
 	}
@@ -85,6 +107,11 @@ public abstract class HexabusPacket {
 		this.crc = crc;
 	}
 	
+	/**
+	 * Checks if the CRC of the packet is correct.
+	 *
+	 * @return <code>true</code> if the CRC is correct, <code>false</code> otherwise
+	 */
 	public boolean checkCRC() throws Hexabus.HexabusException {
 		byte[] checked = crc(buildPacket());
 		return (checked[0] == crc[0]) && (checked[1] == crc[1]);
