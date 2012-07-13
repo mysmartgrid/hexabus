@@ -139,6 +139,59 @@ public class HexabusWritePacket extends HexabusPacket {
 		return dataType;
 	}
 
+	public int getEid() {
+		return eid;
+	}
+
+	public boolean getBool() throws Hexabus.HexabusException {
+		if(dataType != Hexabus.DataType.BOOL) {
+			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
+		}
+		return Hexabus.parseBool(payload);
+	}
+
+	public short getUint8() throws Hexabus.HexabusException {
+		if(dataType != Hexabus.DataType.UINT8) {
+			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
+		}
+		return Hexabus.parseUint8(payload);
+	}
+
+	public String getString() throws Hexabus.HexabusException {
+		if(dataType != Hexabus.DataType.STRING) {
+			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
+		}
+		return Hexabus.parseString(payload);
+	}
+
+	public float getFloat() throws Hexabus.HexabusException {
+		if(dataType != Hexabus.DataType.FLOAT) {
+			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
+		}
+		return Hexabus.parseFloat(payload);
+	}
+
+	public long getUint32() throws Hexabus.HexabusException {
+		if(dataType != Hexabus.DataType.UINT32) {
+			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
+		}
+		return Hexabus.parseUint32(payload);
+	}
+
+	public Timestamp getTimestamp() throws Hexabus.HexabusException {
+		if(dataType != Hexabus.DataType.TIMESTAMP) {
+			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
+		}
+		return Hexabus.parseTimestamp(payload);
+	}
+
+	public Calendar getDatetime() throws Hexabus.HexabusException {
+		if(dataType != Hexabus.DataType.DATETIME) {
+			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
+		}
+		return Hexabus.parseDatetime(payload);
+	}
+
 	protected byte[] buildPacket() throws Hexabus.HexabusException {
 		byte[] packetData = new byte[packetType.getBaseLength()+dataType.getSize()-2];
 		ByteBuffer buffer = super.buildPacket(packetData);

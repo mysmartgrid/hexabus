@@ -139,6 +139,10 @@ public class HexabusInfoPacket extends HexabusPacket {
 		return dataType;
 	}
 
+	public int getEid() {
+		return eid;
+	}
+
 
 	public boolean getBool() throws Hexabus.HexabusException {
 		if(dataType != Hexabus.DataType.BOOL) {
