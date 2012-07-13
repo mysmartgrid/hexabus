@@ -1,20 +1,20 @@
 package de.fraunhofer.itwm.hexabus;
 
 import java.net.InetAddress;
-import java.util.Collection;
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.io.IOException;
 
 public class HexabusDevice {
 	private InetAddress address;
-	private ArrayList<HexabusEndpoint> endpoints;
+	private HashMap<Integer,HexabusEndpoint> endpoints;
 
 	/**
 	 * @param address The InetAddress of the device
 	 */
 	public HexabusDevice(InetAddress address) {
 		this.address = address;
-		endpoints = new ArrayList<HexabusEndpoint>();
+		endpoints = new HashMap<Integer,HexabusEndpoint>();
 		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
 	}
 	//TODO constructor with string
@@ -31,7 +31,7 @@ public class HexabusDevice {
 	//TODO check if eid exists
 	public HexabusEndpoint addEndpoint(int eid, Hexabus.DataType datatype, String description) {
 		HexabusEndpoint endpoint = new HexabusEndpoint(this, eid, datatype, description);
-		endpoints.add(endpoint);
+		endpoints.put(eid, endpoint);
 		return endpoint;
 	}
 
@@ -45,7 +45,7 @@ public class HexabusDevice {
 	 */
 	public HexabusEndpoint addEndpoint(int eid, Hexabus.DataType datatype) {
 		HexabusEndpoint endpoint = new HexabusEndpoint(this, eid, datatype);
-		endpoints.add(endpoint);
+		endpoints.put(eid, endpoint);
 		return endpoint;
 	}
 
@@ -59,21 +59,35 @@ public class HexabusDevice {
 	/**
 	 * @return The endpoints that are associated with the device
 	 */
-	public ArrayList<HexabusEndpoint> getEndpoints() {
+	public HashMap<Integer, HexabusEndpoint> getEndpoints() {
 		return endpoints;
+	}
+
+	public HexabusEndpoint getByEid(int eid) throws Hexabus.HexabusException {
+		if(eid>255) {
+			throw new Hexabus.HexabusException("EID too large");
+		}
+		
+		for(Map.Entry<Integer, HexabusEndpoint> entry : endpoints.entrySet()) {
+			if(entry.getKey().intValue() == eid) {
+				return entry.getValue();
+			}
+		}
+
+		throw new Hexabus.HexabusException("EID not found");
 	}
 
 	/**
 	 * Sends an endpoint query to the device and its endpoints.
 	 * Replaces the currently asscociated endpoints with the result.
 	 */
-	public ArrayList<HexabusEndpoint> fetchEndpoints() throws Hexabus.HexabusException, IOException {
-		ArrayList<HexabusEndpoint> oldEndpoints = endpoints;
-		endpoints = new ArrayList<HexabusEndpoint>();
+	public HashMap<Integer, HexabusEndpoint> fetchEndpoints() throws Hexabus.HexabusException, IOException {
+		HashMap<Integer, HexabusEndpoint> oldEndpoints = endpoints;
+		endpoints = new HashMap<Integer, HexabusEndpoint>();
 		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
 		long reply = 0;
 		try {
-		reply = endpoints.get(0).queryUint32Endpoint(); // First Endpoint is Device Descriptor
+			reply = getByEid(0).queryUint32Endpoint(); // Device Descriptor
 		} catch(Hexabus.HexabusException e) {
 			if(e.getMessage().substring(1,21).equals("Error packet received")) {
 				endpoints = oldEndpoints;
