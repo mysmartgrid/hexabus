@@ -1,0 +1,43 @@
+# heater2.hbc - heating control with hysteresis
+
+alias sensorbox {
+	ip fe80::50:c4ff:fe04:8099;
+	eids { 3, 5, 29 };
+}
+
+alias heater {
+	ip fe80::50:c4ff:fe04:8098;
+	eids { 98 };
+}
+
+###############################################################################
+
+main {
+  states { off, half, full }
+  init {
+    heater.heater = 0;
+    goto off;
+  }
+  in(off) {
+    if(sensorbox.temperature < 21 || sensorbox.humidity > 75) {
+      heater.heater = 50;
+      goto half;
+    }
+  }
+  in(half) {
+    if(sensorbox.temperature > 22) {
+      heater.heater = 0;
+      goto off;
+    }
+    if(sensorbox.temperature < 16) {
+      heater.heater = 100;
+      goto full;
+    }
+  }
+  in(full) {
+    if(sensorbox.temperature > 18) {
+      heater.heater = 50;
+      goto half;
+    }
+  }
+}

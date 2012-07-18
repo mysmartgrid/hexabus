@@ -1,0 +1,149 @@
+# large_example.hbc
+
+include std_eid.hbh;
+incluse toggle.hbh;
+
+# device list #################################################################
+
+alias sensorbox {
+	ip fe80::50:c4ff:fe04:8099;
+	eids { 3, 5, 29 };
+}
+
+alias heater {
+	ip fe80::50:c4ff:fe04:8098;
+	endpoint 98 { datatype UINT8; name heater; access write; }; # "device-local" endpoint def. -- overrides global def.
+	eids { 98 };
+}
+
+alias lightswitch {
+	ip fe80::50:c4ff:fe04:8097;
+	eids { 24, 25 };
+}
+
+alias lightswitch2 {
+	ip fe80::50:c4ff:fe04:8095;
+	eids { 24, 25 };
+}
+
+alias lamp {
+	ip fe80::50:c4ff:fe04:8096;
+	eids { 1 };
+}
+
+alias remote_control {
+  ip fe80::50:c4ff:fe04:5555;
+  eids { 30 }; # The ir reciever.
+}              # it sends some button codes
+
+# these are some Hexabus Plugs which control the power to some appliances
+alias printer {
+  ip fe80::50:c4ff:fe04:6666;
+  eids { 1 };
+}
+
+alias game_consoles {
+  ip fe80::50:c4ff:fe04:7777;
+  eids { 1 };
+}
+
+alias media_center { # BluRay Player and TV
+  ip fe80::50:c4ff:fe04:8888;
+  eids { 1 };
+}
+
+alias staircase_lights {
+  ip fe80::50:c4ff:fe04:ab01;
+  eids { 1 };
+}
+
+alias staircase_lightswitch {
+  ip fe80::50:c4ff:fe04:ab02;
+  eids { 4 }; # eid 4: button is pressed
+}
+
+# behaviour definition ########################################################
+
+heater {
+  if(sensorbox.temperature >= 15 && sensorbox.temperature < 19) {
+    heater.heater := 100;
+  } else if(sensorbox.temperature >= 19 && sensorbox.temperature < 22) {
+    heater.heater := 50;
+  } else {
+    heater.heater := 0;
+  }
+}
+
+remote_control {
+  # switch on and off the media center ####################################
+  event(remote_control.ir == 134218000) { # media center on
+    media_center.on := true;
+  }
+  event(remote_control.ir == 1048580) { # media center off
+    media_center.on := false;
+    game_consoles.on := false;
+  }
+  event(remote_control.ir == 536871000) { # game consoles on
+    game_consoles.on := true;
+    media_center.on := true;
+  }
+  event(remote_control.ir == 2147480000) { # game consoles off
+    game.consoles.on := false;
+  }
+
+  # printer ###############################################################
+  event(remote_control.ir == 1024) {
+    printer.on := true;
+  }
+  event(remote_control.ir == 2048) {
+    printer.on := false;
+  }
+}
+
+pc_plug {
+  states { on, waiting, off }
+  init {
+    goto off;
+  }
+  in(off) {
+    event(powerplug.button == true) {
+      powerplug.on := true;
+    }
+  }
+  in(on) {
+    if(powerplug.power < 10) {
+      goto waiting;
+    }
+  }
+  in(waiting) {
+    if(powerplug.power > 10) {
+      goto on;
+    }
+    timeout(5 min) {
+      powerplug.on := false;
+      goto off;
+    }
+  }
+}
+
+staircase {
+  states { light_on, light_off }
+  in(light_off) {
+    if(time > 18h || time < 7h) {
+      event(staircase_lightswitch.button == true) {
+        staicase_lights.on := true;
+        goto light_on;
+      }
+    }
+  }
+  in(light_on) {
+    if(timeout == 90s) {
+      staircase_lights.on := false;
+      goto light_off;
+    }
+  }
+}
+
+# lightswitch #############################################################
+toggle(lightswitch.clicked, 2, lamp.on);
+toggle(lightswitch2.clicked, 2, lamp.on);

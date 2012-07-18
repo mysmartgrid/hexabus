@@ -14,6 +14,7 @@ syn match hbcComment "#.*$" contains=hbcTodo
 syn keyword hbcTodo contained TODO FIXME XXX NOTE
 
 " Alias definitions
+" TODO somehow hbcAliasName matches EVERYWHERE. This should not be the case
 " TODO shortened form should also be okay
 syn match hbcIPAddr '\x\{1,4}:\x\{1,4}:\x\{1,4}:\x\{1,4}:\x\{1,4}:\x\{1,4}:\x\{1,4}:\x\{1,4}'
 syn keyword hbcAliasCommand contained ip nextgroup=hbcIPAddr
@@ -28,7 +29,7 @@ syn keyword hbcAlias alias nextgroup=hbcAliasName
 " 'preprocessor' stuff like include
 syn keyword hbcPreproc include nextgroup=hbcFileName
 " TODO make this more... useful
-syn match hbcFileName '\h\h*\.hbh'
+syn match hbcFileName '\h\h*\.hb.'
 
 
 let b:current_syntax = "hbc"

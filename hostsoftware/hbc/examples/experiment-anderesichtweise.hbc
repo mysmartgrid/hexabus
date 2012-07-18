@@ -1,0 +1,73 @@
+# ganz anderer ansatz:
+# bei den bisherigen ansätzen habe ich mich immer - wohl zum großteil instinktiv - am hexabus-konzept orientiert. also zusammenhänge aus der sicht des gesteuerten gerätes beschrieben.
+# was wenn ich die zusammenhänge aus der sicht des gesteuerten gerätes beschreibe?
+
+inputdevice sensorbox {
+  ip = ...;
+  eids = { ... };
+  if(temperature > 20) {
+    heater := 0;
+  }
+  if(temperature < 19) {
+    heater := 100;
+  }
+}
+
+inputdevice lightswitch1 {
+  ip = ...;
+  eids = { ... };
+  if(button = true) {
+    light1 := true;
+  }
+}
+
+inputdevice lightswitch2 {
+  ip = ...;
+  eids = { ... };
+  if(button = true) {
+    light1 := true;
+  }
+}
+
+
+# das gleiche programm mit der "bekannten" semantik
+
+alias sensorbox {
+  ip = ...;
+  eids = { ... };
+}
+
+alias lightswitch1 {
+  ip = ...;
+  eids = { ... };
+}
+
+alias lightswitch2 {
+  ip = ...;
+  eids = { ... };
+}
+
+alias light1 {
+  ip = ...;
+  eids = { ... };
+}
+
+alias heater {
+  ip = ...;
+  eids = { ... };
+}
+
+heating {
+  if(sensorbox.temperature > 20) {
+    heater.heater := 0;
+  }
+  if(sensorbox.temperature < 19) {
+    heater := 100;
+  }
+}
+
+lights {
+  if(lightswitch1 == true || lightswitch2 == true) {
+    light1 := true;
+  }
+}

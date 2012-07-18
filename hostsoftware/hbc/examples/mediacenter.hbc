@@ -1,0 +1,59 @@
+# ir remote control example
+
+# This is the setup in our living room. The video game consoles, TV and printer
+# are connected to several Hexabus Plugs, so we can turn them off when they are
+# not used, in order to reduce stand-by energy usage.
+
+include std_eid.hba
+
+alias remote_control {
+  ip fe80::50:c4ff:fe04:5555;
+  eids { 30 }; # The ir reciever.
+}              # it sends some button codes
+
+# these are some Hexabus Plugs which control the power to some appliances
+alias printer {
+  ip fe80:0:0:0:50:c4ff:fe04:6666;
+  eids { 1 };
+}
+
+alias game_consoles {
+  ip fe80::50:c4ff:fe04:7777;
+  eids { 1 };
+}
+
+alias media_center { # BluRay Player and TV
+  ip fe80::50:c4ff:fe04:8888;
+  eids { 1 };
+}
+
+# behaviour definition ########################################################
+
+main {
+# Idea: The user can switch on the media center by itself. It also turns on
+# automatically when the game consoles are turned on.
+# The game consoles can be turned off by themselves, and they are automatically
+# switched off when the media center is switched off.
+  event(remote_control.ir == 134218000) { # media center on
+    media_center.on := true;
+  }
+  event(remote_control.ir == 1048580) { # media center off
+    media_center.on := false;
+    game_consoles.on := false;
+  }
+  event(remote_control.ir == 536871000) { # game consoles on
+    game_consoles.on := true;
+    media_center.on := true;
+  }
+  event(remote_control.ir == 2147480000) { # game consoles off
+    game.consoles.on := false;
+  }
+
+# the printer can be switched by itself
+  event(remote_control.ir == 1024) {
+    printer.on := true;
+  }
+  event(remote_control.ir == 2048) {
+    printer.on := false;
+  }
+}

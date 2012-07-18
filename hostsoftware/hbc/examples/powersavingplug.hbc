@@ -1,0 +1,46 @@
+# powersavingplug.hbc
+
+# This is the plug I use to control my PC's power strip with. When the PC has been
+# off for some minutes, the power strip shuts down and monitor, speakers, etc
+# are turned off.
+
+include std_eid.hbh
+
+alias powerplug {
+  ip fe80::50:c4ff:fe04:2345;
+  eids { 1, 2 };
+}
+
+# behaviour definition ########################################################
+
+# The main module is always started. Question: Do we want multiple "top level"
+# modules, or do we want to start/instantiate/..? other modules from main?
+main {
+  states { on, waiting, off }
+
+  init {
+    goto off;
+  }
+
+  in(off) {
+    event(powerplug.button == true) {
+      powerplug.on := true;
+    }
+  }
+
+  in(on) {
+    if(powerplug.power < 10) {
+      goto waiting;
+    }
+  }
+
+  in(waiting) {
+    if(powerplug.power > 10) {
+      goto on;
+    }
+    timeout(5 min) {
+      powerplug.on := false;
+      goto off;
+    }
+  }
+}
