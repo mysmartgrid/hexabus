@@ -46,5 +46,7 @@ namespace hexabus {
   };
 };
 
+// TODO ADAPT_STRUCT...
+
 #endif // LIBHBC_AST_DATATYPES
 
