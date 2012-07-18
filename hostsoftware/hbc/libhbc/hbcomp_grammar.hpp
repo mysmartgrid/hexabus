@@ -73,8 +73,6 @@ namespace hexabus {
       equals = lit("==") [_val = STM_EQ];
       constant = float_; // TODO do we need to distinguish between float, int, timestamp, ...?
 
-      // TODO don't forget about file_pos!
-
       // Basic elements: Identifier, assignment, ...
       identifier %= eps
         > char_("a-zA-Y_") > *char_("a-zA-Z0-9");
@@ -85,24 +83,26 @@ namespace hexabus {
 
       // larger blocks: Aliases, state machines
       include %= lit("include") > filename > ';';
-      alias %= lit("alias") > '{'
+      alias %= lit("alias") >> file_pos > '{'
         > lit("ip") > ipv6_address > ';'
         > lit("eids") > eid_list > ';' > '}';
 
-      statemachine %= identifier > '{' > stateset > *in_clause > '}';
+      statemachine %= identifier >> file_pos > '{' > stateset > *in_clause > '}';
 
-      in_clause %= lit("in") > '(' > identifier > ')'
+      in_clause %= lit("in") >> file_pos > '(' > identifier > ')'
         > '{' > *if_clause > '}';
 
-      if_clause %= lit("if") > '(' > condition > ')'
+      // TODO condition
+
+      if_clause %= lit("if") >> file_pos > '(' > condition > ')'
         > '{' > *command > goto_command > '}';
 
       // commands that "do something"
-      command %= write_command > ';'; // TODO more commands to be added here?
+      command %= file_pos >> write_command > ';'; // TODO more commands to be added here?
       write_command %= global_endpoint_id > is > constant;
-      goto_command %= lit("goto") > identifier > ';';
+      goto_command %= lit("goto") >> file_pos > identifier > ';';
 
-      start %= /* *include > */ *alias > *statemachine;
+      start %= *include > *alias > *statemachine;
     }
   }
 };
