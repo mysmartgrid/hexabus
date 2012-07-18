@@ -14,11 +14,10 @@ syn match hbcComment "#.*$" contains=hbcTodo
 syn keyword hbcTodo contained TODO FIXME XXX NOTE
 
 " Alias definitions
-" TODO somehow hbcAliasName matches EVERYWHERE. This should not be the case
-" TODO shortened form should also be okay
-syn match hbcIPAddr '\x\{1,4}:\x\{1,4}:\x\{1,4}:\x\{1,4}:\x\{1,4}:\x\{1,4}:\x\{1,4}:\x\{1,4}'
+syn match hbcIPAddr "\(\x\{1,4}:\)\{7}\x\{1,4}" "fullsize IP Addr
+syn match hbcIPAddr "\(:\|\(\x\{1,4}:\)\{1,6}\):\(\(\x\{1,4}:\)\{0,6}\x\{1,4}\)\?" "shortened
 syn keyword hbcAliasCommand contained ip nextgroup=hbcIPAddr
-syn match hbcList '{(\d+,)*\d+}'
+syn match hbcList "{[ ]*\d\d*\(,[ ]*\d\d*\)*[ ]*}"
 syn keyword hbcAliasCommand eids nextgroup=hbcList
 syn keyword hbcAliasCommand contained endpoint nextgroup=hbcLoaclEPDef
 " syn match hbcLocalEPDef TODO
@@ -41,6 +40,7 @@ hi def link hbcAlias          Statement
 hi def link hbcAliasCommand   Statement
 hi def link hbcAliasName      Type
 hi def link hbcIPAddr         Constant
+hi def link hbcList           Number
 
 " For reference:
 " hi Keyword
