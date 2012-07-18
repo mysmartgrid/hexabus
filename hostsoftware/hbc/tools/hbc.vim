@@ -21,9 +21,19 @@ syn match hbcList "{[ ]*\d\d*\(,[ ]*\d\d*\)*[ ]*}"
 syn keyword hbcAliasCommand eids nextgroup=hbcList
 syn keyword hbcAliasCommand contained endpoint nextgroup=hbcLoaclEPDef
 " syn match hbcLocalEPDef TODO
+" TODO distinguish between AliasNames, Identifiers, ... OR call them all identifier
 syn match hbcAliasName '\h\h*' nextgroup=hbcAliasDef
 syn region hbcAliasDef start="{" end="}" fold transparent contains=hbcAliasCommand,hbcIPAddr,hbcList,hbcLocalEPDef,hbcComment
 syn keyword hbcAlias alias nextgroup=hbcAliasName
+
+" State machine definition
+syn keyword hbcIf if nextgroup=hbcCondition
+syn keyword hbcElse else
+syn keyword hbcIn in nextgroup=hbcCondition
+"TODO event will be dropped from the syntax -- remove it here
+syn keyword hbcEvent event nextgroup=hbcCondition
+syn region hbcCondition start="(" end=")" transparent contains=hbcCondOp
+syn keyword hbcCondOp contained ==
 
 " 'preprocessor' stuff like include
 syn keyword hbcPreproc include nextgroup=hbcFileName
@@ -41,6 +51,10 @@ hi def link hbcAliasCommand   Statement
 hi def link hbcAliasName      Type
 hi def link hbcIPAddr         Constant
 hi def link hbcList           Number
+hi def link hbcIf             Conditional
+hi def link hbcElse           Conditional
+hi def link hbcIn           Conditional
+hi def link hbcCondOp         Operator
 
 " For reference:
 " hi Keyword
