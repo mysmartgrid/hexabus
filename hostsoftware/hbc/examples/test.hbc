@@ -1,0 +1,14 @@
+alias device {
+  ip aaaa:aaaa:aaaa:aaaa:aaaa:aaaa:aaaa:aaaa;
+  eids { 1, 2, 3 };
+}
+
+machine my_machine {
+  states { one, two, three };
+  in(one) {
+    if(device.endpoint == 23) {
+      write device.other_endpoint := 42;
+      goto two;
+    }
+  }
+}
