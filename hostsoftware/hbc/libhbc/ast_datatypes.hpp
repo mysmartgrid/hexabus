@@ -25,6 +25,22 @@ namespace hexabus {
     std::string filename;
   };
 
+  struct datatype_doc {
+    // TODO (see hexabus assembler)
+  };
+
+  struct access_level_doc {
+    // TODO
+  };
+
+  struct endpoint_doc {
+    unsigned int lineno;
+    unsigned int eid;
+    datatype_doc datatype;
+    std::string name;
+    std::vector<access_level_doc> access_levels;
+  };
+
   struct eid_list_doc {
     std::vector<unsigned int> eids;
   };
@@ -84,7 +100,7 @@ namespace hexabus {
     std::vector<in_clause_doc> in_clauses;
   };
 
-  typedef boost::variant<include_doc, alias_doc, statemachine_doc> hbc_block;
+  typedef boost::variant<include_doc, endpoint_doc, alias_doc, statemachine_doc> hbc_block; // TODO endpoint should be in here too, I think
 
   struct hbc_doc {
     std::vector<hbc_block> blocks;
@@ -96,6 +112,15 @@ BOOST_FUSION_ADAPT_STRUCT(
   hexabus::include_doc,
   (unsigned int, lineno)
   (std::string, filename)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  hexabus::endpoint_doc,
+  (unsigned int, lineno)
+  (unsigned int, eid)
+  (hexabus::datatype_doc, datatype)
+  (std::string, name)
+  (std::vector<hexabus::access_level_doc>, access_levels)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

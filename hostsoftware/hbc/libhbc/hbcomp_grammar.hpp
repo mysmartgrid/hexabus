@@ -126,14 +126,20 @@ namespace hexabus {
       // device_name.endpoint_name
       global_endpoint_id %= identifier > '.' > identifier;
       filename = identifier; // TODO most probably we need to be more specific here
+      // TODO Accept shortened IPv6 addresses - check validity with boost's network functionality
       ipv6_address_block = char_("0-9a-fA-F") > char_("0-9a-fA-F") > char_("0-9a-fA-F") > char_("0-9a-fA-F");
       ipv6_address = ((ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
                      (ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
                      (ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
                      (ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]));
 
+      datatype = ( lit("BOOL") | lit("UINT8") | lit("UINT32") | lit("FLOAT") );
+      access_level = ( lit("read") | lit("write") | lit("broadcast") );
+
       // larger blocks: Aliases, state machines
       include %= lit("include") >> file_pos > filename > ';';
+      endpoint %= lit("endpoint") >> file_pos > uint_ > '{' > lit("datatype") > datatype > ';'
+        > lit("name") > identifier > ';' > lit("access") > *access_level > ';' > '}'; // TODO allow datatype, name, access in any order
       eid_list %= '{' > uint_ > *(',' > uint_) > '}';
       alias %= lit("alias") >> file_pos > identifier > '{'
         > lit("ip") > ipv6_address > ';'
@@ -155,7 +161,7 @@ namespace hexabus {
       write_command %= lit("write") > global_endpoint_id >> file_pos > is > constant;
       goto_command %= lit("goto") >> file_pos > identifier;
 
-      start %= *include > *alias > *statemachine > eoi; // TODO those can appear in any order
+      start %= *( include | endpoint | alias | statemachine ) > eoi;
 
       start.name("toplevel");
       identifier.name("identifier");
@@ -175,6 +181,9 @@ namespace hexabus {
     qi::rule<Iterator, float(), Skip> constant;
     qi::rule<Iterator, std::string(), Skip> identifier;
     qi::rule<Iterator, std::string(), Skip> filename;
+    qi::rule<Iterator, datatype_doc(), Skip> datatype;
+    qi::rule<Iterator, access_level_doc(), Skip> access_level;
+    qi::rule<Iterator, endpoint_doc(), Skip> endpoint;
     qi::rule<Iterator, global_endpoint_id_doc(), Skip> global_endpoint_id;
     qi::rule<Iterator, std::string(), Skip> ipv6_address;
     qi::rule<Iterator, std::string(), Skip> ipv6_address_block;
