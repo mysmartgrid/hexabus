@@ -118,6 +118,8 @@ namespace hexabus {
       // TODO still missing in the grammar TODO
       // * device-local endpoint defs (do we even want this? This is SO against what we think hexabus should be
       // * Boolean operators in Conditions <- do this first!
+      // * module instantiations
+      // * forbid spaces in identifiers, filenames, placeholders
 
       // Assignment and comparison operators, constants, ...
       is = eps > lit(":=");
@@ -132,12 +134,12 @@ namespace hexabus {
       // Basic elements: Identifier, assignment, ...
       identifier %= eps
         > char_("a-zA-Z_") > *char_("a-zA-Z0-9_");
+      placeholder %= char_("$") > identifier;
       filename %= eps > char_("a-zA-Z0-9_") > *char_("a-zA-Z0-9_."); // TODO do we need to be more specific here? At least we need /s.
       on_error<rethrow>(identifier, error_traceback_t("Invalid identifier"));
       // device_name.endpoint_name
       global_endpoint_id %= identifier > '.' > identifier;
       ipv6_address %= +( char_("a-fA-F0-9") | ':' ); // parse anything that is hex and : - check validity later (TODO)
-
       datatype = ( lit("BOOL") | lit("UINT8") | lit("UINT32") | lit("FLOAT") );
       access_level = ( lit("read") | lit("write") | lit("broadcast") );
 
@@ -157,7 +159,7 @@ namespace hexabus {
         > '{' > *if_clause > '}';
 
       comp_op %= ( equals | lessequal | greaterequal | lessthan | greaterthan | notequal );
-      condition %= global_endpoint_id > comp_op > constant;
+      condition %= global_endpoint_id > comp_op > ( constant | placeholder ); // TODO move the "placeholder" to the constant rule?
 
       if_clause %= lit("if") >> file_pos > '(' > condition > ')' // TODO make a "pair" of condition+command list, make it a separate grammar elemant AND make a datastructure for it in the ast.
         > '{' > *command > goto_command > ';' > '}'
@@ -165,12 +167,19 @@ namespace hexabus {
         > '{' > *command > goto_command > ';' > '}' )
         > -( lit("else") > '{' > *command > goto_command > ';' > '}' );
 
+
+      // template definitions
+      module %= lit("module") >> file_pos > identifier
+        > '(' > -( placeholder > *(',' > placeholder) ) > ')' // TODO do we want to allow "compound" placeholders (endpoint.value), or do we allow a "." in the instantiation? Find a solution.
+        > '{' > stateset > ';' > *in_clause > '}';
+
+
       // commands that "do something"
       command %= write_command > ';'; // TODO more commands to be added here?
-      write_command %= lit("write") > global_endpoint_id >> file_pos > is > constant;
+      write_command %= lit("write") > ( global_endpoint_id | placeholder ) >> file_pos > is > ( constant | placeholder );
       goto_command %= lit("goto") >> file_pos > identifier;
 
-      start %= *( include | endpoint | alias | statemachine ) > eoi;
+      start %= *( include | endpoint | alias | statemachine | module ) > eoi;
 
       start.name("toplevel");
       identifier.name("identifier");
@@ -210,6 +219,8 @@ namespace hexabus {
     qi::rule<Iterator, void(), Skip> comp_op;
     qi::rule<Iterator, condition_doc(), Skip> condition;
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
+    qi::rule<Iterator, void(), Skip> module; // TODO make _doc
+    qi::rule<Iterator, void(), Skip> placeholder;
     qi::rule<Iterator, command_doc(), Skip> command;
     qi::rule<Iterator, write_command_doc(), Skip> write_command;
     qi::rule<Iterator, goto_command_doc(), Skip> goto_command;

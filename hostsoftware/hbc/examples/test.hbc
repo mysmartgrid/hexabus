@@ -48,3 +48,23 @@ machine main {
     }
   }
 }
+
+module toggle($ENDPOINT, $VALUE, $TARGET) {
+  states { power_on, power_off };
+# init {
+#   $TARGET := true;
+#   goto power_on;
+# }
+  in(power_on) {
+    if(asdf.jkl == $VALUE) {
+      write $TARGET := false;
+      goto power_off;
+    }
+  }
+  in(power_off) {
+    event($ENDPOINT == $VALUE) {
+      write $TARGET := false;
+      goto power_on;
+    }
+  }
+}
