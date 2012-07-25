@@ -16,7 +16,7 @@
 #include <boost/spirit/include/support_multi_pass.hpp>
 #include <boost/variant/recursive_variant.hpp>
 
-#include "../../../shared/hexabus_statemachine_structs.h"
+#include "../../../shared/hexabus_definitions.h"
 
 #include <libhbc/file_pos.hpp>
 
@@ -94,6 +94,7 @@ namespace hexabus {
       using qi::rethrow;
       using qi::fail;
       using qi::accept;
+      using qi::repeat;
       using boost::spirit::ascii::char_;
       using qi::uint_;
       using qi::float_;
@@ -114,24 +115,28 @@ namespace hexabus {
       using boost::phoenix::bind;
       using boost::phoenix::let;
 
+      // TODO still missing in the grammar TODO
+      // * device-local endpoint defs (do we even want this? This is SO against what we think hexabus should be
+      // * Boolean operators in Conditions <- do this first!
+
       // Assignment and comparison operators, constants, ...
       is = eps > lit(":=");
-      equals = lit("==") [_val = 0]; // TODO use STM_EQ and others from global define
+      equals = lit("==") [_val = STM_EQ]; // TODO probably in the compiler we don't need those constants and can handle it more elegantly, at least with an enum!
+      lessequal = lit("<=") [_val = STM_LEQ];
+      greaterequal = lit(">=") [_val = STM_GEQ];
+      lessthan = lit("<") [_val = STM_LT];
+      greaterthan = lit(">") [_val = STM_GT];
+      notequal = lit("!=") [_val = STM_NEQ];
       constant = float_; // TODO do we need to distinguish between float, int, timestamp, ...?
 
       // Basic elements: Identifier, assignment, ...
       identifier %= eps
-        > char_("a-zA-Y_") > *char_("a-zA-Z0-9_");
+        > char_("a-zA-Z_") > *char_("a-zA-Z0-9_");
+      filename %= eps > char_("a-zA-Z0-9_") > *char_("a-zA-Z0-9_."); // TODO do we need to be more specific here? At least we need /s.
       on_error<rethrow>(identifier, error_traceback_t("Invalid identifier"));
       // device_name.endpoint_name
       global_endpoint_id %= identifier > '.' > identifier;
-      filename = identifier; // TODO most probably we need to be more specific here
-      // TODO Accept shortened IPv6 addresses - check validity with boost's network functionality
-      ipv6_address_block = char_("0-9a-fA-F") > char_("0-9a-fA-F") > char_("0-9a-fA-F") > char_("0-9a-fA-F");
-      ipv6_address = ((ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
-                     (ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
-                     (ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]) > ':' >
-                     (ipv6_address_block [_val+=_1]) > ':' > (ipv6_address_block [_val+=_1]));
+      ipv6_address %= +( char_("a-fA-F0-9") | ':' ); // parse anything that is hex and : - check validity later (TODO)
 
       datatype = ( lit("BOOL") | lit("UINT8") | lit("UINT32") | lit("FLOAT") );
       access_level = ( lit("read") | lit("write") | lit("broadcast") );
@@ -151,10 +156,14 @@ namespace hexabus {
       in_clause %= lit("in") >> file_pos > '(' > identifier > ')'
         > '{' > *if_clause > '}';
 
-      condition %= global_endpoint_id > equals > constant; // TODO more comparison operators
+      comp_op %= ( equals | lessequal | greaterequal | lessthan | greaterthan | notequal );
+      condition %= global_endpoint_id > comp_op > constant;
 
-      if_clause %= lit("if") >> file_pos > '(' > condition > ')'
-        > '{' > *command > goto_command > ';' > '}';
+      if_clause %= lit("if") >> file_pos > '(' > condition > ')' // TODO make a "pair" of condition+command list, make it a separate grammar elemant AND make a datastructure for it in the ast.
+        > '{' > *command > goto_command > ';' > '}'
+        > *( lit("else if") > '(' > condition > ')'
+        > '{' > *command > goto_command > ';' > '}' )
+        > -( lit("else") > '{' > *command > goto_command > ';' > '}' );
 
       // commands that "do something"
       command %= write_command > ';'; // TODO more commands to be added here?
@@ -178,6 +187,11 @@ namespace hexabus {
     qi::rule<Iterator, std::string(), Skip> startstate;
     qi::rule<Iterator, void(), Skip> is;
     qi::rule<Iterator, int(), Skip> equals;
+    qi::rule<Iterator, int(), Skip> lessequal;
+    qi::rule<Iterator, int(), Skip> greaterequal;
+    qi::rule<Iterator, int(), Skip> lessthan;
+    qi::rule<Iterator, int(), Skip> greaterthan;
+    qi::rule<Iterator, int(), Skip> notequal;
     qi::rule<Iterator, float(), Skip> constant;
     qi::rule<Iterator, std::string(), Skip> identifier;
     qi::rule<Iterator, std::string(), Skip> filename;
@@ -193,6 +207,7 @@ namespace hexabus {
     qi::rule<Iterator, stateset_doc(), Skip> stateset;
     qi::rule<Iterator, statemachine_doc(), Skip> statemachine;
     qi::rule<Iterator, in_clause_doc(), Skip> in_clause;
+    qi::rule<Iterator, void(), Skip> comp_op;
     qi::rule<Iterator, condition_doc(), Skip> condition;
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
     qi::rule<Iterator, command_doc(), Skip> command;

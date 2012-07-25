@@ -1,3 +1,19 @@
+endpoint 0 {
+  datatype UINT32;
+  name device_descriptor;
+  access read;
+}
+
+alias device {
+  ip fe80::cafe:d00d;
+  eids { 1, 2, 3 };
+}
+
+alias another_device {
+  ip ::;
+  eids { 9 };
+}
+
 machine my_machine {
   states { one, two, three };
   in(one) {
@@ -8,25 +24,27 @@ machine my_machine {
   }
 }
 
-alias device {
-  ip aaaa:aaaa:aaaa:aaaa:aaaa:aaaa:aaaa:aaaa;
-  eids { 1, 2, 3 };
-}
-
-endpoint 0 {
-  datatype UINT32;
-  name device_descriptor;
-  access read;
-}
-
-alias another_device {
-  ip fe80:1111:2222:3333:4444:5555:6666:f00d;
-  eids { 9 };
-}
-
 machine another_machine {
   states { bloerp };
   in(bloerp) {
     if(device.endpoint == 104.2345) { goto init; }
+  }
+}
+
+# example machine from the "example.hbc" - minus everything we can't parse yet
+machine main {
+  states { init };
+  in(init)
+  {
+    if(sensorbox.temperature < 19) {
+      write heater.heater := 100;
+      goto init;
+    } else if(sensorbox.temperature >= 19) {
+      write heater.heater := 50;
+      goto init;
+    } else {
+      write heater.heater := 0;
+      goto init;
+    }
   }
 }
