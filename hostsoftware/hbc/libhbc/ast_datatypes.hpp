@@ -33,6 +33,12 @@ namespace hexabus {
     // TODO
   };
 
+  struct placeholder_doc {
+    std::string name;
+  };
+
+  typedef boost::variant<hexabus::placeholder_doc, float> constant_doc;
+
   struct endpoint_doc {
     unsigned int lineno;
     unsigned int eid;
@@ -52,21 +58,23 @@ namespace hexabus {
     eid_list_doc eid_list;
   };
 
+  typedef boost::variant<std::string, placeholder_doc> global_endpoint_id_element;
+
   struct global_endpoint_id_doc {
-    std::string device_alias;
-    std::string endpoint_name;
+    global_endpoint_id_element device_alias;
+    global_endpoint_id_element endpoint_name;
   };
 
   struct condition_doc {
     global_endpoint_id_doc geid;
-    // TODO comparison operator, once there are more operators
-    float constant;
+    unsigned int comp_op;
+    constant_doc constant;
   };
 
   struct write_command_doc {
-    global_endpoint_id_doc geid;
     unsigned int lineno;
-    float constant;
+    global_endpoint_id_doc geid;
+    constant_doc constant;
   };
 
   struct command_doc {
@@ -78,11 +86,21 @@ namespace hexabus {
     std::string target_state;
   };
 
- struct if_clause_doc {
-    unsigned int lineno;
-    condition_doc condition;
+  struct command_block_doc {
     std::vector<command_doc> commands;
     goto_command_doc goto_command;
+  };
+
+  struct guarded_command_block_doc {
+    condition_doc condition;
+    command_block_doc command_block;
+  };
+
+  struct if_clause_doc {
+    unsigned int lineno;
+    guarded_command_block_doc if_block;
+    std::vector<guarded_command_block_doc> else_if_blocks;
+    command_block_doc else_block;
   };
 
   struct in_clause_doc {
@@ -100,7 +118,7 @@ namespace hexabus {
     std::vector<in_clause_doc> in_clauses;
   };
 
-  typedef boost::variant<include_doc, endpoint_doc, alias_doc, statemachine_doc> hbc_block; // TODO endpoint should be in here too, I think
+  typedef boost::variant<include_doc, endpoint_doc, alias_doc, statemachine_doc> hbc_block;
 
   struct hbc_doc {
     std::vector<hbc_block> blocks;
@@ -112,6 +130,11 @@ BOOST_FUSION_ADAPT_STRUCT(
   hexabus::include_doc,
   (unsigned int, lineno)
   (std::string, filename)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  hexabus::placeholder_doc,
+  (std::string, name)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -138,8 +161,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::global_endpoint_id_doc,
-  // (std::string, device_alias) TODO
-  // (std::string, endpoint_name)
+  (hexabus::global_endpoint_id_element, device_alias)
+  (hexabus::global_endpoint_id_element, endpoint_name)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -161,11 +184,23 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  hexabus::if_clause_doc,
-  (unsigned int, lineno)
-  (hexabus::condition_doc, condition)
+  hexabus::command_block_doc,
   (std::vector<hexabus::command_doc>, commands)
   (hexabus::goto_command_doc, goto_command)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  hexabus::guarded_command_block_doc,
+  (hexabus::condition_doc, condition)
+  (hexabus::command_block_doc, command_block)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  hexabus::if_clause_doc,
+  (unsigned int, lineno)
+  (hexabus::guarded_command_block_doc, if_block)
+  (std::vector<hexabus::guarded_command_block_doc>, else_if_blocks)
+  (hexabus::command_block_doc, else_block)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -176,7 +211,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::condition_doc,
   (hexabus::global_endpoint_id_doc, geid)
-  (float, constant)
+  (hexabus::constant_doc, constant)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -187,9 +222,9 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::write_command_doc,
-  (hexabus::global_endpoint_id_doc, geid)
   (unsigned int, lineno)
-  (float, constant)
+  (hexabus::global_endpoint_id_doc, geid)
+  (hexabus::constant_doc, constant)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

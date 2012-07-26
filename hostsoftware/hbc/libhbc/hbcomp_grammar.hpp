@@ -116,7 +116,7 @@ namespace hexabus {
       using boost::phoenix::let;
 
       // TODO still missing in the grammar TODO
-      // * device-local endpoint defs (do we even want this? This is SO against what we think hexabus should be
+      // * device-local endpoint defs (do we even want this? This is SO against what we think hexabus should be -- talk to gonium about this
       // * Boolean operators in Conditions <- do this first!
       // * module instantiations
       // * forbid spaces in identifiers, filenames, placeholders
@@ -129,16 +129,15 @@ namespace hexabus {
       lessthan = lit("<") [_val = STM_LT];
       greaterthan = lit(">") [_val = STM_GT];
       notequal = lit("!=") [_val = STM_NEQ];
-      constant = float_; // TODO do we need to distinguish between float, int, timestamp, ...?
+      constant = placeholder | float_; // TODO do we need to distinguish between float, int, timestamp, ...? // TODO true, false
 
       // Basic elements: Identifier, assignment, ...
-      identifier %= eps
-        > char_("a-zA-Z_") > *char_("a-zA-Z0-9_");
-      placeholder %= char_("$") > identifier;
+      identifier %= char_("a-zA-Z_") > *char_("a-zA-Z0-9_");
+      placeholder %= char_("$") > *char_("a-zA-Z0-9_");
       filename %= eps > char_("a-zA-Z0-9_") > *char_("a-zA-Z0-9_."); // TODO do we need to be more specific here? At least we need /s.
       on_error<rethrow>(identifier, error_traceback_t("Invalid identifier"));
       // device_name.endpoint_name
-      global_endpoint_id %= identifier > '.' > identifier;
+      global_endpoint_id %= ( placeholder | identifier ) > '.' > ( identifier | placeholder );
       ipv6_address %= +( char_("a-fA-F0-9") | ':' ); // parse anything that is hex and : - check validity later (TODO)
       datatype = ( lit("BOOL") | lit("UINT8") | lit("UINT32") | lit("FLOAT") );
       access_level = ( lit("read") | lit("write") | lit("broadcast") );
@@ -159,25 +158,30 @@ namespace hexabus {
         > '{' > *if_clause > '}';
 
       comp_op %= ( equals | lessequal | greaterequal | lessthan | greaterthan | notequal );
-      condition %= ( placeholder | global_endpoint_id ) > comp_op > ( constant | placeholder ); // TODO move the "placeholder" to the constant rule?
+      condition %= global_endpoint_id > comp_op > constant;
+      command_block %= *command > goto_command > ';';
+      guarded_command_block %= '(' > condition > ')' > '{' > command_block > '}';
 
-      if_clause %= lit("if") >> file_pos > '(' > condition > ')' // TODO make a "pair" of condition+command list, make it a separate grammar elemant AND make a datastructure for it in the ast.
-        > '{' > *command > goto_command > ';' > '}'
-        > *( lit("else if") > '(' > condition > ')'
-        > '{' > *command > goto_command > ';' > '}' )
-        > -( lit("else") > '{' > *command > goto_command > ';' > '}' );
+      if_clause %= lit("if") >> file_pos > guarded_command_block
+        > *( lit("else if") > guarded_command_block )
+        > -( lit("else") > '{' > command_block > '}' );
 
-      // template definitions
+      // module definitions
       module %= lit("module") >> file_pos > identifier
-        > '(' > -( placeholder > *(',' > placeholder) ) > ')' // TODO do we want to allow "compound" placeholders (endpoint.value), or do we allow a "." in the instantiation? Find a solution.
+        > '(' > -( placeholder > *(',' > placeholder) ) > ')'
         > '{' > stateset > ';' > *in_clause > '}';
+
+      // module instantiations
+      inst_parameter %= ( constant | identifier );
+      instantiation %= lit("instance") >> file_pos > identifier > ':' > identifier > '(' > -(inst_parameter > *(',' > inst_parameter)) > ')'; // TODO allow device.endpoint as well as just "one word"
+
 
       // commands that "do something"
       command %= write_command > ';'; // TODO more commands to be added here?
-      write_command %= lit("write") > ( placeholder | global_endpoint_id ) >> file_pos > is > ( constant | placeholder );
+      write_command %= lit("write") >> file_pos > global_endpoint_id > is > constant;
       goto_command %= lit("goto") >> file_pos > identifier;
 
-      start %= *( include | endpoint | alias | statemachine | module ) > eoi;
+      start %= *( include | endpoint | alias | statemachine | module | instantiation ) > eoi;
 
       start.name("toplevel");
       identifier.name("identifier");
@@ -199,7 +203,7 @@ namespace hexabus {
     qi::rule<Iterator, int(), Skip> lessthan;
     qi::rule<Iterator, int(), Skip> greaterthan;
     qi::rule<Iterator, int(), Skip> notequal;
-    qi::rule<Iterator, float(), Skip> constant;
+    qi::rule<Iterator, constant_doc(), Skip> constant;
     qi::rule<Iterator, std::string(), Skip> identifier;
     qi::rule<Iterator, std::string(), Skip> filename;
     qi::rule<Iterator, datatype_doc(), Skip> datatype;
@@ -216,9 +220,13 @@ namespace hexabus {
     qi::rule<Iterator, in_clause_doc(), Skip> in_clause;
     qi::rule<Iterator, void(), Skip> comp_op;
     qi::rule<Iterator, condition_doc(), Skip> condition;
+    qi::rule<Iterator, command_block_doc(), Skip> command_block;
+    qi::rule<Iterator, guarded_command_block_doc(), Skip> guarded_command_block;
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
     qi::rule<Iterator, void(), Skip> module; // TODO make _doc
-    qi::rule<Iterator, void(), Skip> placeholder;
+    qi::rule<Iterator, placeholder_doc(), Skip> placeholder;
+    qi::rule<Iterator, void(), Skip> inst_parameter; // TODO make _doc
+    qi::rule<Iterator, void(), Skip> instantiation; // TODO make _doc
     qi::rule<Iterator, command_doc(), Skip> command;
     qi::rule<Iterator, write_command_doc(), Skip> write_command;
     qi::rule<Iterator, goto_command_doc(), Skip> goto_command;
