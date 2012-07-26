@@ -56,14 +56,14 @@ module toggle($ENDPOINT, $VALUE, $TARGET) {
 #   goto power_on;
 # }
   in(power_on) {
-    if(asdf.jkl == $VALUE) {
-      write $TARGET := false;
+    if($ENDPOINT == $VALUE) {
+      write $TARGET := 0;
       goto power_off;
     }
   }
   in(power_off) {
-    event($ENDPOINT == $VALUE) {
-      write $TARGET := false;
+    if($ENDPOINT == $VALUE) {
+      write $TARGET := 1;
       goto power_on;
     }
   }

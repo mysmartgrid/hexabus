@@ -39,6 +39,7 @@ int main(int argc, char** argv)
     return 1;
   }
   // TODO Version!
+	// TODO don't throw obscure error message when user forgets "-i"
   if(!vm.count("input"))
   {
     std::cerr << "Error: You must specify an input file." << std::endl;

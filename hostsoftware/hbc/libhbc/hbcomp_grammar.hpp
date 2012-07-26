@@ -159,7 +159,7 @@ namespace hexabus {
         > '{' > *if_clause > '}';
 
       comp_op %= ( equals | lessequal | greaterequal | lessthan | greaterthan | notequal );
-      condition %= global_endpoint_id > comp_op > ( constant | placeholder ); // TODO move the "placeholder" to the constant rule?
+      condition %= ( placeholder | global_endpoint_id ) > comp_op > ( constant | placeholder ); // TODO move the "placeholder" to the constant rule?
 
       if_clause %= lit("if") >> file_pos > '(' > condition > ')' // TODO make a "pair" of condition+command list, make it a separate grammar elemant AND make a datastructure for it in the ast.
         > '{' > *command > goto_command > ';' > '}'
@@ -167,16 +167,14 @@ namespace hexabus {
         > '{' > *command > goto_command > ';' > '}' )
         > -( lit("else") > '{' > *command > goto_command > ';' > '}' );
 
-
       // template definitions
       module %= lit("module") >> file_pos > identifier
         > '(' > -( placeholder > *(',' > placeholder) ) > ')' // TODO do we want to allow "compound" placeholders (endpoint.value), or do we allow a "." in the instantiation? Find a solution.
         > '{' > stateset > ';' > *in_clause > '}';
 
-
       // commands that "do something"
       command %= write_command > ';'; // TODO more commands to be added here?
-      write_command %= lit("write") > ( global_endpoint_id | placeholder ) >> file_pos > is > ( constant | placeholder );
+      write_command %= lit("write") > ( placeholder | global_endpoint_id ) >> file_pos > is > ( constant | placeholder );
       goto_command %= lit("goto") >> file_pos > identifier;
 
       start %= *( include | endpoint | alias | statemachine | module ) > eoi;
