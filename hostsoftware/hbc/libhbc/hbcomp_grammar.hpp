@@ -168,7 +168,7 @@ namespace hexabus {
 
       // module definitions
       module %= lit("module") >> file_pos > identifier
-        > '(' > -( placeholder > *(',' > placeholder) ) > ')'
+        > '(' > ( placeholder > *(placeholder) ) > ')' // TODO separate placeholders by commas or something -- probably we need a rule for comma-separated-placeholders so we can get them into a vector
         > '{' > stateset > ';' > *in_clause > '}';
 
       // module instantiations
@@ -223,7 +223,7 @@ namespace hexabus {
     qi::rule<Iterator, command_block_doc(), Skip> command_block;
     qi::rule<Iterator, guarded_command_block_doc(), Skip> guarded_command_block;
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
-    qi::rule<Iterator, void(), Skip> module; // TODO make _doc
+    qi::rule<Iterator, module_doc(), Skip> module;
     qi::rule<Iterator, placeholder_doc(), Skip> placeholder;
     qi::rule<Iterator, void(), Skip> inst_parameter; // TODO make _doc
     qi::rule<Iterator, void(), Skip> instantiation; // TODO make _doc

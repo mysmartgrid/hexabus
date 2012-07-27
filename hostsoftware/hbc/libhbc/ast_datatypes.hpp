@@ -78,7 +78,7 @@ namespace hexabus {
   };
 
   struct command_doc {
-    write_command_doc write_command; // TODO boost::variant if there's more
+    write_command_doc write_command;
   };
 
   struct goto_command_doc {
@@ -118,7 +118,16 @@ namespace hexabus {
     std::vector<in_clause_doc> in_clauses;
   };
 
-  typedef boost::variant<include_doc, endpoint_doc, alias_doc, statemachine_doc> hbc_block;
+  struct module_doc {
+    unsigned int lineno;
+    std::string name;
+    placeholder_doc first_parameter;
+    std::vector<placeholder_doc> parameters;
+    stateset_doc stateset;
+    std::vector<in_clause_doc> in_clauses;
+  };
+
+  typedef boost::variant<include_doc, endpoint_doc, alias_doc, statemachine_doc, module_doc> hbc_block;
 
   struct hbc_doc {
     std::vector<hbc_block> blocks;
@@ -168,6 +177,16 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::statemachine_doc,
   (std::string, name)
+  (hexabus::stateset_doc, stateset)
+  (std::vector<hexabus::in_clause_doc>, in_clauses)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  hexabus::module_doc,
+  (unsigned int, lineno)
+  (std::string, name)
+  (hexabus::placeholder_doc, first_parameter)
+  (std::vector<hexabus::placeholder_doc>, parameters)
   (hexabus::stateset_doc, stateset)
   (std::vector<hexabus::in_clause_doc>, in_clauses)
 )
