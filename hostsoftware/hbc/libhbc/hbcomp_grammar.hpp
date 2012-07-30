@@ -116,7 +116,7 @@ namespace hexabus {
       using boost::phoenix::let;
 
       // TODO still missing in the grammar TODO
-      // * device-local endpoint defs (do we even want this? This is SO against what we think hexabus should be -- talk to gonium about this
+      // * device-local endpoint defs (do we even want this? This is SO against what we think hexabus should be -- nice to have
       // * Boolean operators in Conditions <- do this first!
       // * module instantiations
       // * forbid spaces in identifiers, filenames, placeholders
@@ -167,8 +167,9 @@ namespace hexabus {
         > -( lit("else") > '{' > command_block > '}' );
 
       // module definitions
+      placeholder_list %= placeholder > *( ',' > placeholder );
       module %= lit("module") >> file_pos > identifier
-        > '(' > ( placeholder > *(placeholder) ) > ')' // TODO separate placeholders by commas or something -- probably we need a rule for comma-separated-placeholders so we can get them into a vector
+        > '(' > -placeholder_list > ')'
         > '{' > stateset > ';' > *in_clause > '}';
 
       // module instantiations
@@ -223,6 +224,7 @@ namespace hexabus {
     qi::rule<Iterator, command_block_doc(), Skip> command_block;
     qi::rule<Iterator, guarded_command_block_doc(), Skip> guarded_command_block;
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
+    qi::rule<Iterator, placeholder_list_doc(), Skip> placeholder_list;
     qi::rule<Iterator, module_doc(), Skip> module;
     qi::rule<Iterator, placeholder_doc(), Skip> placeholder;
     qi::rule<Iterator, void(), Skip> inst_parameter; // TODO make _doc

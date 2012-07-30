@@ -118,11 +118,14 @@ namespace hexabus {
     std::vector<in_clause_doc> in_clauses;
   };
 
+  struct placeholder_list_doc {
+    std::vector<placeholder_doc> placeholders;
+  };
+
   struct module_doc {
     unsigned int lineno;
     std::string name;
-    placeholder_doc first_parameter;
-    std::vector<placeholder_doc> parameters;
+    placeholder_list_doc placeholderlist;
     stateset_doc stateset;
     std::vector<in_clause_doc> in_clauses;
   };
@@ -182,11 +185,15 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  hexabus::placeholder_list_doc,
+  (std::vector<hexabus::placeholder_doc>, placeholders)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   hexabus::module_doc,
   (unsigned int, lineno)
   (std::string, name)
-  (hexabus::placeholder_doc, first_parameter)
-  (std::vector<hexabus::placeholder_doc>, parameters)
+  (hexabus::placeholder_list_doc, placeholderlist)
   (hexabus::stateset_doc, stateset)
   (std::vector<hexabus::in_clause_doc>, in_clauses)
 )

@@ -49,7 +49,7 @@ machine main {
   }
 }
 
-module toggle($DEVICE $ENDPOINT $VALUE $TARGETDEV $TARGETEP) {
+module toggle($DEVICE, $ENDPOINT, $VALUE, $TARGETDEV, $TARGETEP) {
   states { power_on, power_off };
 # init {
 #   $TARGET := true;
