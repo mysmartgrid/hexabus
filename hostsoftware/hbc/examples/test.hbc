@@ -1,7 +1,7 @@
 endpoint 0 {
+  access read;
   datatype UINT32;
   name device_descriptor;
-  access read;
 }
 
 alias device {
