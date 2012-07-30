@@ -118,6 +118,7 @@ namespace hexabus {
       // TODO still missing in the grammar TODO
       // * device-local endpoint defs (do we even want this? This is SO against what we think hexabus should be -- nice to have
       // * forbid spaces in identifiers, filenames, placeholders
+      // * entries in ALIAS definition in any order!
 
       // Assignment and comparison operators, constants, ...
       is = eps > lit(":=");
@@ -148,9 +149,10 @@ namespace hexabus {
       ep_access %= lit("access") > *access_level > ';';
       endpoint_cmd = ( ep_name | ep_datatype | ep_access );
       endpoint %= lit("endpoint") >> file_pos > uint_ > '{' > *endpoint_cmd > '}';
+      // TODO check later (semantically) that there are no contradictions in here (e.g. two different datatype statements
 
       eid_list %= '{' > uint_ > *(',' > uint_) > '}';
-      alias %= lit("alias") >> file_pos > identifier > '{'
+      alias %= lit("alias") >> file_pos > identifier > '{' // TODO any order
         > lit("ip") > ipv6_address > ';'
         > lit("eids") > eid_list > ';' > '}';
 
