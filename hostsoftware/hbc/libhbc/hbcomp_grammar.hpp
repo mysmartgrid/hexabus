@@ -157,7 +157,9 @@ namespace hexabus {
 
       bool_op %= ( lit("||") | lit("&&") );
       comp_op %= ( equals | lessequal | greaterequal | lessthan | greaterthan | notequal );
-      condition %= ( global_endpoint_id > comp_op > constant ) | ( '(' > condition > ')' > bool_op > '(' > condition > ')' );
+      condition %= ( global_endpoint_id > comp_op > constant )
+        | ( '(' > condition > ')' > bool_op > '(' > condition > ')' );
+
       command_block %= *command > goto_command > ';';
       guarded_command_block %= '(' > condition > ')' > '{' > command_block > '}';
 
