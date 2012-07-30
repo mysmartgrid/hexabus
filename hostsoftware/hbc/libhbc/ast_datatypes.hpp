@@ -66,9 +66,9 @@ namespace hexabus {
   };
 
   struct condition_doc {
-    global_endpoint_id_doc geid;
-    unsigned int comp_op;
-    constant_doc constant;
+//    global_endpoint_id_doc geid;
+//    unsigned int comp_op;
+//    constant_doc constant;
   };
 
   struct write_command_doc {
@@ -128,6 +128,15 @@ namespace hexabus {
     placeholder_list_doc placeholderlist;
     stateset_doc stateset;
     std::vector<in_clause_doc> in_clauses;
+  };
+
+  typedef boost::variant<constant_doc, std::string> inst_parameter_doc;
+
+  struct instantiation_doc {
+    unsigned int lineno;
+    std::string name;
+    std::string moduleclass;
+    std::vector<inst_parameter_doc> parameters;
   };
 
   typedef boost::variant<include_doc, endpoint_doc, alias_doc, statemachine_doc, module_doc> hbc_block;
@@ -236,8 +245,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::condition_doc,
-  (hexabus::global_endpoint_id_doc, geid)
-  (hexabus::constant_doc, constant)
+//  (hexabus::global_endpoint_id_doc, geid)
+//  (hexabus::constant_doc, constant)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -251,6 +260,14 @@ BOOST_FUSION_ADAPT_STRUCT(
   (unsigned int, lineno)
   (hexabus::global_endpoint_id_doc, geid)
   (hexabus::constant_doc, constant)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  hexabus::instantiation_doc,
+  (unsigned int, lineno)
+  (std::string, name)
+  (std::string, moduleclass)
+  (std::vector<hexabus::inst_parameter_doc>, parameters)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

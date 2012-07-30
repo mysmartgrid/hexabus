@@ -117,8 +117,6 @@ namespace hexabus {
 
       // TODO still missing in the grammar TODO
       // * device-local endpoint defs (do we even want this? This is SO against what we think hexabus should be -- nice to have
-      // * Boolean operators in Conditions <- do this first!
-      // * module instantiations
       // * forbid spaces in identifiers, filenames, placeholders
 
       // Assignment and comparison operators, constants, ...
@@ -157,8 +155,9 @@ namespace hexabus {
       in_clause %= lit("in") >> file_pos > '(' > identifier > ')'
         > '{' > *if_clause > '}';
 
+      bool_op %= ( lit("||") | lit("&&") );
       comp_op %= ( equals | lessequal | greaterequal | lessthan | greaterthan | notequal );
-      condition %= global_endpoint_id > comp_op > constant;
+      condition %= ( global_endpoint_id > comp_op > constant ) | ( '(' > condition > ')' > bool_op > '(' > condition > ')' );
       command_block %= *command > goto_command > ';';
       guarded_command_block %= '(' > condition > ')' > '{' > command_block > '}';
 
@@ -223,12 +222,13 @@ namespace hexabus {
     qi::rule<Iterator, condition_doc(), Skip> condition;
     qi::rule<Iterator, command_block_doc(), Skip> command_block;
     qi::rule<Iterator, guarded_command_block_doc(), Skip> guarded_command_block;
+    qi::rule<Iterator, void(), Skip> bool_op; // TODO make _doc
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
     qi::rule<Iterator, placeholder_list_doc(), Skip> placeholder_list;
     qi::rule<Iterator, module_doc(), Skip> module;
     qi::rule<Iterator, placeholder_doc(), Skip> placeholder;
-    qi::rule<Iterator, void(), Skip> inst_parameter; // TODO make _doc
-    qi::rule<Iterator, void(), Skip> instantiation; // TODO make _doc
+    qi::rule<Iterator, void(), Skip> inst_parameter;
+    qi::rule<Iterator, void(), Skip> instantiation;
     qi::rule<Iterator, command_doc(), Skip> command;
     qi::rule<Iterator, write_command_doc(), Skip> write_command;
     qi::rule<Iterator, goto_command_doc(), Skip> goto_command;
