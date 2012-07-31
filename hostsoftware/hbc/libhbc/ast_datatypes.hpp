@@ -289,7 +289,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::condition_doc,
 //  (hexabus::global_endpoint_id_doc, geid)
-//  (hexabus::constant_doc, constant)
+//  (hexabus::constant_doc, constant) TODO TODO
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

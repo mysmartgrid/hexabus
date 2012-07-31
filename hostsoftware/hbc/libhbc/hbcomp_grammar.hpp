@@ -118,6 +118,7 @@ namespace hexabus {
 
       // TODO still missing in the grammar TODO
       // * device-local endpoint defs (do we even want this? This is SO against what we think hexabus should be -- nice to have
+      // * boolean operators in conditions (so that they actually work)
 
       // Assignment and comparison operators, constants, ...
       is = eps > lit(":=");
