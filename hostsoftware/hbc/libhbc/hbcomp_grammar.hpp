@@ -127,11 +127,11 @@ namespace hexabus {
       lessthan = lit("<") [_val = STM_LT];
       greaterthan = lit(">") [_val = STM_GT];
       notequal = lit("!=") [_val = STM_NEQ];
-      constant = placeholder | float_; // TODO do we need to distinguish between float, int, timestamp, ...? // TODO true, false
+      constant = placeholder | float_ | lit("true") | lit("false"); // TODO do we need to distinguish between float, int, timestamp, ...?
 
       // Basic elements: Identifier, assignment, ...
-      identifier %= lexeme[char_("a-zA-Z_") > *char_("a-zA-Z0-9_")];
-      placeholder %= lexeme[char_("$") > *char_("a-zA-Z0-9_")];
+      identifier %= char_("a-zA-Z_") > *char_("a-zA-Z0-9_");
+      placeholder %= char_("$") > *char_("a-zA-Z0-9_");
       filename %= eps > lexeme[char_("a-zA-Z0-9_") > *char_("a-zA-Z0-9_.")]; // TODO do we need to be more specific here? At least we need /s.
       on_error<rethrow>(identifier, error_traceback_t("Invalid identifier"));
       // device_name.endpoint_name
@@ -214,7 +214,7 @@ namespace hexabus {
     qi::rule<Iterator, int(), Skip> greaterthan;
     qi::rule<Iterator, int(), Skip> notequal;
     qi::rule<Iterator, constant_doc(), Skip> constant;
-    qi::rule<Iterator, std::string(), Skip> identifier;
+    qi::rule<Iterator, std::string()> identifier;
     qi::rule<Iterator, std::string(), Skip> filename;
     qi::rule<Iterator, datatype_doc(), Skip> datatype;
     qi::rule<Iterator, access_level_doc(), Skip> access_level;
@@ -223,7 +223,7 @@ namespace hexabus {
     qi::rule<Iterator, ep_access_doc(), Skip> ep_access;
     qi::rule<Iterator, endpoint_cmd_doc(), Skip> endpoint_cmd;
     qi::rule<Iterator, endpoint_doc(), Skip> endpoint;
-    qi::rule<Iterator, global_endpoint_id_doc(), Skip> global_endpoint_id;
+    qi::rule<Iterator, global_endpoint_id_doc()> global_endpoint_id;
     qi::rule<Iterator, std::string(), Skip> ipv6_address;
     qi::rule<Iterator, std::string(), Skip> ipv6_address_block;
     qi::rule<Iterator, include_doc(), Skip> include;
@@ -243,7 +243,7 @@ namespace hexabus {
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
     qi::rule<Iterator, placeholder_list_doc(), Skip> placeholder_list;
     qi::rule<Iterator, module_doc(), Skip> module;
-    qi::rule<Iterator, placeholder_doc(), Skip> placeholder;
+    qi::rule<Iterator, placeholder_doc()> placeholder;
     qi::rule<Iterator, void(), Skip> inst_parameter;
     qi::rule<Iterator, void(), Skip> instantiation;
     qi::rule<Iterator, command_doc(), Skip> command;
