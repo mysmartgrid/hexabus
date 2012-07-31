@@ -63,11 +63,20 @@ namespace hexabus {
     std::vector<unsigned int> eids;
   };
 
-  struct alias_doc {
+  struct alias_ip_doc {
+    std::string ipv6_address;
+  };
+
+  struct alias_eids_doc {
+    eid_list_doc eid_list;
+  };
+
+  typedef boost::variant<alias_ip_doc, alias_eids_doc> alias_cmd_doc;
+
+    struct alias_doc {
     unsigned int lineno;
     std::string device_name;
-    std::string ipv6_address;
-    eid_list_doc eid_list;
+    std::vector<alias_cmd_doc> cmds;
   };
 
   typedef boost::variant<std::string, placeholder_doc> global_endpoint_id_element;
@@ -78,7 +87,7 @@ namespace hexabus {
   };
 
   struct condition_doc {
-//    global_endpoint_id_doc geid;
+//    global_endpoint_id_doc geid; TODO!!!!!
 //    unsigned int comp_op;
 //    constant_doc constant;
   };
@@ -158,7 +167,7 @@ namespace hexabus {
   };
 };
 
-// how are the structures filled with data
+// the structures are filled with data
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::include_doc,
   (unsigned int, lineno)
@@ -198,11 +207,20 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  hexabus::alias_ip_doc,
+  (std::string, ipv6_address)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  hexabus::alias_eids_doc,
+  (hexabus::eid_list_doc, eid_list)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   hexabus::alias_doc,
   (unsigned int, lineno)
   (std::string, device_name)
-  (std::string, ipv6_address)
-  (hexabus::eid_list_doc, eid_list)
+  (std::vector<hexabus::alias_cmd_doc>, cmds)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

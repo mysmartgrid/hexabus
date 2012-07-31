@@ -118,7 +118,6 @@ namespace hexabus {
       // TODO still missing in the grammar TODO
       // * device-local endpoint defs (do we even want this? This is SO against what we think hexabus should be -- nice to have
       // * forbid spaces in identifiers, filenames, placeholders
-      // * entries in ALIAS definition in any order!
 
       // Assignment and comparison operators, constants, ...
       is = eps > lit(":=");
@@ -151,10 +150,12 @@ namespace hexabus {
       endpoint %= lit("endpoint") >> file_pos > uint_ > '{' > *endpoint_cmd > '}';
       // TODO check later (semantically) that there are no contradictions in here (e.g. two different datatype statements
 
-      eid_list %= '{' > uint_ > *(',' > uint_) > '}';
-      alias %= lit("alias") >> file_pos > identifier > '{' // TODO any order
-        > lit("ip") > ipv6_address > ';'
-        > lit("eids") > eid_list > ';' > '}';
+      eid_list %= uint_ > *(',' > uint_);
+      alias_ip %= lit("ip") > ipv6_address > ';';
+      alias_eids %= lit("eids") > '{' > -eid_list > '}' > ';';
+      alias_cmd = ( alias_ip | alias_eids );
+      alias %= lit("alias") >> file_pos > identifier > '{'
+        > *alias_cmd > '}';
 
       stateset %= lit("states") > '{' > identifier > *(',' > identifier) > '}';
       statemachine %= lit("machine") > identifier > '{' > stateset > ';' > *in_clause > '}';
@@ -226,6 +227,9 @@ namespace hexabus {
     qi::rule<Iterator, std::string(), Skip> ipv6_address;
     qi::rule<Iterator, std::string(), Skip> ipv6_address_block;
     qi::rule<Iterator, include_doc(), Skip> include;
+    qi::rule<Iterator, alias_ip_doc(), Skip> alias_ip;
+    qi::rule<Iterator, alias_eids_doc(), Skip> alias_eids;
+    qi::rule<Iterator, alias_cmd_doc(), Skip> alias_cmd;
     qi::rule<Iterator, eid_list_doc(), Skip> eid_list;
     qi::rule<Iterator, alias_doc(), Skip> alias;
     qi::rule<Iterator, stateset_doc(), Skip> stateset;
