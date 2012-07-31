@@ -107,6 +107,7 @@ namespace hexabus {
       using boost::spirit::_4;
       using boost::spirit::eps;
       using boost::spirit::eoi;
+      using boost::spirit::no_skip;
       using boost::spirit::repository::qi::file_pos;
 
       using boost::phoenix::construct;
@@ -117,7 +118,6 @@ namespace hexabus {
 
       // TODO still missing in the grammar TODO
       // * device-local endpoint defs (do we even want this? This is SO against what we think hexabus should be -- nice to have
-      // * forbid spaces in identifiers, filenames, placeholders
 
       // Assignment and comparison operators, constants, ...
       is = eps > lit(":=");
@@ -130,13 +130,13 @@ namespace hexabus {
       constant = placeholder | float_; // TODO do we need to distinguish between float, int, timestamp, ...? // TODO true, false
 
       // Basic elements: Identifier, assignment, ...
-      identifier %= char_("a-zA-Z_") > *char_("a-zA-Z0-9_");
-      placeholder %= char_("$") > *char_("a-zA-Z0-9_");
-      filename %= eps > char_("a-zA-Z0-9_") > *char_("a-zA-Z0-9_."); // TODO do we need to be more specific here? At least we need /s.
+      identifier %= lexeme[char_("a-zA-Z_") > *char_("a-zA-Z0-9_")];
+      placeholder %= lexeme[char_("$") > *char_("a-zA-Z0-9_")];
+      filename %= eps > lexeme[char_("a-zA-Z0-9_") > *char_("a-zA-Z0-9_.")]; // TODO do we need to be more specific here? At least we need /s.
       on_error<rethrow>(identifier, error_traceback_t("Invalid identifier"));
       // device_name.endpoint_name
       global_endpoint_id %= ( placeholder | identifier ) > '.' > ( identifier | placeholder );
-      ipv6_address %= +( char_("a-fA-F0-9") | ':' ); // parse anything that is hex and : - check validity later (TODO)
+      ipv6_address %= +( char_("a-fA-F0-9") | ':' ); // parse anything that is hex and : - check validity (semantically) later (TODO)
       datatype = ( lit("BOOL") | lit("UINT8") | lit("UINT32") | lit("FLOAT") );
       access_level = ( lit("read") | lit("write") | lit("broadcast") );
 
