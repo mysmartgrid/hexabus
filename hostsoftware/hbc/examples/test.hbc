@@ -36,7 +36,7 @@ machine main {
   states { init };
   in(init)
   {
-    if((sensorbox.temperature < 19) && (sensorbox.temperature != 7)) {
+    if((sensorbox.temperature < 19) && ((sensorbox.temperature != 7) || (device.endpoint == 98765))) {
       write heater.heater := 100;
       goto init;
     } else if(sensorbox.temperature >= 19) {

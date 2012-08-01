@@ -166,9 +166,9 @@ namespace hexabus {
 
       bool_op %= ( lit("||") | lit("&&") );
       comp_op %= ( equals | lessequal | greaterequal | lessthan | greaterthan | notequal );
-      condition %= ( global_endpoint_id > comp_op > constant )
-        | ( '(' > condition > ')' > bool_op > '(' > condition > ')' );
-
+      atomic_condition %= global_endpoint_id > comp_op > constant;
+      compound_condition %= '(' > condition > ')' > bool_op > '(' > condition > ')'; 
+      condition %= ( atomic_condition | compound_condition );
       command_block %= *command > goto_command > ';';
       guarded_command_block %= '(' > condition > ')' > '{' > command_block > '}';
 
@@ -236,7 +236,9 @@ namespace hexabus {
     qi::rule<Iterator, stateset_doc(), Skip> stateset;
     qi::rule<Iterator, statemachine_doc(), Skip> statemachine;
     qi::rule<Iterator, in_clause_doc(), Skip> in_clause;
-    qi::rule<Iterator, void(), Skip> comp_op;
+    qi::rule<Iterator, int(), Skip> comp_op;
+    qi::rule<Iterator, atomic_condition_doc(), Skip> atomic_condition;
+    qi::rule<Iterator, compound_condition_doc(), Skip> compound_condition;
     qi::rule<Iterator, condition_doc(), Skip> condition;
     qi::rule<Iterator, command_block_doc(), Skip> command_block;
     qi::rule<Iterator, guarded_command_block_doc(), Skip> guarded_command_block;

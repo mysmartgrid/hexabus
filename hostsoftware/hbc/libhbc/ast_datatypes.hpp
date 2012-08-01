@@ -86,10 +86,19 @@ namespace hexabus {
     global_endpoint_id_element endpoint_name;
   };
 
-  struct condition_doc {
-//    global_endpoint_id_doc geid; TODO!!!!!
-//    unsigned int comp_op;
-//    constant_doc constant;
+  struct atomic_condition_doc {
+    global_endpoint_id_doc geid;
+    unsigned int comp_op;
+    constant_doc constant;
+  };
+
+  struct compound_condition_doc;
+  typedef boost::variant<atomic_condition_doc, boost::recursive_wrapper<compound_condition_doc> > condition_doc;
+
+  struct compound_condition_doc {
+    condition_doc condition_a;
+    // bool_op_doc
+    condition_doc condition_b;
   };
 
   struct write_command_doc {
@@ -287,9 +296,17 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  hexabus::condition_doc,
-//  (hexabus::global_endpoint_id_doc, geid)
-//  (hexabus::constant_doc, constant) TODO TODO
+  hexabus::atomic_condition_doc,
+  (hexabus::global_endpoint_id_doc, geid)
+  (unsigned int, comp_op)
+  (hexabus::constant_doc, constant)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  hexabus::compound_condition_doc,
+  (hexabus::condition_doc, condition_a)
+  // TODO bool_op
+  (hexabus::condition_doc, condition_b)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
