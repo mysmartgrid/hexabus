@@ -73,13 +73,13 @@ namespace hexabus {
 
   typedef boost::variant<alias_ip_doc, alias_eids_doc> alias_cmd_doc;
 
-    struct alias_doc {
+  struct alias_doc {
     unsigned int lineno;
     std::string device_name;
     std::vector<alias_cmd_doc> cmds;
   };
 
-  typedef boost::variant<std::string, placeholder_doc> global_endpoint_id_element;
+  typedef boost::variant<std::string, placeholder_doc> global_endpoint_id_element; // TODO name it _doc?
 
   struct global_endpoint_id_doc {
     global_endpoint_id_element device_alias;
@@ -135,7 +135,8 @@ namespace hexabus {
 
   struct in_clause_doc {
     unsigned int lineno;
-    // std::vector<if_clause_doc> if_clauses;
+    std::string name;
+    std::vector<if_clause_doc> if_clauses;
   };
 
   struct stateset_doc {

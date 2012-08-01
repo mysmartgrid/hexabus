@@ -2,6 +2,7 @@
 #include <libhbc/ast_datatypes.hpp>
 #include <libhbc/skipper.hpp>
 #include <libhbc/hbcomp_grammar.hpp>
+#include <libhbc/hbc_printer.hpp>
 
 // commandline parsing.
 #include <boost/program_options.hpp>
@@ -24,6 +25,7 @@ int main(int argc, char** argv)
   desc.add_options()
     ("help,h", "produce help message")
     ("input,i", po::value<std::string>(), "the input file")
+    ("print,p", po::value<std::string>(), "print parsed version of the input file")
   ;
   po::positional_options_description p;
   p.add("infile", 1);
@@ -93,8 +95,12 @@ int main(int argc, char** argv)
   }
 
   if(r && position_begin == position_end) {
-    // TODO somehow output what we parsed: graphs and stuffs
     std::cout << "Parsing succeeded." << std::endl;
+    if(vm.count("print")) {
+
+      hexabus::hbc_printer printer;
+      printer(ast);
+    }
   } else {
     if(!r)
       std::cout << "Parsing failed." << std::endl;
