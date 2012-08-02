@@ -27,6 +27,10 @@ struct hbc_node_printer : boost::static_visitor<> {
     std::cout << "(access_level coming soon!)" << std::endl;
   }
 
+  void operator()(float const& f) const {
+    std::cout << "Float constant: " << f << std::endl;
+  }
+
   void operator()(placeholder_doc const& placeholder) const {
     std::cout << "Placeholder: \"" << placeholder.name << "\""<< std::endl;
   }
@@ -51,8 +55,7 @@ struct hbc_node_printer : boost::static_visitor<> {
     std::cout << "Line " << endpoint.lineno << ": Endpoint definition." << std::endl
       << "EID " << endpoint.eid << std::endl;
     BOOST_FOREACH(endpoint_cmd_doc endpoint_cmd, endpoint.cmds) {
-      hbc_node_printer p;
-      // TODO distinguish between variants! p(endpoint_cmd);
+      boost::apply_visitor(hbc_node_printer(indent), endpoint_cmd);
     }
   }
 
@@ -73,37 +76,44 @@ struct hbc_node_printer : boost::static_visitor<> {
     p(alias_eids.eid_list);
   }
 
+  void operator()(alias_doc const& alias) const {
+    std::cout << "Alias definition in line " << alias.lineno << " - Name: " << alias.device_name << std::endl;
+    BOOST_FOREACH(alias_cmd_doc cmd, alias.cmds) {
+      boost::apply_visitor(hbc_node_printer(indent), cmd);
+    }
+  }
+
   void operator()(global_endpoint_id_doc const& global_endpoint_id) const {
-    hbc_node_printer p;
+    hbc_printer p;
     std::cout << "Global Endpoint ID: Device: ";
-    // TODO variant!! p(global_endpoint_id.device_alias);
+    boost::apply_visitor(hbc_node_printer(indent), global_endpoint_id.device_alias);
     std::cout << " Endpoint: ";
-    // TODO variant!! p(global_endpoint_id.endpoint_name);
+    boost::apply_visitor(hbc_node_printer(indent), global_endpoint_id.endpoint_name);
     std::cout << std::endl;
   }
 
   void operator()(atomic_condition_doc const& atomic_condition) const {
-    hbc_node_printer p; // TODO maybe we can print this in one line by directly accessing the contained data structures
+    hbc_node_printer p;
     std::cout << "Atomic Condition (";
     p(atomic_condition.geid);
-    std::cout << "Operator: " << atomic_condition.comp_op;
-    // TODO p(atomic_condition.constant);
+    std::cout << "Operator: " << atomic_condition.comp_op << " ";
+    boost::apply_visitor(hbc_node_printer(indent), atomic_condition.constant);
   }
 
   void operator()(compound_condition_doc const& compound_condition) const {
     hbc_node_printer p;
     std::cout << "Compound Condition. Component A:" << std::endl;
-    // TODO p(compound_condition.condition_a);
-    // TODO bool_op
+    boost::apply_visitor(hbc_node_printer(indent), compound_condition.condition_a);
+    std::cout << "(operator coming soon!)" << std::endl; // TODO!
     std::cout << "Component B:" << std::endl;
-    // TODO p(compound_condition.condition_b);
+    boost::apply_visitor(hbc_node_printer(indent), compound_condition.condition_b);
   }
 
   void operator()(write_command_doc const& write_command) const {
     hbc_node_printer p;
     std::cout << "Write Command in line " << write_command.lineno << std::endl;
     p(write_command.geid);
-    // TODO variant p(write_command.constant);
+    boost::apply_visitor(hbc_node_printer(indent), write_command.constant);
   }
 
   void operator()(command_doc const& command) const {
@@ -127,7 +137,7 @@ struct hbc_node_printer : boost::static_visitor<> {
   void operator()(guarded_command_block_doc const& guarded_command_block) const {
     hbc_node_printer p;
     std::cout << "Guarded command block. Condition:" << std::endl;
-    // TODO variant? p(guarded_command_block.condition);
+    boost::apply_visitor(hbc_node_printer(indent), guarded_command_block.condition);
     std::cout << "Commands:" << std::endl;
     p(guarded_command_block.command_block);
     std::cout << "Command block end." << std::endl;
@@ -175,6 +185,10 @@ struct hbc_node_printer : boost::static_visitor<> {
     std::cout << "State machine end." << std::endl;
   }
 
+  void operator()(std::string const& s) const {
+    std::cout << s;
+  }
+
   void operator()(placeholder_list_doc const& placeholder_list) const {
     hbc_node_printer p;
     std::cout << "Placeholder list: " << std::endl;
@@ -202,15 +216,17 @@ struct hbc_node_printer : boost::static_visitor<> {
       << " Name: " << instantiation.name << " Module class: "
       << instantiation.moduleclass << std::endl;
     std::cout << "Parameters" << std::endl;
-    BOOST_FOREACH(inst_parameter_doc inst_parameter, instantiation.parameters) {
-      // TODO variant p(inst_parameter);
+    BOOST_FOREACH(inst_parameter_doc inst_parameter, instantiation.parameters) { // TODO this code "works"
+      if(inst_parameter.which() == 0)
+        boost::apply_visitor(hbc_node_printer(indent), boost::get<constant_doc>(inst_parameter));
+      else if(inst_parameter.which() == 1)
+        p(boost::get<float>(inst_parameter));
     }
   }
 
   void operator()(hbc_block const& block) const {
-    std::cout << "Block begin" << std::endl;
-    // TODO
-    std::cout << "Block end." << std::endl;
+    hbc_node_printer p;
+    std::cout << "[Error: Block Type not defined]" << std::endl;
   }
 
   int indent;

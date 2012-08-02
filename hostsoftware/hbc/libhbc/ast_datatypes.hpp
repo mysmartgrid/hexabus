@@ -187,6 +187,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::placeholder_doc,
   (std::string, name)
+  (std::string, name)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -213,6 +214,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::eid_list_doc,
+  (std::vector<unsigned int>, eids)
   (std::vector<unsigned int>, eids)
 )
 
@@ -249,6 +251,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::placeholder_list_doc,
   (std::vector<hexabus::placeholder_doc>, placeholders)
+  (std::vector<hexabus::placeholder_doc>, placeholders)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -263,11 +266,13 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::in_clause_doc,
   (unsigned int, lineno)
-  // (std::vector<hexabus::if_clause_doc>, if_clauses) TODO
+  (std::string, name)
+  (std::vector<hexabus::if_clause_doc>, if_clauses)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::stateset_doc,
+  (std::vector<std::string>, states)
   (std::vector<std::string>, states)
 )
 

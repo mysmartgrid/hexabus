@@ -1,3 +1,5 @@
+include another_file.hbc;
+
 endpoint 0 {
   access read;
   datatype UINT32;
