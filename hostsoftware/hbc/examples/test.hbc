@@ -1,6 +1,6 @@
 include another_file.hbc;
 
-endpoint 0 {
+endpoint 3 {
   access read;
   datatype UINT32;
   name device_descriptor;

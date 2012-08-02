@@ -97,7 +97,7 @@ namespace hexabus {
 
   struct compound_condition_doc {
     condition_doc condition_a;
-    // bool_op_doc
+    // bool_op_doc TODO
     condition_doc condition_b;
   };
 

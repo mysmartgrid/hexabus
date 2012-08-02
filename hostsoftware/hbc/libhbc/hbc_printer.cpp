@@ -5,7 +5,7 @@ using namespace hexabus;
 
 void hexabus::tab(int indent) {
   for (int i = 0; i < indent; i++)
-    std::cout << ' ';
+    std::cout << "⎜  ";
 }
 
 struct hbc_node_printer : boost::static_visitor<> {
@@ -14,29 +14,29 @@ struct hbc_node_printer : boost::static_visitor<> {
   { }
 
   void operator()(include_doc const& include) const {
-    std::cout << "Line " << include.lineno << " - Include " << include.filename << std::endl;
+    std::cout << "[" << include.lineno << "] include " << include.filename << std::endl;
   }
 
   void operator()(datatype_doc const& datatype) const {
     // TODO
-    std::cout << "(datatype coming soon!)" << std::endl;
+    std::cout << "(datatype)";
   }
 
   void operator()(access_level_doc const& access_level) const {
     // TODO
-    std::cout << "(access_level coming soon!)" << std::endl;
+    std::cout << "(access_level)";
   }
 
   void operator()(float const& f) const {
-    std::cout << "Float constant: " << f << std::endl;
+    std::cout << f;
   }
 
   void operator()(placeholder_doc const& placeholder) const {
-    std::cout << "Placeholder: \"" << placeholder.name << "\""<< std::endl;
+    std::cout << "<" << placeholder.name << ">";
   }
 
   void operator()(ep_name_doc const& ep_name) const {
-    std::cout << "EP Name: " << ep_name.name << std::endl;
+    std::cout << "name: " << ep_name.name;
   }
 
   void operator()(ep_datatype_doc const& ep_datatype) const {
@@ -52,23 +52,27 @@ struct hbc_node_printer : boost::static_visitor<> {
   }
 
   void operator()(endpoint_doc const& endpoint) const {
-    std::cout << "Line " << endpoint.lineno << ": Endpoint definition." << std::endl
-      << "EID " << endpoint.eid << std::endl;
+    tab(indent);
+    std::cout << "[" << endpoint.lineno << "] endpoint " << endpoint.eid << std::endl;
+    tab(indent);
+    std::cout << "⎛" << std::endl;
     BOOST_FOREACH(endpoint_cmd_doc endpoint_cmd, endpoint.cmds) {
-      boost::apply_visitor(hbc_node_printer(indent), endpoint_cmd);
+      tab(indent+1);
+      boost::apply_visitor(hbc_node_printer(indent+1), endpoint_cmd);
+      std::cout << std::endl;
     }
+    std::cout << "⎝" << std::endl;
   }
 
   void operator()(eid_list_doc const& eid_list) const {
-    std::cout << "Eid list: ";
+    std::cout << "eids: ";
     BOOST_FOREACH(unsigned int eid, eid_list.eids) {
       std::cout << eid << " ";
     }
-    std::cout << std::endl;
   }
 
   void operator()(alias_ip_doc const& alias_ip) const {
-    std::cout << "IPv6 address: " << alias_ip.ipv6_address << std::endl;
+    std::cout << "address: " << alias_ip.ipv6_address;
   }
 
   void operator()(alias_eids_doc const& alias_eids) const {
@@ -77,112 +81,134 @@ struct hbc_node_printer : boost::static_visitor<> {
   }
 
   void operator()(alias_doc const& alias) const {
-    std::cout << "Alias definition in line " << alias.lineno << " - Name: " << alias.device_name << std::endl;
+    tab(indent);
+    std::cout << "[" << alias.lineno << "] alias <" << alias.device_name << ">" << std::endl;
+    tab(indent);
+    std::cout << "⎛" << std::endl;
     BOOST_FOREACH(alias_cmd_doc cmd, alias.cmds) {
-      boost::apply_visitor(hbc_node_printer(indent), cmd);
+      tab(indent+1);
+      boost::apply_visitor(hbc_node_printer(indent+1), cmd);
+      std::cout << std::endl;
     }
+    std::cout << "⎝" << std::endl;
   }
 
   void operator()(global_endpoint_id_doc const& global_endpoint_id) const {
     hbc_printer p;
-    std::cout << "Global Endpoint ID: Device: ";
     boost::apply_visitor(hbc_node_printer(indent), global_endpoint_id.device_alias);
-    std::cout << " Endpoint: ";
+    std::cout << ".";
     boost::apply_visitor(hbc_node_printer(indent), global_endpoint_id.endpoint_name);
-    std::cout << std::endl;
   }
 
   void operator()(atomic_condition_doc const& atomic_condition) const {
     hbc_node_printer p;
-    std::cout << "Atomic Condition (";
     p(atomic_condition.geid);
-    std::cout << "Operator: " << atomic_condition.comp_op << " ";
+    std::cout << " [Op: " << atomic_condition.comp_op << "] ";
     boost::apply_visitor(hbc_node_printer(indent), atomic_condition.constant);
   }
 
-  void operator()(compound_condition_doc const& compound_condition) const {
+  void operator()(compound_condition_doc const& compound_condition, unsigned int ind = 0) const {
     hbc_node_printer p;
-    std::cout << "Compound Condition. Component A:" << std::endl;
+    std::cout << " ( ";
     boost::apply_visitor(hbc_node_printer(indent), compound_condition.condition_a);
-    std::cout << "(operator coming soon!)" << std::endl; // TODO!
-    std::cout << "Component B:" << std::endl;
+    std::cout << " [bool op] "; // TODO!
     boost::apply_visitor(hbc_node_printer(indent), compound_condition.condition_b);
+    std::cout << " ) ";
   }
 
-  void operator()(write_command_doc const& write_command) const {
+  void operator()(write_command_doc const& write_command, unsigned int ind = 0) const {
     hbc_node_printer p;
-    std::cout << "Write Command in line " << write_command.lineno << std::endl;
+    tab(ind);
+    std::cout << "[" << write_command.lineno << "] write ";
     p(write_command.geid);
+    std::cout << " := ";
     boost::apply_visitor(hbc_node_printer(indent), write_command.constant);
+    std::cout << std::endl;
   }
 
-  void operator()(command_doc const& command) const {
+  void operator()(command_doc const& command, unsigned int ind = 0) const {
     hbc_node_printer p;
-    p(command.write_command);
+    p(command.write_command, ind);
   }
 
-  void operator()(goto_command_doc const& goto_command) const {
-    std::cout << "Goto command in line " << goto_command.lineno
-      << "Target state: " << goto_command.target_state << std::endl;
+  void operator()(goto_command_doc const& goto_command, unsigned int ind = 0) const {
+    tab(ind);
+    std::cout << "[" << goto_command.lineno << "] goto " << goto_command.target_state << std::endl;
   }
 
-  void operator()(command_block_doc const& command_block) const {
+  void operator()(command_block_doc const& command_block, unsigned int ind = 0) const {
     hbc_node_printer p;
     BOOST_FOREACH(command_doc command, command_block.commands) {
-      p(command);
+      p(command, ind);
     }
-    p(command_block.goto_command);
+    p(command_block.goto_command, ind);
   }
 
-  void operator()(guarded_command_block_doc const& guarded_command_block) const {
+  void operator()(guarded_command_block_doc const& guarded_command_block, unsigned int ind) const {
     hbc_node_printer p;
-    std::cout << "Guarded command block. Condition:" << std::endl;
-    boost::apply_visitor(hbc_node_printer(indent), guarded_command_block.condition);
-    std::cout << "Commands:" << std::endl;
-    p(guarded_command_block.command_block);
-    std::cout << "Command block end." << std::endl;
+    std::cout << "(";
+    boost::apply_visitor(hbc_node_printer(ind), guarded_command_block.condition);
+    std::cout << ")" << std::endl;
+    tab(ind);
+    std::cout << "⎛" << std::endl;
+    p(guarded_command_block.command_block, ind+1);
+    tab(ind);
+    std::cout << "⎝" << std::endl;
   }
 
-  void operator()(if_clause_doc const& if_clause) const {
+  void operator()(if_clause_doc const& if_clause, unsigned int ind = 0) const {
     hbc_node_printer p;
-    std::cout << "If clause in line " << if_clause.lineno << " ";
-    std::cout << "If-block:" << std::endl;
-    p(if_clause.if_block);
+    tab(ind);
+    std::cout << "[" << if_clause.lineno << "] if ";
+    p(if_clause.if_block, ind);
     BOOST_FOREACH(guarded_command_block_doc else_if_block, if_clause.else_if_blocks) {
-      std::cout << "Else-if-Block:" << std::endl;
-      p(else_if_block);
+      tab(ind);
+      std::cout << "else if ";
+      p(else_if_block, ind);
     }
-    std::cout << "Else-Block:" << std::endl;
-    p(if_clause.else_block);
+    tab(ind);
+    std::cout << "else" << std::endl; // TODO only print this if there is one. Find a reliable way to find out whether there is one.
+    tab(ind);
+    std::cout << "⎛" << std::endl;
+    p(if_clause.else_block, ind+1);
+    tab(ind);
+    std::cout << "⎝" << std::endl;
   }
 
-  void operator()(in_clause_doc const& in_clause) const {
+  void operator()(in_clause_doc const& in_clause, unsigned int ind = 0) const {
     hbc_node_printer p;
-    std::cout << "In-clause in line " << in_clause.lineno << ": "
-      << in_clause.name << std::endl;
-    std::cout << "If-clauses:" << std::endl;
+    tab(ind);
+    std::cout << "[" << in_clause.lineno << "] in (" << in_clause.name << ")" << std::endl;
+    tab(ind);
+    std::cout << "⎛" << std::endl;
     BOOST_FOREACH(if_clause_doc if_clause, in_clause.if_clauses) {
-      p(if_clause);
+      p(if_clause, ind+1);
     }
-    std::cout << "In clause end." << std::endl;
+    tab(ind);
+    std::cout << "⎝" << std::endl;
   }
 
   void operator()(stateset_doc const& stateset) const {
-    std::cout << "State set: ";
+    tab(indent);
+    std::cout << "state set: ";
     BOOST_FOREACH(std::string state_name, stateset.states) {
-      std::cout << state_name << " ";
+      std::cout << "<" << state_name << "> ";
     }
     std::cout << std::endl;
   }
 
   void operator()(statemachine_doc const& statemachine) const {
     hbc_node_printer p;
-    std::cout << "State machine: Name: " << statemachine.name << std::endl;
+    tab(indent);
+    std::cout << "statemachine " << statemachine.name << std::endl;
+    tab(indent);
+    std::cout << "⎛" << std::endl;
+    tab(indent+1);
     p(statemachine.stateset);
     BOOST_FOREACH(in_clause_doc in_clause, statemachine.in_clauses) {
-      p(in_clause);
+      p(in_clause, indent+1);
     }
-    std::cout << "State machine end." << std::endl;
+    std::cout << "⎝" << std::endl;
   }
 
   void operator()(std::string const& s) const {
@@ -191,23 +217,29 @@ struct hbc_node_printer : boost::static_visitor<> {
 
   void operator()(placeholder_list_doc const& placeholder_list) const {
     hbc_node_printer p;
-    std::cout << "Placeholder list: " << std::endl;
+    tab(indent);
+    std::cout << "placeholders: ";
     BOOST_FOREACH(placeholder_doc placeholder, placeholder_list.placeholders) {
       p(placeholder);
     }
-    std::cout << "Placeholder list end." << std::endl;
   }
 
   void operator()(module_doc const& module) const {
     hbc_node_printer p;
-    std::cout << "Module definition in line " << module.lineno << ":"
-      << "Name: " << module.name << std::endl;
+    tab(indent);
+    std::cout << "[" << module.lineno << "] module <" << module.name << ">" << std::endl;
+    tab(indent);
+    std::cout << "⎛" << std::endl;
+    tab(indent + 1);
     p(module.placeholderlist);
+    std::cout << std::endl;
+    tab(indent + 1);
     p(module.stateset);
     BOOST_FOREACH(in_clause_doc in_clause, module.in_clauses) {
-      p(in_clause);
+      p(in_clause, indent+1);
     }
-    std::cout << "Module definition end." << std::endl;
+    tab(indent);
+    std::cout << "⎝" << std::endl;
   }
 
   void operator()(instantiation_doc const& instantiation) const {
@@ -238,6 +270,7 @@ void hbc_printer::operator()(hbc_doc const& hbc) const
   BOOST_FOREACH(hbc_block const& block, hbc.blocks)
   {
     boost::apply_visitor(hbc_node_printer(indent), block);
+    std::cout << std::endl;
   }
 }
 
