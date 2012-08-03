@@ -267,7 +267,6 @@ int main(int argc, char** argv) {
       network->receivePacket(false);
       char* recv_data = network->getData();
       std::cout << "Received packet from " << network->getSourceIP() << std::endl;
-      std::cout << network->getSourceIP() << " ";
       print_packet(recv_data);
     }
   }
