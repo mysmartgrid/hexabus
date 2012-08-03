@@ -75,6 +75,12 @@ set(CMAKE_CXX_FLAGS "-Wall ")
 # Check for some compiler stuff
 include(CMakeBackwardCompatibilityCXX)
 
+# find libklio
+find_package(Libklio)
+if( NOT LIBKLIO_FOUND)
+  message(FATAL_ERROR "libklio is required.You may set LIBKLIO_HOME")
+endif( NOT LIBKLIO_FOUND)
+
 FIND_PACKAGE(Sqlite)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
@@ -96,6 +102,8 @@ SET(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Mathias Dalheimer")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "hexaswitch")
 SET(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
+set(CPACK_PACKAGE_CONTACT "support@mysmartgrid.de")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "support@mysmartgrid.de")
 SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 SET(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
@@ -107,6 +115,12 @@ hexabus devices.")
 SET(CPACK_SOURCE_STRIP_FILES "")
 SET(CPACK_STRIP_FILES "bin/hexaswitch")
 SET(CPACK_STRIP_FILES "bin/hexalog")
+
+set(CPACK_SET_DESTDIR On)
+set(CPACK_SOURCE_STRIP_FILES "")
+set(CPACK_GENERATOR "DEB;TBZ2")
+set(CPACK_SECTION "net")
+
 INCLUDE(CPack)
 
 ### print some output for the user

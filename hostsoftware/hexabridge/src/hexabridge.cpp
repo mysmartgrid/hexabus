@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
 		
 		std::cout << "Initializing BridgeEndpoints..." << std::endl;
 		
-		std::vector<BridgeEndpoint*> endpoints(argc - 1, NULL);
+		std::vector<BridgeEndpoint*> endpoints(argc - 1, (BridgeEndpoint*)0);
 		// TODO: Check the Input.
 		for(int i = 0;i < argc - 1;i++) {
 			endpoints.at(i) = new BridgeEndpoint(argv[i+1], ioservice, i+1);
