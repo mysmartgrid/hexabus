@@ -27,10 +27,6 @@ namespace hexabus {
     std::string filename;
   };
 
-  struct datatype_doc {
-    // TODO (see hexabus assembler)
-  };
-
   struct access_level_doc {
     // TODO
   };
@@ -46,7 +42,7 @@ namespace hexabus {
   };
 
   struct ep_datatype_doc {
-    datatype_doc datatype;
+    datatype dtype;
   };
 
   struct ep_access_doc {
@@ -90,7 +86,7 @@ namespace hexabus {
 
   struct atomic_condition_doc {
     global_endpoint_id_doc geid;
-    unsigned int comp_op;
+    comp_operator comp_op;
     constant_doc constant;
   };
 
@@ -199,13 +195,13 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::ep_datatype_doc,
-  (hexabus::datatype_doc, datatype)
+  (hexabus::datatype, dtype)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::ep_access_doc,
   (std::vector<hexabus::access_level_doc>, access_levels)
-);
+)
 
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::endpoint_doc,
@@ -306,7 +302,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::atomic_condition_doc,
   (hexabus::global_endpoint_id_doc, geid)
-  (unsigned int, comp_op)
+  (hexabus::comp_operator, comp_op)
   (hexabus::constant_doc, constant)
 )
 

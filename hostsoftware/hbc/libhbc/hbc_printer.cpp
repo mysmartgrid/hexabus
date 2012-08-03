@@ -18,11 +18,6 @@ struct hbc_node_printer : boost::static_visitor<> {
     std::cout << "[" << include.lineno << "] include " << include.filename << std::endl;
   }
 
-  void operator()(datatype_doc const& datatype) const {
-    // TODO
-    std::cout << "(datatype)";
-  }
-
   void operator()(access_level_doc const& access_level) const {
     // TODO
     std::cout << "(access_level)";
@@ -41,11 +36,23 @@ struct hbc_node_printer : boost::static_visitor<> {
   }
 
   void operator()(ep_datatype_doc const& ep_datatype) const {
-    hbc_node_printer p;
-    p(ep_datatype.datatype);
+    std::cout << "datatype ";
+    switch(ep_datatype.dtype) {
+      case DT_BOOL:
+        std::cout << "BOOL"; break;
+      case DT_UINT8:
+        std::cout << "UINT8"; break;
+      case DT_UINT32:
+        std::cout << "UINT32"; break;
+      case DT_FLOAT:
+        std::cout << "FLOAT"; break;
+      default:
+        std::cout << "(not implemented?)"; break;
+    }
   }
 
   void operator()(ep_access_doc const& ep_access) const {
+    std::cout << "access ";
     BOOST_FOREACH(access_level_doc const& access_level, ep_access.access_levels) {
       hbc_node_printer p;
       p(access_level);

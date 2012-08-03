@@ -130,7 +130,7 @@ namespace hexabus {
       // device_name.endpoint_name
       global_endpoint_id %= ( placeholder | identifier ) > '.' > ( identifier | placeholder );
       ipv6_address %= +( char_("a-fA-F0-9") | ':' ); // parse anything that is hex and : - check validity (semantically) later (TODO)
-      datatype = ( lit("BOOL") | lit("UINT8") | lit("UINT32") | lit("FLOAT") );
+      datatype = ( lit("BOOL")[_val = DT_BOOL] | lit("UINT8")[_val = DT_UINT8] | lit("UINT32")[_val = DT_UINT32] | lit("FLOAT")[_val = DT_FLOAT] );
       access_level = ( lit("read") | lit("write") | lit("broadcast") );
 
       // larger blocks: Aliases, state machines
@@ -202,7 +202,7 @@ namespace hexabus {
     qi::rule<Iterator, constant_doc(), Skip> constant;
     qi::rule<Iterator, std::string()> identifier;
     qi::rule<Iterator, std::string(), Skip> filename;
-    qi::rule<Iterator, datatype_doc(), Skip> datatype;
+    qi::rule<Iterator, int(), Skip> datatype;
     qi::rule<Iterator, access_level_doc(), Skip> access_level;
     qi::rule<Iterator, ep_name_doc(), Skip> ep_name;
     qi::rule<Iterator, ep_datatype_doc(), Skip> ep_datatype;
