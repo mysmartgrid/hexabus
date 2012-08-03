@@ -1,4 +1,5 @@
 #include "hbc_printer.hpp"
+#include <libhbc/hbc_enums.hpp>
 #include <boost/foreach.hpp>
 
 using namespace hexabus;
@@ -103,7 +104,22 @@ struct hbc_node_printer : boost::static_visitor<> {
   void operator()(atomic_condition_doc const& atomic_condition) const {
     hbc_node_printer p;
     p(atomic_condition.geid);
-    std::cout << " [Op: " << atomic_condition.comp_op << "] ";
+    switch(atomic_condition.comp_op) {
+      case STM_EQ:
+        std::cout << " == "; break;
+      case STM_LEQ:
+        std::cout << " <= "; break;
+      case STM_GEQ:
+        std::cout << " >= "; break;
+      case STM_LT:
+        std::cout << " < "; break;
+      case STM_GT:
+        std::cout << " > "; break;
+      case STM_NEQ:
+        std::cout << " != "; break;
+      default:
+        std::cout << " (op not implemented?!) "; break;
+    }
     boost::apply_visitor(hbc_node_printer(indent), atomic_condition.constant);
   }
 
@@ -111,7 +127,14 @@ struct hbc_node_printer : boost::static_visitor<> {
     hbc_node_printer p;
     std::cout << " ( ";
     boost::apply_visitor(hbc_node_printer(indent), compound_condition.condition_a);
-    std::cout << " [bool op] "; // TODO!
+    switch(compound_condition.bool_op) {
+      case OR:
+        std::cout << " || "; break;
+      case AND:
+        std::cout << " && "; break;
+      default:
+        std::cout << " (operator not implemented?!) ";
+    }
     boost::apply_visitor(hbc_node_printer(indent), compound_condition.condition_b);
     std::cout << " ) ";
   }

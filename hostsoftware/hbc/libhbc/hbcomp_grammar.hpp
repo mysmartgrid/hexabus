@@ -16,9 +16,8 @@
 #include <boost/spirit/include/support_multi_pass.hpp>
 #include <boost/variant/recursive_variant.hpp>
 
-#include "../../../shared/hexabus_definitions.h"
-
 #include <libhbc/file_pos.hpp>
+#include <libhbc/hbc_enums.hpp>
 
 namespace qi = boost::spirit::qi;
 namespace classic = boost::spirit::classic;
@@ -118,16 +117,9 @@ namespace hexabus {
 
       // TODO still missing in the grammar TODO
       // * device-local endpoint defs (do we even want this? This is SO against what we think hexabus should be -- nice to have
-      // * boolean operators in conditions (so that they actually work)
 
-      // Assignment and comparison operators, constants, ...
+      // Assignment, constants, ...
       is = eps > lit(":=");
-      equals = lit("==") [_val = STM_EQ]; // TODO probably in the compiler we don't need those constants and can handle it more elegantly, at least with an enum!
-      lessequal = lit("<=") [_val = STM_LEQ];
-      greaterequal = lit(">=") [_val = STM_GEQ];
-      lessthan = lit("<") [_val = STM_LT];
-      greaterthan = lit(">") [_val = STM_GT];
-      notequal = lit("!=") [_val = STM_NEQ];
       constant = placeholder | float_ | lit("true") | lit("false"); // TODO do we need to distinguish between float, int, timestamp, ...?
 
       // Basic elements: Identifier, assignment, ...
@@ -164,8 +156,8 @@ namespace hexabus {
       in_clause %= lit("in") >> file_pos > '(' > identifier > ')'
         > '{' > *if_clause > '}';
 
-      bool_op %= ( lit("||") | lit("&&") );
-      comp_op %= ( equals | lessequal | greaterequal | lessthan | greaterthan | notequal );
+      bool_op %= ( lit("||")[_val = OR] | lit("&&")[_val = AND] );
+      comp_op %= ( lit("==")[_val = STM_EQ] | lit("<=")[_val = STM_LEQ] | lit(">=")[_val = STM_GEQ] | lit("<")[_val = STM_LT] | lit(">")[_val = STM_GT] | lit("!=")[_val = STM_NEQ] );
       atomic_condition %= global_endpoint_id > comp_op > constant;
       compound_condition %= '(' > condition > ')' > bool_op > '(' > condition > ')'; 
       condition %= ( atomic_condition | compound_condition );
@@ -185,7 +177,6 @@ namespace hexabus {
       // module instantiations
       inst_parameter %= ( constant | identifier );
       instantiation %= lit("instance") >> file_pos > identifier > ':' > identifier > '(' > -(inst_parameter > *(',' > inst_parameter)) > ')'; // TODO allow device.endpoint as well as just "one word"
-
 
       // commands that "do something"
       command %= write_command > ';'; // TODO more commands to be added here?
@@ -208,12 +199,6 @@ namespace hexabus {
 
     qi::rule<Iterator, std::string(), Skip> startstate;
     qi::rule<Iterator, void(), Skip> is;
-    qi::rule<Iterator, int(), Skip> equals;
-    qi::rule<Iterator, int(), Skip> lessequal;
-    qi::rule<Iterator, int(), Skip> greaterequal;
-    qi::rule<Iterator, int(), Skip> lessthan;
-    qi::rule<Iterator, int(), Skip> greaterthan;
-    qi::rule<Iterator, int(), Skip> notequal;
     qi::rule<Iterator, constant_doc(), Skip> constant;
     qi::rule<Iterator, std::string()> identifier;
     qi::rule<Iterator, std::string(), Skip> filename;
@@ -242,7 +227,7 @@ namespace hexabus {
     qi::rule<Iterator, condition_doc(), Skip> condition;
     qi::rule<Iterator, command_block_doc(), Skip> command_block;
     qi::rule<Iterator, guarded_command_block_doc(), Skip> guarded_command_block;
-    qi::rule<Iterator, void(), Skip> bool_op; // TODO make _doc
+    qi::rule<Iterator, bool_operator(), Skip> bool_op;
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
     qi::rule<Iterator, placeholder_list_doc(), Skip> placeholder_list;
     qi::rule<Iterator, module_doc(), Skip> module;

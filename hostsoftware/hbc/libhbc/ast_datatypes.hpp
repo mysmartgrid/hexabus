@@ -2,6 +2,8 @@
 #define LIBHBC_AST_DATATYPES
 
 #include <libhbc/common.hpp>
+#include <libhbc/hbc_enums.hpp>
+
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/config/warning_disable.hpp>
 #include <boost/spirit/include/qi.hpp>
@@ -97,7 +99,7 @@ namespace hexabus {
 
   struct compound_condition_doc {
     condition_doc condition_a;
-    // bool_op_doc TODO
+    bool_operator bool_op;
     condition_doc condition_b;
   };
 
@@ -311,7 +313,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::compound_condition_doc,
   (hexabus::condition_doc, condition_a)
-  // TODO bool_op
+  (hexabus::bool_operator, bool_op)
   (hexabus::condition_doc, condition_b)
 )
 
