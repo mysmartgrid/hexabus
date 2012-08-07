@@ -11,14 +11,15 @@ include_directories(
   ${CMAKE_SOURCE_DIR} 
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR} 
+  ${HXB_INCLUDE_DIR}
   ${Boost_INCLUDE_DIRS}
 )
 add_executable(hexinfo ${hexinfo_src})
 # Link the executables
 target_link_libraries(hexinfo 
-  hexabus
+  ${HXB_LIBRARIES}
   pthread
-	${Boost_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 # add programs to the install target 

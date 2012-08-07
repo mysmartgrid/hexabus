@@ -25,7 +25,7 @@ set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where m
 # path here, subsequent checks will resolve everything else
 set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_MODULE_PATH})
 
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-non-virtual-dtor -g -fomit-frame-pointer")
 
@@ -57,7 +57,8 @@ include(CMakeBackwardCompatibilityCXX)
 
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
-FIND_PACKAGE(Boost 1.46.1 COMPONENTS iostreams program_options filesystem system)
+SET(Boost_DETAILED_FAILURE_MSG true)
+FIND_PACKAGE(Boost 1.46.1 COMPONENTS  program_options filesystem system)
 FIND_PACKAGE(Hexabus)
 
 # Reflect the package structure
@@ -70,6 +71,8 @@ INSTALL(FILES README.txt LICENSE.txt DESTINATION share/doc/hexinfo)
 INCLUDE(InstallRequiredSystemLibraries)
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "hexinfo")
 SET(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
+set(CPACK_PACKAGE_CONTACT "support@mysmartgrid.de")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "support@mysmartgrid.de")
 SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.txt")
 SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 SET(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
@@ -79,6 +82,12 @@ SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSIO
 SET(CPACK_PACKAGE_EXECUTABLES "hexinfo" "Gather information about endpoints of a specific device.")
 SET(CPACK_SOURCE_STRIP_FILES "")
 SET(CPACK_STRIP_FILES "bin/hexinfo")
+
+set(CPACK_SET_DESTDIR On)
+set(CPACK_SOURCE_STRIP_FILES "")
+set(CPACK_GENERATOR "DEB;TBZ2")
+set(CPACK_SECTION "net")
+
 INCLUDE(CPack)
 
 ### print some output for the user
