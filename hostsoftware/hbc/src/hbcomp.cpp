@@ -3,6 +3,7 @@
 #include <libhbc/skipper.hpp>
 #include <libhbc/hbcomp_grammar.hpp>
 #include <libhbc/hbc_printer.hpp>
+#include <libhbc/graph_builder.hpp>
 
 // commandline parsing.
 #include <boost/program_options.hpp>
@@ -25,7 +26,8 @@ int main(int argc, char** argv)
   desc.add_options()
     ("help,h", "produce help message")
     ("input,i", po::value<std::string>(), "the input file")
-    ("print,p", po::value<std::string>(), "print parsed version of the input file")
+    ("print,p", "print parsed version of the input file")
+    ("graph,g", po::value<std::string>(), "output the program graph in graphviz format")
   ;
   po::positional_options_description p;
   p.add("infile", 1);
@@ -41,7 +43,7 @@ int main(int argc, char** argv)
     return 1;
   }
   // TODO Version!
-	// TODO don't throw obscure error message when user forgets "-i"
+  // TODO don't throw obscure error message when user forgets "-i"
   if(!vm.count("input"))
   {
     std::cerr << "Error: You must specify an input file." << std::endl;
@@ -97,9 +99,24 @@ int main(int argc, char** argv)
   if(r && position_begin == position_end) {
     std::cout << "Parsing succeeded." << std::endl;
     if(vm.count("print")) {
-
       hexabus::hbc_printer printer;
       printer(ast);
+    } else if(vm.count("graph")) {
+      hexabus::GraphBuilder gBuilder;
+      gBuilder(ast);
+      std::ofstream ofs;
+      std::string outfile(vm["graph"].as<std::string>());
+      if(std::string("") == outfile) {
+        std::cout << "No graph output file specified." << std::endl;
+        exit(-1);
+      }
+      ofs.open(outfile.c_str());
+      if(!ofs) {
+        std::cerr << "Error: Could not open graph output file." << std::endl;
+        exit(-1);
+      }
+      gBuilder.write_graphviz(ofs);
+      ofs.close();
     }
   } else {
     if(!r)
