@@ -138,7 +138,7 @@ namespace hexabus {
 
       ep_name %= lit("name") > identifier > ';';
       ep_datatype %= lit("datatype") > datatype > ';';
-      ep_access %= lit("access") > access_level > *(',' > access_level) > ';';
+      ep_access %= lit("access") > '{' > access_level > *(',' > access_level) > '}' > ';';
       endpoint_cmd = ( ep_name | ep_datatype | ep_access );
       endpoint %= lit("endpoint") >> file_pos > uint_ > '{' > *endpoint_cmd > '}';
       // TODO check later (semantically) that there are no contradictions in here (e.g. two different datatype statements
