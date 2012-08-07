@@ -31,7 +31,7 @@ struct hbc_node_printer : boost::static_visitor<> {
   }
 
   void operator()(ep_datatype_doc const& ep_datatype) const {
-    std::cout << "datatype ";
+    std::cout << "datatype: ";
     switch(ep_datatype.dtype) {
       case DT_BOOL:
         std::cout << "BOOL"; break;
@@ -47,7 +47,7 @@ struct hbc_node_printer : boost::static_visitor<> {
   }
 
   void operator()(ep_access_doc const& ep_access) const {
-    std::cout << "access ";
+    std::cout << "access: ";
     BOOST_FOREACH(access_level const& access_level, ep_access.access_levels) {
       switch(access_level) {
         case AC_READ:
@@ -234,7 +234,7 @@ struct hbc_node_printer : boost::static_visitor<> {
   void operator()(statemachine_doc const& statemachine) const {
     hbc_node_printer p;
     tab(indent);
-    std::cout << "statemachine " << statemachine.name << std::endl;
+    std::cout << "statemachine <" << statemachine.name << ">" << std::endl;
     tab(indent);
     std::cout << "⎛" << std::endl;
     tab(indent+1);
@@ -255,6 +255,7 @@ struct hbc_node_printer : boost::static_visitor<> {
     std::cout << "placeholders: ";
     BOOST_FOREACH(placeholder_doc placeholder, placeholder_list.placeholders) {
       p(placeholder);
+      std::cout << " ";
     }
   }
 
