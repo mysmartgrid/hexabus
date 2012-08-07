@@ -18,11 +18,6 @@ struct hbc_node_printer : boost::static_visitor<> {
     std::cout << "[" << include.lineno << "] include " << include.filename << std::endl;
   }
 
-  void operator()(access_level_doc const& access_level) const {
-    // TODO
-    std::cout << "(access_level)";
-  }
-
   void operator()(float const& f) const {
     std::cout << f;
   }
@@ -53,9 +48,18 @@ struct hbc_node_printer : boost::static_visitor<> {
 
   void operator()(ep_access_doc const& ep_access) const {
     std::cout << "access ";
-    BOOST_FOREACH(access_level_doc const& access_level, ep_access.access_levels) {
-      hbc_node_printer p;
-      p(access_level);
+    BOOST_FOREACH(access_level const& access_level, ep_access.access_levels) {
+      switch(access_level) {
+        case AC_READ:
+          std::cout << "read"; break;
+        case AC_WRITE:
+          std::cout << "write"; break;
+        case AC_BROADCAST:
+          std::cout << "broadcast"; break;
+        default:
+          std::cout << "(acces level not implemented?)";
+      }
+      std::cout << " ";
     }
   }
 

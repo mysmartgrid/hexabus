@@ -131,14 +131,14 @@ namespace hexabus {
       global_endpoint_id %= ( placeholder | identifier ) > '.' > ( identifier | placeholder );
       ipv6_address %= +( char_("a-fA-F0-9") | ':' ); // parse anything that is hex and : - check validity (semantically) later (TODO)
       datatype = ( lit("BOOL")[_val = DT_BOOL] | lit("UINT8")[_val = DT_UINT8] | lit("UINT32")[_val = DT_UINT32] | lit("FLOAT")[_val = DT_FLOAT] );
-      access_level = ( lit("read") | lit("write") | lit("broadcast") );
+      access_level = ( lit("read")[_val = AC_READ] | lit("write")[_val = AC_WRITE] | lit("broadcast")[_val = AC_BROADCAST] );
 
       // larger blocks: Aliases, state machines
       include %= lit("include") >> file_pos > filename > ';';
 
       ep_name %= lit("name") > identifier > ';';
       ep_datatype %= lit("datatype") > datatype > ';';
-      ep_access %= lit("access") > *access_level > ';';
+      ep_access %= lit("access") > access_level > *(',' > access_level) > ';';
       endpoint_cmd = ( ep_name | ep_datatype | ep_access );
       endpoint %= lit("endpoint") >> file_pos > uint_ > '{' > *endpoint_cmd > '}';
       // TODO check later (semantically) that there are no contradictions in here (e.g. two different datatype statements
@@ -203,7 +203,7 @@ namespace hexabus {
     qi::rule<Iterator, std::string()> identifier;
     qi::rule<Iterator, std::string(), Skip> filename;
     qi::rule<Iterator, int(), Skip> datatype;
-    qi::rule<Iterator, access_level_doc(), Skip> access_level;
+    qi::rule<Iterator, access_level(), Skip> access_level;
     qi::rule<Iterator, ep_name_doc(), Skip> ep_name;
     qi::rule<Iterator, ep_datatype_doc(), Skip> ep_datatype;
     qi::rule<Iterator, ep_access_doc(), Skip> ep_access;

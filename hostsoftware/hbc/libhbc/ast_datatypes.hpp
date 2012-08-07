@@ -27,10 +27,6 @@ namespace hexabus {
     std::string filename;
   };
 
-  struct access_level_doc {
-    // TODO
-  };
-
   struct placeholder_doc {
     std::string name;
   };
@@ -46,7 +42,7 @@ namespace hexabus {
   };
 
   struct ep_access_doc {
-    std::vector<access_level_doc> access_levels;
+    std::vector<access_level> access_levels;
   };
 
   typedef boost::variant<ep_name_doc, ep_datatype_doc, ep_access_doc> endpoint_cmd_doc;
@@ -200,7 +196,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::ep_access_doc,
-  (std::vector<hexabus::access_level_doc>, access_levels)
+  (std::vector<hexabus::access_level>, access_levels)
+  (std::vector<hexabus::access_level>, access_levels)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

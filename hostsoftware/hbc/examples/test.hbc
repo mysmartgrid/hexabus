@@ -1,9 +1,20 @@
 include another_file.hbc;
 
-endpoint 3 {
+endpoint 0 {
   access read;
   datatype UINT32;
   name device_descriptor;
+}
+
+endpoint 1 {
+  access read, write;
+  datatype BOOL;
+  name on;
+}
+
+endpoint 2 {
+  name power;
+  datatype UINT32; access read, broadcast;
 }
 
 alias device {
