@@ -1,6 +1,7 @@
 #include "graph_builder.hpp"
 #include <sstream>
 #include <boost/graph/graphviz.hpp>
+#include <boost/utility.hpp>
 
 using namespace hexabus;
 
@@ -42,9 +43,9 @@ void GraphBuilder::write_graphviz(std::ostream& os) {
   graph_attr["ratio"] = "fill";
   vertex_attr["shape"] = "circle";
 
-  boost::write_graphviz(os, (*_g) // ,
-    // boost::make_label_writer(boost::get(&vertex_t::name, (*_g)))m
-    // boost::make_label_writer(boost::get(&edge_t::name, (*_g)))
-    // boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr)
+  boost::write_graphviz(os, (*_g),
+    boost::make_label_writer(boost::get(&vertex_t::name, (*_g))),
+    boost::make_label_writer(boost::get(&edge_t::name, (*_g))),
+    boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr)
   );
 }
