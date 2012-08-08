@@ -1,4 +1,5 @@
 #include "graph_builder.hpp"
+#include <libhbc/hbc_printer.hpp>
 #include <sstream>
 #include <boost/graph/graphviz.hpp>
 #include <boost/utility.hpp>
@@ -32,11 +33,15 @@ struct first_pass : boost::static_visitor<> {
       unsigned int originating_state = find_state_vertex_id(_g, statemachine, in_clause.name);
       // look at all the "if"s in the in_clause, and find their goto's.
       BOOST_FOREACH(if_clause_doc if_clause, in_clause.if_clauses) {
+        // TODO index for each if, else if, else, so that we know the order in which they appear in the code!
         // if-block
         unsigned int target_state = find_state_vertex_id(_g, statemachine, if_clause.if_block.command_block.goto_command.target_state);
         // add condition vertex
         std::ostringstream oss;
-        oss << "if ..."; // TODO condition printer
+        oss << "(" << condition_id << ") if (";
+        hbc_printer pr;
+        pr(if_clause.if_block.condition, &oss);
+        oss << ")";
         vertex_id_t v_id = boost::add_vertex((*_g));
         (*_g)[v_id].name = oss.str();
         (*_g)[v_id].machine_id = statemachine.id;
@@ -70,6 +75,43 @@ struct first_pass : boost::static_visitor<> {
         }
 
         // else-if-block(s)
+        BOOST_FOREACH(guarded_command_block_doc else_if_block, if_clause.else_if_blocks) {
+          unsigned int target_state = find_state_vertex_id(_g, statemachine, else_if_block.command_block.goto_command.target_state);
+          std::ostringstream oss;
+          oss << "(" << condition_id << ") else if";
+          hbc_printer pr;
+          pr(else_if_block.condition, &oss);
+          oss << ")";
+          vertex_id_t v_id = boost::add_vertex((*_g));
+          (*_g)[v_id].name = oss.str();
+          (*_g)[v_id].machine_id = statemachine.id;
+          (*_g)[v_id].vertex_id = condition_id++;
+          (*_g)[v_id].type = v_cond;
+
+          vertex_id_t from_state = find_vertex(_g, statemachine.id, originating_state);
+          edge_id_t edge;
+          bool ok;
+          boost::tie(edge, ok) = boost::add_edge(from_state, v_id, (*_g));
+          if(ok)
+            (*_g)[edge].type = e_from_state;
+          else {
+            std::ostringstream oss;
+            oss << "Cannot link state " << statemachine.id << "." << originating_state << " to condition " << (*_g)[v_id].vertex_id;
+            // TODO throw EdgeLinkException(oss);
+          }
+
+          vertex_id_t to_state = find_vertex(_g, statemachine.id, target_state);
+          edge_id_t to_edge;
+          bool to_ok;
+          boost::tie(to_edge, to_ok) = boost::add_edge(v_id, to_state, (*_g));
+          if(ok)
+            (*_g)[edge].type = e_to_state;
+          else {
+            std::ostringstream oss;
+            oss << "Cannot link condition " << statemachine.id << "." << (*_g)[v_id].vertex_id << " to state " << to_state;
+            // TODO throw EdgeLinkExgeption
+          }
+        }
 
         // else-block (TODO if it exists)
       }
@@ -96,7 +138,7 @@ void GraphBuilder::operator()(hbc_doc& hbc) {
 void GraphBuilder::write_graphviz(std::ostream& os) {
   std::map<std::string, std::string> graph_attr, vertex_attr, edge_attr;
   graph_attr["ratio"] = "fill";
-  vertex_attr["shape"] = "circle";
+  vertex_attr["shape"] = "rectangle";
 
   boost::write_graphviz(os, (*_g),
     boost::make_label_writer(boost::get(&vertex_t::name, (*_g))),

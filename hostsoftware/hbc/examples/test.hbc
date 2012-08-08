@@ -35,6 +35,14 @@ machine my_machine {
       goto two;
     }
   }
+  in(two) {
+    if(device.endpoint == 23) {
+      goto three;
+    }
+    if(device.endpoint == 25) {
+      goto three;
+    }
+  }
 }
 
 machine another_machine {

@@ -14,10 +14,10 @@
 #include <boost/spirit/include/phoenix_object.hpp>
 
 #include <boost/variant/recursive_variant.hpp>
-#include <boost/spirit/home/qi.hpp> 
-#include <boost/spirit/home/support/info.hpp> 
-#include <boost/spirit/home/phoenix.hpp> 
-#include <boost/spirit/home/phoenix/statement/sequence.hpp> 
+#include <boost/spirit/home/qi.hpp>
+#include <boost/spirit/home/support/info.hpp>
+#include <boost/spirit/home/phoenix.hpp>
+#include <boost/spirit/home/phoenix/statement/sequence.hpp>
 
 namespace hexabus {
 
