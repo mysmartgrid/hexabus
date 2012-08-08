@@ -141,6 +141,7 @@ namespace hexabus {
     std::string name;
     stateset_doc stateset;
     std::vector<in_clause_doc> in_clauses;
+    unsigned int id;
   };
 
   struct placeholder_list_doc {

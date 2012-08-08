@@ -9,7 +9,8 @@ namespace hexabus {
   enum vertex_type { v_cond, v_state };
   struct vertex_t {
     std::string name;
-    unsigned int id;
+    unsigned int machine_id;
+    unsigned int state_id;    // state is identified by pair of machine and state id
     vertex_type type;
   };
 
