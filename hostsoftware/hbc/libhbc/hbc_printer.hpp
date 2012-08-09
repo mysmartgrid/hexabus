@@ -16,7 +16,7 @@ namespace hexabus {
     {}
 
     void operator()(hbc_doc const& hbc) const;
-    void operator()(condition_doc const& cond, std::ostream* ostr) const;
+    void operator()(condition_doc const& cond, std::ostream& ostr) const;
 
     int indent;
   };

@@ -39,7 +39,7 @@ struct first_pass : boost::static_visitor<> {
         std::ostringstream oss;
         oss << "(" << condition_id << ") if (";
         hbc_printer pr;
-        pr(if_clause.if_block.condition, &oss);
+        pr(if_clause.if_block.condition, oss);
         oss << ")";
         vertex_id_t v_id = boost::add_vertex((*_g));
         (*_g)[v_id].name = oss.str();
@@ -79,7 +79,7 @@ struct first_pass : boost::static_visitor<> {
           std::ostringstream oss;
           oss << "(" << condition_id << ") else if (";
           hbc_printer pr;
-          pr(else_if_block.condition, &oss);
+          pr(else_if_block.condition, oss);
           oss << ")";
           vertex_id_t v_id = boost::add_vertex((*_g));
           (*_g)[v_id].name = oss.str();
