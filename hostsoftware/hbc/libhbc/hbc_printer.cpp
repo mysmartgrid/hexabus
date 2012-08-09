@@ -150,17 +150,17 @@ struct hbc_node_printer : boost::static_visitor<> {
   }
 
   void operator()(write_command_doc const& write_command, unsigned int ind = 0) const {
-    hbc_node_printer p;
+    hbc_node_printer p(ind, ostr);
     tab(ind);
     ostr << "[" << write_command.lineno << "] write ";
-    p(write_command.geid);
+    p(write_command.geid, ostr);
     ostr << " := ";
     boost::apply_visitor(hbc_node_printer(indent, ostr), write_command.constant);
     ostr << std::endl;
   }
 
   void operator()(command_doc const& command, unsigned int ind = 0) const {
-    hbc_node_printer p;
+    hbc_node_printer p(ind, ostr);
     p(command.write_command, ind);
   }
 
@@ -170,7 +170,7 @@ struct hbc_node_printer : boost::static_visitor<> {
   }
 
   void operator()(command_block_doc const& command_block, unsigned int ind = 0) const {
-    hbc_node_printer p;
+    hbc_node_printer p(ind, ostr);
     BOOST_FOREACH(command_doc command, command_block.commands) {
       p(command, ind);
     }
@@ -311,4 +311,9 @@ void hbc_printer::operator()(hbc_doc const& hbc) const {
 
 void hbc_printer::operator()(condition_doc const& cond, std::ostream& ostr) const {
   boost::apply_visitor(hbc_node_printer(0, ostr), cond);
+}
+
+void hbc_printer::operator()(command_block_doc const& command_block, std::ostream& ostr) const {
+  hbc_node_printer p(0, ostr);
+  p(command_block);
 }

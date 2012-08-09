@@ -7,7 +7,7 @@
 
 namespace hexabus {
 
-  enum vertex_type { v_cond, v_state };
+  enum vertex_type { v_cond, v_state, v_command };
   struct vertex_t {
     std::string name;
     unsigned int machine_id;
@@ -15,7 +15,7 @@ namespace hexabus {
     vertex_type type;
   };
 
-  enum edge_type { e_from_state, e_to_state };
+  enum edge_type { e_from_state, e_if_com, e_to_state };
   struct edge_t {
     std::string name;
     unsigned int lineno;
