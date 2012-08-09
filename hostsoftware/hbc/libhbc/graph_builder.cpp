@@ -14,7 +14,7 @@ struct first_pass : boost::static_visitor<> {
   void operator()(statemachine_doc& statemachine) const {
     statemachine.id = _machine++;
 
-    // build the vertices
+    // build vertices for states
     for(unsigned int i = 0; i < statemachine.stateset.states.size(); i++) // don't use foreach because we need the index
     {
       std::ostringstream oss;
@@ -33,7 +33,6 @@ struct first_pass : boost::static_visitor<> {
       unsigned int originating_state = find_state_vertex_id(_g, statemachine, in_clause.name);
       // look at all the "if"s in the in_clause, and find their goto's.
       BOOST_FOREACH(if_clause_doc if_clause, in_clause.if_clauses) {
-        // TODO index for each if, else if, else, so that we know the order in which they appear in the code!
         // if-block
         unsigned int target_state = find_state_vertex_id(_g, statemachine, if_clause.if_block.command_block.goto_command.target_state);
         // add condition vertex
@@ -52,9 +51,9 @@ struct first_pass : boost::static_visitor<> {
         // edge from from-state to condition vertex
         vertex_id_t from_state = find_vertex(_g, statemachine.id, originating_state);
         edge_id_t edge;
-        bool ok;
-        boost::tie(edge, ok) = boost::add_edge(from_state, v_id, (*_g));
-        if(ok)
+        bool if_ok;
+        boost::tie(edge, if_ok) = boost::add_edge(from_state, v_id, (*_g));
+        if(if_ok)
           (*_g)[edge].type = e_from_state;
         else {
           std::ostringstream oss;
@@ -66,7 +65,7 @@ struct first_pass : boost::static_visitor<> {
         edge_id_t to_edge;
         bool to_ok;
         boost::tie(to_edge, to_ok) = boost::add_edge(v_id, to_state, (*_g));
-        if(ok)
+        if(to_ok)
           (*_g)[edge].type = e_to_state;
         else {
           std::ostringstream oss;
@@ -78,7 +77,7 @@ struct first_pass : boost::static_visitor<> {
         BOOST_FOREACH(guarded_command_block_doc else_if_block, if_clause.else_if_blocks) {
           unsigned int target_state = find_state_vertex_id(_g, statemachine, else_if_block.command_block.goto_command.target_state);
           std::ostringstream oss;
-          oss << "(" << condition_id << ") else if";
+          oss << "(" << condition_id << ") else if (";
           hbc_printer pr;
           pr(else_if_block.condition, &oss);
           oss << ")";
@@ -114,6 +113,41 @@ struct first_pass : boost::static_visitor<> {
         }
 
         // else-block (TODO if it exists)
+        unsigned int else_target_state = find_state_vertex_id(_g, statemachine, if_clause.else_block.goto_command.target_state);
+        // add condition vertex
+        std::ostringstream else_oss;
+        else_oss << "(" << condition_id << ") else";
+        vertex_id_t else_v_id = boost::add_vertex((*_g));
+        (*_g)[else_v_id].name = else_oss.str();
+        (*_g)[else_v_id].machine_id = statemachine.id;
+        (*_g)[else_v_id].vertex_id = condition_id++;
+        (*_g)[else_v_id].type = v_cond;
+
+        // add edges
+        // edge from from-state to condition vertex
+        vertex_id_t else_from_state = find_vertex(_g, statemachine.id, originating_state);
+        edge_id_t else_edge;
+        bool else_ok;
+        boost::tie(else_edge, else_ok) = boost::add_edge(else_from_state, else_v_id, (*_g));
+        if(if_ok)
+          (*_g)[else_edge].type = e_from_state;
+        else {
+          std::ostringstream oss;
+          oss << "Cannot link state " << statemachine.id << "." << originating_state << " to condition " << (*_g)[else_v_id].vertex_id;
+          // TODO throw EdgeLinkException(oss);
+        }
+        // else_edge from condition vertex to to-state
+        vertex_id_t else_to_state = find_vertex(_g, statemachine.id, else_target_state);
+        edge_id_t else_to_edge;
+        bool else_to_ok;
+        boost::tie(else_to_edge, else_to_ok) = boost::add_edge(else_v_id, else_to_state, (*_g));
+        if(else_to_ok)
+          (*_g)[else_edge].type = e_to_state;
+        else {
+          std::ostringstream oss;
+          oss << "Cannot link condition " << statemachine.id << "." << (*_g)[else_v_id].vertex_id << " to state " << else_to_state;
+          // TODO throw EdgeLinkExgeption
+        }
       }
     }
   }
