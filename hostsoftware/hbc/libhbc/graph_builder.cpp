@@ -1,5 +1,6 @@
 #include "graph_builder.hpp"
 #include <libhbc/hbc_printer.hpp>
+#include <libhbc/label_writer.hpp>
 #include <sstream>
 #include <boost/graph/graphviz.hpp>
 #include <boost/utility.hpp>
@@ -260,8 +261,10 @@ void GraphBuilder::write_graphviz(std::ostream& os) {
   vertex_attr["shape"] = "rectangle";
 
   boost::write_graphviz(os, (*_g),
-    boost::make_label_writer(boost::get(&vertex_t::name, (*_g))),
-    boost::make_label_writer(boost::get(&edge_t::name, (*_g))),
-    boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr)
+    make_vertex_label_writer(
+      boost::get(&vertex_t::name, (*_g)), boost::get(&vertex_t::type, (*_g))),
+      boost::make_label_writer(boost::get(&edge_t::name, (*_g))),
+      boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr
+    )
   );
 }
