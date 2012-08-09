@@ -199,13 +199,15 @@ struct hbc_node_printer : boost::static_visitor<> {
       ostr << "else if ";
       p(else_if_block, ind);
     }
-    tab(ind);
-    ostr << "else" << std::endl; // TODO only print this if there is one. Find a reliable way to find out whether there is one.
-    tab(ind);
-    ostr << "⎛" << std::endl;
-    p(if_clause.else_block, ind+1);
-    tab(ind);
-    ostr << "⎝" << std::endl;
+    if(if_clause.else_clause.present == 1) {
+      tab(ind);
+      ostr << "else" << std::endl;
+      tab(ind);
+      ostr << "⎛" << std::endl;
+      p(if_clause.else_clause.commands, ind+1);
+      tab(ind);
+      ostr << "⎝" << std::endl;
+    }
   }
 
   void operator()(in_clause_doc const& in_clause, unsigned int ind = 0) const {

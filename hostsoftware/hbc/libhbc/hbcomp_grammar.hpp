@@ -164,9 +164,11 @@ namespace hexabus {
       command_block %= *command > goto_command > ';';
       guarded_command_block %= '(' > condition > ')' > '{' > command_block > '}';
 
+      else_lit %= lit("else")[_val = 1]; // sets a variable if "else" was found, variable stays 0 if it isn't.
+      else_clause %= else_lit > '{' > command_block > '}';
       if_clause %= lit("if") >> file_pos > guarded_command_block
         > *( lit("else if") > guarded_command_block )
-        > -( lit("else") > '{' > command_block > '}' );
+        > -else_clause;
 
       // module definitions
       placeholder_list %= placeholder > *( ',' > placeholder );
@@ -228,6 +230,8 @@ namespace hexabus {
     qi::rule<Iterator, command_block_doc(), Skip> command_block;
     qi::rule<Iterator, guarded_command_block_doc(), Skip> guarded_command_block;
     qi::rule<Iterator, bool_operator(), Skip> bool_op;
+    qi::rule<Iterator, int(), Skip> else_lit;
+    qi::rule<Iterator, else_clause_doc(), Skip> else_clause;
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
     qi::rule<Iterator, placeholder_list_doc(), Skip> placeholder_list;
     qi::rule<Iterator, module_doc(), Skip> module;

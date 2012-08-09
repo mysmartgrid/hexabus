@@ -40,7 +40,12 @@ machine my_machine {
       goto three;
     }
     if(device.endpoint == 25) {
+      write blah.blaah := 0;
       goto three;
+    }
+    else {
+      write foo.bar := 1;
+      goto one;
     }
   }
 }

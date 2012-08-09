@@ -113,7 +113,7 @@ struct first_pass : boost::static_visitor<> {
         }
 
         // else-block (TODO if it exists)
-        unsigned int else_target_state = find_state_vertex_id(_g, statemachine, if_clause.else_block.goto_command.target_state);
+        unsigned int else_target_state = find_state_vertex_id(_g, statemachine, if_clause.else_clause.commands.goto_command.target_state);
         // add condition vertex
         std::ostringstream else_oss;
         else_oss << "(" << condition_id << ") else";
