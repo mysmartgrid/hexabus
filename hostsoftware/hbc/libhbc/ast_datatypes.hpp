@@ -87,7 +87,7 @@ namespace hexabus {
   };
 
   struct compound_condition_doc;
-  typedef boost::variant<atomic_condition_doc, boost::recursive_wrapper<compound_condition_doc> > condition_doc;
+  typedef boost::variant<unsigned int, atomic_condition_doc, boost::recursive_wrapper<compound_condition_doc> > condition_doc;
 
   struct compound_condition_doc {
     condition_doc condition_a;

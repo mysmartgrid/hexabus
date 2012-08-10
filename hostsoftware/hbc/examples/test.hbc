@@ -53,7 +53,7 @@ machine my_machine {
 machine another_machine {
   states { bloerp };
   in(bloerp) {
-    if(device.endpoint == 104.2345) { goto init; }
+    if(true) { goto init; }
   }
 }
 
