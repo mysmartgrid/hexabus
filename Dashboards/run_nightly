@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# export https_proxy=http://squid.itwm.fhg.de:3128/
+
+export LANG=en_US.UTF-8
+export CTEST=/usr/bin/ctest
+
+echo "Running ctest"
+
+
+${CTEST} -V -VV -S ${HOME}/Dashboards/HexabusNightly_1.cmake
+${CTEST} -V -VV -S ${HOME}/Dashboards/HexabusNightly_2.cmake
+
