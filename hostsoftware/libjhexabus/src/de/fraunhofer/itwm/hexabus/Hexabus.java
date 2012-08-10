@@ -19,7 +19,7 @@ import java.util.HashMap;
 public class Hexabus {
 	/** Hexabus port { @value } */
 	public final static int PORT = 61616;
-	/*' Hexabus packet header */
+	/** Hexabus packet header */
 	public final static byte[] HEADER = new byte[] {(byte) 0x48, (byte) 0x58, (byte) 0x30, (byte) 0x42};
 
 	/** Listener have to extend this class to get packets from the HexabusServer */
@@ -47,8 +47,6 @@ public class Hexabus {
 		/** This method gets called by the server whenever it receives a packet. */
 		public abstract void handlePacket(HexabusPacket packet);
 	}
-	//public Collection<int> getEndpoints(InetAddress ip) throws Hexabus.HexabusException, IOException {
-	//}
 	
 	/**
 	 * Receives packet on specified port.
