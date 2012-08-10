@@ -17,7 +17,12 @@ public class HexabusDevice {
 		endpoints = new HashMap<Integer,HexabusEndpoint>();
 		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
 	}
-	//TODO constructor with string
+
+	public HexabusDevice(String address) {
+		this.address = InetAddress.getByName(address);
+		endpoints = new HashMap<Integer,HexabusEndpoint>();
+		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
+	}
 
 	/**
 	 * Creates an Endpoint with specified EID, data type and description
@@ -28,8 +33,10 @@ public class HexabusDevice {
 	 * @param description A description of the new endpoint
 	 * @return The newly created endpoint
 	 */
-	//TODO check if eid exists
 	public HexabusEndpoint addEndpoint(int eid, Hexabus.DataType datatype, String description) {
+		if(endpoints.containsKey(new Integer(eid)) {
+			throw new HexabusException("Endpoint exists");
+		}
 		HexabusEndpoint endpoint = new HexabusEndpoint(this, eid, datatype, description);
 		endpoints.put(eid, endpoint);
 		return endpoint;
