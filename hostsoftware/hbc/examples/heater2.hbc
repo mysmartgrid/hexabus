@@ -15,7 +15,7 @@ alias heater {
 machine heating_control {
   states { init, off, half, full };
   in(init) {
-    if(a.a == 0) { #TODO "if true" or something
+    if(true) {
       write heater.heater := 0;
       goto off;
     }

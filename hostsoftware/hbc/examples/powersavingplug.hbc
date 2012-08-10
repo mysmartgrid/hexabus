@@ -19,7 +19,7 @@ machine main {
   states { init, on, waiting, off };
 
   in(init) {
-    if(a.a == 0) { # TODO if(true)...
+    if(true) {
       write powerplug.on := false;
       goto off;
     }

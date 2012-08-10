@@ -118,7 +118,7 @@ machine remote_control {
 machine pc_plug {
   states { init, on, waiting, off };
   in(init) {
-    if(a.a == 0) { # TODO if(true)
+    if(true) {
       goto off;
     }
   }
