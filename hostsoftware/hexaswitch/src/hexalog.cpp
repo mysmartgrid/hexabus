@@ -94,22 +94,19 @@ int main(int argc, char** argv)
       struct hxb_value value = phandling.getValue();
       float reading=0.0;
       std::string sensor_unit;
-      std::string sensor_timezone("HORST"); // TODO: consider USCHI.
-
+      std::string sensor_timezone("Europe/Berlin"); 
       //use the use the right datatype for each recieved packet
       switch(phandling.getDatatype()){
-        case 1: 
+        case HXB_DTYPE_BOOL:
+        case HXB_DTYPE_UINT8:
           reading = (float)(*(uint8_t*)&value.data);
           break;
-        case 2: 
-          reading = (float)(*(uint8_t*)&value.data);
-          break;
-        case 3:
-          reading = (float)(*(uint32_t*)&value.data);
+        case HXB_DTYPE_UINT32:
+          memcpy(&reading, &value.data[0], sizeof(uint32_t));  // damit gehts..
           break;
         //case 4: //date+time packet
-        case 5:
-          reading = (float)(*(float*)&value.data);
+        case HXB_DTYPE_FLOAT:
+          memcpy(&reading, &value.data[0], sizeof(float));
           break;
         //case 6: //128char string
         case 7:
