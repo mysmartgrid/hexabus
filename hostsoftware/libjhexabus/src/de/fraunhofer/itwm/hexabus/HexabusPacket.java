@@ -11,11 +11,8 @@ public abstract class HexabusPacket {
 	protected InetAddress sourceAddress;
 	protected int sourcePort;
 	protected Hexabus.PacketType packetType;
-	//flags
 	protected byte[] crc;
 
-	//TODO: use source{Address,Port}
-	//return value is source port
 	/**
 	 * Sends the packet to specified address on port { @value Hexabus#PORT }
 	 *
@@ -71,8 +68,7 @@ public abstract class HexabusPacket {
 		return sourceAddress;
 	}
 
-	//TODO protected?
-	public void setSourceAddress(InetAddress address) {
+	protected void setSourceAddress(InetAddress address) {
 		sourceAddress = address;
 	}
 	
@@ -83,8 +79,7 @@ public abstract class HexabusPacket {
 		return sourcePort;
 	}
 
-	//TODO protected?
-	public void setSourcePort(int port) {
+	protected void setSourcePort(int port) {
 		sourcePort = port;
 	}
 
@@ -99,8 +94,7 @@ public abstract class HexabusPacket {
 		return crc;
 	}
 
-	//TODO protected?
-	public void setCRC(byte[] crc) throws Hexabus.HexabusException {
+	protected void setCRC(byte[] crc) throws Hexabus.HexabusException {
 		if(crc.length > 2) {
 			throw new Hexabus.HexabusException("CRC invalid. 2 bytes expected");
 		}
