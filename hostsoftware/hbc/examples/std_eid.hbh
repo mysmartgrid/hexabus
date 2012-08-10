@@ -8,59 +8,59 @@
 endpoint 0 {
 	datatype UINT32; # TODO does this belong here? There already is an EP->datatype mapping in the Hexabus assembler which could be used, reused or assumed
 	name device_descriptor;
-	access read; # Value can be read by QUERY requests, but is never broadcast
+	access { read }; # Value can be read by QUERY requests, but is never broadcast
 }
 
 endpoint 1 {
 	datatype BOOL;
 	name on;
-	access write; # value can be written, is never broadcast
+	access { write }; # value can be written, is never broadcast
 }
 
 endpoint 2 {
 	datatype UINT32;
 	name power;
-	access broadcast; # value is broadcast periodically
+	access { broadcast }; # value is broadcast periodically
 }
 
 endpoint 3 {
 	datatype FLOAT;
 	name temperature;
-	access broadcast;
+	access { broadcast };
 }
 
 endpoint 4 {
 	datatype BOOL;
 	name button;
-	access event;
+	# TODO access { event };
 }
 
 endpoint 5 {
 	datatype FLOAT;
 	name humidity;
-	access broadcast;
+	access { broadcast };
 }
 
 endpoint 24 {
-	datatype UINT8; #TODO nice-to-have: Bitvector datatype which gives us human-readable access to the bits in the bitvector
+	datatype UINT8; #TODO nice-to-have: Bitvector datatype which gives us human-readable access { to } the bits in the bitvector
 	name pressed;
-	access read;
+	access { read };
 }
 
 endpoint 25 {
 	datatype UINT8;
 	name clicked;
-	access read;
+	access { read };
 }
 
 endpoint 29 {
 	datatype FLOAT;
 	name sunlight;
-	access broadcast;
+	access { broadcast };
 }
 
 endpoint 30 {
   datatype UINT32;
   name ir;
-  access event;
+  # TODO access { event };
 }

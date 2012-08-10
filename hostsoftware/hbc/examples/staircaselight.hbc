@@ -1,6 +1,6 @@
 # staircase lighting example
 
-include std_eid.hbh
+include std_eid.hbh;
 
 # alias definitions ###########################################################
 
@@ -21,24 +21,22 @@ alias lightswitch {
 
 # behaviour definition ########################################################
 
-main {
-  states { light_on, light_off }
+machine main {
+  states { light_on, light_off };
 
 # "time" is globally defined because once a time server is there, all the
 # devices on the network are getting their time from its broadcasts.
 # "timeout" is also globally defined, and used to denote an in-state-since condition.
 # TODO maybe "timeout" is not the right word. But in_state_since is too long
   in(light_off) {
-    if(time > 18h || time < 7h) {
-      event(lightswitch.button == true) {
-        staicase_lights.on := true;
-        goto light_on;
-      }
+    if(((ti.me > 18) || (ti.me < 7)) && (lightswitch.button == true)) {
+      write staicase_lights.on := true;
+      goto light_on;
     }
   }
   in(light_on) {
-    if(timeout == 90s) {
-      staircase_lights.on := false;
+    if(time.out == 90) {
+      write staircase_lights.on := false;
       goto light_off;
     }
   }

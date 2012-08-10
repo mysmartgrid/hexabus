@@ -12,31 +12,33 @@ alias heater {
 
 ###############################################################################
 
-main {
-  states { off, half, full }
-  init {
-    heater.heater = 0;
-    goto off;
+machine heating_control {
+  states { init, off, half, full };
+  in(init) {
+    if(a.a == 0) { #TODO "if true" or something
+      write heater.heater := 0;
+      goto off;
+    }
   }
   in(off) {
-    if(sensorbox.temperature < 21 || sensorbox.humidity > 75) {
-      heater.heater = 50;
+    if((sensorbox.temperature < 21) || (sensorbox.humidity > 75)) {
+      write heater.heater := 50;
       goto half;
     }
   }
   in(half) {
     if(sensorbox.temperature > 22) {
-      heater.heater = 0;
+      write heater.heater := 0;
       goto off;
     }
     if(sensorbox.temperature < 16) {
-      heater.heater = 100;
+      write heater.heater := 100;
       goto full;
     }
   }
   in(full) {
     if(sensorbox.temperature > 18) {
-      heater.heater = 50;
+      write heater.heater := 50;
       goto half;
     }
   }

@@ -4,7 +4,7 @@
 # off for some minutes, the power strip shuts down and monitor, speakers, etc
 # are turned off.
 
-include std_eid.hbh
+include std_eid.hbh;
 
 alias powerplug {
   ip fe80::50:c4ff:fe04:2345;
@@ -15,16 +15,20 @@ alias powerplug {
 
 # The main module is always started. Question: Do we want multiple "top level"
 # modules, or do we want to start/instantiate/..? other modules from main?
-main {
-  states { on, waiting, off }
+machine main {
+  states { init, on, waiting, off };
 
-  init {
-    goto off;
+  in(init) {
+    if(a.a == 0) { # TODO if(true)...
+      write powerplug.on := false;
+      goto off;
+    }
   }
 
   in(off) {
-    event(powerplug.button == true) {
-      powerplug.on := true;
+    if(powerplug.button == true) {
+      write powerplug.on := true;
+      goto on;
     }
   }
 
@@ -38,8 +42,8 @@ main {
     if(powerplug.power > 10) {
       goto on;
     }
-    timeout(5 min) {
-      powerplug.on := false;
+    if(time.out > 5) {
+      write powerplug.on := false;
       goto off;
     }
   }

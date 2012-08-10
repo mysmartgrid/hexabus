@@ -178,7 +178,7 @@ namespace hexabus {
 
       // module instantiations
       inst_parameter %= ( constant | identifier );
-      instantiation %= lit("instance") >> file_pos > identifier > ':' > identifier > '(' > -(inst_parameter > *(',' > inst_parameter)) > ')'; // TODO allow device.endpoint as well as just "one word"
+      instantiation %= lit("instance") >> file_pos > identifier > ':' > identifier > '(' > -(inst_parameter > *(',' > inst_parameter)) > ')' > ';'; // TODO allow device.endpoint as well as just "one word"
 
       // commands that "do something"
       command %= write_command > ';'; // TODO more commands to be added here?

@@ -26,7 +26,7 @@ namespace hexabus {
       }
     }
     if(!found) {
-      std::cout << "State name not found error." << std::endl; // TODO user friendly error message
+      std::cout << "State name not found error: " << name << "." << std::endl; // TODO user friendly error message
       // TODO throw StateNotFoundException
     }
     return state_id;

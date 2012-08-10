@@ -17,7 +17,7 @@ alias sensorbox {
 
 alias heater {
 	ip fe80:0:0:0:50:c4ff:fe04:8098;
-	endpoint 98 { datatype UINT8; name heater; access write; }; # "device-local" endpoint def. -- overrides global def.
+	# endpoint 98 { datatype UINT8; name heater; access write; }; # "device-local" endpoint def. -- overrides global def.
 	eids { 98 };
 }
 
@@ -41,17 +41,22 @@ alias lamp {
 # Now follows the actual behaviour definition.                                #
 ###############################################################################
 
-main {
-# "if-then-else if-else"-statements
-  if(sensorbox.temperature < 19) {
-    heater.heater := 100;
-  } else if(sensorbox.temperature >= 19 && sensorbox.temperature < 22) {
-    heater.heater := 50;
-  } else {
-    heater.heater := 0;
+machine main {
+  states { init };
+  in(init) {
+    if(sensorbox.temperature < 19) {
+      write heater.heater := 100;
+      goto init;
+    } else if((ensorbox.temperature >= 19) && (sensorbox.temperature < 22)) {
+      write heater.heater := 50;
+      goto init;
+    } else {
+      write heater.heater := 0;
+      goto init;
+    }
   }
 }
 
 # using a predefined module
-toggle(lightswitch.clicked, 2, lamp.on);
-toggle(lightswitch2.clicked, 2, lamp.on);
+instance toggle_1 : toggle(lightswitch, clicked, 2, lamp, on);
+instance toggle_2 : toggle(lightswitch2, clicked, 2, lamp, on);

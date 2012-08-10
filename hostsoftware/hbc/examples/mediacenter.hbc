@@ -4,7 +4,7 @@
 # are connected to several Hexabus Plugs, so we can turn them off when they are
 # not used, in order to reduce stand-by energy usage.
 
-include std_eid.hba
+include std_eid.hba;
 
 alias remote_control {
   ip fe80::50:c4ff:fe04:5555;
@@ -29,31 +29,41 @@ alias media_center { # BluRay Player and TV
 
 # behaviour definition ########################################################
 
-main {
+machine main {
 # Idea: The user can switch on the media center by itself. It also turns on
 # automatically when the game consoles are turned on.
 # The game consoles can be turned off by themselves, and they are automatically
 # switched off when the media center is switched off.
-  event(remote_control.ir == 134218000) { # media center on
-    media_center.on := true;
-  }
-  event(remote_control.ir == 1048580) { # media center off
-    media_center.on := false;
-    game_consoles.on := false;
-  }
-  event(remote_control.ir == 536871000) { # game consoles on
-    game_consoles.on := true;
-    media_center.on := true;
-  }
-  event(remote_control.ir == 2147480000) { # game consoles off
-    game.consoles.on := false;
-  }
+
+  states { init };
+  in(init) {
+    if(remote_control.ir == 134218000) { # media center on
+      write media_center.on := true;
+      goto init;
+    }
+    if(remote_control.ir == 1048580) { # media center off
+      write media_center.on := false;
+      write game_consoles.on := false;
+      goto init;
+    }
+    if(remote_control.ir == 536871000) { # game consoles on
+      write game_consoles.on := true;
+      write media_center.on := true;
+      goto init;
+    }
+    if(remote_control.ir == 2147480000) { # game consoles off
+      write game_consoles.on := false;
+      goto init;
+    }
 
 # the printer can be switched by itself
-  event(remote_control.ir == 1024) {
-    printer.on := true;
-  }
-  event(remote_control.ir == 2048) {
-    printer.on := false;
+    if(remote_control.ir == 1024) {
+      write printer.on := true;
+      goto init;
+    }
+    if(remote_control.ir == 2048) {
+      write printer.on := false;
+      goto init;
+    }
   }
 }
