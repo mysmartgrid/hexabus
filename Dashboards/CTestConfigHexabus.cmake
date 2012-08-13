@@ -16,6 +16,8 @@ set(CTEST_DROP_LOCATION "/submit.php?project=${CTEST_PROJECT_NAME}")
 set(CTEST_DROP_SITE_CDASH TRUE)
 set(CTEST_USE_LAUNCHERS 0)
 
+set(CTEST_PACKAGE_SITE "packages.mysmartgrid.de")
+
 set(CTEST_PROJECT_SUBPROJECTS
 hexabridge
 hexaswitch
