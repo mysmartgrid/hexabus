@@ -1,7 +1,7 @@
 # -*- mode: cmake; -*-
 
 set(ENV{https_proxy} "http://squid.itwm.fhg.de:3128/")
-include(utils.cmake)
+include(Tools.cmake)
 include(CTestConfigHexabus.cmake)
 
 set(URL "https://github.com/mysmartgrid/hexabus.git")
