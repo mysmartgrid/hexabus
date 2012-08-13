@@ -1,6 +1,7 @@
 # -*- mode: cmake; -*-
 
 set(ENV{https_proxy} "http://squid.itwm.fhg.de:3128/")
+include(utils.cmake)
 include(CTestConfigHexabus.cmake)
 
 set(URL "https://github.com/mysmartgrid/hexabus.git")
@@ -26,21 +27,7 @@ get_filename_component(_currentDir "${CMAKE_CURRENT_LIST_FILE}" PATH)
 include( "${_currentDir}/KDECTestNightly.cmake")
 kde_ctest_setup()
 
-function(create_project_xml)
-  file(WRITE "${CTEST_BINARY_DIRECTORY}/Project.xml"
-    "<Project name=\"hexabus\">
-  <SubProject name=\"hexabridge\">
-  </SubProject>
-  <SubProject name=\"hexaswitch\">
-  </SubProject>
-  <SubProject name=\"hexadisplay\">
-  </SubProject>
-  <SubProject name=\"hexinfo\">
-  </SubProject>
-</Project>
-")
-  ctest_submit(FILES "${CTEST_BINARY_DIRECTORY}/Project.xml") 
-endfunction()
+FindOS(OS_NAME OS_VERSION)
 
 set(ctest_config ${CTEST_BASE_DIRECTORY}/CTestConfig.cmake)
 #######################################################################
@@ -92,6 +79,9 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
       CMAKE_INSTALL_PREFIX
       CMAKE_ADDITIONAL_PATH
       )
+    set(OS_NAME "openWRT")
+    set(OS_VERSION "10.03.1")
+    set(CMAKE_SYSTEM_PROCESSOR ${openwrt_arch})
   else(CMAKE_TOOLCHAIN_FILE)
       set(BOOST_ROOT /homes/krueger/external_software/ubuntu_100403/${CMAKE_SYSTEM_PROCESSOR}/boost/1.46)
       kde_ctest_write_initial_cache("${CTEST_BINARY_DIRECTORY}/${subproject}"
@@ -153,6 +143,10 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
   
   # upload files
   if( NOT ${build_res})
+    message( "OS_NAME .....: ${OS_NAME}")
+    message( "OS_VERSION ..: ${OS_VERSION}")
+    message( "CMAKE_SYSTEM_PROCESSOR ..: ${CMAKE_SYSTEM_PROCESSOR}")
+
     if(CPACK_ARCHITECTUR)
       set(OPKG_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CPACK_ARCHITECTUR}")
       set(_package_file "${OPKG_FILE_NAME}.ipk")
@@ -160,10 +154,11 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
       set(_package_file "${CPACK_PACKAGE_FILE_NAME}.deb")
     endif(CPACK_ARCHITECTUR)
     message("==> Upload packages - ${_package_file}")
-    set(_export_host "192.168.9.63")
+    set(_export_host ${CTEST_PACKAGE_SITE})
+    set(_remote_dir "packages/${OS_NAME}/${OS_VERSION}/${CMAKE_SYSTEM_PROCESSOR}")
     execute_process(
-      COMMAND ssh ${_export_host} mkdir -p packages/${CMAKE_SYSTEM_PROCESSOR}
-      COMMAND scp -p ${_package_file} ${_export_host}:packages/${CMAKE_SYSTEM_PROCESSOR}/
+      COMMAND ssh ${_export_host} mkdir -p ${_remote_dir}
+      COMMAND scp -p ${_package_file} ${_export_host}:${_remote_dir}/${_package_file}
       WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
       )
   endif( NOT ${build_res})

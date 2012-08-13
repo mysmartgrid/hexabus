@@ -8,6 +8,6 @@ export CTEST=/usr/bin/ctest
 echo "Running ctest"
 
 
-${CTEST} -V -VV -S ${HOME}/Dashboards/HexabusNightly_1.cmake
-${CTEST} -V -VV -S ${HOME}/Dashboards/HexabusNightly_2.cmake
+${CTEST} -V -VV -S ${HOME}/hexabus/Dashboards/HexabusNightly_1.cmake
+${CTEST} -V -VV -S ${HOME}/hexabus/Dashboards/HexabusNightly_2.cmake
 
