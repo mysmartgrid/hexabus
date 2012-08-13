@@ -142,7 +142,7 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
   endif( NOT ${build_res})
   
   # upload files
-  if( NOT ${build_res})
+  if( NOT ${build_res} AND ${CTEST_PUSH_PACKAGES})
     message( "OS_NAME .....: ${OS_NAME}")
     message( "OS_VERSION ..: ${OS_VERSION}")
     message( "CMAKE_SYSTEM_PROCESSOR ..: ${CMAKE_SYSTEM_PROCESSOR}")
@@ -158,10 +158,12 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
     set(_remote_dir "packages/${OS_NAME}/${OS_VERSION}/${CMAKE_SYSTEM_PROCESSOR}")
     execute_process(
       COMMAND ssh ${_export_host} mkdir -p ${_remote_dir}
+      )
+    execute_process(
       COMMAND scp -p ${_package_file} ${_export_host}:${_remote_dir}/${_package_file}
       WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
       )
-  endif( NOT ${build_res})
+  endif( NOT ${build_res} AND ${CTEST_PUSH_PACKAGES})
 endforeach()
 
 ctest_submit(RETURN_VALUE res)
