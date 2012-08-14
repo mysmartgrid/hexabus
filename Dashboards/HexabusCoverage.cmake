@@ -3,9 +3,9 @@
 set(ENV{https_proxy} "http://squid.itwm.fhg.de:3128/")
 include(Tools.cmake)
 include(CTestConfigHexabus.cmake)
-set(_ctest_type "Nightly")
+# set(_ctest_type "Nightly")
 # set(_ctest_type "Continuous")
-# set(_ctest_type "Coverage")
+set(_ctest_type "Coverage")
 
 set(URL "https://github.com/mysmartgrid/hexabus.git")
 
@@ -61,7 +61,8 @@ execute_process(
   WORKING_DIRECTORY ${CTEST_SOURCE_DIRECTORY}
   )
 
-set(CMAKE_BUILD_TYPE Release)
+set(ENABLE_CODECOVERAGE 1)
+set(CMAKE_BUILD_TYPE Profile)
 
 # to get CTEST_PROJECT_SUBPROJECTS definition:
 #include(${ctest_config})
@@ -84,6 +85,7 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
       CMAKE_TOOLCHAIN_FILE
       CMAKE_INSTALL_PREFIX
       CMAKE_ADDITIONAL_PATH
+      ENABLE_CODECOVERAGE
       CMAKE_BUILD_TYPE
       )
     set(OS_NAME "openWRT")
@@ -95,6 +97,7 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
 	BOOST_ROOT
 	CMAKE_INSTALL_PREFIX
 	CMAKE_ADDITIONAL_PATH
+	ENABLE_CODECOVERAGE
 	CMAKE_BUILD_TYPE
 	)
   endif(CMAKE_TOOLCHAIN_FILE)
@@ -135,43 +138,6 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
       )
   endif( NOT ${build_res})
   
-  ## create packages
-  include(${CTEST_BINARY_DIRECTORY}/${subproject}/CPackConfig.cmake)
-  if( STAGING_DIR)
-    set(ENV{PATH}            ${OPENWRT_STAGING_DIR}/host/bin:$ENV{PATH})
-  endif( STAGING_DIR)
-
-  if( NOT ${build_res})
-    execute_process(
-      COMMAND cpack -G DEB
-      COMMAND sync
-      WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
-      )
-  endif( NOT ${build_res})
-  
-  # upload files
-  if( NOT ${build_res} AND ${CTEST_PUSH_PACKAGES})
-    message( "OS_NAME .....: ${OS_NAME}")
-    message( "OS_VERSION ..: ${OS_VERSION}")
-    message( "CMAKE_SYSTEM_PROCESSOR ..: ${CMAKE_SYSTEM_PROCESSOR}")
-
-    if(CPACK_ARCHITECTUR)
-      set(OPKG_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CPACK_ARCHITECTUR}")
-      set(_package_file "${OPKG_FILE_NAME}.ipk")
-    else(CPACK_ARCHITECTUR)
-      set(_package_file "${CPACK_PACKAGE_FILE_NAME}.deb")
-    endif(CPACK_ARCHITECTUR)
-    message("==> Upload packages - ${_package_file}")
-    set(_export_host ${CTEST_PACKAGE_SITE})
-    set(_remote_dir "packages/${OS_NAME}/${OS_VERSION}/${CMAKE_SYSTEM_PROCESSOR}")
-    execute_process(
-      COMMAND ssh ${_export_host} mkdir -p ${_remote_dir}
-      )
-    execute_process(
-      COMMAND scp -p ${_package_file} ${_export_host}:${_remote_dir}/${_package_file}
-      WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
-      )
-  endif( NOT ${build_res} AND ${CTEST_PUSH_PACKAGES})
 endforeach()
 
 ctest_submit(RETURN_VALUE res)
