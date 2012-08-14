@@ -7,6 +7,10 @@
 #include <netinet/in.h>
 
 #include <iostream>
+#include <cstdio>
+#include <errno.h>
+
+#pragma GCC diagnostic warning "-Wstrict-aliasing"
 
 using namespace hexabus;
 
@@ -85,6 +89,21 @@ hxb_packet_datetime Packet::writedt(uint8_t eid, uint8_t datatype, datetime valu
   return packet;
 }
 
+hxb_packet_128string Packet::writestr(uint8_t eid, uint8_t datatype, std::string value, bool broadcast)
+{
+  CRC::Ptr crc(new CRC());
+  struct hxb_packet_128string packet;
+  strncpy((char*)&packet.header, HXB_HEADER, 4);
+  packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
+  packet.flags = 0;
+  packet.eid = eid;
+  packet.datatype = datatype;
+  strncpy((char*)&packet.value, value.c_str(), 128);
+  packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet) - 2));
+
+  return packet;
+}
+
 PacketHandling::PacketHandling(char* data)
 {
   CRC::Ptr crc(new hexabus::CRC());
@@ -122,14 +141,15 @@ PacketHandling::PacketHandling(char* data)
           break;
         case HXB_DTYPE_UINT32:
           {
-            struct hxb_packet_int32* packet32 = (struct hxb_packet_int32*)data;
+            struct hxb_packet_int32* packet32 = 
+              (struct hxb_packet_int32*)data;
             packet32->crc = ntohs(packet32->crc);
-            crc_okay = packet32->crc == crc->crc16((char*)packet32, sizeof(*packet32)-2);
-            // ntohl the value after the CRC check, CRC check is done with everything in network byte order
+            crc_okay = packet32->crc == crc->crc16((char*)packet32, sizeof(*packet32)-2); // ntohl the value after the CRC check, CRC check is done with everything in network byte order
             packet32->value = ntohl(packet32->value);
 
             eid = packet32->eid;
-            *(uint32_t*)&value.data = packet32->value;
+            memset(value.data, 0, sizeof(value.data));
+            memcpy(&value.data[0], &packet32->value, sizeof(uint32_t));
           }
           break;
         case HXB_DTYPE_DATETIME:
@@ -144,6 +164,7 @@ PacketHandling::PacketHandling(char* data)
           }
           break;
         case HXB_DTYPE_FLOAT:
+
           {
             struct hxb_packet_float* packetf = (struct hxb_packet_float*)data;
             packetf->crc = ntohs(packetf->crc);
@@ -152,17 +173,32 @@ PacketHandling::PacketHandling(char* data)
             packetf->value = *(float*)&value_hbo;
 
             eid = packetf->eid;
-            *(float*)&value.data = packetf->value;
+            memset(value.data, 0, sizeof(value.data));
+            memcpy(&value.data[0], &packetf->value, sizeof(float));
+          }
+          break;
+        case HXB_DTYPE_128STRING:
+          {
+            struct hxb_packet_128string* packetstr = (struct hxb_packet_128string*)data;
+            packetstr->crc = ntohs(packetstr->crc);
+            crc_okay = packetstr->crc == crc->crc16((char*)packetstr, sizeof(*packetstr)-2);
+
+            // make sure it's not too long
+            packetstr->value[127] = '\0';
+
+            eid = packetstr->eid;
+            strval = packetstr->value;
           }
           break;
         default:
-          // datatype not implemented here
+            // not implemented here
           break;
       }
     } else if(header->type == HXB_PTYPE_EPINFO) {
       struct hxb_packet_128string* packetepi = (struct hxb_packet_128string*)data;
       datatype = packetepi->datatype;
       eid = packetepi->eid;
+      crc_okay = ntohs(packetepi->crc) == crc->crc16((char*)packetepi, sizeof(*packetepi)-2);
       packetepi->value[127] = '\0'; // set last character of string to 0 in case someone forgot that
       strval = packetepi->value;
     } else if(header->type == HXB_PTYPE_ERROR) {
@@ -183,5 +219,16 @@ uint8_t PacketHandling::getErrorcode()      { return errorcode; }
 uint8_t PacketHandling::getDatatype()       { return datatype; }
 uint8_t PacketHandling::getEID()            { return eid; }
 struct hxb_value PacketHandling::getValue() { return value; }
+int PacketHandling::getValuePtr(struct hxb_value *v) {
+   if (v)
+   {
+     memcpy(v, &value, sizeof(value));
+     return 0;
+   }
+   else
+   {
+     return EINVAL;
+   }
+}
 std::string PacketHandling::getString()     { return strval; }
 

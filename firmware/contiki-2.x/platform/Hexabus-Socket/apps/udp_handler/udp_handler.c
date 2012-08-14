@@ -382,9 +382,15 @@ udphandler(process_event_t ev, process_data_t data)
             send_packet(&error_packet, sizeof(error_packet));
           } else
           {
-            PRINTF("Sending EndpointInfo packet...\n");
-            struct hxb_packet_128string epinfo_packet = make_epinfo_packet(packet->eid);
-            send_packet(&epinfo_packet, sizeof(epinfo_packet));
+            // Check if endpoint exists by reading the datatype and checking the return value
+						if(endpoint_get_datatype(packet->eid) == HXB_DTYPE_UNDEFINED) {
+							struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNEID);
+							send_packet(&error_packet, sizeof(error_packet));
+						} else {
+							PRINTF("Sending EndpointInfo packet...\n");
+            	struct hxb_packet_128string epinfo_packet = make_epinfo_packet(packet->eid);
+            	send_packet(&epinfo_packet, sizeof(epinfo_packet));
+						}
           }
         }
         else if(header->type == HXB_PTYPE_INFO)

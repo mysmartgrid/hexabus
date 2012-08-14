@@ -5,6 +5,12 @@ if(POLICY CMP0011)
   cmake_policy(SET CMP0011 NEW)
 endif(POLICY CMP0011)
 
+if( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+   message(STATUS "Do not run cmake in the source directory")
+   message(STATUS "create an extra binary directory")
+   message(FATAL_ERROR "Exiting cmake here.")
+endif( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+
 # have the full monty in makefiles
 set(CMAKE_VERBOSE_MAKEFILE true)
 
@@ -12,7 +18,7 @@ SET(ENABLE_LOGGING 1)
 
 set(V_MAJOR 0)
 set(V_MINOR 4)
-set(V_PATCH 0)
+set(V_PATCH 1)
 
 # add a path where some libraries might be stored
 set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where many locally installed libraries can be found")
@@ -26,6 +32,20 @@ set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where m
 set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
+
+# Detect the system we're compiling on
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  SET(HAS_MACOS 1)
+ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  SET(HAS_MACOS 0)
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
+
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  SET(HAS_LINUX 1)
+ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  SET(HAS_LINUX 0)
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
 
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-non-virtual-dtor -g -fomit-frame-pointer")
 
@@ -55,23 +75,36 @@ set(CMAKE_CXX_FLAGS "-Wall ")
 # Check for some compiler stuff
 include(CMakeBackwardCompatibilityCXX)
 
+# find libklio
+find_package(Libklio)
+if( NOT LIBKLIO_FOUND)
+  message(FATAL_ERROR "libklio is required.You may set LIBKLIO_HOME")
+endif( NOT LIBKLIO_FOUND)
+
 FIND_PACKAGE(Sqlite)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
-FIND_PACKAGE(Boost 1.46.1 COMPONENTS iostreams program_options filesystem system)
+SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
+  "1.49.0" "1.49" "1.50.0" "1.50")
+SET(Boost_DETAILED_FAILURE_MSG true)
+FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS program_options filesystem system)
 
 # Reflect the package structure
 add_subdirectory(libhexabus)
 add_subdirectory(src)
 
 # add some files to the installation target
-INSTALL(FILES README.txt LICENSE.txt DESTINATION share/doc/hexaswitch)
+INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
 
 # CPACK packaging
 INCLUDE(InstallRequiredSystemLibraries)
+SET(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
+SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Mathias Dalheimer")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "hexaswitch")
 SET(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
-SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.txt")
+set(CPACK_PACKAGE_CONTACT "support@mysmartgrid.de")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "support@mysmartgrid.de")
+SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 SET(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 SET(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
@@ -82,6 +115,12 @@ hexabus devices.")
 SET(CPACK_SOURCE_STRIP_FILES "")
 SET(CPACK_STRIP_FILES "bin/hexaswitch")
 SET(CPACK_STRIP_FILES "bin/hexalog")
+
+set(CPACK_SET_DESTDIR On)
+set(CPACK_SOURCE_STRIP_FILES "")
+set(CPACK_GENERATOR "DEB;TBZ2")
+set(CPACK_SECTION "net")
+
 INCLUDE(CPack)
 
 ### print some output for the user
@@ -89,6 +128,7 @@ message("")
 message("***** Configuration *****")
 message("  prefix: ${CMAKE_INSTALL_PREFIX}")
 message("  boost include: ${Boost_INCLUDE_DIRS}")
+message("  boost libraries shortcut: ${Boost_LIBRARIES}")
 message("  boost program options lib: ${Boost_PROGRAM_OPTIONS_LIBRARY}")
 message("  boost system lib: ${Boost_SYSTEM_LIBRARY}")
 message("  boost filesystem lib: ${Boost_FILESYSTEM_LIBRARY}")

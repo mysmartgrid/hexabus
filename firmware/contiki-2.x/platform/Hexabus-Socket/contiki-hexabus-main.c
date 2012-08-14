@@ -106,6 +106,7 @@
 #include "eeprom_variables.h"
 #include "udp_handler.h"
 #include "mdns_responder.h"
+#include "state_machine.h"
 
 // optional HEXABUS apps
 #if VALUE_BROADCAST_ENABLE
@@ -116,9 +117,6 @@
 #endif
 #if TEMPERATURE_ENABLE
 #include "temperature.h"
-#endif
-#if STATE_MACHINE_ENABLE
-#include "state_machine.h"
 #endif
 #if SHUTTER_ENABLE
 #include "shutter.h"
@@ -135,11 +133,26 @@
 #if ANALOGREAD_ENABLE
 #include "analogread.h"
 #endif
+#if MEMORY_DEBUGGER_ENABLE
+#include "memory_debugger.h"
+#endif
+#if I2C_ENABLE
+#include "i2c.h"
+#endif
+#if HUMIDITY_ENABLE
+#include "humidity.h"
+#endif
+#if PRESSURE_ENABLE
+#include "pressure.h"
+#endif
+#if IR_RECEIVER_ENABLE
+#include "ir_receiver.h"
+#endif
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
 uint8_t forwarding_enabled; //global variable for forwarding
- uint8_t encryption_enabled = 1; //global variable for AES encryption
+uint8_t encryption_enabled = 1; //global variable for AES encryption
 /*-------------------------------------------------------------------------*/
 /*----------------------Configuration of the .elf file---------------------*/
 #if 1
@@ -212,6 +225,49 @@ void get_aes128key_from_eeprom(uint8_t keyptr[16]) {
 void set_forwarding_to_eeprom(uint8_t val) {
 	 eeprom_write_byte ((uint8_t *)EE_FORWARDING, val);
 	 forwarding_enabled = val;
+}
+
+// State Machine eeprom access
+
+uint8_t sm_get_number_of_conditions() {
+	return eeprom_read_byte ((const void *)EE_STATEMACHINE_N_CONDITIONS);
+}
+
+void sm_set_number_of_conditions(uint8_t number) {
+	eeprom_write_byte ((uint8_t *)EE_STATEMACHINE_N_CONDITIONS, number);
+}
+
+uint8_t sm_get_number_of_transitions(bool datetime) {
+	return (datetime ? eeprom_read_byte ((const void*)EE_STATEMACHINE_N_DT_TRANSITIONS) : eeprom_read_byte ((const void*)EE_STATEMACHINE_N_TRANSITIONS));
+}
+
+void sm_set_number_of_transitions(bool datetime, uint8_t number) {
+	if(datetime)
+		eeprom_write_byte ((uint8_t *)EE_STATEMACHINE_N_DT_TRANSITIONS, number);
+	else 
+		eeprom_write_byte ((uint8_t *)EE_STATEMACHINE_N_TRANSITIONS, number);
+}
+
+void sm_write_condition(uint8_t index, struct condition *cond) {
+	eeprom_write_block(cond, (void *)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)*index), sizeof(struct condition));
+}
+
+void sm_get_condition(uint8_t index, struct condition *cond) {
+	eeprom_read_block(cond, (void *)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)*index), sizeof(struct condition));
+}
+
+void sm_write_transition(bool datetime, uint8_t index, struct transition *trans) {
+	if(datetime)
+		eeprom_write_block(trans, (void *)(EE_STATEMACHINE_DATETIME_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
+	else
+		eeprom_write_block(trans, (void *)(EE_STATEMACHINE_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
+}
+
+void sm_get_transition(bool datetime, uint8_t index, struct transition *trans) {
+	if(datetime)
+		eeprom_read_block(trans, (void *)(EE_STATEMACHINE_DATETIME_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
+	else
+		eeprom_read_block(trans, (void *)(EE_STATEMACHINE_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
 }
 
 
@@ -328,6 +384,12 @@ void initialize(void)
   process_start(&webserver_nogui_process, NULL);
 #endif
 
+#if MEMORY_DEBUGGER_ENABLE 
+  memory_debugger_init();
+  /* periodically print memory usage */
+  process_start(&memory_debugger_process, NULL);
+#endif
+
   /* Handler for HEXABUS UDP Packets */
   process_start(&udp_handler_process, NULL);
 
@@ -392,6 +454,18 @@ void initialize(void)
 
 #if ANALOGREAD_ENABLE
   analogread_init();
+#endif
+
+#if I2C_ENABLE
+  i2c_init();
+#endif
+ 
+#if PRESSURE_ENABLE
+  pressure_init();
+#endif
+
+#if IR_RECEIVER_ENABLE
+  ir_receiver_init();
 #endif
 
   /*Init Relay */
@@ -480,9 +554,6 @@ main(void)
   while(1) {
     process_run();
     watchdog_periodic();
-
-
-
 
 }
   return 0;
