@@ -23,7 +23,7 @@ set(KDE_CTEST_VCS_REPOSITORY ${URL})
 
 set(CMAKE_INSTALL_PREFIX "/usr")
 set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
-#set(CTEST_BUILD_CONFIGURATION "Profiling")
+set(CTEST_BUILD_CONFIGURATION "Profiling")
 
 configure_ctest_config(${KDE_CTEST_VCS_REPOSITORY} "CTestConfigHexabus.cmake")
 
@@ -61,9 +61,6 @@ execute_process(
 
 set(ENABLE_CODECOVERAGE 1)
 set(CMAKE_BUILD_TYPE Profile)
-
-# to get CTEST_PROJECT_SUBPROJECTS definition:
-#include(${ctest_config})
 
 ##
 set(CMAKE_ADDITIONAL_PATH ${CTEST_INSTALL_DIRECTORY})
