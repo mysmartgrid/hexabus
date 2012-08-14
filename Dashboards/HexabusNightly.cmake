@@ -50,8 +50,6 @@ endif(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}/.git/HEAD")
 create_project_xml()
 
 ctest_empty_binary_directory("${CTEST_BINARY_DIRECTORY}")
-set(_ctest_type "Nightly")
-# set(_ctest_type "Continuous")
 ctest_start(${_ctest_type})
 ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}")
 ctest_submit(PARTS Update)
@@ -62,9 +60,6 @@ execute_process(
   )
 
 set(CMAKE_BUILD_TYPE Release)
-
-# to get CTEST_PROJECT_SUBPROJECTS definition:
-#include(${ctest_config})
 
 ##
 set(CMAKE_ADDITIONAL_PATH ${CTEST_INSTALL_DIRECTORY})
