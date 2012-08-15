@@ -38,6 +38,7 @@
 #include "dev/leds.h"
 #include <avr/eeprom.h>
 #include "eeprom_variables.h"
+#include "hexabus_config.h"
 
 
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -84,31 +85,42 @@ relay_toggle(void)
 void
 relay_on(void)
 {
+#if ! METERING_ENERGY_PERSISTENT
   if (!relay_state)
     {
+#if RELAY_POWER_SAVING
 	  ENABLE_RELAY_PWM();
 	  //set PWM to 100% duty cycle
       SET_RELAY_PWM(RELAY_PWM_START);
-#if RELAY_POWER_SAVING
       //sleep RELAY_OPERATE_TIME
       _delay_ms(RELAY_OPERATE_TIME);
       //set PWM to 50% duty cycle
       SET_RELAY_PWM(RELAY_PWM_HOLD);
+#else
+      PORTB |= (1 << PB3);
 #endif
       relay_state = 1;
       relay_leds();
       metering_reset();
     }
+#endif
 }
 
 void
 relay_off(void)
 {
+#if ! METERING_ENERGY_PERSISTENT
+#if RELAY_POWER_SAVING
   DISABLE_RELAY_PWM();
   SET_RELAY_PWM(0x00);
+#else
+  PORTB &= ~(1 << PB3);
+#endif
+
   relay_state = 0;
   relay_leds();
   metering_reset();
+#endif
 }
 
 void
@@ -137,17 +149,23 @@ set_relay_default(bool d_value)
 void
 relay_init(void)
 {
+#if ! METERING_ENERGY_PERSISTENT
   /* Load reference values from EEPROM */
   relay_default_state = (bool) eeprom_read_byte((void*) EE_RELAY_DEFAULT);
 
   /*PWM Specific Initialization.*/
+#if RELAY_POWER_SAVING
   SET_RELAY_TCCRxA();
   SET_RELAY_TCCRxB();
+#else
+  DDRB |= (1 << PB3);
+#endif
 
   //relay is off at init
   relay_state = 0;
 
   //set default state according to eeprom value
   relay_default();
+#endif
 }
 

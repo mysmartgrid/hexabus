@@ -47,6 +47,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "hexabus_config.h"
+
 #include "contiki-net.h"
 #include "httpd.h"
 #include "httpd-cgi.h"
@@ -465,7 +467,8 @@ generate_config(void *arg)
 	static const char httpd_cgi_config_line1[] HTTPD_STRING_ATTR = "<td><input name=\"domain_name\" type=\"text\" size=\"50\" maxlength=\"30\" value=\"%s\"></td></tr>";
 	static const char httpd_cgi_config_line2[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">Default Relay State</td><td><input type=\"radio\" name=\"relay\" value=\"1\" %s>On<input type=\"radio\" name=\"relay\" value=\"0\" %s>Off</td></tr>";
 	static const char httpd_cgi_config_line3[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">Forwarding</td><td><input type=\"radio\" name=\"routing\" value=\"1\" %s>On<input type=\"radio\" name=\"routing\" value=\"0\" %s>Off</td></tr>";
-    static const char httpd_cgi_config_line4[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">Submit:</td><td><input type=\"submit\" value=\" Submit \" ></td></tr></table></form>";
+	static const char httpd_cgi_config_line4[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">S0 meter (Imp./kWh)</td><td><input type=\"text\" size=\"4\" maxlength=\"4\" name=\"s0\" value=\"%s\"></td></tr>";
+    static const char httpd_cgi_config_line5[] HTTPD_STRING_ATTR = "<tr><input type=\"hidden\" name=\"terminator\" value=\"\"><td align=\"right\">Submit:</td><td><input type=\"submit\" value=\" Submit \" ></td></tr></table></form>"; //additional ampersand from the hidden value simplifies parsing
 
     char* checked = "checked";
 	numprinted=0;
@@ -483,7 +486,17 @@ generate_config(void *arg)
 	else
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line3, "", checked);
 
-	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line4);
+#if S0_ENABLE
+    char s0val[5];
+    uint32_t refval= (eeprom_read_word((void*) EE_METERING_REF));
+    refval = ((3600000*CLOCK_SECOND)/(refval*10));            // 1h*1000(for kilowatts) / refval*10(to fit into 16bits)
+
+    ltoa(refval, s0val, 10);
+
+   numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line4, s0val);
+#endif
+
+	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line5);
 
 	return numprinted;
 
@@ -545,7 +558,7 @@ void hxbtos(char *dest, char *data, uint8_t datatype)
 			break;
 		case HXB_DTYPE_UINT32:
 		case HXB_DTYPE_TIMESTAMP:
-			sprintf(dest, "%u", *(uint32_t*)data);
+			sprintf(dest, "%lu", *(uint32_t*)data);
 			break;
 		case WS_HXB_DTYPE_UINT16:
 			sprintf(dest, "%u", *(uint16_t*)data);
@@ -580,10 +593,12 @@ get_sm_tables(void *arg)
 
 	// Read Condition Table. Unused conditions will have a datatype equal to 0
 	cond = malloc(sizeof(struct condition));
-	length = eeprom_read_byte((void*)EE_STATEMACHINE_CONDITIONS); 
+	length = sm_get_number_of_conditions();	//eeprom_read_byte((void*)EE_STATEMACHINE_CONDITIONS); 
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-'); 
+	
 	for(i = 0;i < length;i++) {
-		eeprom_read_block(cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (i * sizeof(struct condition))), sizeof(struct condition));
+		//eeprom_read_block(cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (i * sizeof(struct condition))), sizeof(struct condition));
+		sm_get_condition(i, cond);
 		if(cond->datatype == HXB_DTYPE_DATETIME) {
 			hxbtos(buffer, cond->data, HXB_DTYPE_UINT32);
 		} else {
@@ -599,19 +614,24 @@ get_sm_tables(void *arg)
 	free(cond);
 		
 	// Now the transition tables
-	length = eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
+	length = sm_get_number_of_transitions(false);	//eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS); 
 	trans = malloc(sizeof(struct transition));
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-'); 
+	
 	for(i = 0;i < length;i++) {
-  	eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+  	//eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+		sm_get_transition(false, i, trans);
 		hxbtos(buffer, trans->value.data, trans->value.datatype);
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_trans_table_line, NULL, 
 				trans->fromState, trans->cond, trans->eid, trans->value.datatype, buffer, trans->goodState, trans->badState, NULL);
 	}
-	length = eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS); 
+	
+	length = sm_get_number_of_transitions(true);	//eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS); 
+	
 	for(i = 0;i < length;i++) {
-  	eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
-			numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_trans_table_line, NULL, 
+  	//eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+		sm_get_transition(true, i, trans);
+		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_trans_table_line, NULL, 
 					trans->fromState, trans->cond, trans->eid, trans->value.datatype, buffer, trans->goodState, trans->badState, NULL);
 	}
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '.'); 

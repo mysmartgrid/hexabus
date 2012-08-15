@@ -37,6 +37,7 @@ namespace hexabus {
       hxb_packet_int32 write32(uint8_t eid, uint8_t datatype, uint32_t value, bool broadcast);
       hxb_packet_datetime writedt(uint8_t eid, uint8_t datatype, datetime value, bool broadcast);
       hxb_packet_float writef(uint8_t eid, uint8_t datatype, float value, bool broadcast);
+      hxb_packet_128string writestr(uint8_t eid, uint8_t datatype, std::string value, bool broadcast);
     private:
   };
 
@@ -52,6 +53,7 @@ namespace hexabus {
       uint8_t getDatatype();
       uint8_t getEID();
       struct hxb_value getValue();
+      int getValuePtr(struct hxb_value*);
       std::string getString();
       // TODO getFlags (once someone starts actually using the flags)
     private:
