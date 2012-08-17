@@ -145,6 +145,7 @@ int main(int argc, char **argv)
         std::cout << "ERROR: " << ge.what() << std::endl;
         exit(-1);
       }
+
       std::ofstream ofs;
       std::string outfile(vm["graph"].as<std::string>());
       if (std::string("") == outfile) {
@@ -175,26 +176,58 @@ int main(int argc, char **argv)
       }
       hexabus::generator_flash gf(gBuilder.get_graph(), ast);
 
-      std::ofstream ofs;
+      std::ofstream cond_ofs;
+      std::ofstream trans_ofs;
+      std::ofstream dttrans_ofs;
       std::string outfile(vm["output"].as<std::string>());
       if (std::string("") == outfile) {
         std::cout << "No output file specified." << std::endl;
         exit(-1);
       }
-      ofs.open(outfile.c_str());
-      if (!ofs) {
+      std::string cond_outfile(outfile);
+      std::string trans_outfile(outfile);
+      std::string dttrans_outfile(outfile);
+
+      cond_outfile += ".cond";
+      trans_outfile += ".trans";
+      dttrans_outfile += ".dttrans";
+
+      cond_ofs.open(cond_outfile.c_str());
+      if (!cond_ofs) {
         std::cerr << "Error: Could not open output file: "
-          << outfile << std::endl;
+          << cond_outfile << std::endl;
+        return 1;
+      }
+      trans_ofs.open(trans_outfile.c_str());
+      if (!trans_ofs) {
+        std::cerr << "Error: Could not open output file: "
+          << trans_outfile << std::endl;
+        return 1;
+      }
+      dttrans_ofs.open(dttrans_outfile.c_str());
+      if (!dttrans_ofs) {
+        std::cerr << "Error: Could not open output file: "
+          << dttrans_outfile << std::endl;
         return 1;
       }
 
-      std::vector<uint8_t> data;
-      gf(data, data, data); // TODO maybe we want to write to three different files here, or figure out some other way to store this
+      std::vector<uint8_t> cond_data;
+      std::vector<uint8_t> trans_data;
+      std::vector<uint8_t> dttrans_data;
+      
+      gf(cond_data, trans_data, dttrans_data);
+      //gf(data, data, data); // TODO maybe we want to write to three different files here, or figure out some other way to store this
 
-      std::string b64str(hexabus::to_base64(data));
-      ofs << b64str;
+      std::string cond_b64str(hexabus::to_base64(cond_data));
+      std::string trans_b64str(hexabus::to_base64(trans_data));
+      std::string dttrans_b64str(hexabus::to_base64(dttrans_data));
+      cond_ofs << cond_b64str;
+      trans_ofs << trans_b64str;
+      dttrans_ofs << dttrans_b64str;
 
-      ofs.close();
+      cond_ofs.close();
+      trans_ofs.close();
+      dttrans_ofs.close();
     } else {
       std::cout << "Parsing succeeded." << std::endl;
     }

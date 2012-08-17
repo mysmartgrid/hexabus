@@ -39,6 +39,7 @@
 #include "contiki-net.h"
 #include "httpd-fs.h" 
 #include "lib/petsciiconv.h"
+#include "eeprom_variables.h"
 
 struct httpd_state {
   unsigned char timer;
@@ -91,5 +92,13 @@ struct httpd_state {
 
 void httpd_init(void);
 void httpd_appcall(void *state);
+
+#define SM_COND_LENGTH (EE_STATEMACHINE_N_CONDITIONS_SIZE+EE_STATEMACHINE_CONDITIONS_SIZE)
+#define SM_TRANS_LENGTH (EE_STATEMACHINE_N_TRANSITIONS_SIZE+EE_STATEMACHINE_TRANSITIONS_SIZE)
+#define SM_DTTRANS_LENGHT (EE_STATEMACHINE_N_DT_TRANSITIONS_SIZE+EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE)
+
+#define COND 1
+#define TRANS 2
+#define DTTRANS 3
 
 #endif /* __HTTPD_H__ */

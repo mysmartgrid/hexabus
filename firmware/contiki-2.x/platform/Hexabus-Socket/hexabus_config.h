@@ -8,7 +8,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 1
+#define UDP_HANDLER_DEBUG 0
 
 // WebServer
 #define WEBSERVER_DEBUG 1
@@ -29,7 +29,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define DATETIME_SERVICE_DEBUG 0
 
 // temperature
-#define TEMPERATURE_ENABLE 1
+#define TEMPERATURE_ENABLE 0
 #define TEMPERATURE_DEBUG 1
 #define TEMPERATURE_SENSOR 0             // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
@@ -114,6 +114,6 @@ EXPERIMENTAL!
 #define IR_RECEIVER_RAW_MODE 0
 
 //S0 meter
-#define S0_ENABLE 1
+#define S0_ENABLE 0
 
 #endif // HEXBAUS_CONFIG_H
