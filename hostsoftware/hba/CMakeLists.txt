@@ -20,7 +20,6 @@ set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where m
 ###################################################################################################
 # No user settings below
 ###################################################################################################
-include (UseCodeCoverage)
 
 # Where are the additional libraries installed? Note: provide includes
 # path here, subsequent checks will resolve everything else
@@ -78,8 +77,9 @@ SET(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "HexaBus Assembler")
 SET(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
 set(CPACK_PACKAGE_CONTACT "support@mysmartgrid.de")
-SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.txt")
-SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "support@mysmartgrid.de")
+#SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.txt")
+#SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 SET(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 SET(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 SET(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})

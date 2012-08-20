@@ -29,7 +29,6 @@ set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where m
 ###################################################################################################
 # No user settings below
 ###################################################################################################
-include (UseCodeCoverage)
 
 # Where are the additional libraries installed? Note: provide includes
 # path here, subsequent checks will resolve everything else
@@ -51,6 +50,8 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   SET(HAS_LINUX 0)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+
+include (UseCodeCoverage)
 
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-non-virtual-dtor -g -fomit-frame-pointer")
 
