@@ -26,13 +26,14 @@ set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where m
 ###################################################################################################
 # No user settings below
 ###################################################################################################
-include (UseCodeCoverage)
 
 # Where are the additional libraries installed? Note: provide includes
 # path here, subsequent checks will resolve everything else
 set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_MODULE_PATH})
+
+include (UseCodeCoverage)
 
 # Detect the system we're compiling on
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
