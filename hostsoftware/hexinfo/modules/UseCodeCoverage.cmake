@@ -25,9 +25,9 @@ OPTION( ENABLE_CODECOVERAGE "Enable code coverage testing support" )
 
 if ( ENABLE_CODECOVERAGE )
 
-  if ( NOT CMAKE_BUILD_TYPE STREQUAL "Debug" )
+  if ( NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT CMAKE_BUILD_TYPE STREQUAL "Profile" )
     message( WARNING "Code coverage results with an optimised (non-Debug) build may be misleading" )
-  endif ( NOT CMAKE_BUILD_TYPE STREQUAL "Debug" )
+  endif ( NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT CMAKE_BUILD_TYPE STREQUAL "Profile" )
 
   if ( NOT DEFINED CODECOV_OUTPUTFILE )
     set( CODECOV_OUTPUTFILE cmake_coverage.output )
@@ -46,7 +46,7 @@ if ( ENABLE_CODECOVERAGE )
     add_definitions( -fprofile-arcs -ftest-coverage )
     add_definitions( -ftime-report -fmem-report )
     link_libraries( gcov )
-    set( CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} --coverage )
+    #set( CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} --coverage )
     add_custom_target( coverage_init ${CODECOV_LCOV} --base-directory ${CMAKE_SOURCE_DIR} --directory ${CMAKE_BINARY_DIR} --output-file ${CODECOVB_OUTPUTFILE} --capture --initial )
     add_custom_target( coverage ${CODECOV_LCOV} --base-directory ${CMAKE_SOURCE_DIR} --directory ${CMAKE_BINARY_DIR} --output-file ${CODECOVT_OUTPUTFILE} --capture
       COMMAND ${CODECOV_LCOV} -a ${CODECOVB_OUTPUTFILE} -a ${CODECOVT_OUTPUTFILE} -o ${CODECOV_OUTPUTFILE}
