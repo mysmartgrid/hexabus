@@ -2,6 +2,7 @@
 
 set(ENV{https_proxy} "http://squid.itwm.fhg.de:3128/")
 include(Tools.cmake)
+my_ctest_setup()
 include(CTestConfigHexabus.cmake)
 set(_ctest_type "Nightly")
 # set(_ctest_type "Continuous")
@@ -9,7 +10,6 @@ set(_ctest_type "Nightly")
 
 set(URL "https://github.com/mysmartgrid/hexabus.git")
 
-set(KDE_CTEST_DASHBOARD_DIR "/tmp/msgrid")
 set(CTEST_BASE_DIRECTORY "${KDE_CTEST_DASHBOARD_DIR}/${_projectNameDir}/${_ctest_type}")
 set(CTEST_SOURCE_DIRECTORY "${CTEST_BASE_DIRECTORY}/${_srcDir}-${_git_branch}" )
 set(CTEST_BINARY_DIRECTORY "${CTEST_BASE_DIRECTORY}/${_buildDir}-${CTEST_BUILD_NAME}")
@@ -26,18 +26,15 @@ set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
 #set(CTEST_BUILD_CONFIGURATION "Profiling")
 
 configure_ctest_config(${KDE_CTEST_VCS_REPOSITORY} "CTestConfigHexabus.cmake")
-
-# generic support code, provides the kde_ctest_setup() macro, which sets up everything required:
-get_filename_component(_currentDir "${CMAKE_CURRENT_LIST_FILE}" PATH)
-include( "${_currentDir}/KDECTestNightly.cmake")
 kde_ctest_setup()
 
 FindOS(OS_NAME OS_VERSION)
 
 set(ctest_config ${CTEST_BASE_DIRECTORY}/CTestConfig.cmake)
 #######################################################################
-ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY})
-
+foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
+  ctest_empty_binary_directory(${CTEST_BINARY_DIRECTORY}/${subproject})
+endforeach()
 
 find_program(CTEST_GIT_COMMAND NAMES git)
 set(CTEST_UPDATE_TYPE git)
@@ -49,7 +46,6 @@ endif(NOT EXISTS "${CTEST_SOURCE_DIRECTORY}/.git/HEAD")
 
 create_project_xml()
 
-ctest_empty_binary_directory("${CTEST_BINARY_DIRECTORY}")
 ctest_start(${_ctest_type})
 ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}")
 ctest_submit(PARTS Update)
@@ -114,12 +110,11 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
   ctest_submit(PARTS Build)
   message("====> BUILD result: ${build_res}")
 
+  # runs only tests that have a LABELS property
+  #matching "${subproject}"
   ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}"
     INCLUDE_LABEL "${subproject}"
   )
-
-  # runs only tests that have a LABELS property
-  #matching "${subproject}"
   ctest_submit(PARTS Test)
 
   ## do an installation
@@ -131,42 +126,44 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
   endif( NOT ${build_res})
   
   ## create packages
-  include(${CTEST_BINARY_DIRECTORY}/${subproject}/CPackConfig.cmake)
-  if( STAGING_DIR)
-    set(ENV{PATH}            ${OPENWRT_STAGING_DIR}/host/bin:$ENV{PATH})
-  endif( STAGING_DIR)
+  if( EXISTS "${CTEST_BINARY_DIRECTORY}/${subproject}/CPackConfig.cmake" )
+    include(${CTEST_BINARY_DIRECTORY}/${subproject}/CPackConfig.cmake)
+    if( STAGING_DIR)
+      set(ENV{PATH}            ${OPENWRT_STAGING_DIR}/host/bin:$ENV{PATH})
+    endif( STAGING_DIR)
 
-  if( NOT ${build_res})
-    execute_process(
-      COMMAND cpack -G DEB
-      COMMAND sync
-      WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
-      )
-  endif( NOT ${build_res})
-  
-  # upload files
-  if( NOT ${build_res} AND ${CTEST_PUSH_PACKAGES})
-    message( "OS_NAME .....: ${OS_NAME}")
-    message( "OS_VERSION ..: ${OS_VERSION}")
-    message( "CMAKE_SYSTEM_PROCESSOR ..: ${CMAKE_SYSTEM_PROCESSOR}")
+    if( NOT ${build_res})
+      execute_process(
+	COMMAND cpack -G DEB
+	COMMAND sync
+	WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
+	)
+    endif( NOT ${build_res})
+    
+    # upload files
+    if( NOT ${build_res} AND ${CTEST_PUSH_PACKAGES})
+      message( "OS_NAME .....: ${OS_NAME}")
+      message( "OS_VERSION ..: ${OS_VERSION}")
+      message( "CMAKE_SYSTEM_PROCESSOR ..: ${CMAKE_SYSTEM_PROCESSOR}")
 
-    if(CPACK_ARCHITECTUR)
-      set(OPKG_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CPACK_ARCHITECTUR}")
-      set(_package_file "${OPKG_FILE_NAME}.ipk")
-    else(CPACK_ARCHITECTUR)
-      set(_package_file "${CPACK_PACKAGE_FILE_NAME}.deb")
-    endif(CPACK_ARCHITECTUR)
-    message("==> Upload packages - ${_package_file}")
-    set(_export_host ${CTEST_PACKAGE_SITE})
-    set(_remote_dir "packages/${OS_NAME}/${OS_VERSION}/${CMAKE_SYSTEM_PROCESSOR}")
-    execute_process(
-      COMMAND ssh ${_export_host} mkdir -p ${_remote_dir}
-      )
-    execute_process(
-      COMMAND scp -p ${_package_file} ${_export_host}:${_remote_dir}/${_package_file}
-      WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
-      )
-  endif( NOT ${build_res} AND ${CTEST_PUSH_PACKAGES})
+      if(CPACK_ARCHITECTUR)
+	set(OPKG_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CPACK_ARCHITECTUR}")
+	set(_package_file "${OPKG_FILE_NAME}.ipk")
+      else(CPACK_ARCHITECTUR)
+	set(_package_file "${CPACK_PACKAGE_FILE_NAME}.deb")
+      endif(CPACK_ARCHITECTUR)
+      message("==> Upload packages - ${_package_file}")
+      set(_export_host ${CTEST_PACKAGE_SITE})
+      set(_remote_dir "packages/${OS_NAME}/${OS_VERSION}/${CMAKE_SYSTEM_PROCESSOR}")
+      execute_process(
+	COMMAND ssh ${_export_host} mkdir -p ${_remote_dir}
+	)
+      execute_process(
+	COMMAND scp -p ${_package_file} ${_export_host}:${_remote_dir}/${_package_file}
+	WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
+	)
+    endif( NOT ${build_res} AND ${CTEST_PUSH_PACKAGES})
+  endif( EXISTS "${CTEST_BINARY_DIRECTORY}/${subproject}/CPackConfig.cmake" )
 endforeach()
 
 ctest_submit(RETURN_VALUE res)
