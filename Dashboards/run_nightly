@@ -6,11 +6,24 @@ export LANG=en_US.UTF-8
 export CTEST=/usr/bin/ctest
 
 echo "Running ctest"
+dir=${HOME}/hexabus/Dashboards
+dir=/homes/krueger/Project/MySmartGrid/hexabus/hexabus/Dashboards
 
+${CTEST} -V -VV -S ${dir}/HexabusNightly.cmake,TARGET_ARCH=ar71xx,CTEST_PUSH_PACKAGES=1
+${CTEST} -V -VV -S ${dir}/HexabusNightly.cmake,CTEST_PUSH_PACKAGES=1
+${CTEST} -V -VV -S ${dir}/HexabusNightly.cmake,compiler=clang
 
-${CTEST} -V -VV -S ${HOME}/hexabus/Dashboards/HexabusNightly_1.cmake
-${CTEST} -V -VV -S ${HOME}/hexabus/Dashboards/HexabusNightly_2.cmake
-if [ `hostname` = "build-ubuntu100403-i686" ]; then
-    ${CTEST} -V -VV -S ${HOME}/hexabus/Dashboards/HexabusNightly_x86-kk-dev.cmake
-fi
-${CTEST} -V -VV -S ${HOME}/hexabus/Dashboards/HexabusCoverage.cmake
+#${CTEST} -V -VV -S ${dir}/HexabusNightly.cmake,_git_branch=kk-dev
+
+#${CTEST} -V -VV -S ${dir}/HexabusCoverage.cmake,_git_branch=kk-dev
+
+${CTEST} -V -VV -S ${dir}/HexabusCoverage.cmake,_git_branch=kk-dev,compiler=clang
+${CTEST} -V -VV -S ${dir}/HexabusCoverage.cmake,compiler=clang
+${CTEST} -V -VV -S ${dir}/HexabusCoverage.cmake
+
+allBranches=`git branch -a | grep remotes | sed -e 's%remotes/origin/%%' | grep -v HEAD`
+for branch in ${allBranches}
+do
+  echo ${CTEST} -V -VV -S ${dir}/HexabusContinuous.cmake,_git_branch=${branch}
+  ${CTEST} -V -VV -S ${dir}/HexabusContinuous.cmake,_git_branch=${branch}
+done
