@@ -26,6 +26,7 @@ set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where m
 ###################################################################################################
 # No user settings below
 ###################################################################################################
+include (UseCodeCoverage)
 
 # Where are the additional libraries installed? Note: provide includes
 # path here, subsequent checks will resolve everything else
@@ -92,6 +93,10 @@ FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS program_options filesystem system)
 # Reflect the package structure
 add_subdirectory(libhexabus)
 add_subdirectory(src)
+
+# enable unit testing
+include(CTest)
+enable_testing()
 
 # add some files to the installation target
 INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
