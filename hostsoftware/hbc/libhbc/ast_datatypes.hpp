@@ -31,7 +31,7 @@ namespace hexabus {
     std::string name;
   };
 
-  typedef boost::variant<hexabus::placeholder_doc, float> constant_doc;
+  typedef boost::variant<hexabus::placeholder_doc, unsigned int, float> constant_doc;
 
   struct ep_name_doc {
     std::string name;

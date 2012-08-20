@@ -120,7 +120,7 @@ namespace hexabus {
 
       // Assignment, constants, ...
       is = eps > lit(":=");
-      constant = placeholder | float_ | lit("true") | lit("false"); // TODO do we need to distinguish between float, int, timestamp, ...?
+      constant = placeholder | float_ | (lit("i") > uint_) | lit("true") | lit("false"); // TODO do we need to distinguish between float, int, timestamp, ...?
 
       // Basic elements: Identifier, assignment, ...
       identifier %= char_("a-zA-Z_") > *char_("a-zA-Z0-9_");
@@ -159,7 +159,7 @@ namespace hexabus {
       bool_op %= ( lit("||")[_val = OR] | lit("&&")[_val = AND] );
       comp_op %= ( lit("==")[_val = STM_EQ] | lit("<=")[_val = STM_LEQ] | lit(">=")[_val = STM_GEQ] | lit("<")[_val = STM_LT] | lit(">")[_val = STM_GT] | lit("!=")[_val = STM_NEQ] );
       atomic_condition %= global_endpoint_id > comp_op > constant;
-      compound_condition %= '(' > condition > ')' > bool_op > '(' > condition > ')'; 
+      compound_condition %= '(' > condition > ')' > bool_op > '(' > condition > ')';
       tautology %= lit("true")[_val = 1];
       condition %= ( tautology | atomic_condition | compound_condition );
       command_block %= *command > goto_command > ';';

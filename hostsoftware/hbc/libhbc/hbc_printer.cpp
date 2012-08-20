@@ -22,6 +22,10 @@ struct hbc_node_printer : boost::static_visitor<> {
       ostr << f;
   }
 
+  void operator()(unsigned int const& i) const {
+      ostr << i;
+  }
+
   void operator()(placeholder_doc const& placeholder) const {
       ostr << "<" << placeholder.name << ">";
   }
