@@ -120,7 +120,7 @@ namespace hexabus {
 
       // Assignment, constants, ...
       is = eps > lit(":=");
-      constant = placeholder | float_ | (lit("i") > uint_) | lit("true") | lit("false"); // TODO do we need to distinguish between float, int, timestamp, ...?
+      constant = placeholder | float_ | (lit("i") > uint_) | lit("true") | lit("false");
 
       // Basic elements: Identifier, assignment, ...
       identifier %= char_("a-zA-Z_") > *char_("a-zA-Z0-9_");

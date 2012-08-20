@@ -4,6 +4,7 @@
 #include <libhbc/hbcomp_grammar.hpp>
 #include <libhbc/hbc_printer.hpp>
 #include <libhbc/graph_builder.hpp>
+#include <libhbc/ast_checks.hpp>
 
 // commandline parsing.
 #include <boost/program_options.hpp>
@@ -28,6 +29,7 @@ int main(int argc, char** argv)
     ("input,i", po::value<std::string>(), "the input file")
     ("print,p", "print parsed version of the input file")
     ("graph,g", po::value<std::string>(), "output the program graph in graphviz format")
+    ("check,c", "check consistency of syntax tree")
   ;
   po::positional_options_description p;
   p.add("infile", 1);
@@ -117,6 +119,9 @@ int main(int argc, char** argv)
       }
       gBuilder.write_graphviz(ofs);
       ofs.close();
+    } else if(vm.count("check")) {
+      hexabus::AstChecks astChecker;
+      astChecker(ast);
     }
   } else {
     if(!r)
