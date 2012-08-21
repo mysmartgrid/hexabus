@@ -5,6 +5,7 @@
 #include <libhbc/hbc_printer.hpp>
 #include <libhbc/graph_builder.hpp>
 #include <libhbc/ast_checks.hpp>
+#include <libhbc/table_builder.hpp>
 
 // commandline parsing.
 #include <boost/program_options.hpp>
@@ -30,6 +31,7 @@ int main(int argc, char** argv)
     ("print,p", "print parsed version of the input file")
     ("graph,g", po::value<std::string>(), "output the program graph in graphviz format")
     ("check,c", "check consistency of syntax tree")
+    ("tables,t", "build endpoint and alias tables") // TODO this has to happen automatically later.
   ;
   po::positional_options_description p;
   p.add("infile", 1);
@@ -122,6 +124,9 @@ int main(int argc, char** argv)
     } else if(vm.count("check")) {
       hexabus::AstChecks astChecker;
       astChecker(ast);
+    } else if(vm.count("tables")) {
+      hexabus::TableBuilder tableBuilder;
+      tableBuilder(ast);
     }
   } else {
     if(!r)
