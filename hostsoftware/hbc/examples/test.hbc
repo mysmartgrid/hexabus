@@ -54,7 +54,11 @@ machine another_machine {
   states { bloerp };
   in(bloerp) {
     if(true) { goto init; }
+    else if(true) { goto init; }
+    else if(true) { goto init; }
+    else { goto init; }
   }
+
   in(asdf) { }
 }
 

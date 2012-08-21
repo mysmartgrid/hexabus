@@ -30,6 +30,31 @@ struct ast_checker : boost::static_visitor<> {
         // TODO throw something
         std::cout << "In clause from nonexistent state \"" << in_clause.name << "\" in line " << in_clause.lineno << std::endl;
       }
+
+      // now check all the goto's in the in clause.
+      BOOST_FOREACH(if_clause_doc if_clause, in_clause.if_clauses) {
+        // the if block
+        if(!contains(statemachine.stateset.states, if_clause.if_block.command_block.goto_command.target_state)) {
+          // TODO throw something
+          std::cout << "Goto target state \"" << if_clause.if_block.command_block.goto_command.target_state << "\" does not exist in line " << if_clause.if_block.command_block.goto_command.lineno << std::endl;
+        }
+
+        // the else-if blocks
+        BOOST_FOREACH(guarded_command_block_doc com_block, if_clause.else_if_blocks) {
+          if(!contains(statemachine.stateset.states, com_block.command_block.goto_command.target_state)) {
+            // TODO throw something
+            std::cout << "Goto target state \"" << com_block.command_block.goto_command.target_state << "\" does not exist in line " << com_block.command_block.goto_command.lineno << std::endl;
+          }
+        }
+
+        // the else block
+        if(if_clause.else_clause.present) {
+          if(!contains(statemachine.stateset.states, if_clause.else_clause.commands.goto_command.target_state)) {
+            // TODO throw something
+            std::cout << "Goto target state \"" << if_clause.else_clause.commands.goto_command.target_state << "\" does not exist in line " << if_clause.else_clause.commands.goto_command.lineno << std::endl;
+          }
+        }
+      }
     }
   }
 
