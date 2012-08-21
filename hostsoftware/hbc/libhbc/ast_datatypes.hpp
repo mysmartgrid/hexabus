@@ -139,6 +139,7 @@ namespace hexabus {
   };
 
   struct stateset_doc {
+    unsigned int lineno;
     std::vector<std::string> states;
   };
 
@@ -273,6 +274,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::stateset_doc,
+  (unsigned int, lineno)
   (std::vector<std::string>, states)
   (std::vector<std::string>, states)
 )

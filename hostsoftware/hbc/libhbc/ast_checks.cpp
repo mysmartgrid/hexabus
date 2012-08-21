@@ -2,6 +2,14 @@
 
 using namespace hexabus;
 
+bool hexabus::contains(std::vector<std::string> v, std::string s) {
+  BOOST_FOREACH(std::string e, v) {
+    if(s == e)
+      return true;
+  }
+  return false;
+}
+
 struct ast_checker : boost::static_visitor<> {
   ast_checker() { }
 
@@ -11,16 +19,18 @@ struct ast_checker : boost::static_visitor<> {
     // - later (when we have the placeholder-table and stuff), check placeholders, endpoint / device names, ...
 
     // check if init state is present in stateset
-    bool init_state_present;
-    BOOST_FOREACH(std::string state_name, statemachine.stateset.states) {
-      if("init" == state_name)
-        init_state_present = true;
-    }
-    if(!init_state_present) {
+    if(!contains(statemachine.stateset.states, "init")) {
       // TODO throw something
+      std::cout << "Stateset does not contain init state in line " << statemachine.stateset.lineno << std::endl;
     }
 
-    std::cout << "Machine: " << statemachine.name << " -- Init state present: " << init_state_present << std::endl;
+    // check all the in clauses
+    BOOST_FOREACH(in_clause_doc in_clause, statemachine.in_clauses) {
+      if(!contains(statemachine.stateset.states, in_clause.name)) {
+        // TODO throw something
+        std::cout << "In clause from nonexistent state \"" << in_clause.name << "\" in line " << in_clause.lineno << std::endl;
+      }
+    }
   }
 
   void operator()(include_doc& include) const { }

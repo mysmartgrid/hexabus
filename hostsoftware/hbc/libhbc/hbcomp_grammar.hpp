@@ -150,7 +150,7 @@ namespace hexabus {
       alias %= lit("alias") >> file_pos > identifier > '{'
         > *alias_cmd > '}';
 
-      stateset %= lit("states") > '{' > identifier > *(',' > identifier) > '}';
+      stateset %= lit("states") > file_pos > '{' > identifier > *(',' > identifier) > '}';
       statemachine %= lit("machine") > identifier > '{' > stateset > ';' > *in_clause > '}';
 
       in_clause %= lit("in") >> file_pos > '(' > identifier > ')'

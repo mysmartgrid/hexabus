@@ -6,6 +6,8 @@
 
 namespace hexabus {
 
+  bool contains(std::vector<std::string> v, std::string s);
+
   class AstChecks {
     public:
       typedef std::tr1::shared_ptr<AstChecks> Ptr;

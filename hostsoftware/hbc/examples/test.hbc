@@ -55,6 +55,7 @@ machine another_machine {
   in(bloerp) {
     if(true) { goto init; }
   }
+  in(asdf) { }
 }
 
 # example machine from the "example.hbc" - minus everything we can't parse yet
