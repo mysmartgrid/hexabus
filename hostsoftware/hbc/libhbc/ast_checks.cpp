@@ -59,9 +59,9 @@ struct ast_checker : boost::static_visitor<> {
   }
 
   void operator()(include_doc& include) const { }
-  void operator()(endpoint_doc& ep) const { }
-  void operator()(alias_doc alias) const { }
-  void operator()(module_doc module) const { }
+  void operator()(endpoint_doc& ep) const { } // TODO here: check if there are multiple datatype definitions. BUT: We can also check this when we build the endpoint table, so we do it there. even more so: Check if we have multiple of anything.
+  void operator()(alias_doc alias) const { } // TODO here: check if we have any command more then once. BUT: we can do this when we build the device list table. so we're gonna do it there.
+  void operator()(module_doc module) const { } // TODO here: Same checks as for statemachine, PLUS check if all placeholders are declared correctly. BUT we could also check placeholders on module instantiation (???)
 };
 
 void AstChecks::operator()(hbc_doc& hbc) {
