@@ -129,7 +129,7 @@ namespace hexabus {
       on_error<rethrow>(identifier, error_traceback_t("Invalid identifier"));
       // device_name.endpoint_name
       global_endpoint_id %= ( placeholder | identifier ) > '.' > ( identifier | placeholder );
-      ipv6_address %= +( char_("a-fA-F0-9") | ':' ); // parse anything that is hex and : - check validity (semantically) later (TODO)
+      ipv6_address %= +( char_("a-fA-F0-9:")); // parse anything that is hex and : - check validity (semantically) later (TODO)
       datatype = ( lit("BOOL")[_val = DT_BOOL] | lit("UINT8")[_val = DT_UINT8] | lit("UINT32")[_val = DT_UINT32] | lit("FLOAT")[_val = DT_FLOAT] );
       access_lv = ( lit("read")[_val = AC_READ] | lit("write")[_val = AC_WRITE] | lit("broadcast")[_val = AC_BROADCAST] );
 

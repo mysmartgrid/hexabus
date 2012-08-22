@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <boost/asio.hpp>
 #include <libhbc/common.hpp>
 #include "libhbc/hbc_enums.hpp"
 
@@ -21,7 +22,7 @@ namespace hexabus {
   // TODO maybe this shoult be a map name->device struct
   struct device_alias {
     std::string name;
-    std::string ipv6_address; // TODO Parse it. Before you put it here.
+    boost::asio::ip::address ipv6_address;
     std::vector<unsigned int> eids;
   };
 

@@ -83,13 +83,14 @@ struct table_builder : boost::static_visitor<> {
     } else {
       device_alias dev;
       dev.name = alias.device_name;
-      dev.ipv6_address = "";
-      bool eid_list_read = false;
+      bool eid_list_read = false, ip_adr_read = false;
       BOOST_FOREACH(alias_cmd_doc cmd, alias.cmds) {
         switch(cmd.which()) {
           case 0: // ip address
-            if(dev.ipv6_address == "") {
-              dev.ipv6_address = boost::get<alias_ip_doc>(cmd).ipv6_address;
+            if(!ip_adr_read) {
+              dev.ipv6_address = boost::asio::ip::address::from_string(boost::get<alias_ip_doc>(cmd).ipv6_address);
+              // TODO catch exceptions
+              ip_adr_read = true; // TODO only set to true if something useful was read
             }
             else {
               std::cout << "Duplicate IP address in line " << alias.lineno << std::endl;
@@ -110,6 +111,11 @@ struct table_builder : boost::static_visitor<> {
           default:
             std::cout << "unknown which()" << std::endl;
         }
+      }
+      // check if an IP address is present
+      if(!ip_adr_read) {
+        std::cout << "Missing IP address in line " << alias.lineno << std::endl;
+        // TODO throw something
       }
       // check for duplicate EIDs
       BOOST_FOREACH(unsigned int eid, dev.eids) {
@@ -172,7 +178,7 @@ void TableBuilder::print() {
 
   std::cout << std::endl << "Device alias table:" << std::endl;
   BOOST_FOREACH(device_alias dev, *_d) {
-    std::cout << "Name: " << dev.name << " - IP Addr: " << dev.ipv6_address << " - EIDs: ";
+    std::cout << "Name: " << dev.name << " - IP Addr: " << dev.ipv6_address.to_string() << " - EIDs: ";
     BOOST_FOREACH(unsigned int eid, dev.eids) {
       std::cout << eid << " ";
     }
