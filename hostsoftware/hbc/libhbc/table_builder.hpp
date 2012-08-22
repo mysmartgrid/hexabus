@@ -9,12 +9,13 @@ namespace hexabus {
   class TableBuilder {
     public:
       typedef std::tr1::shared_ptr<TableBuilder> Ptr;
-      TableBuilder() {};
+      TableBuilder() : _e(new endpoint_table()) {};
       virtual ~TableBuilder() {};
 
       endpoint_table_ptr get_table() const { return _e; };
 
       void operator()(hbc_doc& hbc);
+      void print();
 
     private:
       endpoint_table_ptr _e;

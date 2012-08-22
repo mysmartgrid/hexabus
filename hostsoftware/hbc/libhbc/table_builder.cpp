@@ -16,7 +16,7 @@ struct table_builder : boost::static_visitor<> {
     BOOST_FOREACH(endpoint_cmd_doc ep_cmd, ep.cmds) {
       switch(ep_cmd.which()) {
         case 0: // name
-          if(e.name != "")
+          if(e.name == "")
             e.name = boost::get<ep_name_doc>(ep_cmd).name;
           else {
             std::cout << "Duplicate endpoint name in line " << ep.lineno << std::endl;
@@ -70,5 +70,33 @@ void TableBuilder::operator()(hbc_doc& hbc) {
   BOOST_FOREACH(hbc_block block, hbc.blocks) {
     // only state machines
     boost::apply_visitor(table_builder(_e), block);
+  }
+}
+
+void TableBuilder::print() {
+  std::cout << "Endpoint table:" << std::endl;
+
+  BOOST_FOREACH(endpoint ep, *_e) {
+    std::cout << "EID: " << ep.eid << " - Name: " << ep.name << " - Datatype: ";
+    switch(ep.dtype) {
+      case DT_UNDEFINED:
+        std::cout << "undef.";
+        break;
+      case DT_BOOL:
+        std::cout << "bool";
+        break;
+      case DT_UINT8:
+        std::cout << "uint8";
+        break;
+      case DT_UINT32:
+        std::cout << "uint32";
+        break;
+      case DT_FLOAT:
+        std::cout << "float";
+        break;
+      default:
+        std::cout << "not implemented...?";
+    }
+    std::cout << " - Acces (rwb): " << ep.read << ep.write << ep.broadcast << std::endl;
   }
 }

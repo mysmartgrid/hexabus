@@ -127,6 +127,7 @@ int main(int argc, char** argv)
     } else if(vm.count("tables")) {
       hexabus::TableBuilder tableBuilder;
       tableBuilder(ast);
+      tableBuilder.print();
     }
   } else {
     if(!r)
