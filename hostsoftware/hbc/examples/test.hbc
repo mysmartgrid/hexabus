@@ -17,6 +17,11 @@ endpoint 2 {
   datatype UINT32; access { read, broadcast };
 }
 
+endpoint 2 {
+  name power;
+  datatype UINT32; access { read, broadcast };
+}
+
 alias device {
   ip fe80::cafe:d00d;
   eids { 1, 2, 3 };

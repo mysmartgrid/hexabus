@@ -6,56 +6,66 @@ struct table_builder : boost::static_visitor<> {
   table_builder(endpoint_table_ptr ept) : _e(ept) { }
 
   void operator()(endpoint_doc& ep) const {
-    // TODO check if already exists. this is an error, at least if it's a contradiction.
-    endpoint e;
-    e.eid = ep.eid;
-
-    e.name = "";
-    e.dtype = DT_UNDEFINED;
-    e.read = e.write = e.broadcast = false;
-    BOOST_FOREACH(endpoint_cmd_doc ep_cmd, ep.cmds) {
-      switch(ep_cmd.which()) {
-        case 0: // name
-          if(e.name == "")
-            e.name = boost::get<ep_name_doc>(ep_cmd).name;
-          else {
-            std::cout << "Duplicate endpoint name in line " << ep.lineno << std::endl;
-            // TODO throw something
-          }
-          break;
-        case 1: // datatype
-          if(e.dtype == DT_UNDEFINED)
-            e.dtype = boost::get<ep_datatype_doc>(ep_cmd).dtype;
-          else {
-            std::cout << "Duplicate datatype in line " << ep.lineno << std::endl;
-            // TODO throw something
-          }
-          break;
-        case 2: // access
-          BOOST_FOREACH(access_level al, boost::get<ep_access_doc>(ep_cmd).access_levels) {
-            switch(al) {
-              case AC_READ:
-                e.read = true;
-                break;
-              case AC_WRITE:
-                e.write = true;
-                break;
-              case AC_BROADCAST:
-                e.broadcast = true;
-                break;
-
-              default:
-                std::cout << "not implemented!??" << std::endl;
-            }
-          }
-          break;
-
-        default:
-          std::cout << "not implemented?!" << std::endl;
-      }
+    // check if EID already exists in table
+    bool exists = false;
+    BOOST_FOREACH(endpoint tep, *_e) {
+      if(tep.eid == ep.eid)
+        exists = true;
     }
+    if(exists) {
+      std::cout << "Duplicate endpoint ID in line " << ep.lineno << std::endl;
+      // TODO throw something
+    } else {
+      endpoint e;
+      e.eid = ep.eid;
 
-    _e->push_back(e);
+      e.name = "";
+      e.dtype = DT_UNDEFINED;
+      e.read = e.write = e.broadcast = false;
+      BOOST_FOREACH(endpoint_cmd_doc ep_cmd, ep.cmds) {
+        switch(ep_cmd.which()) {
+          case 0: // name
+            if(e.name == "")
+              e.name = boost::get<ep_name_doc>(ep_cmd).name;
+            else {
+              std::cout << "Duplicate endpoint name in line " << ep.lineno << std::endl;
+              // TODO throw something
+            }
+            break;
+          case 1: // datatype
+            if(e.dtype == DT_UNDEFINED)
+              e.dtype = boost::get<ep_datatype_doc>(ep_cmd).dtype;
+            else {
+              std::cout << "Duplicate datatype in line " << ep.lineno << std::endl;
+              // TODO throw something
+            }
+            break;
+          case 2: // access
+            BOOST_FOREACH(access_level al, boost::get<ep_access_doc>(ep_cmd).access_levels) {
+              switch(al) {
+                case AC_READ:
+                  e.read = true;
+                  break;
+                case AC_WRITE:
+                  e.write = true;
+                  break;
+                case AC_BROADCAST:
+                  e.broadcast = true;
+                  break;
+
+                default:
+                  std::cout << "not implemented!??" << std::endl;
+              }
+            }
+            break;
+
+          default:
+            std::cout << "not implemented?!" << std::endl;
+        }
+      }
+
+      _e->push_back(e);
+    }
   }
 
   void operator()(statemachine_doc& statemachine) const { }
