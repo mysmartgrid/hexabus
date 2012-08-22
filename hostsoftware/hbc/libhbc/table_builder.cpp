@@ -167,6 +167,15 @@ void TableBuilder::print() {
       default:
         std::cout << "not implemented...?";
     }
-    std::cout << " - Acces (rwb): " << ep.read << ep.write << ep.broadcast << std::endl;
+    std::cout << " - Access (rwb): " << ep.read << ep.write << ep.broadcast << std::endl;
+  }
+
+  std::cout << std::endl << "Device alias table:" << std::endl;
+  BOOST_FOREACH(device_alias dev, *_d) {
+    std::cout << "Name: " << dev.name << " - IP Addr: " << dev.ipv6_address << " - EIDs: ";
+    BOOST_FOREACH(unsigned int eid, dev.eids) {
+      std::cout << eid << " ";
+    }
+    std::cout << std::endl;
   }
 }

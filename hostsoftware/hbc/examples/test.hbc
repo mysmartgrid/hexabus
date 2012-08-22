@@ -24,8 +24,6 @@ endpoint 2 {
 
 alias device {
   ip fe80::cafe:d00d;
-  ip fe80::cafe:d00d;
-  eids { 1, 2, 3 };
   eids { 1, 2, 3 };
 }
 
