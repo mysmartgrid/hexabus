@@ -3,9 +3,10 @@
 using namespace hexabus;
 
 struct table_builder : boost::static_visitor<> {
-  table_builder(endpoint_table_ptr ept) : _e(ept) { }
+  table_builder(endpoint_table_ptr ept, device_table_ptr dt) : _e(ept), _d(dt) { }
 
   void operator()(endpoint_doc& ep) const {
+    // TODO check if something is NOT specified! like an endpoint without a name!
     // check if EID already exists in table
     bool exists = false;
     BOOST_FOREACH(endpoint tep, *_e) {
@@ -68,18 +69,77 @@ struct table_builder : boost::static_visitor<> {
     }
   }
 
+  void operator()(alias_doc& alias) const {
+    // TODO check if alias name already exists
+    bool exists = false;
+    BOOST_FOREACH(device_alias da, *_d) {
+      if(da.name == alias.device_name)
+        exists = true;
+    }
+
+    if(exists) {
+      std::cout << "Duplicate device alias in line " << alias.lineno << std::endl;
+      // TODO throw something
+    } else {
+      device_alias dev;
+      dev.name = alias.device_name;
+      dev.ipv6_address = "";
+      bool eid_list_read = false;
+      BOOST_FOREACH(alias_cmd_doc cmd, alias.cmds) {
+        switch(cmd.which()) {
+          case 0: // ip address
+            if(dev.ipv6_address == "") {
+              dev.ipv6_address = boost::get<alias_ip_doc>(cmd).ipv6_address;
+            }
+            else {
+              std::cout << "Duplicate IP address in line " << alias.lineno << std::endl;
+              // TODO throw something
+            }
+            break;
+          case 1: // eid list
+            if(!eid_list_read)
+            {
+              dev.eids = boost::get<alias_eids_doc>(cmd).eid_list.eids;
+              eid_list_read = true;
+            } else {
+              std::cout << "Duplicate EID list entry in line " << alias.lineno << std::endl;
+              // TODO throw something
+            }
+            break;
+
+          default:
+            std::cout << "unknown which()" << std::endl;
+        }
+      }
+      // check for duplicate EIDs
+      BOOST_FOREACH(unsigned int eid, dev.eids) {
+        unsigned int occurances = 0;
+        BOOST_FOREACH(unsigned int eid2, dev.eids) {
+          if(eid == eid2)
+            occurances++;
+        }
+        if(occurances > 1) {
+          std::cout << "Duplicate EID entry in alias definition in line " << alias.lineno << std::endl;
+          // TODO throw something
+        }
+      }
+
+      _d->push_back(dev);
+    }
+  }
+
   void operator()(statemachine_doc& statemachine) const { }
   void operator()(include_doc& include) const { }
-  void operator()(alias_doc alias) const { }
-  void operator()(module_doc module) const { }
+  void operator()(module_doc& module) const { }
 
   endpoint_table_ptr _e;
+  device_table_ptr _d;
 };
 
 void TableBuilder::operator()(hbc_doc& hbc) {
   BOOST_FOREACH(hbc_block block, hbc.blocks) {
     // only state machines
-    boost::apply_visitor(table_builder(_e), block);
+    boost::apply_visitor(table_builder(_e, _d), block);
   }
 }
 

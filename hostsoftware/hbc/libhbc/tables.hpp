@@ -8,6 +8,7 @@
 
 namespace hexabus {
 
+  // TODO maybe this should be a map eid->endpoint struct
   struct endpoint {
     unsigned int eid;
     datatype dtype;
@@ -17,11 +18,16 @@ namespace hexabus {
     bool broadcast;
   };
 
+  // TODO maybe this shoult be a map name->device struct
   struct device_alias {
-    // TODO name, ip address, endpoint list
+    std::string name;
+    std::string ipv6_address; // TODO Parse it. Before you put it here.
+    std::vector<unsigned int> eids;
   };
 
+  typedef std::vector<device_alias> device_table;
   typedef std::vector<endpoint> endpoint_table;
+  typedef std::tr1::shared_ptr<device_table> device_table_ptr;
   typedef std::tr1::shared_ptr<endpoint_table> endpoint_table_ptr;
 };
 
