@@ -12,7 +12,7 @@ struct table_builder : boost::static_visitor<> {
 
     e.dtype = DT_UNDEFINED;
     e.read = e.write = e.broadcast = false;
-    bool eid_read = false;
+    bool eid_read = false, dt_read = false, access_read = false;
     BOOST_FOREACH(endpoint_cmd_doc ep_cmd, ep.cmds) {
       switch(ep_cmd.which()) {
         case 0: // eid
@@ -25,29 +25,36 @@ struct table_builder : boost::static_visitor<> {
           }
           break;
         case 1: // datatype
-          if(e.dtype == DT_UNDEFINED)
+          if(!dt_read) {
             e.dtype = boost::get<ep_datatype_doc>(ep_cmd).dtype;
-          else {
+            dt_read = true;
+          } else {
             std::cout << "Duplicate datatype in line " << ep.lineno << std::endl;
             // TODO throw something
           }
           break;
         case 2: // access
-          BOOST_FOREACH(access_level al, boost::get<ep_access_doc>(ep_cmd).access_levels) {
-            switch(al) {
-              case AC_READ:
-                e.read = true;
-                break;
-              case AC_WRITE:
-                e.write = true;
-                break;
-              case AC_BROADCAST:
-                e.broadcast = true;
-                break;
+          if(!access_read) {
+            BOOST_FOREACH(access_level al, boost::get<ep_access_doc>(ep_cmd).access_levels) {
+              switch(al) {
+                case AC_READ:
+                  e.read = true;
+                  break;
+                case AC_WRITE:
+                  e.write = true;
+                  break;
+                case AC_BROADCAST:
+                  e.broadcast = true;
+                  break;
 
-              default:
-                std::cout << "not implemented!??" << std::endl;
+                default:
+                  std::cout << "not implemented!??" << std::endl;
+              }
             }
+            access_read = true; // do this here, so that it gets set to true only when an access level definition is read
+          } else {
+            std::cout << "Duplicate access level definition in line " << ep.lineno << std::endl;
+            // TODO throw something
           }
           break;
 
@@ -55,6 +62,16 @@ struct table_builder : boost::static_visitor<> {
           std::cout << "not implemented?!" << std::endl;
       }
     }
+
+    if(!eid_read) {
+      std::cout << "Missing EID in line " << ep.lineno << std::endl;
+    }
+    if(!dt_read) {
+      std::cout << "Missing datatype in line " << ep.lineno << std::endl;
+    }
+    if(!access_read) {
+      std::cout << "Missing access level in line " << ep.lineno << std::endl;
+    } // TODO throw something
 
     // TODO what happens if it is already in there?
     _e->insert(std::pair<std::string, endpoint>(name, e));
@@ -95,6 +112,11 @@ struct table_builder : boost::static_visitor<> {
     // check if an IP address is present
     if(!ip_adr_read) {
       std::cout << "Missing IP address in line " << alias.lineno << std::endl;
+      // TODO throw something
+    }
+    // check if an EP list is present
+    if(!eid_list_read) {
+      std::cout << "Missing endpoint list in line " << alias.lineno << std::endl;
       // TODO throw something
     }
     // check for duplicate EIDs
