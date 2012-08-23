@@ -136,12 +136,11 @@ namespace hexabus {
       // larger blocks: Aliases, state machines
       include %= lit("include") >> file_pos > filename > ';';
 
-      ep_name %= lit("name") > identifier > ';';
+      ep_eid %= lit("eid") > uint_ > ';';
       ep_datatype %= lit("datatype") > datatype > ';';
       ep_access %= lit("access") > '{' > access_lv > *(',' > access_lv) > '}' > ';';
-      endpoint_cmd = ( ep_name | ep_datatype | ep_access );
-      endpoint %= lit("endpoint") >> file_pos > uint_ > '{' > *endpoint_cmd > '}';
-      // TODO check later (semantically) that there are no contradictions in here (e.g. two different datatype statements
+      endpoint_cmd = ( ep_eid | ep_datatype | ep_access );
+      endpoint %= lit("endpoint") >> file_pos > identifier > '{' > *endpoint_cmd > '}';
 
       eid_list %= uint_ > *(',' > uint_);
       alias_ip %= lit("ip") > ipv6_address > ';';
@@ -207,7 +206,7 @@ namespace hexabus {
     qi::rule<Iterator, std::string(), Skip> filename;
     qi::rule<Iterator, int(), Skip> datatype;
     qi::rule<Iterator, access_level(), Skip> access_lv;
-    qi::rule<Iterator, ep_name_doc(), Skip> ep_name;
+    qi::rule<Iterator, ep_eid_doc(), Skip> ep_eid;
     qi::rule<Iterator, ep_datatype_doc(), Skip> ep_datatype;
     qi::rule<Iterator, ep_access_doc(), Skip> ep_access;
     qi::rule<Iterator, endpoint_cmd_doc(), Skip> endpoint_cmd;

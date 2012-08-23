@@ -30,8 +30,8 @@ struct hbc_node_printer : boost::static_visitor<> {
       ostr << "<" << placeholder.name << ">";
   }
 
-  void operator()(ep_name_doc const& ep_name) const {
-    ostr << "name: " << ep_name.name;
+  void operator()(ep_eid_doc const& ep_eid) const {
+    ostr << "eid: " << ep_eid.eid;
   }
 
   void operator()(ep_datatype_doc const& ep_datatype) const {
@@ -69,7 +69,7 @@ struct hbc_node_printer : boost::static_visitor<> {
 
   void operator()(endpoint_doc const& endpoint) const {
     tab(indent);
-    ostr << "[" << endpoint.lineno << "] endpoint " << endpoint.eid << std::endl;
+    ostr << "[" << endpoint.lineno << "] endpoint " << endpoint.name << std::endl;
     tab(indent);
     ostr << "⎛" << std::endl;
     BOOST_FOREACH(endpoint_cmd_doc endpoint_cmd, endpoint.cmds) {

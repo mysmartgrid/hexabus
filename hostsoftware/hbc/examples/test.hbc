@@ -1,24 +1,19 @@
 include another_file.hbc;
 
-endpoint 0 {
+endpoint device_descriptor {
   access { read };
   datatype UINT32;
-  name device_descriptor;
+  eid 0;
 }
 
-endpoint 1 {
+endpoint on {
   access { read, write };
   datatype BOOL;
-  name on;
+  eid 1;
 }
 
-endpoint 2 {
-  name power;
-  datatype UINT32; access { read, broadcast };
-}
-
-endpoint 2 {
-  name power;
+endpoint power {
+  eid 2;
   datatype UINT32; access { read, broadcast };
 }
 

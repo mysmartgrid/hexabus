@@ -8,18 +8,19 @@ struct table_builder : boost::static_visitor<> {
   void operator()(endpoint_doc& ep) const {
     // TODO check if something is NOT specified! like an endpoint without a name!
     endpoint e;
-    unsigned int eid = ep.eid;
+    std::string name = ep.name;
 
-    e.name = "";
     e.dtype = DT_UNDEFINED;
     e.read = e.write = e.broadcast = false;
+    bool eid_read = false;
     BOOST_FOREACH(endpoint_cmd_doc ep_cmd, ep.cmds) {
       switch(ep_cmd.which()) {
-        case 0: // name
-          if(e.name == "")
-            e.name = boost::get<ep_name_doc>(ep_cmd).name;
-          else {
-            std::cout << "Duplicate endpoint name in line " << ep.lineno << std::endl;
+        case 0: // eid
+          if(!eid_read) {
+            e.eid = boost::get<ep_eid_doc>(ep_cmd).eid;
+            eid_read = true;
+          } else {
+            std::cout << "Duplicate EID in line " << ep.lineno << std::endl;
             // TODO throw something
           }
           break;
@@ -56,7 +57,7 @@ struct table_builder : boost::static_visitor<> {
     }
 
     // TODO what happens if it is already in there?
-    _e->insert(std::pair<unsigned int, endpoint>(eid, e));
+    _e->insert(std::pair<std::string, endpoint>(name, e));
   }
 
   void operator()(alias_doc& alias) const {
@@ -97,19 +98,19 @@ struct table_builder : boost::static_visitor<> {
       // TODO throw something
     }
     // check for duplicate EIDs
-      BOOST_FOREACH(unsigned int eid, dev.eids) {
-        unsigned int occurances = 0;
-        BOOST_FOREACH(unsigned int eid2, dev.eids) {
-          if(eid == eid2)
-            occurances++;
-        }
-        if(occurances > 1) {
-          std::cout << "Duplicate EID entry in alias definition in line " << alias.lineno << std::endl;
-          // TODO throw something
-        }
+    BOOST_FOREACH(unsigned int eid, dev.eids) {
+      unsigned int occurances = 0;
+      BOOST_FOREACH(unsigned int eid2, dev.eids) {
+        if(eid == eid2)
+          occurances++;
       }
+      if(occurances > 1) {
+        std::cout << "Duplicate EID entry in alias definition in line " << alias.lineno << std::endl;
+        // TODO throw something
+      }
+    }
 
-      _d->insert(std::pair<std::string, device_alias>(name, dev));
+    _d->insert(std::pair<std::string, device_alias>(name, dev));
   }
 
   void operator()(statemachine_doc& statemachine) const { }
@@ -131,7 +132,7 @@ void TableBuilder::print() {
   std::cout << "Endpoint table:" << std::endl;
 
   for(endpoint_table::iterator it = _e->begin(); it != _e->end(); it++) {
-    std::cout << "EID: " << it->first << " - Name: " << it->second.name << " - Datatype: ";
+    std::cout << "Endpoint name: " << it->first << " - EID: " << it->second.eid << " - Datatype: ";
     switch(it->second.dtype) {
       case DT_UNDEFINED:
         std::cout << "undef.";

@@ -10,8 +10,8 @@
 namespace hexabus {
 
   struct endpoint {
+    unsigned int eid;
     datatype dtype;
-    std::string name;
     bool read;
     bool write;
     bool broadcast;
@@ -23,7 +23,7 @@ namespace hexabus {
   };
 
   typedef std::map<std::string, device_alias> device_table;;
-  typedef std::map<unsigned int, endpoint> endpoint_table;
+  typedef std::map<std::string, endpoint> endpoint_table;
   typedef std::tr1::shared_ptr<device_table> device_table_ptr;
   typedef std::tr1::shared_ptr<endpoint_table> endpoint_table_ptr;
 };

@@ -33,8 +33,8 @@ namespace hexabus {
 
   typedef boost::variant<hexabus::placeholder_doc, unsigned int, float> constant_doc;
 
-  struct ep_name_doc {
-    std::string name;
+  struct ep_eid_doc {
+    unsigned int eid;
   };
 
   struct ep_datatype_doc {
@@ -45,11 +45,11 @@ namespace hexabus {
     std::vector<access_level> access_levels;
   };
 
-  typedef boost::variant<ep_name_doc, ep_datatype_doc, ep_access_doc> endpoint_cmd_doc;
+  typedef boost::variant<ep_eid_doc, ep_datatype_doc, ep_access_doc> endpoint_cmd_doc;
 
   struct endpoint_doc {
     unsigned int lineno;
-    unsigned int eid;
+    std::string name;
     std::vector<endpoint_cmd_doc> cmds;
   };
 
@@ -192,8 +192,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  hexabus::ep_name_doc,
-  (std::string, name)
+  hexabus::ep_eid_doc,
+  (unsigned int, eid)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -210,7 +210,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::endpoint_doc,
   (unsigned int, lineno)
-  (unsigned int, eid)
+  (std::string, name)
   (std::vector<hexabus::endpoint_cmd_doc>, cmds)
 )
 
