@@ -2,16 +2,14 @@
 #define LIBHBC_TABLES_HPP
 
 #include <string>
-#include <vector>
+#include <map>
 #include <boost/asio.hpp>
 #include <libhbc/common.hpp>
 #include "libhbc/hbc_enums.hpp"
 
 namespace hexabus {
 
-  // TODO maybe this should be a map eid->endpoint struct
   struct endpoint {
-    unsigned int eid;
     datatype dtype;
     std::string name;
     bool read;
@@ -19,15 +17,13 @@ namespace hexabus {
     bool broadcast;
   };
 
-  // TODO maybe this shoult be a map name->device struct
   struct device_alias {
-    std::string name;
     boost::asio::ip::address ipv6_address;
     std::vector<unsigned int> eids;
   };
 
-  typedef std::vector<device_alias> device_table;
-  typedef std::vector<endpoint> endpoint_table;
+  typedef std::map<std::string, device_alias> device_table;;
+  typedef std::map<unsigned int, endpoint> endpoint_table;
   typedef std::tr1::shared_ptr<device_table> device_table_ptr;
   typedef std::tr1::shared_ptr<endpoint_table> endpoint_table_ptr;
 };
