@@ -115,6 +115,7 @@ static const char   nbrs_name[] HTTPD_STRING_ATTR = "neighbors";
 static const char   rtes_name[] HTTPD_STRING_ATTR = "routes";
 static const char config_name[] HTTPD_STRING_ATTR = "config";
 static const char get_sm_name[] HTTPD_STRING_ATTR = "get_sm";
+static const char sm_success_name[] HTTPD_STRING_ATTR = "sm_success";
 
 /*Process states for processes cgi*/
 static const char      closed[] HTTPD_STRING_ATTR = "CLOSED";
@@ -650,6 +651,33 @@ get_sm_tables(void *arg)
   PRINTFD("Freeing condition table storage");
 	return numprinted;
 }
+
+static unsigned short
+generate_sm_upload_meassage(void *arg){
+    uint16_t numprinted = 0;
+
+    static const char http_cgi_sm_upload_success[] HTTPD_STRING_ATTR = "Success!\n";
+    static const char http_cgi_sm_upload_perror[] HTTPD_STRING_ATTR = "Parsing Error!\n";
+    static const char http_cgi_sm_upload_ierror[] HTTPD_STRING_ATTR = "Image too large!\n";
+    static const char http_cgi_sm_upload_error[] HTTPD_STRING_ATTR = "Error!\n";
+
+    switch(sm_success) {
+        case SM_UPLOAD_SUCCESS:
+            numprinted =httpd_snprintf((char *)uip_appdata, uip_mss(), http_cgi_sm_upload_success);
+            break;
+        case SM_UPLOAD_PARSINGERROR:
+            numprinted =httpd_snprintf((char *)uip_appdata, uip_mss(), http_cgi_sm_upload_perror);
+            break;
+        case SM_UPLOAD_IMGTOOLARGE:
+            numprinted =httpd_snprintf((char *)uip_appdata, uip_mss(), http_cgi_sm_upload_ierror);
+            break;
+        default:
+            numprinted =httpd_snprintf((char *)uip_appdata, uip_mss(), http_cgi_sm_upload_error);
+    }
+
+    return numprinted;
+}
+
 /*---------------------------------------------------------------------------*/
 static
 PT_THREAD(socket_readings(struct httpd_state *s, char *ptr))
@@ -686,6 +714,17 @@ PT_THREAD(get_statemachine(struct httpd_state *s, char *ptr))
 }
 
 /*---------------------------------------------------------------------------*/
+static
+PT_THREAD(sm_upload(struct httpd_state *s, char *ptr))
+{
+  PSOCK_BEGIN(&s->sout);
+
+  PSOCK_GENERATOR_SEND(&s->sout, generate_sm_upload_meassage, s);
+
+  PSOCK_END(&s->sout);
+}
+
+/*---------------------------------------------------------------------------*/
 void
 httpd_cgi_add(struct httpd_cgi_call *c)
 {
@@ -714,6 +753,7 @@ HTTPD_CGI_CALL(   rtes,   rtes_name, routes         );
 HTTPD_CGI_CALL(socket_stat, socket_status_name, socket_readings);
 HTTPD_CGI_CALL(config, config_name, set_config);
 HTTPD_CGI_CALL(get_sm, get_sm_name, get_statemachine);
+HTTPD_CGI_CALL(get_sm_success, sm_success_name, sm_upload);
 
 void
 httpd_cgi_init(void)
@@ -731,6 +771,7 @@ httpd_cgi_init(void)
   httpd_cgi_add(&socket_stat);
   httpd_cgi_add(&config);
 	httpd_cgi_add(&get_sm);
+	httpd_cgi_add(&get_sm_success);
 }
 /*---------------------------------------------------------------------------*/
 

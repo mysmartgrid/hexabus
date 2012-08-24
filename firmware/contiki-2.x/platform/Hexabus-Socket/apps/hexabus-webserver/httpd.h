@@ -101,4 +101,10 @@ void httpd_appcall(void *state);
 #define TRANS 2
 #define DTTRANS 3
 
+static uint8_t sm_success;
+
+#define SM_UPLOAD_SUCCESS 0
+#define SM_UPLOAD_IMGTOOLARGE 1
+#define SM_UPLOAD_PARSINGERROR 2
+
 #endif /* __HTTPD_H__ */

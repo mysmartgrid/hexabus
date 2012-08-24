@@ -37,6 +37,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <avr/wdt.h>
 
 #include "contiki-net.h"
 
@@ -624,10 +625,12 @@ PT_THREAD(handle_input(struct httpd_state *s))
                 if(PSOCK_DATALEN(&s->sin) == 1) {
                     PRINTF("End of input\n");
                     img_size = 0;
+                    sm_success = SM_UPLOAD_SUCCESS;
                     break;
                 } else {
                     if(img_size > table_length-3) {
                        PRINTF("Image too large!\n");
+                       sm_success = SM_UPLOAD_IMGTOOLARGE;
                         break;
                     }
                     uint8_t i = 0;
@@ -645,6 +648,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
                     PSOCK_READTO(&s->sin, ISO_nl);
                     if(PSOCK_DATALEN(&s->sin) != 1) {
                         PRINTF("Parsing error!\n");
+                        sm_success = SM_UPLOAD_PARSINGERROR;
                         break;
                     }
                 }
@@ -734,6 +738,7 @@ httpd_appcall(void *state)
 	void
 	httpd_init(void)
 	{
+        sm_success = 0;
 		tcp_listen(UIP_HTONS(80));
 		memb_init(&conns);
 		httpd_cgi_init();
