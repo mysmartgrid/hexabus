@@ -24,6 +24,27 @@ namespace hexabus {
       virtual ~CaseNotImplementedException() throw() {};
   };
 
+  class VertexNotFoundException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<VertexNotFoundException> Ptr;
+      VertexNotFoundException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~VertexNotFoundException() throw() {};
+  };
+
+  class EdgeLinkException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<EdgeLinkException> Ptr;
+      EdgeLinkException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~EdgeLinkException() throw() {};
+  };
+
+  class StateNameNotFoundException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<StateNameNotFoundException> Ptr;
+      StateNameNotFoundException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~StateNameNotFoundException() throw() {};
+  };
+
   class NoInitStateException : public GenericException {
     public:
       typedef std::tr1::shared_ptr<NoInitStateException> Ptr;

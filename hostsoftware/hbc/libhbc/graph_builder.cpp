@@ -4,6 +4,7 @@
 #include <sstream>
 #include <boost/graph/graphviz.hpp>
 #include <boost/utility.hpp>
+#include <libhbc/error.hpp>
 
 using namespace hexabus;
 
@@ -16,8 +17,7 @@ struct first_pass : boost::static_visitor<> {
     statemachine.id = _machine++;
 
     // build vertices for states
-    for(unsigned int i = 0; i < statemachine.stateset.states.size(); i++) // don't use foreach because we need the index
-    {
+    for(unsigned int i = 0; i < statemachine.stateset.states.size(); i++) { // don't use foreach because we need the index
       std::ostringstream oss;
       oss << "(" << statemachine.id << "." << i << ") " << statemachine.stateset.states[i];
       vertex_id_t v_id = boost::add_vertex((*_g));
@@ -27,17 +27,33 @@ struct first_pass : boost::static_visitor<> {
       (*_g)[v_id].type = v_state;
     }
 
+    // TODO check if init state is present
+
     // build the edges
     // TODO The following 200 lines or so need to be despaghettified. a lot.
     BOOST_FOREACH(in_clause_doc in_clause, statemachine.in_clauses) {
       unsigned int condition_id = 0; // unique (per-state-machine) index of condition vertex
       unsigned int command_id = 0;   // per-state-machine unique IDs for command blocks
       // find originating state ID
-      unsigned int originating_state = find_state_vertex_id(_g, statemachine, in_clause.name);
+      unsigned int originating_state;
+      try {
+        originating_state = find_state_vertex_id(_g, statemachine, in_clause.name);
+      } catch(StateNameNotFoundException e) {
+        std::ostringstream oss;
+        oss << "[" << in_clause.lineno << "] In clause from nonexistent state " << e.what() << "." << std::endl;
+        throw NonexistentStateException(oss.str());
+      }
       // look at all the "if"s in the in_clause, and find their goto's.
       BOOST_FOREACH(if_clause_doc if_clause, in_clause.if_clauses) {
         // if-block
-        unsigned int target_state = find_state_vertex_id(_g, statemachine, if_clause.if_block.command_block.goto_command.target_state);
+        unsigned int target_state;
+        try {
+          target_state = find_state_vertex_id(_g, statemachine, if_clause.if_block.command_block.goto_command.target_state);
+        } catch(StateNameNotFoundException e) {
+          std::ostringstream oss;
+          oss << "[" << if_clause.if_block.command_block.goto_command.lineno << "] Goto to nonexistent state. " << e.what() << "." << std::endl;
+          throw NonexistentStateException(oss.str());
+        }
         // add condition vertex
         std::ostringstream oss;
         oss << "(" << condition_id << ") if (";
@@ -61,7 +77,7 @@ struct first_pass : boost::static_visitor<> {
         else {
           std::ostringstream oss;
           oss << "Cannot link state " << statemachine.id << "." << originating_state << " to condition " << (*_g)[v_id].vertex_id;
-          // TODO throw EdgeLinkException(oss);
+          throw EdgeLinkException(oss.str());
         }
 
         // make a command-block vertex
@@ -88,7 +104,7 @@ struct first_pass : boost::static_visitor<> {
         else {
           std::ostringstream oss;
           oss << "Cannot link condition " << (*_g)[v_id].vertex_id  << " to command block " << (*_g)[if_command_v_id].vertex_id;
-          // TODO throw EdgeLinkException
+          throw EdgeLinkException(oss.str());
         }
 
         // edge from command vertex to to-state
@@ -101,12 +117,19 @@ struct first_pass : boost::static_visitor<> {
         else {
           std::ostringstream oss;
           oss << "Cannot link condition " << statemachine.id << "." << (*_g)[v_id].vertex_id << " to state " << to_state;
-          // TODO throw EdgeLinkExgeption
+          throw EdgeLinkException(oss.str());
         }
 
         // else-if-block(s)
         BOOST_FOREACH(guarded_command_block_doc else_if_block, if_clause.else_if_blocks) {
-          unsigned int target_state = find_state_vertex_id(_g, statemachine, else_if_block.command_block.goto_command.target_state);
+          unsigned int target_state;
+          try {
+            target_state = find_state_vertex_id(_g, statemachine, else_if_block.command_block.goto_command.target_state);
+          } catch(StateNameNotFoundException e) {
+            std::ostringstream oss;
+            oss << "[" << else_if_block.command_block.goto_command.lineno << "] Goto to nonexistent state. " << e.what() << "." << std::endl;
+            throw NonexistentStateException(oss.str());
+          }
           std::ostringstream oss;
           oss << "(" << condition_id << ") else if (";
           hbc_printer pr;
@@ -118,6 +141,7 @@ struct first_pass : boost::static_visitor<> {
           (*_g)[v_id].vertex_id = condition_id++;
           (*_g)[v_id].type = v_cond;
 
+          // from-state to condition vertex
           vertex_id_t from_state = find_vertex(_g, statemachine.id, originating_state);
           edge_id_t edge;
           bool ok;
@@ -127,7 +151,7 @@ struct first_pass : boost::static_visitor<> {
           else {
             std::ostringstream oss;
             oss << "Cannot link state " << statemachine.id << "." << originating_state << " to condition " << (*_g)[v_id].vertex_id;
-            // TODO throw EdgeLinkException(oss);
+            throw EdgeLinkException(oss.str());
           }
 
           // make a command-block vertex
@@ -154,7 +178,7 @@ struct first_pass : boost::static_visitor<> {
           else {
             std::ostringstream oss;
             oss << "Cannot link condition " << (*_g)[v_id].vertex_id  << " to command block " << (*_g)[command_v_id].vertex_id;
-            // TODO throw EdgeLinkException
+            throw EdgeLinkException(oss.str());
           }
 
           vertex_id_t to_state = find_vertex(_g, statemachine.id, target_state);
@@ -166,13 +190,20 @@ struct first_pass : boost::static_visitor<> {
           else {
             std::ostringstream oss;
             oss << "Cannot link condition " << statemachine.id << "." << (*_g)[v_id].vertex_id << " to state " << to_state;
-            // TODO throw EdgeLinkExgeption
+            throw EdgeLinkException(oss.str());
           }
         }
 
         // else-block
         if(if_clause.else_clause.present == 1) {
-          unsigned int else_target_state = find_state_vertex_id(_g, statemachine, if_clause.else_clause.commands.goto_command.target_state);
+          unsigned int else_target_state;
+          try {
+            else_target_state = find_state_vertex_id(_g, statemachine, if_clause.else_clause.commands.goto_command.target_state);
+          } catch(StateNameNotFoundException e) {
+            std::ostringstream oss;
+            oss << "[" << if_clause.else_clause.commands.goto_command.lineno << "] Goto to nonexistent state. " << e.what() << std::endl;
+            throw NonexistentStateException(oss.str());
+          }
           // add condition vertex
           std::ostringstream else_oss;
           else_oss << "(" << condition_id << ") else";
@@ -193,7 +224,7 @@ struct first_pass : boost::static_visitor<> {
           else {
             std::ostringstream oss;
             oss << "Cannot link state " << statemachine.id << "." << originating_state << " to condition " << (*_g)[else_v_id].vertex_id;
-            // TODO throw EdgeLinkException(oss);
+            throw EdgeLinkException(oss.str());
           }
           // make a command-block vertex
           std::ostringstream else_c_oss;
@@ -219,7 +250,7 @@ struct first_pass : boost::static_visitor<> {
           else {
             std::ostringstream oss;
             oss << "Cannot link condition " << (*_g)[v_id].vertex_id  << " to command block " << (*_g)[else_command_v_id].vertex_id;
-            // TODO throw EdgeLinkException
+            throw EdgeLinkException(oss.str());
           }
 
           vertex_id_t else_to_state = find_vertex(_g, statemachine.id, else_target_state);
@@ -231,7 +262,7 @@ struct first_pass : boost::static_visitor<> {
           else {
             std::ostringstream oss;
             oss << "Cannot link condition " << statemachine.id << "." << (*_g)[v_id].vertex_id << " to state " << to_state;
-            // TODO throw EdgeLinkExgeption
+            throw EdgeLinkException(oss.str());
           }
         }
       }

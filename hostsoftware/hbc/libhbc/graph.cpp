@@ -1,5 +1,7 @@
 #include "graph.hpp"
 
+#include <libhbc/error.hpp>
+
 namespace hexabus {
   vertex_id_t find_vertex(graph_t_ptr g, unsigned int machine_id, unsigned int vertex_id) {
     graph_t::vertex_iterator vertexIt, vertexEnd;
@@ -12,8 +14,8 @@ namespace hexabus {
     }
     // not found
     std::ostringstream oss;
-    oss << "Vertex ID not found: " << machine_id << "." << vertex_id;
-    // TODO throw VertexNotFoundException(oss);
+    oss << "Machine ID: " << machine_id << ", Vertex ID: " << vertex_id;
+    throw VertexNotFoundException(oss.str());
   }
 
   unsigned int find_state_vertex_id(graph_t_ptr g, statemachine_doc statemachine, const std::string name) {
@@ -26,8 +28,9 @@ namespace hexabus {
       }
     }
     if(!found) {
-      std::cout << "State name not found error: " << name << "." << std::endl; // TODO user friendly error message
-      // TODO throw StateNotFoundException
+      std::ostringstream oss;
+      oss << "State name not found: " << statemachine.name << "." << name;
+      throw StateNameNotFoundException(oss.str());
     }
     return state_id;
   }

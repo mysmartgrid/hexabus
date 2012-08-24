@@ -51,7 +51,7 @@ machine my_machine {
 }
 
 machine another_machine {
-  states { init, bloerp };
+  states { bloerp };
   in(bloerp) {
     if(true) { goto bloerp; }
     else if(true) { goto bloerp; }
