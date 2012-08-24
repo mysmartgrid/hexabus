@@ -1,5 +1,7 @@
 #include "table_builder.hpp"
 
+#include <libhbc/error.hpp>
+
 using namespace hexabus;
 
 struct table_builder : boost::static_visitor<> {
@@ -20,8 +22,9 @@ struct table_builder : boost::static_visitor<> {
             e.eid = boost::get<ep_eid_doc>(ep_cmd).eid;
             eid_read = true;
           } else {
-            std::cout << "Duplicate EID in line " << ep.lineno << std::endl;
-            // TODO throw something
+            std::ostringstream oss;
+            oss << "[" << ep.lineno << "] Endpoint has multiple EID entries." << std::endl;
+            throw DuplicateEntryException(oss.str());
           }
           break;
         case 1: // datatype
@@ -29,8 +32,9 @@ struct table_builder : boost::static_visitor<> {
             e.dtype = boost::get<ep_datatype_doc>(ep_cmd).dtype;
             dt_read = true;
           } else {
-            std::cout << "Duplicate datatype in line " << ep.lineno << std::endl;
-            // TODO throw something
+            std::ostringstream oss;
+            oss << "[" << ep.lineno << "] Endpoint has multiple datatype entries." << std::endl;
+            throw DuplicateEntryException(oss.str());
           }
           break;
         case 2: // access
@@ -48,30 +52,37 @@ struct table_builder : boost::static_visitor<> {
                   break;
 
                 default:
-                  std::cout << "not implemented!??" << std::endl;
+                  throw CaseNotImplementedException("not implemented");
               }
             }
             access_read = true; // do this here, so that it gets set to true only when an access level definition is read
           } else {
-            std::cout << "Duplicate access level definition in line " << ep.lineno << std::endl;
-            // TODO throw something
+            std::ostringstream oss;
+            oss << "[" << ep.lineno << "] Endpoint has multiple access level entries." << std::endl;
+            throw DuplicateEntryException(oss.str());
           }
           break;
 
         default:
-          std::cout << "not implemented?!" << std::endl;
+          throw CaseNotImplementedException("not implemented");
       }
     }
 
     if(!eid_read) {
-      std::cout << "Missing EID in line " << ep.lineno << std::endl;
+      std::ostringstream oss;
+      oss << "[" << ep.lineno << "] Endpoint definition has no endpoint ID." << std::endl;
+      throw MissingEntryException(oss.str());
     }
     if(!dt_read) {
-      std::cout << "Missing datatype in line " << ep.lineno << std::endl;
+      std::ostringstream oss;
+      oss << "[" << ep.lineno << "] Endpoint definition has no datatype." << std::endl;
+      throw MissingEntryException(oss.str());
     }
     if(!access_read) {
-      std::cout << "Missing access level in line " << ep.lineno << std::endl;
-    } // TODO throw something
+      std::ostringstream oss;
+      oss << "[" << ep.lineno << "] Endpoint definition has no access level." << std::endl;
+      throw MissingEntryException(oss.str());
+    }
 
     // TODO what happens if it is already in there?
     _e->insert(std::pair<std::string, endpoint>(name, e));
@@ -90,8 +101,9 @@ struct table_builder : boost::static_visitor<> {
             ip_adr_read = true; // TODO only set to true if something useful was read
           }
           else {
-            std::cout << "Duplicate IP address in line " << alias.lineno << std::endl;
-            // TODO throw something
+            std::ostringstream oss;
+            oss << "[" << alias.lineno << "] Duplicate IP address in alias definition." << std::endl;
+            throw DuplicateEntryException(oss.str());
           }
           break;
         case 1: // eid list
@@ -100,24 +112,27 @@ struct table_builder : boost::static_visitor<> {
             dev.eids = boost::get<alias_eids_doc>(cmd).eid_list.eids;
             eid_list_read = true;
           } else {
-            std::cout << "Duplicate EID list entry in line " << alias.lineno << std::endl;
-            // TODO throw something
+            std::ostringstream oss;
+            oss << "[" << alias.lineno << "] Duplicate endpoint list in alias definition." << std::endl;
+            throw DuplicateEntryException(oss.str());
           }
           break;
 
         default:
-          std::cout << "unknown which()" << std::endl;
+          throw CaseNotImplementedException("unknown which (alias definition)");
       }
     }
     // check if an IP address is present
     if(!ip_adr_read) {
-      std::cout << "Missing IP address in line " << alias.lineno << std::endl;
-      // TODO throw something
+      std::ostringstream oss;
+      oss << "[" << alias.lineno << "] Missing IP address in alias definition." << std::endl;
+      throw MissingEntryException(oss.str());
     }
     // check if an EP list is present
     if(!eid_list_read) {
-      std::cout << "Missing endpoint list in line " << alias.lineno << std::endl;
-      // TODO throw something
+      std::ostringstream oss;
+      oss << "[" << alias.lineno << "] Missing endpoint list in alias definition." << std::endl;
+      throw MissingEntryException(oss.str());
     }
     // check for duplicate EIDs
     BOOST_FOREACH(unsigned int eid, dev.eids) {
@@ -127,11 +142,13 @@ struct table_builder : boost::static_visitor<> {
           occurances++;
       }
       if(occurances > 1) {
-        std::cout << "Duplicate EID entry in alias definition in line " << alias.lineno << std::endl;
-        // TODO throw something
+        std::ostringstream oss;
+        oss << "[" << alias.lineno << "] Duplicate entry in endpoint list in alias definition." << std::endl;
+        throw DuplicateEntryException(oss.str());
       }
     }
 
+    // TODO check for duplicates
     _d->insert(std::pair<std::string, device_alias>(name, dev));
   }
 

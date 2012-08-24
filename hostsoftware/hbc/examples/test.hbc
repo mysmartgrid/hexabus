@@ -23,10 +23,12 @@ alias device {
 }
 
 alias another_device {
+  ip ::99;
+  eids { 1,2,3,4,5 };
 }
 
 machine my_machine {
-  states { one, two, three };
+  states { init, one, two, three };
   in(one) {
     if(device.endpoint == 23) {
       write device.other_endpoint := 42;
@@ -49,15 +51,15 @@ machine my_machine {
 }
 
 machine another_machine {
-  states { bloerp };
+  states { init, bloerp };
   in(bloerp) {
-    if(true) { goto init; }
-    else if(true) { goto init; }
-    else if(true) { goto init; }
-    else { goto init; }
+    if(true) { goto bloerp; }
+    else if(true) { goto bloerp; }
+    else if(true) { goto bloerp; }
+    else { goto bloerp; }
   }
 
-  in(asdf) { }
+  in(bloerp) { }
 }
 
 # example machine from the "example.hbc" - minus everything we can't parse yet
@@ -79,7 +81,7 @@ machine main {
 }
 
 module toggle($DEVICE, $ENDPOINT, $VALUE, $TARGETDEV, $TARGETEP) {
-  states { power_on, power_off };
+  states { init, power_on, power_off };
 # init {
 #   $TARGET := true;
 #   goto power_on;
@@ -99,7 +101,7 @@ module toggle($DEVICE, $ENDPOINT, $VALUE, $TARGETDEV, $TARGETEP) {
 }
 
 module error($A, $B) {
-  states { nope };
+  states { init, nope };
   in(init) {
     if(true) { goto init; }
     else if(true) { goto init; }

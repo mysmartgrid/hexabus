@@ -17,6 +17,13 @@ namespace hexabus {
       std::string _reason;
   };
 
+  class CaseNotImplementedException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<CaseNotImplementedException> Ptr;
+      CaseNotImplementedException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~CaseNotImplementedException() throw() {};
+  };
+
   class NoInitStateException : public GenericException {
     public:
       typedef std::tr1::shared_ptr<NoInitStateException> Ptr;
@@ -29,6 +36,20 @@ namespace hexabus {
       typedef std::tr1::shared_ptr<NonexistentStateException> Ptr;
       NonexistentStateException (const std::string reason) : hexabus::GenericException(reason) {};
       virtual ~NonexistentStateException() throw() {};
+  };
+
+  class DuplicateEntryException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<DuplicateEntryException> Ptr;
+      DuplicateEntryException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~DuplicateEntryException() throw() {};
+  };
+
+  class MissingEntryException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<MissingEntryException> Ptr;
+      MissingEntryException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~MissingEntryException() throw() {};
   };
 }
 
