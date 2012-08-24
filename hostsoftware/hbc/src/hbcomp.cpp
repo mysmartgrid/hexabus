@@ -32,7 +32,7 @@ int main(int argc, char** argv)
     ("tables,t", "build endpoint and alias tables") // TODO this has to happen automatically later.
   ;
   po::positional_options_description p;
-  p.add("infile", 1);
+  p.add("input", 1);
 
   po::variables_map vm;
   po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
