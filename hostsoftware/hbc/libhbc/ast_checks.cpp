@@ -1,5 +1,7 @@
 #include "ast_checks.hpp"
 
+#include <libhbc/error.hpp>
+
 using namespace hexabus;
 
 bool hexabus::contains(std::vector<std::string> v, std::string s) {
@@ -19,38 +21,43 @@ struct ast_checker : boost::static_visitor<> {
 
     // check if init state is present in stateset
     if(!contains(statemachine.stateset.states, "init")) {
-      // TODO throw something
-      std::cout << "Stateset does not contain init state in line " << statemachine.stateset.lineno << std::endl;
+      std::ostringstream oss;
+      oss << "[" << statemachine.stateset.lineno << "] Stateset does not contain init state." << std::endl;
+      throw NoInitStateException(oss.str());
     }
 
     // check all the in clauses
     BOOST_FOREACH(in_clause_doc in_clause, statemachine.in_clauses) {
       if(!contains(statemachine.stateset.states, in_clause.name)) {
-        // TODO throw something
-        std::cout << "In clause from nonexistent state \"" << in_clause.name << "\" in line " << in_clause.lineno << std::endl;
+        std::ostringstream oss;
+        oss << "[" << in_clause.lineno << "] In clause from nonexistent state \"" << in_clause.name << "\"." << std::endl;
+        throw NonexistentStateException(oss.str());
       }
 
       // now check all the goto's in the in clause.
       BOOST_FOREACH(if_clause_doc if_clause, in_clause.if_clauses) {
         // the if block
         if(!contains(statemachine.stateset.states, if_clause.if_block.command_block.goto_command.target_state)) {
-          // TODO throw something
-          std::cout << "Goto target state \"" << if_clause.if_block.command_block.goto_command.target_state << "\" does not exist in line " << if_clause.if_block.command_block.goto_command.lineno << std::endl;
+          std::ostringstream oss;
+          oss << "[" << if_clause.if_block.command_block.goto_command.lineno << "] Goto target state \"" << if_clause.if_block.command_block.goto_command.target_state << "\" does not exist." << std::endl;
+          throw NonexistentStateException(oss.str());
         }
 
         // the else-if blocks
         BOOST_FOREACH(guarded_command_block_doc com_block, if_clause.else_if_blocks) {
           if(!contains(statemachine.stateset.states, com_block.command_block.goto_command.target_state)) {
-            // TODO throw something
-            std::cout << "Goto target state \"" << com_block.command_block.goto_command.target_state << "\" does not exist in line " << com_block.command_block.goto_command.lineno << std::endl;
+            std::ostringstream oss;
+            oss << "[" << com_block.command_block.goto_command.lineno << "] Goto target state \"" << com_block.command_block.goto_command.target_state << "\" does not exist." << std::endl;
+            throw NonexistentStateException(oss.str());
           }
         }
 
         // the else block
         if(if_clause.else_clause.present) {
           if(!contains(statemachine.stateset.states, if_clause.else_clause.commands.goto_command.target_state)) {
-            // TODO throw something
-            std::cout << "Goto target state \"" << if_clause.else_clause.commands.goto_command.target_state << "\" does not exist in line " << if_clause.else_clause.commands.goto_command.lineno << std::endl;
+            std::ostringstream oss;
+            oss << "[" << if_clause.else_clause.commands.goto_command.lineno << "] Goto target state \"" << if_clause.else_clause.commands.goto_command.target_state << "\" does not exist." << std::endl;
+            throw NonexistentStateException(oss.str());
           }
         }
       }
@@ -61,38 +68,43 @@ struct ast_checker : boost::static_visitor<> {
     // TODO also check all the placeholders OR decide to check them in the module instantiation code later!
 
     if(!contains(module.stateset.states, "init")) {
-      // TODO throw something
-      std::cout << "Stateset does not contain init state in line " << module.stateset.lineno << std::endl;
+      std::ostringstream oss;
+      oss << "[" << module.stateset.lineno << "] Stateset does not contain init state." << std::endl;
+      throw NoInitStateException(oss.str());
     }
 
     // check all the in clauses
     BOOST_FOREACH(in_clause_doc in_clause, module.in_clauses) {
       if(!contains(module.stateset.states, in_clause.name)) {
-        // TODO throw something
-        std::cout << "In clause from nonexistent state \"" << in_clause.name << "\" in line " << in_clause.lineno << std::endl;
+        std::ostringstream oss;
+        oss << "[" << in_clause.lineno << "] In clause from nonexistent state \"" << in_clause.name << "\"." << std::endl;
+        throw NonexistentStateException(oss.str());
       }
 
       // now check all the goto's in the in clause.
       BOOST_FOREACH(if_clause_doc if_clause, in_clause.if_clauses) {
         // the if block
         if(!contains(module.stateset.states, if_clause.if_block.command_block.goto_command.target_state)) {
-          // TODO throw something
-          std::cout << "Goto target state \"" << if_clause.if_block.command_block.goto_command.target_state << "\" does not exist in line " << if_clause.if_block.command_block.goto_command.lineno << std::endl;
+          std::ostringstream oss;
+          oss << "[" << if_clause.if_block.command_block.goto_command.lineno << "] Goto target state \"" << if_clause.if_block.command_block.goto_command.target_state << "\" does not exist." << std::endl;
+          throw NonexistentStateException(oss.str());
         }
 
         // the else-if blocks
         BOOST_FOREACH(guarded_command_block_doc com_block, if_clause.else_if_blocks) {
           if(!contains(module.stateset.states, com_block.command_block.goto_command.target_state)) {
-            // TODO throw something
-            std::cout << "Goto target state \"" << com_block.command_block.goto_command.target_state << "\" does not exist in line " << com_block.command_block.goto_command.lineno << std::endl;
+            std::ostringstream oss;
+            oss << "[" << com_block.command_block.goto_command.lineno << "] Goto target state \"" << com_block.command_block.goto_command.target_state << "\" does not exist." << std::endl;
+            throw NonexistentStateException(oss.str());
           }
         }
 
         // the else block
         if(if_clause.else_clause.present) {
           if(!contains(module.stateset.states, if_clause.else_clause.commands.goto_command.target_state)) {
-            // TODO throw something
-            std::cout << "Goto target state \"" << if_clause.else_clause.commands.goto_command.target_state << "\" does not exist in line " << if_clause.else_clause.commands.goto_command.lineno << std::endl;
+            std::ostringstream oss;
+            oss << "[" << if_clause.else_clause.commands.goto_command.lineno << "] Goto target state \"" << if_clause.else_clause.commands.goto_command.target_state << "\" does not exist." << std::endl;
+            throw NonexistentStateException(oss.str());
           }
         }
       }
