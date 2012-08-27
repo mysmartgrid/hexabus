@@ -1,0 +1,11 @@
+endpoint another_endpoint {
+  access { read };
+  datatype UINT8;
+  eid 99;
+}
+
+endpoint power { 
+  access { read };
+  datatype UINT8;
+  eid 109;
+}

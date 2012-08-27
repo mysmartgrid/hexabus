@@ -45,7 +45,6 @@ int main(int argc, char** argv)
     return 1;
   }
   // TODO Version!
-  // TODO don't throw obscure error message when user forgets "-i"
   if(!vm.count("input"))
   {
     std::cerr << "Error: You must specify an input file." << std::endl;
@@ -54,52 +53,81 @@ int main(int argc, char** argv)
     infile = vm["input"].as<std::string>();
   }
 
-  std::ifstream in(infile.c_str(), std::ios_base::in);
+  std::vector<std::string> filenames; // vector to store the names of the files yet to be read
+  filenames.push_back(infile); // add the file the user specified -- more files are added when "include"s are parsed
 
-  if(!in)
-  {
-    std::cerr << "Error: Could not open input file: " << infile << std::endl;
-    return 1;
+  hexabus::hbc_doc ast; // The AST - all the files get parsed into one ast
+  bool okay = true;
+
+  for(int f = 0; f < filenames.size() && okay; f++) {
+    bool r = false;
+    std::ifstream in(filenames[f].c_str(), std::ios_base::in);
+
+    if(!in)
+    {
+      std::cerr << "Error: Could not open input file: " << filenames[f] << std::endl;
+      // TODO if this is from an include, we could put the line number here
+      return 1;
+    }
+
+    in.unsetf(std::ios::skipws); // no white space skipping, this will be handled by the parser
+
+    typedef std::istreambuf_iterator<char> base_iterator_type;
+    typedef boost::spirit::multi_pass<base_iterator_type> forward_iterator_type;
+    typedef classic::position_iterator2<forward_iterator_type> pos_iterator_type;
+
+    base_iterator_type in_begin(in);
+    forward_iterator_type fwd_begin = boost::spirit::make_default_multi_pass(in_begin);
+    forward_iterator_type fwd_end;
+    pos_iterator_type position_begin(fwd_begin, fwd_end, filenames[f]);
+    pos_iterator_type position_end;
+
+    std::vector<std::string> error_hints;
+    typedef hexabus::hexabus_comp_grammar<pos_iterator_type> hexabus_comp_grammar;
+    typedef hexabus::skipper<pos_iterator_type> Skip;
+    hexabus_comp_grammar grammar(error_hints, position_begin);
+    Skip skipper;
+
+    using boost::spirit::ascii::space;
+    using boost::spirit::ascii::char_;
+
+    try {
+      r = phrase_parse(position_begin, position_end, grammar, skipper, ast);
+    } catch(const qi::expectation_failure<pos_iterator_type>& e) {
+      const classic::file_position_base<std::string>& pos = e.first.get_position();
+      std::cerr << "Error in " << pos.file << " line " << pos.line << " column " << pos.column << std::endl
+        << "'" << e.first.get_currentline() << "'" << std::endl
+        << std::setw(pos.column) << " " << "^-- " << *hexabus::error_traceback_t::stack.begin() << std::endl;
+    } catch(const std::runtime_error& e) {
+      std::cout << "Exception occured: " << e.what() << std::endl;
+    }
+
+    if(r && position_begin == position_end) {
+      std::cout << "Parsing of file " << filenames[f] << " succeeded." << std::endl;
+      
+      // Find includes and add them to file name list
+      BOOST_FOREACH(hexabus::hbc_block block, ast.blocks) {
+        if(block.which() == 0) { // include_doc
+          // only add if filename does not already exist
+          bool exists = false;
+          BOOST_FOREACH(std::string fn, filenames) {
+            if(fn == boost::get<hexabus::include_doc>(block).filename)
+              exists = true;
+          }
+          if(!exists)
+            filenames.push_back(boost::get<hexabus::include_doc>(block).filename);
+        }
+      }
+    } else {
+      okay = false;
+      if(!r)
+        std::cout << "Parsing of file " << filenames[f] << " failed." << std::endl;
+      if(r)
+        std::cout << "Parsing of file " << filenames[f] << " failed: Did not reach end of file." << std::endl;
+    }
   }
 
-  in.unsetf(std::ios::skipws); // no white space skipping, this will be handled by the parser
-
-  typedef std::istreambuf_iterator<char> base_iterator_type;
-  typedef boost::spirit::multi_pass<base_iterator_type> forward_iterator_type;
-  typedef classic::position_iterator2<forward_iterator_type> pos_iterator_type;
-
-  base_iterator_type in_begin(in);
-  forward_iterator_type fwd_begin = boost::spirit::make_default_multi_pass(in_begin);
-  forward_iterator_type fwd_end;
-  pos_iterator_type position_begin(fwd_begin, fwd_end, infile);
-  pos_iterator_type position_end;
-
-  std::vector<std::string> error_hints;
-  typedef hexabus::hexabus_comp_grammar<pos_iterator_type> hexabus_comp_grammar;
-  typedef hexabus::skipper<pos_iterator_type> Skip;
-  hexabus_comp_grammar grammar(error_hints, position_begin);
-  Skip skipper;
-
-  hexabus::hbc_doc ast;
-
-  using boost::spirit::ascii::space;
-  using boost::spirit::ascii::char_;
-
-  bool r = false;
-  try
-  {
-    r = phrase_parse(position_begin, position_end, grammar, skipper, ast);
-  } catch(const qi::expectation_failure<pos_iterator_type>& e) {
-    const classic::file_position_base<std::string>& pos = e.first.get_position();
-    std::cerr << "Error in " << pos.file << " line " << pos.line << " column " << pos.column << std::endl
-      << "'" << e.first.get_currentline() << "'" << std::endl
-      << std::setw(pos.column) << " " << "^-- " << *hexabus::error_traceback_t::stack.begin() << std::endl;
-  } catch(const std::runtime_error& e) {
-    std::cout << "Exception occured: " << e.what() << std::endl;
-  }
-
-  if(r && position_begin == position_end) {
-    std::cout << "Parsing succeeded." << std::endl;
+  if(okay) {
     if(vm.count("print")) {
       hexabus::hbc_printer printer;
       printer(ast);
@@ -125,10 +153,6 @@ int main(int argc, char** argv)
       tableBuilder.print();
     }
   } else {
-    if(!r)
-      std::cout << "Parsing failed." << std::endl;
-    if(r)
-      std::cout << "Parsing failed: We haven't reached the end of the input." << std::endl;
     return 1;
   }
 
