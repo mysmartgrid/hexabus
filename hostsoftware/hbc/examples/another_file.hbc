@@ -3,9 +3,3 @@ endpoint another_endpoint {
   datatype UINT8;
   eid 99;
 }
-
-endpoint power { 
-  access { read };
-  datatype UINT8;
-  eid 109;
-}

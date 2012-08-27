@@ -84,8 +84,15 @@ struct table_builder : boost::static_visitor<> {
       throw MissingEntryException(oss.str());
     }
 
-    // TODO what happens if it is already in there?
-    _e->insert(std::pair<std::string, endpoint>(name, e));
+    // check if it's already in there
+    endpoint_table::iterator it = _e->find(name);
+    if(it == _e->end()) // not already in there
+      _e->insert(std::pair<std::string, endpoint>(name, e));
+    else { // already in there
+      std::ostringstream oss;
+      oss << "[" << ep.lineno << "] Duplicate endpoint endpoint definition." << std::endl;
+      throw DuplicateEntryException(oss.str());
+    }
   }
 
   void operator()(alias_doc& alias) const {
