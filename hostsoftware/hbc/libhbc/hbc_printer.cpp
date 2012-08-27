@@ -15,7 +15,7 @@ struct hbc_node_printer : boost::static_visitor<> {
   { }
 
   void operator()(include_doc const& include) const {
-    ostr << "[" << include.lineno << "] include " << include.filename << std::endl;
+    ostr << "[" << include.read_from_file << ":" << include.lineno << "] include " << include.filename << std::endl;
   }
 
   void operator()(float const& f) const {
@@ -69,7 +69,7 @@ struct hbc_node_printer : boost::static_visitor<> {
 
   void operator()(endpoint_doc const& endpoint) const {
     tab(indent);
-    ostr << "[" << endpoint.lineno << "] endpoint " << endpoint.name << std::endl;
+    ostr << "[" << endpoint.read_from_file << ":" << endpoint.lineno << "] endpoint " << endpoint.name << std::endl;
     tab(indent);
     ostr << "⎛" << std::endl;
     BOOST_FOREACH(endpoint_cmd_doc endpoint_cmd, endpoint.cmds) {
@@ -98,7 +98,7 @@ struct hbc_node_printer : boost::static_visitor<> {
 
   void operator()(alias_doc const& alias) const {
     tab(indent);
-    ostr << "[" << alias.lineno << "] alias <" << alias.device_name << ">" << std::endl;
+    ostr << "[" << alias.read_from_file << ":" << alias.lineno << "] alias <" << alias.device_name << ">" << std::endl;
     tab(indent);
     ostr << "⎛" << std::endl;
     BOOST_FOREACH(alias_cmd_doc cmd, alias.cmds) {
@@ -239,7 +239,7 @@ struct hbc_node_printer : boost::static_visitor<> {
   void operator()(statemachine_doc const& statemachine) const {
     hbc_node_printer p;
     tab(indent);
-    ostr << "statemachine <" << statemachine.name << ">" << std::endl;
+    ostr << "[" << statemachine.read_from_file << ":" << statemachine.lineno << "] statemachine <" << statemachine.name << ">" << std::endl;
     tab(indent);
     ostr << "⎛" << std::endl;
     tab(indent+1);
@@ -267,7 +267,7 @@ struct hbc_node_printer : boost::static_visitor<> {
   void operator()(module_doc const& module) const {
     hbc_node_printer p;
     tab(indent);
-    ostr << "[" << module.lineno << "] module <" << module.name << ">" << std::endl;
+    ostr << "[" << module.read_from_file << ":" << module.lineno << "] module <" << module.name << ">" << std::endl;
     tab(indent);
     ostr << "⎛" << std::endl;
     tab(indent + 1);

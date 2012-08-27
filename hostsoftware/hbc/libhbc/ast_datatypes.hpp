@@ -25,6 +25,7 @@ namespace hexabus {
   struct include_doc {
     unsigned int lineno;
     std::string filename;
+    std::string read_from_file;
   };
 
   struct placeholder_doc {
@@ -51,6 +52,7 @@ namespace hexabus {
     unsigned int lineno;
     std::string name;
     std::vector<endpoint_cmd_doc> cmds;
+    std::string read_from_file;
   };
 
   struct eid_list_doc {
@@ -71,6 +73,7 @@ namespace hexabus {
     unsigned int lineno;
     std::string device_name;
     std::vector<alias_cmd_doc> cmds;
+    std::string read_from_file;
   };
 
   typedef boost::variant<std::string, placeholder_doc> global_endpoint_id_element; // TODO name it _doc?
@@ -144,10 +147,12 @@ namespace hexabus {
   };
 
   struct statemachine_doc {
+    unsigned int lineno;
     std::string name;
     stateset_doc stateset;
     std::vector<in_clause_doc> in_clauses;
     unsigned int id;
+    std::string read_from_file;
   };
 
   struct placeholder_list_doc {
@@ -160,6 +165,7 @@ namespace hexabus {
     placeholder_list_doc placeholderlist;
     stateset_doc stateset;
     std::vector<in_clause_doc> in_clauses;
+    std::string read_from_file;
   };
 
   typedef boost::variant<constant_doc, std::string> inst_parameter_doc;
@@ -245,6 +251,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::statemachine_doc,
+  (unsigned int, lineno)
   (std::string, name)
   (hexabus::stateset_doc, stateset)
   (std::vector<hexabus::in_clause_doc>, in_clauses)

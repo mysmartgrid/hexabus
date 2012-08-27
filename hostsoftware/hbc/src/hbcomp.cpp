@@ -3,6 +3,7 @@
 #include <libhbc/skipper.hpp>
 #include <libhbc/hbcomp_grammar.hpp>
 #include <libhbc/hbc_printer.hpp>
+#include <libhbc/filename_annotation.hpp>
 #include <libhbc/graph_builder.hpp>
 #include <libhbc/table_builder.hpp>
 
@@ -125,6 +126,10 @@ int main(int argc, char** argv)
       if(r)
         std::cout << "Parsing of file " << filenames[f] << " failed: Did not reach end of file." << std::endl;
     }
+
+    // put the current file name into all the parts of the AST which don't have a filename yet.
+    hexabus::FilenameAnnotation an(filenames[f]);
+    an(ast);
   }
 
   if(okay) {
