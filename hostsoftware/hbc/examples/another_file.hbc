@@ -3,3 +3,9 @@ endpoint another_endpoint {
   datatype UINT8;
   eid 99;
 }
+
+alias more_devices {
+  ip ::0;
+  eids {};
+}
+

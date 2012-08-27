@@ -90,8 +90,9 @@ struct table_builder : boost::static_visitor<> {
       _e->insert(std::pair<std::string, endpoint>(name, e));
     else { // already in there
       std::ostringstream oss;
-      oss << "[" << ep.lineno << "] Duplicate endpoint endpoint definition." << std::endl;
+      oss << "[" << ep.lineno << "] Duplicate endpoint name in endpoint definition." << std::endl;
       throw DuplicateEntryException(oss.str());
+      // TODO uh, do we also want to check for multiple instances of the same EID?
     }
   }
 
@@ -155,8 +156,15 @@ struct table_builder : boost::static_visitor<> {
       }
     }
 
-    // TODO check for duplicates
-    _d->insert(std::pair<std::string, device_alias>(name, dev));
+    // check for duplicates
+    device_table::iterator it = _d->find(name);
+    if(it == _d->end()) // not already in the table
+      _d->insert(std::pair<std::string, device_alias>(name, dev));
+    else {
+      std::ostringstream oss;
+      oss << "[" << alias.lineno << "] Duplicate alias name in alias definition." << std::endl;
+      throw DuplicateEntryException(oss.str());
+    }
   }
 
   void operator()(statemachine_doc& statemachine) const { }
