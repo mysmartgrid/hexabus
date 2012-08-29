@@ -14,7 +14,6 @@ endpoint on {
 
 endpoint power {
   eid 2;
-  datatype UINT32; access { read, broadcast };
 }
 
 alias device {
