@@ -40,7 +40,7 @@ struct first_pass : boost::static_visitor<> {
         originating_state = find_state_vertex_id(_g, statemachine, in_clause.name);
       } catch(StateNameNotFoundException e) {
         std::ostringstream oss;
-        oss << "[" << in_clause.lineno << "] In clause from nonexistent state " << e.what() << "." << std::endl;
+        oss << "[" << statemachine.read_from_file << ":" << in_clause.lineno << "] In clause from nonexistent state " << e.what() << "." << std::endl;
         throw NonexistentStateException(oss.str());
       }
       // look at all the "if"s in the in_clause, and find their goto's.
@@ -51,7 +51,7 @@ struct first_pass : boost::static_visitor<> {
           target_state = find_state_vertex_id(_g, statemachine, if_clause.if_block.command_block.goto_command.target_state);
         } catch(StateNameNotFoundException e) {
           std::ostringstream oss;
-          oss << "[" << if_clause.if_block.command_block.goto_command.lineno << "] Goto to nonexistent state. " << e.what() << "." << std::endl;
+          oss << "[" << statemachine.read_from_file << ":" << if_clause.if_block.command_block.goto_command.lineno << "] Goto to nonexistent state. " << e.what() << "." << std::endl;
           throw NonexistentStateException(oss.str());
         }
         // add condition vertex
@@ -127,7 +127,7 @@ struct first_pass : boost::static_visitor<> {
             target_state = find_state_vertex_id(_g, statemachine, else_if_block.command_block.goto_command.target_state);
           } catch(StateNameNotFoundException e) {
             std::ostringstream oss;
-            oss << "[" << else_if_block.command_block.goto_command.lineno << "] Goto to nonexistent state. " << e.what() << "." << std::endl;
+            oss << "[" << statemachine.read_from_file << ":" << else_if_block.command_block.goto_command.lineno << "] Goto to nonexistent state. " << e.what() << "." << std::endl;
             throw NonexistentStateException(oss.str());
           }
           std::ostringstream oss;
@@ -201,7 +201,7 @@ struct first_pass : boost::static_visitor<> {
             else_target_state = find_state_vertex_id(_g, statemachine, if_clause.else_clause.commands.goto_command.target_state);
           } catch(StateNameNotFoundException e) {
             std::ostringstream oss;
-            oss << "[" << if_clause.else_clause.commands.goto_command.lineno << "] Goto to nonexistent state. " << e.what() << std::endl;
+            oss << "[" << statemachine.read_from_file << ":" << if_clause.else_clause.commands.goto_command.lineno << "] Goto to nonexistent state. " << e.what() << std::endl;
             throw NonexistentStateException(oss.str());
           }
           // add condition vertex
