@@ -27,7 +27,14 @@ struct first_pass : boost::static_visitor<> {
       (*_g)[v_id].type = v_state;
     }
 
-    // TODO check if init state is present
+    // check if init state is present
+    try {
+      find_state_vertex_id(_g, statemachine, "init");
+    } catch(StateNameNotFoundException e) {
+      std::ostringstream oss;
+      oss << "[" << statemachine.read_from_file << ":" << statemachine.lineno << "] Missing init state." << std::endl;
+      throw NonexistentStateException(oss.str());
+    }
 
     // build the edges
     // TODO The following 200 lines or so need to be despaghettified. a lot.

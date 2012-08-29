@@ -6,5 +6,6 @@ endpoint another_endpoint {
 
 alias more_devices {
   ip ::0;
+  eids {};
 }
 

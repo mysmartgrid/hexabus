@@ -14,6 +14,7 @@ endpoint on {
 
 endpoint power {
   eid 2;
+  datatype UINT32; access { read, broadcast };
 }
 
 alias device {
@@ -50,7 +51,7 @@ machine my_machine {
 }
 
 machine another_machine {
-  states { bloerp };
+  states { init, bloerp };
   in(bloerp) {
     if(true) { goto bloerp; }
     else if(true) { goto bloerp; }
