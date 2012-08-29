@@ -45,13 +45,6 @@ namespace hexabus {
       virtual ~StateNameNotFoundException() throw() {};
   };
 
-  class NoInitStateException : public GenericException {
-    public:
-      typedef std::tr1::shared_ptr<NoInitStateException> Ptr;
-      NoInitStateException (const std::string reason) : hexabus::GenericException(reason) {};
-      virtual ~NoInitStateException() throw() {};
-  };
-
   class NonexistentStateException : public GenericException {
     public:
       typedef std::tr1::shared_ptr<NonexistentStateException> Ptr;
@@ -71,6 +64,13 @@ namespace hexabus {
       typedef std::tr1::shared_ptr<MissingEntryException> Ptr;
       MissingEntryException (const std::string reason) : hexabus::GenericException(reason) {};
       virtual ~MissingEntryException() throw() {};
+  };
+
+  class ModuleNotFoundException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<ModuleNotFoundException> Ptr;
+      ModuleNotFoundException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~ModuleNotFoundException() throw() {};
   };
 }
 
