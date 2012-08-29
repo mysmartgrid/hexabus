@@ -33,6 +33,7 @@ struct module_instantiation : boost::static_visitor<> {
   module_instantiation(module_table_ptr mt, hbc_doc& hbc) : _m(mt), _hbc(hbc) { }
 
   void operator()(instantiation_doc& inst) const {
+    // find module class - throw error if it's not there
     std::cout << "Instantiating module " << inst.moduleclass << std::endl;
     module_table::iterator mod = _m->find(inst.moduleclass);
     if(mod == _m->end()) {
@@ -40,6 +41,16 @@ struct module_instantiation : boost::static_visitor<> {
       oss << "[" << inst.read_from_file << ":" << inst.lineno << "] Can not instantiate module \"" << inst.moduleclass << "\" - module does not exist." << std::endl;
       throw ModuleNotFoundException(oss.str());
     }
+
+    // build module instance
+    statemachine_doc instance;
+    instance.lineno = inst.lineno;
+    std::ostringstream inst_name_oss;
+    inst_name_oss << "inst_" << inst.name << ":" << inst.moduleclass;
+    instance.name = inst_name_oss.str();
+    instance.stateset = mod->second.stateset;
+    // TODO go over all in_clauses, if_clauses, ... and replace placeholders by their actual content
+    // to do this, we need some kind of map: placeholdername->actual parameter
   }
 
   void operator()(endpoint_doc& ep) const { }
