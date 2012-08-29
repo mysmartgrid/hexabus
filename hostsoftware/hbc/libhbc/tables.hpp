@@ -6,6 +6,7 @@
 #include <boost/asio.hpp>
 #include <libhbc/common.hpp>
 #include "libhbc/hbc_enums.hpp"
+#include "libhbc/ast_datatypes.hpp"
 
 namespace hexabus {
 
@@ -24,8 +25,10 @@ namespace hexabus {
 
   typedef std::map<std::string, device_alias> device_table;;
   typedef std::map<std::string, endpoint> endpoint_table;
+  typedef std::map<std::string, module_doc> module_table;
   typedef std::tr1::shared_ptr<device_table> device_table_ptr;
   typedef std::tr1::shared_ptr<endpoint_table> endpoint_table_ptr;
+  typedef std::tr1::shared_ptr<module_table> module_table_ptr;
 };
 
 #endif // LIBHBC_TABLES_HPP

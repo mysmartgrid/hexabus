@@ -6,6 +6,7 @@
 #include <libhbc/filename_annotation.hpp>
 #include <libhbc/graph_builder.hpp>
 #include <libhbc/table_builder.hpp>
+#include <libhbc/module_instantiation.hpp>
 
 // commandline parsing.
 #include <boost/program_options.hpp>
@@ -31,6 +32,7 @@ int main(int argc, char** argv)
     ("print,p", "print parsed version of the input file")
     ("graph,g", po::value<std::string>(), "output the program graph in graphviz format")
     ("tables,t", "build endpoint and alias tables") // TODO this has to happen automatically later.
+    ("modules,m", "build module table") // TODO module instantiation too
   ;
   po::positional_options_description p;
   p.add("input", 1);
@@ -156,6 +158,10 @@ int main(int argc, char** argv)
       hexabus::TableBuilder tableBuilder;
       tableBuilder(ast);
       tableBuilder.print();
+    } else if(vm.count("modules")) {
+      hexabus::ModuleInstantiation modules;
+      modules(ast);
+      modules.print_module_table();
     }
   } else {
     return 1;
