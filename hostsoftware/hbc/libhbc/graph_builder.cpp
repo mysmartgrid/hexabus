@@ -278,8 +278,9 @@ struct first_pass : boost::static_visitor<> {
 
   void operator()(include_doc& include) const { }
   void operator()(endpoint_doc& ep) const { }
-  void operator()(alias_doc alias) const { }
-  void operator()(module_doc module) const { }
+  void operator()(alias_doc& alias) const { }
+  void operator()(module_doc& module) const { }
+  void operator()(instantiation_doc& inst) const { }
 
   graph_t_ptr _g;
 };

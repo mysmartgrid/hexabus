@@ -107,7 +107,7 @@ int main(int argc, char** argv)
 
     if(r && position_begin == position_end) {
       std::cout << "Parsing of file " << filenames[f] << " succeeded." << std::endl;
-      
+
       // Find includes and add them to file name list
       BOOST_FOREACH(hexabus::hbc_block block, ast.blocks) {
         if(block.which() == 0) { // include_doc
@@ -119,6 +119,7 @@ int main(int argc, char** argv)
           }
           if(!exists)
             filenames.push_back(boost::get<hexabus::include_doc>(block).filename);
+            std::cout << "Adding " << boost::get<hexabus::include_doc>(block).filename << " to list of files to parse. - from include in line " << boost::get<hexabus::include_doc>(block).lineno << std::endl;
         }
       }
     } else {

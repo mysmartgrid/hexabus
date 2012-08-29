@@ -4,7 +4,7 @@
 
 using namespace hexabus;
 
-struct module_table_builder : boost::static_visitor<> {
+struct module_table_builder : boost::static_visitor<> { // TODO this could be moved to table_generator..!
   module_table_builder(module_table_ptr mt) : _m(mt) { }
 
   void operator()(module_doc& module) const {
@@ -24,12 +24,15 @@ struct module_table_builder : boost::static_visitor<> {
   void operator()(alias_doc& alias) const { }
   void operator()(statemachine_doc& statemachine) const { }
   void operator()(include_doc& include) const { }
+  void operator()(instantiation_doc& inst) const { }
 
   module_table_ptr _m;
 };
 
 struct module_instantiation : boost::static_visitor<> {
   module_instantiation(module_table_ptr mt) : _m(mt) { }
+
+  void operator()(instantiation_doc& inst) const { }
 
   void operator()(endpoint_doc& ep) const { }
   void operator()(alias_doc& alias) const { }

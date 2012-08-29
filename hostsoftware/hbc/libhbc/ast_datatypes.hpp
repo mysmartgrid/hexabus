@@ -175,9 +175,10 @@ namespace hexabus {
     std::string name;
     std::string moduleclass;
     std::vector<inst_parameter_doc> parameters;
+    std::string read_from_file;
   };
 
-  typedef boost::variant<include_doc, endpoint_doc, alias_doc, statemachine_doc, module_doc> hbc_block;
+  typedef boost::variant<include_doc, endpoint_doc, alias_doc, statemachine_doc, module_doc, instantiation_doc> hbc_block;
 
   struct hbc_doc {
     std::vector<hbc_block> blocks;

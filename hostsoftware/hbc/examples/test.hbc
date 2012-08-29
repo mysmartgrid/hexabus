@@ -109,3 +109,6 @@ module error($A, $B) {
     else { goto init; }
   }
 }
+
+instance my_error : error(another_endpoint, more_devices);
+

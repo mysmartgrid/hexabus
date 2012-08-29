@@ -284,16 +284,15 @@ struct hbc_node_printer : boost::static_visitor<> {
 
   void operator()(instantiation_doc const& instantiation) const {
     hbc_node_printer p;
-    ostr << "Module instantiation in line " << instantiation.lineno
-      << " Name: " << instantiation.name << " Module class: "
-      << instantiation.moduleclass << std::endl;
-    ostr << "Parameters" << std::endl;
+    ostr << "[" << instantiation.read_from_file << ":" << instantiation.lineno << "] instance " << instantiation.name << " : " << instantiation.moduleclass << "( ";
     BOOST_FOREACH(inst_parameter_doc inst_parameter, instantiation.parameters) { // TODO this code "works"
       if(inst_parameter.which() == 0)
         boost::apply_visitor(hbc_node_printer(indent, ostr), boost::get<constant_doc>(inst_parameter));
       else if(inst_parameter.which() == 1)
-        p(boost::get<float>(inst_parameter));
+        p(boost::get<std::string>(inst_parameter));
+      ostr << " ";
     }
+    ostr << ")" << std::endl;
   }
 
   void operator()(hbc_block const& block) const {

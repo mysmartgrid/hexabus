@@ -31,6 +31,11 @@ struct annotate_struct : boost::static_visitor<> {
       alias.read_from_file = _f;
   }
 
+  void operator()(instantiation_doc& inst) const {
+    if(inst.read_from_file == "")
+      inst.read_from_file = _f;
+  }
+
   std::string _f;
 };
 

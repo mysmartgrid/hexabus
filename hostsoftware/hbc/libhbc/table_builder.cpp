@@ -169,6 +169,7 @@ struct table_builder : boost::static_visitor<> {
   void operator()(statemachine_doc& statemachine) const { }
   void operator()(include_doc& include) const { }
   void operator()(module_doc& module) const { }
+  void operator()(instantiation_doc& inst) const { }
 
   endpoint_table_ptr _e;
   device_table_ptr _d;

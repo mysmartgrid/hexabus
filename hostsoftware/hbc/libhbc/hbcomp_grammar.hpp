@@ -199,7 +199,6 @@ namespace hexabus {
       on_error<rethrow> (start, error_traceback_t("Cannot parse input"));
     }
 
-    qi::rule<Iterator, std::string(), Skip> startstate;
     qi::rule<Iterator, void(), Skip> is;
     qi::rule<Iterator, constant_doc(), Skip> constant;
     qi::rule<Iterator, std::string()> identifier;
@@ -237,8 +236,8 @@ namespace hexabus {
     qi::rule<Iterator, placeholder_list_doc(), Skip> placeholder_list;
     qi::rule<Iterator, module_doc(), Skip> module;
     qi::rule<Iterator, placeholder_doc()> placeholder;
-    qi::rule<Iterator, void(), Skip> inst_parameter;
-    qi::rule<Iterator, void(), Skip> instantiation;
+    qi::rule<Iterator, inst_parameter_doc(), Skip> inst_parameter;
+    qi::rule<Iterator, instantiation_doc(), Skip> instantiation;
     qi::rule<Iterator, command_doc(), Skip> command;
     qi::rule<Iterator, write_command_doc(), Skip> write_command;
     qi::rule<Iterator, goto_command_doc(), Skip> goto_command;
