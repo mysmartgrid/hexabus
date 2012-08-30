@@ -38,6 +38,20 @@ namespace hexabus {
       virtual ~EdgeLinkException() throw() {};
   };
 
+  class InvalidPlaceholderException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<InvalidPlaceholderException> Ptr;
+      InvalidPlaceholderException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~InvalidPlaceholderException() throw() {};
+  };
+
+  class InvalidParameterTypeException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<InvalidParameterTypeException> Ptr;
+      InvalidParameterTypeException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~InvalidParameterTypeException() throw() {};
+  };
+
   class StateNameNotFoundException : public GenericException {
     public:
       typedef std::tr1::shared_ptr<StateNameNotFoundException> Ptr;
