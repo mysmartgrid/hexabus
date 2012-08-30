@@ -32,6 +32,18 @@ struct module_table_builder : boost::static_visitor<> { // TODO this could be mo
 struct module_instantiation : boost::static_visitor<> {
   module_instantiation(module_table_ptr mt, hbc_doc& hbc) : _m(mt), _hbc(hbc) { }
 
+  void operator()(condition_doc& cond, condition_doc& inst_cond) {
+    // TODO
+  }
+
+  void operator()(command_block_doc& commands, command_block_doc& inst_commands) {
+    // TODO
+  }
+
+  void operator()(guarded_command_block_doc& guarded_command_block, guarded_command_block_doc& inst_guarded_command_block) {
+    // TODO
+  }
+
   void operator()(instantiation_doc& inst) const {
     // find module class - throw error if it's not there
     std::cout << "Instantiating module " << inst.moduleclass << std::endl;
@@ -43,14 +55,52 @@ struct module_instantiation : boost::static_visitor<> {
     }
 
     // build module instance
+    // TODO check if parameter list and placeholder list are same length
     statemachine_doc instance;
     instance.lineno = inst.lineno;
     std::ostringstream inst_name_oss;
     inst_name_oss << "inst_" << inst.name << ":" << inst.moduleclass;
     instance.name = inst_name_oss.str();
     instance.stateset = mod->second.stateset;
-    // TODO go over all in_clauses, if_clauses, ... and replace placeholders by their actual content
-    // to do this, we need some kind of map: placeholdername->actual parameter
+
+    BOOST_FOREACH(in_clause_doc in_clause, mod->second.in_clauses) {
+      in_clause_doc inst_in_clause;
+      inst_in_clause.lineno = in_clause.lineno;
+      inst_in_clause.name = in_clause.name;
+
+      module_instantiation m(_m, _hbc);
+      BOOST_FOREACH(if_clause_doc if_clause, in_clause.if_clauses) {
+        if_clause_doc inst_if_clause;
+        inst_if_clause.lineno = if_clause.lineno;
+
+        // if block
+        m(if_clause.if_block, inst_if_clause.if_block);
+
+        // else if blocks
+        BOOST_FOREACH(guarded_command_block_doc guarded_command_block, if_clause.else_if_blocks) {
+          guarded_command_block_doc inst_guarded_command_block;
+          m(guarded_command_block, inst_guarded_command_block);
+          inst_if_clause.else_if_blocks.push_back(inst_guarded_command_block);
+        }
+
+        // else block
+        if(if_clause.else_clause.present) {
+          inst_if_clause.else_clause.present = 1;
+          m(if_clause.else_clause.commands, inst_if_clause.else_clause.commands);
+        }
+      }
+
+      instance.in_clauses.push_back(inst_in_clause);
+    }
+
+    // TODO to replace a placeholder by its parameter:
+    // - find placeholder in placeholder list
+    //   - exc if missing
+    // - take its index, look in parameter list
+    //   - exc if it's missing (should not happen, because we will check list length beforehand)
+    // - check if parameter is right type (literal number, device, endpoint)
+    //   - exc if it isn't
+    // - put actual value in instance
   }
 
   void operator()(endpoint_doc& ep) const { }
@@ -60,7 +110,7 @@ struct module_instantiation : boost::static_visitor<> {
   void operator()(module_doc& module) const { }
 
   module_table_ptr _m;
-  hbc_doc _hbc;
+  hbc_doc& _hbc;
 };
 
 void ModuleInstantiation::operator()(hbc_doc& hbc) {
