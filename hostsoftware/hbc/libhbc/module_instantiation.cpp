@@ -33,15 +33,48 @@ struct module_instantiation : boost::static_visitor<> {
   module_instantiation(module_table_ptr mt, hbc_doc& hbc) : _m(mt), _hbc(hbc) { }
 
   void operator()(condition_doc& cond, condition_doc& inst_cond) {
+    module_instantiation m(_m, _hbc);
+    atomic_condition_doc inst_at_cond;
+    compound_condition_doc inst_comp_cond;
+    switch(cond.which()) {
+      case 0: // atomic_condition
+        // TODO check and instantiate GEID
+        inst_at_cond.comp_op = boost::get<atomic_condition_doc>(cond).comp_op;
+        // TODO check and instantiate constant
+        inst_cond = inst_at_cond;
+        break;
+      case 1: // compound_condition
+        m(boost::get<compound_condition_doc>(cond).condition_a, inst_comp_cond.condition_a);
+        inst_comp_cond.bool_op = boost::get<compound_condition_doc>(cond).bool_op;
+        m(boost::get<compound_condition_doc>(cond).condition_b, inst_comp_cond.condition_b);
+        inst_cond = inst_comp_cond;
+        break;
+
+      default:
+        // do nothing.
+        break;
+    }
+  }
+
+  void operator()(command_doc& command, command_doc& inst_command) {
     // TODO
   }
 
   void operator()(command_block_doc& commands, command_block_doc& inst_commands) {
-    // TODO
+    module_instantiation m(_m, _hbc);
+    BOOST_FOREACH(command_doc command, commands.commands) {
+      command_doc inst_command;
+      m(command, inst_command);
+      inst_commands.commands.push_back(inst_command);
+    }
+    inst_commands.goto_command.lineno = commands.goto_command.lineno;
+    inst_commands.goto_command.target_state = commands.goto_command.target_state;
   }
 
   void operator()(guarded_command_block_doc& guarded_command_block, guarded_command_block_doc& inst_guarded_command_block) {
-    // TODO
+    module_instantiation m(_m, _hbc);
+    m(guarded_command_block.condition, inst_guarded_command_block.condition);
+    m(guarded_command_block.command_block, inst_guarded_command_block.command_block);
   }
 
   void operator()(instantiation_doc& inst) const {
