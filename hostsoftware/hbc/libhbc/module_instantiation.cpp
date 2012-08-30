@@ -57,7 +57,28 @@ struct module_instantiation : boost::static_visitor<> {
   }
 
   void operator()(global_endpoint_id_doc& geid, global_endpoint_id_doc& inst_geid) {
-    // TODO
+    switch(geid.device_alias.which()) {
+      case 0: // string
+        inst_geid.device_alias = boost::get<std::string>(geid.device_alias);
+        break;
+      case 1: // placeholder
+        // TODO
+        break;
+
+      default:
+        break;
+    }
+    switch(geid.endpoint_name.which()) {
+      case 0: // string
+        inst_geid.endpoint_name = boost::get<std::string>(geid.endpoint_name);
+        break;
+      case 1: // placeholder
+        // TODO
+        break;
+
+      default:
+        break;
+    }
   }
 
   void operator()(constant_doc& constant, constant_doc& inst_constant) {
@@ -97,6 +118,8 @@ struct module_instantiation : boost::static_visitor<> {
       oss << "[" << inst.read_from_file << ":" << inst.lineno << "] Can not instantiate module \"" << inst.moduleclass << "\" - module does not exist." << std::endl;
       throw ModuleNotFoundException(oss.str());
     }
+
+    placeholders = mod->placeholderlist.placeholders;
 
     // build module instance
     // TODO check if parameter list and placeholder list are same length
@@ -152,6 +175,8 @@ struct module_instantiation : boost::static_visitor<> {
   void operator()(statemachine_doc& statemachine) const { }
   void operator()(include_doc& include) const { }
   void operator()(module_doc& module) const { }
+
+  std::vector<placeholder_doc> placeholders;
 
   module_table_ptr _m;
   hbc_doc& _hbc;
