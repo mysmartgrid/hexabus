@@ -38,9 +38,9 @@ struct module_instantiation : boost::static_visitor<> {
     compound_condition_doc inst_comp_cond;
     switch(cond.which()) {
       case 0: // atomic_condition
-        // TODO check and instantiate GEID
+        m(boost::get<atomic_condition_doc>(cond).geid, inst_at_cond.geid);
         inst_at_cond.comp_op = boost::get<atomic_condition_doc>(cond).comp_op;
-        // TODO check and instantiate constant
+        m(boost::get<atomic_condition_doc>(cond).constant, inst_at_cond.constant);
         inst_cond = inst_at_cond;
         break;
       case 1: // compound_condition
@@ -56,8 +56,19 @@ struct module_instantiation : boost::static_visitor<> {
     }
   }
 
-  void operator()(command_doc& command, command_doc& inst_command) {
+  void operator()(global_endpoint_id_doc& geid, global_endpoint_id_doc& inst_geid) {
     // TODO
+  }
+
+  void operator()(constant_doc& constant, constant_doc& inst_constant) {
+    // TODO
+  }
+
+  void operator()(command_doc& command, command_doc& inst_command) {
+    module_instantiation m(_m, _hbc);
+    inst_command.write_command.lineno = command.write_command.lineno;
+    m(command.write_command.geid, inst_command.write_command.geid);
+    m(command.write_command.constant, inst_command.write_command.constant);
   }
 
   void operator()(command_block_doc& commands, command_block_doc& inst_commands) {
