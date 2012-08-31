@@ -59,32 +59,40 @@ execute_process(
 set(ENABLE_CODECOVERAGE 1)
 set(CMAKE_BUILD_TYPE Profile)
 
+if( "${OS_NAME}-${OS_VERSION}" STREQUAL "Ubuntu-10.04" )
+  set(BOOST_ROOT /homes/krueger/external_software/ubuntu_100403/${CMAKE_SYSTEM_PROCESSOR}/boost/1.46)
+else( "${OS_NAME}-${OS_VERSION}" STREQUAL "Ubuntu-10.04" )
+  set(BOOST_ROOT "")
+endif( "${OS_NAME}-${OS_VERSION}" STREQUAL "Ubuntu-10.04" )
+
 ##
 set(CMAKE_ADDITIONAL_PATH ${CTEST_INSTALL_DIRECTORY})
 
 foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
-  set_property(GLOBAL PROPERTY SubProject ${subproject})
-  set_property (GLOBAL PROPERTY Label ${subproject})
+  # check if project directory exists
+  if( EXISTS "${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject}" )
 
-  #set(CTEST_SOURCE_DIRECTORY "${CTEST_BASE_DIRECTORY}/${_srcDir}/hostsoftware/${subproject}")
-  #set(CTEST_BINARY_DIRECTORY "${CTEST_BASE_DIRECTORY}/${_buildDir}-${CTEST_BUILD_NAME}/${subproject}")
-  file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}/${subproject}")
-  #ctest_start(${_ctest_type})
+    set_property(GLOBAL PROPERTY SubProject ${subproject})
+    set_property (GLOBAL PROPERTY Label ${subproject})
 
-  ##
-  if(CMAKE_TOOLCHAIN_FILE)
-    kde_ctest_write_initial_cache("${CTEST_BINARY_DIRECTORY}/${subproject}"
-      CMAKE_TOOLCHAIN_FILE
-      CMAKE_INSTALL_PREFIX
-      CMAKE_ADDITIONAL_PATH
-      ENABLE_CODECOVERAGE
-      CMAKE_BUILD_TYPE
-      )
-    set(OS_NAME "openWRT")
-    set(OS_VERSION "10.03.1")
-    set(CMAKE_SYSTEM_PROCESSOR ${openwrt_arch})
-  else(CMAKE_TOOLCHAIN_FILE)
-      set(BOOST_ROOT /homes/krueger/external_software/ubuntu_100403/${CMAKE_SYSTEM_PROCESSOR}/boost/1.46)
+    #set(CTEST_SOURCE_DIRECTORY "${CTEST_BASE_DIRECTORY}/${_srcDir}/hostsoftware/${subproject}")
+    #set(CTEST_BINARY_DIRECTORY "${CTEST_BASE_DIRECTORY}/${_buildDir}-${CTEST_BUILD_NAME}/${subproject}")
+    file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}/${subproject}")
+    #ctest_start(${_ctest_type})
+
+    ##
+    if(CMAKE_TOOLCHAIN_FILE)
+      kde_ctest_write_initial_cache("${CTEST_BINARY_DIRECTORY}/${subproject}"
+	CMAKE_TOOLCHAIN_FILE
+	CMAKE_INSTALL_PREFIX
+	CMAKE_ADDITIONAL_PATH
+	ENABLE_CODECOVERAGE
+	CMAKE_BUILD_TYPE
+	)
+      set(OS_NAME "openWRT")
+      set(OS_VERSION "10.03.1")
+      set(CMAKE_SYSTEM_PROCESSOR ${openwrt_arch})
+    else(CMAKE_TOOLCHAIN_FILE)
       kde_ctest_write_initial_cache("${CTEST_BINARY_DIRECTORY}/${subproject}"
 	BOOST_ROOT
 	CMAKE_INSTALL_PREFIX
@@ -92,53 +100,54 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
 	ENABLE_CODECOVERAGE
 	CMAKE_BUILD_TYPE
 	)
-  endif(CMAKE_TOOLCHAIN_FILE)
-  
-  ##
-  ctest_configure(BUILD ${CTEST_BINARY_DIRECTORY}/${subproject}
-    SOURCE ${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject}  APPEND
-    RETURN_VALUE resultConfigure)
-  ctest_submit(PARTS Configure)
-  message("====> Configure: ${resultConfigure}")
+    endif(CMAKE_TOOLCHAIN_FILE)
+    
+    ##
+    ctest_configure(BUILD ${CTEST_BINARY_DIRECTORY}/${subproject}
+      SOURCE ${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject}  APPEND
+      RETURN_VALUE resultConfigure)
+    ctest_submit(PARTS Configure)
+    message("====> Configure: ${resultConfigure}")
 
-  ##
-  if( STAGING_DIR)
-    include(${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt)
-    set(ENV{STAGING_DIR}     ${OPENWRT_STAGING_DIR})
-  endif( STAGING_DIR)
+    ##
+    if( STAGING_DIR)
+      include(${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt)
+      set(ENV{STAGING_DIR}     ${OPENWRT_STAGING_DIR})
+    endif( STAGING_DIR)
 
-  set(CTEST_BUILD_TARGET ${subproject})
-  ctest_build(BUILD ${CTEST_BINARY_DIRECTORY}/${subproject} 
-    APPEND RETURN_VALUE build_res)
-  # builds target ${CTEST_BUILD_TARGET}
-  ctest_submit(PARTS Build)
-  message("====> BUILD result: ${build_res}")
+    set(CTEST_BUILD_TARGET ${subproject})
+    ctest_build(BUILD ${CTEST_BINARY_DIRECTORY}/${subproject} 
+      APPEND RETURN_VALUE build_res)
+    # builds target ${CTEST_BUILD_TARGET}
+    ctest_submit(PARTS Build)
+    message("====> BUILD result: ${build_res}")
 
-  # do codecoverage now
-  ctest_coverage(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-  message(STATUS "===> ctest_coverage: res='${res}'")
-  ctest_submit(PARTS Coverage)
+    # do codecoverage now
+    ctest_coverage(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+    message(STATUS "===> ctest_coverage: res='${res}'")
+    ctest_submit(PARTS Coverage)
 
-  # do codecoverage now
-  ctest_memcheck(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-  message(STATUS "===> ctest_memcheck: res='${res}'")
-  ctest_submit(PARTS MemCheck)
+    # do codecoverage now
+    ctest_memcheck(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+    message(STATUS "===> ctest_memcheck: res='${res}'")
+    ctest_submit(PARTS MemCheck)
 
-  # runs only tests that have a LABELS property
-  #matching "${subproject}"
-  ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}"
-    INCLUDE_LABEL "${subproject}"
-  )
-  ctest_submit(PARTS Test)
-
-  ## do an installation
-  if( NOT ${build_res})
-    execute_process(
-      COMMAND cmake -DCMAKE_INSTALL_PREFIX=${CTEST_INSTALL_DIRECTORY} -P cmake_install.cmake
-      WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
+    # runs only tests that have a LABELS property
+    #matching "${subproject}"
+    ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}"
+      INCLUDE_LABEL "${subproject}"
       )
-  endif( NOT ${build_res})
-  
+    ctest_submit(PARTS Test)
+
+    ## do an installation
+    if( NOT ${build_res})
+      execute_process(
+	COMMAND cmake -DCMAKE_INSTALL_PREFIX=${CTEST_INSTALL_DIRECTORY} -P cmake_install.cmake
+	WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
+	)
+    endif( NOT ${build_res})
+    
+  endif( EXISTS "${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject}" )
 endforeach()
 
 ctest_submit(RETURN_VALUE res)
