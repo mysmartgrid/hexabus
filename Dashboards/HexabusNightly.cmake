@@ -57,10 +57,20 @@ execute_process(
 
 set(CMAKE_BUILD_TYPE Release)
 
+if( "${OS_NAME}-${OS_VERSION}" STREQUAL "Ubuntu-10.04" )
+  set(BOOST_ROOT /homes/krueger/external_software/ubuntu_100403/${CMAKE_SYSTEM_PROCESSOR}/boost/1.46)
+else( "${OS_NAME}-${OS_VERSION}" STREQUAL "Ubuntu-10.04" )
+  set(BOOST_ROOT "")
+endif( "${OS_NAME}-${OS_VERSION}" STREQUAL "Ubuntu-10.04" )
+
 ##
 set(CMAKE_ADDITIONAL_PATH ${CTEST_INSTALL_DIRECTORY})
 
 foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
+  # check if project directory exists
+  if( EXISTS "${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject}" )
+
+
   set_property(GLOBAL PROPERTY SubProject ${subproject})
   set_property (GLOBAL PROPERTY Label ${subproject})
 
@@ -81,7 +91,6 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
     set(OS_VERSION "10.03.1")
     set(CMAKE_SYSTEM_PROCESSOR ${openwrt_arch})
   else(CMAKE_TOOLCHAIN_FILE)
-      set(BOOST_ROOT /homes/krueger/external_software/ubuntu_100403/${CMAKE_SYSTEM_PROCESSOR}/boost/1.46)
       kde_ctest_write_initial_cache("${CTEST_BINARY_DIRECTORY}/${subproject}"
 	BOOST_ROOT
 	CMAKE_INSTALL_PREFIX
@@ -164,6 +173,7 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
 	)
     endif( NOT ${build_res} AND ${CTEST_PUSH_PACKAGES})
   endif( EXISTS "${CTEST_BINARY_DIRECTORY}/${subproject}/CPackConfig.cmake" )
+  endif( EXISTS "${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject}" )
 endforeach()
 
 ctest_submit(RETURN_VALUE res)
