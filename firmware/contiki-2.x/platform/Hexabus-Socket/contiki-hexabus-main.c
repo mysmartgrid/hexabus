@@ -107,6 +107,7 @@
 #include "udp_handler.h"
 #include "mdns_responder.h"
 #include "state_machine.h"
+#include "hexabus_app_bootstrap.h"
 
 // optional HEXABUS apps
 #if VALUE_BROADCAST_ENABLE
@@ -115,39 +116,10 @@
 #if DATETIME_SERVICE_ENABLE
 #include "datetime_service.h"
 #endif
-#if TEMPERATURE_ENABLE
-#include "temperature.h"
-#endif
-#if SHUTTER_ENABLE
-#include "shutter.h"
-#endif
-#if HEXAPUSH_ENABLE
-#include "hexapush.h"
-#endif
-#if PRESENCE_DETECTOR_ENABLE
-#include "presence_detector.h"
-#endif
-#if HEXAPUSH_ENABLE
-#include "hexonoff.h"
-#endif
-#if ANALOGREAD_ENABLE
-#include "analogread.h"
-#endif
 #if MEMORY_DEBUGGER_ENABLE
 #include "memory_debugger.h"
 #endif
-#if I2C_ENABLE
-#include "i2c.h"
-#endif
-#if HUMIDITY_ENABLE
-#include "humidity.h"
-#endif
-#if PRESSURE_ENABLE
-#include "pressure.h"
-#endif
-#if IR_RECEIVER_ENABLE
-#include "ir_receiver.h"
-#endif
+
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -407,29 +379,6 @@ void initialize(void)
   process_start(&state_machine_process, NULL);
 #endif
 
-  /*Init Relay */
-  relay_init();
-
-#if SHUTTER_ENABLE
-  /*Init Shutter*/
-  shutter_init();
-
-  /* process for shutter control*/
-  process_start(&shutter_process, NULL);
-
-  /* calibrate and go to initial position */
-  process_start(&shutter_setup_process, NULL);
-
-#endif
-
-#if HEXAPUSH_ENABLE
-  process_start(&hexapush_process, NULL);
-#endif
-
-#if PRESENCE_DETECTOR_ENABLE
-  presence_detector_init();
-#endif
-
   mdns_responder_init();
 
   /* Datetime service*/
@@ -437,39 +386,8 @@ void initialize(void)
   process_start(&datetime_service_process, NULL);
 #endif
 
-  /* Button Process */
-  process_start(&button_pressed_process, NULL);
-
-  /* Init Metering */
-  metering_init();
-
-  /* Init Temp Sensor */
-#if TEMPERATURE_ENABLE
-  temperature_init();
-#endif
-
-#if HEXONOFF_ENABLE
-  hexonoff_init();
-#endif
-
-#if ANALOGREAD_ENABLE
-  analogread_init();
-#endif
-
-#if I2C_ENABLE
-  i2c_init();
-#endif
- 
-#if PRESSURE_ENABLE
-  pressure_init();
-#endif
-
-#if IR_RECEIVER_ENABLE
-  ir_receiver_init();
-#endif
-
-  /*Init Relay */
-  relay_init();
+  hexabus_bootstrap_init_apps();
+  hexabus_bootstrap_start_processes();
 
   /* Autostart other processes */
   autostart_start(autostart_processes);

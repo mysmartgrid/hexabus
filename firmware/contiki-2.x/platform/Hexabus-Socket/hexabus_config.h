@@ -18,6 +18,9 @@ There should be an ENABLE option that enables compilation and execution of the a
 // Print a line every MEMORY_DEBUGGER_INTERVAL seconds
 #define MEMORY_DEBUGGER_INTERVAL 10
 
+//App bootstrap
+#define HEXABUS_BOOTSTRAP_DEBUG 1
+
 // button
 #define BUTTON_DEBUG 0
 #define BUTTON_DOUBLE_CLICK_ENABLED 0

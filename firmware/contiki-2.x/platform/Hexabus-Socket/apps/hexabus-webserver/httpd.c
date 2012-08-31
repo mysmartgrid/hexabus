@@ -56,6 +56,7 @@
 #include "memory_debugger.h"
 
 #include "base64.h"
+#include "hexabus_app_bootstrap.h"
 
 extern void set_forwarding_to_eeprom(uint8_t);
 
@@ -433,10 +434,10 @@ const char httpd_ref[] HTTPD_STRING_ATTR = "Referer:";
 const char httpd_post[] HTTPD_STRING_ATTR = "POST ";
 const char httpd_config_file[] HTTPD_STRING_ATTR = "config.shtml ";
 const char httpd_sm_post[] HTTPD_STRING_ATTR = "sm_post.shtml ";
+const char httpd_sm_control[] HTTPD_STRING_ATTR = "sm_control.shtml ";
+const char httpd_sm_control_stop[] HTTPD_STRING_ATTR = "stop";
+const char httpd_sm_control_start[] HTTPD_STRING_ATTR = "start";
 const char httpd_socket_status_file[] HTTPD_STRING_ATTR = "socket_stat.shtml ";
-process_event_t sm_rulechange_event;
-process_event_t sm_stop_event;
-process_event_t sm_start_event;
 
 static
 PT_THREAD(handle_input(struct httpd_state *s))
@@ -655,7 +656,48 @@ PT_THREAD(handle_input(struct httpd_state *s))
 
 
             }
-            process_post(PROCESS_BROADCAST, sm_rulechange_event, NULL);
+
+    } else if (
+        (httpd_strncmp(
+        &s->inputbuf[1], 
+        httpd_sm_control, 
+        sizeof(httpd_sm_control)-1) == 0)
+            ){
+
+			s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
+			strncpy(s->filename, &s->inputbuf[0], sizeof(s->filename));
+			/* Look for ?, if found strip file name*/
+			uint8_t i;
+			for (i=0;i<sizeof(s->inputbuf);i++) {
+				if (s->inputbuf[i]=='?') {
+					if (i<sizeof(s->filename)) s->filename[i]=0;
+				}
+				if (s->inputbuf[i]==0) break;
+			}
+			//parse config data
+			int found=0;
+			//look for the combination "\r\n\r\n"
+			while (!found)
+			{
+				PSOCK_READTO(&s->sin, ISO_nl);
+				PSOCK_READTO(&s->sin, ISO_cr);
+				if (PSOCK_DATALEN(&s->sin) == 1)
+				{
+					PSOCK_READTO(&s->sin, ISO_nl);
+					found=1;
+				}
+			}
+            PSOCK_READTO(&s->sin, ISO_amper);
+            if(httpd_strncmp(&s->inputbuf[0],httpd_sm_control_stop,sizeof(httpd_sm_control_stop)-1)==0) {
+                PRINTF("Stopping state machine.\n");
+                process_exit(&state_machine_process);
+            } else if(httpd_strncmp(&s->inputbuf[0],httpd_sm_control_start,sizeof(httpd_sm_control_start)-1)==0) {
+                PRINTF("(Re)starting state machine.\n");
+                process_exit(&state_machine_process);
+                hexabus_bootstrap_init_apps();
+                process_start(&state_machine_process, NULL);
+            }
+        
 
 	} else {
 			PSOCK_CLOSE_EXIT(&s->sin);
@@ -742,8 +784,5 @@ httpd_appcall(void *state)
 		tcp_listen(UIP_HTONS(80));
 		memb_init(&conns);
 		httpd_cgi_init();
-		sm_rulechange_event = process_alloc_event();
-        sm_stop_event = process_alloc_event();
-        sm_start_event = process_alloc_event();
 	}
 	/*---------------------------------------------------------------------------*/

@@ -100,7 +100,6 @@ uint16_t RF212_sendpackets,RF212_receivepackets,RF212_sendfail,RF212_receivefail
 #endif
 */
 
-
 static struct httpd_cgi_call *calls = NULL;
 
 /*cgi function names*/

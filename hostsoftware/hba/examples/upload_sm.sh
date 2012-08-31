@@ -40,14 +40,21 @@ post_cond="curl -6 -X POST --data-binary @$cond_table http://$2/sm_post.shtml"
 post_trans="curl -6 -X POST --data-binary @$trans_table http://$2/sm_post.shtml"
 post_dttrans="curl -6 -X POST --data-binary @$dttrans_table http://$2/sm_post.shtml"
 
+post_start="curl -6 -X POST -d start& http://$2/sm_control.shtml"
+post_stop="curl -6 -X POST -d stop& http://$2/sm_control.shtml"
+
 #Post to device
 set -e
+echo "Stopping state machine."
+$post_stop
 echo "Uploading conditions..."
 $post_cond
 echo "Uploading transitions..."
 $post_trans
 echo "Uploading datetime transitions..."
 $post_dttrans
+echo "Starting state machine"
+$post_start
 set +e
 
 echo "Upload complete"
