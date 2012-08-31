@@ -139,7 +139,21 @@ int main(int argc, char** argv)
     if(vm.count("print")) {
       hexabus::hbc_printer printer;
       printer(ast);
-    } else if(vm.count("graph")) {
+    }
+    
+    if(vm.count("tables")) {
+      hexabus::TableBuilder tableBuilder;
+      tableBuilder(ast);
+      tableBuilder.print();
+    }
+    
+    if(vm.count("modules")) {
+      hexabus::ModuleInstantiation modules;
+      modules(ast);
+      modules.print_module_table();
+    }
+    
+    if(vm.count("graph")) {
       hexabus::GraphBuilder gBuilder;
       gBuilder(ast);
       std::ofstream ofs;
@@ -155,14 +169,6 @@ int main(int argc, char** argv)
       }
       gBuilder.write_graphviz(ofs);
       ofs.close();
-    } else if(vm.count("tables")) {
-      hexabus::TableBuilder tableBuilder;
-      tableBuilder(ast);
-      tableBuilder.print();
-    } else if(vm.count("modules")) {
-      hexabus::ModuleInstantiation modules;
-      modules(ast);
-      modules.print_module_table();
     }
   } else {
     return 1;

@@ -19,7 +19,7 @@ struct first_pass : boost::static_visitor<> {
     // build vertices for states
     for(unsigned int i = 0; i < statemachine.stateset.states.size(); i++) { // don't use foreach because we need the index
       std::ostringstream oss;
-      oss << "(" << statemachine.id << "." << i << ") " << statemachine.stateset.states[i];
+      oss << "(" << statemachine.id << "." << i << ") \\n" << statemachine.name << "." <<  statemachine.stateset.states[i];
       vertex_id_t v_id = boost::add_vertex((*_g));
       (*_g)[v_id].name = oss.str();
       (*_g)[v_id].machine_id = statemachine.id;

@@ -37,13 +37,16 @@ struct module_instantiation : boost::static_visitor<> {
     atomic_condition_doc inst_at_cond;
     compound_condition_doc inst_comp_cond;
     switch(cond.which()) {
-      case 0: // atomic_condition
+      case 0: // unsigned int ("true")
+        inst_cond = cond;
+        break;
+      case 1: // atomic_condition
         m(boost::get<atomic_condition_doc>(cond).geid, inst_at_cond.geid, placeholders, parameters);
         inst_at_cond.comp_op = boost::get<atomic_condition_doc>(cond).comp_op;
         m(boost::get<atomic_condition_doc>(cond).constant, inst_at_cond.constant, placeholders, parameters);
         inst_cond = inst_at_cond;
         break;
-      case 1: // compound_condition
+      case 2: // compound_condition
         m(boost::get<compound_condition_doc>(cond).condition_a, inst_comp_cond.condition_a, placeholders, parameters);
         inst_comp_cond.bool_op = boost::get<compound_condition_doc>(cond).bool_op;
         m(boost::get<compound_condition_doc>(cond).condition_b, inst_comp_cond.condition_b, placeholders, parameters);
@@ -57,30 +60,33 @@ struct module_instantiation : boost::static_visitor<> {
   }
 
   void operator()(global_endpoint_id_doc& geid, global_endpoint_id_doc& inst_geid, placeholder_list_doc& placeholders, std::vector<inst_parameter_doc>& parameters) {
-    int placeholder_index = -1;
     switch(geid.device_alias.which()) {
       case 0: // string
         inst_geid.device_alias = boost::get<std::string>(geid.device_alias);
         break;
       case 1: // placeholder
-        // find index of placeholder
-        for(int i = 0; i < placeholders.placeholders.size(); i++) {
-          if(placeholders.placeholders[i].name == boost::get<placeholder_doc>(geid.device_alias).name)
-            placeholder_index = i;
-        }
-        if(placeholder_index == -1) {
-          std::ostringstream oss;
-          oss << "Placeholder not found: " << boost::get<placeholder_doc>(geid.device_alias).name << "." << std::endl;
-          throw InvalidPlaceholderException(oss.str());
-        }
+        {
+          // find index of placeholder
+          int placeholder_index = -1;
+          std::cout << "Looking for " << boost::get<placeholder_doc>(geid.device_alias).name << std::endl;
+          for(int i = 0; i < placeholders.placeholders.size(); i++) {
+            if(placeholders.placeholders[i].name == boost::get<placeholder_doc>(geid.device_alias).name)
+              placeholder_index = i;
+          }
+          if(placeholder_index == -1) {
+            std::ostringstream oss;
+            oss << "Placeholder for device alias not found: " << boost::get<placeholder_doc>(geid.device_alias).name << "." << std::endl;
+            throw InvalidPlaceholderException(oss.str());
+          }
 
-        // get corresponding element from instance parameter list and put it in the geid struct
-        try {
-          inst_geid.device_alias = boost::get<std::string>(parameters[placeholder_index]);
-        } catch (boost::bad_get e) {
-          std::ostringstream oss;
-          oss << boost::get<placeholder_doc>(geid.device_alias).name << ": Invalid parameter type (expected device name)" << std::endl;
-          throw InvalidParameterTypeException(oss.str());
+          // get corresponding element from instance parameter list and put it in the geid struct
+          try {
+            inst_geid.device_alias = boost::get<std::string>(parameters[placeholder_index]);
+          } catch (boost::bad_get e) {
+            std::ostringstream oss;
+            oss << boost::get<placeholder_doc>(geid.device_alias).name << ": Invalid parameter type (expected device name)" << std::endl;
+            throw InvalidParameterTypeException(oss.str());
+          }
         }
         break;
 
@@ -88,30 +94,33 @@ struct module_instantiation : boost::static_visitor<> {
         break;
     }
 
-    placeholder_index = -1;
     switch(geid.endpoint_name.which()) {
       case 0: // string
         inst_geid.endpoint_name = boost::get<std::string>(geid.endpoint_name);
         break;
       case 1: // placeholder
-        // find placeholder in list
-        for(int i = 0; i < placeholders.placeholders.size(); i++) {
-          if(placeholders.placeholders[i].name == boost::get<placeholder_doc>(geid.endpoint_name).name)
-            placeholder_index = i;
-        }
-        if(placeholder_index == -1) {
-          std::ostringstream oss;
-          oss << "Placeholder not found: " << boost::get<placeholder_doc>(geid.endpoint_name).name << "." << std::endl;
-          throw InvalidPlaceholderException(oss.str());
-        }
+        {
+          // find placeholder in list
+          std::cout << "Looking for " << boost::get<placeholder_doc>(geid.device_alias).name << std::endl;
+          int placeholder_index = -1;
+          for(int i = 0; i < placeholders.placeholders.size(); i++) {
+            if(placeholders.placeholders[i].name == boost::get<placeholder_doc>(geid.endpoint_name).name)
+              placeholder_index = i;
+          }
+          if(placeholder_index == -1) {
+            std::ostringstream oss;
+            oss << "Placeholder for endpoint name not found: " << boost::get<placeholder_doc>(geid.endpoint_name).name << "." << std::endl;
+            throw InvalidPlaceholderException(oss.str());
+          }
 
-        // put element from parameter list into geid struct
-        try {
-          inst_geid.endpoint_name = boost::get<std::string>(parameters[placeholder_index]);
-        } catch(boost::bad_get e) {
-          std::ostringstream oss;
-          oss << boost::get<placeholder_doc>(geid.endpoint_name).name << ": Invalid parameter type (expected device name)" << std::endl;
-          throw InvalidParameterTypeException(oss.str());
+          // put element from parameter list into geid struct
+          try {
+            inst_geid.endpoint_name = boost::get<std::string>(parameters[placeholder_index]);
+          } catch(boost::bad_get e) {
+            std::ostringstream oss;
+            oss << boost::get<placeholder_doc>(geid.endpoint_name).name << ": Invalid parameter type (expected device name)" << std::endl;
+            throw InvalidParameterTypeException(oss.str());
+          }
         }
         break;
 
@@ -125,6 +134,7 @@ struct module_instantiation : boost::static_visitor<> {
       case 0: // placeholder_doc
         {
           // find placeholder in list
+          std::cout << "Looking for " << boost::get<placeholder_doc>(constant).name << std::endl;
           int placeholder_index = -1;
           for(int i = 0; i < placeholders.placeholders.size(); i++) {
             if(placeholders.placeholders[i].name == boost::get<placeholder_doc>(constant).name)
@@ -132,7 +142,7 @@ struct module_instantiation : boost::static_visitor<> {
           }
           if(placeholder_index == -1) {
             std::ostringstream oss;
-            oss << "Placeholder not found: " << boost::get<placeholder_doc>(constant).name << "." << std::endl;
+            oss << "Placeholder for constant not found: " << boost::get<placeholder_doc>(constant).name << "." << std::endl;
             throw InvalidPlaceholderException(oss.str());
           }
 
@@ -221,23 +231,17 @@ struct module_instantiation : boost::static_visitor<> {
         }
 
         // else block
-        if(if_clause.else_clause.present) {
-          inst_if_clause.else_clause.present = 1;
+        inst_if_clause.else_clause.present = if_clause.else_clause.present;
+        if(inst_if_clause.else_clause.present)
           m(if_clause.else_clause.commands, inst_if_clause.else_clause.commands, mod->second.placeholderlist, inst.parameters);
-        }
+
+        inst_in_clause.if_clauses.push_back(inst_if_clause);
       }
 
       instance.in_clauses.push_back(inst_in_clause);
     }
 
-    // TODO to replace a placeholder by its parameter:
-    // - find placeholder in placeholder list
-    //   - exc if missing
-    // - take its index, look in parameter list
-    //   - exc if it's missing (should not happen, because we will check list length beforehand)
-    // - check if parameter is right type (literal number, device, endpoint)
-    //   - exc if it isn't
-    // - put actual value in instance
+    _hbc.blocks.push_back(instance);
   }
 
   void operator()(endpoint_doc& ep) const { }
@@ -255,8 +259,8 @@ void ModuleInstantiation::operator()(hbc_doc& hbc) {
     boost::apply_visitor(module_table_builder(_m), block);
   }
 
-  BOOST_FOREACH(hbc_block block, hbc.blocks) {
-    boost::apply_visitor(module_instantiation(_m, hbc), block);
+  for(unsigned int i = 0; i < hbc.blocks.size(); i++) { // no BOOST_FOREACH here becahse size changes
+    boost::apply_visitor(module_instantiation(_m, hbc), hbc.blocks[i]);
   }
 }
 
