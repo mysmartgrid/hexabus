@@ -21,10 +21,11 @@ set(KDE_CTEST_DASHBOARD_DIR "/tmp/msgrid")
 set(CTEST_PACKAGE_SITE "packages.mysmartgrid.de")
 
 set(CTEST_PROJECT_SUBPROJECTS
-hexabridge
+#hexabridge
 hexaswitch
 hexadisplay
 hexinfo
+hba
 )
 
 site_name(CTEST_SITE)
