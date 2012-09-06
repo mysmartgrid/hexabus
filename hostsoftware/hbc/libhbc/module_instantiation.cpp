@@ -131,7 +131,7 @@ struct module_instantiation : boost::static_visitor<> {
           }
           if(placeholder_index == -1) {
             std::ostringstream oss;
-            oss << "Placeholder for constant not found: " << boost::get<placeholder_doc>(constant).name << "." << std::endl;
+            oss << "[" << boost::get<placeholder_doc>(constant).lineno << "] Placeholder for constant not found: " << boost::get<placeholder_doc>(constant).name << "." << std::endl;
             throw InvalidPlaceholderException(oss.str());
           }
 
@@ -140,7 +140,7 @@ struct module_instantiation : boost::static_visitor<> {
             inst_constant = boost::get<constant_doc>(parameters[placeholder_index]);
           } catch (boost::bad_get e) {
             std::ostringstream oss;
-            oss << boost::get<placeholder_doc>(constant).name << ": Invalid parameter type (expected constant)" << std::endl;
+            oss << boost::get<placeholder_doc>(constant).name << ": Invalid parameter type (expected constant)" << std::endl; // TODO line number?
             throw InvalidParameterTypeException(oss.str());
           }
         }
