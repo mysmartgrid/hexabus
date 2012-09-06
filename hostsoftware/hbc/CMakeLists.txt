@@ -50,7 +50,7 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_PROFILE} -ftest-coverage")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wno-non-virtual-dtor -Werror")
 
 # allways set these flags
-set(CMAKE_CXX_FLAGS "-Wall -lpthread")
+set(CMAKE_CXX_FLAGS "-Wall")
 
 # Check for some compiler stuff
 include(CMakeBackwardCompatibilityCXX)

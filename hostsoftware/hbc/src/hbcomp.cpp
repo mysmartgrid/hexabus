@@ -65,6 +65,7 @@ int main(int argc, char** argv)
   for(int f = 0; f < filenames.size() && okay; f++) {
     bool r = false;
     std::ifstream in(filenames[f].c_str(), std::ios_base::in);
+    std::cout << "Reading input file " << filenames[f] << "." << std::endl;
 
     if(!in)
     {
@@ -117,9 +118,10 @@ int main(int argc, char** argv)
             if(fn == boost::get<hexabus::include_doc>(block).filename)
               exists = true;
           }
-          if(!exists)
+          if(!exists) {
             filenames.push_back(boost::get<hexabus::include_doc>(block).filename);
             std::cout << "Adding " << boost::get<hexabus::include_doc>(block).filename << " to list of files to parse. - from include in line " << boost::get<hexabus::include_doc>(block).lineno << std::endl;
+          }
         }
       }
     } else {

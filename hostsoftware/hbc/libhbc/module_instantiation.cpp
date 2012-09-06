@@ -80,6 +80,7 @@ struct module_instantiation : boost::static_visitor<> {
           }
 
           // get corresponding element from instance parameter list and put it in the geid struct
+          // TODO check device name vs. endpoint name -- we can do this by looking them up in the alias / endpoint table
           try {
             inst_geid.device_alias = boost::get<std::string>(parameters[placeholder_index]);
           } catch (boost::bad_get e) {
@@ -206,7 +207,7 @@ struct module_instantiation : boost::static_visitor<> {
     statemachine_doc instance;
     instance.lineno = inst.lineno;
     std::ostringstream inst_name_oss;
-    inst_name_oss << "inst_" << inst.name << ":" << inst.moduleclass;
+    inst_name_oss << "inst:" << inst.name << ":" << inst.moduleclass;
     instance.name = inst_name_oss.str();
     instance.stateset = mod->second.stateset;
 
