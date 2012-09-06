@@ -142,19 +142,23 @@ int main(int argc, char** argv)
       hexabus::hbc_printer printer;
       printer(ast);
     }
-    
+
+    bool built_tables = false;
+    hexabus::TableBuilder tableBuilder;
     if(vm.count("tables")) {
-      hexabus::TableBuilder tableBuilder;
       tableBuilder(ast);
       tableBuilder.print();
+      built_tables = true;
     }
-    
+
     if(vm.count("modules")) {
-      hexabus::ModuleInstantiation modules;
+      if(!built_tables)
+        std::cout << "Warning: Module instantiation activated without table generation. This can cause module instantiation errors!" << std::endl;
+      hexabus::ModuleInstantiation modules(tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
       modules(ast);
       modules.print_module_table();
     }
-    
+
     if(vm.count("graph")) {
       hexabus::GraphBuilder gBuilder;
       gBuilder(ast);

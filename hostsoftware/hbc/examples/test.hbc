@@ -119,7 +119,7 @@ module error($A, $B) {
   }
 }
 
-instance my_error : error(another_endpoint, more_devices);
-instance more_error : error(another_endpoint, device);
+instance my_error : error(device, another_endpoint);
+instance more_error : error(device, on);
 instance the_toggle : toggle(device, power, 5, another_device, on);
 
