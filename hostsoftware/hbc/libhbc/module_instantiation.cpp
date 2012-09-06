@@ -40,7 +40,7 @@ struct module_instantiation : boost::static_visitor<> {
         inst_geid.device_alias = boost::get<std::string>(geid.device_alias);
         break;
       case 1: // placeholder
-        { // TODO the error messages here need line numbers!
+        {
           // find index of placeholder
           int placeholder_index = -1;
           std::cout << "Looking for " << boost::get<placeholder_doc>(geid.device_alias).name << std::endl;
@@ -50,7 +50,7 @@ struct module_instantiation : boost::static_visitor<> {
           }
           if(placeholder_index == -1) {
             std::ostringstream oss;
-            oss << "Placeholder for device alias not found: " << boost::get<placeholder_doc>(geid.device_alias).name << "." << std::endl;
+            oss << "[" << boost::get<placeholder_doc>(geid.device_alias).lineno << "] Placeholder for device alias not found: " << boost::get<placeholder_doc>(geid.device_alias).name << "." << std::endl;
             throw InvalidPlaceholderException(oss.str());
           }
 
@@ -59,14 +59,14 @@ struct module_instantiation : boost::static_visitor<> {
             inst_geid.device_alias = boost::get<std::string>(parameters[placeholder_index]);
           } catch (boost::bad_get e) {
             std::ostringstream oss;
-            oss << boost::get<placeholder_doc>(geid.device_alias).name << ": Invalid parameter type (expected device name)" << std::endl;
+            oss << "[" << geid.lineno << "] " << boost::get<placeholder_doc>(geid.device_alias).name << ": Invalid parameter type (expected device name)" << std::endl;
             throw InvalidParameterTypeException(oss.str());
-          }
+          } // TODO needs file name...
 
           // check that we have a device name (not an endpoint name or something else)
           if(_d->find(boost::get<std::string>(inst_geid.device_alias)) == _d->end()) {
             std::ostringstream oss;
-            oss << boost::get<std::string>(inst_geid.device_alias) << ": Device name does not exist." << std::endl;
+            oss << "[" << geid.lineno << "] " << boost::get<std::string>(inst_geid.device_alias) << ": Device name does not exist." << std::endl;
             throw InvalidParameterTypeException(oss.str());
           }
         }
@@ -81,7 +81,7 @@ struct module_instantiation : boost::static_visitor<> {
         inst_geid.endpoint_name = boost::get<std::string>(geid.endpoint_name);
         break;
       case 1: // placeholder
-        { // TODO the error messages here need line numbers!
+        {
           // find placeholder in list
           std::cout << "Looking for " << boost::get<placeholder_doc>(geid.device_alias).name << std::endl;
           int placeholder_index = -1;
@@ -91,7 +91,7 @@ struct module_instantiation : boost::static_visitor<> {
           }
           if(placeholder_index == -1) {
             std::ostringstream oss;
-            oss << "Placeholder for endpoint name not found: " << boost::get<placeholder_doc>(geid.endpoint_name).name << "." << std::endl;
+            oss << "[" << boost::get<placeholder_doc>(geid.device_alias).lineno << "] Placeholder for endpoint name not found: " << boost::get<placeholder_doc>(geid.endpoint_name).name << "." << std::endl;
             throw InvalidPlaceholderException(oss.str());
           }
 
@@ -100,14 +100,14 @@ struct module_instantiation : boost::static_visitor<> {
             inst_geid.endpoint_name = boost::get<std::string>(parameters[placeholder_index]);
           } catch(boost::bad_get e) {
             std::ostringstream oss;
-            oss << boost::get<placeholder_doc>(geid.endpoint_name).name << ": Invalid parameter type (expected endpoint name)" << std::endl;
+            oss << "[" << geid.lineno << "] " << boost::get<placeholder_doc>(geid.endpoint_name).name << ": Invalid parameter type (expected endpoint name)" << std::endl;
             throw InvalidParameterTypeException(oss.str());
           }
 
           // check that we have an endpoint name (not a device name or something else)
           if(_e->find(boost::get<std::string>(inst_geid.endpoint_name)) == _e->end()) {
             std::ostringstream oss;
-            oss << boost::get<std::string>(inst_geid.endpoint_name) << ": Endpoint name does not exist." << std::endl;
+            oss << "[" << geid.lineno << "] " << boost::get<std::string>(inst_geid.endpoint_name) << ": Endpoint name does not exist." << std::endl;
             throw InvalidParameterTypeException(oss.str());
           }
         }

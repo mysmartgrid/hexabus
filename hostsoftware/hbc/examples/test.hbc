@@ -111,7 +111,7 @@ module error($A, $B) {
     else { goto nope; }
   }
   in(nope) {
-    if($A.$B == 5) { # TODO "true" does not work as constant here
+    if($A.$A == 5) { # TODO "true" does not work as constant here
       goto nope;
     } else {
       goto nope;

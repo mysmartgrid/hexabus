@@ -124,11 +124,11 @@ namespace hexabus {
 
       // Basic elements: Identifier, assignment, ...
       identifier %= char_("a-zA-Z_") > *char_("a-zA-Z0-9_");
-      placeholder %= char_("$") > *char_("a-zA-Z0-9_");
+      placeholder %= char_("$") > file_pos > *char_("a-zA-Z0-9_");
       filename %= eps > lexeme[char_("a-zA-Z0-9_") > *char_("a-zA-Z0-9_.")]; // TODO do we need to be more specific here? At least we need /s.
       on_error<rethrow>(identifier, error_traceback_t("Invalid identifier"));
       // device_name.endpoint_name
-      global_endpoint_id %= ( placeholder | identifier ) > '.' > ( identifier | placeholder );
+      global_endpoint_id %= ( placeholder | identifier ) > '.' > file_pos > ( identifier | placeholder );
       ipv6_address %= +( char_("a-fA-F0-9:")); // parse anything that is hex and : - check validity (semantically) later (TODO)
       datatype = ( lit("BOOL")[_val = DT_BOOL] | lit("UINT8")[_val = DT_UINT8] | lit("UINT32")[_val = DT_UINT32] | lit("FLOAT")[_val = DT_FLOAT] );
       access_lv = ( lit("read")[_val = AC_READ] | lit("write")[_val = AC_WRITE] | lit("broadcast")[_val = AC_BROADCAST] );

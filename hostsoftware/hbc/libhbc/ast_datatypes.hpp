@@ -29,6 +29,7 @@ namespace hexabus {
   };
 
   struct placeholder_doc {
+    unsigned int lineno;
     std::string name;
   };
 
@@ -80,6 +81,7 @@ namespace hexabus {
 
   struct global_endpoint_id_doc {
     global_endpoint_id_element device_alias;
+    unsigned int lineno;
     global_endpoint_id_element endpoint_name;
   };
 
@@ -195,6 +197,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::placeholder_doc,
   (std::string, name)
+  (unsigned int, lineno)
   (std::string, name)
 )
 
@@ -247,6 +250,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::global_endpoint_id_doc,
   (hexabus::global_endpoint_id_element, device_alias)
+  (unsigned int, lineno)
   (hexabus::global_endpoint_id_element, endpoint_name)
 )
 
