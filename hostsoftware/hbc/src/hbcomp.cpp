@@ -154,7 +154,7 @@ int main(int argc, char** argv)
     if(vm.count("modules")) {
       if(!built_tables)
         std::cout << "Warning: Module instantiation activated without table generation. This can cause module instantiation errors!" << std::endl;
-      hexabus::ModuleInstantiation modules(tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
+      hexabus::ModuleInstantiation modules(tableBuilder.get_module_table(), tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
       modules(ast);
       modules.print_module_table();
     }

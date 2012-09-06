@@ -9,7 +9,7 @@ namespace hexabus {
   class ModuleInstantiation {
     public:
       typedef std::tr1::shared_ptr<ModuleInstantiation>  Ptr;
-      ModuleInstantiation(device_table_ptr devt, endpoint_table_ptr ept) : _m(new module_table()), _d(devt), _e(ept) {};
+      ModuleInstantiation(module_table_ptr modt, device_table_ptr devt, endpoint_table_ptr ept) : _m(modt), _d(devt), _e(ept) {};
       virtual ~ModuleInstantiation() {};
 
       void operator()(hbc_doc& hbc);
