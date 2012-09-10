@@ -13,6 +13,7 @@ namespace hexabus {
     unsigned int machine_id;
     unsigned int vertex_id;    // state is identified by pair of machine and state id
     vertex_type type;
+    boost::variant<condition_doc /* , ... TODO ... */> contents;
   };
 
   enum edge_type { e_from_state, e_if_com, e_to_state };

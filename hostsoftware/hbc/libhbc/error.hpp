@@ -17,6 +17,13 @@ namespace hexabus {
       std::string _reason;
   };
 
+  class HBAConversionErrorException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<HBAConversionErrorException> Ptr;
+      HBAConversionErrorException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~HBAConversionErrorException() throw() {};
+  };
+
   class CaseNotImplementedException : public GenericException {
     public:
       typedef std::tr1::shared_ptr<CaseNotImplementedException> Ptr;

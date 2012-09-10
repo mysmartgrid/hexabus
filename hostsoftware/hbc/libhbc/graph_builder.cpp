@@ -72,6 +72,7 @@ struct first_pass : boost::static_visitor<> {
         (*_g)[v_id].machine_id = statemachine.id;
         (*_g)[v_id].vertex_id = condition_id++;
         (*_g)[v_id].type = v_cond;
+        (*_g)[v_id].contents = if_clause.if_block.condition;
 
         // add edges
         // edge from from-state to condition vertex
@@ -147,6 +148,7 @@ struct first_pass : boost::static_visitor<> {
           (*_g)[v_id].machine_id = statemachine.id;
           (*_g)[v_id].vertex_id = condition_id++;
           (*_g)[v_id].type = v_cond;
+          (*_g)[v_id].contents = else_if_block.condition;
 
           // from-state to condition vertex
           vertex_id_t from_state = find_vertex(_g, statemachine.id, originating_state);
@@ -219,6 +221,7 @@ struct first_pass : boost::static_visitor<> {
           (*_g)[else_v_id].machine_id = statemachine.id;
           (*_g)[else_v_id].vertex_id = condition_id++;
           (*_g)[else_v_id].type = v_cond;
+          // TODO (*_g)[else_v_id].contents = ...
 
           // add edges
           // edge from from-state to condition vertex
