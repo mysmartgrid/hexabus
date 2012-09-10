@@ -17,6 +17,12 @@ endpoint power {
   datatype UINT32; access { read, broadcast };
 }
 
+endpoint endpoint {
+  eid 42;
+  datatype UINT32;
+  access { broadcast };
+}
+
 alias device {
   ip fe80::cafe:d00d;
   eids { 1, 2, 3 };
@@ -43,17 +49,17 @@ machine my_machine {
       write blah.blaah := 0;
       goto three;
     }
-    else {
-      write foo.bar := 1;
-      goto one;
-    }
+#    else {
+#      write foo.bar := 1;
+#      goto one;
+#    }
   }
 }
 
 machine another_machine {
   states { init, bloerp };
   in(bloerp) {
-    if(true) { goto bloerp; }
+    if($M.$N == $O) { goto bloerp; }
     else if(true) { goto bloerp; }
     else if(true) { goto bloerp; }
     else { goto bloerp; }

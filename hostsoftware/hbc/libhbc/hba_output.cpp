@@ -109,11 +109,12 @@ void HBAOutput::operator()(std::ostream& ostr) {
 
           // constant
           try {
-            ostr << " " << boost::get<std::string>(at_cond.constant) << ";" << std::endl;;
+            ostr << " " << boost::get<float>(at_cond.constant) << ";" << std::endl;;
           } catch(boost::bad_get e) {
             // TODO this is an error in the input file
             std::ostringstream oss;
             oss << "Only literal constants (no placeholders) allowed in state machine definition!" << std::endl;
+            oss << "(At the moment, only float is allowed!)" << std::endl; // TODO !!!
             throw HBAConversionErrorException(oss.str());
           }
 

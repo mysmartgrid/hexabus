@@ -7,6 +7,7 @@
 #include <libhbc/graph_builder.hpp>
 #include <libhbc/table_builder.hpp>
 #include <libhbc/module_instantiation.hpp>
+#include <libhbc/hba_output.hpp>
 
 // commandline parsing.
 #include <boost/program_options.hpp>
@@ -33,6 +34,7 @@ int main(int argc, char** argv)
     ("graph,g", po::value<std::string>(), "output the program graph in graphviz format")
     ("tables,t", "build endpoint and alias tables") // TODO this has to happen automatically later.
     ("modules,m", "build module table") // TODO module instantiation too
+    ("output,o", "output Hexabus Assembler (HBA) code") // TODO this as well
   ;
   po::positional_options_description p;
   p.add("input", 1);
@@ -159,8 +161,9 @@ int main(int argc, char** argv)
       modules.print_module_table();
     }
 
+    bool built_graph = false;
+    hexabus::GraphBuilder gBuilder;
     if(vm.count("graph")) {
-      hexabus::GraphBuilder gBuilder;
       gBuilder(ast);
       std::ofstream ofs;
       std::string outfile(vm["graph"].as<std::string>());
@@ -175,7 +178,18 @@ int main(int argc, char** argv)
       }
       gBuilder.write_graphviz(ofs);
       ofs.close();
+      built_graph = true;
     }
+
+    if(vm.count("output")) {
+      if(!built_tables || !built_graph) {
+        std::cout << "Warnung: HBA output activated without both table and graph generation. This can cause output errors!" << std::endl;
+      }
+
+      hexabus::HBAOutput out(gBuilder.get_graph(), tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
+      out(std::cout);
+    }
+
   } else {
     return 1;
   }
