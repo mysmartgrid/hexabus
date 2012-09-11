@@ -29,9 +29,10 @@ void HBAOutput::operator()(std::ostream& ostr) {
   // iterate over vertices, find condition vertices and create condition blocks for them.
   graph_t::vertex_iterator vertexIt, vertexEnd;
   boost::tie(vertexIt, vertexEnd) = vertices((*_g));
-  for (; vertexIt != vertexEnd; ++vertexIt){
+  for (; vertexIt != vertexEnd; ++vertexIt) {
     vertex_id_t vertexID = *vertexIt;
     vertex_t & vertex = (*_g)[vertexID];
+
     if (vertex.type == v_cond /* TODO */ && vertex.machine_id == 0) {
       try {
         condition_doc cond = boost::get<condition_doc>(vertex.contents);
@@ -131,6 +132,43 @@ void HBAOutput::operator()(std::ostream& ostr) {
         oss << "Condition vertex does not contain condition data!" << std::endl;
         throw HBAConversionErrorException(oss.str());
       }
+    }
+  }
+
+  // iterate over vertices again, find state vertices and create state blocks for them.
+  boost::tie(vertexIt, vertexEnd) = vertices((*_g));
+  for (; vertexIt != vertexEnd; ++vertexIt) {
+    vertex_id_t vertexID = *vertexIt;
+    vertex_t & vertex = (*_g)[vertexID];
+
+    if(vertex.type == v_state /* TODO */ && vertex.machine_id == 0) {
+      // state name
+      ostr << "state_" << vertex.machine_id << "_" << vertex.vertex_id << " {" << std::endl;
+
+      // if-blocks in the state
+      graph_t::out_edge_iterator outEdgeIt, outEdgeEnd;
+      boost::tie(outEdgeIt, outEdgeEnd) = out_edges(vertexID, (*_g));
+      for(; outEdgeIt != outEdgeEnd; outEdgeIt++) {
+        edge_id_t edgeID = *outEdgeIt;
+        // edge_t& edge = (*_g)[edgeID];
+
+        // "edge" now connects our state to an if-block.
+        // get the condition and the command block from there
+        vertex_id_t if_vertexID = edgeID.m_target;
+        vertex_t& if_vertex = (*_g)[if_vertexID];
+
+        if(if_vertex.type != v_cond) // TODO this could be a bug in hexabus compiler
+          throw HBAConversionErrorException("Condition vertex expected. Other vertex type found.");
+
+        ostr << "  if " << "cond_" << if_vertex.machine_id << "_" << if_vertex.vertex_id << " {" << std::endl;
+
+
+        // closing bracket
+        ostr << "  }" << std::endl;
+      }
+
+      // closing bracket
+      ostr << "}" << std::endl << std::endl;
     }
   }
 }
