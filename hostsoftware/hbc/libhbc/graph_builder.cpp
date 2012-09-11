@@ -36,11 +36,12 @@ struct first_pass : boost::static_visitor<> {
       throw NonexistentStateException(oss.str());
     }
 
+    unsigned int condition_id = 0; // unique (per-state-machine) index of condition vertex
+    unsigned int command_id = 0;   // per-state-machine unique IDs for command blocks
+
     // build the edges
     // TODO The following 200 lines or so need to be despaghettified. a lot.
     BOOST_FOREACH(in_clause_doc in_clause, statemachine.in_clauses) {
-      unsigned int condition_id = 0; // unique (per-state-machine) index of condition vertex
-      unsigned int command_id = 0;   // per-state-machine unique IDs for command blocks
       // find originating state ID
       unsigned int originating_state;
       try {
