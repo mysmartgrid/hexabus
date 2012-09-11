@@ -224,8 +224,22 @@ void HBAOutput::operator()(std::ostream& ostr) {
           throw HBAConversionErrorException("Command vertex does not contain commamnd data!");
         }
 
-        // now find the goto-vertex and the state it's connected to
+        // now follow the edge to the target state vertex
+        graph_t::out_edge_iterator targetEdgeIt, targetEdgeEnd;
+        boost::tie(targetEdgeIt, targetEdgeEnd) = out_edges(command_vertexID, (*_g));
 
+        // TODO make sure we have exactly one...
+        edge_id_t targetID = *targetEdgeIt;
+        vertex_id_t target_state_vertexID = targetID.m_target;
+        vertex_t& target_state_vertex = (*_g)[target_state_vertexID];
+
+        if(target_state_vertex.type != v_state) // TODO this is probably a bug in hexbaus compiler
+          throw HBAConversionErrorException("State vertex expected. Got other vertex type.");
+
+        // print goodstate / badstate line
+        ostr << "    goodstate " << "state_" << target_state_vertex.machine_id << "_" << target_state_vertex.vertex_id << ";" << std::endl;
+        // TODO for now, badstate = goodstate
+        ostr << "    badstate " << "state_" << target_state_vertex.machine_id << "_" << target_state_vertex.vertex_id << ";" << std::endl;
 
         // closing bracket
         ostr << "  }" << std::endl;
