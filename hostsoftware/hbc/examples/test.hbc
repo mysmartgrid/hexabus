@@ -23,6 +23,12 @@ endpoint endpoint {
   access { broadcast };
 }
 
+endpoint other_endpoint {
+  eid 43;
+  datatype UINT32;
+  access { write };
+}
+
 alias device {
   ip fe80::cafe:d00d;
   eids { 1, 2, 3 };
@@ -43,10 +49,11 @@ machine my_machine {
   }
   in(two) {
     if(device.endpoint == 23) {
+      write device.other_endpoint := 1000;
       goto three;
     }
     if(device.endpoint == 25) {
-      write blah.blaah := 0;
+      write device.endpoint := 0;
       goto three;
     }
 #    else {

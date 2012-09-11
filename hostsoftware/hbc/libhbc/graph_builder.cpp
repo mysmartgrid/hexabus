@@ -104,6 +104,7 @@ struct first_pass : boost::static_visitor<> {
         (*_g)[if_command_v_id].machine_id = statemachine.id;
         (*_g)[if_command_v_id].vertex_id = command_id++;
         (*_g)[if_command_v_id].type = v_command;
+        (*_g)[if_command_v_id].contents = if_clause.if_block.command_block;
         // edge from condition vertex to command block vertex
         edge_id_t if_com_edge;
         bool if_com_ok;
@@ -179,6 +180,7 @@ struct first_pass : boost::static_visitor<> {
           (*_g)[command_v_id].machine_id = statemachine.id;
           (*_g)[command_v_id].vertex_id = command_id++;
           (*_g)[command_v_id].type = v_command;
+          (*_g)[command_v_id].contents = else_if_block.command_block;
           // edge from condition vertex to command block vertex
           edge_id_t if_com_edge;
           bool if_com_ok;
@@ -252,6 +254,7 @@ struct first_pass : boost::static_visitor<> {
           (*_g)[else_command_v_id].machine_id = statemachine.id;
           (*_g)[else_command_v_id].vertex_id = command_id++;
           (*_g)[else_command_v_id].type = v_command;
+          (*_g)[else_command_v_id].contents = if_clause.else_clause.commands;
           // edge from condition vertex to command block vertex
           edge_id_t else_com_edge;
           bool else_com_ok;

@@ -31,7 +31,7 @@ void HBAOutput::operator()(std::ostream& ostr) {
   boost::tie(vertexIt, vertexEnd) = vertices((*_g));
   for (; vertexIt != vertexEnd; ++vertexIt) {
     vertex_id_t vertexID = *vertexIt;
-    vertex_t & vertex = (*_g)[vertexID];
+    vertex_t& vertex = (*_g)[vertexID];
 
     if (vertex.type == v_cond /* TODO */ && vertex.machine_id == 0) {
       try {
@@ -161,6 +161,70 @@ void HBAOutput::operator()(std::ostream& ostr) {
           throw HBAConversionErrorException("Condition vertex expected. Other vertex type found.");
 
         ostr << "  if " << "cond_" << if_vertex.machine_id << "_" << if_vertex.vertex_id << " {" << std::endl;
+
+        // now find the command block connected to the if block
+        // TODO make sure each if-block has exactly one command block, and the command block has exactly one command
+        // (do this when/after slicing the program
+        graph_t::out_edge_iterator commandEdgeIt, commandEdgeEnd;
+        boost::tie(commandEdgeIt, commandEdgeEnd) = out_edges(if_vertexID, (*_g));
+
+        // TODO make sure there is xactly one, exception if not
+        edge_id_t commandID = *commandEdgeIt;
+        // edge_t& command_edge = (*_g)[commandID];
+        vertex_id_t command_vertexID = commandID.m_target;
+        vertex_t& command_vertex = (*_g)[command_vertexID];
+
+        if(command_vertex.type != v_command) // TODO this could be a bug in hexabus compiler
+          throw HBAConversionErrorException("Command vertex expected. Other vertex type found.");
+
+        // find the write command
+        try {
+          command_block_doc command = boost::get<command_block_doc>(command_vertex.contents);
+          write_command_doc& write_cmd = command.commands[0].write_command; // TODO make sure there is exactly one.
+
+          // TODO
+          // Here some checks could be done:
+          // Is the endpoint we are writing to write-able?
+          // Does the endpoint on whose data we rely in the if-clause broadcast?
+          // Do the datatypes fit?
+          // Are we creating non-leavable states (should be checked earlier though)?
+          // ...
+
+          // now find the eid
+          unsigned int eid;
+          try {
+            std::string epname = boost::get<std::string>(write_cmd.geid.endpoint_name);
+            endpoint_table::iterator ep_it = _e->find(epname);
+            if(ep_it == _e->end()) {
+              // TODO this is an error in the input file
+              std::ostringstream oss;
+              oss << "Endpoint name not found: " << boost::get<std::string>(write_cmd.geid.endpoint_name) << std::endl;
+              throw HBAConversionErrorException(oss.str());
+            }
+
+            eid = ep_it->second.eid;
+          } catch (boost::bad_get e) {
+            // TODO this is a programming error
+            throw HBAConversionErrorException("Only literal endpoint names allowed in state machine definitions.");
+          }
+
+          // now find the value
+          float value;
+          try {
+            value = boost::get<float>(write_cmd.constant);
+          } catch(boost::bad_get e) {
+            // TODO
+            throw HBAConversionErrorException("Only literal constants allowed in state machine definition. (At the moment only float works)");
+          }
+
+          // output the "set" line
+          ostr << "    set " << eid << " := " << value << ";" << std::endl;
+        } catch(boost::bad_get e) {
+          // TODO this is a hexabus-compiler-has-a-bug error
+          throw HBAConversionErrorException("Command vertex does not contain commamnd data!");
+        }
+
+        // now find the goto-vertex and the state it's connected to
 
 
         // closing bracket
