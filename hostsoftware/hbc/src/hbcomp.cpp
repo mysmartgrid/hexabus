@@ -64,7 +64,7 @@ int main(int argc, char** argv)
   hexabus::hbc_doc ast; // The AST - all the files get parsed into one ast
   bool okay = true;
 
-  for(int f = 0; f < filenames.size() && okay; f++) {
+  for(unsigned int f = 0; f < filenames.size() && okay; f++) {
     bool r = false;
     std::ifstream in(filenames[f].c_str(), std::ios_base::in);
     std::cout << "Reading input file " << filenames[f] << "." << std::endl;

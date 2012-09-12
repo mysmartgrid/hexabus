@@ -44,7 +44,7 @@ struct module_instantiation : boost::static_visitor<> {
           // find index of placeholder
           int placeholder_index = -1;
           std::cout << "Looking for " << boost::get<placeholder_doc>(geid.device_alias).name << std::endl;
-          for(int i = 0; i < placeholders.placeholders.size(); i++) {
+          for(unsigned int i = 0; i < placeholders.placeholders.size(); i++) {
             if(placeholders.placeholders[i].name == boost::get<placeholder_doc>(geid.device_alias).name)
               placeholder_index = i;
           }
@@ -85,7 +85,7 @@ struct module_instantiation : boost::static_visitor<> {
           // find placeholder in list
           std::cout << "Looking for " << boost::get<placeholder_doc>(geid.device_alias).name << std::endl;
           int placeholder_index = -1;
-          for(int i = 0; i < placeholders.placeholders.size(); i++) {
+          for(unsigned int i = 0; i < placeholders.placeholders.size(); i++) {
             if(placeholders.placeholders[i].name == boost::get<placeholder_doc>(geid.endpoint_name).name)
               placeholder_index = i;
           }
@@ -125,7 +125,7 @@ struct module_instantiation : boost::static_visitor<> {
           // find placeholder in list
           std::cout << "Looking for " << boost::get<placeholder_doc>(constant).name << std::endl;
           int placeholder_index = -1;
-          for(int i = 0; i < placeholders.placeholders.size(); i++) {
+          for(unsigned int i = 0; i < placeholders.placeholders.size(); i++) {
             if(placeholders.placeholders[i].name == boost::get<placeholder_doc>(constant).name)
               placeholder_index = i;
           }
