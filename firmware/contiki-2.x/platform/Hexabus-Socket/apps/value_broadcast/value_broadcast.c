@@ -62,7 +62,7 @@ AUTOSTART_PROCESSES(&value_broadcast_process);
 #endif
 
 /*---------------------------------------------------------------------------*/
-void broadcast_to_self(struct hxb_value* val, uint8_t eid)
+void broadcast_to_self(struct hxb_value* val, uint32_t eid)
 {
 
 #if STATE_MACHINE_ENABLE
@@ -73,17 +73,17 @@ void broadcast_to_self(struct hxb_value* val, uint8_t eid)
   envelope->eid = eid;
   memcpy(&envelope->value, val, sizeof(struct hxb_value));
   process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
-  PRINTF("value_broadcast: Sending EID %d to own state machine.\n", eid);
+  PRINTF("value_broadcast: Sending EID %ld to own state machine.\n", eid);
 
 #endif
 }
 
-void broadcast_value(uint8_t eid)
+void broadcast_value(uint32_t eid)
 {
   struct hxb_value val;
   endpoint_read(eid, &val);
 
-  uint8_t localonly[] = { VALUE_BROADCAST_LOCAL_ONLY_EIDS };
+  uint32_t localonly[] = { VALUE_BROADCAST_LOCAL_ONLY_EIDS };
   broadcast_to_self(&val, eid);
 
   int i;
@@ -100,7 +100,7 @@ void broadcast_value(uint8_t eid)
 
   if(!lo)
   {
-    PRINTF("value_broadcast: Broadcasting EID %d.\n", eid);
+    PRINTF("value_broadcast: Broadcasting EID %ld.\n", eid);
 
     switch(val.datatype)
     {
@@ -226,7 +226,7 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
 
     if(ev == immediate_broadcast_event)
     {
-      PRINTF("Value_broadcast: Received immediate_broadcast_event -- EID: %d\r\n", (int)data);
+      PRINTF("Value_broadcast: Received immediate_broadcast_event -- EID: %ld\r\n", (int)data);
       broadcast_value((int)data);
     }
   }
