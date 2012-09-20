@@ -63,7 +63,7 @@
 #define PRINTLLADDR(addr)
 #endif
 
-#define UDP_DATA_LEN 120 //TODO set this to something to be specified in the hexabus spec
+#define UDP_DATA_LEN 140 //TODO set this to something to be specified in the hexabus spec
 #define UDP_IP_BUF   ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 #define HEXABUS_PORT 61616
 
@@ -142,13 +142,13 @@ make_message(char* buf, uint16_t command, uint16_t value)
   PRINTF("%s%02x%02x%04d\n", HEXABUS_HEADER, 2, command, value);
 }
 
-static struct hxb_packet_float make_value_packet_float(uint8_t eid, struct hxb_value* val)
+static struct hxb_packet_float make_value_packet_float(uint32_t eid, struct hxb_value* val)
 {
   struct hxb_packet_float packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
-  packet.eid = eid;
+  packet.eid = uip_htonl(eid);
 
   packet.datatype = val->datatype;
   // uip_htonl works on 32bit-int
@@ -157,37 +157,37 @@ static struct hxb_packet_float make_value_packet_float(uint8_t eid, struct hxb_v
 
   packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
   PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%d\r\nValue:\t%lx\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.eid, packet.value, uip_ntohs(packet.crc)); // printf can handle float?
+    packet.type, packet.flags, uip_ntohl(packet.eid), packet.value, uip_ntohs(packet.crc)); // printf can handle float?
   return packet;
 }
 
-static struct hxb_packet_int32 make_value_packet_int32(uint8_t eid, struct hxb_value* val)
+static struct hxb_packet_int32 make_value_packet_int32(uint32_t eid, struct hxb_value* val)
 {
   struct hxb_packet_int32 packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
-  packet.eid = eid;
+  packet.eid = uip_htonl(eid);
 
   packet.datatype = val->datatype;
   packet.value = uip_htonl(*(uint32_t*)&val->data);
 
   packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
   PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%ld\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.eid, uip_ntohl(packet.value), uip_ntohs(packet.crc)); // printf behaves strange here?
+    packet.type, packet.flags, uip_ntohl(packet.eid), uip_ntohl(packet.value), uip_ntohs(packet.crc)); // printf behaves strange here?
   return packet;
 }
 
-static struct hxb_packet_128string make_epinfo_packet(uint8_t eid)
+static struct hxb_packet_128string make_epinfo_packet(uint32_t eid)
 {
   struct hxb_packet_128string packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_EPINFO;
   packet.flags = 0;
-  packet.eid = eid;
+  packet.eid = uip_htonl(eid);
 
-  packet.datatype = endpoint_get_datatype(eid);
-  endpoint_get_name(eid, &packet.value);
+  packet.datatype = endpoint_get_datatype(packet.eid);
+  endpoint_get_name(packet.eid, &packet.value);
 
   packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
 
@@ -195,13 +195,13 @@ static struct hxb_packet_128string make_epinfo_packet(uint8_t eid)
   return packet;
 }
 
-static struct hxb_packet_int8 make_value_packet_int8(uint8_t eid, struct hxb_value* val)
+static struct hxb_packet_int8 make_value_packet_int8(uint32_t eid, struct hxb_value* val)
 {
   struct hxb_packet_int8 packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
-  packet.eid = eid;
+  packet.eid = uip_htonl(eid);
 
   packet.datatype = val->datatype;
   packet.value = *(uint8_t*)&val->data;
@@ -209,7 +209,7 @@ static struct hxb_packet_int8 make_value_packet_int8(uint8_t eid, struct hxb_val
   packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
 
   PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%d\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.eid, packet.value, uip_ntohs(packet.crc));
+    packet.type, packet.flags, uip_ntohl(packet.eid), packet.value, uip_ntohs(packet.crc));
 
   return packet;
 }
@@ -266,7 +266,7 @@ udphandler(process_event_t ev, process_data_t data)
         {
           struct hxb_value value;
           value.datatype = HXB_DTYPE_UNDEFINED;
-          uint8_t eid;
+          uint32_t eid;
 
           // CRC check and how big the actual value is depend on what type of packet we have.
           switch(header->datatype)
@@ -281,7 +281,7 @@ udphandler(process_event_t ev, process_data_t data)
               } else {
                 value.datatype = ((struct hxb_packet_int8*)header)->datatype;
                 *(uint8_t*)&value.data = ((struct hxb_packet_int8*)header)->value;
-                eid = ((struct hxb_packet_int8*)header)->eid;
+                eid = uip_ntohl(((struct hxb_packet_int8*)header)->eid);
               }
               break;
             case HXB_DTYPE_UINT32:
@@ -293,7 +293,7 @@ udphandler(process_event_t ev, process_data_t data)
               } else {
                 value.datatype = ((struct hxb_packet_int32*)header)->datatype;
                 *(uint32_t*)&value.data = uip_ntohl(((struct hxb_packet_int32*)header)->value);
-                eid = ((struct hxb_packet_int32*)header)->eid;
+                eid = uip_ntohl(((struct hxb_packet_int32*)header)->eid);
               }
               break;
             case HXB_DTYPE_FLOAT:
@@ -306,7 +306,7 @@ udphandler(process_event_t ev, process_data_t data)
                 value.datatype = ((struct hxb_packet_float*)header)->datatype;
                 uint32_t value_hbo = uip_ntohl(*(uint32_t*)&((struct hxb_packet_float*)header)->value);
                 *(float*)&value.data = *(float*)&value_hbo;
-                eid = ((struct hxb_packet_float*)header)->eid;
+                eid = uip_ntohl(((struct hxb_packet_float*)header)->eid);
               }
               break;
             default:
@@ -345,20 +345,20 @@ udphandler(process_event_t ev, process_data_t data)
           } else
           {
             struct hxb_value value;
-            endpoint_read(packet->eid, &value);
+            endpoint_read(uip_ntohl(packet->eid), &value);
             switch(value.datatype)
             {
               case HXB_DTYPE_BOOL:
               case HXB_DTYPE_UINT8:;
-                struct hxb_packet_int8 value_packet8 = make_value_packet_int8(packet->eid, &value);
+                struct hxb_packet_int8 value_packet8 = make_value_packet_int8(uip_ntohl(packet->eid), &value);
                 send_packet(&value_packet8, sizeof(value_packet8));
                 break;
               case HXB_DTYPE_UINT32:;
-                struct hxb_packet_int32 value_packet32 = make_value_packet_int32(packet->eid, &value);
+                struct hxb_packet_int32 value_packet32 = make_value_packet_int32(uip_ntohl(packet->eid), &value);
                 send_packet(&value_packet32, sizeof(value_packet32));
                 break;
               case HXB_DTYPE_FLOAT:;
-                struct hxb_packet_float value_packetf = make_value_packet_float(packet->eid, &value);
+                struct hxb_packet_float value_packetf = make_value_packet_float(uip_ntohl(packet->eid), &value);
                 send_packet(&value_packetf, sizeof(value_packetf));
                 break;
               case HXB_DTYPE_UNDEFINED:;
@@ -383,14 +383,14 @@ udphandler(process_event_t ev, process_data_t data)
           } else
           {
             // Check if endpoint exists by reading the datatype and checking the return value
-						if(endpoint_get_datatype(packet->eid) == HXB_DTYPE_UNDEFINED) {
-							struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNEID);
-							send_packet(&error_packet, sizeof(error_packet));
-						} else {
-							PRINTF("Sending EndpointInfo packet...\n");
-            	struct hxb_packet_128string epinfo_packet = make_epinfo_packet(packet->eid);
-            	send_packet(&epinfo_packet, sizeof(epinfo_packet));
-						}
+            if(endpoint_get_datatype(uip_ntohl(packet->eid)) == HXB_DTYPE_UNDEFINED) {
+              struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNEID);
+              send_packet(&error_packet, sizeof(error_packet));
+            } else {
+              PRINTF("Sending EndpointInfo packet...\n");
+              struct hxb_packet_128string epinfo_packet = make_epinfo_packet(uip_ntohl(packet->eid));
+              send_packet(&epinfo_packet, sizeof(epinfo_packet));
+            }
           }
         }
         else if(header->type == HXB_PTYPE_INFO)
@@ -409,7 +409,7 @@ udphandler(process_event_t ev, process_data_t data)
                   // Broadcast: Don't send an error packet.
                 } else {
                   struct hxb_packet_int8* packet = (struct hxb_packet_int8*)header;
-                  envelope->eid = packet->eid;
+                  envelope->eid = uip_ntohl(packet->eid);
                   envelope->value.datatype = packet->datatype;
                   *(uint8_t*)&envelope->value.data = packet->value;
                   process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
@@ -423,7 +423,7 @@ udphandler(process_event_t ev, process_data_t data)
                   // Broadcast: Don't send an error packet.
                 } else {
                   struct hxb_packet_int32* packet = (struct hxb_packet_int32*)header;
-                  envelope->eid = packet->eid;
+                  envelope->eid = uip_ntohl(packet->eid);
                   envelope->value.datatype = packet->datatype;
                   *(uint32_t*)&envelope->value.data = uip_ntohl(packet->value);
                   process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
@@ -440,7 +440,7 @@ udphandler(process_event_t ev, process_data_t data)
                   // Broadcast: Don't send an error packet.
                 } else {
                   struct hxb_packet_datetime* packet = (struct hxb_packet_datetime*)header;
-                  envelope->eid = packet->eid;
+                  envelope->eid = uip_ntohl(packet->eid);
                   envelope->value.datatype = packet->datatype;
                   packet->value.year = uip_ntohs(packet->value.year);
                   memcpy(&(envelope->value.data), &(packet->value), sizeof(struct datetime));
@@ -459,7 +459,7 @@ udphandler(process_event_t ev, process_data_t data)
                   // Broadcast: Don't send an error packet.
                 } else {
                   struct hxb_packet_float* packet = (struct hxb_packet_float*)header;
-                  envelope->eid = packet->eid;
+                  envelope->eid = uip_ntohl(packet->eid);
                   envelope->value.datatype = packet->datatype;
                   uint32_t value_hbo = uip_ntohl(*(uint32_t*)&packet->value);
                   *(float*)&envelope->value.data = *(float*)&value_hbo;
@@ -539,7 +539,7 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
 
   // see: http://senstools.gforge.inria.fr/doku.php?id=contiki:examples
   PROCESS_BEGIN();
-  
+
   sm_data_received_event = process_alloc_event();
 
   PRINTF("udp_handler: process startup.\r\n");
