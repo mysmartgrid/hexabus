@@ -179,7 +179,7 @@ metering_get_power(void)
 
   if (tmp > OUT_OF_DATE_TIME * CLOCK_SECOND)
     metering_power = 0;
-  	
+
 #if S0_ENABLE
   else if (metering_power != 0 && tmp > 2 * (((uint32_t)metering_reference_value*10) / (uint32_t)metering_power)) //S0 calibration is scaled
 #else

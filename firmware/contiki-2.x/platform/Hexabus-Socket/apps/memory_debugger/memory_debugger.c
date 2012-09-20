@@ -19,17 +19,17 @@ AUTOSTART_PROCESSES(&memory_debugger_process);
 /*---------------------------------------------------------------------------*/
 static void
 pollhandler(void) {
-	PRINTF("----Socket_memory_debugger_handler: Process polled\r\n");
+  PRINTF("----Socket_memory_debugger_handler: Process polled\r\n");
 }
 
 static void
 exithandler(void) {
-	PRINTF("----Socket_memory_debugger_handler: Process exits.\r\n");
+  PRINTF("----Socket_memory_debugger_handler: Process exits.\r\n");
 }
 /*---------------------------------------------------------------------------*/
 
 void print_mem_usage(void) {
-  PRINTF("MEMDBG: %d bytes free\r\n", 
+  PRINTF("MEMDBG: %d bytes free\r\n",
       get_current_free_bytes());
 }
 

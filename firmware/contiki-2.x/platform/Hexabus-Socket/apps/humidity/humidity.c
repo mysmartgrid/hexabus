@@ -14,7 +14,7 @@
 #endif
 
 float read_humidity() {
-    
+
     uint8_t bytes[HYT321_HUMIDITY_LENGTH];
 
     //Start conversion
@@ -38,7 +38,7 @@ float read_humidity() {
 }
 
 float read_humidity_temp() {
-    
+
     uint8_t bytes[HYT321_TEMPERATURE_LENGTH];
 
     if (i2c_write_bytes(HYT321_ADDR,NULL,0)){
@@ -52,7 +52,7 @@ float read_humidity_temp() {
     }
 
     //Convert to degrees celcius (refer datasheet)
-    
+
     uint16_t rawtemp = bytes[2]<<6 | (bytes[3]&0x3F);
 
     PRINTF("Raw Temperature: %d\n", rawtemp);

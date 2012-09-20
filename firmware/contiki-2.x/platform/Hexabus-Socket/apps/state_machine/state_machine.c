@@ -41,9 +41,9 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
     return true;
 
   //eeprom_read_block(&cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (condIndex * sizeof(struct condition))), sizeof(struct condition));
-	sm_get_condition(condIndex, &cond);
-	
-	// check if host is set (something other than :: (all zeroes)) -- if source host is ::, don't care for the source IP (anyhost condition)
+  sm_get_condition(condIndex, &cond);
+
+  // check if host is set (something other than :: (all zeroes)) -- if source host is ::, don't care for the source IP (anyhost condition)
   uint8_t hostset = 16;
   while(hostset)
   {
@@ -142,7 +142,7 @@ void check_datetime_transitions()
   {
     //eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
     sm_get_transition(true, i, t);
-		PRINTF("checkDT - curState: %d -- fromState: %d\r\n", curState, t->fromState);
+    PRINTF("checkDT - curState: %d -- fromState: %d\r\n", curState, t->fromState);
     if((t->fromState == curState) && (eval(t->cond, &dtenvelope)))
     {
       // Matching transition found. Check, if an action should be performed.
@@ -163,9 +163,9 @@ void check_datetime_transitions()
           break;
         }
       } else {
-    inStateSince = getTimestamp();
-    curState = t->goodState;
-    PRINTF("state_machine: No action performed. \r\n");
+        inStateSince = getTimestamp();
+        curState = t->goodState;
+        PRINTF("state_machine: No action performed. \r\n");
       }
     }
   }
@@ -178,11 +178,11 @@ void check_value_transitions(void* data)
   struct transition* t = malloc(sizeof(struct transition));
 
   struct hxb_envelope* envelope = (struct hxb_envelope*)data;
-  for(i = 0;i < transLength;i++)
+  for(i = 0; i < transLength; i++)
   {
     //eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
     sm_get_transition(false, i, t);
-		// get next transition to check from eeprom
+    // get next transition to check from eeprom
     if((t->fromState == curState) && (eval(t->cond, envelope)))
     {
       // Match found
@@ -202,9 +202,9 @@ void check_value_transitions(void* data)
           break;
         }
       } else {
-    inStateSince = getTimestamp();
-    curState = t->goodState;
-    PRINTF("state_machine: No action performed. \r\n");
+        inStateSince = getTimestamp();
+        curState = t->goodState;
+        PRINTF("state_machine: No action performed. \r\n");
       }
     }
   }
@@ -220,8 +220,8 @@ PROCESS_THREAD(state_machine_process, ev, data)
   }
 
   // read state machine table length from eeprom
-  transLength = sm_get_number_of_transitions(false);	//eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
-  dtTransLength = sm_get_number_of_transitions(true);	//eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
+  transLength = sm_get_number_of_transitions(false);   //eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
+  dtTransLength = sm_get_number_of_transitions(true);  //eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
 
 #if STATE_MACHINE_DEBUG
   // output tables so we see if reading it works
@@ -234,14 +234,14 @@ PROCESS_THREAD(state_machine_process, ev, data)
     {
       //eeprom_read_block(tt, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
       sm_get_transition(false, k, tt);
-			PRINTF(" %d | %d | %d | %d | %d \r\n", tt->fromState, tt->cond, tt->eid, tt->goodState, tt->badState);
+      PRINTF(" %d | %d | %d | %d | %d \r\n", tt->fromState, tt->cond, tt->eid, tt->goodState, tt->badState);
     }
     PRINTF("[date/time table size: %d]:\r\nFrom | Cond | EID | Good | Bad\r\n", dtTransLength);
     for(k = 0;k < dtTransLength;k++)
     {
       //eeprom_read_block(tt, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
       sm_get_transition(true, k, tt);
-			PRINTF(" %d | %d | %d | %d | %d \r\n", tt->fromState, tt->cond, tt->eid, tt->goodState, tt->badState);
+      PRINTF(" %d | %d | %d | %d | %d \r\n", tt->fromState, tt->cond, tt->eid, tt->goodState, tt->badState);
     }
   } else {
     PRINTF("malloc failed!\r\n");
@@ -272,8 +272,8 @@ PROCESS_THREAD(state_machine_process, ev, data)
     }
     if(ev == sm_rulechange_event) {
       // re-read state machine table length from eeprom
-      transLength = sm_get_number_of_transitions(false);	//eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
-      dtTransLength = sm_get_number_of_transitions(true);	//eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
+      transLength = sm_get_number_of_transitions(false);   //eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
+      dtTransLength = sm_get_number_of_transitions(true);  //eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
       PRINTF("State Machine: Re-Reading Table length.\n");
       PRINTF("TransLength: %d, dtTransLength: %d\n", transLength, dtTransLength);
     }
