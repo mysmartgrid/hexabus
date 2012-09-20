@@ -22,7 +22,7 @@ static uint8_t clicked_vector = 0;
 void button_clicked(uint8_t button) {
 
     PRINTF("Clicked %d\n", button);
-   
+
     clicked_vector|=(1<<button);
     broadcast_value(HEXAPUSH_CLICK_EID);
     clicked_vector&=~(1<<button);
@@ -30,7 +30,7 @@ void button_clicked(uint8_t button) {
 
 void button_pressed(uint8_t button) {
     PRINTF("Pressed %d\n", button);
-    
+
     pressed_vector|=(1<<button);
 
     broadcast_value(HEXAPUSH_PRESS_EID);
@@ -38,9 +38,9 @@ void button_pressed(uint8_t button) {
 
 void button_released(uint8_t button){
     PRINTF("Released %d\n", button);
-    
+
     pressed_vector&=~(1<<button);
-   
+
     broadcast_value(HEXAPUSH_PRESS_EID);
 }
 
@@ -54,7 +54,6 @@ uint8_t get_clickstate() {
 
 void hexapush_init(void) {
     PRINTF("Hexapush init\n");
-
 
     #if defined(HEXAPUSH_B0)
     button_vector |= (1<<HEXAPUSH_B0);
@@ -90,7 +89,7 @@ PROCESS(hexapush_process, "Handles pushbutton presses");
 AUTOSTART_PROCESSES(&hexapush_process);
 
 PROCESS_THREAD(hexapush_process, ev, data) {
-    
+
     static struct etimer debounce_timer;
 
     static uint8_t button_state[8];
@@ -108,7 +107,6 @@ PROCESS_THREAD(hexapush_process, ev, data) {
 
     etimer_set(&debounce_timer, CLOCK_SECOND * HP_DEBOUNCE_TIME / 1000);
     PRINTF("Hexapush process ready!\n");
-   
 
     while(1) {
 
