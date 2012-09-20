@@ -117,10 +117,10 @@ int main(int argc, char** argv)
       }
       // use the correct dataunit for the endpoints
       switch(phandling.getEID()){
-        case 1: 
+        case 1:
           sensor_unit=std::string("boolean");
           break;
-        case 2: 
+        case 2:
           sensor_unit=std::string("Watt");
           break;
         case 3:
@@ -160,9 +160,9 @@ int main(int argc, char** argv)
       std::ostringstream oss;
       oss << network.getSourceIP().to_string();
       oss << "-";
-      oss << (int)phandling.getEID();
+      oss << phandling.getEID();
       std::string sensor_id(oss.str());
-      std::cout << "Received a reading from " << sensor_id << ", value " 
+      std::cout << "Received a reading from " << sensor_id << ", value "
         << reading << std::endl;
 
       /**
@@ -209,7 +209,7 @@ int main(int argc, char** argv)
 
     } else {
       std::cout << "Received some packet." << std::endl;
-    } 
+    }
   }
 
 }

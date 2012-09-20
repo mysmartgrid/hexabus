@@ -32,12 +32,12 @@ namespace hexabus {
       Packet() {};
       virtual ~Packet() {};
 
-      hxb_packet_query query(uint8_t eid, bool ep_query = false);
-      hxb_packet_int8 write8(uint8_t eid, uint8_t datatype, uint8_t value, bool broadcast);
-      hxb_packet_int32 write32(uint8_t eid, uint8_t datatype, uint32_t value, bool broadcast);
-      hxb_packet_datetime writedt(uint8_t eid, uint8_t datatype, datetime value, bool broadcast);
-      hxb_packet_float writef(uint8_t eid, uint8_t datatype, float value, bool broadcast);
-      hxb_packet_128string writestr(uint8_t eid, uint8_t datatype, std::string value, bool broadcast);
+      hxb_packet_query query(uint32_t eid, bool ep_query = false);
+      hxb_packet_int8 write8(uint32_t eid, uint8_t datatype, uint8_t value, bool broadcast);
+      hxb_packet_int32 write32(uint32_t eid, uint8_t datatype, uint32_t value, bool broadcast);
+      hxb_packet_datetime writedt(uint32_t eid, uint8_t datatype, datetime value, bool broadcast);
+      hxb_packet_float writef(uint32_t eid, uint8_t datatype, float value, bool broadcast);
+      hxb_packet_128string writestr(uint32_t eid, uint8_t datatype, std::string value, bool broadcast);
     private:
   };
 
@@ -51,7 +51,7 @@ namespace hexabus {
       uint8_t getPacketType();
       uint8_t getErrorcode();
       uint8_t getDatatype();
-      uint8_t getEID();
+      uint32_t getEID();
       struct hxb_value getValue();
       int getValuePtr(struct hxb_value*);
       std::string getString();
@@ -62,7 +62,7 @@ namespace hexabus {
       uint8_t packet_type;
       uint8_t errorcode;
       uint8_t datatype;
-      uint8_t eid;
+      uint32_t eid;
       struct hxb_value value;
       std::string strval;
   };

@@ -9,7 +9,7 @@ namespace hexabus {
   class TempSensor : public Sensor {
     public:
       typedef std::tr1::shared_ptr<TempSensor> Ptr;
-      TempSensor (const std::string& id) 
+      TempSensor (const std::string& id)
         : Sensor(id) {};
       const std::string str() const;
       void add_value(float value);
@@ -19,9 +19,8 @@ namespace hexabus {
     private:
       TempSensor (const TempSensor& original);
       TempSensor& operator= (const TempSensor& rhs);
-      
+
   };
-  
 };
 
 
