@@ -617,7 +617,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
             }
 #endif
 		}
-		else if (httpd_strncmp(&s->inputbuf[1], httpd_socket_status_file, sizeof(httpd_socket_status_file)-1) == 0){
+		else if (httpd_strncmp(&s->inputbuf[1], httpd_socket_status_file, sizeof(httpd_socket_status_file)-1) == 0) {
 			// toggle button has been pressed
 
 			s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
@@ -634,8 +634,8 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			relay_toggle();
 
 		}
-		else if (httpd_strncmp(&s->inputbuf[1], httpd_sm_post, sizeof(httpd_sm_post)-1) == 0)  {
-			
+		else if (httpd_strncmp(&s->inputbuf[1], httpd_sm_post, sizeof(httpd_sm_post)-1) == 0) {
+
 			PRINTF("State Machine Configurator: Received Statemachine-POST\n"); 
 			s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
 			strncpy(s->filename, &s->inputbuf[0], sizeof(s->filename));
@@ -703,7 +703,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 				}
 				// Extract the value out of string
 				if(table == 0) {
-					// CondTable	
+					// CondTable
 					switch(position) {
 							case 0:; // SourceIP. Empty expression is needed.
 								// Transform string to hex. A little bit hacked but it works.
@@ -740,7 +740,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 										stodt(&s->inputbuf[0], cond.data, HXB_DTYPE_UINT8, PSOCK_DATALEN(&s->sin) - 1);
 									}
 								} else {
-										stodt(&s->inputbuf[0], cond.data, cond.datatype, PSOCK_DATALEN(&s->sin) - 1);
+									stodt(&s->inputbuf[0], cond.data, cond.datatype, PSOCK_DATALEN(&s->sin) - 1);
 								}
 					}
 					if(++position == 5) {
@@ -793,7 +793,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 					if(++position == 7) {
 						position = 0;
 						PRINTF("Struct Trans: From: %u Cond: %u EID: %u DataType: %u Good: %u Bad: %u\n", trans.fromState, trans.cond, trans.eid, trans.value.datatype, trans.goodState, trans.badState);
-						
+
 						// Check for condition #255 (always true)
 						bool isDateTime = false;
 						if(trans.cond != 255) {
@@ -821,11 +821,11 @@ PT_THREAD(handle_input(struct httpd_state *s))
 								sm_write_transition(false, numberOfBlocks, &trans);		
 								numberOfBlocks++;
 							} else {
-									PRINTF("Warning: Transition Table too long! Data will not be written.\n");
-                  s->state = STATE_ERROR;
-                  s->error_number = 413;
-								}
-								memset(&trans, 0, sizeof(struct transition));
+								PRINTF("Warning: Transition Table too long! Data will not be written.\n");
+                s->state = STATE_ERROR;
+                s->error_number = 413;
+							}
+							memset(&trans, 0, sizeof(struct transition));
 						}
 					}
 			}
