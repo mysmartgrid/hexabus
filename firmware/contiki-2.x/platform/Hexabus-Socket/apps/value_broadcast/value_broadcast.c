@@ -101,6 +101,7 @@ void broadcast_value(uint32_t eid)
   if(!lo)
   {
     PRINTF("value_broadcast: Broadcasting EID %ld.\n", eid);
+    PRINTF("value_broadcast: Datatype: %d.\n", val.datatype);
 
     switch(val.datatype)
     {
@@ -110,7 +111,7 @@ void broadcast_value(uint32_t eid)
         strncpy(&packet8.header, HXB_HEADER, 4);
         packet8.type = HXB_PTYPE_INFO;
         packet8.flags = 0;
-        packet8.eid = eid;
+        packet8.eid = uip_htonl(eid);
         packet8.datatype = val.datatype;
         packet8.value = *(uint8_t*)&val.data;
         packet8.crc = uip_htons(crc16_data((char*)&packet8, sizeof(packet8)-2, 0));
@@ -123,7 +124,7 @@ void broadcast_value(uint32_t eid)
         strncpy(&packet32.header, HXB_HEADER, 4);
         packet32.type = HXB_PTYPE_INFO;
         packet32.flags = 0;
-        packet32.eid = eid;
+        packet32.eid = uip_htonl(eid);
         packet32.datatype = val.datatype;
         packet32.value = uip_htonl(*(uint32_t*)&val.data);
         packet32.crc = uip_htons(crc16_data((char*)&packet32, sizeof(packet32)-2, 0));
@@ -136,7 +137,7 @@ void broadcast_value(uint32_t eid)
         strncpy(&packetf.header, HXB_HEADER, 4);
         packetf.type = HXB_PTYPE_INFO;
         packetf.flags = 0;
-        packetf.eid = eid;
+        packetf.eid = uip_htonl(eid);
         packetf.datatype = val.datatype;
         uint32_t value_nbo = uip_htonl(*(uint32_t*)&val.data);
         packetf.value = *(float*)&value_nbo;
