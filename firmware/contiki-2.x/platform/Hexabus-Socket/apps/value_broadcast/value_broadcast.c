@@ -78,6 +78,10 @@ void broadcast_to_self(struct hxb_value* val, uint32_t eid)
 #endif
 }
 
+void broadcast_value_ptr(void* eidp) { // when called from a callback timer or event, we get a void*
+  broadcast_value(*(uint32_t*)eidp);
+}
+
 void broadcast_value(uint32_t eid)
 {
   struct hxb_value val;
@@ -199,7 +203,7 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
 {
   static struct etimer periodic;
   static struct ctimer backoff_timer[VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS];
-  static uint8_t auto_eids[] = { VALUE_BROADCAST_AUTO_EIDS };
+  static uint32_t auto_eids[] = { VALUE_BROADCAST_AUTO_EIDS };
 
   PROCESS_BEGIN();
 
@@ -221,14 +225,15 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
       uint8_t i;
       for(i = 0 ; i < VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS; i++)
       {
-        ctimer_set(&backoff_timer[i], SEND_TIME, broadcast_value, auto_eids[i]);
+        ctimer_set(&backoff_timer[i], SEND_TIME, broadcast_value_ptr, (void*)&auto_eids[i]);
       }
     }
 
     if(ev == immediate_broadcast_event)
     {
-      PRINTF("Value_broadcast: Received immediate_broadcast_event -- EID: %ld\r\n", (int)data);
-      broadcast_value((int)data);
+      PRINTF("Value_broadcast: Received immediate_broadcast_event -- EID: %ld\r\n", *(uint32_t*)data);
+      broadcast_value_ptr(data);
+      free(data);
     }
   }
 

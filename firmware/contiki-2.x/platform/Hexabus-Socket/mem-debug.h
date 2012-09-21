@@ -1,5 +1,5 @@
-#ifndef MEM-DEBUG_H 
-#define MEM-DEBUG_H 1
+#ifndef MEM_DEBUG_H
+#define MEM_DEBUG_H
 
 #include <stdint.h>
 /*
