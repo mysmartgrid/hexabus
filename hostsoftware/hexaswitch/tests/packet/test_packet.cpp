@@ -25,6 +25,7 @@ BOOST_AUTO_TEST_CASE ( check_sanity ) {
 }
 
 BOOST_AUTO_TEST_CASE ( check_write_uint8_packet_generation ) {
+  std::cout << "Checking generation of uint8 write packet against stored reference packet." << std::endl;
   unsigned char testpacket[] = { 'H', 'X', '0', 'C', // Header
                         0x04,               // Packet Type: Write
                         0x00,               // Flags: None
@@ -40,11 +41,43 @@ BOOST_AUTO_TEST_CASE ( check_write_uint8_packet_generation ) {
   if(sizeof(testpacket) != sizeof(pi8))
     BOOST_FAIL("Size of generated packet differs from test packet");
 
+  bool fail = false;
   for(size_t i = 0; i < sizeof(pi8); i++) {
     std::cout << "Byte " << std::dec << i << " Generated: 0x" << std::hex << (short int)((unsigned char*)&pi8)[i] << "\t" << " Reference: 0x" << (short int)testpacket[i] << std::endl;
     if(((unsigned char*)&pi8)[i] != testpacket[i])
-      BOOST_FAIL("Generated packet differs from reference packet.");
+      fail = true;
   }
+
+  if(fail)
+    BOOST_FAIL("Generated packet differs from reference packet.");
+}
+
+BOOST_AUTO_TEST_CASE ( check_write_bool_packet_generation ) {
+  std::cout << "Checking generation of bool write packet against stored reference packet." << std::endl;
+  unsigned char testpacket[] = { 'H', 'X', '0', 'C', // Header
+                        0x04,               // Packet Type: Write
+                        0x00,               // Flags: None
+                        0, 0, 0, 23,        // Endpoint ID: 23
+                        0x01,               // Datatype: Boolean
+                        0x01,               // Value: true
+                        0x04, 0xfa          // CRC
+                      };
+
+  hexabus::Packet p;
+  hxb_packet_int8 pi8 = p.write8(23, HXB_DTYPE_BOOL, HXB_TRUE, false);
+
+  if(sizeof(testpacket) != sizeof(pi8))
+    BOOST_FAIL("Size of generated packet differs from test packet");
+
+  bool fail = false;
+  for(size_t i = 0; i < sizeof(pi8); i++) {
+    std::cout << "Byte " << std::dec << i << " Generated: 0x" << std::hex << (short int)((unsigned char*)&pi8)[i] << "\t" << " Reference: 0x" << (short int)testpacket[i] << std::endl;
+    if(((unsigned char*)&pi8)[i] != testpacket[i])
+      fail = true;
+  }
+
+  if(fail)
+    BOOST_FAIL("Generated packet differs from reference packet.");
 }
 
 //BOOST_AUTO_TEST_SUITE_END()
