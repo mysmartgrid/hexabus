@@ -40,6 +40,7 @@ int main(int argc, char** argv)
     ("help,h", "produce help message")
     ("version,v", "print libklio version and exit")
     ("storefile,s", po::value<std::string>(), "the data store to use")
+    ("timezone,t", po::value<std::string>(), "the timezone to use for new sensors")
     ;
   po::positional_options_description p;
   p.add("storefile", 1);
@@ -75,6 +76,16 @@ int main(int argc, char** argv)
     return 2;
   }
 
+  std::string sensor_timezone("Europe/Berlin"); 
+  if (! vm.count("timezone")) {
+    std::cerr << "Using default timezone " << sensor_timezone 
+      << ", change with -t <NEW_TIMEZONE>" << std::endl;
+  } else {
+    sensor_timezone=vm["timezone"].as<std::string>();
+  }
+
+
+
   std::map<std::string, hexabus::Sensor::Ptr> sensors;
   hexabus::NetworkAccess network;
   // TODO: Compile flag etc.
@@ -94,7 +105,7 @@ int main(int argc, char** argv)
       struct hxb_value value = phandling.getValue();
       float reading=0.0;
       std::string sensor_unit;
-      std::string sensor_timezone("Europe/Berlin"); 
+
       //use the use the right datatype for each recieved packet
       switch(phandling.getDatatype()){
         case HXB_DTYPE_BOOL:
@@ -205,8 +216,9 @@ int main(int argc, char** argv)
         } 
       } catch (klio::StoreException const& ex) {
         std::cout << "Failed to record reading: " << ex.what() << std::endl;
+      } catch (std::exception const& ex) {
+        std::cout << "Failed to record reading: " << ex.what() << std::endl;
       }
-
     } else {
       std::cout << "Received some packet." << std::endl;
     } 
