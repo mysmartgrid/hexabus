@@ -80,4 +80,31 @@ BOOST_AUTO_TEST_CASE ( check_write_bool_packet_generation ) {
     BOOST_FAIL("Generated packet differs from reference packet.");
 }
 
+BOOST_AUTO_TEST_CASE ( check_write_uint32_packet_generation ) {
+  std::cout << "Checking generation of bool write packet against stored reference packet." << std::endl;
+  unsigned char testpacket[] = { 'H', 'X', '0', 'C', // Header
+                        0x04,               // Packet Type: Write
+                        0x00,               // Flags: None
+                        0, 0, 0, 42,        // Endpoint ID: 42
+                        0x03,               // Datatype: Uint32
+                        0xfc, 0xde, 0x41, 0xb2, // Value: 4242424242
+                        0xd6, 0x3e          // CRC
+                      };
+
+  hexabus::Packet p;
+  hxb_packet_int32 pi32 = p.write32(42, HXB_DTYPE_UINT32, 4242424242, false);
+
+  if(sizeof(testpacket) != sizeof(pi32))
+    BOOST_FAIL("Size of generated packet differs from test packet");
+
+  bool fail = false;
+  for(size_t i = 0; i < sizeof(pi32); i++) {
+    std::cout << "Byte " << std::dec << i << " Generated: 0x" << std::hex << (short int)((unsigned char*)&pi32)[i] << "\t" << " Reference: 0x" << (short int)testpacket[i] << std::endl;
+    if(((unsigned char*)&pi32)[i] != testpacket[i])
+      fail = true;
+  }
+
+  if(fail)
+    BOOST_FAIL("Generated packet differs from reference packet.");
+}
 //BOOST_AUTO_TEST_SUITE_END()
