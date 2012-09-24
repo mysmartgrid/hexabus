@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE ( check_write_bool_packet_generation ) {
 }
 
 BOOST_AUTO_TEST_CASE ( check_write_uint32_packet_generation ) {
-  std::cout << "Checking generation of bool write packet against stored reference packet." << std::endl;
+  std::cout << "Checking generation of uint32 write packet against stored reference packet." << std::endl;
   unsigned char testpacket[] = { 'H', 'X', '0', 'C', // Header
                         0x04,               // Packet Type: Write
                         0x00,               // Flags: None
@@ -101,6 +101,34 @@ BOOST_AUTO_TEST_CASE ( check_write_uint32_packet_generation ) {
   for(size_t i = 0; i < sizeof(pi32); i++) {
     std::cout << "Byte " << std::dec << i << " Generated: 0x" << std::hex << (short int)((unsigned char*)&pi32)[i] << "\t" << " Reference: 0x" << (short int)testpacket[i] << std::endl;
     if(((unsigned char*)&pi32)[i] != testpacket[i])
+      fail = true;
+  }
+
+  if(fail)
+    BOOST_FAIL("Generated packet differs from reference packet.");
+}
+
+BOOST_AUTO_TEST_CASE ( check_write_float_packet_generation ) {
+  std::cout << "Checking generation of float write packet against stored reference packet." << std::endl;
+  unsigned char testpacket[] = { 'H', 'X', '0', 'C', // Header
+                        0x04,               // Packet Type: Write
+                        0x00,               // Flags: None
+                        0, 0, 0, 42,        // Endpoint ID: 42
+                        0x05,               // Datatype: Uint32
+                        0x41, 0xbb, 0x5c, 0x29, // Value 23.42
+                        0x34, 0xf6          // CRC
+                      };
+
+  hexabus::Packet p;
+  hxb_packet_float pif = p.writef(42, HXB_DTYPE_FLOAT, 23.42f, false);
+
+  if(sizeof(testpacket) != sizeof(pif))
+    BOOST_FAIL("Size of generated packet differs from test packet");
+
+  bool fail = false;
+  for(size_t i = 0; i < sizeof(pif); i++) {
+    std::cout << "Byte " << std::dec << i << " Generated: 0x" << std::hex << (short int)((unsigned char*)&pif)[i] << "\t" << " Reference: 0x" << (short int)testpacket[i] << std::endl;
+    if(((unsigned char*)&pif)[i] != testpacket[i])
       fail = true;
   }
 
