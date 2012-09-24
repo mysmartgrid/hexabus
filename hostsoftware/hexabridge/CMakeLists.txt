@@ -25,7 +25,9 @@ set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where m
 # path here, subsequent checks will resolve everything else
 set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/modules ${CMAKE_MODULE_PATH})
+
+include (UseCodeCoverage)
 
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-non-virtual-dtor -g -fomit-frame-pointer")
 
@@ -60,6 +62,10 @@ FIND_PACKAGE(Boost 1.40.0 REQUIRED COMPONENTS system)
 
 # Reflect the package structure
 add_subdirectory(src)
+
+# enable unit testing
+include(CTest)
+enable_testing()
 
 # add some files to the installation target
 #INSTALL(FILES README.txt LICENSE.txt DESTINATION share/doc/hexabridge)
