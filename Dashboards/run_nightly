@@ -31,7 +31,7 @@ ${CTEST} -V -VV -S ${dir}/HexabusCoverage.cmake,compiler=clang
 ${CTEST} -V -VV -S ${dir}/HexabusCoverage.cmake
 
 # compiliere alle xx-dev branches
-allBranches=`git branch -a | grep remotes | sed -e 's%remotes/origin/%%' | grep '.*-dev$' `
+allBranches=`git branch -a | grep remotes | sed -e 's%remotes/origin/%%' | grep '.*[-_]dev$' `
 for branch in ${allBranches}
 do
   echo ${CTEST} -V -VV -S ${dir}/HexabusContinuous.cmake,_git_branch=${branch}
