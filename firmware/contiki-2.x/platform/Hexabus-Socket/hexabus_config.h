@@ -22,7 +22,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define BUTTON_DEBUG 0
 #define BUTTON_DOUBLE_CLICK_ENABLED 0
 #define BUTTON_HAS_EID 1 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
-#define BUTTON_TOGGLES_RELAY 1 // set to 1 to have the button toggle the relay directly
+#define BUTTON_TOGGLES_RELAY 0 // set to 1 to have the button toggle the relay directly
 
 // datetime_service
 #define DATETIME_SERVICE_ENABLE 0
