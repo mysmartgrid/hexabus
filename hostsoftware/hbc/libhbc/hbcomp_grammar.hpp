@@ -103,7 +103,7 @@ namespace hexabus {
       // Basic elements: Identifier, assignment, ...
       identifier %= char_("a-zA-Z_") > *char_("a-zA-Z0-9_");
       placeholder %= char_("$") > file_pos > *char_("a-zA-Z0-9_");
-      filename %= eps > lexeme[char_("a-zA-Z0-9_") > *char_("a-zA-Z0-9_.")]; // TODO we need to be more specific here? At least we need /s.
+      filename %= eps > lexeme[char_("a-zA-Z0-9_/") > *char_("a-zA-Z0-9_./")];
       on_error<rethrow>(identifier, error_traceback_t("Invalid identifier"));
       // device_name.endpoint_name
       global_endpoint_id %= ( placeholder | identifier ) > '.' > file_pos > ( identifier | placeholder );
