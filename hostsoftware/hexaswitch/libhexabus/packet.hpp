@@ -2,10 +2,11 @@
 #define LIBHEXABUS_PACKET_HPP 1
 
 #include <stdint.h>
+#include <iostream>
 #include "../../../shared/hexabus_packet.h"
 
 //#define ENABLE_LOGGING 0
-#include "../build/libhexabus/config.h"
+#include "config.h"
 
 /* Include TR1 shared ptrs in a portable way. */
 #include <cstddef> // for __GLIBCXX__
@@ -16,13 +17,6 @@
 #    define __IBMCPP_TR1__
 #  endif
 #  include <memory>
-#endif
-
-#ifdef ENABLE_LOGGING
-#include <iostream>
-#define LOG(msg) std::cout << msg << std::endl;
-#else
-#define LOG(msg) 
 #endif
 
 namespace hexabus {
