@@ -63,7 +63,7 @@
 #define PRINTLLADDR(addr)
 #endif
 
-#define UDP_DATA_LEN 140 //TODO set this to something to be specified in the hexabus spec
+#define UDP_DATA_LEN 130 //TODO set this to something to be specified in the hexabus spec
 #define UDP_IP_BUF   ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 #define HEXABUS_PORT 61616
 

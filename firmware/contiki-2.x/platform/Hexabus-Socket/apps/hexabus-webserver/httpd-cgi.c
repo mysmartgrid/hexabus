@@ -580,8 +580,8 @@ void hxbtos(char *dest, char *data, uint8_t datatype)
 static unsigned short
 get_sm_tables(void *arg)
 {
-  static const char httpd_cgi_trans_table_line[] HTTPD_STRING_ATTR = "%c%u.%u.%u.%u.%s.%u.%u.%c";
-  static const char httpd_cgi_cond_table_line[] HTTPD_STRING_ATTR = "%c%s.%u.%u.%u.%s.%c";
+  static const char httpd_cgi_trans_table_line[] HTTPD_STRING_ATTR = "%c%u.%u.%lu.%u.%s.%u.%u.%c";
+  static const char httpd_cgi_cond_table_line[] HTTPD_STRING_ATTR = "%c%s.%lu.%u.%u.%s.%c";
   static const char httpd_cgi_char[] HTTPD_STRING_ATTR = "%c";
   uint16_t numprinted = 0;
   uint8_t length = 0;

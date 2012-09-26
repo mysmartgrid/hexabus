@@ -42,6 +42,7 @@
 #include "dev/leds.h"
 #include "relay.h"
 #include "hexabus_config.h"
+#include "endpoints.h"
 #include "value_broadcast.h"
 
 /** \brief This is a file internal variable that contains the 16 MSB of the
@@ -302,7 +303,9 @@ ISR(METERING_VECT)
         // the last argument is a void* that can be used for anything. We use it to tell value_broadcast our EID.
         // process_post(&value_broadcast_process, immediate_broadcast_event, (void*)2);
         last_broadcast = clock_time();
-        process_post(&value_broadcast_process, immediate_broadcast_event, (void*)2);
+        uint32_t* eid = malloc(sizeof(uint32_t));
+        *eid = EP_POWER_METER;
+        process_post(&value_broadcast_process, immediate_broadcast_event, (void*)eid);
       }
     }
 #endif // METERING_IMMEDIATE_BROADCAST
