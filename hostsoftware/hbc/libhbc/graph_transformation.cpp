@@ -12,6 +12,11 @@ bool GraphTransformation::contains(std::vector<std::string> v, std::string s) {
   return false;
 }
 
+
+std::vector<vertex_t> GraphTransformation::slice_for_device(std::string dev_name) {
+  /* TODO .o·°·o. DO MAGIC °o·.·o° */
+}
+
 void GraphTransformation::operator()(graph_t_ptr in_g) {
   // TODO:                                                | Data structures needed:
   // * iterate over (list of) state machines              |
@@ -40,7 +45,7 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
   // Sliced machines which fall out of the magic cauldron: (3)
   //   They have to be stored in some new set.
   //   I'd like to have a map<device name,machine>, but at this point, we can have multiple machines with the same device name
-  //      -> map<pair<device,stm.id>,machine> perhaps??? --- NO! Multimap!!
+  //      -> map<pair<device,stm.id>,machine> perhaps??? --- NO! Multimap!! (6)
   //   Now, for the second bit of magic: IF there is a device name with multiple state machines attached to it
   //      Parallel compose the state machines.
 
@@ -67,24 +72,25 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
   }
   // okay. now we have a map mapping from each state machine ID to the vertices belonging to this state machine. (1)
 
+  typedef std::multimap<std::string, std::vector<vertex_t> > device_map;
+  device_map machines_per_devname; // list of state machine nodes per device name (3)
+
   // now go through all the state machines
   for(machine_map::iterator stm_it = machines_per_stmid.begin(); stm_it != machines_per_stmid.end(); stm_it++) {
-    /* TODO .o·°·o. DO MAGIC °o·.·o° */
     std::vector<std::string> device_names;
     BOOST_FOREACH(vertex_t vert, stm_it->second) {
       if(vert.type == v_command) {
         try {
           command_block_doc cmdblck = boost::get<command_block_doc>(vert.contents);
           BOOST_FOREACH(command_doc cmd, cmdblck.commands) {
-            // cmd.write_command.geid.//TODO check that it's not a placeholder!! HERE!!
             try {
               std::string dev_name = boost::get<std::string>(cmd.write_command.geid.device_alias);
               if(!contains(device_names, dev_name))
                 device_names.push_back(dev_name);
             } catch(boost::bad_get b) {
               std::ostringstream oss;
-              oss << "Placeholder in state machine instance. Only literal device names are allowed here." << std::endl;
-              throw PlaceholderInInstanceException(oss.str()); // TODO line number, device name, something to make finding the error easier!
+              oss << "[" << cmd.write_command.geid.lineno << "] Placeholder in state machine instance. Only literal device names are allowed here." << std::endl;
+              throw PlaceholderInInstanceException(oss.str());
             }
           }
 
@@ -98,9 +104,16 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
     // now device_names contains each device alias used in a write command in the state machine. once. (5)
 
     // now, slice the machines for each device name.
+    BOOST_FOREACH(std::string dev_name, device_names) {
+      machines_per_devname.insert(std::pair<std::string, std::vector<vertex_t> >(dev_name, slice_for_device(dev_name)));
+    }
   }
 
-  typedef std::multimap<std::string, std::vector<vertex_t> > device_map;
-  device_map machines_per_devname; // list of state machine nodes per device name (3)
-  // TODO ...more!
+  // now we have our multimap, mapping from each device ID to a one or more state machine slices
+  // (machines_per_devname) (6)
+
+  // all that's left TODO: Parallel composition of state machines.
+  // (and optimization)
+  // (and simplification for compatibility with hexabus assembler)
+
 }

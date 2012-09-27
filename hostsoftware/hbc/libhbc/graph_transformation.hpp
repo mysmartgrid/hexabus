@@ -18,6 +18,7 @@ namespace hexabus {
       device_table_ptr _d;
       endpoint_table_ptr _e;
       bool contains(std::vector<std::string> v, std::string s);
+      std::vector<vertex_t> slice_for_device(std::string dev_name);
   };
 }
 
