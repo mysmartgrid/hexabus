@@ -29,7 +29,31 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
   // Sliced machines which fall out of the magic cauldron:
   //   They have to be stored in some new set.
   //   I'd like to have a map<device name,machine>, but at this point, we can have multiple machines with the same device name
-  //      -> map<pair<device,stm.id>,machine> perhaps???
+  //      -> map<pair<device,stm.id>,machine> perhaps??? --- NO! Multimap!!
   //   Now, for the second bit of magic: IF there is a device name with multiple state machines attached to it
   //      Parallel compose the state machines.
+
+  std::map<unsigned int, std::vector<vertex_t> > machines_per_stmid; // list of nodes for each state machine ID
+
+  // iterate over all vertices in graph
+  graph_t::vertex_iterator vertexIt, vertexEnd;
+  boost::tie(vertexIt, vertexEnd) = vertices((*in_g));
+  for(; vertexIt != vertexEnd; vertexIt++) {
+    vertex_id_t vertexID = *vertexIt;
+    vertex_t& vertex = (*in_g)[vertexID];
+    // look for machine ID in map
+    std::map<unsigned int, std::vector<vertex_t> >::iterator node_it;
+    if((node_it = machines_per_stmid.find(vertex.machine_id)) != machines_per_stmid.end())
+      // if there, append found vertex to vector in map
+      node_it->second.push_back(vertex);
+    else {
+      std::vector<vertex_t> vertex_vect;
+      vertex_vect.push_back(vertex);
+      // if not there, make new entry in map
+      machines_per_stmid.insert(std::pair<unsigned int, std::vector<vertex_t> >(vertex.machine_id, vertex_vect));
+    }
+  }
+  // okay. now we have a map mapping from each state machine ID to the vertices belonging to this state machine.
+
+
 }
