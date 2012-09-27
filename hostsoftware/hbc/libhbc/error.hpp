@@ -17,6 +17,20 @@ namespace hexabus {
       std::string _reason;
   };
 
+  class PlaceholderInInstanceException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<PlaceholderInInstanceException> Ptr;
+      PlaceholderInInstanceException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~PlaceholderInInstanceException() throw() {};
+  };
+
+  class GraphTransformationErrorException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<GraphTransformationErrorException> Ptr;
+      GraphTransformationErrorException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~GraphTransformationErrorException() throw() {};
+  };
+
   class HBAConversionErrorException : public GenericException {
     public:
       typedef std::tr1::shared_ptr<HBAConversionErrorException> Ptr;

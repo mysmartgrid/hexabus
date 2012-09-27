@@ -17,6 +17,7 @@ namespace hexabus {
     private:
       device_table_ptr _d;
       endpoint_table_ptr _e;
+      bool contains(std::vector<std::string> v, std::string s);
   };
 }
 
