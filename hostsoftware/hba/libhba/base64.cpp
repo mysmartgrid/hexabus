@@ -26,6 +26,12 @@ std::string hexabus::to_base64(std::vector<unsigned char> data) {
     result.push_back(base64codes[ ((data[i+1] << 2) & 0x3f)   | (data[i+2] >> 6) ]);
     result.push_back(base64codes[ (data[i+2] & 0x3f) ]);
 
+    if((i+3)%36 == 0 ) // Linebreak after 48 characters to simplify parsing on the hexabus board
+    {
+        result.push_back(0x0d);
+        result.push_back(0x0a);
+    }
+
     if(i == data.size() - 3) // we are in last triplet of bytes
     {
       if(pad == 2) // if two bytes were padded, last two bit sextets are turned into '='.
@@ -34,6 +40,12 @@ std::string hexabus::to_base64(std::vector<unsigned char> data) {
         result.back() = '=';
     }
   }
+
+  //terminate
+  result.push_back(0x0d);
+  result.push_back(0x0a);
+  result.push_back(0x0d);
+  result.push_back(0x0a);
 
   // convert vector to string
   std::string res(result.begin(), result.end());

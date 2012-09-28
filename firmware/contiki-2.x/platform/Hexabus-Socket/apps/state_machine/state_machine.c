@@ -253,6 +253,8 @@ PROCESS_THREAD(state_machine_process, ev, data)
   static struct etimer check_timer;
   etimer_set(&check_timer, CLOCK_SECOND * 5); // TODO do we want this configurable?
 
+  uint8_t running = 1;
+
   while(1)
   {
     PROCESS_WAIT_EVENT();
@@ -260,23 +262,19 @@ PROCESS_THREAD(state_machine_process, ev, data)
     PRINTF("state machine: Current state: %d\r\n", curState);
     if(ev == PROCESS_EVENT_TIMER)
     {
-      check_datetime_transitions();
+      if(running)
+        check_datetime_transitions();
       etimer_reset(&check_timer);
     }
     if(ev == sm_data_received_event)
     {
-      check_value_transitions(data);
+      if(running)
+        check_value_transitions(data);
       free(data);
 
       PRINTF("state machine: Now in state: %d\r\n", curState);
     }
-    if(ev == sm_rulechange_event) {
-      // re-read state machine table length from eeprom
-      transLength = sm_get_number_of_transitions(false);	//eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
-      dtTransLength = sm_get_number_of_transitions(true);	//eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
-      PRINTF("State Machine: Re-Reading Table length.\n");
-      PRINTF("TransLength: %d, dtTransLength: %d\n", transLength, dtTransLength);
-    }
+
   }
 
   PROCESS_END();

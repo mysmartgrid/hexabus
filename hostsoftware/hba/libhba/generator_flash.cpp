@@ -211,14 +211,14 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
   flash_format_state_map_t states_bin;
   flash_format_trans_dt_map_t trans_dt_bin;
 
-  unsigned char conditions_buffer[512];
-  unsigned char* conditions_pos = &conditions_buffer[0];
+  unsigned char conditions_buffer[513];
+  unsigned char* conditions_pos = &conditions_buffer[1];
   memset(conditions_buffer, 0, sizeof(conditions_buffer));
-  unsigned char transitions_buffer[512];
-  unsigned char* transitions_pos = &transitions_buffer[0];
+  unsigned char transitions_buffer[513];
+  unsigned char* transitions_pos = &transitions_buffer[1];
   memset(transitions_buffer, 0, sizeof(transitions_buffer));
-  unsigned char trans_dt_buffer[512]; // TODO 512 should be a #define!
-  unsigned char* trans_dt_pos = &trans_dt_buffer[0];
+  unsigned char trans_dt_buffer[513]; // TODO 512 should be a #define!
+  unsigned char* trans_dt_pos = &trans_dt_buffer[1];
   memset(trans_dt_buffer, 0, sizeof(trans_dt_buffer));
 
   std::cout << "start state: " << _ast.start_state << std::endl;
@@ -243,6 +243,7 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
     // insert into buffer
     if(conditions_pos < conditions_buffer + sizeof(conditions_buffer) - sizeof(condition))
     {
+      conditions_buffer[0]++;
       memcpy(conditions_pos, &cond, sizeof(cond));
       conditions_pos += sizeof(cond);
     }
@@ -264,6 +265,7 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
    // insert into buffer
     if(transitions_pos < transitions_buffer + sizeof(transitions_buffer) - sizeof(transition))
     {
+      transitions_buffer[0]++;
       memcpy(transitions_pos, &t, sizeof(t));
       transitions_pos += sizeof(t);
     }
@@ -284,6 +286,7 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
 
     if(trans_dt_pos < trans_dt_buffer + sizeof(trans_dt_buffer) - sizeof(transition))
     {
+      trans_dt_buffer[0]++;
       memcpy(trans_dt_pos, &t, sizeof(t));
       trans_dt_pos += sizeof(t);
     }

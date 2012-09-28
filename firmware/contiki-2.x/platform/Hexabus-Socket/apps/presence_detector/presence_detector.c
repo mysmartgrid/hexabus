@@ -57,10 +57,10 @@ static struct ctimer pd_timeout;
 #endif
 #if PRESENCE_DETECTOR_CLIENT
 static struct ctimer pd_keep_alive;
-static uint8_t presence = NO_PRESENCE;
+static uint8_t presence;
 #endif
 
-static uint8_t global_presence = NO_PRESENCE;
+static uint8_t global_presence;
 
 
 void global_presence_detected(void) {
@@ -112,11 +112,13 @@ uint8_t is_presence(void) {
 }
 
 void presence_detector_init() {
+    global_presence = NO_PRESENCE;
 #if PRESENCE_DETECTOR_SERVER
     ctimer_set(&pd_timeout, CLOCK_SECOND*60*PRESENCE_DETECTOR_SERVER_TIMEOUT, no_global_presence, NULL);
     ctimer_stop(&pd_timeout);
 #endif
 #if PRESENCE_DETECTOR_CLIENT
+    presence = NO_PRESENCE;
     if(PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE != 0) {
         ctimer_set(&pd_keep_alive, CLOCK_SECOND*PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE, presence_keep_alive, NULL);
         ctimer_stop(&pd_keep_alive);

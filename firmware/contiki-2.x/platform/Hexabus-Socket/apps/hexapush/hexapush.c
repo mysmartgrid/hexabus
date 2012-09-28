@@ -15,9 +15,11 @@
 #define PRINTF(...)
 #endif
 
-static uint8_t button_vector = 0;
-static uint8_t pressed_vector = 0;
-static uint8_t clicked_vector = 0;
+static uint8_t button_vector;
+static uint8_t pressed_vector;
+static uint8_t clicked_vector;
+static uint8_t button_state[8];
+static uint8_t longclick_counter[8];
 
 void button_clicked(uint8_t button) {
 
@@ -55,6 +57,15 @@ uint8_t get_clickstate() {
 void hexapush_init(void) {
     PRINTF("Hexapush init\n");
 
+    button_vector = 0;
+    pressed_vector = 0;
+    clicked_vector = 0;
+
+    int i;
+    for(i=0;i<8;i++) {
+        button_state[i]=0;
+        longclick_counter[i]=0;
+    }
 
     #if defined(HEXAPUSH_B0)
     button_vector |= (1<<HEXAPUSH_B0);
@@ -93,23 +104,11 @@ PROCESS_THREAD(hexapush_process, ev, data) {
     
     static struct etimer debounce_timer;
 
-    static uint8_t button_state[8];
-    static uint8_t longclick_counter[8];
-
     PROCESS_BEGIN();
-
-    int i;
-    for(i=0;i<8;i++) {
-        button_state[i]=0;
-        longclick_counter[i]=0;
-    }
-
-    hexapush_init();
 
     etimer_set(&debounce_timer, CLOCK_SECOND * HP_DEBOUNCE_TIME / 1000);
     PRINTF("Hexapush process ready!\n");
    
-
     while(1) {
 
          etimer_restart(&debounce_timer);

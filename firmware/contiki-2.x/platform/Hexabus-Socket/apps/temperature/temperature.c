@@ -28,7 +28,7 @@
 static struct etimer temperature_periodic_timer;
 
 //local variables
-static float temperature_value=0.0;
+static float temperature_value;
 static char temperature_string_buffer[10];
 
 /*---------------------------------------------------------------------------*/
@@ -51,6 +51,7 @@ void
 temperature_init(void)
 {
 #if TEMPERATURE_SENSOR == 0
+  temperature_value=0.0;
   PRINTF("-- Temperature: INIT\r\n");
   initTempSensors();
   loopTempSensors();
