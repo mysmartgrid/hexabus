@@ -13,8 +13,17 @@ bool GraphTransformation::contains(std::vector<std::string> v, std::string s) {
 }
 
 
-std::vector<vertex_t> GraphTransformation::slice_for_device(std::string dev_name) {
-  /* TODO .o·°·o. DO MAGIC °o·.·o° */
+std::vector<vertex_t> GraphTransformation::slice_for_device(std::string dev_name, std::vector<vertex_t> vertices) {
+  // TODO
+  // * Make list of all (node containing) write commands for this machine
+  // * for each write command, slice (backwards reachability analysis)
+  // * take union set of all slices
+
+  // find all nodes containing write commands for the given device
+  std::vector<vertex_t> command_nodes_for_device;
+  BOOST_FOREACH(vertex_t vert, vertices) {
+    
+  }
 }
 
 void GraphTransformation::operator()(graph_t_ptr in_g) {
@@ -105,7 +114,7 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
 
     // now, slice the machines for each device name.
     BOOST_FOREACH(std::string dev_name, device_names) {
-      machines_per_devname.insert(std::pair<std::string, std::vector<vertex_t> >(dev_name, slice_for_device(dev_name)));
+      machines_per_devname.insert(std::pair<std::string, std::vector<vertex_t> >(dev_name, slice_for_device(dev_name, stm_it->second)));
     }
   }
 
