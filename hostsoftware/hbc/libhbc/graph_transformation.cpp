@@ -5,16 +5,7 @@
 
 using namespace hexabus;
 
-bool GraphTransformation::contains(std::vector<std::string> v, std::string s) {
-  BOOST_FOREACH(std::string str, v) {
-    if(str == s)
-      return true;
-  }
-  return false;
-}
-
-
-std::vector<vertex_t> GraphTransformation::slice_for_device(std::string dev_name, std::vector<vertex_t> vertices, graph_t_ptr g) {
+std::vector<vertex_id_t> GraphTransformation::slice_for_device(std::string dev_name, std::vector<vertex_t> vertices, graph_t_ptr g) {
   // TODO
   // * Make list of all (node containing) write commands for this machine
   // * for each write command, slice (backwards reachability analysis)
@@ -38,8 +29,16 @@ std::vector<vertex_t> GraphTransformation::slice_for_device(std::string dev_name
   }
   // now, command_nodes_for_device contains all command nodes which can write to device named dev_name
 
-  vertex_id_t vert_id = find_vertex(g, command_nodes_for_device[0].machine_id, command_nodes_for_device[0].vertex_id);
-  boost::breadth_first_search(*g, vert_id, visitor(boost::default_bfs_visitor()));
+  // compute slice for each command node, build union over slices
+  std::vector<vertex_id_t> reachable_nodes;
+  BOOST_FOREACH(vertex_t start_vertex, command_nodes_for_device) {
+    // reachability analysis.
+    vertex_id_t vert_id = find_vertex(g, start_vertex.machine_id, start_vertex.vertex_id); // TODO just pass through a vertex_id_t instead of passing a vertex_t and then having to search for its vertex_id_t again!
+    // note: bfs_nodelist_maker addes each node only once, so iterating over some multiple times isn't a problem
+    boost::breadth_first_search(boost::make_reverse_graph(*g), vert_id, visitor(bfs_nodelist_maker(&reachable_nodes)));
+  }
+
+  return reachable_nodes;
 }
 
 void GraphTransformation::operator()(graph_t_ptr in_g) {
@@ -97,7 +96,7 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
   }
   // okay. now we have a map mapping from each state machine ID to the vertices belonging to this state machine. (1)
 
-  typedef std::multimap<std::string, std::vector<vertex_t> > device_map;
+  typedef std::multimap<std::string, std::vector<vertex_id_t> > device_map;
   device_map machines_per_devname; // list of state machine nodes per device name (3)
 
   // now go through all the state machines
@@ -130,7 +129,7 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
 
     // now, slice the machines for each device name.
     BOOST_FOREACH(std::string dev_name, device_names) {
-      machines_per_devname.insert(std::pair<std::string, std::vector<vertex_t> >(dev_name, slice_for_device(dev_name, stm_it->second, in_g)));
+      machines_per_devname.insert(std::pair<std::string, std::vector<vertex_id_t> >(dev_name, slice_for_device(dev_name, stm_it->second, in_g)));
     }
   }
 
