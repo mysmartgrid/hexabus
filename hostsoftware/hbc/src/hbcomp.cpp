@@ -8,6 +8,7 @@
 #include <libhbc/table_builder.hpp>
 #include <libhbc/module_instantiation.hpp>
 #include <libhbc/hba_output.hpp>
+#include <libhbc/graph_transformation.hpp>
 
 // commandline parsing.
 #include <boost/program_options.hpp>
@@ -35,6 +36,7 @@ int main(int argc, char** argv)
     ("tables,t", "build endpoint and alias tables") // TODO this has to happen automatically later.
     ("modules,m", "build module table") // TODO module instantiation too
     ("output,o", "output Hexabus Assembler (HBA) code") // TODO this as well
+    ("slice,s", "slice state machines") // TODO this as well
   ;
   po::positional_options_description p;
   p.add("input", 1);
@@ -188,6 +190,12 @@ int main(int argc, char** argv)
 
       hexabus::HBAOutput out(gBuilder.get_graph(), tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
       out(std::cout);
+    }
+
+    if(vm.count("slice")) {
+      // TODO just assuming everything up to now worked okay
+      hexabus::GraphTransformation gt(tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
+      gt(gBuilder.get_graph());
     }
 
   } else {

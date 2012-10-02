@@ -36,13 +36,14 @@ namespace hexabus {
       bfs_nodelist_maker(std::vector<vertex_id_t>* node_ids) : node_id_list(node_ids) { }
       template <typename Vertex, typename Graph> void discover_vertex(Vertex u, Graph g) {
         // TODO there must be a more elegant way to do this
-        if(!contains(*node_id_list, u))
+        if(!contains(*node_id_list, u)) {
           node_id_list->push_back(u);
+        }
       }
 
     private:
       std::vector<vertex_id_t>* node_id_list;
   };
-}
+};
 
 #endif // LIBHBC_GRAPH_TRANSFORMATION

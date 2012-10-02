@@ -12,6 +12,7 @@ std::vector<vertex_id_t> GraphTransformation::slice_for_device(std::string dev_n
   // * take union set of all slices
 
   // find all command nodes containing write commands for the given device
+  std::cout << "finding write command nodes for " << dev_name << std::endl;
   std::vector<vertex_t> command_nodes_for_device;
   BOOST_FOREACH(vertex_t vert, vertices) {
     if(vert.type == v_command) {
@@ -20,16 +21,19 @@ std::vector<vertex_id_t> GraphTransformation::slice_for_device(std::string dev_n
         BOOST_FOREACH(command_doc cmd, cmdblck.commands) {
           if(boost::get<std::string>(cmd.write_command.geid.device_alias) == dev_name) {
             command_nodes_for_device.push_back(vert);
+            std::cout << "found node " << vert.machine_id << "." << vert.vertex_id << std::endl;
           }
         }
       } catch(boost::bad_get b) {
         // TODO this is an error during graph construction!
+        std::cout << "bad get";
       }
     }
   }
   // now, command_nodes_for_device contains all command nodes which can write to device named dev_name
 
   // compute slice for each command node, build union over slices
+  std::cout << "slicing..." << std::endl;
   std::vector<vertex_id_t> reachable_nodes;
   BOOST_FOREACH(vertex_t start_vertex, command_nodes_for_device) {
     // reachability analysis.
@@ -131,6 +135,16 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
     BOOST_FOREACH(std::string dev_name, device_names) {
       machines_per_devname.insert(std::pair<std::string, std::vector<vertex_id_t> >(dev_name, slice_for_device(dev_name, stm_it->second, in_g)));
     }
+
+  }
+
+  for(device_map::iterator mach_it = machines_per_devname.begin(); mach_it != machines_per_devname.end(); mach_it++) {
+    std::cout << mach_it->first << ":";
+    BOOST_FOREACH(vertex_id_t vert, mach_it->second) {
+      vertex_t vvvvvvv = (*in_g)[vert];
+      std::cout << "  " << vvvvvvv.machine_id << "." << vvvvvvv.vertex_id;
+    }
+    std::cout << std::endl;
   }
 
   // now we have our multimap, mapping from each device ID to a one or more state machine slices
