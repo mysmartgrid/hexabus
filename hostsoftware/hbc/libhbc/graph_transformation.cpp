@@ -1,6 +1,7 @@
 #include "graph_transformation.hpp"
 
 #include <libhbc/error.hpp>
+#include <boost/graph/reverse_graph.hpp>
 
 using namespace hexabus;
 
@@ -13,17 +14,32 @@ bool GraphTransformation::contains(std::vector<std::string> v, std::string s) {
 }
 
 
-std::vector<vertex_t> GraphTransformation::slice_for_device(std::string dev_name, std::vector<vertex_t> vertices) {
+std::vector<vertex_t> GraphTransformation::slice_for_device(std::string dev_name, std::vector<vertex_t> vertices, graph_t_ptr g) {
   // TODO
   // * Make list of all (node containing) write commands for this machine
   // * for each write command, slice (backwards reachability analysis)
   // * take union set of all slices
 
-  // find all nodes containing write commands for the given device
+  // find all command nodes containing write commands for the given device
   std::vector<vertex_t> command_nodes_for_device;
   BOOST_FOREACH(vertex_t vert, vertices) {
-    
+    if(vert.type == v_command) {
+      try {
+        command_block_doc cmdblck = boost::get<command_block_doc>(vert.contents);
+        BOOST_FOREACH(command_doc cmd, cmdblck.commands) {
+          if(boost::get<std::string>(cmd.write_command.geid.device_alias) == dev_name) {
+            command_nodes_for_device.push_back(vert);
+          }
+        }
+      } catch(boost::bad_get b) {
+        // TODO this is an error during graph construction!
+      }
+    }
   }
+  // now, command_nodes_for_device contains all command nodes which can write to device named dev_name
+
+  vertex_id_t vert_id = find_vertex(g, command_nodes_for_device[0].machine_id, command_nodes_for_device[0].vertex_id);
+  boost::breadth_first_search(*g, vert_id, visitor(boost::default_bfs_visitor()));
 }
 
 void GraphTransformation::operator()(graph_t_ptr in_g) {
@@ -63,7 +79,7 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
 
   // iterate over all vertices in graph
   graph_t::vertex_iterator vertexIt, vertexEnd;
-  boost::tie(vertexIt, vertexEnd) = vertices((*in_g));
+  boost::tie(vertexIt, vertexEnd) = vertices(*in_g);
   for(; vertexIt != vertexEnd; vertexIt++) {
     vertex_id_t vertexID = *vertexIt;
     vertex_t& vertex = (*in_g)[vertexID];
@@ -114,7 +130,7 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
 
     // now, slice the machines for each device name.
     BOOST_FOREACH(std::string dev_name, device_names) {
-      machines_per_devname.insert(std::pair<std::string, std::vector<vertex_t> >(dev_name, slice_for_device(dev_name, stm_it->second)));
+      machines_per_devname.insert(std::pair<std::string, std::vector<vertex_t> >(dev_name, slice_for_device(dev_name, stm_it->second, in_g)));
     }
   }
 
