@@ -20,7 +20,7 @@ namespace hexabus {
     private:
       device_table_ptr _d;
       endpoint_table_ptr _e;
-      std::vector<vertex_id_t> slice_for_device(std::string dev_name, std::vector<vertex_t> vertices, graph_t_ptr g);
+      std::vector<vertex_id_t> slice_for_device(std::string dev_name, std::vector<vertex_id_t> vertices, graph_t_ptr g);
   };
 
   template <typename T> bool contains(std::vector<T>& v, T s) {
