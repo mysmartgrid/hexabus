@@ -2,6 +2,7 @@
 
 #include <libhbc/error.hpp>
 #include <boost/graph/reverse_graph.hpp>
+#include <libhbc/hbc_printer.hpp>
 
 using namespace hexabus;
 
@@ -34,12 +35,18 @@ std::vector<vertex_id_t> GraphTransformation::slice_for_device(std::string dev_n
   // now, command_nodes_for_device contains all command nodes which can write to device named dev_name
 
   // compute slice for each command node, build union over slices
-  std::cout << "slicing..." << std::endl;
+  std::cout << "backward slicing..." << std::endl;
   std::vector<vertex_id_t> reachable_nodes;
   BOOST_FOREACH(vertex_id_t start_vertex, command_nodes_for_device) {
     // reachability analysis.
     // note: bfs_nodelist_maker adds each node only once, so iterating over some multiple times isn't a problem
     boost::breadth_first_search(boost::make_reverse_graph(*g), start_vertex, visitor(bfs_nodelist_maker(&reachable_nodes)));
+  }
+
+  std::cout << "forward slicing..." << std::endl;
+  BOOST_FOREACH(vertex_id_t start_vertex, command_nodes_for_device) {
+    // again, do the reachability analysis, but this time on the non-reversed graph
+    boost::breadth_first_search(*g, start_vertex, visitor(bfs_nodelist_maker(&reachable_nodes)));
   }
 
   return reachable_nodes;
@@ -137,11 +144,18 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
 
   }
 
+  // for testing, print the slices
+  hbc_printer print;
   for(device_map::iterator mach_it = machines_per_devname.begin(); mach_it != machines_per_devname.end(); mach_it++) {
     std::cout << mach_it->first << ":";
     BOOST_FOREACH(vertex_id_t vert, mach_it->second) {
       vertex_t vvvvvvv = (*in_g)[vert];
-      std::cout << "  " << vvvvvvv.machine_id << "." << vvvvvvv.vertex_id << "(" << vvvvvvv.type << ")c;
+      std::cout << "  " << vvvvvvv.machine_id << "." << vvvvvvv.vertex_id << "(";
+      if(vvvvvvv.type == v_cond)
+        print(boost::get<condition_doc>(vvvvvvv.contents), std::cout);
+      else if(vvvvvvv.type == v_command)
+        print(boost::get<command_block_doc>(vvvvvvv.contents), std::cout);
+      std::cout << ")";
     }
     std::cout << std::endl;
   }
