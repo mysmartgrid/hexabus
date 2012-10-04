@@ -165,6 +165,7 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
 
   // all that's left TODO: Parallel composition of state machines. (when there are multiple state machines for the same device)
   // (and optimization)
+
   // (and simplification for compatibility with hexabus assembler)
 
 }
