@@ -113,7 +113,9 @@ int main(int argc, char** argv)
           reading = (float)(*(uint8_t*)&value.data);
           break;
         case HXB_DTYPE_UINT32:
-          memcpy(&reading, &value.data[0], sizeof(uint32_t));  // damit gehts..
+          uint32_t v;
+          memcpy(&v, &value.data[0], sizeof(uint32_t));  // damit gehts..
+          reading = (float) v;
           break;
         //case 4: //date+time packet
         case HXB_DTYPE_FLOAT:
