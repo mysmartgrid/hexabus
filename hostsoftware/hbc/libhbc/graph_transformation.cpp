@@ -24,9 +24,10 @@ std::vector<vertex_id_t> GraphTransformation::slice_for_device(std::string dev_n
             std::cout << "found node " << (*g)[vert].machine_id << "." << (*g)[vert].vertex_id << std::endl;
           }
         }
-      } catch(boost::bad_get b) {
-        // TODO this is an error during graph construction!
-        std::cout << "bad get";
+      } catch(boost::bad_get b) { // this is an error during graph construction!
+        std::ostringstream oss;
+        oss << "Bad get while trying to get command block out of command vertex!" << std::endl;
+        throw GraphTransformationErrorException(oss.str());
       }
     }
   }
@@ -140,7 +141,7 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
     std::cout << mach_it->first << ":";
     BOOST_FOREACH(vertex_id_t vert, mach_it->second) {
       vertex_t vvvvvvv = (*in_g)[vert];
-      std::cout << "  " << vvvvvvv.machine_id << "." << vvvvvvv.vertex_id << "(" << vvvvvvv.type << ")";
+      std::cout << "  " << vvvvvvv.machine_id << "." << vvvvvvv.vertex_id << "(" << vvvvvvv.type << ")c;
     }
     std::cout << std::endl;
   }
@@ -148,7 +149,7 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
   // now we have our multimap, mapping from each device ID to a one or more state machine slices
   // (machines_per_devname) (6)
 
-  // all that's left TODO: Parallel composition of state machines.
+  // all that's left TODO: Parallel composition of state machines. (when there are multiple state machines for the same device)
   // (and optimization)
   // (and simplification for compatibility with hexabus assembler)
 
