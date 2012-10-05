@@ -221,9 +221,9 @@ int main(int argc, char **argv)
       std::string cond_b64str(hexabus::to_base64(cond_data));
       std::string trans_b64str(hexabus::to_base64(trans_data));
       std::string dttrans_b64str(hexabus::to_base64(dttrans_data));
-      cond_ofs << cond_b64str;
-      trans_ofs << trans_b64str;
-      dttrans_ofs << dttrans_b64str;
+      cond_ofs << "1" << std::endl << cond_b64str;
+      trans_ofs << "2" << std::endl << trans_b64str;
+      dttrans_ofs << "3" << std::endl << dttrans_b64str;
 
       cond_ofs.close();
       trans_ofs.close();
