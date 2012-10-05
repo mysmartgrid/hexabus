@@ -40,6 +40,7 @@ int main(int argc, char **argv)
     ("graph,g", po::value<std::string>(), "generate a dot file")
     ("input,i", po::value<std::string>(), "the hexabus assembler input file")
     ("output,o", po::value<std::string>(), "the hexabus assembler output file")
+    ("dtdef,d", po::value<std::string>(), "data type definition file")
     ;
   po::positional_options_description p;
   p.add("infile", 1);
@@ -60,6 +61,14 @@ int main(int argc, char **argv)
     std::cout << "hexabus assembler version " << vi->getVersion() << std::endl;
     return 0;
   }
+
+  std::string dt_filename = "";
+  if (vm.count("dtdef")) {
+    dt_filename = vm["dtdef"].as<std::string>();
+  } else {
+    std::cout << "No data type definition file specified. Output will be generated with blank data types." << std::endl;
+  }
+
   if (! vm.count("input")) {
     std::cerr << "Error: You must specify an input file." << std::endl;
     return 1;
@@ -174,7 +183,7 @@ int main(int argc, char **argv)
         std::cout << "ERROR: " << ge.what() << std::endl;
         exit(-1);
       }
-      hexabus::generator_flash gf(gBuilder.get_graph(), ast);
+      hexabus::generator_flash gf(gBuilder.get_graph(), ast, dt_filename);
 
       std::ofstream cond_ofs;
       std::ofstream trans_ofs;
