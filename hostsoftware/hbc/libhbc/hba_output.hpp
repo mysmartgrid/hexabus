@@ -18,6 +18,10 @@ namespace hexabus {
       graph_t_ptr _g;
       device_table_ptr _d;
       endpoint_table_ptr _e;
+
+      void print_condition(atomic_condition_doc at_cond, std::ostream& ostr, vertex_t& vertex);
+      void print_condition(timeout_condition_doc to_cond, std::ostream& ostr, vertex_t& vertex);
+      void print_condition(timer_condition_doc tm_cond, std::ostream& ostr, vertex_t& vertex);
   };
 }
 

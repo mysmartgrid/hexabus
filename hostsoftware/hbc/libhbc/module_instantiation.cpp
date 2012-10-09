@@ -21,7 +21,15 @@ struct module_instantiation : boost::static_visitor<> {
         m(boost::get<atomic_condition_doc>(cond).constant, inst_at_cond.constant, placeholders, parameters);
         inst_cond = inst_at_cond;
         break;
-      case 2: // compound_condition
+      case 2: // timeout_condition
+        // TODO at the moment we do not support placeholders for timeout conditions. but we should.
+        inst_cond = cond;
+        break;
+      case 3: // timer_condition
+        // TODO at the moment we do not support placeholders for timer conditions. but we should.
+        inst_cond = cond;
+        break;
+      case 4: // compound_condition
         m(boost::get<compound_condition_doc>(cond).condition_a, inst_comp_cond.condition_a, placeholders, parameters);
         inst_comp_cond.bool_op = boost::get<compound_condition_doc>(cond).bool_op;
         m(boost::get<compound_condition_doc>(cond).condition_b, inst_comp_cond.condition_b, placeholders, parameters);
