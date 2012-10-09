@@ -136,9 +136,14 @@ namespace hexabus {
       bool_op %= ( lit("||")[_val = OR] | lit("&&")[_val = AND] );
       comp_op %= ( lit("==")[_val = STM_EQ] | lit("<=")[_val = STM_LEQ] | lit(">=")[_val = STM_GEQ] | lit("<")[_val = STM_LT] | lit(">")[_val = STM_GT] | lit("!=")[_val = STM_NEQ] );
       atomic_condition %= global_endpoint_id > comp_op > constant;
+      timeout_condition %= lit("timeout") > uint_;
+      timer_condition %= lit("time") > time_fields > time_comp_op > uint_;
+      time_fields %= ( lit("hour")[ _val = TF_HOUR ] | lit("minute")[ _val = TF_MINUTE ] | lit("second")[ _val = TF_SECOND ] | lit("day")[ _val = TF_DAY ]
+                       | lit("month")[ _val = TF_MONTH] | lit("year")[ _val = TF_YEAR ] | lit("weekday")[ _val = TF_WEEKDAY ] );
+      time_comp_op %= ( lit(">")[ _val = STM_GT ] | lit("<")[ _val = STM_LT ] );
       compound_condition %= '(' > condition > ')' > bool_op > '(' > condition > ')';
       tautology %= lit("true")[_val = 1];
-      condition %= ( tautology | atomic_condition | compound_condition );
+      condition %= ( tautology | atomic_condition | timeout_condition | timer_condition | compound_condition );
       command_block %= *command > goto_command > ';';
       guarded_command_block %= '(' > condition > ')' > '{' > command_block > '}';
 
@@ -202,6 +207,10 @@ namespace hexabus {
     qi::rule<Iterator, in_clause_doc(), Skip> in_clause;
     qi::rule<Iterator, int(), Skip> comp_op;
     qi::rule<Iterator, atomic_condition_doc(), Skip> atomic_condition;
+    qi::rule<Iterator, timeout_condition_doc(), Skip> timeout_condition;
+    qi::rule<Iterator, timer_condition_doc(), Skip> timer_condition;
+    qi::rule<Iterator, time_fields(), Skip> time_fields;
+    qi::rule<Iterator, comp_operator(), Skip> time_comp_op;
     qi::rule<Iterator, compound_condition_doc(), Skip> compound_condition;
     qi::rule<Iterator, unsigned int(), Skip> tautology;
     qi::rule<Iterator, condition_doc(), Skip> condition;

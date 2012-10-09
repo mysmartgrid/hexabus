@@ -91,8 +91,18 @@ namespace hexabus {
     constant_doc constant;
   };
 
+  struct timeout_condition_doc {
+    unsigned int seconds;
+  };
+
+  struct timer_condition_doc {
+    time_fields fields;
+    comp_operator op;
+    unsigned int value;
+  };
+
   struct compound_condition_doc;
-  typedef boost::variant<unsigned int, atomic_condition_doc, boost::recursive_wrapper<compound_condition_doc> > condition_doc;
+  typedef boost::variant<unsigned int, atomic_condition_doc, timeout_condition_doc, timer_condition_doc, boost::recursive_wrapper<compound_condition_doc> > condition_doc;
 
   struct compound_condition_doc {
     condition_doc condition_a;
@@ -327,6 +337,18 @@ BOOST_FUSION_ADAPT_STRUCT(
   (hexabus::global_endpoint_id_doc, geid)
   (hexabus::comp_operator, comp_op)
   (hexabus::constant_doc, constant)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  hexabus::timeout_condition_doc,
+  (unsigned int, seconds)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  hexabus::timer_condition_doc,
+  (hexabus::time_fields, fields)
+  (hexabus::comp_operator, op)
+  (unsigned int, value)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

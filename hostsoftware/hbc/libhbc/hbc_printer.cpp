@@ -116,6 +116,29 @@ struct hbc_node_printer : boost::static_visitor<> {
     boost::apply_visitor(hbc_node_printer(indent, ostr), global_endpoint_id.endpoint_name);
   }
 
+  void operator()(timer_condition_doc const& timer_condition) const {
+    ostr << "time ";
+    switch(timer_condition.fields) {
+      case TF_HOUR:    ostr << "hour";    break;
+      case TF_MINUTE:  ostr << "minute";  break;
+      case TF_SECOND:  ostr << "second";  break;
+      case TF_DAY:     ostr << "day";     break;
+      case TF_MONTH:   ostr << "month";   break;
+      case TF_YEAR:    ostr << "year";    break;
+      case TF_WEEKDAY: ostr << "weekday"; break;
+    }
+    switch(timer_condition.op) {
+      case STM_LT: ostr << " < "; break;
+      case STM_GT: ostr << " > "; break;
+      default: break;// do nothing.
+    }
+    ostr << timer_condition.value;
+  }
+
+  void operator()(timeout_condition_doc const& timeout_condition) const {
+    ostr << "timeout " << timeout_condition.seconds << " sec";
+  }
+
   void operator()(atomic_condition_doc const& atomic_condition) const {
     hbc_node_printer p;
     p(atomic_condition.geid, ostr);
