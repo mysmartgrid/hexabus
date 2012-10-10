@@ -14,6 +14,8 @@
 #include <boost/program_options.hpp>
 #include <boost/program_options/positional_options.hpp>
 namespace po = boost::program_options;
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
 
 #include <iostream>
 #include <fstream>
@@ -60,20 +62,21 @@ int main(int argc, char** argv)
     infile = vm["input"].as<std::string>();
   }
 
-  std::vector<std::string> filenames; // vector to store the names of the files yet to be read
-  filenames.push_back(infile); // add the file the user specified -- more files are added when "include"s are parsed
+  std::vector<fs::path> filenames; // vector to store the names of the files yet to be read
+  filenames.push_back(fs::path(infile)); // add the file the user specified -- more files are added when "include"s are parsed
+  fs::path base_dir = filenames[0].branch_path(); // the base path of our main file, used for finding includes
 
   hexabus::hbc_doc ast; // The AST - all the files get parsed into one ast
   bool okay = true;
 
   for(unsigned int f = 0; f < filenames.size() && okay; f++) {
     bool r = false;
-    std::ifstream in(filenames[f].c_str(), std::ios_base::in);
-    std::cout << "Reading input file " << filenames[f] << "." << std::endl;
+    std::ifstream in(filenames[f].string().c_str(), std::ios_base::in);
+    std::cout << "Reading input file " << filenames[f].string() << "." << std::endl;
 
     if(!in)
     {
-      std::cerr << "Error: Could not open input file: " << filenames[f] << std::endl;
+      std::cerr << "Error: Could not open input file: " << filenames[f].string() << std::endl;
       // TODO if this is from an include, we could put the line number here
       return 1;
     }
@@ -87,7 +90,7 @@ int main(int argc, char** argv)
     base_iterator_type in_begin(in);
     forward_iterator_type fwd_begin = boost::spirit::make_default_multi_pass(in_begin);
     forward_iterator_type fwd_end;
-    pos_iterator_type position_begin(fwd_begin, fwd_end, filenames[f]);
+    pos_iterator_type position_begin(fwd_begin, fwd_end, filenames[f].string());
     pos_iterator_type position_end;
 
     std::vector<std::string> error_hints;
@@ -113,32 +116,33 @@ int main(int argc, char** argv)
     if(r && position_begin == position_end) {
       std::cout << "Parsing of file " << filenames[f] << " succeeded." << std::endl;
 
+      // put the current file name into all the parts of the AST which don't have a filename yet.
+      hexabus::FilenameAnnotation an(filenames[f].string());
+      an(ast);
+
       // Find includes and add them to file name list
       BOOST_FOREACH(hexabus::hbc_block block, ast.blocks) {
         if(block.which() == 0) { // include_doc
           // only add if filename does not already exist
           bool exists = false;
-          BOOST_FOREACH(std::string fn, filenames) {
-            if(fn == boost::get<hexabus::include_doc>(block).filename)
+          BOOST_FOREACH(fs::path fn, filenames) {
+            if(fn == base_dir / fs::path(boost::get<hexabus::include_doc>(block).filename)) // add base_dir to file name for checking, as it is also added when we add it to the filenames list
               exists = true;
           }
           if(!exists) {
-            filenames.push_back(boost::get<hexabus::include_doc>(block).filename);
-            std::cout << "Adding " << boost::get<hexabus::include_doc>(block).filename << " to list of files to parse. - from include in line " << boost::get<hexabus::include_doc>(block).lineno << std::endl;
+            fs::path new_file = base_dir / fs::path(boost::get<hexabus::include_doc>(block).filename);
+            std::cout << "Adding " << new_file.string() << " to list of files to parse. - from include in " << boost::get<hexabus::include_doc>(block).read_from_file << " line " << boost::get<hexabus::include_doc>(block).lineno << std::endl;
+            filenames.push_back(new_file);
           }
         }
       }
     } else {
       okay = false;
       if(!r)
-        std::cout << "Parsing of file " << filenames[f] << " failed." << std::endl;
+        std::cout << "Parsing of file " << filenames[f].string() << " failed." << std::endl;
       if(r)
-        std::cout << "Parsing of file " << filenames[f] << " failed: Did not reach end of file." << std::endl;
+        std::cout << "Parsing of file " << filenames[f].string() << " failed: Did not reach end of file." << std::endl;
     }
-
-    // put the current file name into all the parts of the AST which don't have a filename yet.
-    hexabus::FilenameAnnotation an(filenames[f]);
-    an(ast);
   }
 
   if(okay) {

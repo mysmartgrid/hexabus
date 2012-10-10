@@ -1,3 +1,5 @@
+include test.hbc;
+
 endpoint another_endpoint {
   access { read };
   datatype UINT8;

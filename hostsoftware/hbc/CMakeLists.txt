@@ -57,7 +57,7 @@ include(CMakeBackwardCompatibilityCXX)
 
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
-FIND_PACKAGE(Boost 1.46.1 COMPONENTS program_options system)
+FIND_PACKAGE(Boost 1.46.1 COMPONENTS program_options filesystem system)
 
 # Reflect the package structure
 add_subdirectory(libhbc)
