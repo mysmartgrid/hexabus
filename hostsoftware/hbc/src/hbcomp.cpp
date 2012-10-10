@@ -63,8 +63,11 @@ int main(int argc, char** argv)
   }
 
   std::vector<fs::path> filenames; // vector to store the names of the files yet to be read
-  filenames.push_back(fs::path(infile)); // add the file the user specified -- more files are added when "include"s are parsed
-  fs::path base_dir = filenames[0].branch_path(); // the base path of our main file, used for finding includes
+  if(fs::path(infile).has_root_directory()) // add the file the user specified, more files will be added when "include"s are parsed -- TODO what's the difference between root_path and root_directory?
+    filenames.push_back(fs::path(infile)); // if it's a full path (starting with a root), add it as it is
+  else
+    filenames.push_back(fs::initial_path() / fs::path(infile)); // if it's a relative path, put our working directory in front of it.
+  fs::path base_dir = filenames[0].branch_path(); // the base path of our main file, used for finding includes -- everything up to the directory the file is in, not just up to the working directory.
 
   hexabus::hbc_doc ast; // The AST - all the files get parsed into one ast
   bool okay = true;
@@ -123,16 +126,31 @@ int main(int argc, char** argv)
       // Find includes and add them to file name list
       BOOST_FOREACH(hexabus::hbc_block block, ast.blocks) {
         if(block.which() == 0) { // include_doc
+
+          // TODO If the path in the include is an absolute path (has_root), just look there!
+
+          // descend file system to find the file
+          fs::path search_dir = base_dir;
+          fs::path file_to_add = search_dir / fs::path(boost::get<hexabus::include_doc>(block).filename);
+          while(!fs::exists(file_to_add) && search_dir != base_dir.root_directory()) { // descend until file is found OR we reach root.
+            search_dir /= fs::path(".."); // append ".."
+            search_dir = search_dir.normalize(); // normalize to turn the something/.. into the parent directory.
+            file_to_add = search_dir / fs::path(boost::get<hexabus::include_doc>(block).filename);
+          }
+          // TODO if we reach /, and the while loop stops, /my_file.hbh is just added, resulting in a suboptimal error message
+          // TODO catch filename too long exception if the while -- for whatever reason -- gets stuck in an infinite loop
+
+          std::cout << ">>>>>>>" << file_to_add.string() << "<<<<<<<<" << std::endl;
+
           // only add if filename does not already exist
           bool exists = false;
           BOOST_FOREACH(fs::path fn, filenames) {
-            if(fn == base_dir / fs::path(boost::get<hexabus::include_doc>(block).filename)) // add base_dir to file name for checking, as it is also added when we add it to the filenames list
+            if(fn == file_to_add)
               exists = true;
           }
           if(!exists) {
-            fs::path new_file = base_dir / fs::path(boost::get<hexabus::include_doc>(block).filename);
-            std::cout << "Adding " << new_file.string() << " to list of files to parse. - from include in " << boost::get<hexabus::include_doc>(block).read_from_file << " line " << boost::get<hexabus::include_doc>(block).lineno << std::endl;
-            filenames.push_back(new_file);
+            std::cout << "Adding " << file_to_add.string() << " to list of files to parse. - from include in " << boost::get<hexabus::include_doc>(block).read_from_file << " line " << boost::get<hexabus::include_doc>(block).lineno << std::endl;
+            filenames.push_back(file_to_add);
           }
         }
       }

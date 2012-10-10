@@ -1,4 +1,4 @@
-include another_file.hbc;
+include hbc/examples/another_file.hbc;
 
 endpoint device_descriptor {
   access { read };
