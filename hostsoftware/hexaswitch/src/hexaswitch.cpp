@@ -66,7 +66,7 @@ void print_packet(char* recv_data) {
       default:
         std::cout << "(unknown)\n";
         break;
-    } 
+    }
   }
   else if(phandling.getPacketType() == HXB_PTYPE_INFO)
   {
@@ -258,7 +258,7 @@ int main(int argc, char** argv) {
   } else {
     network=new hexabus::NetworkAccess();
   }
-  
+
   if(boost::iequals(command, std::string("LISTEN")))
   {
     std::cout << "Entering listen mode." << std::endl;
@@ -415,7 +415,7 @@ int main(int argc, char** argv) {
       case HXB_DTYPE_UINT8:
         {
           struct hxb_packet_int8 packet8;
-          uint8_t val8 = boost::lexical_cast<uint8_t>(get_mandatory_parameter(vm,
+          uint8_t val8 = (uint8_t)boost::lexical_cast<unsigned int>(get_mandatory_parameter(vm,
                   "value", "command SEND needs a value").as<std::string>());
           packet8 = packetm->write8(eid, dtype, val8, true);
           network->sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet8, sizeof(packet8));
