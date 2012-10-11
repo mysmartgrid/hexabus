@@ -7,7 +7,7 @@ using namespace hexabus;
 
 IncludeHandling::IncludeHandling(std::string main_file_name) {
   // add the file the user specified, more files will be added when "include"s are parsed
-  if(fs::path(main_file_name).has_root_directory()) {
+  if(fs::path(main_file_name).is_absolute()) {
     filenames.push_back(fs::path(main_file_name)); // if it's a full path (starting with a root), add it as it is
   } else {
     filenames.push_back(fs::initial_path() / fs::path(main_file_name)); // if it's a relative path, put our working directory in front of it.
@@ -29,7 +29,7 @@ void IncludeHandling::addFileName(include_doc incl) {
   const fs::path includepath(incl.filename); // the path given in the include statement
   fs::path file_to_add; // here the path that is actually added is stored!
 
-  if(includepath.has_root_directory()) { // If the path in the include is an absolute path, just look there!
+  if(includepath.is_absolute()) { // If the path in the include is an absolute path, just look there!
     file_to_add = includepath;
     // check whether file exists
     if(!fs::exists(file_to_add)) {
