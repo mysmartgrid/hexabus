@@ -16,11 +16,11 @@ IncludeHandling::IncludeHandling(std::string main_file_name) {
   base_dir = filenames[0].branch_path();
 }
 
-fs::path IncludeHandling::getFileListElement(unsigned int index) {
+fs::path IncludeHandling::operator[](unsigned int index) {
   return filenames[index];
 }
 
-unsigned int IncludeHandling::getFileListLength() {
+unsigned int IncludeHandling::size() {
   return filenames.size();
 }
 

@@ -68,14 +68,14 @@ int main(int argc, char** argv)
   hexabus::hbc_doc ast; // The AST - all the files get parsed into one ast
   bool okay = true;
 
-  for(unsigned int f = 0; f < includes.getFileListLength() && okay; f++) {
+  for(unsigned int f = 0; f < includes.size() && okay; f++) {
     bool r = false;
-    std::ifstream in(includes.getFileListElement(f).string().c_str(), std::ios_base::in);
-    std::cout << "Reading input file " << includes.getFileListElement(f).string() << "." << std::endl;
+    std::ifstream in(includes[f].string().c_str(), std::ios_base::in);
+    std::cout << "Reading input file " << includes[f].string() << "." << std::endl;
 
     if(!in)
     {
-      std::cerr << "Error: Could not open input file: " << includes.getFileListElement(f).string() << std::endl;
+      std::cerr << "Error: Could not open input file: " << includes[f].string() << std::endl;
       // TODO if this is from an include, we could put the line number here
       return 1;
     }
@@ -89,7 +89,7 @@ int main(int argc, char** argv)
     base_iterator_type in_begin(in);
     forward_iterator_type fwd_begin = boost::spirit::make_default_multi_pass(in_begin);
     forward_iterator_type fwd_end;
-    pos_iterator_type position_begin(fwd_begin, fwd_end, includes.getFileListElement(f).string());
+    pos_iterator_type position_begin(fwd_begin, fwd_end, includes[f].string());
     pos_iterator_type position_end;
 
     std::vector<std::string> error_hints;
@@ -113,10 +113,10 @@ int main(int argc, char** argv)
     }
 
     if(r && position_begin == position_end) {
-      std::cout << "Parsing of file " << includes.getFileListElement(f) << " succeeded." << std::endl;
+      std::cout << "Parsing of file " << includes[f] << " succeeded." << std::endl;
 
       // put the current file name into all the parts of the AST which don't have a filename yet.
-      hexabus::FilenameAnnotation an(includes.getFileListElement(f).string());
+      hexabus::FilenameAnnotation an(includes[f].string());
       an(ast);
 
       // Find includes and add them to file name list
@@ -128,9 +128,9 @@ int main(int argc, char** argv)
     } else {
       okay = false;
       if(!r)
-        std::cout << "Parsing of file " << includes.getFileListElement(f).string() << " failed." << std::endl;
+        std::cout << "Parsing of file " << includes[f].string() << " failed." << std::endl;
       if(r)
-        std::cout << "Parsing of file " << includes.getFileListElement(f).string() << " failed: Did not reach end of file." << std::endl;
+        std::cout << "Parsing of file " << includes[f].string() << " failed: Did not reach end of file." << std::endl;
     }
   }
 

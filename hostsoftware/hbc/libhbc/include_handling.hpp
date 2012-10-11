@@ -14,8 +14,8 @@ namespace hexabus {
     public:
       IncludeHandling(std::string main_file_name);
 
-      fs::path getFileListElement(unsigned int index);
-      unsigned int getFileListLength();
+      fs::path operator[](unsigned int index);
+      unsigned int size();
       void addFileName(include_doc incl);
 
     private:
