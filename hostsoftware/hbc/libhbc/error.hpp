@@ -17,6 +17,13 @@ namespace hexabus {
       std::string _reason;
   };
 
+  class FileNotFoundException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<FileNotFoundException> Ptr;
+      FileNotFoundException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~FileNotFoundException() throw() {};
+  };
+
   class PlaceholderInInstanceException : public GenericException {
     public:
       typedef std::tr1::shared_ptr<PlaceholderInInstanceException> Ptr;

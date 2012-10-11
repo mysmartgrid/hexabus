@@ -9,6 +9,7 @@
 #include <libhbc/module_instantiation.hpp>
 #include <libhbc/hba_output.hpp>
 #include <libhbc/graph_transformation.hpp>
+#include <libhbc/include_handling.hpp>
 
 // commandline parsing.
 #include <boost/program_options.hpp>
@@ -62,24 +63,19 @@ int main(int argc, char** argv)
     infile = vm["input"].as<std::string>();
   }
 
-  std::vector<fs::path> filenames; // vector to store the names of the files yet to be read
-  if(fs::path(infile).has_root_directory()) // add the file the user specified, more files will be added when "include"s are parsed -- TODO what's the difference between root_path and root_directory?
-    filenames.push_back(fs::path(infile)); // if it's a full path (starting with a root), add it as it is
-  else
-    filenames.push_back(fs::initial_path() / fs::path(infile)); // if it's a relative path, put our working directory in front of it.
-  const fs::path base_dir = filenames[0].branch_path(); // the base path of our main file, used for finding includes -- everything up to the directory the file is in, not just up to the working directory.
+  hexabus::IncludeHandling includes(infile);
 
   hexabus::hbc_doc ast; // The AST - all the files get parsed into one ast
   bool okay = true;
 
-  for(unsigned int f = 0; f < filenames.size() && okay; f++) {
+  for(unsigned int f = 0; f < includes.getFileListLength() && okay; f++) {
     bool r = false;
-    std::ifstream in(filenames[f].string().c_str(), std::ios_base::in);
-    std::cout << "Reading input file " << filenames[f].string() << "." << std::endl;
+    std::ifstream in(includes.getFileListElement(f).string().c_str(), std::ios_base::in);
+    std::cout << "Reading input file " << includes.getFileListElement(f).string() << "." << std::endl;
 
     if(!in)
     {
-      std::cerr << "Error: Could not open input file: " << filenames[f].string() << std::endl;
+      std::cerr << "Error: Could not open input file: " << includes.getFileListElement(f).string() << std::endl;
       // TODO if this is from an include, we could put the line number here
       return 1;
     }
@@ -93,7 +89,7 @@ int main(int argc, char** argv)
     base_iterator_type in_begin(in);
     forward_iterator_type fwd_begin = boost::spirit::make_default_multi_pass(in_begin);
     forward_iterator_type fwd_end;
-    pos_iterator_type position_begin(fwd_begin, fwd_end, filenames[f].string());
+    pos_iterator_type position_begin(fwd_begin, fwd_end, includes.getFileListElement(f).string());
     pos_iterator_type position_end;
 
     std::vector<std::string> error_hints;
@@ -117,59 +113,24 @@ int main(int argc, char** argv)
     }
 
     if(r && position_begin == position_end) {
-      std::cout << "Parsing of file " << filenames[f] << " succeeded." << std::endl;
+      std::cout << "Parsing of file " << includes.getFileListElement(f) << " succeeded." << std::endl;
 
       // put the current file name into all the parts of the AST which don't have a filename yet.
-      hexabus::FilenameAnnotation an(filenames[f].string());
+      hexabus::FilenameAnnotation an(includes.getFileListElement(f).string());
       an(ast);
 
       // Find includes and add them to file name list
       BOOST_FOREACH(hexabus::hbc_block block, ast.blocks) {
         if(block.which() == 0) { // include_doc
-
-          // make boost::filesystem::path object
-          const fs::path includepath = fs::path(boost::get<hexabus::include_doc>(block).filename);
-          fs::path file_to_add;
-
-          if(includepath.has_root_path()) { // If the path in the include is an absolute path, just look there!
-            file_to_add = includepath;
-          } else {
-            // ascend in the directory tree to find the file
-            fs::path search_dir = base_dir;
-            file_to_add = search_dir / includepath;
-            while(!fs::exists(file_to_add) && search_dir != base_dir.root_directory()) { // ascend until file is found OR we reach root.
-              search_dir /= fs::path(".."); // append ".."
-              search_dir = search_dir.normalize(); // normalize to turn the path ending in /.. into the parent directory.
-              file_to_add = search_dir / includepath;
-            }
-
-            if(search_dir == base_dir.root_directory() && !exists(file_to_add)) {
-              // This means we searched up to the root dir, and didn't find the file.
-              file_to_add = includepath; // just add the path from the include, resulting in an error message when we try to open the file later.
-              // TODO "include not found" error message
-            }
-            // TODO catch filename too long exception if the while -- for whatever reason -- gets stuck in an infinite loop
-          }
-          std::cout << ">>>>>>>" << file_to_add.string() << "<<<<<<<<" << std::endl;
-
-          // only add if filename does not already exist
-          bool exists = false;
-          BOOST_FOREACH(fs::path fn, filenames) {
-            if(fn == file_to_add)
-              exists = true;
-          }
-          if(!exists) {
-            std::cout << "Adding " << file_to_add.string() << " to list of files to parse. - from include in " << boost::get<hexabus::include_doc>(block).read_from_file << " line " << boost::get<hexabus::include_doc>(block).lineno << std::endl;
-            filenames.push_back(file_to_add);
-          }
+          includes.addFileName(boost::get<hexabus::include_doc>(block));
         }
       }
     } else {
       okay = false;
       if(!r)
-        std::cout << "Parsing of file " << filenames[f].string() << " failed." << std::endl;
+        std::cout << "Parsing of file " << includes.getFileListElement(f).string() << " failed." << std::endl;
       if(r)
-        std::cout << "Parsing of file " << filenames[f].string() << " failed: Did not reach end of file." << std::endl;
+        std::cout << "Parsing of file " << includes.getFileListElement(f).string() << " failed: Did not reach end of file." << std::endl;
     }
   }
 
