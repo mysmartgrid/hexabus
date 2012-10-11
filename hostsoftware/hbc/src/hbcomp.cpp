@@ -67,7 +67,7 @@ int main(int argc, char** argv)
     filenames.push_back(fs::path(infile)); // if it's a full path (starting with a root), add it as it is
   else
     filenames.push_back(fs::initial_path() / fs::path(infile)); // if it's a relative path, put our working directory in front of it.
-  fs::path base_dir = filenames[0].branch_path(); // the base path of our main file, used for finding includes -- everything up to the directory the file is in, not just up to the working directory.
+  const fs::path base_dir = filenames[0].branch_path(); // the base path of our main file, used for finding includes -- everything up to the directory the file is in, not just up to the working directory.
 
   hexabus::hbc_doc ast; // The AST - all the files get parsed into one ast
   bool okay = true;
@@ -127,19 +127,29 @@ int main(int argc, char** argv)
       BOOST_FOREACH(hexabus::hbc_block block, ast.blocks) {
         if(block.which() == 0) { // include_doc
 
-          // TODO If the path in the include is an absolute path (has_root), just look there!
+          // make boost::filesystem::path object
+          const fs::path includepath = fs::path(boost::get<hexabus::include_doc>(block).filename);
+          fs::path file_to_add;
 
-          // descend file system to find the file
-          fs::path search_dir = base_dir;
-          fs::path file_to_add = search_dir / fs::path(boost::get<hexabus::include_doc>(block).filename);
-          while(!fs::exists(file_to_add) && search_dir != base_dir.root_directory()) { // descend until file is found OR we reach root.
-            search_dir /= fs::path(".."); // append ".."
-            search_dir = search_dir.normalize(); // normalize to turn the something/.. into the parent directory.
-            file_to_add = search_dir / fs::path(boost::get<hexabus::include_doc>(block).filename);
+          if(includepath.has_root_path()) { // If the path in the include is an absolute path, just look there!
+            file_to_add = includepath;
+          } else {
+            // ascend in the directory tree to find the file
+            fs::path search_dir = base_dir;
+            file_to_add = search_dir / includepath;
+            while(!fs::exists(file_to_add) && search_dir != base_dir.root_directory()) { // ascend until file is found OR we reach root.
+              search_dir /= fs::path(".."); // append ".."
+              search_dir = search_dir.normalize(); // normalize to turn the path ending in /.. into the parent directory.
+              file_to_add = search_dir / includepath;
+            }
+
+            if(search_dir == base_dir.root_directory() && !exists(file_to_add)) {
+              // This means we searched up to the root dir, and didn't find the file.
+              file_to_add = includepath; // just add the path from the include, resulting in an error message when we try to open the file later.
+              // TODO "include not found" error message
+            }
+            // TODO catch filename too long exception if the while -- for whatever reason -- gets stuck in an infinite loop
           }
-          // TODO if we reach /, and the while loop stops, /my_file.hbh is just added, resulting in a suboptimal error message
-          // TODO catch filename too long exception if the while -- for whatever reason -- gets stuck in an infinite loop
-
           std::cout << ">>>>>>>" << file_to_add.string() << "<<<<<<<<" << std::endl;
 
           // only add if filename does not already exist
