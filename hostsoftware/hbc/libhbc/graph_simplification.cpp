@@ -18,51 +18,23 @@ void GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to, comman
   vertex_id_t new_state_vertex = add_vertex(_g, "TODO" /*TODO*/, 0 /*TODO*/, 0 /*TODO*/, v_state);
 
   // add edge from old command vertex to new state vertex (into-edge)
-  edge_id_t into_edge;
-  bool into_edge_ok;
-  boost::tie(into_edge, into_edge_ok) = boost::add_edge(from, new_state_vertex, *_g);
-  if(into_edge_ok) {
-    (*_g)[into_edge].type = e_from_state;
-  } else {
-    // TODO exeption
-  }
+  add_edge(_g, from, new_state_vertex, e_from_state);
 
   // add new if-vertex
   condition_doc if_true = 1U; // a condition_doc which is of type unsigned int and contains "1" is interpreted as "true".
   vertex_id_t new_if_vertex = add_vertex(_g, "[s] if(true)", 0,0/*TODO*/, v_cond, if_true);
 
   // add edge to this vertex
-  edge_id_t if_edge;
-  bool if_edge_ok;
-  boost::tie(if_edge, if_edge_ok) = boost::add_edge(new_state_vertex, new_if_vertex, *_g);
-  if(if_edge_ok) {
-    (*_g)[if_edge].type = e_from_state;
-  } else {
-    // TODO exception
-  }
+  add_edge(_g, new_state_vertex, new_if_vertex, e_from_state);
 
   // add new command vertex
   vertex_id_t new_command_vertex = add_vertex(_g, "...",0,0/*TODO*/, v_command, commands);
 
   // add edge to this vertex
-  edge_id_t command_edge;
-  bool command_edge_ok;
-  boost::tie(command_edge, command_edge_ok) = boost::add_edge(new_if_vertex, new_command_vertex, *_g);
-  if(command_edge_ok) {
-    (*_g)[command_edge].type = e_if_com;
-  } else {
-    // TODO exception
-  }
+  add_edge(_g, new_if_vertex, new_command_vertex, e_if_com);
 
   // add edge from new command vertex to old to-state-vertex
-  edge_id_t to_edge;
-  bool to_edge_ok;
-  boost::tie(to_edge, to_edge_ok) = boost::add_edge(new_command_vertex, to, *_g);
-  if(to_edge_ok) {
-    (*_g)[to_edge].type = e_to_state;
-  } else {
-    // TODO exception
-  }
+  add_edge(_g, new_command_vertex, to, e_to_state);
 }
 
 // TODO this is how I think this should work:

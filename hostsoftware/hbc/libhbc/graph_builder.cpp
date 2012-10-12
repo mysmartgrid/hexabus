@@ -94,29 +94,11 @@ struct first_pass : boost::static_visitor<> {
         vertex_id_t if_command_v_id = add_vertex(_g, name_str, statemachine.id, command_id++, v_command, if_clause.if_block.command_block);
 
         // edge from condition vertex to command block vertex
-        edge_id_t if_com_edge;
-        bool if_com_ok;
-        boost::tie(if_com_edge, if_com_ok) = boost::add_edge(v_id, if_command_v_id, (*_g));
-        if(if_com_ok)
-          (*_g)[if_com_edge].type = e_if_com;
-        else {
-          std::ostringstream oss;
-          oss << "Cannot link condition " << (*_g)[v_id].vertex_id  << " to command block " << (*_g)[if_command_v_id].vertex_id;
-          throw EdgeLinkException(oss.str());
-        }
+        add_edge(_g, v_id, if_command_v_id, e_if_com);
 
         // edge from command vertex to to-state
         vertex_id_t to_state = find_vertex(_g, statemachine.id, target_state);
-        edge_id_t to_edge;
-        bool to_ok;
-        boost::tie(to_edge, to_ok) = boost::add_edge(if_command_v_id, to_state, (*_g));
-        if(to_ok)
-          (*_g)[edge].type = e_to_state;
-        else {
-          std::ostringstream oss;
-          oss << "Cannot link condition " << statemachine.id << "." << (*_g)[v_id].vertex_id << " to state " << to_state;
-          throw EdgeLinkException(oss.str());
-        }
+        add_edge(_g, if_command_v_id, to_state, e_to_state);
 
         // else-if-block(s)
         BOOST_FOREACH(guarded_command_block_doc else_if_block, if_clause.else_if_blocks) {
@@ -137,16 +119,7 @@ struct first_pass : boost::static_visitor<> {
 
           // from-state to condition vertex
           vertex_id_t from_state = find_vertex(_g, statemachine.id, originating_state);
-          edge_id_t edge;
-          bool ok;
-          boost::tie(edge, ok) = boost::add_edge(from_state, v_id, (*_g));
-          if(ok)
-            (*_g)[edge].type = e_from_state;
-          else {
-            std::ostringstream oss;
-            oss << "Cannot link state " << statemachine.id << "." << originating_state << " to condition " << (*_g)[v_id].vertex_id;
-            throw EdgeLinkException(oss.str());
-          }
+          add_edge(_g, from_state, v_id, e_from_state);
 
           // make a command-block vertex
           std::ostringstream c_oss;
@@ -161,28 +134,10 @@ struct first_pass : boost::static_visitor<> {
           vertex_id_t command_v_id = add_vertex(_g, name_str, statemachine.id, command_id++, v_command, else_if_block.command_block);
 
           // edge from condition vertex to command block vertex
-          edge_id_t if_com_edge;
-          bool if_com_ok;
-          boost::tie(if_com_edge, if_com_ok) = boost::add_edge(v_id, command_v_id, (*_g));
-          if(if_com_ok)
-            (*_g)[if_com_edge].type = e_if_com;
-          else {
-            std::ostringstream oss;
-            oss << "Cannot link condition " << (*_g)[v_id].vertex_id  << " to command block " << (*_g)[command_v_id].vertex_id;
-            throw EdgeLinkException(oss.str());
-          }
+          add_edge(_g, v_id, command_v_id, e_if_com);
 
           vertex_id_t to_state = find_vertex(_g, statemachine.id, target_state);
-          edge_id_t to_edge;
-          bool to_ok;
-          boost::tie(to_edge, to_ok) = boost::add_edge(command_v_id, to_state, (*_g));
-          if(ok)
-            (*_g)[edge].type = e_to_state;
-          else {
-            std::ostringstream oss;
-            oss << "Cannot link condition " << statemachine.id << "." << (*_g)[v_id].vertex_id << " to state " << to_state;
-            throw EdgeLinkException(oss.str());
-          }
+          add_edge(_g, command_v_id, to_state, e_to_state);
         }
 
         // else-block
@@ -203,16 +158,8 @@ struct first_pass : boost::static_visitor<> {
           // add edges
           // edge from from-state to condition vertex
           vertex_id_t else_from_state = find_vertex(_g, statemachine.id, originating_state);
-          edge_id_t else_edge;
-          bool else_ok;
-          boost::tie(else_edge, else_ok) = boost::add_edge(else_from_state, else_v_id, (*_g));
-          if(if_ok)
-            (*_g)[else_edge].type = e_from_state;
-          else {
-            std::ostringstream oss;
-            oss << "Cannot link state " << statemachine.id << "." << originating_state << " to condition " << (*_g)[else_v_id].vertex_id;
-            throw EdgeLinkException(oss.str());
-          }
+          add_edge(_g, else_from_state, else_v_id, e_from_state);
+
           // make a command-block vertex
           std::ostringstream else_c_oss;
           pr(if_clause.else_clause.commands, else_c_oss);
@@ -225,28 +172,10 @@ struct first_pass : boost::static_visitor<> {
           }
           vertex_id_t else_command_v_id = add_vertex(_g, else_name_str, statemachine.id, command_id++, v_command, if_clause.else_clause.commands);
 
-          edge_id_t else_com_edge;
-          bool else_com_ok;
-          boost::tie(else_com_edge, else_com_ok) = boost::add_edge(else_v_id, else_command_v_id, (*_g));
-          if(else_com_ok)
-            (*_g)[else_com_edge].type = e_if_com;
-          else {
-            std::ostringstream oss;
-            oss << "Cannot link condition " << (*_g)[v_id].vertex_id  << " to command block " << (*_g)[else_command_v_id].vertex_id;
-            throw EdgeLinkException(oss.str());
-          }
+          add_edge(_g, else_v_id, else_command_v_id, e_if_com);
 
           vertex_id_t else_to_state = find_vertex(_g, statemachine.id, else_target_state);
-          edge_id_t else_to_edge;
-          bool else_to_ok;
-          boost::tie(else_to_edge, else_to_ok) = boost::add_edge(else_command_v_id, else_to_state, (*_g));
-          if(else_to_ok)
-            (*_g)[else_to_edge].type = e_to_state;
-          else {
-            std::ostringstream oss;
-            oss << "Cannot link condition " << statemachine.id << "." << (*_g)[v_id].vertex_id << " to state " << to_state;
-            throw EdgeLinkException(oss.str());
-          }
+          add_edge(_g, else_command_v_id, else_to_state, e_to_state);
         }
       }
     }

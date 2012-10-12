@@ -56,4 +56,18 @@ namespace hexabus {
     return v_id;
   }
 
+  edge_id_t add_edge(graph_t_ptr g, vertex_id_t from, vertex_id_t to, edge_type type) {
+    edge_id_t edge;
+    bool ok;
+    boost::tie(edge, ok) = boost::add_edge(from, to, (*g));
+    if(ok)
+      (*g)[edge].type = type;
+    else {
+      std::ostringstream oss;
+      oss << "Cannot link vertex " << (*g)[from].machine_id << "." << (*g)[from].vertex_id << " to vertex " << (*g)[to].machine_id << "." << (*g)[to].vertex_id << std::endl;
+      throw EdgeLinkException(oss.str());
+    }
+
+    return edge;
+  }
 };
