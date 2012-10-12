@@ -15,11 +15,7 @@ void GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to, comman
 
   // make new vertices and edges
   // add new state vertex
-  vertex_id_t new_state_vertex = boost::add_vertex(*_g);
-  // TODO (*_g)[new_state_vertex].name = oss.str();
-  // TODO (*_g)[new_state_vertex].machine_id = statemachine.id;
-  // (*_g)[new_state_vertex].vertex_id = i; TODO there has to be a set of IDs reserved for vertices added through simplification
-  (*_g)[new_state_vertex].type = v_state;
+  vertex_id_t new_state_vertex = add_vertex(_g, "TODO" /*TODO*/, 0 /*TODO*/, 0 /*TODO*/, v_state);
 
   // add edge from old command vertex to new state vertex (into-edge)
   edge_id_t into_edge;
@@ -33,12 +29,7 @@ void GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to, comman
 
   // add new if-vertex
   condition_doc if_true = 1U; // a condition_doc which is of type unsigned int and contains "1" is interpreted as "true".
-  vertex_id_t new_if_vertex = boost::add_vertex(*_g);
-  (*_g)[new_if_vertex].name = "[s] if (true)";
-  // TODO (*_g)[new_if_vertex].machine_id = statemachine.id;
-  // TODO (*_g)[new_if_vertex].vertex_id;
-  (*_g)[new_if_vertex].type = v_cond;
-  (*_g)[new_if_vertex].contents = if_true;
+  vertex_id_t new_if_vertex = add_vertex(_g, "[s] if(true)", 0,0/*TODO*/, v_cond, if_true);
 
   // add edge to this vertex
   edge_id_t if_edge;
@@ -51,12 +42,7 @@ void GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to, comman
   }
 
   // add new command vertex
-  vertex_id_t new_command_vertex = boost::add_vertex(*_g);
-  // TODO (*_g)[new_command_vertex].name = ...
-  // TODO (*_g)[new_command_vertex].machine_id = statemachine.id;
-  // TODO (*_g)[new_command_vertex].vertex_id = ...?
-  (*_g)[new_command_vertex].type = v_command;
-  (*_g)[new_command_vertex].contents = commands;
+  vertex_id_t new_command_vertex = add_vertex(_g, "...",0,0/*TODO*/, v_command, commands);
 
   // add edge to this vertex
   edge_id_t command_edge;

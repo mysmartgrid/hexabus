@@ -38,6 +38,8 @@ namespace hexabus {
 
   vertex_id_t find_vertex(graph_t_ptr g, unsigned int machine_id, unsigned int vertex_id);
   unsigned int find_state_vertex_id(graph_t_ptr g, statemachine_doc statemachine, const std::string name);
+  vertex_id_t add_vertex(graph_t_ptr g, std::string name, unsigned int machine_id, unsigned int vertex_id, vertex_type type, boost::variant<condition_doc, command_block_doc> contents);
+  vertex_id_t add_vertex(graph_t_ptr g, std::string name, unsigned int machine_id, unsigned int vertex_id, vertex_type type);
 };
 
 #endif // LIBHBC_GRAPH_HPP

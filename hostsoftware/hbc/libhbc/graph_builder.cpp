@@ -20,11 +20,8 @@ struct first_pass : boost::static_visitor<> {
     for(unsigned int i = 0; i < statemachine.stateset.states.size(); i++) { // don't use foreach because we need the index
       std::ostringstream oss;
       oss << "(" << statemachine.id << "." << i << ") \\n" << statemachine.name << "." <<  statemachine.stateset.states[i];
-      vertex_id_t v_id = boost::add_vertex((*_g));
-      (*_g)[v_id].name = oss.str();
-      (*_g)[v_id].machine_id = statemachine.id;
-      (*_g)[v_id].vertex_id = i;
-      (*_g)[v_id].type = v_state;
+
+      add_vertex(_g, oss.str(), statemachine.id, i, v_state);
     }
 
     // check if init state is present
@@ -68,12 +65,7 @@ struct first_pass : boost::static_visitor<> {
         hbc_printer pr;
         pr(if_clause.if_block.condition, oss);
         oss << ")";
-        vertex_id_t v_id = boost::add_vertex((*_g));
-        (*_g)[v_id].name = oss.str();
-        (*_g)[v_id].machine_id = statemachine.id;
-        (*_g)[v_id].vertex_id = condition_id++;
-        (*_g)[v_id].type = v_cond;
-        (*_g)[v_id].contents = if_clause.if_block.condition;
+        vertex_id_t v_id = add_vertex(_g, oss.str(), statemachine.id, condition_id++, v_cond, if_clause.if_block.condition);
 
         // add edges
         // edge from from-state to condition vertex
@@ -99,12 +91,8 @@ struct first_pass : boost::static_visitor<> {
           name_str.replace(found, 1, "\\n");
           found = name_str.find("\n");
         }
-        vertex_id_t if_command_v_id = boost::add_vertex((*_g));
-        (*_g)[if_command_v_id].name = name_str;
-        (*_g)[if_command_v_id].machine_id = statemachine.id;
-        (*_g)[if_command_v_id].vertex_id = command_id++;
-        (*_g)[if_command_v_id].type = v_command;
-        (*_g)[if_command_v_id].contents = if_clause.if_block.command_block;
+        vertex_id_t if_command_v_id = add_vertex(_g, name_str, statemachine.id, command_id++, v_command, if_clause.if_block.command_block);
+
         // edge from condition vertex to command block vertex
         edge_id_t if_com_edge;
         bool if_com_ok;
@@ -145,12 +133,7 @@ struct first_pass : boost::static_visitor<> {
           hbc_printer pr;
           pr(else_if_block.condition, oss);
           oss << ")";
-          vertex_id_t v_id = boost::add_vertex((*_g));
-          (*_g)[v_id].name = oss.str();
-          (*_g)[v_id].machine_id = statemachine.id;
-          (*_g)[v_id].vertex_id = condition_id++;
-          (*_g)[v_id].type = v_cond;
-          (*_g)[v_id].contents = else_if_block.condition;
+          vertex_id_t v_id = add_vertex(_g, oss.str(), statemachine.id, condition_id++, v_cond, else_if_block.condition);
 
           // from-state to condition vertex
           vertex_id_t from_state = find_vertex(_g, statemachine.id, originating_state);
@@ -175,12 +158,8 @@ struct first_pass : boost::static_visitor<> {
             name_str.replace(found, 1, "\\n");
             found = name_str.find("\n");
           }
-          vertex_id_t command_v_id = boost::add_vertex((*_g));
-          (*_g)[command_v_id].name = name_str;
-          (*_g)[command_v_id].machine_id = statemachine.id;
-          (*_g)[command_v_id].vertex_id = command_id++;
-          (*_g)[command_v_id].type = v_command;
-          (*_g)[command_v_id].contents = else_if_block.command_block;
+          vertex_id_t command_v_id = add_vertex(_g, name_str, statemachine.id, command_id++, v_command, else_if_block.command_block);
+
           // edge from condition vertex to command block vertex
           edge_id_t if_com_edge;
           bool if_com_ok;
@@ -219,12 +198,7 @@ struct first_pass : boost::static_visitor<> {
           // add condition vertex
           std::ostringstream else_oss;
           else_oss << "(" << condition_id << ") else";
-          vertex_id_t else_v_id = boost::add_vertex((*_g));
-          (*_g)[else_v_id].name = else_oss.str();
-          (*_g)[else_v_id].machine_id = statemachine.id;
-          (*_g)[else_v_id].vertex_id = condition_id++;
-          (*_g)[else_v_id].type = v_cond;
-          // TODO (*_g)[else_v_id].contents = ...
+          vertex_id_t else_v_id = add_vertex(_g, else_oss.str(), statemachine.id, condition_id++, v_cond /* TODO contents */);
 
           // add edges
           // edge from from-state to condition vertex
@@ -249,13 +223,8 @@ struct first_pass : boost::static_visitor<> {
             else_name_str.replace(found, 1, "\\n");
             found = else_name_str.find("\n");
           }
-          vertex_id_t else_command_v_id = boost::add_vertex((*_g));
-          (*_g)[else_command_v_id].name = else_name_str;
-          (*_g)[else_command_v_id].machine_id = statemachine.id;
-          (*_g)[else_command_v_id].vertex_id = command_id++;
-          (*_g)[else_command_v_id].type = v_command;
-          (*_g)[else_command_v_id].contents = if_clause.else_clause.commands;
-          // edge from condition vertex to command block vertex
+          vertex_id_t else_command_v_id = add_vertex(_g, else_name_str, statemachine.id, command_id++, v_command, if_clause.else_clause.commands);
+
           edge_id_t else_com_edge;
           bool else_com_ok;
           boost::tie(else_com_edge, else_com_ok) = boost::add_edge(else_v_id, else_command_v_id, (*_g));

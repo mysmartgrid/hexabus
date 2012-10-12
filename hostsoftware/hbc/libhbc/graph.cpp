@@ -34,4 +34,26 @@ namespace hexabus {
     }
     return state_id;
   }
+
+  vertex_id_t add_vertex(graph_t_ptr g, std::string name, unsigned int machine_id, unsigned int vertex_id, vertex_type type, boost::variant<condition_doc, command_block_doc> contents) {
+    vertex_id_t v_id = boost::add_vertex((*g));
+    (*g)[v_id].name = name;
+    (*g)[v_id].machine_id = machine_id;
+    (*g)[v_id].vertex_id = vertex_id;
+    (*g)[v_id].type = type;
+    (*g)[v_id].contents = contents;
+
+    return v_id;
+  }
+
+  vertex_id_t add_vertex(graph_t_ptr g, std::string name, unsigned int machine_id, unsigned int vertex_id, vertex_type type) {
+    vertex_id_t v_id = boost::add_vertex((*g));
+    (*g)[v_id].name = name;
+    (*g)[v_id].machine_id = machine_id;
+    (*g)[v_id].vertex_id = vertex_id;
+    (*g)[v_id].type = type;
+
+    return v_id;
+  }
+
 };
