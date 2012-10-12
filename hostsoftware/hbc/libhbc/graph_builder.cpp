@@ -37,7 +37,6 @@ struct first_pass : boost::static_visitor<> {
     unsigned int command_id = 0;   // per-state-machine unique IDs for command blocks
 
     // build the edges
-    // TODO The following 200 lines or so need to be despaghettified. a lot.
     BOOST_FOREACH(in_clause_doc in_clause, statemachine.in_clauses) {
       // find originating state ID
       unsigned int originating_state;
@@ -70,28 +69,12 @@ struct first_pass : boost::static_visitor<> {
         // add edges
         // edge from from-state to condition vertex
         vertex_id_t from_state = find_vertex(_g, statemachine.id, originating_state);
-        edge_id_t edge;
-        bool if_ok;
-        boost::tie(edge, if_ok) = boost::add_edge(from_state, v_id, (*_g));
-        if(if_ok)
-          (*_g)[edge].type = e_from_state;
-        else {
-          std::ostringstream oss;
-          oss << "Cannot link state " << statemachine.id << "." << originating_state << " to condition " << (*_g)[v_id].vertex_id;
-          throw EdgeLinkException(oss.str());
-        }
+        add_edge(_g, from_state, v_id, e_from_state);
 
         // make a command-block vertex
         std::ostringstream c_oss;
         pr(if_clause.if_block.command_block, c_oss);
-        // remove linebreaks
-        std::string name_str = c_oss.str();
-        size_t found = name_str.find("\n");
-        while(found != std::string::npos) {
-          name_str.replace(found, 1, "\\n");
-          found = name_str.find("\n");
-        }
-        vertex_id_t if_command_v_id = add_vertex(_g, name_str, statemachine.id, command_id++, v_command, if_clause.if_block.command_block);
+        vertex_id_t if_command_v_id = add_vertex(_g, c_oss.str(), statemachine.id, command_id++, v_command, if_clause.if_block.command_block);
 
         // edge from condition vertex to command block vertex
         add_edge(_g, v_id, if_command_v_id, e_if_com);
@@ -124,14 +107,7 @@ struct first_pass : boost::static_visitor<> {
           // make a command-block vertex
           std::ostringstream c_oss;
           pr(else_if_block.command_block, c_oss);
-          // remove linebreaks
-          std::string name_str = c_oss.str();
-          size_t found = name_str.find("\n");
-          while(found != std::string::npos) {
-            name_str.replace(found, 1, "\\n");
-            found = name_str.find("\n");
-          }
-          vertex_id_t command_v_id = add_vertex(_g, name_str, statemachine.id, command_id++, v_command, else_if_block.command_block);
+          vertex_id_t command_v_id = add_vertex(_g, c_oss.str(), statemachine.id, command_id++, v_command, else_if_block.command_block);
 
           // edge from condition vertex to command block vertex
           add_edge(_g, v_id, command_v_id, e_if_com);
@@ -163,14 +139,7 @@ struct first_pass : boost::static_visitor<> {
           // make a command-block vertex
           std::ostringstream else_c_oss;
           pr(if_clause.else_clause.commands, else_c_oss);
-          // remove linebreaks
-          std::string else_name_str = else_c_oss.str();
-          size_t found = else_name_str.find("\n");
-          while(found != std::string::npos) {
-            else_name_str.replace(found, 1, "\\n");
-            found = else_name_str.find("\n");
-          }
-          vertex_id_t else_command_v_id = add_vertex(_g, else_name_str, statemachine.id, command_id++, v_command, if_clause.else_clause.commands);
+          vertex_id_t else_command_v_id = add_vertex(_g, else_c_oss.str(), statemachine.id, command_id++, v_command, if_clause.else_clause.commands);
 
           add_edge(_g, else_v_id, else_command_v_id, e_if_com);
 

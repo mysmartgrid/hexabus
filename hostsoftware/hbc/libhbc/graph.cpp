@@ -36,7 +36,17 @@ namespace hexabus {
   }
 
   vertex_id_t add_vertex(graph_t_ptr g, std::string name, unsigned int machine_id, unsigned int vertex_id, vertex_type type, boost::variant<condition_doc, command_block_doc> contents) {
+    // remove linebreaks from name
+    size_t found = name.find("\n");
+    while(found != std::string::npos) {
+      name.replace(found, 1, "\\n");
+      found = name.find("\n");
+    }
+
+    // add vertex
     vertex_id_t v_id = boost::add_vertex((*g));
+
+    // fill structure with values
     (*g)[v_id].name = name;
     (*g)[v_id].machine_id = machine_id;
     (*g)[v_id].vertex_id = vertex_id;
@@ -47,7 +57,17 @@ namespace hexabus {
   }
 
   vertex_id_t add_vertex(graph_t_ptr g, std::string name, unsigned int machine_id, unsigned int vertex_id, vertex_type type) {
+    // remove linebreaks from name
+    size_t found = name.find("\n");
+    while(found != std::string::npos) {
+      name.replace(found, 1, "\\n");
+      found = name.find("\n");
+    }
+
+    // add vertex
     vertex_id_t v_id = boost::add_vertex((*g));
+
+    // fill structure with values
     (*g)[v_id].name = name;
     (*g)[v_id].machine_id = machine_id;
     (*g)[v_id].vertex_id = vertex_id;
