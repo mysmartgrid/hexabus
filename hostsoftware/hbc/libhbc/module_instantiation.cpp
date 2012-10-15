@@ -6,10 +6,10 @@
 using namespace hexabus;
 
 struct module_instantiation : boost::static_visitor<> {
-  module_instantiation(module_table_ptr mt, device_table_ptr dt, endpoint_table_ptr ept, hbc_doc& hbc) : _m(mt), _d(dt), _e(ept), _hbc(hbc) { }
+  module_instantiation(module_table_ptr mt, device_table_ptr dt, endpoint_table_ptr ept, hbc_doc& hbc, std::string instance_read_from_file, unsigned int instance_line_number, std::string module_read_from_file) : _m(mt), _d(dt), _e(ept), _hbc(hbc), _inst_read_from_file(instance_read_from_file), _inst_lineno(instance_line_number), _mod_read_from_file(module_read_from_file) { }
 
   void operator()(condition_doc& cond, condition_doc& inst_cond, placeholder_list_doc& placeholders, std::vector<inst_parameter_doc>& parameters) {
-    module_instantiation m(_m, _d, _e, _hbc);
+    module_instantiation m(_m, _d, _e, _hbc, _inst_read_from_file, _inst_lineno, _mod_read_from_file);
     atomic_condition_doc inst_at_cond;
     compound_condition_doc inst_comp_cond;
     switch(cond.which()) {
@@ -58,7 +58,7 @@ struct module_instantiation : boost::static_visitor<> {
           }
           if(placeholder_index == -1) {
             std::ostringstream oss;
-            oss << "[" << boost::get<placeholder_doc>(geid.device_alias).lineno << "] Placeholder for device alias not found: " << boost::get<placeholder_doc>(geid.device_alias).name << "." << std::endl;
+            oss << "[" << _mod_read_from_file << ":" << boost::get<placeholder_doc>(geid.device_alias).lineno << "] Placeholder for device alias not found: " << boost::get<placeholder_doc>(geid.device_alias).name << "." << std::endl;
             throw InvalidPlaceholderException(oss.str());
           }
 
@@ -67,14 +67,14 @@ struct module_instantiation : boost::static_visitor<> {
             inst_geid.device_alias = boost::get<std::string>(parameters[placeholder_index]);
           } catch (boost::bad_get e) {
             std::ostringstream oss;
-            oss << "[" << geid.lineno << "] " << boost::get<placeholder_doc>(geid.device_alias).name << ": Invalid parameter type (expected device name)" << std::endl;
+            oss << "[" << _mod_read_from_file << ":" << geid.lineno << "] " << boost::get<placeholder_doc>(geid.device_alias).name << ": Invalid parameter type (expected device name)" << std::endl;
             throw InvalidParameterTypeException(oss.str());
-          } // TODO needs file name...
+          }
 
           // check that we have a device name (not an endpoint name or something else)
           if(_d->find(boost::get<std::string>(inst_geid.device_alias)) == _d->end()) {
             std::ostringstream oss;
-            oss << "[" << geid.lineno << "] " << boost::get<std::string>(inst_geid.device_alias) << ": Device name does not exist." << std::endl;
+            oss << "[" << _mod_read_from_file << ":" << geid.lineno << "] " << boost::get<std::string>(inst_geid.device_alias) << ": Device name does not exist." << std::endl;
             throw InvalidParameterTypeException(oss.str());
           }
         }
@@ -98,7 +98,7 @@ struct module_instantiation : boost::static_visitor<> {
           }
           if(placeholder_index == -1) {
             std::ostringstream oss;
-            oss << "[" << boost::get<placeholder_doc>(geid.device_alias).lineno << "] Placeholder for endpoint name not found: " << boost::get<placeholder_doc>(geid.endpoint_name).name << "." << std::endl;
+            oss << "[" << _mod_read_from_file << ":" << boost::get<placeholder_doc>(geid.device_alias).lineno << "] Placeholder for endpoint name not found: " << boost::get<placeholder_doc>(geid.endpoint_name).name << "." << std::endl;
             throw InvalidPlaceholderException(oss.str());
           }
 
@@ -107,14 +107,14 @@ struct module_instantiation : boost::static_visitor<> {
             inst_geid.endpoint_name = boost::get<std::string>(parameters[placeholder_index]);
           } catch(boost::bad_get e) {
             std::ostringstream oss;
-            oss << "[" << geid.lineno << "] " << boost::get<placeholder_doc>(geid.endpoint_name).name << ": Invalid parameter type (expected endpoint name)" << std::endl;
+            oss << "[" << _inst_read_from_file << ":" << _inst_lineno << "] " << boost::get<placeholder_doc>(geid.endpoint_name).name << ": Invalid parameter type (expected endpoint name)" << std::endl;
             throw InvalidParameterTypeException(oss.str());
           }
 
           // check that we have an endpoint name (not a device name or something else)
           if(_e->find(boost::get<std::string>(inst_geid.endpoint_name)) == _e->end()) {
             std::ostringstream oss;
-            oss << "[" << geid.lineno << "] " << boost::get<std::string>(inst_geid.endpoint_name) << ": Endpoint name does not exist." << std::endl;
+            oss << "[" << _inst_read_from_file << ":" << _inst_lineno << "] " << boost::get<std::string>(inst_geid.endpoint_name) << ": Endpoint name does not exist." << std::endl;
             throw InvalidParameterTypeException(oss.str());
           }
         }
@@ -146,7 +146,7 @@ struct module_instantiation : boost::static_visitor<> {
             inst_constant = boost::get<constant_doc>(parameters[placeholder_index]);
           } catch (boost::bad_get e) {
             std::ostringstream oss;
-            oss << boost::get<placeholder_doc>(constant).name << ": Invalid parameter type (expected constant)" << std::endl; // TODO line number?
+            oss << "[" << _inst_read_from_file << ":" << _inst_lineno << "] Invalid parameter type (expected constant)" << std::endl;
             throw InvalidParameterTypeException(oss.str());
           }
         }
@@ -163,14 +163,14 @@ struct module_instantiation : boost::static_visitor<> {
   }
 
   void operator()(command_doc& command, command_doc& inst_command, placeholder_list_doc& placeholders, std::vector<inst_parameter_doc>& parameters) {
-    module_instantiation m(_m, _d, _e, _hbc);
+    module_instantiation m(_m, _d, _e, _hbc, _inst_read_from_file, _inst_lineno, _mod_read_from_file);
     inst_command.write_command.lineno = command.write_command.lineno;
     m(command.write_command.geid, inst_command.write_command.geid, placeholders, parameters);
     m(command.write_command.constant, inst_command.write_command.constant, placeholders, parameters);
   }
 
   void operator()(command_block_doc& commands, command_block_doc& inst_commands, placeholder_list_doc& placeholders, std::vector<inst_parameter_doc>& parameters) {
-    module_instantiation m(_m, _d, _e, _hbc);
+    module_instantiation m(_m, _d, _e, _hbc, _inst_read_from_file, _inst_lineno, _mod_read_from_file);
     BOOST_FOREACH(command_doc command, commands.commands) {
       command_doc inst_command;
       m(command, inst_command, placeholders, parameters);
@@ -181,7 +181,7 @@ struct module_instantiation : boost::static_visitor<> {
   }
 
   void operator()(guarded_command_block_doc& guarded_command_block, guarded_command_block_doc& inst_guarded_command_block, placeholder_list_doc& placeholders, std::vector<inst_parameter_doc>& parameters) {
-    module_instantiation m(_m, _d, _e, _hbc);
+    module_instantiation m(_m, _d, _e, _hbc, _inst_read_from_file, _inst_lineno, _mod_read_from_file);
     m(guarded_command_block.condition, inst_guarded_command_block.condition, placeholders, parameters);
     m(guarded_command_block.command_block, inst_guarded_command_block.command_block, placeholders, parameters);
   }
@@ -201,7 +201,7 @@ struct module_instantiation : boost::static_visitor<> {
     if(mod->second.placeholderlist.placeholders.size() != inst.parameters.size()) {
       std::ostringstream oss;
       oss << "[" << inst.read_from_file << ":" << inst.lineno << "] Module placeholder list and instantiation parameter list are not of same length." << std::endl;
-      throw InvalidPlaceholderException(oss.str()); // TODO is this the right exc. type?
+      throw InvalidPlaceholderException(oss.str());
     }
 
     // build module instance
@@ -217,7 +217,7 @@ struct module_instantiation : boost::static_visitor<> {
       inst_in_clause.lineno = in_clause.lineno;
       inst_in_clause.name = in_clause.name;
 
-      module_instantiation m(_m, _d, _e, _hbc);
+      module_instantiation m(_m, _d, _e, _hbc, inst.read_from_file, inst.lineno, mod->second.read_from_file);
       BOOST_FOREACH(if_clause_doc if_clause, in_clause.if_clauses) {
         if_clause_doc inst_if_clause;
         inst_if_clause.lineno = if_clause.lineno;
@@ -256,11 +256,14 @@ struct module_instantiation : boost::static_visitor<> {
   device_table_ptr _d;
   endpoint_table_ptr _e;
   hbc_doc& _hbc;
+  std::string _inst_read_from_file;
+  unsigned int _inst_lineno;
+  std::string _mod_read_from_file;
 };
 
 void ModuleInstantiation::operator()(hbc_doc& hbc) {
   for(unsigned int i = 0; i < hbc.blocks.size(); i++) { // no BOOST_FOREACH here becahse size changes
-    boost::apply_visitor(module_instantiation(_m, _d, _e, hbc), hbc.blocks[i]);
+    boost::apply_visitor(module_instantiation(_m, _d, _e, hbc, "", 0, ""), hbc.blocks[i]);
   }
 }
 
