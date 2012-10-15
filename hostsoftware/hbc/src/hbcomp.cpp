@@ -61,9 +61,12 @@ int main(int argc, char** argv)
   bool verbose = false;
   if(vm.count("verbose")) {
     verbose = true;
+    hexabus::GlobalOptions::getInstance()->setVerbose(true);
+  } else {
+    hexabus::GlobalOptions::getInstance()->setVerbose(false);
   }
 
-  if(vm.count("version") || verbose) {
+  if(vm.count("version")) {
     hexabus::VersionInfo vinf;
     std::cout << "Hexbus Compiler. libhbc version " << vinf.getVersion() << "." << std::endl;
     return 1;

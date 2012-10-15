@@ -29,6 +29,22 @@ namespace hexabus {
       VersionInfo (const VersionInfo& original);
       VersionInfo& operator= (const VersionInfo& rhs);
   };
+
+  class GlobalOptions {
+    public:
+      static GlobalOptions* getInstance();
+
+      bool getVerbose();
+      void setVerbose(bool v);
+
+    private:
+      GlobalOptions();
+      ~GlobalOptions() { }
+      static void deleteInstance();
+      static GlobalOptions* instance;
+
+      bool verbose;
+  };
 };
 
 

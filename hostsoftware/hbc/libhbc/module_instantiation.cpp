@@ -1,6 +1,7 @@
 #include "module_instantiation.hpp"
 
 #include <libhbc/error.hpp>
+#include <libhbc/common.hpp>
 
 using namespace hexabus;
 
@@ -51,7 +52,6 @@ struct module_instantiation : boost::static_visitor<> {
         {
           // find index of placeholder
           int placeholder_index = -1;
-          std::cout << "Looking for " << boost::get<placeholder_doc>(geid.device_alias).name << std::endl;
           for(unsigned int i = 0; i < placeholders.placeholders.size(); i++) {
             if(placeholders.placeholders[i].name == boost::get<placeholder_doc>(geid.device_alias).name)
               placeholder_index = i;
@@ -91,7 +91,6 @@ struct module_instantiation : boost::static_visitor<> {
       case 1: // placeholder
         {
           // find placeholder in list
-          std::cout << "Looking for " << boost::get<placeholder_doc>(geid.device_alias).name << std::endl;
           int placeholder_index = -1;
           for(unsigned int i = 0; i < placeholders.placeholders.size(); i++) {
             if(placeholders.placeholders[i].name == boost::get<placeholder_doc>(geid.endpoint_name).name)
@@ -131,7 +130,6 @@ struct module_instantiation : boost::static_visitor<> {
       case 0: // placeholder_doc
         {
           // find placeholder in list
-          std::cout << "Looking for " << boost::get<placeholder_doc>(constant).name << std::endl;
           int placeholder_index = -1;
           for(unsigned int i = 0; i < placeholders.placeholders.size(); i++) {
             if(placeholders.placeholders[i].name == boost::get<placeholder_doc>(constant).name)
@@ -190,7 +188,8 @@ struct module_instantiation : boost::static_visitor<> {
 
   void operator()(instantiation_doc& inst) const {
     // find module class - throw error if it's not there
-    std::cout << "Instantiating module " << inst.moduleclass << std::endl;
+    if(GlobalOptions::getInstance()->getVerbose())
+      std::cout << "Instantiating module " << inst.moduleclass << std::endl;
     module_table::iterator mod = _m->find(inst.moduleclass);
     if(mod == _m->end()) {
       std::ostringstream oss;

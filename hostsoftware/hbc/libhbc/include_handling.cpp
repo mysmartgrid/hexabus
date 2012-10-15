@@ -1,6 +1,7 @@
 #include "include_handling.hpp"
 
 #include <boost/foreach.hpp>
+#include <libhbc/common.hpp>
 #include <iostream>
 
 using namespace hexabus;
@@ -63,7 +64,8 @@ void IncludeHandling::addFileName(include_doc incl) {
       exists = true;
   }
   if(!exists) {
-    std::cout << "Adding " << file_to_add.string() << " to list of files to parse. - from include in " << incl.read_from_file << " line " << incl.lineno << std::endl;
+    if(GlobalOptions::getInstance()->getVerbose())
+      std::cout << "Adding " << file_to_add.string() << " to list of files to parse. - from include in " << incl.read_from_file << " line " << incl.lineno << std::endl;
     filenames.push_back(file_to_add);
   }
 }
