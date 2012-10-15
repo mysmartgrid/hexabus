@@ -201,23 +201,12 @@ void TableBuilder::print() {
   for(endpoint_table::iterator it = _e->begin(); it != _e->end(); it++) {
     std::cout << "Endpoint name: " << it->first << " - EID: " << it->second.eid << " - Datatype: ";
     switch(it->second.dtype) {
-      case DT_UNDEFINED:
-        std::cout << "undef.";
-        break;
-      case DT_BOOL:
-        std::cout << "bool";
-        break;
-      case DT_UINT8:
-        std::cout << "uint8";
-        break;
-      case DT_UINT32:
-        std::cout << "uint32";
-        break;
-      case DT_FLOAT:
-        std::cout << "float";
-        break;
-      default:
-        std::cout << "not implemented...?";
+      case DT_UNDEFINED: std::cout << "undef."; break;
+      case DT_BOOL:      std::cout << "bool";   break;
+      case DT_UINT8:     std::cout << "uint8";  break;
+      case DT_UINT32:    std::cout << "uint32"; break;
+      case DT_FLOAT:     std::cout << "float";  break;
+      default:           std::cout << "not implemented...?";
     }
     std::cout << " - Access (rwb): " << it->second.read << it->second.write << it->second.broadcast << std::endl;
   }
@@ -236,3 +225,4 @@ void TableBuilder::print() {
     std::cout << it->first << ": Module named " << it->second.name << " defined in " << it->second.read_from_file << " line " << it->second.lineno << std::endl;
   }
 }
+

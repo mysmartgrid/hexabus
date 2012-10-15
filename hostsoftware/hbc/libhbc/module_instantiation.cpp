@@ -265,10 +265,3 @@ void ModuleInstantiation::operator()(hbc_doc& hbc) {
   }
 }
 
-void ModuleInstantiation::print_module_table() {
-  std::cout << "Module table:" << std::endl;
-  for(module_table::iterator it = _m->begin(); it != _m->end(); it++) {
-    std::cout << it->first << ": Module named " << it->second.name << " defined in " << it->second.read_from_file << " line " << it->second.lineno << std::endl;
-  }
-}
-

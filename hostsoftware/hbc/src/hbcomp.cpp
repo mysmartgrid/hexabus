@@ -33,13 +33,14 @@ int main(int argc, char** argv)
   po::options_description desc(oss.str());
   desc.add_options()
     ("help,h", "produce help message")
+    ("version,v", "display libhbc version")
+    ("verbose,V", "show more diagnostic output")
     ("input,i", po::value<std::string>(), "the input file")
     ("print,p", "print parsed version of the input file")
     ("graph,g", po::value<std::string>(), "output the program graph in graphviz format")
-    ("tables,t", "build endpoint and alias tables") // TODO this has to happen automatically later.
-    ("modules,m", "build module table") // TODO module instantiation too
-    ("output,o", "output Hexabus Assembler (HBA) code") // TODO this as well
-    ("slice,s", "slice state machines") // TODO this as well
+    ("tables,t", "print endpoint and alias tables")
+    ("output,o", "output Hexabus Assembler (HBA) code")
+    ("slice,s", "slice state machines")
   ;
   po::positional_options_description p;
   p.add("input", 1);
@@ -51,10 +52,23 @@ int main(int argc, char** argv)
   std::string infile;
   if(vm.count("help"))
   {
+    hexabus::VersionInfo vinf;
+    std::cout << "Hexbus Compiler. libhbc version " << vinf.getVersion() << "." << std::endl << std::endl;
     std::cout << desc << std::endl;
     return 1;
   }
-  // TODO Version!
+
+  bool verbose = false;
+  if(vm.count("verbose")) {
+    verbose = true;
+  }
+
+  if(vm.count("version") || verbose) {
+    hexabus::VersionInfo vinf;
+    std::cout << "Hexbus Compiler. libhbc version " << vinf.getVersion() << "." << std::endl;
+    return 1;
+  }
+
   if(!vm.count("input"))
   {
     std::cerr << "Error: You must specify an input file." << std::endl;
@@ -63,20 +77,20 @@ int main(int argc, char** argv)
     infile = vm["input"].as<std::string>();
   }
 
-  hexabus::IncludeHandling includes(infile);
+  hexabus::IncludeHandling includes(infile); // give filename specified on the command line to IncludeHandling
 
   hexabus::hbc_doc ast; // The AST - all the files get parsed into one ast
   bool okay = true;
 
+  // read file, handle includes, read includes, repeat until all included files are parsed (or we find an error)
   for(unsigned int f = 0; f < includes.size() && okay; f++) {
     bool r = false;
     std::ifstream in(includes[f].string().c_str(), std::ios_base::in);
-    std::cout << "Reading input file " << includes[f].string() << "." << std::endl;
+    if(verbose)
+      std::cout << "Reading input file " << includes[f].string() << "..." << std::endl;
 
-    if(!in)
-    {
+    if(!in) {
       std::cerr << "Error: Could not open input file: " << includes[f].string() << std::endl;
-      // TODO if this is from an include, we could put the line number here
       return 1;
     }
 
@@ -113,7 +127,8 @@ int main(int argc, char** argv)
     }
 
     if(r && position_begin == position_end) {
-      std::cout << "Parsing of file " << includes[f] << " succeeded." << std::endl;
+      if(verbose)
+        std::cout << "Parsing of file " << includes[f] << " succeeded." << std::endl;
 
       // put the current file name into all the parts of the AST which don't have a filename yet.
       hexabus::FilenameAnnotation an(includes[f].string());
@@ -140,26 +155,27 @@ int main(int argc, char** argv)
       printer(ast);
     }
 
-    bool built_tables = false;
+    // build endpoint and device alias tables
+    if(verbose)
+      std::cout << "Building device / module / endpoint tables..." << std::endl;
     hexabus::TableBuilder tableBuilder;
+    tableBuilder(ast);
     if(vm.count("tables")) {
-      tableBuilder(ast);
       tableBuilder.print();
-      built_tables = true;
     }
 
-    if(vm.count("modules")) {
-      if(!built_tables)
-        std::cout << "Warning: Module instantiation activated without table generation. This can cause module instantiation errors!" << std::endl;
-      hexabus::ModuleInstantiation modules(tableBuilder.get_module_table(), tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
-      modules(ast);
-      modules.print_module_table();
-    }
+    // build module instances
+    if(verbose)
+      std::cout << "Instantiating modules..." << std::endl;
+    hexabus::ModuleInstantiation modules(tableBuilder.get_module_table(), tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
+    modules(ast);
 
-    bool built_graph = false;
+    // build "big" state machine graph
+    if(verbose)
+      std::cout << "Building state machine graph..." << std::endl;
     hexabus::GraphBuilder gBuilder;
+    gBuilder(ast);
     if(vm.count("graph")) {
-      gBuilder(ast);
       std::ofstream ofs;
       std::string outfile(vm["graph"].as<std::string>());
       if(std::string("") == outfile) {
@@ -173,22 +189,22 @@ int main(int argc, char** argv)
       }
       gBuilder.write_graphviz(ofs);
       ofs.close();
-      built_graph = true;
     }
 
-    if(vm.count("output")) {
-      if(!built_tables || !built_graph) {
-        std::cout << "Warnung: HBA output activated without both table and graph generation. This can cause output errors!" << std::endl;
-      }
-
-      hexabus::HBAOutput out(gBuilder.get_graph(), tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
-      out(std::cout);
-    }
-
+    // TODO this has to be automated once we know how we want to do it
     if(vm.count("slice")) {
-      // TODO just assuming everything up to now worked okay
+      if(verbose)
+        std::cout << "Slicing state machine graph..." << std::endl;
       hexabus::GraphTransformation gt(tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
       gt(gBuilder.get_graph());
+    }
+
+    // TODO this has to be automated as well
+    if(vm.count("output")) {
+      if(verbose)
+        std::cout << "Generating Hexabus Assembler output..." << std::endl;
+      hexabus::HBAOutput out(gBuilder.get_graph(), tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
+      out(std::cout);
     }
 
   } else {
