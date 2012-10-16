@@ -131,7 +131,7 @@ uint32_t ir_get_last_command() {
 }
 
 uint32_t to_be_repeated() {
-   if(!IR_REPEAT) { 
+   if(!IR_REPEAT) {
        return 0;
    } else if(IR_RECEIVER_RAW_MODE) {
         return 1;

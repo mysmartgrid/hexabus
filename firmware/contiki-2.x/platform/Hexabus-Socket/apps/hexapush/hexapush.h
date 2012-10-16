@@ -34,7 +34,7 @@
 #define HEXAPUSH_CLICK_STATE 2
 #define HEXAPUSH_PRESSED_STATE 3
 
-#define HP_DEBOUNCE_TIME		   50UL
+#define HP_DEBOUNCE_TIME 50UL
 
 void hexapush_init(void);
 

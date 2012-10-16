@@ -26,7 +26,7 @@ void shutter_init(void) {
     SHUTTER_DDR |= ( 0x00 | (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
     SHUTTER_DDR &= ~( (1<<PA4) | (1<<PA5) );
     SHUTTER_PORT |= ( (1<<PA4) | (1<<PA5) ); //pull-ups for encoder inputs
-    
+
     /* Enable pin interrupts for encoder ports */
     PCMSK0 |= ( 1<<SHUTTER_ENC1 ); 
     PCMSK0 |= ( 1<<SHUTTER_ENC2 );
@@ -101,7 +101,7 @@ PROCESS(shutter_process, "Open/Close shutter until motor stopps");
 PROCESS(shutter_setup_process, "Initial calibration and position");
 
 PROCESS_THREAD(shutter_setup_process, ev, data) {
-    
+
     PROCESS_BEGIN();
 
 
@@ -132,11 +132,11 @@ PROCESS_THREAD(shutter_setup_process, ev, data) {
 PROCESS_THREAD(shutter_process, ev, data) {
 
     static struct etimer encoder_timer;
-    
+
     PROCESS_BEGIN();
 
     etimer_set(&encoder_timer, CLOCK_SECOND * ENCODER_TIMEOUT / 1000);
-    
+
     while(1) {
         PROCESS_WAIT_EVENT();
 

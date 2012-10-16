@@ -13,9 +13,9 @@ plot: $(CMAKEOUTPUT) all
 plotref: $(CMAKEOUTPUT) all
 	@cd $(BUILDDIR) && ./src/ev-enumerate 
 	@cd $(BUILDDIR) && Rscript ../tools/plot-all.R
-# No tests for now
-#test: all
-#	@cd $(BUILDDIR) && $(MAKE) $(MFLAGS) test
+
+test: all
+	@cd $(BUILDDIR) && $(MAKE) $(MFLAGS) test
 
 $(CMAKEOUTPUT): $(BUILDDIR)
 	@cd $(BUILDDIR) && $(CMAKECMD) -DCMAKE_BUILD_TYPE=Debug

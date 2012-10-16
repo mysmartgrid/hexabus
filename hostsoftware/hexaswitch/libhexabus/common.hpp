@@ -39,7 +39,7 @@
 #include <iostream>
 #define LOG(msg) std::cout << msg << std::endl;
 #else
-#define LOG(msg) 
+#define LOG(msg)
 #endif
 
 #include <stdint.h>

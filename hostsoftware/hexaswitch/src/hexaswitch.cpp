@@ -95,7 +95,7 @@ void print_packet(char* recv_data) {
         std::cout << "(unknown)";
         break;
     }
-    std::cout << "Endpoint ID:\t" << (int)phandling.getEID() << std::endl;
+    std::cout << "Endpoint ID:\t" << phandling.getEID() << std::endl;
     std::cout << "Value:\t\t";
     //struct hxb_value value = phandling.getValue();
     struct hxb_value value;
@@ -141,7 +141,7 @@ void print_packet(char* recv_data) {
       std::cout << "Device Info\nDevice Name:\t" << phandling.getString() << "\n";
     } else {
       std::cout << "Endpoint Info\n";
-      std::cout << "Endpoint ID:\t" << (int)phandling.getEID() << "\n";
+      std::cout << "Endpoint ID:\t" << phandling.getEID() << "\n";
       std::cout << "EP Datatype:\t"; // TODO code duplication -- maybe this should be a function
       switch(phandling.getDatatype())
       {
@@ -170,14 +170,14 @@ void print_packet(char* recv_data) {
       std::cout << "EP Name:\t" << phandling.getString() << "\n";
     }
   }
-	std::cout << std::endl;
+  std::cout << std::endl;
 }
 
 po::variable_value get_mandatory_parameter(
     po::variables_map vm,
     std::string param_id,
     std::string error_message
-    ) 
+    )
 {
   po::variable_value retval;
   try {
@@ -206,7 +206,7 @@ int main(int argc, char** argv) {
     ("command,c", po::value<std::string>(), "{get|set|epquery|send|listen|on|off|status|power|devinfo}")
     ("ip,i", po::value<std::string>(), "the hostname to connect to")
     ("interface,I", po::value<std::string>(), "the interface to use for outgoing messages")
-    ("eid,e", po::value<unsigned int>(), "Endpoint ID (EID)")
+    ("eid,e", po::value<uint32_t>(), "Endpoint ID (EID)")
     ("datatype,d", po::value<unsigned int>(), "{1: Bool | 2: UInt8 | 3: UInt32 | 4: HexaTime | 5: Float | 6: String}")
     ("value,v", po::value<std::string>(), "Value")
     ;
@@ -316,8 +316,8 @@ int main(int argc, char** argv) {
   {
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command SET needs an IP address").as<std::string>();
-    unsigned int eid = get_mandatory_parameter(vm,
-        "eid", "command SET needs an EID and a datatype").as<unsigned int>();
+    uint32_t eid = get_mandatory_parameter(vm,
+        "eid", "command SET needs an EID and a datatype").as<uint32_t>();
     unsigned int dtype = get_mandatory_parameter(vm,
         "datatype", "command SET needs an EID and a datatype").as<unsigned int>();
     try { // handle errors in value lexical_cast
@@ -375,8 +375,8 @@ int main(int argc, char** argv) {
   {
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command STATUS needs an IP address").as<std::string>();
-    unsigned int eid = get_mandatory_parameter(vm,
-          "eid", "command GET needs an EID").as<unsigned int>();
+    uint32_t eid = get_mandatory_parameter(vm,
+          "eid", "command GET needs an EID").as<uint32_t>();
     hxb_packet_query packet = packetm->query(eid);
     network->sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
     network->receivePacket(true);
@@ -387,8 +387,8 @@ int main(int argc, char** argv) {
   {
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command STATUS needs an IP address").as<std::string>();
-    unsigned int eid = get_mandatory_parameter(vm,
-        "eid", "command GET needs an EID").as<unsigned int>();
+    uint32_t eid = get_mandatory_parameter(vm,
+        "eid", "command GET needs an EID").as<uint32_t>();
     hxb_packet_query packet = packetm->query(eid, true);
     network->sendPacket(ip, HXB_PORT, (char*)&packet, sizeof(packet));
     network->receivePacket(true);
@@ -406,8 +406,8 @@ int main(int argc, char** argv) {
   }
   else if (boost::iequals(command, std::string("SEND")))      // send: send a value broadcast
   {
-    unsigned int eid = get_mandatory_parameter(vm,
-        "eid", "command SET needs an EID").as<unsigned int>();
+    uint32_t eid = get_mandatory_parameter(vm,
+        "eid", "command SET needs an EID").as<uint32_t>();
     unsigned int dtype = get_mandatory_parameter(vm,
         "datatype", "command SET needs an EID").as<unsigned int>();
     switch(dtype) {
@@ -458,7 +458,7 @@ int main(int argc, char** argv) {
         {
           std::string value(get_mandatory_parameter(vm,
                   "value", "command SEND needs a value").as<std::string>()
-              );  
+              );
           hxb_packet_128string packet = packetm->writestr(eid, dtype, value, true);
           network->sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet, sizeof(packet));
           print_packet((char*)&packet);
