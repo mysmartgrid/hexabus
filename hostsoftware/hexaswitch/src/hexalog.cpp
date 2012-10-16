@@ -40,6 +40,7 @@ int main(int argc, char** argv)
     ("help,h", "produce help message")
     ("version,v", "print libklio version and exit")
     ("storefile,s", po::value<std::string>(), "the data store to use")
+    ("timezone,t", po::value<std::string>(), "the timezone to use for new sensors")
     ;
   po::positional_options_description p;
   p.add("storefile", 1);
@@ -75,6 +76,16 @@ int main(int argc, char** argv)
     return 2;
   }
 
+  std::string sensor_timezone("Europe/Berlin"); 
+  if (! vm.count("timezone")) {
+    std::cerr << "Using default timezone " << sensor_timezone 
+      << ", change with -t <NEW_TIMEZONE>" << std::endl;
+  } else {
+    sensor_timezone=vm["timezone"].as<std::string>();
+  }
+
+
+
   std::map<std::string, hexabus::Sensor::Ptr> sensors;
   hexabus::NetworkAccess network;
   // TODO: Compile flag etc.
@@ -94,22 +105,21 @@ int main(int argc, char** argv)
       struct hxb_value value = phandling.getValue();
       float reading=0.0;
       std::string sensor_unit;
-      std::string sensor_timezone("HORST"); // TODO: consider USCHI.
 
       //use the use the right datatype for each recieved packet
       switch(phandling.getDatatype()){
-        case 1: 
+        case HXB_DTYPE_BOOL:
+        case HXB_DTYPE_UINT8:
           reading = (float)(*(uint8_t*)&value.data);
           break;
-        case 2: 
-          reading = (float)(*(uint8_t*)&value.data);
-          break;
-        case 3:
-          reading = (float)(*(uint32_t*)&value.data);
+        case HXB_DTYPE_UINT32:
+          uint32_t v;
+          memcpy(&v, &value.data[0], sizeof(uint32_t));  // damit gehts..
+          reading = (float) v;
           break;
         //case 4: //date+time packet
-        case 5:
-          reading = (float)(*(float*)&value.data);
+        case HXB_DTYPE_FLOAT:
+          memcpy(&reading, &value.data[0], sizeof(float));
           break;
         //case 6: //128char string
         case 7:
@@ -208,8 +218,9 @@ int main(int argc, char** argv)
         } 
       } catch (klio::StoreException const& ex) {
         std::cout << "Failed to record reading: " << ex.what() << std::endl;
+      } catch (std::exception const& ex) {
+        std::cout << "Failed to record reading: " << ex.what() << std::endl;
       }
-
     } else {
       std::cout << "Received some packet." << std::endl;
     } 
