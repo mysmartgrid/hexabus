@@ -40,6 +40,8 @@ void NetworkAccess::receivePacket(bool related) {
   {
     boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::udp::v6(), HXB_PORT);
     my_socket = new boost::asio::ip::udp::socket(*io_service, endpoint);
+	my_socket->set_option(boost::asio::ip::multicast::join_group(
+				boost::asio::ip::address::from_string("ff05::1")));
   } else {
     my_socket = socket;
   }
