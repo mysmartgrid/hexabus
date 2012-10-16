@@ -2077,6 +2077,15 @@ CCIF extern uip_lladdr_t uip_lladdr;
   (((a)->u8[0]) == 0xFF)
 
 /**
+ * \brief is address a multicast address with scope larger than 
+ * link local (which means: routable), see RFC 3513
+ * a is of type uip_ipaddr_t*
+ * */
+#define uip_is_addr_routable_mcast(a)           \
+  ((((a)->u8[0]) == 0xFF) && \
+   ((a)->u8[1] > 0x02))
+
+/**
  * \brief is group-id of multicast address a
  * the all nodes group-id
  */

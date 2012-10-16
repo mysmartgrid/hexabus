@@ -8,10 +8,10 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 1
+#define UDP_HANDLER_DEBUG 0
 
 // WebServer
-#define WEBSERVER_DEBUG 1
+#define WEBSERVER_DEBUG 0
 
 // Memory debugger process
 #define MEMORY_DEBUGGER_ENABLE 1
@@ -25,7 +25,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define BUTTON_TOGGLES_RELAY 1 // set to 1 to have the button toggle the relay directly
 
 // datetime_service
-#define DATETIME_SERVICE_ENABLE 0
+#define DATETIME_SERVICE_ENABLE 1
 #define DATETIME_SERVICE_DEBUG 0
 
 // temperature
@@ -52,7 +52,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define S0_ENABLE 0 //S0 meter instead of internal meter.
 
 // state_machine
-#define STATE_MACHINE_ENABLE 0
+#define STATE_MACHINE_ENABLE 1
 #define STATE_MACHINE_DEBUG 1
 
 // window blind shutter motor control

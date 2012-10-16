@@ -177,7 +177,7 @@ print_local_addresses(void)
 void init_value_broadcast(void)
 {
   PRINTF("Value Broadcast init\n");
-  uip_ip6addr(&server_ipaddr, 0xff02, 0, 0, 0, 0, 0, 0, 0x0001); // Link-Local Multicast
+  uip_ip6addr(&server_ipaddr, 0xff05, 0, 0, 0, 0, 0, 0, 0x0001); // Link-Local Multicast
   print_local_addresses();
 
   /* new connection with remote host */
