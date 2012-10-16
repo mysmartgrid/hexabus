@@ -77,7 +77,7 @@ namespace hexabus {
     std::string read_from_file;
   };
 
-  typedef boost::variant<std::string, placeholder_doc> global_endpoint_id_element; // TODO name it _doc?
+  typedef boost::variant<std::string, placeholder_doc> global_endpoint_id_element;
 
   struct global_endpoint_id_doc {
     global_endpoint_id_element device_alias;

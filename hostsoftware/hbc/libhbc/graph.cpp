@@ -20,7 +20,7 @@ namespace hexabus {
 
   unsigned int find_state_vertex_id(graph_t_ptr g, statemachine_doc statemachine, const std::string name) {
     bool found = false;
-    unsigned int state_id;
+    unsigned int state_id = 0;
     for(unsigned int i = 0; i < statemachine.stateset.states.size() && !found; i++) {
       if(name == statemachine.stateset.states[i]) {
         found = true;

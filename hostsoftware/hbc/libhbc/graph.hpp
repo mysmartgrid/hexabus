@@ -13,7 +13,7 @@ namespace hexabus {
     unsigned int machine_id;
     unsigned int vertex_id;    // state is identified by pair of machine and state id
     vertex_type type;
-    boost::variant<condition_doc, command_block_doc /* , ... TODO ... */> contents;
+    boost::variant<condition_doc, command_block_doc> contents;
     boost::default_color_type color; // needs to be colorable for breadth first search
   };
 

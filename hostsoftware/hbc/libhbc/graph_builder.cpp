@@ -129,7 +129,7 @@ struct first_pass : boost::static_visitor<> {
           // add condition vertex
           std::ostringstream else_oss;
           else_oss << "(" << condition_id << ") else";
-          vertex_id_t else_v_id = add_vertex(_g, else_oss.str(), statemachine.id, condition_id++, v_cond /* TODO contents */);
+          vertex_id_t else_v_id = add_vertex(_g, else_oss.str(), statemachine.id, condition_id++, v_cond);
 
           // add edges
           // edge from from-state to condition vertex
@@ -164,8 +164,6 @@ void GraphBuilder::operator()(hbc_doc& hbc) {
     // only state machines
     boost::apply_visitor(first_pass(_g), block);
   }
-
-  // TODO moar passes
 }
 
 void GraphBuilder::write_graphviz(std::ostream& os) {

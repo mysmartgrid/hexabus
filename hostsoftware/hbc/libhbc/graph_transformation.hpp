@@ -20,22 +20,15 @@ namespace hexabus {
     private:
       device_table_ptr _d;
       endpoint_table_ptr _e;
-      std::vector<vertex_id_t> slice_for_device(std::string dev_name, std::vector<vertex_id_t> vertices, graph_t_ptr g);
   };
 
-  template <typename T> bool contains(std::vector<T>& v, T s) {
-    BOOST_FOREACH(T t, v) {
-      if(t == s)
-        return true;
-    }
-    return false;
-  }
-
+  // Visitor class for reachability analysis: Takes all nodes which it finds when handed to boost::breadth_first_search and puts them into a vector
+  // TODO remove when not needed!
+  // Example: boost::breadth_first_search(boost::make_reverse_graph(*g), start_vertex, visitor(bfs_nodelist_maker(&reachable_nodes)));
   class bfs_nodelist_maker : public boost::default_bfs_visitor {
     public:
       bfs_nodelist_maker(std::vector<vertex_id_t>* node_ids) : node_id_list(node_ids) { }
       template <typename Vertex, typename Graph> void discover_vertex(Vertex u, Graph g) {
-        // TODO there must be a more elegant way to do this
         if(!contains(*node_id_list, u)) {
           node_id_list->push_back(u);
         }

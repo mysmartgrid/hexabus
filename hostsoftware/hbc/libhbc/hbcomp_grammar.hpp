@@ -137,8 +137,8 @@ namespace hexabus {
       comp_op %= ( lit("==")[_val = STM_EQ] | lit("<=")[_val = STM_LEQ] | lit(">=")[_val = STM_GEQ] | lit("<")[_val = STM_LT] | lit(">")[_val = STM_GT] | lit("!=")[_val = STM_NEQ] );
       atomic_condition %= lit("ep") > global_endpoint_id > comp_op > constant;
       timeout_condition %= lit("timeout") > constant;
-      timer_condition %= lit("time") > time_fields > time_comp_op > constant;
-      time_fields %= ( lit("hour")[ _val = TF_HOUR ] | lit("minute")[ _val = TF_MINUTE ] | lit("second")[ _val = TF_SECOND ] | lit("day")[ _val = TF_DAY ]
+      timer_condition %= lit("time") > time_f > time_comp_op > constant;
+      time_f %= ( lit("hour")[ _val = TF_HOUR ] | lit("minute")[ _val = TF_MINUTE ] | lit("second")[ _val = TF_SECOND ] | lit("day")[ _val = TF_DAY ]
                        | lit("month")[ _val = TF_MONTH] | lit("year")[ _val = TF_YEAR ] | lit("weekday")[ _val = TF_WEEKDAY ] );
       time_comp_op %= ( lit(">")[ _val = STM_GT ] | lit("<")[ _val = STM_LT ] );
       compound_condition %= '(' > condition > ')' > bool_op > '(' > condition > ')';
@@ -209,7 +209,7 @@ namespace hexabus {
     qi::rule<Iterator, atomic_condition_doc(), Skip> atomic_condition;
     qi::rule<Iterator, timeout_condition_doc(), Skip> timeout_condition;
     qi::rule<Iterator, timer_condition_doc(), Skip> timer_condition;
-    qi::rule<Iterator, time_fields(), Skip> time_fields;
+    qi::rule<Iterator, time_fields(), Skip> time_f;
     qi::rule<Iterator, comp_operator(), Skip> time_comp_op;
     qi::rule<Iterator, compound_condition_doc(), Skip> compound_condition;
     qi::rule<Iterator, unsigned int(), Skip> tautology;
