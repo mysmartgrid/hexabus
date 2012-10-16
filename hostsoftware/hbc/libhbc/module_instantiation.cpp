@@ -10,31 +10,43 @@ struct module_instantiation : boost::static_visitor<> {
 
   void operator()(condition_doc& cond, condition_doc& inst_cond, placeholder_list_doc& placeholders, std::vector<inst_parameter_doc>& parameters) {
     module_instantiation m(_m, _d, _e, _hbc, _inst_read_from_file, _inst_lineno, _mod_read_from_file);
-    atomic_condition_doc inst_at_cond;
-    compound_condition_doc inst_comp_cond;
     switch(cond.which()) {
       case 0: // unsigned int ("true")
         inst_cond = cond;
         break;
       case 1: // atomic_condition
-        m(boost::get<atomic_condition_doc>(cond).geid, inst_at_cond.geid, placeholders, parameters);
-        inst_at_cond.comp_op = boost::get<atomic_condition_doc>(cond).comp_op;
-        m(boost::get<atomic_condition_doc>(cond).constant, inst_at_cond.constant, placeholders, parameters);
-        inst_cond = inst_at_cond;
+        {
+          atomic_condition_doc inst_at_cond;
+          m(boost::get<atomic_condition_doc>(cond).geid, inst_at_cond.geid, placeholders, parameters);
+          inst_at_cond.comp_op = boost::get<atomic_condition_doc>(cond).comp_op;
+          m(boost::get<atomic_condition_doc>(cond).constant, inst_at_cond.constant, placeholders, parameters);
+          inst_cond = inst_at_cond;
+        }
         break;
       case 2: // timeout_condition
-        // TODO at the moment we do not support placeholders for timeout conditions. but we should.
-        inst_cond = cond;
+        {
+          timeout_condition_doc inst_to_cond;
+          m(boost::get<timeout_condition_doc>(cond).seconds, inst_to_cond.seconds, placeholders, parameters);
+          inst_cond = inst_to_cond;
+        }
         break;
       case 3: // timer_condition
-        // TODO at the moment we do not support placeholders for timer conditions. but we should.
-        inst_cond = cond;
+        {
+          timer_condition_doc inst_tm_cond;
+          inst_tm_cond.fields = boost::get<timer_condition_doc>(cond).fields;
+          inst_tm_cond.op = boost::get<timer_condition_doc>(cond).op;
+          m(boost::get<timer_condition_doc>(cond).value, inst_tm_cond.value, placeholders, parameters);
+          inst_cond = inst_tm_cond;
+        }
         break;
       case 4: // compound_condition
-        m(boost::get<compound_condition_doc>(cond).condition_a, inst_comp_cond.condition_a, placeholders, parameters);
-        inst_comp_cond.bool_op = boost::get<compound_condition_doc>(cond).bool_op;
-        m(boost::get<compound_condition_doc>(cond).condition_b, inst_comp_cond.condition_b, placeholders, parameters);
-        inst_cond = inst_comp_cond;
+        {
+          compound_condition_doc inst_comp_cond;
+          m(boost::get<compound_condition_doc>(cond).condition_a, inst_comp_cond.condition_a, placeholders, parameters);
+          inst_comp_cond.bool_op = boost::get<compound_condition_doc>(cond).bool_op;
+          m(boost::get<compound_condition_doc>(cond).condition_b, inst_comp_cond.condition_b, placeholders, parameters);
+          inst_cond = inst_comp_cond;
+        }
         break;
 
       default:

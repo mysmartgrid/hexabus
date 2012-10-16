@@ -285,7 +285,13 @@ void HBAOutput::print_condition(timeout_condition_doc to_cond, std::ostream& ost
   ostr << "condition cond_" << vertex.machine_id << "_" << vertex.vertex_id << " {" << std::endl;
 
   // timeout
-  ostr << "  timeout := " << to_cond.seconds << ";" << std::endl;
+  try {
+    ostr << "  timeout := " << boost::get<unsigned int>(to_cond.seconds) << ";" << std::endl;
+  } catch(boost::bad_get e) {
+    std::ostringstream oss;
+    oss << "Only integer constants allowed for timeout values - must be Uint format." << std::endl;
+    throw HBAConversionErrorException(oss.str());
+  }
 
   // closing bracket
   ostr << "}" << std::endl << std::endl;
@@ -314,7 +320,13 @@ void HBAOutput::print_condition(timer_condition_doc tm_cond, std::ostream& ostr,
   }
 
   // value to compare to
-  ostr << tm_cond.value << ";" << std::endl;
+  try {
+    ostr << boost::get<unsigned int>(tm_cond.value) << ";" << std::endl;
+  } catch(boost::bad_get e) {
+    std::ostringstream oss;
+    oss << "Only integer constants allowed for timer values - must be Uint format." << std::endl;
+    throw HBAConversionErrorException(oss.str());
+  }
 
   ostr << "}" << std::endl << std::endl;
 }

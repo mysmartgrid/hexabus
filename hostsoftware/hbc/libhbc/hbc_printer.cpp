@@ -110,7 +110,6 @@ struct hbc_node_printer : boost::static_visitor<> {
   }
 
   void operator()(global_endpoint_id_doc const& global_endpoint_id, std::ostream& ostr = (std::cout)) const {
-    hbc_printer p;
     boost::apply_visitor(hbc_node_printer(indent, ostr), global_endpoint_id.device_alias);
     ostr << ".";
     boost::apply_visitor(hbc_node_printer(indent, ostr), global_endpoint_id.endpoint_name);
@@ -132,11 +131,13 @@ struct hbc_node_printer : boost::static_visitor<> {
       case STM_GT: ostr << " > "; break;
       default: break;// do nothing.
     }
-    ostr << timer_condition.value;
+    boost::apply_visitor(hbc_node_printer(indent, ostr), timer_condition.value);
   }
 
   void operator()(timeout_condition_doc const& timeout_condition) const {
-    ostr << "timeout " << timeout_condition.seconds << " sec";
+    ostr << "timeout ";
+    boost::apply_visitor(hbc_node_printer(indent, ostr), timeout_condition.seconds);
+    ostr << " sec";
   }
 
   void operator()(atomic_condition_doc const& atomic_condition) const {

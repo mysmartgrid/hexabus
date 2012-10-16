@@ -123,7 +123,7 @@ module toggle($DEVICE, $ENDPOINT, $VALUE, $TARGETDEV, $TARGETEP) {
   }
 }
 
-module error($A, $B) {
+module test_module($A, $B, $T) {
   states { init, nope };
   in(init) {
     if(true) { goto init; }
@@ -137,10 +137,13 @@ module error($A, $B) {
     } else {
       goto nope;
     }
+    if(timeout $T) {
+      goto init;
+    }
   }
 }
 
-instance my_error : error(device, another_endpoint);
-instance more_error : error(device, on);
+instance test_instance : test_module(device, another_endpoint, 1000);
+instance more_instances : test_module(device, on, 5000);
 instance the_toggle : toggle(device, power, 5, another_device, on);
 

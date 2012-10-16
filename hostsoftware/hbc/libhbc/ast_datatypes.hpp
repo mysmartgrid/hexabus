@@ -92,13 +92,13 @@ namespace hexabus {
   };
 
   struct timeout_condition_doc {
-    unsigned int seconds;
+    constant_doc seconds;
   };
 
   struct timer_condition_doc {
     time_fields fields;
     comp_operator op;
-    unsigned int value;
+    constant_doc value;
   };
 
   struct compound_condition_doc;
@@ -329,7 +329,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::command_doc,
-  (hexabus::write_command_doc, write_command)   // TODO variant if there's more
+  (hexabus::write_command_doc, write_command)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -341,14 +341,14 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::timeout_condition_doc,
-  (unsigned int, seconds)
+  (hexabus::constant_doc, seconds)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
   hexabus::timer_condition_doc,
   (hexabus::time_fields, fields)
   (hexabus::comp_operator, op)
-  (unsigned int, value)
+  (hexabus::constant_doc, value)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

@@ -1,6 +1,5 @@
 #include "common.hpp"
 #include <sstream>
-#include <iostream>
 #include <stdlib.h>
 
 using namespace hexabus;
@@ -15,13 +14,11 @@ const std::string VersionInfo::getVersion() {
 GlobalOptions* GlobalOptions::instance = NULL;
 
 void GlobalOptions::deleteInstance() {
-  std::cout << "d";
   delete instance;
   instance = NULL;
 }
 
 GlobalOptions::GlobalOptions() {
-  std::cout << "n";
   atexit(&deleteInstance);
 }
 

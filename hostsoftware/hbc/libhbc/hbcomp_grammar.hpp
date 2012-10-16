@@ -136,8 +136,8 @@ namespace hexabus {
       bool_op %= ( lit("||")[_val = OR] | lit("&&")[_val = AND] );
       comp_op %= ( lit("==")[_val = STM_EQ] | lit("<=")[_val = STM_LEQ] | lit(">=")[_val = STM_GEQ] | lit("<")[_val = STM_LT] | lit(">")[_val = STM_GT] | lit("!=")[_val = STM_NEQ] );
       atomic_condition %= lit("ep") > global_endpoint_id > comp_op > constant;
-      timeout_condition %= lit("timeout") > uint_;
-      timer_condition %= lit("time") > time_fields > time_comp_op > uint_;
+      timeout_condition %= lit("timeout") > constant;
+      timer_condition %= lit("time") > time_fields > time_comp_op > constant;
       time_fields %= ( lit("hour")[ _val = TF_HOUR ] | lit("minute")[ _val = TF_MINUTE ] | lit("second")[ _val = TF_SECOND ] | lit("day")[ _val = TF_DAY ]
                        | lit("month")[ _val = TF_MONTH] | lit("year")[ _val = TF_YEAR ] | lit("weekday")[ _val = TF_WEEKDAY ] );
       time_comp_op %= ( lit(">")[ _val = STM_GT ] | lit("<")[ _val = STM_LT ] );
