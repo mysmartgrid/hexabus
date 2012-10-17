@@ -24,7 +24,7 @@ using namespace hexabus;
 
 const std::string VersionInfo::getVersion() {
   std::ostringstream oss;
-  oss << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_PATCH;
+  oss << LIBHEXABUS_VERSION_MAJOR << "." << LIBHEXABUS_VERSION_MINOR << "." << LIBHEXABUS_VERSION_PATCH;
   return oss.str();
 }
 

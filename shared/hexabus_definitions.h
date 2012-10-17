@@ -7,7 +7,7 @@
 #define HXB_PORT              61616
 #define HXB_GROUP             "ff05::1"                           // keep these in sync. the second define is used in
 #define HXB_GROUP_RAW         0xff05, 0, 0, 0, 0, 0, 0, 0x0001    // hexaplug code.
-#define HXB_HEADER            "HX0B"
+#define HXB_HEADER            "HX0C"
 
 // Boolean values
 #define HXB_TRUE              1
@@ -43,11 +43,11 @@
 #define HXB_ERR_DATATYPE      0x04  // A packet with a datatype that does not fit the endpoint was received
 
 // Operators for comparison in state machine
-#define STM_EQ   0x00
-#define STM_LEQ  0x01
-#define STM_GEQ  0x02
-#define STM_LT   0x03
-#define STM_GT   0x04
-#define STM_NEQ  0x05
+#define STM_EQ                0x00
+#define STM_LEQ               0x01
+#define STM_GEQ               0x02
+#define STM_LT                0x03
+#define STM_GT                0x04
+#define STM_NEQ               0x05
 
 #endif

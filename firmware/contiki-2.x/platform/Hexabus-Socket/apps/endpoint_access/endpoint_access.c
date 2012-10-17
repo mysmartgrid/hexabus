@@ -20,7 +20,7 @@
 #include "metering.h"
 #include "endpoints.h"
 
-uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
+uint8_t endpoint_get_datatype(uint32_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
   switch(eid)
   {
@@ -86,7 +86,7 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
   }
 }
 
-void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the endpoint into the buffer. Max 127 chars.
+void endpoint_get_name(uint32_t eid, char* buffer)  // writes the name of the endpoint into the buffer. Max 127 chars.
 {
   // fill buffer with \0
   int i;
@@ -178,7 +178,7 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
   buffer[HXB_STRING_PACKET_MAX_BUFFER_LENGTH] = '\0'; // Set last character to \0 in case some string was too long
 }
 
-uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to an endpoint - returns 0 if okay, or an error code as defined in hxb_packet.h
+uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to an endpoint - returns 0 if okay, or an error code as defined in hxb_packet.h
 {
   switch(eid)
   {
@@ -285,7 +285,7 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
   }
 }
 
-void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endpoint
+void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an endpoint
 {
   switch(eid)
   {

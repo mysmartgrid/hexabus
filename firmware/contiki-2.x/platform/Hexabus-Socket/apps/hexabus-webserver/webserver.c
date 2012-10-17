@@ -63,9 +63,9 @@ static struct ctk_label loglabel =
 PROCESS_THREAD(webserver_process, ev, data)
 {
   PROCESS_BEGIN();
-  
+
   ctk_window_new(&mainwindow, LOG_WIDTH, LOG_HEIGHT+1, "Web server");
-  
+
   CTK_WIDGET_ADD(&mainwindow, &message);
   CTK_WIDGET_ADD(&mainwindow, &loglabel);
   
@@ -93,7 +93,7 @@ void
 webserver_log_file(uip_ipaddr_t *requester, char *file)
 {
   int size;
-  
+
   /* Scroll previous entries upwards */
   memcpy(log, &log[LOG_WIDTH], LOG_WIDTH * (LOG_HEIGHT - 1));
 
@@ -104,10 +104,10 @@ webserver_log_file(uip_ipaddr_t *requester, char *file)
 		 requester->u8[1],
 		 requester->u8[2],
 		 requester->u8[3]);
-  
+
   /* Copy filename into last line. */		 
   strncpy(&log[LOG_WIDTH * (LOG_HEIGHT - 1) + size], file, LOG_WIDTH - size);
-	   
+
   /* Update log display. */
   CTK_WIDGET_REDRAW(&loglabel);
 }

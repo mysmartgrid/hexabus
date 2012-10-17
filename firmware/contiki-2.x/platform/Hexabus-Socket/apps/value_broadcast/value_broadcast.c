@@ -62,7 +62,7 @@ AUTOSTART_PROCESSES(&value_broadcast_process);
 #endif
 
 /*---------------------------------------------------------------------------*/
-void broadcast_to_self(struct hxb_value* val, uint8_t eid)
+void broadcast_to_self(struct hxb_value* val, uint32_t eid)
 {
 
 #if STATE_MACHINE_ENABLE
@@ -73,17 +73,21 @@ void broadcast_to_self(struct hxb_value* val, uint8_t eid)
   envelope->eid = eid;
   memcpy(&envelope->value, val, sizeof(struct hxb_value));
   process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
-  PRINTF("value_broadcast: Sending EID %d to own state machine.\n", eid);
+  PRINTF("value_broadcast: Sending EID %ld to own state machine.\n", eid);
 
 #endif
 }
 
-void broadcast_value(uint8_t eid)
+void broadcast_value_ptr(void* eidp) { // when called from a callback timer or event, we get a void*
+  broadcast_value(*(uint32_t*)eidp);
+}
+
+void broadcast_value(uint32_t eid)
 {
   struct hxb_value val;
   endpoint_read(eid, &val);
 
-  uint8_t localonly[] = { VALUE_BROADCAST_LOCAL_ONLY_EIDS };
+  uint32_t localonly[] = { VALUE_BROADCAST_LOCAL_ONLY_EIDS };
   broadcast_to_self(&val, eid);
 
   int i;
@@ -100,7 +104,8 @@ void broadcast_value(uint8_t eid)
 
   if(!lo)
   {
-    PRINTF("value_broadcast: Broadcasting EID %d.\n", eid);
+    PRINTF("value_broadcast: Broadcasting EID %ld.\n", eid);
+    PRINTF("value_broadcast: Datatype: %d.\n", val.datatype);
 
     switch(val.datatype)
     {
@@ -110,7 +115,7 @@ void broadcast_value(uint8_t eid)
         strncpy(&packet8.header, HXB_HEADER, 4);
         packet8.type = HXB_PTYPE_INFO;
         packet8.flags = 0;
-        packet8.eid = eid;
+        packet8.eid = uip_htonl(eid);
         packet8.datatype = val.datatype;
         packet8.value = *(uint8_t*)&val.data;
         packet8.crc = uip_htons(crc16_data((char*)&packet8, sizeof(packet8)-2, 0));
@@ -123,7 +128,7 @@ void broadcast_value(uint8_t eid)
         strncpy(&packet32.header, HXB_HEADER, 4);
         packet32.type = HXB_PTYPE_INFO;
         packet32.flags = 0;
-        packet32.eid = eid;
+        packet32.eid = uip_htonl(eid);
         packet32.datatype = val.datatype;
         packet32.value = uip_htonl(*(uint32_t*)&val.data);
         packet32.crc = uip_htons(crc16_data((char*)&packet32, sizeof(packet32)-2, 0));
@@ -136,7 +141,7 @@ void broadcast_value(uint8_t eid)
         strncpy(&packetf.header, HXB_HEADER, 4);
         packetf.type = HXB_PTYPE_INFO;
         packetf.flags = 0;
-        packetf.eid = eid;
+        packetf.eid = uip_htonl(eid);
         packetf.datatype = val.datatype;
         uint32_t value_nbo = uip_htonl(*(uint32_t*)&val.data);
         packetf.value = *(float*)&value_nbo;
@@ -204,7 +209,7 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
 {
   static struct etimer periodic;
   static struct ctimer backoff_timer[VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS];
-  static uint8_t auto_eids[] = { VALUE_BROADCAST_AUTO_EIDS };
+  static uint32_t auto_eids[] = { VALUE_BROADCAST_AUTO_EIDS };
 
   PROCESS_BEGIN();
 
@@ -226,14 +231,15 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
       uint8_t i;
       for(i = 0 ; i < VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS; i++)
       {
-        ctimer_set(&backoff_timer[i], SEND_TIME, broadcast_value, auto_eids[i]);
+        ctimer_set(&backoff_timer[i], SEND_TIME, broadcast_value_ptr, (void*)&auto_eids[i]);
       }
     }
 
     if(ev == immediate_broadcast_event)
     {
-      PRINTF("Value_broadcast: Received immediate_broadcast_event -- EID: %d\r\n", (int)data);
-      broadcast_value((int)data);
+      PRINTF("Value_broadcast: Received immediate_broadcast_event -- EID: %ld\r\n", *(uint32_t*)data);
+      broadcast_value_ptr(data);
+      free(data);
     }
   }
 

@@ -23,12 +23,12 @@ void analogread_init() {
 
 float get_analogvalue() {
     ADCSRA |= (1<<ADSC); // invoke single conversion
-    
+
     while(ADCSRA & (1<<ADSC)) {} // wait for conversion to finish
 
     float voltage = ADCW * ANALOGREAD_MULT;
-    
-    PRINTF("Voltage read: %d mV\n", (uint32_t)(voltage*1000.0));
+
+    PRINTF("Analog value read: %d / 1000\n", (uint32_t)(voltage*1000.0));
 
     return voltage;
 }
