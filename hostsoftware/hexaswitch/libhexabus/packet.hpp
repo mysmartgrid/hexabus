@@ -6,7 +6,7 @@
 #include "../../../shared/hexabus_packet.h"
 
 //#define ENABLE_LOGGING 0
-#include "config.h"
+#include "../build/libhexabus/config.h"
 
 /* Include TR1 shared ptrs in a portable way. */
 #include <cstddef> // for __GLIBCXX__
