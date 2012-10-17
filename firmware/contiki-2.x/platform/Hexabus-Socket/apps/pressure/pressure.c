@@ -58,7 +58,7 @@ uint8_t pressure_read8(uint8_t addr) {
 }
 
 void pressure_init() {
-  
+
     ac1 = pressure_read16(AC1_ADDR);
     ac2 = pressure_read16(AC2_ADDR);
     ac3 = pressure_read16(AC3_ADDR);
@@ -103,7 +103,7 @@ while(1) {
 
     etimer_set(&pressure_read_delay_timer, CLOCK_SECOND*PRESSURE_READ_TEMP_DELAY/1000);
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&pressure_read_delay_timer));
-    
+
     ut = pressure_read16(BMP085_VALUE);
 
     //Read Pressure
@@ -113,7 +113,7 @@ while(1) {
 
     etimer_set(&pressure_read_delay_timer, CLOCK_SECOND*PRESSURE_READ_DELAY/1000);  //TODO: oversampling related dalay
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&pressure_read_delay_timer));
-    
+
     up = pressure_read16(BMP085_VALUE);
     up <<= 8;
     up |= pressure_read8(BMP085_VALUE_XLSB);
@@ -154,7 +154,7 @@ while(1) {
     pressure = p+((x1+x2+(int32_t)3791)/16);
 
     PRINTF("Real pressure: %ld \n", pressure);
-    
+
     etimer_set(&pressure_read_delay_timer, CLOCK_SECOND*PRESSURE_READ_DELAY);
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&pressure_read_delay_timer));
 }

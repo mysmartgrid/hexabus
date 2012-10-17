@@ -20,7 +20,7 @@
 #include "metering.h"
 #include "endpoints.h"
 
-uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
+uint8_t endpoint_get_datatype(uint32_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
   switch(eid)
   {
@@ -47,7 +47,12 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
       return HXB_DTYPE_PRESSURE;
 #endif
 #if LIGHTSENSOR_ENABLE
-    case EP_LIGHTSENSOR_EID:
+    case EP_LIGHTSENSOR:
+      return HXB_DTYPE_FLOAT;
+#endif
+#if METERING_ENERGY
+    case EP_ENERGY_METER_TOTAL:
+    case EP_ENERGY_METER:
       return HXB_DTYPE_FLOAT;
 #endif
 #if SHUTTER_ENABLE
@@ -64,8 +69,8 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
       return HXB_DTYPE_UINT8;
 #endif
 #if HEXONOFF_ENABLE
-    case EP_HEXONOFF_EID_SET:
-    case EP_HEXONOFF_EID_TOGGLE:
+    case EP_HEXONOFF_SET:
+    case EP_HEXONOFF_TOGGLE:
       return HXB_DTYPE_UINT8;
 #endif
 #if ANALOGREAD_ENABLE
@@ -81,7 +86,7 @@ uint8_t endpoint_get_datatype(uint8_t eid) // returns the datatype of the endpoi
   }
 }
 
-void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the endpoint into the buffer. Max 127 chars.
+void endpoint_get_name(uint32_t eid, char* buffer)  // writes the name of the endpoint into the buffer. Max 127 chars.
 {
   // fill buffer with \0
   int i;
@@ -119,8 +124,16 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
       break;
 #endif
 #if LIGHTSENSOR_ENABLE
-    case EP_LIGHTSENSOR_EID:
+    case EP_LIGHTSENSOR:
       strncpy(buffer, "Lightsensor", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
+#endif
+#if METERING_ENERGY
+    case EP_ENERGY_METER_TOTAL:
+      strncpy(buffer, "Energy Meter Total", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
+      break;
+    case EP_ENERGY_METER:
+      strncpy(buffer, "Energy Meter", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
+      break;
 #endif
 #if SHUTTER_ENABLE
     case EP_SHUTTER:
@@ -165,7 +178,7 @@ void endpoint_get_name(uint8_t eid, char* buffer)  // writes the name of the end
   buffer[HXB_STRING_PACKET_MAX_BUFFER_LENGTH] = '\0'; // Set last character to \0 in case some string was too long
 }
 
-uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to an endpoint - returns 0 if okay, or an error code as defined in hxb_packet.h
+uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to an endpoint - returns 0 if okay, or an error code as defined in hxb_packet.h
 {
   switch(eid)
   {
@@ -201,9 +214,21 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
       return HXB_ERR_WRITEREADONLY;
 #endif
 #if ANALOGREAD_ENABLE
-    case EP_ANALOGREAD_EID:
+    case EP_ANALOGREAD:
 #endif
       return HXB_ERR_WRITEREADONLY;
+#if METERING_ENERGY
+    case EP_ENERGY_METER_TOTAL:
+      return HXB_ERR_WRITEREADONLY;
+    case EP_ENERGY_METER:
+      if(value->datatype == HXB_DTYPE_FLOAT)
+      {
+        metering_reset_energy();
+        return 0;
+      } else {
+        return HXB_ERR_DATATYPE;
+      }
+#endif
 #if SHUTTER_ENABLE
     case EP_SHUTTER:
       if(value->datatype == HXB_DTYPE_UINT8) {
@@ -252,7 +277,7 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
         break;
 #endif
 #if LIGHTSENSOR_ENABLE
-    case EP_LIGHTSENSOR_EID:
+    case EP_LIGHTSENSOR:
       return HXB_ERR_WRITEREADONLY;
 #endif
     default:  // Default: Endpoint does not exist
@@ -260,7 +285,7 @@ uint8_t endpoint_write(uint8_t eid, struct hxb_value* value) // write access to 
   }
 }
 
-void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endpoint
+void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an endpoint
 {
   switch(eid)
   {
@@ -285,6 +310,10 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
 #endif
 #if ANALOGREAD_ENABLE
       *(uint32_t*)&val->data += 1UL << (EP_ANALOGREAD);
+#endif
+#if METERING_ENERGY
+      *(uint32_t*)&val->data += 1UL << (EP_ENERGY_METER_TOTAL);
+      *(uint32_t*)&val->data += 1UL << (EP_ENERGY_METER);
 #endif
 #if SHUTTER_ENABLE
       *(uint32_t*)&val->data += 1UL << (EP_SHUTTER);
@@ -342,10 +371,20 @@ void endpoint_read(uint8_t eid, struct hxb_value* val) // read access to an endp
       break;
 #endif
 #if LIGHTSENSOR_ENABLE
-    case EP_LIGHTSENSOR_EID:
+    case EP_LIGHTSENSOR:
         val->datatype = HXB_DTYPE_FLOAT;
         *(float*)&val->data = get_lightvalue();
         break;
+#endif
+#if METERING_ENERGY
+    case EP_ENERGY_METER_TOTAL:
+      val->datatype = HXB_DTYPE_FLOAT;
+      *(float*)&val->data = metering_get_energy_total();
+      break;
+    case EP_ENERGY_METER:
+      val->datatype = HXB_DTYPE_FLOAT;
+      *(float*)&val->data = metering_get_energy();
+      break;
 #endif
 #if SHUTTER_ENABLE
     case EP_SHUTTER:

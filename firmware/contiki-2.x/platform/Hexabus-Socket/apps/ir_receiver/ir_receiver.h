@@ -8,7 +8,7 @@
 #define IR_REP_DELAY 0.3
 #define IR_SAMSUNG 1   // 0 for standard NEC protocol
 
-                       //IR31.........................IR0     
+                       //IR31.........................IR0
 #define IR_REPEAT_MASK 0b00010100001111000111100000000000
 
 //Code mapping (Samsung BN59-00940A remote)

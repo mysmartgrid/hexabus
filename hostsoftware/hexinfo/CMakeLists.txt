@@ -11,7 +11,7 @@ set(CMAKE_VERBOSE_MAKEFILE true)
 SET(ENABLE_LOGGING 1)
 
 set(V_MAJOR 0)
-set(V_MINOR 1)
+set(V_MINOR 3)
 set(V_PATCH 0)
 
 # add a path where some libraries might be stored
@@ -25,7 +25,7 @@ set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where m
 # path here, subsequent checks will resolve everything else
 set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_MODULE_PATH})
 
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-non-virtual-dtor -g -fomit-frame-pointer")
 
@@ -55,22 +55,24 @@ set(CMAKE_CXX_FLAGS "-Wall ")
 # Check for some compiler stuff
 include(CMakeBackwardCompatibilityCXX)
 
-#FIND_PACKAGE(Sqlite)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
-FIND_PACKAGE(Boost 1.46.1 COMPONENTS iostreams program_options filesystem system)
+SET(Boost_DETAILED_FAILURE_MSG true)
+FIND_PACKAGE(Boost 1.46.1 COMPONENTS  program_options filesystem system)
+FIND_PACKAGE(Hexabus)
 
 # Reflect the package structure
-add_subdirectory(libhexabus)
 add_subdirectory(src)
 
 # add some files to the installation target
-INSTALL(FILES README.txt LICENSE.txt DESTINATION share/doc/hexaswitch)
+INSTALL(FILES README.txt LICENSE.txt DESTINATION share/doc/hexinfo)
 
 # CPACK packaging
 INCLUDE(InstallRequiredSystemLibraries)
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "hexinfo")
 SET(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
+set(CPACK_PACKAGE_CONTACT "support@mysmartgrid.de")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "support@mysmartgrid.de")
 SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.txt")
 SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 SET(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
@@ -80,6 +82,12 @@ SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSIO
 SET(CPACK_PACKAGE_EXECUTABLES "hexinfo" "Gather information about endpoints of a specific device.")
 SET(CPACK_SOURCE_STRIP_FILES "")
 SET(CPACK_STRIP_FILES "bin/hexinfo")
+
+set(CPACK_SET_DESTDIR On)
+set(CPACK_SOURCE_STRIP_FILES "")
+set(CPACK_GENERATOR "DEB;TBZ2")
+set(CPACK_SECTION "net")
+
 INCLUDE(CPack)
 
 ### print some output for the user
@@ -90,5 +98,6 @@ message("  boost include: ${Boost_INCLUDE_DIRS}")
 message("  boost program options lib: ${Boost_PROGRAM_OPTIONS_LIBRARY}")
 message("  boost system lib: ${Boost_SYSTEM_LIBRARY}")
 message("  boost filesystem lib: ${Boost_FILESYSTEM_LIBRARY}")
+message("  hexabus include: ${HXB_INCLUDE_DIR}, lib: ${HXB_LIBRARIES}")  
 message("  extended logging: ${ENABLE_LOGGING}")
 

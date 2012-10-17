@@ -29,7 +29,7 @@ struct hxb_packet_header {
   char      header[4];  // HX0B
   uint8_t   type;       // Packet type
   uint8_t   flags;      // Flags
-  uint8_t   eid;        // Endpoint ID / Error code if it's an error packet
+  uint32_t  eid;        // Endpoint ID / Error code if it's an error packet
   uint8_t   datatype;   // Datatype / first 8 bits of the CRC if it's an error packet
 } __attribute__ ((packed));
 
@@ -47,7 +47,7 @@ struct hxb_packet_query {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint8_t   eid;        // Endpoint ID
+  uint32_t  eid;        // Endpoint ID
   uint16_t  crc;       // CRC16-Kermit / Contiki's crc16_data()
 } __attribute__ ((packed));
 // TODO this used to be hxb_packet_req
@@ -58,7 +58,7 @@ struct hxb_packet_int8 {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint8_t   eid;
+  uint32_t  eid;
   uint8_t   datatype;
   uint8_t   value;
   uint16_t  crc;
@@ -70,7 +70,7 @@ struct hxb_packet_int32 {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint8_t   eid;
+  uint32_t  eid;
   uint8_t   datatype;
   uint32_t  value;
   uint16_t  crc;
@@ -81,7 +81,7 @@ struct hxb_packet_datetime {
     char      header[4];
     uint8_t   type;
     uint8_t   flags;
-    uint8_t   eid;
+    uint32_t  eid;
     uint8_t   datatype;
     struct datetime  value;
     uint16_t  crc;
@@ -93,7 +93,7 @@ struct hxb_packet_float {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint8_t   eid;
+  uint32_t  eid;
   uint8_t   datatype;
   float     value;
   uint16_t  crc;
@@ -104,7 +104,7 @@ struct hxb_packet_128string {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint8_t   eid;
+  uint32_t  eid;
   uint8_t   datatype;     // this is set to the datatype of the endpoint if it's an EPINFO packet!
   char      value[128];
   uint16_t  crc;
@@ -117,9 +117,9 @@ struct hxb_packet_128string {
 // Since there the IP information is lost, we need a field for the IP address of the sender/receiver. But we can drop the CRC here.
 
 struct hxb_envelope {
-    char      source[16];
-    uint8_t   eid;
-    struct hxb_value value;
+    char              source[16];
+    uint32_t          eid;
+    struct hxb_value  value;
 };
 
 #endif

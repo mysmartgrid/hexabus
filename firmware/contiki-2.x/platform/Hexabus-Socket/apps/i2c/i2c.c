@@ -12,7 +12,7 @@
 #endif
 
 uint8_t i2c_write_bytes(uint8_t address, uint8_t *data, uint8_t length) {
-    
+
     if(i2c_start(address+I2C_WRITE)) {
         PRINTF("I2C write failed\n");
         return 1;
@@ -28,10 +28,9 @@ uint8_t i2c_write_bytes(uint8_t address, uint8_t *data, uint8_t length) {
     i2c_stop();
 
     return 0;
-
 }
+
 uint8_t i2c_read_bytes(uint8_t address, uint8_t *data, uint8_t length) {
-    
 
     if((length<1)||(i2c_start(address+I2C_READ))) {
         PRINTF("I2C read failed\n");

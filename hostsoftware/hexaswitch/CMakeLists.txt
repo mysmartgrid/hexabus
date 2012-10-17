@@ -16,9 +16,12 @@ set(CMAKE_VERBOSE_MAKEFILE true)
 
 SET(ENABLE_LOGGING 1)
 
+# use ctest
+ENABLE_TESTING()
+
 set(V_MAJOR 0)
-set(V_MINOR 4)
-set(V_PATCH 1)
+set(V_MINOR 5)
+set(V_PATCH 0)
 
 # add a path where some libraries might be stored
 set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where many locally installed libraries can be found")
@@ -75,17 +78,24 @@ set(CMAKE_CXX_FLAGS "-Wall ")
 # Check for some compiler stuff
 include(CMakeBackwardCompatibilityCXX)
 
+# find libklio
+find_package(Libklio)
+if( NOT LIBKLIO_FOUND)
+  message(FATAL_ERROR "libklio is required.You may set LIBKLIO_HOME")
+endif( NOT LIBKLIO_FOUND)
+
 FIND_PACKAGE(Sqlite)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
 SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
   "1.49.0" "1.49" "1.50.0" "1.50")
 SET(Boost_DETAILED_FAILURE_MSG true)
-FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS program_options filesystem system)
+FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS test_exec_monitor program_options filesystem system)
 
 # Reflect the package structure
 add_subdirectory(libhexabus)
 add_subdirectory(src)
+add_subdirectory(tests)
 
 # add some files to the installation target
 INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
@@ -96,6 +106,8 @@ SET(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Mathias Dalheimer")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "hexaswitch")
 SET(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
+set(CPACK_PACKAGE_CONTACT "support@mysmartgrid.de")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "support@mysmartgrid.de")
 SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 SET(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
@@ -107,6 +119,12 @@ hexabus devices.")
 SET(CPACK_SOURCE_STRIP_FILES "")
 SET(CPACK_STRIP_FILES "bin/hexaswitch")
 SET(CPACK_STRIP_FILES "bin/hexalog")
+
+set(CPACK_SET_DESTDIR On)
+set(CPACK_SOURCE_STRIP_FILES "")
+set(CPACK_GENERATOR "DEB;TBZ2")
+set(CPACK_SECTION "net")
+
 INCLUDE(CPack)
 
 ### print some output for the user

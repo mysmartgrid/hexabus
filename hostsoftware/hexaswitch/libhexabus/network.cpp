@@ -16,11 +16,11 @@ NetworkAccess::NetworkAccess(const std::string& interface) :
   io_service(new boost::asio::io_service()),
   socket(new boost::asio::ip::udp::socket(*io_service)),
   data(NULL)
-{ 
+{
   openSocket(interface);
 }
 
-NetworkAccess::NetworkAccess() : 
+NetworkAccess::NetworkAccess() :
   io_service(new boost::asio::io_service()),
   socket(new boost::asio::ip::udp::socket(*io_service)),
   data(NULL)
@@ -62,23 +62,23 @@ void NetworkAccess::receivePacket(bool related) {
 void NetworkAccess::sendPacket(std::string addr, uint16_t port, const char* data, unsigned int length) {
   boost::asio::ip::udp::endpoint remote_endpoint;
   remote_endpoint = boost::asio::ip::udp::endpoint(
-	  boost::asio::ip::address::from_string(addr), port);
+    boost::asio::ip::address::from_string(addr), port);
   boost::system::error_code error; // TODO error message?
   socket->send_to(boost::asio::buffer(data, length), remote_endpoint, 0, error);
 }
 
-void NetworkAccess::openSocket() { 
-  socket->open(boost::asio::ip::udp::v6()); 
+void NetworkAccess::openSocket() {
+  socket->open(boost::asio::ip::udp::v6());
 }
 
 // TODO: Proper error handling.
-void NetworkAccess::openSocket(const std::string& interface) { 
-  socket->open(boost::asio::ip::udp::v6()); 
+void NetworkAccess::openSocket(const std::string& interface) {
+  socket->open(boost::asio::ip::udp::v6());
 #ifdef HAS_LINUX
   int native_sock = socket->native();
   int result = -1;
   if (native_sock != -1) {
-    result = setsockopt(native_sock, SOL_SOCKET, SO_BINDTODEVICE, 
+    result = setsockopt(native_sock, SOL_SOCKET, SO_BINDTODEVICE,
         interface.c_str(), sizeof(interface.c_str()));
     if (result) {
       std::cerr << "Cannot use interface " << interface << ": ";
