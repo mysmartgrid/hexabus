@@ -9,6 +9,10 @@
 #include <iostream>
 
 namespace hexabus {
+
+  typedef std::map<unsigned int, std::vector<vertex_id_t> > machine_map_t;
+  typedef std::pair<unsigned int, std::vector<vertex_id_t> > machine_map_elem;
+
   class GraphTransformation {
     public:
       typedef std::tr1::shared_ptr<GraphTransformation> Ptr;
@@ -20,6 +24,9 @@ namespace hexabus {
     private:
       device_table_ptr _d;
       endpoint_table_ptr _e;
+      machine_map_t generateMachineMap(graph_t_ptr g);
+      std::vector<std::string> findDevices(std::vector<vertex_id_t> stm_vertices, graph_t_ptr g);
+      template <typename T> bool exists(T elem, std::vector<T> vect);
   };
 
   // Visitor class for reachability analysis: Takes all nodes which it finds when handed to boost::breadth_first_search and puts them into a vector
