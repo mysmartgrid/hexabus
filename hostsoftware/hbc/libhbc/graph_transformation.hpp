@@ -25,6 +25,7 @@ namespace hexabus {
     private:
       device_table_ptr _d;
       endpoint_table_ptr _e;
+      std::map<std::string, graph_t_ptr> device_graphs;
       machine_map_t generateMachineMap(graph_t_ptr g);
       std::vector<std::string> findDevices(std::vector<vertex_id_t> stm_vertices, graph_t_ptr g);
       graph_t_ptr reconstructGraph(std::vector<vertex_id_t> vertices, graph_t_ptr in_g);

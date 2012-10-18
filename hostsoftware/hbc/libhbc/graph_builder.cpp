@@ -175,7 +175,6 @@ void GraphBuilder::write_graphviz(std::ostream& os) {
     make_vertex_label_writer(
       boost::get(&vertex_t::name, (*_g)), boost::get(&vertex_t::type, (*_g))),
       boost::make_label_writer(boost::get(&edge_t::name, (*_g))),
-      boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr
-    )
+      boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr)
   );
 }

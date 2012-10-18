@@ -4,6 +4,9 @@
 #include <boost/graph/reverse_graph.hpp>
 #include <libhbc/hbc_printer.hpp>
 #include <boost/foreach.hpp>
+#include <fstream>
+#include <boost/graph/graphviz.hpp>
+#include <libhbc/label_writer.hpp>
 
 using namespace hexabus;
 
@@ -64,7 +67,7 @@ template <typename T> bool GraphTransformation::exists(T elem, std::vector<T> ve
 }
 
 graph_t_ptr GraphTransformation::reconstructGraph(std::vector<vertex_id_t> vertices, graph_t_ptr in_g) {
-  graph_t_ptr out_g;
+  graph_t_ptr out_g(new graph_t());
   std::map<vertex_id_t, vertex_id_t> vertex_mapping; // keep track which vertices in the constructed graph correspond to vertices in the input graph
   BOOST_FOREACH(vertex_id_t in_v_id, vertices) {
     // first: add all the vertices
@@ -79,7 +82,7 @@ graph_t_ptr GraphTransformation::reconstructGraph(std::vector<vertex_id_t> verti
     vertex_id_t out_from_v_id = vertex_mapping.find(in_v_id)->second; // vertex in out_graph FROM which the edges should be drawn
     for(boost::tie(adj_vert_it, adj_vert_end) = adjacent_vertices(in_v_id, *in_g); adj_vert_it != adj_vert_end; adj_vert_it++) {
       vertex_id_t out_to_v_id = vertex_mapping.find(*adj_vert_it)->second;
-      add_edge(out_g, out_from_v_id, out_to_v_id, e_transformed); // TODO Edge type (do we need the edge type anyway?
+      add_edge(out_g, out_from_v_id, out_to_v_id, e_transformed);
     }
   }
 
@@ -110,8 +113,25 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
       graph_t_ptr g = reconstructGraph(mm_el.second, in_g);
 
       // then we can add it to a list of graphs (state machines) for each device
-      // TODO multimap dev->graph
+      // TODO what if it's already in there?
+      device_graphs.insert(std::pair<std::string, graph_t_ptr>(device_name, g));
 
+      // For testing: Output each graph
+      std::map<std::string, std::string> graph_attr, vertex_attr, edge_attr;
+      graph_attr["ratio"] = "fill";
+      vertex_attr["shape"] = "rectangle";
+
+      std::ofstream os;
+      os.open(device_name.c_str());
+
+      boost::write_graphviz(os, (*g),
+        make_vertex_label_writer(
+          boost::get(&vertex_t::name, (*g)), boost::get(&vertex_t::type, (*g))),
+        boost::make_label_writer(boost::get(&edge_t::name, (*g))),
+        boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr)
+      );
+
+      os.close();
     }
   }
 }
