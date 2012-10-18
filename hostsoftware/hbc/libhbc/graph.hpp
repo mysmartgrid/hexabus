@@ -41,6 +41,8 @@ namespace hexabus {
   vertex_id_t add_vertex(graph_t_ptr g, std::string name, unsigned int machine_id, unsigned int vertex_id, vertex_type type, boost::variant<condition_doc, command_block_doc> contents);
   vertex_id_t add_vertex(graph_t_ptr g, std::string name, unsigned int machine_id, unsigned int vertex_id, vertex_type type);
   edge_id_t add_edge(graph_t_ptr g, vertex_id_t from, vertex_id_t to, edge_type type);
+
+  void replaceNewline(std::string& str);
 };
 
 #endif // LIBHBC_GRAPH_HPP

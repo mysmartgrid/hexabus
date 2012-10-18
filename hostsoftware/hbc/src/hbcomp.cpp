@@ -10,6 +10,7 @@
 #include <libhbc/hba_output.hpp>
 #include <libhbc/graph_transformation.hpp>
 #include <libhbc/include_handling.hpp>
+#include <libhbc/graph_simplification.hpp>
 
 // commandline parsing.
 #include <boost/program_options.hpp>
@@ -40,7 +41,8 @@ int main(int argc, char** argv)
     ("graph,g", po::value<std::string>(), "output the program graph in graphviz format")
     ("tables,t", "print endpoint and alias tables")
     ("output,o", "output Hexabus Assembler (HBA) code")
-    ("slice,s", "slice state machines")
+    ("slice,s", po::value<std::string>(), "file name prefix for sliced state machine graphs")
+    ("simplification,f", po::value<std::string>(), "file name prefix for simplified state machine graphs")
   ;
   po::positional_options_description p;
   p.add("input", 1);
@@ -194,12 +196,27 @@ int main(int argc, char** argv)
       ofs.close();
     }
 
-    // TODO this has to be automated once we know how we want to do it
+    // slice state machine graph
+    if(verbose)
+      std::cout << "Building separate state machine graphs for devices..." << std::endl;
+    hexabus::GraphTransformation gt(tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
+    gt(gBuilder.get_graph());
+
     if(vm.count("slice")) {
       if(verbose)
-        std::cout << "Slicing state machine graph..." << std::endl;
-      hexabus::GraphTransformation gt(tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
-      gt(gBuilder.get_graph());
+        std::cout << "Writing device state machine graph files..." << std::endl;
+      gt.writeGraphviz(vm["slice"].as<std::string>());
+    }
+
+    if(verbose)
+      std::cout << "Simplifying device state machine graphs..." << std::endl;
+    hexabus::GraphSimplification gs(gt.getDeviceGraphs());
+    gs();
+
+    if(vm.count("simplification")) {
+      if(verbose)
+        std::cout << "Writing simplified device state machine graph files..." << std::endl;
+      gt.writeGraphviz(vm["simplification"].as<std::string>());
     }
 
     // TODO this has to be automated as well

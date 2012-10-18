@@ -58,11 +58,7 @@ namespace hexabus {
 
   vertex_id_t add_vertex(graph_t_ptr g, std::string name, unsigned int machine_id, unsigned int vertex_id, vertex_type type) {
     // remove linebreaks from name
-    size_t found = name.find("\n");
-    while(found != std::string::npos) {
-      name.replace(found, 1, "\\n");
-      found = name.find("\n");
-    }
+    replaceNewline(name);
 
     // add vertex
     vertex_id_t v_id = boost::add_vertex((*g));
@@ -90,4 +86,14 @@ namespace hexabus {
 
     return edge;
   }
+
+  void replaceNewline(std::string& str) {
+    size_t found = str.find("\n");
+    while(found != std::string::npos) {
+      str.replace(found, 1, "\\n");
+      found = str.find("\n");
+    }
+  }
+
 };
+

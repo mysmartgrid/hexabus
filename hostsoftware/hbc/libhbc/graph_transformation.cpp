@@ -1,7 +1,6 @@
 #include "graph_transformation.hpp"
 
 #include <libhbc/error.hpp>
-#include <boost/graph/reverse_graph.hpp>
 #include <libhbc/hbc_printer.hpp>
 #include <boost/foreach.hpp>
 #include <fstream>
@@ -116,22 +115,41 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
       // TODO what if it's already in there?
       device_graphs.insert(std::pair<std::string, graph_t_ptr>(device_name, g));
 
-      // For testing: Output each graph
-      std::map<std::string, std::string> graph_attr, vertex_attr, edge_attr;
-      graph_attr["ratio"] = "fill";
-      vertex_attr["shape"] = "rectangle";
+    }
+  }
+}
 
-      std::ofstream os;
-      os.open(device_name.c_str());
+void GraphTransformation::writeGraphviz(std::string filename_prefix) {
+  std::map<std::string, graph_t_ptr>::iterator graph_it;
+  for(graph_it = device_graphs.begin(); graph_it != device_graphs.end(); graph_it++) {
+    std::ostringstream fnoss;
+    fnoss << filename_prefix << graph_it->first << ".dot";
 
-      boost::write_graphviz(os, (*g),
+    std::map<std::string, std::string> graph_attr, vertex_attr, edge_attr;
+    graph_attr["ratio"] = "fill";
+    vertex_attr["shape"] = "rectangle";
+
+    std::ofstream os;
+    os.open(fnoss.str().c_str());
+
+    if(!os) {
+      std::ostringstream oss;
+      oss << "Could not open file " << fnoss.str() << " for graph output." << std::endl;
+      throw GraphOutputException(oss.str());
+    }
+
+    graph_t_ptr g = graph_it->second;
+
+    boost::write_graphviz(os, (*g),
         make_vertex_label_writer(
           boost::get(&vertex_t::name, (*g)), boost::get(&vertex_t::type, (*g))),
         boost::make_label_writer(boost::get(&edge_t::name, (*g))),
         boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr)
-      );
-
-      os.close();
-    }
+        );
+    os.close();
   }
+}
+
+std::map<std::string, graph_t_ptr> GraphTransformation::getDeviceGraphs() {
+  return device_graphs;
 }

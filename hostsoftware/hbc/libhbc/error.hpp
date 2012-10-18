@@ -17,6 +17,13 @@ namespace hexabus {
       std::string _reason;
   };
 
+  class GraphOutputException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<GraphOutputException> Ptr;
+      GraphOutputException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~GraphOutputException() throw() {};
+  };
+
   class FileNotFoundException : public GenericException {
     public:
       typedef std::tr1::shared_ptr<FileNotFoundException> Ptr;

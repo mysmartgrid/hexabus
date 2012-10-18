@@ -19,6 +19,8 @@ namespace hexabus {
       typedef std::tr1::shared_ptr<GraphTransformation> Ptr;
       GraphTransformation(device_table_ptr d, endpoint_table_ptr e) : _d(d), _e(e) {};
       virtual ~GraphTransformation() {};
+      void writeGraphviz(std::string filename_prefix);
+      std::map<std::string, graph_t_ptr> getDeviceGraphs();
 
       void operator()(graph_t_ptr in_g);
 

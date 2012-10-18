@@ -7,13 +7,16 @@
 namespace hexabus {
   class GraphSimplification {
     public:
-      GraphSimplification(graph_t_ptr g) : _g(g) { }
+      GraphSimplification(std::map<std::string, graph_t_ptr> state_machines) : _in_state_machines(state_machines) { }
+
+      void operator()();
 
     private:
       void addTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands);
+      void deleteOthersWrites();
       command_block_doc commandBlockTail(command_block_doc& commands);
 
-      graph_t_ptr _g;
+      std::map<std::string, graph_t_ptr> _in_state_machines;
   };
 };
 
