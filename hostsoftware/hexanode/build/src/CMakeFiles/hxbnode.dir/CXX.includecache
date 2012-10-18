@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/md/Projects/hexabus/hostsoftware/hexanode/src/hexanode.cpp
+iostream
+-
+RtMidi.h
+-
+cstdlib
+-
+

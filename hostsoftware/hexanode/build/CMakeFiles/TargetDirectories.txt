@@ -1,0 +1,2 @@
+/home/md/Projects/hexabus/hostsoftware/hexanode/build/libhexanode/CMakeFiles/hexanode.dir
+/home/md/Projects/hexabus/hostsoftware/hexanode/build/src/CMakeFiles/hxbnode.dir
