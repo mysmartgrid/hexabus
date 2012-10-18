@@ -12,6 +12,7 @@ namespace hexabus {
 
   typedef std::map<unsigned int, std::vector<vertex_id_t> > machine_map_t;
   typedef std::pair<unsigned int, std::vector<vertex_id_t> > machine_map_elem;
+  typedef std::multimap<std::string, std::vector<vertex_id_t> > device_map_t;
 
   class GraphTransformation {
     public:
@@ -26,6 +27,7 @@ namespace hexabus {
       endpoint_table_ptr _e;
       machine_map_t generateMachineMap(graph_t_ptr g);
       std::vector<std::string> findDevices(std::vector<vertex_id_t> stm_vertices, graph_t_ptr g);
+      graph_t_ptr reconstructGraph(std::vector<vertex_id_t> vertices, graph_t_ptr in_g);
       template <typename T> bool exists(T elem, std::vector<T> vect);
   };
 

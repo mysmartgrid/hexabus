@@ -63,6 +63,29 @@ template <typename T> bool GraphTransformation::exists(T elem, std::vector<T> ve
   return exists;
 }
 
+graph_t_ptr GraphTransformation::reconstructGraph(std::vector<vertex_id_t> vertices, graph_t_ptr in_g) {
+  graph_t_ptr out_g;
+  std::map<vertex_id_t, vertex_id_t> vertex_mapping; // keep track which vertices in the constructed graph correspond to vertices in the input graph
+  BOOST_FOREACH(vertex_id_t in_v_id, vertices) {
+    // first: add all the vertices
+    vertex_t in_v = (*in_g)[in_v_id];
+    vertex_id_t out_v_id = add_vertex(out_g, in_v.name, in_v.machine_id, in_v.vertex_id, in_v.type, in_v.contents);
+    vertex_mapping.insert(std::pair<vertex_id_t, vertex_id_t>(in_v_id, out_v_id));
+  }
+
+  BOOST_FOREACH(vertex_id_t in_v_id, vertices) {
+    // second pass: add the vertex's edges
+    graph_t::adjacency_iterator adj_vert_it, adj_vert_end;
+    vertex_id_t out_from_v_id = vertex_mapping.find(in_v_id)->second; // vertex in out_graph FROM which the edges should be drawn
+    for(boost::tie(adj_vert_it, adj_vert_end) = adjacent_vertices(in_v_id, *in_g); adj_vert_it != adj_vert_end; adj_vert_it++) {
+      vertex_id_t out_to_v_id = vertex_mapping.find(*adj_vert_it)->second;
+      add_edge(out_g, out_from_v_id, out_to_v_id, e_transformed); // TODO Edge type (do we need the edge type anyway?
+    }
+  }
+
+  return out_g;
+}
+
 void GraphTransformation::operator()(graph_t_ptr in_g) {
   // TODO:                                                | Data structures needed:
   // * iterate over (list of) state machines              |
@@ -75,9 +98,20 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
 
   machine_map_t machines_per_stmid = generateMachineMap(in_g); // list of nodes for each state machine ID
 
+  device_map_t machines_per_device; // Multimap, maps from Device name -> several Vectors of vertex_id_t's (each vector representing one state machine)
+
   BOOST_FOREACH(machine_map_elem mm_el, machines_per_stmid) {
     std::vector<std::string> device_names = findDevices(mm_el.second, in_g); // list of devices for this state machine
 
-    // not we have a list off all device names used in state machine #mm_el.first
+    // now we have a list off all device names used in state machine #mm_el.first
+    // -- insert the machine into the list of machines for each device it contains.
+    BOOST_FOREACH(std::string device_name, device_names) {
+      // now we can construct the graph from the list of nodes in the mm_el.
+      graph_t_ptr g = reconstructGraph(mm_el.second, in_g);
+
+      // then we can add it to a list of graphs (state machines) for each device
+      // TODO multimap dev->graph
+
+    }
   }
 }

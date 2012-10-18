@@ -17,7 +17,7 @@ namespace hexabus {
     boost::default_color_type color; // needs to be colorable for breadth first search
   };
 
-  enum edge_type { e_from_state, e_if_com, e_to_state };
+  enum edge_type { e_from_state, e_if_com, e_to_state, e_transformed };
   struct edge_t {
     std::string name;
     unsigned int lineno;
@@ -27,7 +27,7 @@ namespace hexabus {
   typedef boost::adjacency_list<
     boost::vecS,        // Container used for edges
     boost::vecS,        // Container used for vertices
-    boost::bidirectionalS, // bidirectional so we can easily flip the edges to construct dependence graph
+    boost::directedS,   // directed edges.
     vertex_t,           // vertex type
     edge_t              // edge type
   > graph_t;
