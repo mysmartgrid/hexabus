@@ -76,6 +76,9 @@ void NetworkAccess::openSocket() {
 // TODO: Proper error handling.
 void NetworkAccess::openSocket(const std::string& interface) {
   socket->open(boost::asio::ip::udp::v6());
+
+  socket->set_option(boost::asio::ip::multicast::hops(64));
+
 #ifdef HAS_LINUX
   int native_sock = socket->native();
   int result = -1;
