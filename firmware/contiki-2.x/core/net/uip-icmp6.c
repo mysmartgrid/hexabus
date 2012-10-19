@@ -46,7 +46,7 @@
 #include "net/uip-ds6.h"
 #include "net/uip-icmp6.h"
 
-#define DEBUG 0
+#define DEBUG 1
 #if DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -60,6 +60,7 @@
 #define UIP_IP_BUF                ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 #define UIP_ICMP_BUF            ((struct uip_icmp_hdr *)&uip_buf[uip_l2_l3_hdr_len])
 #define UIP_ICMP6_ERROR_BUF  ((struct uip_icmp6_error *)&uip_buf[uip_l2_l3_icmp_hdr_len])
+#define UIP_ICMP6_MLD_BUF  ((struct uip_icmp6_mld1 *)&uip_buf[uip_l2_l3_icmp_hdr_len])
 
 /** \brief temporary IP address */
 static uip_ipaddr_t tmp_ipaddr;
@@ -192,6 +193,89 @@ uip_icmp6_error_output(u8_t type, u8_t code, u32_t param) {
   PRINTF("from");
   PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
   PRINTF("\n");
+  return;
+}
+
+/*---------------------------------------------------------------------------*/
+void
+uip_icmp6_ml_query_input(void)
+{
+  /*
+   * Send an MLDv1 report packet for every multicast address known to be ours.
+   */
+  PRINTF("Received MLDv1 query from");
+  PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
+  PRINTF("to");
+  PRINT6ADDR(&UIP_IP_BUF->destipaddr);
+  PRINTF("\n");
+
+  /* No need to answer if we don't have any multicast addresses. */
+  printf("mld1 %i %i %i %i\n",
+		  uip_ds6_if.maddr_list[0].isused,
+		  uip_ds6_if.maddr_list[1].isused,
+		  uip_ds6_if.maddr_list[2].isused,
+		  uip_ds6_if.maddr_list[3].isused);
+  if (!uip_ds6_if.maddr_list[2].isused) {
+    uip_len = 0;
+    return;
+  }
+  PRINTF("Send report for ");
+  PRINT6ADDR(&uip_ds6_if.maddr_list[2].ipaddr);
+  PRINTF("\n");
+
+  /* IP header */
+  /* MLD requires hoplimits to be 1 and source addresses to be link-local.
+   * Since routers must send queries from link-local addresses, a link local
+   * source be selected. */
+  UIP_IP_BUF->ttl = 1;
+  uip_ipaddr_copy(&UIP_IP_BUF->destipaddr, &UIP_IP_BUF->srcipaddr);
+  uip_ds6_select_src(&UIP_IP_BUF->srcipaddr, &UIP_IP_BUF->destipaddr);
+
+  if (uip_ext_len == 0) {
+    PRINTF("MLD packet without hop-by-hop header received\n");
+  } else {
+    UIP_IP_BUF->proto = UIP_PROTO_HBHO;
+    uip_len = UIP_LLH_LEN + UIP_IPH_LEN;
+
+    ((uip_hbho_hdr*) &uip_buf[uip_len])->next = UIP_PROTO_ICMP6;
+    /* we need only pad with two bytes, so the PadN header is sufficient */
+	/* also, len is in units of eight octets, excluding the first. */
+    ((uip_hbho_hdr*) &uip_buf[uip_len])->len = (UIP_HBHO_LEN + UIP_RTR_ALERT_LEN + UIP_PADN_LEN) / 8 - 1;
+    uip_len += UIP_HBHO_LEN;
+
+    ((uip_ext_hdr_rtr_alert_tlv*) &uip_buf[uip_len])->tag = UIP_EXT_HDR_OPT_RTR_ALERT;
+    ((uip_ext_hdr_rtr_alert_tlv*) &uip_buf[uip_len])->len = 2; /* data length of value field */
+    ((uip_ext_hdr_rtr_alert_tlv*) &uip_buf[uip_len])->value = 0; /* MLD message */
+    uip_len += UIP_RTR_ALERT_LEN;
+
+    ((uip_ext_hdr_padn_tlv*) &uip_buf[uip_len])->tag = UIP_EXT_HDR_OPT_PADN;
+    ((uip_ext_hdr_padn_tlv*) &uip_buf[uip_len])->len = 0; /* no data bytes following */
+    uip_len += UIP_PADN_LEN;
+
+    uip_len += UIP_ICMPH_LEN;
+
+    uip_ext_len = UIP_HBHO_LEN + UIP_RTR_ALERT_LEN + UIP_PADN_LEN;
+  }
+  uip_len += UIP_ICMP6_MLD1_LEN;
+
+  UIP_IP_BUF->len[0] = ((uip_len - UIP_IPH_LEN) >> 8);
+  UIP_IP_BUF->len[1] = ((uip_len - UIP_IPH_LEN) & 0xff);
+  UIP_ICMP_BUF->type = ICMP6_ML_REPORT;
+  UIP_ICMP_BUF->icode = 0;
+
+  UIP_ICMP6_MLD_BUF->maximum_delay = 0;
+  UIP_ICMP6_MLD_BUF->reserved = 0;
+  uip_ipaddr_copy(&UIP_ICMP6_MLD_BUF->address, &uip_ds6_if.maddr_list[2].ipaddr);
+
+  UIP_ICMP_BUF->icmpchksum = 0;
+  UIP_ICMP_BUF->icmpchksum = ~uip_icmp6chksum();
+ 
+  PRINTF("Sending MLDv1 report to");
+  PRINT6ADDR(&UIP_IP_BUF->destipaddr);
+  PRINTF("from");
+  PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
+  PRINTF("\n");
+  UIP_STAT(++uip_stat.icmp.sent);
   return;
 }
 
