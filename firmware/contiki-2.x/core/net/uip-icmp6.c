@@ -228,7 +228,7 @@ uip_icmp6_ml_query_input(void)
    * Since routers must send queries from link-local addresses, a link local
    * source be selected. */
   UIP_IP_BUF->ttl = 1;
-  uip_ipaddr_copy(&UIP_IP_BUF->destipaddr, &UIP_IP_BUF->srcipaddr);
+  uip_ipaddr_copy(&UIP_IP_BUF->destipaddr, &uip_ds6_if.maddr_list[2].ipaddr);
   uip_ds6_select_src(&UIP_IP_BUF->srcipaddr, &UIP_IP_BUF->destipaddr);
 
   if (uip_ext_len == 0) {
