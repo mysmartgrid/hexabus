@@ -1,6 +1,8 @@
 # -*- mode: cmake; -*-
 file(GLOB hdrs *.h *.hpp)
 install(FILES ${hdrs} DESTINATION include/libhexanode)
+file(GLOB midihdrs midi/*.h midi/*.hpp)
+install(FILES ${midihdrs} DESTINATION include/libhexanode/midi)
 
 configure_file(config.h.in ${CMAKE_BINARY_DIR}/libhexanode/config.h)
 install(FILES ${CMAKE_BINARY_DIR}/libhexanode/config.h DESTINATION
@@ -12,7 +14,11 @@ include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
 )
-file(GLOB all_hexanode_src *.cpp *.hpp)
+
+file(GLOB all_hexanode_src 
+  *.cpp *.hpp
+  midi/*.cpp midi/*.hpp
+)
 set(hexanode_src ${all_hexanode_src})
 ADD_LIBRARY(hexanode ${hexanode_src})
 

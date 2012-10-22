@@ -1,2 +1,0 @@
-/usr/bin/ar cr libhexanode.a  CMakeFiles/hexanode.dir/common.cpp.o
-/usr/bin/ranlib libhexanode.a

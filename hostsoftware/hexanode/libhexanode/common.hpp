@@ -32,6 +32,8 @@
 #  include <memory>
 #endif
 
+#include <boost/shared_ptr.hpp>
+
 //#define ENABLE_LOGGING 0
 #include <config.h>
 
@@ -48,7 +50,7 @@
 namespace hexabus {
   class VersionInfo {
     public:
-      typedef std::tr1::shared_ptr<VersionInfo> Ptr;
+      typedef boost::shared_ptr<VersionInfo> Ptr;
       VersionInfo () {};
       virtual ~VersionInfo() {};
       const std::string getVersion();

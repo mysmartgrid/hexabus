@@ -1,2 +1,0 @@
-/usr/bin/ar cr libhexabus.a  CMakeFiles/hexabus.dir/common.cpp.o
-/usr/bin/ranlib libhexabus.a

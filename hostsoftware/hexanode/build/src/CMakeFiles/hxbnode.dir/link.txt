@@ -1,1 +1,0 @@
-/usr/bin/clang++   -Wall  -Wall -Wno-non-virtual-dtor -g -fomit-frame-pointer    CMakeFiles/hxbnode.dir/hexanode.cpp.o  -o hxbnode -rdynamic ../libhexanode/libhexanode.a -lpthread -lrtmidi -Wl,-Bstatic -lboost_test_exec_monitor-mt -Wl,-Bdynamic -lboost_program_options-mt -lboost_filesystem-mt -lboost_system-mt 

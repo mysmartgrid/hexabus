@@ -1,7 +1,8 @@
 #include <iostream>
 #include <RtMidi.h>
 #include <cstdlib>
-
+#include <libhexanode/midi/midi_controller.hpp>
+#include <libhexanode/error.hpp>
 
 void mycallback( 
     double deltatime, 
@@ -17,46 +18,40 @@ void mycallback(
 
 int main (int argc, char const* argv[]) {
   std::cout << "HexaNode!" << std::endl;
-  RtMidiIn  *midiin = 0;
 
-  // RtMidiIn constructor
+  hexanode::MidiController::Ptr midi_ctrl(
+      new hexanode::MidiController());
   try {
-    midiin = new RtMidiIn();
-  } catch ( RtError &error ) {
-    error.printMessage();
-    exit( EXIT_FAILURE );
-  }
+  midi_ctrl->open();
 
   // Check inputs.
-  unsigned int nPorts = midiin->getPortCount();
+  uint16_t nPorts = midi_ctrl->num_ports();
   std::cout << "There are " << nPorts 
     << " MIDI input sources available." << std::endl;
-  std::string portName;
-  for ( unsigned int i=0; i<nPorts; i++ ) {
-    try {
-      portName = midiin->getPortName(i);
-    } catch ( RtError &error ) {
-      error.printMessage();
-      goto cleanup;
-    }
-    std::cout << "  Input Port #" << i+1 << ": " << portName << std::endl;
+  if (nPorts == 0) {
+    std::cout << "Sorry, cannot continue without MIDI input devices." << std::endl;
+    exit(-1);
   }
+//
+//  std::string portName;
+//  for ( unsigned int i=0; i<nPorts; i++ ) {
+//    try {
+//      portName = midiin->getPortName(i);
+//    } catch ( RtError &error ) {
+//      error.printMessage();
+//      goto cleanup;
+//    }
+//    std::cout << "  Input Port #" << i+1 << ": " << portName << std::endl;
+//  }
+//
 
-  midiin->openPort( 0 );
-  // Set our callback function.  This should be done immediately after
-  // opening the port to avoid having incoming messages written to the
-  // queue.
-  midiin->setCallback( &mycallback );
-
-  // Don't ignore sysex, timing, or active sensing messages.
-  midiin->ignoreTypes( false, false, false );
-
+  midi_ctrl->set_device_listener(0, &mycallback);
   std::cout << "\nReading MIDI input ... press <enter> to quit.\n";
   char input;
   std::cin.get(input);
-
-cleanup:
-  delete midiin;
+  } catch (const hexanode::MidiException& ex) {
+    std::cerr << "MIDI Error: " << ex.what() << std::endl;
+  }
   return 0;
 }
 
