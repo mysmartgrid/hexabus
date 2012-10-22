@@ -9,11 +9,33 @@ using namespace hexabus;
 command_block_doc GraphSimplification::commandBlockTail(command_block_doc& commands) {
   command_block_doc tail_block = commands;
   tail_block.commands.erase(tail_block.commands.begin());
+  // TODO throw exception if tail is empty (rather: Figure out WHERE this exc should be thrown!)
 
   return tail_block;
 }
 
-void GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands, graph_t_ptr g) {
+command_block_doc GraphSimplification::commandBlockHead(command_block_doc& commands) {
+  command_block_doc head_block = commands;
+  head_block.commands.erase(head_block.commands.begin() + 1, head_block.commands.end());
+  // TODO throw exc if we got an empty list
+
+  std::cout << head_block.commands.size() << std::endl;
+
+  return head_block;
+}
+
+vertex_id_t GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands, graph_t_ptr g) { // TODO Rename!
+
+  // remove all but first command from from-vertex
+  (*g)[from].contents = commandBlockHead(commands);
+  // update vertex name
+  hbc_printer pr;
+  std::ostringstream from_oss;
+  pr(boost::get<command_block_doc>((*g)[from].contents), from_oss);
+  std::string from_str = from_oss.str();
+  replaceNewline(from_str);
+  (*g)[from].name = from_str;
+
   // remove old edge
   boost::remove_edge(from, to, *g);
 
@@ -32,21 +54,73 @@ void GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to, comman
   add_edge(g, new_state_vertex, new_if_vertex, e_from_state);
 
   // add new command vertex
-  vertex_id_t new_command_vertex = add_vertex(g, "...",0,0/*TODO*/, v_command, commands);
+  vertex_id_t new_command_vertex = add_vertex(g, "...",0,0/*TODO*/, v_command, commandBlockTail(commands));
+
+  // generate new vertex name
+  std::ostringstream newcmd_oss;
+  pr(boost::get<command_block_doc>((*g)[new_command_vertex].contents), newcmd_oss);
+  std::string newcmd_str = newcmd_oss.str();
+  replaceNewline(newcmd_str);
+  (*g)[new_command_vertex].name = newcmd_str;
 
   // add edge to this vertex
   add_edge(g, new_if_vertex, new_command_vertex, e_if_com);
 
   // add edge from new command vertex to old to-state-vertex
   add_edge(g, new_command_vertex, to, e_to_state);
+
+  return new_command_vertex;
+}
+
+void GraphSimplification::expandMultipleWriteNode(vertex_id_t vertex_id, graph_t_ptr g) {
+  // assumption: vertex_id points to a command block; command_block.commands in the vertex given by vertex_id has more than 1 element (we should throw an exception somewhere around here if this is not the case)
+
+  vertex_t vertex = (*g)[vertex_id];
+
+  if(vertex.type != v_command)
+    throw GraphTransformationErrorException("Non-command-vertex assigned for command extension!");
+
+  try {
+    command_block_doc cmdblck = boost::get<command_block_doc>(vertex.contents);
+
+    graph_t::adjacency_iterator outIt, outEnd;
+    boost::tie(outIt, outEnd) = boost::adjacent_vertices(vertex_id, *g);
+    if(distance(outIt, outEnd) != 1)
+      throw GraphTransformationErrorException("Multiple outgoint edges on command graph during graph simplification");
+    // now outIt points to the state vertex after the command vertex.
+    vertex_id_t new_command_vertex = addTransition(vertex_id, *outIt, cmdblck, g);
+    // TODO do it again (or do it recursively) if new_command_vertex still has more than one write
+  } catch(boost::bad_get b) {
+    throw GraphTransformationErrorException("Non-command-vertex assigned for command extension!");
+  }
+
 }
 
 void GraphSimplification::expandMultipleWrites() {
- // TODO
+  for(std::map<std::string, graph_t_ptr>::iterator it = _in_state_machines.begin(); it != _in_state_machines.end(); it++) { // iterate over list of device->state machine pairs // TODO we can move this loop into the operator() method for readability.
+    graph_t::vertex_iterator vertexIt, vertexEnd;
+    boost::tie(vertexIt, vertexEnd) = vertices(*(it->second));
+    for(; vertexIt != vertexEnd; vertexIt++) {
+      vertex_t& vertex = (*(it->second))[*vertexIt];
+
+      if(vertex.type == v_command) { // TODO find out how to move the code from here into the loop in deleteOthersWrites.
+        try {
+          std::vector<command_doc>& cmds = boost::get<command_block_doc>(vertex.contents).commands;
+
+          if(cmds.size() > 1) {
+            expandMultipleWriteNode(*vertexIt, it->second);
+          }
+
+        } catch(boost::bad_get b) { // TODO report line number
+          throw GraphTransformationErrorException("Command block vertex does not contain command block (during graph simplification)");
+        }
+      }
+    }
+  }
 }
 
 void GraphSimplification::deleteOthersWrites() {
-  for(std::map<std::string, graph_t_ptr>::iterator it = _in_state_machines.begin(); it != _in_state_machines.end(); it++) { // iterate over list of device->state machine pairs
+  for(std::map<std::string, graph_t_ptr>::iterator it = _in_state_machines.begin(); it != _in_state_machines.end(); it++) { // iterate over list of device->state machine pairs // TODO we can move this loop into the operator() method for readability.
     graph_t::vertex_iterator vertexIt, vertexEnd;
     boost::tie(vertexIt, vertexEnd) = vertices(*(it->second));
     for(; vertexIt != vertexEnd; vertexIt++) { // iterate over vertices of device's state machine
