@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <libhbc/hbc_printer.hpp>
+#include <libhbc/error.hpp>
 
 using namespace hexabus;
 
@@ -12,33 +13,36 @@ command_block_doc GraphSimplification::commandBlockTail(command_block_doc& comma
   return tail_block;
 }
 
-void GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands) {
-// TODO: Pass the graph as parameter, since there are several graphs involved here!
-//  // remove old edge
-//  boost::remove_edge(from, to, *_g);
-//
-//  // make new vertices and edges
-//  // add new state vertex
-//  vertex_id_t new_state_vertex = add_vertex(_g, "TODO" /*TODO*/, 0 /*TODO*/, 0 /*TODO*/, v_state);
-//
-//  // add edge from old command vertex to new state vertex (into-edge)
-//  add_edge(_g, from, new_state_vertex, e_from_state);
-//
-//  // add new if-vertex
-//  condition_doc if_true = 1U; // a condition_doc which is of type unsigned int and contains "1" is interpreted as "true".
-//  vertex_id_t new_if_vertex = add_vertex(_g, "[s] if(true)", 0,0/*TODO*/, v_cond, if_true);
-//
-//  // add edge to this vertex
-//  add_edge(_g, new_state_vertex, new_if_vertex, e_from_state);
-//
-//  // add new command vertex
-//  vertex_id_t new_command_vertex = add_vertex(_g, "...",0,0/*TODO*/, v_command, commands);
-//
-//  // add edge to this vertex
-//  add_edge(_g, new_if_vertex, new_command_vertex, e_if_com);
-//
-//  // add edge from new command vertex to old to-state-vertex
-//  add_edge(_g, new_command_vertex, to, e_to_state);
+void GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands, graph_t_ptr g) {
+  // remove old edge
+  boost::remove_edge(from, to, *g);
+
+  // make new vertices and edges
+  // add new state vertex
+  vertex_id_t new_state_vertex = add_vertex(g, "TODO" /*TODO*/, 0 /*TODO*/, 0 /*TODO*/, v_state);
+
+  // add edge from old command vertex to new state vertex (into-edge)
+  add_edge(g, from, new_state_vertex, e_from_state);
+
+  // add new if-vertex
+  condition_doc if_true = 1U; // a condition_doc which is of type unsigned int and contains "1" is interpreted as "true".
+  vertex_id_t new_if_vertex = add_vertex(g, "[s] if(true)", 0,0/*TODO*/, v_cond, if_true);
+
+  // add edge to this vertex
+  add_edge(g, new_state_vertex, new_if_vertex, e_from_state);
+
+  // add new command vertex
+  vertex_id_t new_command_vertex = add_vertex(g, "...",0,0/*TODO*/, v_command, commands);
+
+  // add edge to this vertex
+  add_edge(g, new_if_vertex, new_command_vertex, e_if_com);
+
+  // add edge from new command vertex to old to-state-vertex
+  add_edge(g, new_command_vertex, to, e_to_state);
+}
+
+void GraphSimplification::expandMultipleWrites() {
+ // TODO
 }
 
 void GraphSimplification::deleteOthersWrites() {
@@ -54,10 +58,14 @@ void GraphSimplification::deleteOthersWrites() {
           // delete command nodes for other devices
           for(unsigned int i = 0; i < cmds.size();/* increment only if nothing was deleted */) {
             command_doc cmd = cmds[i];
-            if(boost::get<std::string>(cmd.write_command.geid.device_alias) != it->first)
-              cmds.erase(cmds.begin() + i);
-            else
-              i++;
+            try {
+              if(boost::get<std::string>(cmd.write_command.geid.device_alias) != it->first)
+                cmds.erase(cmds.begin() + i);
+              else
+                i++; // here we increment the index: Only if nothing was deleted. Otherwise we have to check the same index again because the elements are all moved one "to the left".
+            } catch(boost::bad_get b) {
+              throw InvalidPlaceholderException("Placeholder instead of device name found (during graph simplification)."); // TODO can we find out the file name and line number here?
+            }
           }
           // update vertex name
           hbc_printer pr;
@@ -67,9 +75,7 @@ void GraphSimplification::deleteOthersWrites() {
           replaceNewline(str);
           vertex.name = str;
         } catch(boost::bad_get b) {
-          // TODO
-          // -- an exc in the first get is an error during graph transformation
-          // -- an exc in the secont get (inner loop) is a programming error OR an error during graph const (placeholder in state machine instance!)
+          throw GraphTransformationErrorException("Command block vertex does not contain command block (during graph simplification)");
         }
       }
     }
@@ -77,15 +83,16 @@ void GraphSimplification::deleteOthersWrites() {
 }
 
 void GraphSimplification::operator()() {
-  deleteOthersWrites();
+  deleteOthersWrites(); // (1)
+  expandMultipleWrites(); // (2)
 }
 
 
 // TODO this is how I think this should work:
-// - iterate over the list of graphs
+// - iterate over the list of graphs <-- TODO
 // - look for command nodes
-//   - delete all the write commands writing onto OTHER devices
-//   - each command node STILL containing more than one write command gets split up into:
+//   - delete all the write commands writing onto OTHER devices (1)
+//   - each command node STILL containing more than one write command gets split up into: (2)
 //     - the original command node, with everything but the first command removed
 //     - a state
 //     - an outgoing transition from this state with if(true)

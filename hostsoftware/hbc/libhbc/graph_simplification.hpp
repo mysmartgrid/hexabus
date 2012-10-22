@@ -12,8 +12,9 @@ namespace hexabus {
       void operator()();
 
     private:
-      void addTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands);
+      void addTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands, graph_t_ptr g);
       void deleteOthersWrites();
+      void expandMultipleWrites();
       command_block_doc commandBlockTail(command_block_doc& commands);
 
       std::map<std::string, graph_t_ptr> _in_state_machines;
