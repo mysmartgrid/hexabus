@@ -38,5 +38,8 @@ struct transition {
 // operator for timestamp comparison
 #define HXB_SM_TIMESTAMP_OP 0x80
 
+// "true" condition "index"
+#define TRUE_COND_INDEX 255
+
 #endif
 

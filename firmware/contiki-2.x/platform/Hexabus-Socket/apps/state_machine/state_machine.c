@@ -20,7 +20,6 @@
 #define PRINT6ADDR(addr)
 #define PRINTLLADDR(addr)
 #endif
-#define TRUE_COND_INDEX 255
 
 /*------------------------------------------------------*/
 PROCESS(state_machine_process, "State Machine Process");
