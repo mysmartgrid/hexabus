@@ -1,6 +1,7 @@
 #include "hba_output.hpp"
 
 #include <libhbc/error.hpp>
+#include <iomanip>
 
 using namespace hexabus;
 
@@ -213,7 +214,14 @@ void HBAOutput::print_condition(atomic_condition_doc at_cond, std::ostream& ostr
       throw HBAConversionErrorException(oss.str());
     }
 
-    ostr << "  ip := " << d_it->second.ipv6_address << ";" << std::endl;
+    ostr << "  ip := ";
+    boost::array<unsigned char, 16> addr_bytes = d_it->second.ipv6_address.to_bytes();
+    for(unsigned int i = 0; i < 16; i++) {
+      if(!(i % 2) && i)
+        ostr<<":";
+      ostr << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)addr_bytes[i];
+    }
+    ostr << ";" << std::endl;
 
   } catch(boost::bad_get e) {
     // TODO this is an error in the input file

@@ -19,7 +19,7 @@ namespace hexabus {
   };
 
   struct device_alias {
-    boost::asio::ip::address ipv6_address;
+    boost::asio::ip::address_v6 ipv6_address;
     std::vector<unsigned int> eids;
   };
 

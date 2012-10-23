@@ -103,7 +103,7 @@ struct table_builder : boost::static_visitor<> {
       switch(cmd.which()) {
         case 0: // ip address
           if(!ip_adr_read) {
-            dev.ipv6_address = boost::asio::ip::address::from_string(boost::get<alias_ip_doc>(cmd).ipv6_address);
+            dev.ipv6_address = boost::asio::ip::address_v6::from_string(boost::get<alias_ip_doc>(cmd).ipv6_address);
             // TODO catch exceptions
             ip_adr_read = true; // TODO only set to true if something useful was read
           }
