@@ -49,46 +49,66 @@ struct second_pass : boost::static_visitor<> {
     bool ok;
     try {
       vertex_id_t from_state = find_vertex(_g, from_state_name);
-      vertex_id_t condition = find_vertex(_g, clause.name);
+      bool true_cond = false; // marks if the condition is "true" or a "proper" condition
+      vertex_id_t condition;
+      if(clause.name != "true")
+        condition = find_vertex(_g, clause.name);
+      else
+        true_cond = true;
       vertex_id_t good_state = find_vertex(_g, clause.goodstate);
       vertex_id_t bad_state = find_vertex(_g, clause.badstate);
 
-      edge_id_t edge;
-      boost::tie(edge, ok) = boost::add_edge(from_state, condition, (*_g));
-      if (ok) {
-        (*_g)[edge].type = FROM_STATE;
-      } else {
-        std::ostringstream oss;
-        oss << "Cannot link state " 
-          << from_state_name << " with condition " << clause.name;
-        throw EdgeLinkException(oss.str());
-      }
+      if(!true_cond)
+      {
+        edge_id_t edge;
+        boost::tie(edge, ok) = boost::add_edge(from_state, condition, (*_g));
+        if (ok) {
+          (*_g)[edge].type = FROM_STATE;
+        } else {
+          std::ostringstream oss;
+          oss << "Cannot link state "
+            << from_state_name << " with condition " << clause.name;
+          throw EdgeLinkException(oss.str());
+        }
 
-      boost::tie(edge, ok) = boost::add_edge(condition, good_state, (*_g));
-      if (ok) {
-        (*_g)[edge].name=std::string("G");
-        (*_g)[edge].type = GOOD_STATE;
-      } else {
-        std::ostringstream oss;
-        oss << "Cannot link condition " 
-          << clause.name << " with good state " << clause.badstate<< std::endl;
-        throw EdgeLinkException(oss.str());
-      }
+        boost::tie(edge, ok) = boost::add_edge(condition, good_state, (*_g));
+        if (ok) {
+          (*_g)[edge].name=std::string("G");
+          (*_g)[edge].type = GOOD_STATE;
+        } else {
+          std::ostringstream oss;
+          oss << "Cannot link condition "
+            << clause.name << " with good state " << clause.badstate<< std::endl;
+          throw EdgeLinkException(oss.str());
+        }
 
-      boost::tie(edge, ok) = boost::add_edge(condition, bad_state, (*_g));
-      if (ok) {
-        (*_g)[edge].name=std::string("B");
-        (*_g)[edge].type = BAD_STATE;
-      } else {
-        std::ostringstream oss;
-        oss << "Cannot link condition " 
-          << clause.name << " with bad state " << clause.badstate<< std::endl;
-        throw EdgeLinkException(oss.str());
+        boost::tie(edge, ok) = boost::add_edge(condition, bad_state, (*_g));
+        if (ok) {
+          (*_g)[edge].name=std::string("B");
+          (*_g)[edge].type = BAD_STATE;
+        } else {
+          std::ostringstream oss;
+          oss << "Cannot link condition "
+            << clause.name << " with bad state " << clause.badstate<< std::endl;
+          throw EdgeLinkException(oss.str());
+        }
+      } else // true_cond == true
+      {
+        edge_id_t edge;
+        boost::tie(edge, ok) = boost::add_edge(from_state, good_state, (*_g));
+        if(ok) {
+          (*_g)[edge].name = std::string("T");
+          (*_g)[edge].type = GOOD_STATE;
+        } else {
+          std::ostringstream oss;
+          oss << "Cannot link state " << from_state_name << " with state " << clause.goodstate << " (true condition)." << std::endl;
+          throw EdgeLinkException(oss.str());
+        }
       }
 
     } catch (GenericException & ge) {
       std::cerr << ge.what() << " while processing clause "
-        << clause.name << " of state " << from_state_name 
+        << clause.name << " of state " << from_state_name
         << " (line " << clause.lineno << ")"
         << std::endl << "Aborting." << std::endl;
       exit(-1);

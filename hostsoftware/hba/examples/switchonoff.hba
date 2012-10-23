@@ -32,4 +32,9 @@ state on {
     goodstate off;
     badstate on;
   }
+  if true {
+    set 1 := 0;
+    goodstate off;
+    badstate on;
+  }
 }

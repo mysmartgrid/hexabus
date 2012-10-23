@@ -9,7 +9,7 @@ namespace hexabus {
       vertex_t & vertex = (*g)[vertexID];
       if (name == vertex.name) {
         return vertexID;
-      } 
+      }
     }
     // we have not found an vertex id.
     std::ostringstream oss;

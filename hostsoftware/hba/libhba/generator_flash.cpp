@@ -41,8 +41,12 @@ struct hba_doc_visitor : boost::static_visitor<>
 
   void operator()(if_clause_doc const& clause, unsigned int state_id, unsigned int state_index) const
   {
-    std::cout << "STATE INDEX: " << state_index << " ===== STATE ID: " << state_id << std::endl << std::endl;
-    unsigned int cond_id = find_vertex_id(_g, clause.name);
+    std::cout << "TRANSITION INDEX: " << state_index << " ===== STATE ID: " << state_id << std::endl << std::endl;
+    unsigned int cond_id;
+    if(clause.name != "true")
+      cond_id = find_vertex_id(_g, clause.name);
+    else
+      cond_id = TRUE_COND_INDEX;
     unsigned int goodstate_id = find_vertex_id(_g, clause.goodstate);
     unsigned int badstate_id = find_vertex_id(_g, clause.badstate);
 
@@ -71,22 +75,27 @@ struct hba_doc_visitor : boost::static_visitor<>
       ss >> std::dec >> *(uint32_t*)t.value.data;
     }
 
-    // look for condition corresponding to our transition -- if it's a date/time-transition, put it in a separate table
-    // Assumption: Condition table is complete at this point; condition ID is unique in table
-    for(flash_format_cond_map_it_t it = _conditions_bin.begin(); it != _conditions_bin.end(); it++)
-    {
-      if(it->first == cond_id)
+    if(clause.name != "true") {
+      // look for condition corresponding to our transition -- if it's a date/time-transition, put it in a separate table
+      // Assumption: Condition table is complete at this point; condition ID is unique in table
+      for(flash_format_cond_map_it_t it = _conditions_bin.begin(); it != _conditions_bin.end(); it++)
       {
-        if(it->second.datatype == HXB_DTYPE_DATETIME)
+        if(it->first == cond_id)
         {
-          _trans_dt_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
-          break;
-        } else {
-          _states_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
-          break;
+          if(it->second.datatype == HXB_DTYPE_DATETIME)
+          {
+            _trans_dt_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
+            break;
+          } else {
+            _states_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
+            break;
+          }
+          std::cout << std::endl;
         }
-        std::cout << std::endl;
       }
+    } else {
+      // if it's a "true" transition, just insert it -- there is no condition entry in that case.
+      _states_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
     }
 
     std::cout << std::endl;

@@ -33,7 +33,7 @@ namespace hexabus {
     boost::bidirectionalS,           //  directed or undirected edges ?.
     vertex_t,                     //  The type that describes a Vertex.
     edge_t                        //  The type that describes an Edge
-      > graph_t; 
+      > graph_t;
   typedef boost::graph_traits<graph_t>::vertex_descriptor vertex_id_t;
   typedef boost::graph_traits<graph_t>::edge_descriptor edge_id_t;
   typedef std::tr1::shared_ptr<graph_t> graph_t_ptr;
