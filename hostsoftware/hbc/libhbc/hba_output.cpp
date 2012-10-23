@@ -84,7 +84,7 @@ void HBAOutput::operator()(std::ostream& ostr) {
 
     if(vertex.type == v_state) {
       // state name
-      ostr << "state_" << vertex.machine_id << "_" << vertex.vertex_id << " {" << std::endl;
+      ostr << "state state_" << vertex.machine_id << "_" << vertex.vertex_id << " {" << std::endl;
 
       // if-blocks in the state
       graph_t::out_edge_iterator outEdgeIt, outEdgeEnd;
@@ -101,7 +101,10 @@ void HBAOutput::operator()(std::ostream& ostr) {
         if(if_vertex.type != v_cond) // TODO this could be a bug in hexabus compiler
           throw HBAConversionErrorException("Condition vertex expected. Other vertex type found.");
 
-        ostr << "  if " << "cond_" << if_vertex.machine_id << "_" << if_vertex.vertex_id << " {" << std::endl;
+        if(if_vertex.contents.which() == 0 && boost::get<condition_doc>(if_vertex.contents).which() == 0) // If it is a Condition AND it is unsigned int ("true condition")...
+          ostr << "  if true {" << std::endl;
+        else
+          ostr << "  if " << "cond_" << if_vertex.machine_id << "_" << if_vertex.vertex_id << " {" << std::endl;
 
         // now find the command block connected to the if block
         // TODO make sure each if-block has exactly one command block, and the command block has exactly one command
@@ -109,7 +112,6 @@ void HBAOutput::operator()(std::ostream& ostr) {
         graph_t::out_edge_iterator commandEdgeIt, commandEdgeEnd;
         boost::tie(commandEdgeIt, commandEdgeEnd) = out_edges(if_vertexID, (*_g));
 
-        // TODO make sure there is xactly one, exception if not
         edge_id_t commandID = *commandEdgeIt;
         // edge_t& command_edge = (*_g)[commandID];
         vertex_id_t command_vertexID = commandID.m_target;

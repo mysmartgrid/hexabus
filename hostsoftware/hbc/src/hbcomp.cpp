@@ -51,7 +51,6 @@ int main(int argc, char** argv)
   po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
   po::notify(vm);
 
-  std::string infile;
   if(vm.count("help"))
   {
     hexabus::VersionInfo vinf;
@@ -74,6 +73,7 @@ int main(int argc, char** argv)
     return 1;
   }
 
+  std::string infile;
   if(!vm.count("input"))
   {
     std::cerr << "Error: You must specify an input file." << std::endl;

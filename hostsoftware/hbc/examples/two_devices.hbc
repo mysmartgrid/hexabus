@@ -30,8 +30,6 @@ machine both_on {
   in(init) {
     if(true) {
       write dev_one.on := 0;
-      write dev_one.on := 0;
-      write dev_one.on := 0;
       write dev_two.on := 0;
       goto off;
     }
@@ -46,27 +44,6 @@ machine both_on {
   in(on) {
     if(ep button_device.button == 1) {
       write dev_one.on := 0;
-      goto off;
-    }
-  }
-}
-
-machine two_on {
-  states {init, off, on };
-  in(init) {
-    if(true) {
-      write dev_two.on := 0;
-      goto off;
-    }
-  }
-  in(off) {
-    if(ep button_device.button == 1) {
-      write dev_two.on := 1;
-      goto on;
-    }
-  }
-  in(on) {
-    if(ep button_device.button == 1) {
       write dev_two.on := 0;
       goto off;
     }
