@@ -163,7 +163,7 @@ int main(int argc, char **argv)
       hexabus::GraphBuilder gBuilder;
       gBuilder(ast);
       hexabus::GraphChecks gChecks(gBuilder.get_graph());
-      try {
+      /* try {
         gChecks.check_states_incoming();
         gChecks.check_states_outgoing();
         gChecks.check_conditions_incoming();
@@ -171,7 +171,7 @@ int main(int argc, char **argv)
       } catch (hexabus::GenericException& ge) {
         std::cout << "ERROR: " << ge.what() << std::endl;
         exit(-1);
-      }
+      } */
       hexabus::generator_flash gf(gBuilder.get_graph(), ast);
 
       std::ofstream cond_ofs;
