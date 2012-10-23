@@ -122,42 +122,50 @@ void HBAOutput::operator()(std::ostream& ostr) {
         // find the write command
         try {
           command_block_doc command = boost::get<command_block_doc>(command_vertex.contents);
-          write_command_doc& write_cmd = command.commands[0].write_command; // TODO make sure there is exactly one.
-
-          // TODO
-          // Here some checks could be done:
-          // Is the endpoint we are writing to write-able?
-          // Does the endpoint on whose data we rely in the if-clause broadcast?
-          // Do the datatypes fit?
-          // Are we creating non-leavable states (should be checked earlier though)?
-          // ...
-
-          // now find the eid
+          size_t n_write = command.commands.size();
           unsigned int eid;
-          try {
-            std::string epname = boost::get<std::string>(write_cmd.geid.endpoint_name);
-            endpoint_table::iterator ep_it = _e->find(epname);
-            if(ep_it == _e->end()) {
-              // TODO this is an error in the input file
-              std::ostringstream oss;
-              oss << "Endpoint name not found: " << boost::get<std::string>(write_cmd.geid.endpoint_name) << std::endl;
-              throw HBAConversionErrorException(oss.str());
+          float value;
+          if(n_write == 0) { // empty command - add a "do nothing" set command
+            // write to EID 0 is interpreted as "write nothing" command.
+            eid = 0;
+            value = 0;
+          } else if(n_write == 1) { // just what we want
+            write_command_doc& write_cmd = command.commands[0].write_command; // TODO make sure there is exactly one.
+
+            // TODO
+            // Here some checks could be done:
+            // Is the endpoint we are writing to write-able?
+            // Does the endpoint on whose data we rely in the if-clause broadcast?
+            // Do the datatypes fit?
+            // Are we creating non-leavable states (should be checked earlier though)?
+            // ...
+
+            // now find the eid
+            try {
+              std::string epname = boost::get<std::string>(write_cmd.geid.endpoint_name);
+              endpoint_table::iterator ep_it = _e->find(epname);
+              if(ep_it == _e->end()) {
+                // TODO this is an error in the input file
+                std::ostringstream oss;
+                oss << "Endpoint name not found: " << boost::get<std::string>(write_cmd.geid.endpoint_name) << std::endl;
+                throw HBAConversionErrorException(oss.str());
+              }
+
+              eid = ep_it->second.eid;
+            } catch (boost::bad_get e) {
+              // TODO this is a programming error
+              throw HBAConversionErrorException("Only literal endpoint names allowed in state machine definitions.");
             }
 
-            eid = ep_it->second.eid;
-          } catch (boost::bad_get e) {
-            // TODO this is a programming error
-            throw HBAConversionErrorException("Only literal endpoint names allowed in state machine definitions.");
-          }
-
-          // now find the value
-          float value;
-          try {
-            value = boost::get<float>(write_cmd.constant);
-          } catch(boost::bad_get e) {
-            // TODO
-            throw HBAConversionErrorException("Only literal constants allowed in state machine definition. (At the moment only float works)");
-          }
+            // now find the value
+            try {
+              value = boost::get<float>(write_cmd.constant);
+            } catch(boost::bad_get e) {
+              // TODO
+              throw HBAConversionErrorException("Only literal constants allowed in state machine definition. (At the moment only float works)");
+            }
+          } else // too many... TODO throw something!
+          { }
 
           // output the "set" line
           ostr << "    set " << eid << " := " << value << ";" << std::endl;
