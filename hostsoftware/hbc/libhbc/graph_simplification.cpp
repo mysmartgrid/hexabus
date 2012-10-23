@@ -21,7 +21,7 @@ command_block_doc GraphSimplification::commandBlockHead(command_block_doc& comma
   return head_block;
 }
 
-vertex_id_t GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands, graph_t_ptr g) { // TODO Rename!
+vertex_id_t GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands, graph_t_ptr g, unsigned int& max_vertex_id) { // TODO Rename!
 
   // remove all but first command from from-vertex
   (*g)[from].contents = commandBlockHead(commands);
@@ -38,20 +38,20 @@ vertex_id_t GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to,
 
   // make new vertices and edges
   // add new state vertex
-  vertex_id_t new_state_vertex = add_vertex(g, "intermediate\\nstate" /*TODO*/, 0 /*TODO*/, 0 /*TODO*/, v_state);
+  vertex_id_t new_state_vertex = add_vertex(g, "intermediate\\nstate", (*g)[from].machine_id, ++max_vertex_id, v_state);
 
   // add edge from old command vertex to new state vertex (into-edge)
   add_edge(g, from, new_state_vertex, e_from_state);
 
   // add new if-vertex
   condition_doc if_true = 1U; // a condition_doc which is of type unsigned int and contains "1" is interpreted as "true".
-  vertex_id_t new_if_vertex = add_vertex(g, "[I] if(true)", 0,0/*TODO*/, v_cond, if_true);
+  vertex_id_t new_if_vertex = add_vertex(g, "[I] if(true)", (*g)[from].machine_id, ++max_vertex_id, v_cond, if_true);
 
   // add edge to this vertex
   add_edge(g, new_state_vertex, new_if_vertex, e_from_state);
 
   // add new command vertex
-  vertex_id_t new_command_vertex = add_vertex(g, "...",0,0/*TODO*/, v_command, commandBlockTail(commands));
+  vertex_id_t new_command_vertex = add_vertex(g, "",(*g)[from].machine_id, ++max_vertex_id, v_command, commandBlockTail(commands));
 
   // generate new vertex name
   std::ostringstream newcmd_oss;
@@ -69,7 +69,7 @@ vertex_id_t GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to,
   return new_command_vertex;
 }
 
-void GraphSimplification::expandMultipleWriteNode(vertex_id_t vertex_id, graph_t_ptr g) {
+void GraphSimplification::expandMultipleWriteNode(vertex_id_t vertex_id, graph_t_ptr g, unsigned int& max_vertex_id) {
   // assumption: vertex_id points to a command block; command_block.commands in the vertex given by vertex_id has more than 1 element (we should throw an exception somewhere around here if this is not the case)
 
   vertex_t vertex = (*g)[vertex_id];
@@ -85,12 +85,12 @@ void GraphSimplification::expandMultipleWriteNode(vertex_id_t vertex_id, graph_t
     if(distance(outIt, outEnd) != 1)
       throw GraphTransformationErrorException("Multiple outgoint edges on command graph during graph simplification");
     // now outIt points to the state vertex after the command vertex.
-    vertex_id_t new_command_vertex = addTransition(vertex_id, *outIt, cmdblck, g);
+    vertex_id_t new_command_vertex = addTransition(vertex_id, *outIt, cmdblck, g, max_vertex_id);
 
     // if the "tail" still has more than one command, expand it more (recursively)
     try {
       if(boost::get<command_block_doc>((*g)[new_command_vertex].contents).commands.size() > 1) {
-        expandMultipleWriteNode(new_command_vertex, g);
+        expandMultipleWriteNode(new_command_vertex, g, max_vertex_id);
       }
     } catch(boost::bad_get b) {
       throw GraphTransformationErrorException("Newly created command vertex does not have command block as contents");
@@ -105,6 +105,15 @@ void GraphSimplification::expandMultipleWriteNode(vertex_id_t vertex_id, graph_t
 void GraphSimplification::expandMultipleWrites() {
   for(std::map<std::string, graph_t_ptr>::iterator it = _in_state_machines.begin(); it != _in_state_machines.end(); it++) { // iterate over list of device->state machine pairs // TODO we can move this loop into the operator() method for readability.
     graph_t::vertex_iterator vertexIt, vertexEnd;
+
+    // iterate over the graph once to find the maximum vertex id (so we can number the vertices we generate from there)
+    boost::tie(vertexIt, vertexEnd) = vertices(*(it->second));
+    unsigned int max_vertex_id = 0;
+    for(; vertexIt != vertexEnd; vertexIt++)
+      if((*(it->second))[*vertexIt].vertex_id >= max_vertex_id)
+        max_vertex_id = (*(it->second))[*vertexIt].vertex_id;
+
+    // now iterate over the graph to find command vertices with multiple write commands and expand them
     boost::tie(vertexIt, vertexEnd) = vertices(*(it->second));
     for(; vertexIt != vertexEnd; vertexIt++) {
       vertex_t& vertex = (*(it->second))[*vertexIt];
@@ -114,7 +123,7 @@ void GraphSimplification::expandMultipleWrites() {
           std::vector<command_doc>& cmds = boost::get<command_block_doc>(vertex.contents).commands;
 
           if(cmds.size() > 1) {
-            expandMultipleWriteNode(*vertexIt, it->second);
+            expandMultipleWriteNode(*vertexIt, it->second, max_vertex_id);
           }
 
         } catch(boost::bad_get b) { // TODO report line number

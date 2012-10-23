@@ -12,10 +12,10 @@ namespace hexabus {
       void operator()();
 
     private:
-      vertex_id_t addTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands, graph_t_ptr g);
+      vertex_id_t addTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands, graph_t_ptr g, unsigned int& max_vertex_id);
       void deleteOthersWrites();
       void expandMultipleWrites();
-      void expandMultipleWriteNode(vertex_id_t vertex_id, graph_t_ptr g);
+      void expandMultipleWriteNode(vertex_id_t vertex_id, graph_t_ptr g, unsigned int& max_vertex_id);
       command_block_doc commandBlockTail(command_block_doc& commands);
       command_block_doc commandBlockHead(command_block_doc& commands);
 
