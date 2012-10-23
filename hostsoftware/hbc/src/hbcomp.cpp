@@ -38,11 +38,11 @@ int main(int argc, char** argv)
     ("verbose,V", "show more diagnostic output")
     ("input,i", po::value<std::string>(), "the input file")
     ("print,p", "print parsed version of the input file")
-    ("graph,g", po::value<std::string>(), "output the program graph in graphviz format")
+    ("graph,g", po::value<std::string>(), "output file for the program graph in graphviz format")
     ("tables,t", "print endpoint and alias tables")
-    ("output,o", "output Hexabus Assembler (HBA) code")
     ("slice,s", po::value<std::string>(), "file name prefix for sliced state machine graphs")
     ("simplification,f", po::value<std::string>(), "file name prefix for simplified state machine graphs")
+    ("output,o", po::value<std::string>(), "file name prefix for Hexabus Assembler (HBA) output")
   ;
   po::positional_options_description p;
   p.add("input", 1);
@@ -219,12 +219,29 @@ int main(int argc, char** argv)
       gt.writeGraphviz(vm["simplification"].as<std::string>());
     }
 
-    // TODO this has to be automated as well
     if(vm.count("output")) {
+      std::map<std::string, hexabus::graph_t_ptr> graphs = gt.getDeviceGraphs(); // we can take the graph map from gt again, because GraphSimplification work in-place
+      for(std::map<std::string, hexabus::graph_t_ptr>::iterator graphIt = graphs.begin(); graphIt != graphs.end(); graphIt++) {
+        std::ostringstream fnoss;
+        fnoss << vm["output"].as<std::string>() << graphIt->first << ".hba";
+
+        std::ofstream ofs;
+        ofs.open(fnoss.str().c_str());
+
+        if(!ofs) {
+          std::cerr << "Could not open HBA output file " << fnoss << "." << std::endl;
+          exit(-1);
+        }
+
+        hexabus::HBAOutput out(graphIt->second, tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
+        out(ofs);
+
+        ofs.close();
+      }
+
+    } else {
       if(verbose)
-        std::cout << "Generating Hexabus Assembler output..." << std::endl;
-      hexabus::HBAOutput out(gBuilder.get_graph(), tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
-      out(std::cout);
+        std::cout << "Not generating Hexabus Assembler output (option -o was not given)!" << std::endl;
     }
 
   } else {

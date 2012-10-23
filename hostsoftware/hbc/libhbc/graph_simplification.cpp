@@ -1,6 +1,5 @@
 #include <libhbc/graph_simplification.hpp>
 
-#include <iostream>
 #include <libhbc/hbc_printer.hpp>
 #include <libhbc/error.hpp>
 
@@ -18,8 +17,6 @@ command_block_doc GraphSimplification::commandBlockHead(command_block_doc& comma
   command_block_doc head_block = commands;
   head_block.commands.erase(head_block.commands.begin() + 1, head_block.commands.end());
   // TODO throw exc if we got an empty list
-
-  std::cout << head_block.commands.size() << std::endl;
 
   return head_block;
 }
@@ -41,14 +38,14 @@ vertex_id_t GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to,
 
   // make new vertices and edges
   // add new state vertex
-  vertex_id_t new_state_vertex = add_vertex(g, "TODO" /*TODO*/, 0 /*TODO*/, 0 /*TODO*/, v_state);
+  vertex_id_t new_state_vertex = add_vertex(g, "intermediate\\nstate" /*TODO*/, 0 /*TODO*/, 0 /*TODO*/, v_state);
 
   // add edge from old command vertex to new state vertex (into-edge)
   add_edge(g, from, new_state_vertex, e_from_state);
 
   // add new if-vertex
   condition_doc if_true = 1U; // a condition_doc which is of type unsigned int and contains "1" is interpreted as "true".
-  vertex_id_t new_if_vertex = add_vertex(g, "[s] if(true)", 0,0/*TODO*/, v_cond, if_true);
+  vertex_id_t new_if_vertex = add_vertex(g, "[I] if(true)", 0,0/*TODO*/, v_cond, if_true);
 
   // add edge to this vertex
   add_edge(g, new_state_vertex, new_if_vertex, e_from_state);
@@ -89,7 +86,16 @@ void GraphSimplification::expandMultipleWriteNode(vertex_id_t vertex_id, graph_t
       throw GraphTransformationErrorException("Multiple outgoint edges on command graph during graph simplification");
     // now outIt points to the state vertex after the command vertex.
     vertex_id_t new_command_vertex = addTransition(vertex_id, *outIt, cmdblck, g);
-    // TODO do it again (or do it recursively) if new_command_vertex still has more than one write
+
+    // if the "tail" still has more than one command, expand it more (recursively)
+    try {
+      if(boost::get<command_block_doc>((*g)[new_command_vertex].contents).commands.size() > 1) {
+        expandMultipleWriteNode(new_command_vertex, g);
+      }
+    } catch(boost::bad_get b) {
+      throw GraphTransformationErrorException("Newly created command vertex does not have command block as contents");
+    }
+
   } catch(boost::bad_get b) {
     throw GraphTransformationErrorException("Non-command-vertex assigned for command extension!");
   }

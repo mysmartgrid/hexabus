@@ -13,13 +13,12 @@ void HBAOutput::operator()(std::ostream& ostr) {
   //   - if-conditions to conditions
   //     - this also needs more thinking!! (*)
   //   - write actions to actions
-  //     - more thinking: What happens on multiple writes? (*)
   //
   // *) These should be done on graph level, along with the slicing/partitoning.
 
 
-  // For now, just assume we only work on machine index 0 (single device, single state machine)
-  // TODO once this works, extend.
+  // For now, we just assume graph_transformation has done its work and has left us with a SINGLE state machine
+  // in the graph. (it doesn't if multiple machines write to the same device's EPs - yet.)
 
   // TODO This code is very ugly.
   //      It should be re-implemented, using a visitor pattern
@@ -43,7 +42,7 @@ void HBAOutput::operator()(std::ostream& ostr) {
 
         switch(cond.which()) {
           case 0: // unsigned int, "true" condition
-            throw HBAConversionErrorException("\"true\" conditions not implemented yet :(");
+            // we do not need a condition table entry for "true" -- it is given by index 255
             break;
           case 1: // atomic condition
             {
@@ -84,7 +83,7 @@ void HBAOutput::operator()(std::ostream& ostr) {
     vertex_id_t vertexID = *vertexIt;
     vertex_t & vertex = (*_g)[vertexID];
 
-    if(vertex.type == v_state /* TODO */ && vertex.machine_id == 0) {
+    if(vertex.type == v_state) {
       // state name
       ostr << "state_" << vertex.machine_id << "_" << vertex.vertex_id << " {" << std::endl;
 

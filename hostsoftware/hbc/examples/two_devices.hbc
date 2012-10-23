@@ -31,6 +31,7 @@ machine both_on {
     if(true) {
       write dev_one.on := 0;
       write dev_one.on := 0;
+      write dev_one.on := 0;
       write dev_two.on := 0;
       goto off;
     }
