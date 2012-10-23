@@ -22,8 +22,6 @@ namespace po = boost::program_options;
 #include <vector>
 #include <iomanip>
 
-
-
 ///////////////////////////////////////////////////////////////////////////////
 //  Main program
 ///////////////////////////////////////////////////////////////////////////////
@@ -42,7 +40,7 @@ int main(int argc, char **argv)
     ("output,o", po::value<std::string>(), "the hexabus assembler output file")
     ;
   po::positional_options_description p;
-  p.add("infile", 1);
+  p.add("input", 1);
 
   po::variables_map vm;
   po::store(po::command_line_parser(argc, argv).
