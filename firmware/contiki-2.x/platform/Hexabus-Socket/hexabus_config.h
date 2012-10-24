@@ -14,7 +14,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define WEBSERVER_DEBUG 0
 
 // Memory debugger process
-#define MEMORY_DEBUGGER_ENABLE 0
+#define MEMORY_DEBUGGER_ENABLE 1
 // Print a line every MEMORY_DEBUGGER_INTERVAL seconds
 #define MEMORY_DEBUGGER_INTERVAL 10
 

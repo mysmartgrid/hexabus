@@ -60,7 +60,7 @@
 
 #define ICMP6_ML_QUERY                  130  /**< Multicast listener query */
 #define ICMP6_ML_REPORT                 131  /**< Multicast listener report, MLDv1 */
-#define ICMP6_ML_REPORT_DONE            132  /**< Multicast listener report done, MLDv1 */
+#define ICMP6_ML_DONE                   132  /**< Multicast listener done, MLDv1 */
 
 #define ICMP6_RS                        133  /**< Router Solicitation */
 #define ICMP6_RA                        134  /**< Router Advertisement */
@@ -114,7 +114,7 @@ typedef struct uip_icmp6_mld1 {
   u16_t maximum_delay;
   u16_t reserved;
   uip_ip6addr_t address;
-};
+} uip_icmp6_mld1;
 
 /** \name ICMPv6 RFC4443 Message processing and sending */
 /** @{ */
@@ -126,14 +126,6 @@ typedef struct uip_icmp6_mld1 {
   */
 void
 uip_icmp6_echo_request_input(void);
-
-/** \name MLDv1 message processing and multicast listener reporting */
-/** @{ */
-/** \brief Process an MLDv1 query and send multicast listener reports for
- * suitable addresses.
- */
-void
-uip_icmp6_ml_query_input(void);
 
 /**
  * \brief Send an icmpv6 error message
@@ -153,7 +145,6 @@ uip_icmp6_error_output(u8_t type, u8_t code, u32_t param);
  */
 void
 uip_icmp6_send(uip_ipaddr_t *dest, int type, int code, int payload_len);
-
 
 /** @} */
 
