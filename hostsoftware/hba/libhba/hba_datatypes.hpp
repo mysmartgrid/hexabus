@@ -16,6 +16,7 @@ namespace hexabus {
       static Datatypes* instance;
       uint8_t datatypes[NUMBER_OF_EIDS];
       Datatypes(std::string filename);
+      Datatypes();
   };
 };
 

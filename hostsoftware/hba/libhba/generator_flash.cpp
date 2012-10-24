@@ -105,7 +105,7 @@ struct hba_doc_visitor : boost::static_visitor<>
   {
     BOOST_FOREACH(if_clause_doc const& if_clause, hba.if_clauses)
     {
-      Datatypes* dt = Datatypes::getInstance();
+      Datatypes* dt = Datatypes::getInstance("datatypes");
       hba_doc_visitor p(_states_bin, _trans_dt_bin, _conditions_bin, _g, dt);
       p(if_clause, hba.id, state_index++);
     }
@@ -233,7 +233,7 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
   std::cout << "start state: " << _ast.start_state << std::endl;
   BOOST_FOREACH(hba_doc_block const& block, _ast.blocks)
   {
-    Datatypes* dt = Datatypes::getInstance();
+    Datatypes* dt = Datatypes::getInstance(_dtypes);
     boost::apply_visitor(hba_doc_visitor(states_bin, trans_dt_bin, conditions_bin, _g, dt), block);
   }
 
