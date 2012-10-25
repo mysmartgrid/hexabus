@@ -166,8 +166,8 @@ uip_icmp6_ml_query_input(void)
     } else if (uip_is_addr_unspecified(&UIP_ICMP6_MLD_BUF->address)) {
       process_post_synch(&mld_handler_process, MLD_REPORT_ALL_EVENT, NULL);
     }
-    if (etimer_expiration_time(&report_timer) * CLOCK_SECOND > UIP_ICMP6_MLD_BUF->maximum_delay / 1000) {
-      etimer_set(&report_timer, (random_rand() % UIP_ICMP6_MLD_BUF->maximum_delay) * CLOCK_SECOND / 1000);
+    if (etimer_expiration_time(&report_timer) * CLOCK_SECOND > (uint32_t) UIP_ICMP6_MLD_BUF->maximum_delay / 1000) {
+      etimer_set(&report_timer, (uint32_t) (random_rand() % UIP_ICMP6_MLD_BUF->maximum_delay) * CLOCK_SECOND / 1000);
     }
   }
 }
