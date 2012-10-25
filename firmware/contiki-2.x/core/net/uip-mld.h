@@ -30,6 +30,7 @@
 #define __MLD_H__
 
 #include "net/uip.h"
+#include "process.h"
 
 /** \name MLDv1 message processing and multicast listener reporting */
 /** @{ */
@@ -53,8 +54,20 @@ uip_icmp6_mldv1_done(uip_ip6addr_t *addr);
 void
 uip_icmp6_ml_query_input(void);
 
+/** \brief Process an MLDv1 report and suppress listener reports for
+ * suitable addresses.
+ */
+void
+uip_icmp6_ml_report_input(void);
+
 /** @} */
 
+PROCESS_NAME(mld_handler_process);
+
+/** \brief Report all groups not marked as reported at once
+ */
+void
+mld_report_now(void);
 
 #endif /*__MLD_H__*/
 /** @} */

@@ -1386,9 +1386,12 @@ uip_process(u8_t flag)
       break;
     case ICMP6_ML_QUERY:
       uip_icmp6_ml_query_input();
+      uip_len = 0;
       break;
     case ICMP6_ML_REPORT:
-      // TODO: suppress report for address
+      uip_icmp6_ml_report_input();
+      uip_len = 0;
+      break;
     case ICMP6_ML_DONE:
       uip_len = 0;
       break;

@@ -29,6 +29,7 @@
 #include "net/uip-ds6.h"
 #include "net/uip-icmp6.h"
 #include "net/tcpip.h"
+#include "lib/random.h"
 
 #define DEBUG 1
 #if DEBUG
@@ -51,6 +52,15 @@
 static uip_ds6_maddr_t *multicast_groups[UIP_DS6_MADDR_NB];
 static uint8_t multicast_group_count;
 
+/* Management structures for the MLD responder process */
+PROCESS(mld_handler_process, "MLD handler process");
+AUTOSTART_PROCESSES(&mld_handler_process);
+static struct etimer report_timer;
+
+#define MLD_REPORT_ONE_EVENT 0x42
+#define MLD_REPORT_ALL_EVENT 0x43
+
+
 /*---------------------------------------------------------------------------*/
 static void
 send_mldv1_packet(uip_ip6addr_t *maddr, uint8_t mld_type)
@@ -65,7 +75,12 @@ send_mldv1_packet(uip_ip6addr_t *maddr, uint8_t mld_type)
    **/
   UIP_IP_BUF->ttl = 1;
   uip_ds6_select_src(&UIP_IP_BUF->srcipaddr, &UIP_IP_BUF->destipaddr);
-  uip_ipaddr_copy(&UIP_IP_BUF->destipaddr, maddr);
+  
+  if (mld_type == ICMP6_ML_REPORT) {
+    uip_ipaddr_copy(&UIP_IP_BUF->destipaddr, maddr);
+  } else {
+    uip_create_linklocal_allrouters_mcast(&UIP_IP_BUF->destipaddr);
+  }
 
   UIP_IP_BUF->proto = UIP_PROTO_HBHO;
   uip_len = UIP_LLH_LEN + UIP_IPH_LEN;
@@ -132,43 +147,116 @@ uip_icmp6_mldv1_done(uip_ip6addr_t *addr)
 void
 uip_icmp6_ml_query_input(void)
 {
-  uip_ip6addr_t addr;
-  uint8_t m;
-
   /*
    * Send an MLDv1 report packet for every multicast address known to be ours.
    */
   PRINTF("Received MLD query from");
   PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
-  PRINTF("to");
-  PRINT6ADDR(&UIP_IP_BUF->destipaddr);
+  PRINTF("for");
+  PRINT6ADDR(&UIP_ICMP6_MLD_BUF->address);
   PRINTF("\n");
 
   if (uip_ext_len == 0) {
     PRINTF("MLD packet without hop-by-hop header received\n");
   } else {
-    uip_ipaddr_copy(&addr, &UIP_ICMP6_MLD_BUF->address);
-    if (uip_is_addr_unspecified(&addr)) {
-      multicast_group_count = 0;
-      for (m = 0; m < UIP_DS6_MADDR_NB; m++) {
-        if (uip_ds6_if.maddr_list[m].isused) {
-          multicast_groups[multicast_group_count] = &uip_ds6_if.maddr_list[m];
-          multicast_group_count++;
-        }
-      }
-      // TODO: put timers here
-      while (multicast_group_count > 0) {
-        multicast_group_count--;
-
-        if (multicast_groups[multicast_group_count]->isused
-            && !multicast_groups[multicast_group_count]->isreported) {
-          uip_icmp6_mldv1_report(&multicast_groups[multicast_group_count]->ipaddr);
-        }
-      }
-    } else if (!uip_is_addr_linklocal_allnodes_mcast(&addr) && uip_ds6_is_my_maddr(&addr)) {
-      uip_icmp6_mldv1_report(&addr);
+    if (!uip_is_addr_linklocal_allnodes_mcast(&UIP_ICMP6_MLD_BUF->address)
+        && uip_ds6_is_my_maddr(&UIP_ICMP6_MLD_BUF->address)) {
+      uip_ds6_maddr_lookup(&UIP_ICMP6_MLD_BUF->address)->isreported = 0;
+      process_post_synch(&mld_handler_process, MLD_REPORT_ONE_EVENT, NULL);
+    } else if (uip_is_addr_unspecified(&UIP_ICMP6_MLD_BUF->address)) {
+      process_post_synch(&mld_handler_process, MLD_REPORT_ALL_EVENT, NULL);
+    }
+    if (etimer_expiration_time(&report_timer) * CLOCK_SECOND > UIP_ICMP6_MLD_BUF->maximum_delay / 1000) {
+      etimer_set(&report_timer, (random_rand() % UIP_ICMP6_MLD_BUF->maximum_delay) * CLOCK_SECOND / 1000);
     }
   }
+}
+
+/*---------------------------------------------------------------------------*/
+void
+uip_icmp6_ml_report_input(void)
+{
+  PRINTF("Received MLD report from");
+  PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
+  PRINTF("for");
+  PRINT6ADDR(&UIP_IP_BUF->destipaddr);
+  PRINTF("\n");
+
+  if (uip_ext_len == 0) {
+    PRINTF("MLD packet without hop-by-hop header received\n");
+  } else if (uip_ds6_is_my_maddr(&UIP_ICMP6_MLD_BUF->address)) {
+    uip_ds6_maddr_lookup(&UIP_ICMP6_MLD_BUF->address)->isreported = 1;
+  }
+}
+
+/*---------------------------------------------------------------------------*/
+void
+mld_report_now(void)
+{
+  process_post(&mld_handler_process, MLD_REPORT_ONE_EVENT, NULL);
+}
+
+/*---------------------------------------------------------------------------*/
+static void
+mld_report_init(uint8_t clear_status)
+{
+  uint8_t m;
+
+  multicast_group_count = 0;
+  for (m = 0; m < UIP_DS6_MADDR_NB; m++) {
+    if (uip_ds6_if.maddr_list[m].isused) {
+      multicast_groups[multicast_group_count] = &uip_ds6_if.maddr_list[m];
+      if (clear_status) {
+        uip_ds6_if.maddr_list[m].isreported = 0;
+      }
+      multicast_group_count++;
+    }
+  }
+}
+
+/*---------------------------------------------------------------------------*/
+static void
+mld_report_one(void)
+{
+  if (multicast_group_count == 0) {
+    etimer_stop(&report_timer);
+    return;
+  }
+
+  multicast_group_count--;
+
+  if (multicast_groups[multicast_group_count]->isused
+      && !multicast_groups[multicast_group_count]->isreported) {
+    uip_icmp6_mldv1_report(&multicast_groups[multicast_group_count]->ipaddr);
+  }
+
+  etimer_reset(&report_timer);
+}
+
+/*---------------------------------------------------------------------------*/
+void
+uip_mld_init(void)
+{
+  process_start(&mld_handler_process, NULL);
+}
+
+/*---------------------------------------------------------------------------*/
+PROCESS_THREAD(mld_handler_process, ev, data)
+{
+  PROCESS_BEGIN();
+
+  while (1) {
+    PROCESS_WAIT_EVENT();
+
+    if (ev == PROCESS_EVENT_TIMER) {
+      mld_report_one();
+    } else if (ev == MLD_REPORT_ONE_EVENT || ev == MLD_REPORT_ALL_EVENT) {
+      mld_report_init(ev == MLD_REPORT_ALL_EVENT);
+      etimer_set(&report_timer, 0);
+    }
+  }
+
+  PROCESS_END();
 }
 
 /** @} */

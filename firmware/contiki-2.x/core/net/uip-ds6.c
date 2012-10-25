@@ -46,6 +46,7 @@
 #include "net/uip-nd6.h"
 #include "net/uip-ds6.h"
 #include "net/uip-packetqueue.h"
+#include "net/uip-mld.h"
 
 #define DEBUG DEBUG_NONE
 #include "net/uip-debug.h"
@@ -139,6 +140,8 @@ uip_ds6_init(void)
                               CLOCK_SECOND));
 #endif /* UIP_CONF_ROUTER */
   etimer_set(&uip_ds6_timer_periodic, UIP_DS6_PERIOD);
+
+  uip_mld_init();
 
   return;
 }
@@ -643,6 +646,7 @@ uip_ds6_maddr_add(uip_ipaddr_t *ipaddr)
       (uip_ds6_element_t **)&locmaddr) == FREESPACE) {
     locmaddr->isused = 1;
     uip_ipaddr_copy(&locmaddr->ipaddr, ipaddr);
+    uip_icmp6_mldv1_report(ipaddr);
     return locmaddr;
   }
   return NULL;
@@ -654,6 +658,7 @@ uip_ds6_maddr_rm(uip_ds6_maddr_t * maddr)
 {
   if(maddr != NULL) {
     maddr->isused = 0;
+    uip_icmp6_mldv1_done(&maddr->ipaddr);
   }
   return;
 }
