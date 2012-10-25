@@ -54,7 +54,6 @@ static uint8_t multicast_group_count;
 
 /* Management structures for the MLD responder process */
 PROCESS(mld_handler_process, "MLD handler process");
-AUTOSTART_PROCESSES(&mld_handler_process);
 static struct etimer report_timer;
 
 #define MLD_REPORT_ONE_EVENT 0x42
@@ -75,6 +74,10 @@ send_mldv1_packet(uip_ip6addr_t *maddr, uint8_t mld_type)
    **/
   UIP_IP_BUF->ttl = 1;
   uip_ds6_select_src(&UIP_IP_BUF->srcipaddr, &UIP_IP_BUF->destipaddr);
+  /* If the selected source is ::, the MLD packet would be invalid. */
+  if (uip_is_addr_unspecified(&UIP_IP_BUF->destipaddr)) {
+    return;
+  }
   
   if (mld_type == ICMP6_ML_REPORT) {
     uip_ipaddr_copy(&UIP_IP_BUF->destipaddr, maddr);
@@ -125,6 +128,11 @@ send_mldv1_packet(uip_ip6addr_t *maddr, uint8_t mld_type)
 void
 uip_icmp6_mldv1_report(uip_ip6addr_t *addr)
 {
+  if (uip_is_addr_linklocal_allnodes_mcast(addr)) {
+    PRINTF("Not sending MLDv1 report for FF02::1\n");
+    return;
+  }
+
   PRINTF("Sending MLDv1 report for");
   PRINT6ADDR(addr);
   PRINTF("\n");
@@ -136,6 +144,11 @@ uip_icmp6_mldv1_report(uip_ip6addr_t *addr)
 void
 uip_icmp6_mldv1_done(uip_ip6addr_t *addr)
 {
+  if (uip_is_addr_linklocal_allnodes_mcast(addr)) {
+    PRINTF("Not sending MLDv1 done for FF02::1\n");
+    return;
+  }
+
   PRINTF("Sending MLDv1 done for");
   PRINT6ADDR(addr);
   PRINTF("\n");

@@ -69,6 +69,11 @@ PROCESS_NAME(mld_handler_process);
 void
 mld_report_now(void);
 
+/** \brief Initialize the MLD responder process
+ */
+void
+uip_mld_init(void);
+
 #endif /*__MLD_H__*/
 /** @} */
 

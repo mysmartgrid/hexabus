@@ -116,6 +116,8 @@ uip_ds6_init(void)
   uip_ds6_if.retrans_timer = UIP_ND6_RETRANS_TIMER;
   uip_ds6_if.maxdadns = UIP_ND6_DEF_MAXDADNS;
 
+  uip_mld_init();
+
   /* Create link local address, prefix, multicast addresses, anycast addresses */
   uip_create_linklocal_prefix(&loc_fipaddr);
 #if UIP_CONF_ROUTER
@@ -140,8 +142,6 @@ uip_ds6_init(void)
                               CLOCK_SECOND));
 #endif /* UIP_CONF_ROUTER */
   etimer_set(&uip_ds6_timer_periodic, UIP_DS6_PERIOD);
-
-  uip_mld_init();
 
   return;
 }
@@ -645,8 +645,9 @@ uip_ds6_maddr_add(uip_ipaddr_t *ipaddr)
       sizeof(uip_ds6_maddr_t), ipaddr, 128,
       (uip_ds6_element_t **)&locmaddr) == FREESPACE) {
     locmaddr->isused = 1;
+    locmaddr->isreported = 0;
     uip_ipaddr_copy(&locmaddr->ipaddr, ipaddr);
-    uip_icmp6_mldv1_report(ipaddr);
+    mld_report_now();
     return locmaddr;
   }
   return NULL;
