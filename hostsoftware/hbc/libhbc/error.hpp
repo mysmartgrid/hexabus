@@ -17,6 +17,13 @@ namespace hexabus {
       std::string _reason;
   };
 
+  class GraphSimplificationException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<GraphSimplificationException> Ptr;
+      GraphSimplificationException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~GraphSimplificationException() throw() {};
+  };
+
   class GraphOutputException : public GenericException {
     public:
       typedef std::tr1::shared_ptr<GraphOutputException> Ptr;

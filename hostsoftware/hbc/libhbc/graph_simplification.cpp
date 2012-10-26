@@ -7,21 +7,25 @@ using namespace hexabus;
 
 command_block_doc GraphSimplification::commandBlockTail(command_block_doc& commands) {
   command_block_doc tail_block = commands;
+  if(tail_block.commands.size() < 2) {
+    throw GraphSimplificationException("Empty command block tail.");
+  }
   tail_block.commands.erase(tail_block.commands.begin());
-  // TODO throw exception if tail is empty (rather: Figure out WHERE this exc should be thrown!)
 
   return tail_block;
 }
 
 command_block_doc GraphSimplification::commandBlockHead(command_block_doc& commands) {
   command_block_doc head_block = commands;
+  if(head_block.commands.size() < 1) {
+    throw GraphSimplificationException("Empty command block head.");
+  }
   head_block.commands.erase(head_block.commands.begin() + 1, head_block.commands.end());
-  // TODO throw exc if we got an empty list
 
   return head_block;
 }
 
-vertex_id_t GraphSimplification::addTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands, graph_t_ptr g, unsigned int& max_vertex_id) { // TODO Rename!
+vertex_id_t GraphSimplification::splitTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands, graph_t_ptr g, unsigned int& max_vertex_id) {
 
   // remove all but first command from from-vertex
   (*g)[from].contents = commandBlockHead(commands);
@@ -85,7 +89,7 @@ void GraphSimplification::expandMultipleWriteNode(vertex_id_t vertex_id, graph_t
     if(distance(outIt, outEnd) != 1)
       throw GraphTransformationErrorException("Multiple outgoint edges on command graph during graph simplification");
     // now outIt points to the state vertex after the command vertex.
-    vertex_id_t new_command_vertex = addTransition(vertex_id, *outIt, cmdblck, g, max_vertex_id);
+    vertex_id_t new_command_vertex = splitTransition(vertex_id, *outIt, cmdblck, g, max_vertex_id);
 
     // if the "tail" still has more than one command, expand it more (recursively)
     try {
@@ -102,88 +106,78 @@ void GraphSimplification::expandMultipleWriteNode(vertex_id_t vertex_id, graph_t
 
 }
 
-void GraphSimplification::expandMultipleWrites() {
-  for(std::map<std::string, graph_t_ptr>::iterator it = _in_state_machines.begin(); it != _in_state_machines.end(); it++) { // iterate over list of device->state machine pairs // TODO we can move this loop into the operator() method for readability.
-    graph_t::vertex_iterator vertexIt, vertexEnd;
+void GraphSimplification::expandMultipleWrites(graph_t_ptr g) {
+  graph_t::vertex_iterator vertexIt, vertexEnd;
 
-    // iterate over the graph once to find the maximum vertex id (so we can number the vertices we generate from there)
-    boost::tie(vertexIt, vertexEnd) = vertices(*(it->second));
-    unsigned int max_vertex_id = 0;
-    for(; vertexIt != vertexEnd; vertexIt++)
-      if((*(it->second))[*vertexIt].vertex_id >= max_vertex_id)
-        max_vertex_id = (*(it->second))[*vertexIt].vertex_id;
+  // iterate over the graph once to find the maximum vertex id (so we can number the vertices we generate from there)
+  boost::tie(vertexIt, vertexEnd) = vertices(*g);
+  unsigned int max_vertex_id = 0;
+  for(; vertexIt != vertexEnd; vertexIt++)
+    if((*g)[*vertexIt].vertex_id >= max_vertex_id)
+      max_vertex_id = (*g)[*vertexIt].vertex_id;
 
-    // now iterate over the graph to find command vertices with multiple write commands and expand them
-    boost::tie(vertexIt, vertexEnd) = vertices(*(it->second));
-    for(; vertexIt != vertexEnd; vertexIt++) {
-      vertex_t& vertex = (*(it->second))[*vertexIt];
+  // now iterate over the graph to find command vertices with multiple write commands and expand them
+  boost::tie(vertexIt, vertexEnd) = vertices(*g);
+  for(; vertexIt != vertexEnd; vertexIt++) {
+    vertex_t& vertex = (*g)[*vertexIt];
 
-      if(vertex.type == v_command) { // TODO find out how to move the code from here into the loop in deleteOthersWrites.
-        try {
-          std::vector<command_doc>& cmds = boost::get<command_block_doc>(vertex.contents).commands;
+    if(vertex.type == v_command) {
+      try {
+        std::vector<command_doc>& cmds = boost::get<command_block_doc>(vertex.contents).commands;
 
-          if(cmds.size() > 1) {
-            expandMultipleWriteNode(*vertexIt, it->second, max_vertex_id);
-          }
-
-        } catch(boost::bad_get b) { // TODO report line number
-          throw GraphTransformationErrorException("Command block vertex does not contain command block (during graph simplification)");
+        if(cmds.size() > 1) {
+          expandMultipleWriteNode(*vertexIt, g, max_vertex_id);
         }
+
+      } catch(boost::bad_get b) {
+        throw GraphTransformationErrorException("Command block vertex does not contain command block (during graph simplification)");
       }
     }
   }
 }
 
-void GraphSimplification::deleteOthersWrites() {
-  for(std::map<std::string, graph_t_ptr>::iterator it = _in_state_machines.begin(); it != _in_state_machines.end(); it++) { // iterate over list of device->state machine pairs // TODO we can move this loop into the operator() method for readability.
-    graph_t::vertex_iterator vertexIt, vertexEnd;
-    boost::tie(vertexIt, vertexEnd) = vertices(*(it->second));
-    for(; vertexIt != vertexEnd; vertexIt++) { // iterate over vertices of device's state machine
-      vertex_t& vertex = (*(it->second))[*vertexIt];
+void GraphSimplification::deleteOthersWrites(graph_t_ptr g, std::string name) {
+  graph_t::vertex_iterator vertexIt, vertexEnd;
+  boost::tie(vertexIt, vertexEnd) = vertices(*g);
+  for(; vertexIt != vertexEnd; vertexIt++) { // iterate over vertices of device's state machine
+    vertex_t& vertex = (*g)[*vertexIt];
 
-      if(vertex.type == v_command) {
-        try {
-          std::vector<command_doc>& cmds = boost::get<command_block_doc>(vertex.contents).commands;
-          // delete command nodes for other devices
-          for(unsigned int i = 0; i < cmds.size();/* increment only if nothing was deleted */) {
-            command_doc cmd = cmds[i];
-            try {
-              if(boost::get<std::string>(cmd.write_command.geid.device_alias) != it->first)
-                cmds.erase(cmds.begin() + i);
-              else
-                i++; // here we increment the index: Only if nothing was deleted. Otherwise we have to check the same index again because the elements are all moved one "to the left".
-            } catch(boost::bad_get b) {
-              throw InvalidPlaceholderException("Placeholder instead of device name found (during graph simplification)."); // TODO can we find out the file name and line number here?
-            }
+    if(vertex.type == v_command) {
+      try {
+        std::vector<command_doc>& cmds = boost::get<command_block_doc>(vertex.contents).commands;
+        // delete command nodes for other devices
+        for(unsigned int i = 0; i < cmds.size();/* increment only if nothing was deleted */) {
+          command_doc cmd = cmds[i];
+          try {
+            if(boost::get<std::string>(cmd.write_command.geid.device_alias) != name)
+              cmds.erase(cmds.begin() + i);
+            else
+              i++; // here we increment the index: Only if nothing was deleted. Otherwise we have to check the same index again because the elements are all moved one "to the left".
+          } catch(boost::bad_get b) {
+            throw InvalidPlaceholderException("Placeholder instead of device name found (during graph simplification)."); // This is an error during the graph transformation stage. A programmer's error is reported there
           }
-          // update vertex name
-          hbc_printer pr;
-          std::ostringstream oss;
-          pr(boost::get<command_block_doc>(vertex.contents), oss);
-          std::string str = oss.str();
-          replaceNewline(str);
-          vertex.name = str;
-        } catch(boost::bad_get b) {
-          throw GraphTransformationErrorException("Command block vertex does not contain command block (during graph simplification)");
         }
+        // update vertex name
+        hbc_printer pr;
+        std::ostringstream oss;
+        pr(boost::get<command_block_doc>(vertex.contents), oss);
+        std::string str = oss.str();
+        replaceNewline(str);
+        vertex.name = str;
+      } catch(boost::bad_get b) {
+        throw GraphTransformationErrorException("Command block vertex does not contain command block (during graph simplification)");
       }
     }
   }
 }
 
 void GraphSimplification::operator()() {
-  deleteOthersWrites(); // (1)
-  expandMultipleWrites(); // (2)
+  for(std::map<std::string, graph_t_ptr>::iterator it = _in_state_machines.begin(); it != _in_state_machines.end(); it++) { // iterate over list of device->state machine pairs (first pass)
+    deleteOthersWrites(it->second, it->first); // delete write commands which are not for the device the stm. belongs to
+  }
+
+  for(std::map<std::string, graph_t_ptr>::iterator it = _in_state_machines.begin(); it != _in_state_machines.end(); it++) { // iterate over list of device->state machine pairs (second pass)
+    expandMultipleWrites(it->second); // expand write nodes which (still) contain multiple write commands (because Hexabus Assembler only can do ONE write per transisiton
+  }
 }
 
-
-// TODO this is how I think this should work:
-// - iterate over the list of graphs <-- TODO
-// - look for command nodes
-//   - delete all the write commands writing onto OTHER devices (1)
-//   - each command node STILL containing more than one write command gets split up into: (2)
-//     - the original command node, with everything but the first command removed
-//     - a state
-//     - an outgoing transition from this state with if(true)
-//     - the "tail" of the command list from the original command node
-//     - repeat recursively until tail is empty.
