@@ -56,7 +56,7 @@ void MidiController::event_loop() {
     nBytes = message.size();
     if (nBytes > 0) {
       _on_event(&message);
-      std::cout << "stamp = " << stamp << std::endl;
+      //std::cout << "stamp = " << stamp << std::endl;
     }
 
     // Sleep for 10 milliseconds ... platform-dependent.

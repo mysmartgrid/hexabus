@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <libhexanode/midi/midi_controller.hpp>
 #include <libhexanode/callbacks/print_callback.hpp>
+#include <libhexanode/callbacks/button_callback.hpp>
 #include <libhexanode/error.hpp>
 
 void mycallback( 
@@ -22,8 +23,9 @@ int main (int argc, char const* argv[]) {
 
   hexanode::MidiController::Ptr midi_ctrl(
       new hexanode::MidiController());
-  hexanode::Callback::Ptr printer(
-      new hexanode::PrintCallback());
+  hexanode::Callback::Ptr callback(
+      new hexanode::ButtonCallback());
+      //new hexanode::PrintCallback());
   try {
     midi_ctrl->open();
 
@@ -50,7 +52,7 @@ int main (int argc, char const* argv[]) {
 
     midi_ctrl->do_on_event(0, boost::bind(
           &hexanode::Callback::on_event,
-          printer, _1));
+          callback, _1));
     midi_ctrl->run();
     std::cout << "\nReading MIDI input ... press <enter> to quit.\n";
     char input;
