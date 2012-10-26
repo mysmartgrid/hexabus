@@ -98,8 +98,8 @@ void HBAOutput::operator()(std::ostream& ostr) {
         vertex_id_t if_vertexID = edgeID.m_target;
         vertex_t& if_vertex = (*_g)[if_vertexID];
 
-        if(if_vertex.type != v_cond) // TODO this could be a bug in hexabus compiler
-          throw HBAConversionErrorException("Condition vertex expected. Other vertex type found.");
+        if(if_vertex.type != v_cond)
+          throw HBAConversionErrorException("Condition vertex expected. Other vertex type found (HBA output generation stage)");
 
         if(if_vertex.contents.which() == 0 && boost::get<condition_doc>(if_vertex.contents).which() == 0) // If it is a Condition AND it is unsigned int ("true condition")...
           ostr << "  if true {" << std::endl;
@@ -117,8 +117,8 @@ void HBAOutput::operator()(std::ostream& ostr) {
         vertex_id_t command_vertexID = commandID.m_target;
         vertex_t& command_vertex = (*_g)[command_vertexID];
 
-        if(command_vertex.type != v_command) // TODO this could be a bug in hexabus compiler
-          throw HBAConversionErrorException("Command vertex expected. Other vertex type found.");
+        if(command_vertex.type != v_command)
+          throw HBAConversionErrorException("Command vertex expected. Other vertex type found (HBA output generation stage)");
 
         // find the write command
         try {
@@ -146,24 +146,34 @@ void HBAOutput::operator()(std::ostream& ostr) {
               std::string epname = boost::get<std::string>(write_cmd.geid.endpoint_name);
               endpoint_table::iterator ep_it = _e->find(epname);
               if(ep_it == _e->end()) {
-                // TODO this is an error in the input file
                 std::ostringstream oss;
+                std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find(command_vertex.machine_id);
+                if(it != machine_filenames_per_id.end())
+                  oss << "[" << it->second << ":" << write_cmd.lineno << "] ";
                 oss << "Endpoint name not found: " << boost::get<std::string>(write_cmd.geid.endpoint_name) << std::endl;
                 throw HBAConversionErrorException(oss.str());
               }
 
               eid = ep_it->second.eid;
             } catch (boost::bad_get e) {
-              // TODO this is a programming error
-              throw HBAConversionErrorException("Only literal endpoint names allowed in state machine definitions.");
+              std::ostringstream oss;
+              std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find(command_vertex.machine_id);
+              if(it != machine_filenames_per_id.end())
+                oss << "[" << it->second << ":" << write_cmd.lineno << "] ";
+              oss << "Only literal endpoint names allowed in state machine definition." << std::endl;
+              throw HBAConversionErrorException(oss.str());
             }
 
             // now find the value
             try {
               value = boost::get<float>(write_cmd.constant);
             } catch(boost::bad_get e) {
-              // TODO
-              throw HBAConversionErrorException("Only literal constants allowed in state machine definition. (At the moment only float works)");
+              std::ostringstream oss;
+              std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find(command_vertex.machine_id);
+              if(it != machine_filenames_per_id.end())
+                oss << "[" << it->second << ":" << write_cmd.lineno << "] ";
+              oss << "Only literal constants allowed in state machine definition. (At the moment only float works)" << std::endl;
+              throw HBAConversionErrorException(oss.str());
             }
           } else // too many... TODO throw something!
           { }
@@ -210,8 +220,10 @@ void HBAOutput::print_condition(atomic_condition_doc at_cond, std::ostream& ostr
   try {
     device_table::iterator d_it = _d->find(boost::get<std::string>(at_cond.geid.device_alias));
     if(d_it == _d->end()) {
-      // TODO this is an error in the input file
       std::ostringstream oss;
+      std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find(vertex.machine_id);
+      if(it != machine_filenames_per_id.end())
+        oss << "[" << it->second << ":" << at_cond.geid.lineno << "] ";
       oss << "Device name not found: " << boost::get<std::string>(at_cond.geid.device_alias);
       throw HBAConversionErrorException(oss.str());
     }
@@ -226,8 +238,10 @@ void HBAOutput::print_condition(atomic_condition_doc at_cond, std::ostream& ostr
     ostr << ";" << std::endl;
 
   } catch(boost::bad_get e) {
-    // TODO this is an error in the input file
     std::ostringstream oss;
+    std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find(vertex.machine_id);
+    if(it != machine_filenames_per_id.end())
+      oss << "[" << it->second << ":" << at_cond.geid.lineno << "] ";
     oss << "Only literal device names (no placeholders) allowed in state machine definition!" << std::endl;
     throw HBAConversionErrorException(oss.str());
   }
@@ -236,8 +250,10 @@ void HBAOutput::print_condition(atomic_condition_doc at_cond, std::ostream& ostr
   try {
     endpoint_table::iterator e_it = _e->find(boost::get<std::string>(at_cond.geid.endpoint_name));
     if(e_it == _e->end()) {
-      // TODO this is an error in the input file
       std::ostringstream oss;
+      std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find(vertex.machine_id);
+      if(it != machine_filenames_per_id.end())
+        oss << "[" << it->second << ":" << at_cond.geid.lineno << "] ";
       oss << "Endpoint name not found: " << boost::get<std::string>(at_cond.geid.endpoint_name) << std::endl;
       throw HBAConversionErrorException(oss.str());
     }
@@ -245,8 +261,10 @@ void HBAOutput::print_condition(atomic_condition_doc at_cond, std::ostream& ostr
     ostr << "  eid := " << e_it->second.eid << ";" << std::endl;
 
   } catch(boost::bad_get e) {
-    // TODO this is an error in the input file
     std::ostringstream oss;
+    std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find(vertex.machine_id);
+    if(it != machine_filenames_per_id.end())
+      oss << "[" << it->second << ":" << at_cond.geid.lineno << "] ";
     oss << "Only literal endpoint names (no placeholders) allowed in state machine definition!" << std::endl;
     throw HBAConversionErrorException(oss.str());
   }

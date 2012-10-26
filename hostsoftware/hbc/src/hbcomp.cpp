@@ -233,7 +233,7 @@ int main(int argc, char** argv)
           exit(-1);
         }
 
-        hexabus::HBAOutput out(graphIt->second, tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
+        hexabus::HBAOutput out(graphIt->second, tableBuilder.get_device_table(), tableBuilder.get_endpoint_table(), gBuilder.getMachineFilenameMap());
         out(ofs);
 
         ofs.close();
