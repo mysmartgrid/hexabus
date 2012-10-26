@@ -221,7 +221,7 @@ int main(int argc, char **argv)
       std::vector<uint8_t> cond_data;
       std::vector<uint8_t> trans_data;
       std::vector<uint8_t> dttrans_data;
-      
+
       gf(cond_data, trans_data, dttrans_data);
       //gf(data, data, data); // TODO maybe we want to write to three different files here, or figure out some other way to store this
 
