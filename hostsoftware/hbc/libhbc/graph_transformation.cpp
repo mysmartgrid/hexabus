@@ -10,7 +10,7 @@
 using namespace hexabus;
 
 machine_map_t GraphTransformation::generateMachineMap(graph_t_ptr g) {
-  machine_map_t machine_map; // TODO maybe we want to have a graph_t instead of a vector<vertex_id_t>?? ... or probably we want to construct the graph later. Handling should be easier that way.
+  machine_map_t machine_map;
   // iterate over all vertices in graph
   graph_t::vertex_iterator vertexIt, vertexEnd;
   boost::tie(vertexIt, vertexEnd) = vertices(*g);
@@ -44,12 +44,21 @@ std::vector<std::string> GraphTransformation::findDevices(std::vector<vertex_id_
         command_block_doc cmdblck = boost::get<command_block_doc>((*g)[v_id].contents);
         // iterate over all commands in the command block
         BOOST_FOREACH(command_doc cmd, cmdblck.commands) {
+          try {
           std::string device_name = boost::get<std::string>(cmd.write_command.geid.device_alias);
           if(!exists(device_name, devices))
             devices.push_back(device_name);
+          } catch(boost::bad_get b) {
+            std::ostringstream oss;
+            std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find((*g)[v_id].machine_id);
+            if(it != machine_filenames_per_id.end())
+              oss << "[" << it->second << ":" << cmd.write_command.lineno << "] ";
+            oss << "Placeholder found in state machine instance (can not be resolved)" << std::endl;
+            throw GraphTransformationErrorException(oss.str());
+          }
         }
       } catch(boost::bad_get b) {
-        throw GraphTransformationErrorException("Contents of command vertex are not a command block");
+        throw GraphTransformationErrorException("Contents of command vertex are not a command block (Graph transformation stage)");
       }
     }
   }
@@ -89,14 +98,12 @@ graph_t_ptr GraphTransformation::reconstructGraph(std::vector<vertex_id_t> verti
 }
 
 void GraphTransformation::operator()(graph_t_ptr in_g) {
-  // TODO:                                                | Data structures needed:
   // * iterate over (list of) state machines              |
   // * for each state machine:                            |
   //   * make list of devices  (1)                        |
   //   * slice each state machine for each device         | * list of state machine slices for devices
   // * if a device appears in multiple state machines:    |   (at this point one dev. can have several state machines)
-  //   -> parallel compose state machine slices           | * now, each dev. only has one st.m. (store as map?)
-  // * simplify slices for Hexabus Assembler export       | * use the same map data structure for this
+  //   -> parallel compose state machine slices (TODO)    | * now, each dev. only has one st.m. (store as map?)
 
   machine_map_t machines_per_stmid = generateMachineMap(in_g); // list of nodes for each state machine ID
 

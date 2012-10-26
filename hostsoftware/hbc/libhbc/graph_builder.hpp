@@ -14,6 +14,7 @@ namespace hexabus {
       virtual ~GraphBuilder() {};
 
       graph_t_ptr get_graph() const { return _g; };
+      std::map<unsigned int, std::string> getMachineFilenameMap() { return machine_filenames_per_id; }
       void write_graphviz(std::ostream& os);
       void operator()(hbc_doc& hbc);
 
@@ -21,6 +22,7 @@ namespace hexabus {
       GraphBuilder& operator= (const GraphBuilder& rhs);
 
       graph_t_ptr _g;
+      std::map<unsigned int, std::string> machine_filenames_per_id; // this map is used to find out filenames for error reports in later stages
   };
 };
 

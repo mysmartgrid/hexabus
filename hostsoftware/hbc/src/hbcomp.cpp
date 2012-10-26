@@ -199,7 +199,7 @@ int main(int argc, char** argv)
     // slice state machine graph
     if(verbose)
       std::cout << "Building separate state machine graphs for devices..." << std::endl;
-    hexabus::GraphTransformation gt(tableBuilder.get_device_table(), tableBuilder.get_endpoint_table());
+    hexabus::GraphTransformation gt(tableBuilder.get_device_table(), tableBuilder.get_endpoint_table(), gBuilder.getMachineFilenameMap());
     gt(gBuilder.get_graph());
 
     if(vm.count("slice")) {
