@@ -25,7 +25,8 @@ int main (int argc, char const* argv[]) {
       new hexanode::MidiController());
   hexanode::Callback::Ptr callback(
       new hexanode::ButtonCallback());
-      //new hexanode::PrintCallback());
+  hexanode::Callback::Ptr ptr_callback(
+      new hexanode::PrintCallback());
   try {
     midi_ctrl->open();
 
@@ -36,27 +37,19 @@ int main (int argc, char const* argv[]) {
     if (nPorts == 0) {
       std::cout << "Sorry, cannot continue without MIDI input devices." << std::endl;
       exit(-1);
+    } else {
+      midi_ctrl->print_ports();
+      midi_ctrl->do_on_event(0, boost::bind(
+            &hexanode::Callback::on_event,
+            callback, _1));
+      //midi_ctrl->do_on_event(0, boost::bind(
+      //      &hexanode::Callback::on_event,
+      //      ptr_callback, _1));
+      midi_ctrl->run();
+      std::cout << "Reading MIDI input ... press <enter> to quit." << std::endl;
+      char input;
+      std::cin.get(input);
     }
-    //
-    //  std::string portName;
-    //  for ( unsigned int i=0; i<nPorts; i++ ) {
-    //    try {
-    //      portName = midiin->getPortName(i);
-    //    } catch ( RtError &error ) {
-    //      error.printMessage();
-    //      goto cleanup;
-    //    }
-    //    std::cout << "  Input Port #" << i+1 << ": " << portName << std::endl;
-    //  }
-    //
-
-    midi_ctrl->do_on_event(0, boost::bind(
-          &hexanode::Callback::on_event,
-          callback, _1));
-    midi_ctrl->run();
-    std::cout << "\nReading MIDI input ... press <enter> to quit.\n";
-    char input;
-    std::cin.get(input);
   } catch (const hexanode::MidiException& ex) {
     std::cerr << "MIDI error: " << ex.what() << std::endl;
   } catch (const std::exception& e) {

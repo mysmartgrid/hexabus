@@ -25,6 +25,7 @@ namespace hexanode {
       void shutdown();
 
       uint16_t num_ports();
+      void print_ports();
 
     private:
       MidiController (const MidiController& original);

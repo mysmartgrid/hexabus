@@ -50,9 +50,10 @@ void MidiController::shutdown() {
 void MidiController::event_loop() {
   std::vector<unsigned char> message;
   int nBytes;
-  double stamp;
+  //double stamp;
   while (! _terminate_event_loop) {
-    stamp = _midiin->getMessage( &message );
+    //stamp = _midiin->getMessage( &message );
+    _midiin->getMessage( &message );
     nBytes = message.size();
     if (nBytes > 0) {
       _on_event(&message);
@@ -74,3 +75,10 @@ uint16_t MidiController::num_ports() {
   return retval;
 }
 
+void MidiController::print_ports() {
+  std::string portName;
+  for ( unsigned int i=0; i<num_ports(); i++ ) {
+    portName = _midiin->getPortName(i);
+    std::cout << "  Input Port #" << i+1 << ": " << portName << std::endl;
+  }
+}

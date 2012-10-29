@@ -129,13 +129,11 @@ INCLUDE(CPack)
 
 ### print some output for the user
 message("")
-message("***** Configuration *****")
-message("  prefix: ${CMAKE_INSTALL_PREFIX}")
+message("***** Build configuration *****")
+message("  install prefix: ${CMAKE_INSTALL_PREFIX}")
+message("  hexabus include: ${HXB_INCLUDE_DIR}")
+message("  hexabus library: ${HXB_LIBRARIES}")
 message("  boost include: ${Boost_INCLUDE_DIRS}")
-message("  boost libraries shortcut: ${Boost_LIBRARIES}")
-message("  boost program options lib: ${Boost_PROGRAM_OPTIONS_LIBRARY}")
-message("  boost system lib: ${Boost_SYSTEM_LIBRARY}")
-message("  boost filesystem lib: ${Boost_FILESYSTEM_LIBRARY}")
-message("  sqlite3 include: ${SQLITE3_INCLUDE_DIR}, lib: ${SQLITE3_LIBRARIES}")
+message("  boost libraries: ${Boost_LIBRARIES}")
 message("  extended logging: ${ENABLE_LOGGING}")
 
