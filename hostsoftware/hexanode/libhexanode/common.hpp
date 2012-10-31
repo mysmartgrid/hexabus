@@ -47,7 +47,7 @@
 #include <stdint.h>
 #include <string>
 
-namespace hexabus {
+namespace hexanode {
   class VersionInfo {
     public:
       typedef boost::shared_ptr<VersionInfo> Ptr;

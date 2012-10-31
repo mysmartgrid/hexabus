@@ -8,7 +8,7 @@ namespace hexanode {
   class KeyPressedEvent : public Event{
     public:
       typedef boost::shared_ptr<KeyPressedEvent> Ptr;
-      KeyPressedEvent (uint16_t id) : Event(id) {};
+      KeyPressedEvent (event_payload_t payload) : Event(payload) {};
       virtual ~KeyPressedEvent() {};
       virtual std::string str();
 

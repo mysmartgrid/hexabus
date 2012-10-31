@@ -4,16 +4,17 @@
 #include <libhexanode/common.hpp>
 
 namespace hexanode {
+  typedef uint16_t event_payload_t;
   class Event {
     public:
       typedef boost::shared_ptr<Event> Ptr;
-      Event (uint16_t id) : _id(id) {};
+      Event (event_payload_t payload) : _payload(payload) {};
       virtual ~Event() {};
-      uint16_t id() { return _id; };
+      event_payload_t payload() { return _payload; };
       virtual std::string str() = 0;
 
     protected:
-      uint16_t _id;
+      event_payload_t _payload;
 
     private:
       Event (const Event& original);
@@ -22,6 +23,4 @@ namespace hexanode {
   };
 };
 
-
 #endif /* LIBHEXANODE_EVENT_HPP */
-

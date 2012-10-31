@@ -5,9 +5,9 @@ using namespace hexanode;
 
 MidiController::MidiController() 
   : _t()
-  , _terminate_event_loop(false)
+  , _terminate_midievent_loop(false)
   , _midiin()
-  , _on_event()
+  , _on_midievent()
 { };
 
 MidiController::~MidiController() {
@@ -23,9 +23,9 @@ void MidiController::open() {
   }
 }
 
-boost::signals2::connection MidiController::do_on_event(
+boost::signals2::connection MidiController::do_on_midievent(
     uint16_t port,
-    const on_event_slot_t& slot)
+    const on_midievent_slot_t& slot)
 {
     _midiin->openPort( port );
     // Don't ignore sysex, timing, or active sensing messages.
@@ -33,30 +33,30 @@ boost::signals2::connection MidiController::do_on_event(
 
     //_midiin->setCallback( &internal_callback );
   
-  return _on_event.connect(slot);
+  return _on_midievent.connect(slot);
 }
 
 void MidiController::run() {
   _t = boost::thread(
-        boost::bind(&MidiController::event_loop, this)
+        boost::bind(&MidiController::midievent_loop, this)
       );
 }
 
 void MidiController::shutdown() {
-  _terminate_event_loop=true;
+  _terminate_midievent_loop=true;
   _t.join();
 }
 
-void MidiController::event_loop() {
+void MidiController::midievent_loop() {
   std::vector<unsigned char> message;
   int nBytes;
   //double stamp;
-  while (! _terminate_event_loop) {
+  while (! _terminate_midievent_loop) {
     //stamp = _midiin->getMessage( &message );
     _midiin->getMessage( &message );
     nBytes = message.size();
     if (nBytes > 0) {
-      _on_event(&message);
+      _on_midievent(&message);
       //std::cout << "stamp = " << stamp << std::endl;
     }
 

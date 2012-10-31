@@ -1,10 +1,12 @@
 #include "button_callback.hpp"
 #include <libhexanode/midi/midi_codes.hpp>
-#include <libhexanode/event.hpp>
-#include <libhexanode/key_pressed_event.hpp>
 
 using namespace hexanode;
 
+ButtonCallback::ButtonCallback () 
+  : Callback() 
+  , _on_buttonevent()
+{};
 
 void ButtonCallback::on_event(
     std::vector< unsigned char >* message)
@@ -21,11 +23,18 @@ void ButtonCallback::on_event(
     if (message->at(0) == PAD_PRESSED) {
       // second byte: note number
       uint8_t pad_id = message->at(1);
-      hexanode::Event::Ptr evt(
-          new hexanode::KeyPressedEvent(pad_id));
-      std::cout << evt->str() << std::endl;
+
+      _on_buttonevent(pad_id);
     }
   } else {
     std::cout << "received event of unknown type - ignoring." << std::endl;
   }
+}
+
+
+
+boost::signals2::connection ButtonCallback::do_on_buttonevent(
+    const on_buttonevent_slot_t& slot) 
+{
+  return _on_buttonevent.connect(slot);
 }

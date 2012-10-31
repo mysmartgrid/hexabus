@@ -20,11 +20,11 @@
 #include "common.hpp"
 #include <sstream>
 
-using namespace hexabus;
+using namespace hexanode;
 
 const std::string VersionInfo::getVersion() {
   std::ostringstream oss;
-  oss << LIBHEXABUS_VERSION_MAJOR << "." << LIBHEXABUS_VERSION_MINOR << "." << LIBHEXABUS_VERSION_PATCH;
+  oss << LIBHEXANODE_VERSION_MAJOR << "." << LIBHEXANODE_VERSION_MINOR << "." << LIBHEXANODE_VERSION_PATCH;
   return oss.str();
 }
 

@@ -5,6 +5,8 @@ file(GLOB midihdrs midi/*.h midi/*.hpp)
 install(FILES ${midihdrs} DESTINATION include/libhexanode/midi)
 file(GLOB callbackhdrs callbacks/*.h callbacks/*.hpp)
 install(FILES ${callbackhdrs} DESTINATION include/libhexanode/callbacks)
+file(GLOB hxbhdrs hexabus/*.h hexabus/*.hpp)
+install(FILES ${hxbhdrs} DESTINATION include/libhexanode/hexabus)
 
 configure_file(config.h.in ${CMAKE_BINARY_DIR}/libhexanode/config.h)
 install(FILES ${CMAKE_BINARY_DIR}/libhexanode/config.h DESTINATION
@@ -21,6 +23,7 @@ file(GLOB all_hexanode_src
   *.cpp *.hpp
   midi/*.cpp midi/*.hpp
   callbacks/*.cpp callbacks/*.hpp
+  hexabus/*.cpp hexabus/*.hpp
 )
 set(hexanode_src ${all_hexanode_src})
 ADD_LIBRARY(hexanode ${hexanode_src})

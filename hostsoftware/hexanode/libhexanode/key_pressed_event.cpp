@@ -5,6 +5,6 @@ using namespace hexanode;
 
 std::string KeyPressedEvent::str() {
   std::ostringstream oss;
-  oss << "Key pressed: " << id();
+  oss << "Key pressed: " << payload();
   return oss.str();
 }

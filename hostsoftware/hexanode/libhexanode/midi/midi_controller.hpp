@@ -12,15 +12,15 @@ namespace hexanode {
       typedef boost::shared_ptr<MidiController> Ptr;
 
       typedef boost::signals2::signal<void 
-        (std::vector<unsigned char>*)> on_event_t;
-      typedef on_event_t::slot_type on_event_slot_t;
+        (std::vector<unsigned char>*)> on_midievent_t;
+      typedef on_midievent_t::slot_type on_midievent_slot_t;
       MidiController ();
       virtual ~MidiController();
 
       void open();
-      boost::signals2::connection do_on_event(
+      boost::signals2::connection do_on_midievent(
           uint16_t port,
-          const on_event_slot_t& slot);
+          const on_midievent_slot_t& slot);
       void run();
       void shutdown();
 
@@ -30,12 +30,12 @@ namespace hexanode {
     private:
       MidiController (const MidiController& original);
       MidiController& operator= (const MidiController& rhs);
-      void event_loop();
+      void midievent_loop();
 
       boost::thread _t;
-      bool _terminate_event_loop;
+      bool _terminate_midievent_loop;
       RtMidiIn* _midiin;
-      on_event_t _on_event;
+      on_midievent_t _on_midievent;
 
   };
 };
