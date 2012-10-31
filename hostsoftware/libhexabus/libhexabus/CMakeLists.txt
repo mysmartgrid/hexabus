@@ -10,8 +10,8 @@ install(FILES ${CMAKE_BINARY_DIR}/libhexabus/config.h DESTINATION
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
-  ${Boost_INCLUDE_DIRS}
   ${CMAKE_BINARY_DIR}
+  ${Boost_INCLUDE_DIRS}
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 file(GLOB all_hexabus_src *.cpp *.hpp)
