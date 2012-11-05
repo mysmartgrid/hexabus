@@ -30,9 +30,20 @@ endpoint other_endpoint {
   access { write };
 }
 
+endpoint heater {
+  eid 99;
+  datatype UINT32;
+  access { write };
+}
+
 alias device {
   ip fe80::cafe:d00d;
   eids { 1, 2, 3 };
+}
+
+alias heater {
+  ip fe80::9876;
+  eids { 99 };
 }
 
 alias another_device {
@@ -41,7 +52,7 @@ alias another_device {
 }
 
 machine my_machine {
-  states { init, one, two, three };
+  states { one, two, three, init };
   in(one) {
     if(ep device.endpoint == 23) {
       write device.other_endpoint := 42;
@@ -49,11 +60,11 @@ machine my_machine {
     }
   }
   in(two) {
-    if(timeout 1500) {
+    if(timeout i1500) {
       write device.other_endpoint := 1000;
       goto three;
     }
-    if(time hour < 16) {
+    if(time hour < i16) {
       write device.endpoint := 0;
       goto three;
     }
@@ -74,10 +85,10 @@ machine another_machine {
   }
 
   in(bloerp) {
-    if(timeout 180) {
+    if(timeout i180) {
       goto init;
     }
-    if(time hour < 10) {
+    if(time hour < i10) {
       goto init;
     }
   }
