@@ -11,6 +11,7 @@
 #include <libhbc/graph_transformation.hpp>
 #include <libhbc/include_handling.hpp>
 #include <libhbc/graph_simplification.hpp>
+#include <libhbc/graph_checks.hpp>
 
 // commandline parsing.
 #include <boost/program_options.hpp>
@@ -42,6 +43,7 @@ int main(int argc, char** argv)
     ("tables,t", "print endpoint and alias tables")
     ("slice,s", po::value<std::string>(), "file name prefix for sliced state machine graphs")
     ("simplification,f", po::value<std::string>(), "file name prefix for simplified state machine graphs")
+    ("check,c", "Perform graph checks.")
     ("output,o", po::value<std::string>(), "file name prefix for Hexabus Assembler (HBA) output")
   ;
   po::positional_options_description p;
@@ -217,6 +219,11 @@ int main(int argc, char** argv)
       if(verbose)
         std::cout << "Writing simplified device state machine graph files..." << std::endl;
       gt.writeGraphviz(vm["simplification"].as<std::string>());
+    }
+
+    if(vm.count("check")) {
+      hexabus::GraphChecks gc(gBuilder.get_graph());
+      gc.find_unreachable_states();
     }
 
     if(vm.count("output")) {

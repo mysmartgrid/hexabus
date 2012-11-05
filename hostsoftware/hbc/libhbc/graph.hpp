@@ -27,7 +27,7 @@ namespace hexabus {
   typedef boost::adjacency_list<
     boost::vecS,        // Container used for edges
     boost::vecS,        // Container used for vertices
-    boost::directedS,   // directed edges.
+    boost::bidirectionalS, // directed edges.
     vertex_t,           // vertex type
     edge_t              // edge type
   > graph_t;

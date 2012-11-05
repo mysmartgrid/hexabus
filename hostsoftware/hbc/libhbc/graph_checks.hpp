@@ -13,13 +13,14 @@ namespace hexabus {
   class GraphChecks {
     public:
       typedef std::tr1::shared_ptr<GraphChecks> Ptr;
-      GraphChecks() {};
+      GraphChecks(graph_t_ptr g) : _g(g) {};
       virtual ~GraphChecks() {};
 
-      void operator()(graph_t_ptr _g);
+      void operator()();
+      void find_unreachable_states();
 
     private:
-
+      graph_t_ptr _g;
   };
 };
 
