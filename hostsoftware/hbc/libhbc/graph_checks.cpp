@@ -38,5 +38,32 @@ void GraphChecks::find_unreachable_states() {
       }
     }
   }
+
+  // now perform a breadth first search to find states which can't be reached from the initial state.
+  // search should begin at "init" state.
+  unsigned int init_v_id, init_m_id;
+  bool found_init = false;
+  boost::tie(vertexIt, vertexEnd) = vertices((*_g));
+  for(; vertexIt != vertexEnd; vertexIt++) {
+    std::string v_name = (*_g)[*vertexIt].name;
+    if(v_name.length() > 5) { // make sure it's long enough to contain the substring
+      if(v_name.substr(v_name.length() - 5) == ".init") {
+        init_v_id = (*_g)[*vertexIt].vertex_id;
+        init_m_id = (*_g)[*vertexIt].machine_id;
+        found_init = true;
+        break;
+      }
+    }
+  }
+  if(found_init) {
+    std::vector<vertex_id_t> reachable_nodes;
+    boost::breadth_first_search(*_g, find_vertex(_g, init_m_id, init_v_id), visitor(bfs_nodelist_maker(&reachable_nodes)));
+    std::cout << "Graph checks: Reachable states:" << std::endl;
+    BOOST_FOREACH(vertex_id_t s, reachable_nodes) {
+      std::cout << "  " << (*_g)[s].name << std::endl;
+    }
+  } else {
+    std::cout << "Graph checks: No init state found." << std::endl; // TODO machine ID
+  }
 }
 
