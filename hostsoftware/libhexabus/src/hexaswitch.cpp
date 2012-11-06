@@ -198,7 +198,7 @@ po::variable_value get_mandatory_parameter(
 int main(int argc, char** argv) {
 
   std::ostringstream oss;
-  oss << "Usage: " << argv[0] << " ACTION [IP] [additional options]";
+  oss << "Usage: " << argv[0] << " IP [additional options] ACTION";
   po::options_description desc(oss.str());
   desc.add_options()
     ("help,h", "produce help message")
@@ -211,11 +211,8 @@ int main(int argc, char** argv) {
     ("value,v", po::value<std::string>(), "Value")
     ;
   po::positional_options_description p;
-  p.add("command", 1);
   p.add("ip", 1);
-  p.add("eid", 1);
-  p.add("datatype", 1);
-  p.add("value", 1);
+  p.add("command", 1);
   po::variables_map vm;
 
   // Begin processing of commandline parameters.

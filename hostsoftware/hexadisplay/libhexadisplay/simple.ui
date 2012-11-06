@@ -100,10 +100,10 @@
   <widget class="QLabel" name="label_5">
    <property name="geometry">
     <rect>
-     <x>300</x>
-     <y>30</y>
-     <width>310</width>
-     <height>201</height>
+     <x>70</x>
+     <y>0</y>
+     <width>651</width>
+     <height>351</height>
     </rect>
    </property>
    <property name="text">
@@ -245,6 +245,9 @@
     </item>
    </layout>
   </widget>
+  <zorder>label_5</zorder>
+  <zorder>horizontalLayoutWidget</zorder>
+  <zorder>gridLayoutWidget</zorder>
  </widget>
  <resources>
   <include location="default.qrc"/>
