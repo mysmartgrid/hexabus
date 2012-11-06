@@ -9,6 +9,9 @@
 #define EP_PRESSURE              6UL
 #define EP_ENERGY_METER_TOTAL    7UL
 #define EP_ENERGY_METER          8UL
+#define EP_SM_CONTROL            9UL
+#define EP_SM_UP_RECEIVER        10UL
+#define EP_SM_UP_ACKNAK          11UL
 #define EP_ANALOGREAD            22UL
 #define EP_SHUTTER               23UL
 #define EP_HEXAPUSH_PRESSED      24UL

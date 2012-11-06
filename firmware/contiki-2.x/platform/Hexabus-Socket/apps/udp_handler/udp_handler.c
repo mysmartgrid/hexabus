@@ -309,6 +309,22 @@ udphandler(process_event_t ev, process_data_t data)
                 eid = uip_ntohl(((struct hxb_packet_float*)header)->eid);
               }
               break;
+            case HXB_DTYPE_66BYTES:
+              if(uip_ntohs(((struct hxb_packet_66bytes*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_66bytes) - 2, 0))
+              {
+                PRINTF("CRC check failed.\r\n");
+                struct hxb_value nakval;
+                nakval.datatype = HXB_DTYPE_BOOL;
+                *(uint8_t*)&nakval.data = HXB_FALSE;
+                struct hxb_packet_int8 nak_packet = make_value_packet_int8(11, &nakval);
+                send_packet(&nak_packet, sizeof(nak_packet));
+              } else {
+                PRINTF("Bytes packet received: ");
+                for(int i = 0; i < HXB_BYTES_PACKET_MAX_BUFFER_LENGTH; i++) {
+                  PRINTF("%x", (((struct hxb_packet_66bytes*)header)->value)[i]);
+                }
+              }
+              break;            
             default:
               PRINTF("Packet of unknown datatype.\r\n");
               break;

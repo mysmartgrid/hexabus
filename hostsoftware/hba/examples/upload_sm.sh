@@ -45,16 +45,16 @@ post_stop="curl -6 -X POST -d stop& http://$2/sm_control.shtml"
 
 #Post to device
 set -e
-echo "Stopping state machine."
-$post_stop
-echo "Uploading conditions..."
+echo "Stopping state machine using $post_stop."
+#$post_stop
+echo "Uploading conditions using $post_cond ..."
 $post_cond
 echo "Uploading transitions..."
 $post_trans
 echo "Uploading datetime transitions..."
 $post_dttrans
 echo "Starting state machine"
-$post_start
+#$post_start
 set +e
 
 echo "Upload complete"

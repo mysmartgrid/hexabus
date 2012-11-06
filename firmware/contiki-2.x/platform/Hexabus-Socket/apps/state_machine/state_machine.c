@@ -269,13 +269,13 @@ PROCESS_THREAD(state_machine_process, ev, data)
 
       PRINTF("state machine: Now in state: %d\r\n", curState);
     }
-    if(ev == sm_rulechange_event) {
-      // re-read state machine table length from eeprom
-      transLength = sm_get_number_of_transitions(false);   //eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
-      dtTransLength = sm_get_number_of_transitions(true);  //eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
-      PRINTF("State Machine: Re-Reading Table length.\n");
-      PRINTF("TransLength: %d, dtTransLength: %d\n", transLength, dtTransLength);
-    }
+  //  if(ev == sm_rulechange_event) {
+  //    // re-read state machine table length from eeprom
+  //    transLength = sm_get_number_of_transitions(false);   //eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
+  //    dtTransLength = sm_get_number_of_transitions(true);  //eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
+  //    PRINTF("State Machine: Re-Reading Table length.\n");
+  //    PRINTF("TransLength: %d, dtTransLength: %d\n", transLength, dtTransLength);
+  //  }
   }
 
   PROCESS_END();
