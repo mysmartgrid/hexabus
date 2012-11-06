@@ -223,6 +223,8 @@ int main(int argc, char** argv)
 
     if(vm.count("check")) {
       hexabus::GraphChecks gc(gBuilder.get_graph());
+      gc.find_states_without_inbound();
+      gc.find_states_without_outgoing();
       gc.find_unreachable_states();
     }
 

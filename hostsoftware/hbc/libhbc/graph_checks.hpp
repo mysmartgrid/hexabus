@@ -17,6 +17,8 @@ namespace hexabus {
       virtual ~GraphChecks() {};
 
       void operator()();
+      void find_states_without_inbound();
+      void find_states_without_outgoing();
       void find_unreachable_states();
 
     private:
