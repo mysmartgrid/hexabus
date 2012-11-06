@@ -4,6 +4,7 @@
 #include "crc.hpp"
 
 #include <string.h>
+#include <stdexcept>
 #include <netinet/in.h>
 
 #include <iostream>
@@ -92,7 +93,7 @@ hxb_packet_datetime Packet::writedt(uint32_t eid, uint8_t datatype, datetime val
 hxb_packet_66bytes Packet::writebytes(uint32_t eid, uint8_t datatype, const char* value, size_t length, bool broadcast)
 {
   if(length > HXB_BYTES_PACKET_MAX_BUFFER_LENGTH)
-    throw std::exception(); // TODO
+    throw std::runtime_error("Packet is too large"); // TODO
   CRC::Ptr crc(new CRC());
   struct hxb_packet_66bytes packet;
   memset((char*)&packet.value, 0, HXB_BYTES_PACKET_MAX_BUFFER_LENGTH);
