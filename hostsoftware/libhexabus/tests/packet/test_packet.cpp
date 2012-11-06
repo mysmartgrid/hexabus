@@ -2,7 +2,7 @@
 #include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <libhexabus/packet.hpp>
-#include "../../build/testconfig.h"
+#include "testconfig.h"
 
 
 /**
@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE ( check_write_uint32_packet_generation ) {
                       };
 
   hexabus::Packet p;
-  hxb_packet_int32 pi32 = p.write32(42, HXB_DTYPE_UINT32, 4242424242, false);
+  hxb_packet_int32 pi32 = p.write32(42, HXB_DTYPE_UINT32, 4242424242U, false);
 
   if(sizeof(testpacket) != sizeof(pi32))
     BOOST_FAIL("Size of generated packet differs from test packet");
