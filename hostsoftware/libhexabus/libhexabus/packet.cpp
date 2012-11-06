@@ -89,6 +89,24 @@ hxb_packet_datetime Packet::writedt(uint32_t eid, uint8_t datatype, datetime val
   return packet;
 }
 
+hxb_packet_66bytes Packet::writebytes(uint32_t eid, uint8_t datatype, const char* value, size_t length, bool broadcast)
+{
+  if(length > HXB_BYTES_PACKET_MAX_BUFFER_LENGTH)
+    throw std::exception(); // TODO
+  CRC::Ptr crc(new CRC());
+  struct hxb_packet_66bytes packet;
+  memset((char*)&packet.value, 0, HXB_BYTES_PACKET_MAX_BUFFER_LENGTH);
+  strncpy((char*)&packet.header, HXB_HEADER, 4);
+  packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
+  packet.flags = 0;
+  packet.eid = htonl(eid);
+  packet.datatype = datatype;
+  memcpy((char*)&packet.value, value, length);
+  packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet) - 2));
+
+  return packet;
+}
+
 hxb_packet_128string Packet::writestr(uint32_t eid, uint8_t datatype, std::string value, bool broadcast)
 {
   CRC::Ptr crc(new CRC());

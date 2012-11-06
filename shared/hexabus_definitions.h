@@ -32,7 +32,7 @@
 #define HXB_DTYPE_FLOAT       0x05  // 32bit floating point
 #define HXB_DTYPE_128STRING   0x06  // 128char fixed length string
 #define HXB_DTYPE_TIMESTAMP   0x07  // timestamp - used for measuring durations, time differences and so on - uint32; seconds
-#define HXB_DTYPE_66BYTES       0x08  // raw 66 byte array, e.g. state machine.
+#define HXB_DTYPE_66BYTES     0x08  // raw 66 byte array, e.g. state machine.
 
 
 // Error codes
