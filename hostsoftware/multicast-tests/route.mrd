@@ -1,6 +1,6 @@
 pim {
-	disable bsr-candidate;
-	disable rp-candidate;
+	enable bsr-candidate;
+	enable rp-candidate;
 }
 
 groups {
