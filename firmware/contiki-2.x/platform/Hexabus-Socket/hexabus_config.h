@@ -8,7 +8,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 1
+#define UDP_HANDLER_DEBUG 0
 
 // WebServer
 #define WEBSERVER_DEBUG 1
@@ -54,6 +54,9 @@ There should be an ENABLE option that enables compilation and execution of the a
 // state_machine
 #define STATE_MACHINE_ENABLE 1
 #define STATE_MACHINE_DEBUG 1
+
+// state machine uploading via Hexabus packets
+#define SM_UPLOAD_ENABLE 1
 
 // window blind shutter motor control
 #define SHUTTER_ENABLE 0

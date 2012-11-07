@@ -27,4 +27,9 @@ PROCESS_NAME(state_machine_process);
 // One general event for all data that can be possibly received
 extern process_event_t sm_data_received_event;
 
+uint8_t sm_is_running();
+void sm_restart();
+void sm_start();
+void sm_stop();
+
 #endif /* STATE_MACHINE_H_*/

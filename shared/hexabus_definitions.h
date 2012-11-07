@@ -41,6 +41,7 @@
 #define HXB_ERR_WRITEREADONLY 0x02  // A WRITE was received for a readonly endpoint
 #define HXB_ERR_CRCFAILED     0x03  // A packet failed the CRC check -- TODO How can we find out what information was lost?
 #define HXB_ERR_DATATYPE      0x04  // A packet with a datatype that does not fit the endpoint was received
+#define HXB_ERR_INVALID_VALUE 0x05  // A value was encountered that cannot be interpreted
 
 // Operators for comparison in state machine
 #define STM_EQ                0x00

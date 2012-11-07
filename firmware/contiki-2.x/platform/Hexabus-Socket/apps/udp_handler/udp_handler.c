@@ -321,7 +321,7 @@ udphandler(process_event_t ev, process_data_t data)
               } else {
                 PRINTF("Bytes packet received: ");
                 for(int i = 0; i < HXB_BYTES_PACKET_MAX_BUFFER_LENGTH; i++) {
-                  PRINTF("%x", (((struct hxb_packet_66bytes*)header)->value)[i]);
+                  PRINTF("%02x", (((struct hxb_packet_66bytes*)header)->value)[i]);
                 }
               }
               break;            
@@ -339,7 +339,8 @@ udphandler(process_event_t ev, process_data_t data)
                 break;    // everything okay. No need to do anything.
               case HXB_ERR_UNKNOWNEID:
               case HXB_ERR_WRITEREADONLY:
-              case HXB_ERR_DATATYPE:;
+              case HXB_ERR_DATATYPE:
+              case HXB_ERR_INVALID_VALUE:;
                 struct hxb_packet_error error_packet = make_error_packet(retcode);
                 send_packet(&error_packet, sizeof(error_packet));
                 break;

@@ -29,8 +29,42 @@ AUTOSTART_PROCESSES(&state_machine_process);
 static uint8_t transLength;   // length of transition table
 static uint8_t dtTransLength; // length of date/time transition table
 static uint8_t curState = 0;  // starting out in state 0
-static uint32_t inStateSince; // when die we change into that state
+static uint32_t inStateSince; // when did we change into that state
 static uint8_t dt_valid;      // internal clock has a valid date/time
+
+/**
+ * Functions to start/stop the state machine itself.
+ */
+
+uint8_t sm_is_running() {
+  return (process_is_running(&state_machine_process));
+}
+
+void sm_start() {
+  if (process_is_running(&state_machine_process)) {
+    PRINTF("State machine process is already running - not starting it.\n");
+  } else {
+    PRINTF("Starting state machine process.\n");
+    curState = 0;  // always start in state 0
+    process_start(&state_machine_process, NULL);
+  }
+}
+
+void sm_stop() {
+  if (!process_is_running(&state_machine_process)) {
+    PRINTF("State machine process is already stopped - not stopping it.\n");
+  } else {
+    PRINTF("Stopping state machine process.\n");
+    process_exit(&state_machine_process);
+  }
+}
+
+void sm_restart() {
+  PRINTF("Attempting to restart state machine process.\n");
+  sm_stop();
+  // inti
+  sm_start();
+}
 
 bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   struct condition cond;
@@ -92,28 +126,28 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
       if(cond.op == STM_NEQ) return *(float*)&envelope->value.data != *(float*)&cond.data;
       break;
     case HXB_DTYPE_DATETIME:
-    {
-      if(dt_valid)
       {
-        struct datetime val_dt;
-        val_dt = *(struct datetime*)&envelope->value.data; // just to make writing this down easier...
-        if(cond.op & HXB_SM_HOUR)
-          return (cond.op & 0x80) ? val_dt.hour >= *(uint8_t*)&(cond.data) : val_dt.hour < *(uint8_t*)&(cond.data);
-        if(cond.op & HXB_SM_MINUTE)
-          return (cond.op & 0x80) ? val_dt.minute >= *(uint8_t*)&(cond.data) : val_dt.minute < *(uint8_t*)&(cond.data);
-        if(cond.op & HXB_SM_SECOND)
-          return (cond.op & 0x80) ? val_dt.second >= *(uint8_t*)&(cond.data) : val_dt.second < *(uint8_t*)&(cond.data);
-        if(cond.op & HXB_SM_DAY)
-          return (cond.op & 0x80) ? val_dt.day >= *(uint8_t*)&(cond.data) : val_dt.day < *(uint8_t*)&(cond.data);
-        if(cond.op & HXB_SM_MONTH)
-          return (cond.op & 0x80) ? val_dt.month >= *(uint8_t*)&(cond.data) : val_dt.month < *(uint8_t*)&(cond.data);
-        if(cond.op & HXB_SM_YEAR)
-          return (cond.op & 0x80) ? val_dt.year >= *(uint16_t*)&(cond.data) : val_dt.year < *(uint16_t*)&(cond.data);
-        if(cond.op & HXB_SM_WEEKDAY)
-          return (cond.op & 0x80) ? val_dt.weekday >= *(uint8_t*)&(cond.data) : val_dt.weekday < *(uint8_t*)&(cond.data);
+        if(dt_valid)
+        {
+          struct datetime val_dt;
+          val_dt = *(struct datetime*)&envelope->value.data; // just to make writing this down easier...
+          if(cond.op & HXB_SM_HOUR)
+            return (cond.op & 0x80) ? val_dt.hour >= *(uint8_t*)&(cond.data) : val_dt.hour < *(uint8_t*)&(cond.data);
+          if(cond.op & HXB_SM_MINUTE)
+            return (cond.op & 0x80) ? val_dt.minute >= *(uint8_t*)&(cond.data) : val_dt.minute < *(uint8_t*)&(cond.data);
+          if(cond.op & HXB_SM_SECOND)
+            return (cond.op & 0x80) ? val_dt.second >= *(uint8_t*)&(cond.data) : val_dt.second < *(uint8_t*)&(cond.data);
+          if(cond.op & HXB_SM_DAY)
+            return (cond.op & 0x80) ? val_dt.day >= *(uint8_t*)&(cond.data) : val_dt.day < *(uint8_t*)&(cond.data);
+          if(cond.op & HXB_SM_MONTH)
+            return (cond.op & 0x80) ? val_dt.month >= *(uint8_t*)&(cond.data) : val_dt.month < *(uint8_t*)&(cond.data);
+          if(cond.op & HXB_SM_YEAR)
+            return (cond.op & 0x80) ? val_dt.year >= *(uint16_t*)&(cond.data) : val_dt.year < *(uint16_t*)&(cond.data);
+          if(cond.op & HXB_SM_WEEKDAY)
+            return (cond.op & 0x80) ? val_dt.weekday >= *(uint8_t*)&(cond.data) : val_dt.weekday < *(uint8_t*)&(cond.data);
+        }
+        break;
       }
-      break;
-    }
     case HXB_DTYPE_TIMESTAMP:
       if(cond.op == 0x80) // in-state-since
       {
@@ -269,13 +303,13 @@ PROCESS_THREAD(state_machine_process, ev, data)
 
       PRINTF("state machine: Now in state: %d\r\n", curState);
     }
-    if(ev == sm_rulechange_event) {
-      // re-read state machine table length from eeprom
-      transLength = sm_get_number_of_transitions(false);   //eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
-      dtTransLength = sm_get_number_of_transitions(true);  //eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
-      PRINTF("State Machine: Re-Reading Table length.\n");
-      PRINTF("TransLength: %d, dtTransLength: %d\n", transLength, dtTransLength);
-    }
+    //if(ev == sm_rulechange_event) {
+    //  // re-read state machine table length from eeprom
+    //  transLength = sm_get_number_of_transitions(false);   //eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
+    //  dtTransLength = sm_get_number_of_transitions(true);  //eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
+    //  PRINTF("State Machine: Re-Reading Table length.\n");
+    //  PRINTF("TransLength: %d, dtTransLength: %d\n", transLength, dtTransLength);
+    //}
   }
 
   PROCESS_END();
