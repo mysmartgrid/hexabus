@@ -19,6 +19,8 @@
 namespace po = boost::program_options;
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
+#include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -229,7 +231,11 @@ int main(int argc, char** argv)
       gc.find_states_without_outgoing();
       gc.find_unreachable_states();
       if(vm.count("always") && (vm.count("checkmachine"))) {
-        gc.reachable_from_anywhere(vm["always"].as<std::string>(), vm["checkmachine"].as<std::string>());
+        std::vector<std::string> states;
+        boost::split(states, vm["always"].as<std::string>(), boost::is_any_of(","));
+        BOOST_FOREACH(std::string state, states) {
+          gc.reachable_from_anywhere(state, vm["checkmachine"].as<std::string>());
+        }
       }
     }
 
