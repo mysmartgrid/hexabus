@@ -20,7 +20,7 @@ namespace hexabus {
       void find_states_without_inbound();
       void find_states_without_outgoing();
       void find_unreachable_states();
-      void reachable_from_anywhere(std::string name);
+      void reachable_from_anywhere(std::string state_name, std::string machine_name);
 
     private:
       graph_t_ptr _g;

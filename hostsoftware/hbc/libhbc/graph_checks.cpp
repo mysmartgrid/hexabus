@@ -8,12 +8,13 @@ void GraphChecks::operator()() {
   // TODO
   // simple checks:
   // - Non-reachable states:
-  //   - States without inbound edges
-  //   - Isolated states (states which cannot be found with BFS from the init node.
-  // - Terminal states: States without outbound edges
+  //   - (done) States without inbound edges
+  //   - (done) Isolated states (states which cannot be found with BFS from the init node.
+  // - (done) Terminal states: States without outbound edges
   // more complex checks:
   // - safety / liveness checks:
-  // - code annotation:
+  // - user input:
+  //   - Define a (TODO set of) state(s) which can always be reached
   //   - Define a set of states which can be reached only once during execution
   //   - Set of states that are immediately left
   //   - Set of states that, once the machine is in there, can never be left again
@@ -98,8 +99,8 @@ void GraphChecks::find_unreachable_states() {
   }
 }
 
-// TODO This needs to check only a single state machine, not the whole graph!
-void GraphChecks::reachable_from_anywhere(std::string name) {
+void GraphChecks::reachable_from_anywhere(std::string state_name, std::string machine_name) {
+  std::cout << "Graph checks:" << std::endl;
   // iterate over all vertices
   graph_t::vertex_iterator vertexIt, vertexEnd;
   boost::tie(vertexIt, vertexEnd) = vertices(*_g);
@@ -107,26 +108,30 @@ void GraphChecks::reachable_from_anywhere(std::string name) {
     vertex_t vertex = (*_g)[*vertexIt];
     // find out whether it's a state vertex
     if(vertex.type == v_state) {
-    // construct list of nodes reachable from there
-      std::vector<vertex_id_t> reachable_vertices;
-      boost::breadth_first_search(*_g, *vertexIt, visitor(bfs_nodelist_maker(&reachable_vertices)));
+      // find out whether it belongs to our machine
+      std::string v_machine_name = vertex.name.substr(vertex.name.find_last_of(' ') + 1);
+      v_machine_name = v_machine_name.substr(2, v_machine_name.find_first_of('.') - 2); // name starts at 2, because it is lead by "\n"
+      if(v_machine_name == machine_name) {
+        // construct list of nodes reachable from there
+        std::vector<vertex_id_t> reachable_vertices;
+        boost::breadth_first_search(*_g, *vertexIt, visitor(bfs_nodelist_maker(&reachable_vertices)));
 
-      // find out whether the node we are looking for is in that list
-      bool reachable_from_there = false;
-      BOOST_FOREACH(vertex_id_t reachable_vertex_id, reachable_vertices) {
-        vertex_t reachable_vertex = (*_g)[reachable_vertex_id];
-        if(reachable_vertex.type == v_state) {
-          if(reachable_vertex.name.substr(reachable_vertex.name.find_last_of('.') + 1) == name) {
-            reachable_from_there = true;
-            break;
+        // find out whether the node we are looking for is in that list
+        bool reachable_from_there = false;
+        BOOST_FOREACH(vertex_id_t reachable_vertex_id, reachable_vertices) {
+          vertex_t reachable_vertex = (*_g)[reachable_vertex_id];
+          if(reachable_vertex.type == v_state) {
+            if(reachable_vertex.name.substr(reachable_vertex.name.find_last_of('.') + 1) == state_name) {
+              reachable_from_there = true;
+              break;
+            }
           }
         }
-      }
 
-      // output the results
-      std::cout << "Graph checks:" << std::endl;
-      if(!reachable_from_there) {
-        std::cout << "  state " << name << " is not reachable from state " << vertex.name << "." << std::endl;
+        // output the results
+        if(!reachable_from_there) {
+          std::cout << "  state " << machine_name << "." << state_name << " is not reachable from state " << vertex.name.substr(vertex.name.find("\\n") + 2) << "." << std::endl;
+        }
       }
     }
   }
