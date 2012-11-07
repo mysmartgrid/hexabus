@@ -239,9 +239,15 @@ int main(int argc, char** argv)
       }
     }
 
-    if(vm.count("output")) {
-      std::map<std::string, hexabus::graph_t_ptr> graphs = gt.getDeviceGraphs(); // we can take the graph map from gt again, because GraphSimplification work in-place
-      for(std::map<std::string, hexabus::graph_t_ptr>::iterator graphIt = graphs.begin(); graphIt != graphs.end(); graphIt++) {
+    if(!vm.count("output"))
+      std::cout << "No output file name specified (option -o not given) - no HBA output will be written." << std::endl;
+
+    std::map<std::string, hexabus::graph_t_ptr> graphs = gt.getDeviceGraphs(); // we can take the graph map from gt again, because GraphSimplification work in-place
+    for(std::map<std::string, hexabus::graph_t_ptr>::iterator graphIt = graphs.begin(); graphIt != graphs.end(); graphIt++) {
+
+      hexabus::HBAOutput out(graphIt->second, tableBuilder.get_device_table(), tableBuilder.get_endpoint_table(), gBuilder.getMachineFilenameMap());
+
+      if(vm.count("output")) {
         std::ostringstream fnoss;
         fnoss << vm["output"].as<std::string>() << graphIt->first << ".hba";
 
@@ -252,16 +258,13 @@ int main(int argc, char** argv)
           std::cerr << "Could not open HBA output file " << fnoss << "." << std::endl;
           exit(-1);
         }
-
-        hexabus::HBAOutput out(graphIt->second, tableBuilder.get_device_table(), tableBuilder.get_endpoint_table(), gBuilder.getMachineFilenameMap());
         out(ofs);
-
         ofs.close();
+      } else { // don't generate output, just write to a "dummy" stream (so that all the checks, names etc. are performed but no output is generated
+        std::ostringstream oss;
+        out(oss);
       }
 
-    } else {
-      if(verbose)
-        std::cout << "Not generating Hexabus Assembler output (option -o was not given)!" << std::endl;
     }
 
   } else {
