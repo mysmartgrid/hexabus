@@ -44,6 +44,7 @@ int main(int argc, char** argv)
     ("slice,s", po::value<std::string>(), "file name prefix for sliced state machine graphs")
     ("simplification,f", po::value<std::string>(), "file name prefix for simplified state machine graphs")
     ("check,c", "Perform graph checks.")
+    ("always,a", po::value<std::string>(), "perform liveness check ('node is always reachable') for node")
     ("output,o", po::value<std::string>(), "file name prefix for Hexabus Assembler (HBA) output")
   ;
   po::positional_options_description p;
@@ -226,6 +227,9 @@ int main(int argc, char** argv)
       gc.find_states_without_inbound();
       gc.find_states_without_outgoing();
       gc.find_unreachable_states();
+      if(vm.count("always")) {
+        gc.reachable_from_anywhere(vm["always"].as<std::string>());
+      }
     }
 
     if(vm.count("output")) {

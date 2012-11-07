@@ -98,3 +98,37 @@ void GraphChecks::find_unreachable_states() {
   }
 }
 
+// TODO This needs to check only a single state machine, not the whole graph!
+void GraphChecks::reachable_from_anywhere(std::string name) {
+  // iterate over all vertices
+  graph_t::vertex_iterator vertexIt, vertexEnd;
+  boost::tie(vertexIt, vertexEnd) = vertices(*_g);
+  for(; vertexIt != vertexEnd; vertexIt++) {
+    vertex_t vertex = (*_g)[*vertexIt];
+    // find out whether it's a state vertex
+    if(vertex.type == v_state) {
+    // construct list of nodes reachable from there
+      std::vector<vertex_id_t> reachable_vertices;
+      boost::breadth_first_search(*_g, *vertexIt, visitor(bfs_nodelist_maker(&reachable_vertices)));
+
+      // find out whether the node we are looking for is in that list
+      bool reachable_from_there = false;
+      BOOST_FOREACH(vertex_id_t reachable_vertex_id, reachable_vertices) {
+        vertex_t reachable_vertex = (*_g)[reachable_vertex_id];
+        if(reachable_vertex.type == v_state) {
+          if(reachable_vertex.name.substr(reachable_vertex.name.find_last_of('.') + 1) == name) {
+            reachable_from_there = true;
+            break;
+          }
+        }
+      }
+
+      // output the results
+      std::cout << "Graph checks:" << std::endl;
+      if(!reachable_from_there) {
+        std::cout << "  state " << name << " is not reachable from state " << vertex.name << "." << std::endl;
+      }
+    }
+  }
+}
+
