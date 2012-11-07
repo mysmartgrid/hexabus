@@ -1,14 +1,6 @@
 // Abstraction layer - transforms generic endpoint access to specific hardware function calls
 // ============================================================================
 
-#define DEBUG 1
-#if DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
-
 #include "hexabus_config.h"
 #include "endpoint_access.h"
 #include "temperature.h"
@@ -19,6 +11,16 @@
 #include "ir_receiver.h"
 #include "metering.h"
 #include "endpoints.h"
+#include "net/uip.h"
+#include "packet_builder.h"
+#include "udp_handler.h"
+
+#if ENDPOINT_ACCESS_DEBUG
+#include <stdio.h>
+#define PRINTF(...) printf(__VA_ARGS__)
+#else
+#define PRINTF(...)
+#endif
 
 uint8_t endpoint_get_datatype(uint32_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
@@ -252,7 +254,6 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
 #endif
 #if SM_UPLOAD_ENABLE
     case EP_SM_CONTROL:
-      PRINTF("Write on SM_CONTROL EP occurred\n");
       if(value->datatype == HXB_DTYPE_UINT8) {
         if(*(uint8_t*)&value->data == 0) {
           sm_stop();
@@ -268,8 +269,27 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
         return HXB_ERR_DATATYPE;
       }
     case EP_SM_UP_RECEIVER:
-      PRINTF("Write on SM_UP_RECEIVER EP occurred\n");
-      return 0;
+      PRINTF("SM: Attempting to write new chunk to EEPROM\n");
+      if(value->datatype == HXB_DTYPE_66BYTES) {
+        char* payload = *(char**)&value->data;
+        if (sm_write_chunk(uip_ntohs((uint16_t)payload[0]), payload+2)) {
+          // send ACK to SM_SENDER
+          struct hxb_value val;
+          val.datatype=HXB_DTYPE_BOOL;
+          val.data[0] = HXB_TRUE;
+          PRINTF("##### %d #### %d\n", val.datatype, *(uint8_t*)&(val.data));
+          struct hxb_packet_int8 packet = make_value_packet_int8(EP_SM_UP_ACKNAK, &val);
+          send_packet((char*)&packet, sizeof(packet));
+          
+          return 0;
+        } else {
+          // send NAK to SM_SENDER
+          return HXB_ERR_INVALID_VALUE;
+        }
+      } else {
+        return HXB_ERR_DATATYPE;
+      }
+      break;
     case EP_SM_UP_ACKNAK:
       return HXB_ERR_WRITEREADONLY;
 #endif

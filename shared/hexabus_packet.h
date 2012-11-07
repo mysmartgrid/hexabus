@@ -2,9 +2,9 @@
 #define HEXABUS_PACKET_H_
 
 // Hexabus packet definition
+#include <stdint.h>
 #include "hexabus_definitions.h"
 #include "hexabus_value.h"
-#include <stdint.h>
 
 // ======================================================================
 // Supporting structs

@@ -4,7 +4,9 @@
 #include "crc.hpp"
 
 #include <string.h>
+#include <sstream>
 #include <stdexcept>
+#include <iomanip>
 #include <netinet/in.h>
 
 #include <iostream>
@@ -207,6 +209,20 @@ PacketHandling::PacketHandling(char* data)
 
             eid = ntohl(packetstr->eid);
             strval = packetstr->value;
+          }
+          break;
+        case HXB_DTYPE_66BYTES:
+          {
+            struct hxb_packet_66bytes* packetbytes = (struct hxb_packet_66bytes*)data;
+            packetbytes->crc = ntohs(packetbytes->crc);
+            crc_okay = packetbytes->crc == crc->crc16((char*)packetbytes, sizeof(*packetbytes)-2);
+
+            eid = ntohl(packetbytes->eid);
+            std::ostringstream oss;
+            oss << std::hex << std::setw(2) << std::setfill('0');
+            for(int i = 0; i < 66; i++)
+              oss << packetbytes->value[i];
+            strval = oss.str();
           }
           break;
         default:
