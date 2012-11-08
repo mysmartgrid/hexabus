@@ -137,3 +137,30 @@ void GraphChecks::reachable_from_anywhere(std::string state_name, std::string ma
   }
 }
 
+void GraphChecks::never_reachable(std::string name, std::string machine_name) {
+  // TODO Concept:
+  // - Calculate shortest paths from INIT node
+  // - See if the never-to-be-reached node (probably the one generating an output we don't want??) is in the tree
+  // - If so, OH NOES!
+  // - Go back to INIT node, output path
+
+  // find init state
+  vertex_id_t init_state;
+  graph_t::vertex_iterator vertexIt, vertexEnd;
+  boost::tie(vertexIt, vertexEnd) = vertices(*_g);
+  for(; vertexIt != vertexEnd; vertexIt++) {
+    if((*_g)[*vertexIt].type == v_state) {
+      std::string v_name = (*_g)[*vertexIt].name;
+      if(v_name.length() > 5) {
+        if(v_name.substr(v_name.length() - 5) == ".init") {
+          init_state = *vertexIt;
+          break;
+        }
+      }
+    }
+  }
+
+  // start dijkstra shortest path algorithm from init state
+  dijkstra_shortest_paths(*_g, init_state, predecessor_map(&p[0]).distance_map(&d[0]));
+}
+
