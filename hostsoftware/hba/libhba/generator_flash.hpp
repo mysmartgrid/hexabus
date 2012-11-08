@@ -18,7 +18,7 @@ namespace hexabus {
       {};
       virtual ~generator_flash() {};
 
-      void operator()(std::vector<uint8_t>& cond_v, std::vector<uint8_t>& trans_v, std::vector<uint8_t>& trans_dt_v) const;
+      void operator()(std::vector<uint8_t>& v) const;
     private:
       generator_flash (const generator_flash& original);
       generator_flash& operator= (const generator_flash& rhs);

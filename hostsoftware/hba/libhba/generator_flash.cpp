@@ -214,19 +214,19 @@ struct hba_doc_visitor : boost::static_visitor<>
   Datatypes* _datatypes;
 };
 
-void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8_t>& trans_v, std::vector<uint8_t>& trans_dt_v) const
+void generator_flash::operator()(std::vector<uint8_t>& v) const
 {
   flash_format_cond_map_t conditions_bin;
   flash_format_state_map_t states_bin;
   flash_format_trans_dt_map_t trans_dt_bin;
 
-  unsigned char conditions_buffer[513];
+  unsigned char conditions_buffer[512];
   unsigned char* conditions_pos = &conditions_buffer[1];
   memset(conditions_buffer, 0, sizeof(conditions_buffer));
-  unsigned char transitions_buffer[513];
+  unsigned char transitions_buffer[512];
   unsigned char* transitions_pos = &transitions_buffer[1];
   memset(transitions_buffer, 0, sizeof(transitions_buffer));
-  unsigned char trans_dt_buffer[513]; // TODO 512 should be a #define!
+  unsigned char trans_dt_buffer[512];
   unsigned char* trans_dt_pos = &trans_dt_buffer[1];
   memset(trans_dt_buffer, 0, sizeof(trans_dt_buffer));
 
@@ -311,18 +311,7 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
     if(i % 24 == 23)
       std::cout << std::endl;
 
-    cond_v.push_back(conditions_buffer[i]);
-  }
-  std::cout << std::endl << std::endl;
-
-  std::cout << "Transitions:" << std::endl;
-  for(unsigned int i = 0; i < sizeof(transitions_buffer); i++)
-  {
-    std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)transitions_buffer[i] << " ";
-    if(i % 24 == 23)
-      std::cout << std::endl;
-
-    trans_v.push_back(transitions_buffer[i]);
+    v.push_back(conditions_buffer[i]);
   }
   std::cout << std::endl << std::endl;
 
@@ -333,8 +322,19 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
       if(i % 24 == 23)
       std::cout << std::endl;
 
-    trans_dt_v.push_back(trans_dt_buffer[i]);
+    v.push_back(trans_dt_buffer[i]);
   }
+
+  std::cout << "Transitions:" << std::endl;
+  for(unsigned int i = 0; i < sizeof(transitions_buffer); i++)
+  {
+    std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)transitions_buffer[i] << " ";
+    if(i % 24 == 23)
+      std::cout << std::endl;
+
+    v.push_back(transitions_buffer[i]);
+  }
+  std::cout << std::endl << std::endl;
   std::cout << std::endl << std::endl;
 
   std::cout << "done." << std::endl;
