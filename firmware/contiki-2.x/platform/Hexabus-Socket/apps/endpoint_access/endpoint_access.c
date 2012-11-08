@@ -14,6 +14,7 @@
 #include "net/uip.h"
 #include "packet_builder.h"
 #include "udp_handler.h"
+#include <stdbool.h>
 
 #if ENDPOINT_ACCESS_DEBUG
 #include <stdio.h>
@@ -270,23 +271,32 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
       }
     case EP_SM_UP_RECEIVER:
       PRINTF("SM: Attempting to write new chunk to EEPROM\n");
+      struct hxb_value val;
+      val.datatype=HXB_DTYPE_BOOL;
       if(value->datatype == HXB_DTYPE_66BYTES) {
         char* payload = *(char**)&value->data;
-        if (sm_write_chunk(uip_ntohs((uint16_t)payload[0]), payload+2)) {
+        uint8_t chunk_id = (uint8_t)payload[0];
+        if (sm_write_chunk(chunk_id, payload+1) == true) {
           // send ACK to SM_SENDER
-          struct hxb_value val;
-          val.datatype=HXB_DTYPE_BOOL;
+          PRINTF("SENDING ACK");
           val.data[0] = HXB_TRUE;
-          PRINTF("##### %d #### %d\n", val.datatype, *(uint8_t*)&(val.data));
           struct hxb_packet_int8 packet = make_value_packet_int8(EP_SM_UP_ACKNAK, &val);
           send_packet((char*)&packet, sizeof(packet));
-          
           return 0;
         } else {
           // send NAK to SM_SENDER
+          PRINTF("SENDING NAK");
+          val.data[0] = HXB_FALSE;
+          struct hxb_packet_int8 packet = make_value_packet_int8(EP_SM_UP_ACKNAK, &val);
+          send_packet((char*)&packet, sizeof(packet));
           return HXB_ERR_INVALID_VALUE;
         }
       } else {
+        // send NAK to SM_SENDER
+        PRINTF("SENDING ERROR DATATYPE");
+        val.data[0] = HXB_FALSE;
+        struct hxb_packet_int8 packet = make_value_packet_int8(EP_SM_UP_ACKNAK, &val);
+        send_packet((char*)&packet, sizeof(packet));
         return HXB_ERR_DATATYPE;
       }
       break;

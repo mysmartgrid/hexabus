@@ -10,6 +10,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <libhexabus/network.hpp>
+#include <algorithm>
+#include <vector>
 #include <typeinfo>
 namespace po = boost::program_options;
 
@@ -170,6 +172,35 @@ po::variable_value get_mandatory_parameter(
 }
 
 
+bool send_chunk(hexabus::NetworkAccess* network, const std::string& ip_addr, uint8_t chunk_id, const std::vector<char>& chunk) {
+  std::cout << "Sending chunk " << (int) chunk_id << std::endl;
+  hexabus::Packet::Ptr packetm(new hexabus::Packet()); // the packet making machine
+  std::vector<char> bin_data;
+  bin_data.push_back(chunk_id); 
+  bin_data.insert(bin_data.end(), chunk.begin(), chunk.end());
+
+  std::cout << "bin data size " << bin_data.size() << " chunk_id: " << (int) bin_data[0] << std::endl;
+
+  hxb_packet_66bytes packet = packetm->writebytes(10, HXB_DTYPE_66BYTES, reinterpret_cast<char*>(&bin_data[0]), bin_data.size(), false);
+  network->sendPacket(ip_addr.c_str(), HXB_PORT, (char*)&packet, sizeof(packet));
+  // print_packet((char*)&packet);
+  network->receivePacket(true);
+
+  hexabus::PacketHandling phandling(network->getData());
+  std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
+  if(phandling.getPacketType() == HXB_PTYPE_INFO)
+  {
+    std::cout << "Info packet" << std::endl;
+    std::cout << "Endpoint " << phandling.getEID() << std::endl;
+    std::cout << "Value: " << (int)phandling.getValue().data[0] << std::endl;
+    if (phandling.getValue().data[0] == true)
+      return true;
+  } else {
+    std::cout << "Not an info packet" << std::endl;
+  }
+  return false;
+}
+
 int main(int argc, char** argv) {
 
   std::ostringstream oss;
@@ -198,7 +229,7 @@ int main(int argc, char** argv) {
   }
 
   std::string command;
-  std::string program;
+  std::vector<char> program;
 
   if (vm.count("help")) {
     std::cout << desc << std::endl;
@@ -228,12 +259,12 @@ int main(int argc, char** argv) {
     size_t size = in.tellg();
     in.seekg(0, std::ios::beg);
     char* buffer = new char[size];
-    std::cout << "size " << size << std::endl;
+
     in.read(buffer, size);
-    std::string instr(buffer, size);
+    //std::string instr(buffer, size);
+    program.insert(program.end(), buffer, buffer+size);
     delete buffer;
     in.close();
-    program = instr;
   }
 
   hexabus::NetworkAccess* network;
@@ -246,29 +277,49 @@ int main(int argc, char** argv) {
     network=new hexabus::NetworkAccess();
   }
 
-  hexabus::Packet::Ptr packetm(new hexabus::Packet()); // the packet making machine
-
-  /**
-    for all packets to be send:
-    0. Attempt counter: Initialize to 0
-    1. generate 66bytes packet
-    2. if attempt < max_attempt:
-    send it, start timer, wait for response
-    else 
-    exit with failure note
-    3. evaluate answer:
-    if ACK: send next packet
-else: send current packet again, increase attempt counter
-goto 2
-   */
 
   std::string ip_addr(get_mandatory_parameter(vm,
         "ip", "command 'program' needs an IP address").as<std::string>()
       );
-  hxb_packet_66bytes packet = packetm->writebytes(10, HXB_DTYPE_66BYTES, program.c_str(), program.length(), false);
-  network->sendPacket(ip_addr.c_str(), HXB_PORT, (char*)&packet, sizeof(packet));
-  print_packet((char*)&packet);
+  
+/**
+ * for all bytes in the binary format:
+ * 0. generate the next 64 byte chunk, failure counter:=0
+ * 1. prepend chunk ID
+ * 2. send to hexabus device
+ * 3. wait for ACK/NAK:
+ *    - if ACK, next chunk
+ *    - if NAK: Retransmit current packet. failure counter++. Abort if
+ *    maxtry reached.
+ */
 
+  uint8_t chunk_id = 0;
+  uint8_t MAX_TRY = 3;
+  std::cout << "Uploading program, size=" << program.size() << std::endl;
+  while((64 * chunk_id) < program.size()) {
+    uint8_t failure_counter;
+    std::vector<char> to_send(program.begin() + (64*chunk_id), program.begin() + std::min(64 * (chunk_id + 1), (int) program.size()));
+
+    bool sent = false;
+    while(!sent) {
+      if(!send_chunk(network, ip_addr, chunk_id, to_send)) {
+        // TODO: Check if the ACK/NAK refers to the current chunk id
+        std::cout << "F";
+        failure_counter++; // if sending fails, increase failure counter
+        if (failure_counter >= MAX_TRY) {
+          std::cout << "Maximum number of retransmissions exceeded." << std::endl;
+          delete network;
+          exit(1);
+        }
+      } else {
+        std::cout << ".";
+        sent = true;
+      }
+    } 
+    chunk_id++;
+  }
+
+  delete network;
   exit(0);
 }
 

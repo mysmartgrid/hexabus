@@ -13,7 +13,7 @@ namespace hexabus {
       NetworkAccess(const std::string& interface);
       ~NetworkAccess();
       void closeSocket();
-      void receivePacket(bool related);
+      void receivePacket(bool related); // related==true: receive data from the address where the last packet was sent to
       void sendPacket(std::string addr, uint16_t port, const char* data, unsigned int length);
       boost::asio::ip::address getSourceIP();
       char* getData();
