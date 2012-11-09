@@ -135,15 +135,10 @@ void GraphChecks::reachable_from_anywhere(std::string state_name, std::string ma
       }
     }
   }
+  // TODO Also output something if it IS always reachable!
 }
 
 void GraphChecks::never_reachable(std::string name, std::string machine_name) {
-  // TODO Concept:
-  // - Calculate shortest paths from INIT node
-  // - See if the never-to-be-reached node (probably the one generating an output we don't want??) is in the tree
-  // - If so, OH NOES!
-  // - Go back to INIT node, output path
-
   // find init state and target state
   bool target_found = false;
   vertex_id_t init_state, target_vertex;
@@ -178,12 +173,22 @@ void GraphChecks::never_reachable(std::string name, std::string machine_name) {
     // now the path is found by taking the target state, and following the predecessors backwards until we reach init.
     boost::breadth_first_search(*_g, init_state, visitor(bfs_predecessor_map_maker(&predecessor_map)));
 
+    std::vector<vertex_id_t> path;
     // take the target vertex, and follow the predecessor map until init is reached.
     std::cout << "Graph checks: Path to 'never'-vertex found!" << std::endl;
     std::map<vertex_id_t, vertex_id_t>::iterator predecessor_it;
     while((predecessor_it = predecessor_map.find(target_vertex)) != predecessor_map.end()) {
-      std::cout << (*_g)[target_vertex].name << std::endl;
+      path.push_back(target_vertex);
       target_vertex = predecessor_it->second;
+    }
+
+    std::cout << "  if-clauses to be fulfilled for this path to be taken:" << std::endl;
+    // output the path (which was recorded in reverse)
+    for(unsigned int i = path.size() - 1; i > 0; i--) {
+      vertex_t the_vertex = (*_g)[path[i]];
+      if(the_vertex.type == v_cond) {
+        std::cout << "    " << the_vertex.name << std::endl;
+      }
     }
   } else {
     std::cout << "Graph checks: Target state " << name << " for 'never'-check of machine " << machine_name << " not found." << std::endl;
