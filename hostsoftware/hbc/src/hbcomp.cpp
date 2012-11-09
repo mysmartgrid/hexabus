@@ -45,11 +45,12 @@ int main(int argc, char** argv)
     ("tables,t", "print endpoint and alias tables")
     ("slice,s", po::value<std::string>(), "file name prefix for sliced state machine graphs")
     ("simplification,f", po::value<std::string>(), "file name prefix for simplified state machine graphs")
-    ("check,c", "Perform graph checks.")
+    ("basiccheck,c", "Perform basic graph checks (no incoming / no outgoing / unreachable)")
     ("checkmachine,m", po::value<std::string>(), "name of machine on which to perform liveness check")
     ("always,a", po::value<std::string>(), "perform liveness check ('node is always reachable') for node")
+    ("never,n", po::value<std::string>(), "perform safety check ('node is never reachable') for node")
     ("output,o", po::value<std::string>(), "file name prefix for Hexabus Assembler (HBA) output")
-  ;
+    ;
   po::positional_options_description p;
   p.add("input", 1);
 
@@ -225,16 +226,35 @@ int main(int argc, char** argv)
       gt.writeGraphviz(vm["simplification"].as<std::string>());
     }
 
-    if(vm.count("check")) {
-      hexabus::GraphChecks gc(gBuilder.get_graph());
+    hexabus::GraphChecks gc(gBuilder.get_graph());
+    if(vm.count("basiccheck")) {
+      if(verbose)
+        std::cout << "Performing basic graph checks..." << std::endl;
       gc.find_states_without_inbound();
       gc.find_states_without_outgoing();
       gc.find_unreachable_states();
-      if(vm.count("always") && (vm.count("checkmachine"))) {
-        std::vector<std::string> states;
+    }
+
+    if(vm.count("checkmachine")) {
+      if(verbose)
+        std::cout << "Performing advanced graph checks..." << std::endl;
+      std::vector<std::string> states;
+      // "always"-check
+      if(vm.count("always")) {
+        if(verbose)
+          std::cout << "...'always' check." << std::endl;
         boost::split(states, vm["always"].as<std::string>(), boost::is_any_of(","));
         BOOST_FOREACH(std::string state, states) {
           gc.reachable_from_anywhere(state, vm["checkmachine"].as<std::string>());
+        }
+      }
+      // "never"-check
+      if(vm.count("never")) {
+        if(verbose)
+          std::cout << "...'never' check." << std::endl;
+        boost::split(states, vm["never"].as<std::string>(), boost::is_any_of(","));
+        BOOST_FOREACH(std::string state, states) {
+          gc.never_reachable(state, vm["checkmachine"].as<std::string>());
         }
       }
     }

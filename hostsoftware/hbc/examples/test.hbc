@@ -53,6 +53,11 @@ alias another_device {
 
 machine my_machine {
   states { one, two, three, init };
+  in(init) {
+    if(true) {
+      goto one;
+    }
+  }
   in(one) {
     if(ep device.endpoint == 23) {
       write device.other_endpoint := 42;
