@@ -33,6 +33,7 @@
  */
 #include "hexabus_config.h"
 #include "value_broadcast.h"
+#include "endpoints.h"
 
 #include "presence_detector.h"
 #include <util/delay.h>
@@ -67,7 +68,7 @@ void global_presence_detected(void) {
 #if PRESENCE_DETECTOR_SERVER
     if(global_presence != PRESENCE) {
         global_presence = PRESENCE;
-        broadcast_value(PRESENCE_DETECTOR_EID);
+        broadcast_value(EP_PRESENCE_DETECTOR);
     }
     ctimer_restart(&pd_timeout);
 #endif
@@ -76,7 +77,7 @@ void global_presence_detected(void) {
 void no_global_presence(void) {
 #if PRESENCE_DETECTOR_SERVER
     global_presence = NO_PRESENCE;
-    broadcast_value(PRESENCE_DETECTOR_EID);
+    broadcast_value(EP_PRESENCE_DETECTOR);
 #endif
 }
 
@@ -85,7 +86,7 @@ void raw_presence_detected(void) {
     uint8_t tmp = global_presence;
     presence = PRESENCE_DETECTOR_CLIENT_GROUP;
     global_presence = presence;
-    broadcast_value(PRESENCE_DETECTOR_EID);
+    broadcast_value(EP_PRESENCE_DETECTOR);
     global_presence = tmp;
     if(PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE != 0) {
         ctimer_restart(&pd_keep_alive);

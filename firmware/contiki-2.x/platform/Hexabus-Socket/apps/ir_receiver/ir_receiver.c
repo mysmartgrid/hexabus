@@ -6,6 +6,7 @@
 #include "hexabus_config.h"
 #include "value_broadcast.h"
 #include "hexonoff.h"
+#include "endpoints.h"
 
 #if IR_RECEIVER_DEBUG
 #include <stdio.h>
@@ -159,7 +160,7 @@ PROCESS_THREAD(ir_receiver_process, ev, data) {
                     memcpy(ir_prev_data, ir_last_data, 4);
                     timer_restart(&ir_rep_timer);
                     PRINTF("Got new command %d,%d,%d,%d!\n", ir_last_data[0],ir_last_data[1],ir_last_data[2],ir_last_data[3]);
-                    broadcast_value(30);
+                    broadcast_value(EP_IR_RECEIVER);
                 } else {
                     timer_restart(&ir_rep_timer);
                 }

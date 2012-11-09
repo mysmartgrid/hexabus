@@ -5,6 +5,7 @@
 #include "contiki.h"
 #include "hexabus_config.h"
 #include "value_broadcast.h"
+#include "endpoints.h"
 
 #include <stdio.h>
 
@@ -24,7 +25,7 @@ void button_clicked(uint8_t button) {
     PRINTF("Clicked %d\n", button);
 
     clicked_vector|=(1<<button);
-    broadcast_value(HEXAPUSH_CLICK_EID);
+    broadcast_value(EP_HEXAPUSH_CLICKED);
     clicked_vector&=~(1<<button);
 }
 
@@ -33,7 +34,7 @@ void button_pressed(uint8_t button) {
 
     pressed_vector|=(1<<button);
 
-    broadcast_value(HEXAPUSH_PRESS_EID);
+    broadcast_value(EP_HEXAPUSH_PRESSED);
 }
 
 void button_released(uint8_t button){
@@ -41,7 +42,7 @@ void button_released(uint8_t button){
 
     pressed_vector&=~(1<<button);
 
-    broadcast_value(HEXAPUSH_PRESS_EID);
+    broadcast_value(EP_HEXAPUSH_PRESSED);
 }
 
 uint8_t get_buttonstate() {
