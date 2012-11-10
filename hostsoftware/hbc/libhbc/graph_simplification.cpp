@@ -99,11 +99,9 @@ void GraphSimplification::expandMultipleWriteNode(vertex_id_t vertex_id, graph_t
     } catch(boost::bad_get b) {
       throw GraphTransformationErrorException("Newly created command vertex does not have command block as contents");
     }
-
   } catch(boost::bad_get b) {
     throw GraphTransformationErrorException("Non-command-vertex assigned for command extension!");
   }
-
 }
 
 void GraphSimplification::expandMultipleWrites(graph_t_ptr g) {
@@ -132,6 +130,24 @@ void GraphSimplification::expandMultipleWrites(graph_t_ptr g) {
       } catch(boost::bad_get b) {
         throw GraphTransformationErrorException("Command block vertex does not contain command block (during graph simplification)");
       }
+    }
+  }
+}
+
+void GraphSimplification::expandComplexConditions(graph_t_ptr g) {
+  graph_t::vertex_iterator vertexIt, vertexEnd;
+  boost::tie(vertexIt, vertexEnd) = vertices(*g);
+  for(; vertexIt != vertexEnd) {
+    // TODO Plan:
+    // - Find condition vertices
+    // - If it's a complex condition
+    //   - If it's a AND condtiton
+    //     - Make <first part>->(intermediate state)->[no command]-><second part>->[the command]->(target state)
+    //   - If it's an OR condition
+    //     - Make two conditions; duplicate command vertex
+    vertex_t& vertex = (*g)[*vertexIt];
+    if(vertex.type == v_command) {
+
     }
   }
 }

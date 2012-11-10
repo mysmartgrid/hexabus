@@ -16,6 +16,7 @@ namespace hexabus {
       void deleteOthersWrites(graph_t_ptr g, std::string name);
       void expandMultipleWrites(graph_t_ptr g);
       void expandMultipleWriteNode(vertex_id_t vertex_id, graph_t_ptr g, unsigned int& max_vertex_id);
+      void expandComplexConditions(graph_t_ptr g);
       command_block_doc commandBlockTail(command_block_doc& commands);
       command_block_doc commandBlockHead(command_block_doc& commands);
 
