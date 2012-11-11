@@ -87,7 +87,7 @@ void GraphSimplification::expandMultipleWriteNode(vertex_id_t vertex_id, graph_t
     graph_t::adjacency_iterator outIt, outEnd;
     boost::tie(outIt, outEnd) = boost::adjacent_vertices(vertex_id, *g);
     if(distance(outIt, outEnd) != 1)
-      throw GraphTransformationErrorException("Multiple outgoint edges on command graph during graph simplification");
+      throw GraphTransformationErrorException("Multiple outgoing edges on command graph during graph simplification");
     // now outIt points to the state vertex after the command vertex.
     vertex_id_t new_command_vertex = splitTransition(vertex_id, *outIt, cmdblck, g, max_vertex_id);
 
@@ -135,7 +135,14 @@ void GraphSimplification::expandMultipleWrites(graph_t_ptr g) {
 }
 
 void GraphSimplification::expandComplexConditions(graph_t_ptr g) {
+  // iterate over the graph once to find the maximum vertex id (so we can number the vertices we generate from there) -- TODO we could move this into the operator()-method and keep max_vertices as a class variable
   graph_t::vertex_iterator vertexIt, vertexEnd;
+  boost::tie(vertexIt, vertexEnd) = vertices(*g);
+  unsigned int max_vertex_id = 0;
+  for(; vertexIt != vertexEnd; vertexIt++)
+    if((*g)[*vertexIt].vertex_id >= max_vertex_id)
+      max_vertex_id = (*g)[*vertexIt].vertex_id;
+
   boost::tie(vertexIt, vertexEnd) = vertices(*g);
   for(; vertexIt != vertexEnd; vertexIt++) {
     vertex_t& vertex = (*g)[*vertexIt];
@@ -145,16 +152,60 @@ void GraphSimplification::expandComplexConditions(graph_t_ptr g) {
         condition_doc& cond = boost::get<condition_doc>(vertex.contents);
         if(cond.which() == 4) { // if it's a compound condition
           // find out whether it's an AND or an OR condition
-          compound_condition_doc& comp_cond = boost::get<compound_condition_doc>(cond);
+          compound_condition_doc comp_cond = boost::get<compound_condition_doc>(cond);
           if(comp_cond.bool_op == AND) {
             // Make <first part>->(intermediate state)->[no command]-><second part>->[the command]->(target state)
-            // TODO make this with an "expandAndCondNode" method
+
+            // find command vertex
+            graph_t::adjacency_iterator adjIt, adjEnd;
+            boost::tie(adjIt, adjEnd) = adjacent_vertices(*vertexIt, *g);
+            vertex_id_t command_vertex_id = *adjIt;
+
+            // find originating state vertex
+            graph_t::inv_adjacency_iterator revIt, revEnd;
+            boost::tie(revIt, revEnd) = inv_adjacent_vertices(*vertexIt, *g);
+            vertex_id_t originating_state_id = *revIt;
+
+            // find target state vertex
+            boost::tie(adjIt, adjEnd) = adjacent_vertices(command_vertex_id, *g);
+            vertex_id_t target_state_id = *adjIt;
+
+            // split condition
+            condition_doc cond_b = comp_cond.condition_b;
+            // assign first part to "original" condition
+            vertex.contents = comp_cond.condition_a;
+
+            // cut edge to target state
+            boost::remove_edge(command_vertex_id, target_state_id, *g);
+
+            // make new intermediate state
+            vertex_id_t intermediate_state_id = add_vertex(g, "intermediate\\nstate", (*g)[originating_state_id].machine_id, ++max_vertex_id, v_state);
+
+            // add new condition vertex
+            vertex_id_t new_cond_vertex_id = add_vertex(g, "new_condition", vertex.machine_id, ++max_vertex_id, v_cond, cond_b);
+            // TODO node name
+
+            // make new dummy command vertex; move original command vertex "down".
+            command_block_doc dummy_command; // leave it empty
+            vertex_id_t dummy_cmd_v_id = add_vertex(g, "dummy\\ncommand\\nvertex", (*g)[command_vertex_id].machine_id, ++max_vertex_id, v_command, dummy_command);
+            // TODO check whether we need a valid gotoCommand here!
+
+            // ...cut the old command vertex's edges, and link everything together.
+            boost::remove_edge(*vertexIt, command_vertex_id, *g);
+            add_edge(g, *vertexIt, dummy_cmd_v_id, e_if_com);
+            add_edge(g, dummy_cmd_v_id, intermediate_state_id, e_to_state);
+            add_edge(g, intermediate_state_id, new_cond_vertex_id, e_from_state);
+            add_edge(g, new_cond_vertex_id, command_vertex_id, e_if_com);
+            add_edge(g, command_vertex_id, target_state_id, e_to_state);
           } else { // OR
             // Make two conditions; duplicate command vertex
+            // what do we have, what do we need?
+            // Have: vertex; *vertexId -- the vertex we are at.
+            // Need: from-state, command, to-state.
           }
         }
       } catch (boost::bad_get b) {
-        throw GraphSimplificationException("Condition vertex does not contain condition (during graph simplification");
+        throw GraphSimplificationException("Condition vertex does not contain condition (during graph simplification)");
       }
     }
   }
@@ -198,6 +249,10 @@ void GraphSimplification::deleteOthersWrites(graph_t_ptr g, std::string name) {
 void GraphSimplification::operator()() {
   for(std::map<std::string, graph_t_ptr>::iterator it = _in_state_machines.begin(); it != _in_state_machines.end(); it++) { // iterate over list of device->state machine pairs (first pass)
     deleteOthersWrites(it->second, it->first); // delete write commands which are not for the device the stm. belongs to
+  }
+
+  for(std::map<std::string, graph_t_ptr>::iterator it = _in_state_machines.begin(); it != _in_state_machines.end(); it++) { // iterate over list of device->state machine pairs (second pass)
+    expandComplexConditions(it->second);
   }
 
   for(std::map<std::string, graph_t_ptr>::iterator it = _in_state_machines.begin(); it != _in_state_machines.end(); it++) { // iterate over list of device->state machine pairs (second pass)

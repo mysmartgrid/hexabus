@@ -35,7 +35,7 @@ machine both_on {
     }
   }
   in(off) {
-    if(ep button_device.button == 1) {
+    if((ep button_device.button == 1) && (ep button_device.button == 2)) {
       write dev_one.on := 1;
       write dev_two.on := 1;
       goto on;
