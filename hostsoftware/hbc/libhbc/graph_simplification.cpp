@@ -137,17 +137,25 @@ void GraphSimplification::expandMultipleWrites(graph_t_ptr g) {
 void GraphSimplification::expandComplexConditions(graph_t_ptr g) {
   graph_t::vertex_iterator vertexIt, vertexEnd;
   boost::tie(vertexIt, vertexEnd) = vertices(*g);
-  for(; vertexIt != vertexEnd) {
-    // TODO Plan:
-    // - Find condition vertices
-    // - If it's a complex condition
-    //   - If it's a AND condtiton
-    //     - Make <first part>->(intermediate state)->[no command]-><second part>->[the command]->(target state)
-    //   - If it's an OR condition
-    //     - Make two conditions; duplicate command vertex
+  for(; vertexIt != vertexEnd; vertexIt++) {
     vertex_t& vertex = (*g)[*vertexIt];
-    if(vertex.type == v_command) {
-
+    // find condition vertices
+    if(vertex.type == v_cond) {
+      try {
+        condition_doc& cond = boost::get<condition_doc>(vertex.contents);
+        if(cond.which() == 4) { // if it's a compound condition
+          // find out whether it's an AND or an OR condition
+          compound_condition_doc& comp_cond = boost::get<compound_condition_doc>(cond);
+          if(comp_cond.bool_op == AND) {
+            // Make <first part>->(intermediate state)->[no command]-><second part>->[the command]->(target state)
+            // TODO make this with an "expandAndCondNode" method
+          } else { // OR
+            // Make two conditions; duplicate command vertex
+          }
+        }
+      } catch (boost::bad_get b) {
+        throw GraphSimplificationException("Condition vertex does not contain condition (during graph simplification");
+      }
     }
   }
 }
