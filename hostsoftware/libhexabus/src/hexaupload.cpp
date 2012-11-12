@@ -16,6 +16,8 @@
 namespace po = boost::program_options;
 
 #include "../../../shared/hexabus_packet.h"
+#include "../../../shared/hexabus_definitions.h"
+#include "../../../shared/endpoints.h"
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
@@ -171,32 +173,72 @@ po::variable_value get_mandatory_parameter(
   return retval;
 }
 
+void assert_statemachine_state(hexabus::NetworkAccess* network, const std::string& ip_addr, STM_state_t req_state) {
+  hexabus::Packet::Ptr packetm(new hexabus::Packet()); // the packet making machine
+
+  hxb_packet_int8 cmd_packet = packetm->write8(EP_SM_CONTROL, HXB_DTYPE_UINT8, req_state, false);
+  network->sendPacket(ip_addr.c_str(), HXB_PORT, (char*)&cmd_packet, sizeof(cmd_packet));
+
+  hxb_packet_query query_packet = packetm->query(EP_SM_CONTROL, false);
+  network->sendPacket(ip_addr.c_str(), HXB_PORT, (char*)&query_packet, sizeof(query_packet));
+  network->receivePacket(true);
+  hexabus::PacketHandling phandling(network->getData());
+  //std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
+  if(phandling.getOkay() && (phandling.getPacketType() == HXB_PTYPE_INFO))
+  {
+    if(phandling.getDatatype() == HXB_DTYPE_UINT8) {
+   //   std::cout << "Info packet" << std::endl;
+   //   std::cout << "Endpoint " << phandling.getEID() << std::endl;
+      if (req_state == STM_STATE_STOPPED) {
+        if (phandling.getValue().data[0] == STM_STATE_STOPPED) {
+          std::cout << "State machine has been stopped successfully" << std::endl;
+        } else {
+          std::cerr << "Failed to stop state machine - aborting." << std::endl;
+          exit(-2);
+        }
+      } else if (req_state == STM_STATE_RUNNING) {
+        if (phandling.getValue().data[0] == STM_STATE_RUNNING) {
+          std::cout << "State machine is running." << std::endl;
+        } else {
+          std::cerr << "Failed to start state machine - aborting." << std::endl;
+          exit(-2);
+        }
+      } else {
+        std::cout << "Unexpected STM_STATE requested - aborting." << std::endl;
+        exit(-3);
+      }
+    } else {
+      std::cout << "Expected uint8 data in packet - got something different." << std::endl;
+    }
+  } else {
+    std::cout << "Unknown packet received after state machine control request - aborting." << std::endl;
+    exit(-4);
+  }
+}
 
 bool send_chunk(hexabus::NetworkAccess* network, const std::string& ip_addr, uint8_t chunk_id, const std::vector<char>& chunk) {
-  std::cout << "Sending chunk " << (int) chunk_id << std::endl;
+  //std::cout << "Sending chunk " << (int) chunk_id << std::endl;
   hexabus::Packet::Ptr packetm(new hexabus::Packet()); // the packet making machine
   std::vector<char> bin_data;
   bin_data.push_back(chunk_id); 
   bin_data.insert(bin_data.end(), chunk.begin(), chunk.end());
 
-  std::cout << "bin data size " << bin_data.size() << " chunk_id: " << (int) bin_data[0] << std::endl;
-
-  hxb_packet_66bytes packet = packetm->writebytes(10, HXB_DTYPE_66BYTES, reinterpret_cast<char*>(&bin_data[0]), bin_data.size(), false);
+  hxb_packet_66bytes packet = packetm->writebytes(EP_SM_UP_RECEIVER, HXB_DTYPE_66BYTES, reinterpret_cast<char*>(&bin_data[0]), bin_data.size(), false);
   network->sendPacket(ip_addr.c_str(), HXB_PORT, (char*)&packet, sizeof(packet));
   // print_packet((char*)&packet);
   network->receivePacket(true);
 
   hexabus::PacketHandling phandling(network->getData());
-  std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
+  //std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
   if(phandling.getPacketType() == HXB_PTYPE_INFO)
   {
-    std::cout << "Info packet" << std::endl;
-    std::cout << "Endpoint " << phandling.getEID() << std::endl;
-    std::cout << "Value: " << (int)phandling.getValue().data[0] << std::endl;
+   // std::cout << "Info packet" << std::endl;
+   // std::cout << "Endpoint " << phandling.getEID() << std::endl;
+   // std::cout << "Value: " << (int)phandling.getValue().data[0] << std::endl;
     if (phandling.getValue().data[0] == true)
       return true;
   } else {
-    std::cout << "Not an info packet" << std::endl;
+    std::cout << "?";
   }
   return false;
 }
@@ -281,17 +323,19 @@ int main(int argc, char** argv) {
   std::string ip_addr(get_mandatory_parameter(vm,
         "ip", "command 'program' needs an IP address").as<std::string>()
       );
-  
-/**
- * for all bytes in the binary format:
- * 0. generate the next 64 byte chunk, failure counter:=0
- * 1. prepend chunk ID
- * 2. send to hexabus device
- * 3. wait for ACK/NAK:
- *    - if ACK, next chunk
- *    - if NAK: Retransmit current packet. failure counter++. Abort if
- *    maxtry reached.
- */
+
+  /**
+   * for all bytes in the binary format:
+   * 0. generate the next 64 byte chunk, failure counter:=0
+   * 1. prepend chunk ID
+   * 2. send to hexabus device
+   * 3. wait for ACK/NAK:
+   *    - if ACK, next chunk
+   *    - if NAK: Retransmit current packet. failure counter++. Abort if
+   *    maxtry reached.
+   */
+
+  assert_statemachine_state(network, ip_addr, STM_STATE_STOPPED);
 
   uint8_t chunk_id = 0;
   uint8_t MAX_TRY = 3;
@@ -315,9 +359,15 @@ int main(int argc, char** argv) {
         std::cout << ".";
         sent = true;
       }
+      std::cout << std::flush;
     } 
     chunk_id++;
   }
+
+  std::cout << std::endl;
+  std::cout << "Upload completed." << std::endl;
+  assert_statemachine_state(network, ip_addr, STM_STATE_RUNNING);
+  std::cout << "Program uploaded successfully." << std::endl;
 
   delete network;
   exit(0);

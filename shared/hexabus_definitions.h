@@ -51,4 +51,11 @@
 #define STM_GT                0x04
 #define STM_NEQ               0x05
 
+// State machine runtime states
+enum STM_state_t {
+  STM_STATE_STOPPED = 0,
+  STM_STATE_RUNNING = 1};
+
+
+
 #endif

@@ -324,6 +324,7 @@ void generator_flash::operator()(std::vector<uint8_t>& v) const
 
     v.push_back(trans_dt_buffer[i]);
   }
+  std::cout << std::endl << std::endl;
 
   std::cout << "Transitions:" << std::endl;
   for(unsigned int i = 0; i < sizeof(transitions_buffer); i++)
@@ -334,7 +335,6 @@ void generator_flash::operator()(std::vector<uint8_t>& v) const
 
     v.push_back(transitions_buffer[i]);
   }
-  std::cout << std::endl << std::endl;
   std::cout << std::endl << std::endl;
 
   std::cout << "done." << std::endl;

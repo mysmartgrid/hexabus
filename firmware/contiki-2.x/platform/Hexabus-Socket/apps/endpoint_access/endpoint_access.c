@@ -256,12 +256,14 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
 #if SM_UPLOAD_ENABLE
     case EP_SM_CONTROL:
       if(value->datatype == HXB_DTYPE_UINT8) {
-        if(*(uint8_t*)&value->data == 0) {
+        if(*(uint8_t*)&value->data == STM_STATE_STOPPED ) {
           sm_stop();
-        } else if(*(uint8_t*)&value->data == 1) {
-          sm_start();
-        } else if(*(uint8_t*)&value->data == 2) {
-          sm_restart();
+        } else if(*(uint8_t*)&value->data == STM_STATE_RUNNING) {
+          if (sm_is_running()) {
+            sm_restart();
+          } else {
+            sm_start();
+          }
         } else {
           return HXB_ERR_INVALID_VALUE;
         }
@@ -468,11 +470,11 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
 #if SM_UPLOAD_ENABLE
     case EP_SM_CONTROL:
       PRINTF("READ on SM_CONTROL EP occurred\n");
-      val->datatype = HXB_DTYPE_BOOL;
+      val->datatype = HXB_DTYPE_UINT8;
       if (sm_is_running()) {
-        *(uint8_t*)&val->data = HXB_TRUE;
+        *(uint8_t*)&val->data = STM_STATE_RUNNING;
       } else {
-        *(uint8_t*)&val->data = HXB_FALSE;
+        *(uint8_t*)&val->data = STM_STATE_STOPPED;
       }
       break;
     case EP_SM_UP_RECEIVER:

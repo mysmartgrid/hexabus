@@ -66,6 +66,7 @@ void sm_restart() {
   sm_start();
 }
 
+// Evaluates the condition no. condIndex, figure out whether we need to act upon the current hexabus packet
 bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   struct condition cond;
   // get the condition from eeprom
@@ -73,41 +74,51 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   if(condIndex == TRUE_COND_INDEX)    // If the condition is set to TRUE
     return true;
 
-  //eeprom_read_block(&cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (condIndex * sizeof(struct condition))), sizeof(struct condition));
   sm_get_condition(condIndex, &cond);
 
-  // check if host is set (something other than :: (all zeroes)) -- if source host is ::, don't care for the source IP (anyhost condition)
-  uint8_t hostset = 16;
-  while(hostset)
+  PRINTF("Checking host IP mask.\r\n");
+  // check for ANYHOST condition (something other than :: (all zeroes))
+  // not_anyhost is == 0 if it's an anyhost condition
+  uint8_t not_anyhost = 16;
+  while(not_anyhost)
   {
-    if(cond.sourceIP[hostset - 1])
-      break;  // this breaks once it finds something other than zero, leaving hostset > 0. If all the address bytes are zero, hostset counts all the way down to 0.
-    hostset--;
+    if(cond.sourceIP[not_anyhost - 1])
+      break;  // this breaks once it finds something other than zero, leaving not_anyhost > 0. If all the address bytes are zero, not_anyhost counts all the way down to 0.
+    not_anyhost--;
   }
 
-  // Check IPs and EID; ignore IP and EID for Datetime-Conditions and Timestamp-Conditions
-  if((hostset && memcmp(cond.sourceIP, envelope->source, 16) || (cond.sourceEID != envelope->eid)) && cond.datatype != HXB_DTYPE_DATETIME && cond.datatype != HXB_DTYPE_TIMESTAMP)
+  // Check IPs and EID:
+  // If IP is all zero -> return without any action.
+  //ignore IP and EID for Datetime-Conditions and Timestamp-Conditions
+  if(not_anyhost && memcmp(cond.sourceIP, envelope->source, 16)) { // If not anyhost AND source IP and cond IP differ
+    PRINTF("not anyhost AND source IP and cond IP differ\r\n");
     return false;
+  }
+  if(((cond.sourceEID != envelope->eid)) && cond.datatype != HXB_DTYPE_DATETIME && cond.datatype != HXB_DTYPE_TIMESTAMP) {
+    PRINTF("source EID of received packet and condition differ AND not a Date/Time/Timestamp condition.\r\n");
+    return false;
+  }
 
   PRINTF("IP and EID match / or datetime condition / or anyhost condition\r\n");
 
   // Check datatypes, return false if they don't match -- TIMESTAMP is exempt from that because it's checked alongside the DATETIME conditions
   if(envelope->value.datatype != cond.datatype && cond.datatype != HXB_DTYPE_TIMESTAMP) {
+    PRINTF("datatype mismatch");
     return false;
   }
 
   PRINTF("Now checking condition\r\n");
-  // check the actual condition
+  // check the actual condition - must be implemented for each datatype individually.
   switch(cond.datatype)
   {
     case HXB_DTYPE_BOOL:
     case HXB_DTYPE_UINT8:
-      if(cond.op == STM_EQ)  return *(uint8_t*)&envelope->value.data == *(uint8_t*)&cond.data;
-      if(cond.op == STM_LEQ) return *(uint8_t*)&envelope->value.data <= *(uint8_t*)&cond.data;
-      if(cond.op == STM_GEQ) return *(uint8_t*)&envelope->value.data >= *(uint8_t*)&cond.data;
-      if(cond.op == STM_LT)  return *(uint8_t*)&envelope->value.data <  *(uint8_t*)&cond.data;
-      if(cond.op == STM_GT)  return *(uint8_t*)&envelope->value.data >  *(uint8_t*)&cond.data;
-      if(cond.op == STM_NEQ) return *(uint8_t*)&envelope->value.data != *(uint8_t*)&cond.data;
+      if(cond.op == STM_EQ)  return *(uint8_t*)&envelope->value.data == cond.data[0];
+      if(cond.op == STM_LEQ) return *(uint8_t*)&envelope->value.data <= cond.data[0];
+      if(cond.op == STM_GEQ) return *(uint8_t*)&envelope->value.data >= cond.data[0];
+      if(cond.op == STM_LT)  return *(uint8_t*)&envelope->value.data <  cond.data[0];
+      if(cond.op == STM_GT)  return *(uint8_t*)&envelope->value.data >  cond.data[0];
+      if(cond.op == STM_NEQ) return *(uint8_t*)&envelope->value.data != cond.data[0];
       break;
     case HXB_DTYPE_UINT32:
       if(cond.op == STM_EQ)  return *(uint32_t*)&envelope->value.data == *(uint32_t*)&cond.data;
@@ -286,22 +297,26 @@ PROCESS_THREAD(state_machine_process, ev, data)
   static struct etimer check_timer;
   etimer_set(&check_timer, CLOCK_SECOND * 5); // TODO do we want this configurable?
 
-  while(1)
+  while(sm_is_running())
   {
     PROCESS_WAIT_EVENT();
-    PRINTF("State machine: Received event\r\n");
-    PRINTF("state machine: Current state: %d\r\n", curState);
-    if(ev == PROCESS_EVENT_TIMER)
-    {
-      check_datetime_transitions();
-      etimer_reset(&check_timer);
-    }
-    if(ev == sm_data_received_event)
-    {
-      check_value_transitions(data);
-      free(data);
+    if(sm_is_running()) {
+      PRINTF("State machine: Received event\r\n");
+      PRINTF("state machine: Current state: %d\r\n", curState);
+      if(ev == PROCESS_EVENT_TIMER)
+      {
+        check_datetime_transitions();
+        etimer_reset(&check_timer);
+      }
+      if(ev == sm_data_received_event)
+      {
+        check_value_transitions(data);
+        free(data);
 
-      PRINTF("state machine: Now in state: %d\r\n", curState);
+        PRINTF("state machine: Now in state: %d\r\n", curState);
+      }
+    } else {
+      PRINTF("State machine is not running - discarding event.\r\n");
     }
     //if(ev == sm_rulechange_event) {
     //  // re-read state machine table length from eeprom
