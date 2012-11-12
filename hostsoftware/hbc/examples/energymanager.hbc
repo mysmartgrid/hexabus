@@ -1,0 +1,26 @@
+#energymanager.hbc
+
+include std_eid.hbh
+
+# alias definitions ###########################################################
+
+alias energy_manager {
+	ip fe80::50:c4ff:fe04:8045;
+	eids { 50 }; # 50 is energy management master endpoint
+}
+
+alias washing_machine {
+  ip fe80::50:c4ff:fe04:8085;
+  eids { 2, 49 }; # 40 is energy management slave endpoint
+}
+
+alias dish_washer {
+  ip fe80::50:c4ff:fe04:8034;
+  eids { 49 };
+}
+
+# behaviour definition ########################################################
+
+# TODO ... maybe we don't even need HBC code for this.
+# But there has to be some use case where the compiler has to know about
+# energy management messages

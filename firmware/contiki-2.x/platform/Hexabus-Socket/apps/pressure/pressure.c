@@ -71,8 +71,6 @@ void pressure_init() {
     mc = pressure_read16(MC_ADDR);
     md = pressure_read16(MD_ADDR);
 
-    process_start(&pressure_process,NULL);
-
     PRINTF("Pressure init complete");
 
 }

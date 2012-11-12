@@ -15,20 +15,34 @@
 #define PRINTF(...)
 #endif
 
-static uint32_t ir_time = 0;
-static uint32_t ir_time_since_last = 0;
-static uint8_t ir_data[4] = {0,0,0,0};
-static uint8_t ir_prev_data[4] = {0,0,0,0};
-static uint8_t ir_state = IR_IDLE_STATE;
-static uint8_t ir_edge_dir = IR_EDGE_DOWN;
-static uint8_t ir_repeat = 0;
-static uint8_t ir_bit = 0;
-static uint8_t ir_byte = 0;
+static uint32_t ir_time;
+static uint32_t ir_time_since_last;
+static uint8_t ir_data[4];
+static uint8_t ir_prev_data[4];
+static uint8_t ir_state;
+static uint8_t ir_edge_dir;
+static uint8_t ir_repeat;
+static uint8_t ir_bit;
+static uint8_t ir_byte;
 static uint8_t ir_last_data[4];
 
 static struct timer ir_rep_timer;
 
 void ir_receiver_init() {
+
+    ir_time = 0;
+    ir_time_since_last = 0;
+
+    int i;
+    for(i=0;i<4;i++) {
+        ir_data[i] = 0;
+        ir_prev_data[i] = 0;
+    }
+    ir_state = IR_IDLE_STATE;
+    ir_edge_dir = IR_EDGE_DOWN;
+    ir_repeat = 0;
+    ir_bit = 0;
+    ir_byte = 0;
 
     PRINTF("IR receiver init\n");
     EICRA |= (1<<ISC21 );
@@ -41,7 +55,6 @@ void ir_receiver_init() {
 
     timer_set(&ir_rep_timer,CLOCK_SECOND*IR_REP_DELAY);
 
-    process_start(&ir_receiver_process, NULL);
     sei();
 }
 

@@ -4,6 +4,9 @@
 #include "crc.hpp"
 
 #include <string.h>
+#include <sstream>
+#include <stdexcept>
+#include <iomanip>
 #include <netinet/in.h>
 
 #include <iostream>
@@ -85,6 +88,24 @@ hxb_packet_datetime Packet::writedt(uint32_t eid, uint8_t datatype, datetime val
   value.year = htons(value.year);
   packet.value = value;
   packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet)-2));
+
+  return packet;
+}
+
+hxb_packet_66bytes Packet::writebytes(uint32_t eid, uint8_t datatype, const char* value, size_t length, bool broadcast)
+{
+  if(length > HXB_BYTES_PACKET_MAX_BUFFER_LENGTH)
+    throw std::runtime_error("Packet is too large"); // TODO
+  CRC::Ptr crc(new CRC());
+  struct hxb_packet_66bytes packet;
+  memset((char*)&packet.value, 0, HXB_BYTES_PACKET_MAX_BUFFER_LENGTH);
+  strncpy((char*)&packet.header, HXB_HEADER, 4);
+  packet.type = broadcast ? HXB_PTYPE_INFO : HXB_PTYPE_WRITE;
+  packet.flags = 0;
+  packet.eid = htonl(eid);
+  packet.datatype = datatype;
+  memcpy((char*)&packet.value, value, length);
+  packet.crc = htons(crc->crc16((char*)&packet, sizeof(packet) - 2));
 
   return packet;
 }
@@ -188,6 +209,20 @@ PacketHandling::PacketHandling(char* data)
 
             eid = ntohl(packetstr->eid);
             strval = packetstr->value;
+          }
+          break;
+        case HXB_DTYPE_66BYTES:
+          {
+            struct hxb_packet_66bytes* packetbytes = (struct hxb_packet_66bytes*)data;
+            packetbytes->crc = ntohs(packetbytes->crc);
+            crc_okay = packetbytes->crc == crc->crc16((char*)packetbytes, sizeof(*packetbytes)-2);
+
+            eid = ntohl(packetbytes->eid);
+            std::ostringstream oss;
+            oss << std::hex << std::setw(2) << std::setfill('0');
+            for(int i = 0; i < 66; i++)
+              oss << packetbytes->value[i];
+            strval = oss.str();
           }
           break;
         default:

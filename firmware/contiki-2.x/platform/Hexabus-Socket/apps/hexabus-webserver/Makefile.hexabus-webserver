@@ -1,6 +1,6 @@
 
 hexabus-webserver_src = webserver-nogui.c httpd.c http-strings.c psock.c memb.c \
-                      httpd-fs.c httpd-cgi.c
+                      httpd-fs.c httpd-cgi.c base64.c
 hexabus-webserver_dsc = webserver-dsc.c
 
 #Tell platform main routine webserver is present, for parameter display at startup

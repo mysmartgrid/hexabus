@@ -1,0 +1,160 @@
+include hbc/examples/another_file.hbc;
+include hbc/examples/another_file.hbc;
+
+endpoint device_descriptor {
+  access { read };
+  datatype UINT32;
+  eid 0;
+}
+
+endpoint on {
+  access { read, write };
+  datatype BOOL;
+  eid 1;
+}
+
+endpoint power {
+  eid 2;
+  datatype UINT32; access { read, broadcast };
+}
+
+endpoint endpoint {
+  eid 42;
+  datatype UINT32;
+  access { broadcast };
+}
+
+endpoint other_endpoint {
+  eid 43;
+  datatype UINT32;
+  access { write };
+}
+
+endpoint heater {
+  eid 99;
+  datatype UINT32;
+  access { write };
+}
+
+alias device {
+  ip fe80::cafe:d00d;
+  eids { 1, 2, 3 };
+}
+
+alias heater {
+  ip fe80::9876;
+  eids { 99 };
+}
+
+alias another_device {
+  ip ::99;
+  eids { 1,2,3,4,5 };
+}
+
+machine my_machine {
+  states { one, two, three, init };
+  in(one) {
+    if(ep device.endpoint == 23) {
+      write device.other_endpoint := 42;
+      goto two;
+    }
+  }
+  in(two) {
+    if(timeout i1500) {
+      write device.other_endpoint := 1000;
+      goto three;
+    }
+    if(time hour < i16) {
+      write device.endpoint := 0;
+      goto three;
+    }
+#    else {
+#      write foo.bar := 1;
+#      goto one;
+#    }
+  }
+}
+
+machine another_machine {
+  states { init, bloerp };
+  in(bloerp) {
+    if(ep $M.$N == $O) { goto bloerp; }
+    else if(true) { goto bloerp; }
+    else if(true) { goto bloerp; }
+    else { goto bloerp; }
+  }
+
+  in(bloerp) {
+    if(timeout i180) {
+      goto init;
+    }
+    if(time hour < i10) {
+      goto init;
+    }
+  }
+}
+
+# example machine from the "example.hbc" - minus everything we can't parse yet
+machine main {
+  states { init };
+  in(init)
+  {
+    if((ep sensorbox.temperature < i4294967292) && ((ep sensorbox.temperature != 7.35) || (ep device.endpoint == 98765))) {
+      write heater.heater := 100;
+      goto init;
+    } else if(ep sensorbox.temperature >= 19) {
+      write heater.heater := 50;
+      goto init;
+    } else {
+      write heater.heater := 0;
+      goto init;
+    }
+  }
+}
+
+module toggle($DEVICE, $ENDPOINT, $VALUE, $TARGETDEV, $TARGETEP) {
+  states { init, power_on, power_off };
+  in(init) {
+    if(true) {
+      write $TARGETDEV.$TARGETEP := 1;
+      goto power_on;
+    }
+  }
+  in(power_on) {
+    if(ep $DEVICE.$ENDPOINT == $VALUE) {
+      write $TARGETDEV.$TARGETEP := 0;
+      goto power_off;
+    }
+  }
+  in(power_off) {
+    if(ep $DEVICE.$ENDPOINT == $VALUE) {
+      write $TARGETDEV.$TARGETEP := 1;
+      goto power_on;
+    }
+  }
+}
+
+module test_module($A, $B, $T) {
+  states { init, nope };
+  in(init) {
+    if(true) { goto init; }
+    else if(true) { goto init; }
+    else if(true) { goto init; }
+    else { goto nope; }
+  }
+  in(nope) {
+    if(ep $A.$B == 5) { # TODO "true" does not work as constant here
+      goto nope;
+    } else {
+      goto nope;
+    }
+    if(timeout $T) {
+      goto init;
+    }
+  }
+}
+
+instance test_instance : test_module(device, another_endpoint, 1000);
+instance more_instances : test_module(device, on, 5000);
+instance the_toggle : toggle(device, power, 5, another_device, on);
+

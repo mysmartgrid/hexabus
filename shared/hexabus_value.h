@@ -1,6 +1,8 @@
 #ifndef HEXABUS_VALUE_H_
 #define HEXABUS_VALUE_H_
 
+#include <stdint.h>
+
 // Struct for passing Hexabus values around
 // One struct for all data types (except 128string, because that'd need too much memory), with a datatype flag indicating which
 // of the values is used. Used for passing values to and from

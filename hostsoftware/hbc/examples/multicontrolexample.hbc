@@ -1,0 +1,100 @@
+# multicontrolexample.hbc
+
+# ... alias definitions ...
+
+# main program
+
+part_one {
+  states { on, off }
+  init {
+    light.on := false;
+    goto off;
+  }
+  in(off) {
+    if(button.pushed == true) {
+      light.on := true;
+      goto on;
+    }
+  }
+  in(on) {
+    if(button.pushed == true) {
+      light.on := false;
+      goto off;
+    }
+  }
+}
+
+part_two {
+  states { on, off }
+  init {
+    light.on := false;
+    goto off;
+  }
+  in(off) {
+    if(sensorbox.sunlight < 50) {
+      light.on := true;
+      goto on;
+    }
+  }
+  in(on) {
+    if(sensorbox.sunlight > 50) {
+      light.on := false;
+      goto off;
+    }
+  }
+}
+
+# strange effects occur because EP is controlled by two state machines (or their parallel composition) which are not "in sync".
+# but: This is a programming error, not a conceptual one. Maybe we should output a warning if someone tries to do this.
+
+# What the programmer probably meant was this:
+
+my_light {
+  states { on, off }
+  init {
+    light.on := false;
+    goto off;
+  }
+  in(off) {
+    if(button.pushed == true) {
+      light.on := true;
+      goto on;
+    }
+    if(sensorbox.sunlight < 50) {
+      light.on := true;
+      goto on;
+    }
+  }
+  in(on) {
+    if(button.pushed == true) {
+      light.on := false;
+      goto off;
+    }
+    if(sensorbox.sunlight > 50) {
+      light.on := false;
+      goto off;
+    }
+  }
+}
+
+# or more compact (SHOULD compile to the same state machines, let's see about that)
+
+my_light2 {
+  states { on, off }
+  init {
+    light.on := false;
+    goto off;
+  }
+  in(off) {
+    if(button.pushed == true || sensorbox.sunlight < 50) {
+      light.on := true;
+      goto on;
+    }
+  }
+  in(on) {
+    if(button.pushed == true || sensorbox.sunlight > 50) {
+      light.on := false;
+      goto off;
+    }
+  }
+}

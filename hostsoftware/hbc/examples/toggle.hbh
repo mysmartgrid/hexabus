@@ -1,0 +1,28 @@
+# toggle.hbh
+
+###############################################################################
+# This is an example of a module definition. It can be included into          #
+# system programs and wraps more complex functionality                        #
+###############################################################################
+
+module toggle($DEVICE, $ENDPOINT, $VALUE, $TARGETDEV, $TARGETEP) { #TODO is it more convenient to give the type here? (sth like name.eid $ENDPOINT, uint8 $VALUE, name.eid $TARGET)?
+  states { power_on, power_off }; # explicit state space definition
+    in(init) {            # initialization - done at startup so we are in a known state
+      if(true) {
+        write $TARGETDEV.$TARGETEP := true;
+        goto power_on;
+      }
+    }
+  in(power_on) {     # in statement: only executed when wir are in a certain state
+    if($DEVICE.$ENDPOINT == $VALUE) { # TODO do we actually need to distinguish between event and if? Probably for verification, but not for synthesizing the state machines (?)...
+      write $TARGETDEV.$TARGETEP := false;
+      goto power_off;
+    }
+  }
+  in(power_off) {
+    if($DEVICE.$ENDPOINT == $VALUE) {
+      write $TARGETDEV.$TARGETEP := false;
+      goto power_on;
+    }
+  }
+}

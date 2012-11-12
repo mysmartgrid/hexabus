@@ -1,14 +1,6 @@
 // Abstraction layer - transforms generic endpoint access to specific hardware function calls
 // ============================================================================
 
-#define DEBUG 1
-#if DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
-
 #include "hexabus_config.h"
 #include "endpoint_access.h"
 #include "temperature.h"
@@ -19,6 +11,17 @@
 #include "ir_receiver.h"
 #include "metering.h"
 #include "endpoints.h"
+#include "net/uip.h"
+#include "packet_builder.h"
+#include "udp_handler.h"
+#include <stdbool.h>
+
+#if ENDPOINT_ACCESS_DEBUG
+#include <stdio.h>
+#define PRINTF(...) printf(__VA_ARGS__)
+#else
+#define PRINTF(...)
+#endif
 
 uint8_t endpoint_get_datatype(uint32_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
@@ -54,6 +57,14 @@ uint8_t endpoint_get_datatype(uint32_t eid) // returns the datatype of the endpo
     case EP_ENERGY_METER_TOTAL:
     case EP_ENERGY_METER:
       return HXB_DTYPE_FLOAT;
+#endif
+#if SM_UPLOAD_ENABLE
+    case EP_SM_CONTROL:
+      return HXB_DTYPE_UINT8;
+    case EP_SM_UP_RECEIVER:
+      return HXB_DTYPE_66BYTES;
+    case EP_SM_UP_ACKNAK:
+      return HXB_DTYPE_BOOL;
 #endif
 #if SHUTTER_ENABLE
     case EP_SHUTTER:
@@ -135,6 +146,17 @@ void endpoint_get_name(uint32_t eid, char* buffer)  // writes the name of the en
       strncpy(buffer, "Energy Meter", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
+#if SM_UPLOAD_ENABLE
+    case EP_SM_CONTROL:
+      strncpy(buffer, "Statemachine Control", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
+      break;
+    case EP_SM_UP_RECEIVER:
+      strncpy(buffer, "Statemachine Upload Receiver", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
+      break;
+    case EP_SM_UP_ACKNAK:
+      strncpy(buffer, "Statemachine Upload ACK/NAK", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
+      break;
+#endif
 #if SHUTTER_ENABLE
     case EP_SHUTTER:
       strncpy(buffer, "Window Shutter", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
@@ -198,8 +220,10 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
         return HXB_ERR_DATATYPE;
       }
     case EP_POWER_METER:   // Endpoint 2: Power metering on Hexabus Socket -- read-only
+      return HXB_ERR_WRITEREADONLY;
 #if TEMPERATURE_ENABLE
     case EP_TEMPERATURE:   // Endpoint 3: Temperature value on Hexabus Socket -- read-only
+      return HXB_ERR_WRITEREADONLY;
 #endif
 #if BUTTON_HAS_EID
     case EP_BUTTON:
@@ -215,8 +239,8 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
 #endif
 #if ANALOGREAD_ENABLE
     case EP_ANALOGREAD:
-#endif
       return HXB_ERR_WRITEREADONLY;
+#endif
 #if METERING_ENERGY
     case EP_ENERGY_METER_TOTAL:
       return HXB_ERR_WRITEREADONLY;
@@ -228,6 +252,58 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
       } else {
         return HXB_ERR_DATATYPE;
       }
+#endif
+#if SM_UPLOAD_ENABLE
+    case EP_SM_CONTROL:
+      if(value->datatype == HXB_DTYPE_UINT8) {
+        if(*(uint8_t*)&value->data == STM_STATE_STOPPED ) {
+          sm_stop();
+        } else if(*(uint8_t*)&value->data == STM_STATE_RUNNING) {
+          if (sm_is_running()) {
+            sm_restart();
+          } else {
+            sm_start();
+          }
+        } else {
+          return HXB_ERR_INVALID_VALUE;
+        }
+        return 0;
+      } else {
+        return HXB_ERR_DATATYPE;
+      }
+    case EP_SM_UP_RECEIVER:
+      PRINTF("SM: Attempting to write new chunk to EEPROM\n");
+      struct hxb_value val;
+      val.datatype=HXB_DTYPE_BOOL;
+      if(value->datatype == HXB_DTYPE_66BYTES) {
+        char* payload = *(char**)&value->data;
+        uint8_t chunk_id = (uint8_t)payload[0];
+        if (sm_write_chunk(chunk_id, payload+1) == true) {
+          // send ACK to SM_SENDER
+          PRINTF("SENDING ACK");
+          val.data[0] = HXB_TRUE;
+          struct hxb_packet_int8 packet = make_value_packet_int8(EP_SM_UP_ACKNAK, &val);
+          send_packet((char*)&packet, sizeof(packet));
+          return 0;
+        } else {
+          // send NAK to SM_SENDER
+          PRINTF("SENDING NAK");
+          val.data[0] = HXB_FALSE;
+          struct hxb_packet_int8 packet = make_value_packet_int8(EP_SM_UP_ACKNAK, &val);
+          send_packet((char*)&packet, sizeof(packet));
+          return HXB_ERR_INVALID_VALUE;
+        }
+      } else {
+        // send NAK to SM_SENDER
+        PRINTF("SENDING ERROR DATATYPE");
+        val.data[0] = HXB_FALSE;
+        struct hxb_packet_int8 packet = make_value_packet_int8(EP_SM_UP_ACKNAK, &val);
+        send_packet((char*)&packet, sizeof(packet));
+        return HXB_ERR_DATATYPE;
+      }
+      break;
+    case EP_SM_UP_ACKNAK:
+      return HXB_ERR_WRITEREADONLY;
 #endif
 #if SHUTTER_ENABLE
     case EP_SHUTTER:
@@ -315,6 +391,11 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
       *(uint32_t*)&val->data += 1UL << (EP_ENERGY_METER_TOTAL);
       *(uint32_t*)&val->data += 1UL << (EP_ENERGY_METER);
 #endif
+#if SM_UPLOAD_ENABLE
+      *(uint32_t*)&val->data += 1UL << (EP_SM_CONTROL);
+      *(uint32_t*)&val->data += 1UL << (EP_SM_UP_RECEIVER);
+      *(uint32_t*)&val->data += 1UL << (EP_SM_UP_ACKNAK);
+#endif
 #if SHUTTER_ENABLE
       *(uint32_t*)&val->data += 1UL << (EP_SHUTTER);
 #endif
@@ -384,6 +465,23 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
     case EP_ENERGY_METER:
       val->datatype = HXB_DTYPE_FLOAT;
       *(float*)&val->data = metering_get_energy();
+      break;
+#endif
+#if SM_UPLOAD_ENABLE
+    case EP_SM_CONTROL:
+      PRINTF("READ on SM_CONTROL EP occurred\n");
+      val->datatype = HXB_DTYPE_UINT8;
+      if (sm_is_running()) {
+        *(uint8_t*)&val->data = STM_STATE_RUNNING;
+      } else {
+        *(uint8_t*)&val->data = STM_STATE_STOPPED;
+      }
+      break;
+    case EP_SM_UP_RECEIVER:
+      PRINTF("READ on SM_UP_RECEIVER EP occurred\n");
+      break;
+    case EP_SM_UP_ACKNAK:
+      PRINTF("READ on SM_UP_ACKNAK EP occurred\n");
       break;
 #endif
 #if SHUTTER_ENABLE

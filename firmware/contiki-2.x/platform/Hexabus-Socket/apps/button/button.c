@@ -41,7 +41,7 @@
 #include "contiki.h"
 
 #include "hexabus_config.h"
-#include "endpoints.h"
+#include <endpoints.h>
 
 #include "eeprom_variables.h"
 #include <avr/eeprom.h>

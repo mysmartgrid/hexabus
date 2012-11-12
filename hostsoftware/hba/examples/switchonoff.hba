@@ -1,0 +1,47 @@
+# example Hexabus Assmbler source file
+
+startstate init;
+
+condition toggle_on {
+  ip := fe80:0000:0000:0000:0050:c4ff:fe04:020c;
+  eid := 25;
+  value == 16;
+}
+
+condition toggle_off {
+  ip := fe80:0000:0000:0000:0050:c4ff:fe04:020c;
+  eid := 25;
+  value == 32;
+}
+
+condition timer {
+  timeout := 3;
+}
+
+state init {
+  if true {
+    set 1 := 0;
+    goodstate off;
+    badstate off;
+  }
+}
+state off {
+  if toggle_on {
+    set 1 := 1;
+    goodstate on;
+    badstate off;
+  }
+}
+
+state on {
+  if toggle_off {
+    set 1 := 0;
+    goodstate off;
+    badstate on;
+  }
+  if timer {
+    set 1 := 0;
+    goodstate off;
+    badstate on;
+  }
+}
