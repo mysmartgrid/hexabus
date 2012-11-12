@@ -26,7 +26,6 @@ command_block_doc GraphSimplification::commandBlockHead(command_block_doc& comma
 }
 
 vertex_id_t GraphSimplification::splitTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands, graph_t_ptr g, unsigned int& max_vertex_id) {
-
   // remove all but first command from from-vertex
   (*g)[from].contents = commandBlockHead(commands);
   // update vertex name
@@ -174,21 +173,34 @@ void GraphSimplification::expandComplexConditions(graph_t_ptr g) {
             condition_doc cond_b = comp_cond.condition_b;
             // assign first part to "original" condition
             vertex.contents = comp_cond.condition_a;
+            // update the node's name
+            hbc_printer pr;
+            std::ostringstream cond_a_oss;
+            pr(comp_cond.condition_a, cond_a_oss);
+            vertex.name = cond_a_oss.str();
 
             // cut edge to target state
             boost::remove_edge(command_vertex_id, target_state_id, *g);
 
             // make new intermediate state
             vertex_id_t intermediate_state_id = add_vertex(g, "intermediate\\nstate", (*g)[originating_state_id].machine_id, ++max_vertex_id, v_state);
+            // TODO This state needs a state ID!
 
+            // make node-name
+            std::ostringstream newcnd_oss;
+            pr(cond_b, newcnd_oss);
             // add new condition vertex
-            vertex_id_t new_cond_vertex_id = add_vertex(g, "new_condition", vertex.machine_id, ++max_vertex_id, v_cond, cond_b);
-            // TODO node name
+            vertex_id_t new_cond_vertex_id = add_vertex(g, newcnd_oss.str(), vertex.machine_id, ++max_vertex_id, v_cond, cond_b);
 
             // make new dummy command vertex; move original command vertex "down".
             command_block_doc dummy_command; // leave it empty
-            vertex_id_t dummy_cmd_v_id = add_vertex(g, "dummy\\ncommand\\nvertex", (*g)[command_vertex_id].machine_id, ++max_vertex_id, v_command, dummy_command);
-            // TODO check whether we need a valid gotoCommand here!
+            std::string target_name = (*g)[target_state_id].name;
+            dummy_command.goto_command.lineno = 0;
+            dummy_command.goto_command.target_state = target_name.substr(target_name.find_last_of("."));
+            std::ostringstream cmd_oss;
+            pr(dummy_command, cmd_oss);
+            vertex_id_t dummy_cmd_v_id = add_vertex(g, cmd_oss.str(), (*g)[command_vertex_id].machine_id, ++max_vertex_id, v_command, dummy_command);
+
 
             // ...cut the old command vertex's edges, and link everything together.
             boost::remove_edge(*vertexIt, command_vertex_id, *g);
