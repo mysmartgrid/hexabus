@@ -95,7 +95,8 @@ ifdef APPS
   APPINCLUDES = ${foreach APP, $(APPS), ${wildcard \
                  $(CONTIKI)/apps/$(APP)/Makefile.$(APP) \
                  $(CONTIKI)/platform/$(TARGET)/apps/$(APP)/Makefile.$(APP) \
-	         $(APP)/Makefile.$(APP)}}
+								 $(APP)/Makefile.$(APP)} \
+							}
   -include $(APPINCLUDES)
   APP_SOURCES = ${foreach APP, $(APPS), $($(APP)_src)}
   DSC_SOURCES = ${foreach APP, $(APPS), $($(APP)_dsc)}
@@ -129,7 +130,8 @@ CONTIKI_CPU_DIRS_CONCAT    = ${addprefix $(CONTIKI_CPU)/, \
                                $(CONTIKI_CPU_DIRS)}
 
 SOURCEDIRS = . $(PROJECTDIRS) $(CONTIKI_TARGET_DIRS_CONCAT) \
-             $(CONTIKI_CPU_DIRS_CONCAT) $(CONTIKIDIRS) $(APPDIRS)
+             $(CONTIKI_CPU_DIRS_CONCAT) $(CONTIKIDIRS) $(APPDIRS) \
+								 $(CONTIKI)/../../shared
 
 vpath %.c $(SOURCEDIRS)
 vpath %.S $(SOURCEDIRS)
