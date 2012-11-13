@@ -1,5 +1,5 @@
 # -*- mode: cmake; -*-
-project(hexaswitch)
+project(libhexabus)
 cmake_minimum_required(VERSION "2.8" FATAL_ERROR)
 if(POLICY CMP0011)
   cmake_policy(SET CMP0011 NEW)

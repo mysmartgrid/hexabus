@@ -49,5 +49,6 @@ target_link_libraries(hexalog
 INSTALL(PROGRAMS 
   ${CMAKE_CURRENT_BINARY_DIR}/hexaswitch
   ${CMAKE_CURRENT_BINARY_DIR}/hexalog
+  ${CMAKE_CURRENT_BINARY_DIR}/hexaupload
   DESTINATION bin)
 
