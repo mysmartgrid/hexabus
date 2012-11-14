@@ -124,7 +124,7 @@ namespace hexabus {
       alias_ip %= lit("ip") > ipv6_address > ';';
       alias_eids %= lit("eids") > '{' > -eid_list > '}' > ';';
       alias_cmd = ( alias_ip | alias_eids );
-      alias %= lit("alias") >> file_pos > identifier > '{'
+      alias %= lit("device") >> file_pos > identifier > '{'
         > *alias_cmd > '}';
 
       stateset %= lit("states") > file_pos > '{' > identifier > *(',' > identifier) > '}';
