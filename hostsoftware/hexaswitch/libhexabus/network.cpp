@@ -71,33 +71,21 @@ void NetworkAccess::sendPacket(std::string addr, uint16_t port, const char* data
 
 void NetworkAccess::openSocket() {
   socket->open(boost::asio::ip::udp::v6());
+
+  socket->set_option(boost::asio::ip::multicast::hops(64));
 }
 
 // TODO: Proper error handling.
 void NetworkAccess::openSocket(const std::string& interface) {
-  socket->open(boost::asio::ip::udp::v6());
+  openSocket();
 
-  socket->set_option(boost::asio::ip::multicast::hops(64));
-
-#ifdef HAS_LINUX
-  int native_sock = socket->native();
-  int result = -1;
-  if (native_sock != -1) {
-    result = setsockopt(native_sock, SOL_SOCKET, SO_BINDTODEVICE,
-        interface.c_str(), sizeof(interface.c_str()));
-    if (result) {
-      std::cerr << "Cannot use interface " << interface << ": ";
-      std::cerr << " " << strerror(errno) << std::endl;
-    }
-  } else {
-    std::cerr << "Cannot use interface " << interface 
-      << ", no native socket aquired: ";
-    std::cerr << strerror(errno) << std::endl;
+  int if_index = if_nametoindex(interface.c_str());
+  if (if_index == 0) {
+    // interface does not exist
+    // TODO: throw som error?
+    std::cerr << "Interface " << interface << " does not exist, not binding" << std::endl;
   }
-#endif // HAS_LINUX
-#ifdef MAC_OS
-  std::cout << "Currently no support for setting the device on Mac OS." << std::endl;
-#endif // MAC_OS
+  socket->set_option(boost::asio::ip::multicast::outbound_interface(if_index));
 }
 
 
