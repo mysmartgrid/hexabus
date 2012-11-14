@@ -438,6 +438,17 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   etimer_set(&udp_periodic_timer, CLOCK_CONF_SECOND*3);
   // wait until the timer has expired
   PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_TIMER);
+
+  // register the multicast address we want to listen on
+
+  // this wrapper macro is needed to expand HXB_GROUP_RAW before uip_ip6addr, which is a macro
+  // it's ugly as day, but it's the least ugly solution i found
+  #define PARSER_WRAP(addr, __VA_ARGS__) uip_ip6addr(addr, __VA_ARGS__)
+  PARSER_WRAP(&ipaddr, HXB_GROUP_RAW);
+  #undef PARSER_WRAP
+  uip_ds6_maddr_add(&ipaddr);
+  
+
   // Define Address of the server that receives our heartbeats.
   // TODO: Make this dynamic
 #ifdef UDP_ADDR_A

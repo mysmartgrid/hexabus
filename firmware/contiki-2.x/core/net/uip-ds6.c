@@ -46,6 +46,7 @@
 #include "net/uip-nd6.h"
 #include "net/uip-ds6.h"
 #include "net/uip-packetqueue.h"
+#include "net/uip-mld.h"
 
 #define DEBUG DEBUG_NONE
 #include "net/uip-debug.h"
@@ -114,6 +115,8 @@ uip_ds6_init(void)
   uip_ds6_if.reachable_time = uip_ds6_compute_reachable_time();
   uip_ds6_if.retrans_timer = UIP_ND6_RETRANS_TIMER;
   uip_ds6_if.maxdadns = UIP_ND6_DEF_MAXDADNS;
+
+  uip_mld_init();
 
   /* Create link local address, prefix, multicast addresses, anycast addresses */
   uip_create_linklocal_prefix(&loc_fipaddr);
@@ -642,7 +645,9 @@ uip_ds6_maddr_add(uip_ipaddr_t *ipaddr)
       sizeof(uip_ds6_maddr_t), ipaddr, 128,
       (uip_ds6_element_t **)&locmaddr) == FREESPACE) {
     locmaddr->isused = 1;
+    locmaddr->isreported = 0;
     uip_ipaddr_copy(&locmaddr->ipaddr, ipaddr);
+    mld_report_now();
     return locmaddr;
   }
   return NULL;
@@ -654,6 +659,7 @@ uip_ds6_maddr_rm(uip_ds6_maddr_t * maddr)
 {
   if(maddr != NULL) {
     maddr->isused = 0;
+    uip_icmp6_mldv1_done(&maddr->ipaddr);
   }
   return;
 }
@@ -813,7 +819,8 @@ uip_ds6_select_src(uip_ipaddr_t *src, uip_ipaddr_t *dst)
   uint8_t n = 0;
   uip_ds6_addr_t *matchaddr = NULL;
 
-  if(!uip_is_addr_link_local(dst) && !uip_is_addr_mcast(dst)) {
+  if(!uip_is_addr_link_local(dst) &&
+		  (!uip_is_addr_mcast(dst) || uip_is_addr_routable_mcast(dst))) {
     /* find longest match */
     for(locaddr = uip_ds6_if.addr_list;
         locaddr < uip_ds6_if.addr_list + UIP_DS6_ADDR_NB; locaddr++) {

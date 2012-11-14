@@ -221,7 +221,8 @@ typedef struct uip_ds6_aaddr {
 
 /** \brief A multicast address */
 typedef struct uip_ds6_maddr {
-  uint8_t isused;
+  uint8_t isused:1;
+  uint8_t isreported:1;
   uip_ipaddr_t ipaddr;
 } uip_ds6_maddr_t;
 

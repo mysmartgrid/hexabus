@@ -415,7 +415,7 @@ int main(int argc, char** argv) {
           uint8_t val8 = (uint8_t)boost::lexical_cast<unsigned int>(get_mandatory_parameter(vm,
                   "value", "command SEND needs a value").as<std::string>());
           packet8 = packetm->write8(eid, dtype, val8, true);
-          network->sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet8, sizeof(packet8));
+          network->sendPacket((char*)HXB_GROUP, HXB_PORT, (char*)&packet8, sizeof(packet8));
           print_packet((char*)&packet8);
         }
         break;
@@ -425,7 +425,7 @@ int main(int argc, char** argv) {
           uint32_t val32 = boost::lexical_cast<uint32_t>(get_mandatory_parameter(vm,
                   "value", "command SEND needs a value").as<std::string>());
           packet32 = packetm->write32(eid, dtype, val32, true);
-          network->sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet32, sizeof(packet32));
+          network->sendPacket((char*)HXB_GROUP, HXB_PORT, (char*)&packet32, sizeof(packet32));
           print_packet((char*)&packet32);
         }
         break;
@@ -437,7 +437,7 @@ int main(int argc, char** argv) {
                   "value", "command SEND needs a value").as<std::string>())
               );
           packetdt = packetm->writedt(eid, dtype, valdt, true);
-          network->sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetdt, sizeof(packetdt));
+          network->sendPacket((char*)HXB_GROUP, HXB_PORT, (char*)&packetdt, sizeof(packetdt));
           print_packet((char*)&packetdt);
         }
         break;
@@ -447,7 +447,7 @@ int main(int argc, char** argv) {
           float valf = boost::lexical_cast<float>(get_mandatory_parameter(vm,
                   "value", "command SEND needs a value").as<std::string>());
           packetf = packetm->writef(eid, dtype, valf, true);
-          network->sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packetf, sizeof(packetf));
+          network->sendPacket((char*)HXB_GROUP, HXB_PORT, (char*)&packetf, sizeof(packetf));
           print_packet((char*)&packetf);
         }
         break;
@@ -457,7 +457,7 @@ int main(int argc, char** argv) {
                   "value", "command SEND needs a value").as<std::string>()
               );
           hxb_packet_128string packet = packetm->writestr(eid, dtype, value, true);
-          network->sendPacket((char*)"ff02::1", HXB_PORT, (char*)&packet, sizeof(packet));
+          network->sendPacket((char*)HXB_GROUP, HXB_PORT, (char*)&packet, sizeof(packet));
           print_packet((char*)&packet);
         }
         break;
