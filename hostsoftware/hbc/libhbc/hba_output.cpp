@@ -136,8 +136,8 @@ void HBAOutput::operator()(std::ostream& ostr) {
         try {
           command_block_doc command = boost::get<command_block_doc>(command_vertex.contents);
           size_t n_write = command.commands.size();
-          unsigned int eid;
-          float value;
+          unsigned int eid = 0;
+          float value = 0;
           if(n_write == 0) { // empty command - add a "do nothing" set command
             // write to EID 0 is interpreted as "write nothing" command.
             eid = 0;
