@@ -99,6 +99,7 @@ struct hxb_packet_float {
   uint16_t  crc;
 } __attribute__ ((packed));
 
+#define HXB_STRING_PACKET_MAX_BUFFER_LENGTH 127
 // WRITE/INFO packet for 128 char fixed length string or EPINFO packet
 struct hxb_packet_128string {
   char      header[4];
@@ -106,11 +107,11 @@ struct hxb_packet_128string {
   uint8_t   flags;
   uint32_t  eid;
   uint8_t   datatype;     // this is set to the datatype of the endpoint if it's an EPINFO packet!
-  char      value[128];
+  char      value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1];
   uint16_t  crc;
 } __attribute__ ((packed));
 
-#define HXB_STRING_PACKET_MAX_BUFFER_LENGTH 127
+#define HXB_MAX_PACKET_SIZE (sizeof(hxb_packet_128string))
 
 #define HXB_BYTES_PACKET_MAX_BUFFER_LENGTH 65
 // WRITE/INFO packet for 66 byte string: 1 byte control data, 64 byte payload

@@ -14,16 +14,14 @@
 using namespace hexabus;
 NetworkAccess::NetworkAccess(const std::string& interface) :
   io_service(new boost::asio::io_service()),
-  socket(new boost::asio::ip::udp::socket(*io_service)),
-  data(NULL)
+  socket(new boost::asio::ip::udp::socket(*io_service))
 {
   openSocket(interface);
 }
 
 NetworkAccess::NetworkAccess() :
   io_service(new boost::asio::io_service()),
-  socket(new boost::asio::ip::udp::socket(*io_service)),
-  data(NULL)
+  socket(new boost::asio::ip::udp::socket(*io_service))
 {
   openSocket();
 }
@@ -45,14 +43,10 @@ void NetworkAccess::receivePacket(bool related) {
   } else {
     my_socket = socket;
   }
-  char recv_data[256];
-  boost::asio::ip::udp::endpoint remote_endpoint;
-  my_socket->receive_from(boost::asio::buffer(recv_data, 256), remote_endpoint);
-  sourceIP = remote_endpoint.address();
 
-  if(data == NULL)
-    data = (char*)malloc(256);
-  memcpy(data, recv_data, 256);
+  boost::asio::ip::udp::endpoint remote_endpoint;
+  my_socket->receive_from(boost::asio::buffer(data, sizeof(data)), remote_endpoint);
+  sourceIP = remote_endpoint.address();
 
   if(!related)
   {

@@ -23,7 +23,7 @@ namespace hexabus {
       boost::asio::io_service* io_service;
       boost::asio::ip::udp::socket* socket;
       boost::asio::ip::address sourceIP;
-      char* data;
+      char data[HXB_MAX_PACKET_SIZE];
   };
 };
 
