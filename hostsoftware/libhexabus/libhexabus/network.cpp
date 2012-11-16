@@ -3,6 +3,7 @@
 #include "common.hpp"
 #include "packet.hpp"
 #include "crc.hpp"
+#include "error.hpp"
 
 #include <iostream>
 #include <sys/types.h>
@@ -31,8 +32,6 @@ NetworkAccess::~NetworkAccess()
 }
 
 void NetworkAccess::receivePacket(bool related) {
-  hexabus::CRC crc;
-
   while (true) {
     boost::asio::ip::udp::endpoint remote_endpoint;
     socket.receive_from(boost::asio::buffer(data, sizeof(data)), remote_endpoint);
@@ -48,8 +47,13 @@ void NetworkAccess::sendPacket(std::string addr, uint16_t port, const char* data
 
   targetIP = boost::asio::ip::address::from_string(addr);
   remote_endpoint = boost::asio::ip::udp::endpoint(targetIP, port);
-  boost::system::error_code error; // TODO error message?
+  
+  boost::system::error_code error;
   socket.send_to(boost::asio::buffer(data, length), remote_endpoint, 0, error);
+
+  if (error) {
+    throw NetworkException(addr);
+  }
 }
 
 void NetworkAccess::openSocket(const std::string* interface) {
@@ -66,9 +70,7 @@ void NetworkAccess::openSocket(const std::string* interface) {
   if (interface) {
     if_index = if_nametoindex(interface->c_str());
     if (if_index == 0) {
-      // interface does not exist
-      // TODO: throw som error?
-      std::cerr << "Interface " << interface << " does not exist, not binding" << std::endl;
+      throw NetworkException(*interface);
     }
     socket.set_option(boost::asio::ip::multicast::outbound_interface(if_index));
   }

@@ -111,6 +111,8 @@ struct hxb_packet_128string {
   uint16_t  crc;
 } __attribute__ ((packed));
 
+// the hxb_packet_128string was determined to be the largest packet a hexabus network can see
+// should this ever change, increase this, otherwise libhexabus (among others) will break.
 #define HXB_MAX_PACKET_SIZE (sizeof(hxb_packet_128string))
 
 #define HXB_BYTES_PACKET_MAX_BUFFER_LENGTH 65
