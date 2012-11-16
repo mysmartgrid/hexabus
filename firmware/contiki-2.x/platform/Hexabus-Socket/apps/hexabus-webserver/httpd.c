@@ -736,20 +736,20 @@ PT_THREAD(handle_input(struct httpd_state *s))
 								cond.sourceEID = ctol(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 								break;
 							case 2: // DataType
-								cond.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+								cond.value.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 								break;
 							case 3: // Operator
 								cond.op = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 								break;
 							case 4: // Value
-								if(cond.datatype == HXB_DTYPE_DATETIME) {
+								if(cond.value.datatype == HXB_DTYPE_DATETIME) {
 									if(cond.op & 0x20) {		// year field, uint16_t in contrast to the other uint8_t's
-										stodt(&s->inputbuf[0], cond.data, WS_HXB_DTYPE_UINT16, PSOCK_DATALEN(&s->sin) - 1);
+										stodt(&s->inputbuf[0], cond.value.data, WS_HXB_DTYPE_UINT16, PSOCK_DATALEN(&s->sin) - 1);
 									} else {
-										stodt(&s->inputbuf[0], cond.data, HXB_DTYPE_UINT8, PSOCK_DATALEN(&s->sin) - 1);
+										stodt(&s->inputbuf[0], cond.value.data, HXB_DTYPE_UINT8, PSOCK_DATALEN(&s->sin) - 1);
 									}
 								} else {
-									stodt(&s->inputbuf[0], cond.data, cond.datatype, PSOCK_DATALEN(&s->sin) - 1);
+									stodt(&s->inputbuf[0], cond.value.data, cond.value.datatype, PSOCK_DATALEN(&s->sin) - 1);
 								}
 							}
 					if(++position == 5) {
@@ -761,7 +761,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							}
 							PRINTF("%02x", cond.sourceIP[i]);
 						}
-						PRINTF("\nStruct Cond: EID: %lu Operator: %u DataType: %u \n", cond.sourceEID, cond.op, cond.datatype);
+						PRINTF("\nStruct Cond: EID: %lu Operator: %u DataType: %u \n", cond.sourceEID, cond.op, cond.value.datatype);
 						// Write Line to EEPROM. Too much data will be truncated
 						if(numberOfBlocks < (EE_STATEMACHINE_CONDITIONS_SIZE / sizeof(struct condition))) {
 							//eeprom_write_block(&cond, (void*)(numberOfBlocks*sizeof(struct condition) + 1 + EE_STATEMACHINE_CONDITIONS), sizeof(struct condition));
@@ -809,7 +809,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							memset(&cond, 0, sizeof(struct condition));
 							//eeprom_read_block(&cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (trans.cond * sizeof(struct condition))), sizeof(struct condition));
 							sm_get_condition(trans.cond, &cond);
-							isDateTime = (cond.datatype == HXB_DTYPE_DATETIME || cond.datatype == HXB_DTYPE_TIMESTAMP);
+							isDateTime = (cond.value.datatype == HXB_DTYPE_DATETIME || cond.value.datatype == HXB_DTYPE_TIMESTAMP);
 						}
 						// Write Line to EEPROM. Too much data is just truncated.
 						if(isDateTime) {

@@ -94,7 +94,7 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
     PRINTF("not anyhost AND source IP and cond IP differ\r\n");
     return false;
   }
-  if(((cond.sourceEID != envelope->eid)) && cond.datatype != HXB_DTYPE_DATETIME && cond.datatype != HXB_DTYPE_TIMESTAMP) {
+  if(((cond.sourceEID != envelope->eid)) && cond.value.datatype != HXB_DTYPE_DATETIME && cond.value.datatype != HXB_DTYPE_TIMESTAMP) {
     PRINTF("source EID of received packet and condition differ AND not a Date/Time/Timestamp condition.\r\n");
     return false;
   }
@@ -102,39 +102,39 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   PRINTF("IP and EID match / or datetime condition / or anyhost condition\r\n");
 
   // Check datatypes, return false if they don't match -- TIMESTAMP is exempt from that because it's checked alongside the DATETIME conditions
-  if(envelope->value.datatype != cond.datatype && cond.datatype != HXB_DTYPE_TIMESTAMP) {
+  if(envelope->value.datatype != cond.value.datatype && cond.value.datatype != HXB_DTYPE_TIMESTAMP) {
     PRINTF("datatype mismatch");
     return false;
   }
 
   PRINTF("Now checking condition\r\n");
   // check the actual condition - must be implemented for each datatype individually.
-  switch(cond.datatype)
+  switch(cond.value.datatype)
   {
     case HXB_DTYPE_BOOL:
     case HXB_DTYPE_UINT8:
-      if(cond.op == STM_EQ)  return *(uint8_t*)&envelope->value.data == cond.data[0];
-      if(cond.op == STM_LEQ) return *(uint8_t*)&envelope->value.data <= cond.data[0];
-      if(cond.op == STM_GEQ) return *(uint8_t*)&envelope->value.data >= cond.data[0];
-      if(cond.op == STM_LT)  return *(uint8_t*)&envelope->value.data <  cond.data[0];
-      if(cond.op == STM_GT)  return *(uint8_t*)&envelope->value.data >  cond.data[0];
-      if(cond.op == STM_NEQ) return *(uint8_t*)&envelope->value.data != cond.data[0];
+      if(cond.op == STM_EQ)  return *(uint8_t*)&envelope->value.data == cond.value.data[0];
+      if(cond.op == STM_LEQ) return *(uint8_t*)&envelope->value.data <= cond.value.data[0];
+      if(cond.op == STM_GEQ) return *(uint8_t*)&envelope->value.data >= cond.value.data[0];
+      if(cond.op == STM_LT)  return *(uint8_t*)&envelope->value.data <  cond.value.data[0];
+      if(cond.op == STM_GT)  return *(uint8_t*)&envelope->value.data >  cond.value.data[0];
+      if(cond.op == STM_NEQ) return *(uint8_t*)&envelope->value.data != cond.value.data[0];
       break;
     case HXB_DTYPE_UINT32:
-      if(cond.op == STM_EQ)  return *(uint32_t*)&envelope->value.data == *(uint32_t*)&cond.data;
-      if(cond.op == STM_LEQ) return *(uint32_t*)&envelope->value.data <= *(uint32_t*)&cond.data;
-      if(cond.op == STM_GEQ) return *(uint32_t*)&envelope->value.data >= *(uint32_t*)&cond.data;
-      if(cond.op == STM_LT)  return *(uint32_t*)&envelope->value.data <  *(uint32_t*)&cond.data;
-      if(cond.op == STM_GT)  return *(uint32_t*)&envelope->value.data >  *(uint32_t*)&cond.data;
-      if(cond.op == STM_NEQ) return *(uint32_t*)&envelope->value.data != *(uint32_t*)&cond.data;
+      if(cond.op == STM_EQ)  return *(uint32_t*)&envelope->value.data == *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_LEQ) return *(uint32_t*)&envelope->value.data <= *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_GEQ) return *(uint32_t*)&envelope->value.data >= *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_LT)  return *(uint32_t*)&envelope->value.data <  *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_GT)  return *(uint32_t*)&envelope->value.data >  *(uint32_t*)&cond.value.data;
+      if(cond.op == STM_NEQ) return *(uint32_t*)&envelope->value.data != *(uint32_t*)&cond.value.data;
       break;
     case HXB_DTYPE_FLOAT:
-      if(cond.op == STM_EQ)  return *(float*)&envelope->value.data == *(float*)&cond.data;
-      if(cond.op == STM_LEQ) return *(float*)&envelope->value.data <= *(float*)&cond.data;
-      if(cond.op == STM_GEQ) return *(float*)&envelope->value.data >= *(float*)&cond.data;
-      if(cond.op == STM_LT)  return *(float*)&envelope->value.data <  *(float*)&cond.data;
-      if(cond.op == STM_GT)  return *(float*)&envelope->value.data >  *(float*)&cond.data;
-      if(cond.op == STM_NEQ) return *(float*)&envelope->value.data != *(float*)&cond.data;
+      if(cond.op == STM_EQ)  return *(float*)&envelope->value.data == *(float*)&cond.value.data;
+      if(cond.op == STM_LEQ) return *(float*)&envelope->value.data <= *(float*)&cond.value.data;
+      if(cond.op == STM_GEQ) return *(float*)&envelope->value.data >= *(float*)&cond.value.data;
+      if(cond.op == STM_LT)  return *(float*)&envelope->value.data <  *(float*)&cond.value.data;
+      if(cond.op == STM_GT)  return *(float*)&envelope->value.data >  *(float*)&cond.value.data;
+      if(cond.op == STM_NEQ) return *(float*)&envelope->value.data != *(float*)&cond.value.data;
       break;
     case HXB_DTYPE_DATETIME:
       {
@@ -143,28 +143,28 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
           struct datetime val_dt;
           val_dt = *(struct datetime*)&envelope->value.data; // just to make writing this down easier...
           if(cond.op & HXB_SM_HOUR)
-            return (cond.op & 0x80) ? val_dt.hour >= *(uint8_t*)&(cond.data) : val_dt.hour < *(uint8_t*)&(cond.data);
+            return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.hour >= *(uint8_t*)&(cond.value.data) : val_dt.hour < *(uint8_t*)&(cond.value.data);
           if(cond.op & HXB_SM_MINUTE)
-            return (cond.op & 0x80) ? val_dt.minute >= *(uint8_t*)&(cond.data) : val_dt.minute < *(uint8_t*)&(cond.data);
+            return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.minute >= *(uint8_t*)&(cond.value.data) : val_dt.minute < *(uint8_t*)&(cond.value.data);
           if(cond.op & HXB_SM_SECOND)
-            return (cond.op & 0x80) ? val_dt.second >= *(uint8_t*)&(cond.data) : val_dt.second < *(uint8_t*)&(cond.data);
+            return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.second >= *(uint8_t*)&(cond.value.data) : val_dt.second < *(uint8_t*)&(cond.value.data);
           if(cond.op & HXB_SM_DAY)
-            return (cond.op & 0x80) ? val_dt.day >= *(uint8_t*)&(cond.data) : val_dt.day < *(uint8_t*)&(cond.data);
+            return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.day >= *(uint8_t*)&(cond.value.data) : val_dt.day < *(uint8_t*)&(cond.value.data);
           if(cond.op & HXB_SM_MONTH)
-            return (cond.op & 0x80) ? val_dt.month >= *(uint8_t*)&(cond.data) : val_dt.month < *(uint8_t*)&(cond.data);
+            return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.month >= *(uint8_t*)&(cond.value.data) : val_dt.month < *(uint8_t*)&(cond.value.data);
           if(cond.op & HXB_SM_YEAR)
-            return (cond.op & 0x80) ? val_dt.year >= *(uint16_t*)&(cond.data) : val_dt.year < *(uint16_t*)&(cond.data);
+            return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.year >= *(uint16_t*)&(cond.value.data) : val_dt.year < *(uint16_t*)&(cond.value.data);
           if(cond.op & HXB_SM_WEEKDAY)
-            return (cond.op & 0x80) ? val_dt.weekday >= *(uint8_t*)&(cond.data) : val_dt.weekday < *(uint8_t*)&(cond.data);
+            return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.weekday >= *(uint8_t*)&(cond.value.data) : val_dt.weekday < *(uint8_t*)&(cond.value.data);
         }
         break;
       }
     case HXB_DTYPE_TIMESTAMP:
-      if(cond.op == 0x80) // in-state-since
+      if(cond.op == HXB_SM_TIMESTAMP_OP) // in-state-since
       {
         PRINTF("Checking in-state-since Condition! Have been in this state for %lu sec.\r\n", getTimestamp() - inStateSince);
-        PRINTF("getTimestamp(): %lu - inStateSince: %lu >= cond.data: %lu\r\n", getTimestamp(), inStateSince, *(uint32_t*)&cond.data);
-        return getTimestamp() - inStateSince >= *(uint32_t*)&cond.data;
+        PRINTF("getTimestamp(): %lu - inStateSince: %lu >= cond.value.data: %lu\r\n", getTimestamp(), inStateSince, *(uint32_t*)&cond.value.data);
+        return getTimestamp() - inStateSince >= *(uint32_t*)&cond.value.data;
       }
       break;
     default:

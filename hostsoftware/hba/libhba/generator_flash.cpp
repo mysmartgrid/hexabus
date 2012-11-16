@@ -83,7 +83,7 @@ struct hba_doc_visitor : boost::static_visitor<>
       {
         if(it->first == cond_id)
         {
-          if(it->second.datatype == HXB_DTYPE_DATETIME)
+          if(it->second.value.datatype == HXB_DTYPE_DATETIME)
           {
             _trans_dt_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
             break;
@@ -138,14 +138,14 @@ struct hba_doc_visitor : boost::static_visitor<>
       }
       c.sourceEID = cond.eid;
       c.op = cond.op;
-      c.datatype = _datatypes->getDatatype(cond.eid);
+      c.value.datatype = _datatypes->getDatatype(cond.eid);
       std::stringstream ss;
       ss << std::hex << cond.value;
       if(_datatypes->getDatatype(cond.eid) == HXB_DTYPE_FLOAT) // TODO implement ALL the datatypes
       {
-        ss >> *(float*)c.data;
+        ss >> *(float*)c.value.data;
       } else { // TODO for now just treat everything as uint32
-        ss >> std::dec >> *(uint32_t*)c.data;
+        ss >> std::dec >> *(uint32_t*)c.value.data;
       }
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     } else if(condition.cond.which() == 1) { // timeout
@@ -158,8 +158,8 @@ struct hba_doc_visitor : boost::static_visitor<>
       c.sourceIP[15] = 1; // set IP address to ::1 for localost
       c.sourceEID = 0; // set to 0 because state machine won't care about the EID in a timestamp condition
       c.op = HXB_SM_TIMESTAMP_OP; // operator for timestamp comparison
-      c.datatype = HXB_DTYPE_TIMESTAMP;
-      *(uint32_t*)&c.data = cond.value;
+      c.value.datatype = HXB_DTYPE_TIMESTAMP;
+      *(uint32_t*)&c.value.data = cond.value;
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     } else {
       cond_datetime_doc cond = boost::get<cond_datetime_doc>(condition.cond);
@@ -202,8 +202,8 @@ struct hba_doc_visitor : boost::static_visitor<>
       c.sourceIP[15] = 1; // set IP address to ::1 (localhost)
       c.sourceEID = 0;
       c.op = cond.field | cond.op;
-      c.datatype = HXB_DTYPE_DATETIME;
-      *(uint32_t*)&c.data = cond.value;
+      c.value.datatype = HXB_DTYPE_DATETIME;
+      *(uint32_t*)&c.value.data = cond.value;
 
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     }
