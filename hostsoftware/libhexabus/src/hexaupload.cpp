@@ -314,9 +314,9 @@ int main(int argc, char** argv) {
   if (vm.count("interface")) {
     std::string interface=(vm["interface"].as<std::string>());
     std::cout << "Using interface " << interface << std::endl;
-    network=new hexabus::NetworkAccess(interface);
+    network=new hexabus::NetworkAccess(interface, hexabus::NetworkAccess::Unreliable);
   } else {
-    network=new hexabus::NetworkAccess();
+    network=new hexabus::NetworkAccess(hexabus::NetworkAccess::Unreliable);
   }
 
 

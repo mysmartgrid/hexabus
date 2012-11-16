@@ -9,8 +9,10 @@
 namespace hexabus {
   class NetworkAccess {
     public:
-      NetworkAccess();
-      NetworkAccess(const std::string& interface);
+      enum InitStyle { Unreliable, Reliable };
+    public:
+      NetworkAccess(InitStyle init);
+      NetworkAccess(const std::string& interface, InitStyle init);
       ~NetworkAccess();
       void closeSocket();
       void receivePacket(bool related); // related==true: receive data from the address where the last packet was sent to
@@ -18,7 +20,7 @@ namespace hexabus {
       boost::asio::ip::address getSourceIP();
       char* getData();
     private:
-      void openSocket(const std::string* interface);
+      void openSocket(const std::string* interface, InitStyle init);
       boost::asio::io_service io_service;
       boost::asio::ip::udp::socket socket;
       boost::asio::ip::address sourceIP;

@@ -221,6 +221,7 @@ int main(int argc, char** argv) {
     ("eid,e", po::value<uint32_t>(), "Endpoint ID (EID)")
     ("datatype,d", po::value<unsigned int>(), "{1: Bool | 2: UInt8 | 3: UInt32 | 4: HexaTime | 5: Float | 6: String}")
     ("value,v", po::value<std::string>(), "Value")
+    ("reliable,r", po::bool_switch(), "Reliable initialization of network access (adds delay, only needed for broadcasts)")
     ;
   po::positional_options_description p;
   p.add("ip", 1);
@@ -259,18 +260,22 @@ int main(int argc, char** argv) {
   }
 
   hexabus::NetworkAccess* network;
+  hexabus::NetworkAccess::InitStyle netInit = 
+    vm.count("reliable") && vm["reliable"].as<bool>()
+    ? hexabus::NetworkAccess::Reliable
+    : hexabus::NetworkAccess::Unreliable;
 
   if (vm.count("interface")) {
     std::string interface=(vm["interface"].as<std::string>());
     std::cout << "Using interface " << interface << std::endl;
     try {
-      network=new hexabus::NetworkAccess(interface);
+      network=new hexabus::NetworkAccess(interface, netInit);
     } catch (const hexabus::NetworkException& e) {
       std::cerr << "Could not bind to interface " << e.reason() << std::endl;
       return 1;
     }
   } else {
-    network=new hexabus::NetworkAccess();
+    network=new hexabus::NetworkAccess(netInit);
   }
 
   if(boost::iequals(command, std::string("LISTEN")))
