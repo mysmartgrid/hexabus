@@ -3,6 +3,7 @@
 #include "common.hpp"
 #include "packet.hpp"
 #include "crc.hpp"
+#include "error.hpp"
 
 #include <iostream>
 #include <sys/types.h>
@@ -12,83 +13,89 @@
 
 
 using namespace hexabus;
-NetworkAccess::NetworkAccess(const std::string& interface) :
-  io_service(new boost::asio::io_service()),
-  socket(new boost::asio::ip::udp::socket(*io_service)),
-  data(NULL)
+NetworkAccess::NetworkAccess(const std::string& interface, InitStyle init) :
+  io_service(),
+  socket(io_service)
 {
-  openSocket(interface);
+  openSocket(&interface, init);
 }
 
-NetworkAccess::NetworkAccess() :
-  io_service(new boost::asio::io_service()),
-  socket(new boost::asio::ip::udp::socket(*io_service)),
-  data(NULL)
+NetworkAccess::NetworkAccess(InitStyle init) :
+  io_service(),
+  socket(io_service)
 {
-  openSocket();
+  openSocket(NULL, init);
 }
 
-NetworkAccess::~NetworkAccess() {
-  delete socket;
-  delete io_service;
+NetworkAccess::~NetworkAccess()
+{
 }
 
 void NetworkAccess::receivePacket(bool related) {
-  hexabus::CRC::Ptr crc(new hexabus::CRC());
-  boost::asio::ip::udp::socket* my_socket;
-  if(!related)
-  {
-    boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::udp::v6(), HXB_PORT);
-    my_socket = new boost::asio::ip::udp::socket(*io_service, endpoint);
-	my_socket->set_option(boost::asio::ip::multicast::join_group(
-				boost::asio::ip::address::from_string(HXB_GROUP)));
-  } else {
-    my_socket = socket;
-  }
-  char recv_data[256];
-  boost::asio::ip::udp::endpoint remote_endpoint;
-  my_socket->receive_from(boost::asio::buffer(recv_data, 256), remote_endpoint);
-  sourceIP = remote_endpoint.address();
-
-  if(data == NULL)
-    data = (char*)malloc(256);
-  memcpy(data, recv_data, 256);
-
-  if(!related)
-  {
-    my_socket->close();
-    delete my_socket;
+  while (true) {
+    boost::asio::ip::udp::endpoint remote_endpoint;
+    socket.receive_from(boost::asio::buffer(data, sizeof(data)), remote_endpoint);
+    if (!related || (related && remote_endpoint.address() == targetIP)) {
+      sourceIP = remote_endpoint.address();
+      return;
+    }
   }
 }
 
 void NetworkAccess::sendPacket(std::string addr, uint16_t port, const char* data, unsigned int length) {
   boost::asio::ip::udp::endpoint remote_endpoint;
-  remote_endpoint = boost::asio::ip::udp::endpoint(
-    boost::asio::ip::address::from_string(addr), port);
-  boost::system::error_code error; // TODO error message?
-  socket->send_to(boost::asio::buffer(data, length), remote_endpoint, 0, error);
-}
 
-void NetworkAccess::openSocket() {
-  socket->open(boost::asio::ip::udp::v6());
+  targetIP = boost::asio::ip::address::from_string(addr);
+  remote_endpoint = boost::asio::ip::udp::endpoint(targetIP, port);
+  
+  boost::system::error_code error;
+  socket.send_to(boost::asio::buffer(data, length), remote_endpoint, 0, error);
 
-  socket->set_option(boost::asio::ip::multicast::hops(64));
-}
-
-// TODO: Proper error handling.
-void NetworkAccess::openSocket(const std::string& interface) {
-  openSocket();
-
-  int if_index = if_nametoindex(interface.c_str());
-  if (if_index == 0) {
-    // interface does not exist
-    // TODO: throw som error?
-    std::cerr << "Interface " << interface << " does not exist, not binding" << std::endl;
+  if (error) {
+    throw NetworkException(addr);
   }
-  socket->set_option(boost::asio::ip::multicast::outbound_interface(if_index));
+}
+
+void NetworkAccess::openSocket(const std::string* interface, InitStyle init) {
+  socket.open(boost::asio::ip::udp::v6());
+  socket.bind(
+    boost::asio::ip::udp::endpoint(
+      boost::asio::ip::address_v6::any(),
+      HXB_PORT));
+
+  socket.set_option(boost::asio::ip::multicast::hops(64));
+
+  int if_index = 0;
+
+  if (interface) {
+    if_index = if_nametoindex(interface->c_str());
+    if (if_index == 0) {
+      throw NetworkException(*interface);
+    }
+    socket.set_option(boost::asio::ip::multicast::outbound_interface(if_index));
+  }
+
+  socket.set_option(
+    boost::asio::ip::multicast::join_group(
+      boost::asio::ip::address_v6::from_string(HXB_GROUP),
+      if_index));
+
+  if (init == Reliable) {
+    // Send invalid packets and wait for a second to build state on multicast routers on the way
+    // Two packets will be sent, with one second delay after each. This ensures that routing state is built
+    // on at least two consecutive hops, which should be enough for time being.
+    // Ideally, this should be replaced by something less reminiscent of brute force
+    for (int i = 0; i < 2; i++) {
+      sendPacket(HXB_GROUP, 61616, 0, 0);
+
+      timeval timeout = { 1, 0 };
+      select(0, 0, 0, 0, &timeout);
+    }
+  }
 }
 
 
-void NetworkAccess::closeSocket() { socket->close(); }
+
+void NetworkAccess::closeSocket() { socket.close(); }
 char* NetworkAccess::getData() { return data; }
 boost::asio::ip::address NetworkAccess::getSourceIP() { return sourceIP; }
