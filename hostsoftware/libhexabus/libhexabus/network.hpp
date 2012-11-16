@@ -20,8 +20,8 @@ namespace hexabus {
     private:
       void openSocket();
       void openSocket(const std::string& interface);
-      boost::asio::io_service* io_service;
-      boost::asio::ip::udp::socket* socket;
+      boost::asio::io_service io_service;
+      boost::asio::ip::udp::socket socket;
       boost::asio::ip::address sourceIP;
       char data[HXB_MAX_PACKET_SIZE];
   };
