@@ -10,17 +10,17 @@ endpoint button {
   access { broadcast };
 }
 
-alias dev_one {
+device dev_one {
   ip fe80::cafe:e001;
   eids { 1 };
 }
 
-alias dev_two {
+device dev_two {
   ip fe80::cafe:e002;
   eids { 1 };
 }
 
-alias button_device {
+device button_device {
   ip fe80::cafe:0000;
   eids { 4 };
 }
@@ -35,7 +35,7 @@ machine both_on {
     }
   }
   in(off) {
-    if((ep button_device.button == 1) && (ep button_device.button == 2)) {
+    if((ep button_device.button == 1) || (ep button_device.button == 2)) {
       write dev_one.on := 1;
       write dev_two.on := 1;
       goto on;

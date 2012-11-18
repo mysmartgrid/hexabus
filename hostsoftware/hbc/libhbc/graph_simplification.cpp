@@ -152,7 +152,7 @@ void GraphSimplification::expandComplexConditions(graph_t_ptr g) {
         if(cond.which() == 4) { // if it's a compound condition
           // find out whether it's an AND or an OR condition
           compound_condition_doc comp_cond = boost::get<compound_condition_doc>(cond);
-          if(comp_cond.bool_op == AND) {
+          if(comp_cond.bool_op == AND) { /*
             // Make <first part>->(intermediate state)->[no command]-><second part>->[the command]->(target state)
 
             // find command vertex
@@ -209,11 +209,51 @@ void GraphSimplification::expandComplexConditions(graph_t_ptr g) {
             add_edge(g, intermediate_state_id, new_cond_vertex_id, e_from_state);
             add_edge(g, new_cond_vertex_id, command_vertex_id, e_if_com);
             add_edge(g, command_vertex_id, target_state_id, e_to_state);
+            */
           } else { // OR
             // Make two conditions; duplicate command vertex
             // what do we have, what do we need?
             // Have: vertex; *vertexId -- the vertex we are at.
             // Need: from-state, command, to-state.
+
+            // find command vertex
+            graph_t::adjacency_iterator adjIt, adjEnd;
+            boost::tie(adjIt, adjEnd) = adjacent_vertices(*vertexIt, *g);
+            vertex_id_t command_vertex_id = *adjIt;
+
+            // find originating state vertex
+            graph_t::inv_adjacency_iterator revIt, revEnd;
+            boost::tie(revIt, revEnd) = inv_adjacent_vertices(*vertexIt, *g);
+            vertex_id_t originating_state_id = *revIt;
+
+            // find target state vertex
+            boost::tie(adjIt, adjEnd) = adjacent_vertices(command_vertex_id, *g);
+            vertex_id_t target_state_id = *adjIt;
+
+            // split condition
+            condition_doc cond_b = comp_cond.condition_b;
+            // assign first part to "original" condition
+            vertex.contents = comp_cond.condition_a;
+            // update the node's name
+            hbc_printer pr;
+            std::ostringstream cond_a_oss;
+            pr(comp_cond.condition_a, cond_a_oss);
+            vertex.name = cond_a_oss.str();
+
+            // make new condtition vertex
+            std::ostringstream cond_b_oss;
+            pr(comp_cond.condition_b, cond_b_oss);
+            vertex_id_t new_cond_vertex = add_vertex(g, cond_b_oss.str(), (*g)[originating_state_id].machine_id, ++max_vertex_id, v_cond);
+            (*g)[new_cond_vertex].contents = comp_cond.condition_b;
+
+            // make new command vertex -- its contents are a copy of the original's contents
+            vertex_id_t new_cmd_vertex = add_vertex(g, (*g)[command_vertex_id].name, (*g)[originating_state_id].machine_id, ++max_vertex_id, v_command);
+            (*g)[new_cmd_vertex].contents = (*g)[command_vertex_id].contents;
+
+            // link vertices together
+            add_edge(g, originating_state_id, new_cond_vertex, e_from_state);
+            add_edge(g, new_cond_vertex, new_cmd_vertex, e_if_com);
+            add_edge(g, new_cmd_vertex, target_state_id, e_to_state);
           }
         }
       } catch (boost::bad_get b) {
