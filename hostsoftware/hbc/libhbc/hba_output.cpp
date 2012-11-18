@@ -6,18 +6,8 @@
 using namespace hexabus;
 
 void HBAOutput::operator()(std::ostream& ostr) {
-  // TODO
-  // - go through all the state machines and translate them
-  //   - states to states
-  //   - if-conditions to conditions
-  //     - this also needs more thinking!! (*)
-  //   - write actions to actions
-  //
-  // *) These should be done on graph level, along with the slicing/partitoning.
-
-
-  // For now, we just assume graph_transformation has done its work and has left us with a SINGLE state machine
-  // in the graph. (it doesn't if multiple machines write to the same device's EPs - yet.)
+  // before running this, graph_transformation has done its work and has left us with a SINGLE state machine
+  // in the graph. (it doesn't if multiple machines write to the same device's EPs - yet.) <- TODO catch this case
 
   // TODO This code is very ugly.
   //      It should be re-implemented, using a visitor pattern
@@ -39,7 +29,7 @@ void HBAOutput::operator()(std::ostream& ostr) {
         ostr << "startstate state_" << init_m_id << "_" << init_v_id << ";" << std::endl << std::endl;
       }
     }
-  } // TODO what if there's no init state?
+  } // there must be an init state. this is checked when constructing the graph
 
   // iterate over vertices, find condition vertices and create condition blocks for them.
   boost::tie(vertexIt, vertexEnd) = vertices((*_g));
@@ -166,6 +156,16 @@ void HBAOutput::operator()(std::ostream& ostr) {
                 throw HBAConversionErrorException(oss.str());
               }
 
+              // if endpoint is not writeable, throw an exception
+              if(ep_it->second.write == false) {
+                std::ostringstream oss;
+                std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find(command_vertex.machine_id);
+                if(it != machine_filenames_per_id.end())
+                  oss << "[" << it->second << ":" << write_cmd.lineno << "] ";
+                oss << "Endpoint '" << boost::get<std::string>(write_cmd.geid.endpoint_name) << "' is not writeable." << std::endl;
+                throw EndpointNotWriteableException(oss.str());
+              }
+
               eid = ep_it->second.eid;
             } catch (boost::bad_get e) {
               std::ostringstream oss;
@@ -268,6 +268,17 @@ void HBAOutput::print_condition(atomic_condition_doc at_cond, std::ostream& ostr
         oss << "[" << it->second << ":" << at_cond.geid.lineno << "] ";
       oss << "Endpoint name not found: " << boost::get<std::string>(at_cond.geid.endpoint_name) << std::endl;
       throw HBAConversionErrorException(oss.str());
+    }
+
+
+    // throw an exception if an endpoint is not broadcast!
+    if(e_it->second.broadcast == false) {
+      std::ostringstream oss;
+      std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find(vertex.machine_id);
+      if(it != machine_filenames_per_id.end())
+        oss << "[" << it->second << ":" << at_cond.geid.lineno << "] ";
+      oss << "Endpoint '" << boost::get<std::string>(at_cond.geid.endpoint_name) << "' is not broadcast." << std::endl;
+      throw EndpointNotBroadcastException(oss.str());
     }
 
     ostr << "  eid := " << e_it->second.eid << ";" << std::endl;

@@ -52,6 +52,20 @@ namespace hexabus {
       virtual ~GraphTransformationErrorException() throw() {};
   };
 
+  class EndpointNotBroadcastException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<EndpointNotBroadcastException> Ptr;
+      EndpointNotBroadcastException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~EndpointNotBroadcastException() throw() {};
+  };
+
+  class EndpointNotWriteableException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<EndpointNotWriteableException> Ptr;
+      EndpointNotWriteableException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~EndpointNotWriteableException() throw() {};
+  };
+
   class HBAConversionErrorException : public GenericException {
     public:
       typedef std::tr1::shared_ptr<HBAConversionErrorException> Ptr;
