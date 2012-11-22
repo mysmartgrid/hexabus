@@ -36,17 +36,17 @@ endpoint heater {
   access { write };
 }
 
-alias device {
+device device {
   ip fe80::cafe:d00d;
   eids { 1, 2, 3 };
 }
 
-alias heater {
+device heater {
   ip fe80::9876;
   eids { 99 };
 }
 
-alias another_device {
+device another_device {
   ip ::99;
   eids { 1,2,3,4,5 };
 }
@@ -73,10 +73,6 @@ machine my_machine {
       write device.endpoint := 0;
       goto three;
     }
-#    else {
-#      write foo.bar := 1;
-#      goto one;
-#    }
   }
 }
 
@@ -86,7 +82,6 @@ machine another_machine {
     if(ep $M.$N == $O) { goto bloerp; }
     else if(true) { goto bloerp; }
     else if(true) { goto bloerp; }
-    else { goto bloerp; }
   }
 
   in(bloerp) {
@@ -109,9 +104,6 @@ machine main {
       goto init;
     } else if(ep sensorbox.temperature >= 19) {
       write heater.heater := 50;
-      goto init;
-    } else {
-      write heater.heater := 0;
       goto init;
     }
   }
@@ -145,12 +137,9 @@ module test_module($A, $B, $T) {
     if(true) { goto init; }
     else if(true) { goto init; }
     else if(true) { goto init; }
-    else { goto nope; }
   }
   in(nope) {
     if(ep $A.$B == 5) { # TODO "true" does not work as constant here
-      goto nope;
-    } else {
       goto nope;
     }
     if(timeout $T) {
