@@ -90,7 +90,7 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   // Check IPs and EID:
   // If IP is all zero -> return without any action.
   //ignore IP and EID for Datetime-Conditions and Timestamp-Conditions
-  if(not_anyhost && memcmp(cond.sourceIP, envelope->source, 16)) { // If not anyhost AND source IP and cond IP differ
+  if(cond.value.datatype != HXB_DTYPE_DATETIME && cond.value.datatype != HXB_DTYPE_TIMESTAMP && not_anyhost && memcmp(cond.sourceIP, envelope->source, 16)) { // If not anyhost AND source IP and cond IP differ
     PRINTF("not anyhost AND source IP and cond IP differ\r\n");
     return false;
   }
