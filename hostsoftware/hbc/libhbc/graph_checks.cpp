@@ -139,59 +139,68 @@ void GraphChecks::reachable_from_anywhere(std::string state_name, std::string ma
 }
 
 void GraphChecks::never_reachable(std::string name, std::string machine_name) {
-  // find init state and target state
-  bool target_found = false;
-  vertex_id_t init_state, target_vertex;
-  graph_t::vertex_iterator vertexIt, vertexEnd;
-  boost::tie(vertexIt, vertexEnd) = vertices(*_g);
-  for(; vertexIt != vertexEnd; vertexIt++) {
-    if((*_g)[*vertexIt].type == v_state) {
-      // find out machine name; only consider vertives from the machine we are looking at.
-      std::string v_machine_name = (*_g)[*vertexIt].name.substr((*_g)[*vertexIt].name.find_last_of(' ') + 1);
-      v_machine_name = v_machine_name.substr(2, v_machine_name.find_first_of('.') - 2); // name starts at 2, because it is lead by "\n"
-      if(v_machine_name == machine_name) {
-        std::string v_name = (*_g)[*vertexIt].name;
-        if(v_name.length() > 5) {
-          if(v_name.substr(v_name.length() - 5) == ".init") {
-            init_state = *vertexIt;
-          }
-        }
-        if(v_name.length() > name.length() + 1) {
-          if(v_name.substr(v_name.find_last_of(".")) == ("." + name)) {
-            target_vertex = *vertexIt;
-            target_found = true;
-          }
-        }
-      }
-    }
-  }
-
-  if(target_found) {
-    // now we have init and target, let's find a path between them.
-    // construct predecessor map
-    std::map<vertex_id_t, vertex_id_t> predecessor_map;
-    // now the path is found by taking the target state, and following the predecessors backwards until we reach init.
-    boost::breadth_first_search(*_g, init_state, visitor(bfs_predecessor_map_maker(&predecessor_map)));
-
-    std::vector<vertex_id_t> path;
-    // take the target vertex, and follow the predecessor map until init is reached.
-    std::cout << "Graph checks: Path to 'never'-vertex found!" << std::endl;
-    std::map<vertex_id_t, vertex_id_t>::iterator predecessor_it;
-    while((predecessor_it = predecessor_map.find(target_vertex)) != predecessor_map.end()) {
-      path.push_back(target_vertex);
-      target_vertex = predecessor_it->second;
-    }
-
-    std::cout << "  if-clauses to be fulfilled for this path to be taken:" << std::endl;
-    // output the path (which was recorded in reverse)
-    for(unsigned int i = path.size() - 1; i > 0; i--) {
-      vertex_t the_vertex = (*_g)[path[i]];
-      if(the_vertex.type == v_cond) {
-        std::cout << "    " << the_vertex.name << std::endl;
-      }
-    }
+  if(name == "init") {
+    std::cout << "\"init\" state specified as 'never'-vertex. Init state is always reachable!" << std::endl;
   } else {
-    std::cout << "Graph checks: Target state " << name << " for 'never'-check of machine " << machine_name << " not found." << std::endl;
+
+    // find init state and target state
+    bool target_found = false;
+    vertex_id_t init_state, target_vertex;
+    graph_t::vertex_iterator vertexIt, vertexEnd;
+    boost::tie(vertexIt, vertexEnd) = vertices(*_g);
+    for(; vertexIt != vertexEnd; vertexIt++) {
+      if((*_g)[*vertexIt].type == v_state) {
+        // find out machine name; only consider vertives from the machine we are looking at.
+        std::string v_machine_name = (*_g)[*vertexIt].name.substr((*_g)[*vertexIt].name.find_last_of(' ') + 1);
+        v_machine_name = v_machine_name.substr(2, v_machine_name.find_first_of('.') - 2); // name starts at 2, because it is lead by "\n"
+        if(v_machine_name == machine_name) {
+          std::string v_name = (*_g)[*vertexIt].name;
+          if(v_name.length() > 5) {
+            if(v_name.substr(v_name.length() - 5) == ".init") {
+              init_state = *vertexIt;
+            }
+          }
+          if(v_name.length() > name.length() + 1) {
+            if(v_name.substr(v_name.find_last_of(".")) == ("." + name)) {
+              target_vertex = *vertexIt;
+              target_found = true;
+            }
+          }
+        }
+      }
+    }
+
+    if(target_found) {
+      // now we have init and target, let's find a path between them.
+      // construct predecessor map
+      std::map<vertex_id_t, vertex_id_t> predecessor_map;
+      // now the path is found by taking the target state, and following the predecessors backwards until we reach init.
+      boost::breadth_first_search(*_g, init_state, visitor(bfs_predecessor_map_maker(&predecessor_map)));
+
+      std::vector<vertex_id_t> path;
+      // take the target vertex, and follow the predecessor map until init is reached.
+      std::map<vertex_id_t, vertex_id_t>::iterator predecessor_it;
+      while((predecessor_it = predecessor_map.find(target_vertex)) != predecessor_map.end()) {
+        path.push_back(target_vertex);
+        target_vertex = predecessor_it->second;
+      }
+
+      if(path.size() > 0) {
+        std::cout << "Graph checks: Path to 'never'-vertex \"" << name << "\" found!" << std::endl;
+        std::cout << "  if-clauses to be fulfilled for this path to be taken:" << std::endl;
+        // output the path (which was recorded in reverse)
+        for(unsigned int i = path.size() - 1; i > 0; i--) {
+          vertex_t the_vertex = (*_g)[path[i]];
+          if(the_vertex.type == v_cond) {
+            std::cout << "    " << the_vertex.name << std::endl;
+          }
+        }
+      } else { // Path not found, or init state specified as property
+        std::cout << "Graph checks: Okay! No path to 'never' vertex \"" << name << "\" found." << std::endl;
+      }
+    } else {
+      std::cout << "Graph checks: Target state " << name << " for 'never'-check of machine " << machine_name << " not found." << std::endl;
+    }
   }
 }
 
