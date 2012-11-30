@@ -19,5 +19,9 @@ public class HexabusQueryPacket extends HexabusPacket {
 		buffer.put(eid);
 		return packetData;
 	}
+
+	public int getEid() {
+		return eid;
+	}
 		
 }
