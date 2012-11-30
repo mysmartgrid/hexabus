@@ -1,8 +1,6 @@
 package de.fraunhofer.itwm.hexabus;
 
 import java.io.IOException;
-import java.sql.Timestamp;
-import java.util.Calendar;
 
 
 public class HexabusEndpoint {
@@ -81,7 +79,7 @@ public class HexabusEndpoint {
 		packet.sendPacket(device.getInetAddress());
 	}
 
-	public void writeEndpoint(Timestamp value) throws Hexabus.HexabusException, IOException {
+	public void writeEndpoint(HexabusTimestamp value) throws Hexabus.HexabusException, IOException {
 		if(dataType != Hexabus.DataType.TIMESTAMP) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
@@ -89,7 +87,7 @@ public class HexabusEndpoint {
 		packet.sendPacket(device.getInetAddress());
 	}
 
-	public void writeEndpoint(Calendar value) throws Hexabus.HexabusException, IOException {
+	public void writeEndpoint(HexabusDatetime value) throws Hexabus.HexabusException, IOException {
 		if(dataType != Hexabus.DataType.DATETIME) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
@@ -188,7 +186,7 @@ public class HexabusEndpoint {
 		}
 	}
 
-	public Timestamp queryTimestampEndpoint() throws Hexabus.HexabusException, IOException {
+	public HexabusTimestamp queryTimestampEndpoint() throws Hexabus.HexabusException, IOException {
 		if(dataType != Hexabus.DataType.TIMESTAMP) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
@@ -206,7 +204,7 @@ public class HexabusEndpoint {
 		}
 	}
 
-	public Calendar queryDatetimeEndpoint() throws Hexabus.HexabusException, IOException {
+	public HexabusDatetime queryDatetimeEndpoint() throws Hexabus.HexabusException, IOException {
 		if(dataType != Hexabus.DataType.DATETIME) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected");
 		}
