@@ -14,6 +14,29 @@ public abstract class HexabusPacket {
 	protected byte[] crc;
 
 	/**
+	 * Broadcast the packet to the Hexabus multicast group { @value Hexabus#MULTICAST_GROUP } on port { @value Hexabus#PORT }
+	 *
+	 * @return The source port on which the packet has been sent out
+	 */
+	public int broadcastPacket() throws Hexabus.HexabusException, IOException {
+		byte[] data = buildPacket();
+		crc = crc(data);
+		byte[] packetData = new byte[data.length+crc.length];
+		ByteBuffer buffer = ByteBuffer.wrap(packetData);
+		buffer.order(ByteOrder.BIG_ENDIAN);
+		buffer.put(data);
+		buffer.put(crc);
+		// send packet
+		DatagramSocket socket = new DatagramSocket();
+		DatagramPacket packet = new DatagramPacket(packetData, packetData.length, 
+				InetAddress.getByAddress(Hexabus.MULTICAST_GROUP), Hexabus.PORT);
+		socket.send(packet);
+		int sourcePort = socket.getLocalPort();
+		socket.close();
+		return sourcePort;
+	}
+
+	/**
 	 * Sends the packet to specified address on port { @value Hexabus#PORT }
 	 *
 	 * @param address The InetAddress where the packet should be sent to

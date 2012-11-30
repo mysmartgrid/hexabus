@@ -6,9 +6,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.sql.Timestamp;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -18,6 +15,9 @@ import java.util.HashMap;
 //TODO maxeid
 public class Hexabus {
 	/** Hexabus port { @value } */
+	public final static byte[] MULTICAST_GROUP = new byte[] {
+			(byte) 0xff,05,00,00,00,00,00,00,00,00,00,00,00,00,01,(byte) 0x14};
+
 	public final static int PORT = 61616;
 	/** Hexabus packet header */
 	public final static byte[] HEADER = new byte[] {(byte) 0x48, (byte) 0x58, (byte) 0x30, (byte) 0x42};
@@ -272,27 +272,33 @@ public class Hexabus {
 	}
 
 	/**
-	 * Parses a byte array and extracts a { @link Timestamp } value.
+	 * Parses a byte array and extracts a { @link HexabusTimestamp } value.
 	 *
 	 * @param value The byte array that should be parsed
 	 * @return The extracted value
 	 */
-	public static Timestamp parseTimestamp(byte[] value) {
-		long timestamp = ((long) (value[0] << 24
+	public static HexabusTimestamp parseTimestamp(byte[] value) {
+		long longValue = ((long) (value[0] << 24
 			| value[1] << 16
 			| value[2] << 8
 			| value[3]))
 				& 0xFFFFFFFFL;
-		return new Timestamp(timestamp);
+		HexabusTimestamp timestamp = null;
+		try {
+			timestamp = new HexabusTimestamp(longValue);
+		} catch(Hexabus.HexabusException e) {
+			System.err.println("Timestamp too large. This isn't supposed to happen.");
+		}
+		return timestamp;
 	}
 
 	/**
-	 * Parses a byte array and extracts a { @link Calendar } value representing a datetime value.
+	 * Parses a byte array and extracts a { @link HexabusDatetime } value representing a datetime value.
 	 *
 	 * @param value The byte array that should be parsed
 	 * @return The extracted value
 	 */
-	public static Calendar parseDatetime(byte[] value) {
+	public static HexabusDatetime parseDatetime(byte[] value) {
 		ByteBuffer buffer = ByteBuffer.wrap(value);
 		buffer.order(ByteOrder.BIG_ENDIAN);		
 		int hour = buffer.get();
@@ -300,20 +306,12 @@ public class Hexabus {
 		int second = buffer.get();
 		int day = buffer.get();
 		int month = buffer.get()-1;
-		int year = buffer.get() << 8
-			| buffer.get();
+		int year = (int) buffer.getShort();
 		int weekday = buffer.get();
 
-		Calendar calendar = new GregorianCalendar();
-		calendar.add(Calendar.HOUR_OF_DAY, hour);
-		calendar.add(Calendar.MINUTE, minute);
-		calendar.add(Calendar.SECOND, second);
-		calendar.add(Calendar.DAY_OF_MONTH, day);
-		calendar.add(Calendar.MONTH, month);
-		calendar.add(Calendar.YEAR, year);
-		calendar.add(Calendar.DAY_OF_WEEK, weekday);
+		HexabusDatetime datetime = new HexabusDatetime(year, month, day, weekday, hour, minute, second);
 
-		return calendar;
+		return datetime;
 	}
 
 	public static ErrorCode getErrorCode(byte code) {

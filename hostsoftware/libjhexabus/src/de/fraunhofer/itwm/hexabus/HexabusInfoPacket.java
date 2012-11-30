@@ -3,8 +3,6 @@ package de.fraunhofer.itwm.hexabus;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
-import java.sql.Timestamp;
-import java.util.Calendar;
 
 public class HexabusInfoPacket extends HexabusPacket {
 	
@@ -75,21 +73,21 @@ public class HexabusInfoPacket extends HexabusPacket {
 			,(byte) (value & 0x000000FFL)};
 	}
 
-	public HexabusInfoPacket(int eid, Timestamp value) throws Hexabus.HexabusException {
+	public HexabusInfoPacket(int eid, HexabusTimestamp value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.INFO;
 		if(eid>255) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
 		this.eid = (byte) eid;
 		this.dataType = Hexabus.DataType.TIMESTAMP;
-		long timestamp = value.getTime();
+		long timestamp = value.getLong();
 		this.payload = new byte[] {(byte) ((timestamp & 0xFF000000L) >> 24)
 			,(byte) ((timestamp & 0x00FF0000L) >> 16)
 			,(byte) ((timestamp & 0x0000FF00L) >> 8)
 			,(byte) (timestamp & 0x000000FFL)};
 	}
 
-	public HexabusInfoPacket(int eid, Calendar value) throws Hexabus.HexabusException {
+	public HexabusInfoPacket(int eid, HexabusDatetime value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.INFO;
 		if(eid>255) {
 			throw new Hexabus.HexabusException("EID too large");
@@ -99,14 +97,14 @@ public class HexabusInfoPacket extends HexabusPacket {
 		this.payload = new byte[dataType.getSize()];
 		ByteBuffer buffer = ByteBuffer.wrap(payload);
 		buffer.order(ByteOrder.BIG_ENDIAN);		
-		buffer.put((byte) (value.get(Calendar.HOUR_OF_DAY) & 0xFF));
-		buffer.put((byte) (value.get(Calendar.MINUTE) & 0xFF));
-		buffer.put((byte) (value.get(Calendar.SECOND) & 0xFF));
-		buffer.put((byte) (value.get(Calendar.DAY_OF_MONTH) & 0xFF));
-		buffer.put((byte) ((value.get(Calendar.MONTH)+1) & 0xFF));
-		buffer.put((byte) ((value.get(Calendar.YEAR) & 0xFF00) >> 8));
-		buffer.put((byte) (value.get(Calendar.YEAR) & 0x00FF));
-		buffer.put((byte) ((value.get(Calendar.DAY_OF_WEEK)-1) & 0xFF));
+		buffer.put((byte) (value.getHour() & 0xFF));
+		buffer.put((byte) (value.getMinute() & 0xFF));
+		buffer.put((byte) (value.getSecond() & 0xFF));
+		buffer.put((byte) (value.getDay() & 0xFF));
+		buffer.put((byte) (value.getMonth() & 0xFF));
+		buffer.put((byte) ((value.getYear() & 0xFF00) >> 8));
+		buffer.put((byte) (value.getYear() & 0x00FF));
+		buffer.put((byte) (value.getWeekday() & 0xFF));
 	}
 
 	public HexabusInfoPacket(int eid, String value) throws Hexabus.HexabusException {
@@ -179,14 +177,14 @@ public class HexabusInfoPacket extends HexabusPacket {
 		return Hexabus.parseUint32(payload);
 	}
 
-	public Timestamp getTimestamp() throws Hexabus.HexabusException {
+	public HexabusTimestamp getTimestamp() throws Hexabus.HexabusException {
 		if(dataType != Hexabus.DataType.TIMESTAMP) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
 		}
 		return Hexabus.parseTimestamp(payload);
 	}
 
-	public Calendar getDatetime() throws Hexabus.HexabusException {
+	public HexabusDatetime getDatetime() throws Hexabus.HexabusException {
 		if(dataType != Hexabus.DataType.DATETIME) {
 			throw new Hexabus.HexabusException("Wrong data type. "+dataType+" expected.");
 		}
