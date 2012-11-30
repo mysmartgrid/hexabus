@@ -3,13 +3,13 @@
 using namespace hexanode;
 
 HexaPush::HexaPush ()
-  : _network(new hexabus::NetworkAccess())
+  : _network(new hexabus::NetworkAccess(hexabus::NetworkAccess::Reliable))
   , _packetm(new hexabus::Packet())
 {
 }
 
 HexaPush::HexaPush(const std::string& interface) 
-  : _network(new hexabus::NetworkAccess(interface))
+  : _network(new hexabus::NetworkAccess(interface, hexabus::NetworkAccess::Reliable))
   , _packetm(new hexabus::Packet())
 {
   std::cout << "Using interface " << interface << std::endl;
