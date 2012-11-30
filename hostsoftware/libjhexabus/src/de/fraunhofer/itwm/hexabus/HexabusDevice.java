@@ -4,6 +4,7 @@ import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.io.IOException;
+import java.net.UnknownHostException;
 
 public class HexabusDevice {
 	private InetAddress address;
@@ -15,13 +16,25 @@ public class HexabusDevice {
 	public HexabusDevice(InetAddress address) {
 		this.address = address;
 		endpoints = new HashMap<Integer,HexabusEndpoint>();
+		try{
 		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
+		}catch(Hexabus.HexabusException e){
+			//TODO
+		}
 	}
 
 	public HexabusDevice(String address) {
+		try{
 		this.address = InetAddress.getByName(address);
+		}catch(UnknownHostException e) {
+			//TODO
+		}
 		endpoints = new HashMap<Integer,HexabusEndpoint>();
+		try{
 		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
+		}catch(Hexabus.HexabusException e){
+			//TODO
+		}
 	}
 
 	/**
@@ -33,9 +46,9 @@ public class HexabusDevice {
 	 * @param description A description of the new endpoint
 	 * @return The newly created endpoint
 	 */
-	public HexabusEndpoint addEndpoint(int eid, Hexabus.DataType datatype, String description) {
-		if(endpoints.containsKey(new Integer(eid)) {
-			throw new HexabusException("Endpoint exists");
+	public HexabusEndpoint addEndpoint(int eid, Hexabus.DataType datatype, String description) throws Hexabus.HexabusException {
+		if(endpoints.containsKey(new Integer(eid))) {
+			throw new Hexabus.HexabusException("Endpoint exists");
 		}
 		HexabusEndpoint endpoint = new HexabusEndpoint(this, eid, datatype, description);
 		endpoints.put(eid, endpoint);
