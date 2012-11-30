@@ -21,7 +21,7 @@ void HexaPush::on_event(uint8_t pressed_key) {
   struct hxb_packet_int8 packet8;
   packet8 = _packetm->write8(eid, dtype, pressed_key, true);
   _network->sendPacket(
-      (char*)"ff02::1", 
+      HXB_GROUP, 
       HXB_PORT, 
       (char*)&packet8, 
       sizeof(packet8));
