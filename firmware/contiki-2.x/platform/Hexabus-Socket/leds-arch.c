@@ -41,8 +41,8 @@
 #define LEDS_PxOUT 			PORTC // port register
 
 
-#define LEDS_CONF_RED    	(1<<PC0) //red led
-#define LEDS_CONF_GREEN  	(1<<PC1) //green led
+#define LEDS_CONF_RED    	(1<<PC6) //red led
+#define LEDS_CONF_GREEN  	(1<<PC7) //green led
 
 
 /* LEDs are enabled with 0 and disabled with 1. So we have to toggle the
