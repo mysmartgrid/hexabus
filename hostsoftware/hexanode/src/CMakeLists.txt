@@ -24,7 +24,6 @@ target_link_libraries(hxbnode
   pthread
   rtmidi
   ${HXB_LIBRARIES}
-  ${RTMIDI_LIBRARIES}
   ${Boost_LIBRARIES}
 )
 

@@ -65,7 +65,7 @@ int main (int argc, char const* argv[]) {
       << " MIDI input sources available." << std::endl;
     uint16_t port = 0;
     if (vm.count("port")) {
-      port = vm["port"].as<uint16_t>();
+      port = vm["port"].as<uint16_t>() - 1;
     }
     if (nPorts == 0) {
       std::cout << "Sorry, cannot continue without MIDI input devices." << std::endl;
