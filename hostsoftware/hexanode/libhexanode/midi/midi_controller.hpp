@@ -4,7 +4,7 @@
 #include <libhexanode/common.hpp>
 #include <boost/signals2.hpp>
 #include <boost/thread/thread.hpp>
-#include <RtMidi.h>
+#include "RtMidi/RtMidi.h"
 
 namespace hexanode {
   class MidiController {
