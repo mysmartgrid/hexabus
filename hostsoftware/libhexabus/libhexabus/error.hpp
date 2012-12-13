@@ -3,6 +3,7 @@
 
 #include <string>
 #include <exception>
+#include <boost/system/error_code.hpp>
 
 namespace hexabus {
   class GenericException : public std::exception {
@@ -20,10 +21,14 @@ namespace hexabus {
   class NetworkException : public GenericException {
     public:
       typedef std::tr1::shared_ptr<NetworkException> Ptr;
-      NetworkException (const std::string reason) :
-        hexabus::GenericException(reason) {};
+      NetworkException (const std::string reason, const boost::system::error_code& code) :
+        hexabus::GenericException(reason), _code(code) {};
       virtual ~NetworkException() throw() {};
 
+      boost::system::error_code code() const { return _code; }
+
+    private:
+      boost::system::error_code _code;
   };
 
 }

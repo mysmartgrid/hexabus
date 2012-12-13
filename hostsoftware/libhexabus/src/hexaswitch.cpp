@@ -202,7 +202,7 @@ void send_packet(hexabus::NetworkAccess* net, const std::string& addr, const Pac
   try {
     net->sendPacket(addr, HXB_PORT, reinterpret_cast<const char*>(&packet), sizeof(packet));
   } catch (const hexabus::NetworkException& e) {
-    std::cerr << "Could not send packet to " << e.reason() << std::endl;
+    std::cerr << "Could not send packet to " << addr << ": " << e.code().message() << std::endl;
     exit(1);
   }
 }
@@ -217,6 +217,7 @@ int main(int argc, char** argv) {
     ("version", "print libhexabus version and exit")
     ("command,c", po::value<std::string>(), "{get|set|epquery|send|listen|on|off|status|power|devinfo}")
     ("ip,i", po::value<std::string>(), "the hostname to connect to")
+    ("bind,b", po::value<std::string>(), "local IP address to use")
     ("interface,I", po::value<std::string>(), "the interface to use for outgoing messages")
     ("eid,e", po::value<uint32_t>(), "Endpoint ID (EID)")
     ("datatype,d", po::value<unsigned int>(), "{1: Bool | 2: UInt8 | 3: UInt32 | 4: HexaTime | 5: Float | 6: String}")
@@ -239,6 +240,7 @@ int main(int argc, char** argv) {
   }
 
   std::string command;
+  boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
 
   if (vm.count("help")) {
     std::cout << desc << std::endl;
@@ -259,6 +261,11 @@ int main(int argc, char** argv) {
     command=(vm["command"].as<std::string>());
   }
 
+  if (vm.count("bind")) {
+    bind_addr = boost::asio::ip::address_v6::from_string(vm["bind"].as<std::string>());
+    std::cout << "Binding to " << bind_addr << std::endl;
+  }
+
   hexabus::NetworkAccess* network;
   hexabus::NetworkAccess::InitStyle netInit = 
     vm.count("reliable") && vm["reliable"].as<bool>()
@@ -269,24 +276,33 @@ int main(int argc, char** argv) {
     std::string interface=(vm["interface"].as<std::string>());
     std::cout << "Using interface " << interface << std::endl;
     try {
-      network=new hexabus::NetworkAccess(interface, netInit);
+      network=new hexabus::NetworkAccess(bind_addr, interface, netInit);
     } catch (const hexabus::NetworkException& e) {
-      std::cerr << "Could not bind to interface " << e.reason() << std::endl;
+      std::cerr << "Could not open socket on interface " << interface << ": " << e.code().message() << std::endl;
       return 1;
     }
   } else {
-    network=new hexabus::NetworkAccess(netInit);
+    try {
+      network=new hexabus::NetworkAccess(bind_addr, netInit);
+    } catch (const hexabus::NetworkException& e) {
+      std::cerr << "Could not open socket: " << e.code().message() << std::endl;
+      return 1;
+    }
   }
 
   if(boost::iequals(command, std::string("LISTEN")))
   {
     std::cout << "Entering listen mode." << std::endl;
-    while(true)
-    {
-      network->receivePacket(false);
-      char* recv_data = network->getData();
-      std::cout << "Received packet from " << network->getSourceIP() << std::endl;
-      print_packet(recv_data);
+    while(true) {
+      try {
+        network->receivePacket(false);
+        char* recv_data = network->getData();
+        std::cout << "Received packet from " << network->getSourceIP() << std::endl;
+        print_packet(recv_data);
+      } catch (const hexabus::NetworkException& e) {
+        std::cerr << "Error receiving packet: " << e.code().message() << std::endl;
+        return 1;
+      }
     }
   }
 

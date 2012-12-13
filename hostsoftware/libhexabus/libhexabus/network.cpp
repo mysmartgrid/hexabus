@@ -17,14 +17,28 @@ NetworkAccess::NetworkAccess(const std::string& interface, InitStyle init) :
   io_service(),
   socket(io_service)
 {
-  openSocket(&interface, init);
+  openSocket(boost::asio::ip::address_v6::any(), &interface, init);
 }
 
 NetworkAccess::NetworkAccess(InitStyle init) :
   io_service(),
   socket(io_service)
 {
-  openSocket(NULL, init);
+  openSocket(boost::asio::ip::address_v6::any(), NULL, init);
+}
+
+NetworkAccess::NetworkAccess(const boost::asio::ip::address_v6& addr, InitStyle init) :
+  io_service(),
+  socket(io_service)
+{
+  openSocket(addr, NULL, init);
+}
+
+NetworkAccess::NetworkAccess(const boost::asio::ip::address_v6& addr, const std::string& interface, InitStyle init) :
+  io_service(),
+  socket(io_service)
+{
+  openSocket(addr, &interface, init);
 }
 
 NetworkAccess::~NetworkAccess()
@@ -34,7 +48,11 @@ NetworkAccess::~NetworkAccess()
 void NetworkAccess::receivePacket(bool related) {
   while (true) {
     boost::asio::ip::udp::endpoint remote_endpoint;
-    socket.receive_from(boost::asio::buffer(data, sizeof(data)), remote_endpoint);
+    boost::system::error_code err;
+
+    socket.receive_from(boost::asio::buffer(data, sizeof(data)), remote_endpoint, 0, err);
+    if (err)
+      throw NetworkException("receive", err);
     if (!related || (related && remote_endpoint.address() == targetIP)) {
       sourceIP = remote_endpoint.address();
       return;
@@ -44,41 +62,52 @@ void NetworkAccess::receivePacket(bool related) {
 
 void NetworkAccess::sendPacket(std::string addr, uint16_t port, const char* data, unsigned int length) {
   boost::asio::ip::udp::endpoint remote_endpoint;
+  boost::system::error_code err;
 
-  targetIP = boost::asio::ip::address::from_string(addr);
+  targetIP = boost::asio::ip::address::from_string(addr, err);
+  if (err)
+    throw NetworkException("send", err);
   remote_endpoint = boost::asio::ip::udp::endpoint(targetIP, port);
   
-  boost::system::error_code error;
-  socket.send_to(boost::asio::buffer(data, length), remote_endpoint, 0, error);
-
-  if (error) {
-    throw NetworkException(addr);
-  }
+  socket.send_to(boost::asio::buffer(data, length), remote_endpoint, 0, err);
+  if (err)
+    throw NetworkException("send", err);
 }
 
-void NetworkAccess::openSocket(const std::string* interface, InitStyle init) {
-  socket.open(boost::asio::ip::udp::v6());
-  socket.bind(
-    boost::asio::ip::udp::endpoint(
-      boost::asio::ip::address_v6::any(),
-      HXB_PORT));
+void NetworkAccess::openSocket(const boost::asio::ip::address_v6& addr, const std::string* interface, InitStyle init) {
+  boost::system::error_code err;
 
-  socket.set_option(boost::asio::ip::multicast::hops(64));
+  socket.open(boost::asio::ip::udp::v6(), err);
+  if (err)
+    throw NetworkException("open", err);
+
+  socket.bind(boost::asio::ip::udp::endpoint(addr, HXB_PORT), err);
+  if (err)
+    throw NetworkException("open", err);
+
+  socket.set_option(boost::asio::ip::multicast::hops(64), err);
+  if (err)
+    throw NetworkException("open", err);
 
   int if_index = 0;
 
   if (interface) {
     if_index = if_nametoindex(interface->c_str());
     if (if_index == 0) {
-      throw NetworkException(*interface);
+      throw NetworkException("open", boost::system::error_code(boost::system::errc::no_such_device, boost::system::generic_category()));
     }
-    socket.set_option(boost::asio::ip::multicast::outbound_interface(if_index));
+    socket.set_option(boost::asio::ip::multicast::outbound_interface(if_index), err);
+    if (err)
+      throw NetworkException("open", err);
   }
 
   socket.set_option(
     boost::asio::ip::multicast::join_group(
       boost::asio::ip::address_v6::from_string(HXB_GROUP),
-      if_index));
+      if_index),
+    err);
+  if (err)
+    throw NetworkException("open", err);
 
   if (init == Reliable) {
     // Send invalid packets and wait for a second to build state on multicast routers on the way
