@@ -95,135 +95,145 @@ int main(int argc, char** argv)
   klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
   klio::TimeConverter::Ptr tc(new klio::TimeConverter());
 
-  while(true) {
-    network.receivePacket(false);
-    char* recv_data = network.getData();
-    hexabus::PacketHandling phandling(recv_data);
+	struct {
+			klio::Store::Ptr store;
+			klio::TimeConverter::Ptr tc;
+			klio::SensorFactory::Ptr sensor_factory;
+			std::string sensor_timezone;
 
-    // Check for info packets.
-    if(phandling.getPacketType() == HXB_PTYPE_INFO) { 
-      struct hxb_value value = phandling.getValue();
-      float reading=0.0;
-      std::string sensor_unit;
+      void operator()(const boost::asio::ip::address_v6& source, const std::vector<char>& data)
+			{
+				// FIXME: PacketHandling should accept const char*
+				char* recv_data = const_cast<char*>(&data[0]);
+				hexabus::PacketHandling phandling(recv_data);
 
-      //use the use the right datatype for each recieved packet
-      switch(phandling.getDatatype()){
-        case HXB_DTYPE_BOOL:
-        case HXB_DTYPE_UINT8:
-          reading = (float)(*(uint8_t*)&value.data);
-          break;
-        case HXB_DTYPE_UINT32:
-          uint32_t v;
-          memcpy(&v, &value.data[0], sizeof(uint32_t));  // damit gehts..
-          reading = (float) v;
-          break;
-        //case 4: //date+time packet
-        case HXB_DTYPE_FLOAT:
-          memcpy(&reading, &value.data[0], sizeof(float));
-          break;
-        //case 6: //128char string
-        case 7:
-          reading = (float)(*(uint32_t*)&value.data);
-          break;
-        default:
-          reading = (float)(*(uint32_t*)&value.data);
-      }
-      // use the correct dataunit for the endpoints
-      switch(phandling.getEID()){
-        case 1:
-          sensor_unit=std::string("boolean");
-          break;
-        case 2:
-          sensor_unit=std::string("Watt");
-          break;
-        case 3:
-          sensor_unit=std::string("deg Celsius");
-          break;
-        case 4:
-          sensor_unit=std::string("boolean");
-          break;
-        case 5:
-          sensor_unit=std::string("% r.h.");
-          break;
-        case 6:
-          sensor_unit=std::string("hPa");
-          break;
-        case 23:
-        case 24:
-        case 25:
-        case 26:
-          sensor_unit=std::string("boolean");
-          break;
-        default:
-          sensor_unit=std::string("unknown");
-      }
+				// Check for info packets.
+				if(phandling.getPacketType() == HXB_PTYPE_INFO) { 
+					struct hxb_value value = phandling.getValue();
+					float reading=0.0;
+					std::string sensor_unit;
 
-      /* Uncomment this, if you use an old firmware, where temperature is 
-       * transmitted as uint32_t instead of float.
-      if( (int)phandling.getEID() == 3 ) {
-        // Hack for temp reading. TODO: Update to use new packet format.
-        reading = (float)(*(uint32_t*)&value.data)/10000;
-      }
-      */
+					//use the use the right datatype for each recieved packet
+					switch(phandling.getDatatype()){
+						case HXB_DTYPE_BOOL:
+						case HXB_DTYPE_UINT8:
+							reading = (float)(*(uint8_t*)&value.data);
+							break;
+						case HXB_DTYPE_UINT32:
+							uint32_t v;
+							memcpy(&v, &value.data[0], sizeof(uint32_t));  // damit gehts..
+							reading = (float) v;
+							break;
+						//case 4: //date+time packet
+						case HXB_DTYPE_FLOAT:
+							memcpy(&reading, &value.data[0], sizeof(float));
+							break;
+						//case 6: //128char string
+						case 7:
+							reading = (float)(*(uint32_t*)&value.data);
+							break;
+						default:
+							reading = (float)(*(uint32_t*)&value.data);
+					}
+					// use the correct dataunit for the endpoints
+					switch(phandling.getEID()){
+						case 1:
+							sensor_unit=std::string("boolean");
+							break;
+						case 2:
+							sensor_unit=std::string("Watt");
+							break;
+						case 3:
+							sensor_unit=std::string("deg Celsius");
+							break;
+						case 4:
+							sensor_unit=std::string("boolean");
+							break;
+						case 5:
+							sensor_unit=std::string("% r.h.");
+							break;
+						case 6:
+							sensor_unit=std::string("hPa");
+							break;
+						case 23:
+						case 24:
+						case 25:
+						case 26:
+							sensor_unit=std::string("boolean");
+							break;
+						default:
+							sensor_unit=std::string("unknown");
+					}
 
-      /**
-       * 1. Create unique ID for each info message and sensor,
-       * <ip>+<endpoint>
-       */
-      std::ostringstream oss;
-      oss << network.getSourceIP().to_string();
-      oss << "-";
-      oss << phandling.getEID();
-      std::string sensor_id(oss.str());
-      std::cout << "Received a reading from " << sensor_id << ", value "
-        << reading << std::endl;
+					/* Uncomment this, if you use an old firmware, where temperature is 
+					 * transmitted as uint32_t instead of float.
+					if( (int)phandling.getEID() == 3 ) {
+						// Hack for temp reading. TODO: Update to use new packet format.
+						reading = (float)(*(uint32_t*)&value.data)/10000;
+					}
+					*/
 
-      /**
-       * 2. Ask Klio for a sensor instance. If none is known for this
-       * sensor, create a new one.
-       */
+					/**
+					 * 1. Create unique ID for each info message and sensor,
+					 * <ip>+<endpoint>
+					 */
+					std::ostringstream oss;
+					oss << source.to_string();
+					oss << "-";
+					oss << phandling.getEID();
+					std::string sensor_id(oss.str());
+					std::cout << "Received a reading from " << sensor_id << ", value "
+						<< reading << std::endl;
 
-      try {
-        bool found=false;
-        std::vector<klio::Sensor::uuid_t> uuids = store->getSensorUUIDs();
-        std::vector<klio::Sensor::uuid_t>::iterator it;
-        for(  it = uuids.begin(); it < uuids.end(); it++) {
-          klio::Sensor::Ptr loadedSensor(store->getSensor(*it));
-          if (boost::iequals(loadedSensor->name(), sensor_id)) {
-            // We have found our sensor. Now add data to it.
-            found=true;
-            /**
-             * 3. Use the sensor instance to save the value.
-             */
-            klio::timestamp_t timestamp=tc->get_timestamp();
-            store->add_reading(loadedSensor, timestamp, reading);
-            //std::cout << "Added reading to sensor " 
-            //  << loadedSensor->name() << std::endl;
-            break;
-          }
-        }
-        if (! found) {
-          // apparently, this is a new sensor. Create a representation in klio for it.
-          klio::Sensor::Ptr new_sensor(sensor_factory->createSensor(
-                sensor_id, sensor_unit, sensor_timezone)); 
-          store->addSensor(new_sensor);
-          std::cout << "Created new sensor: " << new_sensor->str() << std::endl;
-          /**
-           * 3. Use the sensor instance to save the value.
-           */
-          klio::timestamp_t timestamp=tc->get_timestamp();
-          store->add_reading(new_sensor, timestamp, reading);
-          std::cout << "Added reading to sensor " 
-            << new_sensor->name() << std::endl;
-        } 
-      } catch (klio::StoreException const& ex) {
-        std::cout << "Failed to record reading: " << ex.what() << std::endl;
-      } catch (std::exception const& ex) {
-        std::cout << "Failed to record reading: " << ex.what() << std::endl;
-      }
-    } else {
-      std::cout << "Received some packet." << std::endl;
-    }
-  }
+					/**
+					 * 2. Ask Klio for a sensor instance. If none is known for this
+					 * sensor, create a new one.
+					 */
 
+					try {
+						bool found=false;
+						std::vector<klio::Sensor::uuid_t> uuids = store->getSensorUUIDs();
+						std::vector<klio::Sensor::uuid_t>::iterator it;
+						for(  it = uuids.begin(); it < uuids.end(); it++) {
+							klio::Sensor::Ptr loadedSensor(store->getSensor(*it));
+							if (boost::iequals(loadedSensor->name(), sensor_id)) {
+								// We have found our sensor. Now add data to it.
+								found=true;
+								/**
+								 * 3. Use the sensor instance to save the value.
+								 */
+								klio::timestamp_t timestamp=tc->get_timestamp();
+								store->add_reading(loadedSensor, timestamp, reading);
+								//std::cout << "Added reading to sensor " 
+								//  << loadedSensor->name() << std::endl;
+								break;
+							}
+						}
+						if (! found) {
+							// apparently, this is a new sensor. Create a representation in klio for it.
+							klio::Sensor::Ptr new_sensor(sensor_factory->createSensor(
+										sensor_id, sensor_unit, sensor_timezone)); 
+							store->addSensor(new_sensor);
+							std::cout << "Created new sensor: " << new_sensor->str() << std::endl;
+							/**
+							 * 3. Use the sensor instance to save the value.
+							 */
+							klio::timestamp_t timestamp=tc->get_timestamp();
+							store->add_reading(new_sensor, timestamp, reading);
+							std::cout << "Added reading to sensor " 
+								<< new_sensor->name() << std::endl;
+						} 
+					} catch (klio::StoreException const& ex) {
+						std::cout << "Failed to record reading: " << ex.what() << std::endl;
+					} catch (std::exception const& ex) {
+						std::cout << "Failed to record reading: " << ex.what() << std::endl;
+					}
+				} else {
+					std::cout << "Received some packet." << std::endl;
+				}
+			}
+	} receiveCallback = { store, tc, sensor_factory, sensor_timezone };
+
+	network.onPacketReceived(receiveCallback);
+	network.run();
 }

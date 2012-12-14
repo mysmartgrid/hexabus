@@ -43,8 +43,9 @@ datetime make_datetime_struct(time_t given_time = -1) {
 
 }
 
-void print_packet(char* recv_data) {
-  hexabus::PacketHandling phandling(recv_data);
+void print_packet(const char* recv_data) {
+  // FIXME: PacketHandling should accept const char*
+  hexabus::PacketHandling phandling(const_cast<char*>(recv_data));
 
   std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
   if(phandling.getPacketType() == HXB_PTYPE_ERROR)
@@ -197,13 +198,31 @@ po::variable_value get_mandatory_parameter(
 
 
 template<typename Packet>
-void send_packet(hexabus::NetworkAccess* net, const std::string& addr, const Packet& packet)
+void send_packet(hexabus::NetworkAccess* net, const std::string& addr, const Packet& packet, bool printResponse = false)
 {
   try {
     net->sendPacket(addr, HXB_PORT, reinterpret_cast<const char*>(&packet), sizeof(packet));
   } catch (const hexabus::NetworkException& e) {
     std::cerr << "Could not send packet to " << addr << ": " << e.code().message() << std::endl;
     exit(1);
+  }
+  if (printResponse) {
+    struct {
+      boost::asio::ip::address addr;
+      hexabus::NetworkAccess* net;
+
+      void operator()(const boost::asio::ip::address_v6& source, const std::vector<char>& data)
+      {
+        if (source == this->addr) {
+          print_packet(&data[0]);
+          this->net->stop();
+        }
+      }
+    } receiveCallback = { boost::asio::ip::address::from_string(addr), net };
+
+    boost::signals2::connection c = net->onPacketReceived(receiveCallback);
+    net->run();
+    c.disconnect();
   }
 }
 
@@ -293,17 +312,25 @@ int main(int argc, char** argv) {
   if(boost::iequals(command, std::string("LISTEN")))
   {
     std::cout << "Entering listen mode." << std::endl;
-    while(true) {
-      try {
-        network->receivePacket(false);
-        char* recv_data = network->getData();
-        std::cout << "Received packet from " << network->getSourceIP() << std::endl;
-        print_packet(recv_data);
-      } catch (const hexabus::NetworkException& e) {
-        std::cerr << "Error receiving packet: " << e.code().message() << std::endl;
-        return 1;
+
+    struct {
+      void operator()(const boost::asio::ip::address_v6& source, const std::vector<char>& data)
+      {
+        std::cout << "Received packet from " << source << std::endl;
+        print_packet(const_cast<char*>(&data[0]));
       }
-    }
+    } receiveCallback;
+
+    struct {
+      void operator()(const hexabus::NetworkException& error)
+      {
+        std::cerr << "Error receiving packet: " << error.code().message() << std::endl;
+        exit(1);
+      }
+    } errorCallback;
+
+    network->onAsyncError(errorCallback);
+    network->onPacketReceived(receiveCallback);
   }
 
   hexabus::Packet::Ptr packetm(new hexabus::Packet()); // the packet making machine
@@ -328,9 +355,7 @@ int main(int argc, char** argv) {
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command STATUS needs an IP address").as<std::string>();
     hxb_packet_query packet = packetm->query(1);
-    send_packet(network, ip, packet);
-    network->receivePacket(true);
-    print_packet(network->getData());
+    send_packet(network, ip, packet, true);
 
   }
   else if(boost::iequals(command, std::string("POWER")))  // power: query EID 2
@@ -338,9 +363,7 @@ int main(int argc, char** argv) {
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command STATUS needs an IP address").as<std::string>();
     hxb_packet_query packet = packetm->query(2);
-    send_packet(network, ip, packet);
-    network->receivePacket(true);
-    print_packet(network->getData());
+    send_packet(network, ip, packet, true);
   }
 
   /*
@@ -413,9 +436,7 @@ int main(int argc, char** argv) {
     uint32_t eid = get_mandatory_parameter(vm,
           "eid", "command GET needs an EID").as<uint32_t>();
     hxb_packet_query packet = packetm->query(eid);
-    send_packet(network, ip, packet);
-    network->receivePacket(true);
-    print_packet(network->getData());
+    send_packet(network, ip, packet, true);
   }
 
   else if (boost::iequals(command, std::string("EPQUERY")))   // epquery: request endpoint metadata
@@ -425,9 +446,7 @@ int main(int argc, char** argv) {
     uint32_t eid = get_mandatory_parameter(vm,
         "eid", "command GET needs an EID").as<uint32_t>();
     hxb_packet_query packet = packetm->query(eid, true);
-    send_packet(network, ip, packet);
-    network->receivePacket(true);
-    print_packet(network->getData());
+    send_packet(network, ip, packet, true);
   }
   else if (boost::iequals(command, std::string("DEVINFO"))) 
     // epquery: request endpoint metadata
@@ -435,9 +454,7 @@ int main(int argc, char** argv) {
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command STATUS needs an IP address").as<std::string>();
     hxb_packet_query packet = packetm->query(0, true);
-    send_packet(network, ip, packet);
-    network->receivePacket(true);
-    print_packet(network->getData());
+    send_packet(network, ip, packet, true);
   }
   else if (boost::iequals(command, std::string("SEND")))      // send: send a value broadcast
   {

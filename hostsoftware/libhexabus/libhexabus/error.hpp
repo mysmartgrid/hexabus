@@ -3,6 +3,7 @@
 
 #include <string>
 #include <exception>
+#include <tr1/memory>
 #include <boost/system/error_code.hpp>
 
 namespace hexabus {

@@ -181,39 +181,55 @@ void assert_statemachine_state(hexabus::NetworkAccess* network, const std::strin
 
   hxb_packet_query query_packet = packetm->query(EP_SM_CONTROL, false);
   network->sendPacket(ip_addr.c_str(), HXB_PORT, (char*)&query_packet, sizeof(query_packet));
-  network->receivePacket(true);
-  hexabus::PacketHandling phandling(network->getData());
-  //std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
-  if(phandling.getOkay() && (phandling.getPacketType() == HXB_PTYPE_INFO))
-  {
-    if(phandling.getDatatype() == HXB_DTYPE_UINT8) {
-   //   std::cout << "Info packet" << std::endl;
-   //   std::cout << "Endpoint " << phandling.getEID() << std::endl;
-      if (req_state == STM_STATE_STOPPED) {
-        if (phandling.getValue().data[0] == STM_STATE_STOPPED) {
-          std::cout << "State machine has been stopped successfully" << std::endl;
-        } else {
-          std::cerr << "Failed to stop state machine - aborting." << std::endl;
-          exit(-2);
-        }
-      } else if (req_state == STM_STATE_RUNNING) {
-        if (phandling.getValue().data[0] == STM_STATE_RUNNING) {
-          std::cout << "State machine is running." << std::endl;
-        } else {
-          std::cerr << "Failed to start state machine - aborting." << std::endl;
-          exit(-2);
-        }
-      } else {
-        std::cout << "Unexpected STM_STATE requested - aborting." << std::endl;
-        exit(-3);
-      }
-    } else {
-      std::cout << "Expected uint8 data in packet - got something different." << std::endl;
-    }
-  } else {
-    std::cout << "Unknown packet received after state machine control request - aborting." << std::endl;
-    exit(-4);
-  }
+
+	struct {
+		hexabus::NetworkAccess* network;
+		boost::asio::ip::address addr;
+		STM_state_t req_state;
+
+		void operator()(const boost::asio::ip::address_v6& source, const std::vector<char>& data)
+		{
+				if (source == addr) {
+					hexabus::PacketHandling phandling(const_cast<char*>(&data[0]));
+					//std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
+					if(phandling.getOkay() && (phandling.getPacketType() == HXB_PTYPE_INFO))
+					{
+						if(phandling.getDatatype() == HXB_DTYPE_UINT8) {
+					 //   std::cout << "Info packet" << std::endl;
+					 //   std::cout << "Endpoint " << phandling.getEID() << std::endl;
+							if (req_state == STM_STATE_STOPPED) {
+								if (phandling.getValue().data[0] == STM_STATE_STOPPED) {
+									std::cout << "State machine has been stopped successfully" << std::endl;
+								} else {
+									std::cerr << "Failed to stop state machine - aborting." << std::endl;
+									exit(-2);
+								}
+							} else if (req_state == STM_STATE_RUNNING) {
+								if (phandling.getValue().data[0] == STM_STATE_RUNNING) {
+									std::cout << "State machine is running." << std::endl;
+								} else {
+									std::cerr << "Failed to start state machine - aborting." << std::endl;
+									exit(-2);
+								}
+							} else {
+								std::cout << "Unexpected STM_STATE requested - aborting." << std::endl;
+								exit(-3);
+							}
+						} else {
+							std::cout << "Expected uint8 data in packet - got something different." << std::endl;
+						}
+					} else {
+						std::cout << "Unknown packet received after state machine control request - aborting." << std::endl;
+						exit(-4);
+					}
+					network->stop();
+				}
+		}
+	} receiveCallback = { network, boost::asio::ip::address::from_string(ip_addr), req_state };
+
+	boost::signals2::connection c = network->onPacketReceived(receiveCallback);
+	network->run();
+	c.disconnect();
 }
 
 bool send_chunk(hexabus::NetworkAccess* network, const std::string& ip_addr, uint8_t chunk_id, const std::vector<char>& chunk) {
@@ -226,21 +242,36 @@ bool send_chunk(hexabus::NetworkAccess* network, const std::string& ip_addr, uin
   hxb_packet_66bytes packet = packetm->writebytes(EP_SM_UP_RECEIVER, HXB_DTYPE_66BYTES, reinterpret_cast<char*>(&bin_data[0]), bin_data.size(), false);
   network->sendPacket(ip_addr.c_str(), HXB_PORT, (char*)&packet, sizeof(packet));
   // print_packet((char*)&packet);
-  network->receivePacket(true);
+	bool result = false;
+	struct {
+		hexabus::NetworkAccess* network;
+		boost::asio::ip::address addr;
+		bool& result;
 
-  hexabus::PacketHandling phandling(network->getData());
-  //std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
-  if(phandling.getPacketType() == HXB_PTYPE_INFO)
-  {
-   // std::cout << "Info packet" << std::endl;
-   // std::cout << "Endpoint " << phandling.getEID() << std::endl;
-   // std::cout << "Value: " << (int)phandling.getValue().data[0] << std::endl;
-    if (phandling.getValue().data[0] == true)
-      return true;
-  } else {
-    std::cout << "?";
-  }
-  return false;
+		void operator()(const boost::asio::ip::address_v6& from, const std::vector<char>& data)
+		{
+			if (from == addr) {
+				hexabus::PacketHandling phandling(const_cast<char*>(&data[0]));
+				//std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
+				if(phandling.getPacketType() == HXB_PTYPE_INFO)
+				{
+				 // std::cout << "Info packet" << std::endl;
+				 // std::cout << "Endpoint " << phandling.getEID() << std::endl;
+				 // std::cout << "Value: " << (int)phandling.getValue().data[0] << std::endl;
+					if (phandling.getValue().data[0] == true)
+						result = true;
+				} else {
+					std::cout << "?";
+				}
+				network->stop();
+			}
+		}
+	} receiveCallback = { network, boost::asio::ip::address::from_string(ip_addr), result };
+
+	boost::signals2::connection c = network->onPacketReceived(receiveCallback);
+	network->run();
+
+  return result;
 }
 
 int main(int argc, char** argv) {

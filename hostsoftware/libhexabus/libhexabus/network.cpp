@@ -11,8 +11,12 @@
 #include <errno.h>
 #include <cstring>
 
+#include <boost/bind.hpp>
+
 
 using namespace hexabus;
+namespace bs2 = boost::signals2;
+
 NetworkAccess::NetworkAccess(const std::string& interface, InitStyle init) :
   io_service(),
   socket(io_service)
@@ -43,32 +47,61 @@ NetworkAccess::NetworkAccess(const boost::asio::ip::address_v6& addr, const std:
 
 NetworkAccess::~NetworkAccess()
 {
-  boost::system::error_code err;
+	boost::system::error_code err;
 
-  socket.close(err);
-  // FIXME: maybe errors should be logged somewhere
+	socket.close(err);
+	// FIXME: maybe errors should be logged somewhere
 }
 
-void NetworkAccess::receivePacket(bool related) {
-  while (true) {
-    boost::asio::ip::udp::endpoint remote_endpoint;
-    boost::system::error_code err;
+void NetworkAccess::run()
+{
+	io_service.run();
+}
 
-    socket.receive_from(boost::asio::buffer(data, sizeof(data)), remote_endpoint, 0, err);
-    if (err)
-      throw NetworkException("receive", err);
-    if (!related || (related && remote_endpoint.address() == targetIP)) {
-      sourceIP = remote_endpoint.address();
-      return;
-    }
-  }
+void NetworkAccess::stop()
+{
+	io_service.stop();
+}
+
+void NetworkAccess::beginReceive()
+{
+	socket.async_receive_from(boost::asio::buffer(data, sizeof(data)), remoteEndpoint,
+			boost::bind(&NetworkAccess::packetReceiveHandler,
+				this,
+				boost::asio::placeholders::error,
+				boost::asio::placeholders::bytes_transferred));
+}
+
+bs2::connection NetworkAccess::onPacketReceived(on_packet_received_slot_t callback)
+{
+	bs2::connection result = packetReceived.connect(callback);
+
+	beginReceive();
+
+	return result;
+}
+
+bs2::connection NetworkAccess::onAsyncError(on_async_error_slot_t callback)
+{
+	return asyncError.connect(callback);
+}
+
+void NetworkAccess::packetReceiveHandler(const boost::system::error_code& error, size_t size)
+{
+	if (error) {
+		asyncError(NetworkException("receive", error));
+		return;
+	}
+	packetReceived(remoteEndpoint.address().to_v6(), std::vector<char>(data, data + size));
+	if (!packetReceived.empty())
+		beginReceive();
 }
 
 void NetworkAccess::sendPacket(std::string addr, uint16_t port, const char* data, unsigned int length) {
   boost::asio::ip::udp::endpoint remote_endpoint;
   boost::system::error_code err;
 
-  targetIP = boost::asio::ip::address::from_string(addr, err);
+  boost::asio::ip::address targetIP = boost::asio::ip::address::from_string(addr, err);
   if (err)
     throw NetworkException("send", err);
   remote_endpoint = boost::asio::ip::udp::endpoint(targetIP, port);
@@ -126,6 +159,3 @@ void NetworkAccess::openSocket(const boost::asio::ip::address_v6& addr, const st
     }
   }
 }
-
-char* NetworkAccess::getData() { return data; }
-boost::asio::ip::address NetworkAccess::getSourceIP() { return sourceIP; }
