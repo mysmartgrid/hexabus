@@ -118,7 +118,7 @@ void NetworkAccess::openSocket(const boost::asio::ip::address_v6& addr, const st
   if (err)
     throw NetworkException("open", err);
 
-  socket.bind(boost::asio::ip::udp::endpoint(addr, HXB_PORT), err);
+  socket.bind(boost::asio::ip::udp::endpoint(addr, 0), err);
   if (err)
     throw NetworkException("open", err);
 
