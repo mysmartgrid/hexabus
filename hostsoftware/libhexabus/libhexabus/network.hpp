@@ -16,7 +16,6 @@ namespace hexabus {
       NetworkAccess(const boost::asio::ip::address_v6& addr, InitStyle init);
       NetworkAccess(const boost::asio::ip::address_v6& addr, const std::string& interface, InitStyle init);
       ~NetworkAccess();
-      void closeSocket();
       void receivePacket(bool related); // related==true: receive data from the address where the last packet was sent to
       void sendPacket(std::string addr, uint16_t port, const char* data, unsigned int length);
       boost::asio::ip::address getSourceIP();

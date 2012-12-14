@@ -43,6 +43,10 @@ NetworkAccess::NetworkAccess(const boost::asio::ip::address_v6& addr, const std:
 
 NetworkAccess::~NetworkAccess()
 {
+  boost::system::error_code err;
+
+  socket.close(err);
+  // FIXME: maybe errors should be logged somewhere
 }
 
 void NetworkAccess::receivePacket(bool related) {
@@ -123,8 +127,5 @@ void NetworkAccess::openSocket(const boost::asio::ip::address_v6& addr, const st
   }
 }
 
-
-
-void NetworkAccess::closeSocket() { socket.close(); }
 char* NetworkAccess::getData() { return data; }
 boost::asio::ip::address NetworkAccess::getSourceIP() { return sourceIP; }
