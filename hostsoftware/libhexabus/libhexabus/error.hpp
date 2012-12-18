@@ -32,6 +32,17 @@ namespace hexabus {
       boost::system::error_code _code;
   };
 
+	class BadPacketException : public GenericException {
+		public:
+			typedef std::tr1::shared_ptr<BadPacketException> Ptr;
+
+			BadPacketException (const std::string reason)
+				: hexabus::GenericException(reason)
+			{}
+
+			virtual ~BadPacketException() throw() {};
+	};
+
 }
 
 #endif /* LIBHEXABUS_ERROR_HPP */

@@ -4,6 +4,7 @@
 #include "packet.hpp"
 #include "crc.hpp"
 #include "error.hpp"
+#include "private/serialization.hpp"
 
 #include <iostream>
 #include <sys/types.h>
@@ -92,12 +93,18 @@ void NetworkAccess::packetReceiveHandler(const boost::system::error_code& error,
 		asyncError(NetworkException("receive", error));
 		return;
 	}
-	packetReceived(remoteEndpoint.address().to_v6(), std::vector<char>(data, data + size));
+	Packet::Ptr packet;
+	try {
+		packet = deserialize(&data[0], data.size());
+	} catch (const BadPacketException& e) {
+		asyncError(e);
+	}
+	packetReceived(remoteEndpoint.address().to_v6(), *packet);
 	if (!packetReceived.empty())
 		beginReceive();
 }
 
-void NetworkAccess::sendPacket(std::string addr, uint16_t port, const char* data, unsigned int length) {
+void NetworkAccess::sendPacket(std::string addr, uint16_t port, const Packet& packet) {
   boost::asio::ip::udp::endpoint remote_endpoint;
   boost::system::error_code err;
 
@@ -105,8 +112,10 @@ void NetworkAccess::sendPacket(std::string addr, uint16_t port, const char* data
   if (err)
     throw NetworkException("send", err);
   remote_endpoint = boost::asio::ip::udp::endpoint(targetIP, port);
+
+  std::vector<char> data = serialize(packet);
   
-  socket.send_to(boost::asio::buffer(data, length), remote_endpoint, 0, err);
+  socket.send_to(boost::asio::buffer(&data[0], data.size()), remote_endpoint, 0, err);
   if (err)
     throw NetworkException("send", err);
 }
@@ -152,7 +161,8 @@ void NetworkAccess::openSocket(const boost::asio::ip::address_v6& addr, const st
     // on at least two consecutive hops, which should be enough for time being.
     // Ideally, this should be replaced by something less reminiscent of brute force
     for (int i = 0; i < 2; i++) {
-      sendPacket(HXB_GROUP, 61616, 0, 0);
+			// TODO: reserve an endpoint for this?
+      sendPacket(HXB_GROUP, 61616, WritePacket<bool>(0, true));
 
       timeval timeout = { 1, 0 };
       select(0, 0, 0, 0, &timeout);
