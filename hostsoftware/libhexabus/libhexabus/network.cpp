@@ -161,8 +161,7 @@ void NetworkAccess::openSocket(const boost::asio::ip::address_v6& addr, const st
     // on at least two consecutive hops, which should be enough for time being.
     // Ideally, this should be replaced by something less reminiscent of brute force
     for (int i = 0; i < 2; i++) {
-			// TODO: reserve an endpoint for this?
-      sendPacket(HXB_GROUP, 61616, WritePacket<bool>(0, true));
+      sendPacket(HXB_GROUP, 61616, InfoPacket<bool>(31, true));
 
       timeval timeout = { 1, 0 };
       select(0, 0, 0, 0, &timeout);
