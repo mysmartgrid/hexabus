@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HexaDroid</string>
+    <string name="hello">HexaDroid</string>
+    <string name="demo">HexaDroid Demo</string>
+    <string name="on">On</string>
+    <string name="off">Off</string>
+    <string name="cancel">Cancel</string>
+    <string name="add">Add</string>
+    <string name="update">Update</string>
+    <string name="send">Send</string>
+    <string name="send_write_packet_dialog_title">Send write packet</string>
+    <string name="send_write_packet">Send write packet</string>
+    <string name="send_write_packet_value">Please enter the value for the write packet.</string>
+    <string name="menu_add_eid">Add endpoint</string>
+    <string name="add_endpoint_dialog_title">Add endpoint</string>
+    <string name="update_endpoint_dialog_title">Update endpoint</string>
+    <string name="specify_eid">EID:</string>
+    <string name="specify_type">Data Type:</string>
+    <string name="specify_desc">Description:</string>
+    <string name="readable">Readable</string>
+    <string name="writable">Writable</string>
+    <string-array name="types_array">
+		<item>nodata</item>
+		<item>boolean</item>
+		<item>uint8</item>
+		<item>uint32</item>
+		<item>datetime</item>
+		<item>float</item>
+		<item>string</item>
+		<item>timestamp</item>
+	</string-array>
+    <string name="devices">Devices</string>
+    <string name="refresh">Refresh</string>
+    <string name="service_name">Hexabus service</string>
+    <string name="header">Devices</string>
+</resources>

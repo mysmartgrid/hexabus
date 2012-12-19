@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    >
+<TextView
+    android:id="@+id/textview"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:text="@string/header"
+    />
+<fragment
+    android:name="de.fraunhofer.itwm.hexabus.android.DeviceListFragment"
+    android:id="@+id/devicelistfragment"
+    android:layout_weight="2"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
+</LinearLayout>
+
