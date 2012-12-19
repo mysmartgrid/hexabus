@@ -235,7 +235,16 @@ void BinarySerializer::appendValue(const ValuePacket<std::vector<char> >& value)
 }
 
 
-void BinarySerializer::visit(const EndpointInfoPacket& endpointInfo) { appendValue(endpointInfo); }
+void BinarySerializer::visit(const EndpointInfoPacket& endpointInfo)
+{
+	appendHeaderWithEID(endpointInfo);
+
+	append_u8(endpointInfo.datatype());
+	_target.insert(_target.end(), endpointInfo.value().begin(), endpointInfo.value().end());
+	_target.insert(_target.end(), HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1 - endpointInfo.value().size(), '\0');
+
+	appendCRC();
+}
 
 void BinarySerializer::visit(const InfoPacket<bool>& info) { appendValue(info); }
 void BinarySerializer::visit(const InfoPacket<uint8_t>& info) { appendValue(info); }
@@ -262,7 +271,7 @@ std::vector<char> hexabus::serialize(const Packet& packet)
 	std::vector<char> result;
 	BinarySerializer serializer(result);
 
-	packet.accept(serializer);
+	serializer.visitPacket(packet);
 
 	return result;
 }
@@ -313,7 +322,7 @@ void BinaryDeserializer::readHeader()
 {
 	checkLength(strlen(HXB_HEADER));
 
-	if (!memcmp(HXB_HEADER, _packet + _offset, strlen(HXB_HEADER)))
+	if (memcmp(HXB_HEADER, _packet + _offset, strlen(HXB_HEADER)))
 		throw BadPacketException("Invalid header");
 
 	_offset += strlen(HXB_HEADER);
@@ -400,7 +409,7 @@ Packet::Ptr BinaryDeserializer::checkInfo(bool info, uint8_t eid, const T& value
 template<typename T>
 Packet::Ptr BinaryDeserializer::check(const T& packet)
 {
-	uint8_t crc = hexabus::crc(_packet, _offset);
+	uint16_t crc = hexabus::crc(_packet, _offset);
 	if (crc != read_u16()) {
 		throw BadPacketException("Bad checksum");
 	}
@@ -426,7 +435,7 @@ Packet::Ptr BinaryDeserializer::deserialize()
 		case HXB_PTYPE_WRITE:
 			{
 				bool info = type == HXB_PTYPE_INFO;
-				uint8_t eid = read_u8();
+				uint32_t eid = read_u32();
 				uint8_t datatype = read_u8();
 
 				switch (datatype) {
@@ -493,7 +502,8 @@ Packet::Ptr BinaryDeserializer::deserialize()
 		case HXB_PTYPE_EPINFO:
 			{
 				uint8_t eid = read_u8();
-				return check(EndpointInfoPacket(eid, read_string(), flags));
+				uint8_t datatype = read_u8();
+				return check(EndpointInfoPacket(eid, datatype, read_string(), flags));
 			}
 
 		default:

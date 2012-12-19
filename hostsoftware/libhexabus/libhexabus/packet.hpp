@@ -26,6 +26,30 @@
 #endif
 
 namespace hexabus {
+	class PacketVisitor;
+
+	class Packet {
+		public:
+			typedef std::tr1::shared_ptr<Packet> Ptr;
+
+		private:
+			uint8_t _type;
+			uint8_t _flags;
+
+		protected:
+			Packet(uint8_t type, uint8_t flags = 0)
+				: _type(type), _flags(flags)
+			{}
+
+		public:
+			virtual ~Packet() {}
+
+			uint8_t type() const { return _type; }
+			uint8_t flags() const { return _flags; }
+
+			virtual void accept(PacketVisitor& visitor) const = 0;
+	};
+
 	class ErrorPacket;
 	class QueryPacket;
 	class EndpointQueryPacket;
@@ -61,28 +85,11 @@ namespace hexabus {
 			virtual void visit(const WritePacket<boost::posix_time::time_duration>& write) = 0;
 			virtual void visit(const WritePacket<std::string>& write) = 0;
 			virtual void visit(const WritePacket<std::vector<char> >& write) = 0;
-	};
 
-	class Packet {
-		public:
-			typedef std::tr1::shared_ptr<Packet> Ptr;
-
-		private:
-			uint8_t _type;
-			uint8_t _flags;
-
-		protected:
-			Packet(uint8_t type, uint8_t flags = 0)
-				: _type(type), _flags(flags)
-			{}
-
-		public:
-			virtual ~Packet() {}
-
-			uint8_t type() const { return _type; }
-			uint8_t flags() const { return _flags; }
-
-			virtual void accept(PacketVisitor& visitor) const = 0;
+			virtual void visitPacket(const Packet& packet)
+			{
+				packet.accept(*this);
+			}
 	};
 
 	class ErrorPacket : public Packet {
@@ -222,10 +229,15 @@ namespace hexabus {
 	};
 
 	class EndpointInfoPacket : public ValuePacket<std::string> {
+		private:
+			uint8_t _datatype;
+
 		public:
-			EndpointInfoPacket(uint32_t eid, const std::string& value, uint8_t flags = 0)
-				: ValuePacket(HXB_PTYPE_EPINFO, eid, value, flags)
+			EndpointInfoPacket(uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0)
+				: ValuePacket(HXB_PTYPE_EPINFO, eid, value, flags), _datatype(datatype)
 			{}
+
+			uint8_t datatype() const { return _datatype; }
 
 			virtual void accept(PacketVisitor& visitor) const
 			{

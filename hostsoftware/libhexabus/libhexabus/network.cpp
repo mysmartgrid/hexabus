@@ -66,7 +66,7 @@ void NetworkAccess::stop()
 
 void NetworkAccess::beginReceive()
 {
-	socket.async_receive_from(boost::asio::buffer(data, sizeof(data)), remoteEndpoint,
+	socket.async_receive_from(boost::asio::buffer(data, data.size()), remoteEndpoint,
 			boost::bind(&NetworkAccess::packetReceiveHandler,
 				this,
 				boost::asio::placeholders::error,
@@ -123,11 +123,13 @@ void NetworkAccess::sendPacket(std::string addr, uint16_t port, const Packet& pa
 void NetworkAccess::openSocket(const boost::asio::ip::address_v6& addr, const std::string* interface, InitStyle init) {
   boost::system::error_code err;
 
+	data.resize(HXB_MAX_PACKET_SIZE);
+
   socket.open(boost::asio::ip::udp::v6(), err);
   if (err)
     throw NetworkException("open", err);
 
-  socket.bind(boost::asio::ip::udp::endpoint(addr, 0), err);
+  socket.bind(boost::asio::ip::udp::endpoint(addr, 61616), err);
   if (err)
     throw NetworkException("open", err);
 
@@ -152,6 +154,7 @@ void NetworkAccess::openSocket(const boost::asio::ip::address_v6& addr, const st
       boost::asio::ip::address_v6::from_string(HXB_GROUP),
       if_index),
     err);
+	socket.set_option(boost::asio::ip::multicast::enable_loopback(true));
   if (err)
     throw NetworkException("open", err);
 
