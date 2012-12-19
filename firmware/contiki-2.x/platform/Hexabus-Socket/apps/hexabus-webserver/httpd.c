@@ -50,6 +50,7 @@
 #include "relay.h"
 #include "mdns_responder.h"
 #include "state_machine.h"
+#include "metering.h"
 extern void set_forwarding_to_eeprom(uint8_t);
 
 
@@ -93,8 +94,11 @@ char TCPBUF[512];
 #define CONNS WEBSERVER_CONF_CGI_CONNS
 #endif /* WEBSERVER_CONF_CGI_CONNS */
 
+// Connection state
 #define STATE_WAITING 0
 #define STATE_OUTPUT  1
+#define STATE_ERROR 2 // we still are working on the input, but an error has already occured
+#define STATE_OUTPUT_ERROR 3 // we go to OUTPUT state, but were in ERROR before
 
 #define WS_HXB_DTYPE_UINT16 0x08
 
@@ -370,6 +374,8 @@ const char httpd_indexfn [] HTTPD_STRING_ATTR = "/index.html";
 const char httpd_404fn   [] HTTPD_STRING_ATTR = "/404.html";
 const char httpd_404notf [] HTTPD_STRING_ATTR = "404 Not found";
 const char httpd_200ok   [] HTTPD_STRING_ATTR = "200 OK";
+const char httpd_413fn   [] HTTPD_STRING_ATTR = "/413.html";
+const char httpd_413error [] HTTPD_STRING_ATTR = "413 Request entity too large.";
 static
 PT_THREAD(handle_output(struct httpd_state *s))
 {
@@ -386,30 +392,47 @@ PT_THREAD(handle_output(struct httpd_state *s))
 		PT_WAIT_THREAD(&s->outputpt, send_file(s));
 	} else {
 
-		PT_WAIT_THREAD(&s->outputpt, send_headers(s, httpd_200ok));
-		ptr = strchr(s->filename, ISO_period);
-		if((ptr != NULL && httpd_strncmp(ptr, httpd_shtml, 6) == 0) || httpd_strcmp(s->filename,httpd_indexfn)==0) {
-			PT_INIT(&s->scriptpt);
-			PT_WAIT_THREAD(&s->outputpt, handle_script(s));
-		} else {
-			PT_WAIT_THREAD(&s->outputpt, send_file(s));
-		}
+    PRINTF("s->state: %d\r\n", s->state);
+
+    if(s->state == STATE_OUTPUT)
+    {
+      PT_WAIT_THREAD(&s->outputpt, send_headers(s, httpd_200ok));
+
+      ptr = strchr(s->filename, ISO_period);
+      if((ptr != NULL && httpd_strncmp(ptr, httpd_shtml, 6) == 0) || httpd_strcmp(s->filename,httpd_indexfn)==0) {
+        PT_INIT(&s->scriptpt);
+        PT_WAIT_THREAD(&s->outputpt, handle_script(s));
+      } else {
+        PT_WAIT_THREAD(&s->outputpt, send_file(s));
+      }
+    } else { // state == STATE_OUTPUT_ERROR
+      if(s->error_number == 413)
+      {
+        // Send the error message file instead.
+        httpd_strcpy(s->filename, httpd_413fn);
+        httpd_fs_open(s->filename, &s->file);
+
+        PT_WAIT_THREAD(&s->outputpt, send_headers(s, httpd_413error));
+        PT_WAIT_THREAD(&s->outputpt, send_file(s));
+      }
+      // other error messages can be added here.
+    }
 	}
 	PSOCK_CLOSE(&s->sout);
 	PT_END(&s->outputpt);
 }
 /*---------------------------------------------------------------------------*/
-	float expb10(int exp) {
-		float val = 1.f;
+	uint32_t expb10(int exp) {
+		uint32_t val = 1;
 		uint8_t i = 0;
 		if(exp >= 0) {
 			for(i = 0;i < exp;i++) {
-				val *= 10.f;
+				val *= 10;
 			}
 		} else {
 			exp *= -1;
 			for(i = 0;i < exp;i++) {
-				val /= 10.f;
+				val /= 10;
 			}
 		}
 		return val;
@@ -420,6 +443,15 @@ PT_THREAD(handle_output(struct httpd_state *s))
 		uint8_t i;
 		for(i = 0;i < length;i++) {
 			value += (str[i] - '0')*(uint8_t)expb10(length - i - 1);
+		}
+		return value;
+	}
+
+	uint32_t ctol(const char *str, uint8_t length) {
+		uint32_t value = 0;
+		uint8_t i;
+		for(i = 0;i < length;i++) {
+			value += (str[i] - '0')*expb10(length - i - 1);
 		}
 		return value;
 	}
@@ -550,6 +582,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			}
 			//parse config data
 			int found=0;
+
 			//look for the combination "\r\n\r\n"; the post data follow thereafter
 			while (!found)
 			{
@@ -561,12 +594,12 @@ PT_THREAD(handle_input(struct httpd_state *s))
 					found=1;
 				}
 			}
+
 			PSOCK_READTO(&s->sin, ISO_equal);
 			//check for domain_name
 			PSOCK_READTO(&s->sin, ISO_amper);
-			if(s->inputbuf[0] != ISO_amper) {
+			if(s->inputbuf[0] != ISO_amper)
 				mdns_responder_set_domain_name(s->inputbuf, PSOCK_DATALEN(&s->sin) - 1);
-			}
 
 			PSOCK_READTO(&s->sin, ISO_equal);
 			//check for relay_default_state
@@ -578,13 +611,22 @@ PT_THREAD(handle_input(struct httpd_state *s))
 
 			PSOCK_READTO(&s->sin, ISO_equal);
 			//check for forwarding
-			PSOCK_READBUF_LEN(&s->sin, 1);
+			PSOCK_READTO(&s->sin, ISO_amper);
 			if(s->inputbuf[0] == '1')
 				set_forwarding_to_eeprom(1);
 			else if (s->inputbuf[0] == '0')
 				set_forwarding_to_eeprom(0);
+
+#if S0_ENABLE
+			PSOCK_READTO(&s->sin, ISO_equal);
+			//check for s0 calibration value
+			PSOCK_READTO(&s->sin, ISO_amper);
+			if(s->inputbuf[0] != ISO_amper) {
+                metering_set_s0_calibration((uint16_t)atoi(s->inputbuf));
+            }
+#endif
 		}
-		else if (httpd_strncmp(&s->inputbuf[1], httpd_socket_status_file, sizeof(httpd_socket_status_file)-1) == 0){
+		else if (httpd_strncmp(&s->inputbuf[1], httpd_socket_status_file, sizeof(httpd_socket_status_file)-1) == 0) {
 			// toggle button has been pressed
 
 			s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
@@ -601,8 +643,8 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			relay_toggle();
 
 		}
-		else if (httpd_strncmp(&s->inputbuf[1], httpd_sm_post, sizeof(httpd_sm_post)-1) == 0)  {
-			
+		else if (httpd_strncmp(&s->inputbuf[1], httpd_sm_post, sizeof(httpd_sm_post)-1) == 0) {
+
 			PRINTF("State Machine Configurator: Received Statemachine-POST\n"); 
 			s->inputbuf[PSOCK_DATALEN(&s->sin) - 1] = 0;
 			strncpy(s->filename, &s->inputbuf[0], sizeof(s->filename));
@@ -628,7 +670,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 				}
 			}
 			PSOCK_READTO(&s->sin, ISO_equal);
-			// Initializing stuff we need lateron	
+			// Initializing stuff we need lateron
 			static struct transition trans;
 			static struct condition cond;
 			memset(&trans, 0, sizeof(struct transition));
@@ -647,33 +689,36 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			PSOCK_READTO(&s->sin, '-');
 			while(!end) {
 				PSOCK_READTO(&s->sin, '.');
-				if(PSOCK_DATALEN(&s->sin) <= 1) { 
+				if(PSOCK_DATALEN(&s->sin) <= 1) {
 					if(table == 0) {
-						PRINTF("End of CondTable.\n");	
+						PRINTF("End of CondTable.\n");
     				// Write length of condition table
-						eeprom_write_block(&numberOfBlocks, (void*)EE_STATEMACHINE_CONDITIONS, 1);
+						//eeprom_write_block(&numberOfBlocks, (void*)EE_STATEMACHINE_CONDITIONS, 1);
+						sm_set_number_of_conditions(numberOfBlocks);
 						numberOfBlocks = 0;
 						table++;
 						PSOCK_READTO(&s->sin, '-');
 						continue;
 					} else {
 						end = 1;
-						PRINTF("End of TransTable.\n");	
+						PRINTF("End of TransTable.\n");
 						// Write the Number of transitions
-    				eeprom_write_block(&numberOfBlocks, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
-						eeprom_write_block(&numberOfDT, (void*)EE_STATEMACHINE_DATETIME_TRANSITIONS, 1);
+						//eeprom_write_block(&numberOfBlocks, (void*)EE_STATEMACHINE_TRANSITIONS, 1);
+						//eeprom_write_block(&numberOfDT, (void*)EE_STATEMACHINE_DATETIME_TRANSITIONS, 1);
+						sm_set_number_of_transitions(false, numberOfBlocks);
+						sm_set_number_of_transitions(true, numberOfDT);
 						break;
 					}
 				}
 				// Extract the value out of string
 				if(table == 0) {
-					// CondTable	
+					// CondTable
 					switch(position) {
 							case 0:; // SourceIP. Empty expression is needed.
 								// Transform string to hex. A little bit hacked but it works.
 								uint8_t tmp = 0;
 								uint8_t j = 0;
-								for(i = 0;i < 16;i++, j+=2) {
+								for(i = 0; i < 16; i++, j+=2) {
 									if(s->inputbuf[j] <= '9') {
 										tmp = s->inputbuf[j] - '0';
 									} else {
@@ -688,25 +733,25 @@ PT_THREAD(handle_input(struct httpd_state *s))
 								}
 								break;
 							case 1: // SourceEID
-								cond.sourceEID = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+								cond.sourceEID = ctol(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 								break;
-							case 2: // DataType 
-								cond.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							case 2: // DataType
+								cond.value.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 								break;
-							case 3: // Operator 
+							case 3: // Operator
 								cond.op = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 								break;
 							case 4: // Value
-								if(cond.datatype == HXB_DTYPE_DATETIME) {
+								if(cond.value.datatype == HXB_DTYPE_DATETIME) {
 									if(cond.op & 0x20) {		// year field, uint16_t in contrast to the other uint8_t's
-										stodt(&s->inputbuf[0], cond.data, WS_HXB_DTYPE_UINT16, PSOCK_DATALEN(&s->sin) - 1);
+										stodt(&s->inputbuf[0], cond.value.data, WS_HXB_DTYPE_UINT16, PSOCK_DATALEN(&s->sin) - 1);
 									} else {
-										stodt(&s->inputbuf[0], cond.data, HXB_DTYPE_UINT8, PSOCK_DATALEN(&s->sin) - 1);
+										stodt(&s->inputbuf[0], cond.value.data, HXB_DTYPE_UINT8, PSOCK_DATALEN(&s->sin) - 1);
 									}
 								} else {
-										stodt(&s->inputbuf[0], cond.data, cond.datatype, PSOCK_DATALEN(&s->sin) - 1);
+									stodt(&s->inputbuf[0], cond.value.data, cond.value.datatype, PSOCK_DATALEN(&s->sin) - 1);
 								}
-					}
+							}
 					if(++position == 5) {
 						position = 0;
 						PRINTF("IP: ");
@@ -716,13 +761,16 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							}
 							PRINTF("%02x", cond.sourceIP[i]);
 						}
-						PRINTF("\nStruct Cond: EID: %u Operator: %u DataType: %u \n", cond.sourceEID, cond.op, cond.datatype);
+						PRINTF("\nStruct Cond: EID: %lu Operator: %u DataType: %u \n", cond.sourceEID, cond.op, cond.value.datatype);
 						// Write Line to EEPROM. Too much data will be truncated
 						if(numberOfBlocks < (EE_STATEMACHINE_CONDITIONS_SIZE / sizeof(struct condition))) {
-							eeprom_write_block(&cond, (void*)(numberOfBlocks*sizeof(struct condition) + 1 + EE_STATEMACHINE_CONDITIONS), sizeof(struct condition));
+							//eeprom_write_block(&cond, (void*)(numberOfBlocks*sizeof(struct condition) + 1 + EE_STATEMACHINE_CONDITIONS), sizeof(struct condition));
+							sm_write_condition(numberOfBlocks, &cond);
 							numberOfBlocks++;
 						} else {
 							PRINTF("Warning: Condition Table too long! Data will not be written.\n");
+							s->state = STATE_ERROR;
+							s->error_number = 413;
 						}
 						memset(&cond, 0, sizeof(struct condition));
 					}
@@ -736,7 +784,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							trans.cond = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 							break;
 						case 2: // EID
-							trans.eid = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
+							trans.eid = ctol(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
 							break;
 						case 3: // DataType
 							trans.value.datatype = ctoi(&s->inputbuf[0], PSOCK_DATALEN(&s->sin) - 1);
@@ -752,31 +800,41 @@ PT_THREAD(handle_input(struct httpd_state *s))
 							break;
 					}
 					if(++position == 7) {
-						// TODO: true condition (#255)
 						position = 0;
-						PRINTF("Struct Trans: From: %u Cond: %u EID: %u DataType: %u Good: %u Bad: %u\n", trans.fromState, trans.cond, trans.eid, trans.value.datatype, trans.goodState, trans.badState);
+						PRINTF("Struct Trans: From: %u Cond: %u EID: %lu DataType: %u Good: %u Bad: %u\n", trans.fromState, trans.cond, trans.eid, trans.value.datatype, trans.goodState, trans.badState);
+
+						// Check for condition #255 (always true)
+						bool isDateTime = false;
+						if(trans.cond != 255) {
+							memset(&cond, 0, sizeof(struct condition));
+							//eeprom_read_block(&cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (trans.cond * sizeof(struct condition))), sizeof(struct condition));
+							sm_get_condition(trans.cond, &cond);
+							isDateTime = (cond.value.datatype == HXB_DTYPE_DATETIME || cond.value.datatype == HXB_DTYPE_TIMESTAMP);
+						}
 						// Write Line to EEPROM. Too much data is just truncated.
-						memset(&cond, 0, sizeof(struct condition));
-						eeprom_read_block(&cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (trans.cond * sizeof(struct condition))), sizeof(struct condition));
-						
-						printf("cond.datatype: %u\n", cond.datatype);
-						if(cond.datatype == HXB_DTYPE_DATETIME || cond.datatype == HXB_DTYPE_TIMESTAMP) {
+						if(isDateTime) {
 							PRINTF("Writing DateTime Transition...\n");
 							if(numberOfDT < (EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE / sizeof(struct transition))) {
-									eeprom_write_block(&trans, (void*)(1 + numberOfDT*sizeof(struct transition) + EE_STATEMACHINE_DATETIME_TRANSITIONS), sizeof(struct transition));
-									numberOfDT++;
-								} else {
+								//eeprom_write_block(&trans, (void*)(1 + numberOfDT*sizeof(struct transition) + EE_STATEMACHINE_DATETIME_TRANSITIONS), sizeof(struct transition));
+								sm_write_transition(true, numberOfDT, &trans);
+								numberOfDT++;
+							} else {
 									PRINTF("Warning: DateTime Transition Table too long! Data will not be written.\n");
+									s->state = STATE_ERROR;
+									s->error_number = 413;
 								}
 								memset(&trans, 0, sizeof(struct transition));
 						} else {
 							if(numberOfBlocks < (EE_STATEMACHINE_TRANSITIONS_SIZE / sizeof(struct transition))) {
-									eeprom_write_block(&trans, (void*)(1 + numberOfBlocks*sizeof(struct transition) + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
-									numberOfBlocks++;
-								} else {
-									PRINTF("Warning: Transition Table too long! Data will not be written.\n");
-								}
-								memset(&trans, 0, sizeof(struct transition));
+								//eeprom_write_block(&trans, (void*)(1 + numberOfBlocks*sizeof(struct transition) + EE_STATEMACHINE_TRANSITIONS), sizeof(struct transition));
+								sm_write_transition(false, numberOfBlocks, &trans);		
+								numberOfBlocks++;
+							} else {
+								PRINTF("Warning: Transition Table too long! Data will not be written.\n");
+								s->state = STATE_ERROR;
+								s->error_number = 413;
+							}
+							memset(&trans, 0, sizeof(struct transition));
 						}
 					}
 			}
@@ -792,7 +850,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 	}
 	webserver_log_file(&uip_conn->ripaddr, s->filename);
 
-	s->state = STATE_OUTPUT;
+	s->state = (s->state == STATE_ERROR) ? STATE_OUTPUT_ERROR : STATE_OUTPUT;
 
 	while(1) {
 		PSOCK_READTO(&s->sin, ISO_nl);
@@ -812,7 +870,7 @@ handle_connection(struct httpd_state *s)
 	handle_output(s);
 #else
 	handle_input(s);
-	if(s->state == STATE_OUTPUT) {
+	if(s->state == STATE_OUTPUT || s->state == STATE_OUTPUT_ERROR) {
 		handle_output(s);
 	}
 #endif

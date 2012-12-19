@@ -26,7 +26,12 @@
 #error Hardware not defined!
 #endif
 
-#define HP_DEBOUNCE_TIME		   50UL
+#define HEXAPUSH_NOTPRESSED_STATE 0
+#define HEXAPUSH_DEBOUNCE_STATE 1
+#define HEXAPUSH_CLICK_STATE 2
+#define HEXAPUSH_PRESSED_STATE 3
+
+#define HP_DEBOUNCE_TIME 50UL
 
 void hexapush_init(void);
 

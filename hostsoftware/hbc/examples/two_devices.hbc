@@ -1,0 +1,51 @@
+endpoint on {
+  access { read, write };
+  datatype BOOL;
+  eid 1;
+}
+
+endpoint button {
+  eid 4;
+  datatype BOOL;
+  access { broadcast };
+}
+
+alias dev_one {
+  ip fe80::cafe:e001;
+  eids { 1 };
+}
+
+alias dev_two {
+  ip fe80::cafe:e002;
+  eids { 1 };
+}
+
+alias button_device {
+  ip fe80::cafe:0000;
+  eids { 4 };
+}
+
+machine both_on {
+  states { init, off, on };
+  in(init) {
+    if(true) {
+      write dev_one.on := 0;
+      write dev_two.on := 0;
+      goto off;
+    }
+  }
+  in(off) {
+    if(ep button_device.button == 1) {
+      write dev_one.on := 1;
+      write dev_two.on := 1;
+      goto on;
+    }
+  }
+  in(on) {
+    if(ep button_device.button == 1) {
+      write dev_one.on := 0;
+      write dev_two.on := 0;
+      goto off;
+    }
+  }
+}

@@ -6,6 +6,9 @@
 
 #include "hexabus_config.h"
 
+#define PRESENCE 1
+#define NO_PRESENCE 0
+
 uint8_t is_presence(void);
 void global_presence_detected(void);
 void raw_presence_detected(void); 

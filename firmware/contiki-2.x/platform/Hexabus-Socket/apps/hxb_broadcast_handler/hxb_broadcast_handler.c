@@ -31,7 +31,7 @@ PROCESS_THREAD(hxb_broadcast_handler_process, ev, data)
     if(ev == hxb_broadcast_received_event)
     {
       PRINTF("Broadcast received by hxb_broadcast_handler_process:\r\n");
-      
+
       // TODO implement at the dotted line
 
       // . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .

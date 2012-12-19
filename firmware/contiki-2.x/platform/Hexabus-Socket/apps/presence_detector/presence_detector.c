@@ -33,6 +33,7 @@
  */
 #include "hexabus_config.h"
 #include "value_broadcast.h"
+#include "endpoints.h"
 
 #include "presence_detector.h"
 #include <util/delay.h>
@@ -57,17 +58,17 @@ static struct ctimer pd_timeout;
 #endif
 #if PRESENCE_DETECTOR_CLIENT
 static struct ctimer pd_keep_alive;
-static uint8_t presence = 0;
+static uint8_t presence;
 #endif
 
-static uint8_t global_presence = 0;
+static uint8_t global_presence;
 
 
 void global_presence_detected(void) {
 #if PRESENCE_DETECTOR_SERVER
-    if(global_presence != 1) {
-        global_presence = 1;
-        broadcast_value(26);
+    if(global_presence != PRESENCE) {
+        global_presence = PRESENCE;
+        broadcast_value(EP_PRESENCE_DETECTOR);
     }
     ctimer_restart(&pd_timeout);
 #endif
@@ -75,8 +76,8 @@ void global_presence_detected(void) {
 
 void no_global_presence(void) {
 #if PRESENCE_DETECTOR_SERVER
-    global_presence = 0;
-    broadcast_value(26);
+    global_presence = NO_PRESENCE;
+    broadcast_value(EP_PRESENCE_DETECTOR);
 #endif
 }
 
@@ -85,7 +86,7 @@ void raw_presence_detected(void) {
     uint8_t tmp = global_presence;
     presence = PRESENCE_DETECTOR_CLIENT_GROUP;
     global_presence = presence;
-    broadcast_value(26);
+    broadcast_value(EP_PRESENCE_DETECTOR);
     global_presence = tmp;
     if(PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE != 0) {
         ctimer_restart(&pd_keep_alive);
@@ -95,7 +96,7 @@ void raw_presence_detected(void) {
 
 void no_raw_presence(void) {
 #if PRESENCE_DETECTOR_CLIENT
-    presence = 0;
+    presence = NO_PRESENCE;
 #endif
 }
 
@@ -112,11 +113,13 @@ uint8_t is_presence(void) {
 }
 
 void presence_detector_init() {
+    global_presence = NO_PRESENCE;
 #if PRESENCE_DETECTOR_SERVER
     ctimer_set(&pd_timeout, CLOCK_SECOND*60*PRESENCE_DETECTOR_SERVER_TIMEOUT, no_global_presence, NULL);
     ctimer_stop(&pd_timeout);
 #endif
 #if PRESENCE_DETECTOR_CLIENT
+    presence = NO_PRESENCE;
     if(PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE != 0) {
         ctimer_set(&pd_keep_alive, CLOCK_SECOND*PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE, presence_keep_alive, NULL);
         ctimer_stop(&pd_keep_alive);

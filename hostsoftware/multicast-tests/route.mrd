@@ -1,0 +1,12 @@
+pim {
+	enable bsr-candidate;
+	enable rp-candidate;
+}
+
+groups {
+	ff05::/64 {
+		pim {
+			enable rp_adv;
+		}
+	}
+}

@@ -1,0 +1,13 @@
+include test.hbc;
+
+endpoint another_endpoint {
+  access { read };
+  datatype UINT8;
+  eid 99;
+}
+
+alias more_devices {
+  ip ::0;
+  eids {};
+}
+

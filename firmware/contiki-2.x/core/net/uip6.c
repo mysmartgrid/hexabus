@@ -76,6 +76,7 @@
 #include "net/uip-icmp6.h"
 #include "net/uip-nd6.h"
 #include "net/uip-ds6.h"
+#include "net/uip-mld.h"
 
 #include <string.h>
 
@@ -1381,6 +1382,17 @@ uip_process(u8_t flag)
       /** \note We don't implement any application callback for now */
       PRINTF("Received an icmp6 echo reply\n");
       UIP_STAT(++uip_stat.icmp.recv);
+      uip_len = 0;
+      break;
+    case ICMP6_ML_QUERY:
+      uip_icmp6_ml_query_input();
+      uip_len = 0;
+      break;
+    case ICMP6_ML_REPORT:
+      uip_icmp6_ml_report_input();
+      uip_len = 0;
+      break;
+    case ICMP6_ML_DONE:
       uip_len = 0;
       break;
     default:
