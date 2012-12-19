@@ -10,7 +10,7 @@
 #define PRINTF(...)
 #endif
 
-static uint8_t output_vector = 0;
+static uint8_t output_vector;
 
 
 void set_outputs(uint8_t o_vec) {
@@ -30,6 +30,7 @@ uint8_t get_outputs() {
 void hexonoff_init(void) {
     PRINTF("Hexonoff init\n");
 
+    output_vector = 0;
 
     #if defined(HEXONOFF_OUT0)
     output_vector |= (1<<HEXONOFF_OUT0);

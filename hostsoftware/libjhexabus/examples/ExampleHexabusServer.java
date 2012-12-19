@@ -7,12 +7,14 @@ public class ExampleHexabusServer {
 			HexabusServer server = new HexabusServer();
 			server.start();
 			server.register(new ExampleHexabusListener());
-			HexabusWritePacket packet = new HexabusWritePacket(1, true);
+			while(true) {
+			//HexabusWritePacket packet = new HexabusWritePacket(1, true);
 			for(int i=0; i<150; i++) {
-				packet.sendPacket(InetAddress.getLocalHost());
+				//packet.sendPacket(InetAddress.getLocalHost());
 			}
-			Thread.sleep(10);
-			server.shutdown();
+			}
+			//Thread.sleep(10);
+			//server.shutdown();
 		} catch(Exception e) {
 			e.printStackTrace();
 		}

@@ -42,6 +42,7 @@
 #include "contiki-net.h"
 #include "webserver-nogui.h"
 #include "httpd-cgi.h"
+#include "packet_builder.h"
 #include "dev/leds.h"
 
 #include "state_machine.h"
@@ -63,7 +64,7 @@
 #define PRINTLLADDR(addr)
 #endif
 
-#define UDP_DATA_LEN 120 //TODO set this to something to be specified in the hexabus spec
+#define UDP_DATA_LEN 130 //TODO set this to something to be specified in the hexabus spec
 #define UDP_IP_BUF   ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 #define HEXABUS_PORT 61616
 
@@ -124,113 +125,9 @@ static void lost_connection_leds(void) {
   }
 }
 
-/*---------------------------------------------------------------------------*/
-
-static void  //TODO remove once everything is using the new format
-make_message(char* buf, uint16_t command, uint16_t value)
-{
-  struct hexabusmsg_t *hexabuscmd;
-  hexabuscmd = (struct hexabusmsg_t *)buf;
-  memset(hexabuscmd, 0, sizeof(struct hexabusmsg_t));
-  strncpy(hexabuscmd->header, HEXABUS_HEADER, sizeof(hexabuscmd->header));
-  hexabuscmd->source = 2;
-  hexabuscmd->command = uip_htons(command);
-  uint16_t *response;
-  response = (uint16_t*) (hexabuscmd + 1);
-  *response = uip_htons(value);
-  PRINTF("udp_handler: Responding with message: ");
-  PRINTF("%s%02x%02x%04d\n", HEXABUS_HEADER, 2, command, value);
-}
-
-static struct hxb_packet_float make_value_packet_float(uint8_t eid, struct hxb_value* val)
-{
-  struct hxb_packet_float packet;
-  strncpy(&packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_INFO;
-  packet.flags = 0;
-  packet.eid = eid;
-
-  packet.datatype = val->datatype;
-  // uip_htonl works on 32bit-int
-  uint32_t value_nbo = uip_htonl(*(uint32_t*)&val->data);
-  packet.value = *(float*)&value_nbo;
-
-  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
-  PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%d\r\nValue:\t%lx\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.eid, packet.value, uip_ntohs(packet.crc)); // printf can handle float?
-  return packet;
-}
-
-static struct hxb_packet_int32 make_value_packet_int32(uint8_t eid, struct hxb_value* val)
-{
-  struct hxb_packet_int32 packet;
-  strncpy(&packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_INFO;
-  packet.flags = 0;
-  packet.eid = eid;
-
-  packet.datatype = val->datatype;
-  packet.value = uip_htonl(*(uint32_t*)&val->data);
-
-  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
-  PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%ld\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.eid, uip_ntohl(packet.value), uip_ntohs(packet.crc)); // printf behaves strange here?
-  return packet;
-}
-
-static struct hxb_packet_128string make_epinfo_packet(uint8_t eid)
-{
-  struct hxb_packet_128string packet;
-  strncpy(&packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_EPINFO;
-  packet.flags = 0;
-  packet.eid = eid;
-
-  packet.datatype = endpoint_get_datatype(eid);
-  endpoint_get_name(eid, &packet.value);
-
-  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
 
 
-  return packet;
-}
-
-static struct hxb_packet_int8 make_value_packet_int8(uint8_t eid, struct hxb_value* val)
-{
-  struct hxb_packet_int8 packet;
-  strncpy(&packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_INFO;
-  packet.flags = 0;
-  packet.eid = eid;
-
-  packet.datatype = val->datatype;
-  packet.value = *(uint8_t*)&val->data;
-
-  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
-
-  PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%d\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.eid, packet.value, uip_ntohs(packet.crc));
-
-  return packet;
-}
-
-static struct hxb_packet_error make_error_packet(uint8_t errorcode)
-{
-  struct hxb_packet_error packet;
-  strncpy(&packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_ERROR;
-
-  packet.flags = 0;
-  packet.errorcode = errorcode;
-  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
-
-  PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nError Code:\t%d\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.errorcode, uip_ntohs(packet.crc));
-
-  return packet;
-}
-
-static void send_packet(char* data, size_t length)
+void send_packet(char* data, size_t length)
 {
   uip_ipaddr_copy(&udpconn->ripaddr, &UDP_IP_BUF->srcipaddr); // reply to the IP from which the request came
   udpconn->rport = UDP_IP_BUF->srcport;
@@ -266,7 +163,7 @@ udphandler(process_event_t ev, process_data_t data)
         {
           struct hxb_value value;
           value.datatype = HXB_DTYPE_UNDEFINED;
-          uint8_t eid;
+          uint32_t eid;
 
           // CRC check and how big the actual value is depend on what type of packet we have.
           switch(header->datatype)
@@ -281,7 +178,7 @@ udphandler(process_event_t ev, process_data_t data)
               } else {
                 value.datatype = ((struct hxb_packet_int8*)header)->datatype;
                 *(uint8_t*)&value.data = ((struct hxb_packet_int8*)header)->value;
-                eid = ((struct hxb_packet_int8*)header)->eid;
+                eid = uip_ntohl(((struct hxb_packet_int8*)header)->eid);
               }
               break;
             case HXB_DTYPE_UINT32:
@@ -293,7 +190,7 @@ udphandler(process_event_t ev, process_data_t data)
               } else {
                 value.datatype = ((struct hxb_packet_int32*)header)->datatype;
                 *(uint32_t*)&value.data = uip_ntohl(((struct hxb_packet_int32*)header)->value);
-                eid = ((struct hxb_packet_int32*)header)->eid;
+                eid = uip_ntohl(((struct hxb_packet_int32*)header)->eid);
               }
               break;
             case HXB_DTYPE_FLOAT:
@@ -306,9 +203,25 @@ udphandler(process_event_t ev, process_data_t data)
                 value.datatype = ((struct hxb_packet_float*)header)->datatype;
                 uint32_t value_hbo = uip_ntohl(*(uint32_t*)&((struct hxb_packet_float*)header)->value);
                 *(float*)&value.data = *(float*)&value_hbo;
-                eid = ((struct hxb_packet_float*)header)->eid;
+                eid = uip_ntohl(((struct hxb_packet_float*)header)->eid);
               }
               break;
+            case HXB_DTYPE_66BYTES:
+              if(uip_ntohs(((struct hxb_packet_66bytes*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_66bytes) - 2, 0))
+              {
+                PRINTF("CRC check failed.\r\n");
+                struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
+                send_packet(&error_packet, sizeof(error_packet));
+              } else {
+                PRINTF("Bytes packet received: ");
+                for(int i = 0; i < HXB_BYTES_PACKET_MAX_BUFFER_LENGTH; i++) {
+                  PRINTF("%02x", (((struct hxb_packet_66bytes*)header)->value)[i]);
+                }
+                eid = uip_ntohl(((struct hxb_packet_66bytes*)header)->eid);
+                value.datatype = HXB_DTYPE_66BYTES;
+                *(char**)&value.data = &(((struct hxb_packet_66bytes*)header)->value);
+              }
+              break;            
             default:
               PRINTF("Packet of unknown datatype.\r\n");
               break;
@@ -323,7 +236,8 @@ udphandler(process_event_t ev, process_data_t data)
                 break;    // everything okay. No need to do anything.
               case HXB_ERR_UNKNOWNEID:
               case HXB_ERR_WRITEREADONLY:
-              case HXB_ERR_DATATYPE:;
+              case HXB_ERR_DATATYPE:
+              case HXB_ERR_INVALID_VALUE:;
                 struct hxb_packet_error error_packet = make_error_packet(retcode);
                 send_packet(&error_packet, sizeof(error_packet));
                 break;
@@ -335,6 +249,7 @@ udphandler(process_event_t ev, process_data_t data)
         else if(header->type == HXB_PTYPE_QUERY)
         {
           struct hxb_packet_query* packet = (struct hxb_packet_query*)uip_appdata;
+          PRINTF("PACKET EID: %d\n", uip_ntohl(packet->eid));
           // check CRC
           printf("size of packet: %u\n", sizeof(*packet));
           if(uip_ntohs(packet->crc) != crc16_data((char*)packet, sizeof(*packet)-2, 0))
@@ -345,20 +260,20 @@ udphandler(process_event_t ev, process_data_t data)
           } else
           {
             struct hxb_value value;
-            endpoint_read(packet->eid, &value);
+            endpoint_read(uip_ntohl(packet->eid), &value);
             switch(value.datatype)
             {
               case HXB_DTYPE_BOOL:
               case HXB_DTYPE_UINT8:;
-                struct hxb_packet_int8 value_packet8 = make_value_packet_int8(packet->eid, &value);
+                struct hxb_packet_int8 value_packet8 = make_value_packet_int8(uip_ntohl(packet->eid), &value);
                 send_packet(&value_packet8, sizeof(value_packet8));
                 break;
               case HXB_DTYPE_UINT32:;
-                struct hxb_packet_int32 value_packet32 = make_value_packet_int32(packet->eid, &value);
+                struct hxb_packet_int32 value_packet32 = make_value_packet_int32(uip_ntohl(packet->eid), &value);
                 send_packet(&value_packet32, sizeof(value_packet32));
                 break;
               case HXB_DTYPE_FLOAT:;
-                struct hxb_packet_float value_packetf = make_value_packet_float(packet->eid, &value);
+                struct hxb_packet_float value_packetf = make_value_packet_float(uip_ntohl(packet->eid), &value);
                 send_packet(&value_packetf, sizeof(value_packetf));
                 break;
               case HXB_DTYPE_UNDEFINED:;
@@ -382,9 +297,15 @@ udphandler(process_event_t ev, process_data_t data)
             send_packet(&error_packet, sizeof(error_packet));
           } else
           {
-            PRINTF("Sending EndpointInfo packet...\n");
-            struct hxb_packet_128string epinfo_packet = make_epinfo_packet(packet->eid);
-            send_packet(&epinfo_packet, sizeof(epinfo_packet));
+            // Check if endpoint exists by reading the datatype and checking the return value
+            if(endpoint_get_datatype(uip_ntohl(packet->eid)) == HXB_DTYPE_UNDEFINED) {
+              struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_UNKNOWNEID);
+              send_packet(&error_packet, sizeof(error_packet));
+            } else {
+              PRINTF("Sending EndpointInfo packet...\n");
+              struct hxb_packet_128string epinfo_packet = make_epinfo_packet(uip_ntohl(packet->eid));
+              send_packet(&epinfo_packet, sizeof(epinfo_packet));
+            }
           }
         }
         else if(header->type == HXB_PTYPE_INFO)
@@ -403,7 +324,7 @@ udphandler(process_event_t ev, process_data_t data)
                   // Broadcast: Don't send an error packet.
                 } else {
                   struct hxb_packet_int8* packet = (struct hxb_packet_int8*)header;
-                  envelope->eid = packet->eid;
+                  envelope->eid = uip_ntohl(packet->eid);
                   envelope->value.datatype = packet->datatype;
                   *(uint8_t*)&envelope->value.data = packet->value;
                   process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
@@ -417,7 +338,7 @@ udphandler(process_event_t ev, process_data_t data)
                   // Broadcast: Don't send an error packet.
                 } else {
                   struct hxb_packet_int32* packet = (struct hxb_packet_int32*)header;
-                  envelope->eid = packet->eid;
+                  envelope->eid = uip_ntohl(packet->eid);
                   envelope->value.datatype = packet->datatype;
                   *(uint32_t*)&envelope->value.data = uip_ntohl(packet->value);
                   process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
@@ -434,7 +355,7 @@ udphandler(process_event_t ev, process_data_t data)
                   // Broadcast: Don't send an error packet.
                 } else {
                   struct hxb_packet_datetime* packet = (struct hxb_packet_datetime*)header;
-                  envelope->eid = packet->eid;
+                  envelope->eid = uip_ntohl(packet->eid);
                   envelope->value.datatype = packet->datatype;
                   packet->value.year = uip_ntohs(packet->value.year);
                   memcpy(&(envelope->value.data), &(packet->value), sizeof(struct datetime));
@@ -453,7 +374,7 @@ udphandler(process_event_t ev, process_data_t data)
                   // Broadcast: Don't send an error packet.
                 } else {
                   struct hxb_packet_float* packet = (struct hxb_packet_float*)header;
-                  envelope->eid = packet->eid;
+                  envelope->eid = uip_ntohl(packet->eid);
                   envelope->value.datatype = packet->datatype;
                   uint32_t value_hbo = uip_ntohl(*(uint32_t*)&packet->value);
                   *(float*)&envelope->value.data = *(float*)&value_hbo;
@@ -475,30 +396,6 @@ udphandler(process_event_t ev, process_data_t data)
         udpconn->rport = 0;
       }
     }
-  } else {//timer event
-    if (heartbeat_ipaddr_set)
-    {
-      if(heartbeat_no_ack++ > MAX_HEARTBEAT_RETRIES)
-      {
-        relay_default(); //TODO write separate lost_connection function
-        PRINTF("udp_handler: Lost connection to server, switching to default state!!!\r\n");
-        ctimer_set(&lost_connection_timer, CLOCK_SECOND/2,(void *)(void *) lost_connection_leds,NULL);
-      }
-
-      uip_ipaddr_copy(&udpconn->ripaddr, &heartbeat_ipaddr); //set ip_addr
-      udpconn->rport = UIP_HTONS(HEXABUS_PORT);         //set port
-      PRINTF("udp_handler: sending heartbeat to: ");
-      PRINT6ADDR(&udpconn->ripaddr);
-      PRINTF("\r\n");
-
-      make_message(buf, HEARTBEAT, 0);
-      uip_udp_packet_send(udpconn, buf, sizeof(struct hexabusmsg_t));
-
-      /* Restore server connection to allow data from any node */
-      memset(&udpconn->ripaddr, 0, sizeof(udpconn->ripaddr));
-      udpconn->rport = 0;
-    }
-    etimer_set(&udp_periodic_timer, 60*CLOCK_SECOND);
   }
 }
 
@@ -533,7 +430,7 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
 
   // see: http://senstools.gforge.inria.fr/doku.php?id=contiki:examples
   PROCESS_BEGIN();
-  
+
   sm_data_received_event = process_alloc_event();
 
   PRINTF("udp_handler: process startup.\r\n");
@@ -541,6 +438,17 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   etimer_set(&udp_periodic_timer, CLOCK_CONF_SECOND*3);
   // wait until the timer has expired
   PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_TIMER);
+
+  // register the multicast address we want to listen on
+
+  // this wrapper macro is needed to expand HXB_GROUP_RAW before uip_ip6addr, which is a macro
+  // it's ugly as day, but it's the least ugly solution i found
+  #define PARSER_WRAP(addr, __VA_ARGS__) uip_ip6addr(addr, __VA_ARGS__)
+  PARSER_WRAP(&ipaddr, HXB_GROUP_RAW);
+  #undef PARSER_WRAP
+  uip_ds6_maddr_add(&ipaddr);
+  
+
   // Define Address of the server that receives our heartbeats.
   // TODO: Make this dynamic
 #ifdef UDP_ADDR_A

@@ -1,0 +1,43 @@
+# staircase lighting example
+
+include std_eid.hbh;
+
+# alias definitions ###########################################################
+
+alias timeservice {
+  ip fe80::50:c4ff:fe04:abcd;
+  eids { 67 }; # TODO we need to define a fixed EID for time services
+}
+
+alias staircase_lights {
+  ip fe80::50:c4ff:fe04:ab01;
+  eids { 1 };
+}
+
+alias lightswitch {
+  ip fe80::50:c4ff:fe04:ab02;
+  eids { 4 }; # eid 4: button is pressed
+}
+
+# behaviour definition ########################################################
+
+machine main {
+  states { light_on, light_off };
+
+# "time" is globally defined because once a time server is there, all the
+# devices on the network are getting their time from its broadcasts.
+# "timeout" is also globally defined, and used to denote an in-state-since condition.
+# TODO maybe "timeout" is not the right word. But in_state_since is too long
+  in(light_off) {
+    if(((ti.me > 18) || (ti.me < 7)) && (lightswitch.button == true)) {
+      write staicase_lights.on := true;
+      goto light_on;
+    }
+  }
+  in(light_on) {
+    if(time.out == 90) {
+      write staircase_lights.on := false;
+      goto light_off;
+    }
+  }
+}

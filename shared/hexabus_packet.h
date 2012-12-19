@@ -3,6 +3,8 @@
 
 // Hexabus packet definition
 #include <stdint.h>
+#include "hexabus_definitions.h"
+#include "hexabus_value.h"
 
 // ======================================================================
 // Supporting structs
@@ -27,7 +29,7 @@ struct hxb_packet_header {
   char      header[4];  // HX0B
   uint8_t   type;       // Packet type
   uint8_t   flags;      // Flags
-  uint8_t   eid;        // Endpoint ID / Error code if it's an error packet
+  uint32_t  eid;        // Endpoint ID / Error code if it's an error packet
   uint8_t   datatype;   // Datatype / first 8 bits of the CRC if it's an error packet
 } __attribute__ ((packed));
 
@@ -45,7 +47,7 @@ struct hxb_packet_query {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint8_t   eid;        // Endpoint ID
+  uint32_t  eid;        // Endpoint ID
   uint16_t  crc;       // CRC16-Kermit / Contiki's crc16_data()
 } __attribute__ ((packed));
 // TODO this used to be hxb_packet_req
@@ -56,7 +58,7 @@ struct hxb_packet_int8 {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint8_t   eid;
+  uint32_t  eid;
   uint8_t   datatype;
   uint8_t   value;
   uint16_t  crc;
@@ -68,7 +70,7 @@ struct hxb_packet_int32 {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint8_t   eid;
+  uint32_t  eid;
   uint8_t   datatype;
   uint32_t  value;
   uint16_t  crc;
@@ -79,7 +81,7 @@ struct hxb_packet_datetime {
     char      header[4];
     uint8_t   type;
     uint8_t   flags;
-    uint8_t   eid;
+    uint32_t  eid;
     uint8_t   datatype;
     struct datetime  value;
     uint16_t  crc;
@@ -91,80 +93,49 @@ struct hxb_packet_float {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint8_t   eid;
+  uint32_t  eid;
   uint8_t   datatype;
   float     value;
   uint16_t  crc;
 } __attribute__ ((packed));
 
+#define HXB_STRING_PACKET_MAX_BUFFER_LENGTH 127
 // WRITE/INFO packet for 128 char fixed length string or EPINFO packet
 struct hxb_packet_128string {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint8_t   eid;
+  uint32_t  eid;
   uint8_t   datatype;     // this is set to the datatype of the endpoint if it's an EPINFO packet!
-  char      value[128];
+  char      value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1];
   uint16_t  crc;
 } __attribute__ ((packed));
 
-// ======================================================================
-// Struct for passing Hexabus values around
-// One struct for all data types (except 128string, because that'd need too much memory), with a datatype flag indicating which
-// of the values is used. Used for passing values to and from
-// endpoint_access
-struct hxb_value {
-  uint8_t   datatype;   // Datatype that is used, or HXB_DTYPE_UNDEFINED
-  char      data[8];    // leave enough room for the largest datatype (datetime in this case)
-};
+// the hxb_packet_128string was determined to be the largest packet a hexabus network can see
+// should this ever change, increase this, otherwise libhexabus (among others) will break.
+#define HXB_MAX_PACKET_SIZE (sizeof(hxb_packet_128string))
+
+#define HXB_BYTES_PACKET_MAX_BUFFER_LENGTH 65
+// WRITE/INFO packet for 66 byte string: 1 byte control data, 64 byte payload
+struct hxb_packet_66bytes {
+  char      header[4];
+  uint8_t   type;
+  uint8_t   flags;
+  uint32_t  eid;
+  uint8_t   datatype;     
+  char      value[HXB_BYTES_PACKET_MAX_BUFFER_LENGTH];
+  uint16_t  crc;
+} __attribute__ ((packed));
+
 
 // ======================================================================
 // Structs for passing Hexabus data around between processes
 // Since there the IP information is lost, we need a field for the IP address of the sender/receiver. But we can drop the CRC here.
 
 struct hxb_envelope {
-    char      source[16];
-    uint8_t   eid;
-    struct hxb_value value;
+    char              source[16];
+    uint32_t          eid;
+    struct hxb_value  value;
 };
-
-// ======================================================================
-// Definitions for fields
-
-#define HXB_PORT              61616
-#define HXB_HEADER            "HX0B"
-
-// Boolean values
-#define HXB_TRUE              1
-#define HXB_FALSE             0
-// TODO Do we need a "toggle"?
-
-// Packet types
-#define HXB_PTYPE_ERROR       0x00  // An error occured -- check the error code field for more information
-#define HXB_PTYPE_INFO        0x01  // Endpoint provides information
-#define HXB_PTYPE_QUERY       0x02  // Endpoint is requested to provide information
-#define HXB_PTYPE_WRITE       0x04  // Endpoint is requested to set its value
-#define HXB_PTYPE_EPINFO      0x09  // Endpoint metadata
-#define HXB_PTYPE_EPQUERY     0x0A  // Request endpoint metadata
-
-// Flags
-#define HXB_FLAG_CONFIRM      0x01  // Requests an acknowledgement
-
-// Data types
-#define HXB_DTYPE_UNDEFINED   0x00  // Undefined: Nonexistent endpoint
-#define HXB_DTYPE_BOOL        0x01  // Boolean. Value still represented by 8 bits, but may only be HXB_TRUE or HXB_FALSE
-#define HXB_DTYPE_UINT8       0x02  // Unsigned 8 bit integer
-#define HXB_DTYPE_UINT32      0x03  // Unsigned 32 bit integer
-#define HXB_DTYPE_DATETIME    0x04  // Date and time
-#define HXB_DTYPE_FLOAT       0x05  // 32bit floating point
-#define HXB_DTYPE_128STRING   0x06  // 128char fixed length string
-#define HXB_DTYPE_TIMESTAMP   0x07  // timestamp - used for measuring durations, time differences and so on - uint32; seconds
-
-// Error codes
-//                            0x00     reserved: No error
-#define HXB_ERR_UNKNOWNEID    0x01  // A request for an endpoint which does not exist on the device was received
-#define HXB_ERR_WRITEREADONLY 0x02  // A WRITE was received for a readonly endpoint
-#define HXB_ERR_CRCFAILED     0x03  // A packet failed the CRC check -- TODO How can we find out what information was lost?
-#define HXB_ERR_DATATYPE      0x04  // A packet with a datatype that does not fit the endpoint was received
 
 #endif

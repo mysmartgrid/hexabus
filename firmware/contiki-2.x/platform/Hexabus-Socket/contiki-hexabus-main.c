@@ -106,6 +106,8 @@
 #include "eeprom_variables.h"
 #include "udp_handler.h"
 #include "mdns_responder.h"
+#include "state_machine.h"
+#include "hexabus_app_bootstrap.h"
 
 // optional HEXABUS apps
 #if VALUE_BROADCAST_ENABLE
@@ -114,32 +116,15 @@
 #if DATETIME_SERVICE_ENABLE
 #include "datetime_service.h"
 #endif
-#if TEMPERATURE_ENABLE
-#include "temperature.h"
+#if MEMORY_DEBUGGER_ENABLE
+#include "memory_debugger.h"
 #endif
-#if STATE_MACHINE_ENABLE
-#include "state_machine.h"
-#endif
-#if SHUTTER_ENABLE
-#include "shutter.h"
-#endif
-#if HEXAPUSH_ENABLE
-#include "hexapush.h"
-#endif
-#if PRESENCE_DETECTOR_ENABLE
-#include "presence_detector.h"
-#endif
-#if HEXAPUSH_ENABLE
-#include "hexonoff.h"
-#endif
-#if ANALOGREAD_ENABLE
-#include "analogread.h"
-#endif
+
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
 uint8_t forwarding_enabled; //global variable for forwarding
- uint8_t encryption_enabled = 1; //global variable for AES encryption
+uint8_t encryption_enabled = 1; //global variable for AES encryption
 /*-------------------------------------------------------------------------*/
 /*----------------------Configuration of the .elf file---------------------*/
 #if 1
@@ -213,8 +198,6 @@ void set_forwarding_to_eeprom(uint8_t val) {
 	 eeprom_write_byte ((uint8_t *)EE_FORWARDING, val);
 	 forwarding_enabled = val;
 }
-
-
 
 /*-------------------------Low level initialization------------------------*/
 /*------Done in a subroutine to keep main routine stack usage small--------*/
@@ -328,6 +311,12 @@ void initialize(void)
   process_start(&webserver_nogui_process, NULL);
 #endif
 
+#if MEMORY_DEBUGGER_ENABLE 
+  memory_debugger_init();
+  /* periodically print memory usage */
+  process_start(&memory_debugger_process, NULL);
+#endif
+
   /* Handler for HEXABUS UDP Packets */
   process_start(&udp_handler_process, NULL);
 
@@ -345,29 +334,6 @@ void initialize(void)
   process_start(&state_machine_process, NULL);
 #endif
 
-  /*Init Relay */
-  relay_init();
-
-#if SHUTTER_ENABLE
-  /*Init Shutter*/
-  shutter_init();
-
-  /* process for shutter control*/
-  process_start(&shutter_process, NULL);
-
-  /* calibrate and go to initial position */
-  process_start(&shutter_setup_process, NULL);
-
-#endif
-
-#if HEXAPUSH_ENABLE
-  process_start(&hexapush_process, NULL);
-#endif
-
-#if PRESENCE_DETECTOR_ENABLE
-  presence_detector_init();
-#endif
-
   mdns_responder_init();
 
   /* Datetime service*/
@@ -375,27 +341,8 @@ void initialize(void)
   process_start(&datetime_service_process, NULL);
 #endif
 
-  /* Button Process */
-  process_start(&button_pressed_process, NULL);
-
-  /* Init Metering */
-  metering_init();
-
-  /* Init Temp Sensor */
-#if TEMPERATURE_ENABLE
-  temperature_init();
-#endif
-
-#if HEXONOFF_ENABLE
-  hexonoff_init();
-#endif
-
-#if ANALOGREAD_ENABLE
-  analogread_init();
-#endif
-
-  /*Init Relay */
-  relay_init();
+  hexabus_bootstrap_init_apps();
+  hexabus_bootstrap_start_processes();
 
   /* Autostart other processes */
   autostart_start(autostart_processes);
@@ -480,9 +427,6 @@ main(void)
   while(1) {
     process_run();
     watchdog_periodic();
-
-
-
 
 }
   return 0;

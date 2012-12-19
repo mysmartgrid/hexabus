@@ -1,0 +1,165 @@
+# large_example.hbc
+
+include std_eid.hbh;
+include toggle.hbh;
+
+# device list #################################################################
+
+alias sensorbox {
+	ip fe80::50:c4ff:fe04:8099;
+	eids { 3, 5, 29 };
+}
+
+alias heater {
+	ip fe80::50:c4ff:fe04:8098;
+	# endpoint 98 { datatype UINT8; name heater; access write; }; # "device-local" endpoint def. -- overrides global def.
+	eids { 98 };
+}
+
+alias lightswitch {
+	ip fe80::50:c4ff:fe04:8097;
+	eids { 24, 25 };
+}
+
+alias lightswitch2 {
+	ip fe80::50:c4ff:fe04:8095;
+	eids { 24, 25 };
+}
+
+alias lamp {
+	ip fe80::50:c4ff:fe04:8096;
+	eids { 1 };
+}
+
+alias remote_control {
+  ip fe80::50:c4ff:fe04:5555;
+  eids { 30 }; # The ir reciever.
+}              # it sends some button codes
+
+# these are some Hexabus Plugs which control the power to some appliances
+alias printer {
+  ip fe80::50:c4ff:fe04:6666;
+  eids { 1 };
+}
+
+alias game_consoles {
+  ip fe80::50:c4ff:fe04:7777;
+  eids { 1 };
+}
+
+alias media_center { # BluRay Player and TV
+  ip fe80::50:c4ff:fe04:8888;
+  eids { 1 };
+}
+
+alias staircase_lights {
+  ip fe80::50:c4ff:fe04:ab01;
+  eids { 1 };
+}
+
+alias staircase_lightswitch {
+  ip fe80::50:c4ff:fe04:ab02;
+  eids { 4 }; # eid 4: button is pressed
+}
+
+# behaviour definition ########################################################
+
+machine heater {
+  states { init };
+  in(init) {
+    if((sensorbox.temperature >= 15) && (sensorbox.temperature < 19)) {
+      write heater.heater := 100;
+      goto init;
+    } else if((sensorbox.temperature >= 19) && (sensorbox.temperature < 22)) {
+      write heater.heater := 50;
+      goto init;
+    } else {
+      write heater.heater := 0;
+      goto init;
+    }
+  }
+}
+
+machine remote_control {
+# switch on and off the media center ####################################
+  states { init };
+  in(init) {
+    if(remote_control.ir == 134218000) { # media center on
+      write media_center.on := true;
+      goto init;
+    }
+    if(remote_control.ir == 1048580) { # media center off
+      write media_center.on := false;
+      write game_consoles.on := false;
+      goto init;
+    }
+    if(remote_control.ir == 536871000) { # game consoles on
+      write game_consoles.on := true;
+      write media_center.on := true;
+      goto init;
+    }
+    if(remote_control.ir == 2147480000) { # game consoles off
+      write game_consoles.on := false;
+      goto init;
+    }
+
+# printer ###############################################################
+    if(remote_control.ir == 1024) {
+      write printer.on := true;
+      goto init;
+    }
+    if(remote_control.ir == 2048) {
+      write printer.on := false;
+      goto init;
+    }
+  }
+}
+
+machine pc_plug {
+  states { init, on, waiting, off };
+  in(init) {
+    if(true) {
+      goto off;
+    }
+  }
+  in(off) {
+    if(powerplug.button == true) {
+      write powerplug.on := true;
+      goto on;
+    }
+  }
+  in(on) {
+    if(powerplug.power < 10) {
+      goto waiting;
+    }
+  }
+  in(waiting) {
+    if(powerplug.power > 10) {
+      goto on;
+    }
+    if(time.out > 5) { # TODO timeout is a reserved word, make it work.
+      write powerplug.on := false;
+      goto off;
+    }
+  }
+}
+
+machine staircase {
+  states { light_on, light_off }; # TODO init state
+  in(light_off) {
+    if(((ti.me > 18) || (ti.me < 7)) && (staircase_lightswitch.button == true)) { #TODO time is also special...
+      write staicase_lights.on := true;
+      goto light_on;
+    }
+  }
+  in(light_on) {
+    if(time.out == 90) {
+      write staircase_lights.on := false;
+      goto light_off;
+    }
+  }
+}
+
+# lightswitch #############################################################
+instance light1 : toggle(lightswitch,clicked, 2, lamp,on);
+instance light2 : toggle(lightswitch2,clicked, 2, lamp,on);

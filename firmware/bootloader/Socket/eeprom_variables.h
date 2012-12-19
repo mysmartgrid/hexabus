@@ -1,3 +1,37 @@
+/*
+ * Copyright (c) 2011, Fraunhofer ESK
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the Institute nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ *
+ *
+ * Author: 	Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
+ *
+ * @(#)$$
+ */
+
 #ifndef EEPROM_VAR_H_
 #define EEPROM_VAR_H_
 
@@ -43,6 +77,22 @@
 
 #define EE_FORWARDING        ( EE_RELAY_DEFAULT + EE_RELAY_DEFAULT_SIZE )   		// Flag for enabling forwarding of incoming traffic
 #define EE_FORWARDING_SIZE           1
+
+// Data structures for state machine / rule based switching
+#define EE_STATEMACHINE_N_CONDITIONS			( EE_FORWARDING + EE_FORWARDING_SIZE )
+#define EE_STATEMACHINE_N_CONDITIONS_SIZE	1
+#define EE_STATEMACHINE_CONDITIONS      	( EE_STATEMACHINE_N_CONDITIONS + EE_STATEMACHINE_N_CONDITIONS_SIZE )
+#define EE_STATEMACHINE_CONDITIONS_SIZE 	512
+
+#define EE_STATEMACHINE_N_DT_TRANSITIONS					( EE_STATEMACHINE_CONDITIONS + EE_STATEMACHINE_CONDITIONS_SIZE )
+#define EE_STATEMACHINE_N_DT_TRANSITIONS_SIZE			1
+#define EE_STATEMACHINE_DATETIME_TRANSITIONS 			( EE_STATEMACHINE_N_DT_TRANSITIONS + EE_STATEMACHINE_N_DT_TRANSITIONS_SIZE )
+#define EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE 512
+
+#define EE_STATEMACHINE_N_TRANSITIONS				( EE_STATEMACHINE_DATETIME_TRANSITIONS + EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE)
+#define EE_STATEMACHINE_N_TRANSITIONS_SIZE	1
+#define EE_STATEMACHINE_TRANSITIONS     		( EE_STATEMACHINE_N_TRANSITIONS + EE_STATEMACHINE_N_TRANSITIONS_SIZE )
+#define EE_STATEMACHINE_TRANSITIONS_SIZE 		512
 
 #endif /* EEPROM_VAR_H_ */
 

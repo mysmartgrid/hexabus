@@ -41,6 +41,7 @@
 #include "contiki.h"
 
 #include "hexabus_config.h"
+#include <endpoints.h>
 
 #include "eeprom_variables.h"
 #include <avr/eeprom.h>
@@ -120,7 +121,7 @@ PROCESS_THREAD(button_pressed_process, ev, data)
 				{ //SHORT SINGLE CLICK
 #if BUTTON_HAS_EID
           button_pushed = 1;
-          broadcast_value(4);
+          broadcast_value(EP_BUTTON);
           button_pushed = 0;
 #endif
 #if BUTTON_TOGGLES_RELAY

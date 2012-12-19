@@ -5,25 +5,25 @@ import java.io.IOException;
 
 public class HexabusEndpoint {
 	private HexabusDevice device;
-	private int eid;
+	private long eid;
 	private Hexabus.DataType dataType;
 	private String description;
 
-	public HexabusEndpoint(HexabusDevice device, int eid, Hexabus.DataType dataType, String description) {
+	public HexabusEndpoint(HexabusDevice device, long eid, Hexabus.DataType dataType, String description) {
 		this.device = device;
 		this.eid = eid;
 		this.dataType = dataType;
 		this.description = description;
 	}
 
-	public HexabusEndpoint(HexabusDevice device, int eid, Hexabus.DataType dataType) {
+	public HexabusEndpoint(HexabusDevice device, long eid, Hexabus.DataType dataType) {
 		this.device = device;
 		this.eid = eid;
 		this.dataType = dataType;
 		this.description = "";
 	}
 
-	public int getEid() {
+	public long getEid() {
 		return eid;
 	}
 
