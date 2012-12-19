@@ -311,12 +311,12 @@ void BinaryDeserializer::checkLength(size_t min)
 
 void BinaryDeserializer::readHeader()
 {
-	checkLength(sizeof(HXB_HEADER));
+	checkLength(strlen(HXB_HEADER));
 
-	if (!memcmp(HXB_HEADER, _packet + _offset, sizeof(HXB_HEADER)))
+	if (!memcmp(HXB_HEADER, _packet + _offset, strlen(HXB_HEADER)))
 		throw BadPacketException("Invalid header");
 
-	_offset += sizeof(HXB_HEADER);
+	_offset += strlen(HXB_HEADER);
 }
 
 uint8_t BinaryDeserializer::read_u8()
