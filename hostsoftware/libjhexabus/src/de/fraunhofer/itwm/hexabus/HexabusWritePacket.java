@@ -8,14 +8,14 @@ public class HexabusWritePacket extends HexabusPacket {
 	
 	private Hexabus.DataType dataType;
 	private byte[] payload;
-	protected byte eid;
+	protected long eid;
 
-	public HexabusWritePacket(int eid, Hexabus.DataType dataType, byte[] payload) throws Hexabus.HexabusException {
+	public HexabusWritePacket(long eid, Hexabus.DataType dataType, byte[] payload) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.WRITE;
-		if(eid>255) {
+		if(eid>=(2^32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
-		this.eid = (byte) eid;
+		this.eid = eid;
 		this.dataType = dataType;
 		if(payload.length>dataType.getSize()) {
 			throw new Hexabus.HexabusException("Payload too large");
@@ -23,22 +23,22 @@ public class HexabusWritePacket extends HexabusPacket {
 		this.payload = payload;
 	}
 		
-	public HexabusWritePacket(int eid, boolean value) throws Hexabus.HexabusException {
+	public HexabusWritePacket(long eid, boolean value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.WRITE;
-		if(eid>255) {
+		if(eid>=(2^32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
-		this.eid = (byte) eid;
+		this.eid = eid;
 		this.dataType = Hexabus.DataType.BOOL;
 		this.payload = new byte[] {(byte) (value?0x01:0x00)};
 	}
 
-	public HexabusWritePacket(int eid, float value) throws Hexabus.HexabusException {
+	public HexabusWritePacket(long eid, float value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.WRITE;
-		if(eid>255) {
+		if(eid>=(2^32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
-		this.eid = (byte) eid;
+		this.eid = eid;
 		this.dataType = Hexabus.DataType.FLOAT;
 		this.payload = new byte[4];
 		ByteBuffer buffer = ByteBuffer.wrap(payload);
@@ -46,26 +46,26 @@ public class HexabusWritePacket extends HexabusPacket {
 		buffer.putFloat(value);
 	}
 
-	public HexabusWritePacket(int eid, short value) throws Hexabus.HexabusException {
+	public HexabusWritePacket(long eid, short value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.WRITE;
-		if(eid>255) {
+		if(eid>=(2^32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
-		this.eid = (byte) eid;
+		this.eid = eid;
 		this.dataType = Hexabus.DataType.UINT8;
 		// uint8 value as short
-		if(value>255) {
+		if(value>=(2^32)) {
 			throw new Hexabus.HexabusException("Value too large. UINT8 expected.");
 		}
 		this.payload = new byte[] {(byte) (value & 0xFF)};
 	}
 
-	public HexabusWritePacket(int eid, long value) throws Hexabus.HexabusException {
+	public HexabusWritePacket(long eid, long value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.WRITE;
-		if(eid>255) {
+		if(eid>=(2^32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
-		this.eid = (byte) eid;
+		this.eid = eid;
 		this.dataType = Hexabus.DataType.UINT32;
 		this.payload = new byte[] {(byte) ((value & 0xFF000000L) >> 24)
 			,(byte) ((value & 0x00FF0000L) >> 16)
@@ -73,12 +73,12 @@ public class HexabusWritePacket extends HexabusPacket {
 			,(byte) (value & 0x000000FFL)};
 	}
 
-	public HexabusWritePacket(int eid, HexabusTimestamp value) throws Hexabus.HexabusException {
+	public HexabusWritePacket(long eid, HexabusTimestamp value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.WRITE;
-		if(eid>255) {
+		if(eid>=(2^32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
-		this.eid = (byte) eid;
+		this.eid = eid;
 		this.dataType = Hexabus.DataType.TIMESTAMP;
 		long timestamp = value.getLong();
 		this.payload = new byte[] {(byte) ((timestamp & 0xFF000000L) >> 24)
@@ -87,12 +87,12 @@ public class HexabusWritePacket extends HexabusPacket {
 			,(byte) (timestamp & 0x000000FFL)};
 	}
 
-	public HexabusWritePacket(int eid, HexabusDatetime value) throws Hexabus.HexabusException {
+	public HexabusWritePacket(long eid, HexabusDatetime value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.WRITE;
-		if(eid>255) {
+		if(eid>=(2^32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
-		this.eid = (byte) eid;
+		this.eid = eid;
 		this.dataType = Hexabus.DataType.DATETIME;
 		this.payload = new byte[dataType.getSize()];
 		ByteBuffer buffer = ByteBuffer.wrap(payload);
@@ -107,9 +107,9 @@ public class HexabusWritePacket extends HexabusPacket {
 		buffer.put((byte) (value.getWeekday() & 0xFF));
 	}
 
-	public HexabusWritePacket(int eid, String value) throws Hexabus.HexabusException {
+	public HexabusWritePacket(long eid, String value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.WRITE;
-		if(eid>255) {
+		if(eid>=(2^32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
 		if(value.length()>127) {
@@ -119,7 +119,7 @@ public class HexabusWritePacket extends HexabusPacket {
 			throw new Hexabus.HexabusException("Non-ascii string");
 		}
 	
-		this.eid = (byte) eid;
+		this.eid = eid;
 		this.dataType = Hexabus.DataType.STRING;
 		this.payload = new byte[dataType.getSize()];
 		ByteBuffer buffer = ByteBuffer.wrap(payload);
@@ -137,7 +137,7 @@ public class HexabusWritePacket extends HexabusPacket {
 		return dataType;
 	}
 
-	public int getEid() {
+	public long getEid() {
 		return eid;
 	}
 
@@ -194,7 +194,11 @@ public class HexabusWritePacket extends HexabusPacket {
 		byte[] packetData = new byte[packetType.getBaseLength()+dataType.getSize()-2];
 		ByteBuffer buffer = super.buildPacket(packetData);
 
-		buffer.put(eid);
+		byte[] eidBytes = new byte[] {(byte) ((eid & 0xFF000000L) >> 24)
+			,(byte) ((eid & 0x00FF0000L) >> 16)
+			,(byte) ((eid & 0x0000FF00L) >> 8)
+			,(byte) (eid & 0x000000FFL)};
+		buffer.put(eidBytes);
 		buffer.put(dataType.convert());
 		buffer.put(payload);
 

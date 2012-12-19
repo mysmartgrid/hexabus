@@ -1,9 +1,10 @@
 package de.fraunhofer.itwm.hexabus;
 
 import java.io.IOException;
-import java.net.DatagramSocket;
+import java.net.MulticastSocket;
 import java.net.SocketException;
 import java.net.DatagramPacket;
+import java.net.InetAddress;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -152,29 +153,36 @@ public class HexabusServer {
 	private class HexabusServerRunnable implements Runnable {
 
 		private HexabusServer server;
-		private DatagramSocket socket;
+		private MulticastSocket socket;
 
 		public HexabusServerRunnable(HexabusServer server) {
 			this.server = server;
 		}
 
 		public void shutdown() {
+			try {
+				socket.leaveGroup(InetAddress.getByAddress(Hexabus.MULTICAST_GROUP));
+			} catch(IOException e) {
+				//TODO handle IOExceptions
+				e.printStackTrace();
+			}
 			socket.close();
 		}
 
 		public void run() {
 			try {
-				// TODO multicast socket
-				socket = new DatagramSocket(port);
+				socket = new MulticastSocket(port);
+				socket.joinGroup(InetAddress.getByAddress(Hexabus.MULTICAST_GROUP));
 				while(running) {
 
-					byte[] data = new byte[138]; // Largest packet: 128string info/write packet
+					byte[] data = new byte[141]; // Largest packet: 128string info/write packet
 					DatagramPacket packet;
 					packet = new DatagramPacket(data, data.length);
 
 					socket.receive(packet);
 					server.handlePacket(packet);
 				}
+				socket.leaveGroup(InetAddress.getByAddress(Hexabus.MULTICAST_GROUP));
 				socket.close();
 			} catch(SocketException e) {
 				if(e.getMessage().equals("Socket closed")) { // urgh..

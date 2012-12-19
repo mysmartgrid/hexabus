@@ -8,14 +8,14 @@ import java.net.UnknownHostException;
 
 public class HexabusDevice {
 	private InetAddress address;
-	private HashMap<Integer,HexabusEndpoint> endpoints;
+	private HashMap<Long,HexabusEndpoint> endpoints;
 
 	/**
 	 * @param address The InetAddress of the device
 	 */
 	public HexabusDevice(InetAddress address) {
 		this.address = address;
-		endpoints = new HashMap<Integer,HexabusEndpoint>();
+		endpoints = new HashMap<Long,HexabusEndpoint>();
 		try{
 		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
 		}catch(Hexabus.HexabusException e){
@@ -29,7 +29,7 @@ public class HexabusDevice {
 		}catch(UnknownHostException e) {
 			//TODO
 		}
-		endpoints = new HashMap<Integer,HexabusEndpoint>();
+		endpoints = new HashMap<Long,HexabusEndpoint>();
 		try{
 		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
 		}catch(Hexabus.HexabusException e){
@@ -46,8 +46,8 @@ public class HexabusDevice {
 	 * @param description A description of the new endpoint
 	 * @return The newly created endpoint
 	 */
-	public HexabusEndpoint addEndpoint(int eid, Hexabus.DataType datatype, String description) throws Hexabus.HexabusException {
-		if(endpoints.containsKey(new Integer(eid))) {
+	public HexabusEndpoint addEndpoint(long eid, Hexabus.DataType datatype, String description) throws Hexabus.HexabusException {
+		if(endpoints.containsKey(new Long(eid))) {
 			throw new Hexabus.HexabusException("Endpoint exists");
 		}
 		HexabusEndpoint endpoint = new HexabusEndpoint(this, eid, datatype, description);
@@ -63,7 +63,7 @@ public class HexabusDevice {
 	 * @param datatype The data type of the new endpoint
 	 * @return The newly created endpoint
 	 */
-	public HexabusEndpoint addEndpoint(int eid, Hexabus.DataType datatype) {
+	public HexabusEndpoint addEndpoint(long eid, Hexabus.DataType datatype) {
 		HexabusEndpoint endpoint = new HexabusEndpoint(this, eid, datatype);
 		endpoints.put(eid, endpoint);
 		return endpoint;
@@ -79,17 +79,17 @@ public class HexabusDevice {
 	/**
 	 * @return The endpoints that are associated with the device
 	 */
-	public HashMap<Integer, HexabusEndpoint> getEndpoints() {
+	public HashMap<Long, HexabusEndpoint> getEndpoints() {
 		return endpoints;
 	}
 
-	public HexabusEndpoint getByEid(int eid) throws Hexabus.HexabusException {
-		if(eid>255) {
+	public HexabusEndpoint getByEid(long eid) throws Hexabus.HexabusException {
+		if(eid>=(2^32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
 		
-		for(Map.Entry<Integer, HexabusEndpoint> entry : endpoints.entrySet()) {
-			if(entry.getKey().intValue() == eid) {
+		for(Map.Entry<Long, HexabusEndpoint> entry : endpoints.entrySet()) {
+			if(entry.getKey().longValue() == eid) {
 				return entry.getValue();
 			}
 		}
@@ -101,9 +101,11 @@ public class HexabusDevice {
 	 * Sends an endpoint query to the device and its endpoints.
 	 * Replaces the currently asscociated endpoints with the result.
 	 */
-	public HashMap<Integer, HexabusEndpoint> fetchEndpoints() throws Hexabus.HexabusException, IOException {
-		HashMap<Integer, HexabusEndpoint> oldEndpoints = endpoints;
-		endpoints = new HashMap<Integer, HexabusEndpoint>();
+	//TODO broken
+	public HashMap<Long, HexabusEndpoint> fetchEndpoints() throws Hexabus.HexabusException, IOException {
+		//TODO Should be the other way round
+		HashMap<Long, HexabusEndpoint> oldEndpoints = endpoints;
+		endpoints = new HashMap<Long, HexabusEndpoint>();
 		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
 		long reply = 0;
 		try {

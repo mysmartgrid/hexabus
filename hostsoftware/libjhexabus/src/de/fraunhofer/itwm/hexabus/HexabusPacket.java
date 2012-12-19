@@ -3,7 +3,7 @@ package de.fraunhofer.itwm.hexabus;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.net.InetAddress;
-import java.net.DatagramSocket;
+import java.net.MulticastSocket;
 import java.net.DatagramPacket;
 import java.io.IOException;
 
@@ -27,7 +27,8 @@ public abstract class HexabusPacket {
 		buffer.put(data);
 		buffer.put(crc);
 		// send packet
-		DatagramSocket socket = new DatagramSocket();
+		MulticastSocket socket = new MulticastSocket();
+		socket.setTimeToLive(64);
 		DatagramPacket packet = new DatagramPacket(packetData, packetData.length, 
 				InetAddress.getByAddress(Hexabus.MULTICAST_GROUP), Hexabus.PORT);
 		socket.send(packet);
@@ -51,7 +52,8 @@ public abstract class HexabusPacket {
 		buffer.put(data);
 		buffer.put(crc);
 		// send packet
-		DatagramSocket socket = new DatagramSocket();
+		MulticastSocket socket = new MulticastSocket();
+		socket.setTimeToLive(64);
 		DatagramPacket packet = new DatagramPacket(packetData, packetData.length, 
 				address, Hexabus.PORT);
 		socket.send(packet);
@@ -76,7 +78,8 @@ public abstract class HexabusPacket {
 		buffer.put(data);
 		buffer.put(crc);
 		// send packet
-		DatagramSocket socket = new DatagramSocket();
+		MulticastSocket socket = new MulticastSocket();
+		socket.setTimeToLive(64);
 		DatagramPacket packet = new DatagramPacket(packetData, packetData.length, 
 				address, port);
 		socket.send(packet);
@@ -139,7 +142,7 @@ public abstract class HexabusPacket {
 	protected ByteBuffer buildPacket(byte[] packetData) {
 		ByteBuffer buffer = ByteBuffer.wrap(packetData);
 		buffer.order(ByteOrder.BIG_ENDIAN);
-		// Header = "HX0B"
+		// Header = "HX0C"
 		buffer.put(Hexabus.HEADER);
 
 		// Type

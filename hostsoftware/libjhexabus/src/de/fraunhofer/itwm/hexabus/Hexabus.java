@@ -20,7 +20,7 @@ public class Hexabus {
 
 	public final static int PORT = 61616;
 	/** Hexabus packet header */
-	public final static byte[] HEADER = new byte[] {(byte) 0x48, (byte) 0x58, (byte) 0x30, (byte) 0x42};
+	public final static byte[] HEADER = new byte[] {(byte) 0x48, (byte) 0x58, (byte) 0x30, (byte) 0x43};
 
 	/** Listener have to extend this class to get packets from the HexabusServer */
 	public static abstract class HexabusListener {
@@ -59,7 +59,7 @@ public class Hexabus {
 	public static HexabusPacket receivePacket(int port, int timeout) throws HexabusException, IOException {
 		DatagramSocket socket = new DatagramSocket(port);
 		socket.setSoTimeout(timeout);
-		byte[] data = new byte[138]; // Largest packet: 128string info/write packet
+		byte[] data = new byte[141]; // Largest packet: 128string info/write packet
 		DatagramPacket packet = new DatagramPacket(data, data.length);
 		socket.receive(packet);
 		socket.close();
@@ -75,7 +75,7 @@ public class Hexabus {
 	 */
 	public static HexabusPacket receivePacket(int port) throws HexabusException, IOException {
 		DatagramSocket socket = new DatagramSocket(port);
-		byte[] data = new byte[138]; // Largest packet: 128string info/write packet
+		byte[] data = new byte[141]; // Largest packet: 128string info/write packet
 		DatagramPacket packet = new DatagramPacket(data, data.length);
 		socket.receive(packet);
 		socket.close();
@@ -89,25 +89,28 @@ public class Hexabus {
 	 * @return The extracted hexabus packet
 	 */
 	public static HexabusPacket parsePacket(DatagramPacket packet) throws HexabusException {
+		try{
 		InetAddress address = packet.getAddress();
 		int sourcePort = packet.getPort();
 		byte[] data = packet.getData();
 		HexabusPacket parsedPacket;
 		PacketType packetType = getPacketType(data[4]);
 		DataType dataType;
-		int eid;
+		byte[] eidBytes = new byte[4];
+		long eid;
 		// ByteBuffer to get value of info/write packets
 		ByteBuffer buffer = ByteBuffer.wrap(data);
 		buffer.order(ByteOrder.BIG_ENDIAN);
-		buffer.position(8);
+		buffer.position(6);
 		byte[] payload;
 		switch(packetType) {
 			case ERROR:
 				parsedPacket = new HexabusErrorPacket(data[6]);
 				break;
 			case INFO:
-				dataType = getDataType(data[7]);
-				eid = data[6];
+				buffer.get(eidBytes);
+				eid =  parseUint32(eidBytes);
+				dataType = getDataType(buffer.get());
 				
 				payload = new byte[dataType.getSize()];
 				buffer.get(payload);
@@ -117,16 +120,18 @@ public class Hexabus {
 				parsedPacket = new HexabusQueryPacket(data[6]);
 				break;
 			case WRITE:
-				dataType = getDataType(data[7]);
-				eid = data[6];
+				buffer.get(eidBytes);
+				eid =  parseUint32(eidBytes);
+				dataType = getDataType(buffer.get());
 				
 				payload = new byte[dataType.getSize()];
 				buffer.get(payload);
 				parsedPacket = new HexabusWritePacket(eid, dataType, payload);
 				break;
 			case EPINFO:
-				dataType = getDataType(data[7]);
-				eid = data[6];
+				buffer.get(eidBytes);
+				eid =  parseUint32(eidBytes);
+				dataType = getDataType(buffer.get());
 
 				payload = new byte[Hexabus.DataType.STRING.getSize()];
 				buffer.get(payload);
@@ -143,14 +148,20 @@ public class Hexabus {
 		parsedPacket.setSourceAddress(address);
 		parsedPacket.setSourcePort(sourcePort);
 		return parsedPacket;
+		}catch(NullPointerException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	/**
 	 * Enum for packet types
 	 */
 	public enum PacketType implements EnumConverter {
-		ERROR(0, 9), INFO(1, 10), QUERY(2, 9), WRITE(4, 10),
-			EPINFO(9,10), EPQUERY(0x0A, 9);
+		/*ERROR(0, 9), INFO(1, 10), QUERY(2, 9), WRITE(4, 10),
+			EPINFO(9,10), EPQUERY(0x0A, 9);*/
+		ERROR(0, 12), INFO(1, 13), QUERY(2, 12), WRITE(4, 13),
+			EPINFO(9,13), EPQUERY(0x0A, 12);
 		PacketType(int value, int baseLength) {
 			this.value = (byte) value;
 			this.baseLength = baseLength;
@@ -170,7 +181,7 @@ public class Hexabus {
 	 * Enum for data types
 	 */
 	public enum DataType implements EnumConverter {
-		BOOL(1, 1), UINT8(2, 1), UINT32(3, 4), DATETIME(4, 8),
+		NODATA(0,0), BOOL(1, 1), UINT8(2, 1), UINT32(3, 4), DATETIME(4, 8),
 			FLOAT(5, 4), STRING(6, 128), TIMESTAMP(7, 4);
 		DataType(int value, int size) {
 			this.value = (byte) value;
