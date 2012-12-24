@@ -9,7 +9,7 @@
 #include <boost/program_options/positional_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
-#include <libhexabus/network.hpp>
+#include <libhexabus/socket.hpp>
 #include <typeinfo>
 namespace po = boost::program_options;
 
@@ -207,7 +207,7 @@ po::variable_value get_mandatory_parameter(
 }
 
 
-void send_packet(hexabus::NetworkAccess* net, const std::string& addr, const hexabus::Packet& packet, bool printResponse = false)
+void send_packet(hexabus::Socket* net, const std::string& addr, const hexabus::Packet& packet, bool printResponse = false)
 {
   try {
     net->sendPacket(addr, HXB_PORT, packet);
@@ -218,7 +218,7 @@ void send_packet(hexabus::NetworkAccess* net, const std::string& addr, const hex
   if (printResponse) {
     struct {
       boost::asio::ip::address addr;
-      hexabus::NetworkAccess* net;
+      hexabus::Socket* net;
 
       void operator()(const boost::asio::ip::address_v6& source, const hexabus::Packet& response)
       {
@@ -236,7 +236,7 @@ void send_packet(hexabus::NetworkAccess* net, const std::string& addr, const hex
 }
 
 template<template<typename TValue> class ValuePacket>
-void send_value_packet(hexabus::NetworkAccess* net, const std::string& ip, uint32_t eid, uint8_t datatype, const std::string& value)
+void send_value_packet(hexabus::Socket* net, const std::string& ip, uint32_t eid, uint8_t datatype, const std::string& value)
 {
 	try { // handle errors in value lexical_cast
 		switch (datatype) {
@@ -344,24 +344,24 @@ int main(int argc, char** argv) {
     std::cout << "Binding to " << bind_addr << std::endl;
   }
 
-  hexabus::NetworkAccess* network;
-  hexabus::NetworkAccess::InitStyle netInit = 
+  hexabus::Socket* network;
+  hexabus::Socket::InitStyle netInit = 
     vm.count("reliable") && vm["reliable"].as<bool>()
-    ? hexabus::NetworkAccess::Reliable
-    : hexabus::NetworkAccess::Unreliable;
+    ? hexabus::Socket::Reliable
+    : hexabus::Socket::Unreliable;
 
   if (vm.count("interface")) {
     std::string interface=(vm["interface"].as<std::string>());
     std::cout << "Using interface " << interface << std::endl;
     try {
-      network=new hexabus::NetworkAccess(bind_addr, interface, netInit);
+      network=new hexabus::Socket(bind_addr, interface, netInit);
     } catch (const hexabus::NetworkException& e) {
       std::cerr << "Could not open socket on interface " << interface << ": " << e.code().message() << std::endl;
       return 1;
     }
   } else {
     try {
-      network=new hexabus::NetworkAccess(bind_addr, netInit);
+      network=new hexabus::Socket(bind_addr, netInit);
     } catch (const hexabus::NetworkException& e) {
       std::cerr << "Could not open socket: " << e.code().message() << std::endl;
       return 1;

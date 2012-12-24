@@ -9,7 +9,7 @@
 #include <boost/program_options/positional_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
-#include <libhexabus/network.hpp>
+#include <libhexabus/socket.hpp>
 #include <algorithm>
 #include <vector>
 #include <typeinfo>
@@ -42,12 +42,12 @@ po::variable_value get_mandatory_parameter(
   return retval;
 }
 
-void assert_statemachine_state(hexabus::NetworkAccess* network, const std::string& ip_addr, STM_state_t req_state) {
+void assert_statemachine_state(hexabus::Socket* network, const std::string& ip_addr, STM_state_t req_state) {
 	network->sendPacket(ip_addr, HXB_PORT, hexabus::WritePacket<uint8_t>(EP_SM_CONTROL, req_state));
 	network->sendPacket(ip_addr, HXB_PORT, hexabus::QueryPacket(EP_SM_CONTROL));
 
 	struct {
-		hexabus::NetworkAccess* network;
+		hexabus::Socket* network;
 		boost::asio::ip::address addr;
 		STM_state_t req_state;
 
@@ -94,7 +94,7 @@ void assert_statemachine_state(hexabus::NetworkAccess* network, const std::strin
 	network->run();
 }
 
-bool send_chunk(hexabus::NetworkAccess* network, const std::string& ip_addr, uint8_t chunk_id, const std::vector<char>& chunk) {
+bool send_chunk(hexabus::Socket* network, const std::string& ip_addr, uint8_t chunk_id, const std::vector<char>& chunk) {
 	//std::cout << "Sending chunk " << (int) chunk_id << std::endl;
 	std::vector<char> bin_data;
 	bin_data.push_back(chunk_id); 
@@ -104,7 +104,7 @@ bool send_chunk(hexabus::NetworkAccess* network, const std::string& ip_addr, uin
 
 	bool result = false;
 	struct {
-		hexabus::NetworkAccess* network;
+		hexabus::Socket* network;
 		boost::asio::ip::address addr;
 		bool& result;
 
@@ -194,14 +194,14 @@ int main(int argc, char** argv) {
     in.close();
   }
 
-  hexabus::NetworkAccess* network;
+  hexabus::Socket* network;
 
   if (vm.count("interface")) {
     std::string interface=(vm["interface"].as<std::string>());
     std::cout << "Using interface " << interface << std::endl;
-    network=new hexabus::NetworkAccess(interface, hexabus::NetworkAccess::Unreliable);
+    network=new hexabus::Socket(interface, hexabus::Socket::Unreliable);
   } else {
-    network=new hexabus::NetworkAccess(hexabus::NetworkAccess::Unreliable);
+    network=new hexabus::Socket(hexabus::Socket::Unreliable);
   }
 
 

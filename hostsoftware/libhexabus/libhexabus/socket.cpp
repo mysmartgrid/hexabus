@@ -1,4 +1,4 @@
-#include "network.hpp"
+#include "socket.hpp"
 
 #include "common.hpp"
 #include "packet.hpp"
@@ -18,35 +18,35 @@
 using namespace hexabus;
 namespace bs2 = boost::signals2;
 
-NetworkAccess::NetworkAccess(const std::string& interface, InitStyle init) :
+Socket::Socket(const std::string& interface, InitStyle init) :
   io_service(),
   socket(io_service)
 {
   openSocket(boost::asio::ip::address_v6::any(), &interface, init);
 }
 
-NetworkAccess::NetworkAccess(InitStyle init) :
+Socket::Socket(InitStyle init) :
   io_service(),
   socket(io_service)
 {
   openSocket(boost::asio::ip::address_v6::any(), NULL, init);
 }
 
-NetworkAccess::NetworkAccess(const boost::asio::ip::address_v6& addr, InitStyle init) :
+Socket::Socket(const boost::asio::ip::address_v6& addr, InitStyle init) :
   io_service(),
   socket(io_service)
 {
   openSocket(addr, NULL, init);
 }
 
-NetworkAccess::NetworkAccess(const boost::asio::ip::address_v6& addr, const std::string& interface, InitStyle init) :
+Socket::Socket(const boost::asio::ip::address_v6& addr, const std::string& interface, InitStyle init) :
   io_service(),
   socket(io_service)
 {
   openSocket(addr, &interface, init);
 }
 
-NetworkAccess::~NetworkAccess()
+Socket::~Socket()
 {
 	boost::system::error_code err;
 
@@ -54,26 +54,26 @@ NetworkAccess::~NetworkAccess()
 	// FIXME: maybe errors should be logged somewhere
 }
 
-void NetworkAccess::run()
+void Socket::run()
 {
 	io_service.run();
 }
 
-void NetworkAccess::stop()
+void Socket::stop()
 {
 	io_service.stop();
 }
 
-void NetworkAccess::beginReceive()
+void Socket::beginReceive()
 {
 	socket.async_receive_from(boost::asio::buffer(data, data.size()), remoteEndpoint,
-			boost::bind(&NetworkAccess::packetReceiveHandler,
+			boost::bind(&Socket::packetReceiveHandler,
 				this,
 				boost::asio::placeholders::error,
 				boost::asio::placeholders::bytes_transferred));
 }
 
-bs2::connection NetworkAccess::onPacketReceived(on_packet_received_slot_t callback)
+bs2::connection Socket::onPacketReceived(on_packet_received_slot_t callback)
 {
 	bs2::connection result = packetReceived.connect(callback);
 
@@ -82,12 +82,12 @@ bs2::connection NetworkAccess::onPacketReceived(on_packet_received_slot_t callba
 	return result;
 }
 
-bs2::connection NetworkAccess::onAsyncError(on_async_error_slot_t callback)
+bs2::connection Socket::onAsyncError(on_async_error_slot_t callback)
 {
 	return asyncError.connect(callback);
 }
 
-void NetworkAccess::packetReceiveHandler(const boost::system::error_code& error, size_t size)
+void Socket::packetReceiveHandler(const boost::system::error_code& error, size_t size)
 {
 	if (error) {
 		asyncError(NetworkException("receive", error));
@@ -104,7 +104,7 @@ void NetworkAccess::packetReceiveHandler(const boost::system::error_code& error,
 		beginReceive();
 }
 
-void NetworkAccess::sendPacket(std::string addr, uint16_t port, const Packet& packet) {
+void Socket::sendPacket(std::string addr, uint16_t port, const Packet& packet) {
   boost::asio::ip::udp::endpoint remote_endpoint;
   boost::system::error_code err;
 
@@ -120,7 +120,7 @@ void NetworkAccess::sendPacket(std::string addr, uint16_t port, const Packet& pa
     throw NetworkException("send", err);
 }
 
-void NetworkAccess::openSocket(const boost::asio::ip::address_v6& addr, const std::string* interface, InitStyle init) {
+void Socket::openSocket(const boost::asio::ip::address_v6& addr, const std::string* interface, InitStyle init) {
   boost::system::error_code err;
 
 	data.resize(HXB_MAX_PACKET_SIZE);

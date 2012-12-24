@@ -1,5 +1,5 @@
-#ifndef LIBHEXABUS_NETWORK_HPP
-#define LIBHEXABUS_NETWORK_HPP 1
+#ifndef LIBHEXABUS_SOCKET_HPP
+#define LIBHEXABUS_SOCKET_HPP 1
 
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
@@ -10,7 +10,7 @@
 #include "packet.hpp"
 
 namespace hexabus {
-  class NetworkAccess {
+  class Socket {
     public:
       enum InitStyle { Unreliable, Reliable };
 
@@ -24,11 +24,11 @@ namespace hexabus {
 			typedef on_async_error_t::slot_type on_async_error_slot_t;
 
     public:
-      NetworkAccess(InitStyle init);
-      NetworkAccess(const std::string& interface, InitStyle init);
-      NetworkAccess(const boost::asio::ip::address_v6& addr, InitStyle init);
-      NetworkAccess(const boost::asio::ip::address_v6& addr, const std::string& interface, InitStyle init);
-      ~NetworkAccess();
+      Socket(InitStyle init);
+      Socket(const std::string& interface, InitStyle init);
+      Socket(const boost::asio::ip::address_v6& addr, InitStyle init);
+      Socket(const boost::asio::ip::address_v6& addr, const std::string& interface, InitStyle init);
+      ~Socket();
 			void run();
 			void stop();
 			boost::signals2::connection onPacketReceived(on_packet_received_slot_t callback);
