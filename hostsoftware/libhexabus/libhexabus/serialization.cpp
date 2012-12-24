@@ -22,7 +22,8 @@ class BinarySerializer : public PacketVisitor {
 		void append_float(float value);
 
 		void appendHeader(const Packet& packet);
-		void appendHeaderWithEID(const EIDPacket& packet);
+		void appendEIDHeader(const EIDPacket& packet);
+		void appendValueHeader(const TypedPacket& packet);
 
 		void appendValue(const ValuePacket<bool>& value);
 		void appendValue(const ValuePacket<uint8_t>& value);
@@ -114,10 +115,16 @@ void BinarySerializer::appendHeader(const Packet& packet)
 	_target.push_back(packet.flags());
 }
 
-void BinarySerializer::appendHeaderWithEID(const EIDPacket& packet)
+void BinarySerializer::appendEIDHeader(const EIDPacket& packet)
 {
 	appendHeader(packet);
 	append_u32(packet.eid());
+}
+
+void BinarySerializer::appendValueHeader(const TypedPacket& packet)
+{
+	appendEIDHeader(packet);
+	append_u8(packet.datatype());
 }
 
 void BinarySerializer::appendCRC()
@@ -136,21 +143,20 @@ void BinarySerializer::visit(const ErrorPacket& error)
 
 void BinarySerializer::visit(const QueryPacket& query)
 {
-	appendHeaderWithEID(query);
+	appendEIDHeader(query);
 	appendCRC();
 }
 
 void BinarySerializer::visit(const EndpointQueryPacket& endpointQuery)
 {
-	appendHeaderWithEID(endpointQuery);
+	appendEIDHeader(endpointQuery);
 	appendCRC();
 }
 
 void BinarySerializer::appendValue(const ValuePacket<bool>& value)
 {
-	appendHeaderWithEID(value);
+	appendValueHeader(value);
 
-	append_u8(HXB_DTYPE_BOOL);
 	append_u8(value.value());
 
 	appendCRC();
@@ -158,9 +164,8 @@ void BinarySerializer::appendValue(const ValuePacket<bool>& value)
 
 void BinarySerializer::appendValue(const ValuePacket<uint8_t>& value)
 {
-	appendHeaderWithEID(value);
+	appendValueHeader(value);
 
-	append_u8(HXB_DTYPE_UINT8);
 	append_u8(value.value());
 
 	appendCRC();
@@ -168,9 +173,8 @@ void BinarySerializer::appendValue(const ValuePacket<uint8_t>& value)
 
 void BinarySerializer::appendValue(const ValuePacket<uint32_t>& value)
 {
-	appendHeaderWithEID(value);
+	appendValueHeader(value);
 
-	append_u8(HXB_DTYPE_UINT32);
 	append_u32(value.value());
 
 	appendCRC();
@@ -178,9 +182,8 @@ void BinarySerializer::appendValue(const ValuePacket<uint32_t>& value)
 
 void BinarySerializer::appendValue(const ValuePacket<float>& value)
 {
-	appendHeaderWithEID(value);
+	appendValueHeader(value);
 
-	append_u8(HXB_DTYPE_FLOAT);
 	append_float(value.value());
 
 	appendCRC();
@@ -188,9 +191,8 @@ void BinarySerializer::appendValue(const ValuePacket<float>& value)
 
 void BinarySerializer::appendValue(const ValuePacket<boost::posix_time::ptime>& value)
 {
-	appendHeaderWithEID(value);
+	appendValueHeader(value);
 
-	append_u8(HXB_DTYPE_DATETIME);
 	append_u8(value.value().time_of_day().hours());
 	append_u8(value.value().time_of_day().minutes());
 	append_u8(value.value().time_of_day().seconds());
@@ -204,9 +206,8 @@ void BinarySerializer::appendValue(const ValuePacket<boost::posix_time::ptime>& 
 
 void BinarySerializer::appendValue(const ValuePacket<boost::posix_time::time_duration>& value)
 {
-	appendHeaderWithEID(value);
+	appendValueHeader(value);
 
-	append_u8(HXB_DTYPE_TIMESTAMP);
 	append_u32(value.value().total_seconds());
 
 	appendCRC();
@@ -214,9 +215,8 @@ void BinarySerializer::appendValue(const ValuePacket<boost::posix_time::time_dur
 
 void BinarySerializer::appendValue(const ValuePacket<std::string>& value)
 {
-	appendHeaderWithEID(value);
+	appendValueHeader(value);
 
-	append_u8(HXB_DTYPE_128STRING);
 	_target.insert(_target.end(), value.value().begin(), value.value().end());
 	_target.insert(_target.end(), HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1 - value.value().size(), '\0');
 
@@ -225,26 +225,15 @@ void BinarySerializer::appendValue(const ValuePacket<std::string>& value)
 
 void BinarySerializer::appendValue(const ValuePacket<std::vector<char> >& value)
 {
-	appendHeaderWithEID(value);
+	appendValueHeader(value);
 
-	append_u8(HXB_DTYPE_66BYTES);
 	_target.insert(_target.end(), value.value().begin(), value.value().end());
-	_target.insert(_target.end(), HXB_BYTES_PACKET_MAX_BUFFER_LENGTH - value.value().size(), '\0');
 
 	appendCRC();
 }
 
 
-void BinarySerializer::visit(const EndpointInfoPacket& endpointInfo)
-{
-	appendHeaderWithEID(endpointInfo);
-
-	append_u8(endpointInfo.datatype());
-	_target.insert(_target.end(), endpointInfo.value().begin(), endpointInfo.value().end());
-	_target.insert(_target.end(), HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1 - endpointInfo.value().size(), '\0');
-
-	appendCRC();
-}
+void BinarySerializer::visit(const EndpointInfoPacket& endpointInfo) { appendValue(endpointInfo); }
 
 void BinarySerializer::visit(const InfoPacket<bool>& info) { appendValue(info); }
 void BinarySerializer::visit(const InfoPacket<uint8_t>& info) { appendValue(info); }

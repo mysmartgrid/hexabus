@@ -145,8 +145,20 @@ namespace hexabus {
 			}
 	};
 
+	class TypedPacket : public EIDPacket {
+		private:
+			uint8_t _datatype;
+
+		public:
+			TypedPacket(uint8_t type, uint32_t eid, uint8_t datatype, uint8_t flags = 0)
+				: EIDPacket(type, eid, flags), _datatype(datatype)
+			{}
+
+			uint8_t datatype() const { return _datatype; }
+	};
+
 	template<typename TValue>
-	class ValuePacket : public EIDPacket {
+	class ValuePacket : public TypedPacket {
 		private:
 			BOOST_STATIC_ASSERT_MSG((
 				boost::is_same<TValue, bool>::value
@@ -157,11 +169,22 @@ namespace hexabus {
 					|| boost::is_same<TValue, boost::posix_time::time_duration>::value),
 				"I don't know how to handle that type");
 
+			static uint8_t calculateDatatype()
+			{
+				return boost::is_same<TValue, bool>::value ? HXB_DTYPE_BOOL :
+					boost::is_same<TValue, uint8_t>::value ? HXB_DTYPE_UINT8 :
+					boost::is_same<TValue, uint32_t>::value ? HXB_DTYPE_UINT32 :
+					boost::is_same<TValue, float>::value ? HXB_DTYPE_FLOAT :
+					boost::is_same<TValue, boost::posix_time::ptime>::value ? HXB_DTYPE_DATETIME :
+					boost::is_same<TValue, boost::posix_time::time_duration>::value ? HXB_DTYPE_TIMESTAMP :
+					(throw "BUG: Unknown datatype!", HXB_DTYPE_UNDEFINED);
+			}
+
 			TValue _value;
 
 		protected:
 			ValuePacket(uint8_t type, uint32_t eid, const TValue& value, uint8_t flags = 0)
-				: EIDPacket(type, eid, flags), _value(value)
+				: TypedPacket(type, eid, calculateDatatype(), flags), _value(value)
 			{}
 
 		public:
@@ -169,13 +192,20 @@ namespace hexabus {
 	};
 
 	template<>
-	class ValuePacket<std::string> : public EIDPacket {
+	class ValuePacket<std::string> : public TypedPacket {
 		private:
 			std::string _value;
 
 		protected:
 			ValuePacket(uint8_t type, uint32_t eid, const std::string& value, uint8_t flags = 0)
-				: EIDPacket(type, eid, flags), _value(value)
+				: TypedPacket(type, eid, HXB_DTYPE_128STRING, flags), _value(value)
+			{
+				if (value.size() > HXB_STRING_PACKET_MAX_BUFFER_LENGTH)
+					throw std::out_of_range("value");
+			}
+
+			ValuePacket(uint8_t type, uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0)
+				: TypedPacket(type, eid, datatype, flags), _value(value)
 			{
 				if (value.size() > HXB_STRING_PACKET_MAX_BUFFER_LENGTH)
 					throw std::out_of_range("value");
@@ -186,16 +216,17 @@ namespace hexabus {
 	};
 
 	template<>
-	class ValuePacket<std::vector<char> > : public EIDPacket {
+	class ValuePacket<std::vector<char> > : public TypedPacket {
 		private:
 			std::vector<char> _value;
 
 		protected:
 			ValuePacket(uint8_t type, uint32_t eid, const std::vector<char>& value, uint8_t flags = 0)
-				: EIDPacket(type, eid, flags), _value(value)
+				: TypedPacket(type, eid, HXB_DTYPE_66BYTES, flags), _value(value)
 			{
 				if (value.size() > HXB_BYTES_PACKET_MAX_BUFFER_LENGTH)
 					throw std::out_of_range("value");
+				_value.resize(HXB_BYTES_PACKET_MAX_BUFFER_LENGTH);
 			}
 
 		public:
@@ -229,15 +260,10 @@ namespace hexabus {
 	};
 
 	class EndpointInfoPacket : public ValuePacket<std::string> {
-		private:
-			uint8_t _datatype;
-
 		public:
 			EndpointInfoPacket(uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0)
-				: ValuePacket(HXB_PTYPE_EPINFO, eid, value, flags), _datatype(datatype)
+				: ValuePacket(HXB_PTYPE_EPINFO, eid, datatype, value, flags)
 			{}
-
-			uint8_t datatype() const { return _datatype; }
 
 			virtual void accept(PacketVisitor& visitor) const
 			{
