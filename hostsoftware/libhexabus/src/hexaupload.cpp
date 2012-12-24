@@ -21,137 +21,6 @@ namespace po = boost::program_options;
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
-void print_packet(char* recv_data) {
-  hexabus::PacketHandling phandling(recv_data);
-
-  std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
-  if(phandling.getPacketType() == HXB_PTYPE_ERROR)
-  {
-    std::cout << "Packet Type:\tError\nError Code:\t";
-    switch(phandling.getErrorcode())
-    {
-      case HXB_ERR_UNKNOWNEID:
-        std::cout << "Unknown EID\n";
-        break;
-      case HXB_ERR_WRITEREADONLY:
-        std::cout << "Write for ReadOnly Endpoint\n";
-        break;
-      case HXB_ERR_CRCFAILED:
-        std::cout << "CRC Failed\n";
-        break;
-      case HXB_ERR_DATATYPE:
-        std::cout << "Datatype Mismatch\n";
-        break;
-      default:
-        std::cout << "(unknown)\n";
-        break;
-    }
-  }
-  else if(phandling.getPacketType() == HXB_PTYPE_INFO)
-  {
-    std::cout << "Datatype:\t";
-    switch(phandling.getDatatype())
-    {
-      case HXB_DTYPE_BOOL:
-        std::cout << "Bool\n";
-        break;
-      case HXB_DTYPE_UINT8:
-        std::cout << "Uint8\n";
-        break;
-      case HXB_DTYPE_UINT32:
-        std::cout << "Uint32\n";
-        break;
-      case HXB_DTYPE_DATETIME:
-        std::cout << "Datetime\n";
-      break;
-      case HXB_DTYPE_FLOAT:
-        std::cout << "Float\n";
-        break;
-      case HXB_DTYPE_128STRING:
-        std::cout << "String\n";
-        break;
-      default:
-        std::cout << "(unknown)";
-        break;
-    }
-    std::cout << "Endpoint ID:\t" << phandling.getEID() << std::endl;
-    std::cout << "Value:\t\t";
-    //struct hxb_value value = phandling.getValue();
-    struct hxb_value value;
-    phandling.getValuePtr(&value);
-    switch(value.datatype)
-    {
-      case HXB_DTYPE_BOOL:
-      case HXB_DTYPE_UINT8:
-        std::cout << (int)*(uint8_t*)&value.data;
-        break;
-      case HXB_DTYPE_UINT32:
-        {
-        uint32_t v;
-        memcpy(&v, &value.data[0], sizeof(uint32_t));  // damit gehts..
-        std::cout << v << std::endl;
-        }
-        break;
-      case HXB_DTYPE_DATETIME:
-        {
-          struct datetime dt = *(datetime*)&value.data;
-          std::cout << (int)dt.day << "." << (int)dt.month << "." << dt.year << " " << (int)dt.hour << ":" << (int)dt.minute << ":" << (int)dt.second << " Weekday: " << (int)dt.weekday;
-        }
-        break;
-      case HXB_DTYPE_FLOAT:
-        {
-          float v;
-          memcpy(&v, &value.data[0], sizeof(float));
-          std::cout << v;
-        }
-        break;
-      case HXB_DTYPE_128STRING:
-        std::cout << phandling.getString();
-        break;
-      default:
-        std::cout << "(unknown)";
-        break;
-    }
-  }
-  else if(phandling.getPacketType() == HXB_PTYPE_EPINFO)
-  {
-    if(phandling.getEID() == 0)
-    {
-      std::cout << "Device Info\nDevice Name:\t" << phandling.getString() << "\n";
-    } else {
-      std::cout << "Endpoint Info\n";
-      std::cout << "Endpoint ID:\t" << phandling.getEID() << "\n";
-      std::cout << "EP Datatype:\t"; // TODO code duplication -- maybe this should be a function
-      switch(phandling.getDatatype())
-      {
-        case HXB_DTYPE_BOOL:
-          std::cout << "Bool\n";
-          break;
-        case HXB_DTYPE_UINT8:
-          std::cout << "Uint8\n";
-          break;
-        case HXB_DTYPE_UINT32:
-          std::cout << "Uint32\n";
-          break;
-        case HXB_DTYPE_DATETIME:
-          std::cout << "Datetime\n";
-        break;
-        case HXB_DTYPE_FLOAT:
-          std::cout << "Float\n";
-          break;
-        case HXB_DTYPE_128STRING:
-          std::cout << "String\n";
-          break;
-        default:
-          std::cout << "(unknown)\n";
-          break;
-      }
-      std::cout << "EP Name:\t" << phandling.getString() << "\n";
-    }
-  }
-  std::cout << std::endl;
-}
-
 po::variable_value get_mandatory_parameter(
     po::variables_map vm,
     std::string param_id,
@@ -174,92 +43,77 @@ po::variable_value get_mandatory_parameter(
 }
 
 void assert_statemachine_state(hexabus::NetworkAccess* network, const std::string& ip_addr, STM_state_t req_state) {
-  hexabus::Packet::Ptr packetm(new hexabus::Packet()); // the packet making machine
-
-  hxb_packet_int8 cmd_packet = packetm->write8(EP_SM_CONTROL, HXB_DTYPE_UINT8, req_state, false);
-  network->sendPacket(ip_addr.c_str(), HXB_PORT, (char*)&cmd_packet, sizeof(cmd_packet));
-
-  hxb_packet_query query_packet = packetm->query(EP_SM_CONTROL, false);
-  network->sendPacket(ip_addr.c_str(), HXB_PORT, (char*)&query_packet, sizeof(query_packet));
+	network->sendPacket(ip_addr, HXB_PORT, hexabus::WritePacket<uint8_t>(EP_SM_CONTROL, req_state));
+	network->sendPacket(ip_addr, HXB_PORT, hexabus::QueryPacket(EP_SM_CONTROL));
 
 	struct {
 		hexabus::NetworkAccess* network;
 		boost::asio::ip::address addr;
 		STM_state_t req_state;
 
-		void operator()(const boost::asio::ip::address_v6& source, const std::vector<char>& data)
+		void operator()(const boost::asio::ip::address_v6& source, const hexabus::Packet& packet)
 		{
-				if (source == addr) {
-					hexabus::PacketHandling phandling(const_cast<char*>(&data[0]));
-					//std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
-					if(phandling.getOkay() && (phandling.getPacketType() == HXB_PTYPE_INFO))
-					{
-						if(phandling.getDatatype() == HXB_DTYPE_UINT8) {
-					 //   std::cout << "Info packet" << std::endl;
-					 //   std::cout << "Endpoint " << phandling.getEID() << std::endl;
-							if (req_state == STM_STATE_STOPPED) {
-								if (phandling.getValue().data[0] == STM_STATE_STOPPED) {
-									std::cout << "State machine has been stopped successfully" << std::endl;
-								} else {
-									std::cerr << "Failed to stop state machine - aborting." << std::endl;
-									exit(-2);
-								}
-							} else if (req_state == STM_STATE_RUNNING) {
-								if (phandling.getValue().data[0] == STM_STATE_RUNNING) {
-									std::cout << "State machine is running." << std::endl;
-								} else {
-									std::cerr << "Failed to start state machine - aborting." << std::endl;
-									exit(-2);
-								}
+			if (source == addr) {
+				const hexabus::InfoPacket<uint8_t> *u8 = dynamic_cast<const hexabus::InfoPacket<uint8_t>*>(&packet);
+				const hexabus::TypedPacket *t = dynamic_cast<const hexabus::TypedPacket*>(&packet);
+				if (u8) {
+					switch (req_state) {
+						case STM_STATE_STOPPED:
+							if (u8->value() == STM_STATE_STOPPED) {
+								std::cout << "State machine has been stopped successfully" << std::endl;
 							} else {
-								std::cout << "Unexpected STM_STATE requested - aborting." << std::endl;
-								exit(-3);
+								std::cerr << "Failed to stop state machine - aborting." << std::endl;
+								exit(-2);
 							}
-						} else {
-							std::cout << "Expected uint8 data in packet - got something different." << std::endl;
-						}
-					} else {
-						std::cout << "Unknown packet received after state machine control request - aborting." << std::endl;
-						exit(-4);
+							break;
+
+						case STM_STATE_RUNNING:
+							if (u8->value() == STM_STATE_RUNNING) {
+								std::cout << "State machine is running." << std::endl;
+							} else {
+								std::cerr << "Failed to start state machine - aborting." << std::endl;
+								exit(-2);
+							}
+							break;
+
+						default:
+							std::cout << "Unexpected STM_STATE requested - aborting." << std::endl;
+							exit(-3);
+							break;
 					}
-					network->stop();
+				} else if (t && t->eid() == EP_SM_CONTROL) {
+					std::cout << "Expected uint8 data in packet - got something different." << std::endl;
+					exit(-4);
 				}
+			}
+			network->stop();
 		}
 	} receiveCallback = { network, boost::asio::ip::address::from_string(ip_addr), req_state };
 
-	boost::signals2::connection c = network->onPacketReceived(receiveCallback);
+	boost::signals2::scoped_connection c(network->onPacketReceived(receiveCallback));
 	network->run();
-	c.disconnect();
 }
 
 bool send_chunk(hexabus::NetworkAccess* network, const std::string& ip_addr, uint8_t chunk_id, const std::vector<char>& chunk) {
-  //std::cout << "Sending chunk " << (int) chunk_id << std::endl;
-  hexabus::Packet::Ptr packetm(new hexabus::Packet()); // the packet making machine
-  std::vector<char> bin_data;
-  bin_data.push_back(chunk_id); 
-  bin_data.insert(bin_data.end(), chunk.begin(), chunk.end());
+	//std::cout << "Sending chunk " << (int) chunk_id << std::endl;
+	std::vector<char> bin_data;
+	bin_data.push_back(chunk_id); 
+	bin_data.insert(bin_data.end(), chunk.begin(), chunk.end());
 
-  hxb_packet_66bytes packet = packetm->writebytes(EP_SM_UP_RECEIVER, HXB_DTYPE_66BYTES, reinterpret_cast<char*>(&bin_data[0]), bin_data.size(), false);
-  network->sendPacket(ip_addr.c_str(), HXB_PORT, (char*)&packet, sizeof(packet));
-  // print_packet((char*)&packet);
+	network->sendPacket(ip_addr, HXB_PORT, hexabus::WritePacket<std::vector<char> >(EP_SM_UP_RECEIVER, bin_data));
+
 	bool result = false;
 	struct {
 		hexabus::NetworkAccess* network;
 		boost::asio::ip::address addr;
 		bool& result;
 
-		void operator()(const boost::asio::ip::address_v6& from, const std::vector<char>& data)
+		void operator()(const boost::asio::ip::address_v6& from, const hexabus::Packet& packet)
 		{
 			if (from == addr) {
-				hexabus::PacketHandling phandling(const_cast<char*>(&data[0]));
-				//std::cout << "Hexabus Packet:\t" << (phandling.getOkay() ? "Yes" : "No") << "\nCRC Okay:\t" << (phandling.getCRCOkay() ? "Yes\n" : "No\n");
-				if(phandling.getPacketType() == HXB_PTYPE_INFO)
-				{
-				 // std::cout << "Info packet" << std::endl;
-				 // std::cout << "Endpoint " << phandling.getEID() << std::endl;
-				 // std::cout << "Value: " << (int)phandling.getValue().data[0] << std::endl;
-					if (phandling.getValue().data[0] == true)
-						result = true;
+				const hexabus::InfoPacket<bool> *i = dynamic_cast<const hexabus::InfoPacket<bool>*>(&packet);
+				if (i) {
+					result = i->value();
 				} else {
 					std::cout << "?";
 				}
@@ -268,7 +122,7 @@ bool send_chunk(hexabus::NetworkAccess* network, const std::string& ip_addr, uin
 		}
 	} receiveCallback = { network, boost::asio::ip::address::from_string(ip_addr), result };
 
-	boost::signals2::connection c = network->onPacketReceived(receiveCallback);
+	boost::signals2::scoped_connection c(network->onPacketReceived(receiveCallback));
 	network->run();
 
   return result;
