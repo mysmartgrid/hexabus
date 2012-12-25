@@ -24,18 +24,20 @@ namespace hexabus {
 			typedef on_async_error_t::slot_type on_async_error_slot_t;
 
     public:
-      Socket(InitStyle init);
-      Socket(const std::string& interface, InitStyle init);
-      Socket(const boost::asio::ip::address_v6& addr, InitStyle init);
-      Socket(const boost::asio::ip::address_v6& addr, const std::string& interface, InitStyle init);
+      Socket(boost::asio::io_service& io, InitStyle init);
+      Socket(boost::asio::io_service& io, const std::string& interface, InitStyle init);
+      Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr, InitStyle init);
+      Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr, const std::string& interface, InitStyle init);
       ~Socket();
 			void run();
 			void stop();
 			boost::signals2::connection onPacketReceived(on_packet_received_slot_t callback);
 			boost::signals2::connection onAsyncError(on_async_error_slot_t callback);
       void sendPacket(std::string addr, uint16_t port, const Packet& packet);
+
+			boost::asio::io_service& ioService() { return io_service; }
     private:
-      boost::asio::io_service io_service;
+      boost::asio::io_service& io_service;
       boost::asio::ip::udp::socket socket;
 			boost::asio::ip::udp::endpoint remoteEndpoint;
 			on_packet_received_t packetReceived;

@@ -18,29 +18,29 @@
 using namespace hexabus;
 namespace bs2 = boost::signals2;
 
-Socket::Socket(const std::string& interface, InitStyle init) :
-  io_service(),
+Socket::Socket(boost::asio::io_service& io, const std::string& interface, InitStyle init) :
+  io_service(io),
   socket(io_service)
 {
   openSocket(boost::asio::ip::address_v6::any(), &interface, init);
 }
 
-Socket::Socket(InitStyle init) :
-  io_service(),
+Socket::Socket(boost::asio::io_service& io, InitStyle init) :
+  io_service(io),
   socket(io_service)
 {
   openSocket(boost::asio::ip::address_v6::any(), NULL, init);
 }
 
-Socket::Socket(const boost::asio::ip::address_v6& addr, InitStyle init) :
-  io_service(),
+Socket::Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr, InitStyle init) :
+  io_service(io),
   socket(io_service)
 {
   openSocket(addr, NULL, init);
 }
 
-Socket::Socket(const boost::asio::ip::address_v6& addr, const std::string& interface, InitStyle init) :
-  io_service(),
+Socket::Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr, const std::string& interface, InitStyle init) :
+  io_service(io),
   socket(io_service)
 {
   openSocket(addr, &interface, init);

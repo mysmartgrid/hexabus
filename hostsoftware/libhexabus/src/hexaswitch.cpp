@@ -344,6 +344,7 @@ int main(int argc, char** argv) {
     std::cout << "Binding to " << bind_addr << std::endl;
   }
 
+	boost::asio::io_service io;
   hexabus::Socket* network;
   hexabus::Socket::InitStyle netInit = 
     vm.count("reliable") && vm["reliable"].as<bool>()
@@ -354,14 +355,14 @@ int main(int argc, char** argv) {
     std::string interface=(vm["interface"].as<std::string>());
     std::cout << "Using interface " << interface << std::endl;
     try {
-      network=new hexabus::Socket(bind_addr, interface, netInit);
+      network=new hexabus::Socket(io, bind_addr, interface, netInit);
     } catch (const hexabus::NetworkException& e) {
       std::cerr << "Could not open socket on interface " << interface << ": " << e.code().message() << std::endl;
       return 1;
     }
   } else {
     try {
-      network=new hexabus::Socket(bind_addr, netInit);
+      network=new hexabus::Socket(io, bind_addr, netInit);
     } catch (const hexabus::NetworkException& e) {
       std::cerr << "Could not open socket: " << e.code().message() << std::endl;
       return 1;

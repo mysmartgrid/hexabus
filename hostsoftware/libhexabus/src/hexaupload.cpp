@@ -194,14 +194,15 @@ int main(int argc, char** argv) {
     in.close();
   }
 
+	boost::asio::io_service io;
   hexabus::Socket* network;
 
   if (vm.count("interface")) {
     std::string interface=(vm["interface"].as<std::string>());
     std::cout << "Using interface " << interface << std::endl;
-    network=new hexabus::Socket(interface, hexabus::Socket::Unreliable);
+    network=new hexabus::Socket(io, interface, hexabus::Socket::Unreliable);
   } else {
-    network=new hexabus::Socket(hexabus::Socket::Unreliable);
+    network=new hexabus::Socket(io, hexabus::Socket::Unreliable);
   }
 
 
