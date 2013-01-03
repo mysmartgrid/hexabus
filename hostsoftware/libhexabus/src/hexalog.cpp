@@ -255,7 +255,7 @@ int main(int argc, char** argv)
 
   std::map<std::string, hexabus::Sensor::Ptr> sensors;
 	boost::asio::io_service io;
-  hexabus::Socket network(io, hexabus::Socket::Unreliable);
+  hexabus::Socket network(io);
   // TODO: Compile flag etc.
   klio::StoreFactory::Ptr store_factory(new klio::StoreFactory()); 
   klio::Store::Ptr store(store_factory->openStore(klio::SQLITE3, db));

@@ -12,8 +12,6 @@
 namespace hexabus {
   class Socket {
     public:
-      enum InitStyle { Unreliable, Reliable };
-
 			typedef boost::signals2::signal<
 				void (const boost::asio::ip::address_v6& source,
 						const Packet& packet)>
@@ -24,10 +22,10 @@ namespace hexabus {
 			typedef on_async_error_t::slot_type on_async_error_slot_t;
 
     public:
-      Socket(boost::asio::io_service& io, InitStyle init);
-      Socket(boost::asio::io_service& io, const std::string& interface, InitStyle init);
-      Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr, InitStyle init);
-      Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr, const std::string& interface, InitStyle init);
+      Socket(boost::asio::io_service& io);
+      Socket(boost::asio::io_service& io, const std::string& interface);
+      Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr);
+      Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr, const std::string& interface);
       ~Socket();
 			void run();
 			void stop();
@@ -44,7 +42,7 @@ namespace hexabus {
 			on_async_error_t asyncError;
 			std::vector<char> data;
 
-      void openSocket(const boost::asio::ip::address_v6& addr, const std::string* interface, InitStyle init);
+      void openSocket(const boost::asio::ip::address_v6& addr, const std::string* interface);
 
 			void beginReceive();
 			void packetReceiveHandler(const boost::system::error_code& error, size_t size);

@@ -18,32 +18,32 @@
 using namespace hexabus;
 namespace bs2 = boost::signals2;
 
-Socket::Socket(boost::asio::io_service& io, const std::string& interface, InitStyle init) :
+Socket::Socket(boost::asio::io_service& io, const std::string& interface) :
   io_service(io),
   socket(io_service)
 {
-  openSocket(boost::asio::ip::address_v6::any(), &interface, init);
+  openSocket(boost::asio::ip::address_v6::any(), &interface);
 }
 
-Socket::Socket(boost::asio::io_service& io, InitStyle init) :
+Socket::Socket(boost::asio::io_service& io) :
   io_service(io),
   socket(io_service)
 {
-  openSocket(boost::asio::ip::address_v6::any(), NULL, init);
+  openSocket(boost::asio::ip::address_v6::any(), NULL);
 }
 
-Socket::Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr, InitStyle init) :
+Socket::Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr) :
   io_service(io),
   socket(io_service)
 {
-  openSocket(addr, NULL, init);
+  openSocket(addr, NULL);
 }
 
-Socket::Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr, const std::string& interface, InitStyle init) :
+Socket::Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr, const std::string& interface) :
   io_service(io),
   socket(io_service)
 {
-  openSocket(addr, &interface, init);
+  openSocket(addr, &interface);
 }
 
 Socket::~Socket()
@@ -120,7 +120,7 @@ void Socket::sendPacket(std::string addr, uint16_t port, const Packet& packet) {
     throw NetworkException("send", err);
 }
 
-void Socket::openSocket(const boost::asio::ip::address_v6& addr, const std::string* interface, InitStyle init) {
+void Socket::openSocket(const boost::asio::ip::address_v6& addr, const std::string* interface) {
   boost::system::error_code err;
 
 	data.resize(HXB_MAX_PACKET_SIZE);
@@ -157,17 +157,4 @@ void Socket::openSocket(const boost::asio::ip::address_v6& addr, const std::stri
 	socket.set_option(boost::asio::ip::multicast::enable_loopback(true));
   if (err)
     throw NetworkException("open", err);
-
-  if (init == Reliable) {
-    // Send invalid packets and wait for a second to build state on multicast routers on the way
-    // Two packets will be sent, with one second delay after each. This ensures that routing state is built
-    // on at least two consecutive hops, which should be enough for time being.
-    // Ideally, this should be replaced by something less reminiscent of brute force
-    for (int i = 0; i < 2; i++) {
-      sendPacket(HXB_GROUP, 61616, InfoPacket<bool>(31, true));
-
-      timeval timeout = { 1, 0 };
-      select(0, 0, 0, 0, &timeout);
-    }
-  }
 }

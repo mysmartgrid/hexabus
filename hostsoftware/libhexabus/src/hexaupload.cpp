@@ -200,9 +200,9 @@ int main(int argc, char** argv) {
   if (vm.count("interface")) {
     std::string interface=(vm["interface"].as<std::string>());
     std::cout << "Using interface " << interface << std::endl;
-    network=new hexabus::Socket(io, interface, hexabus::Socket::Unreliable);
+    network=new hexabus::Socket(io, interface);
   } else {
-    network=new hexabus::Socket(io, hexabus::Socket::Unreliable);
+    network=new hexabus::Socket(io);
   }
 
 

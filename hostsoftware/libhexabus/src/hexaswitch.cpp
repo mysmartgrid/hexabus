@@ -2,6 +2,7 @@
 #include <string.h>
 #include <libhexabus/common.hpp>
 #include <libhexabus/crc.hpp>
+#include <libhexabus/liveness.hpp>
 #include <time.h>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/error.hpp>
@@ -346,28 +347,33 @@ int main(int argc, char** argv) {
 
 	boost::asio::io_service io;
   hexabus::Socket* network;
-  hexabus::Socket::InitStyle netInit = 
-    vm.count("reliable") && vm["reliable"].as<bool>()
-    ? hexabus::Socket::Reliable
-    : hexabus::Socket::Unreliable;
 
   if (vm.count("interface")) {
     std::string interface=(vm["interface"].as<std::string>());
     std::cout << "Using interface " << interface << std::endl;
     try {
-      network=new hexabus::Socket(io, bind_addr, interface, netInit);
+      network=new hexabus::Socket(io, bind_addr, interface);
     } catch (const hexabus::NetworkException& e) {
       std::cerr << "Could not open socket on interface " << interface << ": " << e.code().message() << std::endl;
       return 1;
     }
   } else {
     try {
-      network=new hexabus::Socket(io, bind_addr, netInit);
+      network=new hexabus::Socket(io, bind_addr);
     } catch (const hexabus::NetworkException& e) {
       std::cerr << "Could not open socket: " << e.code().message() << std::endl;
       return 1;
     }
   }
+
+	hexabus::LivenessReporter* liveness =
+    vm.count("reliable") && vm["reliable"].as<bool>()
+    ? new hexabus::LivenessReporter(*network)
+    : 0;
+	if (liveness) {
+		liveness->establishPaths(1);
+		liveness->start();
+	}
 
   if(boost::iequals(command, std::string("LISTEN")))
   {

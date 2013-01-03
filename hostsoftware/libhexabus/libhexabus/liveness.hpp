@@ -4,9 +4,9 @@
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-namespace hexabus {
-	class Socket;
+#include "socket.hpp"
 
+namespace hexabus {
 	class LivenessReporter {
 		private:
 			Socket& _socket;
