@@ -352,14 +352,14 @@ int main(int argc, char** argv) {
     std::string interface=(vm["interface"].as<std::string>());
     std::cout << "Using interface " << interface << std::endl;
     try {
-      network=new hexabus::Socket(io, bind_addr, interface);
+      network=new hexabus::Socket(io, interface);
     } catch (const hexabus::NetworkException& e) {
       std::cerr << "Could not open socket on interface " << interface << ": " << e.code().message() << std::endl;
       return 1;
     }
   } else {
     try {
-      network=new hexabus::Socket(io, bind_addr);
+      network=new hexabus::Socket(io);
     } catch (const hexabus::NetworkException& e) {
       std::cerr << "Could not open socket: " << e.code().message() << std::endl;
       return 1;
@@ -402,9 +402,11 @@ int main(int argc, char** argv) {
 
     network->onAsyncError(errorCallback);
     network->onPacketReceived(receiveCallback);
+		network->listen(bind_addr);
 		io.run();
   }
 
+	network->bind(bind_addr);
   /*
    * Shorthand convenience commands.
    */

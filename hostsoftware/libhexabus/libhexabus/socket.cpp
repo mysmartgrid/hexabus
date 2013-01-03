@@ -32,20 +32,6 @@ Socket::Socket(boost::asio::io_service& io) :
   openSocket(boost::asio::ip::address_v6::any(), NULL);
 }
 
-Socket::Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr) :
-  io_service(io),
-  socket(io_service)
-{
-  openSocket(addr, NULL);
-}
-
-Socket::Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr, const std::string& interface) :
-  io_service(io),
-  socket(io_service)
-{
-  openSocket(addr, &interface);
-}
-
 Socket::~Socket()
 {
 	boost::system::error_code err;
@@ -110,16 +96,28 @@ void Socket::sendPacket(std::string addr, uint16_t port, const Packet& packet) {
     throw NetworkException("send", err);
 }
 
+void Socket::listen(const boost::asio::ip::address_v6& addr) {
+  boost::system::error_code err;
+
+  socket.bind(boost::asio::ip::udp::endpoint(addr, 61616), err);
+  if (err)
+    throw NetworkException("listen", err);
+}
+
+void Socket::bind(const boost::asio::ip::address_v6& addr) {
+  boost::system::error_code err;
+
+  socket.bind(boost::asio::ip::udp::endpoint(addr, 0), err);
+  if (err)
+    throw NetworkException("bind", err);
+}
+
 void Socket::openSocket(const boost::asio::ip::address_v6& addr, const std::string* interface) {
   boost::system::error_code err;
 
 	data.resize(HXB_MAX_PACKET_SIZE);
 
   socket.open(boost::asio::ip::udp::v6(), err);
-  if (err)
-    throw NetworkException("open", err);
-
-  socket.bind(boost::asio::ip::udp::endpoint(addr, 61616), err);
   if (err)
     throw NetworkException("open", err);
 
