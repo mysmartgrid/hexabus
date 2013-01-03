@@ -54,16 +54,6 @@ Socket::~Socket()
 	// FIXME: maybe errors should be logged somewhere
 }
 
-void Socket::run()
-{
-	io_service.run();
-}
-
-void Socket::stop()
-{
-	io_service.stop();
-}
-
 void Socket::beginReceive()
 {
 	socket.async_receive_from(boost::asio::buffer(data, data.size()), remoteEndpoint,

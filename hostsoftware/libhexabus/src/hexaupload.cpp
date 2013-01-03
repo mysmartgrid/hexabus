@@ -86,12 +86,12 @@ void assert_statemachine_state(hexabus::Socket* network, const std::string& ip_a
 					exit(-4);
 				}
 			}
-			network->stop();
+			network->ioService().stop();
 		}
 	} receiveCallback = { network, boost::asio::ip::address::from_string(ip_addr), req_state };
 
 	boost::signals2::scoped_connection c(network->onPacketReceived(receiveCallback));
-	network->run();
+	network->ioService().run();
 }
 
 bool send_chunk(hexabus::Socket* network, const std::string& ip_addr, uint8_t chunk_id, const std::vector<char>& chunk) {
@@ -117,13 +117,13 @@ bool send_chunk(hexabus::Socket* network, const std::string& ip_addr, uint8_t ch
 				} else {
 					std::cout << "?";
 				}
-				network->stop();
+				network->ioService().stop();
 			}
 		}
 	} receiveCallback = { network, boost::asio::ip::address::from_string(ip_addr), result };
 
 	boost::signals2::scoped_connection c(network->onPacketReceived(receiveCallback));
-	network->run();
+	network->ioService().run();
 
   return result;
 }

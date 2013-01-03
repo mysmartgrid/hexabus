@@ -27,8 +27,6 @@ namespace hexabus {
       Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr);
       Socket(boost::asio::io_service& io, const boost::asio::ip::address_v6& addr, const std::string& interface);
       ~Socket();
-			void run();
-			void stop();
 			boost::signals2::connection onPacketReceived(on_packet_received_slot_t callback);
 			boost::signals2::connection onAsyncError(on_async_error_slot_t callback);
       void sendPacket(std::string addr, uint16_t port, const Packet& packet);

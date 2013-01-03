@@ -264,5 +264,6 @@ int main(int argc, char** argv)
   klio::TimeConverter::Ptr tc(new klio::TimeConverter());
 
 	network.onPacketReceived(ReadingLogger(store, tc, sensor_factory, sensor_timezone));
-	network.run();
+
+	io.run();
 }

@@ -225,13 +225,13 @@ void send_packet(hexabus::Socket* net, const std::string& addr, const hexabus::P
       {
         if (source == this->addr) {
           print_packet(response);
-          this->net->stop();
+          this->net->ioService().stop();
         }
       }
     } receiveCallback = { boost::asio::ip::address::from_string(addr), net };
 
     boost::signals2::connection c = net->onPacketReceived(receiveCallback);
-    net->run();
+    net->ioService().run();
     c.disconnect();
   }
 }
@@ -402,7 +402,7 @@ int main(int argc, char** argv) {
 
     network->onAsyncError(errorCallback);
     network->onPacketReceived(receiveCallback);
-		network->run();
+		io.run();
   }
 
   /*
