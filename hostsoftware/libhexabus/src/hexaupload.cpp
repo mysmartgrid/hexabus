@@ -48,52 +48,55 @@ void assert_statemachine_state(hexabus::Socket* network, const std::string& ip_a
 	network->send(hexabus::WritePacket<uint8_t>(EP_SM_CONTROL, req_state), dest);
 	network->send(hexabus::QueryPacket(EP_SM_CONTROL), dest);
 
-	struct {
-		hexabus::Socket* network;
-		boost::asio::ip::address addr;
-		STM_state_t req_state;
-
-		void operator()(const boost::asio::ip::address_v6& source, const hexabus::Packet& packet)
-		{
-			if (source == addr) {
-				const hexabus::InfoPacket<uint8_t> *u8 = dynamic_cast<const hexabus::InfoPacket<uint8_t>*>(&packet);
-				const hexabus::TypedPacket *t = dynamic_cast<const hexabus::TypedPacket*>(&packet);
-				if (u8) {
-					switch (req_state) {
-						case STM_STATE_STOPPED:
-							if (u8->value() == STM_STATE_STOPPED) {
-								std::cout << "State machine has been stopped successfully" << std::endl;
-							} else {
-								std::cerr << "Failed to stop state machine - aborting." << std::endl;
-								exit(-2);
-							}
-							break;
-
-						case STM_STATE_RUNNING:
-							if (u8->value() == STM_STATE_RUNNING) {
-								std::cout << "State machine is running." << std::endl;
-							} else {
-								std::cerr << "Failed to start state machine - aborting." << std::endl;
-								exit(-2);
-							}
-							break;
-
-						default:
-							std::cout << "Unexpected STM_STATE requested - aborting." << std::endl;
-							exit(-3);
-							break;
-					}
-				} else if (t && t->eid() == EP_SM_CONTROL) {
-					std::cout << "Expected uint8 data in packet - got something different." << std::endl;
-					exit(-4);
-				}
+	while (true) {
+		std::pair<boost::asio::ip::address_v6, hexabus::Packet::Ptr> pair;
+		try {
+			pair = network->receive();
+		} catch (const hexabus::GenericException& e) {
+			const hexabus::NetworkException* nerror;
+			if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&e))) {
+				std::cerr << "Error receiving packet: " << nerror->code().message() << std::endl;
+			} else {
+				std::cerr << "Error receiving packet: " << e.what() << std::endl;
 			}
-			network->ioService().stop();
+			exit(1);
 		}
-	} receiveCallback = { network, dest, req_state };
 
-	boost::signals2::scoped_connection c(network->onPacketReceived(receiveCallback));
-	network->ioService().run();
+		if (pair.first == dest) {
+			const hexabus::InfoPacket<uint8_t> *u8 = dynamic_cast<const hexabus::InfoPacket<uint8_t>*>(pair.second.get());
+			const hexabus::TypedPacket *t = dynamic_cast<const hexabus::TypedPacket*>(pair.second.get());
+			if (u8) {
+				switch (req_state) {
+					case STM_STATE_STOPPED:
+						if (u8->value() == STM_STATE_STOPPED) {
+							std::cout << "State machine has been stopped successfully" << std::endl;
+						} else {
+							std::cerr << "Failed to stop state machine - aborting." << std::endl;
+							exit(-2);
+						}
+						break;
+
+					case STM_STATE_RUNNING:
+						if (u8->value() == STM_STATE_RUNNING) {
+							std::cout << "State machine is running." << std::endl;
+						} else {
+							std::cerr << "Failed to start state machine - aborting." << std::endl;
+							exit(-2);
+						}
+						break;
+
+					default:
+						std::cout << "Unexpected STM_STATE requested - aborting." << std::endl;
+						exit(-3);
+						break;
+				}
+			} else if (t && t->eid() == EP_SM_CONTROL) {
+				std::cout << "Expected uint8 data in packet - got something different." << std::endl;
+				exit(-4);
+			}
+			break;
+		}
+	}
 }
 
 bool send_chunk(hexabus::Socket* network, const std::string& ip_addr, uint8_t chunk_id, const std::vector<char>& chunk) {

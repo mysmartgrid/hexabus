@@ -51,6 +51,17 @@ void Socket::beginReceive()
 				boost::asio::placeholders::bytes_transferred));
 }
 
+std::pair<boost::asio::ip::address_v6, Packet::Ptr> Socket::receive()
+{
+	boost::system::error_code err;
+
+	socket.receive_from(boost::asio::buffer(data, data.size()), remoteEndpoint, 0, err);
+	if (err)
+		throw NetworkException("receive", err);
+
+	return std::make_pair(remoteEndpoint.address().to_v6(), deserialize(&data[0], data.size()));
+}
+
 bs2::connection Socket::onPacketReceived(on_packet_received_slot_t callback)
 {
 	bs2::connection result = packetReceived.connect(callback);
@@ -76,6 +87,7 @@ void Socket::packetReceiveHandler(const boost::system::error_code& error, size_t
 		packet = deserialize(&data[0], data.size());
 	} catch (const BadPacketException& e) {
 		asyncError(e);
+		return;
 	}
 	packetReceived(remoteEndpoint.address().to_v6(), *packet);
 	if (!packetReceived.empty())

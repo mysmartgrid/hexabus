@@ -35,6 +35,7 @@ namespace hexabus {
 			void bind(const boost::asio::ip::address_v6& addr);
 
 			void send(const Packet& packet, const boost::asio::ip::address_v6& dest = GroupAddress, uint16_t port = HXB_PORT);
+			std::pair<boost::asio::ip::address_v6, Packet::Ptr> receive();
 
 			boost::asio::io_service& ioService() { return io_service; }
     private:

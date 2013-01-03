@@ -217,22 +217,25 @@ void send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, 
     exit(1);
   }
   if (printResponse) {
-    struct {
-      boost::asio::ip::address addr;
-      hexabus::Socket* net;
+		while (true) {
+			std::pair<boost::asio::ip::address_v6, hexabus::Packet::Ptr> pair;
+			try {
+				pair = net->receive();
+			} catch (const hexabus::GenericException& e) {
+				const hexabus::NetworkException* nerror;
+				if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&e))) {
+					std::cerr << "Error receiving packet: " << nerror->code().message() << std::endl;
+				} else {
+					std::cerr << "Error receiving packet: " << e.what() << std::endl;
+				}
+				exit(1);
+			}
 
-      void operator()(const boost::asio::ip::address_v6& source, const hexabus::Packet& response)
-      {
-        if (source == this->addr) {
-          print_packet(response);
-          this->net->ioService().stop();
-        }
-      }
-    } receiveCallback = { addr, net };
-
-    boost::signals2::connection c = net->onPacketReceived(receiveCallback);
-    net->ioService().run();
-    c.disconnect();
+			if (pair.first == addr) {
+				print_packet(*pair.second);
+				break;
+			}
+		}
   }
 }
 
@@ -379,31 +382,24 @@ int main(int argc, char** argv) {
   {
     std::cout << "Entering listen mode." << std::endl;
 
-    struct {
-      void operator()(const boost::asio::ip::address_v6& source, const hexabus::Packet& packet)
-      {
-        std::cout << "Received packet from " << source << std::endl;
-        print_packet(packet);
-      }
-    } receiveCallback;
-
-    struct {
-      void operator()(const hexabus::GenericException& error)
-      {
+		network->listen(bind_addr);
+		while (true) {
+			std::pair<boost::asio::ip::address_v6, hexabus::Packet::Ptr> pair;
+			try {
+				pair = network->receive();
+			} catch (const hexabus::GenericException& e) {
 				const hexabus::NetworkException* nerror;
-				if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&error))) {
+				if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&e))) {
 					std::cerr << "Error receiving packet: " << nerror->code().message() << std::endl;
 				} else {
-					std::cerr << "Error receiving packet: " << error.what() << std::endl;
+					std::cerr << "Error receiving packet: " << e.what() << std::endl;
 				}
-        exit(1);
-      }
-    } errorCallback;
+				exit(1);
+			}
 
-    network->onAsyncError(errorCallback);
-    network->onPacketReceived(receiveCallback);
-		network->listen(bind_addr);
-		io.run();
+			std::cout << "Received packet from " << pair.first << std::endl;
+			print_packet(*pair.second);
+		}
   }
 
 	network->bind(bind_addr);
