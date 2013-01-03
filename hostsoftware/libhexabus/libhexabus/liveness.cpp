@@ -39,7 +39,7 @@ void LivenessReporter::stop()
 
 void LivenessReporter::reportAlive(bool alive)
 {
-	_socket.sendPacket(HXB_GROUP, HXB_PORT, InfoPacket<bool>(EP_LIVENESS, alive));
+	_socket.send(InfoPacket<bool>(EP_LIVENESS, alive));
 }
 
 void LivenessReporter::establishPaths(unsigned int hopCount)

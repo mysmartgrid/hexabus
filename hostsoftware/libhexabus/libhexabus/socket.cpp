@@ -18,6 +18,8 @@
 using namespace hexabus;
 namespace bs2 = boost::signals2;
 
+const boost::asio::ip::address_v6 Socket::GroupAddress = boost::asio::ip::address_v6::from_string(HXB_GROUP);
+
 Socket::Socket(boost::asio::io_service& io, const std::string& interface) :
   io_service(io),
   socket(io_service)
@@ -80,20 +82,17 @@ void Socket::packetReceiveHandler(const boost::system::error_code& error, size_t
 		beginReceive();
 }
 
-void Socket::sendPacket(std::string addr, uint16_t port, const Packet& packet) {
-  boost::asio::ip::udp::endpoint remote_endpoint;
-  boost::system::error_code err;
+void Socket::send(const Packet& packet, const boost::asio::ip::address_v6& dest, uint16_t port)
+{
+	boost::system::error_code err;
 
-  boost::asio::ip::address targetIP = boost::asio::ip::address::from_string(addr, err);
-  if (err)
-    throw NetworkException("send", err);
-  remote_endpoint = boost::asio::ip::udp::endpoint(targetIP, port);
+	boost::asio::ip::udp::endpoint remote(dest, port);
 
-  std::vector<char> data = serialize(packet);
-  
-  socket.send_to(boost::asio::buffer(&data[0], data.size()), remote_endpoint, 0, err);
-  if (err)
-    throw NetworkException("send", err);
+	std::vector<char> data = serialize(packet);
+
+	socket.send_to(boost::asio::buffer(&data[0], data.size()), remote, 0, err);
+	if (err)
+		throw NetworkException("send", err);
 }
 
 void Socket::listen(const boost::asio::ip::address_v6& addr) {

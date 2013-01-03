@@ -208,10 +208,10 @@ po::variable_value get_mandatory_parameter(
 }
 
 
-void send_packet(hexabus::Socket* net, const std::string& addr, const hexabus::Packet& packet, bool printResponse = false)
+void send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet, bool printResponse = false)
 {
   try {
-    net->sendPacket(addr, HXB_PORT, packet);
+    net->send(packet, addr);
   } catch (const hexabus::NetworkException& e) {
     std::cerr << "Could not send packet to " << addr << ": " << e.code().message() << std::endl;
     exit(1);
@@ -228,7 +228,7 @@ void send_packet(hexabus::Socket* net, const std::string& addr, const hexabus::P
           this->net->ioService().stop();
         }
       }
-    } receiveCallback = { boost::asio::ip::address::from_string(addr), net };
+    } receiveCallback = { addr, net };
 
     boost::signals2::connection c = net->onPacketReceived(receiveCallback);
     net->ioService().run();
@@ -237,7 +237,7 @@ void send_packet(hexabus::Socket* net, const std::string& addr, const hexabus::P
 }
 
 template<template<typename TValue> class ValuePacket>
-void send_value_packet(hexabus::Socket* net, const std::string& ip, uint32_t eid, uint8_t datatype, const std::string& value)
+void send_value_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& ip, uint32_t eid, uint8_t datatype, const std::string& value)
 {
 	try { // handle errors in value lexical_cast
 		switch (datatype) {
@@ -414,19 +414,19 @@ int main(int argc, char** argv) {
   if(boost::iequals(command, "ON") || boost::iequals(command, "OFF")) {
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command needs an IP address").as<std::string>();
-		send_packet(network, ip, hexabus::WritePacket<bool>(1, boost::iequals(command, "ON")));
+		send_packet(network, boost::asio::ip::address_v6::from_string(ip), hexabus::WritePacket<bool>(1, boost::iequals(command, "ON")));
   }
   else if(boost::iequals(command, std::string("STATUS"))) { // status: query EID 1
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command STATUS needs an IP address").as<std::string>();
-		send_packet(network, ip, hexabus::QueryPacket(1), true);
+		send_packet(network, boost::asio::ip::address_v6::from_string(ip), hexabus::QueryPacket(1), true);
 
   }
   else if(boost::iequals(command, std::string("POWER")))  // power: query EID 2
   {
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command POWER needs an IP address").as<std::string>();
-		send_packet(network, ip, hexabus::QueryPacket(2), true);
+		send_packet(network, boost::asio::ip::address_v6::from_string(ip), hexabus::QueryPacket(2), true);
   }
 
   /*
@@ -442,7 +442,7 @@ int main(int argc, char** argv) {
     unsigned int dtype = get_mandatory_parameter(vm,
         "datatype", "command SET needs an EID and a datatype").as<unsigned int>();
 		std::string value = get_mandatory_parameter(vm, "value", "command SET needs a value").as<std::string>();
-		send_value_packet<hexabus::WritePacket>(network, ip, eid, dtype, value);
+		send_value_packet<hexabus::WritePacket>(network, boost::asio::ip::address_v6::from_string(ip), eid, dtype, value);
   }
 
   else if(boost::iequals(command, std::string("GET"))) // get: request the value of an arbitrary EID
@@ -451,7 +451,7 @@ int main(int argc, char** argv) {
         "ip", "command GET needs an IP address").as<std::string>();
     uint32_t eid = get_mandatory_parameter(vm,
           "eid", "command GET needs an EID").as<uint32_t>();
-		send_packet(network, ip, hexabus::QueryPacket(eid), true);
+		send_packet(network, boost::asio::ip::address_v6::from_string(ip), hexabus::QueryPacket(eid), true);
   }
 
   else if (boost::iequals(command, std::string("EPQUERY")))   // epquery: request endpoint metadata
@@ -460,14 +460,14 @@ int main(int argc, char** argv) {
         "ip", "command EPQUERY needs an IP address").as<std::string>();
     uint32_t eid = get_mandatory_parameter(vm,
         "eid", "command EPQUERY needs an EID").as<uint32_t>();
-		send_packet(network, ip, hexabus::EndpointQueryPacket(eid), true);
+		send_packet(network, boost::asio::ip::address_v6::from_string(ip), hexabus::EndpointQueryPacket(eid), true);
   }
   else if (boost::iequals(command, std::string("DEVINFO"))) 
     // epquery: request endpoint metadata
   {
     std::string ip = get_mandatory_parameter(vm,
         "ip", "command DEVINFO needs an IP address").as<std::string>();
-		send_packet(network, ip, hexabus::EndpointQueryPacket(0), true);
+		send_packet(network, boost::asio::ip::address_v6::from_string(ip), hexabus::EndpointQueryPacket(0), true);
   }
   else if (boost::iequals(command, std::string("SEND")))      // send: send a value broadcast
   {
@@ -476,7 +476,7 @@ int main(int argc, char** argv) {
     unsigned int dtype = get_mandatory_parameter(vm,
         "datatype", "command SEND needs an EID").as<unsigned int>();
 		std::string value = get_mandatory_parameter(vm, "value", "command SEND needs a value").as<std::string>();
-		send_value_packet<hexabus::WritePacket>(network, HXB_GROUP, eid, dtype, value);
+		send_value_packet<hexabus::WritePacket>(network, hexabus::Socket::GroupAddress, eid, dtype, value);
   } else {
     std::cerr << "Unknown command." << std::endl;
     exit(1);

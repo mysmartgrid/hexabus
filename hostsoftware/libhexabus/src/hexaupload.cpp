@@ -43,8 +43,10 @@ po::variable_value get_mandatory_parameter(
 }
 
 void assert_statemachine_state(hexabus::Socket* network, const std::string& ip_addr, STM_state_t req_state) {
-	network->sendPacket(ip_addr, HXB_PORT, hexabus::WritePacket<uint8_t>(EP_SM_CONTROL, req_state));
-	network->sendPacket(ip_addr, HXB_PORT, hexabus::QueryPacket(EP_SM_CONTROL));
+	boost::asio::ip::address_v6 dest = boost::asio::ip::address_v6::from_string(ip_addr);
+
+	network->send(hexabus::WritePacket<uint8_t>(EP_SM_CONTROL, req_state), dest);
+	network->send(hexabus::QueryPacket(EP_SM_CONTROL), dest);
 
 	struct {
 		hexabus::Socket* network;
@@ -88,7 +90,7 @@ void assert_statemachine_state(hexabus::Socket* network, const std::string& ip_a
 			}
 			network->ioService().stop();
 		}
-	} receiveCallback = { network, boost::asio::ip::address::from_string(ip_addr), req_state };
+	} receiveCallback = { network, dest, req_state };
 
 	boost::signals2::scoped_connection c(network->onPacketReceived(receiveCallback));
 	network->ioService().run();
@@ -100,7 +102,7 @@ bool send_chunk(hexabus::Socket* network, const std::string& ip_addr, uint8_t ch
 	bin_data.push_back(chunk_id); 
 	bin_data.insert(bin_data.end(), chunk.begin(), chunk.end());
 
-	network->sendPacket(ip_addr, HXB_PORT, hexabus::WritePacket<std::vector<char> >(EP_SM_UP_RECEIVER, bin_data));
+	network->send(hexabus::WritePacket<std::vector<char> >(EP_SM_UP_RECEIVER, bin_data), boost::asio::ip::address_v6::from_string(ip_addr));
 
 	bool result = false;
 	struct {
