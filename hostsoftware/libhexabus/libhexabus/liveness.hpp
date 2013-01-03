@@ -27,6 +27,8 @@ namespace hexabus {
 			void stop();
 
 			void reportAlive(bool alive = true);
+
+			void establishPaths(unsigned int hopCount);
 	};
 }
 

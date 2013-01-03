@@ -1,5 +1,7 @@
 #include "liveness.hpp"
 
+#include <boost/thread/thread.hpp>
+
 #include "../../shared/endpoints.h"
 #include "socket.hpp"
 #include <boost/bind.hpp>
@@ -38,6 +40,15 @@ void LivenessReporter::stop()
 void LivenessReporter::reportAlive(bool alive)
 {
 	_socket.sendPacket(HXB_GROUP, HXB_PORT, InfoPacket<bool>(EP_LIVENESS, alive));
+}
+
+void LivenessReporter::establishPaths(unsigned int hopCount)
+{
+	for (; hopCount > 0; hopCount--) {
+		reportAlive();
+
+		boost::this_thread::sleep(boost::posix_time::seconds(1));
+	}
 }
 
 void LivenessReporter::armTimer()
