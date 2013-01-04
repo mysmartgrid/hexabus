@@ -19,6 +19,11 @@ namespace filtering {
 		{
 			return dynamic_cast<const ErrorPacket*>(&packet);
 		}
+
+		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		{
+			return match(from, packet);
+		}
 	};
 
 	template<>
@@ -36,6 +41,11 @@ namespace filtering {
 		{
 			return static_cast<const EIDPacket&>(packet).eid();
 		}
+
+		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		{
+			return match(from, packet) && value(from, packet);
+		}
 	};
 
 	template<>
@@ -46,6 +56,11 @@ namespace filtering {
 		{
 			return dynamic_cast<const QueryPacket*>(&packet);
 		}
+
+		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		{
+			return match(from, packet);
+		}
 	};
 
 	template<>
@@ -55,6 +70,11 @@ namespace filtering {
 		bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return dynamic_cast<const EndpointQueryPacket*>(&packet);
+		}
+
+		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		{
+			return match(from, packet);
 		}
 	};
 
@@ -73,6 +93,11 @@ namespace filtering {
 		value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return static_cast<const ValuePacket<TValue>&>(packet).value();
+		}
+
+		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		{
+			return match(from, packet) && value(from, packet);
 		}
 	};
 
@@ -122,6 +147,11 @@ namespace filtering {
 		value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return from;
+		}
+
+		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		{
+			return match(from, packet);
 		}
 	};
 
@@ -190,7 +220,7 @@ namespace filtering {
 		struct is_filter_expression : boost::mpl::false_ {};
 
 		template<typename Item>
-		struct Has {
+		struct HasExpression {
 			bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
 			{
 				return Item().match(from, packet);
@@ -203,7 +233,7 @@ namespace filtering {
 		};
 
 		template<typename Exp>
-		struct is_filter_expression<Has<Exp> > : boost::mpl::true_ {};
+		struct is_filter_expression<HasExpression<Exp> > : boost::mpl::true_ {};
 
 		template<typename Exp, typename Op>
 		struct UnaryExpression {
@@ -262,8 +292,8 @@ namespace filtering {
 	}
 
 	template<typename Exp>
-	ast::Has<Exp> has(const Exp& exp, typename boost::enable_if<is_filter<Exp> >::type* = 0)
-	{ return ast::Has<Exp>(exp); }
+	ast::HasExpression<Exp> has(const Exp& exp, typename boost::enable_if<is_filter<Exp> >::type* = 0)
+	{ return ast::HasExpression<Exp>(exp); }
 
 	template<typename Exp>
 	typename boost::enable_if<ast::is_filter_expression<Exp>, ast::UnaryExpression<Exp, std::logical_not<bool> > >::type
