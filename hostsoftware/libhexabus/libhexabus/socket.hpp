@@ -8,6 +8,7 @@
 #include <boost/signals2.hpp>
 #include "error.hpp"
 #include "packet.hpp"
+#include "filtering.hpp"
 
 namespace hexabus {
   class Socket {
