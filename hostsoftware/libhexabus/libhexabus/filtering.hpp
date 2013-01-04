@@ -316,7 +316,7 @@ namespace filtering {
 
 	namespace ast {
 
-		template<typename Left, typename Right, typename Op>
+		template<typename Left, typename Right, typename Op, bool IsLogicalOr>
 		struct BinaryExpression {
 			private:
 				Left _left;
@@ -331,7 +331,11 @@ namespace filtering {
 
 				bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return _left.match(from, packet) && _right.match(from, packet);
+					if (IsLogicalOr) {
+						return _left.match(from, packet) || _right.match(from, packet);
+					} else {
+						return _left.match(from, packet) && _right.match(from, packet);
+					}
 				}
 
 				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
@@ -341,14 +345,19 @@ namespace filtering {
 
 				value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return Op()(valueOf(_left, from, packet), valueOf(_right, from, packet));
+					if (IsLogicalOr) {
+						return (_left.match(from, packet) && valueOf(_left, from, packet))
+							|| (_right.match(from, packet) && valueOf(_right, from, packet));
+					} else {
+						return Op()(valueOf(_left, from, packet), valueOf(_right, from, packet));
+					}
 				}
 		};
 
 	}
 
-	template<typename Left, typename Right, typename Op>
-	struct is_filter_expression<ast::BinaryExpression<Left, Right, Op> > : boost::mpl::true_ {};
+	template<typename Left, typename Right, typename Op, bool IsLogicalOr>
+	struct is_filter_expression<ast::BinaryExpression<Left, Right, Op, IsLogicalOr> > : boost::mpl::true_ {};
 
 	template<typename Exp>
 	ast::HasExpression<Exp> has(const Exp& exp, typename boost::enable_if<is_filter<Exp> >::type* = 0)
@@ -359,61 +368,61 @@ namespace filtering {
 		operator!(const Exp& exp)
 	{ return ast::UnaryExpression<Exp, std::logical_not<bool> >(exp); }
 
-#define BINARY_OP(Sym, Op) \
+#define BINARY_OP(Sym, Op, IsLogicalOr) \
 	template<typename Left, typename Right> \
 	typename boost::enable_if_c<is_filter_expression<Left>::value && is_filter_expression<Right>::value, \
-			ast::BinaryExpression<Left, Right, Op<typename Left::value_type> > >::type \
+			ast::BinaryExpression<Left, Right, Op<typename Left::value_type>, IsLogicalOr> >::type \
 		operator Sym(const Left& left, const Right& right) \
-		{ return ast::BinaryExpression<Left, Right, Op<typename Left::value_type> >(left, right); } \
+		{ return ast::BinaryExpression<Left, Right, Op<typename Left::value_type>, IsLogicalOr>(left, right); } \
 	\
 	template<typename Left> \
-	typename boost::enable_if_c<is_filter_expression<Left>::value, ast::BinaryExpression<Left, Constant<typename Left::value_type>, Op<typename Left::value_type> > >::type \
+	typename boost::enable_if_c<is_filter_expression<Left>::value, ast::BinaryExpression<Left, Constant<typename Left::value_type>, Op<typename Left::value_type>, IsLogicalOr> >::type \
 		operator Sym(const Left& left, const typename Left::value_type& right) \
-		{ return ast::BinaryExpression<Left, Constant<typename Left::value_type>, Op<typename Left::value_type> >(left, right); } \
+		{ return ast::BinaryExpression<Left, Constant<typename Left::value_type>, Op<typename Left::value_type>, IsLogicalOr>(left, right); } \
 	\
 	template<typename Right> \
-	typename boost::enable_if_c<is_filter_expression<Right>::value, ast::BinaryExpression<Constant<typename Right::value_type>, Right, Op<typename Right::value_type> > >::type \
+	typename boost::enable_if_c<is_filter_expression<Right>::value, ast::BinaryExpression<Constant<typename Right::value_type>, Right, Op<typename Right::value_type>, IsLogicalOr> >::type \
 		operator Sym(const typename Right::value_type& left, const Right& right) \
-		{ return ast::BinaryExpression<Constant<typename Right::value_type>, Right, Op<typename Right::value_type> >(left, right); }
+		{ return ast::BinaryExpression<Constant<typename Right::value_type>, Right, Op<typename Right::value_type>, IsLogicalOr>(left, right); }
 
-	BINARY_OP(<, std::less)
-	BINARY_OP(<=, std::less_equal)
-	BINARY_OP(>, std::greater)
-	BINARY_OP(>=, std::greater_equal)
-	BINARY_OP(==, std::equal_to)
-	BINARY_OP(!=, std::not_equal_to)
-	BINARY_OP(+, std::plus)
-	BINARY_OP(-, std::minus)
-	BINARY_OP(*, std::multiplies)
-	BINARY_OP(/, std::divides)
-	BINARY_OP(%, std::modulus)
-	BINARY_OP(&, std::bit_and)
-	BINARY_OP(|, std::bit_or)
-	BINARY_OP(^, std::bit_xor)
-	BINARY_OP(&&, std::logical_and)
-	BINARY_OP(||, std::logical_or)
+	BINARY_OP(<, std::less, false)
+	BINARY_OP(<=, std::less_equal, false)
+	BINARY_OP(>, std::greater, false)
+	BINARY_OP(>=, std::greater_equal, false)
+	BINARY_OP(==, std::equal_to, false)
+	BINARY_OP(!=, std::not_equal_to, false)
+	BINARY_OP(+, std::plus, false)
+	BINARY_OP(-, std::minus, false)
+	BINARY_OP(*, std::multiplies, false)
+	BINARY_OP(/, std::divides, false)
+	BINARY_OP(%, std::modulus, false)
+	BINARY_OP(&, std::bit_and, false)
+	BINARY_OP(|, std::bit_or, false)
+	BINARY_OP(^, std::bit_xor, false)
+	BINARY_OP(&&, std::logical_and, false)
+	BINARY_OP(||, std::logical_or, true)
 
 #undef BINARY_OP
 
-#define BINARY_OP(Sym, Op) \
+#define BINARY_OP(Sym, Op, IsLogicalOr) \
 	template<typename Left, typename Right> \
-	typename boost::enable_if_c<is_filter<Left>::value && is_filter<Right>::value && (!is_filter_expression<Left>::value || !is_filter_expression<Right>::value), ast::BinaryExpression<Left, Right, Op<bool> > >::type \
+	typename boost::enable_if_c<is_filter<Left>::value && is_filter<Right>::value && (!is_filter_expression<Left>::value || !is_filter_expression<Right>::value), ast::BinaryExpression<Left, Right, Op<bool>, IsLogicalOr> >::type \
 		operator Sym(const Left& left, const Right& right) \
-		{ return ast::BinaryExpression<Left, Right, Op<bool> >(left, right); } \
+		{ return ast::BinaryExpression<Left, Right, Op<bool>, IsLogicalOr>(left, right); } \
 	\
 	template<typename Left> \
-	typename boost::enable_if_c<is_filter<Left>::value && !is_filter_expression<Left>::value, ast::BinaryExpression<Left, Constant<bool>, Op<bool> > >::type \
+	typename boost::enable_if_c<is_filter<Left>::value && !is_filter_expression<Left>::value, ast::BinaryExpression<Left, Constant<bool>, Op<bool>, IsLogicalOr> >::type \
 		operator Sym(const Left& left, const typename Left::value_type& right) \
-		{ return ast::BinaryExpression<Left, Constant<bool>, Op<bool> >(left, right); } \
+		{ return ast::BinaryExpression<Left, Constant<bool>, Op<bool>, IsLogicalOr>(left, right); } \
 	\
 	template<typename Right> \
-	typename boost::enable_if_c<is_filter<Right>::value && !is_filter_expression<Right>::value, ast::BinaryExpression<Constant<bool>, Right, Op<bool> > >::type \
+	typename boost::enable_if_c<is_filter<Right>::value && !is_filter_expression<Right>::value, ast::BinaryExpression<Constant<bool>, Right, Op<bool>, IsLogicalOr> >::type \
 		operator Sym(const typename Right::value_type& left, const Right& right) \
-		{ return ast::BinaryExpression<Constant<bool>, Right, Op<bool> >(left, right); }
+		{ return ast::BinaryExpression<Constant<bool>, Right, Op<bool>, IsLogicalOr>(left, right); }
 
-	BINARY_OP(&&, std::logical_and)
-	BINARY_OP(||, std::logical_or)
-	BINARY_OP(^, std::bit_xor)
+	BINARY_OP(&&, std::logical_and, false)
+	BINARY_OP(||, std::logical_or, true)
+	BINARY_OP(^, std::bit_xor, false)
 
 #undef BINARY_OP
 
