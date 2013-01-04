@@ -51,20 +51,42 @@ void Socket::beginReceive()
 				boost::asio::placeholders::bytes_transferred));
 }
 
-std::pair<boost::asio::ip::address_v6, Packet::Ptr> Socket::receive()
+std::pair<boost::asio::ip::address_v6, Packet::Ptr> Socket::receive(const filter_t& filter)
 {
 	boost::system::error_code err;
 
-	socket.receive_from(boost::asio::buffer(data, data.size()), remoteEndpoint, 0, err);
-	if (err)
-		throw NetworkException("receive", err);
+	while (true) {
+		socket.receive_from(boost::asio::buffer(data, data.size()), remoteEndpoint, 0, err);
+		if (err)
+			throw NetworkException("receive", err);
 
-	return std::make_pair(remoteEndpoint.address().to_v6(), deserialize(&data[0], data.size()));
+		Packet::Ptr packet = deserialize(&data[0], data.size());
+		if (filter(remoteEndpoint.address().to_v6(), *packet)) {
+			return std::make_pair(remoteEndpoint.address().to_v6(), packet);
+		}
+	}
 }
 
-bs2::connection Socket::onPacketReceived(on_packet_received_slot_t callback)
+class PredicatedReceive {
+	private:
+		Socket::on_packet_received_slot_t _slot;
+		Socket::filter_t _filter;
+
+	public:
+		PredicatedReceive(Socket::on_packet_received_slot_t slot, Socket::filter_t filter)
+			: _slot(slot), _filter(filter)
+		{}
+
+		void operator()(const boost::asio::ip::address_v6& source, const Packet& packet)
+		{
+			if (_filter(source, packet))
+				_slot(source, packet);
+		}
+};
+
+bs2::connection Socket::onPacketReceived(on_packet_received_slot_t callback, const filter_t& filter)
 {
-	bs2::connection result = packetReceived.connect(callback);
+	bs2::connection result = packetReceived.connect(PredicatedReceive(callback, filter));
 
 	beginReceive();
 

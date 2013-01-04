@@ -159,6 +159,11 @@ namespace filtering {
 			{
 				return true;
 			}
+
+			bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+			{
+				return true;
+			}
 	};
 
 	template<>
@@ -243,6 +248,11 @@ namespace filtering {
 				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
 					return Op()(_left.value(from, packet), _right.value(from, packet));
+				}
+
+				bool value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				{
+					return operator()(from, packet);
 				}
 		};
 
