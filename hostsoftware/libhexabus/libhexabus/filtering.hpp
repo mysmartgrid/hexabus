@@ -193,6 +193,11 @@ namespace filtering {
 				return true;
 			}
 
+			bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+			{
+				return true;
+			}
+
 			value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 			{
 				return _value;
@@ -236,15 +241,23 @@ namespace filtering {
 
 		template<typename Item>
 		struct HasExpression {
-			bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
-			{
-				return Item().match(from, packet);
-			}
+			private:
+				Item _item;
 
-			bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
-			{
-				return match(from, packet);
-			}
+			public:
+				HasExpression(const Item& item)
+					: _item(item)
+				{}
+
+				bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				{
+					return _item.match(from, packet);
+				}
+
+				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				{
+					return match(from, packet);
+				}
 		};
 
 	}
@@ -360,6 +373,14 @@ namespace filtering {
 	BINARY_OP(>=, std::greater_equal)
 	BINARY_OP(==, std::equal_to)
 	BINARY_OP(!=, std::not_equal_to)
+	BINARY_OP(+, std::plus)
+	BINARY_OP(-, std::minus)
+	BINARY_OP(*, std::multiplies)
+	BINARY_OP(/, std::divides)
+	BINARY_OP(%, std::modulus)
+	BINARY_OP(&, std::bit_and)
+	BINARY_OP(|, std::bit_or)
+	BINARY_OP(^, std::bit_xor)
 
 #undef BINARY_OP
 
