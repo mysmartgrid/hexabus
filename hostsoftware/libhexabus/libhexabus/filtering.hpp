@@ -2,6 +2,7 @@
 #define LIBHEXABUS_FILTERING_HPP 1
 
 #include <boost/asio.hpp>
+#include <boost/optional.hpp>
 #include <boost/utility/enable_if.hpp>
 #include <boost/mpl/bool.hpp>
 #include <algorithm>
@@ -18,19 +19,14 @@ namespace filtering {
 	struct IsOfType {
 		typedef bool value_type;
 
-		bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return true;
-		}
-
-		value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return dynamic_cast<const Type*>(&packet);
 		}
 
 		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
-			return value(from, packet);
+			return *value(from, packet);
 		}
 	};
 
@@ -42,19 +38,17 @@ namespace filtering {
 	struct EID {
 		typedef uint32_t value_type;
 
-		bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
-			return dynamic_cast<const EIDPacket*>(&packet);
-		}
-
-		value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return static_cast<const EIDPacket&>(packet).eid();
+			return dynamic_cast<const EIDPacket*>(&packet)
+				? boost::optional<value_type>(static_cast<const EIDPacket&>(packet).eid())
+				: boost::none;
 		}
 
 		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
-			return valueIsValid(from, packet) && value(from, packet);
+			boost::optional<value_type> v = value(from, packet);
+			return v && *v;
 		}
 	};
 
@@ -75,19 +69,17 @@ namespace filtering {
 	struct Value {
 		typedef TValue value_type;
 
-		bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
-			return dynamic_cast<const ValuePacket<TValue>*>(&packet);
-		}
-
-		value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return static_cast<const ValuePacket<TValue>&>(packet).value();
+			return dynamic_cast<const ValuePacket<TValue>*>(&packet)
+				? boost::optional<value_type>(static_cast<const ValuePacket<TValue>&>(packet).value())
+				: boost::none;
 		}
 
 		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
-			return valueIsValid(from, packet) && value(from, packet);
+			boost::optional<value_type> v = value(from, packet);
+			return v && *v;
 		}
 	};
 
@@ -114,12 +106,7 @@ namespace filtering {
 	struct Source {
 		typedef boost::asio::ip::address_v6 value_type;
 
-		bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return true;
-		}
-
-		value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return from;
 		}
@@ -140,12 +127,7 @@ namespace filtering {
 				: _value(value)
 			{}
 
-			bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
-			{
-				return true;
-			}
-
-			value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+			boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 			{
 				return _value;
 			}
@@ -162,12 +144,7 @@ namespace filtering {
 	struct Any {
 		typedef bool value_type;
 
-		bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return true;
-		}
-
-		value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return true;
 		}
@@ -211,19 +188,14 @@ namespace filtering {
 					: _item(item)
 				{}
 
-				bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return true;
-				}
-
-				value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
-				{
-					return _item.valueIsValid(from, packet);
+					return bool(_item.value(from, packet));
 				}
 
 				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return _item.valueIsValid(from, packet);
+					return *value(from, packet);
 				}
 		};
 
@@ -246,19 +218,16 @@ namespace filtering {
 					: _exp(exp)
 				{}
 
-				bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return _exp.valueIsValid(from, packet);
-				}
-
-				value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
-				{
-					return Op()(_exp.value(from, packet));
+					boost::optional<typename Exp::value_type> v = _exp.value(from, packet);
+					return v && Op()(*v);
 				}
 
 				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return valueIsValid(from, packet) && value(from, packet);
+					boost::optional<value_type> v = value(from, packet);
+					return v && *v;
 				}
 		};
 
@@ -282,19 +251,20 @@ namespace filtering {
 					: _left(left), _right(right)
 				{}
 
-				bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return _left.valueIsValid(from, packet) && _right.valueIsValid(from, packet);
-				}
+					boost::optional<typename Left::value_type> l = _left.value(from, packet);
+					boost::optional<typename Right::value_type> r = _right.value(from, packet);
 
-				value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
-				{
-					return Op()(_left.value(from, packet), _right.value(from, packet));
+					return l && r
+						? boost::optional<value_type>(Op()(*l, *r))
+						: boost::none;
 				}
 
 				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return valueIsValid(from, packet) && value(from, packet);
+					boost::optional<value_type> v = value(from, packet);
+					return v && *v;
 				}
 		};
 
@@ -306,7 +276,7 @@ namespace filtering {
 	namespace ast {
 
 		template<typename Left, typename Right, typename Op>
-		struct LogicalOrExpression {
+		struct BooleanShortcutExpression {
 			private:
 				Left _left;
 				Right _right;
@@ -314,32 +284,34 @@ namespace filtering {
 			public:
 				typedef bool value_type;
 
-				LogicalOrExpression(const Left& left, const Right& right)
+				BooleanShortcutExpression(const Left& left, const Right& right)
 					: _left(left), _right(right)
 				{}
 
-				bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return _left.valueIsValid(from, packet) || _right.valueIsValid(from, packet);
-				}
+					boost::optional<typename Left::value_type> l = _left.value(from, packet);
+					boost::optional<typename Right::value_type> r = _right.value(from, packet);
 
-				value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
-				{
-					return Op()(
-						(_left.valueIsValid(from, packet) && valueOf(_left, from, packet)),
-						(_right.valueIsValid(from, packet) && valueOf(_right, from, packet)));
+					bool subtreeResult = Op()(l && *l, r && *r);
+					bool operatorShortcutResult = Op()(true, false);
+
+					return (l && r) || ((l || r) && subtreeResult == operatorShortcutResult)
+						? boost::optional<value_type>(subtreeResult)
+						: boost::none;
 				}
 
 				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return valueIsValid(from, packet) && value(from, packet);
+					boost::optional<value_type> v = value(from, packet);
+					return v && *v;
 				}
 		};
 
 	}
 
 	template<typename Left, typename Right, typename Op>
-	struct is_filter<ast::LogicalOrExpression<Left, Right, Op> > : boost::mpl::true_ {};
+	struct is_filter<ast::BooleanShortcutExpression<Left, Right, Op> > : boost::mpl::true_ {};
 
 	template<typename Exp>
 	ast::HasExpression<Exp> has(const Exp& exp, typename boost::enable_if<is_filter<Exp> >::type* = 0)
@@ -380,8 +352,8 @@ namespace filtering {
 	BINARY_OP(&, std::bit_and, ast::BinaryExpression)
 	BINARY_OP(|, std::bit_or, ast::BinaryExpression)
 	BINARY_OP(^, std::bit_xor, ast::BinaryExpression)
-	BINARY_OP(&&, std::logical_and, ast::BinaryExpression)
-	BINARY_OP(||, std::logical_or, ast::LogicalOrExpression)
+	BINARY_OP(&&, std::logical_and, ast::BooleanShortcutExpression)
+	BINARY_OP(||, std::logical_or, ast::BooleanShortcutExpression)
 
 #undef BINARY_OP
 
