@@ -12,16 +12,20 @@ namespace hexabus {
 namespace filtering {
 
 	template<typename T>
-	struct is_filter_expression : boost::mpl::false_ {};
-
-	template<typename T>
-	struct is_filter : is_filter_expression<T> {};
+	struct is_filter : boost::mpl::false_ {};
 
 	template<typename Type>
 	struct IsOfType {
+		typedef bool value_type;
+
 		bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return dynamic_cast<const Type*>(&packet);
+		}
+
+		value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		{
+			return match(from, packet);
 		}
 
 		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
@@ -55,7 +59,7 @@ namespace filtering {
 	};
 
 	template<>
-	struct is_filter_expression<EID> : boost::mpl::true_ {};
+	struct is_filter<EID> : boost::mpl::true_ {};
 
 	struct Query : IsOfType<QueryPacket> {};
 
@@ -88,7 +92,7 @@ namespace filtering {
 	};
 
 	template<typename T>
-	struct is_filter_expression<Value<T> > : boost::mpl::true_ {};
+	struct is_filter<Value<T> > : boost::mpl::true_ {};
 
 	template<typename TValue>
 	struct Info : IsOfType<InfoPacket<TValue> > {};
@@ -127,7 +131,7 @@ namespace filtering {
 	};
 
 	template<>
-	struct is_filter_expression<Source> : boost::mpl::true_ {};
+	struct is_filter<Source> : boost::mpl::true_ {};
 
 	template<typename TValue>
 	struct Constant {
@@ -158,7 +162,7 @@ namespace filtering {
 	};
 
 	template<typename TValue>
-	struct is_filter_expression<Constant<TValue> > : boost::mpl::true_ {};
+	struct is_filter<Constant<TValue> > : boost::mpl::true_ {};
 
 	struct Any {
 			bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
@@ -198,6 +202,8 @@ namespace filtering {
 				Item _item;
 
 			public:
+				typedef bool value_type;
+
 				HasExpression(const Item& item)
 					: _item(item)
 				{}
@@ -205,6 +211,11 @@ namespace filtering {
 				bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
 					return _item.match(from, packet);
+				}
+
+				value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				{
+					return match(from, packet);
 				}
 
 				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
@@ -219,20 +230,6 @@ namespace filtering {
 	struct is_filter<ast::HasExpression<Exp> > : boost::mpl::true_ {};
 
 	namespace ast {
-
-		template<typename T>
-		static inline typename boost::enable_if_c<is_filter<T>::value && !is_filter_expression<T>::value, bool>::type
-			valueOf(const T& filter, const boost::asio::ip::address_v6& from, const Packet& packet)
-		{
-			return filter(from, packet);
-		}
-
-		template<typename T>
-		static inline typename boost::enable_if_c<is_filter_expression<T>::value, typename T::value_type>::type
-			valueOf(const T& filter, const boost::asio::ip::address_v6& from, const Packet& packet)
-		{
-			return filter.value(from, packet);
-		}
 
 		template<typename Exp, typename Op>
 		struct UnaryExpression {
@@ -253,7 +250,7 @@ namespace filtering {
 
 				value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return Op()(valueOf(_exp, from, packet));
+					return Op()(_exp.value(from, packet));
 				}
 
 				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
@@ -265,7 +262,7 @@ namespace filtering {
 	}
 
 	template<typename Exp, typename Op>
-	struct is_filter_expression<ast::UnaryExpression<Exp, Op> > : boost::mpl::true_ {};
+	struct is_filter<ast::UnaryExpression<Exp, Op> > : boost::mpl::true_ {};
 
 	namespace ast {
 
@@ -294,14 +291,14 @@ namespace filtering {
 
 				value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return Op()(valueOf(_left, from, packet), valueOf(_right, from, packet));
+					return Op()(_left.value(from, packet), _right.value(from, packet));
 				}
 		};
 
 	}
 
 	template<typename Left, typename Right, typename Op>
-	struct is_filter_expression<ast::BinaryExpression<Left, Right, Op> > : boost::mpl::true_ {};
+	struct is_filter<ast::BinaryExpression<Left, Right, Op> > : boost::mpl::true_ {};
 
 	namespace ast {
 
@@ -339,7 +336,7 @@ namespace filtering {
 	}
 
 	template<typename Left, typename Right, typename Op>
-	struct is_filter_expression<ast::LogicalOrExpression<Left, Right, Op> > : boost::mpl::true_ {};
+	struct is_filter<ast::LogicalOrExpression<Left, Right, Op> > : boost::mpl::true_ {};
 
 	template<typename Exp>
 	ast::HasExpression<Exp> has(const Exp& exp, typename boost::enable_if<is_filter<Exp> >::type* = 0)
@@ -352,18 +349,17 @@ namespace filtering {
 
 #define BINARY_OP(Sym, Op, Class) \
 	template<typename Left, typename Right> \
-	typename boost::enable_if_c<is_filter_expression<Left>::value && is_filter_expression<Right>::value, \
-			Class<Left, Right, Op<typename Left::value_type> > >::type \
+	typename boost::enable_if_c<is_filter<Left>::value && is_filter<Right>::value, Class<Left, Right, Op<typename Left::value_type> > >::type \
 		operator Sym(const Left& left, const Right& right) \
 		{ return Class<Left, Right, Op<typename Left::value_type> >(left, right); } \
 	\
 	template<typename Left> \
-	typename boost::enable_if_c<is_filter_expression<Left>::value, Class<Left, Constant<typename Left::value_type>, Op<typename Left::value_type> > >::type \
+	typename boost::enable_if_c<is_filter<Left>::value, Class<Left, Constant<typename Left::value_type>, Op<typename Left::value_type> > >::type \
 		operator Sym(const Left& left, const typename Left::value_type& right) \
 		{ return Class<Left, Constant<typename Left::value_type>, Op<typename Left::value_type> >(left, right); } \
 	\
 	template<typename Right> \
-	typename boost::enable_if_c<is_filter_expression<Right>::value, Class<Constant<typename Right::value_type>, Right, Op<typename Right::value_type> > >::type \
+	typename boost::enable_if_c<is_filter<Right>::value, Class<Constant<typename Right::value_type>, Right, Op<typename Right::value_type> > >::type \
 		operator Sym(const typename Right::value_type& left, const Right& right) \
 		{ return Class<Constant<typename Right::value_type>, Right, Op<typename Right::value_type> >(left, right); }
 
@@ -385,29 +381,6 @@ namespace filtering {
 	BINARY_OP(||, std::logical_or, ast::LogicalOrExpression)
 
 #undef BINARY_OP
-
-#define BINARY_OP(Sym, Op, Class) \
-	template<typename Left, typename Right> \
-	typename boost::enable_if_c<is_filter<Left>::value && is_filter<Right>::value && (!is_filter_expression<Left>::value || !is_filter_expression<Right>::value), Class<Left, Right, Op<bool> > >::type \
-		operator Sym(const Left& left, const Right& right) \
-		{ return Class<Left, Right, Op<bool> >(left, right); } \
-	\
-	template<typename Left> \
-	typename boost::enable_if_c<is_filter<Left>::value && !is_filter_expression<Left>::value, Class<Left, Constant<bool>, Op<bool> > >::type \
-		operator Sym(const Left& left, const typename Left::value_type& right) \
-		{ return Class<Left, Constant<bool>, Op<bool> >(left, right); } \
-	\
-	template<typename Right> \
-	typename boost::enable_if_c<is_filter<Right>::value && !is_filter_expression<Right>::value, Class<Constant<bool>, Right, Op<bool> > >::type \
-		operator Sym(const typename Right::value_type& left, const Right& right) \
-		{ return Class<Constant<bool>, Right, Op<bool> >(left, right); }
-
-	BINARY_OP(&&, std::logical_and, ast::BinaryExpression)
-	BINARY_OP(||, std::logical_or, ast::BinaryExpression)
-	BINARY_OP(^, std::bit_xor, ast::LogicalOrExpression)
-
-#undef BINARY_OP
-
 
 }}
 
