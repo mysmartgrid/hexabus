@@ -17,10 +17,11 @@ namespace filtering {
 	template<typename T>
 	struct is_filter : is_filter_expression<T> {};
 
-	struct Error {
+	template<typename Type>
+	struct IsOfType {
 		bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
-			return dynamic_cast<const ErrorPacket*>(&packet);
+			return dynamic_cast<const Type*>(&packet);
 		}
 
 		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
@@ -28,6 +29,8 @@ namespace filtering {
 			return match(from, packet);
 		}
 	};
+
+	struct Error : IsOfType<ErrorPacket> {};
 
 	template<>
 	struct is_filter<Error> : boost::mpl::true_ {};
@@ -54,32 +57,12 @@ namespace filtering {
 	template<>
 	struct is_filter_expression<EID> : boost::mpl::true_ {};
 
-	struct Query {
-		bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return dynamic_cast<const QueryPacket*>(&packet);
-		}
-
-		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return match(from, packet);
-		}
-	};
+	struct Query : IsOfType<QueryPacket> {};
 
 	template<>
 	struct is_filter<Query> : boost::mpl::true_ {};
 
-	struct EndpointQuery {
-		bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return dynamic_cast<const EndpointQueryPacket*>(&packet);
-		}
-
-		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return match(from, packet);
-		}
-	};
+	struct EndpointQuery : IsOfType<EndpointQueryPacket> {};
 
 	template<>
 	struct is_filter<EndpointQuery> : boost::mpl::true_ {};
@@ -108,48 +91,18 @@ namespace filtering {
 	struct is_filter_expression<Value<T> > : boost::mpl::true_ {};
 
 	template<typename TValue>
-	struct Info {
-		bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return dynamic_cast<const InfoPacket<TValue>*>(&packet);
-		}
-
-		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return match(from, packet);
-		}
-	};
+	struct Info : IsOfType<InfoPacket<TValue> > {};
 
 	template<typename T>
 	struct is_filter<Info<T> > : boost::mpl::true_ {};
 
 	template<typename TValue>
-	struct Write {
-		bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return dynamic_cast<const WritePacket<TValue>*>(&packet);
-		}
-
-		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return match(from, packet);
-		}
-	};
+	struct Write : IsOfType<WritePacket<TValue> > {};
 
 	template<typename T>
 	struct is_filter<Write<T> > : boost::mpl::true_ {};
 
-	struct EndpointInfo {
-		bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return dynamic_cast<const EndpointInfoPacket*>(&packet);
-		}
-
-		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return match(from, packet);
-		}
-	};
+	struct EndpointInfo : IsOfType<EndpointInfoPacket> {};
 
 	template<>
 	struct is_filter<EndpointInfo> : boost::mpl::true_ {};
