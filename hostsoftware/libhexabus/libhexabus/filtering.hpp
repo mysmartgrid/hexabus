@@ -229,7 +229,9 @@ namespace filtering {
 				result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
 					typename Exp::result_type v = _exp.value(from, packet);
-					return v && Op()(*v);
+					return v
+						? result_type(Op()(*v))
+						: result_type();
 				}
 
 				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
