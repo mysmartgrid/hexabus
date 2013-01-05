@@ -18,31 +18,31 @@ namespace filtering {
 	struct IsOfType {
 		typedef bool value_type;
 
-		bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
-			return dynamic_cast<const Type*>(&packet);
+			return true;
 		}
 
 		value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
-			return match(from, packet);
+			return dynamic_cast<const Type*>(&packet);
 		}
 
 		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
-			return match(from, packet);
+			return value(from, packet);
 		}
 	};
 
-	struct Error : IsOfType<ErrorPacket> {};
+	struct IsError : IsOfType<ErrorPacket> {};
 
 	template<>
-	struct is_filter<Error> : boost::mpl::true_ {};
+	struct is_filter<IsError> : boost::mpl::true_ {};
 
 	struct EID {
 		typedef uint32_t value_type;
 
-		bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return dynamic_cast<const EIDPacket*>(&packet);
 		}
@@ -54,40 +54,40 @@ namespace filtering {
 
 		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
-			return match(from, packet) && value(from, packet);
+			return valueIsValid(from, packet) && value(from, packet);
 		}
 	};
 
 	template<>
 	struct is_filter<EID> : boost::mpl::true_ {};
 
-	struct Query : IsOfType<QueryPacket> {};
+	struct IsQuery : IsOfType<QueryPacket> {};
 
 	template<>
-	struct is_filter<Query> : boost::mpl::true_ {};
+	struct is_filter<IsQuery> : boost::mpl::true_ {};
 
-	struct EndpointQuery : IsOfType<EndpointQueryPacket> {};
+	struct IsEndpointQuery : IsOfType<EndpointQueryPacket> {};
 
 	template<>
-	struct is_filter<EndpointQuery> : boost::mpl::true_ {};
+	struct is_filter<IsEndpointQuery> : boost::mpl::true_ {};
 
 	template<typename TValue>
 	struct Value {
 		typedef TValue value_type;
+
+		bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		{
+			return dynamic_cast<const ValuePacket<TValue>*>(&packet);
+		}
 
 		value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return static_cast<const ValuePacket<TValue>&>(packet).value();
 		}
 
-		bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return dynamic_cast<const ValuePacket<TValue>*>(&packet);
-		}
-
 		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
-			return match(from, packet) && value(from, packet);
+			return valueIsValid(from, packet) && value(from, packet);
 		}
 	};
 
@@ -95,26 +95,26 @@ namespace filtering {
 	struct is_filter<Value<T> > : boost::mpl::true_ {};
 
 	template<typename TValue>
-	struct Info : IsOfType<InfoPacket<TValue> > {};
+	struct IsInfo : IsOfType<InfoPacket<TValue> > {};
 
 	template<typename T>
-	struct is_filter<Info<T> > : boost::mpl::true_ {};
+	struct is_filter<IsInfo<T> > : boost::mpl::true_ {};
 
 	template<typename TValue>
-	struct Write : IsOfType<WritePacket<TValue> > {};
+	struct IsWrite : IsOfType<WritePacket<TValue> > {};
 
 	template<typename T>
-	struct is_filter<Write<T> > : boost::mpl::true_ {};
+	struct is_filter<IsWrite<T> > : boost::mpl::true_ {};
 
-	struct EndpointInfo : IsOfType<EndpointInfoPacket> {};
+	struct IsEndpointInfo : IsOfType<EndpointInfoPacket> {};
 
 	template<>
-	struct is_filter<EndpointInfo> : boost::mpl::true_ {};
+	struct is_filter<IsEndpointInfo> : boost::mpl::true_ {};
 
 	struct Source {
 		typedef boost::asio::ip::address_v6 value_type;
 
-		bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return true;
 		}
@@ -122,11 +122,6 @@ namespace filtering {
 		value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return from;
-		}
-
-		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
-		{
-			return match(from, packet);
 		}
 	};
 
@@ -145,17 +140,17 @@ namespace filtering {
 				: _value(value)
 			{}
 
-			bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
-			{
-				return true;
-			}
-
-			bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+			bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
 			{
 				return true;
 			}
 
 			value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+			{
+				return _value;
+			}
+
+			bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 			{
 				return _value;
 			}
@@ -167,7 +162,7 @@ namespace filtering {
 	struct Any {
 		typedef bool value_type;
 
-		bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return true;
 		}
@@ -186,17 +181,17 @@ namespace filtering {
 	template<>
 	struct is_filter<Any> : boost::mpl::true_ {};
 
-	static inline Error isError() { return Error(); }
+	static inline IsError isError() { return IsError(); }
 	static inline EID eid() { return EID(); }
-	static inline Query isQuery() { return Query(); }
-	static inline EndpointQuery isEndpointQuery() { return EndpointQuery(); }
+	static inline IsQuery isQuery() { return IsQuery(); }
+	static inline IsEndpointQuery isEndpointQuery() { return IsEndpointQuery(); }
 	template<typename TValue>
 	static inline Value<TValue> value() { return Value<TValue>(); }
 	template<typename TValue>
-	static inline Info<TValue> isInfo() { return Info<TValue>(); }
+	static inline IsInfo<TValue> isInfo() { return IsInfo<TValue>(); }
 	template<typename TValue>
-	static inline Write<TValue> isWrite() { return Write<TValue>(); }
-	static inline EndpointInfo isEndpointInfo() { return EndpointInfo(); }
+	static inline IsWrite<TValue> isWrite() { return IsWrite<TValue>(); }
+	static inline IsEndpointInfo isEndpointInfo() { return IsEndpointInfo(); }
 	static inline Source source() { return Source(); }
 	template<typename TValue>
 	static inline Constant<TValue> constant(const TValue& value) { return Constant<TValue>(value); }
@@ -216,19 +211,19 @@ namespace filtering {
 					: _item(item)
 				{}
 
-				bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return _item.match(from, packet);
+					return true;
 				}
 
 				value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return match(from, packet);
+					return _item.valueIsValid(from, packet);
 				}
 
 				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return match(from, packet);
+					return _item.valueIsValid(from, packet);
 				}
 		};
 
@@ -251,9 +246,9 @@ namespace filtering {
 					: _exp(exp)
 				{}
 
-				bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return _exp.match(from, packet);
+					return _exp.valueIsValid(from, packet);
 				}
 
 				value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
@@ -263,7 +258,7 @@ namespace filtering {
 
 				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return match(from, packet) && value(from, packet);
+					return valueIsValid(from, packet) && value(from, packet);
 				}
 		};
 
@@ -287,19 +282,19 @@ namespace filtering {
 					: _left(left), _right(right)
 				{}
 
-				bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return _left.match(from, packet) && _right.match(from, packet);
-				}
-
-				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
-				{
-					return match(from, packet) && value(from, packet);
+					return _left.valueIsValid(from, packet) && _right.valueIsValid(from, packet);
 				}
 
 				value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
 					return Op()(_left.value(from, packet), _right.value(from, packet));
+				}
+
+				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				{
+					return valueIsValid(from, packet) && value(from, packet);
 				}
 		};
 
@@ -323,21 +318,21 @@ namespace filtering {
 					: _left(left), _right(right)
 				{}
 
-				bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				bool valueIsValid(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					return _left.match(from, packet) || _right.match(from, packet);
-				}
-
-				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
-				{
-					return match(from, packet) && value(from, packet);
+					return _left.valueIsValid(from, packet) || _right.valueIsValid(from, packet);
 				}
 
 				value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
 					return Op()(
-						(_left.match(from, packet) && valueOf(_left, from, packet)),
-						(_right.match(from, packet) && valueOf(_right, from, packet)));
+						(_left.valueIsValid(from, packet) && valueOf(_left, from, packet)),
+						(_right.valueIsValid(from, packet) && valueOf(_right, from, packet)));
+				}
+
+				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				{
+					return valueIsValid(from, packet) && value(from, packet);
 				}
 		};
 
