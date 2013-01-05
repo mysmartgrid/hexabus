@@ -18,8 +18,9 @@ namespace filtering {
 	template<typename Type>
 	struct IsOfType {
 		typedef bool value_type;
+		typedef boost::optional<value_type> result_type;
 
-		boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return dynamic_cast<const Type*>(&packet);
 		}
@@ -37,17 +38,18 @@ namespace filtering {
 
 	struct EID {
 		typedef uint32_t value_type;
+		typedef boost::optional<value_type> result_type;
 
-		boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return dynamic_cast<const EIDPacket*>(&packet)
-				? boost::optional<value_type>(static_cast<const EIDPacket&>(packet).eid())
-				: boost::none;
+				? result_type(static_cast<const EIDPacket&>(packet).eid())
+				: result_type();
 		}
 
 		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
-			boost::optional<value_type> v = value(from, packet);
+			result_type v = value(from, packet);
 			return v && *v;
 		}
 	};
@@ -68,17 +70,18 @@ namespace filtering {
 	template<typename TValue>
 	struct Value {
 		typedef TValue value_type;
+		typedef boost::optional<value_type> result_type;
 
-		boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return dynamic_cast<const ValuePacket<TValue>*>(&packet)
-				? boost::optional<value_type>(static_cast<const ValuePacket<TValue>&>(packet).value())
-				: boost::none;
+				? result_type(static_cast<const ValuePacket<TValue>&>(packet).value())
+				: result_type();
 		}
 
 		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
-			boost::optional<value_type> v = value(from, packet);
+			result_type v = value(from, packet);
 			return v && *v;
 		}
 	};
@@ -105,8 +108,9 @@ namespace filtering {
 
 	struct Source {
 		typedef boost::asio::ip::address_v6 value_type;
+		typedef boost::optional<value_type> result_type;
 
-		boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return from;
 		}
@@ -122,12 +126,13 @@ namespace filtering {
 
 		public:
 			typedef TValue value_type;
+			typedef boost::optional<value_type> result_type;
 
 			Constant(const TValue& value)
 				: _value(value)
 			{}
 
-			boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+			result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 			{
 				return _value;
 			}
@@ -143,8 +148,9 @@ namespace filtering {
 
 	struct Any {
 		typedef bool value_type;
+		typedef boost::optional<value_type> result_type;
 
-		boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 		{
 			return true;
 		}
@@ -183,12 +189,13 @@ namespace filtering {
 
 			public:
 				typedef bool value_type;
+				typedef boost::optional<value_type> result_type;
 
 				HasExpression(const Item& item)
 					: _item(item)
 				{}
 
-				boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
 					return bool(_item.value(from, packet));
 				}
@@ -213,20 +220,21 @@ namespace filtering {
 
 			public:
 				typedef typename boost::result_of<Op(Exp)>::type value_type;
+				typedef boost::optional<value_type> result_type;
 
 				UnaryExpression(const Exp& exp)
 					: _exp(exp)
 				{}
 
-				boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					boost::optional<typename Exp::value_type> v = _exp.value(from, packet);
+					typename Exp::result_type v = _exp.value(from, packet);
 					return v && Op()(*v);
 				}
 
 				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					boost::optional<value_type> v = value(from, packet);
+					result_type v = value(from, packet);
 					return v && *v;
 				}
 		};
@@ -246,24 +254,30 @@ namespace filtering {
 
 			public:
 				typedef typename boost::result_of<Op(Left, Right)>::type value_type;
+				typedef boost::optional<value_type> result_type;
 
 				BinaryExpression(const Left& left, const Right& right)
 					: _left(left), _right(right)
 				{}
 
-				boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					boost::optional<typename Left::value_type> l = _left.value(from, packet);
-					boost::optional<typename Right::value_type> r = _right.value(from, packet);
+					typename Left::result_type l = _left.value(from, packet);
+
+					if (!l) {
+						return result_type();
+					}
+
+					typename Right::result_type r = _right.value(from, packet);
 
 					return l && r
-						? boost::optional<value_type>(Op()(*l, *r))
-						: boost::none;
+						? result_type(Op()(*l, *r))
+						: result_type();
 				}
 
 				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					boost::optional<value_type> v = value(from, packet);
+					result_type v = value(from, packet);
 					return v && *v;
 				}
 		};
@@ -283,27 +297,31 @@ namespace filtering {
 
 			public:
 				typedef bool value_type;
+				typedef boost::optional<value_type> result_type;
 
 				BooleanShortcutExpression(const Left& left, const Right& right)
 					: _left(left), _right(right)
 				{}
 
-				boost::optional<value_type> value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					boost::optional<typename Left::value_type> l = _left.value(from, packet);
-					boost::optional<typename Right::value_type> r = _right.value(from, packet);
-
-					bool subtreeResult = Op()(l && *l, r && *r);
+					typename Left::result_type l = _left.value(from, packet);
 					bool operatorShortcutResult = Op()(true, false);
 
-					return (l && r) || ((l || r) && subtreeResult == operatorShortcutResult)
-						? boost::optional<value_type>(subtreeResult)
-						: boost::none;
+					if (l && (*l == operatorShortcutResult)) {
+						return operatorShortcutResult;
+					}
+
+					typename Right::result_type r = _right.value(from, packet);
+
+					return l && r
+						? result_type(Op()(*l, *r))
+						: result_type();
 				}
 
 				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
 				{
-					boost::optional<value_type> v = value(from, packet);
+					result_type v = value(from, packet);
 					return v && *v;
 				}
 		};
