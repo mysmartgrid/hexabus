@@ -32,14 +32,14 @@ namespace hexabus {
       Socket(boost::asio::io_service& io, const std::string& interface);
       ~Socket();
 
-			boost::signals2::connection onPacketReceived(on_packet_received_slot_t callback, const filter_t& filter = filtering::Any());
+			boost::signals2::connection onPacketReceived(on_packet_received_slot_t callback, const filter_t& filter = filtering::any());
 			boost::signals2::connection onAsyncError(on_async_error_slot_t callback);
       
 			void listen(const boost::asio::ip::address_v6& addr);
 			void bind(const boost::asio::ip::address_v6& addr);
 
 			void send(const Packet& packet, const boost::asio::ip::address_v6& dest = GroupAddress, uint16_t port = HXB_PORT);
-			std::pair<boost::asio::ip::address_v6, Packet::Ptr> receive(const filter_t& filter = filtering::Any());
+			std::pair<boost::asio::ip::address_v6, Packet::Ptr> receive(const filter_t& filter = filtering::any());
 
 			boost::asio::io_service& ioService() { return io_service; }
     private:

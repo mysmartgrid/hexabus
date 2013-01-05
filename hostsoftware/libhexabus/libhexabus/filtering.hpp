@@ -165,15 +165,22 @@ namespace filtering {
 	struct is_filter<Constant<TValue> > : boost::mpl::true_ {};
 
 	struct Any {
-			bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
-			{
-				return true;
-			}
+		typedef bool value_type;
 
-			bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
-			{
-				return true;
-			}
+		bool match(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		{
+			return true;
+		}
+
+		value_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		{
+			return true;
+		}
+
+		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		{
+			return true;
+		}
 	};
 
 	template<>
@@ -193,6 +200,7 @@ namespace filtering {
 	static inline Source source() { return Source(); }
 	template<typename TValue>
 	static inline Constant<TValue> constant(const TValue& value) { return Constant<TValue>(value); }
+	static inline Any any() { return Any(); }
 
 	namespace ast {
 
