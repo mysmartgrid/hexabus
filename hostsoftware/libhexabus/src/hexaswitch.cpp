@@ -386,8 +386,7 @@ int main(int argc, char** argv) {
 		while (true) {
 			std::pair<boost::asio::ip::address_v6, hexabus::Packet::Ptr> pair;
 			try {
-				namespace hf = hexabus::filtering;
-				pair = network->receive(hf::isInfo<uint32_t>() && !hf::value<uint32_t>());
+				pair = network->receive();
 			} catch (const hexabus::GenericException& e) {
 				const hexabus::NetworkException* nerror;
 				if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&e))) {

@@ -121,13 +121,14 @@ namespace filtering {
 
 	template<typename TValue>
 	struct Constant {
-		private:
-			TValue _value;
-
 		public:
-			typedef TValue value_type;
+			typedef typename boost::decay<const TValue>::type value_type;
 			typedef boost::optional<value_type> result_type;
 
+		private:
+			value_type _value;
+
+		public:
 			Constant(const TValue& value)
 				: _value(value)
 			{}
@@ -248,11 +249,13 @@ namespace filtering {
 
 	namespace ast {
 
-		template<typename Left, typename Right, typename Op>
+		template<typename Left, typename Right, template<typename T> class OpClass>
 		struct BinaryExpression {
 			private:
 				Left _left;
 				Right _right;
+
+				typedef OpClass<typename boost::common_type<typename Left::value_type, typename Right::value_type>::type> Op;
 
 			public:
 				typedef typename boost::result_of<Op(Left, Right)>::type value_type;
@@ -286,16 +289,18 @@ namespace filtering {
 
 	}
 
-	template<typename Left, typename Right, typename Op>
+	template<typename Left, typename Right, template<typename T> class Op>
 	struct is_filter<ast::BinaryExpression<Left, Right, Op> > : boost::mpl::true_ {};
 
 	namespace ast {
 
-		template<typename Left, typename Right, typename Op>
+		template<typename Left, typename Right, template<typename T> class OpClass>
 		struct BooleanShortcutExpression {
 			private:
 				Left _left;
 				Right _right;
+
+				typedef OpClass<typename boost::common_type<typename Left::value_type, typename Right::value_type>::type> Op;
 
 			public:
 				typedef bool value_type;
@@ -330,7 +335,7 @@ namespace filtering {
 
 	}
 
-	template<typename Left, typename Right, typename Op>
+	template<typename Left, typename Right, template<typename T> class Op>
 	struct is_filter<ast::BooleanShortcutExpression<Left, Right, Op> > : boost::mpl::true_ {};
 
 	template<typename Exp>
@@ -338,25 +343,25 @@ namespace filtering {
 	{ return ast::HasExpression<Exp>(exp); }
 
 	template<typename Exp>
-	typename boost::enable_if<is_filter<Exp>, ast::UnaryExpression<Exp, std::logical_not<bool> > >::type
+	typename boost::enable_if<is_filter<Exp>, ast::UnaryExpression<Exp, std::logical_not<typename Exp::value_type> > >::type
 		operator!(const Exp& exp)
-	{ return ast::UnaryExpression<Exp, std::logical_not<bool> >(exp); }
+	{ return ast::UnaryExpression<Exp, std::logical_not<typename Exp::value_type> >(exp); }
 
 #define BINARY_OP(Sym, Op, Class) \
 	template<typename Left, typename Right> \
-	typename boost::enable_if_c<is_filter<Left>::value && is_filter<Right>::value, Class<Left, Right, Op<typename Left::value_type> > >::type \
-		operator Sym(const Left& left, const Right& right) \
-		{ return Class<Left, Right, Op<typename Left::value_type> >(left, right); } \
+	typename boost::enable_if_c<is_filter<Left>::value && is_filter<Right>::value, Class<Left, Right, Op> >::type \
+	operator Sym(const Left& left, const Right& right) \
+	{ return Class<Left, Right, Op>(left, right); } \
 	\
-	template<typename Left> \
-	typename boost::enable_if_c<is_filter<Left>::value, Class<Left, Constant<typename Left::value_type>, Op<typename Left::value_type> > >::type \
-		operator Sym(const Left& left, const typename Left::value_type& right) \
-		{ return Class<Left, Constant<typename Left::value_type>, Op<typename Left::value_type> >(left, right); } \
+	template<typename Left, typename Right> \
+	typename boost::enable_if_c<is_filter<Left>::value && !is_filter<Right>::value, Class<Left, Constant<Right>, Op> >::type \
+	operator Sym(const Left& left, const Right& right) \
+	{ return Class<Left, Constant<Right>, Op>(left, right); } \
 	\
-	template<typename Right> \
-	typename boost::enable_if_c<is_filter<Right>::value, Class<Constant<typename Right::value_type>, Right, Op<typename Right::value_type> > >::type \
-		operator Sym(const typename Right::value_type& left, const Right& right) \
-		{ return Class<Constant<typename Right::value_type>, Right, Op<typename Right::value_type> >(left, right); }
+	template<typename Left, typename Right> \
+	typename boost::enable_if_c<!is_filter<Left>::value && is_filter<Right>::value, Class<Constant<Left>, Right, Op> >::type \
+	operator Sym(const Left& left, const Right& right) \
+	{ return Class<Constant<Left>, Right, Op>(left, right); }
 
 	BINARY_OP(<, std::less, ast::BinaryExpression)
 	BINARY_OP(<=, std::less_equal, ast::BinaryExpression)
