@@ -315,7 +315,7 @@ namespace filtering {
 					typename Left::result_type l = _left.value(from, packet);
 					bool operatorShortcutResult = Op()(true, false);
 
-					if (l && (*l == operatorShortcutResult)) {
+					if (l && (bool(*l) == operatorShortcutResult)) {
 						return operatorShortcutResult;
 					}
 
