@@ -116,15 +116,13 @@ void Socket::packetReceiveHandler(const boost::system::error_code& error, size_t
 		beginReceive();
 }
 
-void Socket::send(const Packet& packet, const boost::asio::ip::address_v6& dest, uint16_t port)
+void Socket::send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest)
 {
 	boost::system::error_code err;
 
-	boost::asio::ip::udp::endpoint remote(dest, port);
-
 	std::vector<char> data = serialize(packet);
 
-	socket.send_to(boost::asio::buffer(&data[0], data.size()), remote, 0, err);
+	socket.send_to(boost::asio::buffer(&data[0], data.size()), dest, 0, err);
 	if (err)
 		throw NetworkException("send", err);
 }

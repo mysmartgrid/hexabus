@@ -37,8 +37,11 @@ namespace hexabus {
 			void listen(const boost::asio::ip::address_v6& addr);
 			void bind(const boost::asio::ip::address_v6& addr);
 
-			void send(const Packet& packet, const boost::asio::ip::address_v6& dest = GroupAddress, uint16_t port = HXB_PORT);
+			void send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest);
 			std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> receive(const filter_t& filter = filtering::any());
+
+			void send(const Packet& packet) { send(packet, GroupAddress); }
+			void send(const Packet& packet, const boost::asio::ip::address_v6& dest) { send(packet, boost::asio::ip::udp::endpoint(dest, HXB_PORT)); }
 
 			boost::asio::io_service& ioService() { return io_service; }
     private:
