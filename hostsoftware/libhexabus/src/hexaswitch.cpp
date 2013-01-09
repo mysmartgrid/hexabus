@@ -38,6 +38,13 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 			target << std::endl;
 		}
 
+		void printValuePacket(const hexabus::ValuePacket<uint8_t>& packet, const char* datatypeStr)
+		{
+			printValueHeader(packet.eid(), datatypeStr);
+			target << "Value:\t" << (int) packet.value() << std::endl;
+			target << std::endl;
+		}
+
 		void printValuePacket(const hexabus::ValuePacket<std::vector<char> >& packet, const char* datatypeStr)
 		{
 			printValueHeader(packet.eid(), datatypeStr);
