@@ -225,8 +225,7 @@ int main(int argc, char** argv)
   }
   if (vm.count("version")) {
     klio::VersionInfo::Ptr vi(new klio::VersionInfo());
-    hexabus::VersionInfo versionInfo;
-    std::cout << "libhexabus version " << versionInfo.getVersion() << std::endl;
+    std::cout << "libhexabus version " << hexabus::version() << std::endl;
     std::cout << "klio library version " << vi->getVersion() << std::endl;
     return 0;
   }

@@ -330,9 +330,8 @@ int main(int argc, char** argv) {
   }
 
   if (vm.count("version")) {
-    hexabus::VersionInfo versionInfo;
     std::cout << "hexaswitch -- command line hexabus client" << std::endl;
-    std::cout << "libhexabus version " << versionInfo.getVersion() << std::endl;
+    std::cout << "libhexabus version " << hexabus::version() << std::endl;
     return 0;
   }
 
