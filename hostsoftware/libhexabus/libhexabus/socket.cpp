@@ -51,7 +51,7 @@ void Socket::beginReceive()
 				boost::asio::placeholders::bytes_transferred));
 }
 
-std::pair<boost::asio::ip::address_v6, Packet::Ptr> Socket::receive(const filter_t& filter)
+std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> Socket::receive(const filter_t& filter)
 {
 	boost::system::error_code err;
 
@@ -61,8 +61,8 @@ std::pair<boost::asio::ip::address_v6, Packet::Ptr> Socket::receive(const filter
 			throw NetworkException("receive", err);
 
 		Packet::Ptr packet = deserialize(&data[0], data.size());
-		if (filter(remoteEndpoint.address().to_v6(), *packet)) {
-			return std::make_pair(remoteEndpoint.address().to_v6(), packet);
+		if (filter(*packet, remoteEndpoint)) {
+			return std::make_pair(packet, remoteEndpoint);
 		}
 	}
 }
@@ -77,10 +77,10 @@ class PredicatedReceive {
 			: _slot(slot), _filter(filter)
 		{}
 
-		void operator()(const boost::asio::ip::address_v6& source, const Packet& packet)
+		void operator()(const Packet& packet, const boost::asio::ip::udp::endpoint& from)
 		{
-			if (_filter(source, packet))
-				_slot(source, packet);
+			if (_filter(packet, from))
+				_slot(packet, from);
 		}
 };
 
@@ -111,7 +111,7 @@ void Socket::packetReceiveHandler(const boost::system::error_code& error, size_t
 		asyncError(e);
 		return;
 	}
-	packetReceived(remoteEndpoint.address().to_v6(), *packet);
+	packetReceived(*packet, remoteEndpoint);
 	if (!packetReceived.empty())
 		beginReceive();
 }

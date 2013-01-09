@@ -218,7 +218,7 @@ void send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, 
   }
   if (printResponse) {
 		while (true) {
-			std::pair<boost::asio::ip::address_v6, hexabus::Packet::Ptr> pair;
+			std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
 			try {
 				pair = net->receive();
 			} catch (const hexabus::GenericException& e) {
@@ -231,8 +231,8 @@ void send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, 
 				exit(1);
 			}
 
-			if (pair.first == addr) {
-				print_packet(*pair.second);
+			if (pair.second.address() == addr) {
+				print_packet(*pair.first);
 				break;
 			}
 		}
@@ -383,9 +383,9 @@ int main(int argc, char** argv) {
 
 		network->listen(bind_addr);
 		while (true) {
-			std::pair<boost::asio::ip::address_v6, hexabus::Packet::Ptr> pair;
+			std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
 			try {
-				pair = network->receive();
+				pair = network->receive(x);
 			} catch (const hexabus::GenericException& e) {
 				const hexabus::NetworkException* nerror;
 				if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&e))) {
@@ -396,8 +396,8 @@ int main(int argc, char** argv) {
 				exit(1);
 			}
 
-			std::cout << "Received packet from " << pair.first << std::endl;
-			print_packet(*pair.second);
+			std::cout << "Received packet from " << pair.second << std::endl;
+			print_packet(*pair.first);
 		}
   }
 

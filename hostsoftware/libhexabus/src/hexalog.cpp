@@ -182,9 +182,9 @@ struct ReadingLogger : private hexabus::PacketVisitor {
 		virtual void visit(const hexabus::WritePacket<std::vector<char> >& write) { rejectPacket(); }
 
 	public:
-		void operator()(const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet)
+		void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint& from)
 		{
-			source = addr;
+			source = from.address().to_v6();
 			visitPacket(packet);
 		}
 

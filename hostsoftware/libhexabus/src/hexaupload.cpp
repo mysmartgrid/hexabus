@@ -49,7 +49,7 @@ void assert_statemachine_state(hexabus::Socket* network, const std::string& ip_a
 	network->send(hexabus::QueryPacket(EP_SM_CONTROL), dest);
 
 	while (true) {
-		std::pair<boost::asio::ip::address_v6, hexabus::Packet::Ptr> pair;
+		std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
 		try {
 			pair = network->receive();
 		} catch (const hexabus::GenericException& e) {
@@ -62,9 +62,9 @@ void assert_statemachine_state(hexabus::Socket* network, const std::string& ip_a
 			exit(1);
 		}
 
-		if (pair.first == dest) {
-			const hexabus::InfoPacket<uint8_t> *u8 = dynamic_cast<const hexabus::InfoPacket<uint8_t>*>(pair.second.get());
-			const hexabus::TypedPacket *t = dynamic_cast<const hexabus::TypedPacket*>(pair.second.get());
+		if (pair.second.address() == dest) {
+			const hexabus::InfoPacket<uint8_t> *u8 = dynamic_cast<const hexabus::InfoPacket<uint8_t>*>(pair.first.get());
+			const hexabus::TypedPacket *t = dynamic_cast<const hexabus::TypedPacket*>(pair.first.get());
 			if (u8) {
 				switch (req_state) {
 					case STM_STATE_STOPPED:
@@ -113,9 +113,9 @@ bool send_chunk(hexabus::Socket* network, const std::string& ip_addr, uint8_t ch
 		boost::asio::ip::address addr;
 		bool& result;
 
-		void operator()(const boost::asio::ip::address_v6& from, const hexabus::Packet& packet)
+		void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint& from)
 		{
-			if (from == addr) {
+			if (from.address() == addr) {
 				const hexabus::InfoPacket<bool> *i = dynamic_cast<const hexabus::InfoPacket<bool>*>(&packet);
 				if (i) {
 					result = i->value();

@@ -20,14 +20,14 @@ namespace filtering {
 		typedef bool value_type;
 		typedef boost::optional<value_type> result_type;
 
-		result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 		{
 			return dynamic_cast<const Type*>(&packet);
 		}
 
-		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		bool operator()(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 		{
-			return *value(from, packet);
+			return *value(packet, from);
 		}
 	};
 
@@ -40,16 +40,16 @@ namespace filtering {
 		typedef uint32_t value_type;
 		typedef boost::optional<value_type> result_type;
 
-		result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 		{
 			return dynamic_cast<const EIDPacket*>(&packet)
 				? result_type(static_cast<const EIDPacket&>(packet).eid())
 				: result_type();
 		}
 
-		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		bool operator()(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 		{
-			result_type v = value(from, packet);
+			result_type v = value(packet, from);
 			return v && *v;
 		}
 	};
@@ -72,16 +72,16 @@ namespace filtering {
 		typedef TValue value_type;
 		typedef boost::optional<value_type> result_type;
 
-		result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 		{
 			return dynamic_cast<const ValuePacket<TValue>*>(&packet)
 				? result_type(static_cast<const ValuePacket<TValue>&>(packet).value())
 				: result_type();
 		}
 
-		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		bool operator()(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 		{
-			result_type v = value(from, packet);
+			result_type v = value(packet, from);
 			return v && *v;
 		}
 	};
@@ -110,9 +110,24 @@ namespace filtering {
 		typedef boost::asio::ip::address_v6 value_type;
 		typedef boost::optional<value_type> result_type;
 
-		result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 		{
-			return from;
+			return from.address().to_v6();
+		}
+	};
+
+	struct Port {
+		typedef uint16_t value_type;
+		typedef boost::optional<value_type> result_type;
+
+		result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
+		{
+			return from.port();
+		}
+
+		bool operator()(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
+		{
+			return *value(packet, from);
 		}
 	};
 
@@ -133,12 +148,12 @@ namespace filtering {
 				: _value(value)
 			{}
 
-			result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+			result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 			{
 				return _value;
 			}
 
-			bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+			bool operator()(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 			{
 				return _value;
 			}
@@ -151,12 +166,12 @@ namespace filtering {
 		typedef bool value_type;
 		typedef boost::optional<value_type> result_type;
 
-		result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 		{
 			return true;
 		}
 
-		bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+		bool operator()(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 		{
 			return true;
 		}
@@ -177,6 +192,7 @@ namespace filtering {
 	static inline IsWrite<TValue> isWrite() { return IsWrite<TValue>(); }
 	static inline IsEndpointInfo isEndpointInfo() { return IsEndpointInfo(); }
 	static inline Source source() { return Source(); }
+	static inline Port port() { return port(); }
 	template<typename TValue>
 	static inline Constant<TValue> constant(const TValue& value) { return Constant<TValue>(value); }
 	static inline Any any() { return Any(); }
@@ -196,14 +212,14 @@ namespace filtering {
 					: _item(item)
 				{}
 
-				result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 				{
-					return bool(_item.value(from, packet));
+					return bool(_item.value(packet, from));
 				}
 
-				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				bool operator()(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 				{
-					return *value(from, packet);
+					return *value(packet, from);
 				}
 		};
 
@@ -227,17 +243,17 @@ namespace filtering {
 					: _exp(exp)
 				{}
 
-				result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 				{
-					typename Exp::result_type v = _exp.value(from, packet);
+					typename Exp::result_type v = _exp.value(packet, from);
 					return v
 						? result_type(Op()(*v))
 						: result_type();
 				}
 
-				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				bool operator()(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 				{
-					result_type v = value(from, packet);
+					result_type v = value(packet, from);
 					return v && *v;
 				}
 		};
@@ -265,24 +281,24 @@ namespace filtering {
 					: _left(left), _right(right)
 				{}
 
-				result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 				{
-					typename Left::result_type l = _left.value(from, packet);
+					typename Left::result_type l = _left.value(packet, from);
 
 					if (!l) {
 						return result_type();
 					}
 
-					typename Right::result_type r = _right.value(from, packet);
+					typename Right::result_type r = _right.value(packet, from);
 
 					return l && r
 						? result_type(Op()(*l, *r))
 						: result_type();
 				}
 
-				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				bool operator()(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 				{
-					result_type v = value(from, packet);
+					result_type v = value(packet, from);
 					return v && *v;
 				}
 		};
@@ -310,25 +326,25 @@ namespace filtering {
 					: _left(left), _right(right)
 				{}
 
-				result_type value(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 				{
-					typename Left::result_type l = _left.value(from, packet);
+					typename Left::result_type l = _left.value(packet, from);
 					bool operatorShortcutResult = Op()(true, false);
 
 					if (l && (bool(*l) == operatorShortcutResult)) {
 						return operatorShortcutResult;
 					}
 
-					typename Right::result_type r = _right.value(from, packet);
+					typename Right::result_type r = _right.value(packet, from);
 
 					return l && r
 						? result_type(Op()(*l, *r))
 						: result_type();
 				}
 
-				bool operator()(const boost::asio::ip::address_v6& from, const Packet& packet) const
+				bool operator()(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 				{
-					result_type v = value(from, packet);
+					result_type v = value(packet, from);
 					return v && *v;
 				}
 		};

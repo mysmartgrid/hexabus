@@ -15,12 +15,11 @@ namespace hexabus {
   class Socket {
     public:
 			typedef boost::signals2::signal<
-				void (const boost::asio::ip::address_v6& source,
-						const Packet& packet)>
+				void (const Packet& packet, const boost::asio::ip::udp::endpoint& from)>
 				on_packet_received_t;
 			typedef on_packet_received_t::slot_type on_packet_received_slot_t;
 
-			typedef boost::function<bool (const boost::asio::ip::address_v6& from, const Packet& packet)> filter_t;
+			typedef boost::function<bool (const Packet& packet, const boost::asio::ip::udp::endpoint& from)> filter_t;
 
 			typedef boost::signals2::signal<void (const GenericException& error)> on_async_error_t;
 			typedef on_async_error_t::slot_type on_async_error_slot_t;
@@ -39,7 +38,7 @@ namespace hexabus {
 			void bind(const boost::asio::ip::address_v6& addr);
 
 			void send(const Packet& packet, const boost::asio::ip::address_v6& dest = GroupAddress, uint16_t port = HXB_PORT);
-			std::pair<boost::asio::ip::address_v6, Packet::Ptr> receive(const filter_t& filter = filtering::any());
+			std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> receive(const filter_t& filter = filtering::any());
 
 			boost::asio::io_service& ioService() { return io_service; }
     private:
