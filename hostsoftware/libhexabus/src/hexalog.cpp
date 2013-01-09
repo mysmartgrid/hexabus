@@ -5,7 +5,6 @@
 #include <libhexabus/crc.hpp>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/socket.hpp>
-#include <libhexabus/tempsensor.hpp>
 
 // libklio includes. TODO: create support for built-system.
 #include <libklio/common.hpp>
@@ -252,7 +251,6 @@ int main(int argc, char** argv)
 
 
 
-  std::map<std::string, hexabus::Sensor::Ptr> sensors;
 	boost::asio::io_service io;
   hexabus::Socket network(io);
   // TODO: Compile flag etc.
