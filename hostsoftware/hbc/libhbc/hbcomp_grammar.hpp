@@ -149,7 +149,7 @@ namespace hexabus {
 
       else_lit %= lit("else")[_val = 1]; // sets a variable if "else" was found, variable stays 0 if it isn't.
       if_clause %= lit("if") >> file_pos > guarded_command_block
-        > *( lit("else if") > guarded_command_block );
+        > *( lit("else") > lit("if") > guarded_command_block );
 
       // module definitions
       placeholder_list %= placeholder > *( ',' > placeholder );
