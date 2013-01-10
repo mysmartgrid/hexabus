@@ -106,7 +106,7 @@ namespace filtering {
 	template<>
 	struct is_filter<IsEndpointInfo> : boost::mpl::true_ {};
 
-	struct Source {
+	struct SourceIP {
 		typedef boost::asio::ip::address_v6 value_type;
 		typedef boost::optional<value_type> result_type;
 
@@ -116,7 +116,10 @@ namespace filtering {
 		}
 	};
 
-	struct Port {
+	template<>
+	struct is_filter<SourceIP> : boost::mpl::true_ {};
+
+	struct SourcePort {
 		typedef uint16_t value_type;
 		typedef boost::optional<value_type> result_type;
 
@@ -132,7 +135,7 @@ namespace filtering {
 	};
 
 	template<>
-	struct is_filter<Source> : boost::mpl::true_ {};
+	struct is_filter<SourcePort> : boost::mpl::true_ {};
 
 	template<typename TValue>
 	struct Constant {
@@ -191,8 +194,8 @@ namespace filtering {
 	template<typename TValue>
 	static inline IsWrite<TValue> isWrite() { return IsWrite<TValue>(); }
 	static inline IsEndpointInfo isEndpointInfo() { return IsEndpointInfo(); }
-	static inline Source source() { return Source(); }
-	static inline Port port() { return port(); }
+	static inline SourceIP sourceIP() { return SourceIP(); }
+	static inline SourcePort sourcePort() { return SourcePort(); }
 	template<typename TValue>
 	static inline Constant<TValue> constant(const TValue& value) { return Constant<TValue>(value); }
 	static inline Any any() { return Any(); }
