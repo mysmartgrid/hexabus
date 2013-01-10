@@ -227,35 +227,41 @@ void HBAOutput::print_condition(atomic_condition_doc at_cond, std::ostream& ostr
   // give the condition a name
   ostr << "condition cond_" << vertex.machine_id << "_" << vertex.vertex_id << " {" << std::endl;
 
+  ostr << "  ip := ";
+
   // find the device alias, print its IP address
-  try {
-    device_table::iterator d_it = _d->find(boost::get<std::string>(at_cond.geid.device_alias));
-    if(d_it == _d->end()) {
+  if (_dev_name == boost::get<std::string>(at_cond.geid.device_alias)) { // If we are ON the device that broadcasts the message, we should use "localhost"
+    ostr << "0000:0000:0000:0000:0000:0000:0000:0001"; // ::1 = localhost
+  } else { // otherwise we should use the IP address of the device which broadcasts the message
+    try {
+      device_table::iterator d_it = _d->find(boost::get<std::string>(at_cond.geid.device_alias));
+      if(d_it == _d->end()) {
+        std::ostringstream oss;
+        std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find(vertex.machine_id);
+        if(it != machine_filenames_per_id.end())
+          oss << "[" << it->second << ":" << at_cond.geid.lineno << "] ";
+        oss << "Device name not found: " << boost::get<std::string>(at_cond.geid.device_alias);
+        throw HBAConversionErrorException(oss.str());
+      }
+
+      boost::array<unsigned char, 16> addr_bytes = d_it->second.ipv6_address.to_bytes();
+      for(unsigned int i = 0; i < 16; i++) {
+        if(!(i % 2) && i)
+          ostr<<":";
+        ostr << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)addr_bytes[i];
+      }
+
+    } catch(boost::bad_get e) {
       std::ostringstream oss;
       std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find(vertex.machine_id);
       if(it != machine_filenames_per_id.end())
         oss << "[" << it->second << ":" << at_cond.geid.lineno << "] ";
-      oss << "Device name not found: " << boost::get<std::string>(at_cond.geid.device_alias);
+      oss << "Only literal device names (no placeholders) allowed in state machine definition!" << std::endl;
       throw HBAConversionErrorException(oss.str());
     }
-
-    ostr << "  ip := ";
-    boost::array<unsigned char, 16> addr_bytes = d_it->second.ipv6_address.to_bytes();
-    for(unsigned int i = 0; i < 16; i++) {
-      if(!(i % 2) && i)
-        ostr<<":";
-      ostr << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)addr_bytes[i];
-    }
-    ostr << ";" << std::dec << std::endl;
-
-  } catch(boost::bad_get e) {
-    std::ostringstream oss;
-    std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find(vertex.machine_id);
-    if(it != machine_filenames_per_id.end())
-      oss << "[" << it->second << ":" << at_cond.geid.lineno << "] ";
-    oss << "Only literal device names (no placeholders) allowed in state machine definition!" << std::endl;
-    throw HBAConversionErrorException(oss.str());
   }
+
+  ostr << ";" << std::dec << std::endl;
 
   // find the endpoint name, print its IP address
   try {

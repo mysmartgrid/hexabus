@@ -265,7 +265,7 @@ int main(int argc, char** argv)
     std::map<std::string, hexabus::graph_t_ptr> graphs = gt.getDeviceGraphs(); // we can take the graph map from gt again, because GraphSimplification works in-place
     for(std::map<std::string, hexabus::graph_t_ptr>::iterator graphIt = graphs.begin(); graphIt != graphs.end(); graphIt++) {
 
-      hexabus::HBAOutput out(graphIt->second, tableBuilder.get_device_table(), tableBuilder.get_endpoint_table(), gBuilder.getMachineFilenameMap());
+      hexabus::HBAOutput out(graphIt->first, graphIt->second, tableBuilder.get_device_table(), tableBuilder.get_endpoint_table(), gBuilder.getMachineFilenameMap());
 
       if(vm.count("output")) {
         std::ostringstream fnoss;
