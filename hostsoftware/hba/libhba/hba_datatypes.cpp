@@ -34,6 +34,9 @@ Datatypes::Datatypes(std::string filename)
       getline(f, line);
       std::stringstream s(line);
 
+      if(line.length() == 0)
+        continue;
+
       int eid;
       std::string dtype;
       s >> eid;
@@ -67,8 +70,9 @@ Datatypes::Datatypes(std::string filename)
 
 uint8_t Datatypes::getDatatype(uint8_t eid)
 {
-  if(eid < NUMBER_OF_EIDS)
+  if(eid < NUMBER_OF_EIDS) {
     return datatypes[eid];
+  }
   else
     return 0;
 }

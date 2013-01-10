@@ -12,6 +12,8 @@
 #include <libhbc/include_handling.hpp>
 #include <libhbc/graph_simplification.hpp>
 #include <libhbc/graph_checks.hpp>
+#include <libhbc/dtype_file_generator.hpp>
+#include <libhbc/dtype_file_generator.hpp>
 
 // commandline parsing.
 #include <boost/program_options.hpp>
@@ -50,6 +52,7 @@ int main(int argc, char** argv)
     ("always,a", po::value<std::string>(), "perform liveness check ('node is always reachable') for node")
     ("never,n", po::value<std::string>(), "perform safety check ('node is never reachable') for node")
     ("output,o", po::value<std::string>(), "file name prefix for Hexabus Assembler (HBA) output")
+    ("datatypefile,d", po::value<std::string>(), "name of data type file to be generated")
     ;
   po::positional_options_description p;
   p.add("input", 1);
@@ -264,7 +267,6 @@ int main(int argc, char** argv)
 
     std::map<std::string, hexabus::graph_t_ptr> graphs = gt.getDeviceGraphs(); // we can take the graph map from gt again, because GraphSimplification works in-place
     for(std::map<std::string, hexabus::graph_t_ptr>::iterator graphIt = graphs.begin(); graphIt != graphs.end(); graphIt++) {
-
       hexabus::HBAOutput out(graphIt->first, graphIt->second, tableBuilder.get_device_table(), tableBuilder.get_endpoint_table(), gBuilder.getMachineFilenameMap());
 
       if(vm.count("output")) {
@@ -284,7 +286,23 @@ int main(int argc, char** argv)
         std::ostringstream oss;
         out(oss);
       }
+    }
 
+    if(vm.count("datatypefile")) {
+      if(verbose)
+        std::cout << "Generating data type file..." << std::endl;
+
+      std::ofstream dtofs;
+      dtofs.open(vm["datatypefile"].as<std::string>().c_str());
+
+      if(!dtofs) {
+        std::cerr << "Could not open data type definition file " << vm["datatypefile"].as<std::string>() << "." << std::endl;
+        exit(-1);
+      }
+
+      hexabus::DTypeFileGenerator dtg;
+      dtg(tableBuilder.get_endpoint_table(), dtofs);
+      dtofs.close();
     }
 
   } else {
