@@ -35,7 +35,10 @@ namespace hexabus {
 			boost::signals2::connection onAsyncError(on_async_error_slot_t callback);
       
 			void listen(const boost::asio::ip::address_v6& addr);
-			void bind(const boost::asio::ip::address_v6& addr);
+			void bind(const boost::asio::ip::udp::endpoint& ep);
+			void bind(const boost::asio::ip::address_v6& addr) { bind(boost::asio::ip::udp::endpoint(addr, 0)); }
+
+			boost::asio::ip::udp::endpoint localEndpoint() const { return socket.local_endpoint(); }
 
 			void send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest);
 			std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> receive(const filter_t& filter = filtering::any());

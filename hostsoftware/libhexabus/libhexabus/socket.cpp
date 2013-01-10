@@ -135,10 +135,10 @@ void Socket::listen(const boost::asio::ip::address_v6& addr) {
     throw NetworkException("listen", err);
 }
 
-void Socket::bind(const boost::asio::ip::address_v6& addr) {
+void Socket::bind(const boost::asio::ip::udp::endpoint& ep) {
   boost::system::error_code err;
 
-  socket.bind(boost::asio::ip::udp::endpoint(addr, 0), err);
+  socket.bind(ep, err);
   if (err)
     throw NetworkException("bind", err);
 }
