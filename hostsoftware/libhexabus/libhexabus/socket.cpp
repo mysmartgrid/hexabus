@@ -130,7 +130,7 @@ void Socket::send(const Packet& packet, const boost::asio::ip::udp::endpoint& de
 void Socket::listen(const boost::asio::ip::address_v6& addr) {
   boost::system::error_code err;
 
-  socket.bind(boost::asio::ip::udp::endpoint(addr, 61616), err);
+  socket.bind(boost::asio::ip::udp::endpoint(addr, HXB_PORT), err);
   if (err)
     throw NetworkException("listen", err);
 }
