@@ -84,7 +84,7 @@ class PredicatedReceive {
 		}
 };
 
-bs2::connection Socket::onPacketReceived(on_packet_received_slot_t callback, const filter_t& filter)
+bs2::connection Socket::onPacketReceived(const on_packet_received_slot_t& callback, const filter_t& filter)
 {
 	bs2::connection result = packetReceived.connect(PredicatedReceive(callback, filter));
 
@@ -93,7 +93,7 @@ bs2::connection Socket::onPacketReceived(on_packet_received_slot_t callback, con
 	return result;
 }
 
-bs2::connection Socket::onAsyncError(on_async_error_slot_t callback)
+bs2::connection Socket::onAsyncError(const on_async_error_slot_t& callback)
 {
 	return asyncError.connect(callback);
 }
