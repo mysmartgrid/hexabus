@@ -6,8 +6,7 @@
 using namespace hexabus;
 
 void HBAOutput::operator()(std::ostream& ostr) {
-  // before running this, graph_transformation has done its work and has left us with a SINGLE state machine
-  // in the graph. (it doesn't if multiple machines write to the same device's EPs - yet.) <- TODO catch this case
+  // before running this, graph_transformation has done its work and has left us with a SINGLE state machine in the graph.
 
   // TODO This code is very ugly.
   //      It should be re-implemented, using a visitor pattern
@@ -37,7 +36,7 @@ void HBAOutput::operator()(std::ostream& ostr) {
     vertex_id_t vertexID = *vertexIt;
     vertex_t& vertex = (*_g)[vertexID];
 
-    if (vertex.type == v_cond /* TODO */ && vertex.machine_id == 0) {
+    if (vertex.type == v_cond) {
       try {
         condition_doc cond = boost::get<condition_doc>(vertex.contents);
 
