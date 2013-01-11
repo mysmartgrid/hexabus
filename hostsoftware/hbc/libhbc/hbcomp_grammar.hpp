@@ -116,19 +116,19 @@ namespace hexabus {
 
       ep_eid %= lit("eid") > uint_ > ';';
       ep_datatype %= lit("datatype") > datatype > ';';
-      ep_access %= lit("access") > '{' > access_lv > *(',' > access_lv) > '}' > ';';
+      ep_access %= lit("access") > '{' > access_lv > *(',' > access_lv) > '}';
       endpoint_cmd = ( ep_eid | ep_datatype | ep_access );
       endpoint %= lit("endpoint") >> file_pos > identifier > '{' > *endpoint_cmd > '}';
 
       eid_list %= uint_ > *(',' > uint_);
       alias_ip %= lit("ip") > ipv6_address > ';';
-      alias_eids %= lit("eids") > '{' > -eid_list > '}' > ';';
+      alias_eids %= lit("eids") > '{' > -eid_list > '}';
       alias_cmd = ( alias_ip | alias_eids );
       alias %= lit("device") >> file_pos > identifier > '{'
         > *alias_cmd > '}';
 
       stateset %= lit("states") > file_pos > '{' > identifier > *(',' > identifier) > '}';
-      statemachine %= lit("machine") > file_pos > identifier > '{' > stateset > ';' > *in_clause > '}';
+      statemachine %= lit("machine") > file_pos > identifier > '{' > stateset > *in_clause > '}';
 
       in_clause %= lit("in") >> file_pos > '(' > identifier > ')'
         > '{' > *if_clause > '}';
@@ -155,7 +155,7 @@ namespace hexabus {
       placeholder_list %= placeholder > *( ',' > placeholder );
       module %= lit("module") >> file_pos > identifier
         > '(' > -placeholder_list > ')'
-        > '{' > stateset > ';' > *in_clause > '}';
+        > '{' > stateset > *in_clause > '}';
 
       // module instantiations
       inst_parameter %= ( constant | identifier );
