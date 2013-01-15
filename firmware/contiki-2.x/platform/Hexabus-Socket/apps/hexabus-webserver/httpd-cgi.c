@@ -599,16 +599,16 @@ get_sm_tables(void *arg)
   for(i = 0;i < length;i++) {
     //eeprom_read_block(cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (i * sizeof(struct condition))), sizeof(struct condition));
     sm_get_condition(i, cond);
-    if(cond->datatype == HXB_DTYPE_DATETIME) {
-      hxbtos(buffer, cond->data, HXB_DTYPE_UINT32);
+    if(cond->value.datatype == HXB_DTYPE_DATETIME) {
+      hxbtos(buffer, cond->value.data, HXB_DTYPE_UINT32);
     } else {
-      hxbtos(buffer, cond->data, cond->datatype);
+      hxbtos(buffer, cond->value.data, cond->value.datatype);
     }
     for(j = 0;j < 16;j++){
       sprintf(ip + 2*j, "%02x", cond->sourceIP[j]);
     }
     numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_cond_table_line, NULL,
-        ip, cond->sourceEID, cond->datatype, cond->op, buffer, NULL);
+        ip, cond->sourceEID, cond->value.datatype, cond->op, buffer, NULL);
   }
   numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '.');
   free(cond);

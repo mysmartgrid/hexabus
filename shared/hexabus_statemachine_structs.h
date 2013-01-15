@@ -11,9 +11,8 @@
 struct condition {
   uint8_t  sourceIP[16];    // IP
   uint32_t sourceEID;       // EID we expect data from
-  uint8_t  op;              // predicate function           |
-  uint8_t  datatype;        // The constant to compare with v
-  char     data[4];         // Leave enough room for largest chunk of data, uint32_t/float in this case
+  uint8_t  op;              // predicate function
+  struct   hxb_value value; // Date to compare with
 } __attribute__ ((packed));
 
 struct transition {

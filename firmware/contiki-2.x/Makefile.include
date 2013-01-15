@@ -57,7 +57,8 @@ ifdef UIP_CONF_IPV6
   UIP   = uip6.c tcpip.c psock.c uip-udp-packet.c uip-split.c \
           resolv.c tcpdump.c uiplib.c
   NET   += $(UIP) uip-icmp6.c uip-nd6.c uip-packetqueue.c \
-          sicslowpan.c neighbor-attr.c neighbor-info.c uip-ds6.c
+          sicslowpan.c neighbor-attr.c neighbor-info.c uip-ds6.c \
+		  uip-mld.c
   include $(CONTIKI)/core/net/rpl/Makefile.rpl
 else # UIP_CONF_IPV6
   UIP   = uip.c uiplib.c resolv.c tcpip.c psock.c hc.c uip-split.c uip-fw.c \
@@ -95,7 +96,8 @@ ifdef APPS
   APPINCLUDES = ${foreach APP, $(APPS), ${wildcard \
                  $(CONTIKI)/apps/$(APP)/Makefile.$(APP) \
                  $(CONTIKI)/platform/$(TARGET)/apps/$(APP)/Makefile.$(APP) \
-	         $(APP)/Makefile.$(APP)}}
+								 $(APP)/Makefile.$(APP)} \
+							}
   -include $(APPINCLUDES)
   APP_SOURCES = ${foreach APP, $(APPS), $($(APP)_src)}
   DSC_SOURCES = ${foreach APP, $(APPS), $($(APP)_dsc)}
@@ -129,7 +131,8 @@ CONTIKI_CPU_DIRS_CONCAT    = ${addprefix $(CONTIKI_CPU)/, \
                                $(CONTIKI_CPU_DIRS)}
 
 SOURCEDIRS = . $(PROJECTDIRS) $(CONTIKI_TARGET_DIRS_CONCAT) \
-             $(CONTIKI_CPU_DIRS_CONCAT) $(CONTIKIDIRS) $(APPDIRS)
+             $(CONTIKI_CPU_DIRS_CONCAT) $(CONTIKIDIRS) $(APPDIRS) \
+								 $(CONTIKI)/../../shared
 
 vpath %.c $(SOURCEDIRS)
 vpath %.S $(SOURCEDIRS)

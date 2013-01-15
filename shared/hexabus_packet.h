@@ -2,9 +2,9 @@
 #define HEXABUS_PACKET_H_
 
 // Hexabus packet definition
+#include <stdint.h>
 #include "hexabus_definitions.h"
 #include "hexabus_value.h"
-#include <stdint.h>
 
 // ======================================================================
 // Supporting structs
@@ -99,6 +99,7 @@ struct hxb_packet_float {
   uint16_t  crc;
 } __attribute__ ((packed));
 
+#define HXB_STRING_PACKET_MAX_BUFFER_LENGTH 127
 // WRITE/INFO packet for 128 char fixed length string or EPINFO packet
 struct hxb_packet_128string {
   char      header[4];
@@ -106,11 +107,26 @@ struct hxb_packet_128string {
   uint8_t   flags;
   uint32_t  eid;
   uint8_t   datatype;     // this is set to the datatype of the endpoint if it's an EPINFO packet!
-  char      value[128];
+  char      value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1];
   uint16_t  crc;
 } __attribute__ ((packed));
 
-#define HXB_STRING_PACKET_MAX_BUFFER_LENGTH 127
+// the hxb_packet_128string was determined to be the largest packet a hexabus network can see
+// should this ever change, increase this, otherwise libhexabus (among others) will break.
+#define HXB_MAX_PACKET_SIZE (sizeof(hxb_packet_128string))
+
+#define HXB_BYTES_PACKET_MAX_BUFFER_LENGTH 65
+// WRITE/INFO packet for 66 byte string: 1 byte control data, 64 byte payload
+struct hxb_packet_66bytes {
+  char      header[4];
+  uint8_t   type;
+  uint8_t   flags;
+  uint32_t  eid;
+  uint8_t   datatype;     
+  char      value[HXB_BYTES_PACKET_MAX_BUFFER_LENGTH];
+  uint16_t  crc;
+} __attribute__ ((packed));
+
 
 // ======================================================================
 // Structs for passing Hexabus data around between processes

@@ -1,0 +1,9 @@
+interface br0 {
+	AdvSendAdvert on;
+	AdvCurHopLimit 128;
+	prefix fd00::/64 {
+		AdvOnLink on;
+		AdvAutonomous on;
+	};
+};
+

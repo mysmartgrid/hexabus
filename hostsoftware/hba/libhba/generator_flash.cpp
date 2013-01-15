@@ -41,7 +41,8 @@ struct hba_doc_visitor : boost::static_visitor<>
 
   void operator()(if_clause_doc const& clause, unsigned int state_id, unsigned int state_index) const
   {
-    std::cout << "TRANSITION INDEX: " << state_index << " ===== STATE ID: " << state_id << std::endl << std::endl;
+    // MD: SILENCE!
+    //std::cout << "TRANSITION INDEX: " << state_index << " ===== STATE ID: " << state_id << std::endl << std::endl;
     unsigned int cond_id;
     if(clause.name != "true")
       cond_id = find_vertex_id(_g, clause.name);
@@ -50,12 +51,12 @@ struct hba_doc_visitor : boost::static_visitor<>
     unsigned int goodstate_id = find_vertex_id(_g, clause.goodstate);
     unsigned int badstate_id = find_vertex_id(_g, clause.badstate);
 
-    std::cout << state_id << ": clause " << clause.name
-      << " (id " << cond_id << ")" << std::endl;
-    std::cout << " set eid " << clause.eid
-      << " := " << clause.value << " datatype " << (unsigned int)_datatypes->getDatatype(clause.eid) << std::endl;
-    std::cout << " goodstate: " << goodstate_id << std::endl;
-    std::cout << " badstate: " << badstate_id << std::endl;
+    //std::cout << state_id << ": clause " << clause.name
+    //  << " (id " << cond_id << ")" << std::endl;
+    //std::cout << " set eid " << clause.eid
+    //  << " := " << clause.value << " datatype " << (unsigned int)_datatypes->getDatatype(clause.eid) << std::endl;
+    //std::cout << " goodstate: " << goodstate_id << std::endl;
+    //std::cout << " badstate: " << badstate_id << std::endl;
 
     // construct binary representation
     struct transition t;
@@ -82,7 +83,7 @@ struct hba_doc_visitor : boost::static_visitor<>
       {
         if(it->first == cond_id)
         {
-          if(it->second.datatype == HXB_DTYPE_DATETIME)
+          if(it->second.value.datatype == HXB_DTYPE_DATETIME)
           {
             _trans_dt_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
             break;
@@ -98,7 +99,7 @@ struct hba_doc_visitor : boost::static_visitor<>
       _states_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
     }
 
-    std::cout << std::endl;
+    //std::cout << std::endl;
   }
 
   void operator()(state_doc const& hba) const
@@ -113,15 +114,16 @@ struct hba_doc_visitor : boost::static_visitor<>
 
   void operator()(condition_doc const& condition) const
   {
-    std::cout << "condition " << condition.id << ":" << std::endl;
+    // MD: SILENCE!
+    //std::cout << "condition " << condition.id << ":" << std::endl;
     if(condition.cond.which() == 0) // eidvalue
     {
       cond_eidvalue_doc cond = boost::get<cond_eidvalue_doc>(condition.cond);
-      std::cout << "IPv6 addr: " << cond.ipv6_address << std::endl;
-      std::cout << "EID: " << cond.eid << std::endl;
-      std::cout << "Operator: " << cond.op << std::endl;
-      std::cout << "Value: " << cond.value << std::endl;
-      std::cout << "Datatype: " << (unsigned int)_datatypes->getDatatype(cond.eid) << std::endl;
+      //std::cout << "IPv6 addr: " << cond.ipv6_address << std::endl;
+      //std::cout << "EID: " << cond.eid << std::endl;
+      //std::cout << "Operator: " << cond.op << std::endl;
+      //std::cout << "Value: " << cond.value << std::endl;
+      //std::cout << "Datatype: " << (unsigned int)_datatypes->getDatatype(cond.eid) << std::endl;
 
       //construct binary representation
       struct condition c;
@@ -136,19 +138,19 @@ struct hba_doc_visitor : boost::static_visitor<>
       }
       c.sourceEID = cond.eid;
       c.op = cond.op;
-      c.datatype = _datatypes->getDatatype(cond.eid);
+      c.value.datatype = _datatypes->getDatatype(cond.eid);
       std::stringstream ss;
       ss << std::hex << cond.value;
       if(_datatypes->getDatatype(cond.eid) == HXB_DTYPE_FLOAT) // TODO implement ALL the datatypes
       {
-        ss >> *(float*)c.data;
+        ss >> *(float*)c.value.data;
       } else { // TODO for now just treat everything as uint32
-        ss >> std::dec >> *(uint32_t*)c.data;
+        ss >> std::dec >> *(uint32_t*)c.value.data;
       }
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     } else if(condition.cond.which() == 1) { // timeout
       cond_timeout_doc cond = boost::get<cond_timeout_doc>(condition.cond);
-      std::cout << "Timeout: " << cond.value << std::endl;
+      //std::cout << "Timeout: " << cond.value << std::endl;
 
       // construct binary representation
       struct condition c;
@@ -156,55 +158,56 @@ struct hba_doc_visitor : boost::static_visitor<>
       c.sourceIP[15] = 1; // set IP address to ::1 for localost
       c.sourceEID = 0; // set to 0 because state machine won't care about the EID in a timestamp condition
       c.op = HXB_SM_TIMESTAMP_OP; // operator for timestamp comparison
-      c.datatype = HXB_DTYPE_TIMESTAMP;
-      *(uint32_t*)&c.data = cond.value;
+      c.value.datatype = HXB_DTYPE_TIMESTAMP;
+      *(uint32_t*)&c.value.data = cond.value;
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     } else {
       cond_datetime_doc cond = boost::get<cond_datetime_doc>(condition.cond);
-      std::cout << "Date/Time - ";
-      switch(cond.field)
-      {
-        case HXB_SM_HOUR:
-          std::cout << "hour";
-          break;
-        case HXB_SM_MINUTE:
-          std::cout << "minute";
-          break;
-        case HXB_SM_SECOND:
-          std::cout << "second";
-          break;
-        case HXB_SM_DAY:
-          std::cout << "day";
-          break;
-        case HXB_SM_MONTH:
-          std::cout << "month";
-          break;
-        case HXB_SM_YEAR:
-          std::cout << "year";
-          break;
-        case HXB_SM_WEEKDAY:
-          std::cout << "weekday";
-          break;
-        default:
-          std::cout << "Date/time field definition error!" << std::endl;
-      }
-      if(cond.op == HXB_SM_DATETIME_OP_GEQ)
-        std::cout << " >= ";
-      else
-        std::cout << " < ";
-      std::cout << cond.value << std::endl;
+      // MD: SILENCE!
+      //std::cout << "Date/Time - ";
+      //switch(cond.field)
+      //{
+      //  case HXB_SM_HOUR:
+      //    std::cout << "hour";
+      //    break;
+      //  case HXB_SM_MINUTE:
+      //    std::cout << "minute";
+      //    break;
+      //  case HXB_SM_SECOND:
+      //    std::cout << "second";
+      //    break;
+      //  case HXB_SM_DAY:
+      //    std::cout << "day";
+      //    break;
+      //  case HXB_SM_MONTH:
+      //    std::cout << "month";
+      //    break;
+      //  case HXB_SM_YEAR:
+      //    std::cout << "year";
+      //    break;
+      //  case HXB_SM_WEEKDAY:
+      //    std::cout << "weekday";
+      //    break;
+      //  default:
+      //    std::cout << "Date/time field definition error!" << std::endl;
+      //}
+      //if(cond.op == HXB_SM_DATETIME_OP_GEQ)
+      //  std::cout << " >= ";
+      //else
+      //  std::cout << " < ";
+      //std::cout << cond.value << std::endl;
 
       struct condition c;
       memset(&c.sourceIP, 0, 15);
       c.sourceIP[15] = 1; // set IP address to ::1 (localhost)
       c.sourceEID = 0;
       c.op = cond.field | cond.op;
-      c.datatype = HXB_DTYPE_DATETIME;
-      *(uint32_t*)&c.data = cond.value;
+      c.value.datatype = HXB_DTYPE_DATETIME;
+      *(uint32_t*)&c.value.data = cond.value;
 
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     }
-    std::cout << std::endl;
+    // std::cout << std::endl;
   }
 
   flash_format_state_map_t& _states_bin;
@@ -214,40 +217,42 @@ struct hba_doc_visitor : boost::static_visitor<>
   Datatypes* _datatypes;
 };
 
-void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8_t>& trans_v, std::vector<uint8_t>& trans_dt_v) const
+void generator_flash::operator()(std::vector<uint8_t>& v) const
 {
   flash_format_cond_map_t conditions_bin;
   flash_format_state_map_t states_bin;
   flash_format_trans_dt_map_t trans_dt_bin;
 
-  unsigned char conditions_buffer[513];
+  unsigned char conditions_buffer[512];
   unsigned char* conditions_pos = &conditions_buffer[1];
   memset(conditions_buffer, 0, sizeof(conditions_buffer));
-  unsigned char transitions_buffer[513];
+  unsigned char transitions_buffer[512];
   unsigned char* transitions_pos = &transitions_buffer[1];
   memset(transitions_buffer, 0, sizeof(transitions_buffer));
-  unsigned char trans_dt_buffer[513]; // TODO 512 should be a #define!
+  unsigned char trans_dt_buffer[512];
   unsigned char* trans_dt_pos = &trans_dt_buffer[1];
   memset(trans_dt_buffer, 0, sizeof(trans_dt_buffer));
 
-  std::cout << "start state: " << _ast.start_state << std::endl;
+  //MD: SILENCE!
+
+//  std::cout << "start state: " << _ast.start_state << std::endl;
   BOOST_FOREACH(hba_doc_block const& block, _ast.blocks)
   {
     Datatypes* dt = Datatypes::getInstance(_dtypes);
     boost::apply_visitor(hba_doc_visitor(states_bin, trans_dt_bin, conditions_bin, _g, dt), block);
   }
 
-  std::cout << "Binary condition table:" << std::endl;
+ // std::cout << "Binary condition table:" << std::endl;
   for(flash_format_cond_map_it_t it = conditions_bin.begin(); it != conditions_bin.end(); it++)
   {
-    std::cout << it->first << ": ";
+  //  std::cout << it->first << ": ";
     struct condition cond = it->second;
-    unsigned char* c = (unsigned char*)&cond;
-    for(unsigned int i = 0; i < sizeof(condition); i++)
-    {
-      std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)c[i] << " ";
-    }
-    std::cout << std::endl;
+   // unsigned char* c = (unsigned char*)&cond;
+   // for(unsigned int i = 0; i < sizeof(condition); i++)
+   // {
+   //   std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)c[i] << " ";
+   // }
+   // std::cout << std::endl;
 
     // insert into buffer
     if(conditions_pos < conditions_buffer + sizeof(conditions_buffer) - sizeof(condition))
@@ -257,19 +262,19 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
       conditions_pos += sizeof(cond);
     }
   }
-  std::cout << std::endl;
+  //std::cout << std::endl;
 
-  std::cout << "Binary transition table:" << std::endl;
+  //std::cout << "Binary transition table:" << std::endl;
   for(flash_format_state_map_it_t it = states_bin.begin(); it != states_bin.end(); it++)
   {
-    std::cout << it->first << ": ";
+   // std::cout << it->first << ": ";
     struct transition t = it->second;
-    char* c = (char*)&t;
-    for(unsigned int i = 0; i < sizeof(transition); i++)
-    {
-      std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)c[i] << " ";
-    }
-    std::cout << std::endl;
+   // char* c = (char*)&t;
+   // for(unsigned int i = 0; i < sizeof(transition); i++)
+   // {
+   //   std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)c[i] << " ";
+   // }
+   // std::cout << std::endl;
 
    // insert into buffer
     if(transitions_pos < transitions_buffer + sizeof(transitions_buffer) - sizeof(transition))
@@ -279,19 +284,19 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
       transitions_pos += sizeof(t);
     }
   }
-  std::cout << std::endl;
+  //std::cout << std::endl;
 
-  std::cout << "Binary date/time transition table:" << std::endl;
+  //std::cout << "Binary date/time transition table:" << std::endl;
   for(flash_format_trans_dt_map_it_t it = trans_dt_bin.begin(); it != trans_dt_bin.end(); it++)
   {
-    std::cout << it->first << ": ";
+  //  std::cout << it->first << ": ";
     struct transition t = it->second;
-    char* c = (char*)&t;
-    for(unsigned int i = 0; i < sizeof(transition); i++)
-    {
-      std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)c[i] << " ";
-    }
-    std::cout << std::endl;
+   // char* c = (char*)&t;
+   // for(unsigned int i = 0; i < sizeof(transition); i++)
+   // {
+   //   std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)c[i] << " ";
+   // }
+   // std::cout << std::endl;
 
     if(trans_dt_pos < trans_dt_buffer + sizeof(trans_dt_buffer) - sizeof(transition))
     {
@@ -300,43 +305,43 @@ void generator_flash::operator()(std::vector<uint8_t>& cond_v, std::vector<uint8
       trans_dt_pos += sizeof(t);
     }
   }
-  std::cout << std::endl;
+  //std::cout << std::endl;
 
   //for debug purposes
-  std::cout << "Buffers to send to EEPROM:" << std::endl;
-  std::cout << "Conditions:" << std::endl;
+  //std::cout << "Buffers to send to EEPROM:" << std::endl;
+  //std::cout << "Conditions:" << std::endl;
   for(unsigned int i = 0; i < sizeof(conditions_buffer); i++)
   {
-    std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)conditions_buffer[i] << " ";
-    if(i % 24 == 23)
-      std::cout << std::endl;
+  //  std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)conditions_buffer[i] << " ";
+  //  if(i % 24 == 23)
+  //    std::cout << std::endl;
 
-    cond_v.push_back(conditions_buffer[i]);
+    v.push_back(conditions_buffer[i]);
   }
-  std::cout << std::endl << std::endl;
+  //std::cout << std::endl << std::endl;
 
-  std::cout << "Transitions:" << std::endl;
-  for(unsigned int i = 0; i < sizeof(transitions_buffer); i++)
-  {
-    std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)transitions_buffer[i] << " ";
-    if(i % 24 == 23)
-      std::cout << std::endl;
-
-    trans_v.push_back(transitions_buffer[i]);
-  }
-  std::cout << std::endl << std::endl;
-
-  std::cout << "Date/Time-Transitions:" << std::endl;
+  //std::cout << "Date/Time-Transitions:" << std::endl;
   for(unsigned int i = 0; i < sizeof(trans_dt_buffer); i++)
   {
-    std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)trans_dt_buffer[i] << " ";
-      if(i % 24 == 23)
-      std::cout << std::endl;
+   // std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)trans_dt_buffer[i] << " ";
+   //   if(i % 24 == 23)
+   //   std::cout << std::endl;
 
-    trans_dt_v.push_back(trans_dt_buffer[i]);
+    v.push_back(trans_dt_buffer[i]);
   }
-  std::cout << std::endl << std::endl;
+  //std::cout << std::endl << std::endl;
 
-  std::cout << "done." << std::endl;
+  //std::cout << "Transitions:" << std::endl;
+  for(unsigned int i = 0; i < sizeof(transitions_buffer); i++)
+  {
+   // std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)transitions_buffer[i] << " ";
+   // if(i % 24 == 23)
+   //   std::cout << std::endl;
+
+    v.push_back(transitions_buffer[i]);
+  }
+  //std::cout << std::endl << std::endl;
+
+ // std::cout << "done." << std::endl;
 }
 

@@ -182,7 +182,13 @@ print_local_addresses(void)
 void init_value_broadcast(void)
 {
   PRINTF("Value Broadcast init\n");
-  uip_ip6addr(&server_ipaddr, 0xff02, 0, 0, 0, 0, 0, 0, 0x0001); // Link-Local Multicast
+
+  // this wrapper macro is needed to expand HXB_GROUP_RAW before uip_ip6addr, which is a macro
+  // it's ugly as day, but it's the least ugly solution i found
+  #define PARSER_WRAP(addr, __VA_ARGS__) uip_ip6addr(addr, __VA_ARGS__)
+  PARSER_WRAP(&server_ipaddr, HXB_GROUP_RAW);
+  #undef PARSER_WRAP
+
   print_local_addresses();
 
   /* new connection with remote host */
