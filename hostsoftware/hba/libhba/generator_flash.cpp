@@ -310,6 +310,8 @@ void generator_flash::operator()(std::vector<uint8_t>& v) const
   //for debug purposes
   //std::cout << "Buffers to send to EEPROM:" << std::endl;
   //std::cout << "Conditions:" << std::endl;
+
+  // write conditions to buffer
   for(unsigned int i = 0; i < sizeof(conditions_buffer); i++)
   {
   //  std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)conditions_buffer[i] << " ";
@@ -321,6 +323,8 @@ void generator_flash::operator()(std::vector<uint8_t>& v) const
   //std::cout << std::endl << std::endl;
 
   //std::cout << "Date/Time-Transitions:" << std::endl;
+
+  // write date-time transitions to buffer
   for(unsigned int i = 0; i < sizeof(trans_dt_buffer); i++)
   {
    // std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)trans_dt_buffer[i] << " ";
@@ -332,6 +336,7 @@ void generator_flash::operator()(std::vector<uint8_t>& v) const
   //std::cout << std::endl << std::endl;
 
   //std::cout << "Transitions:" << std::endl;
+  // write transitions to buffer
   for(unsigned int i = 0; i < sizeof(transitions_buffer); i++)
   {
    // std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short int)transitions_buffer[i] << " ";

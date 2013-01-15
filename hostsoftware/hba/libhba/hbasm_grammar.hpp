@@ -193,6 +193,11 @@ struct UpdateFileInfo
       error_traceback_t("Invalid identifier")
       );
 
+    target_ip = lit("target")
+      >> ipv6_address
+      > ';'
+      ;
+
     startstate %= lit("startstate")
       > identifier
       > ';'
@@ -243,7 +248,9 @@ struct UpdateFileInfo
       error_traceback_t("Invalid state definition")
       );
 
-    start %= startstate
+    start %=
+      target_ip
+      >> startstate
       >> +(state | condition)
       > eoi
       ;
@@ -262,6 +269,7 @@ struct UpdateFileInfo
     }
 
     qi::rule<Iterator, std::string(), Skip> startstate;
+    qi::rule<Iterator, std::string(), Skip> target_ip;
     qi::rule<Iterator, state_doc(), Skip> state;
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
     qi::rule<Iterator, condition_doc(), Skip> condition;

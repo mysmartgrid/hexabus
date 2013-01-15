@@ -79,8 +79,9 @@ namespace hexabus {
 
   struct hba_doc
   {
+    std::string target_ip;
     std::string start_state;
-    std::vector<hba_doc_block> blocks;                           
+    std::vector<hba_doc_block> blocks;
   };
 };
 
@@ -133,6 +134,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
     hexabus::hba_doc,
+    (std::string, target_ip)
     (std::string, start_state)
     (std::vector<hexabus::hba_doc_block>, blocks)
     )

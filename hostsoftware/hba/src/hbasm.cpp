@@ -169,6 +169,7 @@ int main(int argc, char **argv)
       ofs.close();
     }
     else if (vm.count("output")) {
+
       hexabus::GraphBuilder gBuilder;
       gBuilder(ast);
       hexabus::GraphChecks gChecks(gBuilder.get_graph());
@@ -198,6 +199,15 @@ int main(int argc, char **argv)
       }
 
       std::vector<uint8_t> data;
+
+      // first, populate data with target IP address
+      for(size_t i = 0; i < ast.target_ip.size() / 2; ++i) {
+        std::stringstream ss;
+        unsigned int ipbyte;
+        ss << std::hex << ast.target_ip.substr(2 * i, 2); // read two bytes from the string, since two hex digits correspond to one byte in binary
+        ss >> ipbyte;
+        data.push_back(ipbyte);
+      }
 
       gf(data);
 
