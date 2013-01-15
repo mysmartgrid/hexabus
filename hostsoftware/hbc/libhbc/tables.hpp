@@ -23,7 +23,7 @@ namespace hexabus {
     std::vector<unsigned int> eids;
   };
 
-  typedef std::map<std::string, device_alias> device_table;;
+  typedef std::map<std::string, device_alias> device_table;
   typedef std::map<std::string, endpoint> endpoint_table;
   typedef std::map<std::string, module_doc> module_table;
   typedef std::tr1::shared_ptr<device_table> device_table_ptr;

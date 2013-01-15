@@ -24,6 +24,7 @@ namespace hexabus {
       void print_condition(atomic_condition_doc at_cond, std::ostream& ostr, vertex_t& vertex);
       void print_condition(timeout_condition_doc to_cond, std::ostream& ostr, vertex_t& vertex);
       void print_condition(timer_condition_doc tm_cond, std::ostream& ostr, vertex_t& vertex);
+      void print_ipv6address(boost::asio::ip::address_v6, std::ostream& ostr);
   };
 }
 
