@@ -392,7 +392,7 @@ int main(int argc, char** argv) {
 		while (true) {
 			std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
 			try {
-				pair = network->receive(x);
+				pair = network->receive();
 			} catch (const hexabus::GenericException& e) {
 				const hexabus::NetworkException* nerror;
 				if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&e))) {

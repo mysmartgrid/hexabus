@@ -21,50 +21,52 @@ Datatypes* Datatypes::getInstance(std::string filename)
 
 Datatypes::Datatypes(std::string filename)
 {
-  // clear array
-  for(unsigned int i = 0; i < NUMBER_OF_EIDS; i++)
-    datatypes[i] = 0;
-  // read file
-  std::string line;
-  std::ifstream f(filename.c_str());
-  if(f.is_open())
-  {
-    while(f.good())
+  if("" != filename) {
+    // clear array
+    for(unsigned int i = 0; i < NUMBER_OF_EIDS; i++)
+      datatypes[i] = 0;
+    // read file
+    std::string line;
+    std::ifstream f(filename.c_str());
+    if(f.is_open())
     {
-      getline(f, line);
-      std::stringstream s(line);
+      while(f.good())
+      {
+        getline(f, line);
+        std::stringstream s(line);
 
-      if(line.length() == 0)
-        continue;
+        if(line.length() == 0)
+          continue;
 
-      int eid;
-      std::string dtype;
-      s >> eid;
-      s >> dtype;
+        int eid;
+        std::string dtype;
+        s >> eid;
+        s >> dtype;
 
-      if(!dtype.compare("UNDEFINED"))
-        datatypes[eid] = HXB_DTYPE_UNDEFINED;
-      else if(!dtype.compare("BOOL"))
-        datatypes[eid] = HXB_DTYPE_BOOL;
-      else if(!dtype.compare("UINT8"))
-        datatypes[eid] = HXB_DTYPE_UINT8;
-      else if(!dtype.compare("UINT32"))
-        datatypes[eid] = HXB_DTYPE_UINT32;
-      else if(!dtype.compare("DATETIME"))
-        datatypes[eid] = HXB_DTYPE_DATETIME;
-      else if(!dtype.compare("FLOAT"))
-        datatypes[eid] = HXB_DTYPE_FLOAT;
-      else if(!dtype.compare("128STRING"))
-        datatypes[eid] = HXB_DTYPE_128STRING;
-      else if(!dtype.compare("TIMESTAMP"))
-        datatypes[eid] = HXB_DTYPE_TIMESTAMP;
-      else
-        datatypes[eid] = HXB_DTYPE_UNDEFINED;
+        if(!dtype.compare("UNDEFINED"))
+          datatypes[eid] = HXB_DTYPE_UNDEFINED;
+        else if(!dtype.compare("BOOL"))
+          datatypes[eid] = HXB_DTYPE_BOOL;
+        else if(!dtype.compare("UINT8"))
+          datatypes[eid] = HXB_DTYPE_UINT8;
+        else if(!dtype.compare("UINT32"))
+          datatypes[eid] = HXB_DTYPE_UINT32;
+        else if(!dtype.compare("DATETIME"))
+          datatypes[eid] = HXB_DTYPE_DATETIME;
+        else if(!dtype.compare("FLOAT"))
+          datatypes[eid] = HXB_DTYPE_FLOAT;
+        else if(!dtype.compare("128STRING"))
+          datatypes[eid] = HXB_DTYPE_128STRING;
+        else if(!dtype.compare("TIMESTAMP"))
+          datatypes[eid] = HXB_DTYPE_TIMESTAMP;
+        else
+          datatypes[eid] = HXB_DTYPE_UNDEFINED;
+      }
+
+      f.close();
+    } else {
+      std::cout << "Error: Could not open datatype definition file. Output file will be generated with blank data types." << std::endl;
     }
-
-    f.close();
-  } else {
-    std::cout << "Error opening datatype definition file." << std::endl;
   }
 }
 
