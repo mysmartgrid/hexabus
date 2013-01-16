@@ -21,5 +21,6 @@
 #define EP_HEXONOFF_TOGGLE       28UL
 #define EP_LIGHTSENSOR           29UL
 #define EP_IR_RECEIVER           30UL
+#define EP_LIVENESS              31UL
 
 #endif // ENDPOINTS_H_

@@ -5,17 +5,7 @@
 #include <stdlib.h>
 
 namespace hexabus {
-  class CRC {
-    public:
-      typedef std::tr1::shared_ptr<CRC> Ptr;
-      CRC () {};
-      uint16_t crc16(const char* input, unsigned int length);
-      virtual ~CRC() {};
-
-    private:
-      CRC (const CRC& original);
-      CRC& operator= (const CRC& rhs);
-  };
+	uint16_t crc(const void* input, size_t size);
 };
 
 #endif /* LIBHEXABUS_CRC_HPP */

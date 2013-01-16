@@ -46,17 +46,7 @@
 #include <string>
 
 namespace hexabus {
-  class VersionInfo {
-    public:
-      typedef std::tr1::shared_ptr<VersionInfo> Ptr;
-      VersionInfo () {};
-      virtual ~VersionInfo() {};
-      const std::string getVersion();
-
-    private:
-      VersionInfo (const VersionInfo& original);
-      VersionInfo& operator= (const VersionInfo& rhs);
-  };
+	const char* version();
 };
 
 #endif /* LIBHEXABUS_COMMON_HPP */
