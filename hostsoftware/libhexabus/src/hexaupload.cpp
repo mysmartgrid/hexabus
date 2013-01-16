@@ -141,7 +141,7 @@ int main(int argc, char** argv) {
   desc.add_options()
     ("help,h", "produce help message")
     ("version", "print libhexabus version and exit")
-    ("ip,i", po::value<std::string>(), "the hostname to connect to")
+    ("ip,i", po::value<std::string>(), "the hostname to connect to. If this option is not set, the target IP address from the program file will be used.")
     ("interface,I", po::value<std::string>(), "the interface to use for outgoing messages")
     ("program,p", po::value<std::string>(), "the state machine program to be uploaded")
     ;
@@ -178,25 +178,30 @@ int main(int argc, char** argv) {
     std::cout << "Cannot proceed without a program (-p <FILE>)" << std::endl;
     exit(-1);
   } else {
-    std::ifstream in(vm["program"].as<std::string>().c_str(), 
+    std::ifstream in(vm["program"].as<std::string>().c_str(),
         std::ios_base::in | std::ios::ate | std::ios::binary);
     if (!in) {
       std::cerr << "Error: Could not open input file: "
         << vm["program"].as<std::string>() << std::endl;
       exit(-1);
-    } 
+    }
     in.unsetf(std::ios::skipws); // No white space skipping!
 
     size_t size = in.tellg();
     in.seekg(0, std::ios::beg);
-    char* buffer = new char[size];
 
-    in.read(buffer, size);
+    // first, read target IP
+    const size_t IP_ADDR_LENGTH = 16;
+    unsigned char* ip_buffer = new unsigned char[IP_ADDR_LENGTH];
+    in.read((char*)ip_buffer, IP_ADDR_LENGTH);
+
+    // then read program into buffer
+    char* buffer = new char[size];
+    in.read(buffer, size - IP_ADDR_LENGTH);
     //std::string instr(buffer, size);
     program.insert(program.end(), buffer, buffer+size);
     delete buffer;
     in.close();
-  }
 
 	boost::asio::io_service io;
   hexabus::Socket* network;
@@ -209,10 +214,22 @@ int main(int argc, char** argv) {
     network=new hexabus::Socket(io);
   }
 
+  std::string ip_addr;
+  if(vm.count("ip")) { // if we have an IP address given at the command line, use it
+    ip_addr = vm["ip"].as<std::string>();
+  } else { // if there is no IP address at the command line, read the one from the input file
+    std::ostringstream oss;
+    oss << std::hex << std::setfill('0');
+    for(size_t i = 0; i < IP_ADDR_LENGTH; ++i) {
+      if(i && !(i % 2)) // output a : after every two bytes
+        oss << ":";
+      oss << std::setw(2) << (unsigned int)ip_buffer[i];
+    }
+    std::cout << std::endl << "Using target IP from program file: " << oss.str() << std::endl;
+    ip_addr = oss.str();
+  }
 
-  std::string ip_addr(get_mandatory_parameter(vm,
-        "ip", "command 'program' needs an IP address").as<std::string>()
-      );
+  delete ip_buffer;
 
   /**
    * for all bytes in the binary format:
@@ -224,7 +241,6 @@ int main(int argc, char** argv) {
    *    - if NAK: Retransmit current packet. failure counter++. Abort if
    *    maxtry reached.
    */
-
   assert_statemachine_state(network, ip_addr, STM_STATE_STOPPED);
 
   uint8_t chunk_id = 0;
@@ -260,6 +276,7 @@ int main(int argc, char** argv) {
   std::cout << "Program uploaded successfully." << std::endl;
 
   delete network;
+  }
   exit(0);
 }
 
