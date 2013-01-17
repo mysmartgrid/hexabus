@@ -65,6 +65,8 @@ uint8_t endpoint_get_datatype(uint32_t eid) // returns the datatype of the endpo
       return HXB_DTYPE_66BYTES;
     case EP_SM_UP_ACKNAK:
       return HXB_DTYPE_BOOL;
+    case EP_SM_RESET_ID:
+      return HXB_DTYPE_UINT8;
 #endif
 #if SHUTTER_ENABLE
     case EP_SHUTTER:
@@ -155,6 +157,9 @@ void endpoint_get_name(uint32_t eid, char* buffer)  // writes the name of the en
       break;
     case EP_SM_UP_ACKNAK:
       strncpy(buffer, "Statemachine Upload ACK/NAK", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
+      break;
+    case EP_SM_RESET_ID:
+      strncpy(buffer, "Statemachine emergency-reset endpoint.", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
 #if SHUTTER_ENABLE
@@ -304,6 +309,8 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
       break;
     case EP_SM_UP_ACKNAK:
       return HXB_ERR_WRITEREADONLY;
+    case EP_SM_RESET_ID:
+      return HXB_ERR_WRITEREADONLY;
 #endif
 #if SHUTTER_ENABLE
     case EP_SHUTTER:
@@ -395,6 +402,7 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
       *(uint32_t*)&val->data += 1UL << (EP_SM_CONTROL);
       *(uint32_t*)&val->data += 1UL << (EP_SM_UP_RECEIVER);
       *(uint32_t*)&val->data += 1UL << (EP_SM_UP_ACKNAK);
+      *(uint32_t*)&val->data += 1UL << (EP_SM_RESET_ID);
 #endif
 #if SHUTTER_ENABLE
       *(uint32_t*)&val->data += 1UL << (EP_SHUTTER);
@@ -482,6 +490,11 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
       break;
     case EP_SM_UP_ACKNAK:
       PRINTF("READ on SM_UP_ACKNAK EP occurred\n");
+      break;
+    case EP_SM_RESET_ID:
+      PRINTF("READ on SM_RESET_ID EP occurred\n");
+      val->datatype = HXB_DTYPE_UINT8;
+      *(uint8_t*)&val->data = sm_get_id();
       break;
 #endif
 #if SHUTTER_ENABLE
