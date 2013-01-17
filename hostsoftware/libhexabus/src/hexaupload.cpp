@@ -107,30 +107,19 @@ bool send_chunk(hexabus::Socket* network, const std::string& ip_addr, uint8_t ch
 
 	network->send(hexabus::WritePacket<std::vector<char> >(EP_SM_UP_RECEIVER, bin_data), boost::asio::ip::address_v6::from_string(ip_addr));
 
-	bool result = false;
-	struct {
-		hexabus::Socket* network;
-		boost::asio::ip::address addr;
-		bool& result;
+	while (true) {
+		std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> p =
+			network->receive();
 
-		void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint& from)
-		{
-			if (from.address() == addr) {
-				const hexabus::InfoPacket<bool> *i = dynamic_cast<const hexabus::InfoPacket<bool>*>(&packet);
-				if (i) {
-					result = i->value();
-				} else {
-					std::cout << "?";
-				}
-				network->ioService().stop();
+		if (p.second.address() == boost::asio::ip::address::from_string(ip_addr)) {
+			const hexabus::InfoPacket<bool> *i = dynamic_cast<const hexabus::InfoPacket<bool>*>(p.first.get());
+			if (i) {
+				return i->value();
+			} else {
+				std::cout << "?";
 			}
 		}
-	} receiveCallback = { network, boost::asio::ip::address::from_string(ip_addr), result };
-
-	boost::signals2::scoped_connection c(network->onPacketReceived(receiveCallback));
-	network->ioService().run();
-
-  return result;
+	}
 }
 
 int main(int argc, char** argv) {
