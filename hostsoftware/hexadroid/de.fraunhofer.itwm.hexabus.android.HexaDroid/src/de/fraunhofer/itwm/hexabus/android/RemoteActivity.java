@@ -2,13 +2,26 @@ package de.fraunhofer.itwm.hexabus.android;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.MulticastSocket;
+import java.net.NetworkInterface;
+import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
 
 import de.fraunhofer.itwm.hexabus.Hexabus;
 import de.fraunhofer.itwm.hexabus.Hexabus.HexabusException;
+import de.fraunhofer.itwm.hexabus.HexabusDevice;
+import de.fraunhofer.itwm.hexabus.HexabusEndpoint;
 import de.fraunhofer.itwm.hexabus.HexabusInfoPacket;
+import de.fraunhofer.itwm.hexabus.HexabusPacket;
+import de.fraunhofer.itwm.hexabus.HexabusQueryPacket;
+import de.fraunhofer.itwm.hexabus.HexabusWritePacket;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.DownloadManager.Query;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.AsyncTask;
@@ -61,6 +74,7 @@ public class RemoteActivity extends Activity {
 			HexabusInfoPacket irInfo = null;
 			try {
 				irInfo = new HexabusInfoPacket(30, values[0].longValue());
+				
 
 			} catch (HexabusException e) {
 				// TODO Auto-generated catch block
@@ -68,11 +82,28 @@ public class RemoteActivity extends Activity {
 			}
 			
 			if(irInfo!=null) {
-				try {
-					//irInfo.broadcastPacket();
-					irInfo.sendPacket(InetAddress.getByName("fe80::224:d7ff:fee7:99c8"));
-					//irInfo.sendPacket(InetAddress.getByName("10.23.1.192"));
-					Log.d(TAG, "Send IR info packet");
+				try {					
+
+					MulticastSocket s = new MulticastSocket();
+					Log.d(TAG, "Sending IR info packet");
+					irInfo.broadcastPacket();
+					
+					
+					//s.joinGroup(InetAddress.getByAddress(Hexabus.MULTICAST_GROUP));
+					//Hexabus.setInterfaceAddress(Collections.list(NetworkInterface.getNetworkInterfaces()).get(0).getInterfaceAddresses().get(0));
+					/*InetAddress address = InetAddress.getByName("fd01:2:0:0:50:c4ff:fe04:8383");
+					HexabusDevice device = new HexabusDevice(address);
+					HexabusEndpoint relais = device.addEndpoint(1, Hexabus.DataType.BOOL);
+					HexabusPacket packet = new HexabusQueryPacket(relais.getEid());
+					int port = packet.sendPacket(device.getInetAddress());
+					// Receive reply
+					packet = Hexabus.receivePacket(port, 200);
+					if(packet!=null) {
+						boolean state = ((HexabusInfoPacket) packet).getBool();
+						HexabusWritePacket iPac = new HexabusWritePacket(1, !state);
+						iPac.broadcastPacket();
+						Log.d(TAG, "Send IR info packet");
+					}*/
 				} catch (UnknownHostException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -91,13 +122,13 @@ public class RemoteActivity extends Activity {
 	// ButtonClickListener
 	public void onButtonClick(View v) {
 		
-		new sendIRInfoPacketTask().execute(1);
+		new sendIRInfoPacketTask().execute(Integer.valueOf(((String) ((Button) v).getText())));
 	}
 
 	private class ButtonLongClickListener implements OnLongClickListener {
 
 		public boolean onLongClick(View v) {
-	        final Button button = (Button) v;//findViewById(R.id.button1);
+	        final Button button = (Button) v;
 	        final EditText input = new EditText(mContext);
 	        input.setText(button.getText());
 	        new AlertDialog.Builder(mContext)

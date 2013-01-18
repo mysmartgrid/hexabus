@@ -60,7 +60,7 @@ public class DeviceListAdapter extends BaseExpandableListAdapter {
 		TextView textView = getGenericView(parent);
 
 		// TODO class test
-		textView.setText(Integer.toString(((HexabusEndpoint) getChild(groupPosition, childPosition)).getEid()));
+		textView.setText(Long.toString(((HexabusEndpoint) getChild(groupPosition, childPosition)).getEid()));
 		return textView;
 	}
 

@@ -19,6 +19,7 @@ import de.fraunhofer.itwm.hexabus.HexabusWritePacket;
 import android.R.color;
 import android.content.Context;
 import android.graphics.Color;
+import android.location.Address;
 import android.text.Spannable;
 import android.text.style.RelativeSizeSpan;
 import android.text.style.StyleSpan;
@@ -41,6 +42,13 @@ public class MonitorListAdapter extends ArrayAdapter {
 		
 		this.context = context;
 		this.values = objects;
+	}
+	
+	public void add(HexabusPacket packet) {
+		if(values.size()>32) {
+			values.remove(0);
+		}
+		super.add(packet);
 	}
 
 	public View getView(int position, View convertView, ViewGroup parent) {
@@ -78,7 +86,7 @@ public class MonitorListAdapter extends ArrayAdapter {
 				text += "INFO\n";
 				boldText = text.length();
 				text += "\tSource: " + packet.getSourceAddress() + "\n";
-				text += "\tEID: " + Integer.toString(infoPacket.getEid()) + "\n";
+				text += "\tEID: " + Long.toString(infoPacket.getEid()) + "\n";
 				text += "\tData Type: " + infoPacket.getDataType() + "\n";
 				text += "\tValue: ";
 				switch(infoPacket.getDataType()) {
@@ -152,8 +160,7 @@ public class MonitorListAdapter extends ArrayAdapter {
 				text += "QUERY\n";
 				boldText = text.length();
 				text += "\tSource: " + packet.getSourceAddress() + "\n";
-				//TODO
-				text += "\tEID: " ;//+ Integer.toString(queryPacket.getEid()) + "\n";
+				text += "\tEID: " + Long.toString(queryPacket.getEid()) + "\n";
 
 				textView.setText(text, TextView.BufferType.SPANNABLE);
 				str = (Spannable) textView.getText();
@@ -165,9 +172,69 @@ public class MonitorListAdapter extends ArrayAdapter {
 				text += "WRITE\n";
 				boldText = text.length();
 				text += "\tSource: " + packet.getSourceAddress() + "\n";
-				text += "\tEID: " + Integer.toString(writePacket.getEid()) + "\n";
+				text += "\tEID: " + Long.toString(writePacket.getEid()) + "\n";
 				text += "\tData Type: " + writePacket.getDataType() + "\n";
 				text += "\tValue: ";
+				switch(writePacket.getDataType()) {
+				case BOOL:
+					try {
+						text += (writePacket.getBool()?"true":"false");
+					} catch (HexabusException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					break;
+				case DATETIME:
+					try {
+						HexabusDatetime datetime = writePacket.getDatetime();
+						text += datetime.toString();
+					} catch (HexabusException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					break;
+				case FLOAT:
+					try {
+						text += writePacket.getFloat();
+					} catch (HexabusException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					break;
+				case STRING:
+					try {
+						text += writePacket.getString();
+					} catch (HexabusException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} 
+					break;
+				case TIMESTAMP:
+					try {
+						text += writePacket.getTimestamp();
+					} catch (HexabusException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					break;
+				case UINT32:
+					try {
+						text += writePacket.getUint32();
+					} catch (HexabusException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					break;
+				case UINT8:
+					try {
+						text += writePacket.getUint8();
+					} catch (HexabusException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					break;
+				default:
+				}
 				
 				textView.setText(text, TextView.BufferType.SPANNABLE);
 				str = (Spannable) textView.getText();
@@ -179,7 +246,7 @@ public class MonitorListAdapter extends ArrayAdapter {
 				text += "EPINFO\n";
 				boldText = text.length();
 				text += "\tSource: " + packet.getSourceAddress() + "\n";
-				text += "\tEID: " + Integer.toString(endpointInfoPacket.getEid()) + "\n";
+				text += "\tEID: " + Long.toString(endpointInfoPacket.getEid()) + "\n";
 				text += "\tData Type: " + endpointInfoPacket.getDataType() + "\n";
 				text += "\tValue: ";
 				textView.setText(text, TextView.BufferType.SPANNABLE);
@@ -193,7 +260,7 @@ public class MonitorListAdapter extends ArrayAdapter {
 				boldText = text.length();
 				text += "\tSource: " + packet.getSourceAddress() + "\n";
 				//TODO
-				text += "\tEID: " ;//+ Integer.toString(queryPacket.getEid()) + "\n";
+				text += "\tEID: " + Long.toString(endpointQueryPacket.getEid()) + "\n";
 				textView.setText(text, TextView.BufferType.SPANNABLE);
 				str = (Spannable) textView.getText();
 				str.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, boldText, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
