@@ -5,7 +5,6 @@
 #include "process.h"
 
 #define BMP085_ADDR 0xEE
-#define PRESSURE_READ_DELAY 20
 
 #define AC1_ADDR 0xAA
 #define AC2_ADDR 0xAC

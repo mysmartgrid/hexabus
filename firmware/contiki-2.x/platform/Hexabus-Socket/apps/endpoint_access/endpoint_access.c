@@ -47,7 +47,7 @@ uint8_t endpoint_get_datatype(uint32_t eid) // returns the datatype of the endpo
 #endif
 #if PRESSURE_ENABLE
     case EP_PRESSURE:
-      return HXB_DTYPE_PRESSURE;
+      return HXB_DTYPE_FLOAT;
 #endif
 #if LIGHTSENSOR_ENABLE
     case EP_LIGHTSENSOR:
