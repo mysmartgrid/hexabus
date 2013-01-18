@@ -8,7 +8,9 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import de.fraunhofer.itwm.hexabus.Hexabus;
 import de.fraunhofer.itwm.hexabus.Hexabus.HexabusException;
@@ -39,6 +41,7 @@ public class RemoteActivity extends Activity {
 	private static final String TAG = "RemoteActivity";
 	private ExpandableListAdapter mAdapter;
 	private Context mContext;
+	private Map<Integer,Integer> buttons;
 
     /** Called when the activity is first created. */
     @Override
@@ -47,10 +50,12 @@ public class RemoteActivity extends Activity {
         super.onCreate(savedInstanceState);
 
 		mContext = this;
+		buttons = new HashMap<Integer, Integer>();
 		//mAdapter = new DeviceListAdapter();
 		setContentView(R.layout.remote);
 		for(int i=1;i<=16;i++) {
 			int id = getResources().getIdentifier("Button"+Integer.toString(i), "id", mContext.getPackageName());
+			buttons.put(id, i);
 			Button button = (Button) findViewById(id);
 			ButtonLongClickListener buttonLongClick = new ButtonLongClickListener();
 			button.setOnLongClickListener(buttonLongClick);
@@ -121,8 +126,8 @@ public class RemoteActivity extends Activity {
 	
 	// ButtonClickListener
 	public void onButtonClick(View v) {
-		
-		new sendIRInfoPacketTask().execute(Integer.valueOf(((String) ((Button) v).getText())));
+		int value = buttons.get(((Button) v).getId());
+		new sendIRInfoPacketTask().execute(Integer.valueOf(value));
 	}
 
 	private class ButtonLongClickListener implements OnLongClickListener {
