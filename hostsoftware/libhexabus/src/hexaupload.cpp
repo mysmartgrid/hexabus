@@ -192,6 +192,8 @@ int main(int argc, char** argv) {
     delete buffer;
     in.close();
 
+    std::cout << "machine ID: " << (int)program[0] << std::endl;
+
 	boost::asio::io_service io;
   hexabus::Socket* network;
 

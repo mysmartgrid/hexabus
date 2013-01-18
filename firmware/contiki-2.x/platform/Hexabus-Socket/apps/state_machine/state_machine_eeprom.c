@@ -70,7 +70,7 @@ bool sm_write_chunk(uint8_t chunk_id, char* data) {
   } else {
     //printf("writing to eeprom at %u\r\n", chunk_id*EE_STATEMACHINE_CHUNK_SIZE);
     cli();
-		eeprom_update_block(data, 
+		eeprom_update_block(data,
         (void *)(EE_STATEMACHINE_ID + (chunk_id * EE_STATEMACHINE_CHUNK_SIZE)), 
         EE_STATEMACHINE_CHUNK_SIZE
       );
