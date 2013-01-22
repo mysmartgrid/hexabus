@@ -96,15 +96,12 @@ struct hba_doc_visitor : boost::static_visitor<>
             _states_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
             break;
           }
-          std::cout << std::endl;
         }
       }
     } else {
       // if it's a "true" transition, just insert it -- there is no condition entry in that case.
       _states_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
     }
-
-    //std::cout << std::endl;
   }
 
   void operator()(state_doc const& hba) const
@@ -159,7 +156,8 @@ struct hba_doc_visitor : boost::static_visitor<>
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     } else if(condition.cond.which() == 1) { // timeout
       cond_timeout_doc cond = boost::get<cond_timeout_doc>(condition.cond);
-      //std::cout << "Timeout: " << cond.value << std::endl;
+      if(_verbose)
+        std::cout << "Timeout: " << cond.value << std::endl;
 
       // construct binary representation
       struct condition c;
