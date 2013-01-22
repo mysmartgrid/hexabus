@@ -8,7 +8,7 @@
 
 using namespace hexabus;
 
-static unsigned int _machine = 0; // unique IDs for the state machines
+static unsigned int _machine = 1; // unique IDs for the state machines
 
 struct first_pass : boost::static_visitor<> {
   first_pass(graph_t_ptr graph, std::map<unsigned int, std::string>* filenames_per_id) : _g(graph), machine_filenames_per_id(filenames_per_id) { }
