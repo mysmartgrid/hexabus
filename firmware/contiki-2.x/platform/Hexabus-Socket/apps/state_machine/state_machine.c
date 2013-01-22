@@ -300,8 +300,8 @@ PROCESS_THREAD(state_machine_process, ev, data)
   static struct ctimer sm_bootup_timer; // we need some time so the network can initialize
   static uint32_t ep_sm_reset_id = EP_SM_RESET_ID;
   // assume it's a reboot if the timestamp (time since bootup) is less than 1 (second)
-  if(getTimestamp() < 1) {
-    PRINTF("State machine: Assuming reboot, broadcasting Reset-ID -- TIMESTAMP: %d\n", getTimestamp());
+  if(getTimestamp() < 1 && sm_get_id() != 0) { // only broadcast if ID is not 0 -- 0 is reserved for "no-auto-reset".
+    PRINTF("State machine: Assuming reboot, broadcasting Reset-ID\n");
     ctimer_set(&sm_bootup_timer, 3 * CLOCK_SECOND, broadcast_value_ptr, (void*)&ep_sm_reset_id); // TODO do we want the timeout configurable?
   }
 
@@ -318,11 +318,13 @@ PROCESS_THREAD(state_machine_process, ev, data)
       }
       if(ev == sm_data_received_event)
       {
-        // check if it's a Reset-ID (this means another state machine on the network was just unexpectedly reset)
-        struct hxb_envelope* envelope = (struct hxb_envelope*)data;
-        if(envelope->eid == EP_SM_RESET_ID && envelope->value.datatype == HXB_DTYPE_UINT8) {
-          if(*(uint8_t*)&(envelope->value.data) == sm_get_id()) {
-            sm_restart();
+        if(sm_get_id() != 0) { // if our state machine ID is not 0 (0 means "no auto reset".
+          // check if it's a Reset-ID (this means another state machine on the network was just unexpectedly reset)
+          struct hxb_envelope* envelope = (struct hxb_envelope*)data;
+          if(envelope->eid == EP_SM_RESET_ID && envelope->value.datatype == HXB_DTYPE_UINT8) {
+            if(*(uint8_t*)&(envelope->value.data) == sm_get_id()) {
+              sm_restart();
+            }
           }
         }
 
