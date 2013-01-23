@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 	std::cerr << "Error: Could not open input file: "
 	  << infile << std::endl;
 	return 1;
-  } 
+  }
 
   in.unsetf(std::ios::skipws); // No white space skipping!
 
@@ -122,12 +122,12 @@ int main(int argc, char **argv)
 	std::cerr << "Error in " << pos.file <<
 	  " line " << pos.line << " column " << pos.column << std::endl <<
 	  "'" << e.first.get_currentline() << "'" << std::endl
-	  << std::setw(pos.column) << " " 
+	  << std::setw(pos.column) << " "
 	  << "^- " << *hexabus::error_traceback_t::stack.begin()<< std::endl;
 //	std::cout << "parser backtrace: " << std::endl;
 //	std::vector<std::string>::iterator it;
 //	for(  it = error_traceback_t::stack.begin();
-//		it != error_traceback_t::stack.end(); ++it ) 
+//		it != error_traceback_t::stack.end(); ++it )
 //	{
 //	  std::cout << "- " << (*it) << std::endl;
 //	}
@@ -214,6 +214,9 @@ int main(int argc, char **argv)
         ss >> ipbyte;
         data.push_back(ipbyte);
       }
+
+      // then add machine ID
+      data.push_back(ast.machine_id);
 
       gf(data);
 

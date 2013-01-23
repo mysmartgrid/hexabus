@@ -1,4 +1,4 @@
-#include "generator_flash.hpp"
+#include "generator_flash.hpp"// making this one byte smaller to make room for the machine ID (because the whole thing has to be a multiple of chunk_size)
 #include <boost/foreach.hpp>
 #include <string>
 #include <sstream>
@@ -96,15 +96,12 @@ struct hba_doc_visitor : boost::static_visitor<>
             _states_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
             break;
           }
-          std::cout << std::endl;
         }
       }
     } else {
       // if it's a "true" transition, just insert it -- there is no condition entry in that case.
       _states_bin.insert(std::pair<unsigned int, struct transition>(state_index, t));
     }
-
-    //std::cout << std::endl;
   }
 
   void operator()(state_doc const& hba) const
@@ -159,7 +156,8 @@ struct hba_doc_visitor : boost::static_visitor<>
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     } else if(condition.cond.which() == 1) { // timeout
       cond_timeout_doc cond = boost::get<cond_timeout_doc>(condition.cond);
-      //std::cout << "Timeout: " << cond.value << std::endl;
+      if(_verbose)
+        std::cout << "Timeout: " << cond.value << std::endl;
 
       // construct binary representation
       struct condition c;
@@ -239,12 +237,12 @@ void generator_flash::operator()(std::vector<uint8_t>& v) const
   unsigned char conditions_buffer[512];
   unsigned char* conditions_pos = &conditions_buffer[1];
   memset(conditions_buffer, 0, sizeof(conditions_buffer));
-  unsigned char transitions_buffer[512];
-  unsigned char* transitions_pos = &transitions_buffer[1];
-  memset(transitions_buffer, 0, sizeof(transitions_buffer));
   unsigned char trans_dt_buffer[512];
   unsigned char* trans_dt_pos = &trans_dt_buffer[1];
   memset(trans_dt_buffer, 0, sizeof(trans_dt_buffer));
+  unsigned char transitions_buffer[511]; // making this one byte smaller to make room for the machine ID (because the whole thing has to be a multiple of chunk_size)
+  unsigned char* transitions_pos = &transitions_buffer[1];
+  memset(transitions_buffer, 0, sizeof(transitions_buffer));
 
   if(_verbose)
     std::cout << "start state: " << _ast.start_state << std::endl;

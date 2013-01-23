@@ -18,7 +18,7 @@ PROCESS_NAME(state_machine_process);
 extern process_event_t sm_data_received_event;
 
 uint8_t sm_is_running();
-void sm_restart();
+void sm_restart(); // silent: restart state machine without sending a reset broadcast (used when restarted by a reset broadcast)
 void sm_start();
 void sm_stop();
 

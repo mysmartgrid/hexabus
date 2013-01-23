@@ -185,12 +185,14 @@ int main(int argc, char** argv) {
     in.read((char*)ip_buffer, IP_ADDR_LENGTH);
 
     // then read program into buffer
-    char* buffer = new char[size];
+    char* buffer = new char[size - IP_ADDR_LENGTH];
     in.read(buffer, size - IP_ADDR_LENGTH);
     //std::string instr(buffer, size);
-    program.insert(program.end(), buffer, buffer+size);
+    program.insert(program.end(), buffer, buffer+(size - IP_ADDR_LENGTH));
     delete buffer;
     in.close();
+
+    std::cout << "machine ID: " << (int)program[0] << std::endl;
 
 	boost::asio::io_service io;
   hexabus::Socket* network;

@@ -1,7 +1,9 @@
 #include "contiki.h"
 
 #include "hexabus_config.h"
+#include "value_broadcast.h"
 #include "eeprom_variables.h"
+#include "endpoints.h"
 #include "../../../../../../shared/hexabus_packet.h"
 #include "state_machine.h"
 #include "endpoint_access.h"
@@ -62,8 +64,9 @@ void sm_stop() {
 void sm_restart() {
   PRINTF("Attempting to restart state machine process.\n");
   sm_stop();
-  // inti
+  // init
   sm_start();
+  PRINTF("Restart complete");
 }
 
 // Evaluates the condition no. condIndex, figure out whether we need to act upon the current hexabus packet
@@ -259,10 +262,6 @@ PROCESS_THREAD(state_machine_process, ev, data)
 {
   PROCESS_BEGIN();
 
-  {
-    // PUT YOUR STATE MACHINE HERE
-  }
-
   // read state machine table length from eeprom
   transLength = sm_get_number_of_transitions(false);   //eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
   dtTransLength = sm_get_number_of_transitions(true);  //eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
@@ -297,6 +296,15 @@ PROCESS_THREAD(state_machine_process, ev, data)
   static struct etimer check_timer;
   etimer_set(&check_timer, CLOCK_SECOND * 5); // TODO do we want this configurable?
 
+  // If we've been cold-rebooted (power outage?), send out a broadcast telling everyone so.
+  static struct ctimer sm_bootup_timer; // we need some time so the network can initialize
+  static uint32_t ep_sm_reset_id = EP_SM_RESET_ID;
+  // assume it's a reboot if the timestamp (time since bootup) is less than 1 (second)
+  if(getTimestamp() < 1 && sm_get_id() != 0) { // only broadcast if ID is not 0 -- 0 is reserved for "no-auto-reset".
+    PRINTF("State machine: Assuming reboot, broadcasting Reset-ID\n");
+    ctimer_set(&sm_bootup_timer, 3 * CLOCK_SECOND, broadcast_value_ptr, (void*)&ep_sm_reset_id); // TODO do we want the timeout configurable?
+  }
+
   while(sm_is_running())
   {
     PROCESS_WAIT_EVENT();
@@ -310,6 +318,23 @@ PROCESS_THREAD(state_machine_process, ev, data)
       }
       if(ev == sm_data_received_event)
       {
+        if(sm_get_id() != 0) { // if our state machine ID is not 0 (0 means "no auto reset".
+          // check if it's a Reset-ID (this means another state machine on the network was just unexpectedly reset)
+          struct hxb_envelope* envelope = (struct hxb_envelope*)data;
+          if(envelope->eid == EP_SM_RESET_ID && envelope->value.datatype == HXB_DTYPE_UINT8) {
+            uint32_t localhost[] = { 0, 0, 0, 0x01000000 }; // that's ::1 in IPv6 notation
+            PRINTF("State machine: Received Reset-ID from ");
+            PRINT6ADDR(envelope->source);
+            PRINTF("\n");
+            if(memcmp(&(envelope->source), &localhost , 16)) { // Ignore resets from localhost (the reset ID from localhost was sent BECAUSE we just reset)
+              if(*(uint8_t*)&(envelope->value.data) == sm_get_id()) {
+                sm_restart();
+              }
+            }
+          }
+        }
+
+        // it's not a reset-ID -- check the values + endpoints.
         check_value_transitions(data);
         free(data);
 
@@ -318,13 +343,6 @@ PROCESS_THREAD(state_machine_process, ev, data)
     } else {
       PRINTF("State machine is not running - discarding event.\r\n");
     }
-    //if(ev == sm_rulechange_event) {
-    //  // re-read state machine table length from eeprom
-    //  transLength = sm_get_number_of_transitions(false);   //eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
-    //  dtTransLength = sm_get_number_of_transitions(true);  //eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
-    //  PRINTF("State Machine: Re-Reading Table length.\n");
-    //  PRINTF("TransLength: %d, dtTransLength: %d\n", transLength, dtTransLength);
-    //}
   }
 
   PROCESS_END();

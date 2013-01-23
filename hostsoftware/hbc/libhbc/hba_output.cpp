@@ -37,6 +37,7 @@ void HBAOutput::operator()(std::ostream& ostr) {
       if(v_name.substr(v_name.length() - 5) == ".init") {
         unsigned int init_v_id = (*_g)[*vertexIt].vertex_id;
         unsigned int init_m_id = (*_g)[*vertexIt].machine_id;
+        ostr << "machine " << init_m_id << ";" << std::endl << std::endl;
         ostr << "startstate state_" << init_m_id << "_" << init_v_id << ";" << std::endl << std::endl;
       }
     }

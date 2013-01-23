@@ -194,14 +194,15 @@ struct UpdateFileInfo
       );
 
     target_ip = lit("target")
-      >> ipv6_address
-      > ';'
-      ;
+      >> ipv6_address > ';';
+
+    machine_id = lit("machine")
+      >> uint_ > ';';
 
     startstate %= lit("startstate")
       > identifier
-      > ';'
-      ;
+      > ';';
+
     on_error<rethrow> (
       startstate,
       error_traceback_t("Invalid start state definition")
@@ -250,6 +251,7 @@ struct UpdateFileInfo
 
     start %=
       target_ip
+      >> machine_id
       >> startstate
       >> +(state | condition)
       > eoi
@@ -270,6 +272,7 @@ struct UpdateFileInfo
 
     qi::rule<Iterator, std::string(), Skip> startstate;
     qi::rule<Iterator, std::string(), Skip> target_ip;
+    qi::rule<Iterator, int(), Skip> machine_id;
     qi::rule<Iterator, state_doc(), Skip> state;
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
     qi::rule<Iterator, condition_doc(), Skip> condition;
