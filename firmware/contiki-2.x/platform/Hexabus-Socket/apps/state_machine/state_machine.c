@@ -322,8 +322,14 @@ PROCESS_THREAD(state_machine_process, ev, data)
           // check if it's a Reset-ID (this means another state machine on the network was just unexpectedly reset)
           struct hxb_envelope* envelope = (struct hxb_envelope*)data;
           if(envelope->eid == EP_SM_RESET_ID && envelope->value.datatype == HXB_DTYPE_UINT8) {
-            if(*(uint8_t*)&(envelope->value.data) == sm_get_id()) {
-              sm_restart();
+            uint32_t localhost[] = { 0, 0, 0, 0x01000000 }; // that's ::1 in IPv6 notation
+            PRINTF("State machine: Received Reset-ID from ");
+            PRINT6ADDR(envelope->source);
+            PRINTF("\n");
+            if(memcmp(&(envelope->source), &localhost , 16)) { // Ignore resets from localhost (the reset ID from localhost was sent BECAUSE we just reset)
+              if(*(uint8_t*)&(envelope->value.data) == sm_get_id()) {
+                sm_restart();
+              }
             }
           }
         }
