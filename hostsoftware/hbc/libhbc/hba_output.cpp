@@ -2,6 +2,7 @@
 
 #include <libhbc/error.hpp>
 #include <iomanip>
+#include <libhbc/hashlib2plus/hashlibpp.h>
 
 using namespace hexabus;
 
@@ -37,7 +38,13 @@ void HBAOutput::operator()(std::ostream& ostr) {
       if(v_name.substr(v_name.length() - 5) == ".init") {
         unsigned int init_v_id = (*_g)[*vertexIt].vertex_id;
         unsigned int init_m_id = (*_g)[*vertexIt].machine_id;
-        ostr << "machine " << init_m_id << ";" << std::endl << std::endl;
+
+        // Generate Machine ID
+        md5wrapper md5;
+        std::string v_machine_name = (*_g)[*vertexIt].name.substr((*_g)[*vertexIt].name.find_last_of(' ') + 1); // finding out the state machine name from the vertex name
+        v_machine_name = v_machine_name.substr(2, v_machine_name.find_first_of('.') - 2); // name starts at 2, because it is lead by "\n"
+
+        ostr << "machine " << md5.getHashFromString(v_machine_name) << ";" << std::endl << std::endl;
         ostr << "startstate state_" << init_m_id << "_" << init_v_id << ";" << std::endl << std::endl;
       }
     }
