@@ -216,7 +216,19 @@ int main(int argc, char **argv)
       }
 
       // then add machine ID
-      data.push_back(ast.machine_id);
+      if(ast.machine_id.size() > 32)
+        ast.machine_id = ast.machine_id.substr(0,32); // truncate if longer than 32 characters
+      while(ast.machine_id.size() < 32)
+        ast.machine_id += "0"; // pad with zeros if it's shorter than 32 characters
+
+      // now convert to single bytes from the hex representation, and store it into the output
+      for(size_t i = 0; i < ast.machine_id.size(); i += 2) {
+        std::stringstream s;
+        unsigned int c;
+        s << std::hex << ast.machine_id[i] << ast.machine_id[i+1];
+        s >> c;
+        data.push_back((char)c);
+      }
 
       gf(data);
 
