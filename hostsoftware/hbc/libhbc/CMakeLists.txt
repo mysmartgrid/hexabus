@@ -12,7 +12,7 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${CMAKE_BINARY_DIR}
 )
-file(GLOB all_hbc_src *.cpp *.hpp)
+file(GLOB all_hbc_src *.cpp *.hpp hashlib2plue/*.h hashlib2plus/*.cpp)
 set(hbc_src ${all_hbc_src})
 ADD_LIBRARY(hbc ${hbc_src})
 

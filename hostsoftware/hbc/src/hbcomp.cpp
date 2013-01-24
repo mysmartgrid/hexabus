@@ -14,6 +14,7 @@
 #include <libhbc/graph_checks.hpp>
 #include <libhbc/dtype_file_generator.hpp>
 #include <libhbc/dtype_file_generator.hpp>
+#include <libhbc/hashlib2plus/hashlibpp.h>
 
 // commandline parsing.
 #include <boost/program_options.hpp>
@@ -53,6 +54,7 @@ int main(int argc, char** argv)
     ("never,n", po::value<std::string>(), "perform safety check ('node is never reachable') for node")
     ("output,o", po::value<std::string>(), "file name prefix for Hexabus Assembler (HBA) output")
     ("datatypefile,d", po::value<std::string>(), "name of data type file to be generated")
+    ("md5,5", po::value<std::string>(), "string to md5hash")
     ;
   po::positional_options_description p;
   p.add("input", 1);
@@ -60,6 +62,12 @@ int main(int argc, char** argv)
   po::variables_map vm;
   po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
   po::notify(vm);
+
+  if(vm.count("md5")) {
+    md5wrapper md5;
+    std::string hash = md5.getHashFromString(vm["md5"].as<std::string>());
+    std::cout << hash << std::endl;
+  }
 
   if(vm.count("help"))
   {
