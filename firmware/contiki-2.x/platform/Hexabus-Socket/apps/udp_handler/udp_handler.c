@@ -143,7 +143,6 @@ void send_packet(char* data, size_t length)
 static void
 udphandler(process_event_t ev, process_data_t data)
 {
-  char buf[UDP_DATA_LEN];
   if (ev == tcpip_event) {
     if(uip_newdata()) {
       PRINTF("udp_handler: received '%d' bytes from ", uip_datalen());
@@ -214,12 +213,28 @@ udphandler(process_event_t ev, process_data_t data)
                 send_packet(&error_packet, sizeof(error_packet));
               } else {
                 PRINTF("Bytes packet received: ");
-                for(int i = 0; i < HXB_BYTES_PACKET_MAX_BUFFER_LENGTH; i++) {
+                for(int i = 0; i < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; i++) {
                   PRINTF("%02x", (((struct hxb_packet_66bytes*)header)->value)[i]);
                 }
                 eid = uip_ntohl(((struct hxb_packet_66bytes*)header)->eid);
                 value.datatype = HXB_DTYPE_66BYTES;
                 *(char**)&value.data = &(((struct hxb_packet_66bytes*)header)->value);
+              }
+              break;            
+            case HXB_DTYPE_16BYTES:
+              if(uip_ntohs(((struct hxb_packet_16bytes*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_16bytes) - 2, 0))
+              {
+                PRINTF("CRC check failed.\r\n");
+                struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
+                send_packet(&error_packet, sizeof(error_packet));
+              } else {
+                PRINTF("Bytes packet received: ");
+                for(int i = 0; i < HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH; i++) {
+                  PRINTF("%02x", (((struct hxb_packet_16bytes*)header)->value)[i]);
+                }
+                eid = uip_ntohl(((struct hxb_packet_16bytes*)header)->eid);
+                value.datatype = HXB_DTYPE_16BYTES;
+                *(char**)&value.data = &(((struct hxb_packet_16bytes*)header)->value);
               }
               break;            
             default:
@@ -380,6 +395,25 @@ udphandler(process_event_t ev, process_data_t data)
                   *(float*)&envelope->value.data = *(float*)&value_hbo;
                   process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
                   PRINTF("Posted event for received broadcast.\r\n");
+                }
+                break;
+              case HXB_DTYPE_16BYTES:
+                if(uip_ntohs(((struct hxb_packet_16bytes*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_16bytes) -2, 0))
+                {
+                  PRINTF("CRC Check failed\r\n");
+                } else {
+                  struct hxb_packet_16bytes* packet = (struct hxb_packet_16bytes*)header;
+                  envelope->eid = uip_ntohl(packet->eid);
+                  envelope->value.datatype = packet->datatype;
+                  char* b = malloc(HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
+                  if(b != NULL) {
+                    memcpy(b, &packet->value, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
+                    *(uint8_t**)&envelope->value.data = b;
+                    process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
+                    PRINTF("Posted event for received broadcast.\r\n");
+                  } else {
+                    PRINTF("UDP Handler: Malloc failed :(\r\n");
+                  }
                 }
                 break;
 #endif // STATE_MACHINE_ENABLE

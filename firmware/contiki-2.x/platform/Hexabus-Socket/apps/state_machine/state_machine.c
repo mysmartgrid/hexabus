@@ -300,7 +300,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
   static struct ctimer sm_bootup_timer; // we need some time so the network can initialize
   static uint32_t ep_sm_reset_id = EP_SM_RESET_ID;
   // assume it's a reboot if the timestamp (time since bootup) is less than 1 (second)
-  if(getTimestamp() < 1 && sm_get_id() != 0) { // only broadcast if ID is not 0 -- 0 is reserved for "no-auto-reset".
+  if(getTimestamp() < 1 && !sm_id_is_zero()) { // only broadcast if ID is not 0 -- 0 is reserved for "no-auto-reset".
     PRINTF("State machine: Assuming reboot, broadcasting Reset-ID\n");
     ctimer_set(&sm_bootup_timer, 3 * CLOCK_SECOND, broadcast_value_ptr, (void*)&ep_sm_reset_id); // TODO do we want the timeout configurable?
   }
@@ -318,23 +318,28 @@ PROCESS_THREAD(state_machine_process, ev, data)
       }
       if(ev == sm_data_received_event)
       {
-        if(sm_get_id() != 0) { // if our state machine ID is not 0 (0 means "no auto reset".
+        if(!sm_id_is_zero()) { // if our state machine ID is not 0 (0 means "no auto reset".
           // check if it's a Reset-ID (this means another state machine on the network was just unexpectedly reset)
           struct hxb_envelope* envelope = (struct hxb_envelope*)data;
-          if(envelope->eid == EP_SM_RESET_ID && envelope->value.datatype == HXB_DTYPE_UINT8) {
+          PRINTF("SM_ID NOT ZERO ^^");
+          PRINTF("EID: %d\n", envelope->eid);
+          PRINTF("DATATYPE: %d\n", envelope->value.datatype);
+          if(envelope->eid == EP_SM_RESET_ID && envelope->value.datatype == HXB_DTYPE_16BYTES) {
             uint32_t localhost[] = { 0, 0, 0, 0x01000000 }; // that's ::1 in IPv6 notation
             PRINTF("State machine: Received Reset-ID from ");
             PRINT6ADDR(envelope->source);
             PRINTF("\n");
             if(memcmp(&(envelope->source), &localhost , 16)) { // Ignore resets from localhost (the reset ID from localhost was sent BECAUSE we just reset)
-              if(*(uint8_t*)&(envelope->value.data) == sm_get_id()) {
+              uint8_t* received_sm_id = *(uint8_t**)&envelope->value.data;
+              uint8_t own_sm_id[16];
+              sm_get_id(own_sm_id);
+              if(!memcmp(received_sm_id, own_sm_id, 16))
                 sm_restart();
-              }
             }
           }
         }
 
-        // it's not a reset-ID -- check the values + endpoints.
+        // check the values + endpoints.
         check_value_transitions(data);
         free(data);
 

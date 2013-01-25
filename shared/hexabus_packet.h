@@ -115,7 +115,7 @@ struct hxb_packet_128string {
 // should this ever change, increase this, otherwise libhexabus (among others) will break.
 #define HXB_MAX_PACKET_SIZE (sizeof(hxb_packet_128string))
 
-#define HXB_BYTES_PACKET_MAX_BUFFER_LENGTH 65
+#define HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH 65
 // WRITE/INFO packet for 66 byte string: 1 byte control data, 64 byte payload
 struct hxb_packet_66bytes {
   char      header[4];
@@ -123,7 +123,18 @@ struct hxb_packet_66bytes {
   uint8_t   flags;
   uint32_t  eid;
   uint8_t   datatype;
-  char      value[HXB_BYTES_PACKET_MAX_BUFFER_LENGTH];
+  char      value[HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH];
+  uint16_t  crc;
+} __attribute__ ((packed));
+
+#define HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH 16
+struct hxb_packet_16bytes {
+  char      header[4];
+  uint8_t   type;
+  uint8_t   flags;
+  uint32_t  eid;
+  uint8_t   datatype;
+  char      value[HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH];
   uint16_t  crc;
 } __attribute__ ((packed));
 

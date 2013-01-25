@@ -2,8 +2,19 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-uint8_t sm_get_id() {
-  return eeprom_read_byte ((const void*)EE_STATEMACHINE_ID);
+void sm_get_id(char* b) {
+  eeprom_read_block(b, (void*)EE_STATEMACHINE_ID, EE_STATEMACHINE_ID_SIZE);
+}
+
+bool sm_id_is_zero() {
+  char sm_id[EE_STATEMACHINE_ID_SIZE];
+  sm_get_id(sm_id);
+  uint8_t sum = 0;
+  for(size_t i = 0; i < EE_STATEMACHINE_ID_SIZE; i++) {
+    sum |= sm_id[i];
+  }
+
+  return (sum == 0);
 }
 
 uint8_t sm_get_number_of_conditions() {
@@ -33,8 +44,8 @@ void sm_get_condition(uint8_t index, struct condition *cond) {
 	eeprom_read_block(cond, (void *)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)*index), sizeof(struct condition));
 }
 
-void sm_set_id(uint8_t id) {
-  eeprom_update_byte((uint8_t *)EE_STATEMACHINE_ID, id);
+void sm_set_id(char* b) {
+  eeprom_update_block(b, (void*)EE_STATEMACHINE_ID, EE_STATEMACHINE_ID_SIZE);
 }
 
 void sm_write_transition(bool datetime, uint8_t index, struct transition *trans) {
