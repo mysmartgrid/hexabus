@@ -262,7 +262,7 @@ namespace hexabus {
 	class EndpointInfoPacket : public ValuePacket<std::string> {
 		public:
 			EndpointInfoPacket(uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0)
-				: ValuePacket(HXB_PTYPE_EPINFO, eid, datatype, value, flags)
+				: ValuePacket<std::string>(HXB_PTYPE_EPINFO, eid, datatype, value, flags)
 			{}
 
 			virtual void accept(PacketVisitor& visitor) const
