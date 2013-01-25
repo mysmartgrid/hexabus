@@ -66,7 +66,6 @@ public class MonitorActivity extends Activity {
             // interact with the service.  We are communicating with the
             // service using a Messenger, so here we get a client-side
             // representation of that from the raw IBinder object.
-        	Toast.makeText(getApplicationContext(), "HexabusService started", Toast.LENGTH_SHORT).show();
             mService = new Messenger(service);
             mBound = true;
             Message msg = Message.obtain(null, HexabusService.MSG_REGISTER, 0, 0);

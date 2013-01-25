@@ -1,10 +1,14 @@
 package de.fraunhofer.itwm.hexabus.android;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -26,6 +30,11 @@ import android.app.AlertDialog;
 import android.app.DownloadManager.Query;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.wifi.SupplicantState;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -42,9 +51,10 @@ public class RemoteActivity extends Activity {
 	private ExpandableListAdapter mAdapter;
 	private Context mContext;
 	private Map<Integer,Integer> buttons;
+	private InetAddress bindAddress = null;
 
     /** Called when the activity is first created. */
-    @Override
+	@Override
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
@@ -60,6 +70,54 @@ public class RemoteActivity extends Activity {
 			ButtonLongClickListener buttonLongClick = new ButtonLongClickListener();
 			button.setOnLongClickListener(buttonLongClick);
 		}
+		
+		try {
+			WifiManager wifiMan = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+			WifiInfo wifiInf = wifiMan.getConnectionInfo();
+			String wifiMacAddr = wifiInf.getMacAddress();
+
+			InetAddress interfaceAddress = null;
+			Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
+			for (NetworkInterface netint : Collections.list(nets)) {
+				byte[] mac = netint.getHardwareAddress();
+				if(mac != null) {
+					StringBuilder sb = new StringBuilder();
+					for (int i = 0; i < mac.length; i++) {
+						sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? ":" : ""));		
+					}
+					if(wifiMacAddr.equals(sb.toString().toLowerCase())) {
+						Enumeration<InetAddress> inetAddresses = netint.getInetAddresses();
+						for (InetAddress inetAddress : Collections.list(inetAddresses)) {
+							byte[] addrByte = inetAddress.getAddress();
+							if(addrByte != null && addrByte.length == 16) {
+								if(addrByte[11] == (byte) 0xff && addrByte[12] == (byte) 0xfe ) {
+									if(!inetAddress.isLinkLocalAddress()) {
+										Log.d(TAG, inetAddress.toString());
+										interfaceAddress = inetAddress;
+									}
+								}
+							}
+						}
+					}
+				}
+	        }
+			
+			if(interfaceAddress!=null) {
+				bindAddress = interfaceAddress;
+			}
+			HexabusInfoPacket livenessReport = new HexabusInfoPacket(31, true);
+			new sendPacketTask().execute(livenessReport);
+			
+		} catch (HexabusException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		//setListAdapter(mAdapter);
 		//registerForContextMenu(getExpandableListView());
@@ -72,6 +130,25 @@ public class RemoteActivity extends Activity {
 
 		Toast toast = Toast.makeText(context, text, duration);
 		toast.show();
+	}
+	
+	private class sendPacketTask extends AsyncTask<HexabusPacket,Void,Void> {
+
+		@Override
+		protected Void doInBackground(HexabusPacket... params) {
+			try {
+				Hexabus.setInterfaceAddress(bindAddress);
+				params[0].broadcastPacket();
+			} catch (HexabusException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return null;
+		}
+		
 	}
 
 	private class sendIRInfoPacketTask extends AsyncTask<Integer,Void,Void> {
@@ -87,12 +164,16 @@ public class RemoteActivity extends Activity {
 			}
 			
 			if(irInfo!=null) {
-				try {					
+				try {
 
-					MulticastSocket s = new MulticastSocket();
-					Log.d(TAG, "Sending IR info packet");
-					irInfo.broadcastPacket();
-					
+
+					WifiManager wifiMan = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+					WifiInfo wifiInf = wifiMan.getConnectionInfo();
+					if(wifiInf.getSupplicantState() == SupplicantState.COMPLETED) {
+						Log.d(TAG, "Sending IR info packet");
+						Hexabus.setInterfaceAddress(bindAddress);
+						irInfo.broadcastPacket();
+					}
 					
 					//s.joinGroup(InetAddress.getByAddress(Hexabus.MULTICAST_GROUP));
 					//Hexabus.setInterfaceAddress(Collections.list(NetworkInterface.getNetworkInterfaces()).get(0).getInterfaceAddresses().get(0));
