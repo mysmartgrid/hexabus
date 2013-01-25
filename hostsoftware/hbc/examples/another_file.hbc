@@ -6,7 +6,7 @@ endpoint another_endpoint {
   eid 99;
 }
 
-alias more_devices {
+device more_devices {
   ip ::0;
   eids {};
 }

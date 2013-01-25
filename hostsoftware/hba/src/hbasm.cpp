@@ -34,6 +34,7 @@ int main(int argc, char **argv)
   desc.add_options()
     ("help,h", "produce help message")
     ("version,v", "print libklio version and exit")
+    ("verbose,V", "print more inforamtion onto the console during output generation")
     ("print,p", "print parsed version of the input file")
     ("graph,g", po::value<std::string>(), "generate a dot file")
     ("input,i", po::value<std::string>(), "the hexabus assembler input file")
@@ -64,7 +65,7 @@ int main(int argc, char **argv)
   if (vm.count("dtdef")) {
     dt_filename = vm["dtdef"].as<std::string>();
   } else {
-    std::cout << "No data type definition file specified. Output will be generated with blank data types." << std::endl;
+    std::cout << "Warning: No data type definition file specified. Output will be generated with blank data types." << std::endl;
   }
 
   if (! vm.count("input")) {
@@ -80,7 +81,7 @@ int main(int argc, char **argv)
 	std::cerr << "Error: Could not open input file: "
 	  << infile << std::endl;
 	return 1;
-  } 
+  }
 
   in.unsetf(std::ios::skipws); // No white space skipping!
 
@@ -109,7 +110,7 @@ int main(int argc, char **argv)
 		// input iterators
 		position_begin, position_end,
 		// grammar
-		grammar, 
+		grammar,
 		// comment skipper
 		//space, //| '#' >> *(char_ - qi::eol) >> qi::eol,
 		skipper,
@@ -121,12 +122,12 @@ int main(int argc, char **argv)
 	std::cerr << "Error in " << pos.file <<
 	  " line " << pos.line << " column " << pos.column << std::endl <<
 	  "'" << e.first.get_currentline() << "'" << std::endl
-	  << std::setw(pos.column) << " " 
+	  << std::setw(pos.column) << " "
 	  << "^- " << *hexabus::error_traceback_t::stack.begin()<< std::endl;
 //	std::cout << "parser backtrace: " << std::endl;
 //	std::vector<std::string>::iterator it;
 //	for(  it = error_traceback_t::stack.begin();
-//		it != error_traceback_t::stack.end(); ++it ) 
+//		it != error_traceback_t::stack.end(); ++it )
 //	{
 //	  std::cout << "- " << (*it) << std::endl;
 //	}
@@ -169,6 +170,7 @@ int main(int argc, char **argv)
       ofs.close();
     }
     else if (vm.count("output")) {
+
       hexabus::GraphBuilder gBuilder;
       gBuilder(ast);
       hexabus::GraphChecks gChecks(gBuilder.get_graph());
@@ -181,7 +183,12 @@ int main(int argc, char **argv)
         std::cout << "ERROR: " << ge.what() << std::endl;
         exit(-1);
       } */
-      hexabus::generator_flash gf(gBuilder.get_graph(), ast, dt_filename);
+
+      bool verbose = false;
+      if(vm.count("verbose"))
+        verbose = true;
+
+      hexabus::generator_flash gf(gBuilder.get_graph(), ast, dt_filename, verbose);
 
       std::ofstream ofs;
       std::string outfile(vm["output"].as<std::string>());
@@ -198,6 +205,18 @@ int main(int argc, char **argv)
       }
 
       std::vector<uint8_t> data;
+
+      // first, populate data with target IP address
+      for(size_t i = 0; i < ast.target_ip.size() / 2; ++i) {
+        std::stringstream ss;
+        unsigned int ipbyte;
+        ss << std::hex << ast.target_ip.substr(2 * i, 2); // read two bytes from the string, since two hex digits correspond to one byte in binary
+        ss >> ipbyte;
+        data.push_back(ipbyte);
+      }
+
+      // then add machine ID
+      data.push_back(ast.machine_id);
 
       gf(data);
 

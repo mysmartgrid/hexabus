@@ -8,7 +8,7 @@
 
 using namespace hexabus;
 
-static unsigned int _machine = 0; // unique IDs for the state machines
+static unsigned int _machine = 1; // unique IDs for the state machines
 
 struct first_pass : boost::static_visitor<> {
   first_pass(graph_t_ptr graph, std::map<unsigned int, std::string>* filenames_per_id) : _g(graph), machine_filenames_per_id(filenames_per_id) { }
@@ -115,37 +115,6 @@ struct first_pass : boost::static_visitor<> {
 
           vertex_id_t to_state = find_vertex(_g, statemachine.id, target_state);
           add_edge(_g, command_v_id, to_state, e_to_state);
-        }
-
-        // else-block
-        if(if_clause.else_clause.present == 1) {
-          unsigned int else_target_state;
-          try {
-            else_target_state = find_state_vertex_id(_g, statemachine, if_clause.else_clause.commands.goto_command.target_state);
-          } catch(StateNameNotFoundException e) {
-            std::ostringstream oss;
-            oss << "[" << statemachine.read_from_file << ":" << if_clause.else_clause.commands.goto_command.lineno << "] Goto to nonexistent state. " << e.what() << std::endl;
-            throw NonexistentStateException(oss.str());
-          }
-          // add condition vertex
-          std::ostringstream else_oss;
-          else_oss << "(" << condition_id << ") else";
-          vertex_id_t else_v_id = add_vertex(_g, else_oss.str(), statemachine.id, condition_id++, v_cond);
-
-          // add edges
-          // edge from from-state to condition vertex
-          vertex_id_t else_from_state = find_vertex(_g, statemachine.id, originating_state);
-          add_edge(_g, else_from_state, else_v_id, e_from_state);
-
-          // make a command-block vertex
-          std::ostringstream else_c_oss;
-          pr(if_clause.else_clause.commands, else_c_oss);
-          vertex_id_t else_command_v_id = add_vertex(_g, else_c_oss.str(), statemachine.id, command_id++, v_command, if_clause.else_clause.commands);
-
-          add_edge(_g, else_v_id, else_command_v_id, e_if_com);
-
-          vertex_id_t else_to_state = find_vertex(_g, statemachine.id, else_target_state);
-          add_edge(_g, else_command_v_id, else_to_state, e_to_state);
         }
       }
     }

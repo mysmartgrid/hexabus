@@ -50,12 +50,15 @@ int main (int argc, char const* argv[]) {
       new hexanode::ButtonCallback());
   hexanode::Callback::Ptr ptr_callback(
       new hexanode::PrintCallback());
-  hexanode::HexaPush::Ptr hexapush(
-      new hexanode::HexaPush());
+
+  boost::asio::io_service io;
+  hexabus::Socket socket(io);
+  hexanode::HexaPush hexapush(socket);
+
   // Link the midi button event to a hexapush event.
   btn_callback->do_on_buttonevent(boost::bind(
             &hexanode::HexaPush::on_event,
-            hexapush, _1));
+            &hexapush, _1));
   try {
     midi_ctrl->open();
 

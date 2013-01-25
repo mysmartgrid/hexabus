@@ -12,6 +12,7 @@
 #define EP_SM_CONTROL            9UL
 #define EP_SM_UP_RECEIVER        10UL
 #define EP_SM_UP_ACKNAK          11UL
+#define EP_SM_RESET_ID           12UL
 #define EP_ANALOGREAD            22UL
 #define EP_SHUTTER               23UL
 #define EP_HEXAPUSH_PRESSED      24UL
@@ -21,5 +22,6 @@
 #define EP_HEXONOFF_TOGGLE       28UL
 #define EP_LIGHTSENSOR           29UL
 #define EP_IR_RECEIVER           30UL
+#define EP_LIVENESS              31UL
 
 #endif // ENDPOINTS_H_

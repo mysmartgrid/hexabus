@@ -116,22 +116,22 @@ namespace hexabus {
 
       ep_eid %= lit("eid") > uint_ > ';';
       ep_datatype %= lit("datatype") > datatype > ';';
-      ep_access %= lit("access") > '{' > access_lv > *(',' > access_lv) > '}' > ';';
+      ep_access %= lit("access") > '{' > access_lv > *(',' > access_lv) > '}';
       endpoint_cmd = ( ep_eid | ep_datatype | ep_access );
       endpoint %= lit("endpoint") >> file_pos > identifier > '{' > *endpoint_cmd > '}';
 
       eid_list %= uint_ > *(',' > uint_);
       alias_ip %= lit("ip") > ipv6_address > ';';
-      alias_eids %= lit("eids") > '{' > -eid_list > '}' > ';';
+      alias_eids %= lit("eids") > '{' > -eid_list > '}';
       alias_cmd = ( alias_ip | alias_eids );
-      alias %= lit("alias") >> file_pos > identifier > '{'
+      alias %= lit("device") >> file_pos > identifier > '{'
         > *alias_cmd > '}';
 
       stateset %= lit("states") > file_pos > '{' > identifier > *(',' > identifier) > '}';
-      statemachine %= lit("machine") > file_pos > identifier > '{' > stateset > ';' > *in_clause > '}';
+      statemachine %= lit("machine") > file_pos > identifier > '{' > stateset > *in_clause > '}';
 
       in_clause %= lit("in") >> file_pos > '(' > identifier > ')'
-        > '{' > *if_clause > '}';
+        > '{' > (always_clause | *if_clause) > '}';
 
       bool_op %= ( lit("||")[_val = OR] | lit("&&")[_val = AND] );
       comp_op %= ( lit("==")[_val = STM_EQ] | lit("<=")[_val = STM_LEQ] | lit(">=")[_val = STM_GEQ] | lit("<")[_val = STM_LT] | lit(">")[_val = STM_GT] | lit("!=")[_val = STM_NEQ] );
@@ -143,21 +143,21 @@ namespace hexabus {
       time_comp_op %= ( lit(">")[ _val = STM_GT ] | lit("<")[ _val = STM_LT ] );
       compound_condition %= '(' > condition > ')' > bool_op > '(' > condition > ')';
       tautology %= lit("true")[_val = 1];
+      always_tautology %= eps[_val = 1];
       condition %= ( tautology | atomic_condition | timeout_condition | timer_condition | compound_condition );
       command_block %= *command > goto_command > ';';
       guarded_command_block %= '(' > condition > ')' > '{' > command_block > '}';
+      always_command_block %= lit("always") >> always_tautology > '{' > command_block > '}';
 
-      else_lit %= lit("else")[_val = 1]; // sets a variable if "else" was found, variable stays 0 if it isn't.
-      else_clause %= else_lit > '{' > command_block > '}';
-      if_clause %= lit("if") >> file_pos > guarded_command_block
-        > *( lit("else if") > guarded_command_block )
-        > -else_clause;
+      if_clause %= ( lit("if") >> file_pos > guarded_command_block
+        > *( lit("else") > lit("if") > guarded_command_block ) );
+      always_clause %= file_pos >> always_command_block;
 
       // module definitions
       placeholder_list %= placeholder > *( ',' > placeholder );
       module %= lit("module") >> file_pos > identifier
         > '(' > -placeholder_list > ')'
-        > '{' > stateset > ';' > *in_clause > '}';
+        > '{' > stateset > *in_clause > '}';
 
       // module instantiations
       inst_parameter %= ( constant | identifier );
@@ -213,13 +213,15 @@ namespace hexabus {
     qi::rule<Iterator, comp_operator(), Skip> time_comp_op;
     qi::rule<Iterator, compound_condition_doc(), Skip> compound_condition;
     qi::rule<Iterator, unsigned int(), Skip> tautology;
+    qi::rule<Iterator, unsigned int(), Skip> always_tautology;
     qi::rule<Iterator, condition_doc(), Skip> condition;
     qi::rule<Iterator, command_block_doc(), Skip> command_block;
     qi::rule<Iterator, guarded_command_block_doc(), Skip> guarded_command_block;
+    qi::rule<Iterator, guarded_command_block_doc(), Skip> always_command_block;
     qi::rule<Iterator, bool_operator(), Skip> bool_op;
     qi::rule<Iterator, int(), Skip> else_lit;
-    qi::rule<Iterator, else_clause_doc(), Skip> else_clause;
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
+    qi::rule<Iterator, if_clause_doc(), Skip> always_clause;
     qi::rule<Iterator, placeholder_list_doc(), Skip> placeholder_list;
     qi::rule<Iterator, module_doc(), Skip> module;
     qi::rule<Iterator, placeholder_doc()> placeholder;

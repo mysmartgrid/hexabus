@@ -16,9 +16,11 @@
 //
 
 // State Machine eeprom access
+uint8_t sm_get_id();
 uint8_t sm_get_number_of_conditions();
 void sm_set_number_of_conditions(uint8_t number);
 uint8_t sm_get_number_of_transitions(bool datetime);
+void sm_set_id(uint8_t id);
 void sm_set_number_of_transitions(bool datetime, uint8_t number);
 void sm_write_condition(uint8_t index, struct condition *cond);
 void sm_get_condition(uint8_t index, struct condition *cond);

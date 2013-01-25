@@ -56,7 +56,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 
 // state_machine
 #define STATE_MACHINE_ENABLE 1
-#define STATE_MACHINE_DEBUG 0
+#define STATE_MACHINE_DEBUG 1
 
 // state machine uploading via Hexabus packets
 #define SM_UPLOAD_ENABLE 1

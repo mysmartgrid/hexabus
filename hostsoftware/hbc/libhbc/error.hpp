@@ -17,6 +17,13 @@ namespace hexabus {
       std::string _reason;
   };
 
+  class UnsupportedDatatypeException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<UnsupportedDatatypeException> Ptr;
+      UnsupportedDatatypeException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~UnsupportedDatatypeException() throw() {};
+  };
+
   class GraphSimplificationException : public GenericException {
     public:
       typedef std::tr1::shared_ptr<GraphSimplificationException> Ptr;
@@ -50,6 +57,20 @@ namespace hexabus {
       typedef std::tr1::shared_ptr<GraphTransformationErrorException> Ptr;
       GraphTransformationErrorException (const std::string reason) : hexabus::GenericException(reason) {};
       virtual ~GraphTransformationErrorException() throw() {};
+  };
+
+  class EndpointNotBroadcastException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<EndpointNotBroadcastException> Ptr;
+      EndpointNotBroadcastException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~EndpointNotBroadcastException() throw() {};
+  };
+
+  class EndpointNotWriteableException : public GenericException {
+    public:
+      typedef std::tr1::shared_ptr<EndpointNotWriteableException> Ptr;
+      EndpointNotWriteableException (const std::string reason) : hexabus::GenericException(reason) {};
+      virtual ~EndpointNotWriteableException() throw() {};
   };
 
   class HBAConversionErrorException : public GenericException {

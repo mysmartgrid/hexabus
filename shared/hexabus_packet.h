@@ -140,7 +140,7 @@ struct hxb_packet_66bytes {
   uint8_t   type;
   uint8_t   flags;
   uint32_t  eid;
-  uint8_t   datatype;     
+  uint8_t   datatype;
   char      value[HXB_BYTES_PACKET_MAX_BUFFER_LENGTH];
   uint16_t  crc;
 } __attribute__ ((packed));

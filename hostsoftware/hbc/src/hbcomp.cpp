@@ -12,6 +12,8 @@
 #include <libhbc/include_handling.hpp>
 #include <libhbc/graph_simplification.hpp>
 #include <libhbc/graph_checks.hpp>
+#include <libhbc/dtype_file_generator.hpp>
+#include <libhbc/dtype_file_generator.hpp>
 
 // commandline parsing.
 #include <boost/program_options.hpp>
@@ -19,6 +21,8 @@
 namespace po = boost::program_options;
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
+#include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -43,9 +47,13 @@ int main(int argc, char** argv)
     ("tables,t", "print endpoint and alias tables")
     ("slice,s", po::value<std::string>(), "file name prefix for sliced state machine graphs")
     ("simplification,f", po::value<std::string>(), "file name prefix for simplified state machine graphs")
-    ("check,c", "Perform graph checks.")
+    ("basiccheck,c", "Perform basic graph checks (no incoming / no outgoing / unreachable)")
+    ("checkmachine,m", po::value<std::string>(), "name of machine on which to perform liveness check")
+    ("always,a", po::value<std::string>(), "perform liveness check ('node is always reachable') for node")
+    ("never,n", po::value<std::string>(), "perform safety check ('node is never reachable') for node")
     ("output,o", po::value<std::string>(), "file name prefix for Hexabus Assembler (HBA) output")
-  ;
+    ("datatypefile,d", po::value<std::string>(), "name of data type file to be generated")
+    ;
   po::positional_options_description p;
   p.add("input", 1);
 
@@ -221,14 +229,47 @@ int main(int argc, char** argv)
       gt.writeGraphviz(vm["simplification"].as<std::string>());
     }
 
-    if(vm.count("check")) {
-      hexabus::GraphChecks gc(gBuilder.get_graph());
+    hexabus::GraphChecks gc(gBuilder.get_graph());
+    if(vm.count("basiccheck")) {
+      if(verbose)
+        std::cout << "Performing basic graph checks..." << std::endl;
+      gc.find_states_without_inbound();
+      gc.find_states_without_outgoing();
       gc.find_unreachable_states();
     }
 
-    if(vm.count("output")) {
-      std::map<std::string, hexabus::graph_t_ptr> graphs = gt.getDeviceGraphs(); // we can take the graph map from gt again, because GraphSimplification work in-place
-      for(std::map<std::string, hexabus::graph_t_ptr>::iterator graphIt = graphs.begin(); graphIt != graphs.end(); graphIt++) {
+    if(vm.count("checkmachine")) {
+      if(verbose)
+        std::cout << "Performing advanced graph checks..." << std::endl;
+      std::vector<std::string> states;
+      // "always"-check
+      if(vm.count("always")) {
+        if(verbose)
+          std::cout << "...'always' check." << std::endl;
+        boost::split(states, vm["always"].as<std::string>(), boost::is_any_of(","));
+        BOOST_FOREACH(std::string state, states) {
+          gc.reachable_from_anywhere(state, vm["checkmachine"].as<std::string>());
+        }
+      }
+      // "never"-check
+      if(vm.count("never")) {
+        if(verbose)
+          std::cout << "...'never' check." << std::endl;
+        boost::split(states, vm["never"].as<std::string>(), boost::is_any_of(","));
+        BOOST_FOREACH(std::string state, states) {
+          gc.never_reachable(state, vm["checkmachine"].as<std::string>());
+        }
+      }
+    }
+
+    if(!vm.count("output"))
+      std::cout << "No output file name specified (option -o not given) - no HBA output will be written." << std::endl;
+
+    std::map<std::string, hexabus::graph_t_ptr> graphs = gt.getDeviceGraphs(); // we can take the graph map from gt again, because GraphSimplification works in-place
+    for(std::map<std::string, hexabus::graph_t_ptr>::iterator graphIt = graphs.begin(); graphIt != graphs.end(); graphIt++) {
+      hexabus::HBAOutput out(graphIt->first, graphIt->second, tableBuilder.get_device_table(), tableBuilder.get_endpoint_table(), gBuilder.getMachineFilenameMap());
+
+      if(vm.count("output")) {
         std::ostringstream fnoss;
         fnoss << vm["output"].as<std::string>() << graphIt->first << ".hba";
 
@@ -239,16 +280,29 @@ int main(int argc, char** argv)
           std::cerr << "Could not open HBA output file " << fnoss << "." << std::endl;
           exit(-1);
         }
-
-        hexabus::HBAOutput out(graphIt->second, tableBuilder.get_device_table(), tableBuilder.get_endpoint_table(), gBuilder.getMachineFilenameMap());
         out(ofs);
-
         ofs.close();
+      } else { // don't generate output, just write to a "dummy" stream (so that all the checks, names etc. are performed but no output is generated
+        std::ostringstream oss;
+        out(oss);
+      }
+    }
+
+    if(vm.count("datatypefile")) {
+      if(verbose)
+        std::cout << "Generating data type file..." << std::endl;
+
+      std::ofstream dtofs;
+      dtofs.open(vm["datatypefile"].as<std::string>().c_str());
+
+      if(!dtofs) {
+        std::cerr << "Could not open data type definition file " << vm["datatypefile"].as<std::string>() << "." << std::endl;
+        exit(-1);
       }
 
-    } else {
-      if(verbose)
-        std::cout << "Not generating Hexabus Assembler output (option -o was not given)!" << std::endl;
+      hexabus::DTypeFileGenerator dtg;
+      dtg(tableBuilder.get_endpoint_table(), dtofs);
+      dtofs.close();
     }
 
   } else {
