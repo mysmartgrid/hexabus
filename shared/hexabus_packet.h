@@ -27,15 +27,26 @@ struct datetime {
 // Just the packet header. You can cast to a pointer to this in order to find out the packet type and flags
 struct hxb_packet_header {
   char      header[4];  // HX0B
+  uint32_t  seqnumber;  // Sequence number
   uint8_t   type;       // Packet type
   uint8_t   flags;      // Flags
   uint32_t  eid;        // Endpoint ID / Error code if it's an error packet
   uint8_t   datatype;   // Datatype / first 8 bits of the CRC if it's an error packet
 } __attribute__ ((packed));
 
+//Resend Request
+struct hxb_packet_resendreq {
+  char      header[4];
+  uint32_t  seqnumber;  // Sequence number
+  uint8_t   type;
+  uint8_t   flags;
+  uint16_t  crc;
+} __attribute__ ((packed));
+
 // ERROR packet
 struct hxb_packet_error {
   char      header[4];
+  uint32_t  seqnumber;  // Sequence number
   uint8_t   type;
   uint8_t   flags;
   uint8_t   errorcode;
@@ -45,6 +56,7 @@ struct hxb_packet_error {
 // QUERY packet
 struct hxb_packet_query {
   char      header[4];
+  uint32_t  seqnumber;  // Sequence number
   uint8_t   type;
   uint8_t   flags;
   uint32_t  eid;        // Endpoint ID
@@ -56,6 +68,7 @@ struct hxb_packet_query {
 // WRITE/INFO packet for BOOL and INT8
 struct hxb_packet_int8 {
   char      header[4];
+  uint32_t  seqnumber;  // Sequence number
   uint8_t   type;
   uint8_t   flags;
   uint32_t  eid;
@@ -68,6 +81,7 @@ struct hxb_packet_int8 {
 // WRITE/INFO packet for INT32
 struct hxb_packet_int32 {
   char      header[4];
+  uint32_t  seqnumber;  // Sequence number
   uint8_t   type;
   uint8_t   flags;
   uint32_t  eid;
@@ -79,6 +93,7 @@ struct hxb_packet_int32 {
 // DATE/TIME
 struct hxb_packet_datetime {
     char      header[4];
+    uint32_t  seqnumber;  // Sequence number
     uint8_t   type;
     uint8_t   flags;
     uint32_t  eid;
@@ -91,6 +106,7 @@ struct hxb_packet_datetime {
 // TODO can't we just use the packet_int32 here? We're casting it to int32 for byte order conversions anyway
 struct hxb_packet_float {
   char      header[4];
+  uint32_t  seqnumber;  // Sequence number
   uint8_t   type;
   uint8_t   flags;
   uint32_t  eid;
@@ -103,6 +119,7 @@ struct hxb_packet_float {
 // WRITE/INFO packet for 128 char fixed length string or EPINFO packet
 struct hxb_packet_128string {
   char      header[4];
+  uint32_t  seqnumber;  // Sequence number
   uint8_t   type;
   uint8_t   flags;
   uint32_t  eid;
@@ -119,6 +136,7 @@ struct hxb_packet_128string {
 // WRITE/INFO packet for 66 byte string: 1 byte control data, 64 byte payload
 struct hxb_packet_66bytes {
   char      header[4];
+  uint32_t  seqnumber;  // Sequence number
   uint8_t   type;
   uint8_t   flags;
   uint32_t  eid;
