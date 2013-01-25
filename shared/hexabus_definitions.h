@@ -7,7 +7,7 @@
 #define HXB_PORT              61616
 #define HXB_GROUP             "ff05::114"                         // keep these in sync. the second define is used in
 #define HXB_GROUP_RAW         0xff05, 0, 0, 0, 0, 0, 0, 0x0114    // hexaplug code.
-#define HXB_HEADER            "HX0C"
+#define HXB_HEADER            "HX0D"
 
 // Boolean values
 #define HXB_TRUE              1
@@ -21,6 +21,7 @@
 #define HXB_PTYPE_WRITE       0x04  // Endpoint is requested to set its value
 #define HXB_PTYPE_EPINFO      0x09  // Endpoint metadata
 #define HXB_PTYPE_EPQUERY     0x0A  // Request endpoint metadata
+#define HXB_PTYPE_RESENDREQ   0x0F  // Request endpoint metadata
 
 // Flags
 #define HXB_FLAG_CONFIRM      0x01  // Requests an acknowledgement

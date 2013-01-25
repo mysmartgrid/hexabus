@@ -38,6 +38,7 @@ struct hxb_packet_float make_value_packet_float(uint32_t eid, struct hxb_value* 
   struct hxb_packet_float packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
+  packet.seqnumber = 0;
   packet.flags = 0;
   PRINTF("PACKET BUILDER EID: %d\n", eid);
   packet.eid = uip_htonl(eid);
@@ -58,6 +59,7 @@ struct hxb_packet_int32 make_value_packet_int32(uint32_t eid, struct hxb_value* 
   struct hxb_packet_int32 packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
+  packet.seqnumber = 0;
   packet.flags = 0;
   packet.eid = uip_htonl(eid);
 
@@ -75,6 +77,7 @@ struct hxb_packet_128string make_epinfo_packet(uint32_t eid)
   struct hxb_packet_128string packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_EPINFO;
+  packet.seqnumber = 0;
   packet.flags = 0;
   packet.eid = uip_htonl(eid);
 
@@ -92,6 +95,7 @@ struct hxb_packet_int8 make_value_packet_int8(uint32_t eid, struct hxb_value* va
   struct hxb_packet_int8 packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
+  packet.seqnumber = 0;
   packet.flags = 0;
   packet.eid = uip_htonl(eid);
 
@@ -115,6 +119,7 @@ struct hxb_packet_error make_error_packet(uint8_t errorcode)
   packet.type = HXB_PTYPE_ERROR;
 
   packet.flags = 0;
+  packet.seqnumber = 0;
   packet.errorcode = errorcode;
   packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
 

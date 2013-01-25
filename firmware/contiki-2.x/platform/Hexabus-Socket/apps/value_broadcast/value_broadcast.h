@@ -10,6 +10,8 @@ PROCESS_NAME(value_broadcast_process);
 
 void broadcast_value(uint32_t eid);
 void init_value_broadcast(void);
+void resend_broadcast_packet(void* data, int* length);
+void send_resend_request(uint32_t seqnum);
 
 extern process_event_t immediate_broadcast_event;
 
