@@ -103,7 +103,7 @@ void assert_statemachine_state(hexabus::Socket* network, const std::string& ip_a
 bool send_chunk(hexabus::Socket* network, const std::string& ip_addr, uint8_t chunk_id, const std::vector<char>& chunk) {
 	//std::cout << "Sending chunk " << (int) chunk_id << std::endl;
 	std::vector<char> bin_data;
-	bin_data.push_back(chunk_id); 
+	bin_data.push_back(chunk_id);
 	bin_data.insert(bin_data.end(), chunk.begin(), chunk.end());
 
 	network->send(hexabus::WritePacket<std::vector<char> >(EP_SM_UP_RECEIVER, bin_data), boost::asio::ip::address_v6::from_string(ip_addr));
@@ -124,7 +124,6 @@ bool send_chunk(hexabus::Socket* network, const std::string& ip_addr, uint8_t ch
 }
 
 int main(int argc, char** argv) {
-
   std::ostringstream oss;
   oss << "Usage: " << argv[0] << " IP [additional options] ACTION";
   po::options_description desc(oss.str());
@@ -136,8 +135,8 @@ int main(int argc, char** argv) {
     ("program,p", po::value<std::string>(), "the state machine program to be uploaded")
     ;
   po::positional_options_description p;
-  p.add("ip", 1);
   p.add("program", 1);
+  p.add("ip", 1);
   po::variables_map vm;
 
   // Begin processing of commandline parameters.
@@ -258,7 +257,7 @@ int main(int argc, char** argv) {
         sent = true;
       }
       std::cout << std::flush;
-    } 
+    }
     chunk_id++;
   }
 
