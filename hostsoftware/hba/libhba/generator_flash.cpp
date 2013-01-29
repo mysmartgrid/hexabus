@@ -240,7 +240,7 @@ void generator_flash::operator()(std::vector<uint8_t>& v) const
   unsigned char trans_dt_buffer[512];
   unsigned char* trans_dt_pos = &trans_dt_buffer[1];
   memset(trans_dt_buffer, 0, sizeof(trans_dt_buffer));
-  unsigned char transitions_buffer[511]; // making this one byte smaller to make room for the machine ID (because the whole thing has to be a multiple of chunk_size)
+  unsigned char transitions_buffer[496]; // making this smaller to make room for the machine ID (because the whole thing has to be a multiple of chunk_size)
   unsigned char* transitions_pos = &transitions_buffer[1];
   memset(transitions_buffer, 0, sizeof(transitions_buffer));
 
