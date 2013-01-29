@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE ( check_write_uint32_packet_generation ) {
 		0xd6, 0x3e          // CRC
 	};
 
-	hexabus::WritePacket<uint32_t> p(42, 4242424242, 0);
+	hexabus::WritePacket<uint32_t> p(42, 4242424242u, 0);
 	std::vector<char> pi32 = hexabus::serialize(p);
 
 	if (sizeof(testpacket) != pi32.size())

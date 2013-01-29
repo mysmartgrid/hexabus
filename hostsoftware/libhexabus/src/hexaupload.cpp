@@ -17,6 +17,7 @@ namespace po = boost::program_options;
 
 #include "../../../shared/hexabus_packet.h"
 #include "../../../shared/hexabus_definitions.h"
+#include "../../../shared/hexabus_statemachine_structs.h"
 #include "../../../shared/endpoints.h"
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
@@ -237,7 +238,7 @@ int main(int argc, char** argv) {
   uint8_t chunk_id = 0;
   uint8_t MAX_TRY = 3;
   std::cout << "Uploading program, size=" << program.size() << std::endl;
-  while((64 * chunk_id) < program.size()) {
+  while((unsigned int)(EE_STATEMACHINE_CHUNK_SIZE * chunk_id) < program.size()) {
     uint8_t failure_counter=0;
     std::vector<char> to_send(program.begin() + (64*chunk_id), program.begin() + std::min(64 * (chunk_id + 1), (int) program.size()));
 
