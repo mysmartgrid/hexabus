@@ -364,10 +364,10 @@ float BinaryDeserializer::read_float()
 
 std::vector<char> BinaryDeserializer::read_bytes()
 {
-	checkLength(HXB_BYTES_PACKET_MAX_BUFFER_LENGTH);
+	checkLength(HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH);
 
-	std::vector<char> result(_packet + _offset, _packet + _offset + HXB_BYTES_PACKET_MAX_BUFFER_LENGTH);
-	_offset += HXB_BYTES_PACKET_MAX_BUFFER_LENGTH;
+	std::vector<char> result(_packet + _offset, _packet + _offset + HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH);
+	_offset += HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH;
 
 	return result;
 }

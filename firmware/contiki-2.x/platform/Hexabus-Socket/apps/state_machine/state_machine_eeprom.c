@@ -69,8 +69,8 @@ bool sm_write_chunk(uint8_t chunk_id, char* data) {
 	eeprom_update_block(cond, (void *)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)*index), sizeof(struct condition));
 
    */
-  //printf("Chunk ID: %d, Chunk offset: %d\r\n", chunk_id, chunk_id*EE_STATEMACHINE_CHUNK_SIZE);
-  if(((chunk_id+1) * (EE_STATEMACHINE_CHUNK_SIZE)) 
+  printf("Chunk ID: %d, Chunk offset: %d\r\n", chunk_id, chunk_id*EE_STATEMACHINE_CHUNK_SIZE);
+  if(((chunk_id+1) * (EE_STATEMACHINE_CHUNK_SIZE))
       > EE_STATEMACHINE_ID_SIZE +
         EE_STATEMACHINE_N_CONDITIONS_SIZE + EE_STATEMACHINE_CONDITIONS_SIZE
       + EE_STATEMACHINE_N_DT_TRANSITIONS_SIZE + EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE
@@ -79,7 +79,7 @@ bool sm_write_chunk(uint8_t chunk_id, char* data) {
     printf("offset too large - not writing to EEPROM.\r\n");
     return false;
   } else {
-    //printf("writing to eeprom at %u\r\n", chunk_id*EE_STATEMACHINE_CHUNK_SIZE);
+    printf("writing to eeprom at %u\r\n", chunk_id*EE_STATEMACHINE_CHUNK_SIZE);
     cli();
 		eeprom_update_block(data,
         (void *)(EE_STATEMACHINE_ID + (chunk_id * EE_STATEMACHINE_CHUNK_SIZE)), 
@@ -91,5 +91,4 @@ bool sm_write_chunk(uint8_t chunk_id, char* data) {
     _delay_ms(2);
     return true;
   }
-    
 }

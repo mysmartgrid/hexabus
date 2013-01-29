@@ -224,9 +224,9 @@ namespace hexabus {
 			ValuePacket(uint8_t type, uint32_t eid, const std::vector<char>& value, uint8_t flags = 0)
 				: TypedPacket(type, eid, HXB_DTYPE_66BYTES, flags), _value(value)
 			{
-				if (value.size() > HXB_BYTES_PACKET_MAX_BUFFER_LENGTH)
+				if (value.size() > HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH)
 					throw std::out_of_range("value");
-				_value.resize(HXB_BYTES_PACKET_MAX_BUFFER_LENGTH);
+				_value.resize(HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH);
 			}
 
 		public:

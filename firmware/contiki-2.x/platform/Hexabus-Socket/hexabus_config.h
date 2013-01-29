@@ -11,7 +11,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define UDP_HANDLER_DEBUG 0
 
 #define PACKET_BUILDER_DEBUG 0
-#define ENDPOINT_ACCESS_DEBUG 1
+#define ENDPOINT_ACCESS_DEBUG 0
 
 // WebServer
 #define WEBSERVER_DEBUG 0
