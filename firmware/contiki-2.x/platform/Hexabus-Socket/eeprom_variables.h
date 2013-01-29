@@ -79,9 +79,6 @@
 #define EE_FORWARDING_SIZE           1
 
 // Data structures for state machine / rule based switching
-// Sum of all sizes must be a multiple of chunk size (because state machines are uploaded in n-byte chunks)
-#define EE_STATEMACHINE_CHUNK_SIZE        64
-
 #define EE_STATEMACHINE_ID                ( EE_FORWARDING + EE_FORWARDING_SIZE )
 #define EE_STATEMACHINE_ID_SIZE 16
 #define EE_STATEMACHINE_N_CONDITIONS			( EE_STATEMACHINE_ID + EE_STATEMACHINE_ID_SIZE )

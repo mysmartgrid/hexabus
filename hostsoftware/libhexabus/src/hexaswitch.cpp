@@ -314,8 +314,8 @@ int main(int argc, char** argv) {
     ("reliable,r", po::bool_switch(), "Reliable initialization of network access (adds delay, only needed for broadcasts)")
     ;
   po::positional_options_description p;
-  p.add("ip", 1);
   p.add("command", 1);
+  p.add("ip", 1);
   po::variables_map vm;
 
   // Begin processing of commandline parameters.
@@ -476,7 +476,7 @@ int main(int argc, char** argv) {
     uint32_t eid = get_mandatory_parameter(vm,
         "eid", "command SEND needs an EID").as<uint32_t>();
     unsigned int dtype = get_mandatory_parameter(vm,
-        "datatype", "command SEND needs an EID").as<unsigned int>();
+        "datatype", "command SEND needs a datatype").as<unsigned int>();
 		std::string value = get_mandatory_parameter(vm, "value", "command SEND needs a value").as<std::string>();
 		send_value_packet<hexabus::WritePacket>(network, hexabus::Socket::GroupAddress, eid, dtype, value);
   } else {
