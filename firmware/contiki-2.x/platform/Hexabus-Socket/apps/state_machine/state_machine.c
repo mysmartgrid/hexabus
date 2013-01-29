@@ -321,9 +321,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
         if(!sm_id_is_zero()) { // if our state machine ID is not 0 (0 means "no auto reset".
           // check if it's a Reset-ID (this means another state machine on the network was just unexpectedly reset)
           struct hxb_envelope* envelope = (struct hxb_envelope*)data;
-          PRINTF("SM_ID NOT ZERO ^^");
-          PRINTF("EID: %d\n", envelope->eid);
-          PRINTF("DATATYPE: %d\n", envelope->value.datatype);
+          PRINTF("SM_ID is not zero.");
           if(envelope->eid == EP_SM_RESET_ID && envelope->value.datatype == HXB_DTYPE_16BYTES) {
             uint32_t localhost[] = { 0, 0, 0, 0x01000000 }; // that's ::1 in IPv6 notation
             PRINTF("State machine: Received Reset-ID from ");
