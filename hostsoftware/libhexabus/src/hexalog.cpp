@@ -165,7 +165,12 @@ struct ReadingLogger : private hexabus::PacketVisitor {
 			// TODO: handle this properly
 		}
 
-		virtual void visit(const hexabus::InfoPacket<std::vector<char> >& info)
+		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info)
+		{
+			// TODO: handle this properly
+		}
+
+		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info)
 		{
 			// TODO: handle this properly
 		}
@@ -178,7 +183,8 @@ struct ReadingLogger : private hexabus::PacketVisitor {
 		virtual void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) { rejectPacket(); }
 		virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) { rejectPacket(); }
 		virtual void visit(const hexabus::WritePacket<std::string>& write) { rejectPacket(); }
-		virtual void visit(const hexabus::WritePacket<std::vector<char> >& write) { rejectPacket(); }
+		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) { rejectPacket(); }
+		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) { rejectPacket(); }
 
 	public:
 		void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint& from)

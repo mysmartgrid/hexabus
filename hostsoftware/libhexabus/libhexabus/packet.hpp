@@ -8,6 +8,7 @@
 #include <boost/static_assert.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/type_traits.hpp>
+#include <boost/array.hpp>
 #include "../../../shared/hexabus_packet.h"
 
 //#define ENABLE_LOGGING 0
@@ -75,7 +76,8 @@ namespace hexabus {
 			virtual void visit(const InfoPacket<boost::posix_time::ptime>& info) = 0;
 			virtual void visit(const InfoPacket<boost::posix_time::time_duration>& info) = 0;
 			virtual void visit(const InfoPacket<std::string>& info) = 0;
-			virtual void visit(const InfoPacket<std::vector<char> >& info) = 0;
+			virtual void visit(const InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) = 0;
+			virtual void visit(const InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) = 0;
 
 			virtual void visit(const WritePacket<bool>& write) = 0;
 			virtual void visit(const WritePacket<uint8_t>& write) = 0;
@@ -84,7 +86,8 @@ namespace hexabus {
 			virtual void visit(const WritePacket<boost::posix_time::ptime>& write) = 0;
 			virtual void visit(const WritePacket<boost::posix_time::time_duration>& write) = 0;
 			virtual void visit(const WritePacket<std::string>& write) = 0;
-			virtual void visit(const WritePacket<std::vector<char> >& write) = 0;
+			virtual void visit(const WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) = 0;
+			virtual void visit(const WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) = 0;
 
 			virtual void visitPacket(const Packet& packet)
 			{
@@ -215,7 +218,7 @@ namespace hexabus {
 			const std::string& value() const { return _value; }
 	};
 
-	template<>
+	/*template<>
 	class ValuePacket<std::vector<char> > : public TypedPacket {
 		private:
 			std::vector<char> _value;
@@ -231,6 +234,34 @@ namespace hexabus {
 
 		public:
 			const std::vector<char>& value() const { return _value; }
+	};*/
+
+	template<>
+	class ValuePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> > : public TypedPacket {
+		private:
+			boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> _value;
+
+		protected:
+			ValuePacket(uint8_t type, uint32_t eid, const boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH>& value, uint8_t flags = 0)
+				: TypedPacket(type, eid, HXB_DTYPE_16BYTES, flags), _value(value)
+			{}
+
+		public:
+			const boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH>& value() const { return _value; }
+	};
+
+	template<>
+	class ValuePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> > : public TypedPacket {
+		private:
+			boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> _value;
+
+		protected:
+			ValuePacket(uint8_t type, uint32_t eid, const boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH>& value, uint8_t flags = 0)
+				: TypedPacket(type, eid, HXB_DTYPE_66BYTES, flags), _value(value)
+			{}
+
+		public:
+			const boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH>& value() const { return _value; }
 	};
 
 	template<typename TValue>
