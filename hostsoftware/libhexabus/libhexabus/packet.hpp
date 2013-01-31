@@ -169,7 +169,9 @@ namespace hexabus {
 					|| boost::is_same<TValue, uint32_t>::value
 					|| boost::is_same<TValue, float>::value
 					|| boost::is_same<TValue, boost::posix_time::ptime>::value
-					|| boost::is_same<TValue, boost::posix_time::time_duration>::value),
+					|| boost::is_same<TValue, boost::posix_time::time_duration>::value
+					|| boost::is_same<TValue, boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >::value
+					|| boost::is_same<TValue, boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >::value),
 				"I don't know how to handle that type");
 
 			static uint8_t calculateDatatype()
@@ -180,6 +182,10 @@ namespace hexabus {
 					boost::is_same<TValue, float>::value ? HXB_DTYPE_FLOAT :
 					boost::is_same<TValue, boost::posix_time::ptime>::value ? HXB_DTYPE_DATETIME :
 					boost::is_same<TValue, boost::posix_time::time_duration>::value ? HXB_DTYPE_TIMESTAMP :
+					boost::is_same<TValue, boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >::value
+						? HXB_DTYPE_16BYTES :
+					boost::is_same<TValue, boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >::value
+						? HXB_DTYPE_66BYTES :
 					(throw "BUG: Unknown datatype!", HXB_DTYPE_UNDEFINED);
 			}
 
@@ -216,52 +222,6 @@ namespace hexabus {
 
 		public:
 			const std::string& value() const { return _value; }
-	};
-
-	/*template<>
-	class ValuePacket<std::vector<char> > : public TypedPacket {
-		private:
-			std::vector<char> _value;
-
-		protected:
-			ValuePacket(uint8_t type, uint32_t eid, const std::vector<char>& value, uint8_t flags = 0)
-				: TypedPacket(type, eid, HXB_DTYPE_66BYTES, flags), _value(value)
-			{
-				if (value.size() > HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH)
-					throw std::out_of_range("value");
-				_value.resize(HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH);
-			}
-
-		public:
-			const std::vector<char>& value() const { return _value; }
-	};*/
-
-	template<>
-	class ValuePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> > : public TypedPacket {
-		private:
-			boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> _value;
-
-		protected:
-			ValuePacket(uint8_t type, uint32_t eid, const boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH>& value, uint8_t flags = 0)
-				: TypedPacket(type, eid, HXB_DTYPE_16BYTES, flags), _value(value)
-			{}
-
-		public:
-			const boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH>& value() const { return _value; }
-	};
-
-	template<>
-	class ValuePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> > : public TypedPacket {
-		private:
-			boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> _value;
-
-		protected:
-			ValuePacket(uint8_t type, uint32_t eid, const boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH>& value, uint8_t flags = 0)
-				: TypedPacket(type, eid, HXB_DTYPE_66BYTES, flags), _value(value)
-			{}
-
-		public:
-			const boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH>& value() const { return _value; }
 	};
 
 	template<typename TValue>

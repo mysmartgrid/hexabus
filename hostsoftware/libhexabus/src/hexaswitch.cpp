@@ -57,7 +57,7 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 
 			for (size_t i = 0; i < L; ++i)
       {
-				hexstream << std::setw(2) << (int)static_cast<unsigned char>(packet.value()[i]) << " ";
+				hexstream << std::setw(2) << (0xFF & (packet.value()[i])) << " ";
 			}
 
       std::cout << std::endl << std::endl;
