@@ -20,6 +20,16 @@ struct first_pass : boost::static_visitor<> {
 		machine_descriptor desc;
 		desc.name = statemachine.name;
 		desc.file = statemachine.read_from_file;
+
+		// find out whether the machine name is already used
+		for(machine_table::iterator it = _machines->begin(); it != _machines->end(); ++it) {
+			if(it->second.name == statemachine.name) {
+				std::ostringstream oss;
+				oss << "State machine name is not unique: " << statemachine.name << "." << std::endl;
+				throw DuplicateEntryException(oss.str());
+			}
+		}
+
 		_machines->insert(std::pair<unsigned int, machine_descriptor>(statemachine.id, desc));
 
     // build vertices for states
