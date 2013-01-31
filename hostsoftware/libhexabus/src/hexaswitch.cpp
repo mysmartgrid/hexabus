@@ -46,8 +46,8 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 			target << std::endl;
 		}
 
-    // TODO template this for packet length (template<size_t L> ...)
-		void printValuePacket(const hexabus::ValuePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet, const char* datatypeStr)
+    template<size_t L>
+		void printValuePacket(const hexabus::ValuePacket<boost::array<char, L> >& packet, const char* datatypeStr)
 		{
 			printValueHeader(packet.eid(), datatypeStr);
 
@@ -55,29 +55,12 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 
 			hexstream << std::hex << std::setfill('0');
 
-			for (size_t i = 0; i < HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH; ++i)
+			for (size_t i = 0; i < L; ++i)
       {
 				hexstream << std::setw(2) << (int)static_cast<unsigned char>(packet.value()[i]) << " ";
 			}
 
       std::cout << std::endl << std::endl;
-
-			target << "Value:\t" << hexstream.str() << std::endl; 
-			target << std::endl;
-		}
-
-		void printValuePacket(const hexabus::ValuePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet, const char* datatypeStr)
-		{
-			printValueHeader(packet.eid(), datatypeStr);
-
-			std::stringstream hexstream;
-
-			hexstream << std::hex;
-
-			for (size_t i = 0; i < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; ++i)
-      {
-				hexstream << std::setw(2) << (int)static_cast<unsigned char>(packet.value()[i]) << " ";
-			}
 
 			target << "Value:\t" << hexstream.str() << std::endl; 
 			target << std::endl;
