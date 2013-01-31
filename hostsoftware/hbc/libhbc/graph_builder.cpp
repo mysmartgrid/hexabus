@@ -11,11 +11,16 @@ using namespace hexabus;
 static unsigned int _machine = 1; // unique IDs for the state machines
 
 struct first_pass : boost::static_visitor<> {
-  first_pass(graph_t_ptr graph, std::map<unsigned int, std::string>* filenames_per_id) : _g(graph), machine_filenames_per_id(filenames_per_id) { }
+  first_pass(graph_t_ptr graph, machine_table* machines) : _g(graph), _machines(machines) { }
 
   void operator()(statemachine_doc& statemachine) const {
     statemachine.id = _machine;
-    machine_filenames_per_id->insert(std::pair<unsigned int, std::string>(_machine++, statemachine.read_from_file));
+
+		// build machine descriptor, insert it into machine table
+		machine_descriptor desc;
+		desc.name = statemachine.name;
+		desc.file = statemachine.read_from_file;
+		_machines->insert(std::pair<unsigned int, machine_descriptor>(statemachine.id, desc));
 
     // build vertices for states
     for(unsigned int i = 0; i < statemachine.stateset.states.size(); i++) { // don't use foreach because we need the index
@@ -127,13 +132,13 @@ struct first_pass : boost::static_visitor<> {
   void operator()(instantiation_doc& inst) const { }
 
   graph_t_ptr _g;
-  std::map<unsigned int, std::string>* machine_filenames_per_id;
+  machine_table* _machines;
 };
 
-void GraphBuilder::operator()(hbc_doc& hbc) {
+void GraphBuilder::operator()(hbc_doc& hbc, machine_table& machines) {
   BOOST_FOREACH(hbc_block block, hbc.blocks) {
     // only state machines
-    boost::apply_visitor(first_pass(_g, &machine_filenames_per_id), block);
+    boost::apply_visitor(first_pass(_g, &machines), block);
   }
 }
 
