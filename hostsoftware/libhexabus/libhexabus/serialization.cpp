@@ -382,10 +382,9 @@ boost::array<char, L> BinaryDeserializer::read_bytes()
 {
 	checkLength(L);
 
-	/*std::vector<char> result(_packet + _offset, _packet + _offset + HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH);
-	_offset += HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; */
-
 	boost::array<char, L> result;
+	std::copy(_packet + _offset, _packet + _offset + L, result.begin());
+	_offset += L;
 
 	return result;
 }

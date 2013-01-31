@@ -3,7 +3,7 @@
 #include <string>
 #include <sstream>
 #include <map>
-#include <iomanip> // for hexadecimal output TODO probably not needed later!
+#include <iomanip> // for hexadecimal output
 #include <libhba/hba_datatypes.hpp>
 #include "../../../shared/hexabus_statemachine_structs.h"
 

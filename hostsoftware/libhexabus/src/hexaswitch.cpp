@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string.h>
+#include <iomanip>
 #include <libhexabus/common.hpp>
 #include <libhexabus/crc.hpp>
 #include <libhexabus/liveness.hpp>
@@ -52,11 +53,14 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 
 			std::stringstream hexstream;
 
-			hexstream << std::hex;
+			hexstream << std::hex << std::setfill('0');
 
-			for (size_t i = 0; i < HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH; ++i) {
-				hexstream << std::setw(2) << packet.value()[i];
+			for (size_t i = 0; i < HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH; ++i)
+      {
+				hexstream << std::setw(2) << (int)static_cast<unsigned char>(packet.value()[i]) << " ";
 			}
+
+      std::cout << std::endl << std::endl;
 
 			target << "Value:\t" << hexstream.str() << std::endl; 
 			target << std::endl;
@@ -70,8 +74,9 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 
 			hexstream << std::hex;
 
-			for (size_t i = 0; i < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; ++i) {
-				hexstream << std::setw(2) << packet.value()[i];
+			for (size_t i = 0; i < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; ++i)
+      {
+				hexstream << std::setw(2) << (int)static_cast<unsigned char>(packet.value()[i]) << " ";
 			}
 
 			target << "Value:\t" << hexstream.str() << std::endl; 
@@ -165,8 +170,8 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) { printValuePacket(info, "Datetime"); }
 		virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info) { printValuePacket(info, "Timestamp"); }
 		virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "String"); }
-		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary"); }
-		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary"); }
+		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (16 bytes)"); }
+		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (66 bytes)"); }
 
 		virtual void visit(const hexabus::WritePacket<bool>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
