@@ -220,7 +220,6 @@ po::variable_value get_mandatory_parameter(
   return retval;
 }
 
-
 void send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet, bool printResponse = false)
 {
   try {
