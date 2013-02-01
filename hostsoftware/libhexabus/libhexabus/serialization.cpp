@@ -498,19 +498,19 @@ Packet::Ptr BinaryDeserializer::deserialize()
 
 		case HXB_PTYPE_QUERY:
 			{
-				uint8_t eid = read_u8();
+				uint32_t eid = read_u32();
 				return check(QueryPacket(eid, flags));
 			}
 
 		case HXB_PTYPE_EPQUERY:
 			{
-				uint8_t eid = read_u8();
+				uint32_t eid = read_u32();
 				return check(EndpointQueryPacket(eid, flags));
 			}
 
 		case HXB_PTYPE_EPINFO:
 			{
-				uint8_t eid = read_u8();
+				uint32_t eid = read_u32();
 				uint8_t datatype = read_u8();
 				return check(EndpointInfoPacket(eid, datatype, read_string(), flags));
 			}
