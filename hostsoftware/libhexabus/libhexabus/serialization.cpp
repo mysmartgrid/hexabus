@@ -113,6 +113,8 @@ void BinarySerializer::appendHeader(const Packet& packet)
 	_target.insert(_target.end(), HXB_HEADER, HXB_HEADER + strlen(HXB_HEADER));
 	_target.push_back(packet.type());
 	_target.push_back(packet.flags());
+
+	append_u32(packet.sequenceNumber());
 }
 
 void BinarySerializer::appendEIDHeader(const EIDPacket& packet)
@@ -285,7 +287,7 @@ class BinaryDeserializer {
 		std::string read_string();
 
 		template<typename T>
-		Packet::Ptr checkInfo(bool info, uint8_t eid, const T& value, uint8_t flags);
+		Packet::Ptr checkInfo(bool info, uint8_t eid, const T& value, uint8_t flags, uint32_t sequenceNumber);
 
 		template<typename T>
 		Packet::Ptr check(const T& packet);
@@ -386,10 +388,10 @@ std::string BinaryDeserializer::read_string()
 }
 
 template<typename T>
-Packet::Ptr BinaryDeserializer::checkInfo(bool info, uint8_t eid, const T& value, uint8_t flags)
+Packet::Ptr BinaryDeserializer::checkInfo(bool info, uint8_t eid, const T& value, uint8_t flags, uint32_t sequenceNumber)
 {
 	if (info) {
-		return check(InfoPacket<T>(eid, value, flags));
+		return check(InfoPacket<T>(eid, value, flags, sequenceNumber));
 	} else {
 		return check(WritePacket<T>(eid, value, flags));
 	}
@@ -412,6 +414,7 @@ Packet::Ptr BinaryDeserializer::deserialize()
 
 	uint8_t type = read_u8();
 	uint8_t flags = read_u8();
+	uint32_t sequenceNumber = read_u32();
 
 	switch (type) {
 		case HXB_PTYPE_ERROR:
@@ -429,16 +432,16 @@ Packet::Ptr BinaryDeserializer::deserialize()
 
 				switch (datatype) {
 					case HXB_DTYPE_BOOL:
-						return checkInfo<bool>(info, eid, read_u8(), flags);
+						return checkInfo<bool>(info, eid, read_u8(), flags, sequenceNumber);
 
 					case HXB_DTYPE_UINT8:
-						return checkInfo<uint8_t>(info, eid, read_u8(), flags);
+						return checkInfo<uint8_t>(info, eid, read_u8(), flags, sequenceNumber);
 
 					case HXB_DTYPE_UINT32:
-						return checkInfo<uint32_t>(info, eid, read_u32(), flags);
+						return checkInfo<uint32_t>(info, eid, read_u32(), flags, sequenceNumber);
 
 					case HXB_DTYPE_FLOAT:
-						return checkInfo<float>(info, eid, read_float(), flags);
+						return checkInfo<float>(info, eid, read_float(), flags, sequenceNumber);
 
 					case HXB_DTYPE_DATETIME:
 						{
@@ -459,17 +462,17 @@ Packet::Ptr BinaryDeserializer::deserialize()
 							if (dt.date().day_of_week() != weekday)
 								throw BadPacketException("Invalid datetime format");
 
-							return checkInfo<boost::posix_time::ptime>(info, eid, dt, flags);
+							return checkInfo<boost::posix_time::ptime>(info, eid, dt, flags, sequenceNumber);
 						}
 
 					case HXB_DTYPE_TIMESTAMP:
-						return checkInfo<boost::posix_time::time_duration>(info, eid, boost::posix_time::seconds(read_u32()), flags);
+						return checkInfo<boost::posix_time::time_duration>(info, eid, boost::posix_time::seconds(read_u32()), flags, sequenceNumber);
 
 					case HXB_DTYPE_128STRING:
-						return checkInfo<std::string>(info, eid, read_string(), flags);
+						return checkInfo<std::string>(info, eid, read_string(), flags, sequenceNumber);
 
 					case HXB_DTYPE_66BYTES:
-						return checkInfo<std::vector<char> >(info, eid, read_bytes(), flags);
+						return checkInfo<std::vector<char> >(info, eid, read_bytes(), flags, sequenceNumber);
 
 					default:
 						throw BadPacketException("Invalid datatype");

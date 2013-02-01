@@ -117,9 +117,8 @@ struct hxb_packet_error make_error_packet(uint8_t errorcode)
   struct hxb_packet_error packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_ERROR;
-
-  packet.flags = 0;
   packet.seqnumber = 0;
+  packet.flags = 0;
   packet.errorcode = errorcode;
   packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
 

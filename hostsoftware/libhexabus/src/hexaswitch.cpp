@@ -23,31 +23,32 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 	private:
 		std::ostream& target;
 
-		void printValueHeader(uint32_t eid, const char* datatypeStr)
+		void printValueHeader(uint32_t eid, const char* datatypeStr, uint32_t sequenceNumber)
 		{
 			target << "Info" << std::endl
 				<< "Endpoint ID:\t" << eid << std::endl
-				<< "Datatype:\t" << datatypeStr << std::endl;
+				<< "Datatype:\t" << datatypeStr << std::endl
+			        << "Sequnence Number:\t" << sequenceNumber << std::endl;
 		}
 
 		template<typename T>
 		void printValuePacket(const hexabus::ValuePacket<T>& packet, const char* datatypeStr)
 		{
-			printValueHeader(packet.eid(), datatypeStr);
+			printValueHeader(packet.eid(), datatypeStr,packet.sequenceNumber());
 			target << "Value:\t" << packet.value() << std::endl;
 			target << std::endl;
 		}
 
 		void printValuePacket(const hexabus::ValuePacket<uint8_t>& packet, const char* datatypeStr)
 		{
-			printValueHeader(packet.eid(), datatypeStr);
+			printValueHeader(packet.eid(), datatypeStr, packet.sequenceNumber());
 			target << "Value:\t" << (int) packet.value() << std::endl;
 			target << std::endl;
 		}
 
 		void printValuePacket(const hexabus::ValuePacket<std::vector<char> >& packet, const char* datatypeStr)
 		{
-			printValueHeader(packet.eid(), datatypeStr);
+			printValueHeader(packet.eid(), datatypeStr, packet.sequenceNumber());
 
 			std::stringstream hexstream;
 

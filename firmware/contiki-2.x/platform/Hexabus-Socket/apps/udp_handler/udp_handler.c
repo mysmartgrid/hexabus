@@ -164,19 +164,23 @@ udphandler(process_event_t ev, process_data_t data)
       }
       else
       {
-	if(header->type == HXB_PTYPE_RESENDREQ) {
-        	if(uip_ntohs(((struct hxb_packet_resendreq*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_int8) - 2, 0)) {
+	if(header->type == HXB_PTYPE_ERROR) {
+        	if(uip_ntohs(((struct hxb_packet_error*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_error) - 2, 0)) {
 			PRINTF("CRC check failed.\r\n");
 			struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
 			send_packet(&error_packet, sizeof(error_packet));
 		} else {
-			char* pkt_data;
-			int pkt_length;
-			if(!(read_from_buffer(header->seqnumber,(void*)&pkt_data,&pkt_length))) {
-				resend_broadcast_packet((void*)pkt_data, pkt_length);
-				PRINTF("Resent packet %d\n", header->seqnumber);
+			if(((struct hxb_packet_error*)header)->errorcode == HXB_ERR_RESEND_REQUEST) {
+				char* pkt_data;
+				int pkt_length;
+				if(!(read_from_buffer(header->seqnumber,(void*)&pkt_data,&pkt_length))) {
+					resend_broadcast_packet((void*)pkt_data, pkt_length);
+					PRINTF("Resent packet %d\n", header->seqnumber);
+				} else {
+					PRINTF("Packet %d not in buffer, ignoring request.\r\n", header->seqnumber);
+				}
 			} else {
-				PRINTF("Packet %d not in buffer, ignoring request.", header->seqnumber);
+				PRINTF("Got error packet, but we have no handler for %d yet.\r\n", ((struct hxb_packet_error*)header)->errorcode);
 			}
 		}
 	} else if(header->type == HXB_PTYPE_WRITE)
@@ -335,7 +339,7 @@ udphandler(process_event_t ev, process_data_t data)
 			send_resend_request(current_seqnum());
 			set_seqnum(current_seqnum()-1);
 			missing_packets = abs(current_seqnum()-header->seqnumber);
-			PRINTF("Missing packet(s) %d (got %d\n)", current_seqnum(), header->set_seqnum);
+			PRINTF("Missing packet(s) %d (got %d)\n", current_seqnum(), header->seqnumber);
 		} else if(current_seqnum()==header->seqnumber){
 
 			if(missing_packets > 0) {
@@ -420,13 +424,13 @@ udphandler(process_event_t ev, process_data_t data)
 					break;
 			}
 			if(missing_packets > 0) {
-				PRINTF("Got correct packet, still missing %d packets (next: %d\n)", missing_packets, current_seqnum()+1);
+				PRINTF("Got correct packet, still missing %d packets (next: %d)\n", missing_packets, current_seqnum()+1);
 				send_resend_request(current_seqnum()+1);
 			}
 
 		} else {
 			set_seqnum(current_seqnum()-1);
-			PRINTF("Ignoring packet %d (awaiting %d)\n", header->packet, current_seqnum());
+			PRINTF("Ignoring packet %d (awaiting %d)\n", header->seqnumber, current_seqnum());
 		}
         }
         else
@@ -512,6 +516,9 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
 
   print_local_addresses();
   etimer_set(&udp_periodic_timer, 60*CLOCK_SECOND);
+
+ //TODO proper bootstrapping
+ set_seqnum(0);
 
   while(1){
     //   tcpip_poll_udp(udpconn);

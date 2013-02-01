@@ -114,7 +114,7 @@ void broadcast_value(uint32_t eid)
       case HXB_DTYPE_UINT8:;
         struct hxb_packet_int8 packet8;
         strncpy(&packet8.header, HXB_HEADER, 4);
-	packet8.seqnumber = increase_seqnum();
+	packet8.seqnumber = uip_htonl(increase_seqnum());
         packet8.type = HXB_PTYPE_INFO;
         packet8.flags = 0;
         packet8.eid = uip_htonl(eid);
@@ -122,14 +122,14 @@ void broadcast_value(uint32_t eid)
         packet8.value = *(uint8_t*)&val.data;
         packet8.crc = uip_htons(crc16_data((char*)&packet8, sizeof(packet8)-2, 0));
 
-	write_to_buffer(increase_seqnum(), &packet8, sizeof(packet8));
+	write_to_buffer(current_seqnum(), &packet8, sizeof(packet8));
         uip_udp_packet_sendto(client_conn, &packet8, sizeof(packet8),
             &server_ipaddr, UIP_HTONS(HXB_PORT));
         break;
       case HXB_DTYPE_UINT32:;
         struct hxb_packet_int32 packet32;
         strncpy(&packet32.header, HXB_HEADER, 4);
-	packet32.seqnumber = increase_seqnum();
+	packet32.seqnumber = uip_htonl(increase_seqnum());
         packet32.type = HXB_PTYPE_INFO;
         packet32.flags = 0;
         packet32.eid = uip_htonl(eid);
@@ -137,14 +137,14 @@ void broadcast_value(uint32_t eid)
         packet32.value = uip_htonl(*(uint32_t*)&val.data);
         packet32.crc = uip_htons(crc16_data((char*)&packet32, sizeof(packet32)-2, 0));
 
-	write_to_buffer(increase_seqnum(), &packet32, sizeof(packet32));
+	write_to_buffer(current_seqnum(), &packet32, sizeof(packet32));
         uip_udp_packet_sendto(client_conn, &packet32, sizeof(packet32),
             &server_ipaddr, UIP_HTONS(HXB_PORT));
         break;
       case HXB_DTYPE_FLOAT:;
         struct hxb_packet_float packetf;
         strncpy(&packetf.header, HXB_HEADER, 4);
-	packetf.seqnumber = increase_seqnum();
+	packetf.seqnumber = uip_htonl(increase_seqnum());
         packetf.type = HXB_PTYPE_INFO;
         packetf.flags = 0;
         packetf.eid = uip_htonl(eid);
@@ -153,7 +153,7 @@ void broadcast_value(uint32_t eid)
         packetf.value = *(float*)&value_nbo;
         packetf.crc = uip_htons(crc16_data((char*)&packetf, sizeof(packetf)-2, 0));
 
-	write_to_buffer(increase_seqnum(), &packetf, sizeof(packetf));
+	write_to_buffer(current_seqnum(), &packetf, sizeof(packetf));
         uip_udp_packet_sendto(client_conn, &packetf, sizeof(packetf),
             &server_ipaddr, UIP_HTONS(HXB_PORT));
         break;
@@ -170,11 +170,12 @@ void resend_broadcast_packet(void* data, int* length) {
 }
 
 void send_resend_request(uint32_t seqnum) {
-	struct hxb_packet_resendreq packetr;
+	struct hxb_packet_error packetr;
         strncpy(&packetr.header, HXB_HEADER, 4);
 	packetr.seqnumber = seqnum;
-	packetr.type = HXB_PTYPE_RESENDREQ;
+	packetr.type = HXB_PTYPE_ERROR;
 	packetr.flags = 0;
+	packetr.errorcode = HXB_ERR_RESEND_REQUEST;
 	packetr.crc = uip_htons(crc16_data((char*)&packetr, sizeof(packetr)-2, 0));
         uip_udp_packet_sendto(client_conn, &packetr, sizeof(packetr),
             &server_ipaddr, UIP_HTONS(HXB_PORT));

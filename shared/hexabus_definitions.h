@@ -21,7 +21,6 @@
 #define HXB_PTYPE_WRITE       0x04  // Endpoint is requested to set its value
 #define HXB_PTYPE_EPINFO      0x09  // Endpoint metadata
 #define HXB_PTYPE_EPQUERY     0x0A  // Request endpoint metadata
-#define HXB_PTYPE_RESENDREQ   0x0F  // Request endpoint metadata
 
 // Flags
 #define HXB_FLAG_CONFIRM      0x01  // Requests an acknowledgement
@@ -45,6 +44,7 @@
 #define HXB_ERR_CRCFAILED     0x03  // A packet failed the CRC check -- TODO How can we find out what information was lost?
 #define HXB_ERR_DATATYPE      0x04  // A packet with a datatype that does not fit the endpoint was received
 #define HXB_ERR_INVALID_VALUE 0x05  // A value was encountered that cannot be interpreted
+#define HXB_ERR_RESEND_REQUEST 0x06 // The packet with the seqence number in the sequence number filed was lost
 
 // Operators for comparison in state machine
 #define STM_EQ                0x00
