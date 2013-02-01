@@ -61,6 +61,7 @@
 #include "net/packetbuf.h"
 #include "net/rime/announcement.h"
 #include "sys/compower.h"
+#include "net/mac/framer.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -437,7 +438,7 @@ send_probe(void)
   packetbuf_set_addr(PACKETBUF_ADDR_RECEIVER, &rimeaddr_null);
   {
     int hdrlen = NETSTACK_FRAMER.create();
-    if(hdrlen == 0) {
+    if(hdrlen < 0) {
       /* Failed to send */
       return;
     }
@@ -651,7 +652,7 @@ send_packet(mac_callback_t sent, void *ptr)
 
   {
     int hdrlen = NETSTACK_FRAMER.create();
-    if(hdrlen == 0) {
+    if(hdrlen < 0) {
       /* Failed to send */
       mac_call_sent_callback(sent, ptr, MAC_TX_ERR_FATAL, 0);
       return;
@@ -726,6 +727,15 @@ send_packet(mac_callback_t sent, void *ptr)
   }
 }
 /*---------------------------------------------------------------------------*/
+static void
+send_list(mac_callback_t sent, void *ptr, struct rdc_buf_list *buf_list)
+{
+  if(buf_list != NULL) {
+    queuebuf_to_packetbuf(buf_list->buf);
+    send_packet(sent, ptr);
+  }
+}
+/*---------------------------------------------------------------------------*/
 static int
 detect_ack(void)
 {
@@ -771,10 +781,11 @@ input_packet(void)
 {
   struct lpp_hdr hdr;
   clock_time_t reception_time;
+  int ret;
 
   reception_time = clock_time();
 
-  if(!NETSTACK_FRAMER.parse()) {
+  if(NETSTACK_FRAMER.parse() < 0) {
     printf("lpp input_packet framer error\n");
   }
 
@@ -835,7 +846,7 @@ input_packet(void)
           if(i->broadcast_flag == BROADCAST_FLAG_NONE ||
              i->broadcast_flag == BROADCAST_FLAG_SEND) {
             i->num_transmissions = 1;
-            NETSTACK_RADIO.send(queuebuf_dataptr(i->packet),
+            ret = NETSTACK_RADIO.send(queuebuf_dataptr(i->packet),
                                 queuebuf_datalen(i->packet));
             sent = 1;
             PRINTF("%d.%d: got a probe from %d.%d, sent packet to %d.%d\n",
@@ -850,7 +861,7 @@ input_packet(void)
           }
 #else /* WITH_PENDING_BROADCAST */
           i->num_transmissions = 1;
-          NETSTACK_RADIO.send(queuebuf_dataptr(i->packet),
+          ret = NETSTACK_RADIO.send(queuebuf_dataptr(i->packet),
                                queuebuf_datalen(i->packet));
           PRINTF("%d.%d: got a probe from %d.%d, sent packet to %d.%d\n",
                  rimeaddr_node_addr.u8[0], rimeaddr_node_addr.u8[1],
@@ -869,11 +880,22 @@ input_packet(void)
              neighbors, and are dequeued by the dutycycling function
              instead, after the appropriate time. */
           if(!rimeaddr_cmp(receiver, &rimeaddr_null)) {
+#if RDC_CONF_HARDWARE_ACK   
+       
+            if(ret == RADIO_TX_OK) {
+              remove_queued_packet(i, 1);
+            } else {
+              remove_queued_packet(i, 0);
+            }
+#else
             if(detect_ack()) {
               remove_queued_packet(i, 1);
             } else {
               remove_queued_packet(i, 0);
             }
+
+#endif /* RDC_CONF_HARDWARE_ACK */
+
 
 #if WITH_PROBE_AFTER_TRANSMISSION
             /* Send a probe packet to catch any reply from the other node. */
@@ -1024,6 +1046,7 @@ const struct rdc_driver lpp_driver = {
   "LPP",
   init,
   send_packet,
+  send_list,
   input_packet,
   on,
   off,

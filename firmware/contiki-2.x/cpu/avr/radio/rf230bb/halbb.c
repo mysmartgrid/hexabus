@@ -58,7 +58,13 @@
  *  which communicates directly with the contiki core MAC layer.
  *  It is optimized for speed at the expense of generality.
  */
-
+#include "contiki-conf.h"
+#if DEBUGFLOWSIZE
+extern uint8_t debugflowsize,debugflow[DEBUGFLOWSIZE];
+#define DEBUGFLOW(c) if (debugflowsize<(DEBUGFLOWSIZE-1)) debugflow[debugflowsize++]=c
+#else
+#define DEBUGFLOW(c)
+#endif
 
 
 /*============================ INCLUDE =======================================*/
@@ -211,7 +217,7 @@ hal_init(void)
  //   TCCR1B = HAL_TCCR1B_CONFIG;       /* Set clock prescaler */
  //   TIFR1 |= (1 << ICF1);             /* Clear Input Capture Flag. */
  //   HAL_ENABLE_OVERFLOW_INTERRUPT(); /* Enable Timer1 overflow interrupt. */
-    hal_enable_trx_interrupt();    /* Enable interrupts from the radio transceiver. */
+    //hal_enable_trx_interrupt();    /* NOT USED: Enable interrupt pin from the radio transceiver. */
 }
 
 #elif defined(__AVR__)
@@ -226,13 +232,19 @@ hal_init(void)
 //  hal_reset_flags();
 
     /*IO Specific Initialization - sleep and reset pins. */
+    /* Set pins low before they are initialized as output? Does not seem to matter */
+//  hal_set_rst_low();
+//  hal_set_slptr_low();
     DDR_SLP_TR |= (1 << SLP_TR); /* Enable SLP_TR as output. */
     DDR_RST    |= (1 << RST);    /* Enable RST as output. */
 
     /*SPI Specific Initialization.*/
     /* Set SS, CLK and MOSI as output. */
-    HAL_DDR_SPI  |= (1 << HAL_DD_SS) | (1 << HAL_DD_SCK) | (1 << HAL_DD_MOSI);
+    /* To avoid a SPI glitch, the port register shall be set before the DDR register */ 
     HAL_PORT_SPI |= (1 << HAL_DD_SS) | (1 << HAL_DD_SCK); /* Set SS and CLK high */
+    HAL_DDR_SPI  |= (1 << HAL_DD_SS) | (1 << HAL_DD_SCK) | (1 << HAL_DD_MOSI);
+    HAL_DDR_SPI  &=~ (1<< HAL_DD_MISO);                   /* MISO input */ 
+
     /* Run SPI at max speed */
     SPCR         = (1 << SPE) | (1 << MSTR); /* Enable SPI module and master operation. */
     SPSR         = (1 << SPI2X); /* Enable doubled SPI speed in master mode. */
@@ -563,111 +575,96 @@ hal_subregister_write(uint8_t address, uint8_t mask, uint8_t position,
 }
 #endif /* defined(__AVR_ATmega128RFA1__) */
 /*----------------------------------------------------------------------------*/
-/** \brief  This function will upload a frame from the radio transceiver's frame
- *          buffer.
+/** \brief  Transfer a frame from the radio transceiver to a RAM buffer
  *
- *          If the frame currently available in the radio transceiver's frame buffer
- *          is out of the defined bounds. Then the frame length, lqi value and crc
- *          be set to zero. This is done to indicate an error.
  *          This version is optimized for use with contiki RF230BB driver.
  *          The callback routine and CRC are left out for speed in reading the rx buffer.
  *          Any delays here can lead to overwrites by the next packet!
  *
+ *          If the frame length is out of the defined bounds, the length, lqi and crc
+ *          are set to zero.
+ *
  *  \param  rx_frame    Pointer to the data structure where the frame is stored.
- *  \param  rx_callback Pointer to callback function for receiving one byte at a time.
  */
 void
-//hal_frame_read(hal_rx_frame_t *rx_frame, rx_callback_t rx_callback)
 hal_frame_read(hal_rx_frame_t *rx_frame)
 {
 #if defined(__AVR_ATmega128RFA1__)
 
     uint8_t frame_length,*rx_data,*rx_buffer;
-  
-    rx_data = (rx_frame->data);
-    frame_length =  TST_RX_LENGTH;  //frame length, not including lqi?
-    rx_frame->length = frame_length;
-    rx_buffer=(uint8_t *)0x180;  //start of fifo in i/o space
+ 
+    /* Get length from the TXT_RX_LENGTH register, not including LQI
+     * Bypassing the length check can result in overrun if buffer is < 256 bytes.
+     */
+    frame_length = TST_RX_LENGTH;
+    if ( 0 || ((frame_length >= HAL_MIN_FRAME_LENGTH) && (frame_length <= HAL_MAX_FRAME_LENGTH))) {
+        rx_frame->length = frame_length;
 
-    do{
-        *rx_data++ = _SFR_MEM8(rx_buffer++);
+        /* Start of buffer in I/O space, pointer to RAM buffer */
+        rx_buffer=(uint8_t *)0x180;
+        rx_data = (rx_frame->data);
 
-    } while (--frame_length > 0);
+        do{
+            *rx_data++ = _SFR_MEM8(rx_buffer++);
+        } while (--frame_length > 0);
 
-    /*Read LQI value for this frame.*/
-    rx_frame->lqi = *rx_buffer;
-    if (1) {  
+        /*Read LQI value for this frame.*/
+        rx_frame->lqi = *rx_buffer;
     
 #else /* defined(__AVR_ATmega128RFA1__) */
 
     uint8_t *rx_data;
 
-    /*  check that we have either valid frame pointer or callback pointer */
-//  if (!rx_frame && !rx_callback)
-//      return;
-
-    HAL_SPI_TRANSFER_OPEN();
-
     /*Send frame read (long mode) command.*/
+    HAL_SPI_TRANSFER_OPEN();
     HAL_SPI_TRANSFER(0x20);
 
     /*Read frame length. This includes the checksum. */
     uint8_t frame_length = HAL_SPI_TRANSFER(0);
 
-    /*Check for correct frame length.*/
-//   if ((frame_length >= HAL_MIN_FRAME_LENGTH) && (frame_length <= HAL_MAX_FRAME_LENGTH)){
-     if (1) {
-//      uint16_t crc = 0;
-//      if (rx_frame){
-            rx_data = (rx_frame->data);
-            rx_frame->length = frame_length;
-//      } else {
-//          rx_callback(frame_length);
-//      }
-        /*Upload frame buffer to data pointer */
+    /*Check for correct frame length. Bypassing this test can result in a buffer overrun! */
+    if ( 0 || ((frame_length >= HAL_MIN_FRAME_LENGTH) && (frame_length <= HAL_MAX_FRAME_LENGTH))) {
+
+        rx_data = (rx_frame->data);
+        rx_frame->length = frame_length;
+
+        /*Transfer frame buffer to RAM buffer */
 
 	    HAL_SPI_TRANSFER_WRITE(0);
 	    HAL_SPI_TRANSFER_WAIT();
-
         do{
             *rx_data++ = HAL_SPI_TRANSFER_READ();
             HAL_SPI_TRANSFER_WRITE(0);
 
-//           if (rx_frame){
-//             *rx_data++ = tempData;
-//          } else {
-//              rx_callback(tempData);
-//          }
-/* RF230 does crc in hardware, doing the checksum here ensures the rx buffer has not been overwritten by the next packet */
-/* Since doing the checksum makes such overwrites more probable, we skip it and hope for the best. */
-/* A full buffer should be read in 320us at 2x spi clocking, so with a low interrupt latency overwrites should not occur */
-//         crc = _crc_ccitt_update(crc, tempData);
+            /* CRC was checked in hardware, but redoing the checksum here ensures the rx buffer
+             * is not being overwritten by the next packet. Since that lengthy computation makes
+             * such overwrites more likely, we skip it and hope for the best.
+             * Without the check a full buffer is read in 320us at 2x spi clocking.
+             * The 802.15.4 standard requires 640us after a greater than 18 byte frame.
+             * With a low interrupt latency overwrites should never occur.
+             */
+//          crc = _crc_ccitt_update(crc, tempData);
 
-	    HAL_SPI_TRANSFER_WAIT();
+            HAL_SPI_TRANSFER_WAIT();
 
         } while (--frame_length > 0);
 
+
         /*Read LQI value for this frame.*/
-//      if (rx_frame){
 	    rx_frame->lqi = HAL_SPI_TRANSFER_READ();
-//      } else {
-//          rx_callback(HAL_SPI_TRANSFER_READ());
-//      }
         
 #endif /* defined(__AVR_ATmega128RFA1__) */
 
-        /*Check calculated crc, and set crc field in hal_rx_frame_t accordingly.*/
-//      if (rx_frame){
-            rx_frame->crc = 1;
-//      } else {
-//          rx_callback(crc != 0);
-//      }
+        /* If crc was calculated set crc field in hal_rx_frame_t accordingly.
+         * Else show the crc has passed the hardware check.
+         */
+        rx_frame->crc   = true;
+
     } else {
-//      if (rx_frame){
-            rx_frame->length = 0;
-            rx_frame->lqi    = 0;
-            rx_frame->crc    = false;
-//      }
+        /* Length test failed */
+        rx_frame->length = 0;
+        rx_frame->lqi    = 0;
+        rx_frame->crc    = false;
     }
 
     HAL_SPI_TRANSFER_CLOSE();
@@ -735,26 +732,29 @@ hal_frame_write(uint8_t *write_buffer, uint8_t length)
  * \param length Length of the read burst
  * \param data Pointer to buffer where data is stored.
  */
-//void
-//hal_sram_read(uint8_t address, uint8_t length, uint8_t *data)
-//{
-//    HAL_SPI_TRANSFER_OPEN();
+#if 0  //Uses 80 bytes (on Raven) omit unless needed
+void
+hal_sram_read(uint8_t address, uint8_t length, uint8_t *data)
+{
+    HAL_SPI_TRANSFER_OPEN();
 
-    /*Send SRAM read command.*/
-//    HAL_SPI_TRANSFER(0x00);
+    /*Send SRAM read command and address to start*/
+    HAL_SPI_TRANSFER(0x00);
+    HAL_SPI_TRANSFER(address);
 
-    /*Send address where to start reading.*/
-//    HAL_SPI_TRANSFER(address);
+    HAL_SPI_TRANSFER_WRITE(0);
+    HAL_SPI_TRANSFER_WAIT();
 
     /*Upload the chosen memory area.*/
-//    do{
-//        *data++ = HAL_SPI_TRANSFER(0);
-//    } while (--length > 0);
+    do{
+        *data++ = HAL_SPI_TRANSFER_READ();
+        HAL_SPI_TRANSFER_WRITE(0);
+        HAL_SPI_TRANSFER_WAIT();
+    } while (--length > 0);
 
-//    HAL_SPI_TRANSFER_CLOSE();
-
-//}
-
+    HAL_SPI_TRANSFER_CLOSE();
+}
+#endif
 /*----------------------------------------------------------------------------*/
 /** \brief Write SRAM
  *
@@ -811,118 +811,88 @@ volatile char rf230interruptflag;
 #endif
 
 #if defined(__AVR_ATmega128RFA1__)
-/* The atmega128rfa1 has individual interrupts for the integrated radio */
-/* Whichever are enabled by the RF230 driver must be present even if not used! */
+/* The atmega128rfa1 has individual interrupts for the integrated radio'
+ * Whichever are enabled by the RF230 driver must be present even if not used!
+ */
+/* Received packet interrupt */
 ISR(TRX24_RX_END_vect)
 {
-	   INTERRUPTDEBUG(11);	    	    
-       /* Received packet interrupt */ 
-       /* Buffer the frame and call rf230_interrupt to schedule poll for rf230 receive process */
-//         if (rxframe.length) break;			//toss packet if last one not processed yet
-         if (rxframe[rxframe_tail].length) INTERRUPTDEBUG(42); else INTERRUPTDEBUG(12);
+/* Get the rssi from ED if extended mode */
+#if RF230_CONF_AUTOACK
+	rf230_last_rssi=hal_register_read(RG_PHY_ED_LEVEL);
+#endif
+
+/* Buffer the frame and call rf230_interrupt to schedule poll for rf230 receive process */
+/* Is a ram buffer available? */
+	if (rxframe[rxframe_tail].length) {DEBUGFLOW('0');} else /*DEBUGFLOW('1')*/;
 
 #ifdef RF230_MIN_RX_POWER		 
-       /* Discard packets weaker than the minimum if defined. This is for testing miniature meshes.*/
-       /* Save the rssi for printing in the main loop */
-#if RF230_CONF_AUTOACK
- //       rf230_last_rssi=hal_subregister_read(SR_ED_LEVEL);
-        rf230_last_rssi=hal_register_read(RG_PHY_ED_LEVEL);
+/* Discard packets weaker than the minimum if defined. This is for testing miniature meshes */
+/* This does not prevent an autoack. TODO:rfa1 radio can be set up to not autoack weak packets */
+	if (rf230_last_rssi >= RF230_MIN_RX_POWER) {
+#else
+	if (1) {
 #endif
-//      if (rf230_last_rssi >= RF230_MIN_RX_POWER) {
-        if (1) {        
-#endif
-         hal_frame_read(&rxframe[rxframe_tail]);
-         rxframe_tail++;if (rxframe_tail >= RF230_CONF_RX_BUFFERS) rxframe_tail=0;
-         rf230_interrupt();
-#ifdef RF230_MIN_RX_POWER
-        }
-#endif
+//		DEBUGFLOW('2');
+		hal_frame_read(&rxframe[rxframe_tail]);
+		rxframe_tail++;if (rxframe_tail >= RF230_CONF_RX_BUFFERS) rxframe_tail=0;
+		rf230_interrupt();
+	}
 }
+/* Preamble detected, starting frame reception */
 ISR(TRX24_RX_START_vect)
 {
-    INTERRUPTDEBUG(10);
-    /* Save RSSI for this packet if not in extended mode, scaling to 1dB resolution */
+//	DEBUGFLOW('3');
+/* Save RSSI for this packet if not in extended mode, scaling to 1dB resolution */
 #if !RF230_CONF_AUTOACK
     rf230_last_rssi = 3 * hal_subregister_read(SR_RSSI);
 #endif
 
 }
+
+/* PLL has locked, either from a transition out of TRX_OFF or a channel change while on */
 ISR(TRX24_PLL_LOCK_vect)
 {
+//	DEBUGFLOW('4');
 }
+
+/* PLL has unexpectedly unlocked */
 ISR(TRX24_PLL_UNLOCK_vect)
 {
+	DEBUGFLOW('5');
 }
+/* Flag is set by the following interrupts */
+extern volatile uint8_t rf230_interruptwait,rf230_ccawait;
 
-#if 0
-HAL_RF230_ISR() //for reference, for now
+/* Wake has finished */
+ISR(TRX24_AWAKE_vect)
 {
-    /*The following code reads the current system time. This is done by first
-      reading the hal_system_time and then adding the 16 LSB directly from the
-      hardware counter.
-     */
-//    uint32_t isr_timestamp = hal_system_time;
-//    isr_timestamp <<= 16;
-//    isr_timestamp |= HAL_TICK_UPCNT(); // TODO: what if this wraps after reading hal_system_time?
-//   isr_timestamp /= HAL_US_PER_SYMBOL; /* Divide so that we get time in 16us resolution. */
-//   isr_timestamp &= HAL_SYMBOL_MASK;
-
-    uint8_t interrupt_source;
-
-    INTERRUPTDEBUG(1);
-
-    /*Read Interrupt source.*/
-    interrupt_source = IRQ_STATUS;
-
-    /*Handle the incomming interrupt. Prioritized.*/
-    if (interrupt_source & (1>>RX_START)){
-	   INTERRUPTDEBUG(10);
-    /* Save RSSI for this packet if not in extended mode, scaling to 1dB resolution */
-#if !RF230_CONF_AUTOACK
-       rf230_last_rssi = 3 * hal_subregister_read(SR_RSSI);
-#endif
-
-    } else if (interrupt_source & (1<<RX_END)){
-	   INTERRUPTDEBUG(11);	    	    
-       /* Received packet interrupt */ 
-       /* Buffer the frame and call rf230_interrupt to schedule poll for rf230 receive process */
-//         if (rxframe.length) break;			//toss packet if last one not processed yet
-         if (rxframe[rxframe_tail].length) INTERRUPTDEBUG(42); else INTERRUPTDEBUG(12);
-
-#ifdef RF230_MIN_RX_POWER		 
-       /* Discard packets weaker than the minimum if defined. This is for testing miniature meshes.*/
-       /* Save the rssi for printing in the main loop */
-#if RF230_CONF_AUTOACK
-//        rf230_last_rssi=hal_subregister_read(SR_ED_LEVEL);
-        rf230_last_rssi=hal_register_read(RG_PHY_ED_LEVEL);
-#endif
-//      if (rf230_last_rssi >= RF230_MIN_RX_POWER) {
-        if (1) {        
-#endif
-         hal_frame_read(&rxframe[rxframe_tail]);
-         rxframe_tail++;if (rxframe_tail >= RF230_CONF_RX_BUFFERS) rxframe_tail=0;
-         rf230_interrupt();
-//       trx_end_callback(isr_timestamp);
-#ifdef RF230_MIN_RX_POWER
-        }
-#endif
-              
-    } else if (interrupt_source & (1<<TX_END)){
-        INTERRUPTDEBUG(13);
-        ;
-    } else if (interrupt_source & (1<<PLL_UNLOCK)){
-        INTERRUPTDEBUG(14);
-	    ;
-    } else if (interrupt_source & (1<<PLL_LOCK)){
-        INTERRUPTDEBUG(15);
-//      hal_pll_lock_flag++;
-        ;
-     } else {
-        INTERRUPTDEBUG(99);
-	    ;
-    }
+//	DEBUGFLOW('6');
+	rf230_interruptwait=0;
 }
-#endif
+
+/* Transmission has ended */
+ISR(TRX24_TX_END_vect)
+{
+//	DEBUGFLOW('7');
+	rf230_interruptwait=0;
+}
+
+/* Frame address has matched ours */
+extern volatile uint8_t rf230_pending;
+ISR(TRX24_XAH_AMI_vect)
+{
+//	DEBUGFLOW('8');
+	rf230_pending=1;
+}
+
+/* CCAED measurement has completed */
+ISR(TRX24_CCA_ED_DONE_vect)
+{
+	DEBUGFLOW('4');
+	rf230_ccawait=0;
+}
+
 #else /* defined(__AVR_ATmega128RFA1__) */
 /* Separate RF230 has a single radio interrupt and the source must be read from the IRQ_STATUS register */
 HAL_RF230_ISR()
@@ -973,7 +943,7 @@ HAL_RF230_ISR()
     /* Save RSSI for this packet if not in extended mode, scaling to 1dB resolution */
 #if !RF230_CONF_AUTOACK
 #if 0  // 3-clock shift and add is faster on machines with no hardware multiply
-       // While the compiler should use similar code for multiply by 3 there may be a bug with -Os in avr-gcc that calls the general subroutine
+       // With -Os avr-gcc saves a byte by using the general routine for multiply by 3
         rf230_last_rssi = hal_subregister_read(SR_RSSI);
         rf230_last_rssi = (rf230_last_rssi <<1)  + rf230_last_rssi;
 #else  // Faster with 1-clock multiply. Raven and Jackdaw have 2-clock multiply so same speed while saving 2 bytes of program memory

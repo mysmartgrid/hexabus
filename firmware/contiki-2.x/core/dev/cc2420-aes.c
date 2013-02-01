@@ -39,7 +39,6 @@
  */
 
 #include "contiki.h"
-#include "io.h"
 #include "dev/cc2420.h"
 #include "dev/cc2420-aes.h"
 #include "dev/spi.h"
