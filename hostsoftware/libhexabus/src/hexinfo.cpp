@@ -9,10 +9,15 @@
 
 namespace po = boost::program_options;
 
-typedef std::pair<uint32_t, std::string> endpoint_descriptor;
-typedef std::map<uint32_t, std::string> endpoint_map;
+struct endpoint_descriptor 
+{
+	uint32_t eid;
+	uint8_t datatype;
+	std::string name;
+};
 
-struct device_descriptor {
+struct device_descriptor
+{
 	boost::asio::ip::address_v6 ipv6_address;
 	std::string name;
 	std::vector<uint32_t> endpoint_ids;
@@ -20,7 +25,7 @@ struct device_descriptor {
 
 struct ResponseHandler : public hexabus::PacketVisitor {
 	public:
-		ResponseHandler(device_descriptor& device, endpoint_map& endpoints) : _device(device), _endpoints(endpoints) {}
+		ResponseHandler(device_descriptor& device, std::vector<endpoint_descriptor>& endpoints) : _device(device), _endpoints(endpoints) {}
 
     // The uninteresing ones
 		void visit(const hexabus::ErrorPacket& error) {}
@@ -53,24 +58,23 @@ struct ResponseHandler : public hexabus::PacketVisitor {
 				_device.name = endpointInfo.value();
 			} else {
 				endpoint_descriptor ep;
-				ep.first = endpointInfo.eid();
-				ep.second = endpointInfo.value();
+				ep.eid = endpointInfo.eid();
+				ep.datatype = endpointInfo.datatype();
+				ep.name = endpointInfo.value();
 
-				_endpoints.insert(ep);
+				_endpoints.push_back(ep);
 			}
 		}
 
 		void visit(const hexabus::InfoPacket<uint32_t>& info)
 		{
-			if(info.eid() == 0) // we only care for the device descritor
+			if(info.eid() == 0) // we only care for the device descriptor
 			{
 				uint32_t val = info.value();
 				for(int i = 0; i < 32; ++i)
 				{
 					if(val % 2) // find out whether LSB is set
-					{
 						_device.endpoint_ids.push_back(i); // if it's set, store the EID (the bit's position in the device descriptor).
-					}
 
 					val >>= 1; // right-shift in order to have the next EID in the LSB
 				}
@@ -78,9 +82,51 @@ struct ResponseHandler : public hexabus::PacketVisitor {
 		}
 
 	private:
-		device_descriptor _device;
-		endpoint_map _endpoints;
+		device_descriptor& _device;
+		std::vector<endpoint_descriptor>& _endpoints;
 };
+
+void print_dev_info(const device_descriptor& dev)
+{
+	std::cout << "Device information:" << std::endl;
+	std::cout << "\tIP address: \t" << dev.ipv6_address.to_string() << std::endl;
+	std::cout << "\tDevice name: \t" << dev.name << std::endl;
+	std::cout << "\tEndpoints: \t";
+	for(std::vector<uint32_t>::const_iterator it = dev.endpoint_ids.begin(); it != dev.endpoint_ids.end(); ++it)
+		std::cout << *it << " ";
+	std::cout << std::endl;
+}
+
+void print_ep_info(const endpoint_descriptor& ep)
+{
+	std::cout << "Endpoint Information:" << std::endl;
+	std::cout << "\tEndpoint ID:\t" << ep.eid << std::endl;
+	std::cout << "\tData type:\t";
+	switch(ep.datatype)
+	{
+		case HXB_DTYPE_BOOL:
+			std::cout << "Bool"; break;
+		case HXB_DTYPE_UINT8:
+			std::cout << "UInt8"; break;
+		case HXB_DTYPE_UINT32:
+			std::cout << "UInt32"; break;
+		case HXB_DTYPE_DATETIME:
+			std::cout << "Datetime"; break;
+		case HXB_DTYPE_FLOAT:
+			std::cout << "Float"; break;
+		case HXB_DTYPE_TIMESTAMP:
+			std::cout << "Timestamp"; break;
+		case HXB_DTYPE_128STRING:
+			std::cout << "String"; break;
+		case HXB_DTYPE_66BYTES:
+			std::cout << "Binary"; break;
+		default:
+			std::cout << "(unknown)"; break;
+	}
+	std::cout << std::endl;
+	std::cout << "\tName:\t" << ep.name <<std::endl;
+	std::cout << std::endl;
+}
 
 void send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet, ResponseHandler& handler)
 {
@@ -176,7 +222,7 @@ int main(int argc, char** argv)
 		// construct the responseHandler
 		device_descriptor device;
 		device.ipv6_address = target_ip; // we can already set the IP address
-		endpoint_map endpoints;
+		std::vector<endpoint_descriptor> endpoints;
 		ResponseHandler handler(device, endpoints);
 
 		// send the device name query packet and listen for the reply
@@ -186,8 +232,13 @@ int main(int argc, char** argv)
 		send_packet(network, target_ip, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR), handler);
 
 		// now, iterate over the endpoint list and find out the properties of each endpoint
-		// TODO
+		for(std::vector<uint32_t>::iterator it = device.endpoint_ids.begin(); it != device.endpoint_ids.end(); ++it)
+			send_packet(network, target_ip, hexabus::EndpointQueryPacket(*it), handler);
 
+		// print the information onto the command line
+		print_dev_info(device);
+		for(std::vector<endpoint_descriptor>::iterator it = endpoints.begin(); it != endpoints.end(); ++it)
+			print_ep_info(*it);
 	}
 
 	if(vm.count("outfile"))
