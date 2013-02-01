@@ -49,68 +49,7 @@ public class MonitorActivity extends Activity {
 	private static final String TAG = "Monitor";
 	private Context mContext;
 	private MonitorListAdapter listAdapter;
-	
-    /** Messenger for communicating with the service. */
-    Messenger mService = null;
 
-    /** Flag indicating whether we have called bind on the service. */
-    boolean mBound;
-    
-   /**
-     * Class for interacting with the main interface of the service.
-     */
-    private ServiceConnection mConnection = new ServiceConnection() {
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            // This is called when the connection with the service has been
-            // established, giving us the object we can use to
-            // interact with the service.  We are communicating with the
-            // service using a Messenger, so here we get a client-side
-            // representation of that from the raw IBinder object.
-            mService = new Messenger(service);
-            mBound = true;
-            Message msg = Message.obtain(null, HexabusService.MSG_REGISTER, 0, 0);
-            msg.replyTo = mMessenger;
-            try {
-                mService.send(msg);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
-
-        public void onServiceDisconnected(ComponentName className) {
-            // This is called when the connection with the service has been
-            // unexpectedly disconnected -- that is, its process crashed.
-            mService = null;
-            mBound = false;
-        }
-    };
-    
-    
-    @Override
-    protected void onStart() {
-        super.onStart();
-        // Bind to the service
-        getApplicationContext().bindService(new Intent(this, HexabusService.class), mConnection,
-            Context.BIND_AUTO_CREATE);
-    }  
-    
-    @Override
-    protected void onStop() {
-        // Unbind from the service
-        if (mBound) {
-            Message msg = Message.obtain(null, HexabusService.MSG_UNREGISTER, 0, 0);
-            msg.replyTo = mMessenger;
-            try {
-                mService.send(msg);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-            getApplicationContext().unbindService(mConnection);
-            mService = null;
-            mBound = false;
-        }
-        super.onStop();
-    }
 	
 	
 
@@ -164,34 +103,10 @@ public class MonitorActivity extends Activity {
 
     }
     
-    final Messenger mMessenger = new Messenger(new IncomingHandler());
-
-    class IncomingHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-        	Log.d(TAG, "Message received");
-            switch (msg.what) {
-            case HexabusService.MSG_RECEIVE:
-            	Log.d(TAG, "PAKET!");
-            	
-            	class ListUpdateRunnable implements Runnable {
-            		Message msg;
-            		public void setMsg(Message msg) {
-            			this.msg = msg;
-            		}
-            		public void run() {
-            			listAdapter.add((HexabusPacket) msg.obj);
-            		}
-            	};
-            	ListUpdateRunnable r = new ListUpdateRunnable();
-            	r.setMsg(msg);
-            	runOnUiThread(r);
-            	break;
-            default:
-                super.handleMessage(msg);
-            }
-        }
+    public void handlePacket(HexabusPacket packet) {
+    	listAdapter.add(packet);
     }
+  
     
 
 }

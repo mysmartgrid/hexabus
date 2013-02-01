@@ -71,57 +71,27 @@ public class RemoteActivity extends Activity {
 			button.setOnLongClickListener(buttonLongClick);
 		}
 		
-		try {
-			WifiManager wifiMan = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-			WifiInfo wifiInf = wifiMan.getConnectionInfo();
-			String wifiMacAddr = wifiInf.getMacAddress();
+		
 
-			InetAddress interfaceAddress = null;
-			Enumeration<NetworkInterface> nets = NetworkInterface.getNetworkInterfaces();
-			for (NetworkInterface netint : Collections.list(nets)) {
-				byte[] mac = netint.getHardwareAddress();
-				if(mac != null) {
-					StringBuilder sb = new StringBuilder();
-					for (int i = 0; i < mac.length; i++) {
-						sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? ":" : ""));		
-					}
-					if(wifiMacAddr.equals(sb.toString().toLowerCase())) {
-						Enumeration<InetAddress> inetAddresses = netint.getInetAddresses();
-						for (InetAddress inetAddress : Collections.list(inetAddresses)) {
-							byte[] addrByte = inetAddress.getAddress();
-							if(addrByte != null && addrByte.length == 16) {
-								if(addrByte[11] == (byte) 0xff && addrByte[12] == (byte) 0xfe ) {
-									if(!inetAddress.isLinkLocalAddress()) {
-										Log.d(TAG, inetAddress.toString());
-										interfaceAddress = inetAddress;
-									}
-								}
-							}
-						}
-					}
-				}
-	        }
-			
-			if(interfaceAddress!=null) {
-				bindAddress = interfaceAddress;
-			}
-			HexabusInfoPacket livenessReport = new HexabusInfoPacket(31, true);
-			new sendPacketTask().execute(livenessReport);
-			
-		} catch (HexabusException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SocketException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 		//setListAdapter(mAdapter);
 		//registerForContextMenu(getExpandableListView());
   }
+	
+	protected void onPause() {
+		super.onPause();
+		
+	}
+	
+	protected void onResume() {
+		super.onResume();
+		InetAddress  interfaceAddress = ((HexaDroid) this.getParent()).getInterfaceAddress();
+		if(interfaceAddress!=null) {
+			bindAddress = interfaceAddress;
+			Log.d(TAG, interfaceAddress.toString());
+		}
+
+	}
 
 	public void shortToast(String message) {
 		Context context = getApplicationContext();

@@ -58,10 +58,12 @@ public class HexabusService extends Service {
             switch (msg.what) {
                 case MSG_REGISTER:
                 	clients.add(msg.replyTo);
+                	Log.d(TAG, "Client registered");
                     break;
                 case MSG_UNREGISTER:
                 	clients.remove(msg.replyTo);
-                	break;
+                	Log.d(TAG, "Client unregistered");
+               	break;
                 default:
                     super.handleMessage(msg);
             }
