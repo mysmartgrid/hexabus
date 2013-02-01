@@ -241,7 +241,7 @@ clock_delay_usec(uint16_t howlong)
   my_delay_loop_2(howlong);
 #endif
 }
-#if 0
+#if 1
 /*---------------------------------------------------------------------------*/
 /**
  * Legacy delay. The original clock_delay for the msp430 used a granularity

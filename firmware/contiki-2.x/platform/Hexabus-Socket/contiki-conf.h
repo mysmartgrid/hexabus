@@ -60,12 +60,6 @@ typedef unsigned short clock_time_t;
 typedef unsigned short uip_stats_t;
 typedef unsigned long off_t;
 
-void clock_delay(unsigned int us2);
-void clock_wait(int ms10);
-void clock_set_seconds(unsigned long s);
-unsigned long clock_seconds(void);
-
-/* Maximum timer interval for 16 bit clock_time_t */
 #define INFINITE_TIME 0xffff
 
 /* Clock ticks per second */
@@ -105,7 +99,6 @@ unsigned long clock_seconds(void);
 #define UIP_CONF_ICMP6            1
 #define UIP_CONF_UDP              1
 #define UIP_CONF_TCP              1
-#define UIP_CONF_IPV6_RPL         0
 #define NETSTACK_CONF_NETWORK       sicslowpan_driver
 #define SICSLOWPAN_CONF_COMPRESSION SICSLOWPAN_COMPRESSION_HC06
 #else
