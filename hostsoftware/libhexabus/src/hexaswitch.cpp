@@ -381,15 +381,6 @@ int main(int argc, char** argv) {
     }
   }
 
-	hexabus::LivenessReporter* liveness =
-    vm.count("reliable") && vm["reliable"].as<bool>()
-    ? new hexabus::LivenessReporter(*network)
-    : 0;
-	if (liveness) {
-		liveness->establishPaths(1);
-		liveness->start();
-	}
-
   if(boost::iequals(command, std::string("LISTEN")))
   {
     std::cout << "Entering listen mode." << std::endl;
@@ -415,6 +406,15 @@ int main(int argc, char** argv) {
   }
 
 	network->bind(bind_addr);
+
+	hexabus::LivenessReporter* liveness =
+    vm.count("reliable") && vm["reliable"].as<bool>()
+    ? new hexabus::LivenessReporter(*network)
+    : 0;
+	if (liveness) {
+		liveness->establishPaths(1);
+		liveness->start();
+	}
   /*
    * Shorthand convenience commands.
    */
