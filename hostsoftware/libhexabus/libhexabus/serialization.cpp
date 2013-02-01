@@ -512,7 +512,6 @@ Packet::Ptr BinaryDeserializer::deserialize()
 			{
 				uint32_t eid = read_u32();
 				uint8_t datatype = read_u8();
-				std::cout << "DT" << (int)datatype;
 				return check(EndpointInfoPacket(eid, datatype, read_string(), flags));
 			}
 

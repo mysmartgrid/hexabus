@@ -133,8 +133,11 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 					case HXB_DTYPE_128STRING:
 						target << "String";
 						break;
+					case HXB_DTYPE_16BYTES:
+						target << "Binary (16bytes)";
+						break;
 					case HXB_DTYPE_66BYTES:
-						target << "Binary";
+						target << "Binary (66bytes)";
 						break;
 					default:
 						target << "(unknown)";
