@@ -50,9 +50,9 @@ std::vector<std::string> GraphTransformation::findDevices(std::vector<vertex_id_
             devices.push_back(device_name);
           } catch(boost::bad_get b) {
             std::ostringstream oss;
-            std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find((*g)[v_id].machine_id);
-            if(it != machine_filenames_per_id.end())
-              oss << "[" << it->second << ":" << cmd.write_command.lineno << "] ";
+            machine_table::iterator it = _machines.find((*g)[v_id].machine_id);
+            if(it != _machines.end())
+              oss << "[" << it->second.file << ":" << cmd.write_command.lineno << "] ";
             oss << "Placeholder found in state machine instance (can not be resolved)" << std::endl;
             throw GraphTransformationErrorException(oss.str());
           }
