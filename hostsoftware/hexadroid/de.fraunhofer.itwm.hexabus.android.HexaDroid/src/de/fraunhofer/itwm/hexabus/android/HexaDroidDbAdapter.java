@@ -45,6 +45,12 @@ public class HexaDroidDbAdapter {
 		"(4, 'bool', 'internal Button (on board / plug)', 1, 0)",
 		"(5, 'float', 'Humidity sensor (%r.h.)', 1, 0)",
 		"(6, 'float', 'Barometric pressure sensor (hPa)', 1, 0)",
+		"(7, 'float', 'HexabusPlug+ energy meter total (kWh)', 1, 0)",
+		"(8, 'float', 'HexabusPlug+ energy meter user resettable', 1, 1)",
+		"(9, 'uint8', 'Statemachine control', 1, 1)",
+		"(10, 'bytes', 'Statemachine upload receiver', 0, 1)",
+		"(11, 'bool', 'Statemachine upload ack/nack', 1, 0)",
+		"(22, 'float', 'Analogread', 1, 0)",
 		"(23, 'uint8', 'Window shutter', 1, 1)",
 		"(24, 'uint8', 'Hexapush pressed buttons', 1, 0)",
 		"(25, 'uint8', 'Hexapush clicked buttons', 1, 0)",
@@ -53,14 +59,7 @@ public class HexaDroidDbAdapter {
 		"(28, 'uint8', 'Hexonoff toggle', 1, 1)",
 		"(29, 'float', 'Lightsensor', 1, 0)",
 		"(30, 'uint32', 'IR Receiver', 1, 0)",
-		"(40, 'uint8', 'Hexapush sequence numbers', 1, 0)",
-		"(41, 'uint8', 'Hexapush sequence numbers', 1, 0)",
-		"(42, 'uint8', 'Hexapush sequence numbers', 1, 0)",
-		"(43, 'uint8', 'Hexapush sequence numbers', 1, 0)",
-		"(44, 'uint8', 'Hexapush sequence numbers', 1, 0)",
-		"(45, 'uint8', 'Hexapush sequence numbers', 1, 0)",
-		"(46, 'uint8', 'Hexapush sequence numbers', 1, 0)",
-		"(47, 'uint8', 'Hexapush sequence numbers', 1, 0)"
+		"(31, 'bool', 'Node liveness', 1, 0)"
 	};
 	private static final String DB_NAME = "data";
 	private static final String DB_DEVICE_TABLE = "devices";
