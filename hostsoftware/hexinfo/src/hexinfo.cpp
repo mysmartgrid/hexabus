@@ -8,14 +8,6 @@
 #include <libhexabus/error.hpp>
 #include <libhexabus/socket.hpp>
 
-// STM_EQ ... used to define the enums in libhbc clash with constants defined in libhexabus
-// TODO fix this by renaming the enums!
-#undef STM_EQ
-#undef STM_LEQ
-#undef STM_GEQ
-#undef STM_LT
-#undef STM_GT
-#undef STM_NEQ
 #include <libhbc/ast_datatypes.hpp>
 #include <libhbc/skipper.hpp>
 #include <libhbc/hbcomp_grammar.hpp>

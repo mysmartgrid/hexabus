@@ -317,22 +317,22 @@ void HBAOutput::print_condition(atomic_condition_doc at_cond, std::ostream& ostr
 
   // comparison operator
   switch(at_cond.comp_op) {
-    case STM_EQ:
+    case STM_COMP_EQ:
       ostr << "==";
       break;
-    case STM_LEQ:
+    case STM_COMP_LEQ:
       ostr << "<=";
       break;
-    case STM_GEQ:
+    case STM_COMP_GEQ:
       ostr << ">=";
       break;
-    case STM_LT:
+    case STM_COMP_LT:
       ostr << "<";
       break;
-    case STM_GT:
+    case STM_COMP_GT:
       ostr << ">";
       break;
-    case STM_NEQ:
+    case STM_COMP_NEQ:
       ostr << "!=";
       break;
     default:
@@ -390,8 +390,8 @@ void HBAOutput::print_condition(timer_condition_doc tm_cond, std::ostream& ostr,
   }
   // operator
   switch(tm_cond.op) {
-    case STM_LT: ostr << " before "; break;
-    case STM_GT: ostr << " after ";  break;
+    case STM_COMP_LT: ostr << " before "; break;
+    case STM_COMP_GT: ostr << " after ";  break;
     default: break;
   }
 
