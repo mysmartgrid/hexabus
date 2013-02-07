@@ -243,6 +243,8 @@ void send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, 
 
 hexabus::hbc_doc read_file(std::string filename, bool verbose)
 {
+	hexabus::hbc_doc ast; // The AST
+
 	// read the file, and parse the endpoint definitions
 	bool r = false;
 	std::ifstream in(filename.c_str(), std::ios_base::in);
@@ -250,8 +252,8 @@ hexabus::hbc_doc read_file(std::string filename, bool verbose)
 		std::cout << "Reading input file " << filename << "..." << std::endl;
 
 	if(!in) {
-		std::cerr << "Error: Could not open input file: " << filename << std::endl;
-		exit(1);
+		std::cerr << "Could not open input file: " << filename << " -- does it exist? (I will try to create it for you!)" << std::endl;
+		return ast;
 	}
 
 	in.unsetf(std::ios::skipws); // no white space skipping, this will be handled by the parser
@@ -271,7 +273,6 @@ hexabus::hbc_doc read_file(std::string filename, bool verbose)
 	typedef hexabus::skipper<pos_iterator_type> Skip;
 	hexabus_comp_grammar grammar(error_hints, position_begin);
 	Skip skipper;
-	hexabus::hbc_doc ast; // The AST
 
 	using boost::spirit::ascii::space;
 	using boost::spirit::ascii::char_;
@@ -390,7 +391,6 @@ int main(int argc, char** argv)
 
 		if(vm.count("epfile"))
 		{
-			// TODO if the file doesn't exist, create it!
 			// read in HBC file
 			hexabus::hbc_doc hbc_input = read_file(vm["epfile"].as<std::string>(), verbose);
 
@@ -422,7 +422,7 @@ int main(int argc, char** argv)
 
 			// Write (newly discovered) eids to the file
 			std::ofstream ofs;
-			ofs.open(vm["epfile"].as<std::string>().c_str(), std::fstream::app); // TODO do it without opening the file twice
+			ofs.open(vm["epfile"].as<std::string>().c_str(), std::fstream::app);
 			if(!ofs)
 			{
 				std::cerr << "Error: Could not open output file: " << vm["epfile"].as<std::string>().c_str() << std::endl;
@@ -438,7 +438,6 @@ int main(int argc, char** argv)
 
 		if(vm.count("devfile"))
 		{
-			// TODO if the file doesn't exist, create it!
 			hexabus::hbc_doc hbc_input = read_file(vm["devfile"].as<std::string>(), verbose);
 
 			std::set<boost::asio::ip::address_v6> existing_dev_addresses;
@@ -474,7 +473,7 @@ int main(int argc, char** argv)
 			if(!existing_dev_addresses.count(target_ip))
 			{
 				std::ofstream ofs;
-				ofs.open(vm["devfile"].as<std::string>().c_str(), std::fstream::app); // TODO do it without opening the file twice
+				ofs.open(vm["devfile"].as<std::string>().c_str(), std::fstream::app);
 				if(!ofs)
 				{
 					std::cerr << "Error: Could not open output file: " << vm["devfile"].as<std::string>().c_str() << std::endl;
