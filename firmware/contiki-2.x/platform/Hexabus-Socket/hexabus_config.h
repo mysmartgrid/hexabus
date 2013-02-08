@@ -27,6 +27,24 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define BUTTON_HAS_EID 1 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
 #define BUTTON_TOGGLES_RELAY 0 // set to 1 to have the button toggle the relay directly
 
+#if defined(__AVR_ATmega1284P__)
+#define BUTTON_PORT		PORTD
+#define BUTTON_PIN		PIND
+#define BUTTON_BIT		PD5
+#elif defined(__AVR_ATmega2561__)
+#define BUTTON_PORT		PORTE
+#define BUTTON_PIN		PINE
+#define BUTTON_BIT		PE4
+#else
+#error Hardware not defined!
+#endif
+
+#define BUTTON_DEBOUNCE_MS			50
+#define BUTTON_DOUBLE_CLICK_MS	500UL
+#define	BUTTON_CLICK_MS					2000UL
+#define	BUTTON_LONG_CLICK_MS		7000UL
+#define	BUTTON_PAUSE_MS					500UL
+
 // datetime_service
 #define DATETIME_SERVICE_ENABLE 1
 #define DATETIME_SERVICE_DEBUG 0

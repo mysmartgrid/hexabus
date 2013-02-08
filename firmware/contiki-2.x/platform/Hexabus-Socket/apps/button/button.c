@@ -87,37 +87,38 @@ PROCESS_THREAD(button_pressed_process, ev, data)
 		/*button is pressed when BUTTON_BIT is clear */
 		if (bit_is_clear(BUTTON_PIN, BUTTON_BIT))
 		{
-			etimer_set(&button_timer, CLOCK_SECOND * DEBOUNCE_TIME / 1000);
+			etimer_set(&button_timer, CLOCK_SECOND * BUTTON_DEBOUNCE_MS / 1000);
 			PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&button_timer));
 			if (bit_is_clear(BUTTON_PIN, BUTTON_BIT)) { //if button is still pressed
 				etimer_restart(&button_timer);
 				time = clock_time();
 				double_click = 0;
-				/*check for button release within LONG_CLICK_TIME*/
+				/*check for button release within BUTTON_LONG_CLICK_MS*/
 				do {
 					PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&button_timer));
 					etimer_restart(&button_timer);
+					PRINTF("button_process: button_state: %d, click time: %d\n",bit_is_clear(BUTTON_PIN, BUTTON_BIT), (clock_time() - time));
 					/* led feedback for provisioning */
-					if (clock_time() - time > CLOCK_SECOND * CLICK_TIME / 1000){
+					if (clock_time() - time > CLOCK_SECOND * BUTTON_CLICK_MS / 1000){
 						leds_off(LEDS_GREEN);
 						provisioning_leds();
 					}
-				} while ((clock_time() - time < CLOCK_SECOND * LONG_CLICK_TIME / 1000) && (bit_is_clear(BUTTON_PIN, BUTTON_BIT)));
+				} while ((clock_time() - time < CLOCK_SECOND * BUTTON_LONG_CLICK_MS / 1000) && (bit_is_clear(BUTTON_PIN, BUTTON_BIT)));
 #if BUTTON_DOUBLE_CLICK_ENABLED
-				/*button was released, check for a second click within DOUBLE_CLICK_TIME*/
-				if (clock_time() - time < CLOCK_SECOND * DOUBLE_CLICK_TIME / 1000) {
+				/*button was released, check for a second click within BUTTON_DOUBLE_CLICK_MS*/
+				if (clock_time() - time < CLOCK_SECOND * BUTTON_DOUBLE_CLICK_MS / 1000) {
 					do {
 						PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&button_timer));
 						etimer_restart(&button_timer);
 						double_click = bit_is_clear(BUTTON_PIN, BUTTON_BIT);
-					} while ((clock_time() - time < CLOCK_SECOND * DOUBLE_CLICK_TIME / 1000) && (!double_click));
+					} while ((clock_time() - time < CLOCK_SECOND * BUTTON_DOUBLE_CLICK_MS / 1000) && (!double_click));
 				}
 				/*check for click type*/
-				if (double_click && (clock_time() - time < CLOCK_SECOND * DOUBLE_CLICK_TIME / 1000))
-				{ //DOUBLE CLICK
+				if (double_click && (clock_time() - time < CLOCK_SECOND * BUTTON_DOUBLE_CLICK_MS / 1000)) { //DOUBLE CLICK
 				}
 #endif
-				if (!double_click && clock_time() - time < CLOCK_SECOND * CLICK_TIME / 1000)
+				PRINTF("double click: %d, click time: %d\n",double_click, (clock_time() - time));
+				if (!double_click && clock_time() - time < CLOCK_SECOND * BUTTON_CLICK_MS / 1000)
 				{ //SHORT SINGLE CLICK
 #if BUTTON_HAS_EID
           button_pushed = 1;
@@ -129,12 +130,12 @@ PROCESS_THREAD(button_pressed_process, ev, data)
 					relay_toggle();
 #endif
 				}
-				else if (!double_click && clock_time() - time < CLOCK_SECOND * LONG_CLICK_TIME / 1000)
+				else if (!double_click && clock_time() - time < CLOCK_SECOND * BUTTON_LONG_CLICK_MS / 1000)
 				{ //SINGLE CLICK (>2s)
 					//provisioning
 					provisioning_slave();
 				}
-				else if (!double_click && clock_time() - time >= CLOCK_SECOND * LONG_CLICK_TIME / 1000) {//LONG SINGLE CLICK
+				else if (!double_click && clock_time() - time >= CLOCK_SECOND * BUTTON_LONG_CLICK_MS / 1000) {//LONG SINGLE CLICK
 					if (!metering_calibrate()) //start bootloader if calibration flag is not set
 					{
 						// bootloader (set flag in EEPROM and reboot)
@@ -142,15 +143,15 @@ PROCESS_THREAD(button_pressed_process, ev, data)
 						watchdog_reboot();
 					}
 					else { //wait thus no second miss click can occur
-						etimer_set(&button_timer, CLOCK_SECOND * 4 * PAUSE_TIME / 1000);
+						etimer_set(&button_timer, CLOCK_SECOND * 4 * BUTTON_PAUSE_MS / 1000);
 						PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&button_timer));
 					}
 				}
 			}
-			etimer_set(&button_timer, CLOCK_SECOND * PAUSE_TIME / 1000); //pause for PAUSE_TIME till next button event can occur
+			etimer_set(&button_timer, CLOCK_SECOND * BUTTON_PAUSE_MS / 1000); //pause for BUTTON_PAUSE_MS till next button event can occur
 			PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&button_timer));
 		}
-		etimer_set(&button_timer, CLOCK_SECOND * DEBOUNCE_TIME / 1000);
+		etimer_set(&button_timer, CLOCK_SECOND * BUTTON_DEBOUNCE_MS / 1000);
 		PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&button_timer));
 	}
 	exit:

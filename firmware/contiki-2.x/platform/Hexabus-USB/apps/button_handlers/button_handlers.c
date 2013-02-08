@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Fraunhofer ESK
+ * Copyright (c) 2013, Fraunhofer ITWM
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,29 +27,29 @@
  * SUCH DAMAGE.
  *
  *
- * Author: 	Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
+ * Author: Sean Buckheister <buckheister@itwm.fraunhofer.de>
  *
- * @(#)$$
  */
 
-#ifndef BUTTON_H_
-#define BUTTON_H_
+#include "button.h"
+#include "eeprom_variables.h"
+#include <avr/eeprom.h>
+#include <avr/wdt.h>
+#include "dev/watchdog.h"
+#include "provisioning.h"
 
-#include "process.h"
+void button_long_pressed(bool released)
+{
+	if (released) {
+		provisioning_master();
+	} else {
+		provisioning_leds();
+	}
+}
 
-#define BUTTON_PORT		PORTE
-#define BUTTON_PIN		PINE
-#define BUTTON_BIT		PE2
+void button_held()
+{
+	eeprom_write_byte((uint8_t *)EE_BOOTLOADER_FLAG, 0x01);
+	watchdog_reboot();
+}
 
-#define DEBOUNCE_TIME		   50
-#define DOUBLE_CLICK_TIME	 500UL
-#define	CLICK_TIME			2000UL
-#define	LONG_CLICK_TIME		7000UL
-#define	PAUSE_TIME			 500UL
-
-#define DOUBLE_CLICK_ENABLED	0
-
-PROCESS_NAME(button_pressed_process);
-
-
-#endif /* BUTTON_H_ */

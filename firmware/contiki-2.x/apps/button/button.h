@@ -38,11 +38,14 @@
 #include "hexabus_config.h"
 #include "process.h"
 
-#if BUTTON_HAS_EID
-uint8_t button_get_pushed();
-#endif
-
 PROCESS_NAME(button_pressed_process);
 
+// Each of these functions will be called at appropriate times when defined in user code
+#if 0
+void button_clicked(void);
+void button_double_clicked(void);
+void button_long_pressed(bool released);
+void button_held(void);
+#endif
 
 #endif /* BUTTON_H_ */
