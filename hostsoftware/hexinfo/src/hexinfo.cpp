@@ -21,19 +21,29 @@ struct endpoint_descriptor
 	uint32_t eid;
 	uint8_t datatype;
 	std::string name;
+
+	bool operator<(const endpoint_descriptor &b) const
+	{
+		return (eid < b.eid);
+	}
 };
 
 struct device_descriptor
 {
 	boost::asio::ip::address_v6 ipv6_address;
 	std::string name;
-	std::vector<uint32_t> endpoint_ids;
+	std::set<uint32_t> endpoint_ids;
+
+	bool operator<(const device_descriptor &b) const
+	{
+		return (ipv6_address < b.ipv6_address);
+	}
 };
 
 struct ResponseHandler : public hexabus::PacketVisitor
 {
 	public:
-		ResponseHandler(device_descriptor& device, std::vector<endpoint_descriptor>& endpoints) : _device(device), _endpoints(endpoints) {}
+		ResponseHandler(device_descriptor& device, std::set<endpoint_descriptor>& endpoints) : _device(device), _endpoints(endpoints) {}
 
     // The uninteresing ones
 		void visit(const hexabus::ErrorPacket& error) {}
@@ -70,7 +80,7 @@ struct ResponseHandler : public hexabus::PacketVisitor
 				ep.datatype = endpointInfo.datatype();
 				ep.name = endpointInfo.value();
 
-				_endpoints.push_back(ep);
+				_endpoints.insert(ep);
 			}
 		}
 
@@ -82,7 +92,7 @@ struct ResponseHandler : public hexabus::PacketVisitor
 				for(int i = 0; i < 32; ++i)
 				{
 					if(val % 2) // find out whether LSB is set
-						_device.endpoint_ids.push_back(i); // if it's set, store the EID (the bit's position in the device descriptor).
+						_device.endpoint_ids.insert(i); // if it's set, store the EID (the bit's position in the device descriptor).
 
 					val >>= 1; // right-shift in order to have the next EID in the LSB
 				}
@@ -91,7 +101,7 @@ struct ResponseHandler : public hexabus::PacketVisitor
 
 	private:
 		device_descriptor& _device;
-		std::vector<endpoint_descriptor>& _endpoints;
+		std::set<endpoint_descriptor>& _endpoints;
 };
 
 void print_dev_info(const device_descriptor& dev)
@@ -100,7 +110,7 @@ void print_dev_info(const device_descriptor& dev)
 	std::cout << "\tIP address: \t" << dev.ipv6_address.to_string() << std::endl;
 	std::cout << "\tDevice name: \t" << dev.name << std::endl;
 	std::cout << "\tEndpoints: \t";
-	for(std::vector<uint32_t>::const_iterator it = dev.endpoint_ids.begin(); it != dev.endpoint_ids.end(); ++it)
+	for(std::set<uint32_t>::const_iterator it = dev.endpoint_ids.begin(); it != dev.endpoint_ids.end(); ++it)
 		std::cout << *it << " ";
 	std::cout << std::endl;
 }
@@ -164,7 +174,7 @@ void write_dev_desc(const device_descriptor& dev, std::ostream& target)
 	target << "device " << remove_specialchars(dev.name) << " {" << std::endl;
 	target << "\tip " << dev.ipv6_address.to_string() << ";" << std::endl;
 	target << "\teids { ";
-	for(std::vector<uint32_t>::const_iterator it = dev.endpoint_ids.begin(); it != dev.endpoint_ids.end(); ) // no increment here!
+	for(std::set<uint32_t>::const_iterator it = dev.endpoint_ids.begin(); it != dev.endpoint_ids.end(); ) // no increment here!
 	{
 		target << *it;
 		if(++it != dev.endpoint_ids.end()) // increment here to see if we have to put a comma
@@ -343,7 +353,24 @@ int main(int argc, char** argv)
 	if(vm.count("verbose"))
 		verbose = true;
 
-	std::set<boost::asio::ip::address_v6> devices; // Holds the list of devices to scan -- either filled with everything we "discover" or with just one "ip"
+	// set up the things we need later =========
+	std::set<boost::asio::ip::address_v6> addresses; // Holds the list of addresses to scan -- either filled with everything we "discover" or with just one "ip"
+	// init the network interface
+	boost::asio::io_service io;
+	hexabus::Socket* network;
+	try {
+		network = new hexabus::Socket(io);
+	} catch(const hexabus::NetworkException& e) {
+		std::cerr << "Could not open socket: " << e.code().message() << std::endl;
+		return 1;
+	}
+	boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
+	network->bind(bind_addr);
+	// construct the responseHandler
+	std::set<device_descriptor> devices;
+	std::set<endpoint_descriptor> endpoints;
+	// =========================================
+
 
 	if(vm.count("ip") && vm.count("discover"))
 	{
@@ -353,30 +380,18 @@ int main(int argc, char** argv)
 
 	if(vm.count("discover"))
 	{
-		// init the network interface
-		boost::asio::io_service io;
-		hexabus::Socket* network;
-		try {
-			network = new hexabus::Socket(io);
-		} catch(const hexabus::NetworkException& e) {
-			std::cerr << "Could not open socket: " << e.code().message() << std::endl;
-			return 1;
-		}
-		boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
-		network->bind(bind_addr);
-
 		// send the packet
 		boost::asio::ip::address_v6 hxb_broadcast_address = boost::asio::ip::address_v6::from_string(HXB_GROUP);
 		send_packet(network, hxb_broadcast_address, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR));
 
 		// call back handlers for receiving packets
 		struct {
-			std::set<boost::asio::ip::address_v6>* devices;
+			std::set<boost::asio::ip::address_v6>* addresses;
 			void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep)
 			{
-				devices->insert(asio_ep.address().to_v6());
+				addresses->insert(asio_ep.address().to_v6());
 			}
-		} receiveCallback = { &devices };
+		} receiveCallback = { &addresses };
 		struct {
 			void operator()(const hexabus::GenericException& error)
 			{
@@ -397,40 +412,26 @@ int main(int argc, char** argv)
 
 		if(verbose)
 		{
-			std::cout << "Discovered devices:" << std::endl;
-			for(std::set<boost::asio::ip::address_v6>::iterator it = devices.begin(); it != devices.end(); ++it)
+			std::cout << "Discovered addresses:" << std::endl;
+			for(std::set<boost::asio::ip::address_v6>::iterator it = addresses.begin(); it != addresses.end(); ++it)
 			{
 				std::cout << "\t" << it->to_string() << std::endl;
 			}
 			std::cout << std::endl;
 		}
 	} else if(vm.count("ip")) {
-		devices.insert(boost::asio::ip::address_v6::from_string(vm["ip"].as<std::string>()));
+		addresses.insert(boost::asio::ip::address_v6::from_string(vm["ip"].as<std::string>()));
 	} else {
 		std::cerr << "You must either specify an IP address or use the --discover option." << std::endl;
 		exit(1);
 	}
 
-	for(std::set<boost::asio::ip::address_v6>::iterator address_it = devices.begin(); address_it != devices.end(); ++address_it)
+	for(std::set<boost::asio::ip::address_v6>::iterator address_it = addresses.begin(); address_it != addresses.end(); ++address_it)
 	{
-		// init the network interface
-		boost::asio::io_service io;
-		hexabus::Socket* network;
-		try {
-			network = new hexabus::Socket(io);
-		} catch(const hexabus::NetworkException& e) {
-			std::cerr << "Could not open socket: " << e.code().message() << std::endl;
-			return 1;
-		}
-		boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
-		network->bind(bind_addr);
-
-		boost::asio::ip::address_v6 target_ip = *address_it;
-
-		// construct the responseHandler
 		device_descriptor device;
-		device.ipv6_address = target_ip; // we can already set the IP address
-		std::vector<endpoint_descriptor> endpoints;
+		boost::asio::ip::address_v6 target_ip = *address_it;
+		device.ipv6_address = target_ip;
+
 		ResponseHandler handler(device, endpoints);
 
 		// send the device name query packet and listen for the reply
@@ -440,7 +441,7 @@ int main(int argc, char** argv)
 		send_packet(network, target_ip, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR), &handler);
 
 		// now, iterate over the endpoint list and find out the properties of each endpoint
-		for(std::vector<uint32_t>::iterator it = device.endpoint_ids.begin(); it != device.endpoint_ids.end(); ++it)
+		for(std::set<uint32_t>::iterator it = device.endpoint_ids.begin(); it != device.endpoint_ids.end(); ++it)
 			send_packet(network, target_ip, hexabus::EndpointQueryPacket(*it), &handler);
 
 		if(vm.count("print"))
@@ -448,106 +449,107 @@ int main(int argc, char** argv)
 			// print the information onto the command line
 			print_dev_info(device);
 			std::cout << std::endl;
-			for(std::vector<endpoint_descriptor>::iterator it = endpoints.begin(); it != endpoints.end(); ++it)
+			for(std::set<endpoint_descriptor>::iterator it = endpoints.begin(); it != endpoints.end(); ++it)
 				print_ep_info(*it);
 		}
 
-		if(vm.count("epfile"))
-		{
-			// read in HBC file
-			hexabus::hbc_doc hbc_input = read_file(vm["epfile"].as<std::string>(), verbose);
+		devices.insert(device);
+	}
 
-			std::set<uint32_t> existing_eids;
-			// check all endpoint definitions, insert eids into set of existing eids
-			BOOST_FOREACH(hexabus::hbc_block block, hbc_input.blocks)
+	if(vm.count("epfile"))
+	{
+		// read in HBC file
+		hexabus::hbc_doc hbc_input = read_file(vm["epfile"].as<std::string>(), verbose);
+
+		std::set<uint32_t> existing_eids;
+		// check all endpoint definitions, insert eids into set of existing eids
+		BOOST_FOREACH(hexabus::hbc_block block, hbc_input.blocks)
+		{
+			if(block.which() == 1) // endpoint_doc
 			{
-				if(block.which() == 1) // endpoint_doc
+				BOOST_FOREACH(hexabus::endpoint_cmd_doc epc, boost::get<hexabus::endpoint_doc>(block).cmds)
 				{
-					BOOST_FOREACH(hexabus::endpoint_cmd_doc epc, boost::get<hexabus::endpoint_doc>(block).cmds)
+					if(epc.which() == 0) // ep_eid_doc
 					{
-						if(epc.which() == 0) // ep_eid_doc
-						{
-							existing_eids.insert(boost::get<hexabus::ep_eid_doc>(epc).eid);
-						}
+						existing_eids.insert(boost::get<hexabus::ep_eid_doc>(epc).eid);
 					}
 				}
-			}
-
-			if(verbose)
-			{
-				std::cout << "Endpoint IDs already present in file: ";
-				for(std::set<uint32_t>::iterator it = existing_eids.begin(); it != existing_eids.end(); ++it)
-				{
-					std::cout << *it << " ";
-				}
-				std::cout << std::endl;
-			}
-
-			// Write (newly discovered) eids to the file
-			std::ofstream ofs;
-			ofs.open(vm["epfile"].as<std::string>().c_str(), std::fstream::app);
-			if(!ofs)
-			{
-				std::cerr << "Error: Could not open output file: " << vm["epfile"].as<std::string>().c_str() << std::endl;
-				return 1;
-			}
-
-			for(std::vector<endpoint_descriptor>::iterator it = endpoints.begin(); it != endpoints.end(); ++it)
-			{
-				if(!existing_eids.count(it->eid))
-					write_ep_desc(*it, ofs);
 			}
 		}
 
-		if(vm.count("devfile"))
+		if(verbose)
 		{
-			hexabus::hbc_doc hbc_input = read_file(vm["devfile"].as<std::string>(), verbose);
-
-			std::set<boost::asio::ip::address_v6> existing_dev_addresses;
-			// check all the device definitions, and store their ip addresses in the set.
-			BOOST_FOREACH(hexabus::hbc_block block, hbc_input.blocks)
+			std::cout << "Endpoint IDs already present in file: ";
+			for(std::set<uint32_t>::iterator it = existing_eids.begin(); it != existing_eids.end(); ++it)
 			{
-				if(block.which() == 2) // alias_doc
+				std::cout << *it << " ";
+			}
+			std::cout << std::endl;
+		}
+
+		// Write (newly discovered) eids to the file
+		std::ofstream ofs;
+		ofs.open(vm["epfile"].as<std::string>().c_str(), std::fstream::app);
+		if(!ofs)
+		{
+			std::cerr << "Error: Could not open output file: " << vm["epfile"].as<std::string>().c_str() << std::endl;
+			return 1;
+		}
+
+		for(std::set<endpoint_descriptor>::iterator it = endpoints.begin(); it != endpoints.end(); ++it)
+		{
+			if(!existing_eids.count(it->eid))
+				write_ep_desc(*it, ofs);
+		}
+	}
+
+	if(vm.count("devfile"))
+	{
+		hexabus::hbc_doc hbc_input = read_file(vm["devfile"].as<std::string>(), verbose);
+
+		std::set<boost::asio::ip::address_v6> existing_dev_addresses;
+		// check all the device definitions, and store their ip addresses in the set.
+		BOOST_FOREACH(hexabus::hbc_block block, hbc_input.blocks)
+		{
+			if(block.which() == 2) // alias_doc
+			{
+				BOOST_FOREACH(hexabus::alias_cmd_doc ac, boost::get<hexabus::alias_doc>(block).cmds)
 				{
-					BOOST_FOREACH(hexabus::alias_cmd_doc ac, boost::get<hexabus::alias_doc>(block).cmds)
+					if(ac.which() == 0) // alias_ip_doc
 					{
-						if(ac.which() == 0) // alias_ip_doc
-						{
-							existing_dev_addresses.insert(
+						existing_dev_addresses.insert(
 								boost::asio::ip::address_v6::from_string(
 									boost::get<hexabus::alias_ip_doc>(ac).ipv6_address));
-						}
 					}
 				}
 			}
+		}
 
-			if(verbose)
-			{
-				std::cout << "Device IPs already present in file: " << std::endl;
-				for(std::set<boost::asio::ip::address_v6>::iterator it = existing_dev_addresses.begin();
+		if(verbose)
+		{
+			std::cout << "Device IPs already present in file: " << std::endl;
+			for(std::set<boost::asio::ip::address_v6>::iterator it = existing_dev_addresses.begin();
 					it != existing_dev_addresses.end();
 					++it)
-				{
-					std::cout << "\t" << it->to_string() << std::endl;
-				}
-			}
-
-			// only insert our device descriptor if the IP is not already found.
-			if(!existing_dev_addresses.count(target_ip))
 			{
-				std::ofstream ofs;
-				ofs.open(vm["devfile"].as<std::string>().c_str(), std::fstream::app);
-				if(!ofs)
-				{
-					std::cerr << "Error: Could not open output file: " << vm["devfile"].as<std::string>().c_str() << std::endl;
-					return 1;
-				}
-
-				write_dev_desc(device, ofs);
-			} else {
-				if(verbose)
-					std::cout << "Device IP address already found in file -- not adding." << std::endl;
+				std::cout << "\t" << it->to_string() << std::endl;
 			}
+		}
+
+		// open file
+		std::ofstream ofs;
+		ofs.open(vm["devfile"].as<std::string>().c_str(), std::fstream::app);
+		if(!ofs)
+		{
+			std::cerr << "Error: Could not open output file: " << vm["devfile"].as<std::string>().c_str() << std::endl;
+			return 1;
+		}
+
+		for(std::set<device_descriptor>::iterator it = devices.begin(); it != devices.end(); ++it)
+		{
+			// only insert our device descriptors if the IP is not already found.
+			if(!existing_dev_addresses.count(it->ipv6_address))
+				write_dev_desc(*it, ofs);
 		}
 	}
 }
