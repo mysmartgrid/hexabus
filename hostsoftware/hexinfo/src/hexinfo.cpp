@@ -12,6 +12,7 @@
 #include <libhbc/skipper.hpp>
 #include <libhbc/hbcomp_grammar.hpp>
 #include "../../../shared/endpoints.h"
+#include "../../../shared/hexabus_definitions.h"
 
 namespace po = boost::program_options;
 
@@ -203,7 +204,7 @@ void write_ep_desc(const endpoint_descriptor& ep, std::ostream& target)
 	}
 }
 
-void send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet, ResponseHandler& handler)
+void send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet, ResponseHandler* handler = NULL)
 {
 	try {
 		net->send(packet, addr);
@@ -211,6 +212,10 @@ void send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, 
 		std::cerr << "Could not send packet to " << addr << ": " << e.code().message() << std::endl;
 		exit(1);
 	}
+
+	// if we have no response handler, return after the packet was sent.
+	if(handler == NULL)
+		return;
 
 	while (true) {
 		std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
@@ -227,7 +232,7 @@ void send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, 
 		}
 
 		if (pair.second.address() == addr) {
-			handler.visitPacket(*pair.first);
+			handler->visitPacket(*pair.first);
 			break;
 		}
 	}
@@ -300,6 +305,7 @@ int main(int argc, char** argv)
 		("help,h", "produce help message")
 		("version", "print version and exit")
 		("ip,i", po::value<std::string>(), "IP addres of device")
+		("discover,c", "automatically discover hexabus devices")
 		("print,p", "print device and endpoint info to the console")
 		("epfile,e", po::value<std::string>(), "name of Hexabus Compiler header file to write the endpoint list to")
 		("devfile,d", po::value<std::string>(), "name of Hexabus Compiler header file to write the device definition to")
@@ -337,11 +343,16 @@ int main(int argc, char** argv)
 	if(vm.count("verbose"))
 		verbose = true;
 
-	if(!vm.count("ip"))
+	std::set<boost::asio::ip::address_v6> devices; // Holds the list of devices to scan -- either filled with everything we "discover" or with just one "ip"
+
+	if(vm.count("ip") && vm.count("discover"))
 	{
-		std::cerr << "You must specify an IP address." << std::endl;
-		return 1;
-	} else { // we have exactly one IP address
+		std::cerr << "Error: Options --ip and --discover are mutually exclusive." << std::endl;
+		exit(1);
+	}
+
+	if(vm.count("discover"))
+	{
 		// init the network interface
 		boost::asio::io_service io;
 		hexabus::Socket* network;
@@ -354,7 +365,67 @@ int main(int argc, char** argv)
 		boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
 		network->bind(bind_addr);
 
-		boost::asio::ip::address_v6 target_ip = boost::asio::ip::address_v6::from_string(vm["ip"].as<std::string>());
+		// send the packet
+		boost::asio::ip::address_v6 hxb_broadcast_address = boost::asio::ip::address_v6::from_string(HXB_GROUP);
+		send_packet(network, hxb_broadcast_address, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR));
+
+		// call back handlers for receiving packets
+		struct {
+			std::set<boost::asio::ip::address_v6>* devices;
+			void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep)
+			{
+				devices->insert(asio_ep.address().to_v6());
+			}
+		} receiveCallback = { &devices };
+		struct {
+			void operator()(const hexabus::GenericException& error)
+			{
+				std::cerr << "Error receiving packet: " << error.what() << std::endl;
+				exit(1);
+			}
+		} errorCallback;
+
+		network->onAsyncError(errorCallback);
+		network->onPacketReceived(receiveCallback, hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR));
+
+		// timer that cancels receiving after n seconds
+		boost::asio::deadline_timer _timer(network->ioService());
+		_timer.expires_from_now(boost::posix_time::seconds(3)); // TODO do we want this configurable? Or at least as a constant
+		_timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
+
+		network->ioService().run();
+
+		if(verbose)
+		{
+			std::cout << "Discovered devices:" << std::endl;
+			for(std::set<boost::asio::ip::address_v6>::iterator it = devices.begin(); it != devices.end(); ++it)
+			{
+				std::cout << "\t" << it->to_string() << std::endl;
+			}
+			std::cout << std::endl;
+		}
+	} else if(vm.count("ip")) {
+		devices.insert(boost::asio::ip::address_v6::from_string(vm["ip"].as<std::string>()));
+	} else {
+		std::cerr << "You must either specify an IP address or use the --discover option." << std::endl;
+		exit(1);
+	}
+
+	for(std::set<boost::asio::ip::address_v6>::iterator address_it = devices.begin(); address_it != devices.end(); ++address_it)
+	{
+		// init the network interface
+		boost::asio::io_service io;
+		hexabus::Socket* network;
+		try {
+			network = new hexabus::Socket(io);
+		} catch(const hexabus::NetworkException& e) {
+			std::cerr << "Could not open socket: " << e.code().message() << std::endl;
+			return 1;
+		}
+		boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
+		network->bind(bind_addr);
+
+		boost::asio::ip::address_v6 target_ip = *address_it;
 
 		// construct the responseHandler
 		device_descriptor device;
@@ -363,14 +434,14 @@ int main(int argc, char** argv)
 		ResponseHandler handler(device, endpoints);
 
 		// send the device name query packet and listen for the reply
-		send_packet(network, target_ip, hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR), handler);
+		send_packet(network, target_ip, hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR), &handler);
 
 		// send the device descriptor (endpoint list) query packet and listen for the reply
-		send_packet(network, target_ip, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR), handler);
+		send_packet(network, target_ip, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR), &handler);
 
 		// now, iterate over the endpoint list and find out the properties of each endpoint
 		for(std::vector<uint32_t>::iterator it = device.endpoint_ids.begin(); it != device.endpoint_ids.end(); ++it)
-			send_packet(network, target_ip, hexabus::EndpointQueryPacket(*it), handler);
+			send_packet(network, target_ip, hexabus::EndpointQueryPacket(*it), &handler);
 
 		if(vm.count("print"))
 		{
