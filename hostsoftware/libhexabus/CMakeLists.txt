@@ -80,11 +80,10 @@ include(CMakeBackwardCompatibilityCXX)
 
 # find libklio
 find_package(Libklio)
-if( NOT LIBKLIO_FOUND)
-  message(FATAL_ERROR "libklio is required.You may set LIBKLIO_HOME")
-endif( NOT LIBKLIO_FOUND)
+if( LIBKLIO_FOUND )
+  FIND_PACKAGE(Sqlite)
+endif( LIBKLIO_FOUND )
 
-FIND_PACKAGE(Sqlite)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
 SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
@@ -136,6 +135,12 @@ message("  boost libraries shortcut: ${Boost_LIBRARIES}")
 message("  boost program options lib: ${Boost_PROGRAM_OPTIONS_LIBRARY}")
 message("  boost system lib: ${Boost_SYSTEM_LIBRARY}")
 message("  boost filesystem lib: ${Boost_FILESYSTEM_LIBRARY}")
-message("  sqlite3 include: ${SQLITE3_INCLUDE_DIR}, lib: ${SQLITE3_LIBRARIES}")
+if( LIBKLIO_FOUND )
+  message(" sqlite3 include: ${SQLITE3_INCLUDE_DIR}, lib: ${SQLITE3_LIBRARIES}")
+  message(" libklio include: ${LIBKLIO_INCLUDE_DIR}, lib: ${LIBKLIO_LIBRARIES}")
+endif( LIBKLIO_FOUND )
 message("  extended logging: ${ENABLE_LOGGING}")
 
+if( NOT LIBKLIO_FOUND )
+  message(WARNING "libklio not found. hexalog will be disabled in this build.")
+endif( NOT LIBKLIO_FOUND )

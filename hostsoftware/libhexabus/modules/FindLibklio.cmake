@@ -27,16 +27,16 @@ endif (NOT WIN32)
 
 #
 # set defaults
-SET(_libklio_HOME "/usr/local")
+SET(_libklio_HOME "/usr")
 SET(_libklio_INCLUDE_SEARCH_DIRS
   ${CMAKE_INCLUDE_PATH}
-  /usr/local/include
+  #/usr/local/include
   /usr/include
   )
 
 SET(_libklio_LIBRARIES_SEARCH_DIRS
   ${CMAKE_LIBRARY_PATH}
-  /usr/local/lib
+  #/usr/local/lib
   /usr/lib
   )
 

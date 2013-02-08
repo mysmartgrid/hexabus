@@ -56,6 +56,8 @@ process_event_t immediate_broadcast_event;
 static struct uip_udp_conn *client_conn;
 static uip_ipaddr_t server_ipaddr;
 
+
+
 /*---------------------------------------------------------------------------*/
 #if VALUE_BROADCAST_AUTO_INTERVAL
 PROCESS(value_broadcast_process, "UDP value broadcast sender process");
@@ -85,6 +87,8 @@ void broadcast_value_ptr(void* eidp) { // when called from a callback timer or e
 
 void broadcast_value(uint32_t eid)
 {
+
+  if(seqnum_is_valid()) {
   struct hxb_value val;
   endpoint_read(eid, &val);
 
@@ -114,10 +118,10 @@ void broadcast_value(uint32_t eid)
       case HXB_DTYPE_UINT8:;
         struct hxb_packet_int8 packet8;
         strncpy(&packet8.header, HXB_HEADER, 4);
-	packet8.seqnumber = uip_htonl(increase_seqnum());
+	packet8.seqnumber = uip_htons(increase_seqnum());
         packet8.type = HXB_PTYPE_INFO;
         packet8.flags = 0;
-        packet8.eid = uip_htonl(eid);
+        packet8.eid = uip_htons(eid);
         packet8.datatype = val.datatype;
         packet8.value = *(uint8_t*)&val.data;
         packet8.crc = uip_htons(crc16_data((char*)&packet8, sizeof(packet8)-2, 0));
@@ -125,11 +129,12 @@ void broadcast_value(uint32_t eid)
 	write_to_buffer(current_seqnum(), &packet8, sizeof(packet8));
         uip_udp_packet_sendto(client_conn, &packet8, sizeof(packet8),
             &server_ipaddr, UIP_HTONS(HXB_PORT));
+
         break;
       case HXB_DTYPE_UINT32:;
         struct hxb_packet_int32 packet32;
         strncpy(&packet32.header, HXB_HEADER, 4);
-	packet32.seqnumber = uip_htonl(increase_seqnum());
+	packet32.seqnumber = uip_htons(increase_seqnum());
         packet32.type = HXB_PTYPE_INFO;
         packet32.flags = 0;
         packet32.eid = uip_htonl(eid);
@@ -144,7 +149,7 @@ void broadcast_value(uint32_t eid)
       case HXB_DTYPE_FLOAT:;
         struct hxb_packet_float packetf;
         strncpy(&packetf.header, HXB_HEADER, 4);
-	packetf.seqnumber = uip_htonl(increase_seqnum());
+	packetf.seqnumber = uip_htons(increase_seqnum());
         packetf.type = HXB_PTYPE_INFO;
         packetf.flags = 0;
         packetf.eid = uip_htonl(eid);
@@ -157,25 +162,55 @@ void broadcast_value(uint32_t eid)
         uip_udp_packet_sendto(client_conn, &packetf, sizeof(packetf),
             &server_ipaddr, UIP_HTONS(HXB_PORT));
         break;
+      case HXB_DTYPE_16BYTES:;
+        struct hxb_packet_16bytes packet16;
+        strncpy(&packet16.header, HXB_HEADER, 4);
+        packet16.type = HXB_PTYPE_INFO;
+        packet16.flags = 0;
+	packet16.seqnumber = uip_htons(increase_seqnum());
+        packet16.eid = uip_htonl(eid);
+        packet16.datatype = val.datatype;
+        memcpy(packet16.value, *(void**)&val.data, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
+        free(*(void**)&val.data);
+        packet16.crc = uip_htons(crc16_data((char*)&packet16, sizeof(packet16)-2, 0));
+
+	write_to_buffer(current_seqnum(), &packet16, sizeof(packet16));
+        uip_udp_packet_sendto(client_conn, &packet16, sizeof(packet16),
+          &server_ipaddr, UIP_HTONS(HXB_PORT));
+        break;
       default:
         PRINTF("value_broadcast: Datatype unknown.\r\n");
     }
   }
+  }
 }
 
-void resend_broadcast_packet(void* data, int* length) {
+void resend_broadcast_packet(void* data, int length) {
 	uip_udp_packet_sendto(client_conn, data, length,
             &server_ipaddr, UIP_HTONS(HXB_PORT));
 	
 }
 
-void send_resend_request(uint32_t seqnum) {
+void send_resend_request(uint16_t seqnum) {
 	struct hxb_packet_error packetr;
         strncpy(&packetr.header, HXB_HEADER, 4);
-	packetr.seqnumber = seqnum;
+	packetr.seqnumber = uip_htons(seqnum);
 	packetr.type = HXB_PTYPE_ERROR;
 	packetr.flags = 0;
-	packetr.errorcode = HXB_ERR_RESEND_REQUEST;
+	packetr.errorcode = HXB_ERR_MISSING_PACKET;
+	packetr.crc = uip_htons(crc16_data((char*)&packetr, sizeof(packetr)-2, 0));
+        uip_udp_packet_sendto(client_conn, &packetr, sizeof(packetr),
+            &server_ipaddr, UIP_HTONS(HXB_PORT));
+}
+
+void send_seqnum_request() {
+	PRINTF("Requesting sequence number...\r\n");
+	struct hxb_packet_error packetr;
+        strncpy(&packetr.header, HXB_HEADER, 4);
+	packetr.seqnumber = 0;
+	packetr.type = HXB_PTYPE_ERROR;
+	packetr.flags = 0;
+	packetr.errorcode = HXB_ERR_NO_SEQNUM;
 	packetr.crc = uip_htons(crc16_data((char*)&packetr, sizeof(packetr)-2, 0));
         uip_udp_packet_sendto(client_conn, &packetr, sizeof(packetr),
             &server_ipaddr, UIP_HTONS(HXB_PORT));
@@ -241,7 +276,7 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
 
   PROCESS_PAUSE();
 
-  init_value_broadcast();
+  //init_value_broadcast();
 
   PRINTF("UDP sender process started\n");
 

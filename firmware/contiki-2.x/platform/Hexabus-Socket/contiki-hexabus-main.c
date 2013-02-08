@@ -108,11 +108,10 @@
 #include "mdns_responder.h"
 #include "state_machine.h"
 #include "hexabus_app_bootstrap.h"
+#include "resend_buffer.h"
+#include "value_broadcast.h"
 
 // optional HEXABUS apps
-#if VALUE_BROADCAST_ENABLE
-#include "value_broadcast.h"
-#endif
 #if DATETIME_SERVICE_ENABLE
 #include "datetime_service.h"
 #endif
@@ -317,16 +316,40 @@ void initialize(void)
   process_start(&memory_debugger_process, NULL);
 #endif
 
+#if VALUE_BROADCAST_ENABLE
+  init_value_broadcast();
+#endif
+
   /* Handler for HEXABUS UDP Packets */
   process_start(&udp_handler_process, NULL);
 
+  /* Acquire sequence number */
+  PRINTF("Trying to acquire the current sequence number...\r\n");
+  send_seqnum_request();
+
+  clock_time_t time = clock_time();
+  clock_time_t retry_time = clock_time();
+  
+  while(!seqnum_is_valid()) {
+	process_run();
+	watchdog_periodic();
+
+	if(clock_time()-retry_time > SEQUENCE_NUMBER_BOOSTRAP_RETRY_WAIT * CLOCK_SECOND) {
+		send_seqnum_request();
+		retry_time = clock_time();
+	}
+
+	if(clock_time()-time > SEQUENCE_NUMBER_BOOSTRAP_WAIT * CLOCK_SECOND) {
+		PRINTF("Nobody answered, guess I'm alone here :(\r\n");
+		set_seqnum_valid();	
+		break;
+	}
+  }
+  PRINTF("Sequence number set to %u\r\n", current_seqnum());	
+
   /* Process for periodic sending of HEXABUS data */
-#if VALUE_BROADCAST_ENABLE
 #if VALUE_BROADCAST_AUTO_INTERVAL
   process_start(&value_broadcast_process, NULL);
-#else
-  init_value_broadcast();
-#endif
 #endif
 
   /* process handling received HEXABUS broadcasts */

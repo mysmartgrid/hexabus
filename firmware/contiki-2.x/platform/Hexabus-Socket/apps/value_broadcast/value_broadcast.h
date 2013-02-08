@@ -12,7 +12,8 @@ void broadcast_value(uint32_t eid);
 void broadcast_value_ptr(void* eidp);
 void init_value_broadcast(void);
 void resend_broadcast_packet(void* data, int* length);
-void send_resend_request(uint32_t seqnum);
+void send_resend_request(uint16_t seqnum);
+void send_seqnum_request();
 
 extern process_event_t immediate_broadcast_event;
 

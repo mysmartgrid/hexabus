@@ -8,6 +8,7 @@
 #include <boost/static_assert.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/type_traits.hpp>
+#include <boost/array.hpp>
 #include "../../../shared/hexabus_packet.h"
 
 //#define ENABLE_LOGGING 0
@@ -35,10 +36,10 @@ namespace hexabus {
 		private:
 			uint8_t _type;
 			uint8_t _flags;
-			uint32_t _sequenceNumber;
+			uint16_t _sequenceNumber;
 
 		protected:
-			Packet(uint8_t type, uint8_t flags = 0, uint32_t sequenceNumber = 0)
+			Packet(uint8_t type, uint8_t flags = 0, uint16_t sequenceNumber = 0)
 				: _type(type), _flags(flags), _sequenceNumber(sequenceNumber)
 			{}
 
@@ -47,7 +48,7 @@ namespace hexabus {
 
 			uint8_t type() const { return _type; }
 			uint8_t flags() const { return _flags; }
-			uint8_t sequenceNumber() const { return _sequenceNumber; }
+			uint16_t sequenceNumber() const { return _sequenceNumber; }
 
 			virtual void accept(PacketVisitor& visitor) const = 0;
 	};
@@ -77,7 +78,8 @@ namespace hexabus {
 			virtual void visit(const InfoPacket<boost::posix_time::ptime>& info) = 0;
 			virtual void visit(const InfoPacket<boost::posix_time::time_duration>& info) = 0;
 			virtual void visit(const InfoPacket<std::string>& info) = 0;
-			virtual void visit(const InfoPacket<std::vector<char> >& info) = 0;
+			virtual void visit(const InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) = 0;
+			virtual void visit(const InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) = 0;
 
 			virtual void visit(const WritePacket<bool>& write) = 0;
 			virtual void visit(const WritePacket<uint8_t>& write) = 0;
@@ -86,7 +88,8 @@ namespace hexabus {
 			virtual void visit(const WritePacket<boost::posix_time::ptime>& write) = 0;
 			virtual void visit(const WritePacket<boost::posix_time::time_duration>& write) = 0;
 			virtual void visit(const WritePacket<std::string>& write) = 0;
-			virtual void visit(const WritePacket<std::vector<char> >& write) = 0;
+			virtual void visit(const WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) = 0;
+			virtual void visit(const WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) = 0;
 
 			virtual void visitPacket(const Packet& packet)
 			{
@@ -116,7 +119,7 @@ namespace hexabus {
 			uint32_t _eid;
 
 		public:
-			EIDPacket(uint8_t type, uint32_t eid, uint8_t flags = 0, uint32_t sequenceNumber = 0)
+			EIDPacket(uint8_t type, uint32_t eid, uint8_t flags = 0, uint16_t sequenceNumber = 0)
 				: Packet(type, flags, sequenceNumber), _eid(eid)
 			{}
 
@@ -152,7 +155,7 @@ namespace hexabus {
 			uint8_t _datatype;
 
 		public:
-			TypedPacket(uint8_t type, uint32_t eid, uint8_t datatype, uint8_t flags = 0, uint32_t sequenceNumber = 0)
+			TypedPacket(uint8_t type, uint32_t eid, uint8_t datatype, uint8_t flags = 0, uint16_t sequenceNumber = 0)
 				: EIDPacket(type, eid, flags, sequenceNumber), _datatype(datatype)
 			{}
 
@@ -168,7 +171,9 @@ namespace hexabus {
 					|| boost::is_same<TValue, uint32_t>::value
 					|| boost::is_same<TValue, float>::value
 					|| boost::is_same<TValue, boost::posix_time::ptime>::value
-					|| boost::is_same<TValue, boost::posix_time::time_duration>::value),
+					|| boost::is_same<TValue, boost::posix_time::time_duration>::value
+					|| boost::is_same<TValue, boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >::value
+					|| boost::is_same<TValue, boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >::value),
 				"I don't know how to handle that type");
 
 			static uint8_t calculateDatatype()
@@ -179,13 +184,17 @@ namespace hexabus {
 					boost::is_same<TValue, float>::value ? HXB_DTYPE_FLOAT :
 					boost::is_same<TValue, boost::posix_time::ptime>::value ? HXB_DTYPE_DATETIME :
 					boost::is_same<TValue, boost::posix_time::time_duration>::value ? HXB_DTYPE_TIMESTAMP :
+					boost::is_same<TValue, boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >::value
+						? HXB_DTYPE_16BYTES :
+					boost::is_same<TValue, boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >::value
+						? HXB_DTYPE_66BYTES :
 					(throw "BUG: Unknown datatype!", HXB_DTYPE_UNDEFINED);
 			}
 
 			TValue _value;
 
 		protected:
-			ValuePacket(uint8_t type, uint32_t eid, const TValue& value, uint8_t flags = 0, uint32_t sequenceNumber = 0)
+			ValuePacket(uint8_t type, uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
 				: TypedPacket(type, eid, calculateDatatype(), flags, sequenceNumber), _value(value)
 			{}
 
@@ -199,14 +208,14 @@ namespace hexabus {
 			std::string _value;
 
 		protected:
-			ValuePacket(uint8_t type, uint32_t eid, const std::string& value, uint8_t flags = 0, uint32_t sequenceNumber = 0)
+			ValuePacket(uint8_t type, uint32_t eid, const std::string& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
 				: TypedPacket(type, eid, HXB_DTYPE_128STRING, flags, sequenceNumber), _value(value)
 			{
 				if (value.size() > HXB_STRING_PACKET_MAX_BUFFER_LENGTH)
 					throw std::out_of_range("value");
 			}
 
-			ValuePacket(uint8_t type, uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0, uint32_t sequenceNumber = 0)
+			ValuePacket(uint8_t type, uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
 				: TypedPacket(type, eid, datatype, flags, sequenceNumber), _value(value)
 			{
 				if (value.size() > HXB_STRING_PACKET_MAX_BUFFER_LENGTH)
@@ -217,28 +226,10 @@ namespace hexabus {
 			const std::string& value() const { return _value; }
 	};
 
-	template<>
-	class ValuePacket<std::vector<char> > : public TypedPacket {
-		private:
-			std::vector<char> _value;
-
-		protected:
-			ValuePacket(uint8_t type, uint32_t eid, const std::vector<char>& value, uint8_t flags = 0, uint32_t sequenceNumber = 0)
-				: TypedPacket(type, eid, HXB_DTYPE_66BYTES, flags, sequenceNumber), _value(value)
-			{
-				if (value.size() > HXB_BYTES_PACKET_MAX_BUFFER_LENGTH)
-					throw std::out_of_range("value");
-				_value.resize(HXB_BYTES_PACKET_MAX_BUFFER_LENGTH);
-			}
-
-		public:
-			const std::vector<char>& value() const { return _value; }
-	};
-
 	template<typename TValue>
 	class InfoPacket : public ValuePacket<TValue> {
 		public:
-			InfoPacket(uint32_t eid, const TValue& value, uint8_t flags = 0, uint32_t sequenceNumber = 0)
+			InfoPacket(uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
 				: ValuePacket<TValue>(HXB_PTYPE_INFO, eid, value, flags, sequenceNumber)
 			{}
 

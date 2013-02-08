@@ -13,6 +13,9 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define PACKET_BUILDER_DEBUG 0
 #define ENDPOINT_ACCESS_DEBUG 1
 
+#define SEQUENCE_NUMBER_BOOSTRAP_WAIT 20
+#define SEQUENCE_NUMBER_BOOSTRAP_RETRY_WAIT 2
+
 // WebServer
 #define WEBSERVER_DEBUG 0
 
@@ -39,7 +42,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 1
-#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1 // Number of endpoints to broadcast automatically - set to 0 to disable
+#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 0 // Number of endpoints to broadcast automatically - set to 0 to disable
 #define VALUE_BROADCAST_AUTO_EIDS 2 // Comma-separated list of endpoints to broadcast automatically
 #define VALUE_BROADCAST_AUTO_INTERVAL 20 // Timeout in seconds
 #define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0 // Number of endpoints to "broadcast" to the local state machine

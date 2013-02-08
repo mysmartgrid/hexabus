@@ -197,7 +197,7 @@ struct UpdateFileInfo
       >> ipv6_address > ';';
 
     machine_id = lit("machine")
-      >> uint_ > ';';
+      >> *(char_("0-9a-fA-F")[_val += _1]) > ';';
 
     startstate %= lit("startstate")
       > identifier
@@ -227,7 +227,6 @@ struct UpdateFileInfo
       > identifier
       > '{'
       > lit("set") > eid_value > is > float_ > ';'
-      // > lit("datatype") > is > (dt_undef|dt_bool|dt_uint8|dt_uint32|dt_datetime|dt_float|dt_string|dt_timestamp) > ';'
       > lit("goodstate") > identifier > ';'
       > lit("badstate") > identifier > ';'
       > '}'
@@ -272,7 +271,7 @@ struct UpdateFileInfo
 
     qi::rule<Iterator, std::string(), Skip> startstate;
     qi::rule<Iterator, std::string(), Skip> target_ip;
-    qi::rule<Iterator, int(), Skip> machine_id;
+    qi::rule<Iterator, std::string(), Skip> machine_id;
     qi::rule<Iterator, state_doc(), Skip> state;
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
     qi::rule<Iterator, condition_doc(), Skip> condition;

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string.h>
+#include <iomanip>
 #include <libhexabus/common.hpp>
 #include <libhexabus/crc.hpp>
 #include <libhexabus/liveness.hpp>
@@ -23,7 +24,7 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 	private:
 		std::ostream& target;
 
-		void printValueHeader(uint32_t eid, const char* datatypeStr, uint32_t sequenceNumber)
+		void printValueHeader(uint32_t eid, const char* datatypeStr, uint16_t sequenceNumber)
 		{
 			target << "Info" << std::endl
 				<< "Endpoint ID:\t" << eid << std::endl
@@ -46,18 +47,21 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 			target << std::endl;
 		}
 
-		void printValuePacket(const hexabus::ValuePacket<std::vector<char> >& packet, const char* datatypeStr)
+    template<size_t L>
+		void printValuePacket(const hexabus::ValuePacket<boost::array<char, L> >& packet, const char* datatypeStr)
 		{
 			printValueHeader(packet.eid(), datatypeStr, packet.sequenceNumber());
 
 			std::stringstream hexstream;
 
-			hexstream << std::hex;
+			hexstream << std::hex << std::setfill('0');
 
-			typedef std::vector<char>::const_iterator iter;
-			for (iter it = packet.value().begin(), end = packet.value().end(); it != end; ++it) {
-				hexstream << std::setw(2) << *it;
+			for (size_t i = 0; i < L; ++i)
+      {
+				hexstream << std::setw(2) << (0xFF & packet.value()[i]) << " ";
 			}
+
+      std::cout << std::endl << std::endl;
 
 			target << "Value:\t" << hexstream.str() << std::endl; 
 			target << std::endl;
@@ -150,7 +154,8 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) { printValuePacket(info, "Datetime"); }
 		virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info) { printValuePacket(info, "Timestamp"); }
 		virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "String"); }
-		virtual void visit(const hexabus::InfoPacket<std::vector<char> >& info) { printValuePacket(info, "Binary"); }
+		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (16 bytes)"); }
+		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (66 bytes)"); }
 
 		virtual void visit(const hexabus::WritePacket<bool>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
@@ -159,7 +164,8 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) {}
 		virtual void visit(const hexabus::WritePacket<std::string>& write) {}
-		virtual void visit(const hexabus::WritePacket<std::vector<char> >& write) {}
+		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
+		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
 };
 
 void print_packet(const hexabus::Packet& packet)
@@ -376,15 +382,6 @@ int main(int argc, char** argv) {
     }
   }
 
-	hexabus::LivenessReporter* liveness =
-    vm.count("reliable") && vm["reliable"].as<bool>()
-    ? new hexabus::LivenessReporter(*network)
-    : 0;
-	if (liveness) {
-		liveness->establishPaths(1);
-		liveness->start();
-	}
-
   if(boost::iequals(command, std::string("LISTEN")))
   {
     std::cout << "Entering listen mode." << std::endl;
@@ -410,6 +407,15 @@ int main(int argc, char** argv) {
   }
 
 	network->bind(bind_addr);
+
+	hexabus::LivenessReporter* liveness =
+    vm.count("reliable") && vm["reliable"].as<bool>()
+    ? new hexabus::LivenessReporter(*network)
+    : 0;
+	if (liveness) {
+		liveness->establishPaths(1);
+		liveness->start();
+	}
   /*
    * Shorthand convenience commands.
    */

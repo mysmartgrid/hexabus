@@ -34,7 +34,8 @@
 #define HXB_DTYPE_FLOAT       0x05  // 32bit floating point
 #define HXB_DTYPE_128STRING   0x06  // 128char fixed length string
 #define HXB_DTYPE_TIMESTAMP   0x07  // timestamp - used for measuring durations, time differences and so on - uint32; seconds
-#define HXB_DTYPE_66BYTES     0x08  // raw 66 byte array, e.g. state machine.
+#define HXB_DTYPE_66BYTES     0x08  // raw 66 byte array, e.g. state machine data.
+#define HXB_DTYPE_16BYTES     0x09  // raw 16 byte array, e.g. state machine ID.
 
 
 // Error codes
@@ -44,7 +45,8 @@
 #define HXB_ERR_CRCFAILED     0x03  // A packet failed the CRC check -- TODO How can we find out what information was lost?
 #define HXB_ERR_DATATYPE      0x04  // A packet with a datatype that does not fit the endpoint was received
 #define HXB_ERR_INVALID_VALUE 0x05  // A value was encountered that cannot be interpreted
-#define HXB_ERR_RESEND_REQUEST 0x06 // The packet with the seqence number in the sequence number filed was lost
+#define HXB_ERR_MISSING_PACKET 0x06 // The packet with the seqence number in the sequence number filed was lost
+#define HXB_ERR_NO_SEQNUM 0x07 // The current sequence number is needed
 
 // Operators for comparison in state machine
 #define STM_EQ                0x00

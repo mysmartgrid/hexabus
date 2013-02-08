@@ -29,7 +29,7 @@ struct hxb_packet_header {
   char      header[4];  // HX0B
   uint8_t   type;       // Packet type
   uint8_t   flags;      // Flags
-  uint32_t  seqnumber;  // Sequence number
+  uint16_t  seqnumber;  // Sequence number
   uint32_t  eid;        // Endpoint ID / Error code if it's an error packet
   uint8_t   datatype;   // Datatype / first 8 bits of the CRC if it's an error packet
 } __attribute__ ((packed));
@@ -39,7 +39,7 @@ struct hxb_packet_error {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint32_t  seqnumber;  // Sequence number
+  uint16_t  seqnumber;  // Sequence number
   uint8_t   errorcode;
   uint16_t  crc;
 } __attribute__ ((packed));
@@ -49,7 +49,7 @@ struct hxb_packet_query {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint32_t  seqnumber;  // Sequence number
+  uint16_t  seqnumber;  // Sequence number
   uint32_t  eid;        // Endpoint ID
   uint16_t  crc;       // CRC16-Kermit / Contiki's crc16_data()
 } __attribute__ ((packed));
@@ -61,7 +61,7 @@ struct hxb_packet_int8 {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint32_t  seqnumber;  // Sequence number
+  uint16_t  seqnumber;  // Sequence number
   uint32_t  eid;
   uint8_t   datatype;
   uint8_t   value;
@@ -74,7 +74,7 @@ struct hxb_packet_int32 {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint32_t  seqnumber;  // Sequence number
+  uint16_t  seqnumber;  // Sequence number
   uint32_t  eid;
   uint8_t   datatype;
   uint32_t  value;
@@ -85,7 +85,7 @@ struct hxb_packet_int32 {
 struct hxb_packet_datetime {
     char      header[4];
     uint8_t   flags;
-  uint32_t  seqnumber;  // Sequence number
+  uint16_t  seqnumber;  // Sequence number
     uint32_t  eid;
     uint8_t   datatype;
     struct datetime  value;
@@ -98,7 +98,7 @@ struct hxb_packet_float {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint32_t  seqnumber;  // Sequence number
+  uint16_t  seqnumber;  // Sequence number
   uint32_t  eid;
   uint8_t   datatype;
   float     value;
@@ -111,7 +111,7 @@ struct hxb_packet_128string {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint32_t  seqnumber;  // Sequence number
+  uint16_t  seqnumber;  // Sequence number
   uint32_t  eid;
   uint8_t   datatype;     // this is set to the datatype of the endpoint if it's an EPINFO packet!
   char      value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1];
@@ -122,16 +122,28 @@ struct hxb_packet_128string {
 // should this ever change, increase this, otherwise libhexabus (among others) will break.
 #define HXB_MAX_PACKET_SIZE (sizeof(hxb_packet_128string))
 
-#define HXB_BYTES_PACKET_MAX_BUFFER_LENGTH 65
+#define HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH 65
 // WRITE/INFO packet for 66 byte string: 1 byte control data, 64 byte payload
 struct hxb_packet_66bytes {
   char      header[4];
   uint8_t   type;
   uint8_t   flags;
-  uint32_t  seqnumber;  // Sequence number
+  uint16_t  seqnumber;  // Sequence number
   uint32_t  eid;
   uint8_t   datatype;
-  char      value[HXB_BYTES_PACKET_MAX_BUFFER_LENGTH];
+  char      value[HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH];
+  uint16_t  crc;
+} __attribute__ ((packed));
+
+#define HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH 16
+struct hxb_packet_16bytes {
+  char      header[4];
+  uint8_t   type;
+  uint8_t   flags;
+  uint16_t  seqnumber;  // Sequence number
+  uint32_t  eid;
+  uint8_t   datatype;
+  char      value[HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH];
   uint16_t  crc;
 } __attribute__ ((packed));
 

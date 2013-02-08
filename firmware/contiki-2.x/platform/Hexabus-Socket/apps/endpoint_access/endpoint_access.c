@@ -66,7 +66,7 @@ uint8_t endpoint_get_datatype(uint32_t eid) // returns the datatype of the endpo
     case EP_SM_UP_ACKNAK:
       return HXB_DTYPE_BOOL;
     case EP_SM_RESET_ID:
-      return HXB_DTYPE_UINT8;
+      return HXB_DTYPE_16BYTES;
 #endif
 #if SHUTTER_ENABLE
     case EP_SHUTTER:
@@ -493,8 +493,11 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
       break;
     case EP_SM_RESET_ID:
       PRINTF("READ on SM_RESET_ID EP occurred\n");
-      val->datatype = HXB_DTYPE_UINT8;
-      *(uint8_t*)&val->data = sm_get_id();
+      val->datatype = HXB_DTYPE_16BYTES;
+      char* b = malloc(HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
+      if(b != NULL)
+        sm_get_id(b);
+      *(char**)&val->data = b;
       break;
 #endif
 #if SHUTTER_ENABLE

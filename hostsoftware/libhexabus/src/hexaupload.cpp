@@ -10,6 +10,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <libhexabus/socket.hpp>
+#include <libhexabus/error.hpp>
 #include <algorithm>
 #include <vector>
 #include <typeinfo>
@@ -17,6 +18,7 @@ namespace po = boost::program_options;
 
 #include "../../../shared/hexabus_packet.h"
 #include "../../../shared/hexabus_definitions.h"
+#include "../../../shared/hexabus_statemachine_structs.h"
 #include "../../../shared/endpoints.h"
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
@@ -102,28 +104,36 @@ void assert_statemachine_state(hexabus::Socket* network, const std::string& ip_a
 bool send_chunk(hexabus::Socket* network, const std::string& ip_addr, uint8_t chunk_id, const std::vector<char>& chunk) {
 	//std::cout << "Sending chunk " << (int) chunk_id << std::endl;
 	std::vector<char> bin_data;
-	bin_data.push_back(chunk_id); 
+	bin_data.push_back(chunk_id);
 	bin_data.insert(bin_data.end(), chunk.begin(), chunk.end());
 
-	network->send(hexabus::WritePacket<std::vector<char> >(EP_SM_UP_RECEIVER, bin_data), boost::asio::ip::address_v6::from_string(ip_addr));
+	// convert data vector to array for construction of packet
+	if(bin_data.size() == HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH) {
+		boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> pck_data;
+		for(size_t i = 0; i < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; ++i) {
+			pck_data[i] = bin_data[i];
+		}
 
-	while (true) {
-		std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> p =
-			network->receive();
+		network->send(hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, pck_data), boost::asio::ip::address_v6::from_string(ip_addr));
 
-		if (p.second.address() == boost::asio::ip::address::from_string(ip_addr)) {
-			const hexabus::InfoPacket<bool> *i = dynamic_cast<const hexabus::InfoPacket<bool>*>(p.first.get());
-			if (i) {
-				return i->value();
-			} else {
-				std::cout << "?";
+		while (true) {
+			std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> p =
+				network->receive();
+
+			if (p.second.address() == boost::asio::ip::address::from_string(ip_addr)) {
+				const hexabus::InfoPacket<bool> *i = dynamic_cast<const hexabus::InfoPacket<bool>*>(p.first.get());
+				if (i) {
+					return i->value();
+				} else {
+					std::cout << "?";
+				}
 			}
 		}
 	}
+	throw hexabus::GenericException("Bug: Chunk length mismatch");
 }
 
 int main(int argc, char** argv) {
-
   std::ostringstream oss;
   oss << "Usage: " << argv[0] << " IP [additional options] ACTION";
   po::options_description desc(oss.str());
@@ -135,8 +145,8 @@ int main(int argc, char** argv) {
     ("program,p", po::value<std::string>(), "the state machine program to be uploaded")
     ;
   po::positional_options_description p;
-  p.add("ip", 1);
   p.add("program", 1);
+  p.add("ip", 1);
   po::variables_map vm;
 
   // Begin processing of commandline parameters.
@@ -237,7 +247,7 @@ int main(int argc, char** argv) {
   uint8_t chunk_id = 0;
   uint8_t MAX_TRY = 3;
   std::cout << "Uploading program, size=" << program.size() << std::endl;
-  while((64 * chunk_id) < program.size()) {
+  while((unsigned int)(EE_STATEMACHINE_CHUNK_SIZE * chunk_id) < program.size()) {
     uint8_t failure_counter=0;
     std::vector<char> to_send(program.begin() + (64*chunk_id), program.begin() + std::min(64 * (chunk_id + 1), (int) program.size()));
 
@@ -257,7 +267,7 @@ int main(int argc, char** argv) {
         sent = true;
       }
       std::cout << std::flush;
-    } 
+    }
     chunk_id++;
   }
 
