@@ -105,7 +105,6 @@
 #include "relay.h"
 #include "eeprom_variables.h"
 #include "udp_handler.h"
-#include "mdns_responder.h"
 #include "state_machine.h"
 #include "hexabus_app_bootstrap.h"
 
@@ -333,8 +332,6 @@ void initialize(void)
 #if STATE_MACHINE_ENABLE
   process_start(&state_machine_process, NULL);
 #endif
-
-  mdns_responder_init();
 
   /* Datetime service*/
 #if DATETIME_SERVICE_ENABLE
