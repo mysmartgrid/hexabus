@@ -400,8 +400,9 @@ int main(int argc, char** argv)
 			}
 		} errorCallback;
 
-		network->onAsyncError(errorCallback);
-		network->onPacketReceived(receiveCallback, hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR));
+		// use connections so that callback handlers get deleted (.disconnect())
+		boost::signals2::connection c1 = network->onAsyncError(errorCallback);
+		boost::signals2::connection c2 = network->onPacketReceived(receiveCallback, hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR));
 
 		// timer that cancels receiving after n seconds
 		boost::asio::deadline_timer _timer(network->ioService());
@@ -409,6 +410,9 @@ int main(int argc, char** argv)
 		_timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
 
 		network->ioService().run();
+
+		c1.disconnect();
+		c2.disconnect();
 
 		if(verbose)
 		{
