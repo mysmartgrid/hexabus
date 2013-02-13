@@ -380,6 +380,8 @@ int main(int argc, char** argv)
 
 	if(vm.count("discover"))
 	{
+		if(verbose)
+			std::cout << "Discovering devices..." << std::endl;
 		// send the packet
 		boost::asio::ip::address_v6 hxb_broadcast_address = boost::asio::ip::address_v6::from_string(HXB_GROUP);
 		send_packet(network, hxb_broadcast_address, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR));
@@ -435,6 +437,9 @@ int main(int argc, char** argv)
 		device_descriptor device;
 		boost::asio::ip::address_v6 target_ip = *address_it;
 		device.ipv6_address = target_ip;
+
+		if(verbose)
+			std::cout << "Querying device " << target_ip.to_string() << "..." << std::endl;
 
 		ResponseHandler handler(device, endpoints);
 
