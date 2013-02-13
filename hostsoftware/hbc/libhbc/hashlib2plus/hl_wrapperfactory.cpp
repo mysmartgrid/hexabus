@@ -57,7 +57,7 @@ hashwrapper* wrapperfactory::create(HL_Wrappertype type)
 	{
 		return new md5wrapper();
 	}
-	else if(type == HL_SHA1)
+/*	else if(type == HL_SHA1)
 	{
 		return new sha1wrapper();
 	}
@@ -72,7 +72,7 @@ hashwrapper* wrapperfactory::create(HL_Wrappertype type)
 	else if(type == HL_SHA512)
 	{
 		return new sha512wrapper();
-	}
+	} */
 
 	throw hlException(HL_UNKNOWN_HASH_TYPE,"Unknown hashtype");
 }
@@ -90,7 +90,7 @@ hashwrapper* wrapperfactory::create(std::string type)
 	{
 		return new md5wrapper();
 	}
-	else if(type == "SHA1")
+	/* else if(type == "SHA1")
 	{
 		return new sha1wrapper();
 	}
@@ -105,7 +105,7 @@ hashwrapper* wrapperfactory::create(std::string type)
 	else if(type == "SHA512")
 	{
 		return new sha512wrapper();
-	}
+	} */
 	return NULL;
 }
 

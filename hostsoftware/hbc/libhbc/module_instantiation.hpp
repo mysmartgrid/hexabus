@@ -20,6 +20,6 @@ namespace hexabus {
       device_table_ptr _d;
       endpoint_table_ptr _e;
   };
-}
+};
 
 #endif // LIBHBC_MODULE_INSTANTIATION_HPP

@@ -149,7 +149,7 @@ namespace hexabus {
       ModuleNotFoundException (const std::string reason) : hexabus::GenericException(reason) {};
       virtual ~ModuleNotFoundException() throw() {};
   };
-}
+};
 
 
 #endif // LIBHBC_ERROR_HPP
