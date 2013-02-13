@@ -135,6 +135,9 @@ int main(int argc, char **argv)
 	std::cout << "Exception occured: " << e.what() << std::endl;
   }
 
+	// we're done parsing - close input file
+	in.close();
+
   if (r && position_begin == position_end) {
     if (vm.count("print")) {
       hexabus::hba_printer printer;
