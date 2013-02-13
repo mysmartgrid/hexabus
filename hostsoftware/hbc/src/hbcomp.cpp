@@ -163,6 +163,9 @@ int main(int argc, char** argv)
       if(r)
         std::cout << "Parsing of file " << includes[f].string() << " failed: Did not reach end of file." << std::endl;
     }
+
+    // close file
+    in.close();
   }
 
   if(okay) {
@@ -189,14 +192,14 @@ int main(int argc, char** argv)
     // build "big" state machine graph
     if(verbose)
       std::cout << "Building state machine graph..." << std::endl;
-		hexabus::machine_table machines;
+    hexabus::machine_table machines;
     hexabus::GraphBuilder gBuilder;
     gBuilder(ast, machines);
     if(vm.count("graph")) {
       std::ofstream ofs;
       std::string outfile(vm["graph"].as<std::string>());
       if(std::string("") == outfile) {
-        std::cout << "No graph output file specified." << std::endl;
+        std::cout << "No graph output file name specified." << std::endl;
         exit(-1);
       }
       ofs.open(outfile.c_str());

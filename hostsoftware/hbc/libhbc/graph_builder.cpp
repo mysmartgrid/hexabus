@@ -8,13 +8,13 @@
 
 using namespace hexabus;
 
-static unsigned int _machine = 1; // unique IDs for the state machines
+static unsigned int _machine = 0; // unique IDs for the state machines
 
 struct first_pass : boost::static_visitor<> {
   first_pass(graph_t_ptr graph, machine_table* machines) : _g(graph), _machines(machines) { }
 
   void operator()(statemachine_doc& statemachine) const {
-    statemachine.id = _machine;
+    statemachine.id = _machine++;
 
 		// build machine descriptor, insert it into machine table
 		machine_descriptor desc;
@@ -76,7 +76,7 @@ struct first_pass : boost::static_visitor<> {
         }
         // add condition vertex
         std::ostringstream oss;
-        oss << "(" << condition_id << ") if (";
+        oss << "(" << statemachine.id << "." << condition_id << ") if (";
         hbc_printer pr;
         pr(if_clause.if_block.condition, oss);
         oss << ")";
