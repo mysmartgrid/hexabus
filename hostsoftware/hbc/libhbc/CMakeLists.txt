@@ -1,9 +1,7 @@
 # -*- mode: cmake; -*-
 
-#set(hdrs 
-#  common.hpp
-#)
-#install(FILES ${hdrs} DESTINATION include/hexabus)
+file(GLOB hdrs *.h *.hpp)
+install(FILES ${hdrs} DESTINATION include/libhbc)
 
 configure_file(config.h.in ${CMAKE_BINARY_DIR}/config.h)
 
@@ -18,9 +16,9 @@ ADD_LIBRARY(hbc ${hbc_src})
 
 #target_link_libraries(hexabus ${Boost_IOSTREAMS_LIBRARY})
 
-#if(BUILD_SHARED_LIBS)
-#  install(TARGETS hb_assembler LIBRARY DESTINATION lib)
-#else(BUILD_SHARED_LIBS)
-#  install(TARGETS hb_assembler ARCHIVE DESTINATION lib)
-#endif(BUILD_SHARED_LIBS)
+if(BUILD_SHARED_LIBS)
+  install(TARGETS hbc LIBRARY DESTINATION lib)
+else(BUILD_SHARED_LIBS)
+  install(TARGETS hbc ARCHIVE DESTINATION lib)
+endif(BUILD_SHARED_LIBS)
 

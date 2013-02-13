@@ -49,7 +49,7 @@
 /*
  * definition of the supported hashtypes 
  */
-enum HL_Wrappertype { HL_MD5, HL_SHA1, HL_SHA256, HL_SHA384, HL_SHA512 };
+enum HL_Wrappertype { HL_MD5, /*HL_SHA1, HL_SHA256, HL_SHA384, HL_SHA512 */};
 
 //---------------------------------------------------------------------- 
 

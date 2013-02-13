@@ -1,5 +1,7 @@
 # example Hexabus Assmbler source file
 
+target 0000:0000:0000:0000:0000:0000:0000:0000;
+machine 0;
 startstate init;
 
 condition toggle_on {

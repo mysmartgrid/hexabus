@@ -5,13 +5,22 @@ if(POLICY CMP0011)
   cmake_policy(SET CMP0011 NEW)
 endif(POLICY CMP0011)
 
+if( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+   message(STATUS "Do not run cmake in the source directory")
+   message(STATUS "create an extra binary directory")
+   message(FATAL_ERROR "Exiting cmake here.")
+endif( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+
 # have the full monty in makefiles
 set(CMAKE_VERBOSE_MAKEFILE true)
 
 SET(ENABLE_LOGGING 1)
 
+# use ctest
+#ENABLE_TESTING()
+
 set(V_MAJOR 0)
-set(V_MINOR 3)
+set(V_MINOR 1)
 set(V_PATCH 0)
 
 # add a path where some libraries might be stored
@@ -25,7 +34,22 @@ set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where m
 # path here, subsequent checks will resolve everything else
 set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
+
+# Detect the system we're compiling on
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  SET(HAS_MACOS 1)
+ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  SET(HAS_MACOS 0)
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
+
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  SET(HAS_LINUX 1)
+  SET(__LINUX_ALSA__ 1)
+ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  SET(HAS_LINUX 0)
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
 
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-non-virtual-dtor -g -fomit-frame-pointer")
 
@@ -55,31 +79,45 @@ set(CMAKE_CXX_FLAGS "-Wall ")
 # Check for some compiler stuff
 include(CMakeBackwardCompatibilityCXX)
 
+# find libklio
+#find_package(Libklio)
+#if( NOT LIBKLIO_FOUND)
+#  message(FATAL_ERROR "libklio is required.You may set LIBKLIO_HOME")
+#endif( NOT LIBKLIO_FOUND)
+
+#FIND_PACKAGE(Sqlite)
+FIND_PACKAGE(LibHexabus)
+FIND_PACKAGE(LibHbc)
+#FIND_PACKAGE(RtMidi)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
+SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
+  "1.49.0" "1.49" "1.50.0" "1.50")
 SET(Boost_DETAILED_FAILURE_MSG true)
-FIND_PACKAGE(Boost 1.46.1 COMPONENTS  program_options filesystem system)
-FIND_PACKAGE(Hexabus)
+FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS 
+  test_exec_monitor program_options filesystem system thread)
 
 # Reflect the package structure
 add_subdirectory(src)
 
 # add some files to the installation target
-INSTALL(FILES README.txt LICENSE.txt DESTINATION share/doc/hexinfo)
+INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexinfo)
 
 # CPACK packaging
 INCLUDE(InstallRequiredSystemLibraries)
+SET(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
+SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Mathias Dalheimer")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "hexinfo")
 SET(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
 set(CPACK_PACKAGE_CONTACT "support@mysmartgrid.de")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "support@mysmartgrid.de")
-SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.txt")
+SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 SET(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 SET(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 SET(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
-SET(CPACK_PACKAGE_EXECUTABLES "hexinfo" "Gather information about endpoints of a specific device.")
+SET(CPACK_PACKAGE_EXECUTABLES "hexinfo" "Hexabus device discovery and info tool")
 SET(CPACK_SOURCE_STRIP_FILES "")
 SET(CPACK_STRIP_FILES "bin/hexinfo")
 
@@ -92,12 +130,13 @@ INCLUDE(CPack)
 
 ### print some output for the user
 message("")
-message("***** Configuration *****")
-message("  prefix: ${CMAKE_INSTALL_PREFIX}")
+message("***** Build configuration *****")
+message("  install prefix: ${CMAKE_INSTALL_PREFIX}")
+message("  hexabus include: ${HXB_INCLUDE_DIR}")
+message("  hexabus library: ${HXB_LIBRARIES}")
+message("  hbc include: ${HBC_INCLUDE_DIR}")
+message("  hbc library: ${HBC_LIBRARIES}")
 message("  boost include: ${Boost_INCLUDE_DIRS}")
-message("  boost program options lib: ${Boost_PROGRAM_OPTIONS_LIBRARY}")
-message("  boost system lib: ${Boost_SYSTEM_LIBRARY}")
-message("  boost filesystem lib: ${Boost_FILESYSTEM_LIBRARY}")
-message("  hexabus include: ${HXB_INCLUDE_DIR}, lib: ${HXB_LIBRARIES}")  
+message("  boost libraries: ${Boost_LIBRARIES}")
 message("  extended logging: ${ENABLE_LOGGING}")
 

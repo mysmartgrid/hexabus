@@ -133,8 +133,11 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 					case HXB_DTYPE_128STRING:
 						target << "String";
 						break;
+					case HXB_DTYPE_16BYTES:
+						target << "Binary (16bytes)";
+						break;
 					case HXB_DTYPE_66BYTES:
-						target << "Binary";
+						target << "Binary (66bytes)";
 						break;
 					default:
 						target << "(unknown)";
@@ -219,7 +222,6 @@ po::variable_value get_mandatory_parameter(
   }
   return retval;
 }
-
 
 void send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet, bool printResponse = false)
 {
@@ -381,15 +383,6 @@ int main(int argc, char** argv) {
     }
   }
 
-	hexabus::LivenessReporter* liveness =
-    vm.count("reliable") && vm["reliable"].as<bool>()
-    ? new hexabus::LivenessReporter(*network)
-    : 0;
-	if (liveness) {
-		liveness->establishPaths(1);
-		liveness->start();
-	}
-
   if(boost::iequals(command, std::string("LISTEN")))
   {
     std::cout << "Entering listen mode." << std::endl;
@@ -415,6 +408,15 @@ int main(int argc, char** argv) {
   }
 
 	network->bind(bind_addr);
+
+	hexabus::LivenessReporter* liveness =
+    vm.count("reliable") && vm["reliable"].as<bool>()
+    ? new hexabus::LivenessReporter(*network)
+    : 0;
+	if (liveness) {
+		liveness->establishPaths(1);
+		liveness->start();
+	}
   /*
    * Shorthand convenience commands.
    */

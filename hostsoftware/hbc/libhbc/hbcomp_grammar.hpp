@@ -134,13 +134,13 @@ namespace hexabus {
         > '{' > (always_clause | *if_clause) > '}';
 
       bool_op %= ( lit("||")[_val = OR] | lit("&&")[_val = AND] );
-      comp_op %= ( lit("==")[_val = STM_EQ] | lit("<=")[_val = STM_LEQ] | lit(">=")[_val = STM_GEQ] | lit("<")[_val = STM_LT] | lit(">")[_val = STM_GT] | lit("!=")[_val = STM_NEQ] );
+      comp_op %= ( lit("==")[_val = STM_COMP_EQ] | lit("<=")[_val = STM_COMP_LEQ] | lit(">=")[_val = STM_COMP_GEQ] | lit("<")[_val = STM_COMP_LT] | lit(">")[_val = STM_COMP_GT] | lit("!=")[_val = STM_COMP_NEQ] );
       atomic_condition %= lit("ep") > global_endpoint_id > comp_op > constant;
       timeout_condition %= lit("timeout") > constant;
       timer_condition %= lit("time") > time_f > time_comp_op > constant;
       time_f %= ( lit("hour")[ _val = TF_HOUR ] | lit("minute")[ _val = TF_MINUTE ] | lit("second")[ _val = TF_SECOND ] | lit("day")[ _val = TF_DAY ]
                        | lit("month")[ _val = TF_MONTH] | lit("year")[ _val = TF_YEAR ] | lit("weekday")[ _val = TF_WEEKDAY ] );
-      time_comp_op %= ( lit(">")[ _val = STM_GT ] | lit("<")[ _val = STM_LT ] );
+      time_comp_op %= ( lit(">")[ _val = STM_COMP_GT ] | lit("<")[ _val = STM_COMP_LT ] );
       compound_condition %= '(' > condition > ')' > bool_op > '(' > condition > ')';
       tautology %= lit("true")[_val = 1];
       always_tautology %= eps[_val = 1];
