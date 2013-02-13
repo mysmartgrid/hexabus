@@ -40,6 +40,22 @@ struct device_descriptor
 	}
 };
 
+struct ReceiveCallback {
+	std::set<boost::asio::ip::address_v6>* addresses;
+	void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep)
+	{
+		addresses->insert(asio_ep.address().to_v6());
+	}
+};
+
+struct ErrorCallback {
+	void operator()(const hexabus::GenericException& error)
+	{
+		std::cerr << "Error receiving packet: " << error.what() << std::endl;
+		exit(1);
+	}
+};
+
 struct ResponseHandler : public hexabus::PacketVisitor
 {
 	public:
@@ -315,6 +331,7 @@ int main(int argc, char** argv)
 		("help,h", "produce help message")
 		("version", "print version and exit")
 		("ip,i", po::value<std::string>(), "IP addres of device")
+		("interface,I", po::value<std::string>(), "Interface to send multicast from")
 		("discover,c", "automatically discover hexabus devices")
 		("print,p", "print device and endpoint info to the console")
 		("epfile,e", po::value<std::string>(), "name of Hexabus Compiler header file to write the endpoint list to")
@@ -359,7 +376,13 @@ int main(int argc, char** argv)
 	boost::asio::io_service io;
 	hexabus::Socket* network;
 	try {
-		network = new hexabus::Socket(io);
+		if(vm.count("interface")) {
+			if(verbose)
+				std::cout << "Using network interface " << vm["interface"].as<std::string>() << "." << std::endl;
+			network = new hexabus::Socket(io, vm["interface"].as<std::string>());
+		} else {
+			network = new hexabus::Socket(io);
+		}
 	} catch(const hexabus::NetworkException& e) {
 		std::cerr << "Could not open socket: " << e.code().message() << std::endl;
 		return 1;
@@ -387,20 +410,8 @@ int main(int argc, char** argv)
 		send_packet(network, hxb_broadcast_address, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR));
 
 		// call back handlers for receiving packets
-		struct {
-			std::set<boost::asio::ip::address_v6>* addresses;
-			void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep)
-			{
-				addresses->insert(asio_ep.address().to_v6());
-			}
-		} receiveCallback = { &addresses };
-		struct {
-			void operator()(const hexabus::GenericException& error)
-			{
-				std::cerr << "Error receiving packet: " << error.what() << std::endl;
-				exit(1);
-			}
-		} errorCallback;
+		ReceiveCallback receiveCallback = { &addresses };
+		ErrorCallback errorCallback;
 
 		// use connections so that callback handlers get deleted (.disconnect())
 		boost::signals2::connection c1 = network->onAsyncError(errorCallback);
