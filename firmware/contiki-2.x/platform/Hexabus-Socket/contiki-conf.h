@@ -203,7 +203,7 @@ typedef unsigned long off_t;
 #define RF230_MIN_RX_POWER 30
  */
 
-#define UIP_CONF_ROUTER                 1
+#define UIP_CONF_ROUTER                 0
 #define UIP_CONF_ND6_SEND_RA		    0
 #define UIP_CONF_ND6_REACHABLE_TIME     600000
 #define UIP_CONF_ND6_RETRANS_TIMER      10000
