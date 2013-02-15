@@ -8,6 +8,7 @@ import java.net.UnknownHostException;
 
 public class HexabusDevice {
 	private InetAddress address;
+	private String name;
 	private HashMap<Long,HexabusEndpoint> endpoints;
 
 	/**
@@ -15,6 +16,22 @@ public class HexabusDevice {
 	 */
 	public HexabusDevice(InetAddress address) {
 		this.address = address;
+		this.name = "";
+		endpoints = new HashMap<Long,HexabusEndpoint>();
+		try{
+		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
+		}catch(Hexabus.HexabusException e){
+			//TODO
+		}
+	}
+
+	/**
+	 * @param address The InetAddress of the device
+	 * @param name The name of the device
+	 */
+	public HexabusDevice(InetAddress address, String name) {
+		this.address = address;
+		this.name = name;
 		endpoints = new HashMap<Long,HexabusEndpoint>();
 		try{
 		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
@@ -35,6 +52,29 @@ public class HexabusDevice {
 		}catch(Hexabus.HexabusException e){
 			//TODO
 		}
+	}
+
+	public HexabusDevice(String address, String name) {
+		this.name = name;
+		try{
+		this.address = InetAddress.getByName(address);
+		}catch(UnknownHostException e) {
+			//TODO
+		}
+		endpoints = new HashMap<Long,HexabusEndpoint>();
+		try{
+		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
+		}catch(Hexabus.HexabusException e){
+			//TODO
+		}
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getName() {
+		return name;
 	}
 
 	/**
@@ -103,23 +143,23 @@ public class HexabusDevice {
 	 */
 	//TODO broken
 	public HashMap<Long, HexabusEndpoint> fetchEndpoints() throws Hexabus.HexabusException, IOException {
-		//TODO Should be the other way round
-		HashMap<Long, HexabusEndpoint> oldEndpoints = endpoints;
-		endpoints = new HashMap<Long, HexabusEndpoint>();
-		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
+		HashMap<Long, HexabusEndpoint> newEndpoints = new HashMap<Long,HexabusEndpoint>();
+		HexabusEndpoint deviceDescriptor = new HexabusEndpoint(this, 0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
+		newEndpoints.put(0L, deviceDescriptor);
 		long reply = 0;
 		try {
-			reply = getByEid(0).queryUint32Endpoint(); // Device Descriptor
+			reply = deviceDescriptor.queryUint32Endpoint();
 		} catch(Hexabus.HexabusException e) {
 			if(e.getMessage().substring(1,21).equals("Error packet received")) {
-				endpoints = oldEndpoints;
-				//TODO rethrow?
+				System.err.println(e.getMessage());
+				System.err.println("Error while querying device descriptor. Aborting");
 				return null;
 			}
 		}
 		boolean moreEids = true;
 		int eidOffset = 0;
 		while(moreEids) {
+			moreEids = false; // Until more eids is implemented
 			for(int i = 1; i<32;i++) {
 				reply = reply >> 1;
 				if((reply & 1) > 0) {
@@ -135,7 +175,7 @@ public class HexabusDevice {
 							Hexabus.DataType dataType = epinfo.getDataType();
 							String description = "";
 							description = epinfo.getDescription();
-							addEndpoint(i, dataType, description);
+							newEndpoints.put(new Long(i), new HexabusEndpoint(this, i, dataType, description));
 							break;
 						default:
 							throw new Hexabus.HexabusException("Unexpected reply received");
@@ -143,6 +183,7 @@ public class HexabusDevice {
 				}
 			}
 
+			/* Not yet implemented
 			eidOffset+=32;
 			HexabusPacket packet = new HexabusQueryPacket(eidOffset);
 			int port = packet.sendPacket(address);
@@ -159,7 +200,9 @@ public class HexabusDevice {
 				default:
 					throw new Hexabus.HexabusException("Unexpected reply received");
 			}
+			*/
 		}
+		endpoints = newEndpoints;
 
 		return endpoints;
 	}
