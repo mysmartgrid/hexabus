@@ -3,14 +3,19 @@ package de.fraunhofer.itwm.hexabus;
 import java.nio.ByteBuffer;
 
 public class HexabusEndpointInfoPacket extends HexabusInfoPacket {
+	private Hexabus.DataType epDataType;
 	public HexabusEndpointInfoPacket(long eid, Hexabus.DataType dataType, byte[] payload) throws Hexabus.HexabusException {
 		super(eid, Hexabus.DataType.STRING, payload);
 		this.packetType = Hexabus.PacketType.EPINFO;
-		this.dataType = dataType;
+		this.epDataType = epDataType;
 	}
 
 	public String getDescription() {
 		return Hexabus.parseString(payload);
+	}
+
+	public Hexabus.DataType getEndpointDataType() {
+		return epDataType;
 	}
 
 	protected byte[] buildPacket() throws Hexabus.HexabusException {
