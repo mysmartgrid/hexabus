@@ -50,8 +50,6 @@
 #include "relay.h"
 #include "state_machine.h"
 #include "metering.h"
-extern void set_forwarding_to_eeprom(uint8_t);
-
 
 //#include "http-strings.h"
 #if COFFEE_FILES
@@ -546,14 +544,6 @@ PT_THREAD(handle_input(struct httpd_state *s))
 				set_relay_default(0);
 			else if (s->inputbuf[0] == '0')
 				set_relay_default(1);
-
-			PSOCK_READTO(&s->sin, ISO_equal);
-			//check for forwarding
-			PSOCK_READTO(&s->sin, ISO_amper);
-			if(s->inputbuf[0] == '1')
-				set_forwarding_to_eeprom(1);
-			else if (s->inputbuf[0] == '0')
-				set_forwarding_to_eeprom(0);
 
 #if S0_ENABLE
 			PSOCK_READTO(&s->sin, ISO_equal);

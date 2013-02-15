@@ -121,7 +121,6 @@
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
-uint8_t forwarding_enabled; //global variable for forwarding
 uint8_t encryption_enabled = 1; //global variable for AES encryption
 /*-------------------------------------------------------------------------*/
 /*----------------------Configuration of the .elf file---------------------*/
@@ -184,17 +183,8 @@ uint8_t get_relay_default_from_eeprom(void) {
 	return eeprom_read_byte ((const void *)EE_RELAY_DEFAULT);
 }
 
-uint8_t get_forwarding_from_eeprom(void) {
-	return eeprom_read_byte ((const void *)EE_FORWARDING);
-}
-
 void get_aes128key_from_eeprom(uint8_t keyptr[16]) {
 	eeprom_read_block ((void *)keyptr, (const void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
-}
-
-void set_forwarding_to_eeprom(uint8_t val) {
-	 eeprom_write_byte ((uint8_t *)EE_FORWARDING, val);
-	 forwarding_enabled = val;
 }
 
 /*-------------------------Low level initialization------------------------*/
@@ -207,8 +197,6 @@ void initialize(void)
   init_lowlevel();
 
   clock_init();
-
-  forwarding_enabled = get_forwarding_from_eeprom();
 
 
 #if ANNOUNCE_BOOT

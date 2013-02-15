@@ -93,17 +93,6 @@ uint16_t mac_dst_pan_id = IEEE802154_PANID;
  */
 uint16_t mac_src_pan_id = IEEE802154_PANID;
 
-#ifndef HEXABUS_SOCKET
-	#define HEXABUS_SOCKET	4
-#endif
-#ifndef HEXABUS_SOCKET
-	#define HEXABUS_USB		5
-#endif
-#if RAVEN_REVISION == HEXABUS_SOCKET
-extern uint8_t forwarding_enabled; //global variable for forwarding
-#else
-#define forwarding_enabled (0)
-#endif
 extern uint8_t promiscuous_mode; //global variable for promiscuous mode
 extern uint8_t encryption_enabled; //global variable for AES encryption
 
@@ -341,8 +330,7 @@ input_packet(void)
       }
       if(!is_broadcast_addr(frame.fcf.dest_addr_mode, frame.dest_addr)) {
         packetbuf_set_addr(PACKETBUF_ADDR_RECEIVER, (rimeaddr_t *)&frame.dest_addr);
-        if(!promiscuous_mode && !forwarding_enabled && !rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER),
-                         &rimeaddr_node_addr)) {
+        if(!promiscuous_mode && !rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &rimeaddr_node_addr)) {
           /* Not for this node */
           PRINTF("6MAC: not for us\n");
           return;
