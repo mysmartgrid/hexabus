@@ -18,6 +18,7 @@
         </activity>
         <activity android:name="RemoteActivity" />
         <activity android:name="MonitorActivity" />
+        <activity android:name="DeviceActivity" />
         <receiver android:name="BootReceiver"></receiver>
         <service android:name="HexabusService" android:label="@string/service_name"></service>
     </application>

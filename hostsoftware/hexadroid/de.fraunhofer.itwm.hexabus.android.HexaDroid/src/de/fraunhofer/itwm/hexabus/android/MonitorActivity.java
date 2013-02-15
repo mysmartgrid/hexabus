@@ -58,10 +58,8 @@ public class MonitorActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.monitor);
-        
-        ArrayList<HexabusPacket> values = new ArrayList<HexabusPacket>();
-		listAdapter = new MonitorListAdapter(this, values);
-
+        	ArrayList<HexabusPacket> values = new ArrayList<HexabusPacket>();
+			listAdapter = new MonitorListAdapter(this, values);
 		ListView lv = (ListView) findViewById(R.id.monitorListView);
 		lv.setAdapter(listAdapter);
 		/*

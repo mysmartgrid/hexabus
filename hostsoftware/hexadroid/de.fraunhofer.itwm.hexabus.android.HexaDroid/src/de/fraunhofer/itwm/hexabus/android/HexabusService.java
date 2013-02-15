@@ -106,6 +106,7 @@ public class HexabusService extends Service {
 			multicastLock.acquire();
 			Log.d(TAG, "multicastLock.isHeld() = " + multicastLock.isHeld());
 			Log.d(TAG, "multicastLock.toString() = " + multicastLock.toString());
+			NetworkInterface inf = null;
 			
 			try {
 				WifiManager wifiMan = (WifiManager) getSystemService(Context.WIFI_SERVICE);
@@ -130,6 +131,7 @@ public class HexabusService extends Service {
 										if(!inetAddress.isLinkLocalAddress()) {
 											Log.d(TAG, inetAddress.toString());
 											interfaceAddress = inetAddress;
+											inf = netint;
 										}
 									}
 								}
@@ -144,12 +146,9 @@ public class HexabusService extends Service {
 			} catch (SocketException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			}
 			
-			server.start(bindAddress);
+			server.start(inf);
 			listener.register(server);
 			Log.d(TAG, "HexabusServer started");
 			started = true;

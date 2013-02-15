@@ -19,7 +19,7 @@ public class DeviceListFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
-    	dlAdapter = new DeviceListAdapter();
+    	//dlAdapter = new DeviceListAdapter();
     	Log.e("DeviceListFragment", "created");
         ExpandableListView lv = (ExpandableListView) inflater.inflate(R.layout.devicelist, container, false);
         lv.setAdapter(dlAdapter);

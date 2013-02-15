@@ -3,6 +3,10 @@ package de.fraunhofer.itwm.hexabus.android;
 import de.fraunhofer.itwm.hexabus.Hexabus;
 import de.fraunhofer.itwm.hexabus.Hexabus.ErrorCode;
 import de.fraunhofer.itwm.hexabus.Hexabus.HexabusException;
+import de.fraunhofer.itwm.hexabus.HexabusDevice;
+import de.fraunhofer.itwm.hexabus.HexabusEndpoint;
+import de.fraunhofer.itwm.hexabus.HexabusEndpointInfoPacket;
+import de.fraunhofer.itwm.hexabus.HexabusEndpointQueryPacket;
 import de.fraunhofer.itwm.hexabus.HexabusErrorPacket;
 import de.fraunhofer.itwm.hexabus.HexabusInfoPacket;
 import de.fraunhofer.itwm.hexabus.HexabusPacket;
@@ -13,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.Map;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Inet6Address;
@@ -81,6 +86,10 @@ public class HexaDroid extends TabActivity {
         super.onCreate(savedInstanceState);
 
 		db = new HexaDroidDbAdapter(this);
+		Cursor cursor = db.fetchEndpoint(0);
+		if(cursor.moveToFirst()) {
+			Log.d(TAG,cursor.getString(3));
+		}
 		context = this;
 		Intent service = new Intent(context, HexabusService.class);
 		context.startService(service);
@@ -102,16 +111,19 @@ public class HexaDroid extends TabActivity {
         monitorSpec.setIndicator("Monitor");
         Intent monitorIntent = new Intent(this, MonitorActivity.class);
         monitorSpec.setContent(monitorIntent);
+        
+        // Tab for monitor
+        TabSpec deviceSpec = tabHost.newTabSpec("Devices");
+        // setting title for the tab
+        deviceSpec.setIndicator("Devices");
+        Intent deviceIntent = new Intent(this, DeviceActivity.class);
+        deviceSpec.setContent(deviceIntent);
         tabHost.addTab(remoteSpec);
         tabHost.addTab(monitorSpec);
+        tabHost.addTab(deviceSpec);
         tabHost.setCurrentTab(1);
         tabHost.setCurrentTab(0);
         monitorActivity = (MonitorActivity) getLocalActivityManager().getActivity("Monitor");
-        if(monitorActivity!=null) {
-        	Log.d(TAG, monitorActivity.toString());
-        } else {
-        	Log.d(TAG, "derp");
-        }
     }
     
 
@@ -263,30 +275,93 @@ public class HexaDroid extends TabActivity {
             switch (msg.what) {
             case HexabusService.MSG_RECEIVE:
             	Log.d(TAG, "PAKET!");
-            	
+            	HexabusPacket packet = (HexabusPacket) msg.obj;
+            	if(packet.getSourceAddress().equals(bindAddress)) {
+            		Log.d(TAG, "Oh, thats me...");
+            		break;
+            	}
             	class ListUpdateRunnable implements Runnable {
-            		Message msg;
-            		public void setMsg(Message msg) {
-            			this.msg = msg;
+            		HexabusPacket packet;
+            		public void setPacket(HexabusPacket packet) {
+            			this.packet = packet;
             		}
             		public void run() {
-            			monitorActivity.handlePacket((HexabusPacket) msg.obj);
+            			monitorActivity.handlePacket(packet);
             			
             		}
             	};
-            	ListUpdateRunnable r = new ListUpdateRunnable();
-            	r.setMsg(msg);
-            	runOnUiThread(r);
+            	ListUpdateRunnable lur = new ListUpdateRunnable();
+            	lur.setPacket(packet);
+            	runOnUiThread(lur);
+            	
+            	class DatabaseUpdateRunnable implements Runnable{ //async task?
+            		public DatabaseUpdateRunnable(HexaDroidDbAdapter db, HexabusPacket packet) {
+            			this.db = db;
+            			this.packet = packet;
+            		}
+            		private HexaDroidDbAdapter db;
+            		HexabusPacket packet;
+            		public void run() {
+            			HexabusDevice device = db.getDeviceByIp(packet.getSourceAddress());
+            			if(device!=null){
+            				device = db.getDeviceByIp(packet.getSourceAddress());
+            				String endpointString = ": 0";
+            				for(Long key : device.getEndpoints().keySet()) {
+            					if(key!=0) {
+            						endpointString += ", " +key;
+            					}
+            				}
+            				Log.d(TAG, packet.getSourceAddress()+endpointString);
+            			} else {
+            				device = new HexabusDevice(packet.getSourceAddress());
+            				byte[] address = packet.getSourceAddress().getAddress();
+            				String name = String.format("Hexabus Socket %02x%02x",(0xFF & address[address.length-2]),(0xFF & address[address.length-1]));
+            				try {
+            					HexabusEndpointQueryPacket epQuery = new HexabusEndpointQueryPacket(0);
+            					HexabusEndpointInfoPacket epInfo = (HexabusEndpointInfoPacket) Hexabus.receivePacket(epQuery.sendPacket(packet.getSourceAddress()),400);
+
+								name = epInfo.getString();
+							} catch (HexabusException e1) {
+								System.err.println(packet.getSourceAddress().getHostAddress());
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							} catch (IOException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+            				db.addDevice(name, device.getInetAddress().getHostAddress(), "");
+            				try {
+            					device.fetchEndpoints();
+            				} catch (HexabusException e) {
+            					// TODO Auto-generated catch block
+            					e.printStackTrace();
+            				} catch (IOException e) {
+            					// TODO Auto-generated catch block
+            					e.printStackTrace();
+            				}
+            				Map<Long, HexabusEndpoint> endpoints = device.getEndpoints();
+            				for(Map.Entry<Long, HexabusEndpoint> entry : endpoints.entrySet()) {
+            					HexabusEndpoint endpoint = entry.getValue();
+            					db.addEndpointToDevice(device, endpoint.getEid());
+            				}
+                			Log.d(TAG, "Added device "+packet.getSourceAddress().toString());
+
+            			}
+            		}
+
+            	};
+            	DatabaseUpdateRunnable dur = new DatabaseUpdateRunnable(db, packet);
+            	(new Thread(dur)).start();
             	break;
             default:
-                super.handleMessage(msg);
-            }
+            	super.handleMessage(msg);
         }
     }
+}
 
-    @Override
-    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
-        menu.setHeaderTitle("Sample menu");
+@Override
+public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
+	menu.setHeaderTitle("Sample menu");
         menu.add(0, 0, 0, "Change name");
     }
     

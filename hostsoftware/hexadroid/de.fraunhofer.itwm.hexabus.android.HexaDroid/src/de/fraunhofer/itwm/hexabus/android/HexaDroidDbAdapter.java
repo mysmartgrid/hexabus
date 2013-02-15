@@ -1,25 +1,37 @@
 package de.fraunhofer.itwm.hexabus.android;
 
+import java.net.InetAddress;
+import java.util.ArrayList;
+
+import de.fraunhofer.itwm.hexabus.Hexabus;
+import de.fraunhofer.itwm.hexabus.Hexabus.HexabusException;
+import de.fraunhofer.itwm.hexabus.HexabusDevice;
+import de.fraunhofer.itwm.hexabus.HexabusEndpoint;
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.text.method.MovementMethod;
 import android.util.Log;
 
 public class HexaDroidDbAdapter {
 	public static final String KEY_EID = "eid";
+	public static final String KEY_DID = "did";
 	public static final String KEY_TYPE = "type";
 	public static final String KEY_DESC = "desc";
 	public static final String KEY_READ = "read";
 	public static final String KEY_WRITE = "write";
 	private static final String KEY_NAME = "name";
 
-	private static final String KEY_IP = null;
+	private static final String KEY_IP = "ip";
 	private static final String TAG = "HexaDroidDbAdapter";
 	private DatabaseHelper dbHelper;
 	private SQLiteDatabase db;
+	
+	private static ArrayList<HexaDroidDbListener> listeners = new ArrayList<HexaDroidDbListener>();
 
 	private static final String DEVICE_CREATE =
 		"create table devices ( "
@@ -31,7 +43,7 @@ public class HexaDroidDbAdapter {
 			+ "primary key (did, eid));";
 	private static final String EID_CREATE =
 			"create table endpoints ( "
-			+ "eid integer primary key, name text not null,"
+			+ "eid integer primary key, name text,"
 			+ "type text not null, desc text not null, "
 			+ "read boolean not null, write boolean not null);";
 	private static final String DB_INITIAL_INSERT =
@@ -81,11 +93,11 @@ public class HexaDroidDbAdapter {
             db.execSQL(EID_CREATE);
             db.execSQL(HAS_EID_CREATE);
 
-            /*
+            
 			for(String eid : INITIAL_EIDS ) {
 	            db.execSQL(DB_INITIAL_INSERT+eid+";");
 			}
-			*/
+			
         }
 
         @Override
@@ -99,10 +111,10 @@ public class HexaDroidDbAdapter {
 
 	public HexaDroidDbAdapter(Context ctx) {
 		this.context = ctx;
+		dbHelper = new DatabaseHelper(context);
 	}
 
 	private HexaDroidDbAdapter open() throws SQLException {
-		dbHelper = new DatabaseHelper(context);
 		db = dbHelper.getWritableDatabase();
 		return this;
 	}
@@ -123,10 +135,119 @@ public class HexaDroidDbAdapter {
 			close();
 		}
 		
+		for(HexaDroidDbListener listener : listeners) {
+			listener.update();
+			Log.d(TAG, "Listener notified");
+		}
+		
+		return result;
+	}
+	
+	public ArrayList<HexabusDevice> getDevices() {
+		ArrayList<HexabusDevice> result = new ArrayList<HexabusDevice>();
+		Cursor cursor;
+		synchronized(dbHelper) {
+			open();
+			cursor = db.query(DB_DEVICE_TABLE, new String[] {KEY_DID, KEY_NAME, KEY_IP},
+					null,  null, null, null, null);
+			if(cursor != null) {
+				while(cursor.moveToNext()) {
+					HexabusDevice device = new HexabusDevice(cursor.getString(2), cursor.getString(1));
+					ArrayList<Long> eids = getDeviceEids(cursor.getInt(0));
+					for(Long eid : eids) {
+						Cursor eidCursor = fetchEndpoint(eid);
+						if(eidCursor!=null) {
+							try {
+								if(eid!=0){
+									device.addEndpoint(eid, Hexabus.getDataTypeByString(eidCursor.getString(2)), eidCursor.getString(3));
+								}
+							} catch (HexabusException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}
+					}
+					result.add(device);
+				}
+			}
+			
+			close();
+		}
+		return result;
+	}
+	
+	public HexabusDevice getDeviceByIp(InetAddress address) {
+		HexabusDevice result = null;
+		String ip = address.getHostAddress();
+		Cursor cursor;
+		synchronized (dbHelper) {
+			open();
+			cursor = db.query(true, DB_DEVICE_TABLE, new String[] {KEY_DID, KEY_IP},
+					KEY_IP + "= ?" , new String[] {ip}, null, null, null, null);
+			if(cursor != null && cursor.moveToFirst()) {
+				//cursor.moveToFirst();
+				result = new HexabusDevice(address);
+				ArrayList<Long> eids = getDeviceEids(cursor.getInt(0));
+				for(Long eid : eids) {
+					Cursor eidCursor = fetchEndpoint(eid);
+					if(eidCursor!=null) {
+						try {
+							if(eid!=0){
+								result.addEndpoint(eid, Hexabus.getDataTypeByString(eidCursor.getString(2)), eidCursor.getString(3));
+							}
+						} catch (HexabusException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+			close();
+
+		}
+		return result;
+	}
+	
+	public ArrayList<Long> getDeviceEids(int deviceId) {
+		Cursor cursor;
+		ArrayList<Long> result= new ArrayList<Long>();
+		synchronized(dbHelper) {
+			open();
+			cursor = db.query(true,DB_HAS_EID_TABLE, new String[] {KEY_EID}, KEY_DID + "=" + deviceId, null, null, null, null, null);
+			if(cursor != null) {
+				while(cursor.moveToNext()) {
+					result.add(cursor.getLong(0));
+				}
+			}
+			close();
+		}
+		return result;
+	}
+	
+	public long addEndpointToDevice(HexabusDevice device, long eid) {
+		long result = -1;
+		String ip = device.getInetAddress().getHostAddress();
+		Cursor cursor;
+		synchronized (dbHelper) {
+			open();
+			cursor = db.query(true, DB_DEVICE_TABLE, new String[] {KEY_DID},
+					KEY_IP + "= ?" , new String[] {ip}, null, null, null, null);
+			if(cursor!=null && cursor.moveToFirst()) {
+				ContentValues values = new ContentValues();
+				values.put(KEY_DID, cursor.getInt(0));
+				values.put(KEY_EID, eid);
+				result = db.insert(DB_HAS_EID_TABLE, null, values);
+			}
+			close();			
+		}
+		
+		for(HexaDroidDbListener listener : listeners) {
+			listener.update();
+		}
 		return result;
 	}
 
-	public long addEndpoint(int eid, String name, String type, String description, boolean readable, boolean writable) {
+	public long addEndpoint(long eid, String name, String type, String description, boolean readable, boolean writable) {
 		long result;
 		synchronized(dbHelper) {
 			open();
@@ -141,10 +262,14 @@ public class HexaDroidDbAdapter {
 			close();
 		}
 
+		
+		for(HexaDroidDbListener listener : listeners) {
+			listener.update();
+		}
 		return result;
 	}
 
-	public int updateEndpoint(int eid, String name, String type, String description, boolean readable, boolean writable) {
+	public int updateEndpoint(long eid, String name, String type, String description, boolean readable, boolean writable) {
 		int result;
 		synchronized(dbHelper) {
 			open();
@@ -158,15 +283,23 @@ public class HexaDroidDbAdapter {
 			close();
 		}
 
+		
+		for(HexaDroidDbListener listener : listeners) {
+			listener.update();
+		}
 		return result;		
 	}
 
-	public boolean removeEndpoint(int eid) {
+	public boolean removeEndpoint(long eid) {
 		boolean result;
 		synchronized(dbHelper) {
 			open();
 			result = db.delete(DB_EID_TABLE, KEY_EID + "=" + eid, null) > 0;
 			close();
+		}
+		
+		for(HexaDroidDbListener listener : listeners) {
+			listener.update();
 		}
 		return result;
 	}
@@ -182,7 +315,7 @@ public class HexaDroidDbAdapter {
 		return cursor;
 	}
 
-	public Cursor fetchEndpoint(int eid) {
+	public Cursor fetchEndpoint(long eid) {
 		Cursor cursor;
 		synchronized(dbHelper) {
 			open();
@@ -194,6 +327,16 @@ public class HexaDroidDbAdapter {
 			close();
 		}
 		return cursor;
+	}
+	
+	public void register(HexaDroidDbListener listener) {
+		synchronized(listeners) {
+			listeners.add(listener);
+		}
+	}
+	
+	public interface HexaDroidDbListener {
+		public void update();
 	}
 
 }

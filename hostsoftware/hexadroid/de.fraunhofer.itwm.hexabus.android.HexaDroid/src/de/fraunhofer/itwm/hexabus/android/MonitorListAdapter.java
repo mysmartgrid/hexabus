@@ -74,7 +74,7 @@ public class MonitorListAdapter extends ArrayAdapter {
 			case ERROR:
 				text += "ERROR\n";
 				boldText = text.length();
-				text += "\tSource: " + packet.getSourceAddress() + "\n";
+				text += "\tSource: " + packet.getSourceAddress().getHostAddress() + "\n";
 				text += "\tError Code: " + ((HexabusErrorPacket)packet).getErrorCode();
 				textView.setText(text, TextView.BufferType.SPANNABLE);
 				str = (Spannable) textView.getText();
@@ -85,7 +85,7 @@ public class MonitorListAdapter extends ArrayAdapter {
 				HexabusInfoPacket infoPacket = (HexabusInfoPacket) packet;
 				text += "INFO\n";
 				boldText = text.length();
-				text += "\tSource: " + packet.getSourceAddress() + "\n";
+				text += "\tSource: " + packet.getSourceAddress().getHostAddress() + "\n";
 				text += "\tEID: " + Long.toString(infoPacket.getEid()) + "\n";
 				text += "\tData Type: " + infoPacket.getDataType() + "\n";
 				text += "\tValue: ";
@@ -159,7 +159,7 @@ public class MonitorListAdapter extends ArrayAdapter {
 				HexabusQueryPacket queryPacket = (HexabusQueryPacket) packet;
 				text += "QUERY\n";
 				boldText = text.length();
-				text += "\tSource: " + packet.getSourceAddress() + "\n";
+				text += "\tSource: " + packet.getSourceAddress().getHostAddress() + "\n";
 				text += "\tEID: " + Long.toString(queryPacket.getEid()) + "\n";
 
 				textView.setText(text, TextView.BufferType.SPANNABLE);
@@ -171,7 +171,7 @@ public class MonitorListAdapter extends ArrayAdapter {
 				HexabusWritePacket writePacket = (HexabusWritePacket) packet;
 				text += "WRITE\n";
 				boldText = text.length();
-				text += "\tSource: " + packet.getSourceAddress() + "\n";
+				text += "\tSource: " + packet.getSourceAddress().getHostAddress() + "\n";
 				text += "\tEID: " + Long.toString(writePacket.getEid()) + "\n";
 				text += "\tData Type: " + writePacket.getDataType() + "\n";
 				text += "\tValue: ";
@@ -245,7 +245,7 @@ public class MonitorListAdapter extends ArrayAdapter {
 				HexabusEndpointInfoPacket endpointInfoPacket = (HexabusEndpointInfoPacket) packet;
 				text += "EPINFO\n";
 				boldText = text.length();
-				text += "\tSource: " + packet.getSourceAddress() + "\n";
+				text += "\tSource: " + packet.getSourceAddress().getHostAddress() + "\n";
 				text += "\tEID: " + Long.toString(endpointInfoPacket.getEid()) + "\n";
 				text += "\tData Type: " + endpointInfoPacket.getDataType() + "\n";
 				text += "\tValue: ";
@@ -258,7 +258,7 @@ public class MonitorListAdapter extends ArrayAdapter {
 				HexabusEndpointQueryPacket endpointQueryPacket = (HexabusEndpointQueryPacket) packet;
 				text += "EPQUERY\n";
 				boldText = text.length();
-				text += "\tSource: " + packet.getSourceAddress() + "\n";
+				text += "\tSource: " + packet.getSourceAddress().getHostAddress() + "\n";
 				//TODO
 				text += "\tEID: " + Long.toString(endpointQueryPacket.getEid()) + "\n";
 				textView.setText(text, TextView.BufferType.SPANNABLE);
@@ -270,7 +270,7 @@ public class MonitorListAdapter extends ArrayAdapter {
 				text += "UNKNOWN";
 
 				boldText = text.length();
-				text += "\tSource: " + packet.getSourceAddress() + "\n";
+				text += "\tSource: " + packet.getSourceAddress().getHostAddress() + "\n";
 				textView.setText(text, TextView.BufferType.SPANNABLE);
 				str = (Spannable) textView.getText();
 				str.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), 0, boldText, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
