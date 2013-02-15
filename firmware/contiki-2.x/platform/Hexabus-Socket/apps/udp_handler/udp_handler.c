@@ -44,6 +44,7 @@
 #include "httpd-cgi.h"
 #include "packet_builder.h"
 #include "dev/leds.h"
+#include <util/delay.h>
 
 #include "state_machine.h"
 #include "metering.h"
@@ -97,6 +98,8 @@ static bool heartbeat_ipaddr_set = false;
 static uip_ipaddr_t heartbeat_ipaddr;
 static unsigned char heartbeat_no_ack;
 #define  MAX_HEARTBEAT_RETRIES  5 //maximum failed heartbeats before changing to default mode
+
+static uip_ipaddr_t hxb_group;
 
 PROCESS(udp_handler_process, "HEXABUS Socket UDP handler Process");
 AUTOSTART_PROCESSES(&udp_handler_process);
@@ -220,7 +223,7 @@ udphandler(process_event_t ev, process_data_t data)
                 value.datatype = HXB_DTYPE_66BYTES;
                 *(char**)&value.data = &(((struct hxb_packet_66bytes*)header)->value);
               }
-              break;            
+              break;
             case HXB_DTYPE_16BYTES:
               if(uip_ntohs(((struct hxb_packet_16bytes*)header)->crc) != crc16_data((char*)header, sizeof(struct hxb_packet_16bytes) - 2, 0))
               {
@@ -236,7 +239,7 @@ udphandler(process_event_t ev, process_data_t data)
                 value.datatype = HXB_DTYPE_16BYTES;
                 *(char**)&value.data = &(((struct hxb_packet_16bytes*)header)->value);
               }
-              break;            
+              break;
             default:
               PRINTF("Packet of unknown datatype.\r\n");
               break;
@@ -276,6 +279,11 @@ udphandler(process_event_t ev, process_data_t data)
           {
             struct hxb_value value;
             endpoint_read(uip_ntohl(packet->eid), &value);
+            if(uip_ipaddr_cmp(&UDP_IP_BUF->destipaddr, &hxb_group))
+            {
+              PRINTF("Group query!\r\n");
+              _delay_us(random_rand() >> 1); // wait for max 31ms
+            }
             switch(value.datatype)
             {
               case HXB_DTYPE_BOOL:
@@ -458,7 +466,7 @@ static void print_local_addresses(void) {
 /*---------------------------------------------------------------------------*/
 
 PROCESS_THREAD(udp_handler_process, ev, data) {
-  uip_ipaddr_t ipaddr;
+  static uip_ipaddr_t ipaddr;
   PROCESS_POLLHANDLER(pollhandler());
   PROCESS_EXITHANDLER(exithandler());
 
@@ -478,10 +486,9 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   // this wrapper macro is needed to expand HXB_GROUP_RAW before uip_ip6addr, which is a macro
   // it's ugly as day, but it's the least ugly solution i found
   #define PARSER_WRAP(addr, __VA_ARGS__) uip_ip6addr(addr, __VA_ARGS__)
-  PARSER_WRAP(&ipaddr, HXB_GROUP_RAW);
+  PARSER_WRAP(&hxb_group, HXB_GROUP_RAW);
   #undef PARSER_WRAP
-  uip_ds6_maddr_add(&ipaddr);
-  
+  uip_ds6_maddr_add(&hxb_group);
 
   // Define Address of the server that receives our heartbeats.
   // TODO: Make this dynamic

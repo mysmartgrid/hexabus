@@ -80,6 +80,8 @@
 #include "dev/serial-line.h"
 #include "dev/slip.h"
 
+#include "lib/random.h"
+
 #if WEBSERVER
 #include "httpd-fs.h"
 #include "httpd-cgi.h"
@@ -306,6 +308,9 @@ void initialize(void)
   process_start(&mac_process, NULL);
   process_start(&tcpip_process, NULL);
 #endif /*RF230BB || RF212BB*/
+
+  //initialize random number generator with part of the MAC address
+  random_init(eeprom_read_word(EE_MAC_ADDR + EE_MAC_ADDR_SIZE - 2));
 
 #if WEBSERVER
   process_start(&webserver_nogui_process, NULL);
