@@ -20,7 +20,7 @@ static uint8_t button_vector = 0;
 static uint8_t pressed_vector = 0;
 static uint8_t clicked_vector = 0;
 
-void button_clicked(uint8_t button) {
+static void button_clicked(uint8_t button) {
 
     PRINTF("Clicked %d\n", button);
 
@@ -29,7 +29,7 @@ void button_clicked(uint8_t button) {
     clicked_vector&=~(1<<button);
 }
 
-void button_pressed(uint8_t button) {
+static void button_pressed(uint8_t button) {
     PRINTF("Pressed %d\n", button);
 
     pressed_vector|=(1<<button);
@@ -37,7 +37,7 @@ void button_pressed(uint8_t button) {
     broadcast_value(EP_HEXAPUSH_PRESSED);
 }
 
-void button_released(uint8_t button){
+static void button_released(uint8_t button){
     PRINTF("Released %d\n", button);
 
     pressed_vector&=~(1<<button);

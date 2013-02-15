@@ -31,25 +31,53 @@
  *
  */
 
-#include "button.h"
+#include "contiki-conf.h"
+#include "hexabus_config.h"
 #include "eeprom_variables.h"
 #include <avr/eeprom.h>
 #include <avr/wdt.h>
 #include "dev/watchdog.h"
 #include "provisioning.h"
+#include "metering.h"
+#include <endpoints.h>
+#include "relay.h"
+
+
+#if BUTTON_HAS_EID
+int button_pushed = 0;
+
+uint8_t button_get_pushed(void)
+{
+	return button_pushed;
+}
+#endif
+
+void button_clicked(void)
+{
+#if BUTTON_HAS_EID
+	button_pushed = 1;
+	broadcast_value(EP_BUTTON);
+	button_pushed = 0;
+#endif
+#if BUTTON_TOGGLES_RELAY
+	relay_toggle();
+#endif
+}
 
 void button_long_clicked(bool released)
 {
 	if (released) {
-		provisioning_master();
+		provisioning_slave();
 	} else {
 		provisioning_leds();
 	}
 }
 
-void button_held()
+void button_held(void)
 {
-	eeprom_write_byte((uint8_t *)EE_BOOTLOADER_FLAG, 0x01);
-	watchdog_reboot();
+	if (!metering_calibrate()) {
+		eeprom_write_byte((uint8_t *)EE_BOOTLOADER_FLAG, 0x01);
+		watchdog_reboot();
+	}
 }
 

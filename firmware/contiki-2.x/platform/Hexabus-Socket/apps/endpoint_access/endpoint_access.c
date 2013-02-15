@@ -4,7 +4,7 @@
 #include "hexabus_config.h"
 #include "endpoint_access.h"
 #include "temperature.h"
-#include "button.h"
+#include "button_handlers.h"
 #include "analogread.h"
 #include "humidity.h"
 #include "pressure.h"

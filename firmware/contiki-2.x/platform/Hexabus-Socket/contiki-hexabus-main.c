@@ -100,7 +100,6 @@
 
 
 //HEXABUS includes
-#include "button.h"
 #include "metering.h"
 #include "relay.h"
 #include "eeprom_variables.h"
