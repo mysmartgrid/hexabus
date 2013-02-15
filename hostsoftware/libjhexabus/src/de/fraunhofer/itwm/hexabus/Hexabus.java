@@ -22,6 +22,20 @@ public class Hexabus {
 	/** Hexabus packet header */
 	public final static byte[] HEADER = new byte[] {(byte) 0x48, (byte) 0x58, (byte) 0x30, (byte) 0x43};
 
+	private static InetAddress interfaceAddress;
+
+	public static InetAddress getInterfaceAddress() {
+		return interfaceAddress;
+	}
+
+	public static void setInterfaceAddress(InetAddress address) {
+		interfaceAddress = address;
+	}
+
+	public static void sendLivenessReport(boolean state) throws HexabusException, IOException {
+		new HexabusInfoPacket(31, state).broadcastPacket();
+	}
+
 	/** Listener have to extend this class to get packets from the HexabusServer */
 	public static abstract class HexabusListener {
 		private HexabusServer server;
@@ -196,6 +210,7 @@ public class Hexabus {
 		public int getSize() {
 			return size;
 		}
+
 	}
 
 	/**
@@ -339,7 +354,11 @@ public class Hexabus {
 			ReverseEnumMap<DataType> reverse = new ReverseEnumMap<DataType>(DataType.class);
 		return reverse.get(type);
 	}
-		
+
+	public static DataType getDataTypeByString(String typeString) {
+		ReverseEnumMap<DataType> reverse = new ReverseEnumMap<DataType>(DataType.class);
+		return reverse.getByString(typeString);
+	}		
 
 	public static class HexabusException extends Exception {
 		public HexabusException(String s) {
@@ -353,14 +372,20 @@ public class Hexabus {
 	}
 	private static class ReverseEnumMap<V extends Enum<V> & EnumConverter> {
 		private Map<Byte, V> map = new HashMap<Byte, V>();
+		private Map<String, V> stringMap = new HashMap<String, V>();
 		public ReverseEnumMap(Class<V> valueType) {
 			for (V v : valueType.getEnumConstants()) {
 				map.put(v.convert(), v);
+				stringMap.put(v.toString(), v);
 			}
 		}
 
 		public V get(byte num) {
 			return map.get(num);
+		}
+
+		public V getByString(String typeString) {
+			return stringMap.get(typeString);
 		}
 	}
 }

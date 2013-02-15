@@ -3,6 +3,7 @@ package de.fraunhofer.itwm.hexabus;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.net.DatagramPacket;
 import java.io.IOException;
@@ -27,7 +28,13 @@ public abstract class HexabusPacket {
 		buffer.put(data);
 		buffer.put(crc);
 		// send packet
-		MulticastSocket socket = new MulticastSocket();
+		MulticastSocket socket;
+		if(Hexabus.getInterfaceAddress() != null) {
+			socket = new MulticastSocket(new InetSocketAddress(Hexabus.getInterfaceAddress(),0));
+			socket.setInterface(Hexabus.getInterfaceAddress());
+		} else {
+			socket = new MulticastSocket();
+		}
 		socket.setTimeToLive(64);
 		DatagramPacket packet = new DatagramPacket(packetData, packetData.length, 
 				InetAddress.getByAddress(Hexabus.MULTICAST_GROUP), Hexabus.PORT);
@@ -52,7 +59,13 @@ public abstract class HexabusPacket {
 		buffer.put(data);
 		buffer.put(crc);
 		// send packet
-		MulticastSocket socket = new MulticastSocket();
+		MulticastSocket socket;
+		if(Hexabus.getInterfaceAddress() != null) {
+			socket = new MulticastSocket(new InetSocketAddress(Hexabus.getInterfaceAddress(),0));
+			socket.setInterface(Hexabus.getInterfaceAddress());
+		} else {
+			socket = new MulticastSocket();
+		}
 		socket.setTimeToLive(64);
 		DatagramPacket packet = new DatagramPacket(packetData, packetData.length, 
 				address, Hexabus.PORT);
@@ -78,10 +91,19 @@ public abstract class HexabusPacket {
 		buffer.put(data);
 		buffer.put(crc);
 		// send packet
-		MulticastSocket socket = new MulticastSocket();
+		MulticastSocket socket;
+		if(Hexabus.getInterfaceAddress() != null) {
+			socket = new MulticastSocket(new InetSocketAddress(Hexabus.getInterfaceAddress(),0));
+			socket.setInterface(Hexabus.getInterfaceAddress());
+		} else {
+			socket = new MulticastSocket();
+		}
 		socket.setTimeToLive(64);
 		DatagramPacket packet = new DatagramPacket(packetData, packetData.length, 
 				address, port);
+		if(Hexabus.getInterfaceAddress() != null) {
+			socket.setInterface(Hexabus.getInterfaceAddress());
+		}
 		socket.send(packet);
 		socket.close();
 		return socket.getLocalPort();

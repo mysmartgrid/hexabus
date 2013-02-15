@@ -5,6 +5,8 @@ import java.net.MulticastSocket;
 import java.net.SocketException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -18,6 +20,8 @@ public class HexabusServer {
 	private LinkedBlockingQueue<DatagramPacket> parseQueue;
 	private boolean running = false;
 	private int port = Hexabus.PORT;
+	private InetAddress interfaceAddress = null;
+	private NetworkInterface networkInterface = null;
 
 	/**
 	 * HexabusServer that listens on port { @value Hexabus#PORT }
@@ -36,6 +40,22 @@ public class HexabusServer {
 		(new Thread(serverRunnable)).start();
 		parserThread = new Thread(new HexabusServerParserRunnable());
 		parserThread.start();
+	}
+
+	/**
+	 * Starts the server
+	 */
+	public void start(InetAddress interfaceAddress) {
+		this.interfaceAddress = interfaceAddress;
+		start();
+	}
+
+	/**
+	 * Starts the server
+	 */
+	public void start(NetworkInterface networkInterface) {
+		this.networkInterface = networkInterface;
+		start();
 	}
 
 	/**
@@ -172,7 +192,15 @@ public class HexabusServer {
 		public void run() {
 			try {
 				socket = new MulticastSocket(port);
-				socket.joinGroup(InetAddress.getByAddress(Hexabus.MULTICAST_GROUP));
+
+				if(interfaceAddress != null) {
+					socket.setInterface(interfaceAddress);
+				}
+				if(networkInterface != null) {
+					socket.joinGroup(new InetSocketAddress(InetAddress.getByAddress(Hexabus.MULTICAST_GROUP),port), networkInterface);
+				} else {
+					socket.joinGroup(InetAddress.getByAddress(Hexabus.MULTICAST_GROUP));
+				}
 				while(running) {
 
 					byte[] data = new byte[141]; // Largest packet: 128string info/write packet
@@ -180,12 +208,14 @@ public class HexabusServer {
 					packet = new DatagramPacket(data, data.length);
 
 					socket.receive(packet);
+					System.err.println("Packet received");
 					server.handlePacket(packet);
 				}
 				socket.leaveGroup(InetAddress.getByAddress(Hexabus.MULTICAST_GROUP));
 				socket.close();
 			} catch(SocketException e) {
 				if(e.getMessage().equals("Socket closed")) { // urgh..
+					e.printStackTrace();
 					return;
 				} else {
 					e.printStackTrace();
