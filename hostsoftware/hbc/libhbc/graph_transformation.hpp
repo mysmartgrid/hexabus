@@ -17,7 +17,7 @@ namespace hexabus {
   class GraphTransformation {
     public:
       typedef std::tr1::shared_ptr<GraphTransformation> Ptr;
-      GraphTransformation(device_table_ptr d, endpoint_table_ptr e, std::map<unsigned int, std::string> filenames_per_id) : _d(d), _e(e), machine_filenames_per_id(filenames_per_id) {};
+      GraphTransformation(device_table_ptr d, endpoint_table_ptr e, machine_table& machines) : _d(d), _e(e), _machines(machines) {};
       virtual ~GraphTransformation() {};
       void writeGraphviz(std::string filename_prefix);
       std::map<std::string, graph_t_ptr> getDeviceGraphs();
@@ -28,7 +28,7 @@ namespace hexabus {
       device_table_ptr _d;
       endpoint_table_ptr _e;
       std::map<std::string, graph_t_ptr> device_graphs;
-      std::map<unsigned int, std::string> machine_filenames_per_id;
+      machine_table _machines;
       machine_map_t generateMachineMap(graph_t_ptr g);
       std::vector<std::string> findDevices(std::vector<vertex_id_t> stm_vertices, graph_t_ptr g);
       graph_t_ptr reconstructGraph(std::vector<vertex_id_t> vertices, graph_t_ptr in_g);

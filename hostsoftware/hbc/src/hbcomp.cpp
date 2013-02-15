@@ -163,6 +163,9 @@ int main(int argc, char** argv)
       if(r)
         std::cout << "Parsing of file " << includes[f].string() << " failed: Did not reach end of file." << std::endl;
     }
+
+    // close file
+    in.close();
   }
 
   if(okay) {
@@ -189,13 +192,14 @@ int main(int argc, char** argv)
     // build "big" state machine graph
     if(verbose)
       std::cout << "Building state machine graph..." << std::endl;
+    hexabus::machine_table machines;
     hexabus::GraphBuilder gBuilder;
-    gBuilder(ast);
+    gBuilder(ast, machines);
     if(vm.count("graph")) {
       std::ofstream ofs;
       std::string outfile(vm["graph"].as<std::string>());
       if(std::string("") == outfile) {
-        std::cout << "No graph output file specified." << std::endl;
+        std::cout << "No graph output file name specified." << std::endl;
         exit(-1);
       }
       ofs.open(outfile.c_str());
@@ -210,7 +214,7 @@ int main(int argc, char** argv)
     // slice state machine graph
     if(verbose)
       std::cout << "Building separate state machine graphs for devices..." << std::endl;
-    hexabus::GraphTransformation gt(tableBuilder.get_device_table(), tableBuilder.get_endpoint_table(), gBuilder.getMachineFilenameMap());
+    hexabus::GraphTransformation gt(tableBuilder.get_device_table(), tableBuilder.get_endpoint_table(), machines);
     gt(gBuilder.get_graph());
 
     if(vm.count("slice")) {
@@ -268,7 +272,7 @@ int main(int argc, char** argv)
 
     std::map<std::string, hexabus::graph_t_ptr> graphs = gt.getDeviceGraphs(); // we can take the graph map from gt again, because GraphSimplification works in-place
     for(std::map<std::string, hexabus::graph_t_ptr>::iterator graphIt = graphs.begin(); graphIt != graphs.end(); graphIt++) {
-      hexabus::HBAOutput out(graphIt->first, graphIt->second, tableBuilder.get_device_table(), tableBuilder.get_endpoint_table(), gBuilder.getMachineFilenameMap());
+      hexabus::HBAOutput out(graphIt->first, graphIt->second, tableBuilder.get_device_table(), tableBuilder.get_endpoint_table(), machines);
 
       if(vm.count("output")) {
         std::ostringstream fnoss;
