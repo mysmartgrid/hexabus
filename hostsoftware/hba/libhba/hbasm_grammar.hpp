@@ -197,7 +197,7 @@ struct UpdateFileInfo
       >> ipv6_address > ';';
 
 		device_name = lit("device_name")
-			>> identifier
+			>> ( lit("0")[_val = "\0"] | identifier )
 			> ';';
 
     machine_id = lit("machine")
