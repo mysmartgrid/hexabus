@@ -220,11 +220,11 @@ int main(int argc, char **argv)
       }
 
 			// then add the device name
-			boost::array<char,30> dev_name; // make an array that's as long as the eeprom area for the device name
+			boost::array<char,64> dev_name; // make an array that's as long as a chunk of the uploader
 			BOOST_FOREACH(char c, dev_name) { // fill it with zeros
 				c = '\0';
 			}
-			for(size_t i = 0; i < std::min(dev_name.size(), ast.device_name.size()); ++i) { // copy device name from AST to the array
+			for(size_t i = 0; i < std::min((size_t)30, ast.device_name.size()); ++i) { // copy device name from AST to the array (only first 30 bytes, we don't have more space in the EEPROM
 				dev_name[i] = ast.device_name[i];
 			}
 			BOOST_FOREACH(char c, dev_name) { // copy device name from the array to the output vector

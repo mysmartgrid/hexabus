@@ -134,150 +134,147 @@ bool send_chunk(hexabus::Socket* network, const std::string& ip_addr, uint8_t ch
 }
 
 int main(int argc, char** argv) {
-  std::ostringstream oss;
-  oss << "Usage: " << argv[0] << " IP [additional options] ACTION";
-  po::options_description desc(oss.str());
-  desc.add_options()
-    ("help,h", "produce help message")
-    ("version", "print libhexabus version and exit")
-    ("ip,i", po::value<std::string>(), "the hostname to connect to. If this option is not set, the target IP address from the program file will be used.")
-    ("interface,I", po::value<std::string>(), "the interface to use for outgoing messages")
-    ("program,p", po::value<std::string>(), "the state machine program to be uploaded")
-    ;
-  po::positional_options_description p;
-  p.add("program", 1);
-  p.add("ip", 1);
-  po::variables_map vm;
+	std::ostringstream oss;
+	oss << "Usage: " << argv[0] << " IP [additional options] ACTION";
+	po::options_description desc(oss.str());
+	desc.add_options()
+		("help,h", "produce help message")
+		("version", "print libhexabus version and exit")
+		("ip,i", po::value<std::string>(), "the hostname to connect to. If this option is not set, the target IP address from the program file will be used.")
+		("interface,I", po::value<std::string>(), "the interface to use for outgoing messages")
+		("program,p", po::value<std::string>(), "the state machine program to be uploaded")
+		;
+	po::positional_options_description p;
+	p.add("program", 1);
+	p.add("ip", 1);
+	po::variables_map vm;
 
-  // Begin processing of commandline parameters.
-  try {
-    po::store(po::command_line_parser(argc, argv).
-        options(desc).positional(p).run(), vm);
-    po::notify(vm);
-  } catch (std::exception& e) {
-    std::cerr << "Cannot process commandline options: " << e.what() << std::endl;
-    exit(-1);
-  }
+	// Begin processing of commandline parameters.
+	try {
+		po::store(po::command_line_parser(argc, argv).
+				options(desc).positional(p).run(), vm);
+		po::notify(vm);
+	} catch (std::exception& e) {
+		std::cerr << "Cannot process commandline options: " << e.what() << std::endl;
+		exit(-1);
+	}
 
-  std::string command;
-  std::vector<char> program;
+	std::string command;
+	std::vector<char> program;
 
-  if (vm.count("help")) {
-    std::cout << desc << std::endl;
-    return 0;
-  }
+	if (vm.count("help")) {
+		std::cout << desc << std::endl;
+		return 0;
+	}
 
-  if (vm.count("version")) {
-    std::cout << "hexaswitch -- command line hexabus client" << std::endl;
-    std::cout << "libhexabus version " << hexabus::version() << std::endl;
-    return 0;
-  }
+	if (vm.count("version")) {
+		std::cout << "hexaswitch -- command line hexabus client" << std::endl;
+		std::cout << "libhexabus version " << hexabus::version() << std::endl;
+		return 0;
+	}
 
-  if (!vm.count("program")) {
-    std::cout << "Cannot proceed without a program (-p <FILE>)" << std::endl;
-    exit(-1);
-  } else {
-    std::ifstream in(vm["program"].as<std::string>().c_str(),
-        std::ios_base::in | std::ios::ate | std::ios::binary);
-    if (!in) {
-      std::cerr << "Error: Could not open input file: "
-        << vm["program"].as<std::string>() << std::endl;
-      exit(-1);
-    }
-    in.unsetf(std::ios::skipws); // No white space skipping!
+	if (!vm.count("program")) {
+		std::cout << "Cannot proceed without a program (-p <FILE>)" << std::endl;
+		exit(-1);
+	} else {
+		std::ifstream in(vm["program"].as<std::string>().c_str(),
+				std::ios_base::in | std::ios::ate | std::ios::binary);
+		if (!in) {
+			std::cerr << "Error: Could not open input file: "
+				<< vm["program"].as<std::string>() << std::endl;
+			exit(-1);
+		}
+		in.unsetf(std::ios::skipws); // No white space skipping!
 
-    size_t size = in.tellg();
-    in.seekg(0, std::ios::beg);
+		size_t size = in.tellg();
+		in.seekg(0, std::ios::beg);
 
-    // first, read target IP
-    const size_t IP_ADDR_LENGTH = 16;
-    unsigned char* ip_buffer = new unsigned char[IP_ADDR_LENGTH];
-    in.read((char*)ip_buffer, IP_ADDR_LENGTH);
+		// first, read target IP
+		const size_t IP_ADDR_LENGTH = 16;
+		unsigned char* ip_buffer = new unsigned char[IP_ADDR_LENGTH];
+		in.read((char*)ip_buffer, IP_ADDR_LENGTH);
 
-    // then read program into buffer
-    char* buffer = new char[size - IP_ADDR_LENGTH];
-    in.read(buffer, size - IP_ADDR_LENGTH);
-    //std::string instr(buffer, size);
-    program.insert(program.end(), buffer, buffer+(size - IP_ADDR_LENGTH));
-    delete buffer;
-    in.close();
+		// then read program into buffer
+		char* buffer = new char[size - IP_ADDR_LENGTH];
+		in.read(buffer, size - IP_ADDR_LENGTH);
+		program.insert(program.end(), buffer, buffer+(size - IP_ADDR_LENGTH));
+		delete buffer;
+		in.close();
 
-    std::cout << "machine ID: " << (int)program[0] << std::endl;
+		boost::asio::io_service io;
+		hexabus::Socket* network;
 
-	boost::asio::io_service io;
-  hexabus::Socket* network;
+		if (vm.count("interface")) {
+			std::string interface=(vm["interface"].as<std::string>());
+			std::cout << "Using interface " << interface << std::endl;
+			network=new hexabus::Socket(io, interface);
+		} else {
+			network=new hexabus::Socket(io);
+		}
 
-  if (vm.count("interface")) {
-    std::string interface=(vm["interface"].as<std::string>());
-    std::cout << "Using interface " << interface << std::endl;
-    network=new hexabus::Socket(io, interface);
-  } else {
-    network=new hexabus::Socket(io);
-  }
+		std::string ip_addr;
+		if(vm.count("ip")) { // if we have an IP address given at the command line, use it
+			ip_addr = vm["ip"].as<std::string>();
+		} else { // if there is no IP address at the command line, read the one from the input file
+			std::ostringstream oss;
+			oss << std::hex << std::setfill('0');
+			for(size_t i = 0; i < IP_ADDR_LENGTH; ++i) {
+				if(i && !(i % 2)) // output a : after every two bytes
+					oss << ":";
+				oss << std::setw(2) << (unsigned int)ip_buffer[i];
+			}
+			std::cout << std::endl << "Using target IP from program file: " << oss.str() << std::endl;
+			ip_addr = oss.str();
+		}
 
-  std::string ip_addr;
-  if(vm.count("ip")) { // if we have an IP address given at the command line, use it
-    ip_addr = vm["ip"].as<std::string>();
-  } else { // if there is no IP address at the command line, read the one from the input file
-    std::ostringstream oss;
-    oss << std::hex << std::setfill('0');
-    for(size_t i = 0; i < IP_ADDR_LENGTH; ++i) {
-      if(i && !(i % 2)) // output a : after every two bytes
-        oss << ":";
-      oss << std::setw(2) << (unsigned int)ip_buffer[i];
-    }
-    std::cout << std::endl << "Using target IP from program file: " << oss.str() << std::endl;
-    ip_addr = oss.str();
-  }
+		delete ip_buffer;
 
-  delete ip_buffer;
+		/**
+		 * for all bytes in the binary format:
+		 * 0. generate the next 64 byte chunk, failure counter:=0
+		 * 1. prepend chunk ID
+		 * 2. send to hexabus device
+		 * 3. wait for ACK/NAK:
+		 *    - if ACK, next chunk
+		 *    - if NAK: Retransmit current packet. failure counter++. Abort if
+		 *    maxtry reached.
+		 */
+		assert_statemachine_state(network, ip_addr, STM_STATE_STOPPED);
 
-  /**
-   * for all bytes in the binary format:
-   * 0. generate the next 64 byte chunk, failure counter:=0
-   * 1. prepend chunk ID
-   * 2. send to hexabus device
-   * 3. wait for ACK/NAK:
-   *    - if ACK, next chunk
-   *    - if NAK: Retransmit current packet. failure counter++. Abort if
-   *    maxtry reached.
-   */
-  assert_statemachine_state(network, ip_addr, STM_STATE_STOPPED);
+		uint8_t chunk_id = 0;
+		uint8_t MAX_TRY = 3;
+		std::cout << "Uploading program, size=" << program.size() << std::endl;
+		while((unsigned int)(EE_STATEMACHINE_CHUNK_SIZE * chunk_id) < program.size()) {
+			uint8_t failure_counter=0;
+			std::vector<char> to_send(program.begin() + (EE_STATEMACHINE_CHUNK_SIZE*chunk_id), program.begin() + std::min(EE_STATEMACHINE_CHUNK_SIZE * (chunk_id + 1), (int) program.size()));
 
-  uint8_t chunk_id = 0;
-  uint8_t MAX_TRY = 3;
-  std::cout << "Uploading program, size=" << program.size() << std::endl;
-  while((unsigned int)(EE_STATEMACHINE_CHUNK_SIZE * chunk_id) < program.size()) {
-    uint8_t failure_counter=0;
-    std::vector<char> to_send(program.begin() + (64*chunk_id), program.begin() + std::min(64 * (chunk_id + 1), (int) program.size()));
+			bool sent = false;
+			while(!sent) {
+				if(!send_chunk(network, ip_addr, chunk_id, to_send)) {
+					// TODO: Check if the ACK/NAK refers to the current chunk id
+					std::cout << "F";
+					failure_counter++; // if sending fails, increase failure counter
+					if (failure_counter >= MAX_TRY) {
+						std::cout << "Maximum number of retransmissions exceeded." << std::endl;
+						delete network;
+						exit(1);
+					}
+				} else {
+					std::cout << ".";
+					sent = true;
+				}
+				std::cout << std::flush;
+			}
+			chunk_id++;
+		}
 
-    bool sent = false;
-    while(!sent) {
-      if(!send_chunk(network, ip_addr, chunk_id, to_send)) {
-        // TODO: Check if the ACK/NAK refers to the current chunk id
-        std::cout << "F";
-        failure_counter++; // if sending fails, increase failure counter
-        if (failure_counter >= MAX_TRY) {
-          std::cout << "Maximum number of retransmissions exceeded." << std::endl;
-          delete network;
-          exit(1);
-        }
-      } else {
-        std::cout << ".";
-        sent = true;
-      }
-      std::cout << std::flush;
-    }
-    chunk_id++;
-  }
+		std::cout << std::endl;
+		std::cout << "Upload completed." << std::endl;
+		assert_statemachine_state(network, ip_addr, STM_STATE_RUNNING);
+		std::cout << "Program uploaded successfully." << std::endl;
 
-  std::cout << std::endl;
-  std::cout << "Upload completed." << std::endl;
-  assert_statemachine_state(network, ip_addr, STM_STATE_RUNNING);
-  std::cout << "Program uploaded successfully." << std::endl;
-
-  delete network;
-  }
-  exit(0);
+		delete network;
+	}
+	exit(0);
 }
 
