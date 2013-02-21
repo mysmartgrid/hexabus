@@ -21,6 +21,7 @@ namespace po = boost::program_options;
 #include <string>
 #include <vector>
 #include <iomanip>
+#include <algorithm>
 
 ///////////////////////////////////////////////////////////////////////////////
 //  Main program
@@ -217,6 +218,19 @@ int main(int argc, char **argv)
         ss >> ipbyte;
         data.push_back(ipbyte);
       }
+
+			// then add the device name
+			boost::array<char,30> dev_name; // make an array that's as long as the eeprom area for the device name
+			BOOST_FOREACH(char c, dev_name) { // fill it with zeros
+				c = '\0';
+			}
+			for(size_t i = 0; i < std::min(dev_name.size(), ast.device_name.size()); ++i) { // copy device name from AST to the array
+				dev_name[i] = ast.device_name[i];
+			}
+			BOOST_FOREACH(char c, dev_name) { // copy device name from the array to the output vector
+				data.push_back(c);
+			}
+
 
       // then add machine ID
       if(ast.machine_id.size() > 32)

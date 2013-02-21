@@ -26,7 +26,9 @@ void HBAOutput::operator()(std::ostream& ostr) {
 
   ostr << "target ";
   print_ipv6address(dt_it->second.ipv6_address, ostr);
-  ostr << ";" << std::endl << std::endl;
+  ostr << ";" << std::endl;
+
+  ostr << "device_name " << _dev_name << ";" << std::endl;
 
   graph_t::vertex_iterator vertexIt, vertexEnd;
   boost::tie(vertexIt, vertexEnd) = vertices((*_g));
