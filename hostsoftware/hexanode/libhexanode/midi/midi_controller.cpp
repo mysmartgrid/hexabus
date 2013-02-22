@@ -3,6 +3,10 @@
 
 using namespace hexanode;
 
+#if HAS_LINUX == 1
+# define RTMIDI_API RtMidi::LINUX_ALSA
+#endif
+
 MidiController::MidiController() 
   : _t()
   , _terminate_midievent_loop(false)
@@ -17,7 +21,7 @@ MidiController::~MidiController() {
 
 void MidiController::open() {
   try {
-    _midiin = new RtMidiIn();
+    _midiin = new RtMidiIn(RTMIDI_API);
   } catch (const RtError& error) {
     throw MidiException(error.getMessage());
   }

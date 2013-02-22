@@ -2,7 +2,7 @@
 #define LIBHEXANODE_HEXABUS_HEXAPUSH_HPP 1
 
 #include <libhexanode/common.hpp>
-#include <libhexabus/network.hpp>
+#include <libhexabus/socket.hpp>
 #include <libhexabus/packet.hpp>
 
 namespace hexanode {
@@ -13,8 +13,7 @@ namespace hexanode {
   class HexaPush {
     public:
       typedef boost::shared_ptr<HexaPush> Ptr;
-      HexaPush ();
-      HexaPush(const std::string& interface);
+      HexaPush (hexabus::Socket& socket);
       virtual ~HexaPush() {};
 
       // incoming events
@@ -24,8 +23,7 @@ namespace hexanode {
     private:
       HexaPush (const HexaPush& original);
       HexaPush& operator= (const HexaPush& rhs);
-      hexabus::NetworkAccess* _network;
-      hexabus::Packet::Ptr _packetm;
+      hexabus::Socket& _socket;
   };
 };
 

@@ -127,8 +127,8 @@ struct hbc_node_printer : boost::static_visitor<> {
       case TF_WEEKDAY: ostr << "weekday"; break;
     }
     switch(timer_condition.op) {
-      case STM_LT: ostr << " < "; break;
-      case STM_GT: ostr << " > "; break;
+      case STM_COMP_LT: ostr << " < "; break;
+      case STM_COMP_GT: ostr << " > "; break;
       default: break;// do nothing.
     }
     boost::apply_visitor(hbc_node_printer(indent, ostr), timer_condition.value);
@@ -144,17 +144,17 @@ struct hbc_node_printer : boost::static_visitor<> {
     hbc_node_printer p;
     p(atomic_condition.geid, ostr);
     switch(atomic_condition.comp_op) {
-      case STM_EQ:
+      case STM_COMP_EQ:
         ostr << " == "; break;
-      case STM_LEQ:
+      case STM_COMP_LEQ:
         ostr << " <= "; break;
-      case STM_GEQ:
+      case STM_COMP_GEQ:
         ostr << " >= "; break;
-      case STM_LT:
+      case STM_COMP_LT:
         ostr << " < "; break;
-      case STM_GT:
+      case STM_COMP_GT:
         ostr << " > "; break;
-      case STM_NEQ:
+      case STM_COMP_NEQ:
         ostr << " != "; break;
       default:
         ostr << " (op not implemented?!) "; break;
@@ -226,15 +226,6 @@ struct hbc_node_printer : boost::static_visitor<> {
       tab(ind);
       ostr << "else if ";
       p(else_if_block, ind);
-    }
-    if(if_clause.else_clause.present == 1) {
-      tab(ind);
-      ostr << "else" << std::endl;
-      tab(ind);
-      ostr << "⎛" << std::endl;
-      p(if_clause.else_clause.commands, ind+1);
-      tab(ind);
-      ostr << "⎝" << std::endl;
     }
   }
 

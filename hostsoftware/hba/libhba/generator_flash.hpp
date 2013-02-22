@@ -7,14 +7,15 @@
 #include <iostream>
 
 namespace hexabus {
- 
+
   class generator_flash {
     public:
       typedef std::tr1::shared_ptr<generator_flash> Ptr;
-      generator_flash (graph_t_ptr g, hba_doc ast, std::string dtypes_filename)
+      generator_flash (graph_t_ptr g, hba_doc ast, std::string dtypes_filename, bool verbose)
         : _g(g),
          _ast(ast),
-         _dtypes(dtypes_filename)
+         _dtypes(dtypes_filename),
+         _verbose(verbose)
       {};
       virtual ~generator_flash() {};
 
@@ -25,6 +26,7 @@ namespace hexabus {
       graph_t_ptr _g;
       hba_doc _ast;
       std::string _dtypes;
+      bool _verbose;
   };
 };
 

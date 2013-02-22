@@ -26,7 +26,6 @@ command_block_doc GraphSimplification::commandBlockHead(command_block_doc& comma
 }
 
 vertex_id_t GraphSimplification::splitTransition(vertex_id_t from, vertex_id_t to, command_block_doc& commands, graph_t_ptr g, unsigned int& max_vertex_id) {
-
   // remove all but first command from from-vertex
   (*g)[from].contents = commandBlockHead(commands);
   // update vertex name
@@ -87,7 +86,7 @@ void GraphSimplification::expandMultipleWriteNode(vertex_id_t vertex_id, graph_t
     graph_t::adjacency_iterator outIt, outEnd;
     boost::tie(outIt, outEnd) = boost::adjacent_vertices(vertex_id, *g);
     if(distance(outIt, outEnd) != 1)
-      throw GraphTransformationErrorException("Multiple outgoint edges on command graph during graph simplification");
+      throw GraphTransformationErrorException("Multiple outgoing edges on command graph during graph simplification");
     // now outIt points to the state vertex after the command vertex.
     vertex_id_t new_command_vertex = splitTransition(vertex_id, *outIt, cmdblck, g, max_vertex_id);
 
@@ -99,11 +98,9 @@ void GraphSimplification::expandMultipleWriteNode(vertex_id_t vertex_id, graph_t
     } catch(boost::bad_get b) {
       throw GraphTransformationErrorException("Newly created command vertex does not have command block as contents");
     }
-
   } catch(boost::bad_get b) {
     throw GraphTransformationErrorException("Non-command-vertex assigned for command extension!");
   }
-
 }
 
 void GraphSimplification::expandMultipleWrites(graph_t_ptr g) {
@@ -131,6 +128,136 @@ void GraphSimplification::expandMultipleWrites(graph_t_ptr g) {
 
       } catch(boost::bad_get b) {
         throw GraphTransformationErrorException("Command block vertex does not contain command block (during graph simplification)");
+      }
+    }
+  }
+}
+
+void GraphSimplification::expandComplexConditions(graph_t_ptr g) {
+  // iterate over the graph once to find the maximum vertex id (so we can number the vertices we generate from there) -- TODO we could move this into the operator()-method and keep max_vertices as a class variable
+  graph_t::vertex_iterator vertexIt, vertexEnd;
+  boost::tie(vertexIt, vertexEnd) = vertices(*g);
+  unsigned int max_vertex_id = 0;
+  for(; vertexIt != vertexEnd; vertexIt++)
+    if((*g)[*vertexIt].vertex_id >= max_vertex_id)
+      max_vertex_id = (*g)[*vertexIt].vertex_id;
+
+  boost::tie(vertexIt, vertexEnd) = vertices(*g);
+  for(; vertexIt != vertexEnd; vertexIt++) {
+    vertex_t& vertex = (*g)[*vertexIt];
+    // find condition vertices
+    if(vertex.type == v_cond) {
+      try {
+        condition_doc& cond = boost::get<condition_doc>(vertex.contents);
+        if(cond.which() == 4) { // if it's a compound condition
+          // find out whether it's an AND or an OR condition
+          compound_condition_doc comp_cond = boost::get<compound_condition_doc>(cond);
+          if(comp_cond.bool_op == AND) { /*
+            // Make <first part>->(intermediate state)->[no command]-><second part>->[the command]->(target state)
+
+            // find command vertex
+            graph_t::adjacency_iterator adjIt, adjEnd;
+            boost::tie(adjIt, adjEnd) = adjacent_vertices(*vertexIt, *g);
+            vertex_id_t command_vertex_id = *adjIt;
+
+            // find originating state vertex
+            graph_t::inv_adjacency_iterator revIt, revEnd;
+            boost::tie(revIt, revEnd) = inv_adjacent_vertices(*vertexIt, *g);
+            vertex_id_t originating_state_id = *revIt;
+
+            // find target state vertex
+            boost::tie(adjIt, adjEnd) = adjacent_vertices(command_vertex_id, *g);
+            vertex_id_t target_state_id = *adjIt;
+
+            // split condition
+            condition_doc cond_b = comp_cond.condition_b;
+            // assign first part to "original" condition
+            vertex.contents = comp_cond.condition_a;
+            // update the node's name
+            hbc_printer pr;
+            std::ostringstream cond_a_oss;
+            pr(comp_cond.condition_a, cond_a_oss);
+            vertex.name = cond_a_oss.str();
+
+            // cut edge to target state
+            boost::remove_edge(command_vertex_id, target_state_id, *g);
+
+            // make new intermediate state
+            vertex_id_t intermediate_state_id = add_vertex(g, "intermediate\\nstate", (*g)[originating_state_id].machine_id, ++max_vertex_id, v_state);
+            // TODO This state needs a state ID!
+
+            // make node-name
+            std::ostringstream newcnd_oss;
+            pr(cond_b, newcnd_oss);
+            // add new condition vertex
+            vertex_id_t new_cond_vertex_id = add_vertex(g, newcnd_oss.str(), vertex.machine_id, ++max_vertex_id, v_cond, cond_b);
+
+            // make new dummy command vertex; move original command vertex "down".
+            command_block_doc dummy_command; // leave it empty
+            std::string target_name = (*g)[target_state_id].name;
+            dummy_command.goto_command.lineno = 0;
+            dummy_command.goto_command.target_state = target_name.substr(target_name.find_last_of("."));
+            std::ostringstream cmd_oss;
+            pr(dummy_command, cmd_oss);
+            vertex_id_t dummy_cmd_v_id = add_vertex(g, cmd_oss.str(), (*g)[command_vertex_id].machine_id, ++max_vertex_id, v_command, dummy_command);
+
+
+            // ...cut the old command vertex's edges, and link everything together.
+            boost::remove_edge(*vertexIt, command_vertex_id, *g);
+            add_edge(g, *vertexIt, dummy_cmd_v_id, e_if_com);
+            add_edge(g, dummy_cmd_v_id, intermediate_state_id, e_to_state);
+            add_edge(g, intermediate_state_id, new_cond_vertex_id, e_from_state);
+            add_edge(g, new_cond_vertex_id, command_vertex_id, e_if_com);
+            add_edge(g, command_vertex_id, target_state_id, e_to_state);
+            */
+          } else { // OR
+            // Make two conditions; duplicate command vertex
+            // what do we have, what do we need?
+            // Have: vertex; *vertexId -- the vertex we are at.
+            // Need: from-state, command, to-state.
+
+            // find command vertex
+            graph_t::adjacency_iterator adjIt, adjEnd;
+            boost::tie(adjIt, adjEnd) = adjacent_vertices(*vertexIt, *g);
+            vertex_id_t command_vertex_id = *adjIt;
+
+            // find originating state vertex
+            graph_t::inv_adjacency_iterator revIt, revEnd;
+            boost::tie(revIt, revEnd) = inv_adjacent_vertices(*vertexIt, *g);
+            vertex_id_t originating_state_id = *revIt;
+
+            // find target state vertex
+            boost::tie(adjIt, adjEnd) = adjacent_vertices(command_vertex_id, *g);
+            vertex_id_t target_state_id = *adjIt;
+
+            // split condition
+            condition_doc cond_b = comp_cond.condition_b;
+            // assign first part to "original" condition
+            vertex.contents = comp_cond.condition_a;
+            // update the node's name
+            hbc_printer pr;
+            std::ostringstream cond_a_oss;
+            pr(comp_cond.condition_a, cond_a_oss);
+            vertex.name = cond_a_oss.str();
+
+            // make new condtition vertex
+            std::ostringstream cond_b_oss;
+            pr(comp_cond.condition_b, cond_b_oss);
+            vertex_id_t new_cond_vertex = add_vertex(g, cond_b_oss.str(), (*g)[originating_state_id].machine_id, ++max_vertex_id, v_cond);
+            (*g)[new_cond_vertex].contents = comp_cond.condition_b;
+
+            // make new command vertex -- its contents are a copy of the original's contents
+            vertex_id_t new_cmd_vertex = add_vertex(g, (*g)[command_vertex_id].name, (*g)[originating_state_id].machine_id, ++max_vertex_id, v_command);
+            (*g)[new_cmd_vertex].contents = (*g)[command_vertex_id].contents;
+
+            // link vertices together
+            add_edge(g, originating_state_id, new_cond_vertex, e_from_state);
+            add_edge(g, new_cond_vertex, new_cmd_vertex, e_if_com);
+            add_edge(g, new_cmd_vertex, target_state_id, e_to_state);
+          }
+        }
+      } catch (boost::bad_get b) {
+        throw GraphSimplificationException("Condition vertex does not contain condition (during graph simplification)");
       }
     }
   }
@@ -174,6 +301,10 @@ void GraphSimplification::deleteOthersWrites(graph_t_ptr g, std::string name) {
 void GraphSimplification::operator()() {
   for(std::map<std::string, graph_t_ptr>::iterator it = _in_state_machines.begin(); it != _in_state_machines.end(); it++) { // iterate over list of device->state machine pairs (first pass)
     deleteOthersWrites(it->second, it->first); // delete write commands which are not for the device the stm. belongs to
+  }
+
+  for(std::map<std::string, graph_t_ptr>::iterator it = _in_state_machines.begin(); it != _in_state_machines.end(); it++) { // iterate over list of device->state machine pairs (second pass)
+    expandComplexConditions(it->second);
   }
 
   for(std::map<std::string, graph_t_ptr>::iterator it = _in_state_machines.begin(); it != _in_state_machines.end(); it++) { // iterate over list of device->state machine pairs (second pass)

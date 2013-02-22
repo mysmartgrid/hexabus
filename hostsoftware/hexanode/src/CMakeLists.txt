@@ -22,8 +22,8 @@ add_executable(hxbnode ${hexanode_src})
 target_link_libraries(hxbnode 
   hexanode
   pthread
+  rtmidi
   ${HXB_LIBRARIES}
-  ${RTMIDI_LIBRARIES}
   ${Boost_LIBRARIES}
 )
 

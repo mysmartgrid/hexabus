@@ -50,9 +50,9 @@ std::vector<std::string> GraphTransformation::findDevices(std::vector<vertex_id_
             devices.push_back(device_name);
           } catch(boost::bad_get b) {
             std::ostringstream oss;
-            std::map<unsigned int, std::string>::iterator it = machine_filenames_per_id.find((*g)[v_id].machine_id);
-            if(it != machine_filenames_per_id.end())
-              oss << "[" << it->second << ":" << cmd.write_command.lineno << "] ";
+            machine_table::iterator it = _machines.find((*g)[v_id].machine_id);
+            if(it != _machines.end())
+              oss << "[" << it->second.file << ":" << cmd.write_command.lineno << "] ";
             oss << "Placeholder found in state machine instance (can not be resolved)" << std::endl;
             throw GraphTransformationErrorException(oss.str());
           }
@@ -103,7 +103,7 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
   //   * make list of devices  (1)                        |
   //   * slice each state machine for each device         | * list of state machine slices for devices
   // * if a device appears in multiple state machines:    |   (at this point one dev. can have several state machines)
-  //   -> parallel compose state machine slices (TODO)    | * now, each dev. only has one st.m. (store as map?)
+  //   * don't continue. parallel composition woule lead to too many states
 
   machine_map_t machines_per_stmid = generateMachineMap(in_g); // list of nodes for each state machine ID
 
@@ -118,8 +118,16 @@ void GraphTransformation::operator()(graph_t_ptr in_g) {
       // now we can construct the graph from the list of nodes in the mm_el.
       graph_t_ptr g = reconstructGraph(mm_el.second, in_g);
 
+
+      // check if device already has a graph assigned to it.
+      if(device_graphs.find(device_name) != device_graphs.end())
+      { // if the device already has a graph, throw an error
+        std::ostringstream oss;
+        oss << "Error: Device named '" << device_name << "' has multiple state machines writing to it. This is not supported." << std::endl;
+        throw GraphTransformationErrorException(oss.str());
+      }
+
       // then we can add it to a list of graphs (state machines) for each device
-      // TODO what if it's already in there?
       device_graphs.insert(std::pair<std::string, graph_t_ptr>(device_name, g));
 
     }

@@ -45,6 +45,7 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   SET(HAS_LINUX 1)
+  SET(__LINUX_ALSA__ 1)
 ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   SET(HAS_LINUX 0)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -86,7 +87,7 @@ include(CMakeBackwardCompatibilityCXX)
 
 #FIND_PACKAGE(Sqlite)
 FIND_PACKAGE(LibHexabus)
-FIND_PACKAGE(RtMidi)
+#FIND_PACKAGE(RtMidi)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
 SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
@@ -97,6 +98,7 @@ FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS
 
 # Reflect the package structure
 add_subdirectory(libhexanode)
+add_subdirectory(RtMidi)
 add_subdirectory(src)
 
 # add some files to the installation target

@@ -244,11 +244,6 @@ struct module_instantiation : boost::static_visitor<> {
           inst_if_clause.else_if_blocks.push_back(inst_guarded_command_block);
         }
 
-        // else block
-        inst_if_clause.else_clause.present = if_clause.else_clause.present;
-        if(inst_if_clause.else_clause.present)
-          m(if_clause.else_clause.commands, inst_if_clause.else_clause.commands, mod->second.placeholderlist, inst.parameters);
-
         inst_in_clause.if_clauses.push_back(inst_if_clause);
       }
 

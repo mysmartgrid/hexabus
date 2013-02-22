@@ -1,5 +1,5 @@
 #include <iostream>
-#include <RtMidi.h>
+#include "RtMidi/RtMidi.h"
 #include <cstdlib>
 #include <libhexanode/midi/midi_controller.hpp>
 #include <libhexanode/callbacks/print_callback.hpp>
@@ -22,6 +22,7 @@ int main (int argc, char const* argv[]) {
     ("help,h", "print help message and quit")
     ("verbose,v", "print verbose messages")
     ("version", "print version and quit")
+    ("port,p", po::value<uint16_t>(), "port to use")
     ;
   po::positional_options_description p;
 
@@ -49,12 +50,15 @@ int main (int argc, char const* argv[]) {
       new hexanode::ButtonCallback());
   hexanode::Callback::Ptr ptr_callback(
       new hexanode::PrintCallback());
-  hexanode::HexaPush::Ptr hexapush(
-      new hexanode::HexaPush());
+
+  boost::asio::io_service io;
+  hexabus::Socket socket(io);
+  hexanode::HexaPush hexapush(socket);
+
   // Link the midi button event to a hexapush event.
   btn_callback->do_on_buttonevent(boost::bind(
             &hexanode::HexaPush::on_event,
-            hexapush, _1));
+            &hexapush, _1));
   try {
     midi_ctrl->open();
 
@@ -62,17 +66,21 @@ int main (int argc, char const* argv[]) {
     uint16_t nPorts = midi_ctrl->num_ports();
     std::cout << "There are " << nPorts 
       << " MIDI input sources available." << std::endl;
+    uint16_t port = 0;
+    if (vm.count("port")) {
+      port = vm["port"].as<uint16_t>() - 1;
+    }
     if (nPorts == 0) {
       std::cout << "Sorry, cannot continue without MIDI input devices." << std::endl;
       exit(-1);
     } else {
       midi_ctrl->print_ports();
-      midi_ctrl->do_on_midievent(0, boost::bind(
+      midi_ctrl->do_on_midievent(port, boost::bind(
             &hexanode::Callback::on_event,
             btn_callback, _1));
       if (vm.count("verbose")) {
         std::cout << "Printing midi event debug messages." << std::endl;
-        midi_ctrl->do_on_midievent(0, boost::bind(
+        midi_ctrl->do_on_midievent(port, boost::bind(
               &hexanode::Callback::on_event,
               ptr_callback, _1));
       }

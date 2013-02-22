@@ -135,16 +135,10 @@ namespace hexabus {
     command_block_doc command_block;
   };
 
-  struct else_clause_doc {
-    unsigned int present;
-    command_block_doc commands;
-  };
-
   struct if_clause_doc {
     unsigned int lineno;
     guarded_command_block_doc if_block;
     std::vector<guarded_command_block_doc> else_if_blocks;
-    else_clause_doc else_clause;
   };
 
   struct in_clause_doc {
@@ -314,17 +308,10 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  hexabus::else_clause_doc,
-  (unsigned int, present)
-  (hexabus::command_block_doc, commands)
-)
-
-BOOST_FUSION_ADAPT_STRUCT(
   hexabus::if_clause_doc,
   (unsigned int, lineno)
   (hexabus::guarded_command_block_doc, if_block)
   (std::vector<hexabus::guarded_command_block_doc>, else_if_blocks)
-  (hexabus::else_clause_doc, else_clause)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

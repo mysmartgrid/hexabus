@@ -1,10 +1,13 @@
 #include "crc.hpp"
 #include <boost/crc.hpp>
 
-using namespace hexabus;
+namespace hexabus {
 
-uint16_t CRC::crc16(const char* input, unsigned int length) {
-  boost::crc_optimal<16, 0x1021, 0x0000, 0, true, true> crc; 
-  crc.process_bytes(input, length);
-  return crc.checksum();
+uint16_t crc(const void* input, size_t size)
+{
+	boost::crc_optimal<16, 0x1021, 0x0000, 0, true, true> crc; 
+	crc.process_bytes(input, size);
+	return crc.checksum();
+}
+
 }

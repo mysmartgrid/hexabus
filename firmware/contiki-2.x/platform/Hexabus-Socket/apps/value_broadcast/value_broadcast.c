@@ -150,6 +150,20 @@ void broadcast_value(uint32_t eid)
         uip_udp_packet_sendto(client_conn, &packetf, sizeof(packetf),
             &server_ipaddr, UIP_HTONS(HXB_PORT));
         break;
+      case HXB_DTYPE_16BYTES:;
+        struct hxb_packet_16bytes packet16;
+        strncpy(&packet16.header, HXB_HEADER, 4);
+        packet16.type = HXB_PTYPE_INFO;
+        packet16.flags = 0;
+        packet16.eid = uip_htonl(eid);
+        packet16.datatype = val.datatype;
+        memcpy(packet16.value, *(void**)&val.data, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
+        free(*(void**)&val.data);
+        packet16.crc = uip_htons(crc16_data((char*)&packet16, sizeof(packet16)-2, 0));
+
+        uip_udp_packet_sendto(client_conn, &packet16, sizeof(packet16),
+          &server_ipaddr, UIP_HTONS(HXB_PORT));
+        break;
       default:
         PRINTF("value_broadcast: Datatype unknown.\r\n");
     }

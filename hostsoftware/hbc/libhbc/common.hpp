@@ -15,7 +15,6 @@
 
 #include <stdint.h>
 #include <string>
-#include <vector>
 
 namespace hexabus {
   class VersionInfo {
