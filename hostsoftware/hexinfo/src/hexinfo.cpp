@@ -418,9 +418,16 @@ int main(int argc, char** argv)
 		boost::signals2::connection c2 = network->onPacketReceived(receiveCallback, hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR));
 
 		// timer that cancels receiving after n seconds
-		boost::asio::deadline_timer _timer(network->ioService());
-		_timer.expires_from_now(boost::posix_time::seconds(3)); // TODO do we want this configurable? Or at least as a constant
-		_timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
+		boost::asio::deadline_timer timer(network->ioService());
+		timer.expires_from_now(boost::posix_time::seconds(3)); // TODO do we want this configurable? Or at least as a constant
+		timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
+
+		boost::asio::deadline_timer resend_timer1(network->ioService()); // resend packet twice, with 1 sec timout in between
+		boost::asio::deadline_timer resend_timer2(network->ioService());
+		resend_timer1.expires_from_now(boost::posix_time::seconds(1));
+		resend_timer2.expires_from_now(boost::posix_time::seconds(2));
+		resend_timer1.async_wait(boost::bind(&send_packet, network, hxb_broadcast_address, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR), (ResponseHandler*)NULL));
+		resend_timer2.async_wait(boost::bind(&send_packet, network, hxb_broadcast_address, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR), (ResponseHandler*)NULL));
 
 		network->ioService().run();
 
