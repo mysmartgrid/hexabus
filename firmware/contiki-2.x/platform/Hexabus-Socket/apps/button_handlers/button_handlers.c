@@ -32,13 +32,17 @@
  */
 
 #include "contiki-conf.h"
+
 #include "hexabus_config.h"
 #include "eeprom_variables.h"
+#include "sys/clock.h"
 #include <avr/eeprom.h>
 #include <avr/wdt.h>
 #include "dev/watchdog.h"
 #include "provisioning.h"
 #include "metering.h"
+#include "button.h"
+#include "value_broadcast.h"
 #include <endpoints.h>
 #include "relay.h"
 
@@ -52,7 +56,7 @@ uint8_t button_get_pushed(void)
 }
 #endif
 
-void button_clicked(void)
+static void button_clicked(void)
 {
 #if BUTTON_HAS_EID
 	button_pushed = 1;
@@ -64,20 +68,31 @@ void button_clicked(void)
 #endif
 }
 
-void button_long_clicked(bool released)
+static void button_pressed(uint8_t released, uint16_t ticks)
 {
 	if (released) {
 		provisioning_slave();
 	} else {
 		provisioning_leds();
 	}
-}
 
-void button_held(void)
-{
-	if (!metering_calibrate()) {
-		eeprom_write_byte((uint8_t *)EE_BOOTLOADER_FLAG, 0x01);
-		watchdog_reboot();
+	if (ticks > CLOCK_SECOND * BUTTON_LONG_CLICK_MS / 1000) {
+		if (!metering_calibrate()) {
+			eeprom_write_byte((uint8_t *)EE_BOOTLOADER_FLAG, 0x01);
+			watchdog_reboot();
+		}
 	}
 }
 
+BUTTON_DESCRIPTOR buttons_system = {
+	.port = &BUTTON_PIN,
+	.mask = 1 << BUTTON_BIT,
+	
+	.activeLevel = 0,
+
+	.click_ticks = CLOCK_SECOND * BUTTON_CLICK_MS / 1000,
+	.pressed_ticks = 1 + CLOCK_SECOND * BUTTON_CLICK_MS / 1000,
+	
+	.clicked = button_clicked,
+	.pressed = button_pressed
+};

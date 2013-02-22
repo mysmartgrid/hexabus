@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Fraunhofer ESK
+ * Copyright (c) 2013, Fraunhofer ITWM
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,10 +26,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
+ * Author: Sean Buckheister <buckheister@itwm.fhg.de>
  *
- * Author: 	Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
- *
- * @(#)$$
  */
 
 #ifndef BUTTON_H_
@@ -38,13 +36,64 @@
 #include "hexabus_config.h"
 #include "process.h"
 
+#include <avr/pgmspace.h>
+
 PROCESS_NAME(button_pressed_process);
 
-// Each of these functions will be called at appropriate times when defined in user code
-#if 0
-void button_clicked(void);
-void button_long_pressed(bool released);
-void button_held(void);
-#endif
+struct button_set_descriptor_t {
+	volatile uint8_t* port;
+	uint8_t mask;
+
+	uint8_t activeLevel:1;
+
+	// NOTE: tick quantities in this structure are guaranteed to hold at 4096 ticks. Larger
+	// values may be clipped to 4096
+	
+	// transitions idle -> active -> idle that fit into this time frame are clicks
+	uint16_t click_ticks;
+	// transitions idle -> active -> idle report button state after this many ticks, once per tick
+	uint16_t pressed_ticks;
+
+	void (*clicked)(void);
+	void (*pressed)(uint8_t released, uint16_t pressed_ticks);
+};
+
+#define BUTTON_DESCRIPTOR const struct button_set_descriptor_t PROGMEM
+
+struct button_sm_state_t {
+	const struct button_set_descriptor_t* descriptor;
+	struct button_sm_state_t* next;
+
+	uint16_t* state;
+};
+
+extern struct button_sm_state_t* _button_chain;
+
+
+#define BUTTON_REGISTER_EXEC(DESC, pincount) \
+	extern BUTTON_DESCRIPTOR DESC; \
+	static void __attribute__((used, noinline)) button_do_register_ ## DESC() \
+	{ \
+		static uint16_t state[pincount] = { 0 }; \
+		static struct button_sm_state_t _button_state = { 0, 0, state }; \
+		_button_state.descriptor = &DESC; \
+		_button_state.next = _button_chain; \
+		_button_chain = &_button_state; \
+	}
+
+#define BUTTON_REGISTER(DESC, pincount) \
+	BUTTON_REGISTER_EXEC(DESC, pincount) \
+	static void __attribute__((used, naked, section(".init8"))) button_register_ ## DESC() \
+	{ \
+		button_do_register_ ## DESC(); \
+	}
+
+#define BUTTON_REGISTER_INIT(DESC, pincount, initfn) \
+	BUTTON_REGISTER_EXEC(DESC, pincount) \
+	static void __attribute__((used, naked, section(".init8"))) button_register_ ## DESC() \
+	{ \
+		initfn(); \
+		button_do_register_ ## DESC(); \
+	}
 
 #endif /* BUTTON_H_ */

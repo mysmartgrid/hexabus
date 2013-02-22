@@ -273,6 +273,8 @@ void generate_random_pan_id_and_aes_key(void)
 	}
 }
 
+BUTTON_REGISTER(buttons_system, 1)
+
 /*-------------------------------------------------------------------------*/
 /*-----------------------------Low level initialization--------------------*/
 static void initialize(void)

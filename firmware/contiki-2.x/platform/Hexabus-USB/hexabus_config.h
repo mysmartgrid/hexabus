@@ -8,11 +8,10 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define HEXABUS_CONFIG_H
 
 // button
-#define BUTTON_PORT		PORTE
 #define BUTTON_PIN		PINE
 #define BUTTON_BIT		PE2
 
-#define BUTTON_DEBOUNCE_MS			50
+#define BUTTON_DEBOUNCE_TICKS		1
 #define	BUTTON_CLICK_MS					2000UL
 #define	BUTTON_LONG_CLICK_MS		7000UL
 

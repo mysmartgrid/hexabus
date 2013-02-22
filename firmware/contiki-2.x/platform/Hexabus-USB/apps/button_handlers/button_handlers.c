@@ -33,23 +33,35 @@
 
 #include "button.h"
 #include "eeprom_variables.h"
+#include <sys/clock.h>
 #include <avr/eeprom.h>
 #include <avr/wdt.h>
 #include "dev/watchdog.h"
 #include "provisioning.h"
 
-void button_long_clicked(bool released)
+static void button_pressed(uint8_t released, uint16_t ticks)
 {
 	if (released) {
 		provisioning_master();
 	} else {
 		provisioning_leds();
 	}
+
+	if (ticks > CLOCK_SECOND * BUTTON_LONG_CLICK_MS / 1000) {
+		eeprom_write_byte((uint8_t *)EE_BOOTLOADER_FLAG, 0x01);
+		watchdog_reboot();
+	}
 }
 
-void button_held()
-{
-	eeprom_write_byte((uint8_t *)EE_BOOTLOADER_FLAG, 0x01);
-	watchdog_reboot();
-}
+BUTTON_DESCRIPTOR buttons_system = {
+	.port = &BUTTON_PIN,
+	.mask = 1 << BUTTON_BIT,
+	
+	.activeLevel = 0,
 
+	.click_ticks = CLOCK_SECOND * BUTTON_CLICK_MS / 1000,
+	.pressed_ticks = 1 + CLOCK_SECOND * BUTTON_CLICK_MS / 1000,
+	
+	.clicked = 0,
+	.pressed = button_pressed
+};

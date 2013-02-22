@@ -50,6 +50,8 @@
 /* MCU and clock rate */
 #define MCU_MHZ 8
 #define PLATFORM         PLATFORM_AVR
+#define HEXABUS_SOCKET 4
+#define HEXABUS_USB    5
 #define RAVEN_REVISION	 HEXABUS_USB
 #ifndef F_CPU
 #define F_CPU            8000000UL
