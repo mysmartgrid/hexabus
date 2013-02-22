@@ -56,7 +56,7 @@ uint8_t button_get_pushed(void)
 }
 #endif
 
-static void button_clicked(void)
+static void button_clicked(uint8_t button)
 {
 #if BUTTON_HAS_EID
 	button_pushed = 1;
@@ -68,7 +68,7 @@ static void button_clicked(void)
 #endif
 }
 
-static void button_pressed(uint8_t released, uint16_t ticks)
+static void button_pressed(uint8_t button, uint8_t released, uint16_t ticks)
 {
 	if (released) {
 		provisioning_slave();
@@ -96,3 +96,8 @@ BUTTON_DESCRIPTOR buttons_system = {
 	.clicked = button_clicked,
 	.pressed = button_pressed
 };
+
+void button_handlers_init()
+{
+	BUTTON_REGISTER(buttons_system, 1);
+}

@@ -39,7 +39,7 @@
 #include "dev/watchdog.h"
 #include "provisioning.h"
 
-static void button_pressed(uint8_t released, uint16_t ticks)
+static void button_pressed(uint8_t button, uint8_t released, uint16_t ticks)
 {
 	if (released) {
 		provisioning_master();
@@ -65,3 +65,8 @@ BUTTON_DESCRIPTOR buttons_system = {
 	.clicked = 0,
 	.pressed = button_pressed
 };
+
+void button_handlers_init()
+{
+	BUTTON_REGISTER(buttons_system, 1);
+}

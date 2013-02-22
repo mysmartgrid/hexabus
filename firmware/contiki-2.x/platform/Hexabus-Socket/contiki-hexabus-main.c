@@ -188,14 +188,13 @@ void get_aes128key_from_eeprom(uint8_t keyptr[16]) {
 	eeprom_read_block ((void *)keyptr, (const void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
 }
 
-BUTTON_REGISTER(buttons_system, 1)
-
 /*-------------------------Low level initialization------------------------*/
 /*------Done in a subroutine to keep main routine stack usage small--------*/
 void initialize(void)
 {
   watchdog_init();
   watchdog_start();
+	button_handlers_init();
 
   init_lowlevel();
 

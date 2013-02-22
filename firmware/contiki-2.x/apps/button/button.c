@@ -89,7 +89,7 @@ static void button_iterate_once(void)
 						if (activeLevel) {
 							smState = ACTIVE;
 							if (d.pressed && d.pressed_ticks <= ticks) {
-								d.pressed(0, ticks);
+								d.pressed(bit, 0, ticks);
 							}
 						} else if (smState == DEBOUNCE_ACTIVE) {
 							smState = IDLE;
@@ -104,10 +104,10 @@ static void button_iterate_once(void)
 							smState = ACTIVE;
 						} else {
 							if (d.clicked && d.click_ticks >= ticks) {
-								d.clicked();
+								d.clicked(bit);
 							}
 							if (d.pressed && d.pressed_ticks <= ticks) {
-								d.pressed(1, ticks);
+								d.pressed(bit, 1, ticks);
 							}
 							smState = IDLE;
 							ticks = 0;

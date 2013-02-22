@@ -509,11 +509,11 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
 #if HEXAPUSH_ENABLE
     case EP_HEXAPUSH_PRESSED:  //Pressed und released
       val->datatype = HXB_DTYPE_UINT8;
-      *(uint8_t*)&val->data = get_buttonstate();
+      *(uint8_t*)&val->data = hexapush_get_pressed();
       break;
     case EP_HEXAPUSH_CLICKED: //Clicked
       val->datatype = HXB_DTYPE_UINT8;
-      *(uint8_t*)&val->data = get_clickstate();
+      *(uint8_t*)&val->data = hexapush_get_clicked();
       break;
 #endif
 #if PRESENCE_DETECTOR_ENABLE

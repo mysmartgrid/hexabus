@@ -39,4 +39,6 @@
 extern int button_pushed;
 #endif
 
+void button_handlers_init(void);
+
 #endif

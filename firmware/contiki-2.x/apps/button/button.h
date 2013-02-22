@@ -54,8 +54,8 @@ struct button_set_descriptor_t {
 	// transitions idle -> active -> idle report button state after this many ticks, once per tick
 	uint16_t pressed_ticks;
 
-	void (*clicked)(void);
-	void (*pressed)(uint8_t released, uint16_t pressed_ticks);
+	void (*clicked)(uint8_t button);
+	void (*pressed)(uint8_t button, uint8_t released, uint16_t pressed_ticks);
 };
 
 #define BUTTON_DESCRIPTOR const struct button_set_descriptor_t PROGMEM
@@ -70,30 +70,13 @@ struct button_sm_state_t {
 extern struct button_sm_state_t* _button_chain;
 
 
-#define BUTTON_REGISTER_EXEC(DESC, pincount) \
-	extern BUTTON_DESCRIPTOR DESC; \
-	static void __attribute__((used, noinline)) button_do_register_ ## DESC() \
-	{ \
+#define BUTTON_REGISTER(DESC, pincount) \
+	do { \
 		static uint16_t state[pincount] = { 0 }; \
 		static struct button_sm_state_t _button_state = { 0, 0, state }; \
 		_button_state.descriptor = &DESC; \
 		_button_state.next = _button_chain; \
 		_button_chain = &_button_state; \
-	}
-
-#define BUTTON_REGISTER(DESC, pincount) \
-	BUTTON_REGISTER_EXEC(DESC, pincount) \
-	static void __attribute__((used, naked, section(".init8"))) button_register_ ## DESC() \
-	{ \
-		button_do_register_ ## DESC(); \
-	}
-
-#define BUTTON_REGISTER_INIT(DESC, pincount, initfn) \
-	BUTTON_REGISTER_EXEC(DESC, pincount) \
-	static void __attribute__((used, naked, section(".init8"))) button_register_ ## DESC() \
-	{ \
-		initfn(); \
-		button_do_register_ ## DESC(); \
-	}
+	} while (0)
 
 #endif /* BUTTON_H_ */
