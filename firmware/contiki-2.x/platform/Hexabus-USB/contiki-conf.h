@@ -208,6 +208,7 @@ extern uint8_t mac_log_802_15_4_rx(const uint8_t* buffer, size_t total_len);
 #define UIP_CONF_IPV6_RPL        0
 #define NETSTACK_CONF_NETWORK       sicslowpan_driver
 #define SICSLOWPAN_CONF_COMPRESSION SICSLOWPAN_COMPRESSION_HC06
+#define UIP_HXB_SEQNUM_MASTER    1
 #else
 /* ip4 should build but is thoroughly untested */
 #define RIMEADDR_CONF_SIZE       2

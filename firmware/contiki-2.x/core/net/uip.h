@@ -1774,6 +1774,15 @@ typedef struct uip_frag_hdr {
  * an option within the destination or hop by hop option headers
  * it contains type an length, which is true for all options but PAD1
  */
+
+/* RFC3692-Style Experiment header for hexabus sequence number */
+typedef struct uip_ext_hdr_opt_exp_hxb_seqnum {
+  u8_t tag;
+  u8_t len;
+  u16_t seqnum;
+  u16_t flags;
+} uip_ext_hdr_exp_opt_hxb_seqnum;
+
 typedef struct uip_ext_hdr_opt {
   u8_t type;
   u8_t len;
@@ -1856,6 +1865,7 @@ struct uip_udp_hdr {
 #define UIP_EXT_HDR_OPT_PAD1  0
 #define UIP_EXT_HDR_OPT_PADN  1
 #define UIP_EXT_HDR_OPT_RTR_ALERT 5
+#define UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM 0x3E
 /** @} */
 
 /** @{ */
@@ -1876,6 +1886,11 @@ struct uip_udp_hdr {
 #define UIP_EXT_HDR_BITMAP_DESTO2 0x40
 /** @} */
 
+/* Hexabus sequence number extension header flags*/
+#define UIP_EXT_SEQNUM_FLAG_MASTER 0x01 //Packet came from stick
+#define UIP_EXT_SEQNUM_FLAG_REQEST 0x02 //Requesting missing packet
+#define UIP_EXT_SEQNUM_FLAG_RESEND 0x04 //Answer to resend request
+#define UIP_EXT_SEQNUM_FLAG_RESYNC 0x08 //Request for current sequence number
 
 #endif /* UIP_CONF_IPV6 */
 
@@ -1895,6 +1910,7 @@ struct uip_udp_hdr {
 #define UIP_HBHO_LEN    2    /* Size of Hop-by-hop options header */
 #define UIP_RTR_ALERT_LEN 4  /* Size of router alert option */
 #define UIP_PADN_LEN    2    /* Size of PadN option header */
+#define UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN 6 /* Size of the Hexabus sequence number expansion head  and value */
 #endif
 #define UIP_IPUDPH_LEN (UIP_UDPH_LEN + UIP_IPH_LEN)    /* Size of IP +
                         * UDP

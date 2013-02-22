@@ -177,6 +177,7 @@ u8_t uip_ext_opt_offset = 0;
 #define UIP_DESTO_BUF                    ((struct uip_desto_hdr *)&uip_buf[uip_l2_l3_hdr_len])
 #define UIP_EXT_HDR_OPT_BUF            ((struct uip_ext_hdr_opt *)&uip_buf[uip_l2_l3_hdr_len + uip_ext_opt_offset])
 #define UIP_EXT_HDR_OPT_PADN_BUF  ((struct uip_ext_hdr_opt_padn *)&uip_buf[uip_l2_l3_hdr_len + uip_ext_opt_offset])
+#define UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_BUF  ((struct uip_ext_hdr_opt_exp_hxb_seqnum *)&uip_buf[uip_l2_l3_hdr_len + uip_ext_opt_offset])
 #define UIP_ICMP6_ERROR_BUF            ((struct uip_icmp6_error *)&uip_buf[uip_l2_l3_icmp_hdr_len])
 /** @} */
 /** \name Buffer variables
@@ -836,6 +837,12 @@ ext_hdr_options_process() {
         PRINTF("Processing PADN option\n");
         uip_ext_opt_offset += UIP_EXT_HDR_OPT_PADN_BUF->opt_len + 2;
         break;
+      case UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM:
+	PRINTF("Processing Hexabus sequence number\n");
+	printf("SeqNumfield: %u\n", UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_BUF->seqnum);
+	printf("Flags: %u\n", UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_BUF->flags);
+	uip_ext_opt_offset += UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_BUF->len+2; 
+	break;
       default:
         /*
          * check the two highest order bits of the option
@@ -1423,8 +1430,8 @@ uip_process(u8_t flag)
      work. If the application sets uip_slen, it has a packet to
      send. */
 #if UIP_UDP_CHECKSUMS
-  uip_len = uip_len - UIP_IPUDPH_LEN;
-  uip_appdata = &uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
+  uip_len = uip_len - UIP_IPUDPH_LEN - uip_ext_len;
+  uip_appdata = &uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + uip_ext_len];
   if(UIP_UDP_BUF->udpchksum != 0 && uip_udpchksum() != 0xffff) {
     UIP_STAT(++uip_stat.udp.drop);
     UIP_STAT(++uip_stat.udp.chkerr);
@@ -1433,7 +1440,7 @@ uip_process(u8_t flag)
     goto drop;
   }
 #else /* UIP_UDP_CHECKSUMS */
-  uip_len = uip_len - UIP_IPUDPH_LEN;
+  uip_len = uip_len - UIP_IPUDPH_LEN - uip_ext_len;
 #endif /* UIP_UDP_CHECKSUMS */
 
   /* Make sure that the UDP destination port number is not zero. */
@@ -1477,7 +1484,7 @@ uip_process(u8_t flag)
  
   uip_conn = NULL;
   uip_flags = UIP_NEWDATA;
-  uip_sappdata = uip_appdata = &uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
+  uip_sappdata = uip_appdata = &uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + uip_ext_len];
   uip_slen = 0;
   UIP_UDP_APPCALL();
 

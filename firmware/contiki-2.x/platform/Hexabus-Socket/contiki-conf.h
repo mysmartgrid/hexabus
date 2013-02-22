@@ -108,6 +108,7 @@ unsigned long clock_seconds(void);
 #define UIP_CONF_IPV6_RPL         0
 #define NETSTACK_CONF_NETWORK       sicslowpan_driver
 #define SICSLOWPAN_CONF_COMPRESSION SICSLOWPAN_COMPRESSION_HC06
+#define UIP_HXB_SEQNUM_MASTER     0
 #else
 /* ip4 should build but is largely untested */
 #define RIMEADDR_CONF_SIZE        2

@@ -334,7 +334,7 @@ void initialize(void)
   process_start(&state_machine_process, NULL);
 #endif
 
-  mdns_responder_init();
+  //mdns_responder_init();
 
   /* Datetime service*/
 #if DATETIME_SERVICE_ENABLE
