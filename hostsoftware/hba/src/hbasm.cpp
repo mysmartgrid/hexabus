@@ -231,7 +231,6 @@ int main(int argc, char **argv)
 				data.push_back(c);
 			}
 
-
       // then add machine ID
       if(ast.machine_id.size() > 32)
         ast.machine_id = ast.machine_id.substr(0,32); // truncate if longer than 32 characters
