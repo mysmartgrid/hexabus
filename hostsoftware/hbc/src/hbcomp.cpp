@@ -53,7 +53,6 @@ int main(int argc, char** argv)
     ("never,n", po::value<std::string>(), "perform safety check ('node is never reachable') for node")
     ("output,o", po::value<std::string>(), "file name prefix for Hexabus Assembler (HBA) output")
     ("datatypefile,d", po::value<std::string>(), "name of data type file to be generated")
-    ("md5,5", po::value<std::string>(), "string to md5hash")
     ;
   po::positional_options_description p;
   p.add("input", 1);

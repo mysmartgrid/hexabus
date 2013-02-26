@@ -50,7 +50,6 @@ struct hxb_packet_query {
   uint32_t  eid;        // Endpoint ID
   uint16_t  crc;       // CRC16-Kermit / Contiki's crc16_data()
 } __attribute__ ((packed));
-// TODO this used to be hxb_packet_req
 
 // Structs for WRITE and INFO packets -- since the payload comes in different sizes, we need several structs
 // WRITE/INFO packet for BOOL and INT8
@@ -63,7 +62,6 @@ struct hxb_packet_int8 {
   uint8_t   value;
   uint16_t  crc;
 } __attribute__ ((packed));
-// TODO this used to be hxb_packet_bool and hxb_packet_int
 
 // WRITE/INFO packet for INT32
 struct hxb_packet_int32 {

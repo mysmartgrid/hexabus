@@ -12,7 +12,6 @@
 // Boolean values
 #define HXB_TRUE              1
 #define HXB_FALSE             0
-// TODO Do we need a "toggle"?
 
 // Packet types
 #define HXB_PTYPE_ERROR       0x00  // An error occured -- check the error code field for more information
@@ -21,9 +20,6 @@
 #define HXB_PTYPE_WRITE       0x04  // Endpoint is requested to set its value
 #define HXB_PTYPE_EPINFO      0x09  // Endpoint metadata
 #define HXB_PTYPE_EPQUERY     0x0A  // Request endpoint metadata
-
-// Flags
-#define HXB_FLAG_CONFIRM      0x01  // Requests an acknowledgement
 
 // Data types
 #define HXB_DTYPE_UNDEFINED   0x00  // Undefined: Nonexistent data type
@@ -36,7 +32,6 @@
 #define HXB_DTYPE_TIMESTAMP   0x07  // timestamp - used for measuring durations, time differences and so on - uint32; seconds
 #define HXB_DTYPE_66BYTES     0x08  // raw 66 byte array, e.g. state machine data.
 #define HXB_DTYPE_16BYTES     0x09  // raw 16 byte array, e.g. state machine ID.
-
 
 // Error codes
 //                            0x00     reserved: No error
@@ -57,8 +52,7 @@
 // State machine runtime states
 enum STM_state_t {
   STM_STATE_STOPPED = 0,
-  STM_STATE_RUNNING = 1};
-
-
+  STM_STATE_RUNNING = 1
+};
 
 #endif

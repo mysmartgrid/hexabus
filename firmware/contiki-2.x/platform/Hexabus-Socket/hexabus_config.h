@@ -34,7 +34,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 // temperature
 #define TEMPERATURE_ENABLE 0
 #define TEMPERATURE_DEBUG 0
-#define TEMPERATURE_SENSOR 0             // 0 - ds80x20, 1 - HYT321, 2 - BMP085
+#define TEMPERATURE_SENSOR 0 // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
@@ -113,7 +113,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 //ir_receiver
 #define IR_RECEIVER_ENABLE 0
 #define IR_RECEIVER_DEBUG 0
-#define IR_REPEAT 1                  // 0 disables repeat, 1 enables repeat for buttons configured in ir_receiver.h
+#define IR_REPEAT 1 // 0 disables repeat, 1 enables repeat for buttons configured in ir_receiver.h
 #define IR_RECEIVER_RAW_MODE 0
 
 #endif // HEXBAUS_CONFIG_H

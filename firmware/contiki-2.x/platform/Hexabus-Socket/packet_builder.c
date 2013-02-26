@@ -14,32 +14,13 @@
 #define PRINTLLADDR(addr)
 #endif
 
-
-
-//
-//static void  //TODO remove once everything is using the new format
-//make_message(char* buf, uint16_t command, uint16_t value)
-//{
-//  struct hexabusmsg_t *hexabuscmd;
-//  hexabuscmd = (struct hexabusmsg_t *)buf;
-//  memset(hexabuscmd, 0, sizeof(struct hexabusmsg_t));
-//  strncpy(hexabuscmd->header, HEXABUS_HEADER, sizeof(hexabuscmd->header));
-//  hexabuscmd->source = 2;
-//  hexabuscmd->command = uip_htons(command);
-//  uint16_t *response;
-//  response = (uint16_t*) (hexabuscmd + 1);
-//  *response = uip_htons(value);
-//  PRINTF("udp_handler: Responding with message: ");
-//  PRINTF("%s%02x%02x%04d\n", HEXABUS_HEADER, 2, command, value);
-//}
-//
 struct hxb_packet_float make_value_packet_float(uint32_t eid, struct hxb_value* val)
 {
   struct hxb_packet_float packet;
   strncpy(&packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
-  PRINTF("PACKET BUILDER EID: %d\n", eid);
+  PRINTF("Packet builder - EID: %d\n", eid);
   packet.eid = uip_htonl(eid);
 
   packet.datatype = val->datatype;
@@ -83,7 +64,6 @@ struct hxb_packet_128string make_epinfo_packet(uint32_t eid)
 
   packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
 
-
   return packet;
 }
 
@@ -123,3 +103,4 @@ struct hxb_packet_error make_error_packet(uint8_t errorcode)
 
   return packet;
 }
+

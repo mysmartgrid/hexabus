@@ -34,23 +34,15 @@
 
 #include "udp_handler.h"
 #include <string.h>
-#include <stdbool.h>
-#include <avr/wdt.h>
-#include "dev/watchdog.h"
 #include "contiki.h"
 #include "contiki-lib.h"
 #include "contiki-net.h"
-#include "webserver-nogui.h"
 #include "httpd-cgi.h"
 #include "packet_builder.h"
-#include "dev/leds.h"
 #include <util/delay.h>
 
 #include "state_machine.h"
-#include "metering.h"
-#include "relay.h"
 #include "datetime_service.h"
-#include "eeprom_variables.h"
 #include "hexabus_config.h"
 #include "../../../../../../shared/hexabus_packet.h"
 
@@ -65,39 +57,10 @@
 #define PRINTLLADDR(addr)
 #endif
 
-#define UDP_DATA_LEN 130 //TODO set this to something to be specified in the hexabus spec
-#define UDP_IP_BUF   ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
-#define HEXABUS_PORT 61616
+#define UDP_IP_BUF ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
 static struct uip_udp_conn *udpconn;
 static struct etimer udp_periodic_timer;
-static struct ctimer lost_connection_timer;
-
-/* Command definitions. */  // TODO once we are using the hexabus format, we won't need this anymore
-#define ON                     0x10 // Socket on
-#define OFF                    0x11 // Socket off
-#define STATUS_REQUEST         0x12  // Socket status
-#define STATUS_REPLY           0x22
-#define VALUE                  0x13 // metering value
-#define VALUE_REPLY            0x23
-#define RESET                  0xFF // reset all values
-#define RESET_REPLY         0x2F
-#define SET_DEFAULT            0xDE // set default values
-#define HEARTBEAT_ACK         0xAC
-#define HEARTBEAT              0xBE
-#define UPDATE_SERVER          0x1B
-
-
-#define HEXABUS_HEADER "HEXABUS"
-struct hexabusmsg_t {
-  char header[7]; //header = HEXABUS
-  uint8_t source; //source of the message (1: Server, 2: Socket)
-  uint16_t command;
-};
-static bool heartbeat_ipaddr_set = false;
-static uip_ipaddr_t heartbeat_ipaddr;
-static unsigned char heartbeat_no_ack;
-#define  MAX_HEARTBEAT_RETRIES  5 //maximum failed heartbeats before changing to default mode
 
 static uip_ipaddr_t hxb_group;
 
@@ -106,7 +69,7 @@ AUTOSTART_PROCESSES(&udp_handler_process);
 
 process_event_t sm_data_received_event;
 
-/*---------------------------------------------------------------------------*/ 
+/*---------------------------------------------------------------------------*/
 static void
 pollhandler(void) {
   PRINTF("----Socket_UDP_handler: Process polled\r\n");
@@ -117,26 +80,13 @@ exithandler(void) {
   PRINTF("----Socket_UDP_handler: Process exits.\r\n");
 }
 
-/* flashing red and green led indicates lost connection to server */ //TODO change to new format
-static void lost_connection_leds(void) {
-  if(heartbeat_no_ack > MAX_HEARTBEAT_RETRIES) {
-  leds_toggle(LEDS_ALL);
-  ctimer_reset(&lost_connection_timer);
-  }
-  else {
-    relay_leds();
-  }
-}
-
-
-
 void send_packet(char* data, size_t length)
 {
   uip_ipaddr_copy(&udpconn->ripaddr, &UDP_IP_BUF->srcipaddr); // reply to the IP from which the request came
   udpconn->rport = UDP_IP_BUF->srcport;
-  udpconn->lport = UIP_HTONS(HEXABUS_PORT);
+  udpconn->lport = UIP_HTONS(HXB_PORT);
   uip_udp_packet_send(udpconn, data, length);
-  printf("%d bytes sent.\r\n", length);
+  PRINTF("%d bytes sent.\r\n", length);
 
   /* Restore server connection to allow data from any node */
   memset(&udpconn->ripaddr, 0, sizeof(udpconn->ripaddr));
@@ -269,10 +219,10 @@ udphandler(process_event_t ev, process_data_t data)
           struct hxb_packet_query* packet = (struct hxb_packet_query*)uip_appdata;
           PRINTF("PACKET EID: %d\n", uip_ntohl(packet->eid));
           // check CRC
-          printf("size of packet: %u\n", sizeof(*packet));
+          PRINTF("size of packet: %u\n", sizeof(*packet));
           if(uip_ntohs(packet->crc) != crc16_data((char*)packet, sizeof(*packet)-2, 0))
           {
-            printf("CRC check failed.");
+            PRINTF("CRC check failed.");
             struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
             send_packet(&error_packet, sizeof(error_packet));
           } else
@@ -312,10 +262,10 @@ udphandler(process_event_t ev, process_data_t data)
         {
           struct hxb_packet_query* packet = (struct hxb_packet_query*)uip_appdata;
           // check CRC
-          printf("size of packet: %u\n", sizeof(*packet));
+          PRINTF("size of packet: %u\n", sizeof(*packet));
           if(uip_ntohs(packet->crc) != crc16_data((char*)packet, sizeof(*packet)-2, 0))
           {
-            printf("CRC check failed.");
+            PRINTF("CRC check failed.");
             struct hxb_packet_error error_packet = make_error_packet(HXB_ERR_CRCFAILED);
             send_packet(&error_packet, sizeof(error_packet));
           } else
@@ -442,25 +392,14 @@ udphandler(process_event_t ev, process_data_t data)
 }
 
 static void print_local_addresses(void) {
-  int i;
-  //  uip_netif_state state;
-
   PRINTF("\nAddresses [%u max]\n",UIP_DS6_ADDR_NB);
+  int i;
   for (i=0;i<UIP_DS6_ADDR_NB;i++) {
     if (uip_ds6_if.addr_list[i].isused) {
       PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
       PRINTF("\n");
     }
   }
-  /*
-  PRINTF("Current IPv6 addresses: \r\n");
-  for(i = 0; i < UIP_CONF_NETIF_MAX_ADDRESSES; i++) {
-    state = uip_netif_physical_if.addresses[i].state;
-    if(state  != NOT_USED) { //== TENTATIVE || state == PREFERRED) {
-      PRINT6ADDR(&uip_netif_physical_if.addresses[i].ipaddr);
-      PRINTF("\n\r");
-    }
-    }*/
 }
 
 /*---------------------------------------------------------------------------*/
@@ -490,18 +429,8 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   #undef PARSER_WRAP
   uip_ds6_maddr_add(&hxb_group);
 
-  // Define Address of the server that receives our heartbeats.
-  // TODO: Make this dynamic
-#ifdef UDP_ADDR_A
-  uip_ip6addr(&ipaddr,
-      UDP_ADDR_A,UDP_ADDR_B,UDP_ADDR_C,UDP_ADDR_D,
-      UDP_ADDR_E,UDP_ADDR_F,UDP_ADDR_G,UDP_ADDR_H);
-#else /* UDP_ADDR_A */
-  uip_ip6addr(&ipaddr,0xbbbb,0,0,0,0xd69a,0x20ff,0xfe07,0x7664);
-#endif /* UDP_ADDR_A */
-
   udpconn = udp_new(NULL, UIP_HTONS(0), NULL);
-  udp_bind(udpconn, UIP_HTONS(HEXABUS_PORT));
+  udp_bind(udpconn, UIP_HTONS(HXB_PORT));
   // udp_attach(udpconn, NULL);
 
   PRINTF("udp_handler: Created connection with remote peer ");
@@ -511,14 +440,13 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   print_local_addresses();
   etimer_set(&udp_periodic_timer, 60*CLOCK_SECOND);
 
-  while(1){
+  while(1) {
     //   tcpip_poll_udp(udpconn);
     PROCESS_WAIT_EVENT();
     udphandler(ev, data);
     // Yield to the other processes, so that they have a chance to take broadcast events out of the event queue
     PROCESS_PAUSE();
   }
-
 
   PROCESS_END();
 }

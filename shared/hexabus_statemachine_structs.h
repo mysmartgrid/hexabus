@@ -40,7 +40,7 @@ struct transition {
 // "true" condition "index"
 #define TRUE_COND_INDEX 255
 
-#define EE_STATEMACHINE_CHUNK_SIZE        64
+#define EE_STATEMACHINE_CHUNK_SIZE 64
 
 #endif
 
