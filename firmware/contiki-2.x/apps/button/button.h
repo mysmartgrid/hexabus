@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Fraunhofer ESK
+ * Copyright (c) 2013, Fraunhofer ITWM
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,57 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
+ * Author: Sean Buckheister <buckheister@itwm.fhg.de>
  *
- * Author: 	Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
- *
- * @(#)$$
  */
 
-#ifndef PROVISIONING_H_
-#define PROVISIONING_H_
+#ifndef BUTTON_H_
+#define BUTTON_H_
 
-/*indicates ongoing provisioning*/
-void provisioning_leds(void);
+#include "hexabus_config.h"
+#include "process.h"
 
-#if RAVEN_REVISION == HEXABUS_USB
-int provisioning_master(void);
-#elif RAVEN_REVISION == HEXABUS_SOCKET
-int provisioning_slave(void);
-#endif
+#include <avr/pgmspace.h>
 
-#endif /* PROVISIONING_H_ */
+PROCESS_NAME(button_pressed_process);
+
+struct button_set_descriptor_t {
+	volatile uint8_t* port;
+	uint8_t mask;
+
+	uint8_t activeLevel:1;
+
+	// NOTE: tick quantities in this structure are guaranteed to hold at 4096 ticks. Larger
+	// values may be clipped to 4096
+	
+	// transitions idle -> active -> idle that fit into this time frame are clicks
+	uint16_t click_ticks;
+	// transitions idle -> active -> idle report button state after this many ticks, once per tick
+	uint16_t pressed_ticks;
+
+	void (*clicked)(uint8_t button);
+	void (*pressed)(uint8_t button, uint8_t released, uint16_t pressed_ticks);
+};
+
+#define BUTTON_DESCRIPTOR const struct button_set_descriptor_t PROGMEM
+
+struct button_sm_state_t {
+	const struct button_set_descriptor_t* descriptor;
+	struct button_sm_state_t* next;
+
+	uint16_t* state;
+};
+
+extern struct button_sm_state_t* _button_chain;
+
+
+#define BUTTON_REGISTER(DESC, pincount) \
+	do { \
+		static uint16_t state[pincount] = { 0 }; \
+		static struct button_sm_state_t _button_state = { 0, 0, state }; \
+		_button_state.descriptor = &DESC; \
+		_button_state.next = _button_chain; \
+		_button_chain = &_button_state; \
+	} while (0)
+
+#endif /* BUTTON_H_ */

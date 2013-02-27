@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Fraunhofer ESK
+ * Copyright (c) 2013, Fraunhofer ITWM
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,29 +27,18 @@
  * SUCH DAMAGE.
  *
  *
- * Author: 	Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
+ * Author: Sean Buckheister <buckheister@itwm.fraunhofer.de>
  *
- * @(#)$$
  */
+#ifndef BUTTON_HANDLERS_H
+#define BUTTON_HANDLERS_H
 
-#ifndef BUTTON_H_
-#define BUTTON_H_
+#include "hexabus_config.h"
 
-#include "process.h"
+#if BUTTON_HAS_EID
+extern int button_pushed;
+#endif
 
-#define BUTTON_PORT		PORTE
-#define BUTTON_PIN		PINE
-#define BUTTON_BIT		PE2
+void button_handlers_init(void);
 
-#define DEBOUNCE_TIME		   50
-#define DOUBLE_CLICK_TIME	 500UL
-#define	CLICK_TIME			2000UL
-#define	LONG_CLICK_TIME		7000UL
-#define	PAUSE_TIME			 500UL
-
-#define DOUBLE_CLICK_ENABLED	0
-
-PROCESS_NAME(button_pressed_process);
-
-
-#endif /* BUTTON_H_ */
+#endif

@@ -33,8 +33,6 @@
 
 #include <stdlib.h>
 
-#include <io.h>
-
 #include "contiki.h"
 #include "lib/sensors.h"
 #include "dev/sht11.h"

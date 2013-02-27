@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Fraunhofer ESK
+ * Copyright (c) 2013, Fraunhofer ITWM
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,39 +27,77 @@
  * SUCH DAMAGE.
  *
  *
- * Author: 	Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
+ * Author: Sean Buckheister <buckheister@itwm.fraunhofer.de>
  *
- * @(#)$$
  */
 
-#ifndef BUTTON_H_
-#define BUTTON_H_
+#include "contiki-conf.h"
 
-#include "process.h"
+#include "hexabus_config.h"
+#include "eeprom_variables.h"
+#include "sys/clock.h"
+#include <avr/eeprom.h>
+#include <avr/wdt.h>
+#include "dev/watchdog.h"
+#include "provisioning.h"
+#include "metering.h"
+#include "button.h"
+#include "value_broadcast.h"
+#include <endpoints.h>
+#include "relay.h"
 
-#if defined(__AVR_ATmega1284P__)
-#define BUTTON_PORT		PORTD
-#define BUTTON_PIN		PIND
-#define BUTTON_BIT		PD5
-#elif defined(__AVR_ATmega2561__)
-#define BUTTON_PORT		PORTE
-#define BUTTON_PIN		PINE
-#define BUTTON_BIT		PE4
-#else
-#error Hardware not defined!
-#endif
-
-#define DEBOUNCE_TIME		   50
-#define DOUBLE_CLICK_TIME	 500UL
-#define	CLICK_TIME			2000UL
-#define	LONG_CLICK_TIME		7000UL
-#define	PAUSE_TIME			 500UL
 
 #if BUTTON_HAS_EID
-uint8_t button_get_pushed();
+int button_pushed = 0;
+
+uint8_t button_get_pushed(void)
+{
+	return button_pushed;
+}
 #endif
 
-PROCESS_NAME(button_pressed_process);
+static void button_clicked(uint8_t button)
+{
+#if BUTTON_HAS_EID
+	button_pushed = 1;
+	broadcast_value(EP_BUTTON);
+	button_pushed = 0;
+#endif
+#if BUTTON_TOGGLES_RELAY
+	relay_toggle();
+#endif
+}
 
+static void button_pressed(uint8_t button, uint8_t released, uint16_t ticks)
+{
+	if (released) {
+		provisioning_slave();
+	} else {
+		provisioning_leds();
+	}
 
-#endif /* BUTTON_H_ */
+	if (ticks > CLOCK_SECOND * BUTTON_LONG_CLICK_MS / 1000) {
+		if (!metering_calibrate()) {
+			eeprom_write_byte((uint8_t *)EE_BOOTLOADER_FLAG, 0x01);
+			watchdog_reboot();
+		}
+	}
+}
+
+BUTTON_DESCRIPTOR buttons_system = {
+	.port = &BUTTON_PIN,
+	.mask = 1 << BUTTON_BIT,
+	
+	.activeLevel = 0,
+
+	.click_ticks = CLOCK_SECOND * BUTTON_CLICK_MS / 1000,
+	.pressed_ticks = 1 + CLOCK_SECOND * BUTTON_CLICK_MS / 1000,
+	
+	.clicked = button_clicked,
+	.pressed = button_pressed
+};
+
+void button_handlers_init()
+{
+	BUTTON_REGISTER(buttons_system, 1);
+}
