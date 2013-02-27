@@ -20,7 +20,8 @@
 
 #include "hexabus_server.hpp"
 
-    boost::asio::io_service io_service;
+boost::asio::io_service io_service;
+
 int main()
 {
   try
@@ -140,9 +141,9 @@ int main()
     io_service.notify_fork(boost::asio::io_service::fork_child);
 
     // The io_service can now be used normally.
-    syslog(LOG_INFO | LOG_USER, "Daemon started");
+    syslog(LOG_INFO | LOG_USER, "HexabusDaemon started");
     io_service.run();
-    syslog(LOG_INFO | LOG_USER, "Daemon stopped");
+    syslog(LOG_INFO | LOG_USER, "HexabusDaemon stopped");
   }
   catch (std::exception& e)
   {
