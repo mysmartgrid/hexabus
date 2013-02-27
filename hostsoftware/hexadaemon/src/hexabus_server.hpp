@@ -2,6 +2,7 @@
 #define _HEXABUS_SERVER_HPP
 
 #include <boost/asio/io_service.hpp>
+#include <boost/asio/deadline_timer.hpp>
 
 #include <libhexabus/socket.hpp>
 #include <libhexabus/packet.hpp>
@@ -17,8 +18,13 @@ namespace hexadaemon {
 			void eid0handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void eid2handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 
+			void broadcast_handler(const boost::system::error_code& error);
+
 		private:
 			hexabus::Socket _socket;
+			boost::asio::deadline_timer _timer;
+
+			int getFluksoValue();
 	};
 }
 
