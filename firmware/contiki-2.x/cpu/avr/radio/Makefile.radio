@@ -24,4 +24,3 @@ else
   #Source for IEEE 802.15.4 manager interface
   include $(CONTIKI)/cpu/avr/radio/ieee-manager/Makefile.ieee-manager
 endif
-

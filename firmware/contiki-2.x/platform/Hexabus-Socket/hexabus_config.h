@@ -22,10 +22,14 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define MEMORY_DEBUGGER_INTERVAL 10
 
 // button
-#define BUTTON_DEBUG 0
-#define BUTTON_DOUBLE_CLICK_ENABLED 0
 #define BUTTON_HAS_EID 1 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
 #define BUTTON_TOGGLES_RELAY 0 // set to 1 to have the button toggle the relay directly
+
+#define BUTTON_DEBOUNCE_TICKS		1
+#define BUTTON_PIN							PIND
+#define BUTTON_BIT							PD5
+#define	BUTTON_CLICK_MS					2000UL
+#define	BUTTON_LONG_CLICK_MS		7000UL
 
 // datetime_service
 #define DATETIME_SERVICE_ENABLE 1
@@ -68,7 +72,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define SHUTTER_INITIAL_POSITON 1
 
 // hexapush
-#define HEXAPUSH_ENABLE 0
+#define HEXAPUSH_ENABLE 1
 #define HEXAPUSH_CLICK_ENABLE 1
 #define HEXAPUSH_PRESS_RELEASE_ENABLE 1
 #define HEXAPUSH_PRESS_DELAY 6   //multiplied by 50ms, only if Click and Press/Release are enabled

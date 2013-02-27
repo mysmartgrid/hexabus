@@ -282,7 +282,7 @@ char uart_usb_getchar(void)
   
 #if USB_CDC_ACM_CONF_LOCAL_ECHO
   //Local echo
-  //uart_usb_putchar(data_rx);
+  uart_usb_putchar(data_rx);
 #endif
   
   // Restore previously selected endpoint

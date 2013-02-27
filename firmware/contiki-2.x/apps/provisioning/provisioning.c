@@ -76,9 +76,15 @@ struct provisioning_m_t {
 void provisioning_leds(void)
 {
 	static clock_time_t blink_time;
+	static bool red_on = true;
 	watchdog_periodic();
 	if(clock_time() - blink_time > CLOCK_SECOND / 2) {
-		leds_invert(LEDS_RED);
+		if (red_on) {
+			leds_on(LEDS_RED);
+		} else {
+			leds_off(LEDS_RED);
+		}
+		red_on = !red_on;
 		blink_time = clock_time();
 	}
 }
@@ -90,7 +96,11 @@ void provisioning_done_leds(void)
 	uint8_t i;
 	for(i=0;i<5;i++){
 		watchdog_periodic();
-		leds_invert(LEDS_GREEN);
+		if (i & 1) {
+			leds_on(LEDS_GREEN);
+		} else {
+			leds_off(LEDS_GREEN);
+		}
 		_delay_ms(500);
 	}
 }
