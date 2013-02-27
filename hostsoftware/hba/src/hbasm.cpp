@@ -174,19 +174,9 @@ int main(int argc, char **argv)
       ofs.close();
     }
     else if (vm.count("output")) {
-
       hexabus::GraphBuilder gBuilder;
       gBuilder(ast);
       hexabus::GraphChecks gChecks(gBuilder.get_graph());
-      /* try {
-        gChecks.check_states_incoming();
-        gChecks.check_states_outgoing();
-        gChecks.check_conditions_incoming();
-        gChecks.check_conditions_outgoing();
-      } catch (hexabus::GenericException& ge) {
-        std::cout << "ERROR: " << ge.what() << std::endl;
-        exit(-1);
-      } */
 
       bool verbose = false;
       if(vm.count("verbose"))
@@ -231,29 +221,24 @@ int main(int argc, char **argv)
 				data.push_back(c);
 			}
 
-      // then add machine ID
-      if(ast.machine_id.size() > 32)
-        ast.machine_id = ast.machine_id.substr(0,32); // truncate if longer than 32 characters
-      while(ast.machine_id.size() < 32)
-        ast.machine_id += "0"; // pad with zeros if it's shorter than 32 characters
+			if(ast.blocks.size()) { // only generate state machine data if there is actually a state machine defined.
+				// then add machine ID
+				if(ast.machine_id.size() > 32)
+					ast.machine_id = ast.machine_id.substr(0,32); // truncate if longer than 32 characters
+				while(ast.machine_id.size() < 32)
+					ast.machine_id += "0"; // pad with zeros if it's shorter than 32 characters
 
-      // now convert to single bytes from the hex representation, and store it into the output
-      for(size_t i = 0; i < ast.machine_id.size(); i += 2) {
-        std::stringstream s;
-        unsigned int c;
-        s << std::hex << ast.machine_id[i] << ast.machine_id[i+1];
-        s >> c;
-        data.push_back((char)c);
-      }
+				// now convert to single bytes from the hex representation, and store it into the output
+				for(size_t i = 0; i < ast.machine_id.size(); i += 2) {
+					std::stringstream s;
+					unsigned int c;
+					s << std::hex << ast.machine_id[i] << ast.machine_id[i+1];
+					s >> c;
+					data.push_back((char)c);
+				}
 
-      gf(data);
-
-      /*std::string cond_b64str(hexabus::to_base64(cond_data));
-      std::string trans_b64str(hexabus::to_base64(trans_data));
-      std::string dttrans_b64str(hexabus::to_base64(dttrans_data));
-      cond_ofs << "1" << std::endl << cond_b64str;
-      trans_ofs << "2" << std::endl << trans_b64str;
-      dttrans_ofs << "3" << std::endl << dttrans_b64str;*/
+				gf(data);
+			}
 
       ofs << std::string(data.begin(), data.end());
 
