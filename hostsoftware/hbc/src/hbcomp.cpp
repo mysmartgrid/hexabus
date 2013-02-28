@@ -300,6 +300,7 @@ int main(int argc, char** argv)
     // now we have to generate "minimal" HBA files for the devices which do not have any state machines
     // -- they need hba files anyway because their device names have to be updated.
     if(vm.count("output")) {
+      // iterate over the devices which are left because thost have not been handled by the HBAOutput step
       for(hexabus::device_table::iterator it = devices_to_do.begin(); it != devices_to_do.end(); ++it) {
         std::ostringstream fnoss;
         fnoss << vm["output"].as<std::string>() << it->first << ".hba";
@@ -317,9 +318,7 @@ int main(int argc, char** argv)
         hexabus::HBAOutput::print_ipv6address(it->second.ipv6_address, ofs);
         ofs << ";" << std::endl
           << "device_name " << it->first << ";" << std::endl
-          << "machine 0;" << std::endl
-          << "startstate init;" << std::endl
-          << "state init { }" << std::endl; // TODO once Hexabus Assembler supports files without states, remove this!
+          << "machine 0;" << std::endl;
       }
     }
 
