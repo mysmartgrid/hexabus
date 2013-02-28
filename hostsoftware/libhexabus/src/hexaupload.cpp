@@ -23,115 +23,164 @@ namespace po = boost::program_options;
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
-po::variable_value get_mandatory_parameter(
-    po::variables_map vm,
-    std::string param_id,
-    std::string error_message
-    )
+enum ErrorCode {
+	ERR_NONE = 0,
+
+	ERR_UNKNOWN_PARAMETER = 1,
+	ERR_PARAMETER_MISSING = 2,
+	ERR_PARAMETER_FORMAT = 3,
+	ERR_PARAMETER_VALUE_INVALID = 4,
+	ERR_NETWORK = 5,
+
+	ERR_INVALID_BINARY = 6,
+	ERR_SM_OP = 7,
+	ERR_UPLOAD_FAILED = 8,
+	ERR_READ_FAILED = 9,
+
+	ERR_OTHER = 127
+};
+
+ErrorCode assert_statemachine_state(hexabus::Socket& network, const boost::asio::ip::address_v6& dest, STM_state_t req_state)
 {
-  po::variable_value retval;
-  try {
-    if (! vm.count(param_id)) {
-      std::cerr << error_message << std::endl;
-      exit(-1);
-    } else {
-      retval=(vm[param_id]);
-    }
-  } catch (std::exception& e) {
-    std::cerr << "Cannot process commandline options: " << e.what() << std::endl;
-    exit(-1);
-  }
-  return retval;
-}
-
-void assert_statemachine_state(hexabus::Socket* network, const std::string& ip_addr, STM_state_t req_state) {
-	boost::asio::ip::address_v6 dest = boost::asio::ip::address_v6::from_string(ip_addr);
-
-	network->send(hexabus::WritePacket<uint8_t>(EP_SM_CONTROL, req_state), dest);
-	network->send(hexabus::QueryPacket(EP_SM_CONTROL), dest);
+	network.send(hexabus::WritePacket<uint8_t>(EP_SM_CONTROL, req_state), dest);
+	network.send(hexabus::QueryPacket(EP_SM_CONTROL), dest);
 
 	while (true) {
 		std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
 		try {
-			pair = network->receive();
+			namespace hf = hexabus::filtering;
+
+			pair = network.receive(hf::eid() == EP_SM_CONTROL && hf::sourceIP() == dest);
+		} catch (const hexabus::NetworkException& e) {
+			std::cerr << "Error receiving packet: " << e.code().message() << std::endl;
+			return ERR_NETWORK;
 		} catch (const hexabus::GenericException& e) {
-			const hexabus::NetworkException* nerror;
-			if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&e))) {
-				std::cerr << "Error receiving packet: " << nerror->code().message() << std::endl;
+			std::cerr << "Error receiving packet: " << e.what() << std::endl;
+			return ERR_NETWORK;
+		}
+
+		const hexabus::InfoPacket<uint8_t>* u8 = dynamic_cast<const hexabus::InfoPacket<uint8_t>*>(pair.first.get());
+
+		if (u8) {
+			switch (req_state) {
+				case STM_STATE_STOPPED:
+					if (u8->value() == STM_STATE_STOPPED) {
+						std::cout << "State machine has been stopped successfully" << std::endl;
+					} else {
+						std::cerr << "Failed to stop state machine - aborting." << std::endl;
+						return ERR_NETWORK;
+					}
+					break;
+
+				case STM_STATE_RUNNING:
+					if (u8->value() == STM_STATE_RUNNING) {
+						std::cout << "State machine is running." << std::endl;
+					} else {
+						std::cerr << "Failed to start state machine - aborting." << std::endl;
+						return ERR_NETWORK;
+					}
+					break;
+
+				default:
+					std::cout << "Unexpected STM_STATE requested - aborting." << std::endl;
+					return ERR_NETWORK;
+					break;
+			}
+		} else {
+			std::cout << "Expected uint8 data in packet - got something different." << std::endl;
+			return ERR_NETWORK;
+		}
+		break;
+	}
+
+	return ERR_NONE;
+}
+
+static const size_t UploadChunkSize = EE_STATEMACHINE_CHUNK_SIZE;
+
+class ChunkSender {
+	private:
+		boost::asio::deadline_timer timeout;
+		hexabus::Socket& socket;
+		boost::asio::ip::address_v6 target;
+		int retryLimit;
+		boost::signals2::connection replyHandler;
+
+		uint8_t chunkId;
+		ErrorCode result;
+
+		int failCount;
+
+		void armTimer()
+		{
+			timeout.expires_from_now(boost::posix_time::seconds(1));
+		}
+
+		void failOne()
+		{
+			failCount++;
+			if (failCount >= retryLimit || retryLimit < 0) {
+				std::cout << std::endl;
+				result = ERR_UPLOAD_FAILED;
+				socket.ioService().stop();
+			}
+		}
+
+		void onReply(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint& from)
+		{
+			if (dynamic_cast<const hexabus::InfoPacket<bool>&>(packet).value()) {
+				result = ERR_NONE;
+				socket.ioService().stop();
 			} else {
-				std::cerr << "Error receiving packet: " << e.what() << std::endl;
-			}
-			exit(1);
-		}
-
-		if (pair.second.address() == dest) {
-			const hexabus::InfoPacket<uint8_t> *u8 = dynamic_cast<const hexabus::InfoPacket<uint8_t>*>(pair.first.get());
-			const hexabus::TypedPacket *t = dynamic_cast<const hexabus::TypedPacket*>(pair.first.get());
-			if (u8) {
-				switch (req_state) {
-					case STM_STATE_STOPPED:
-						if (u8->value() == STM_STATE_STOPPED) {
-							std::cout << "State machine has been stopped successfully" << std::endl;
-						} else {
-							std::cerr << "Failed to stop state machine - aborting." << std::endl;
-							exit(-2);
-						}
-						break;
-
-					case STM_STATE_RUNNING:
-						if (u8->value() == STM_STATE_RUNNING) {
-							std::cout << "State machine is running." << std::endl;
-						} else {
-							std::cerr << "Failed to start state machine - aborting." << std::endl;
-							exit(-2);
-						}
-						break;
-
-					default:
-						std::cout << "Unexpected STM_STATE requested - aborting." << std::endl;
-						exit(-3);
-						break;
-				}
-			} else if (t && t->eid() == EP_SM_CONTROL) {
-				std::cout << "Expected uint8 data in packet - got something different." << std::endl;
-				exit(-4);
-			}
-			break;
-		}
-	}
-}
-
-bool send_chunk(hexabus::Socket* network, const std::string& ip_addr, uint8_t chunk_id, const std::vector<char>& chunk) {
-	//std::cout << "Sending chunk " << (int) chunk_id << std::endl;
-	std::vector<char> bin_data;
-	bin_data.push_back(chunk_id);
-	bin_data.insert(bin_data.end(), chunk.begin(), chunk.end());
-
-	// convert data vector to array for construction of packet
-	if(bin_data.size() == HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH) {
-		boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> pck_data;
-		for(size_t i = 0; i < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; ++i) {
-			pck_data[i] = bin_data[i];
-		}
-
-		network->send(hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, pck_data), boost::asio::ip::address_v6::from_string(ip_addr));
-
-		while (true) {
-			std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> p =
-				network->receive();
-
-			if (p.second.address() == boost::asio::ip::address::from_string(ip_addr)) {
-				const hexabus::InfoPacket<bool> *i = dynamic_cast<const hexabus::InfoPacket<bool>*>(p.first.get());
-				if (i) {
-					return i->value();
-				} else {
-					std::cout << "?";
-				}
+				std::cout << "F" << std::flush;
+				failOne();
 			}
 		}
-	}
-	throw hexabus::GenericException("Bug: Chunk length mismatch");
-}
+
+		void onTimeout(const boost::system::error_code& err)
+		{
+			std::cout << "T" << std::flush;
+			failOne();
+			armTimer();
+		}
+
+	public:
+		ChunkSender(hexabus::Socket& socket, const boost::asio::ip::address_v6& target, int retryLimit)
+			: timeout(socket.ioService()), socket(socket), target(target), retryLimit(retryLimit)
+		{
+			timeout.async_wait(boost::bind(&ChunkSender::onTimeout, this, _1));
+
+			namespace hf = hexabus::filtering;
+
+			replyHandler = socket.onPacketReceived(
+					boost::bind(&ChunkSender::onReply, this, _1, _2),
+					hf::sourceIP() == target && hf::isInfo<bool>() && hf::eid() == EP_SM_UP_ACKNAK);
+		}
+
+		~ChunkSender()
+		{
+			replyHandler.disconnect();
+		}
+
+		ErrorCode sendChunk(uint8_t chunkId, const boost::array<uint8_t, UploadChunkSize>& chunk)
+		{
+			boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> packet_data;
+
+			this->chunkId = chunkId;
+			packet_data[0] = chunkId;
+			std::copy(chunk.begin(), chunk.end(), packet_data.begin() + 1);
+
+			socket.send(hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, packet_data), target);
+
+			armTimer();
+			failCount = 0;
+
+			socket.ioService().reset();
+			socket.ioService().run();
+
+			return result;
+		}
+};
 
 int main(int argc, char** argv) {
 	std::ostringstream oss;
@@ -141,8 +190,8 @@ int main(int argc, char** argv) {
 		("help,h", "produce help message")
 		("version", "print libhexabus version and exit")
 		("ip,i", po::value<std::string>(), "the hostname to connect to. If this option is not set, the target IP address from the program file will be used.")
-		("interface,I", po::value<std::string>(), "the interface to use for outgoing messages")
 		("program,p", po::value<std::string>(), "the state machine program to be uploaded")
+		("retry,r", po::value<int>(), "number of retries for failed/timed out uploads")
 		;
 	po::positional_options_description p;
 	p.add("program", 1);
@@ -156,11 +205,8 @@ int main(int argc, char** argv) {
 		po::notify(vm);
 	} catch (std::exception& e) {
 		std::cerr << "Cannot process commandline options: " << e.what() << std::endl;
-		exit(-1);
+		return ERR_UNKNOWN_PARAMETER;
 	}
-
-	std::string command;
-	std::vector<char> program;
 
 	if (vm.count("help")) {
 		std::cout << desc << std::endl;
@@ -168,66 +214,70 @@ int main(int argc, char** argv) {
 	}
 
 	if (vm.count("version")) {
-		std::cout << "hexaswitch -- command line hexabus client" << std::endl;
+		std::cout << "hexaupload -- hexabus state machine upload utility" << std::endl;
 		std::cout << "libhexabus version " << hexabus::version() << std::endl;
 		return 0;
 	}
 
 	if (!vm.count("program")) {
 		std::cout << "Cannot proceed without a program (-p <FILE>)" << std::endl;
-		exit(-1);
+		return ERR_PARAMETER_MISSING;
+	}
+	if (!vm.count("ip")) {
+		std::cout << "Cannot proceed without IP of the target device (-i <IP>)" << std::endl;
+		return ERR_PARAMETER_MISSING;
+	}
+
+	std::basic_ifstream<uint8_t> in(vm["program"].as<std::string>().c_str(),
+			std::ios_base::in | std::ios::ate | std::ios::binary);
+	if (!in) {
+		std::cerr << "Error: Could not open input file: "
+			<< vm["program"].as<std::string>() << std::endl;
+		return ERR_PARAMETER_VALUE_INVALID;
+	}
+	in.unsetf(std::ios::skipws); // No white space skipping!
+
+	size_t size = in.tellg();
+	in.seekg(0, std::ios::beg);
+
+	boost::asio::ip::address_v6 target;
+
+	// first, read target IP
+	boost::asio::ip::address_v6::bytes_type ipBuffer;
+	in.read(ipBuffer.c_array(), ipBuffer.size());
+
+	if (vm.count("ip")) {
+		boost::system::error_code err;
+
+		target = boost::asio::ip::address_v6::from_string(vm["ip"].as<std::string>());
+		if (err) {
+			std::cerr << vm["ip"].as<std::string>() << " is not a valid IP address" << std::endl;
+			return ERR_PARAMETER_FORMAT;
+		}
+
+		std::cout << "Using target IP address from program file: " << target << std::endl;
 	} else {
-		std::ifstream in(vm["program"].as<std::string>().c_str(),
-				std::ios_base::in | std::ios::ate | std::ios::binary);
-		if (!in) {
-			std::cerr << "Error: Could not open input file: "
-				<< vm["program"].as<std::string>() << std::endl;
-			exit(-1);
+		target = boost::asio::ip::address_v6(ipBuffer);
+	}
+
+	// then do the actual programming
+	if ((size - in.tellg()) % UploadChunkSize != 0) {
+		std::cerr << "State machine binary is invalid" << std::endl;
+		return ERR_INVALID_BINARY;
+	}
+	std::cout << "Uploading program, size=" << (size - in.tellg()) << std::endl;
+
+	boost::asio::io_service io;
+	try {
+		hexabus::Socket socket(io);
+		uint8_t chunkId = 0;
+		int retryLimit = vm.count("retry") ? vm["retry"].as<int>() : 3;
+		ChunkSender sender(socket, target, retryLimit);
+		ErrorCode err;
+
+		if ((err = assert_statemachine_state(socket, target, STM_STATE_STOPPED))) {
+			return err;
 		}
-		in.unsetf(std::ios::skipws); // No white space skipping!
-
-		size_t size = in.tellg();
-		in.seekg(0, std::ios::beg);
-
-		// first, read target IP
-		const size_t IP_ADDR_LENGTH = 16;
-		unsigned char* ip_buffer = new unsigned char[IP_ADDR_LENGTH];
-		in.read((char*)ip_buffer, IP_ADDR_LENGTH);
-
-		// then read program into buffer
-		char* buffer = new char[size - IP_ADDR_LENGTH];
-		in.read(buffer, size - IP_ADDR_LENGTH);
-		program.insert(program.end(), buffer, buffer+(size - IP_ADDR_LENGTH));
-		delete buffer;
-		in.close();
-
-		boost::asio::io_service io;
-		hexabus::Socket* network;
-
-		if (vm.count("interface")) {
-			std::string interface=(vm["interface"].as<std::string>());
-			std::cout << "Using interface " << interface << std::endl;
-			network=new hexabus::Socket(io, interface);
-		} else {
-			network=new hexabus::Socket(io);
-		}
-
-		std::string ip_addr;
-		if(vm.count("ip")) { // if we have an IP address given at the command line, use it
-			ip_addr = vm["ip"].as<std::string>();
-		} else { // if there is no IP address at the command line, read the one from the input file
-			std::ostringstream oss;
-			oss << std::hex << std::setfill('0');
-			for(size_t i = 0; i < IP_ADDR_LENGTH; ++i) {
-				if(i && !(i % 2)) // output a : after every two bytes
-					oss << ":";
-				oss << std::setw(2) << (unsigned int)ip_buffer[i];
-			}
-			std::cout << std::endl << "Using target IP from program file: " << oss.str() << std::endl;
-			ip_addr = oss.str();
-		}
-
-		delete ip_buffer;
 
 		/**
 		 * for all bytes in the binary format:
@@ -239,42 +289,34 @@ int main(int argc, char** argv) {
 		 *    - if NAK: Retransmit current packet. failure counter++. Abort if
 		 *    maxtry reached.
 		 */
-		assert_statemachine_state(network, ip_addr, STM_STATE_STOPPED);
+		while (in && !in.eof()) {
+			boost::array<uint8_t, UploadChunkSize> chunk;
 
-		uint8_t chunk_id = 0;
-		uint8_t MAX_TRY = 3;
-		std::cout << "Uploading program, size=" << program.size() << std::endl;
-		while((unsigned int)(EE_STATEMACHINE_CHUNK_SIZE * chunk_id) < program.size()) {
-			uint8_t failure_counter=0;
-			std::vector<char> to_send(program.begin() + (EE_STATEMACHINE_CHUNK_SIZE*chunk_id), program.begin() + std::min(EE_STATEMACHINE_CHUNK_SIZE * (chunk_id + 1), (int) program.size()));
+			in.read(chunk.c_array(), chunk.size());
+			err = sender.sendChunk(chunkId, chunk);
 
-			bool sent = false;
-			while(!sent) {
-				if(!send_chunk(network, ip_addr, chunk_id, to_send)) {
-					// TODO: Check if the ACK/NAK refers to the current chunk id
-					std::cout << "F";
-					failure_counter++; // if sending fails, increase failure counter
-					if (failure_counter >= MAX_TRY) {
-						std::cout << "Maximum number of retransmissions exceeded." << std::endl;
-						delete network;
-						exit(1);
-					}
-				} else {
-					std::cout << ".";
-					sent = true;
-				}
-				std::cout << std::flush;
+			if (err) {
+				std::cerr << "Failed to upload program" << std::endl;
+				return err;
 			}
-			chunk_id++;
+
+			chunkId++;
+		}
+		if (!in) {
+			std::cerr << "Can't read program" << std::endl;
+			return ERR_READ_FAILED;
 		}
 
-		std::cout << std::endl;
-		std::cout << "Upload completed." << std::endl;
-		assert_statemachine_state(network, ip_addr, STM_STATE_RUNNING);
-		std::cout << "Program uploaded successfully." << std::endl;
-
-		delete network;
+		if ((err = assert_statemachine_state(socket, target, STM_STATE_RUNNING))) {
+			return err;
+		}
+	} catch (const hexabus::NetworkException& e) {
+		std::cerr << "Network error: " << e.code().message() << std::endl;
+		return ERR_NETWORK;
 	}
-	exit(0);
+
+	std::cout << "Program uploaded successfully." << std::endl;
+
+	return ERR_NONE;
 }
 
