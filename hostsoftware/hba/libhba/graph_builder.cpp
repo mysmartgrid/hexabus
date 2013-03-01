@@ -143,9 +143,13 @@ void GraphBuilder::mark_start_state(const std::string& name) {
       return;
     }
   }
-  // we have not found an vertex id.
+  // we have not found a vertex id.
   std::ostringstream oss;
-  oss << "state " << name << " not found.";
+  if(name == "") { // No start state name was given in the source code
+    oss << "no start state defined in input file.";
+  } else { // the start state name was not found in the state set
+    oss << "state " << name << " not found.";
+  }
   throw VertexNotFoundException(oss.str());
 }
 
@@ -157,15 +161,20 @@ void GraphBuilder::operator()(hba_doc& hba) {
     boost::apply_visitor(first_pass(_g), block);
   }
   // pass 1.1: mark the start state (which should be defined now)
-  try {
-    mark_start_state(hba.start_state);
-  } catch (VertexNotFoundException& vnfe) {
-    std::cout << "ERROR: cannot assign start state, " << vnfe.what() << std::endl;
-  }
-  // 2nd pass: now add the edges in the second pass
-  BOOST_FOREACH(hba_doc_block& block, hba.blocks)
+  graph_t::vertex_iterator vertexIt, vertexEnd;
+  boost::tie(vertexIt, vertexEnd) = vertices((*_g));
+  if(std::distance(vertexIt, vertexEnd) != 0) // only mark start state if state set is not empty
   {
-    boost::apply_visitor(second_pass(_g), block);
+    try {
+      mark_start_state(hba.start_state);
+    } catch (VertexNotFoundException& vnfe) {
+      std::cout << "ERROR: cannot assign start state, " << vnfe.what() << std::endl;
+    }
+    // 2nd pass: now add the edges in the second pass
+    BOOST_FOREACH(hba_doc_block& block, hba.blocks)
+    {
+      boost::apply_visitor(second_pass(_g), block);
+    }
   }
 }
 

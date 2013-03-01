@@ -196,9 +196,9 @@ struct UpdateFileInfo
     target_ip = lit("target")
       >> ipv6_address > ';';
 
-		device_name = lit("device_name")
-			>> ( lit("0") | identifier )
-			> ';';
+    device_name = lit("device_name")
+      >> ( lit("0") | identifier )
+      > ';';
 
     machine_id = lit("machine")
       >> *(char_("0-9a-fA-F")[_val += _1]) > ';';
@@ -254,10 +254,10 @@ struct UpdateFileInfo
 
     start %=
       target_ip
-			>> device_name
+      >> device_name
       >> machine_id
-      >> startstate
-      >> +(state | condition)
+      >> -startstate
+      >> *(state | condition)
       > eoi
       ;
 
