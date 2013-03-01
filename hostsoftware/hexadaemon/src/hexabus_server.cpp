@@ -6,9 +6,12 @@
 
 #include <fstream>
 
+#include <boost/filesystem.hpp>
+
 using namespace hexadaemon;
 
 namespace hf = hexabus::filtering;
+namespace bf = boost::filesystem;
 
 HexabusServer::HexabusServer(boost::asio::io_service& io)
 	: _socket(io)
@@ -19,8 +22,9 @@ HexabusServer::HexabusServer(boost::asio::io_service& io)
 	_socket.onPacketReceived(boost::bind(&HexabusServer::eid0handler, this, _1, _2), hf::isQuery() && hf::eid() == 0);
 	_socket.onPacketReceived(boost::bind(&HexabusServer::eid2handler, this, _1, _2), hf::isQuery() && hf::eid() == 2);
 
-	_timer.expires_from_now(boost::posix_time::seconds(60+(rand()%60)));
-	_timer.async_wait(boost::bind(&HexabusServer::broadcast_handler, this, _1));
+	/*_timer.expires_from_now(boost::posix_time::seconds(60+(rand()%60)));
+	_timer.async_wait(boost::bind(&HexabusServer::broadcast_handler, this, _1));*/
+	broadcast_handler(boost::system::error_code());
 }
 
 void HexabusServer::epqueryhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
@@ -80,10 +84,28 @@ void HexabusServer::broadcast_handler(const boost::system::error_code& error)
 
 int HexabusServer::getFluksoValue()
 {
-	std::ifstream ss("/tmp/flukso");
+	bf::path p("/var/run/fluksod/sensor/");
 
-	int value;
-	ss >> value;
-	std::cout << "Current flukso value: " << value << std::endl;
-	return value;
+	if ( exists(p) && is_directory(p) )
+	{
+		for ( bf::directory_iterator sensors(p); sensors != bf::directory_iterator(); sensors++ )
+		{
+			std::cout << (*sensors).path().filename() << ": ";
+
+			std::string filename = (*sensors).path().filename().string();
+
+			unsigned short hash[16];
+			for ( unsigned int pos = 0; 2*pos < 16; pos++ )
+			{
+				std::stringstream ss(filename.substr(2*pos, 2));
+
+				ss >> std::hex >> hash[pos];
+
+				std::cout << hash[pos] << ", ";
+			}
+			std::cout << std::endl;
+		}
+	}
+	
+	return 0;
 }
