@@ -33,79 +33,23 @@ enum ErrorCode {
 	ERR_NETWORK = 5,
 
 	ERR_INVALID_BINARY = 6,
-	ERR_SM_OP = 7,
-	ERR_UPLOAD_FAILED = 8,
+	ERR_SM_OP_FAILED = 7,
+	ERR_MAXRETRY_EXCEEDED = 8,
 	ERR_READ_FAILED = 9,
 	ERR_PARAMETER_INVALID = 9,
 
 	ERR_OTHER = 127
 };
 
-ErrorCode assert_statemachine_state(hexabus::Socket& network, const boost::asio::ip::address_v6& dest, STM_state_t req_state)
-{
-	network.send(hexabus::WritePacket<uint8_t>(EP_SM_CONTROL, req_state), dest);
-	network.send(hexabus::QueryPacket(EP_SM_CONTROL), dest);
-
-	std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
-	try {
-		namespace hf = hexabus::filtering;
-
-		pair = network.receive(hf::eid() == EP_SM_CONTROL && hf::sourceIP() == dest);
-	} catch (const hexabus::NetworkException& e) {
-		std::cerr << "Error receiving packet: " << e.code().message() << std::endl;
-		return ERR_NETWORK;
-	} catch (const hexabus::GenericException& e) {
-		std::cerr << "Error receiving packet: " << e.what() << std::endl;
-		return ERR_NETWORK;
-	}
-
-	const hexabus::InfoPacket<uint8_t>* u8 = dynamic_cast<const hexabus::InfoPacket<uint8_t>*>(pair.first.get());
-
-	if (u8) {
-		switch (req_state) {
-			case STM_STATE_STOPPED:
-				if (u8->value() == STM_STATE_STOPPED) {
-					std::cout << "State machine has been stopped successfully" << std::endl;
-				} else {
-					std::cerr << "Failed to stop state machine - aborting." << std::endl;
-					return ERR_NETWORK;
-				}
-				break;
-
-			case STM_STATE_RUNNING:
-				if (u8->value() == STM_STATE_RUNNING) {
-					std::cout << "State machine is running." << std::endl;
-				} else {
-					std::cerr << "Failed to start state machine - aborting." << std::endl;
-					return ERR_NETWORK;
-				}
-				break;
-
-			default:
-				std::cout << "Unexpected STM_STATE requested - aborting." << std::endl;
-				return ERR_NETWORK;
-				break;
-		}
-	} else {
-		std::cout << "Expected uint8 data in packet - got something different." << std::endl;
-		return ERR_NETWORK;
-	}
-
-	return ERR_NONE;
-}
-
-static const size_t UploadChunkSize = EE_STATEMACHINE_CHUNK_SIZE;
-
-class ChunkSender {
-	private:
+class RetryingPacketSender {
+	protected:
 		boost::asio::deadline_timer timeout;
 		hexabus::Socket& socket;
 		boost::asio::ip::address_v6 target;
 		int retryLimit;
-		boost::signals2::connection replyHandler;
+		boost::signals2::scoped_connection errorHandler;
 
-		uint8_t chunkId;
-		boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> packet_data;
+		const hexabus::Packet* packet;
 		ErrorCode result;
 
 		int failCount;
@@ -113,50 +57,171 @@ class ChunkSender {
 		void armTimer()
 		{
 			timeout.expires_from_now(boost::posix_time::seconds(1));
-			timeout.async_wait(boost::bind(&ChunkSender::onTimeout, this, _1));
+			timeout.async_wait(boost::bind(&RetryingPacketSender::onTimeout, this, _1));
 		}
 
-		void failOne()
+		void failOne(char sign)
 		{
 			failCount++;
-			if (failCount >= retryLimit || retryLimit < 0) {
-				std::cout << std::endl;
-				result = ERR_UPLOAD_FAILED;
-				socket.ioService().stop();
+			if (failCount > retryLimit || retryLimit < 0) {
+				finish(ERR_MAXRETRY_EXCEEDED);
 			} else {
-				sendChunkData();
-			}
-		}
-
-		void onReply(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint& from)
-		{
-			if (dynamic_cast<const hexabus::InfoPacket<bool>&>(packet).value()) {
-				std::cout << "." << std::flush;
-				result = ERR_NONE;
-				socket.ioService().stop();
-			} else {
-				std::cout << "F" << std::flush;
-				failOne();
+				std::cout << sign << std::flush;
+				sendPacket();
 			}
 		}
 
 		void onTimeout(const boost::system::error_code& err)
 		{
 			if (!err) {
-				std::cout << "T" << std::flush;
-				failOne();
+				failOne('T');
 				armTimer();
 			}
 		}
 
-		void sendChunkData()
+		void onError(const hexabus::GenericException& e)
 		{
-			socket.send(hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, packet_data), target);
+			const hexabus::NetworkException* ne = dynamic_cast<const hexabus::NetworkException*>(&e);
+			if (ne) {
+				std::cerr << "Error receiving packet: " << ne->code().message() << std::endl;
+				finish(ERR_NETWORK);
+			} else {
+				std::cerr << "Error receiving packet: " << e.what() << std::endl;
+				finish(ERR_NETWORK);
+			}
+		}
+
+		virtual void sendPacket()
+		{
+			socket.send(*packet, target);
+		}
+
+		void finish(ErrorCode result)
+		{
+			this->result = result;
+			socket.ioService().stop();
+		}
+
+	public:
+		RetryingPacketSender(hexabus::Socket& socket, const boost::asio::ip::address_v6& target, int retryLimit)
+			: timeout(socket.ioService()), socket(socket), target(target), retryLimit(retryLimit),
+				errorHandler(socket.onAsyncError(boost::bind(&RetryingPacketSender::onError, this, _1)))
+		{
+		}
+
+		ErrorCode send(const hexabus::Packet& packet)
+		{
+			this->packet = &packet;
+
+			sendPacket();
+
+			armTimer();
+			failCount = 0;
+
+			socket.ioService().reset();
+			socket.ioService().run();
+
+			timeout.cancel();
+
+			return result;
+		}
+};
+
+class RemoteStateMachine : protected RetryingPacketSender {
+	private:
+		boost::signals2::connection replyHandler;
+
+		STM_state_t reqState;
+
+		void onReply(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint& from)
+		{
+			const hexabus::InfoPacket<uint8_t>& u8 = dynamic_cast<const hexabus::InfoPacket<uint8_t>&>(packet);
+
+			switch (reqState) {
+				case STM_STATE_STOPPED:
+					if (u8.value() == STM_STATE_STOPPED) {
+						std::cout << "State machine stopped" << std::endl;
+						finish(ERR_NONE);
+					} else {
+						finish(ERR_SM_OP_FAILED);
+					}
+					break;
+
+				case STM_STATE_RUNNING:
+					if (u8.value() == STM_STATE_RUNNING) {
+						std::cout << "State machine is running." << std::endl;
+						finish(ERR_NONE);
+					} else {
+						finish(ERR_SM_OP_FAILED);
+					}
+					break;
+			}
+		}
+
+		virtual void sendPacket()
+		{
+			RetryingPacketSender::sendPacket();
+			socket.send(hexabus::QueryPacket(EP_SM_CONTROL), target);
+		}
+
+		ErrorCode setAndCheckState(STM_state_t state)
+		{
+			reqState = state;
+			ErrorCode err = send(hexabus::WritePacket<uint8_t>(EP_SM_CONTROL, state));
+
+			if (err) {
+				std::cout << std::endl
+					<< "Failed to " << (state == STM_STATE_RUNNING ? "start" : "stop") << " state machine - aborting." << std::endl;
+			}
+			return err;
+		}
+
+	public:
+		RemoteStateMachine(hexabus::Socket& socket, const boost::asio::ip::address_v6& target, int retryLimit)
+			: RetryingPacketSender(socket, target, retryLimit)
+		{
+			namespace hf = hexabus::filtering;
+
+			replyHandler = socket.onPacketReceived(
+					boost::bind(&RemoteStateMachine::onReply, this, _1, _2),
+					hf::sourceIP() == target && hf::isInfo<uint8_t>() && hf::eid() == EP_SM_CONTROL);
+		}
+
+		~RemoteStateMachine()
+		{
+			replyHandler.disconnect();
+		}
+
+		ErrorCode start()
+		{
+			return setAndCheckState(STM_STATE_RUNNING);
+		}
+
+		ErrorCode stop()
+		{
+			return setAndCheckState(STM_STATE_STOPPED);
+		}
+};
+
+static const size_t UploadChunkSize = EE_STATEMACHINE_CHUNK_SIZE;
+
+class ChunkSender : protected RetryingPacketSender {
+	private:
+		boost::signals2::connection replyHandler;
+
+		void onReply(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint& from)
+		{
+			if (dynamic_cast<const hexabus::InfoPacket<bool>&>(packet).value()) {
+				std::cout << "." << std::flush;
+				finish(ERR_NONE);
+			} else {
+				failOne('F');
+			}
 		}
 
 	public:
 		ChunkSender(hexabus::Socket& socket, const boost::asio::ip::address_v6& target, int retryLimit)
-			: timeout(socket.ioService()), socket(socket), target(target), retryLimit(retryLimit)
+			: RetryingPacketSender(socket, target, retryLimit)
 		{
 			namespace hf = hexabus::filtering;
 
@@ -172,19 +237,12 @@ class ChunkSender {
 
 		ErrorCode sendChunk(uint8_t chunkId, const boost::array<char, UploadChunkSize>& chunk)
 		{
-			this->chunkId = chunkId;
+			boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> packet_data;
+
 			packet_data[0] = chunkId;
 			std::copy(chunk.begin(), chunk.end(), packet_data.begin() + 1);
 
-			sendChunkData();
-
-			armTimer();
-			failCount = 0;
-
-			socket.ioService().reset();
-			socket.ioService().run();
-
-			return result;
+			return send(hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, packet_data));
 		}
 };
 
@@ -286,9 +344,10 @@ int main(int argc, char** argv) {
 		uint8_t chunkId = 0;
 		int retryLimit = vm.count("retry") ? vm["retry"].as<int>() : 3;
 		ChunkSender sender(socket, target, retryLimit);
+		RemoteStateMachine sm(socket, target, retryLimit);
 		ErrorCode err;
 
-		if ((err = assert_statemachine_state(socket, target, STM_STATE_STOPPED))) {
+		if ((err = sm.stop())) {
 			return err;
 		}
 
@@ -335,7 +394,7 @@ int main(int argc, char** argv) {
 			return err;
 		}
 
-		if ((err = assert_statemachine_state(socket, target, STM_STATE_RUNNING))) {
+		if ((err = sm.start())) {
 			return err;
 		}
 	} catch (const hexabus::NetworkException& e) {
