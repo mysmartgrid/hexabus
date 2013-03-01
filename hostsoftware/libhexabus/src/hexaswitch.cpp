@@ -445,6 +445,10 @@ int main(int argc, char** argv) {
 		std::cerr << "Command requires an IP address" << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
+	if (ip->is_multicast() && !interface) {
+		std::cerr << "Sending to multicast requires an interface to send from" << std::endl;
+		return ERR_PARAMETER_MISSING;
+	}
 
 	try {
 		network->bind(bind_addr);
