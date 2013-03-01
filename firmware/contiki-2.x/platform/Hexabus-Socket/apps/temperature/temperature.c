@@ -44,7 +44,7 @@ exithandler(void) {
 /*---------------------------------------------------------------------------*/
 
 void _update_temp_string(void) {
-  dtostrf(temperature_value, 9, 4, &temperature_string_buffer);
+  dtostrf(temperature_value, 9, 4, temperature_string_buffer);
 }
 
 void
@@ -104,5 +104,5 @@ char*
 temperature_as_string(void)
 {
   PRINTF("-- Temperature: Get string value\r\n");
-  return &temperature_string_buffer;
+  return temperature_string_buffer;
 }

@@ -2,6 +2,8 @@
 #include <string.h>
 #include "hexabus_config.h"
 #include "net/uip.h"
+#include "lib/crc16.h"
+#include "endpoint_access.h"
 
 #if PACKET_BUILDER_DEBUG
 #include <stdio.h>
@@ -17,7 +19,7 @@
 struct hxb_packet_float make_value_packet_float(uint32_t eid, struct hxb_value* val)
 {
   struct hxb_packet_float packet;
-  strncpy(&packet.header, HXB_HEADER, 4);
+  strncpy(packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
   PRINTF("Packet builder - EID: %d\n", eid);
@@ -28,7 +30,7 @@ struct hxb_packet_float make_value_packet_float(uint32_t eid, struct hxb_value* 
   uint32_t value_nbo = uip_htonl(*(uint32_t*)&val->data);
   packet.value = *(float*)&value_nbo;
 
-  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
+  packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet)-2, 0));
   PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%d\r\nValue:\t%lx\r\nCRC:\t%u\r\n\r\n",
     packet.type, packet.flags, uip_ntohl(packet.eid), packet.value, uip_ntohs(packet.crc)); // printf can handle float?
   return packet;
@@ -37,7 +39,7 @@ struct hxb_packet_float make_value_packet_float(uint32_t eid, struct hxb_value* 
 struct hxb_packet_int32 make_value_packet_int32(uint32_t eid, struct hxb_value* val)
 {
   struct hxb_packet_int32 packet;
-  strncpy(&packet.header, HXB_HEADER, 4);
+  strncpy(packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
   packet.eid = uip_htonl(eid);
@@ -45,7 +47,7 @@ struct hxb_packet_int32 make_value_packet_int32(uint32_t eid, struct hxb_value* 
   packet.datatype = val->datatype;
   packet.value = uip_htonl(*(uint32_t*)&val->data);
 
-  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
+  packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet)-2, 0));
   PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%ld\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
     packet.type, packet.flags, uip_ntohl(packet.eid), uip_ntohl(packet.value), uip_ntohs(packet.crc)); // printf behaves strange here?
   return packet;
@@ -54,15 +56,15 @@ struct hxb_packet_int32 make_value_packet_int32(uint32_t eid, struct hxb_value* 
 struct hxb_packet_128string make_epinfo_packet(uint32_t eid)
 {
   struct hxb_packet_128string packet;
-  strncpy(&packet.header, HXB_HEADER, 4);
+  strncpy(packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_EPINFO;
   packet.flags = 0;
   packet.eid = uip_htonl(eid);
 
   packet.datatype = endpoint_get_datatype(eid);
-  endpoint_get_name(eid, &packet.value);
+  endpoint_get_name(eid, packet.value);
 
-  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
+  packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet)-2, 0));
 
   return packet;
 }
@@ -70,7 +72,7 @@ struct hxb_packet_128string make_epinfo_packet(uint32_t eid)
 struct hxb_packet_int8 make_value_packet_int8(uint32_t eid, struct hxb_value* val)
 {
   struct hxb_packet_int8 packet;
-  strncpy(&packet.header, HXB_HEADER, 4);
+  strncpy(packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_INFO;
   packet.flags = 0;
   packet.eid = uip_htonl(eid);
@@ -78,7 +80,7 @@ struct hxb_packet_int8 make_value_packet_int8(uint32_t eid, struct hxb_value* va
   packet.datatype = val->datatype;
   packet.value = val->data[0];
 
-  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
+  packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet)-2, 0));
 
   PRINTF("Build packet:\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%u\r\n",
           packet.type, packet.flags, uip_ntohl(packet.eid));
@@ -91,12 +93,12 @@ struct hxb_packet_int8 make_value_packet_int8(uint32_t eid, struct hxb_value* va
 struct hxb_packet_error make_error_packet(uint8_t errorcode)
 {
   struct hxb_packet_error packet;
-  strncpy(&packet.header, HXB_HEADER, 4);
+  strncpy(packet.header, HXB_HEADER, 4);
   packet.type = HXB_PTYPE_ERROR;
 
   packet.flags = 0;
   packet.errorcode = errorcode;
-  packet.crc = uip_htons(crc16_data((char*)&packet, sizeof(packet)-2, 0));
+  packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet)-2, 0));
 
   PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nError Code:\t%d\r\nCRC:\t%u\r\n\r\n",
     packet.type, packet.flags, packet.errorcode, uip_ntohs(packet.crc));

@@ -8,7 +8,7 @@
 #include "eeprom_variables.h"
 #include <avr/eeprom.h>
 
-#include <stdio.h>
+#include <stdlib.h>
 
 #if DATETIME_SERVICE_DEBUG
 #include <stdio.h>

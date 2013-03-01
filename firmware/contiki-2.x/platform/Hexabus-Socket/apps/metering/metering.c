@@ -32,6 +32,7 @@
  * @(#)$$
  */
 #include "metering.h"
+#include <stdlib.h>
 #include <avr/io.h>
 #include <util/delay.h>
 #include "sys/clock.h"

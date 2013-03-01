@@ -7,6 +7,7 @@
 #include "value_broadcast.h"
 #include "hexonoff.h"
 #include "endpoints.h"
+#include <string.h>
 
 #if IR_RECEIVER_DEBUG
 #include <stdio.h>

@@ -27,7 +27,11 @@
  *
  */
 
+#include "value_broadcast.h"
+
 #include "contiki.h"
+#include "lib/crc16.h"
+#include <stdlib.h>
 #include "lib/random.h"
 #include "sys/ctimer.h"
 #include "net/uip.h"
@@ -36,6 +40,7 @@
 #include "sys/ctimer.h"
 #include "hexabus_config.h"
 #include "state_machine.h"
+#include "endpoint_access.h"
 
 #include "../../../../../../shared/hexabus_packet.h"
 
@@ -112,54 +117,54 @@ void broadcast_value(uint32_t eid)
       case HXB_DTYPE_BOOL:
       case HXB_DTYPE_UINT8:;
         struct hxb_packet_int8 packet8;
-        strncpy(&packet8.header, HXB_HEADER, 4);
+        strncpy(packet8.header, HXB_HEADER, 4);
         packet8.type = HXB_PTYPE_INFO;
         packet8.flags = 0;
         packet8.eid = uip_htonl(eid);
         packet8.datatype = val.datatype;
         packet8.value = *(uint8_t*)&val.data;
-        packet8.crc = uip_htons(crc16_data((char*)&packet8, sizeof(packet8)-2, 0));
+        packet8.crc = uip_htons(crc16_data((unsigned char*)&packet8, sizeof(packet8)-2, 0));
 
         uip_udp_packet_sendto(client_conn, &packet8, sizeof(packet8),
             &server_ipaddr, UIP_HTONS(HXB_PORT));
         break;
       case HXB_DTYPE_UINT32:;
         struct hxb_packet_int32 packet32;
-        strncpy(&packet32.header, HXB_HEADER, 4);
+        strncpy(packet32.header, HXB_HEADER, 4);
         packet32.type = HXB_PTYPE_INFO;
         packet32.flags = 0;
         packet32.eid = uip_htonl(eid);
         packet32.datatype = val.datatype;
         packet32.value = uip_htonl(*(uint32_t*)&val.data);
-        packet32.crc = uip_htons(crc16_data((char*)&packet32, sizeof(packet32)-2, 0));
+        packet32.crc = uip_htons(crc16_data((unsigned char*)&packet32, sizeof(packet32)-2, 0));
 
         uip_udp_packet_sendto(client_conn, &packet32, sizeof(packet32),
             &server_ipaddr, UIP_HTONS(HXB_PORT));
         break;
       case HXB_DTYPE_FLOAT:;
         struct hxb_packet_float packetf;
-        strncpy(&packetf.header, HXB_HEADER, 4);
+        strncpy(packetf.header, HXB_HEADER, 4);
         packetf.type = HXB_PTYPE_INFO;
         packetf.flags = 0;
         packetf.eid = uip_htonl(eid);
         packetf.datatype = val.datatype;
         uint32_t value_nbo = uip_htonl(*(uint32_t*)&val.data);
         packetf.value = *(float*)&value_nbo;
-        packetf.crc = uip_htons(crc16_data((char*)&packetf, sizeof(packetf)-2, 0));
+        packetf.crc = uip_htons(crc16_data((unsigned char*)&packetf, sizeof(packetf)-2, 0));
 
         uip_udp_packet_sendto(client_conn, &packetf, sizeof(packetf),
             &server_ipaddr, UIP_HTONS(HXB_PORT));
         break;
       case HXB_DTYPE_16BYTES:;
         struct hxb_packet_16bytes packet16;
-        strncpy(&packet16.header, HXB_HEADER, 4);
+        strncpy(packet16.header, HXB_HEADER, 4);
         packet16.type = HXB_PTYPE_INFO;
         packet16.flags = 0;
         packet16.eid = uip_htonl(eid);
         packet16.datatype = val.datatype;
         memcpy(packet16.value, *(void**)&val.data, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
         free(*(void**)&val.data);
-        packet16.crc = uip_htons(crc16_data((char*)&packet16, sizeof(packet16)-2, 0));
+        packet16.crc = uip_htons(crc16_data((unsigned char*)&packet16, sizeof(packet16)-2, 0));
 
         uip_udp_packet_sendto(client_conn, &packet16, sizeof(packet16),
           &server_ipaddr, UIP_HTONS(HXB_PORT));
@@ -199,7 +204,7 @@ void init_value_broadcast(void)
 
   // this wrapper macro is needed to expand HXB_GROUP_RAW before uip_ip6addr, which is a macro
   // it's ugly as day, but it's the least ugly solution i found
-  #define PARSER_WRAP(addr, __VA_ARGS__) uip_ip6addr(addr, __VA_ARGS__)
+  #define PARSER_WRAP(addr, ...) uip_ip6addr(addr, __VA_ARGS__)
   PARSER_WRAP(&server_ipaddr, HXB_GROUP_RAW);
   #undef PARSER_WRAP
 

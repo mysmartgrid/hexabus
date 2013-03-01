@@ -7,6 +7,10 @@
 #include "button_handlers.h"
 #include "analogread.h"
 #include "humidity.h"
+#include "relay.h"
+#include "button_handlers.h"
+#include "hexapush.h"
+#include "state_machine.h"
 #include "pressure.h"
 #include "ir_receiver.h"
 #include "metering.h"
@@ -16,6 +20,8 @@
 #include "udp_handler.h"
 #include <stdbool.h>
 #include "eeprom_variables.h"
+#include <string.h>
+#include <stdlib.h>
 
 #if ENDPOINT_ACCESS_DEBUG
 #include <stdio.h>
@@ -446,7 +452,7 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
 #if BUTTON_HAS_EID
     case EP_BUTTON:   // Endpoint 4: Pushbutton on the Hexabus-Socket
       val->datatype = HXB_DTYPE_BOOL;
-      *(uint8_t*)&val->data = button_get_pushed();
+      *(uint8_t*)&val->data = button_pushed;
       break;
 #endif
 #if HUMIDITY_ENABLE

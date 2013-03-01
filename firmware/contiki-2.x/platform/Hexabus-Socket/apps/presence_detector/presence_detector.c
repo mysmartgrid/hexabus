@@ -100,7 +100,7 @@ void no_raw_presence(void) {
 #endif
 }
 
-void presence_keep_alive(void) {
+void presence_keep_alive(void* data) {
 #if PRESENCE_DETECTOR_CLIENT
     if(presence) {
         raw_presence_detected();

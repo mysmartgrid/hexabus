@@ -39,6 +39,7 @@
 #include <avr/eeprom.h>
 #include "eeprom_variables.h"
 #include "hexabus_config.h"
+#include "metering.h"
 
 
 #define PRINTF(...) printf(__VA_ARGS__)

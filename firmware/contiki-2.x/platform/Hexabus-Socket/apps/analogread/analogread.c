@@ -28,7 +28,7 @@ float get_analogvalue() {
 
     float voltage = ADCW * ANALOGREAD_MULT;
 
-    PRINTF("Analog value read: %d / 1000\n", (uint32_t)(voltage*1000.0));
+    PRINTF("Analog value read: %ld / 1000\n", (uint32_t)(voltage*1000.0));
 
     return voltage;
 }

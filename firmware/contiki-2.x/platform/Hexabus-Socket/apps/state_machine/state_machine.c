@@ -174,6 +174,8 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
       PRINTF("Datatype not implemented in state machine (yet).\r\n");
       return false;
   }
+
+	return false;
 }
 
 void check_datetime_transitions()
@@ -181,7 +183,7 @@ void check_datetime_transitions()
   // TODO maybe we should check timestamps separately, because as of now, they still need some special cases in the 'eval' function
   struct hxb_envelope dtenvelope;
   dtenvelope.value.datatype = HXB_DTYPE_DATETIME;
-  dt_valid = 1 + getDatetime(&dtenvelope.value.data);   // getDatetime returns -1 if it fails, 0 if it succeeds, so we have to "1 +" here
+  dt_valid = 1 + getDatetime((struct datetime*) &dtenvelope.value.data);   // getDatetime returns -1 if it fails, 0 if it succeeds, so we have to "1 +" here
   struct transition* t = malloc(sizeof(struct transition));
 
   uint8_t i;
@@ -196,7 +198,7 @@ void check_datetime_transitions()
       if(t->eid != 0 || t->value.datatype != 0)
       {
         // Try executing the command
-        PRINTF("state_machine: Writing to endpoint %d\r\n", t->eid);
+        PRINTF("state_machine: Writing to endpoint %ld\r\n", t->eid);
         if(endpoint_write(t->eid, &(t->value)) == 0)
         {
           inStateSince = getTimestamp();
@@ -235,7 +237,7 @@ void check_value_transitions(void* data)
       // Match found
       if(t->eid != 0 || t->value.datatype != 0)
       {
-        PRINTF("state_machine: Writing to endpoint %d \r\n", t->eid);
+        PRINTF("state_machine: Writing to endpoint %ld \r\n", t->eid);
         if(endpoint_write(t->eid, &(t->value)) == 0)
         {
           inStateSince = getTimestamp();
@@ -277,14 +279,14 @@ PROCESS_THREAD(state_machine_process, ev, data)
     {
       //eeprom_read_block(tt, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
       sm_get_transition(false, k, tt);
-      PRINTF(" %d | %d | %d | %d | %d \r\n", tt->fromState, tt->cond, tt->eid, tt->goodState, tt->badState);
+      PRINTF(" %d | %d | %ld | %d | %d \r\n", tt->fromState, tt->cond, tt->eid, tt->goodState, tt->badState);
     }
     PRINTF("[date/time table size: %d]:\r\nFrom | Cond | EID | Good | Bad\r\n", dtTransLength);
     for(k = 0;k < dtTransLength;k++)
     {
       //eeprom_read_block(tt, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
       sm_get_transition(true, k, tt);
-      PRINTF(" %d | %d | %d | %d | %d \r\n", tt->fromState, tt->cond, tt->eid, tt->goodState, tt->badState);
+      PRINTF(" %d | %d | %ld | %d | %d \r\n", tt->fromState, tt->cond, tt->eid, tt->goodState, tt->badState);
     }
   } else {
     PRINTF("malloc failed!\r\n");
@@ -329,7 +331,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
             PRINTF("\n");
             if(memcmp(&(envelope->source), &localhost , 16)) { // Ignore resets from localhost (the reset ID from localhost was sent BECAUSE we just reset)
               uint8_t* received_sm_id = *(uint8_t**)&envelope->value.data;
-              uint8_t own_sm_id[16];
+              char own_sm_id[16];
               sm_get_id(own_sm_id);
               if(!memcmp(received_sm_id, own_sm_id, 16))
                 sm_restart();

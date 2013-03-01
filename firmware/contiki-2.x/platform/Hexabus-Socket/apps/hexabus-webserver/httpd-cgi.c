@@ -444,7 +444,7 @@ generate_socket_readings(void *arg)
   // Add Date and Time
   struct datetime dt;
 	if(getDatetime(&dt) == 0) {
-		char *time[30];
+		char time[30];
 		sprintf(time, "%u:%u:%u, %u.%u.%u", dt.hour, dt.minute, dt.second, dt.day, dt.month, dt.year);
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_datetime, time);
 	} else {
@@ -459,11 +459,11 @@ static unsigned short
 generate_config(void *arg)
 {
 	uint16_t numprinted;
-	extern bool relay_state;
+//	extern bool relay_state;
 
 	static const char httpd_cgi_config_line1[] HTTPD_STRING_ATTR = "<td><input name=\"domain_name\" type=\"text\" size=\"50\" maxlength=\"30\" value=\"%s\"></td></tr>";
 	static const char httpd_cgi_config_line2[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">Default Relay State</td><td><input type=\"radio\" name=\"relay\" value=\"1\" %s>On<input type=\"radio\" name=\"relay\" value=\"0\" %s>Off</td></tr>";
-	static const char httpd_cgi_config_line3[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">S0 meter (Imp./kWh)</td><td><input type=\"text\" size=\"4\" maxlength=\"4\" name=\"s0\" value=\"%s\"></td></tr>";
+//	static const char httpd_cgi_config_line3[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">S0 meter (Imp./kWh)</td><td><input type=\"text\" size=\"4\" maxlength=\"4\" name=\"s0\" value=\"%s\"></td></tr>";
     static const char httpd_cgi_config_line4[] HTTPD_STRING_ATTR = "<tr><input type=\"hidden\" name=\"terminator\" value=\"\"><td align=\"right\">Submit:</td><td><input type=\"submit\" value=\" Submit \" ></td></tr></table></form>"; //additional ampersand from the hidden value simplifies parsing
 
     char* checked = "checked";
