@@ -26,7 +26,9 @@ void HBAOutput::operator()(std::ostream& ostr) {
 
   ostr << "target ";
   print_ipv6address(dt_it->second.ipv6_address, ostr);
-  ostr << ";" << std::endl << std::endl;
+  ostr << ";" << std::endl;
+
+  ostr << "device_name " << _dev_name << ";" << std::endl;
 
   graph_t::vertex_iterator vertexIt, vertexEnd;
   boost::tie(vertexIt, vertexEnd) = vertices((*_g));
@@ -412,3 +414,4 @@ void HBAOutput::print_ipv6address(boost::asio::ip::address_v6 addr, std::ostream
     ostr << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)addr_bytes[i];
   }
 }
+

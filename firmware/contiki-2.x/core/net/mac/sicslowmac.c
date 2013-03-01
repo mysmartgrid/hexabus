@@ -49,6 +49,7 @@
 #include "net/mac/sicslowmac.h"
 #include "net/mac/frame802154.h"
 #include "net/packetbuf.h"
+#include "net/queuebuf.h"
 #include "net/netstack.h"
 #include "lib/random.h"
 #include "radio/rf212bb/rf212bb.h"
@@ -68,7 +69,7 @@
  *   data or MAC command frame. The default is a random value within
  *   the range.
  */
-uint8_t mac_dsn;
+static uint8_t mac_dsn;
 
 /**  \brief The frame counter (0x00000000 - 0xffffffff) added to the auxiliary security
  * header and is part of the nonce.
@@ -92,17 +93,6 @@ uint16_t mac_dst_pan_id = IEEE802154_PANID;
  */
 uint16_t mac_src_pan_id = IEEE802154_PANID;
 
-#ifndef HEXABUS_SOCKET
-	#define HEXABUS_SOCKET	4
-#endif
-#ifndef HEXABUS_SOCKET
-	#define HEXABUS_USB		5
-#endif
-#if RAVEN_REVISION == HEXABUS_SOCKET
-extern uint8_t forwarding_enabled; //global variable for forwarding
-#else
-#define forwarding_enabled (0)
-#endif
 extern uint8_t promiscuous_mode; //global variable for promiscuous mode
 extern uint8_t encryption_enabled; //global variable for AES encryption
 
@@ -292,7 +282,7 @@ send_packet(mac_callback_t sent, void *ptr)
     frame802154_create(&params, packetbuf_hdrptr(), len);
 
     PRINTF("6MAC-UT: %2X", params.fcf.frame_type);
-    PRINTADDR(params.dest_addr);
+    PRINTADDR(params.dest_addr.u8);
     PRINTF("%u %u (%u)\n", len, packetbuf_datalen(), packetbuf_totlen());
 
     ret = NETSTACK_RADIO.send(packetbuf_hdrptr(), packetbuf_totlen());
@@ -311,6 +301,15 @@ send_packet(mac_callback_t sent, void *ptr)
   }
 }
 
+/*---------------------------------------------------------------------------*/
+void
+send_list(mac_callback_t sent, void *ptr, struct rdc_buf_list *buf_list)
+{
+  if(buf_list != NULL) {
+    queuebuf_to_packetbuf(buf_list->buf);
+    send_packet(sent, ptr);
+  }
+}
 /*---------------------------------------------------------------------------*/
 static void
 input_packet(void)
@@ -331,8 +330,7 @@ input_packet(void)
       }
       if(!is_broadcast_addr(frame.fcf.dest_addr_mode, frame.dest_addr)) {
         packetbuf_set_addr(PACKETBUF_ADDR_RECEIVER, (rimeaddr_t *)&frame.dest_addr);
-        if(!promiscuous_mode && !forwarding_enabled && !rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER),
-                         &rimeaddr_node_addr)) {
+        if(!promiscuous_mode && !rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &rimeaddr_node_addr)) {
           /* Not for this node */
           PRINTF("6MAC: not for us\n");
           return;
@@ -392,6 +390,7 @@ const struct rdc_driver sicslowmac_driver = {
   "sicslowmac",
   init,
   send_packet,
+  send_list,
   input_packet,
   on,
   off,

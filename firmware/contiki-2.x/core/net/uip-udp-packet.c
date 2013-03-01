@@ -40,7 +40,7 @@
 
 #include "contiki-conf.h"
 
-extern u16_t uip_slen;
+extern uint16_t uip_slen;
 
 #include "net/uip-udp-packet.h"
 
@@ -57,35 +57,35 @@ void
 uip_udp_packet_send(struct uip_udp_conn *c, const void *data, int len)
 {
 #if UIP_UDP
-  uip_udp_conn = c;
-  uip_slen = len;
-  memcpy(&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN], data, len > UIP_BUFSIZE? UIP_BUFSIZE: len);
-  uip_process(UIP_UDP_SEND_CONN);
+  if(data != NULL) {
+    uip_udp_conn = c;
+    uip_slen = len;
+    memcpy(&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN], data,
+           len > UIP_BUFSIZE? UIP_BUFSIZE: len);
+    uip_process(UIP_UDP_SEND_CONN);
+	
+    /* Insert Hexabus sequence number */
+    memmove(&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN + UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN],&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN], (len+UIP_UDPH_LEN) > UIP_BUFSIZE? UIP_BUFSIZE: (len+UIP_UDPH_LEN)); // Make space for the DESTO header
 
-  memmove(&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN + UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN],&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN], (len+UIP_UDPH_LEN) > UIP_BUFSIZE? UIP_BUFSIZE: (len+UIP_UDPH_LEN)); // Make space for the DESTO header
+    uip_len += UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN;
+    UIP_IP_BUF->proto = UIP_PROTO_DESTO;
+    UIP_IP_BUF->len[0] = ((uip_len - UIP_IPH_LEN) >> 8);
+    UIP_IP_BUF->len[1] = ((uip_len - UIP_IPH_LEN) & 0xff);
+    UIP_DESTO_BUF->next = UIP_PROTO_UDP;
+    UIP_DESTO_BUF->len  = (UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN) / 8  - 1;
+    UIP_SEQNUM_BUF->tag = UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM;
+    UIP_SEQNUM_BUF->len = UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN - 2;
+    UIP_SEQNUM_BUF->seqnum = increase_seqnum();
+    UIP_SEQNUM_BUF->flags = 0;
 
-  uip_len += UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN;
-  UIP_IP_BUF->proto = UIP_PROTO_DESTO;
-  UIP_IP_BUF->len[0] = ((uip_len - UIP_IPH_LEN) >> 8);
-  UIP_IP_BUF->len[1] = ((uip_len - UIP_IPH_LEN) & 0xff);
-  UIP_DESTO_BUF->next = UIP_PROTO_UDP;
-  UIP_DESTO_BUF->len  = (UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN) / 8  - 1;
-  UIP_SEQNUM_BUF->tag = UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM;
-  UIP_SEQNUM_BUF->len = UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN - 2;
-  UIP_SEQNUM_BUF->seqnum = increase_seqnum();
-  UIP_SEQNUM_BUF->flags = 0;
-  
-#if UIP_HXB_SEQNUM_MASTER
-  UIP_SEQNUM_BUF->flags |= UIP_EXT_SEQNUM_FLAG_MASTER;
-#endif
-
-#if UIP_CONF_IPV6 //math
-  tcpip_ipv6_output();
+#if UIP_CONF_IPV6
+    tcpip_ipv6_output();
 #else
-  if(uip_len > 0) {
-     tcpip_output();
-  }
+    if(uip_len > 0) {
+      tcpip_output();
+    }
 #endif
+  }
   uip_slen = 0;
 #endif /* UIP_UDP */
 }
@@ -97,18 +97,20 @@ uip_udp_packet_sendto(struct uip_udp_conn *c, const void *data, int len,
   uip_ipaddr_t curaddr;
   uint16_t curport;
 
-  /* Save current IP addr/port. */
-  uip_ipaddr_copy(&curaddr, &c->ripaddr);
-  curport = c->rport;
+  if(toaddr != NULL) {
+    /* Save current IP addr/port. */
+    uip_ipaddr_copy(&curaddr, &c->ripaddr);
+    curport = c->rport;
 
-  /* Load new IP addr/port */
-  uip_ipaddr_copy(&c->ripaddr, toaddr);
-  c->rport = toport;
+    /* Load new IP addr/port */
+    uip_ipaddr_copy(&c->ripaddr, toaddr);
+    c->rport = toport;
 
-  uip_udp_packet_send(c, data, len);
+    uip_udp_packet_send(c, data, len);
 
-  /* Restore old IP addr/port */
-  uip_ipaddr_copy(&c->ripaddr, &curaddr);
-  c->rport = curport;
+    /* Restore old IP addr/port */
+    uip_ipaddr_copy(&c->ripaddr, &curaddr);
+    c->rport = curport;
+  }
 }
 /*---------------------------------------------------------------------------*/

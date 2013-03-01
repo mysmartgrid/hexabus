@@ -40,11 +40,54 @@ struct device_descriptor
 	}
 };
 
-struct ReceiveCallback {
+struct ReceiveCallback { // callback for device discovery
 	std::set<boost::asio::ip::address_v6>* addresses;
 	void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep)
 	{
 		addresses->insert(asio_ep.address().to_v6());
+	}
+};
+
+struct InfoCallback { // calback for populating data structures
+	device_descriptor* device;
+	std::set<endpoint_descriptor>* endpoints;
+	bool* received;
+	void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep)
+	{
+		const hexabus::EndpointInfoPacket* endpointInfo = dynamic_cast<const hexabus::EndpointInfoPacket*>(&packet);
+		const hexabus::InfoPacket<uint32_t>* info = dynamic_cast<const hexabus::InfoPacket<uint32_t>*>(&packet);
+		if(endpointInfo != NULL)
+		{
+			if(endpointInfo->eid() == EP_DEVICE_DESCRIPTOR) // If it's endpoint 0 (device descriptor), it contains the device name.
+			{
+				device->name = endpointInfo->value();
+			} else { // otherwise it contains information about an endpoint, so build an endpoint_descriptor and add it to the list
+				endpoint_descriptor ep;
+				ep.eid = endpointInfo->eid();
+				ep.datatype = endpointInfo->datatype();
+				ep.name = endpointInfo->value();
+
+				endpoints->insert(ep);
+			}
+			*received = true;
+		}
+
+		if(info != NULL)
+		{
+			if(info->eid() == EP_DEVICE_DESCRIPTOR) // we only care for the device descriptor
+			{
+				uint32_t val = info->value();
+				for(int i = 0; i < 32; ++i)
+				{
+					if(val % 2) // find out whether LSB is set
+						device->endpoint_ids.insert(i); // if it's set, store the EID (the bit's position in the device descriptor).
+
+					val >>= 1; // right-shift in order to have the next EID in the LSB
+				}
+			}
+			*received = true;
+		}
+
 	}
 };
 
@@ -54,70 +97,6 @@ struct ErrorCallback {
 		std::cerr << "Error receiving packet: " << error.what() << std::endl;
 		exit(1);
 	}
-};
-
-struct ResponseHandler : public hexabus::PacketVisitor
-{
-	public:
-		ResponseHandler(device_descriptor& device, std::set<endpoint_descriptor>& endpoints) : _device(device), _endpoints(endpoints) {}
-
-    // The uninteresing ones
-		void visit(const hexabus::ErrorPacket& error) {}
-		void visit(const hexabus::QueryPacket& query) {}
-		void visit(const hexabus::EndpointQueryPacket& endpointQuery) {}
-
-		void visit(const hexabus::InfoPacket<bool>& info) {}
-		void visit(const hexabus::InfoPacket<uint8_t>& info) {}
-		void visit(const hexabus::InfoPacket<float>& info) {}
-		void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) {}
-		void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info) {}
-		void visit(const hexabus::InfoPacket<std::string>& info) {}
-		void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) {}
-		void visit(const hexabus::InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) {}
-
-		void visit(const hexabus::WritePacket<bool>& write) {}
-		void visit(const hexabus::WritePacket<uint8_t>& write) {}
-		void visit(const hexabus::WritePacket<uint32_t>& write) {}
-		void visit(const hexabus::WritePacket<float>& write) {}
-		void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) {}
-		void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) {}
-		void visit(const hexabus::WritePacket<std::string>& write) {}
-		void visit(const hexabus::WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
-		void visit(const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
-
-		void visit(const hexabus::EndpointInfoPacket& endpointInfo)
-		{
-			if(endpointInfo.eid() == EP_DEVICE_DESCRIPTOR) // If it's endpoint 0 (device descriptor), it contains the device name.
-			{
-				_device.name = endpointInfo.value();
-			} else {
-				endpoint_descriptor ep;
-				ep.eid = endpointInfo.eid();
-				ep.datatype = endpointInfo.datatype();
-				ep.name = endpointInfo.value();
-
-				_endpoints.insert(ep);
-			}
-		}
-
-		void visit(const hexabus::InfoPacket<uint32_t>& info)
-		{
-			if(info.eid() == 0) // we only care for the device descriptor
-			{
-				uint32_t val = info.value();
-				for(int i = 0; i < 32; ++i)
-				{
-					if(val % 2) // find out whether LSB is set
-						_device.endpoint_ids.insert(i); // if it's set, store the EID (the bit's position in the device descriptor).
-
-					val >>= 1; // right-shift in order to have the next EID in the LSB
-				}
-			}
-		}
-
-	private:
-		device_descriptor& _device;
-		std::set<endpoint_descriptor>& _endpoints;
 };
 
 void print_dev_info(const device_descriptor& dev)
@@ -230,37 +209,13 @@ void write_ep_desc(const endpoint_descriptor& ep, std::ostream& target)
 	}
 }
 
-void send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet, ResponseHandler* handler = NULL)
+void send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet)
 {
 	try {
 		net->send(packet, addr);
 	} catch (const hexabus::NetworkException& e) {
 		std::cerr << "Could not send packet to " << addr << ": " << e.code().message() << std::endl;
 		exit(1);
-	}
-
-	// if we have no response handler, return after the packet was sent.
-	if(handler == NULL)
-		return;
-
-	while (true) {
-		std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
-		try {
-			pair = net->receive();
-		} catch (const hexabus::GenericException& e) {
-			const hexabus::NetworkException* nerror;
-			if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&e))) {
-				std::cerr << "Error receiving packet: " << nerror->code().message() << std::endl;
-			} else {
-				std::cerr << "Error receiving packet: " << e.what() << std::endl;
-			}
-			exit(1);
-		}
-
-		if (pair.second.address() == addr) {
-			handler->visitPacket(*pair.first);
-			break;
-		}
 	}
 }
 
@@ -389,7 +344,9 @@ int main(int argc, char** argv)
 	}
 	boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
 	network->bind(bind_addr);
-	// construct the responseHandler
+	
+	const unsigned int NUM_RETRIES = 5;
+	// sets for storing the received data
 	std::set<device_descriptor> devices;
 	std::set<endpoint_descriptor> endpoints;
 	// =========================================
@@ -418,9 +375,16 @@ int main(int argc, char** argv)
 		boost::signals2::connection c2 = network->onPacketReceived(receiveCallback, hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR));
 
 		// timer that cancels receiving after n seconds
-		boost::asio::deadline_timer _timer(network->ioService());
-		_timer.expires_from_now(boost::posix_time::seconds(3)); // TODO do we want this configurable? Or at least as a constant
-		_timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
+		boost::asio::deadline_timer timer(network->ioService());
+		timer.expires_from_now(boost::posix_time::seconds(3)); // TODO do we want this configurable? Or at least as a constant
+		timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
+
+		boost::asio::deadline_timer resend_timer1(network->ioService()); // resend packet twice, with 1 sec timout in between
+		boost::asio::deadline_timer resend_timer2(network->ioService());
+		resend_timer1.expires_from_now(boost::posix_time::seconds(1));
+		resend_timer2.expires_from_now(boost::posix_time::seconds(2));
+		resend_timer1.async_wait(boost::bind(&send_packet, network, hxb_broadcast_address, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR)));
+		resend_timer2.async_wait(boost::bind(&send_packet, network, hxb_broadcast_address, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR)));
 
 		network->ioService().run();
 
@@ -452,17 +416,99 @@ int main(int argc, char** argv)
 		if(verbose)
 			std::cout << "Querying device " << target_ip.to_string() << "..." << std::endl;
 
-		ResponseHandler handler(device, endpoints);
+		// callback handler for incoming (ep)info packets
+		bool received = false;
+		InfoCallback infoCallback = { &device, &endpoints, &received };
+		ErrorCallback errorCallback;
+		boost::signals2::connection c1 = network->onAsyncError(errorCallback);
+		boost::signals2::connection c2 = network->onPacketReceived(infoCallback,
+			(hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR))
+			|| hexabus::filtering::isEndpointInfo());
 
-		// send the device name query packet and listen for the reply
-		send_packet(network, target_ip, hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR), &handler);
+		int retries = 0;
 
-		// send the device descriptor (endpoint list) query packet and listen for the reply
-		send_packet(network, target_ip, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR), &handler);
+		// epquery the dev.descriptor, to get the name of the device
+		while(!received && retries < NUM_RETRIES)
+		{
+			// send the device name query packet and listen for the reply
+			if(verbose)
+				std::cout << "Sending EPQuery." << std::endl;
+			send_packet(network, target_ip, hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR));
 
-		// now, iterate over the endpoint list and find out the properties of each endpoint
-		for(std::set<uint32_t>::iterator it = device.endpoint_ids.begin(); it != device.endpoint_ids.end(); ++it)
-			send_packet(network, target_ip, hexabus::EndpointQueryPacket(*it), &handler);
+			boost::asio::deadline_timer timer(network->ioService()); // wait for a second
+			timer.expires_from_now(boost::posix_time::milliseconds(350));
+			timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
+
+			network->ioService().reset();
+			network->ioService().run();
+
+			retries++;
+		}
+
+		if(!received && verbose)
+			std::cout << "No reply on device descriptor EPQuery from " << target_ip.to_string() << std::endl;
+
+		received = false;
+		retries = 0;
+
+		// query the dev.descriptor, to build a list of endpoints
+		while(!received && retries < NUM_RETRIES)
+		{
+			if(verbose)
+				std::cout << "Sending Query." << std::endl;
+			// send the device descriptor (endpoint list) query packet and listen for the reply
+			send_packet(network, target_ip, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR));
+
+			boost::asio::deadline_timer timer(network->ioService()); // wait for a second
+			timer.expires_from_now(boost::posix_time::milliseconds(350));
+			timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
+
+			network->ioService().reset();
+			network->ioService().run();
+
+			retries++;
+		}
+
+		if(!received && verbose)
+			std::cout << "No reply on device descriptor Query from " << target_ip.to_string() << std::endl;
+
+		// step 1: Make a set of endpoints to query.
+		std::multiset<uint32_t> eps_to_query;
+		BOOST_FOREACH(uint32_t endpoint_id, device.endpoint_ids)
+		{
+			// put each EP into this list three times, so that it is queried at maximum three times
+			for(int i = 0; i < NUM_RETRIES; i++)
+				eps_to_query.insert(endpoint_id);
+		}
+
+		// step 2: Query each entry of the set, and remove it.
+		while(eps_to_query.size())
+		{
+			received = false;
+			uint32_t eid = *eps_to_query.begin();
+			eps_to_query.erase(eps_to_query.begin());
+
+			if(verbose)
+				std::cout << "Sending EPQuery to EID " << eid << std::endl;
+
+			send_packet(network, target_ip, hexabus::EndpointQueryPacket(eid));
+
+			boost::asio::deadline_timer timer(network->ioService()); // wait for a second
+			timer.expires_from_now(boost::posix_time::milliseconds(350));
+			timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
+
+			network->ioService().reset();
+			network->ioService().run();
+
+			// step 2a: If a reply is received for this EP, remove it completely from the set.
+			if(received)
+				eps_to_query.erase(eid);
+		}
+
+		c1.disconnect();
+		c2.disconnect();
+
+		// step 3: Now we have a set of endpoint descriptors.
 
 		if(vm.count("print"))
 		{

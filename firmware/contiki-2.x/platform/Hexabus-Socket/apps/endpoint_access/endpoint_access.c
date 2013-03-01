@@ -4,7 +4,7 @@
 #include "hexabus_config.h"
 #include "endpoint_access.h"
 #include "temperature.h"
-#include "button.h"
+#include "button_handlers.h"
 #include "analogread.h"
 #include "humidity.h"
 #include "pressure.h"
@@ -15,6 +15,7 @@
 #include "packet_builder.h"
 #include "udp_handler.h"
 #include <stdbool.h>
+#include "eeprom_variables.h"
 
 #if ENDPOINT_ACCESS_DEBUG
 #include <stdio.h>
@@ -108,7 +109,8 @@ void endpoint_get_name(uint32_t eid, char* buffer)  // writes the name of the en
   switch(eid)
   {
     case EP_DEVICE_DESCRIPTOR:
-      strncpy(buffer, "Hexabus Socket - Development Version", HXB_STRING_PACKET_MAX_BUFFER_LENGTH); // TODO make this consistent with the MDNS name
+      eeprom_read_block(buffer, (void*)(EE_DOMAIN_NAME), EE_DOMAIN_NAME_SIZE);
+      buffer[EE_DOMAIN_NAME_SIZE] = '\0';
       break;
     case EP_POWER_SWITCH:
       strncpy(buffer, "Main Switch", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
@@ -509,11 +511,11 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
 #if HEXAPUSH_ENABLE
     case EP_HEXAPUSH_PRESSED:  //Pressed und released
       val->datatype = HXB_DTYPE_UINT8;
-      *(uint8_t*)&val->data = get_buttonstate();
+      *(uint8_t*)&val->data = hexapush_get_pressed();
       break;
     case EP_HEXAPUSH_CLICKED: //Clicked
       val->datatype = HXB_DTYPE_UINT8;
-      *(uint8_t*)&val->data = get_clickstate();
+      *(uint8_t*)&val->data = hexapush_get_clicked();
       break;
 #endif
 #if PRESENCE_DETECTOR_ENABLE

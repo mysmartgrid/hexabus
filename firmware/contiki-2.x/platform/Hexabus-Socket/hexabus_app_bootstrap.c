@@ -92,9 +92,6 @@ void hexabus_bootstrap_start_processes() {
 #if SHUTTER_ENABLE
     process_start(&shutter_process, NULL);
 #endif
-#if HEXAPUSH_ENABLE
-    process_start(&hexapush_process, NULL);
-#endif
 #if PRESSURE_ENABLE
     process_start(&pressure_process, NULL);
 #endif

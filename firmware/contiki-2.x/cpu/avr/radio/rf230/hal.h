@@ -75,15 +75,17 @@
 // RAVENUSB_C : used for USB key or Raven card 
 // RCB_B : RZ200 kit from Atmel based on 1281V
 // ZIGBIT : Zigbit module from Meshnetics
-#define RAVEN_D	    4
-#define RAVENUSB_C  1
-#define RCB_B	    	2
-#define ZIGBIT			3
+// IRIS : IRIS Mote from MEMSIC
+#define RAVEN_D	        1
+#define RAVENUSB_C      2
+#define RCB_B	    	3
+#define ZIGBIT			4
+#define IRIS			5
 
 
 
 
-#if RCB_REVISION == RCB_B
+#if PLATFORM_TYPE == RCB_B
 /* 1281 rcb */
 #   define SSPORT     B
 #   define SSPIN      (0x00)
@@ -102,7 +104,7 @@
 #   define TICKTIMER  3
 #   define HAS_SPARE_TIMER
 
-#elif HARWARE_REVISION == ZIGBIT
+#elif PLATFORM_TYPE == ZIGBIT
 /* 1281V Zigbit */
 #   define SSPORT     B
 #   define SSPIN      (0x00)
@@ -168,6 +170,26 @@
 #   define HAS_CW_MODE
 #   define HAS_SPARE_TIMER
 
+#elif PLATFORM_TYPE == IRIS
+/* 1281 IRIS */
+#   define SSPORT     B
+#   define SSPIN      (0x00)
+#   define SPIPORT    B
+#   define MOSIPIN    (0x02)
+#   define MISOPIN    (0x03)
+#   define SCKPIN     (0x01)
+#   define RSTPORT    A
+#   define RSTPIN     (0x06)
+#   define IRQPORT    D
+#   define IRQPIN     (0x04)
+#   define SLPTRPORT  B
+#   define SLPTRPIN   (0x07)
+//#   define TXCWPORT   B
+//#   define TXCWPIN    (0x07)
+#   define USART      1
+#   define USARTVECT  USART1_RX_vect
+//#   define TICKTIMER  3
+//#   define HAS_SPARE_TIMER // Not used
 #else
 
 #error "Platform undefined in hal.h"
@@ -274,7 +296,7 @@
     #error "Clock speed not supported."
 #endif
 
-#if HARWARE_REVISION == ZIGBIT
+#if PLATFORM_TYPE == ZIGBIT
 // IRQ E5 for Zigbit example
 #define RADIO_VECT INT5_vect
 #define HAL_ENABLE_RADIO_INTERRUPT( ) { ( EIMSK |= ( 1 << INT5 ) ) ; EICRB |= 0x0C ; PORTE &= ~(1<<PE5);  DDRE &= ~(1<<DDE5); }

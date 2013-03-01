@@ -307,7 +307,7 @@ void send_value_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& 
 int main(int argc, char** argv) {
 
   std::ostringstream oss;
-  oss << "Usage: " << argv[0] << " IP [additional options] ACTION";
+  oss << "Usage: " << argv[0] << " ACTION IP [additional options] ";
   po::options_description desc(oss.str());
   desc.add_options()
     ("help,h", "produce help message")
