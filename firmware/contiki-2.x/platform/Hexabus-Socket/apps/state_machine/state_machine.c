@@ -143,8 +143,8 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
       {
         if(dt_valid)
         {
-          struct datetime val_dt;
-          val_dt = *(struct datetime*)&envelope->value.data; // just to make writing this down easier...
+          struct hxb_datetime val_dt;
+          val_dt = *(struct hxb_datetime*)&envelope->value.data; // just to make writing this down easier...
           if(cond.op & HXB_SM_HOUR)
             return (cond.op & HXB_SM_DATETIME_OP_GEQ) ? val_dt.hour >= *(uint8_t*)&(cond.value.data) : val_dt.hour < *(uint8_t*)&(cond.value.data);
           if(cond.op & HXB_SM_MINUTE)
@@ -183,7 +183,7 @@ void check_datetime_transitions()
   // TODO maybe we should check timestamps separately, because as of now, they still need some special cases in the 'eval' function
   struct hxb_envelope dtenvelope;
   dtenvelope.value.datatype = HXB_DTYPE_DATETIME;
-  dt_valid = 1 + getDatetime((struct datetime*) &dtenvelope.value.data);   // getDatetime returns -1 if it fails, 0 if it succeeds, so we have to "1 +" here
+  dt_valid = 1 + getDatetime((struct hxb_datetime*) &dtenvelope.value.data);   // getDatetime returns -1 if it fails, 0 if it succeeds, so we have to "1 +" here
   struct transition* t = malloc(sizeof(struct transition));
 
   uint8_t i;

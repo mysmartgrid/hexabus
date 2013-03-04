@@ -334,7 +334,7 @@ udphandler(process_event_t ev, process_data_t data)
                   envelope->eid = uip_ntohl(packet->eid);
                   envelope->value.datatype = packet->datatype;
                   packet->value.year = uip_ntohs(packet->value.year);
-                  memcpy(&(envelope->value.data), &(packet->value), sizeof(struct datetime));
+                  memcpy(&(envelope->value.data), &(packet->value), sizeof(struct hxb_datetime));
                   // don't post an event here, just call datetime_service. datetime_service also deallocates the memory
                   // process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
                   // PRINTF("Posted event for received broadcast.\r\n");

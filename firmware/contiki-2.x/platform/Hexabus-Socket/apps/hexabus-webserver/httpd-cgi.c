@@ -442,7 +442,7 @@ generate_socket_readings(void *arg)
  // dtostrf(temperature_value, 9, 4, &buffer);
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor4, temperature_as_string());
   // Add Date and Time
-  struct datetime dt;
+  struct hxb_datetime dt;
 	if(getDatetime(&dt) == 0) {
 		char time[30];
 		sprintf(time, "%u:%u:%u, %u.%u.%u", dt.hour, dt.minute, dt.second, dt.day, dt.month, dt.year);
@@ -538,7 +538,7 @@ generate_radio_stats(void *arg)
 /*---------------------------------------------------------------------------*/
 void hxbtos(char *dest, char *data, uint8_t datatype)
 {
-	struct datetime *dt;
+	struct hxb_datetime *dt;
 	switch(datatype) {
 		case HXB_DTYPE_UNDEFINED:	// "Do nothing" Datatype
 			sprintf(dest, "0");		// 0 so the format does not break
@@ -552,7 +552,7 @@ void hxbtos(char *dest, char *data, uint8_t datatype)
 			sprintf(dest, "%lu", *(uint32_t*)data);
 			break;
 		case HXB_DTYPE_DATETIME:
-			dt = (struct datetime*)data;
+			dt = (struct hxb_datetime*)data;
 			sprintf(dest, "%u*%u*%u*%u*%u*%u*%u*", dt->hour, dt->minute, dt->second, dt->day, dt->month, (uint16_t)dt->year, dt->weekday); 
 			break;
 		case HXB_DTYPE_FLOAT:

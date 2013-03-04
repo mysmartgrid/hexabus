@@ -11,7 +11,7 @@
 
 // Struct containing time and date
 
-struct datetime {
+struct hxb_datetime {
     uint8_t   hour;
     uint8_t   minute;
     uint8_t   second;
@@ -81,7 +81,7 @@ struct hxb_packet_datetime {
     uint8_t   flags;
     uint32_t  eid;
     uint8_t   datatype;
-    struct datetime  value;
+    struct hxb_datetime  value;
     uint16_t  crc;
 } __attribute__ ((packed));
 

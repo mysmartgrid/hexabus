@@ -10,7 +10,7 @@
 
 
 void updateDatetime(struct hxb_envelope*envelope);
-int getDatetime(struct datetime *dt);
+int getDatetime(struct hxb_datetime *dt);
 uint32_t getTimestamp();
 
 PROCESS_NAME(datetime_service_process);

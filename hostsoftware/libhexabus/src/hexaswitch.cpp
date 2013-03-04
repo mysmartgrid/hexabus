@@ -177,31 +177,6 @@ void print_packet(const hexabus::Packet& packet)
 	pp.visitPacket(packet);
 }
 
-datetime make_datetime_struct(time_t given_time = -1) {
-    struct datetime value;
-    time_t raw_time;
-    tm *tm_time;
-
-    if(given_time == -1) {
-        time(&raw_time);
-    } else {
-        raw_time = given_time;
-    }
-
-    tm_time = localtime(&raw_time);
-
-    value.hour = (uint8_t) tm_time->tm_hour;
-    value.minute = (uint8_t) tm_time->tm_min;
-    value.second = (uint8_t) tm_time->tm_sec;
-    value.day = (uint8_t) tm_time->tm_mday;
-    value.month = (uint8_t) tm_time->tm_mon + 1;
-    value.year = (uint16_t) tm_time->tm_year + 1900;
-    value.weekday = (uint8_t) tm_time->tm_wday;
-
-    return value;
-
-}
-
 po::variable_value get_mandatory_parameter(
     po::variables_map vm,
     std::string param_id,
