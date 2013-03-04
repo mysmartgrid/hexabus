@@ -5,8 +5,8 @@
 #include <avr/pgmspace.h>
 #include "../../../../../../shared/hexabus_types.h"
 
-typedef enum hxb_error_code (*endpoint_read_fn)(uint32_t eid, struct hxb_value* value);
-typedef enum hxb_error_code (*endpoint_write_fn)(uint32_t eid, const struct hxb_value* value);
+typedef enum hxb_error_code (*endpoint_read_fn)(struct hxb_value* value);
+typedef enum hxb_error_code (*endpoint_write_fn)(const struct hxb_value* value);
 
 struct endpoint_descriptor {
 	uint8_t datatype;

@@ -18,7 +18,7 @@
 static float get_analogvalue(void);
 static float get_lightvalue(void);
 
-static enum hxb_error_code read_analog(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read_analog(struct hxb_value* value)
 {
 	value->v_float = get_analogvalue();
 	return HXB_ERR_SUCCESS;
@@ -33,7 +33,7 @@ ENDPOINT_DESCRIPTOR endpoint_analogread = {
 	.write = 0
 };
 
-static enum hxb_error_code read_lightsensor(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read_lightsensor(struct hxb_value* value)
 {
 	value->v_float = get_lightvalue();
 	return HXB_ERR_SUCCESS;

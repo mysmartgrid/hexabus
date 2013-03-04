@@ -89,7 +89,7 @@ static float read_pressure_temp() {
     return pressure_temp;
 }
 
-static enum hxb_error_code read(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read(struct hxb_value* value)
 {
 	value->v_float = read_pressure();
 	return HXB_ERR_SUCCESS;

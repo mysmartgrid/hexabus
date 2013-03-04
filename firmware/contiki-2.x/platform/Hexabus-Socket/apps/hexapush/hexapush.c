@@ -26,13 +26,13 @@ static uint8_t clicked_vector = 0;
 static const char ep_pressed[] PROGMEM = "Pressed Hexapush buttons";
 static const char ep_clicked[] PROGMEM = "Clicked Hexapush buttons";
 
-enum hxb_error_code read_pressed(uint32_t eid, struct hxb_value* value)
+enum hxb_error_code read_pressed(struct hxb_value* value)
 {
 	value->v_u8 = pressed_vector;
 	return HXB_ERR_SUCCESS;
 }
 
-enum hxb_error_code read_clicked(uint32_t eid, struct hxb_value* value)
+enum hxb_error_code read_clicked(struct hxb_value* value)
 {
 	value->v_u8 = clicked_vector;
 	return HXB_ERR_SUCCESS;

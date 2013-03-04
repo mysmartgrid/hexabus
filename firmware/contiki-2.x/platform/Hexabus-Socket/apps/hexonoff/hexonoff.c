@@ -29,13 +29,13 @@ static uint8_t get_outputs() {
     return HEXONOFF_PORT & output_vector;
 }
 
-static enum hxb_error_code read(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read(struct hxb_value* value)
 {
 	value->v_u8 = get_outputs();
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code write_set(uint32_t eid, const struct hxb_value* value)
+static enum hxb_error_code write_set(const struct hxb_value* value)
 {
 	set_outputs(value->v_u8);
 	return HXB_ERR_SUCCESS;
@@ -50,7 +50,7 @@ ENDPOINT_DESCRIPTOR endpoint_hexonoff_set = {
 	.write = write_set
 };
 
-static enum hxb_error_code write_toggle(uint32_t eid, const struct hxb_value* value)
+static enum hxb_error_code write_toggle(const struct hxb_value* value)
 {
 	toggle_outputs(value->v_u8);
 	return HXB_ERR_SUCCESS;

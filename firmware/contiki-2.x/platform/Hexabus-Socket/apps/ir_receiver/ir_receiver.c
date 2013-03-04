@@ -32,7 +32,7 @@ static struct timer ir_rep_timer;
 
 static uint32_t ir_get_last_command(void);
 
-static enum hxb_error_code read(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read(struct hxb_value* value)
 {
 	value->v_u32 = ir_get_last_command();
 	return HXB_ERR_SUCCESS;

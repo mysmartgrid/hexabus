@@ -38,7 +38,7 @@ static void  temperature_start(void);
 static void  temperature_stop(void);
 static void  temperature_reset(void);
 
-static enum hxb_error_code read(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read(struct hxb_value* value)
 {
 	value->v_float = temperature_get();
 	return HXB_ERR_SUCCESS;

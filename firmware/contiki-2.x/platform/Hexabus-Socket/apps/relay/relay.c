@@ -149,13 +149,13 @@ set_relay_default(bool d_value)
     }
 }
 
-static enum hxb_error_code read(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read(struct hxb_value* value)
 {
 	value->v_bool = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code write(uint32_t eid, const struct hxb_value* value)
+static enum hxb_error_code write(const struct hxb_value* value)
 {
 	if (value->v_bool == HXB_TRUE) {
 		relay_off();  // Note that the relay is connected in normally-closed position, so relay_off turns the power on and vice-versa

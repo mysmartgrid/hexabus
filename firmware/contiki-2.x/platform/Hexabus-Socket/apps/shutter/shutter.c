@@ -28,13 +28,13 @@ static int shutter_upperbound;
 
 static process_event_t shutter_poke;
 
-static enum hxb_error_code read(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read(struct hxb_value* value)
 {
 	value->v_u8 = shutter_get_state();
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code write(uint32_t eid, const struct hxb_value* value)
+static enum hxb_error_code write(const struct hxb_value* value)
 {
 	shutter_toggle(value->v_u8);
 	return HXB_ERR_SUCCESS;

@@ -17,7 +17,7 @@
 #define PRINTF(...)
 #endif
 
-static enum hxb_error_code read_control(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read_control(struct hxb_value* value)
 {
 	PRINTF("READ on SM_CONTROL EP occurred\n");
 	if (sm_is_running()) {
@@ -28,7 +28,7 @@ static enum hxb_error_code read_control(uint32_t eid, struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code write_control(uint32_t eid, const struct hxb_value* value)
+static enum hxb_error_code write_control(const struct hxb_value* value)
 {
 	if (value->v_u8 == STM_STATE_STOPPED) {
 		sm_stop();
@@ -53,13 +53,13 @@ ENDPOINT_DESCRIPTOR endpoint_sm_upload_control = {
 	.write = write_control
 };
 
-static enum hxb_error_code read_receiver(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read_receiver(struct hxb_value* value)
 {
 	PRINTF("READ on SM_UP_RECEIVER EP occurred\n");
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code write_receiver(uint32_t eid, const struct hxb_value* value)
+static enum hxb_error_code write_receiver(const struct hxb_value* value)
 {
 	PRINTF("SM: Attempting to write new chunk to EEPROM\n");
 	struct hxb_value val;
@@ -102,7 +102,7 @@ ENDPOINT_DESCRIPTOR endpoint_sm_upload_receiver = {
 	.write = write_receiver
 };
 
-static enum hxb_error_code read_acknack(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read_acknack(struct hxb_value* value)
 {
 	PRINTF("READ on SM_UP_ACKNAK EP occurred\n");
 	return HXB_ERR_SUCCESS;
@@ -117,7 +117,7 @@ ENDPOINT_DESCRIPTOR endpoint_sm_upload_acknack = {
 	.write = 0
 };
 
-static enum hxb_error_code read_reset(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read_reset(struct hxb_value* value)
 {
 	PRINTF("READ on SM_RESET_ID EP occurred\n");
 	char* b = malloc(HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);

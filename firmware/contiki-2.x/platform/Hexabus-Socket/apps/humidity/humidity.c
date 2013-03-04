@@ -63,7 +63,7 @@ float read_humidity_temp() {
     return (165.0/16384.0*rawtemp)-40.0;
 }
 
-static enum hxb_error_code read(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read(struct hxb_value* value)
 {
 	value->v_float = read_humidity();
 	return HXB_ERR_SUCCESS;

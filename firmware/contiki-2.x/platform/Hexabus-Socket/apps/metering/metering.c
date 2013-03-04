@@ -93,7 +93,7 @@ calc_power(uint16_t pulse_period)
     return (uint16_t)P;
 }
 
-static enum hxb_error_code read_power(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read_power(struct hxb_value* value)
 {
 	value->v_u32 = metering_get_power();
 	return HXB_ERR_SUCCESS;
@@ -109,7 +109,7 @@ ENDPOINT_DESCRIPTOR endpoint_power = {
 };
 
 #if METERING_ENERGY
-static enum hxb_error_code read_energy_total(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read_energy_total(struct hxb_value* value)
 {
 	value->v_float = metering_get_energy_total();
 	return HXB_ERR_SUCCESS;
@@ -124,13 +124,13 @@ ENDPOINT_DESCRIPTOR endpoint_energy_total = {
 	.write = 0
 };
 
-static enum hxb_error_code read_energy(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read_energy(struct hxb_value* value)
 {
 	value->v_float = metering_get_energy();
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code write_energy(uint32_t eid, const struct hxb_value* value)
+static enum hxb_error_code write_energy(const struct hxb_value* value)
 {
 	metering_reset_energy();
 	return HXB_ERR_SUCCESS;

@@ -50,7 +50,7 @@
 #if BUTTON_HAS_EID
 int button_pushed = 0;
 
-static enum hxb_error_code read(uint32_t eid, struct hxb_value* value)
+static enum hxb_error_code read(struct hxb_value* value)
 {
 	value->v_bool = button_pushed;
 
