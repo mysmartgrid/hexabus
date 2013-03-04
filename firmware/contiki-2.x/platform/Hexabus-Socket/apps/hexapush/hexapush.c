@@ -23,8 +23,8 @@
 static uint8_t pressed_vector = 0;
 static uint8_t clicked_vector = 0;
 
-static prog_char ep_pressed[] = "Pressed Hexapush buttons";
-static prog_char ep_clicked[] = "Clicked Hexapush buttons";
+static const char ep_pressed[] PROGMEM = "Pressed Hexapush buttons";
+static const char ep_clicked[] PROGMEM = "Clicked Hexapush buttons";
 
 enum hxb_error_code read_pressed(uint32_t eid, struct hxb_value* value)
 {

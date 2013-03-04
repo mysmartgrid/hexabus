@@ -45,7 +45,7 @@
 
 #include "state_machine.h"
 #include "datetime_service.h"
-#include "endpoint_access.h"
+#include "endpoint_registry.h"
 #include "hexabus_config.h"
 #include "../../../../../../shared/hexabus_packet.h"
 

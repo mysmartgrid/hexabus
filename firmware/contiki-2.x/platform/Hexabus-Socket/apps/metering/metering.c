@@ -44,6 +44,7 @@
 #include "relay.h"
 #include "hexabus_config.h"
 #include "endpoints.h"
+#include "endpoint_registry.h"
 #include "value_broadcast.h"
 
 /** \brief This is a file internal variable that contains the 16 MSB of the
@@ -92,6 +93,59 @@ calc_power(uint16_t pulse_period)
     return (uint16_t)P;
 }
 
+static enum hxb_error_code read_power(uint32_t eid, struct hxb_value* value)
+{
+	value->v_u32 = metering_get_power();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_power_name[] = "Power Meter";
+ENDPOINT_DESCRIPTOR endpoint_power = {
+	.datatype = HXB_DTYPE_UINT32,
+	.eid = EP_POWER_METER,
+	.name = ep_power_name,
+	.read = read_power,
+	.write = 0
+};
+
+#if METERING_ENERGY
+static enum hxb_error_code read_energy_total(uint32_t eid, struct hxb_value* value)
+{
+	value->v_float = metering_get_energy_total();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_energy_total_name[] = "Energy Meter Total";
+ENDPOINT_DESCRIPTOR endpoint_energy_total = {
+	.datatype = HXB_DTYPE_FLOAT,
+	.eid = EP_ENERGY_METER_TOTAL,
+	.name = ep_energy_total_name,
+	.read = read_energy_total,
+	.write = 0
+};
+
+static enum hxb_error_code read_energy(uint32_t eid, struct hxb_value* value)
+{
+	value->v_float = metering_get_energy();
+	return HXB_ERR_SUCCESS;
+}
+
+static enum hxb_error_code write_energy(uint32_t eid, const struct hxb_value* value)
+{
+	metering_reset_energy();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_energy_name[] = "Energy Meter";
+ENDPOINT_DESCRIPTOR endpoint_energy = {
+	.datatype = HXB_DTYPE_FLOAT,
+	.eid = EP_ENERGY_METER,
+	.name = ep_energy_name,
+	.read = read_energy,
+	.write = write_energy
+};
+#endif
+
 void
 metering_init(void)
 {
@@ -118,6 +172,12 @@ metering_init(void)
   SET_METERING_INT();
 
   metering_start();
+
+	ENDPOINT_REGISTER(endpoint_power);
+#if METERING_ENERGY
+	ENDPOINT_REGISTER(endpoint_energy_total);
+	ENDPOINT_REGISTER(endpoint_energy);
+#endif
 }
 
 void

@@ -3,6 +3,9 @@
 #include "hexabus_config.h"
 #include "contiki.h"
 
+#include "endpoint_registry.h"
+#include "endpoints.h"
+
 #include <util/delay.h>
 
 #if PRESSURE_DEBUG
@@ -27,7 +30,10 @@ static int16_t md;
 static int32_t pressure = 0;
 static float pressure_temp = 0;
 
-uint16_t pressure_read16(uint8_t addr) {
+static float read_pressure();
+static float read_pressure_temp();
+
+static uint16_t pressure_read16(uint8_t addr) {
     if(i2c_write_bytes(BMP085_ADDR, &addr, 1)) {
         return 0;
     }
@@ -42,7 +48,7 @@ uint16_t pressure_read16(uint8_t addr) {
 
 }
 
-uint8_t pressure_read8(uint8_t addr) {
+static uint8_t pressure_read8(uint8_t addr) {
     if(i2c_write_bytes(BMP085_ADDR, &addr, 1)) {
         return 0;
     }
@@ -75,13 +81,28 @@ void pressure_init() {
 
 }
 
-float read_pressure() {
+static float read_pressure() {
     return pressure/100.0; //convert Pa to hPa;
 }
 
-float read_pressure_temp() {
+static float read_pressure_temp() {
     return pressure_temp;
 }
+
+static enum hxb_error_code read(uint32_t eid, struct hxb_value* value)
+{
+	value->v_float = read_pressure();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_name[] PROGMEM = "Barometric pressure sensor";
+ENDPOINT_DESCRIPTOR endpoint_pressure = {
+	.datatype = HXB_DTYPE_FLOAT,
+	.eid = EP_PRESSURE,
+	.name = ep_name,
+	.read = read,
+	.write = 0
+};
 
 PROCESS(pressure_process, "Priodically reads the pressure sensor");
 

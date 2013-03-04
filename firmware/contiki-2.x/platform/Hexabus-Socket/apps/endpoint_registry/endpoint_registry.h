@@ -37,9 +37,9 @@ extern struct endpoint_registry_entry* _endpoint_chain;
 		_endpoint_chain = &_endpoint_entry; \
 	} while (0)
 
-enum hxb_datatype _endpoint_get_datatype(uint32_t eid);
-enum hxb_error_code _endpoint_write(uint32_t eid, const struct hxb_value* value);
-enum hxb_error_code _endpoint_read(uint32_t eid, struct hxb_value* value);
-enum hxb_error_code _endpoint_get_name(uint32_t eid, char* buffer, size_t len);
+enum hxb_datatype endpoint_get_datatype(uint32_t eid);
+enum hxb_error_code endpoint_write(uint32_t eid, const struct hxb_value* value);
+enum hxb_error_code endpoint_read(uint32_t eid, struct hxb_value* value);
+enum hxb_error_code endpoint_get_name(uint32_t eid, char* buffer, size_t len);
 
 #endif

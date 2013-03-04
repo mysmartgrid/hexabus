@@ -6,7 +6,7 @@
 #include "endpoints.h"
 #include "../../../../../../shared/hexabus_packet.h"
 #include "state_machine.h"
-#include "endpoint_access.h"
+#include "endpoint_registry.h"
 #include "datetime_service.h"
 #include <stdbool.h>
 #include <stdlib.h>

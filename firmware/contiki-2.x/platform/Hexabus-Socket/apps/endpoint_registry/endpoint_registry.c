@@ -40,7 +40,7 @@ static uint8_t find_descriptor(uint32_t eid, struct endpoint_descriptor* result)
 	return 0;
 }
 
-enum hxb_datatype _endpoint_get_datatype(uint32_t eid)
+enum hxb_datatype endpoint_get_datatype(uint32_t eid)
 {
 	if (eid % 32 == 0) {
 		return HXB_DTYPE_UINT32;
@@ -54,7 +54,7 @@ enum hxb_datatype _endpoint_get_datatype(uint32_t eid)
 	}
 }
 
-enum hxb_error_code _endpoint_write(uint32_t eid, const struct hxb_value* value)
+enum hxb_error_code endpoint_write(uint32_t eid, const struct hxb_value* value)
 {
 	if (eid % 32 == 0) {
 		return HXB_ERR_WRITEREADONLY;
@@ -74,7 +74,7 @@ enum hxb_error_code _endpoint_write(uint32_t eid, const struct hxb_value* value)
 	}
 }
 
-enum hxb_error_code _endpoint_read(uint32_t eid, struct hxb_value* value)
+enum hxb_error_code endpoint_read(uint32_t eid, struct hxb_value* value)
 {
 	if (eid % 32 == 0) {
 		synthesize_read_m32(eid, value);
@@ -90,7 +90,7 @@ enum hxb_error_code _endpoint_read(uint32_t eid, struct hxb_value* value)
 	}
 }
 
-enum hxb_error_code _endpoint_get_name(uint32_t eid, char* buffer, size_t len)
+enum hxb_error_code endpoint_get_name(uint32_t eid, char* buffer, size_t len)
 {
 	if (eid % 32 == 0) {
 		if (len >= EE_DOMAIN_NAME_SIZE) {

@@ -57,7 +57,7 @@ static enum hxb_error_code read(uint32_t eid, struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-const prog_char ep_name[] = "Hexabus Socket Pushbutton";
+static const char ep_name[] PROGMEM = "Hexabus Socket Pushbutton";
 ENDPOINT_DESCRIPTOR endpoint_sysbutton = {
 	.datatype = HXB_DTYPE_BOOL,
 	.eid = EP_BUTTON,

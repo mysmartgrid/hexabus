@@ -40,7 +40,7 @@
 #include "sys/ctimer.h"
 #include "hexabus_config.h"
 #include "state_machine.h"
-#include "endpoint_access.h"
+#include "endpoint_registry.h"
 
 #include "../../../../../../shared/hexabus_packet.h"
 

@@ -3,6 +3,9 @@
 #include "hexabus_config.h"
 #include "contiki.h"
 
+#include "endpoint_registry.h"
+#include "endpoints.h"
+
 #include <util/delay.h>
 
 
@@ -58,4 +61,24 @@ float read_humidity_temp() {
     PRINTF("Raw Temperature: %d\n", rawtemp);
 
     return (165.0/16384.0*rawtemp)-40.0;
+}
+
+static enum hxb_error_code read(uint32_t eid, struct hxb_value* value)
+{
+	value->v_float = read_humidity();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_name[] PROGMEM = "Humidity sensor";
+ENDPOINT_DESCRIPTOR endpoint_humidity = {
+	.datatype = HXB_DTYPE_FLOAT,
+	.eid = EP_HUMIDITY,
+	.name = ep_name,
+	.read = read,
+	.write = 0
+};
+
+void humidity_init(void)
+{
+	ENDPOINT_REGISTER(endpoint_humidity);
 }

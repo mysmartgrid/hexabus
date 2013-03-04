@@ -3,7 +3,7 @@
 #include "hexabus_config.h"
 #include "net/uip.h"
 #include "lib/crc16.h"
-#include "endpoint_access.h"
+#include "endpoint_registry.h"
 
 #if PACKET_BUILDER_DEBUG
 #include <stdio.h>
@@ -62,7 +62,7 @@ struct hxb_packet_128string make_epinfo_packet(uint32_t eid)
   packet.eid = uip_htonl(eid);
 
   packet.datatype = endpoint_get_datatype(eid);
-  endpoint_get_name(eid, packet.value);
+  endpoint_get_name(eid, packet.value, HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
 
   packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet)-2, 0));
 
