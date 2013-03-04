@@ -4,22 +4,7 @@
 // Hexabus packet definition
 #include <stdint.h>
 #include "hexabus_definitions.h"
-#include "hexabus_value.h"
-
-// ======================================================================
-// Supporting structs
-
-// Struct containing time and date
-
-struct hxb_datetime {
-    uint8_t   hour;
-    uint8_t   minute;
-    uint8_t   second;
-    uint8_t   day;
-    uint8_t   month;
-    uint16_t  year;
-    uint8_t   weekday;  // numbers from 0 to 6, sunday as the first day of the week.
-} __attribute__ ((packed));
+#include "hexabus_types.h"
 
 // ======================================================================
 // Structs for building and reading Hexabus packets

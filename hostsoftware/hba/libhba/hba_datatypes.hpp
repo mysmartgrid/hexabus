@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <string>
-#include "../../../shared/hexabus_definitions.h"
+#include "../../../shared/hexabus_types.h"
 
 #define NUMBER_OF_EIDS 32
 
