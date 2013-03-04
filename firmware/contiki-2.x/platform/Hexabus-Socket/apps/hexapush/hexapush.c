@@ -74,7 +74,7 @@ BUTTON_DESCRIPTOR buttons_hexapush = {
 	.click_ticks = 1,
 	.pressed_ticks = HEXAPUSH_CLICK_ENABLE && HEXAPUSH_PRESS_RELEASE_ENABLE ? HEXAPUSH_PRESS_DELAY : 0,
 
-	.clicked = !HEXAPUSH_CLICK_ENABLE ? button_clicked : 0,
+	.clicked = HEXAPUSH_CLICK_ENABLE ? button_clicked : 0,
 	.pressed = HEXAPUSH_PRESS_RELEASE_ENABLE ? button_pressed : 0
 };
 
