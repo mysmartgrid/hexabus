@@ -5,62 +5,111 @@
 # which are defined in the Hexabus spec.                                       #
 ################################################################################
 
-endpoint 0 {
-	datatype UINT32; # TODO does this belong here? There already is an EP->datatype mapping in the Hexabus assembler which could be used, reused or assumed
-	name device_descriptor;
-	access { read }; # Value can be read by QUERY requests, but is never broadcast
+endpoint On {
+  eid 1;
+  datatype BOOL;
+  access { read, write }
 }
 
-endpoint 1 {
-	datatype BOOL;
-	name on;
-	access { write }; # value can be written, is never broadcast
-}
-
-endpoint 2 {
-	datatype UINT32;
-	name power;
-	access { broadcast }; # value is broadcast periodically
-}
-
-endpoint 3 {
-	datatype FLOAT;
-	name temperature;
-	access { broadcast };
-}
-
-endpoint 4 {
-	datatype BOOL;
-	name button;
-	# TODO access { event };
-}
-
-endpoint 5 {
-	datatype FLOAT;
-	name humidity;
-	access { broadcast };
-}
-
-endpoint 24 {
-	datatype UINT8; #TODO nice-to-have: Bitvector datatype which gives us human-readable access { to } the bits in the bitvector
-	name pressed;
-	access { read };
-}
-
-endpoint 25 {
-	datatype UINT8;
-	name clicked;
-	access { read };
-}
-
-endpoint 29 {
-	datatype FLOAT;
-	name sunlight;
-	access { broadcast };
-}
-
-endpoint 30 {
+endpoint PowerMeter {
+  eid 2;
   datatype UINT32;
-  name ir;
-  # TODO access { event };
+  access { read, broadcast }
 }
+
+endpoint Temperature {
+  eid 3;
+  datatype FLOAT;
+  access { read, broadcast }
+}
+
+endpoint Button {
+  eid 4;
+  datatype BOOL;
+  access { broadcast }
+}
+
+endpoint Humidity {
+  eid 5;
+  datatype FLOAT;
+  access { read, broadcast }
+}
+
+endpoint Pressure {
+  eid 6;
+  datatype FLOAT;
+  access { read, broadcast }
+}
+
+endpoint EnergyTotal {
+  eid 7;
+  datatype FLOAT;
+  access { read }
+}
+
+endpoint EnergyUser {
+  eid 8;
+  datatype FLOAT;
+  access { read, write }
+}
+
+endpoint AnalogRead {
+  eid 22;
+  datatype FLOAT;
+  access { read, broadcast }
+}
+
+endpoint WindowShutter {
+  eid 23;
+  datatype UINT8;
+  access { read, write }
+}
+
+endpoint ButtonsPressed {
+  eid 24;
+  datatype UINT8;
+  access { read, broadcast }
+}
+
+endpoint ButtonsClicked {
+  eid 25;
+  datatype UINT8;
+  access { broadcast }
+}
+
+endpoint PresenceDetector {
+  eid 26;
+  datatype UINT8;
+  access { read, write, broadcast }
+}
+
+endpoint HexOnOffSet {
+  eid 27;
+  datatype UINT8;
+  access { read, write }
+}
+
+endpoint HexOnOffToggle {
+  eid 28;
+  datatype UINT8;
+  access { read, write }
+}
+
+endpoint LightSensor {
+  eid 29;
+  datatype FLOAT;
+  access { read, broadcast }
+}
+
+endpoint IR {
+  eid 30;
+  datatype UINT32;
+  access { broadcast }
+}
+
+endpoint Liveness {
+  eid 31;
+  datatype BOOL;
+  access { read, broadcast }
+}
+

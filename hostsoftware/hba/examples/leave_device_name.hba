@@ -1,0 +1,7 @@
+# in order to leave the device name unchanged,
+# you have to set it to "0".
+target caca:0000:0000:0000:0050:c4ff:fe04:83af;
+device_name 0;
+machine 41f984bb082af806e510740db289125d;
+
+# here you can define you state machine as usual

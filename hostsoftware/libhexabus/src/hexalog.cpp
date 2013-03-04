@@ -6,7 +6,6 @@
 #include <libhexabus/packet.hpp>
 #include <libhexabus/socket.hpp>
 
-// libklio includes. TODO: create support for built-system.
 #include <libklio/common.hpp>
 #include <sstream>
 #include <libklio/store.hpp>
@@ -22,12 +21,7 @@ namespace po = boost::program_options;
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
-// TODO: Remove this, only for debugging.
-using namespace boost::posix_time;
 #include <unistd.h>
-
-
-#include "../../shared/hexabus_packet.h"
 
 
 struct ReadingLogger : private hexabus::PacketVisitor {
@@ -203,48 +197,90 @@ struct ReadingLogger : private hexabus::PacketVisitor {
 };
 
 
+enum ErrorCode {
+	ERR_NONE = 0,
+
+	ERR_UNKNOWN_PARAMETER = 1,
+	ERR_PARAMETER_MISSING = 2,
+	ERR_PARAMETER_FORMAT = 3,
+	ERR_PARAMETER_VALUE_INVALID = 4,
+	ERR_NETWORK = 5,
+
+	ERR_KLIO = 6,
+
+	ERR_OTHER = 127
+};
+
+
 int main(int argc, char** argv)
 {
   std::ostringstream oss;
-  oss << "Usage: " << argv[0] << " [-s] storefile";
+  oss << "Usage: " << argv[0] << " [-s] <interface> <storefile>";
   po::options_description desc(oss.str());
   desc.add_options()
     ("help,h", "produce help message")
     ("version,v", "print libklio version and exit")
     ("storefile,s", po::value<std::string>(), "the data store to use")
     ("timezone,t", po::value<std::string>(), "the timezone to use for new sensors")
+		("interface,I", po::value<std::string>(), "interface to listen on")
+		("bind,b", po::value<std::string>(), "address to bind to")
     ;
   po::positional_options_description p;
+  p.add("interface", 1);
   p.add("storefile", 1);
 
   po::variables_map vm;
-  po::store(po::command_line_parser(argc, argv).
-      options(desc).positional(p).run(), vm);
-  po::notify(vm);
+	try {
+		po::store(po::command_line_parser(argc, argv).
+				options(desc).positional(p).run(), vm);
+		po::notify(vm);
+	} catch (const std::exception& e) {
+		std::cerr << "Cannot process commandline options: " << e.what() << std::endl;
+		return ERR_UNKNOWN_PARAMETER;
+	}
 
   // Begin processing of commandline parameters.
-  std::string storefile;
   if (vm.count("help")) {
     std::cout << desc << std::endl;
-    return 1;
+    return ERR_NONE;
   }
+
+  // TODO: Compile flag etc.
   if (vm.count("version")) {
     klio::VersionInfo::Ptr vi(new klio::VersionInfo());
     std::cout << "libhexabus version " << hexabus::version() << std::endl;
     std::cout << "klio library version " << vi->getVersion() << std::endl;
-    return 0;
+    return ERR_NONE;
   }
-  if (! vm.count("storefile")) {
+
+	if (!vm.count("interface")) {
+		std::cerr << "You must specify an interface to listen on." << std::endl;
+		return ERR_PARAMETER_MISSING;
+	}
+  if (!vm.count("storefile")) {
     std::cerr << "You must specify a store to work on." << std::endl;
-    return 1;
-  } else {
-    storefile=vm["storefile"].as<std::string>();
+    return ERR_PARAMETER_MISSING;
   }
+
+	std::string interface(vm["interface"].as<std::string>());
+	std::string storefile(vm["storefile"].as<std::string>());
+	boost::asio::ip::address_v6 addr(boost::asio::ip::address_v6::any());
+
+	if (vm.count("bind")) {
+		boost::system::error_code err;
+
+		addr = boost::asio::ip::address_v6::from_string(vm["bind"].as<std::string>());
+		if (err) {
+			std::cerr << vm["bind"].as<std::string>() << " is not a valid IP address" << std::endl;
+			return ERR_PARAMETER_FORMAT;
+		}
+	}
+
   bfs::path db(storefile);
   if (! bfs::exists(db)) {
     std::cerr << "Database " << db << " does not exist, cannot continue." << std::endl;
     std::cerr << "Hint: you can create a database using klio-store create <dbfile>" << std::endl;
-    return 2;
+    return ERR_PARAMETER_VALUE_INVALID;
   }
 
   std::string sensor_timezone("Europe/Berlin"); 
@@ -255,18 +291,28 @@ int main(int argc, char** argv)
     sensor_timezone=vm["timezone"].as<std::string>();
   }
 
-
-
 	boost::asio::io_service io;
-  hexabus::Socket network(io);
-  // TODO: Compile flag etc.
-  klio::StoreFactory::Ptr store_factory(new klio::StoreFactory()); 
-  klio::Store::Ptr store(store_factory->openStore(klio::SQLITE3, db));
-  std::cout << "opened store: " << store->str() << std::endl;
-  klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
-  klio::TimeConverter::Ptr tc(new klio::TimeConverter());
+	try {
+		hexabus::Socket network(io, interface);
 
-	network.onPacketReceived(ReadingLogger(store, tc, sensor_factory, sensor_timezone));
+		klio::StoreFactory::Ptr store_factory(new klio::StoreFactory()); 
+		klio::Store::Ptr store(store_factory->openStore(klio::SQLITE3, db));
+		std::cout << "opened store: " << store->str() << std::endl;
+		klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
+		klio::TimeConverter::Ptr tc(new klio::TimeConverter());
 
-	io.run();
+		network.listen(addr);
+		network.onPacketReceived(ReadingLogger(store, tc, sensor_factory, sensor_timezone));
+
+		io.run();
+	} catch (const hexabus::NetworkException& e) {
+		std::cerr << "Network error: " << e.code().message() << std::endl;
+		return ERR_NETWORK;
+	} catch (const klio::GenericException& e) {
+		std::cerr << "Klio error: " << e.reason() << std::endl;
+		return ERR_KLIO;
+	} catch (const std::exception& e) {
+		std::cerr << "Error: " << e.what() << std::endl;
+		return ERR_OTHER;
+	}
 }

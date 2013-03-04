@@ -414,3 +414,4 @@ void HBAOutput::print_ipv6address(boost::asio::ip::address_v6 addr, std::ostream
     ostr << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)addr_bytes[i];
   }
 }
+
