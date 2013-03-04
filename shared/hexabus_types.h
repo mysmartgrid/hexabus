@@ -73,7 +73,16 @@ struct hxb_datetime {
 // endpoint_access
 struct hxb_value {
   uint8_t   datatype;   // Datatype that is used, or HXB_DTYPE_UNDEFINED
-  char      data[8];    // leave enough room for the largest datatype (datetime in this case)
-}; //TODO can't we use a union for this?
+	union {
+		uint8_t             v_bool;
+		uint8_t             v_u8;
+		uint32_t            v_u32;
+		struct hxb_datetime v_datetime;
+		float               v_float;
+		char*               v_string;
+		uint32_t            v_timestamp;
+		char*               v_binary;
+	};
+};
 
 #endif

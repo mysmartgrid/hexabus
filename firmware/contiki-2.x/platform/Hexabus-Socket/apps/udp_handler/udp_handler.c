@@ -132,7 +132,7 @@ udphandler(process_event_t ev, process_data_t data)
                 send_packet((char*) &error_packet, sizeof(error_packet));
               } else {
                 value.datatype = ((struct hxb_packet_int8*)header)->datatype;
-                *(uint8_t*)&value.data = ((struct hxb_packet_int8*)header)->value;
+                value.v_u8 = ((struct hxb_packet_int8*)header)->value;
                 eid = uip_ntohl(((struct hxb_packet_int8*)header)->eid);
               }
               break;
@@ -144,7 +144,7 @@ udphandler(process_event_t ev, process_data_t data)
                 send_packet((char*) &error_packet, sizeof(error_packet));
               } else {
                 value.datatype = ((struct hxb_packet_int32*)header)->datatype;
-                *(uint32_t*)&value.data = uip_ntohl(((struct hxb_packet_int32*)header)->value);
+                value.v_u32 = uip_ntohl(((struct hxb_packet_int32*)header)->value);
                 eid = uip_ntohl(((struct hxb_packet_int32*)header)->eid);
               }
               break;
@@ -157,7 +157,7 @@ udphandler(process_event_t ev, process_data_t data)
               } else {
                 value.datatype = ((struct hxb_packet_float*)header)->datatype;
                 uint32_t value_hbo = uip_ntohl(*(uint32_t*)&((struct hxb_packet_float*)header)->value);
-                *(float*)&value.data = *(float*)&value_hbo;
+                value.v_float = *(float*)&value_hbo;
                 eid = uip_ntohl(((struct hxb_packet_float*)header)->eid);
               }
               break;
@@ -174,7 +174,7 @@ udphandler(process_event_t ev, process_data_t data)
                 }
                 eid = uip_ntohl(((struct hxb_packet_66bytes*)header)->eid);
                 value.datatype = HXB_DTYPE_66BYTES;
-                *(char**)&value.data = (char*) &(((struct hxb_packet_66bytes*)header)->value);
+                value.v_binary = (char*) &(((struct hxb_packet_66bytes*)header)->value);
               }
               break;
             case HXB_DTYPE_16BYTES:
@@ -190,7 +190,7 @@ udphandler(process_event_t ev, process_data_t data)
                 }
                 eid = uip_ntohl(((struct hxb_packet_16bytes*)header)->eid);
                 value.datatype = HXB_DTYPE_16BYTES;
-                *(char**)&value.data = (char*) &(((struct hxb_packet_16bytes*)header)->value);
+                value.v_binary = (char*) &(((struct hxb_packet_16bytes*)header)->value);
               }
               break;
             default:
@@ -302,7 +302,7 @@ udphandler(process_event_t ev, process_data_t data)
                   struct hxb_packet_int8* packet = (struct hxb_packet_int8*)header;
                   envelope->eid = uip_ntohl(packet->eid);
                   envelope->value.datatype = packet->datatype;
-                  *(uint8_t*)&envelope->value.data = packet->value;
+                  envelope->value.v_u8 = packet->value;
                   process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
                   PRINTF("Posted event for received broadcast.\r\n");
                 }
@@ -316,7 +316,7 @@ udphandler(process_event_t ev, process_data_t data)
                   struct hxb_packet_int32* packet = (struct hxb_packet_int32*)header;
                   envelope->eid = uip_ntohl(packet->eid);
                   envelope->value.datatype = packet->datatype;
-                  *(uint32_t*)&envelope->value.data = uip_ntohl(packet->value);
+                  envelope->value.v_u32 = uip_ntohl(packet->value);
                   process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
                   PRINTF("Posted event for received broadcast.\r\n");
                 }
@@ -334,7 +334,7 @@ udphandler(process_event_t ev, process_data_t data)
                   envelope->eid = uip_ntohl(packet->eid);
                   envelope->value.datatype = packet->datatype;
                   packet->value.year = uip_ntohs(packet->value.year);
-                  memcpy(&(envelope->value.data), &(packet->value), sizeof(struct hxb_datetime));
+                  memcpy(&(envelope->value.v_datetime), &(packet->value), sizeof(struct hxb_datetime));
                   // don't post an event here, just call datetime_service. datetime_service also deallocates the memory
                   // process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
                   // PRINTF("Posted event for received broadcast.\r\n");
@@ -353,7 +353,7 @@ udphandler(process_event_t ev, process_data_t data)
                   envelope->eid = uip_ntohl(packet->eid);
                   envelope->value.datatype = packet->datatype;
                   uint32_t value_hbo = uip_ntohl(*(uint32_t*)&packet->value);
-                  *(float*)&envelope->value.data = *(float*)&value_hbo;
+                  envelope->value.v_float = *(float*)&value_hbo;
                   process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
                   PRINTF("Posted event for received broadcast.\r\n");
                 }
@@ -369,7 +369,7 @@ udphandler(process_event_t ev, process_data_t data)
                   char* b = malloc(HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
                   if(b != NULL) {
                     memcpy(b, &packet->value, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
-                    *(char**)&envelope->value.data = b;
+                    envelope->value.v_binary = b;
                     process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
                     PRINTF("Posted event for received broadcast.\r\n");
                   } else {

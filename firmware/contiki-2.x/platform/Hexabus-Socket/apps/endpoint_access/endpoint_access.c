@@ -222,7 +222,7 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
     case EP_POWER_SWITCH:   // Endpoint 1: Power switch on Hexabus Socket.
       if(value->datatype == HXB_DTYPE_BOOL)
       {
-        if(*(uint8_t*)&value->data == HXB_TRUE)
+				if (value->v_bool == HXB_TRUE)
         {
           relay_off();  // Note that the relay is connected in normally-closed position, so relay_off turns the power on and vice-versa
         } else {
@@ -269,9 +269,9 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
 #if SM_UPLOAD_ENABLE
     case EP_SM_CONTROL:
       if(value->datatype == HXB_DTYPE_UINT8) {
-        if(*(uint8_t*)&value->data == STM_STATE_STOPPED ) {
+        if(value->v_u8 == STM_STATE_STOPPED ) {
           sm_stop();
-        } else if(*(uint8_t*)&value->data == STM_STATE_RUNNING) {
+        } else if(value->v_u8 == STM_STATE_RUNNING) {
           if (sm_is_running()) {
             sm_restart();
           } else {
@@ -289,19 +289,19 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
       struct hxb_value val;
       val.datatype=HXB_DTYPE_BOOL;
       if(value->datatype == HXB_DTYPE_66BYTES) {
-        char* payload = *(char**)&value->data;
+        char* payload = value->v_string;
         uint8_t chunk_id = (uint8_t)payload[0];
         if (sm_write_chunk(chunk_id, payload+1) == true) {
           // send ACK to SM_SENDER
           PRINTF("SENDING ACK");
-          val.data[0] = HXB_TRUE;
+          val.v_bool = HXB_TRUE;
           struct hxb_packet_int8 packet = make_value_packet_int8(EP_SM_UP_ACKNAK, &val);
           send_packet((char*)&packet, sizeof(packet));
           return 0;
         } else {
           // send NAK to SM_SENDER
           PRINTF("SENDING NAK");
-          val.data[0] = HXB_FALSE;
+          val.v_bool = HXB_FALSE;
           struct hxb_packet_int8 packet = make_value_packet_int8(EP_SM_UP_ACKNAK, &val);
           send_packet((char*)&packet, sizeof(packet));
           return HXB_ERR_INVALID_VALUE;
@@ -309,7 +309,7 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
       } else {
         // send NAK to SM_SENDER
         PRINTF("SENDING ERROR DATATYPE");
-        val.data[0] = HXB_FALSE;
+        val.v_bool = HXB_FALSE;
         struct hxb_packet_int8 packet = make_value_packet_int8(EP_SM_UP_ACKNAK, &val);
         send_packet((char*)&packet, sizeof(packet));
         return HXB_ERR_DATATYPE;
@@ -323,7 +323,7 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
 #if SHUTTER_ENABLE
     case EP_SHUTTER:
       if(value->datatype == HXB_DTYPE_UINT8) {
-          shutter_toggle(*(uint8_t*)&value->data);
+          shutter_toggle(value->v_u8);
           return 0;
       } else {
           return HXB_ERR_DATATYPE;
@@ -338,10 +338,10 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
     case EP_PRESENCE_DETECTOR:
       if(value->datatype == HXB_DTYPE_UINT8)
       {
-        if(*(uint8_t*)&value->data == 1)
+        if(value->v_u8 == 1)
         {
             global_presence_detected();
-        } else if(*(uint8_t*)&value->data == 0) {
+        } else if(value->v_u8 == 0) {
             no_raw_presence();
         } else {
             raw_presence_detected();
@@ -354,14 +354,14 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
 #if HEXONOFF_ENABLE
     case EP_HEXONOFF_SET:
         if(value->datatype == HXB_DTYPE_UINT8) {
-            set_outputs(*(uint8_t*)&value->data);
+            set_outputs(value->v_u8);
         } else {
             return HXB_ERR_DATATYPE;
         }
         break;
     case EP_HEXONOFF_TOGGLE:
         if(value->datatype == HXB_DTYPE_UINT8) {
-            toggle_outputs(*(uint8_t*)&value->data);
+            toggle_outputs(value->v_u8);
         } else {
             return HXB_ERR_DATATYPE;
         }
@@ -383,104 +383,104 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
     /* -========== Endpoint 0: Hexabus Device Descriptor ==================- */
     case EP_DEVICE_DESCRIPTOR:
       val->datatype = HXB_DTYPE_UINT32;
-      *(uint32_t*)&val->data = 1UL;       // start out with last bit set: EID0 always exists
+      val->v_u32 = 1UL;       // start out with last bit set: EID0 always exists
       // endpoints 1 and 2 are not optional
-      *(uint32_t*)&val->data += 1UL << (EP_POWER_SWITCH); // shift by EID: nth bit set equals EID n exists
-      *(uint32_t*)&val->data += 1UL << (EP_POWER_METER);
+      val->v_u32 += 1UL << (EP_POWER_SWITCH); // shift by EID: nth bit set equals EID n exists
+      val->v_u32 += 1UL << (EP_POWER_METER);
 #if TEMPERATURE_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_TEMPERATURE);
+      val->v_u32 += 1UL << (EP_TEMPERATURE);
 #endif
 #if BUTTON_HAS_EID
-      *(uint32_t*)&val->data += 1UL << (EP_BUTTON);
+      val->v_u32 += 1UL << (EP_BUTTON);
 #endif
 #if HUMIDITY_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_HUMIDITY);
+      val->v_u32 += 1UL << (EP_HUMIDITY);
 #endif
 #if PRESSURE_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_PRESSURE);
+      val->v_u32 += 1UL << (EP_PRESSURE);
 #endif
 #if ANALOGREAD_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_ANALOGREAD);
+      val->v_u32 += 1UL << (EP_ANALOGREAD);
 #endif
 #if METERING_ENERGY
-      *(uint32_t*)&val->data += 1UL << (EP_ENERGY_METER_TOTAL);
-      *(uint32_t*)&val->data += 1UL << (EP_ENERGY_METER);
+      val->v_u32 += 1UL << (EP_ENERGY_METER_TOTAL);
+      val->v_u32 += 1UL << (EP_ENERGY_METER);
 #endif
 #if SM_UPLOAD_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_SM_CONTROL);
-      *(uint32_t*)&val->data += 1UL << (EP_SM_UP_RECEIVER);
-      *(uint32_t*)&val->data += 1UL << (EP_SM_UP_ACKNAK);
-      *(uint32_t*)&val->data += 1UL << (EP_SM_RESET_ID);
+      val->v_u32 += 1UL << (EP_SM_CONTROL);
+      val->v_u32 += 1UL << (EP_SM_UP_RECEIVER);
+      val->v_u32 += 1UL << (EP_SM_UP_ACKNAK);
+      val->v_u32 += 1UL << (EP_SM_RESET_ID);
 #endif
 #if SHUTTER_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_SHUTTER);
+      val->v_u32 += 1UL << (EP_SHUTTER);
 #endif
 #if HEXAPUSH_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_HEXAPUSH_PRESSED);
-      *(uint32_t*)&val->data += 1UL << (EP_HEXAPUSH_CLICKED);
+      val->v_u32 += 1UL << (EP_HEXAPUSH_PRESSED);
+      val->v_u32 += 1UL << (EP_HEXAPUSH_CLICKED);
 #endif
 #if PRESENCE_DETECTOR_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_PRESENCE_DETECTOR);
+      val->v_u32 += 1UL << (EP_PRESENCE_DETECTOR);
 #endif
 #if HEXONOFF_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_HEXONOFF_SET);
-      *(uint32_t*)&val->data += 1UL << (EP_HEXONOFF_TOGGLE);
+      val->v_u32 += 1UL << (EP_HEXONOFF_SET);
+      val->v_u32 += 1UL << (EP_HEXONOFF_TOGGLE);
 #endif
 #if LIGHTSENSOR_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_LIGHTSENSOR);
+      val->v_u32 += 1UL << (EP_LIGHTSENSOR);
 #endif
 #if IR_RECEIVER_ENABLE
-      *(uint32_t*)&val->data += 1UL << (EP_IR_RECEIVER);
+      val->v_u32 += 1UL << (EP_IR_RECEIVER);
 #endif
       break;
     /* -==================================================================- */
 
     case EP_POWER_SWITCH:   // Endpoint 1: Hexabus Socket power switch
       val->datatype = HXB_DTYPE_BOOL;
-      *(uint8_t*)&val->data = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
+      val->v_bool = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
       break;
     case EP_POWER_METER:   // Endpoint 2: Hexabus Socket power metering
       val->datatype = HXB_DTYPE_UINT32;
-      *(uint32_t*)&val->data = metering_get_power();
+      val->v_u32 = metering_get_power();
       break;
 #if TEMPERATURE_ENABLE
     case EP_TEMPERATURE:   // Endpoint 3: Hexabus temperaure metering
       val->datatype = HXB_DTYPE_FLOAT;
-      *(float*)&val->data = temperature_get();
+      val->v_float = temperature_get();
       break;
 #endif
 #if BUTTON_HAS_EID
     case EP_BUTTON:   // Endpoint 4: Pushbutton on the Hexabus-Socket
       val->datatype = HXB_DTYPE_BOOL;
-      *(uint8_t*)&val->data = button_pushed;
+      val->v_bool = button_pushed;
       break;
 #endif
 #if HUMIDITY_ENABLE
     case EP_HUMIDITY:
       val->datatype = HXB_DTYPE_FLOAT;
-      *(float*)&val->data = read_humidity();
+      val->v_float = read_humidity();
       break;
 #endif
 #if PRESSURE_ENABLE
     case EP_PRESSURE:
       val->datatype = HXB_DTYPE_FLOAT;
-      *(float*)&val->data = read_pressure();
+      val->v_float = read_pressure();
       break;
 #endif
 #if LIGHTSENSOR_ENABLE
     case EP_LIGHTSENSOR:
         val->datatype = HXB_DTYPE_FLOAT;
-        *(float*)&val->data = get_lightvalue();
+        val->v_float = get_lightvalue();
         break;
 #endif
 #if METERING_ENERGY
     case EP_ENERGY_METER_TOTAL:
       val->datatype = HXB_DTYPE_FLOAT;
-      *(float*)&val->data = metering_get_energy_total();
+      val->v_float = metering_get_energy_total();
       break;
     case EP_ENERGY_METER:
       val->datatype = HXB_DTYPE_FLOAT;
-      *(float*)&val->data = metering_get_energy();
+      val->v_float = metering_get_energy();
       break;
 #endif
 #if SM_UPLOAD_ENABLE
@@ -488,9 +488,9 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
       PRINTF("READ on SM_CONTROL EP occurred\n");
       val->datatype = HXB_DTYPE_UINT8;
       if (sm_is_running()) {
-        *(uint8_t*)&val->data = STM_STATE_RUNNING;
+        val->v_u8 = STM_STATE_RUNNING;
       } else {
-        *(uint8_t*)&val->data = STM_STATE_STOPPED;
+        val->v_u8 = STM_STATE_STOPPED;
       }
       break;
     case EP_SM_UP_RECEIVER:
@@ -505,48 +505,48 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
       char* b = malloc(HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
       if(b != NULL)
         sm_get_id(b);
-      *(char**)&val->data = b;
+      val->v_binary = b;
       break;
 #endif
 #if SHUTTER_ENABLE
     case EP_SHUTTER:
       val->datatype = HXB_DTYPE_UINT8;
-      *(uint8_t*)&val->data = shutter_get_state();
+      val->v_u8 = shutter_get_state();
       break;
 #endif
 #if HEXAPUSH_ENABLE
     case EP_HEXAPUSH_PRESSED:  //Pressed und released
       val->datatype = HXB_DTYPE_UINT8;
-      *(uint8_t*)&val->data = hexapush_get_pressed();
+      val->v_u8 = hexapush_get_pressed();
       break;
     case EP_HEXAPUSH_CLICKED: //Clicked
       val->datatype = HXB_DTYPE_UINT8;
-      *(uint8_t*)&val->data = hexapush_get_clicked();
+      val->v_u8 = hexapush_get_clicked();
       break;
 #endif
 #if PRESENCE_DETECTOR_ENABLE
     case EP_PRESENCE_DETECTOR:
       val->datatype = HXB_DTYPE_UINT8;
-      *(uint8_t*)&val->data = is_presence();
+      val->v_u8 = is_presence();
       break;
 #endif
 #if HEXONOFF_ENABLE
     case EP_HEXONOFF_SET:
     case EP_HEXONOFF_TOGGLE:
         val->datatype = HXB_DTYPE_UINT8;
-        *(uint8_t*)&val->data = get_outputs();
+        val->v_u8 = get_outputs();
         break;
 #endif
 #if ANALOGREAD_ENABLE
     case EP_ANALOGREAD:
         val->datatype = HXB_DTYPE_FLOAT;
-        *(float*)&val->data = get_analogvalue();
+        val->v_float = get_analogvalue();
         break;
 #endif
 #if IR_RECEIVER_ENABLE
     case EP_IR_RECEIVER:
         val->datatype = HXB_DTYPE_UINT32;
-        *(uint32_t*)&val->data = ir_get_last_command();
+        val->v_u32 = ir_get_last_command();
         break;
 #endif
     default:

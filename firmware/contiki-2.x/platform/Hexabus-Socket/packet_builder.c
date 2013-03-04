@@ -27,7 +27,7 @@ struct hxb_packet_float make_value_packet_float(uint32_t eid, struct hxb_value* 
 
   packet.datatype = val->datatype;
   // uip_htonl works on 32bit-int
-  uint32_t value_nbo = uip_htonl(*(uint32_t*)&val->data);
+  uint32_t value_nbo = uip_htonl(val->v_u32);
   packet.value = *(float*)&value_nbo;
 
   packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet)-2, 0));
@@ -45,7 +45,7 @@ struct hxb_packet_int32 make_value_packet_int32(uint32_t eid, struct hxb_value* 
   packet.eid = uip_htonl(eid);
 
   packet.datatype = val->datatype;
-  packet.value = uip_htonl(*(uint32_t*)&val->data);
+  packet.value = uip_htonl(val->v_u32);
 
   packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet)-2, 0));
   PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%ld\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
@@ -78,7 +78,7 @@ struct hxb_packet_int8 make_value_packet_int8(uint32_t eid, struct hxb_value* va
   packet.eid = uip_htonl(eid);
 
   packet.datatype = val->datatype;
-  packet.value = val->data[0];
+  packet.value = val->v_u8;
 
   packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet)-2, 0));
 

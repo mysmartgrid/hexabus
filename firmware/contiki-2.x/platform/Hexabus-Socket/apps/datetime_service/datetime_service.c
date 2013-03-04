@@ -107,7 +107,7 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
         } else if(ev == dt_update_event) {
             PRINTF("Time: Got update.\n");
 
-            current_dt = *(struct hxb_datetime*)&(((struct hxb_envelope*)data)->value.data);
+            current_dt = ((struct hxb_envelope*) data)->value.v_datetime;
             time_valid = true;
             valid_counter = 0;
 
