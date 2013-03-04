@@ -29,12 +29,12 @@ struct endpoint_registry_entry {
 
 extern struct endpoint_registry_entry* _endpoint_chain;
 
+void _endpoint_register(const struct endpoint_descriptor* ep, struct endpoint_registry_entry* chain_link);
+
 #define ENDPOINT_REGISTER(DESC) \
 	do { \
 		static struct endpoint_registry_entry _endpoint_entry = { 0 }; \
-		_endpoint_entry.descriptor = &DESC; \
-		_endpoint_entry.next = _endpoint_chain; \
-		_endpoint_chain = &_endpoint_entry; \
+		_endpoint_register(&DESC, &_endpoint_entry); \
 	} while (0)
 
 enum hxb_datatype endpoint_get_datatype(uint32_t eid);
