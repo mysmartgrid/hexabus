@@ -23,6 +23,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "endpoint_registry.h"
+#include <stdio.h>
+
 #if ENDPOINT_ACCESS_DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -32,6 +35,10 @@
 
 uint8_t endpoint_get_datatype(uint32_t eid) // returns the datatype of the endpoint, 0 if endpoint does not exist
 {
+	if (_endpoint_get_datatype(eid) != HXB_DTYPE_UNDEFINED) {
+		printf("found ep %lu type: %u\n", eid, _endpoint_get_datatype(eid));
+		return _endpoint_get_datatype(eid);
+	}
   switch(eid)
   {
     case EP_DEVICE_DESCRIPTOR:   // Endpoint 0: Hexabus device descriptor
@@ -43,10 +50,6 @@ uint8_t endpoint_get_datatype(uint32_t eid) // returns the datatype of the endpo
 #if TEMPERATURE_ENABLE
     case EP_TEMPERATURE:   // Endpoint 3: Temperature value
       return HXB_DTYPE_FLOAT;
-#endif
-#if BUTTON_HAS_EID
-    case EP_BUTTON:
-      return HXB_DTYPE_BOOL;
 #endif
 #if HUMIDITY_ENABLE
     case EP_HUMIDITY:
@@ -79,11 +82,6 @@ uint8_t endpoint_get_datatype(uint32_t eid) // returns the datatype of the endpo
     case EP_SHUTTER:
       return HXB_DTYPE_UINT8;
 #endif
-#if HEXAPUSH_ENABLE
-    case EP_HEXAPUSH_PRESSED:
-    case EP_HEXAPUSH_CLICKED:
-      return HXB_DTYPE_UINT8;
-#endif
 #if PRESENCE_DETECTOR_ENABLE
     case EP_PRESENCE_DETECTOR:
       return HXB_DTYPE_UINT8;
@@ -108,6 +106,10 @@ uint8_t endpoint_get_datatype(uint32_t eid) // returns the datatype of the endpo
 
 void endpoint_get_name(uint32_t eid, char* buffer)  // writes the name of the endpoint into the buffer. Max 127 chars.
 {
+	if (_endpoint_get_name(eid, buffer, HXB_STRING_PACKET_MAX_BUFFER_LENGTH) == HXB_ERR_SUCCESS) {
+		printf("found ep %lu name: %s\n", eid, buffer);
+		return;
+	}
   // fill buffer with \0
   int i;
   for(i = 0; i < HXB_STRING_PACKET_MAX_BUFFER_LENGTH; i++)
@@ -127,11 +129,6 @@ void endpoint_get_name(uint32_t eid, char* buffer)  // writes the name of the en
 #if TEMPERATURE_ENABLE
     case EP_TEMPERATURE:
       strncpy(buffer, "Temperature Sensor", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
-      break;
-#endif
-#if BUTTON_HAS_EID
-    case EP_BUTTON:
-      strncpy(buffer, "Hexabus Socket Pushbutton", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
 #if HUMIDITY_ENABLE
@@ -175,14 +172,6 @@ void endpoint_get_name(uint32_t eid, char* buffer)  // writes the name of the en
       strncpy(buffer, "Window Shutter", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
       break;
 #endif
-#if HEXAPUSH_ENABLE
-    case EP_HEXAPUSH_PRESSED:
-      strncpy(buffer, "Pressed Hexapush buttons", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
-      break;
-    case EP_HEXAPUSH_CLICKED:
-      strncpy(buffer, "Clicked Hexapush buttons", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
-      break;
-#endif
 #if PRESENCE_DETECTOR_ENABLE
     case EP_PRESENCE_DETECTOR:
       strncpy(buffer, "Presence Detector", HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
@@ -215,6 +204,11 @@ void endpoint_get_name(uint32_t eid, char* buffer)  // writes the name of the en
 
 uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to an endpoint - returns 0 if okay, or an error code as defined in hxb_packet.h
 {
+	int err = _endpoint_write(eid, value);
+	if (err	!= HXB_ERR_UNKNOWNEID) {
+		printf("found ep %lu write: %i\n", eid, err);
+		return err;
+	}
   switch(eid)
   {
     case EP_DEVICE_DESCRIPTOR:   // Endpoint 0: Device descriptor
@@ -236,10 +230,6 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
       return HXB_ERR_WRITEREADONLY;
 #if TEMPERATURE_ENABLE
     case EP_TEMPERATURE:   // Endpoint 3: Temperature value on Hexabus Socket -- read-only
-      return HXB_ERR_WRITEREADONLY;
-#endif
-#if BUTTON_HAS_EID
-    case EP_BUTTON:
       return HXB_ERR_WRITEREADONLY;
 #endif
 #if HUMIDITY_ENABLE
@@ -329,11 +319,6 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
           return HXB_ERR_DATATYPE;
       }
 #endif
-#if HEXAPUSH_ENABLE
-    case EP_HEXAPUSH_PRESSED:
-    case EP_HEXAPUSH_CLICKED:
-      return HXB_ERR_WRITEREADONLY;
-#endif
 #if PRESENCE_DETECTOR_ENABLE
     case EP_PRESENCE_DETECTOR:
       if(value->datatype == HXB_DTYPE_UINT8)
@@ -378,6 +363,10 @@ uint8_t endpoint_write(uint32_t eid, struct hxb_value* value) // write access to
 
 void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an endpoint
 {
+	if (_endpoint_read(eid, val) == HXB_ERR_SUCCESS) {
+		printf("found ep %lu read\n", eid);
+		return;
+	}
   switch(eid)
   {
     /* -========== Endpoint 0: Hexabus Device Descriptor ==================- */
@@ -389,9 +378,6 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
       val->v_u32 += 1UL << (EP_POWER_METER);
 #if TEMPERATURE_ENABLE
       val->v_u32 += 1UL << (EP_TEMPERATURE);
-#endif
-#if BUTTON_HAS_EID
-      val->v_u32 += 1UL << (EP_BUTTON);
 #endif
 #if HUMIDITY_ENABLE
       val->v_u32 += 1UL << (EP_HUMIDITY);
@@ -414,10 +400,6 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
 #endif
 #if SHUTTER_ENABLE
       val->v_u32 += 1UL << (EP_SHUTTER);
-#endif
-#if HEXAPUSH_ENABLE
-      val->v_u32 += 1UL << (EP_HEXAPUSH_PRESSED);
-      val->v_u32 += 1UL << (EP_HEXAPUSH_CLICKED);
 #endif
 #if PRESENCE_DETECTOR_ENABLE
       val->v_u32 += 1UL << (EP_PRESENCE_DETECTOR);
@@ -512,16 +494,6 @@ void endpoint_read(uint32_t eid, struct hxb_value* val) // read access to an end
     case EP_SHUTTER:
       val->datatype = HXB_DTYPE_UINT8;
       val->v_u8 = shutter_get_state();
-      break;
-#endif
-#if HEXAPUSH_ENABLE
-    case EP_HEXAPUSH_PRESSED:  //Pressed und released
-      val->datatype = HXB_DTYPE_UINT8;
-      val->v_u8 = hexapush_get_pressed();
-      break;
-    case EP_HEXAPUSH_CLICKED: //Clicked
-      val->datatype = HXB_DTYPE_UINT8;
-      val->v_u8 = hexapush_get_clicked();
       break;
 #endif
 #if PRESENCE_DETECTOR_ENABLE

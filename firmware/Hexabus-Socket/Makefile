@@ -4,7 +4,7 @@ all: ipso
 	 avr-size -C --mcu=atmega1284p Hexabus-Socket.elf
 #	 avr-size -C --mcu=atmega2561 Hexabus-Socket.elf
 #	 avr-size -C --mcu=atxmega256d3 Hexabus-Socket.elf
-APPS =hexabus-webserver udp_handler temperature button
+APPS =hexabus-webserver udp_handler temperature button endpoint_registry
 APPS +=datetime_service shutter relay state_machine button_handlers hexapush 
 APPS +=metering shutter relay provisioning value_broadcast hxb_broadcast_handler
 APPS +=endpoint_access presence_detector hexonoff analogread i2c humidity pressure 

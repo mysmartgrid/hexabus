@@ -8,6 +8,8 @@
 #include "value_broadcast.h"
 #include "endpoints.h"
 
+#include "endpoint_registry.h"
+
 #include <stdio.h>
 
 #if HEXAPUSH_DEBUG
@@ -21,16 +23,36 @@
 static uint8_t pressed_vector = 0;
 static uint8_t clicked_vector = 0;
 
+static prog_char ep_pressed[] = "Pressed Hexapush buttons";
+static prog_char ep_clicked[] = "Clicked Hexapush buttons";
 
-uint8_t hexapush_get_pressed()
+enum hxb_error_code read_pressed(uint32_t eid, struct hxb_value* value)
 {
-	return pressed_vector;
+	value->v_u8 = pressed_vector;
+	return HXB_ERR_SUCCESS;
 }
 
-uint8_t hexapush_get_clicked()
+enum hxb_error_code read_clicked(uint32_t eid, struct hxb_value* value)
 {
-	return pressed_vector;
+	value->v_u8 = clicked_vector;
+	return HXB_ERR_SUCCESS;
 }
+
+ENDPOINT_DESCRIPTOR endpoint_hexapush_pressed = {
+	.datatype = HXB_DTYPE_UINT8,
+	.eid = EP_HEXAPUSH_PRESSED,
+	.name = ep_pressed,
+	.read = read_pressed,
+	.write = 0
+};
+
+ENDPOINT_DESCRIPTOR endpoint_hexapush_clicked = {
+	.datatype = HXB_DTYPE_UINT8,
+	.eid = EP_HEXAPUSH_CLICKED,
+	.name = ep_clicked,
+	.read = read_clicked,
+	.write = 0
+};
 
 
 static void button_clicked(uint8_t button)
@@ -86,5 +108,8 @@ void hexapush_init()
 	HEXAPUSH_PORT |= HEXAPUSH_MASK;
 
 	BUTTON_REGISTER(buttons_hexapush, HEXAPUSH_BUTTON_COUNT);
+
+	ENDPOINT_REGISTER(endpoint_hexapush_pressed);
+	ENDPOINT_REGISTER(endpoint_hexapush_clicked);
 }
 
