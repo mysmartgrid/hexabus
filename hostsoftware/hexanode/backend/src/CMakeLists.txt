@@ -4,9 +4,11 @@ file(GLOB_RECURSE h_files "*.hpp,*.h")
 file(GLOB_RECURSE cpp_files "*.cpp")
 file(GLOB_RECURSE c_files "*.c")
 set(hexanode_src "hexanode.cpp")
+set(demo_generator_src "demo_generator.cpp")
 
 include_directories(
   ${CMAKE_SOURCE_DIR} 
+  ${CMAKE_SOURCE_DIR}/thirdparty/rapidjson/include
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR} 
   ${CMAKE_BINARY_DIR}/libhexanode
@@ -18,12 +20,21 @@ include_directories(
 #  )
 
 add_executable(hxbnode ${hexanode_src})
+add_executable(demo_generator ${demo_generator_src})
+
 # Link the executables
 target_link_libraries(hxbnode 
   hexanode
   pthread
   rtmidi
   ${HXB_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
+target_link_libraries(demo_generator
+  hexanode
+  ${CPPNETLIB_LIBRARIES}
+  ${OPENSSL_LIBRARIES}
   ${Boost_LIBRARIES}
 )
 
