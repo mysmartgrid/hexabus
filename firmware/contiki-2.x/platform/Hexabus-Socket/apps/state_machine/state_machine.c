@@ -260,6 +260,11 @@ void check_value_transitions(void* data)
   free(t);
 }
 
+static void broadcast_reset(void* data)
+{
+	broadcast_value(EP_SM_RESET_ID);
+}
+
 PROCESS_THREAD(state_machine_process, ev, data)
 {
   PROCESS_BEGIN();
@@ -300,11 +305,10 @@ PROCESS_THREAD(state_machine_process, ev, data)
 
   // If we've been cold-rebooted (power outage?), send out a broadcast telling everyone so.
   static struct ctimer sm_bootup_timer; // we need some time so the network can initialize
-  static uint32_t ep_sm_reset_id = EP_SM_RESET_ID;
   // assume it's a reboot if the timestamp (time since bootup) is less than 1 (second)
   if(getTimestamp() < 1 && !sm_id_is_zero()) { // only broadcast if ID is not 0 -- 0 is reserved for "no-auto-reset".
     PRINTF("State machine: Assuming reboot, broadcasting Reset-ID\n");
-    ctimer_set(&sm_bootup_timer, 3 * CLOCK_SECOND, broadcast_value_ptr, (void*)&ep_sm_reset_id); // TODO do we want the timeout configurable?
+    ctimer_set(&sm_bootup_timer, 3 * CLOCK_SECOND, broadcast_reset, NULL); // TODO do we want the timeout configurable?
   }
 
   while(sm_is_running())
@@ -341,7 +345,6 @@ PROCESS_THREAD(state_machine_process, ev, data)
 
         // check the values + endpoints.
         check_value_transitions(data);
-        free(data);
 
         PRINTF("state machine: Now in state: %d\r\n", curState);
       }

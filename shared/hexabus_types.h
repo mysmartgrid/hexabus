@@ -39,6 +39,12 @@ enum hxb_error_code {
 	HXB_ERR_CRCFAILED     = 0x03, // A packet failed the CRC check -- TODO How can we find out what information was lost?
 	HXB_ERR_DATATYPE      = 0x04, // A packet with a datatype that does not fit the endpoint was received
 	HXB_ERR_INVALID_VALUE = 0x05, // A value was encountered that cannot be interpreted
+
+	// internal error values
+	HXB_ERR_INTERNAL         = 0x80, // this is just a flag.
+
+	HXB_ERR_MALFORMED_PACKET = 0x80,
+	HXB_ERR_UNEXPECTED_PACKET = 0x81
 };
 
 // Operators for comparison in state machine

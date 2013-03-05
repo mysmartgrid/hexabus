@@ -40,6 +40,7 @@
 #include "sys/ctimer.h"
 #include "hexabus_config.h"
 #include "state_machine.h"
+#include "packet_builder.h"
 #include "endpoint_registry.h"
 
 #include "../../../../../../shared/hexabus_packet.h"
@@ -55,8 +56,6 @@
 #define SEND_INTERVAL CLOCK_SECOND * VALUE_BROADCAST_AUTO_INTERVAL
 #define SEND_TIME (random_rand() % (SEND_INTERVAL))
 
-process_event_t immediate_broadcast_event;
-
 static struct uip_udp_conn *client_conn;
 static uip_ipaddr_t server_ipaddr;
 
@@ -69,28 +68,35 @@ AUTOSTART_PROCESSES(&value_broadcast_process);
 /*---------------------------------------------------------------------------*/
 void broadcast_to_self(struct hxb_value* val, uint32_t eid)
 {
-
 #if STATE_MACHINE_ENABLE
-
-  struct hxb_envelope* envelope = malloc(sizeof(struct hxb_envelope));
-  memset(envelope->source, 0x00,15);
-  memset((envelope->source)+15,0x01,1);
-  envelope->eid = eid;
-  memcpy(&envelope->value, val, sizeof(struct hxb_value));
-  process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
+  struct hxb_envelope envelope = {
+		.source = { 0 },
+		.eid = eid,
+		.value = *val
+ 	};
+	envelope.source[15] = 1;
+  process_post_synch(PROCESS_BROADCAST, sm_data_received_event, &envelope);
   PRINTF("value_broadcast: Sending EID %ld to own state machine.\n", eid);
-
 #endif
 }
 
-void broadcast_value_ptr(void* eidp) { // when called from a callback timer or event, we get a void*
-  broadcast_value(*(uint32_t*)eidp);
+static void broadcast_value_ptr(void* data)
+{
+	broadcast_value(*(uint32_t*) data);
 }
 
 void broadcast_value(uint32_t eid)
 {
+	union hxb_packet_any packet;
   struct hxb_value val;
+
+	// link binary blobs and strings
+	val.v_string = packet.p_128string.value;
   endpoint_read(eid, &val);
+
+	packet.value_header.type = HXB_PTYPE_INFO;
+	packet.value_header.eid = eid;
+	packet.value_header.datatype = val.datatype;
 
   uint32_t localonly[] = { VALUE_BROADCAST_LOCAL_ONLY_EIDS };
   broadcast_to_self(&val, eid);
@@ -115,65 +121,38 @@ void broadcast_value(uint32_t eid)
     switch(val.datatype)
     {
       case HXB_DTYPE_BOOL:
-      case HXB_DTYPE_UINT8:;
-        struct hxb_packet_int8 packet8;
-        strncpy(packet8.header, HXB_HEADER, 4);
-        packet8.type = HXB_PTYPE_INFO;
-        packet8.flags = 0;
-        packet8.eid = uip_htonl(eid);
-        packet8.datatype = val.datatype;
-        packet8.value = val.v_u8;
-        packet8.crc = uip_htons(crc16_data((unsigned char*)&packet8, sizeof(packet8)-2, 0));
+      case HXB_DTYPE_UINT8:
+				packet.p_u8.value = val.v_u8;
+				packet_finalize_u8(&packet.p_u8);
 
-        uip_udp_packet_sendto(client_conn, &packet8, sizeof(packet8),
-            &server_ipaddr, UIP_HTONS(HXB_PORT));
-        break;
-      case HXB_DTYPE_UINT32:;
-        struct hxb_packet_int32 packet32;
-        strncpy(packet32.header, HXB_HEADER, 4);
-        packet32.type = HXB_PTYPE_INFO;
-        packet32.flags = 0;
-        packet32.eid = uip_htonl(eid);
-        packet32.datatype = val.datatype;
-        packet32.value = uip_htonl(val.v_u32);
-        packet32.crc = uip_htons(crc16_data((unsigned char*)&packet32, sizeof(packet32)-2, 0));
+				uip_udp_packet_sendto(client_conn, &packet.p_u8, sizeof(packet.p_u8),
+						&server_ipaddr, UIP_HTONS(HXB_PORT));
+				break;
 
-        uip_udp_packet_sendto(client_conn, &packet32, sizeof(packet32),
-            &server_ipaddr, UIP_HTONS(HXB_PORT));
-        break;
-      case HXB_DTYPE_FLOAT:;
-        struct hxb_packet_float packetf;
-        strncpy(packetf.header, HXB_HEADER, 4);
-        packetf.type = HXB_PTYPE_INFO;
-        packetf.flags = 0;
-        packetf.eid = uip_htonl(eid);
-        packetf.datatype = val.datatype;
-				union {
-					float f;
-					uint32_t u;
-				} fconv;
-				fconv.f = val.v_float;
-				fconv.u = uip_htonl(fconv.u);
-        packetf.value = fconv.f;
-        packetf.crc = uip_htons(crc16_data((unsigned char*)&packetf, sizeof(packetf)-2, 0));
+      case HXB_DTYPE_UINT32:
+				packet.p_u32.value = val.v_u32;
+				packet_finalize_u32(&packet.p_u32);
 
-        uip_udp_packet_sendto(client_conn, &packetf, sizeof(packetf),
-            &server_ipaddr, UIP_HTONS(HXB_PORT));
+				uip_udp_packet_sendto(client_conn, &packet.p_u32, sizeof(packet.p_u32),
+						&server_ipaddr, UIP_HTONS(HXB_PORT));
         break;
-      case HXB_DTYPE_16BYTES:;
-        struct hxb_packet_16bytes packet16;
-        strncpy(packet16.header, HXB_HEADER, 4);
-        packet16.type = HXB_PTYPE_INFO;
-        packet16.flags = 0;
-        packet16.eid = uip_htonl(eid);
-        packet16.datatype = val.datatype;
-        memcpy(packet16.value, val.v_binary, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
-        free(val.v_binary);
-        packet16.crc = uip_htons(crc16_data((unsigned char*)&packet16, sizeof(packet16)-2, 0));
 
-        uip_udp_packet_sendto(client_conn, &packet16, sizeof(packet16),
-          &server_ipaddr, UIP_HTONS(HXB_PORT));
-        break;
+      case HXB_DTYPE_FLOAT:
+				packet.p_float.value = val.v_float;
+				packet_finalize_float(&packet.p_float);
+
+				uip_udp_packet_sendto(client_conn, &packet.p_float, sizeof(packet.p_float),
+						&server_ipaddr, UIP_HTONS(HXB_PORT));
+				break;
+
+      case HXB_DTYPE_16BYTES:
+				memcpy(packet.p_16bytes.value, val.v_binary, sizeof(packet.p_16bytes.value));
+				packet_finalize_16bytes(&packet.p_16bytes);
+
+				uip_udp_packet_sendto(client_conn, &packet.p_16bytes, sizeof(packet.p_16bytes),
+						&server_ipaddr, UIP_HTONS(HXB_PORT));
+				break;
+
       default:
         PRINTF("value_broadcast: Datatype unknown.\r\n");
     }
@@ -257,13 +236,6 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
       {
         ctimer_set(&backoff_timer[i], SEND_TIME, broadcast_value_ptr, (void*)&auto_eids[i]);
       }
-    }
-
-    if(ev == immediate_broadcast_event)
-    {
-      PRINTF("Value_broadcast: Received immediate_broadcast_event -- EID: %ld\r\n", *(uint32_t*)data);
-      broadcast_value_ptr(data);
-      free(data);
     }
   }
 

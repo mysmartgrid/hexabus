@@ -6,120 +6,114 @@
 #include "hexabus_definitions.h"
 #include "hexabus_types.h"
 
-// ======================================================================
-// Structs for building and reading Hexabus packets
+#define HXB_PACKET_HEADER \
+	char    magic[sizeof(HXB_HEADER)];   /* HXB_HEADER, of course      */\
+	uint8_t type;                        /* actually enum hxb_datatype */\
+	uint8_t flags;                       /* unused                     */
 
-// Just the packet header. You can cast to a pointer to this in order to find out the packet type and flags
+#define HXB_PACKET_FOOTER \
+	uint16_t crc;                        /* CRC16-Kermit / Contiki's crc16_data() */
+
 struct hxb_packet_header {
-  char      header[4];  // HX0B
-  uint8_t   type;       // Packet type
-  uint8_t   flags;      // Flags
-  uint32_t  eid;        // Endpoint ID / Error code if it's an error packet
-  uint8_t   datatype;   // Datatype / first 8 bits of the CRC if it's an error packet
-} __attribute__ ((packed));
+	HXB_PACKET_HEADER
+} __attribute__((packed));
 
-// ERROR packet
+#define HXB_EIDPACKET_HEADER \
+	HXB_PACKET_HEADER \
+	uint32_t eid;
+
+struct hxb_eidpacket_header {
+	HXB_EIDPACKET_HEADER
+} __attribute__((packed));
+
 struct hxb_packet_error {
-  char      header[4];
-  uint8_t   type;
-  uint8_t   flags;
-  uint8_t   errorcode;
-  uint16_t  crc;
-} __attribute__ ((packed));
+	HXB_PACKET_HEADER
+	uint8_t error_code;                  /* actually enum hxb_error_code */
+	HXB_PACKET_FOOTER
+} __attribute__((packed));
 
-// QUERY packet
+// used for QUERY and EPQUERY
 struct hxb_packet_query {
-  char      header[4];
-  uint8_t   type;
-  uint8_t   flags;
-  uint32_t  eid;        // Endpoint ID
-  uint16_t  crc;       // CRC16-Kermit / Contiki's crc16_data()
-} __attribute__ ((packed));
+	HXB_EIDPACKET_HEADER
+	HXB_PACKET_FOOTER
+} __attribute__((packed));
 
-// Structs for WRITE and INFO packets -- since the payload comes in different sizes, we need several structs
-// WRITE/INFO packet for BOOL and INT8
-struct hxb_packet_int8 {
-  char      header[4];
-  uint8_t   type;
-  uint8_t   flags;
-  uint32_t  eid;
-  uint8_t   datatype;
-  uint8_t   value;
-  uint16_t  crc;
-} __attribute__ ((packed));
+#define HXB_VALUEPACKET_HEADER \
+	HXB_EIDPACKET_HEADER \
+	uint8_t datatype;                    /* actually enum hxb_datatype */
 
-// WRITE/INFO packet for INT32
-struct hxb_packet_int32 {
-  char      header[4];
-  uint8_t   type;
-  uint8_t   flags;
-  uint32_t  eid;
-  uint8_t   datatype;
-  uint32_t  value;
-  uint16_t  crc;
-} __attribute__ ((packed));
+struct hxb_valuepacket_header {
+	HXB_VALUEPACKET_HEADER
+} __attribute__((packed));
 
-// DATE/TIME
+// used for BOOL und UINT(
+struct hxb_packet_u8 {
+	HXB_VALUEPACKET_HEADER
+	uint8_t value;
+	HXB_PACKET_FOOTER
+} __attribute__((packed));
+
+// used for UINT32 and TIMESTAMP
+struct hxb_packet_u32 {
+	HXB_VALUEPACKET_HEADER
+	uint32_t value;
+	HXB_PACKET_FOOTER
+} __attribute__((packed));
+
 struct hxb_packet_datetime {
-    char      header[4];
-    uint8_t   type;
-    uint8_t   flags;
-    uint32_t  eid;
-    uint8_t   datatype;
-    struct hxb_datetime  value;
-    uint16_t  crc;
-} __attribute__ ((packed));
+	HXB_VALUEPACKET_HEADER
+	struct hxb_datetime value;
+	HXB_PACKET_FOOTER
+} __attribute__((packed));
 
-// WRITE/INFO packet for FLOAT -- basically the same format as int32, but with datatype float instead
-// TODO can't we just use the packet_int32 here? We're casting it to int32 for byte order conversions anyway
 struct hxb_packet_float {
-  char      header[4];
-  uint8_t   type;
-  uint8_t   flags;
-  uint32_t  eid;
-  uint8_t   datatype;
-  float     value;
-  uint16_t  crc;
-} __attribute__ ((packed));
+	HXB_VALUEPACKET_HEADER
+	float value;
+	HXB_PACKET_FOOTER
+} __attribute__((packed));
 
 #define HXB_STRING_PACKET_MAX_BUFFER_LENGTH 127
-// WRITE/INFO packet for 128 char fixed length string or EPINFO packet
 struct hxb_packet_128string {
-  char      header[4];
-  uint8_t   type;
-  uint8_t   flags;
-  uint32_t  eid;
-  uint8_t   datatype;     // this is set to the datatype of the endpoint if it's an EPINFO packet!
-  char      value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1];
-  uint16_t  crc;
-} __attribute__ ((packed));
-
+	HXB_VALUEPACKET_HEADER
+	char value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1];
+	HXB_PACKET_FOOTER
+} __attribute__((packed));
 // the hxb_packet_128string was determined to be the largest packet a hexabus network can see
 // should this ever change, increase this, otherwise libhexabus (among others) will break.
 #define HXB_MAX_PACKET_SIZE (sizeof(hxb_packet_128string))
 
 #define HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH 65
-// WRITE/INFO packet for 66 byte string: 1 byte control data, 64 byte payload
 struct hxb_packet_66bytes {
-  char      header[4];
-  uint8_t   type;
-  uint8_t   flags;
-  uint32_t  eid;
-  uint8_t   datatype;
-  char      value[HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH];
-  uint16_t  crc;
-} __attribute__ ((packed));
+	HXB_VALUEPACKET_HEADER
+	char value[HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH];
+	HXB_PACKET_FOOTER
+} __attribute__((packed));
 
 #define HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH 16
 struct hxb_packet_16bytes {
-  char      header[4];
-  uint8_t   type;
-  uint8_t   flags;
-  uint32_t  eid;
-  uint8_t   datatype;
-  char      value[HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH];
-  uint16_t  crc;
-} __attribute__ ((packed));
+	HXB_VALUEPACKET_HEADER
+	char value[HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH];
+	HXB_PACKET_FOOTER
+} __attribute__((packed));
+
+
+
+union hxb_packet_any {
+	struct hxb_packet_header header;
+	struct hxb_eidpacket_header eid_header;
+	struct hxb_valuepacket_header value_header;
+
+	struct hxb_packet_error p_error;
+	struct hxb_packet_query p_query;
+	struct hxb_packet_u8 p_u8;
+	struct hxb_packet_u32 p_u32;
+	struct hxb_packet_datetime p_datetime;
+	struct hxb_packet_float p_float;
+	struct hxb_packet_128string p_128string;
+	struct hxb_packet_66bytes p_66bytes;
+	struct hxb_packet_16bytes p_16bytes;
+};
+
 
 
 // ======================================================================
@@ -131,5 +125,10 @@ struct hxb_envelope {
     uint32_t          eid;
     struct hxb_value  value;
 };
+
+#undef HXB_PACKET_HEADER
+#undef HXB_PACKET_FOOTER
+#undef HXB_EIDPACKET_HEADER
+#undef HXB_VALUEPACKET_HEADER
 
 #endif

@@ -62,35 +62,29 @@ static enum hxb_error_code read_receiver(struct hxb_value* value)
 static enum hxb_error_code write_receiver(const struct hxb_value* value)
 {
 	PRINTF("SM: Attempting to write new chunk to EEPROM\n");
-	struct hxb_value val;
-	val.datatype=HXB_DTYPE_BOOL;
+	struct hxb_packet_u8 result = {
+		.type = HXB_PTYPE_INFO,
+		.datatype = HXB_DTYPE_BOOL,
+		.eid = EP_SM_UP_ACKNAK
+	};
 	if (value->datatype == HXB_DTYPE_66BYTES) {
-		char* payload = value->v_string;
-		uint8_t chunk_id = (uint8_t)payload[0];
-		if (sm_write_chunk(chunk_id, payload+1) == true) {
-			// send ACK to SM_SENDER
-			PRINTF("SENDING ACK");
-			val.v_bool = HXB_TRUE;
-			struct hxb_packet_int8 packet = make_value_packet_int8(EP_SM_UP_ACKNAK, &val);
-			send_packet((char*)&packet, sizeof(packet));
-			return HXB_ERR_SUCCESS;
-		} else {
-			// send NAK to SM_SENDER
-			PRINTF("SENDING NAK");
-			val.v_bool = HXB_FALSE;
-			struct hxb_packet_int8 packet = make_value_packet_int8(EP_SM_UP_ACKNAK, &val);
-			send_packet((char*)&packet, sizeof(packet));
-			return HXB_ERR_INVALID_VALUE;
-		}
+		char* payload = value->v_binary;
+		uint8_t chunk_id = (uint8_t) payload[0];
+		result.value = sm_write_chunk(chunk_id, payload + 1);
+		packet_finalize_u8(&result);
+		PRINTF(result.value ? "SENDING ACK" : "SENDING NACK");
+		send_packet(&result, sizeof(result));
+		return result.value
+			? HXB_ERR_SUCCESS
+			: HXB_ERR_INVALID_VALUE;
 	} else {
 		// send NAK to SM_SENDER
 		PRINTF("SENDING ERROR DATATYPE");
-		val.v_bool = HXB_FALSE;
-		struct hxb_packet_int8 packet = make_value_packet_int8(EP_SM_UP_ACKNAK, &val);
-		send_packet((char*)&packet, sizeof(packet));
+		result.value = HXB_FALSE;
+		packet_finalize_u8(&result);
+		send_packet(&result, sizeof(result));
 		return HXB_ERR_DATATYPE;
 	}
-	return HXB_ERR_SUCCESS;
 }
 
 static const char ep_receiver_name[] PROGMEM = "Statemachine Upload Receiver";
@@ -120,10 +114,7 @@ ENDPOINT_DESCRIPTOR endpoint_sm_upload_acknack = {
 static enum hxb_error_code read_reset(struct hxb_value* value)
 {
 	PRINTF("READ on SM_RESET_ID EP occurred\n");
-	char* b = malloc(HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
-	if (b != NULL)
-		sm_get_id(b);
-	value->v_binary = b;
+	sm_get_id(value->v_binary);
 	return HXB_ERR_SUCCESS;
 }
 

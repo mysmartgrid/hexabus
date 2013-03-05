@@ -16,93 +16,79 @@
 #define PRINTLLADDR(addr)
 #endif
 
-struct hxb_packet_float make_value_packet_float(uint32_t eid, struct hxb_value* val)
+static void finalize_header(struct hxb_eidpacket_header* header)
 {
-  struct hxb_packet_float packet;
-  strncpy(packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_INFO;
-  packet.flags = 0;
-  PRINTF("Packet builder - EID: %d\n", eid);
-  packet.eid = uip_htonl(eid);
-
-  packet.datatype = val->datatype;
-  // uip_htonl works on 32bit-int
-  uint32_t value_nbo = uip_htonl(val->v_u32);
-  packet.value = *(float*)&value_nbo;
-
-  packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet)-2, 0));
-  PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%d\r\nValue:\t%lx\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, uip_ntohl(packet.eid), packet.value, uip_ntohs(packet.crc)); // printf can handle float?
-  return packet;
+	strncpy(header->magic, HXB_HEADER, strlen(HXB_HEADER));
+	header->flags = 0;
+	header->eid = uip_htonl(header->eid);
 }
 
-struct hxb_packet_int32 make_value_packet_int32(uint32_t eid, struct hxb_value* val)
+void packet_finalize_u8(struct hxb_packet_u8* packet)
 {
-  struct hxb_packet_int32 packet;
-  strncpy(packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_INFO;
-  packet.flags = 0;
-  packet.eid = uip_htonl(eid);
-
-  packet.datatype = val->datatype;
-  packet.value = uip_htonl(val->v_u32);
-
-  packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet)-2, 0));
-  PRINTF("Build packet:\n\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%ld\r\nValue:\t%d\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, uip_ntohl(packet.eid), uip_ntohl(packet.value), uip_ntohs(packet.crc)); // printf behaves strange here?
-  return packet;
+	finalize_header((struct hxb_eidpacket_header*) packet);
+	packet->crc = crc16_data((unsigned char*) packet, sizeof(*packet) - 2, 0);
 }
 
-struct hxb_packet_128string make_epinfo_packet(uint32_t eid)
+void packet_finalize_u32(struct hxb_packet_u32* packet)
 {
-  struct hxb_packet_128string packet;
-  strncpy(packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_EPINFO;
-  packet.flags = 0;
-  packet.eid = uip_htonl(eid);
+	finalize_header((struct hxb_eidpacket_header*) packet);
 
-  packet.datatype = endpoint_get_datatype(eid);
-  endpoint_get_name(eid, packet.value, HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
-
-  packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet)-2, 0));
-
-  return packet;
+	packet->value = uip_htonl(packet->value);
+	packet->crc = crc16_data((unsigned char*) packet, sizeof(*packet) - 2, 0);
 }
 
-struct hxb_packet_int8 make_value_packet_int8(uint32_t eid, struct hxb_value* val)
+void packet_finalize_datetime(struct hxb_packet_datetime* packet)
 {
-  struct hxb_packet_int8 packet;
-  strncpy(packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_INFO;
-  packet.flags = 0;
-  packet.eid = uip_htonl(eid);
+	finalize_header((struct hxb_eidpacket_header*) packet);
 
-  packet.datatype = val->datatype;
-  packet.value = val->v_u8;
-
-  packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet)-2, 0));
-
-  PRINTF("Build packet:\nType:\t%d\r\nFlags:\t%d\r\nEID:\t%u\r\n",
-          packet.type, packet.flags, uip_ntohl(packet.eid));
-  PRINTF("Dtype:\t%d\r\nValue:\t%d\r\nCRC:\t%u\r\n",
-          packet.datatype, packet.value, uip_ntohs(packet.crc));
-
-  return packet;
+	packet->value.year = uip_htons(packet->value.year);
+	packet->crc = crc16_data((unsigned char*) packet, sizeof(*packet) - 2, 0);
 }
 
-struct hxb_packet_error make_error_packet(uint8_t errorcode)
+void packet_finalize_float(struct hxb_packet_float* packet)
 {
-  struct hxb_packet_error packet;
-  strncpy(packet.header, HXB_HEADER, 4);
-  packet.type = HXB_PTYPE_ERROR;
+	finalize_header((struct hxb_eidpacket_header*) packet);
 
-  packet.flags = 0;
-  packet.errorcode = errorcode;
-  packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet)-2, 0));
+	union {
+		float f;
+		uint32_t u;
+	} fconv;
 
-  PRINTF("Built packet:\r\nType:\t%d\r\nFlags:\t%d\r\nError Code:\t%d\r\nCRC:\t%u\r\n\r\n",
-    packet.type, packet.flags, packet.errorcode, uip_ntohs(packet.crc));
+	fconv.f = packet->value;
+	fconv.u = uip_htonl(fconv.u);
 
-  return packet;
+	packet->value = fconv.f;
+	packet->crc = crc16_data((unsigned char*) packet, sizeof(*packet) - 2, 0);
+}
+
+void packet_finalize_128string(struct hxb_packet_128string* packet)
+{
+	finalize_header((struct hxb_eidpacket_header*) packet);
+	packet->crc = crc16_data((unsigned char*) packet, sizeof(*packet) - 2, 0);
+}
+
+void packet_finalize_66bytes(struct hxb_packet_66bytes* packet)
+{
+	finalize_header((struct hxb_eidpacket_header*) packet);
+	packet->crc = crc16_data((unsigned char*) packet, sizeof(*packet) - 2, 0);
+}
+
+void packet_finalize_16bytes(struct hxb_packet_16bytes* packet)
+{
+	finalize_header((struct hxb_eidpacket_header*) packet);
+	packet->crc = crc16_data((unsigned char*) packet, sizeof(*packet) - 2, 0);
+}
+
+struct hxb_packet_error make_error_packet(enum hxb_error_code code)
+{
+	struct hxb_packet_error packet;
+	strncpy(packet.magic, HXB_HEADER, strlen(HXB_HEADER));
+	packet.type = HXB_PTYPE_ERROR;
+
+	packet.flags = 0;
+	packet.error_code = code;
+	packet.crc = uip_htons(crc16_data((unsigned char*)&packet, sizeof(packet) - 2, 0));
+
+	return packet;
 }
 
