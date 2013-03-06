@@ -95,7 +95,7 @@ SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
   "1.49.0" "1.49" "1.50.0" "1.50")
 SET(Boost_DETAILED_FAILURE_MSG true)
 FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS 
-  test_exec_monitor program_options filesystem system thread)
+  test_exec_monitor program_options filesystem system thread regex)
 
 # Reflect the package structure
 add_subdirectory(src)
