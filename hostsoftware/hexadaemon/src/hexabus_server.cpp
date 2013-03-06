@@ -7,6 +7,8 @@
 #include <fstream>
 
 #include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
+#include <boost/lexical_cast.hpp>
 
 using namespace hexadaemon;
 
@@ -84,28 +86,63 @@ void HexabusServer::broadcast_handler(const boost::system::error_code& error)
 
 int HexabusServer::getFluksoValue()
 {
+	updateFluksoValues();
+	int result = 0;
+
+	for ( std::map<std::string, uint16_t>::iterator it = _flukso_values.begin(); it != _flukso_values.end(); it++ )
+		result += it->second;
+
+	return result;
+}
+
+void HexabusServer::updateFluksoValues()
+{
 	bf::path p("/var/run/fluksod/sensor/");
 
 	if ( exists(p) && is_directory(p) )
 	{
+		std::ifstream file;
 		for ( bf::directory_iterator sensors(p); sensors != bf::directory_iterator(); sensors++ )
 		{
-			std::cout << (*sensors).path().filename() << ": ";
-
 			std::string filename = (*sensors).path().filename().string();
 
-			unsigned short hash[16];
-			for ( unsigned int pos = 0; 2*pos < 16; pos++ )
+			boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> data;
+			unsigned short hash;
+			for ( unsigned int pos = 0; pos < 16; pos++ )
 			{
 				std::stringstream ss(filename.substr(2*pos, 2));
-
-				ss >> std::hex >> hash[pos];
-
-				std::cout << hash[pos] << ", ";
+				ss >> std::hex >> hash;
+				data[pos] = hash;
 			}
-			std::cout << std::endl;
+
+			file.open((*sensors).path().string().c_str());
+			std::string flukso_data;
+			file >> flukso_data;
+			file.close();
+			std::cout << "flukso_data: " << flukso_data << std::endl;
+			boost::regex r("^\\[(?:\\[[[:digit:]]*,[[:digit:]]*\\],)*\\[[[:digit:]]*,([[:digit:]]*)\\],(?:\\[[[:digit:]]*,\"nan\"\\],?)+\\]$");
+			boost::match_results<std::string::const_iterator> what;
+
+			if ( !boost::regex_search(flukso_data, what, r))
+				break;
+
+			uint16_t value = boost::lexical_cast<uint16_t>(std::string(what[1].first, what[1].second));
+
+			_flukso_values[filename] = value;
+
+			union {
+				uint16_t u16;
+				char raw[sizeof(u16)];
+			} c = { htons(value) };
+			for ( unsigned int pos = 0; pos < sizeof(uint16_t); pos++ )
+			{
+				data[16+pos] = c.raw[pos];
+			}
+
+			for ( unsigned int pos = 16 + sizeof(uint16_t); pos < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; pos++ )
+				data[pos] = 0;
+
+			_socket.send(hexabus::InfoPacket< boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(21, data));
 		}
 	}
-	
-	return 0;
 }

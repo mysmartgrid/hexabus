@@ -23,8 +23,10 @@ namespace hexadaemon {
 		private:
 			hexabus::Socket _socket;
 			boost::asio::deadline_timer _timer;
+			std::map<std::string, uint16_t> _flukso_values;
 
 			int getFluksoValue();
+			void updateFluksoValues();
 	};
 }
 
