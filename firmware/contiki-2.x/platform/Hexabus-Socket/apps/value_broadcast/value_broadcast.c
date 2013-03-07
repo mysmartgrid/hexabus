@@ -153,6 +153,11 @@ void broadcast_value(uint32_t eid)
 						&server_ipaddr, UIP_HTONS(HXB_PORT));
 				break;
 
+			case HXB_DTYPE_DATETIME:
+			case HXB_DTYPE_128STRING:
+			case HXB_DTYPE_TIMESTAMP:
+			case HXB_DTYPE_66BYTES:
+			case HXB_DTYPE_UNDEFINED:
       default:
         PRINTF("value_broadcast: Datatype unknown.\r\n");
     }

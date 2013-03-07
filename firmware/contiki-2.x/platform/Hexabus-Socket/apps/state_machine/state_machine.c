@@ -170,6 +170,11 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
         return getTimestamp() - inStateSince >= cond.value.v_u32;
       }
       break;
+
+		case HXB_DTYPE_128STRING:
+		case HXB_DTYPE_16BYTES:
+		case HXB_DTYPE_66BYTES:
+		case HXB_DTYPE_UNDEFINED:
     default:
       PRINTF("Datatype not implemented in state machine (yet).\r\n");
       return false;

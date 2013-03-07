@@ -75,10 +75,9 @@ struct hxb_datetime {
 
 // Struct for passing Hexabus values around
 // One struct for all data types (except 128string, because that'd need too much memory), with a datatype flag indicating which
-// of the values is used. Used for passing values to and from
-// endpoint_access
+// of the values is used. Used for passing values to and from endpoint_access
 struct hxb_value {
-  uint8_t   datatype;   // Datatype that is used, or HXB_DTYPE_UNDEFINED
+	enum hxb_datatype       datatype;   // Datatype that is used, or HXB_DTYPE_UNDEFINED
 	union {
 		uint8_t             v_bool;
 		uint8_t             v_u8;

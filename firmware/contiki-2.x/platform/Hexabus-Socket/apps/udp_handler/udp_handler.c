@@ -100,7 +100,7 @@ static enum hxb_error_code check_crc(const union hxb_packet_any* packet)
 {
 	uint16_t data_len = 0;
 	uint16_t crc = 0;
-	switch (packet->header.type) {
+	switch ((enum hxb_packet_type) packet->header.type) {
 		case HXB_PTYPE_ERROR:
 			data_len = sizeof(packet->p_error);
 			crc = packet->p_error.crc;
@@ -108,7 +108,7 @@ static enum hxb_error_code check_crc(const union hxb_packet_any* packet)
 
 		case HXB_PTYPE_INFO:
 		case HXB_PTYPE_WRITE:
-			switch (packet->value_header.datatype) {
+			switch ((enum hxb_datatype) packet->value_header.datatype) {
 				case HXB_DTYPE_BOOL:
 				case HXB_DTYPE_UINT8:
 					data_len = sizeof(packet->p_u8);
@@ -146,6 +146,7 @@ static enum hxb_error_code check_crc(const union hxb_packet_any* packet)
 					crc = packet->p_16bytes.crc;
 					break;
 
+				case HXB_DTYPE_UNDEFINED:
 				default:
 					return HXB_ERR_MALFORMED_PACKET;
 			}
@@ -218,6 +219,7 @@ static enum hxb_error_code extract_value(union hxb_packet_any* packet, struct hx
 			value->v_binary = packet->p_16bytes.value;
 			break;
 
+		case HXB_DTYPE_UNDEFINED:
 		default:
 			PRINTF("Packet of unknown datatype.\r\n");
 			return HXB_ERR_DATATYPE;
@@ -316,6 +318,7 @@ static enum hxb_error_code handle_query(struct hxb_packet_query* query)
 			len = sizeof(result.p_16bytes);
 			break;
 
+		case HXB_DTYPE_UNDEFINED:
 		default:
 			return HXB_ERR_DATATYPE;
 	}
@@ -409,7 +412,7 @@ udphandler(process_event_t ev, process_data_t data)
 					return;
 				}
 
-				switch (packet->header.type) {
+				switch ((enum hxb_packet_type) packet->header.type) {
 					case HXB_PTYPE_WRITE:
 						err = handle_write(packet);
 						break;
@@ -426,6 +429,8 @@ udphandler(process_event_t ev, process_data_t data)
 						err = handle_info(packet);
 						break;
 
+					case HXB_PTYPE_ERROR:
+					case HXB_PTYPE_EPINFO:
 					default:
 						PRINTF("packet of type %d received, but we do not know what to do with that (yet)\r\n", header->type);
 						err = HXB_ERR_UNEXPECTED_PACKET;

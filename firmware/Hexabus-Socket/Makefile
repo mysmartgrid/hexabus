@@ -15,7 +15,7 @@ CONTIKI=../contiki-2.x
 #CONTIKI=../contiki-2.4
 include $(CONTIKI)/Makefile.include
 
-CFLAGS += -Wall -Werror -Wno-unused
+CFLAGS += -Wall -Werror -Wno-unused -Wswitch-enum
 
 flash-jtag2: 
 	avrdude -c jtag2 -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F 
