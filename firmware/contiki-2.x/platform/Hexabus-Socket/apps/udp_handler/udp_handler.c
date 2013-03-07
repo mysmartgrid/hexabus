@@ -336,6 +336,14 @@ static enum hxb_error_code handle_epquery(const struct hxb_packet_query* query)
 		return HXB_ERR_UNKNOWNEID;
 	}
 
+	enum hxb_error_code err;
+
+	err = endpoint_get_name(result.eid, result.value, HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
+	result.value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH] = '\0';
+	if (err) {
+		return err;
+	}
+
 	send_packet(&result, sizeof(result));
 	return HXB_ERR_SUCCESS;
 }
