@@ -120,7 +120,7 @@ void HexabusServer::updateFluksoValues()
 			file >> flukso_data;
 			file.close();
 			std::cout << "flukso_data: " << flukso_data << std::endl;
-			boost::regex r("^\\[(?:\\[[[:digit:]]*,[[:digit:]]*\\],)*\\[[[:digit:]]*,([[:digit:]]*)\\],(?:\\[[[:digit:]]*,\"nan\"\\],?)+\\]$");
+			boost::regex r("^\\[(?:\\[[[:digit:]]*,[[:digit:]]*\\],)*\\[[[:digit:]]*,([[:digit:]]*)\\](?:,\\[[[:digit:]]*,\"nan\"\\])+\\]$");
 			boost::match_results<std::string::const_iterator> what;
 
 			if ( !boost::regex_search(flukso_data, what, r))
