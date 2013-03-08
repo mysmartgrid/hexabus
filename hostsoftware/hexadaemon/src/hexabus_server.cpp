@@ -132,7 +132,7 @@ void HexabusServer::updateFluksoValues()
 
 			union {
 				uint16_t u16;
-				char raw[sizeof(u16)];
+				char raw[sizeof(value)];
 			} c = { htons(value) };
 			for ( unsigned int pos = 0; pos < sizeof(uint16_t); pos++ )
 			{
