@@ -19,7 +19,7 @@ HexabusServer::HexabusServer(boost::asio::io_service& io)
 	: _socket(io)
 	, _timer(io)
 {
-	_socket.listen(boost::asio::ip::address_v6::from_string("::1"));
+	_socket.listen(boost::asio::ip::address_v6::from_string("::"));
 	_socket.onPacketReceived(boost::bind(&HexabusServer::epqueryhandler, this, _1, _2), hf::isEndpointQuery());
 	_socket.onPacketReceived(boost::bind(&HexabusServer::eid0handler, this, _1, _2), hf::isQuery() && hf::eid() == 0);
 	_socket.onPacketReceived(boost::bind(&HexabusServer::eid2handler, this, _1, _2), hf::isQuery() && hf::eid() == 2);
