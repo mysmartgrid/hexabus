@@ -6,7 +6,6 @@
 #include "udp_handler.h"
 #include "state_machine.h"
 #include "value_broadcast.h"
-#include "packet_builder.h"
 
 #include <stdlib.h>
 
@@ -59,30 +58,30 @@ static enum hxb_error_code read_receiver(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
+static enum hxb_error_code send_acknack(union hxb_packet_any* packet, void* data)
+{
+	packet->p_u8.type = HXB_PTYPE_INFO;
+	packet->p_u8.datatype = HXB_DTYPE_BOOL;
+	packet->p_u8.eid = EP_SM_UP_ACKNAK;
+	packet->p_u8.value = data != NULL;
+	return HXB_ERR_SUCCESS;
+}
+
 static enum hxb_error_code write_receiver(const struct hxb_value* value)
 {
 	PRINTF("SM: Attempting to write new chunk to EEPROM\n");
-	struct hxb_packet_u8 result = {
-		.type = HXB_PTYPE_INFO,
-		.datatype = HXB_DTYPE_BOOL,
-		.eid = EP_SM_UP_ACKNAK
-	};
 	if (value->datatype == HXB_DTYPE_66BYTES) {
 		char* payload = value->v_binary;
 		uint8_t chunk_id = (uint8_t) payload[0];
-		result.value = sm_write_chunk(chunk_id, payload + 1);
-		packet_finalize_u8(&result);
+		bool result = sm_write_chunk(chunk_id, payload + 1);
 		PRINTF(result.value ? "SENDING ACK" : "SENDING NACK");
-		send_packet(&result, sizeof(result));
-		return result.value
+		udp_handler_send_generated(NULL, 0, &send_acknack, result ? &result : NULL);
+		return result
 			? HXB_ERR_SUCCESS
 			: HXB_ERR_INVALID_VALUE;
 	} else {
 		// send NAK to SM_SENDER
 		PRINTF("SENDING ERROR DATATYPE");
-		result.value = HXB_FALSE;
-		packet_finalize_u8(&result);
-		send_packet(&result, sizeof(result));
 		return HXB_ERR_DATATYPE;
 	}
 }

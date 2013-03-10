@@ -1,6 +1,7 @@
 #include "endpoint_registry.h"
 
 #include <stddef.h>
+#include <stdbool.h>
 #include <avr/eeprom.h>
 
 #include "eeprom_variables.h"
@@ -84,16 +85,16 @@ static void synthesize_read_m32(uint32_t eid, struct hxb_value* value)
 	}
 }
 
-static uint8_t find_descriptor(uint32_t eid, struct endpoint_descriptor* result)
+static bool find_descriptor(uint32_t eid, struct endpoint_descriptor* result)
 {
 	for (struct endpoint_registry_entry* ep = _endpoint_chain; ep; ep = ep->next) {
 		if (descriptor_eid(ep) == eid) {
 			memcpy_P(result, ep->descriptor, sizeof(*result));
-			return 1;
+			return true;
 		}
 	}
 
-	return 0;
+	return false;
 }
 
 enum hxb_datatype endpoint_get_datatype(uint32_t eid)

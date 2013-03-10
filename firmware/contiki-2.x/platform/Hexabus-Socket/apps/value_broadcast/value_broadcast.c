@@ -40,8 +40,8 @@
 #include "sys/ctimer.h"
 #include "hexabus_config.h"
 #include "state_machine.h"
-#include "packet_builder.h"
 #include "endpoint_registry.h"
+#include "udp_handler.h"
 
 #include "../../../../../../shared/hexabus_packet.h"
 
@@ -85,83 +85,72 @@ static void broadcast_value_ptr(void* data)
 	broadcast_value(*(uint32_t*) data);
 }
 
-void broadcast_value(uint32_t eid)
+static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, void* data)
 {
-	union hxb_packet_any packet;
-  struct hxb_value val;
+	struct hxb_value val;
+
+	uint32_t eid = *((uint32_t*) data);
 
 	// link binary blobs and strings
-	val.v_string = packet.p_128string.value;
-  endpoint_read(eid, &val);
+	val.v_string = buffer->p_128string.value;
+	if (endpoint_read(eid, &val)) {
+		return HXB_ERR_SUCCESS;
+	}
 
-	packet.value_header.type = HXB_PTYPE_INFO;
-	packet.value_header.eid = eid;
-	packet.value_header.datatype = val.datatype;
+	buffer->value_header.type = HXB_PTYPE_INFO;
+	buffer->value_header.eid = eid;
+	buffer->value_header.datatype = val.datatype;
 
-  uint32_t localonly[] = { VALUE_BROADCAST_LOCAL_ONLY_EIDS };
-  broadcast_to_self(&val, eid);
+	uint32_t localonly[] = { VALUE_BROADCAST_LOCAL_ONLY_EIDS };
+	broadcast_to_self(&val, eid);
 
-  int i;
-  uint8_t lo = 0;
+	bool skip_send = false;
 
-  for(i=0; i<VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS; i++)
-  {
-    if(eid == localonly[i])
-    {
-      lo = 1;
-      break;
-    }
-  }
+	for (int i = 0; !skip_send && (i < VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS); i++) {
+		skip_send |= eid == localonly[i];
+	}
 
-  if(!lo)
-  {
-    PRINTF("value_broadcast: Broadcasting EID %ld.\n", eid);
-    PRINTF("value_broadcast: Datatype: %d.\n", val.datatype);
+	if (!skip_send) {
+		PRINTF("value_broadcast: Broadcasting EID %ld.\n", eid);
+		PRINTF("value_broadcast: Datatype: %d.\n", val.datatype);
 
-    switch(val.datatype)
-    {
-      case HXB_DTYPE_BOOL:
-      case HXB_DTYPE_UINT8:
-				packet.p_u8.value = val.v_u8;
-				packet_finalize_u8(&packet.p_u8);
-
-				uip_udp_packet_sendto(client_conn, &packet.p_u8, sizeof(packet.p_u8),
-						&server_ipaddr, UIP_HTONS(HXB_PORT));
+		switch (val.datatype) {
+			case HXB_DTYPE_BOOL:
+			case HXB_DTYPE_UINT8:
+				buffer->p_u8.value = val.v_u8;
 				break;
 
-      case HXB_DTYPE_UINT32:
-				packet.p_u32.value = val.v_u32;
-				packet_finalize_u32(&packet.p_u32);
-
-				uip_udp_packet_sendto(client_conn, &packet.p_u32, sizeof(packet.p_u32),
-						&server_ipaddr, UIP_HTONS(HXB_PORT));
-        break;
-
-      case HXB_DTYPE_FLOAT:
-				packet.p_float.value = val.v_float;
-				packet_finalize_float(&packet.p_float);
-
-				uip_udp_packet_sendto(client_conn, &packet.p_float, sizeof(packet.p_float),
-						&server_ipaddr, UIP_HTONS(HXB_PORT));
+			case HXB_DTYPE_UINT32:
+			case HXB_DTYPE_TIMESTAMP:
+				buffer->p_u32.value = val.v_u32;
 				break;
 
-      case HXB_DTYPE_16BYTES:
-				memcpy(packet.p_16bytes.value, val.v_binary, sizeof(packet.p_16bytes.value));
-				packet_finalize_16bytes(&packet.p_16bytes);
+			case HXB_DTYPE_FLOAT:
+				buffer->p_float.value = val.v_float;
+				break;
 
-				uip_udp_packet_sendto(client_conn, &packet.p_16bytes, sizeof(packet.p_16bytes),
-						&server_ipaddr, UIP_HTONS(HXB_PORT));
+			// these just work because value.$blob points to the buffer anyway
+			case HXB_DTYPE_16BYTES:
+			case HXB_DTYPE_128STRING:
+			case HXB_DTYPE_66BYTES:
 				break;
 
 			case HXB_DTYPE_DATETIME:
-			case HXB_DTYPE_128STRING:
-			case HXB_DTYPE_TIMESTAMP:
-			case HXB_DTYPE_66BYTES:
+				buffer->p_datetime.value = val.v_datetime;
+				break;
+
 			case HXB_DTYPE_UNDEFINED:
-      default:
-        PRINTF("value_broadcast: Datatype unknown.\r\n");
-    }
-  }
+			default:
+				PRINTF("value_broadcast: Datatype unknown.\r\n");
+		}
+	}
+
+	return HXB_ERR_SUCCESS;
+}
+
+void broadcast_value(uint32_t eid)
+{
+	udp_handler_send_generated(NULL, 0, &broadcast_generator, &eid);
 }
 /*---------------------------------------------------------------------------*/
 static void
