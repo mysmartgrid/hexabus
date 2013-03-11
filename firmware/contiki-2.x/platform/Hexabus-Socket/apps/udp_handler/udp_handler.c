@@ -547,7 +547,7 @@ udphandler(process_event_t ev, process_data_t data)
 					case HXB_PTYPE_ERROR:
 					case HXB_PTYPE_EPINFO:
 					default:
-						PRINTF("packet of type %d received, but we do not know what to do with that (yet)\r\n", header->type);
+						PRINTF("packet of type %d received, but we do not know what to do with that (yet)\r\n", packet->header.type);
 						err = HXB_ERR_UNEXPECTED_PACKET;
 						break;
 				}
