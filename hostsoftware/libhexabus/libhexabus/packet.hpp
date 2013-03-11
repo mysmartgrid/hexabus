@@ -9,7 +9,8 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/array.hpp>
-#include "../../../shared/hexabus_packet.h"
+#include "../../../shared/hexabus_types.h"
+#include "../../../shared/hexabus_definitions.h"
 
 //#define ENABLE_LOGGING 0
 //#include "config.h"

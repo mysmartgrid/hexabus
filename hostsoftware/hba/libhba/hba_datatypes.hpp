@@ -11,10 +11,10 @@ namespace hexabus {
   class Datatypes {
     public:
       static Datatypes* getInstance(std::string filename = "datatypes");
-      uint8_t getDatatype(uint8_t eid);
+      hxb_datatype getDatatype(uint8_t eid);
     private:
       static Datatypes* instance;
-      uint8_t datatypes[NUMBER_OF_EIDS];
+      hxb_datatype datatypes[NUMBER_OF_EIDS];
       Datatypes(std::string filename);
       Datatypes();
   };

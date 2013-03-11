@@ -74,24 +74,18 @@ struct hxb_packet_float {
 	HXB_PACKET_FOOTER
 } __attribute__((packed));
 
-#define HXB_STRING_PACKET_MAX_BUFFER_LENGTH 127
 struct hxb_packet_128string {
 	HXB_VALUEPACKET_HEADER
 	char value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1];
 	HXB_PACKET_FOOTER
 } __attribute__((packed));
-// the hxb_packet_128string was determined to be the largest packet a hexabus network can see
-// should this ever change, increase this, otherwise libhexabus (among others) will break.
-#define HXB_MAX_PACKET_SIZE (sizeof(hxb_packet_128string))
 
-#define HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH 65
 struct hxb_packet_66bytes {
 	HXB_VALUEPACKET_HEADER
 	char value[HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH];
 	HXB_PACKET_FOOTER
 } __attribute__((packed));
 
-#define HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH 16
 struct hxb_packet_16bytes {
 	HXB_VALUEPACKET_HEADER
 	char value[HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH];
