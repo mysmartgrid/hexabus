@@ -35,9 +35,9 @@ static enum hxb_error_code read(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code write_set(const struct hxb_value* value)
+static enum hxb_error_code write_set(const struct hxb_envelope* env)
 {
-	set_outputs(value->v_u8);
+	set_outputs(env->value.v_u8);
 	return HXB_ERR_SUCCESS;
 }
 
@@ -50,9 +50,9 @@ ENDPOINT_DESCRIPTOR endpoint_hexonoff_set = {
 	.write = write_set
 };
 
-static enum hxb_error_code write_toggle(const struct hxb_value* value)
+static enum hxb_error_code write_toggle(const struct hxb_envelope* env)
 {
-	toggle_outputs(value->v_u8);
+	toggle_outputs(env->value.v_u8);
 	return HXB_ERR_SUCCESS;
 }
 

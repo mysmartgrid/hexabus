@@ -4,7 +4,6 @@
 #include "value_broadcast.h"
 #include "eeprom_variables.h"
 #include "endpoints.h"
-#include "../../../../../../shared/hexabus_packet.h"
 #include "state_machine.h"
 #include "endpoint_registry.h"
 #include "datetime_service.h"
@@ -96,7 +95,7 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   // Check IPs and EID:
   // If IP is all zero -> return without any action.
   //ignore IP and EID for Datetime-Conditions and Timestamp-Conditions
-  if(cond.value.datatype != HXB_DTYPE_DATETIME && cond.value.datatype != HXB_DTYPE_TIMESTAMP && not_anyhost && memcmp(cond.sourceIP, envelope->source, 16)) { // If not anyhost AND source IP and cond IP differ
+  if(cond.value.datatype != HXB_DTYPE_DATETIME && cond.value.datatype != HXB_DTYPE_TIMESTAMP && not_anyhost && memcmp(cond.sourceIP, &envelope->src_ip, 16)) { // If not anyhost AND source IP and cond IP differ
     PRINTF("not anyhost AND source IP and cond IP differ\r\n");
     return false;
   }
@@ -188,84 +187,85 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
 
 void check_datetime_transitions()
 {
-  // TODO maybe we should check timestamps separately, because as of now, they still need some special cases in the 'eval' function
-struct hxb_envelope dtenvelope;
-  dtenvelope.value.datatype = HXB_DTYPE_DATETIME;
-  dt_valid = 1 + getDatetime(&dtenvelope.value.v_datetime);   // getDatetime returns -1 if it fails, 0 if it succeeds, so we have to "1 +" here
-  struct transition* t = malloc(sizeof(struct transition));
+	// TODO maybe we should check timestamps separately, because as of now, they still need some special cases in the 'eval' function
+	struct hxb_envelope dtenvelope;
+	dtenvelope.value.datatype = HXB_DTYPE_DATETIME;
+	dt_valid = 1 + getDatetime(&dtenvelope.value.v_datetime);   // getDatetime returns -1 if it fails, 0 if it succeeds, so we have to "1 +" here
+	struct transition t;
 
-  uint8_t i;
-  for(i = 0; i < dtTransLength; i++)
-  {
-    //eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
-    sm_get_transition(true, i, t);
-    PRINTF("checkDT - curState: %d -- fromState: %d\r\n", curState, t->fromState);
-    if((t->fromState == curState) && (eval(t->cond, &dtenvelope)))
-    {
-      // Matching transition found. Check, if an action should be performed.
-      if(t->eid != 0 || t->value.datatype != 0)
-      {
-        // Try executing the command
-        PRINTF("state_machine: Writing to endpoint %ld\r\n", t->eid);
-        if(endpoint_write(t->eid, &(t->value)) == 0)
-        {
-          inStateSince = getTimestamp();
-          curState = t->goodState;
-          PRINTF("state_machine: Everything is fine \r\n");
-          break;
-        } else {
-          inStateSince = getTimestamp();
-          curState = t->badState;
-          PRINTF("state_machine: Something bad happened \r\n");
-          break;
-        }
-      } else {
-        inStateSince = getTimestamp();
-        curState = t->goodState;
-        PRINTF("state_machine: No action performed. \r\n");
-      }
-    }
-  }
-  free(t);
+	struct hxb_envelope eid_env;
+	eid_env.src_port = 0;
+	uip_ipaddr(&eid_env.src_ip, 0, 0, 0, 1);
+
+	for (uint8_t i = 0; i < dtTransLength; i++) {
+		//eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+		sm_get_transition(true, i, &t);
+
+		PRINTF("checkDT - curState: %d -- fromState: %d\r\n", curState, t.fromState);
+		if ((t.fromState == curState) && (eval(t.cond, &dtenvelope))) {
+			// Matching transition found. Check, if an action should be performed.
+			if (t.eid != 0 || t.value.datatype != 0) {
+				// Try executing the command
+				PRINTF("state_machine: Writing to endpoint %ld\r\n", t.eid);
+				eid_env.value = t.value;
+				eid_env.eid = t.eid;
+				if (endpoint_write(t.eid, &eid_env) == 0) {
+					inStateSince = getTimestamp();
+					curState = t.goodState;
+					PRINTF("state_machine: Everything is fine \r\n");
+					break;
+				} else {
+					inStateSince = getTimestamp();
+					curState = t.badState;
+					PRINTF("state_machine: Something bad happened \r\n");
+					break;
+				}
+			} else {
+				inStateSince = getTimestamp();
+				curState = t.goodState;
+				PRINTF("state_machine: No action performed. \r\n");
+			}
+		}
+	}
 }
 
 void check_value_transitions(void* data)
 {
-  uint8_t i; // for the for-loops
-  struct transition* t = malloc(sizeof(struct transition));
+	struct hxb_envelope* env = (struct hxb_envelope*) data;
+	struct transition t;
 
-  struct hxb_envelope* envelope = (struct hxb_envelope*)data;
-  for(i = 0; i < transLength; i++)
-  {
-    //eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
-    sm_get_transition(false, i, t);
-    // get next transition to check from eeprom
-    if((t->fromState == curState) && (eval(t->cond, envelope)))
-    {
-      // Match found
-      if(t->eid != 0 || t->value.datatype != 0)
-      {
-        PRINTF("state_machine: Writing to endpoint %ld \r\n", t->eid);
-        if(endpoint_write(t->eid, &(t->value)) == 0)
-        {
-          inStateSince = getTimestamp();
-          curState = t->goodState;
-          PRINTF("state_machine: Everything is fine \r\n");
-          break;
-        } else {                          // Something went wrong
-          inStateSince = getTimestamp();
-          curState = t->badState;
-          PRINTF("state_machine: Something bad happened \r\n");
-          break;
-        }
-      } else {
-        inStateSince = getTimestamp();
-        curState = t->goodState;
-        PRINTF("state_machine: No action performed. \r\n");
-      }
-    }
-  }
-  free(t);
+	struct hxb_envelope eid_env;
+	eid_env.src_port = 0;
+	uip_ipaddr(&eid_env.src_ip, 0, 0, 0, 1);
+
+	for (uint8_t i = 0; i < transLength; i++) {
+		//eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
+		sm_get_transition(false, i, &t);
+		// get next transition to check from eeprom
+		if ((t.fromState == curState) && (eval(t.cond, env))) {
+			// Match found
+			if (t.eid != 0 || t.value.datatype != 0) {
+				eid_env.eid = t.eid;
+				eid_env.value = t.value;
+				PRINTF("state_machine: Writing to endpoint %ld \r\n", t.eid);
+				if (endpoint_write(t.eid, &eid_env) == 0) {
+					inStateSince = getTimestamp();
+					curState = t.goodState;
+					PRINTF("state_machine: Everything is fine \r\n");
+					break;
+				} else { // Something went wrong
+					inStateSince = getTimestamp();
+					curState = t.badState;
+					PRINTF("state_machine: Something bad happened \r\n");
+					break;
+				}
+			} else {
+				inStateSince = getTimestamp();
+				curState = t.goodState;
+				PRINTF("state_machine: No action performed. \r\n");
+			}
+		}
+	}
 }
 
 static void broadcast_reset(void* data)
@@ -345,9 +345,9 @@ PROCESS_THREAD(state_machine_process, ev, data)
           if(envelope->eid == EP_SM_RESET_ID && envelope->value.datatype == HXB_DTYPE_16BYTES) {
             uint32_t localhost[] = { 0, 0, 0, 0x01000000 }; // that's ::1 in IPv6 notation
             PRINTF("State machine: Received Reset-ID from ");
-            PRINT6ADDR(envelope->source);
+            PRINT6ADDR(&envelope->src_ip);
             PRINTF("\n");
-            if(memcmp(&(envelope->source), &localhost , 16)) { // Ignore resets from localhost (the reset ID from localhost was sent BECAUSE we just reset)
+            if(memcmp(&envelope->src_ip, &localhost , 16)) { // Ignore resets from localhost (the reset ID from localhost was sent BECAUSE we just reset)
               char* received_sm_id = envelope->value.v_binary;
               char own_sm_id[16];
               sm_get_id(own_sm_id);

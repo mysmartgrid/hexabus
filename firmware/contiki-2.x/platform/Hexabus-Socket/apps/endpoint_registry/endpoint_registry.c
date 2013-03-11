@@ -111,7 +111,7 @@ enum hxb_datatype endpoint_get_datatype(uint32_t eid)
 	}
 }
 
-enum hxb_error_code endpoint_write(uint32_t eid, const struct hxb_value* value)
+enum hxb_error_code endpoint_write(uint32_t eid, const struct hxb_envelope* env)
 {
 	if (eid % 32 == 0) {
 		return HXB_ERR_WRITEREADONLY;
@@ -120,10 +120,10 @@ enum hxb_error_code endpoint_write(uint32_t eid, const struct hxb_value* value)
 		if (find_descriptor(eid, &ep)) {
 			if (ep.write == 0) {
 				return HXB_ERR_WRITEREADONLY;
-			} else if (ep.datatype != value->datatype) {
+			} else if (ep.datatype != env->value.datatype) {
 				return HXB_ERR_DATATYPE;
 			} else {
-				return ep.write(value);
+				return ep.write(env);
 			}
 		} else {
 			return HXB_ERR_UNKNOWNEID;

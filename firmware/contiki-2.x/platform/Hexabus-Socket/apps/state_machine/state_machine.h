@@ -8,7 +8,7 @@
 #include "process.h"
 #include <stdint.h>
 #include "state_machine_eeprom.h"
-#include "../../../../../shared/hexabus_packet.h"
+#include "hexabus_packet.h"
 #include "../../../../../shared/hexabus_statemachine_structs.h"
 
 uint8_t sm_is_running();

@@ -43,7 +43,7 @@
 #include "endpoint_registry.h"
 #include "udp_handler.h"
 
-#include "../../../../../../shared/hexabus_packet.h"
+#include "hexabus_packet.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -70,11 +70,11 @@ void broadcast_to_self(struct hxb_value* val, uint32_t eid)
 {
 #if STATE_MACHINE_ENABLE
   struct hxb_envelope envelope = {
-		.source = { 0 },
+		.src_port = 0,
 		.eid = eid,
 		.value = *val
  	};
-	envelope.source[15] = 1;
+	uip_ipaddr(&envelope.src_ip, 0, 0, 0, 1);
 	PRINTF("value_broadcast: Sending EID %ld to own state machine.\n", eid);
 	sm_handle_input(&envelope);
 #endif

@@ -119,11 +119,11 @@ static enum hxb_error_code read(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code write(const struct hxb_value* value)
+static enum hxb_error_code write(const struct hxb_envelope* env)
 {
-	if (value->v_u8 == 1) {
+	if (env->value.v_u8 == 1) {
 		global_presence_detected();
-	} else if (value->v_u8 == 0) {
+	} else if (env->value.v_u8 == 0) {
 		no_raw_presence();
 	} else {
 		raw_presence_detected();

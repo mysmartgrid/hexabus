@@ -362,18 +362,20 @@ static enum hxb_error_code extract_value(union hxb_packet_any* packet, struct hx
 
 static enum hxb_error_code handle_write(union hxb_packet_any* packet)
 {
-	struct hxb_value value;
+	struct hxb_envelope env;
 
-	uint32_t eid = uip_ntohl(packet->value_header.eid);
+	uip_ipaddr_copy(&env.src_ip, &UDP_IP_BUF->srcipaddr);
+	env.src_port = UDP_IP_BUF->srcport;
+	env.eid = uip_ntohl(packet->value_header.eid);
 
 	enum hxb_error_code err;
 	
-	err = extract_value(packet, &value);
+	err = extract_value(packet, &env.value);
 	if (err) {
 		return err;
 	}
 
-	return endpoint_write(eid, &value);
+	return endpoint_write(env.eid, &env);
 }
 
 static enum hxb_error_code generate_query_response(union hxb_packet_any* buffer, void* data)
@@ -464,7 +466,8 @@ static enum hxb_error_code handle_info(union hxb_packet_any* packet)
 	struct hxb_envelope envelope;
 	enum hxb_error_code err;
 
-	memcpy(envelope.source, &UDP_IP_BUF->srcipaddr, 16);
+	uip_ipaddr_copy(&envelope.src_ip, &UDP_IP_BUF->srcipaddr);
+	envelope.src_port = UDP_IP_BUF->srcport;
 	envelope.eid = uip_ntohl(packet->eid_header.eid);
 
 	err = extract_value(packet, &envelope.value);

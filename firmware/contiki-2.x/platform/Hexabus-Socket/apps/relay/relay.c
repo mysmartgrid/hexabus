@@ -155,9 +155,9 @@ static enum hxb_error_code read(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code write(const struct hxb_value* value)
+static enum hxb_error_code write(const struct hxb_envelope* env)
 {
-	if (value->v_bool == HXB_TRUE) {
+	if (env->value.v_bool == HXB_TRUE) {
 		relay_off();  // Note that the relay is connected in normally-closed position, so relay_off turns the power on and vice-versa
 	} else {
 		relay_on();

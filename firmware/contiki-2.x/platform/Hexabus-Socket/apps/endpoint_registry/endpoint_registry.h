@@ -3,10 +3,10 @@
 
 #include <stdint.h>
 #include <avr/pgmspace.h>
-#include "../../../../../../shared/hexabus_types.h"
+#include "hexabus_packet.h"
 
 typedef enum hxb_error_code (*endpoint_read_fn)(struct hxb_value* value);
-typedef enum hxb_error_code (*endpoint_write_fn)(const struct hxb_value* value);
+typedef enum hxb_error_code (*endpoint_write_fn)(const struct hxb_envelope* value);
 
 struct endpoint_descriptor {
 	uint8_t datatype;
@@ -38,7 +38,7 @@ void _endpoint_register(const struct endpoint_descriptor* ep, struct endpoint_re
 	} while (0)
 
 enum hxb_datatype endpoint_get_datatype(uint32_t eid);
-enum hxb_error_code endpoint_write(uint32_t eid, const struct hxb_value* value);
+enum hxb_error_code endpoint_write(uint32_t eid, const struct hxb_envelope* env);
 enum hxb_error_code endpoint_read(uint32_t eid, struct hxb_value* value);
 enum hxb_error_code endpoint_get_name(uint32_t eid, char* buffer, size_t len);
 

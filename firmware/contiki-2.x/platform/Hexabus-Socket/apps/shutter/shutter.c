@@ -34,9 +34,9 @@ static enum hxb_error_code read(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code write(const struct hxb_value* value)
+static enum hxb_error_code write(const struct hxb_envelope* env)
 {
-	shutter_toggle(value->v_u8);
+	shutter_toggle(env->value.v_u8);
 	return HXB_ERR_SUCCESS;
 }
 

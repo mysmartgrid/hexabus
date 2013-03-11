@@ -326,7 +326,7 @@ void initialize(void)
 
   /* process handling received HEXABUS broadcasts */
 #if STATE_MACHINE_ENABLE
-  process_start(&state_machine_process, NULL);
+  sm_start();
 #endif
 
   /* Datetime service*/

@@ -27,11 +27,11 @@ static enum hxb_error_code read_control(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code write_control(const struct hxb_value* value)
+static enum hxb_error_code write_control(const struct hxb_envelope* env)
 {
-	if (value->v_u8 == STM_STATE_STOPPED) {
+	if (env->value.v_u8 == STM_STATE_STOPPED) {
 		sm_stop();
-	} else if (value->v_u8 == STM_STATE_RUNNING) {
+	} else if (env->value.v_u8 == STM_STATE_RUNNING) {
 		if (sm_is_running()) {
 			sm_restart();
 		} else {
@@ -67,15 +67,15 @@ static enum hxb_error_code send_acknack(union hxb_packet_any* packet, void* data
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code write_receiver(const struct hxb_value* value)
+static enum hxb_error_code write_receiver(const struct hxb_envelope* env)
 {
 	PRINTF("SM: Attempting to write new chunk to EEPROM\n");
-	if (value->datatype == HXB_DTYPE_66BYTES) {
-		char* payload = value->v_binary;
+	if (env->value.datatype == HXB_DTYPE_66BYTES) {
+		char* payload = env->value.v_binary;
 		uint8_t chunk_id = (uint8_t) payload[0];
 		bool result = sm_write_chunk(chunk_id, payload + 1);
 		PRINTF(result.value ? "SENDING ACK" : "SENDING NACK");
-		udp_handler_send_generated(NULL, 0, &send_acknack, result ? &result : NULL);
+		udp_handler_send_generated(&env->src_ip, env->src_port, &send_acknack, result ? &result : NULL);
 		return result
 			? HXB_ERR_SUCCESS
 			: HXB_ERR_INVALID_VALUE;

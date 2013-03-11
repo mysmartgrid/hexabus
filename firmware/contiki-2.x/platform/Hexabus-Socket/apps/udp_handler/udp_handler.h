@@ -11,7 +11,7 @@
 #include "process.h"
 #include <stddef.h>
 #include "net/uip.h"
-#include "../../../../shared/hexabus_packet.h"
+#include "hexabus_packet.h"
 
 PROCESS_NAME(udp_handler_process);
 

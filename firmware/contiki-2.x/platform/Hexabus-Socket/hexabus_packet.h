@@ -6,6 +6,8 @@
 #include "hexabus_definitions.h"
 #include "hexabus_types.h"
 
+#include "net/uip.h"
+
 #define HXB_PACKET_HEADER \
 	char    magic[4];   /* HXB_HEADER, of course      */\
 	uint8_t type;       /* actually enum hxb_datatype */\
@@ -121,9 +123,10 @@ union hxb_packet_any {
 // Since there the IP information is lost, we need a field for the IP address of the sender/receiver. But we can drop the CRC here.
 
 struct hxb_envelope {
-    char              source[16];
-    uint32_t          eid;
-    struct hxb_value  value;
+	uip_ipaddr_t      src_ip;
+	uint16_t          src_port;
+	uint32_t          eid;
+	struct hxb_value  value;
 };
 
 #undef HXB_PACKET_HEADER

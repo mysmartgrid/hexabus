@@ -62,7 +62,6 @@
 #include "temperature.h"
 #include "relay.h"
 #include "eeprom_variables.h"
-#include "../../../../../shared/hexabus_packet.h"
 #include "datetime_service.h"
 #include "state_machine.h"
 
