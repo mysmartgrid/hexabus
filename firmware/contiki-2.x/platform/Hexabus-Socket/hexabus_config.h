@@ -60,13 +60,13 @@ There should be an ENABLE option that enables compilation and execution of the a
 
 // state_machine
 #define STATE_MACHINE_ENABLE 1
-#define STATE_MACHINE_DEBUG 0
+#define STATE_MACHINE_DEBUG 1
 
 // state machine uploading via Hexabus packets
 #define SM_UPLOAD_ENABLE 1
 
 // window blind shutter motor control
-#define SHUTTER_ENABLE 1
+#define SHUTTER_ENABLE 0
 #define SHUTTER_DEBUG 1
 #define SHUTTER_CALIBRATE_ON_BOOT 1
 #define SHUTTER_INITIAL_POSITON 1
@@ -79,7 +79,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define HEXAPUSH_DEBUG 0
 
 // presence detector
-#define PRESENCE_DETECTOR_ENABLE 1
+#define PRESENCE_DETECTOR_ENABLE 0
 #define PRESENCE_DETECTOR_DEBUG 0
 #define PRESENCE_DETECTOR_SERVER 0
 #define PRESENCE_DETECTOR_CLIENT 1
@@ -93,29 +93,29 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define HEXONOFF_INITIAL_VALUE 0
 
 //Lightsensor (only works in combination with analogread!)
-#define LIGHTSENSOR_ENABLE 1
+#define LIGHTSENSOR_ENABLE 0
 
 // read analog input pin
-#define ANALOGREAD_ENABLE 1
+#define ANALOGREAD_ENABLE 0
 #define ANALOGREAD_DEBUG 1
 #define ANALOGREAD_PIN 0 // 0 to 7
 #define ANALOGREAD_MULT 0.0024414062 // readings are multiplied with this value to calculate the value sent to the endpoint. Set to 0.0024414062 to get the Voltage reading (in Volts) at 2.5V supply voltage
 
 //i2c master
-#define I2C_ENABLE 1
+#define I2C_ENABLE 0
 #define I2C_DEBUG 0
 
 //humidity sensor
-#define HUMIDITY_ENABLE 1
+#define HUMIDITY_ENABLE 0
 #define HUMIDITY_DEBUG 0
 
 //pressure sensor
-#define PRESSURE_ENABLE 1
+#define PRESSURE_ENABLE 0
 #define PRESSURE_DEBUG 0
 #define PRESSURE_OVERSAMPLING 3  //0 to 3
 
 //ir_receiver
-#define IR_RECEIVER_ENABLE 1
+#define IR_RECEIVER_ENABLE 0
 #define IR_RECEIVER_DEBUG 0
 #define IR_REPEAT 1 // 0 disables repeat, 1 enables repeat for buttons configured in ir_receiver.h
 #define IR_RECEIVER_RAW_MODE 0

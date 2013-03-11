@@ -11,15 +11,11 @@
 #include "../../../../../shared/hexabus_packet.h"
 #include "../../../../../shared/hexabus_statemachine_structs.h"
 
-PROCESS_NAME(state_machine_process);
-
-// Defintion of events that are important to the state machine
-// One general event for all data that can be possibly received
-extern process_event_t sm_data_received_event;
-
 uint8_t sm_is_running();
 void sm_restart(); // silent: restart state machine without sending a reset broadcast (used when restarted by a reset broadcast)
 void sm_start();
 void sm_stop();
+
+void sm_handle_input(struct hxb_envelope* data);
 
 #endif /* STATE_MACHINE_H_*/

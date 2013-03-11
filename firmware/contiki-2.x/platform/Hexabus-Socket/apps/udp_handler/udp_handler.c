@@ -69,8 +69,6 @@ static uip_ipaddr_t hxb_group;
 PROCESS(udp_handler_process, "HEXABUS Socket UDP handler Process");
 AUTOSTART_PROCESSES(&udp_handler_process);
 
-process_event_t sm_data_received_event;
-
 /*---------------------------------------------------------------------------*/
 static void
 pollhandler(void) {
@@ -194,6 +192,14 @@ static void do_udp_send(const uip_ipaddr_t* toaddr, uint16_t toport, union hxb_p
 		return;
 	}
 
+	if (!toaddr) {
+		toaddr = &hxb_group;
+	}
+
+	if (!toport) {
+		toport = HXB_PORT;
+	}
+
 	uip_udp_packet_sendto(udpconn, packet, len, toaddr, UIP_HTONS(toport));
 }
 
@@ -212,7 +218,7 @@ enum hxb_error_code udp_handler_send_generated(const uip_ipaddr_t* toaddr, uint1
 		return err;
 	}
 
-	do_udp_send(&UDP_IP_BUF->srcipaddr, UDP_IP_BUF->srcport, &send_buffer);
+	do_udp_send(toaddr, toport, &send_buffer);
 
 	return HXB_ERR_SUCCESS;
 }
@@ -224,7 +230,7 @@ enum hxb_error_code udp_handler_send_error(const uip_ipaddr_t* toaddr, uint16_t 
 		.error_code = code
 	};
 
-	do_udp_send(&UDP_IP_BUF->srcipaddr, UDP_IP_BUF->srcport, (union hxb_packet_any*) &err);
+	do_udp_send(toaddr, toport, (union hxb_packet_any*) &err);
 
 	return HXB_ERR_SUCCESS;
 }
@@ -461,7 +467,6 @@ static enum hxb_error_code handle_info(union hxb_packet_any* packet)
 	memcpy(envelope.source, &UDP_IP_BUF->srcipaddr, 16);
 	envelope.eid = uip_ntohl(packet->eid_header.eid);
 
-
 	err = extract_value(packet, &envelope.value);
 	if (err) {
 		return HXB_ERR_SUCCESS;
@@ -469,7 +474,7 @@ static enum hxb_error_code handle_info(union hxb_packet_any* packet)
 
 	if (packet->value_header.datatype != HXB_DTYPE_DATETIME) {
 #if STATE_MACHINE_ENABLE
-		process_post_synch(PROCESS_BROADCAST, sm_data_received_event, &envelope);
+		sm_handle_input(&envelope);
 #else
 		PRINTF("Received Broadcast, but no handler for datatype.\r\n");
 #endif
@@ -575,8 +580,6 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
 
   // see: http://senstools.gforge.inria.fr/doku.php?id=contiki:examples
   PROCESS_BEGIN();
-
-  sm_data_received_event = process_alloc_event();
 
   PRINTF("udp_handler: process startup.\r\n");
   // wait 3 second, in order to have the IP addresses well configured

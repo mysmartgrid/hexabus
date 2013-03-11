@@ -24,6 +24,7 @@
 #endif
 
 /*------------------------------------------------------*/
+PROCESS_NAME(state_machine_process);
 PROCESS(state_machine_process, "State Machine Process");
 AUTOSTART_PROCESSES(&state_machine_process);
 /*------------------------------------------------------*/
@@ -33,6 +34,8 @@ static uint8_t dtTransLength; // length of date/time transition table
 static uint8_t curState = 0;  // starting out in state 0
 static uint32_t inStateSince; // when did we change into that state
 static uint8_t dt_valid;      // internal clock has a valid date/time
+
+static process_event_t sm_handle_input_event;
 
 /**
  * Functions to start/stop the state machine itself.
@@ -270,9 +273,16 @@ static void broadcast_reset(void* data)
 	broadcast_value(EP_SM_RESET_ID);
 }
 
+void sm_handle_input(struct hxb_envelope* data)
+{
+	process_post_synch(&state_machine_process, sm_handle_input_event, data);
+}
+
 PROCESS_THREAD(state_machine_process, ev, data)
 {
   PROCESS_BEGIN();
+
+	sm_handle_input_event = process_alloc_event();
 
   // read state machine table length from eeprom
   transLength = sm_get_number_of_transitions(false);   //eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
@@ -327,8 +337,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
         check_datetime_transitions();
         etimer_reset(&check_timer);
       }
-      if(ev == sm_data_received_event)
-      {
+			if (ev == sm_handle_input_event) {
         if(!sm_id_is_zero()) { // if our state machine ID is not 0 (0 means "no auto reset".
           // check if it's a Reset-ID (this means another state machine on the network was just unexpectedly reset)
           struct hxb_envelope* envelope = (struct hxb_envelope*)data;

@@ -7,9 +7,9 @@
 #include "hexabus_types.h"
 
 #define HXB_PACKET_HEADER \
-	char    magic[sizeof(HXB_HEADER)];   /* HXB_HEADER, of course      */\
-	uint8_t type;                        /* actually enum hxb_datatype */\
-	uint8_t flags;                       /* unused                     */
+	char    magic[4];   /* HXB_HEADER, of course      */\
+	uint8_t type;       /* actually enum hxb_datatype */\
+	uint8_t flags;      /* unused                     */
 
 #define HXB_PACKET_FOOTER \
 	uint16_t crc;                        /* CRC16-Kermit / Contiki's crc16_data() */

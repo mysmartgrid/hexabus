@@ -75,8 +75,8 @@ void broadcast_to_self(struct hxb_value* val, uint32_t eid)
 		.value = *val
  	};
 	envelope.source[15] = 1;
-  process_post_synch(PROCESS_BROADCAST, sm_data_received_event, &envelope);
-  PRINTF("value_broadcast: Sending EID %ld to own state machine.\n", eid);
+	PRINTF("value_broadcast: Sending EID %ld to own state machine.\n", eid);
+	sm_handle_input(&envelope);
 #endif
 }
 
