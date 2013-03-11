@@ -63,7 +63,7 @@ static enum hxb_error_code send_acknack(union hxb_packet_any* packet, void* data
 	packet->p_u8.type = HXB_PTYPE_INFO;
 	packet->p_u8.datatype = HXB_DTYPE_BOOL;
 	packet->p_u8.eid = EP_SM_UP_ACKNAK;
-	packet->p_u8.value = data != NULL;
+	packet->p_u8.value = *((bool*) data);
 	return HXB_ERR_SUCCESS;
 }
 
@@ -75,7 +75,7 @@ static enum hxb_error_code write_receiver(const struct hxb_envelope* env)
 		uint8_t chunk_id = (uint8_t) payload[0];
 		bool result = sm_write_chunk(chunk_id, payload + 1);
 		PRINTF(result.value ? "SENDING ACK" : "SENDING NACK");
-		udp_handler_send_generated(&env->src_ip, env->src_port, &send_acknack, result ? &result : NULL);
+		udp_handler_send_generated(&env->src_ip, env->src_port, &send_acknack, &result);
 		return result
 			? HXB_ERR_SUCCESS
 			: HXB_ERR_INVALID_VALUE;
