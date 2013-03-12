@@ -266,7 +266,8 @@ int main(int argc, char** argv)
   klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
   klio::TimeConverter::Ptr tc(new klio::TimeConverter());
 
-	network.onPacketReceived(ReadingLogger(store, tc, sensor_factory, sensor_timezone));
+	network.onPacketReceived(
+      ReadingLogger(store, tc, sensor_factory, sensor_timezone));
 
 	io.run();
 }

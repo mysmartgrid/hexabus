@@ -1,4 +1,5 @@
 #include <libhexanode/common.hpp>
+#include <libhexanode/sensor.hpp>
 #include <boost/network/protocol/http/client.hpp>
 #include <boost/network/uri.hpp>
 #include <boost/network/uri/uri_io.hpp>
@@ -17,86 +18,6 @@ namespace po = boost::program_options;
 
 using namespace boost::network;
 using namespace rapidjson;
-
-void mk_sensor(
-    http::client client,
-    const uri::uri& api_uri, 
-    const std::string sensor_id,
-    const std::string sensor_name,
-    const std::string min_value,
-    const std::string max_value,
-    const std::string reading)
-{
-  std::cout << "Creating sensor " << sensor_name << std::endl;
-    StringBuffer b;
-  PrettyWriter<StringBuffer> writer(b);
-  writer.StartObject();
-  writer.String("name");
-  writer.String(sensor_name.c_str(), (SizeType) sensor_name.length());
-  writer.String("value");
-  writer.String(reading.c_str(), (SizeType) reading.length());
-  writer.String("minvalue");
-  writer.String(min_value.c_str(), (SizeType) min_value.length());
-  writer.String("maxvalue");
-  writer.String(max_value.c_str(), (SizeType) max_value.length());
-  writer.EndObject();
-  std::string json_body(b.GetString());
-
-  uri::uri create;
-  create << api_uri 
-    << uri::path("/sensor/") 
-    << uri::path(uri::encoded(sensor_id));
-  http::client::request request(create);
-  request << header("Content-Type", "application/json");
-  std::ostringstream converter;
-  converter << json_body.length();
-  request << header("Content-Length", converter.str());
-  request << body(json_body);
-  http::client::response response = client.put(request);
-  if (response.status() != 200) {
-    std::ostringstream oss;
-    oss << response.status() 
-    << " " << response.status_message() 
-    << ": " << response.body();
-    throw std::runtime_error(oss.str());
-  }
-}
-
-void push_value(
-    http::client client,
-    const uri::uri& api_uri, 
-    const std::string& sensor_id,
-    const std::string& reading)
-{
-  //std::cout << "Pushing value "<< reading 
-  //  << " to sensor " << sensor_id << std::endl;
-  StringBuffer b;
-  PrettyWriter<StringBuffer> writer(b);
-  writer.StartObject();
-  writer.String("value");
-  writer.String(reading.c_str(), (SizeType) reading.length());
-  writer.EndObject();
-  std::string json_body(b.GetString());
-
-  uri::uri create;
-  create << api_uri 
-    << uri::path("/sensor/") 
-    << uri::path(uri::encoded(sensor_id));
-  http::client::request request(create);
-  request << header("Content-Type", "application/json");
-  std::ostringstream converter;
-  converter << json_body.length();
-  request << header("Content-Length", converter.str());
-  request << body(json_body);
-  http::client::response response = client.post(request);
-  if (response.status() != 200) {
-    std::ostringstream oss;
-    oss << response.status() 
-    << " " << response.status_message() 
-    << ": " << response.body();
-    throw std::runtime_error(oss.str());
-  }
-}
 
 int main(int argc, char *argv[]) {
   std::ostringstream oss;
@@ -147,31 +68,35 @@ int main(int argc, char *argv[]) {
   std::cout << "Using frontend url " << base_uri << std::endl;
 
   http::client client;
+  std::vector<hexanode::Sensor::Ptr> sensors;
   uint16_t max_id = 4;
-  boost::random::mt19937 gen;
-  boost::random::uniform_int_distribution<> dist(15, 30);
+  double min_value = 15;
+  double max_value = 30;
 
+  boost::random::mt19937 gen;
+  boost::random::uniform_int_distribution<> dist(min_value, max_value);
+  for (uint16_t id=0; id<max_id; ++id) {
+    std::ostringstream oss;
+    oss << "Sensor_" << id;
+    hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(oss.str(), oss.str(), min_value, max_value));
+    sensors.push_back(new_sensor);
+  }
   std::cout << "Will now push values." << std::endl;
   while(true) {
     try {
       for (uint16_t sid=0; sid < max_id; ++sid) {
-        std::ostringstream idconv;
-        std::ostringstream valconv;
-        idconv << sid;
-        valconv << std::fixed << std::setprecision(2);
-        valconv << dist(gen);
-        push_value(client, base_uri, idconv.str(), valconv.str());
+        hexanode::Sensor::Ptr sensor=sensors.at(sid);
+        sensor->post_value(client, base_uri, dist(gen));
       }
     } catch (const std::exception& e) {
       std::cout << "Cannot submit sensor values (" << e.what() << ")" << std::endl;
       std::cout << "Attempting to re-create sensors." << std::endl;
-      mk_sensor(client, base_uri, "0", "Temperatur Flur 1", "15", "30", "0"); 
-      mk_sensor(client, base_uri, "1", "Temperatur Buero MD", "15", "30", "0"); 
-      mk_sensor(client, base_uri, "2", "Labor", "15", "30", "0"); 
-      mk_sensor(client, base_uri, "3", "Temperatur Buero 2", "15", "30", "0"); 
+      for (uint16_t sid=0; sid < max_id; ++sid) {
+        hexanode::Sensor::Ptr sensor=sensors[sid];
+        sensor->put(client, base_uri, 0.0); 
+      }
       continue; // do not sleep
     }
-
     boost::this_thread::sleep( boost::posix_time::seconds(3) );
   }
 }

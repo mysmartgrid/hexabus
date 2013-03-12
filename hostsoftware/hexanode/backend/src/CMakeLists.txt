@@ -5,6 +5,7 @@ file(GLOB_RECURSE cpp_files "*.cpp")
 file(GLOB_RECURSE c_files "*.c")
 set(hexanode_src "hexanode.cpp")
 set(demo_generator_src "demo_generator.cpp")
+set(push_values_src "push_values.cpp")
 
 include_directories(
   ${CMAKE_SOURCE_DIR} 
@@ -21,6 +22,7 @@ include_directories(
 
 add_executable(hxbnode ${hexanode_src})
 add_executable(demo_generator ${demo_generator_src})
+add_executable(push_values ${push_values_src})
 
 # Link the executables
 target_link_libraries(hxbnode 
@@ -35,6 +37,13 @@ target_link_libraries(demo_generator
   hexanode
   ${CPPNETLIB_LIBRARIES}
   ${OPENSSL_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
+target_link_libraries(push_values
+  hexanode
+  pthread
+  ${HXB_LIBRARIES}
   ${Boost_LIBRARIES}
 )
 
