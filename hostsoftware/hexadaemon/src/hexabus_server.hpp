@@ -17,6 +17,7 @@ namespace hexadaemon {
 			void epqueryhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void eid0handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void eid2handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void eid21handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 
 			void broadcast_handler(const boost::system::error_code& error);
 
