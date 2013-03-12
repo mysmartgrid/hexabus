@@ -62,7 +62,7 @@ void HexabusServer::eid2handler(const hexabus::Packet& p, const boost::asio::ip:
 	try {
 		int value = getFluksoValue();
 		if ( value >= 0 )
-			_socket.send(hexabus::InfoPacket<uint32_t>(2, value));
+			_socket.send(hexabus::InfoPacket<uint32_t>(2, value), from);
 	} catch ( const hexabus::NetworkException& e ) {
 		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
 	}
