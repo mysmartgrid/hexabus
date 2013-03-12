@@ -20,6 +20,8 @@ namespace hexadaemon {
 
 			void broadcast_handler(const boost::system::error_code& error);
 
+			void errorhandler(const hexabus::GenericException& error);
+
 		private:
 			hexabus::Socket _socket;
 			boost::asio::deadline_timer _timer;

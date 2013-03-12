@@ -24,6 +24,7 @@ HexabusServer::HexabusServer(boost::asio::io_service& io)
 	_socket.onPacketReceived(boost::bind(&HexabusServer::eid0handler, this, _1, _2), hf::isQuery() && hf::eid() == 0);
 	_socket.onPacketReceived(boost::bind(&HexabusServer::eid2handler, this, _1, _2), hf::isQuery() && hf::eid() == 2);
 
+	_socket.onAsyncError(boost::bind(&HexabusServer::errorhandler, this, _1));
 	/*_timer.expires_from_now(boost::posix_time::seconds(60+(rand()%60)));
 	_timer.async_wait(boost::bind(&HexabusServer::broadcast_handler, this, _1));*/
 	broadcast_handler(boost::system::error_code());
@@ -80,8 +81,13 @@ void HexabusServer::broadcast_handler(const boost::system::error_code& error)
 		_timer.expires_from_now(boost::posix_time::seconds(60+(rand()%60)));
 		_timer.async_wait(boost::bind(&HexabusServer::broadcast_handler, this, _1));
 	} else {
-		std::cout << "Error occured in deadline_timer: " << error.message() << "(" << error.value() << ")." << std::endl;
+		std::cerr << "Error occured in deadline_timer: " << error.message() << "(" << error.value() << ")." << std::endl;
 	}
+}
+
+void HexabusServer::errorhandler(const hexabus::GenericException& error)
+{
+	std::cerr << "Error while receiving hexabus packets!" << std::endl;
 }
 
 int HexabusServer::getFluksoValue()
