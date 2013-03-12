@@ -17,9 +17,10 @@ using namespace hexadaemon;
 namespace hf = hexabus::filtering;
 namespace bf = boost::filesystem;
 
-HexabusServer::HexabusServer(boost::asio::io_service& io)
+HexabusServer::HexabusServer(boost::asio::io_service& io, int interval)
 	: _socket(io)
 	, _timer(io)
+	, _interval(interval)
 {
 	_socket.listen(boost::asio::ip::address_v6::from_string("::"));
 	_socket.onPacketReceived(boost::bind(&HexabusServer::epqueryhandler, this, _1, _2), hf::isEndpointQuery());
@@ -126,7 +127,7 @@ void HexabusServer::broadcast_handler(const boost::system::error_code& error)
 		if ( value >= 0 )
 			_socket.send(hexabus::InfoPacket<uint32_t>(EP_POWER_METER, value));
 
-		_timer.expires_from_now(boost::posix_time::seconds(60+(rand()%60)));
+		_timer.expires_from_now(boost::posix_time::seconds(_interval+(rand()%_interval)));
 		_timer.async_wait(boost::bind(&HexabusServer::broadcast_handler, this, _1));
 	} else {
 		std::cerr << "Error occured in deadline_timer: " << error.message() << "(" << error.value() << ")." << std::endl;
