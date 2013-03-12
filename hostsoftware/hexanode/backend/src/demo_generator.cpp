@@ -6,10 +6,6 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/thread/thread.hpp>
-#include <rapidjson/rapidjson.h>
-#include <rapidjson/document.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/prettywriter.h>
 #include <boost/program_options.hpp>
 #include <boost/program_options/positional_options.hpp>
 namespace po = boost::program_options;
@@ -17,7 +13,6 @@ namespace po = boost::program_options;
 #include <sstream>
 
 using namespace boost::network;
-using namespace rapidjson;
 
 int main(int argc, char *argv[]) {
   std::ostringstream oss;

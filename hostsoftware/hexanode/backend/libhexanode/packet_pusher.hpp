@@ -3,11 +3,16 @@
 
 #include <libhexanode/common.hpp>
 #include <libhexabus/packet.hpp>
+#include <boost/network/protocol/http/client.hpp>
+#include <boost/network/uri.hpp>
 
 namespace hexanode {
 
   class PacketPusher : public hexabus::PacketVisitor {
     private:
+      boost::asio::ip::udp::endpoint _endpoint;
+      boost::network::http::client _client;
+      boost::network::uri::uri _api_uri;
       std::ostream& target;
 
       void printValueHeader(uint32_t eid, const char* datatypeStr);
@@ -44,8 +49,14 @@ namespace hexanode {
 
 
     public:
-      PacketPusher(std::ostream& target)
-        : target(target) {}
+      PacketPusher( const boost::asio::ip::udp::endpoint& endpoint,
+          boost::network::http::client client,
+          const boost::network::uri::uri& api_uri,
+          std::ostream& target)
+        : _endpoint(endpoint)
+        , _client(client)
+        , _api_uri(api_uri)
+        , target(target) {}
       virtual ~PacketPusher() {}
       /**
        * defined in cpp

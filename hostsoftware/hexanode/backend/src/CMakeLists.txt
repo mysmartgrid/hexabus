@@ -43,6 +43,8 @@ target_link_libraries(demo_generator
 target_link_libraries(push_values
   hexanode
   pthread
+  ${CPPNETLIB_LIBRARIES}
+  ${OPENSSL_LIBRARIES}
   ${HXB_LIBRARIES}
   ${Boost_LIBRARIES}
 )
