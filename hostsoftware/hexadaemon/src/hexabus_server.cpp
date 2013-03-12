@@ -23,6 +23,7 @@ HexabusServer::HexabusServer(boost::asio::io_service& io)
 	_socket.onPacketReceived(boost::bind(&HexabusServer::epqueryhandler, this, _1, _2), hf::isEndpointQuery());
 	_socket.onPacketReceived(boost::bind(&HexabusServer::eid0handler, this, _1, _2), hf::isQuery() && hf::eid() == 0);
 	_socket.onPacketReceived(boost::bind(&HexabusServer::eid2handler, this, _1, _2), hf::isQuery() && hf::eid() == 2);
+	_socket.onPacketReceived(boost::bind(&HexabusServer::eid21handler, this, _1, _2), hf::isQuery() && hf::eid() == 21);
 
 	_socket.onAsyncError(boost::bind(&HexabusServer::errorhandler, this, _1));
 	/*_timer.expires_from_now(boost::posix_time::seconds(60+(rand()%60)));
@@ -36,10 +37,13 @@ void HexabusServer::epqueryhandler(const hexabus::Packet& p, const boost::asio::
 	try {
 		switch (packet->eid()) {
 			case 0:
-				_socket.send(hexabus::EndpointInfoPacket(0, 6, "HexaDaemon", 0), from);
+				_socket.send(hexabus::EndpointInfoPacket(0, HXB_DTYPE_UINT32, "HexaDaemon", 0), from);
 				break;
 			case 2:
-				_socket.send(hexabus::EndpointInfoPacket(2, 3, "Power meter (W)", 0), from);
+				_socket.send(hexabus::EndpointInfoPacket(2, HXB_DTYPE_UINT32, "HexabusPlug+ Power meter (W)", 0), from);
+				break;
+			case 21:
+				_socket.send(hexabus::EndpointInfoPacket(21, HXB_DTYPE_66BYTES, "Power meter (W)", 0), from);
 				break;
 		}
 	} catch ( const hexabus::NetworkException& e ) {
@@ -51,7 +55,8 @@ void HexabusServer::eid0handler(const hexabus::Packet& p, const boost::asio::ip:
 {
 	std::cout << "EID 0 packet received" << std::endl;
 	try {
-	_socket.send(hexabus::InfoPacket<uint32_t>(0, 2), from);
+		uint32_t eids = (1 << 0) | (1 << 2) | (1 << 21);
+		_socket.send(hexabus::InfoPacket<uint32_t>(0, eids), from);
 	} catch ( const hexabus::NetworkException& e ) {
 		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
 	}
@@ -64,6 +69,42 @@ void HexabusServer::eid2handler(const hexabus::Packet& p, const boost::asio::ip:
 		int value = getFluksoValue();
 		if ( value >= 0 )
 			_socket.send(hexabus::InfoPacket<uint32_t>(2, value), from);
+	} catch ( const hexabus::NetworkException& e ) {
+		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
+	}
+}
+
+void HexabusServer::eid21handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
+{
+	std::cout << "EID 21 packet received" << std::endl;
+
+	updateFluksoValues();
+
+	try {
+		for ( std::map<std::string, uint16_t>::iterator it = _flukso_values.begin(); it != _flukso_values.end(); it++ )
+		{
+			boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> data;
+			unsigned short hash;
+			for ( unsigned int pos = 0; pos < 16; pos++ )
+			{
+				std::stringstream ss(it->first.substr(2*pos, 2));
+				ss >> std::hex >> hash;
+				data[pos] = hash;
+			}
+			union {
+				uint16_t u16;
+				char raw[sizeof(it->second)];
+			} c = { htons(it->second) };
+			for ( unsigned int pos = 0; pos < sizeof(uint16_t); pos++ )
+			{
+				data[16+pos] = c.raw[pos];
+			}
+
+			for ( unsigned int pos = 16 + sizeof(uint16_t); pos < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; pos++ )
+				data[pos] = 0;
+
+			_socket.send(hexabus::InfoPacket< boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(21, data), from);
+		}
 	} catch ( const hexabus::NetworkException& e ) {
 		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
 	}
