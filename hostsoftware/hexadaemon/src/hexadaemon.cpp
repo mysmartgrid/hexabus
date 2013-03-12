@@ -13,17 +13,62 @@
 #include <boost/asio/signal_set.hpp>
 //#include <boost/array.hpp>
 #include <boost/bind.hpp>
+#include <boost/program_options.hpp>
 //#include <ctime>
 #include <iostream>
 #include <syslog.h>
 //#include <unistd.h>
 
+namespace po = boost::program_options;
+
 #include "hexabus_server.hpp"
 
 boost::asio::io_service io_service;
 
-int main()
+int main(int argc, char** argv)
 {
+  std::ostringstream oss;
+  oss << "Usage: " << argv[0] << " [additional options]";
+  po::options_description desc(oss.str());
+  desc.add_options()
+    ("help,h", "produce this message")
+    ("debug,d", "enable debug mode")
+    ("logfile,l", po::value<std::string>(), "set the logfile to use")
+    ("interval,i", po::value<int>(), "set the broadcast interval")
+    ;
+  po::variables_map vm;
+
+  // Begin processing of commandline parameters.
+  try {
+    po::store(po::command_line_parser(argc, argv).
+        options(desc).run(), vm);
+    po::notify(vm);
+  } catch (std::exception& e) {
+    std::cerr << "Cannot process commandline options: " << e.what() << std::endl;
+    exit(-1);
+  }
+
+  bool debug = false;
+  std::string logfile = "/tmp/hexadaemon.log";
+  int interval = 60;
+
+  if (vm.count("help")) {
+    std::cout << desc << std::endl;
+    return 1;
+  }
+
+  if (vm.count("debug")) {
+    debug = true;
+  }
+
+  if (vm.count("logfile")) {
+    logfile = vm["logfile"].as<std::string>();
+  }
+
+  if (vm.count("interval")) {
+    interval = vm["interval"].as<int>();
+  }
+
   try
   {
 
@@ -31,7 +76,7 @@ int main()
     // started from a shell, this means any errors will be reported back to the
     // user.
     //udp_daytime_server server(io_service);
-    hexadaemon::HexabusServer server(io_service);
+    hexadaemon::HexabusServer server(io_service, interval);
 
     // Register signal handlers so that the daemon may be shut down. You may
     // also want to register for other signals, such as SIGHUP to trigger a
@@ -40,6 +85,7 @@ int main()
     signals.async_wait(
         boost::bind(&boost::asio::io_service::stop, &io_service));
 
+    if ( !debug ) {
     // Inform the io_service that we are about to become a daemon. The
     // io_service cleans up any internal resources, such as threads, that may
     // interfere with forking.
@@ -119,7 +165,7 @@ int main()
     }
 
     // Send standard output to a log file.
-    const char* output = "/tmp/hexadaemon.log";
+    const char* output = logfile.c_str();
     const int flags = O_WRONLY | O_CREAT | O_APPEND;
     const mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
     if (open(output, flags, mode) < 0)
@@ -142,7 +188,9 @@ int main()
 
     // The io_service can now be used normally.
     syslog(LOG_INFO | LOG_USER, "HexabusDaemon started");
+    }
     io_service.run();
+    if ( !debug )
     syslog(LOG_INFO | LOG_USER, "HexabusDaemon stopped");
   }
   catch (std::exception& e)

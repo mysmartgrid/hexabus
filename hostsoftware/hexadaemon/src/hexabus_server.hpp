@@ -11,7 +11,7 @@ namespace hexadaemon {
 	class HexabusServer {
 		public:
 			typedef boost::shared_ptr<HexabusServer> Ptr;
-			HexabusServer(boost::asio::io_service& io);
+			HexabusServer(boost::asio::io_service& io, int interval = 60);
 			virtual ~HexabusServer() {};
 
 			void epqueryhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
@@ -26,6 +26,7 @@ namespace hexadaemon {
 		private:
 			hexabus::Socket _socket;
 			boost::asio::deadline_timer _timer;
+			int _interval;
 			std::map<std::string, uint16_t> _flukso_values;
 
 			int getFluksoValue();
