@@ -45,6 +45,8 @@ extern uint16_t uip_slen;
 #include "net/uip-udp-packet.h"
 
 #include "sequence_number.h"
+#include "resend_buffer.h"
+#include "sequence_number.h"
 
 #include <string.h>
 
@@ -52,43 +54,62 @@ extern uint16_t uip_slen;
 #define UIP_DESTO_BUF                        ((struct uip_hbho_hdr *)&uip_buf[UIP_LLH_LEN+UIP_IPH_LEN])
 #define UIP_SEQNUM_BUF                        ((struct uip_ext_hdr_opt_exp_hxb_seqnum *)&uip_buf[UIP_LLH_LEN+UIP_IPH_LEN+UIP_HBHO_LEN])
 
+
+static uint16_t hxb_flags = 0;
+
 /*---------------------------------------------------------------------------*/
 void
 uip_udp_packet_send(struct uip_udp_conn *c, const void *data, int len)
 {
 #if UIP_UDP
-  if(data != NULL) {
+  if(data!=NULL) {
     uip_udp_conn = c;
     uip_slen = len;
     memcpy(&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN], data,
            len > UIP_BUFSIZE? UIP_BUFSIZE: len);
     uip_process(UIP_UDP_SEND_CONN);
-	
-    /* Insert Hexabus sequence number */
     memmove(&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN + UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN],&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN], (len+UIP_UDPH_LEN) > UIP_BUFSIZE? UIP_BUFSIZE: (len+UIP_UDPH_LEN)); // Make space for the DESTO header
+   }
+	
+#if UIP_CONF_IPV6
 
     uip_len += UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN;
     UIP_IP_BUF->proto = UIP_PROTO_DESTO;
     UIP_IP_BUF->len[0] = ((uip_len - UIP_IPH_LEN) >> 8);
     UIP_IP_BUF->len[1] = ((uip_len - UIP_IPH_LEN) & 0xff);
-    UIP_DESTO_BUF->next = UIP_PROTO_UDP;
+    UIP_DESTO_BUF->next = (data!=NULL)? UIP_PROTO_UDP:UIP_PROTO_NONE;
     UIP_DESTO_BUF->len  = (UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN) / 8  - 1;
     UIP_SEQNUM_BUF->tag = UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM;
     UIP_SEQNUM_BUF->len = UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN - 2;
-    UIP_SEQNUM_BUF->seqnum = increase_seqnum();
-    UIP_SEQNUM_BUF->flags = 0;
+    UIP_SEQNUM_BUF->flags = hxb_flags | (UIP_HXB_SEQNUM_MASTER? UIP_EXT_SEQNUM_FLAG_MASTER:0) |
+	    (seqnum_is_valid() ? UIP_EXT_SEQNUM_FLAG_VALID:0);
 
-#if UIP_CONF_IPV6
+    if(!hxb_flags) {
+    	UIP_SEQNUM_BUF->seqnum = increase_seqnum();
+    	write_to_buffer(current_seqnum(),data,len);
+    } else {
+	UIP_SEQNUM_BUF->seqnum = current_seqnum();	
+    }
+
     tcpip_ipv6_output();
+
 #else
     if(uip_len > 0) {
       tcpip_output();
     }
 #endif
-  }
   uip_slen = 0;
+  hxb_flags = 0;
 #endif /* UIP_UDP */
 }
+
+void
+uip_udp_packet_send_flags(struct uip_udp_conn *c, const void *data, int len, uint16_t flags)
+{
+	hxb_flags = flags;
+	uip_udp_packet_send(c, data, len);
+}
+
 /*---------------------------------------------------------------------------*/
 void
 uip_udp_packet_sendto(struct uip_udp_conn *c, const void *data, int len,

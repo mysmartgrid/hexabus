@@ -1902,10 +1902,13 @@ struct uip_udp_hdr {
 /** @} */
 
 /* Hexabus sequence number extension header flags*/
-#define UIP_EXT_SEQNUM_FLAG_MASTER 0x01 //Packet came from stick
-#define UIP_EXT_SEQNUM_FLAG_REQEST 0x02 //Requesting missing packet
-#define UIP_EXT_SEQNUM_FLAG_RESEND 0x04 //Answer to resend request
-#define UIP_EXT_SEQNUM_FLAG_RESYNC 0x08 //Request for current sequence number
+//TODO type instead of flags?
+#define UIP_EXT_SEQNUM_FLAG_VALID  0x01 //Sender had valid sequence number
+#define UIP_EXT_SEQNUM_FLAG_MASTER 0x02 //Packet came from stick
+#define UIP_EXT_SEQNUM_FLAG_REQUEST 0x04 //Requesting missing packet
+#define UIP_EXT_SEQNUM_FLAG_RESEND 0x08 //Answer to resend request
+#define UIP_EXT_SEQNUM_FLAG_RESYNC 0x10 //Request for current sequence number
+#define UIP_EXT_SEQNUM_FLAG_SYNC   0x20 //Only seqence number, ignore content of the packet
 
 #endif /* UIP_CONF_IPV6 */
 
