@@ -80,6 +80,8 @@
 #include "dev/serial-line.h"
 #include "dev/slip.h"
 
+#include "lib/random.h"
+
 #if WEBSERVER
 #include "httpd-fs.h"
 #include "httpd-cgi.h"
@@ -100,12 +102,11 @@
 
 
 //HEXABUS includes
-#include "button.h"
 #include "metering.h"
 #include "relay.h"
+#include "button.h"
 #include "eeprom_variables.h"
 #include "udp_handler.h"
-#include "mdns_responder.h"
 #include "state_machine.h"
 #include "hexabus_app_bootstrap.h"
 
@@ -123,7 +124,6 @@
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
-uint8_t forwarding_enabled; //global variable for forwarding
 uint8_t encryption_enabled = 1; //global variable for AES encryption
 /*-------------------------------------------------------------------------*/
 /*----------------------Configuration of the .elf file---------------------*/
@@ -186,17 +186,8 @@ uint8_t get_relay_default_from_eeprom(void) {
 	return eeprom_read_byte ((const void *)EE_RELAY_DEFAULT);
 }
 
-uint8_t get_forwarding_from_eeprom(void) {
-	return eeprom_read_byte ((const void *)EE_FORWARDING);
-}
-
 void get_aes128key_from_eeprom(uint8_t keyptr[16]) {
 	eeprom_read_block ((void *)keyptr, (const void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
-}
-
-void set_forwarding_to_eeprom(uint8_t val) {
-	 eeprom_write_byte ((uint8_t *)EE_FORWARDING, val);
-	 forwarding_enabled = val;
 }
 
 /*-------------------------Low level initialization------------------------*/
@@ -205,12 +196,11 @@ void initialize(void)
 {
   watchdog_init();
   watchdog_start();
+	button_handlers_init();
 
   init_lowlevel();
 
   clock_init();
-
-  forwarding_enabled = get_forwarding_from_eeprom();
 
 
 #if ANNOUNCE_BOOT
@@ -307,6 +297,9 @@ void initialize(void)
   process_start(&tcpip_process, NULL);
 #endif /*RF230BB || RF212BB*/
 
+  //initialize random number generator with part of the MAC address
+  random_init(eeprom_read_word(EE_MAC_ADDR + EE_MAC_ADDR_SIZE - 2));
+
 #if WEBSERVER
   process_start(&webserver_nogui_process, NULL);
 #endif
@@ -333,8 +326,6 @@ void initialize(void)
 #if STATE_MACHINE_ENABLE
   process_start(&state_machine_process, NULL);
 #endif
-
-  mdns_responder_init();
 
   /* Datetime service*/
 #if DATETIME_SERVICE_ENABLE

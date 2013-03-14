@@ -1,0 +1,8 @@
+# This file generates an "empty" image for the Hexabus Device.
+# It will only contain a new device name (the name a device will
+# appear under in hexadroid and other tools), but the state machine
+# on the device will be unchanged.
+
+target abcd:0000:0000:0000:0050:c4ff:fe04:8abc;
+device_name new_device;
+machine 0;

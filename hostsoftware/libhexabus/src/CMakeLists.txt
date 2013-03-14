@@ -6,7 +6,6 @@ file(GLOB_RECURSE c_files "*.c")
 set(hexaswitch_src "hexaswitch.cpp")
 set(hexalog_src "hexalog.cpp")
 set(hexaupload_src "hexaupload.cpp")
-set(hexinfo_src "hexinfo.cpp")
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
@@ -35,14 +34,6 @@ target_link_libraries(hexaswitch
 add_executable(hexaupload ${hexaupload_src})
 # Link the executables
 target_link_libraries(hexaupload
-  hexabus
-  pthread
-  ${Boost_LIBRARIES}
-)
-
-add_executable(hexinfo ${hexinfo_src})
-# Link the executables
-target_link_libraries(hexinfo
   hexabus
   pthread
   ${Boost_LIBRARIES}

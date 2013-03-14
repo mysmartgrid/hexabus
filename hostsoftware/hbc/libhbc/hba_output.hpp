@@ -4,6 +4,7 @@
 #include <libhbc/common.hpp>
 #include <libhbc/graph.hpp>
 #include <libhbc/tables.hpp>
+#include <iomanip>
 
 namespace hexabus {
   class HBAOutput {
@@ -13,6 +14,8 @@ namespace hexabus {
       virtual ~HBAOutput() {};
 
       void operator()(std::ostream& ostr);
+
+      static void print_ipv6address(boost::asio::ip::address_v6 addr, std::ostream& ostr);
 
     private:
       std::string _dev_name;
@@ -24,9 +27,8 @@ namespace hexabus {
       void print_condition(atomic_condition_doc at_cond, std::ostream& ostr, vertex_t& vertex);
       void print_condition(timeout_condition_doc to_cond, std::ostream& ostr, vertex_t& vertex);
       void print_condition(timer_condition_doc tm_cond, std::ostream& ostr, vertex_t& vertex);
-      void print_ipv6address(boost::asio::ip::address_v6, std::ostream& ostr);
   };
-};
 
+};
 #endif // LIBHBC_HBA_OUTPUT_HPP
 

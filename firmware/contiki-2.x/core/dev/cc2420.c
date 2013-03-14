@@ -40,12 +40,6 @@
 
 #if defined(__AVR__)
 #include <avr/io.h>
-#elif defined(__MSP430__)
-#ifdef __IAR_SYSTEMS_ICC__
-#include <io430.h>
-#else
-#include <io.h>
-#endif
 #endif
 
 #include "dev/leds.h"
@@ -295,11 +289,11 @@ cc2420_init(void)
 
   /* Turn on voltage regulator and reset. */
   SET_VREG_ACTIVE();
-  //clock_delay(250); OK
+  clock_delay(250);
   SET_RESET_ACTIVE();
   clock_delay(127);
   SET_RESET_INACTIVE();
-  //clock_delay(125); OK
+  clock_delay(125);
 
 
   /* Turn on the crystal oscillator. */

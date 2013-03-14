@@ -1,6 +1,7 @@
 #ifndef LIBHEXABUS_FILTERING_HPP
 #define LIBHEXABUS_FILTERING_HPP 1
 
+#include <libhexabus/common.hpp>
 #include <boost/asio.hpp>
 #include <boost/optional.hpp>
 #include <boost/utility/enable_if.hpp>

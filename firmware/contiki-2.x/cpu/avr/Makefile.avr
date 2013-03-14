@@ -1,15 +1,5 @@
 # $Id: Makefile.avr,v 1.27 2010/12/22 21:13:09 dak664 Exp $
 	
-### Check if we are running under Windows
-
-ifndef WINDIR
-  ifdef OS
-    ifneq (,$(findstring Windows,$(OS)))
-      WINDIR := Windows
-    endif
-  endif
-endif
-
 .SUFFIXES:
 
 ### Optimization setting. $make OPTI=0 for easier debugging of changed source file(s)
@@ -101,12 +91,13 @@ CC       = avr-gcc
 LD       = avr-gcc
 AS       = avr-as
 AR       = avr-ar
+ELF_SIZE = avr-size -C --mcu=$(MCU)
 OBJCOPY  = avr-objcopy
 STRIP    = avr-strip
-CFLAGSNO = -Wall -mmcu=$(MCU) -gdwarf-2 \
-           -I. -I$(CONTIKI)/core -I$(CONTIKI_CPU) $(USB_INCLUDES) \
-           -I$(CONTIKI)/platform/$(TARGET) \
-           $(CONTIKI_PLAT_DEFS)
+CFLAGSNO = -Wall -mmcu=$(MCU) -gdwarf-2 -fno-strict-aliasing \
+            -I$(CONTIKI)/platform/$(TARGET) \
+            -I. -I$(CONTIKI)/core -I$(CONTIKI_CPU) $(USB_INCLUDES) \
+            $(CONTIKI_PLAT_DEFS)
 CFLAGS   += $(CFLAGSNO) -O$(OPTI)
 ifndef BOOTLOADER_START
   BOOTLOADER_START = 0x1F800
@@ -177,8 +168,8 @@ endif
 #	$(STRIP) --strip-unneeded -g -x $@
 
 %.co: %.c
-	cp ${CONTIKI}/tools/empty-symbols.c symbols.c
-	cp ${CONTIKI}/tools/empty-symbols.h symbols.h
+	cp $(CONTIKI)/tools/empty-symbols.c symbols.c
+	cp $(CONTIKI)/tools/empty-symbols.h symbols.h
 	$(CC) $(CFLAGS) -DAUTOSTART_ENABLE -c $< -o $@
 
 %-stripped.o: %.o
@@ -191,8 +182,18 @@ endif
 	$(OBJCOPY) -O srec $< $@
 
 ### Upload image
+#Let avrdude use defaults if port or programmer not defined
+ifdef AVRDUDE_PORT
+ AVRDUDE_PORT:=-P $(AVRDUDE_PORT)
+endif
+ifdef AVRDUDE_PROGRAMMER
+ AVRDUDE_PROGRAMMER:=-c $(AVRDUDE_PROGRAMMER)
+endif
 %.u: %.hex
-	avrdude ${AVRDUDE_OPTIONS} -P ${AVRDUDE_PORT} -c ${AVRDUDE_PROGRAMMER} -p ${MCU} -U flash:w:$<
+	avrdude $(AVRDUDE_OPTIONS) $(AVRDUDE_PORT) $(AVRDUDE_PROGRAMMER) -p $(MCU) -U flash:w:$<
+
+%.eu: %.eep
+	avrdude ${AVRDUDE_OPTIONS} -P ${AVRDUDE_PORT} -c ${AVRDUDE_PROGRAMMER} -p ${MCU} -U eeprom:w:$<
 
 symbols.c:
 	cp ${CONTIKI}/tools/empty-symbols.c symbols.c
