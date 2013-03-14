@@ -1,6 +1,5 @@
 #include <libhexanode/common.hpp>
 #include <libhexanode/packet_pusher.hpp>
-#include <libhexanode/valuebuffer.hpp>
 #include <libhexabus/liveness.hpp>
 #include <libhexabus/socket.hpp>
 #include <libhexanode/sensor.hpp>
@@ -73,9 +72,7 @@ int main (int argc, char const* argv[]) {
   network->listen(bind_addr);
 
   http::client client;
-  std::map<std::string, hexanode::Sensor::Ptr> sensors;
-  double min_value = 15;
-  double max_value = 30;
+  hexanode::SensorStore::Ptr sensors(new hexanode::SensorStore());
   
   std::cout << "Will now push values." << std::endl;
     while (true) {
@@ -92,17 +89,10 @@ int main (int argc, char const* argv[]) {
       exit(1);
     }
 
-    hexanode::PacketPusher pp(pair.second, client, base_uri, std::cout);
     std::cout << "Received packet from " << pair.second << std::endl;
+    hexanode::PacketPusher pp(pair.second, sensors, client, base_uri, std::cout);
     pp.visitPacket(*pair.first);
 
-//        hexanode::Sensor::Ptr sensor=sensors.at(sid);
-  //        sensor->post_value(client, base_uri, dist(gen));
-  //      std::cout << "Cannot submit sensor values (" << e.what() << ")" << std::endl;
-  //      std::cout << "Attempting to re-create sensors." << std::endl;
-  //        hexanode::Sensor::Ptr sensor=sensors[sid];
-  //        sensor->put(client, base_uri, 0.0); 
-  //
 
 
   }

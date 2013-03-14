@@ -1,5 +1,6 @@
 #include <libhexanode/common.hpp>
 #include <libhexanode/sensor.hpp>
+#include <libhexanode/sensor_collection.hpp>
 #include <boost/network/protocol/http/client.hpp>
 #include <boost/network/uri.hpp>
 #include <boost/network/uri/uri_io.hpp>
@@ -63,7 +64,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Using frontend url " << base_uri << std::endl;
 
   http::client client;
-  std::vector<hexanode::Sensor::Ptr> sensors;
+  hexanode::SensorStore sensors;
   uint16_t max_id = 4;
   double min_value = 15;
   double max_value = 30;
@@ -74,20 +75,18 @@ int main(int argc, char *argv[]) {
     std::ostringstream oss;
     oss << "Sensor_" << id;
     hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(oss.str(), oss.str(), min_value, max_value));
-    sensors.push_back(new_sensor);
+    sensors.add_sensor(new_sensor);
   }
-  std::cout << "Will now push values." << std::endl;
+  std::cout << "Will now push values for "<< sensors.size() << " sensors." << std::endl;
   while(true) {
-    try {
-      for (uint16_t sid=0; sid < max_id; ++sid) {
-        hexanode::Sensor::Ptr sensor=sensors.at(sid);
+    for( hexanode::SensorStore::s_const_iterator_t it=sensors.begin(); 
+        it != sensors.end(); ++it) {
+      hexanode::Sensor::Ptr sensor=(*it).second;
+      try {
         sensor->post_value(client, base_uri, dist(gen));
-      }
-    } catch (const std::exception& e) {
-      std::cout << "Cannot submit sensor values (" << e.what() << ")" << std::endl;
-      std::cout << "Attempting to re-create sensors." << std::endl;
-      for (uint16_t sid=0; sid < max_id; ++sid) {
-        hexanode::Sensor::Ptr sensor=sensors[sid];
+      } catch (const std::exception& e) {
+        std::cout << "Cannot submit sensor values (" << e.what() << ")" << std::endl;
+        std::cout << "Attempting to re-create sensors." << std::endl;
         sensor->put(client, base_uri, 0.0); 
       }
       continue; // do not sleep

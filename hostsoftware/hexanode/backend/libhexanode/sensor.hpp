@@ -22,6 +22,7 @@ namespace hexanode {
       {};
       virtual ~Sensor() {};
 
+      const std::string& get_id() { return _sensor_id; };
       void put( http::client client,
           const uri::uri& api_uri,
           const double& reading);

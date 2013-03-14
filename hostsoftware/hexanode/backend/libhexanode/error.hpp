@@ -29,38 +29,54 @@ namespace hexanode {
 	public:
 	  typedef std::tr1::shared_ptr<GenericException> Ptr;
 	  GenericException (const std::string reason) : _reason(reason) {};
-	  virtual ~GenericException() throw() {};
-	  virtual const char* what() const throw() { return reason().c_str(); }
-	  virtual const std::string& reason() const { return _reason; }
+    virtual ~GenericException() throw() {};
+    virtual const char* what() const throw() { return reason().c_str(); }
+    virtual const std::string& reason() const { return _reason; }
 
-	private:
-	  std::string _reason;
+  private:
+    std::string _reason;
   };
 
   class CommunicationException : public GenericException{
-	public:
-	  typedef std::tr1::shared_ptr<CommunicationException> Ptr;
-	  CommunicationException (const std::string reason) :
-		hexanode::GenericException(reason) {};
-	  virtual ~CommunicationException() throw() {};
+    public:
+      typedef std::tr1::shared_ptr<CommunicationException> Ptr;
+      CommunicationException (const std::string reason) :
+        hexanode::GenericException(reason) {};
+      virtual ~CommunicationException() throw() {};
 
   };
-  
+
   class DataFormatException : public GenericException{
-	public:
-	  typedef std::tr1::shared_ptr<DataFormatException> Ptr;
-	  DataFormatException (const std::string reason) :
-		hexanode::GenericException(reason) {};
-	  virtual ~DataFormatException() throw() {};
+    public:
+      typedef std::tr1::shared_ptr<DataFormatException> Ptr;
+      DataFormatException (const std::string reason) :
+        hexanode::GenericException(reason) {};
+      virtual ~DataFormatException() throw() {};
 
   };
 
   class MidiException : public GenericException{
-	public:
-	  typedef std::tr1::shared_ptr<MidiException> Ptr;
-	  MidiException (const std::string reason) :
-		hexanode::GenericException(reason) {};
-	  virtual ~MidiException() throw() {};
+    public:
+      typedef std::tr1::shared_ptr<MidiException> Ptr;
+      MidiException (const std::string reason) :
+        hexanode::GenericException(reason) {};
+      virtual ~MidiException() throw() {};
+  };
+
+  class NotFoundException : public GenericException{
+    public:
+      typedef std::tr1::shared_ptr<NotFoundException> Ptr;
+      NotFoundException (const std::string reason) :
+        hexanode::GenericException(reason) {};
+      virtual ~NotFoundException() throw() {};
+  };
+
+  class DuplicateException : public GenericException{
+    public:
+      typedef std::tr1::shared_ptr<DuplicateException> Ptr;
+      DuplicateException (const std::string reason) :
+        hexanode::GenericException(reason) {};
+      virtual ~DuplicateException() throw() {};
   };
 
 }
