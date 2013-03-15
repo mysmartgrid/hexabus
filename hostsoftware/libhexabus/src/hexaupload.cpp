@@ -293,7 +293,7 @@ int main(int argc, char** argv) {
 		std::cout << "Cannot proceed without a program (-p <FILE>)" << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
-	if (!vm.count("ip")) {
+	if (!vm.count("ip") && !vm.count("program")) {
 		std::cout << "Cannot proceed without IP of the target device (-i <IP>)" << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
