@@ -1,7 +1,7 @@
 #ifndef HEXABUS_STATEMACHINE_STRUCTS_H_
 #define HEXABUS_STATEMACHINE_STRUCTS_H_
 
-#include "hexabus_value.h"
+#include "hexabus_types.h"
 
 // these structs implement a simple table layout
 

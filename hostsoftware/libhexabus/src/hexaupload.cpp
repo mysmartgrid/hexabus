@@ -16,7 +16,6 @@
 #include <typeinfo>
 namespace po = boost::program_options;
 
-#include "../../../shared/hexabus_packet.h"
 #include "../../../shared/hexabus_definitions.h"
 #include "../../../shared/hexabus_statemachine_structs.h"
 #include "../../../shared/endpoints.h"

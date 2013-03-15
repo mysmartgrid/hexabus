@@ -4,6 +4,8 @@
 #include "sys/clock.h"
 #include "sys/etimer.h" //contiki event timer library
 #include "contiki.h"
+#include "endpoint_registry.h"
+#include "endpoints.h"
 
 #include <avr/interrupt.h>
 
@@ -14,12 +16,42 @@
 #define PRINTF(...)
 #endif
 
+static void    shutter_toggle(uint8_t);
+static void    shutter_set(uint8_t);
+static void    shutter_stop(void);
+static uint8_t shutter_get_state(void);
+
 static int8_t shutter_direction;
 static int shutter_goal;
 static int shutter_pos;
 static int shutter_upperbound;
 
 static process_event_t shutter_poke;
+
+static enum hxb_error_code read(struct hxb_value* value)
+{
+	value->v_u8 = shutter_get_state();
+	return HXB_ERR_SUCCESS;
+}
+
+static enum hxb_error_code write(const struct hxb_envelope* env)
+{
+	shutter_toggle(env->value.v_u8);
+	return HXB_ERR_SUCCESS;
+}
+
+
+
+static const char ep_name[] PROGMEM = "Window Shutter";
+ENDPOINT_DESCRIPTOR endpoint_shutter = {
+	.datatype = HXB_DTYPE_UINT8,
+	.eid = EP_SHUTTER,
+	.name = ep_name,
+	.read = read,
+	.write = write
+};
+
+
 
 void shutter_init(void) {
     PRINTF("Shutter init\n");
@@ -40,9 +72,10 @@ void shutter_init(void) {
     shutter_pos = SHUTTER_MAX_BOUND/2;
     shutter_upperbound = SHUTTER_MAX_BOUND;
 
+	ENDPOINT_REGISTER(endpoint_shutter);
 }
 
-void shutter_open(void) {
+static void shutter_open(void) {
     PRINTF("Shutter opening\n");
     shutter_direction = SHUTTER_DIR_UP;
     SHUTTER_PORT &= ~(1<<SHUTTER_OUT_DOWN);
@@ -50,7 +83,7 @@ void shutter_open(void) {
     process_post(&shutter_process, shutter_poke, NULL);
 }
 
-void shutter_close(void) {
+static void shutter_close(void) {
     PRINTF("Shutter closing\n");
     shutter_direction = SHUTTER_DIR_DOWN;
     SHUTTER_PORT &= ~(1<<SHUTTER_OUT_UP);
@@ -58,13 +91,13 @@ void shutter_close(void) {
     process_post(&shutter_process, shutter_poke, NULL);
 }
 
-void shutter_stop(void) {
+static void shutter_stop(void) {
     PRINTF("Shutter stop\n");
     shutter_direction = SHUTTER_DIR_STOP;
     SHUTTER_PORT &= ~( (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
 }
 
-void shutter_set(uint8_t val) {
+static void shutter_set(uint8_t val) {
 
     if(val == 255) {
         shutter_goal = SHUTTER_MAX_BOUND; //completely open
@@ -85,7 +118,7 @@ void shutter_set(uint8_t val) {
     }
 }
 
-void shutter_toggle(uint8_t val) {
+static void shutter_toggle(uint8_t val) {
     if(shutter_direction==SHUTTER_DIR_STOP && val!=0){
         shutter_set(val);
     } else {
@@ -93,7 +126,7 @@ void shutter_toggle(uint8_t val) {
     }
 }
 
-uint8_t shutter_get_state(void) {
+static uint8_t shutter_get_state(void) {
     return shutter_pos * ((float)shutter_upperbound/255.0);
 }
 

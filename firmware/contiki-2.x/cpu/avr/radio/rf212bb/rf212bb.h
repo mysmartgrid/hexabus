@@ -206,6 +206,7 @@ uint8_t rf212_cipher(uint8_t *data);
 void rf212_set_promiscuous_mode(uint8_t onoff, uint8_t * mac_address);
 bool rf212_is_ready_to_send();
 int rf212_get_txpower(void);
+int rf212_read(void *buf, unsigned short bufsize);
 
 //radio_status_t radio_init(bool cal_rc_osc,
 //                          hal_rx_start_isr_event_handler_t rx_event,
