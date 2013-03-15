@@ -9,6 +9,7 @@
 
 #include <stdlib.h>
 
+#define DEBUG 0
 #if DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -69,12 +70,12 @@ static enum hxb_error_code send_acknack(union hxb_packet_any* packet, void* data
 
 static enum hxb_error_code write_receiver(const struct hxb_envelope* env)
 {
-	PRINTF("SM: Attempting to write new chunk to EEPROM\n");
 	if (env->value.datatype == HXB_DTYPE_66BYTES) {
 		char* payload = env->value.v_binary;
 		uint8_t chunk_id = (uint8_t) payload[0];
+		PRINTF("SM: Attempting to write new chunk %i to EEPROM: ", chunk_id);
 		bool result = sm_write_chunk(chunk_id, payload + 1);
-		PRINTF(result.value ? "SENDING ACK" : "SENDING NACK");
+		PRINTF(result ? "SENDING ACK\n" : "SENDING NACK\n");
 		udp_handler_send_generated(&env->src_ip, env->src_port, &send_acknack, &result);
 		return result
 			? HXB_ERR_SUCCESS

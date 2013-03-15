@@ -365,7 +365,7 @@ static enum hxb_error_code handle_write(union hxb_packet_any* packet)
 	struct hxb_envelope env;
 
 	uip_ipaddr_copy(&env.src_ip, &UDP_IP_BUF->srcipaddr);
-	env.src_port = UDP_IP_BUF->srcport;
+	env.src_port = uip_ntohs(UDP_IP_BUF->srcport);
 	env.eid = uip_ntohl(packet->value_header.eid);
 
 	enum hxb_error_code err;
@@ -468,7 +468,7 @@ static enum hxb_error_code handle_info(union hxb_packet_any* packet)
 	enum hxb_error_code err;
 
 	uip_ipaddr_copy(&envelope.src_ip, &UDP_IP_BUF->srcipaddr);
-	envelope.src_port = UDP_IP_BUF->srcport;
+	envelope.src_port = uip_ntohs(UDP_IP_BUF->srcport);
 	envelope.eid = uip_ntohl(packet->eid_header.eid);
 
 	err = extract_value(packet, &envelope.value);
