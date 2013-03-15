@@ -23,6 +23,8 @@ namespace po = boost::program_options;
 
 #include <unistd.h>
 
+#include "resolv.hpp"
+
 
 struct ReadingLogger : private hexabus::PacketVisitor {
 	private:
@@ -266,12 +268,14 @@ int main(int argc, char** argv)
 	std::string storefile(vm["storefile"].as<std::string>());
 	boost::asio::ip::address_v6 addr(boost::asio::ip::address_v6::any());
 
+	boost::asio::io_service io;
+
 	if (vm.count("bind")) {
 		boost::system::error_code err;
 
-		addr = boost::asio::ip::address_v6::from_string(vm["bind"].as<std::string>());
+		addr = hexabus::resolve(io, vm["bind"].as<std::string>(), err);
 		if (err) {
-			std::cerr << vm["bind"].as<std::string>() << " is not a valid IP address" << std::endl;
+			std::cerr << vm["bind"].as<std::string>() << " is not a valid IP address: " << err.message() << std::endl;
 			return ERR_PARAMETER_FORMAT;
 		}
 	}
@@ -291,7 +295,6 @@ int main(int argc, char** argv)
     sensor_timezone=vm["timezone"].as<std::string>();
   }
 
-	boost::asio::io_service io;
 	try {
 		hexabus::Socket network(io, interface);
 

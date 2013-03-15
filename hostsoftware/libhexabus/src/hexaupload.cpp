@@ -19,6 +19,7 @@ namespace po = boost::program_options;
 #include "../../../shared/hexabus_definitions.h"
 #include "../../../shared/hexabus_statemachine_structs.h"
 #include "../../../shared/endpoints.h"
+#include "resolv.hpp"
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
@@ -317,12 +318,15 @@ int main(int argc, char** argv) {
 		in.read(reinterpret_cast<char*>(ipBuffer.c_array()), ipBuffer.size());
 		target = boost::asio::ip::address_v6(ipBuffer);
 	}
+
+	boost::asio::io_service io;
+
 	if (vm.count("ip")) {
 		boost::system::error_code err;
 
-		target = boost::asio::ip::address_v6::from_string(vm["ip"].as<std::string>());
+		target = hexabus::resolve(io, vm["ip"].as<std::string>(), err);
 		if (err) {
-			std::cerr << vm["ip"].as<std::string>() << " is not a valid IP address" << std::endl;
+			std::cerr << vm["ip"].as<std::string>() << " is not a valid IP address: " << err.message() << std::endl;
 			return ERR_PARAMETER_FORMAT;
 		}
 	} else if (!vm.count("program")) {
@@ -337,7 +341,6 @@ int main(int argc, char** argv) {
 		std::cout << "Clearing state machine" << std::endl;
 	}
 
-	boost::asio::io_service io;
 	try {
 		hexabus::Socket socket(io);
 		uint8_t chunkId = 0;
