@@ -22,21 +22,20 @@ HexabusServer::HexabusServer(boost::asio::io_service& io, int interval)
 	, _timer(io)
 	, _interval(interval)
 {
-	_socket.listen(boost::asio::ip::address_v6::from_string("::"));
+	try {
+		_socket.listen(boost::asio::ip::address_v6::from_string("::"));
+	} catch ( const hexabus::NetworkException& error ) {
+		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
+		exit(1);
+	}
+
 	_socket.onPacketReceived(boost::bind(&HexabusServer::epqueryhandler, this, _1, _2), hf::isEndpointQuery());
 	_socket.onPacketReceived(boost::bind(&HexabusServer::eid0handler, this, _1, _2), hf::isQuery() && hf::eid() == EP_DEVICE_DESCRIPTOR);
 	_socket.onPacketReceived(boost::bind(&HexabusServer::eid2handler, this, _1, _2), hf::isQuery() && hf::eid() == EP_POWER_METER);
 	_socket.onPacketReceived(boost::bind(&HexabusServer::eid21handler, this, _1, _2), hf::isQuery() && hf::eid() == EP_GEN_POWER_METER);
 
 	_socket.onAsyncError(boost::bind(&HexabusServer::errorhandler, this, _1));
-	/*_timer.expires_from_now(boost::posix_time::seconds(60+(rand()%60)));
-	_timer.async_wait(boost::bind(&HexabusServer::broadcast_handler, this, _1));*/
 	broadcast_handler(boost::system::error_code());
-}
-
-void HexabusServer::packethandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
-{
-	std::cout << "Packet received!" << std::endl;
 }
 
 void HexabusServer::epqueryhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
@@ -136,7 +135,12 @@ void HexabusServer::broadcast_handler(const boost::system::error_code& error)
 
 void HexabusServer::errorhandler(const hexabus::GenericException& error)
 {
-	std::cerr << "Error while receiving hexabus packets!" << std::endl;
+	const hexabus::NetworkException* nerror;
+	if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&error))) {
+		std::cerr << "Error while receiving hexabus packets: " << nerror->code().message() << std::endl;
+	} else {
+		std::cerr << "Error while receiving hexabus packets: " << error.what() << std::endl;
+	}
 }
 
 int HexabusServer::getFluksoValue()
@@ -156,11 +160,11 @@ void HexabusServer::updateFluksoValues()
 
 	if ( exists(p) && is_directory(p) )
 	{
-		std::ifstream file;
 		for ( bf::directory_iterator sensors(p); sensors != bf::directory_iterator(); sensors++ )
 		{
 			std::string filename = (*sensors).path().filename().string();
 
+			//convert hash from hex to binary
 			boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> data;
 			unsigned short hash;
 			for ( unsigned int pos = 0; pos < 16; pos++ )
@@ -170,11 +174,15 @@ void HexabusServer::updateFluksoValues()
 				data[pos] = hash;
 			}
 
+			std::ifstream file;
 			file.open((*sensors).path().string().c_str());
+			if ( file.fail() )
+				break;
+
 			std::string flukso_data;
 			file >> flukso_data;
 			file.close();
-			std::cout << "flukso_data: " << flukso_data << std::endl;
+			//extract last value != "nan" from the json array
 			boost::regex r("^\\[(?:\\[[[:digit:]]*,[[:digit:]]*\\],)*\\[[[:digit:]]*,([[:digit:]]*)\\](?:,\\[[[:digit:]]*,\"nan\"\\])*\\]$");
 			boost::match_results<std::string::const_iterator> what;
 
@@ -194,6 +202,7 @@ void HexabusServer::updateFluksoValues()
 				data[16+pos] = c.raw[pos];
 			}
 
+			//pad array with zeros
 			for ( unsigned int pos = 16 + sizeof(uint16_t); pos < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; pos++ )
 				data[pos] = 0;
 
