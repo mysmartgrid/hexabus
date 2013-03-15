@@ -89,7 +89,7 @@ void HexabusServer::eid21handler(const hexabus::Packet& p, const boost::asio::ip
 	updateFluksoValues();
 
 	try {
-		for ( std::map<std::string, uint16_t>::iterator it = _flukso_values.begin(); it != _flukso_values.end(); it++ )
+		for ( std::map<std::string, uint32_t>::iterator it = _flukso_values.begin(); it != _flukso_values.end(); it++ )
 		{
 			boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> data;
 			unsigned short hash;
@@ -100,15 +100,15 @@ void HexabusServer::eid21handler(const hexabus::Packet& p, const boost::asio::ip
 				data[pos] = hash;
 			}
 			union {
-				uint16_t u16;
+				uint32_t u32;
 				char raw[sizeof(it->second)];
-			} c = { htons(it->second) };
-			for ( unsigned int pos = 0; pos < sizeof(uint16_t); pos++ )
+			} c = { htonl(it->second) };
+			for ( unsigned int pos = 0; pos < sizeof(uint32_t); pos++ )
 			{
 				data[16+pos] = c.raw[pos];
 			}
 
-			for ( unsigned int pos = 16 + sizeof(uint16_t); pos < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; pos++ )
+			for ( unsigned int pos = 16 + sizeof(uint32_t); pos < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; pos++ )
 				data[pos] = 0;
 
 			_socket.send(hexabus::InfoPacket< boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(EP_GEN_POWER_METER, data), from);
@@ -149,7 +149,7 @@ int HexabusServer::getFluksoValue()
 	updateFluksoValues();
 	int result = 0;
 
-	for ( std::map<std::string, uint16_t>::iterator it = _flukso_values.begin(); it != _flukso_values.end(); it++ )
+	for ( std::map<std::string, uint32_t>::iterator it = _flukso_values.begin(); it != _flukso_values.end(); it++ )
 		result += it->second;
 
 	return result;
@@ -191,22 +191,22 @@ void HexabusServer::updateFluksoValues()
 			if ( !boost::regex_search(flukso_data, what, r))
 				break;
 
-			uint16_t value = boost::lexical_cast<uint16_t>(std::string(what[1].first, what[1].second));
+			uint32_t value = boost::lexical_cast<uint32_t>(std::string(what[1].first, what[1].second));
 
 			_flukso_values[filename] = value;
 			_debug && std::cout << "Updating _flukso_values[" << filename << "] = " << value << std::endl;
 
 			union {
-				uint16_t u16;
+				uint32_t u32;
 				char raw[sizeof(value)];
-			} c = { htons(value) };
-			for ( unsigned int pos = 0; pos < sizeof(uint16_t); pos++ )
+			} c = { htonl(value) };
+			for ( unsigned int pos = 0; pos < sizeof(value); pos++ )
 			{
 				data[16+pos] = c.raw[pos];
 			}
 
 			//pad array with zeros
-			for ( unsigned int pos = 16 + sizeof(uint16_t); pos < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; pos++ )
+			for ( unsigned int pos = 16 + sizeof(value); pos < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; pos++ )
 				data[pos] = 0;
 
 			_socket.send(hexabus::InfoPacket< boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(EP_GEN_POWER_METER, data));
