@@ -4,14 +4,15 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/deadline_timer.hpp>
 
-#include <libhexabus/socket.hpp>
+//#include <libhexabus/error.hpp>
 #include <libhexabus/packet.hpp>
+#include <libhexabus/socket.hpp>
 
 namespace hexadaemon {
 	class HexabusServer {
 		public:
 			typedef boost::shared_ptr<HexabusServer> Ptr;
-			HexabusServer(boost::asio::io_service& io, int interval = 60);
+			HexabusServer(boost::asio::io_service& io, int interval = 60, bool debug = false);
 			virtual ~HexabusServer() {};
 
 			void epqueryhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
@@ -27,6 +28,7 @@ namespace hexadaemon {
 			hexabus::Socket _socket;
 			boost::asio::deadline_timer _timer;
 			int _interval;
+			bool _debug;
 			std::map<std::string, uint16_t> _flukso_values;
 
 			int getFluksoValue();
