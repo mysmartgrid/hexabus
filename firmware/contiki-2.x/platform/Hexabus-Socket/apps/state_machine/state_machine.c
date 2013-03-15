@@ -13,7 +13,7 @@
 
 #if STATE_MACHINE_DEBUG
 #include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
+#define PRINTF(fmt, ...) printf_P(PSTR(fmt), ##__VA_ARGS__)
 #define PRINT6ADDR(addr) PRINTF(" %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x ", ((u8_t *)addr)[0], ((u8_t *)addr)[1], ((u8_t *)addr)[2], ((u8_t *)addr)[3], ((u8_t *)addr)[4], ((u8_t *)addr)[5], ((u8_t *)addr)[6], ((u8_t *)addr)[7], ((u8_t *)addr)[8], ((u8_t *)addr)[9], ((u8_t *)addr)[10], ((u8_t *)addr)[11], ((u8_t *)addr)[12], ((u8_t *)addr)[13], ((u8_t *)addr)[14], ((u8_t *)addr)[15])
 #define PRINTLLADDR(lladdr) PRINTF(" %02x:%02x:%02x:%02x:%02x:%02x ",(lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3],(lladdr)->addr[4], (lladdr)->addr[5])
 #else
@@ -114,7 +114,7 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
 
   PRINTF("Now checking condition\r\n");
   // check the actual condition - must be implemented for each datatype individually.
-  switch(cond.value.datatype)
+  switch ((enum hxb_datatype) cond.value.datatype)
   {
     case HXB_DTYPE_BOOL:
     case HXB_DTYPE_UINT8:
@@ -290,28 +290,20 @@ PROCESS_THREAD(state_machine_process, ev, data)
 
 #if STATE_MACHINE_DEBUG
   // output tables so we see if reading it works
-  struct transition* tt = malloc(sizeof(struct transition));
-  if(tt != NULL)
-  {
-    int k = 0;
-    PRINTF("[State machine table size: %d]:\r\nFrom | Cond | EID | Good | Bad\r\n", transLength);
-    for(k = 0;k < transLength;k++)
-    {
-      //eeprom_read_block(tt, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
-      sm_get_transition(false, k, tt);
-      PRINTF(" %d | %d | %ld | %d | %d \r\n", tt->fromState, tt->cond, tt->eid, tt->goodState, tt->badState);
-    }
-    PRINTF("[date/time table size: %d]:\r\nFrom | Cond | EID | Good | Bad\r\n", dtTransLength);
-    for(k = 0;k < dtTransLength;k++)
-    {
-      //eeprom_read_block(tt, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
-      sm_get_transition(true, k, tt);
-      PRINTF(" %d | %d | %ld | %d | %d \r\n", tt->fromState, tt->cond, tt->eid, tt->goodState, tt->badState);
-    }
-  } else {
-    PRINTF("malloc failed!\r\n");
-  }
-  free(tt);
+  struct transition tt;
+	int k = 0;
+	PRINTF("[State machine table size: %d]:\r\nFrom | Cond | EID | Good | Bad\r\n", transLength);
+	for (k = 0; k < transLength; k++) {
+		//eeprom_read_block(tt, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
+		sm_get_transition(false, k, &tt);
+		PRINTF(" %d | %d | %ld | %d | %d \r\n", tt.fromState, tt.cond, tt.eid, tt.goodState, tt.badState);
+	}
+	PRINTF("[date/time table size: %d]:\r\nFrom | Cond | EID | Good | Bad\r\n", dtTransLength);
+	for(k = 0; k < dtTransLength; k++) {
+		//eeprom_read_block(tt, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
+		sm_get_transition(true, k, &tt);
+		PRINTF(" %d | %d | %ld | %d | %d \r\n", tt.fromState, tt.cond, tt.eid, tt.goodState, tt.badState);
+	}
 #endif // STATE_MACHINE_DEBUG
 
   // initialize timer

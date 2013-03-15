@@ -114,7 +114,7 @@ static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, voi
 		PRINTF("value_broadcast: Broadcasting EID %ld.\n", eid);
 		PRINTF("value_broadcast: Datatype: %d.\n", val.datatype);
 
-		switch (val.datatype) {
+		switch ((enum hxb_datatype) val.datatype) {
 			case HXB_DTYPE_BOOL:
 			case HXB_DTYPE_UINT8:
 				buffer->p_u8.value = val.v_u8;

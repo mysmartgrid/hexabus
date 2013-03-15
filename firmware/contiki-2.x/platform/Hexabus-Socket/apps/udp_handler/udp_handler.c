@@ -319,7 +319,7 @@ static enum hxb_error_code extract_value(union hxb_packet_any* packet, struct hx
 	value->datatype = packet->value_header.datatype;
 
 	// CRC check and how big the actual value is depend on what type of packet we have.
-	switch (value->datatype) {
+	switch ((enum hxb_datatype) value->datatype) {
 		case HXB_DTYPE_BOOL:
 		case HXB_DTYPE_UINT8:
 			value->v_u8 = packet->p_u8.value;
@@ -405,7 +405,7 @@ static enum hxb_error_code generate_query_response(union hxb_packet_any* buffer,
 	}
 
 	buffer->value_header.datatype = value.datatype;
-	switch (value.datatype) {
+	switch ((enum hxb_datatype) value.datatype) {
 		case HXB_DTYPE_BOOL:
 		case HXB_DTYPE_UINT8:
 			buffer->p_u8.value = value.v_u8;

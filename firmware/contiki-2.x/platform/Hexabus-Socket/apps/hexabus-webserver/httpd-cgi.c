@@ -538,7 +538,7 @@ generate_radio_stats(void *arg)
 void hxbtos(char *dest, char *data, uint8_t datatype)
 {
 	struct hxb_datetime *dt;
-	switch(datatype) {
+	switch ((enum hxb_datatype) datatype) {
 		case HXB_DTYPE_UNDEFINED:	// "Do nothing" Datatype
 			sprintf(dest, "0");		// 0 so the format does not break
 			break;
@@ -561,6 +561,11 @@ void hxbtos(char *dest, char *data, uint8_t datatype)
 				i++;
 			}
 			dest[i] = ',';
+			break;
+		case HXB_DTYPE_128STRING:
+		case HXB_DTYPE_66BYTES:
+		case HXB_DTYPE_16BYTES:
+		default:
 			break;
 	}
 }

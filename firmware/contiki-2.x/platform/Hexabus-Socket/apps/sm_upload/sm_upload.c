@@ -12,7 +12,7 @@
 #define DEBUG 0
 #if DEBUG
 #include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
+#define PRINTF(fmt, ...) printf_P(PSTR(fmt), ##__VA_ARGS__)
 #else
 #define PRINTF(...)
 #endif
@@ -75,7 +75,11 @@ static enum hxb_error_code write_receiver(const struct hxb_envelope* env)
 		uint8_t chunk_id = (uint8_t) payload[0];
 		PRINTF("SM: Attempting to write new chunk %i to EEPROM: ", chunk_id);
 		bool result = sm_write_chunk(chunk_id, payload + 1);
-		PRINTF(result ? "SENDING ACK\n" : "SENDING NACK\n");
+		if (result) {
+			PRINTF("SENDING ACK\n");
+		} else {
+			PRINTF("SENDING NACK\n");
+		}
 		udp_handler_send_generated(&env->src_ip, env->src_port, &send_acknack, &result);
 		return result
 			? HXB_ERR_SUCCESS
