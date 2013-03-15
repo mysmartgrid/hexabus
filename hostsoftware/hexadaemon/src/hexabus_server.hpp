@@ -29,7 +29,7 @@ namespace hexadaemon {
 			boost::asio::deadline_timer _timer;
 			int _interval;
 			bool _debug;
-			std::map<std::string, uint16_t> _flukso_values;
+			std::map<std::string, uint32_t> _flukso_values;
 
 			int getFluksoValue();
 			void updateFluksoValues();
