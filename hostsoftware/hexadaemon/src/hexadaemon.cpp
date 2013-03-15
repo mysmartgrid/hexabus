@@ -76,7 +76,7 @@ int main(int argc, char** argv)
     // started from a shell, this means any errors will be reported back to the
     // user.
     //udp_daytime_server server(io_service);
-    hexadaemon::HexabusServer server(io_service, interval);
+    hexadaemon::HexabusServer server(io_service, interval, debug);
 
     // Register signal handlers so that the daemon may be shut down. You may
     // also want to register for other signals, such as SIGHUP to trigger a

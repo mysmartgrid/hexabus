@@ -17,10 +17,11 @@ using namespace hexadaemon;
 namespace hf = hexabus::filtering;
 namespace bf = boost::filesystem;
 
-HexabusServer::HexabusServer(boost::asio::io_service& io, int interval)
+HexabusServer::HexabusServer(boost::asio::io_service& io, int interval, bool debug)
 	: _socket(io)
 	, _timer(io)
 	, _interval(interval)
+	, _debug(debug)
 {
 	try {
 		_socket.listen(boost::asio::ip::address_v6::from_string("::"));
@@ -60,7 +61,7 @@ void HexabusServer::epqueryhandler(const hexabus::Packet& p, const boost::asio::
 
 void HexabusServer::eid0handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
-	std::cout << "EID 0 packet received" << std::endl;
+	_debug && std::cout << "Query for EID 0 received" << std::endl;
 	try {
 		uint32_t eids = (1 << EP_DEVICE_DESCRIPTOR) | (1 << EP_POWER_METER) | (1 << EP_GEN_POWER_METER);
 		_socket.send(hexabus::InfoPacket<uint32_t>(EP_DEVICE_DESCRIPTOR, eids), from);
@@ -71,7 +72,7 @@ void HexabusServer::eid0handler(const hexabus::Packet& p, const boost::asio::ip:
 
 void HexabusServer::eid2handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
-	std::cout << "EID 2 packet received" << std::endl;
+	_debug && std::cout << "Query for EID 2 received" << std::endl;
 	try {
 		int value = getFluksoValue();
 		if ( value >= 0 )
@@ -83,7 +84,7 @@ void HexabusServer::eid2handler(const hexabus::Packet& p, const boost::asio::ip:
 
 void HexabusServer::eid21handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
-	std::cout << "EID 21 packet received" << std::endl;
+	_debug && std::cout << "Query for EID 21 received" << std::endl;
 
 	updateFluksoValues();
 
@@ -119,7 +120,7 @@ void HexabusServer::eid21handler(const hexabus::Packet& p, const boost::asio::ip
 
 void HexabusServer::broadcast_handler(const boost::system::error_code& error)
 {
-	std::cout << "Broadcast_handler!" << std::endl;
+	_debug && std::cout << "Broadcasting current values." << std::endl;
 	if ( !error )
 	{
 		int value = getFluksoValue();
@@ -163,6 +164,7 @@ void HexabusServer::updateFluksoValues()
 		for ( bf::directory_iterator sensors(p); sensors != bf::directory_iterator(); sensors++ )
 		{
 			std::string filename = (*sensors).path().filename().string();
+			_debug && std::cout << "Parsing file: " << filename << std::endl;
 
 			//convert hash from hex to binary
 			boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> data;
@@ -192,6 +194,7 @@ void HexabusServer::updateFluksoValues()
 			uint16_t value = boost::lexical_cast<uint16_t>(std::string(what[1].first, what[1].second));
 
 			_flukso_values[filename] = value;
+			_debug && std::cout << "Updating _flukso_values[" << filename << "] = " << value << std::endl;
 
 			union {
 				uint16_t u16;
