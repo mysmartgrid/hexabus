@@ -45,15 +45,26 @@
 #include "value_broadcast.h"
 #include <endpoints.h>
 #include "relay.h"
-
+#include "endpoint_registry.h"
 
 #if BUTTON_HAS_EID
 int button_pushed = 0;
 
-uint8_t button_get_pushed(void)
+static enum hxb_error_code read(struct hxb_value* value)
 {
-	return button_pushed;
+	value->v_bool = button_pushed;
+
+	return HXB_ERR_SUCCESS;
 }
+
+static const char ep_name[] PROGMEM = "Hexabus Socket Pushbutton";
+ENDPOINT_DESCRIPTOR endpoint_sysbutton = {
+	.datatype = HXB_DTYPE_BOOL,
+	.eid = EP_BUTTON,
+	.name = ep_name,
+	.read = read,
+	.write = 0
+};
 #endif
 
 static void button_clicked(uint8_t button)
@@ -100,4 +111,7 @@ BUTTON_DESCRIPTOR buttons_system = {
 void button_handlers_init()
 {
 	BUTTON_REGISTER(buttons_system, 1);
+#if BUTTON_HAS_EID
+	ENDPOINT_REGISTER(endpoint_sysbutton);
+#endif
 }

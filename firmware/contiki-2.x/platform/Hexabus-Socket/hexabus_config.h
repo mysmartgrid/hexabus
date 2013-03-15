@@ -8,7 +8,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 0
+#define UDP_HANDLER_DEBUG 1
 
 #define PACKET_BUILDER_DEBUG 0
 #define ENDPOINT_ACCESS_DEBUG 0
@@ -23,7 +23,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 
 // button
 #define BUTTON_HAS_EID 1 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
-#define BUTTON_TOGGLES_RELAY 0 // set to 1 to have the button toggle the relay directly
+#define BUTTON_TOGGLES_RELAY 1 // set to 1 to have the button toggle the relay directly
 
 #define BUTTON_DEBOUNCE_TICKS		1
 #define BUTTON_PIN							PIND
@@ -36,7 +36,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define DATETIME_SERVICE_DEBUG 0
 
 // temperature
-#define TEMPERATURE_ENABLE 0
+#define TEMPERATURE_ENABLE 1
 #define TEMPERATURE_DEBUG 0
 #define TEMPERATURE_SENSOR 0 // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
@@ -60,7 +60,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 
 // state_machine
 #define STATE_MACHINE_ENABLE 1
-#define STATE_MACHINE_DEBUG 1
+#define STATE_MACHINE_DEBUG 0
 
 // state machine uploading via Hexabus packets
 #define SM_UPLOAD_ENABLE 1
@@ -88,7 +88,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE 60 // in seconds, 0 to disable
 
 // hexonoff
-#define HEXONOFF_ENABLE 0
+#define HEXONOFF_ENABLE 1
 #define HEXONOFF_DEBUG 0
 #define HEXONOFF_INITIAL_VALUE 0
 

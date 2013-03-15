@@ -28,8 +28,4 @@
 
 void hexonoff_init(void);
 
-void set_outputs(uint8_t o_vec);
-void toggle_outputs(uint8_t o_vec);
-uint8_t get_outputs();
-
 #endif /* HEXONOFF_H_ */

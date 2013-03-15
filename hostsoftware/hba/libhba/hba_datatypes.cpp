@@ -24,7 +24,7 @@ Datatypes::Datatypes(std::string filename)
   if("" != filename) {
     // clear array
     for(unsigned int i = 0; i < NUMBER_OF_EIDS; i++)
-      datatypes[i] = 0;
+      datatypes[i] = HXB_DTYPE_UNDEFINED;
     // read file
     std::string line;
     std::ifstream f(filename.c_str());
@@ -70,12 +70,12 @@ Datatypes::Datatypes(std::string filename)
   }
 }
 
-uint8_t Datatypes::getDatatype(uint8_t eid)
+hxb_datatype Datatypes::getDatatype(uint8_t eid)
 {
   if(eid < NUMBER_OF_EIDS) {
     return datatypes[eid];
   }
   else
-    return 0;
+    return HXB_DTYPE_UNDEFINED;
 }
 

@@ -20,7 +20,4 @@
 
 void    hexapush_init(void);
 
-uint8_t hexapush_get_pressed(void);
-uint8_t hexapush_get_clicked(void);
-
 #endif /* HEXAPUSH_H_ */

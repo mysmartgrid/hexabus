@@ -146,7 +146,7 @@ void Socket::bind(const boost::asio::ip::udp::endpoint& ep) {
 void Socket::openSocket(const boost::asio::ip::address_v6& addr, const std::string* interface) {
   boost::system::error_code err;
 
-	data.resize(HXB_MAX_PACKET_SIZE);
+	data.resize(1500);
 
   socket.open(boost::asio::ip::udp::v6(), err);
   if (err)

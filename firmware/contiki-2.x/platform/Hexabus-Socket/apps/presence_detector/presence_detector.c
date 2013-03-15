@@ -34,6 +34,7 @@
 #include "hexabus_config.h"
 #include "value_broadcast.h"
 #include "endpoints.h"
+#include "endpoint_registry.h"
 
 #include "presence_detector.h"
 #include <util/delay.h>
@@ -100,7 +101,7 @@ void no_raw_presence(void) {
 #endif
 }
 
-void presence_keep_alive(void) {
+void presence_keep_alive(void* data) {
 #if PRESENCE_DETECTOR_CLIENT
     if(presence) {
         raw_presence_detected();
@@ -111,6 +112,33 @@ void presence_keep_alive(void) {
 uint8_t is_presence(void) {
     return global_presence;
 }
+
+static enum hxb_error_code read(struct hxb_value* value)
+{
+	value->v_u8 = is_presence();
+	return HXB_ERR_SUCCESS;
+}
+
+static enum hxb_error_code write(const struct hxb_envelope* env)
+{
+	if (env->value.v_u8 == 1) {
+		global_presence_detected();
+	} else if (env->value.v_u8 == 0) {
+		no_raw_presence();
+	} else {
+		raw_presence_detected();
+	}
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_name[] PROGMEM = "Presence Detector";
+ENDPOINT_DESCRIPTOR endpoint_presence_detector = {
+	.datatype = HXB_DTYPE_UINT8,
+	.eid = EP_PRESENCE_DETECTOR,
+	.name = ep_name,
+	.read = read,
+	.write = write
+};
 
 void presence_detector_init() {
     global_presence = NO_PRESENCE;
@@ -125,5 +153,6 @@ void presence_detector_init() {
         ctimer_stop(&pd_keep_alive);
     }
 #endif
+	ENDPOINT_REGISTER(endpoint_presence_detector);
 }
 

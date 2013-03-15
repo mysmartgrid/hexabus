@@ -3,10 +3,11 @@
 file(GLOB_RECURSE h_files "*.hpp,*.h")
 file(GLOB_RECURSE cpp_files "*.cpp")
 file(GLOB_RECURSE c_files "*.c")
-set(hexaswitch_src "hexaswitch.cpp")
-set(hexalog_src "hexalog.cpp")
-set(hexaupload_src "hexaupload.cpp")
-set(hexinfo_src "hexinfo.cpp")
+set(common_lib "resolv.cpp")
+
+set(hexaswitch_src "hexaswitch.cpp" ${common_lib})
+set(hexalog_src "hexalog.cpp" ${common_lib})
+set(hexaupload_src "hexaupload.cpp" ${common_lib})
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
@@ -40,14 +41,6 @@ target_link_libraries(hexaupload
   ${Boost_LIBRARIES}
 )
 
-add_executable(hexinfo ${hexinfo_src})
-# Link the executables
-target_link_libraries(hexinfo
-  hexabus
-  pthread
-  ${Boost_LIBRARIES}
-)
-
 if(LIBKLIO_FOUND)
   add_executable(hexalog ${hexalog_src})
   target_link_libraries(hexalog
@@ -64,7 +57,6 @@ endif(LIBKLIO_FOUND)
 INSTALL(PROGRAMS
   ${CMAKE_CURRENT_BINARY_DIR}/hexaswitch
   ${CMAKE_CURRENT_BINARY_DIR}/hexaupload
-  ${CMAKE_CURRENT_BINARY_DIR}/hexinfo
   DESTINATION bin)
 
 if(LIBKLIO_FOUND)

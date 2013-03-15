@@ -69,7 +69,6 @@ class BinarySerializer : public PacketVisitor {
 BinarySerializer::BinarySerializer(std::vector<char>& target)
 	: _target(target)
 {
-	_target.reserve(HXB_MAX_PACKET_SIZE);
 }
 
 void BinarySerializer::append_u8(uint8_t value)
