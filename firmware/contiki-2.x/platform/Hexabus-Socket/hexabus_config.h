@@ -8,7 +8,7 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 1
+#define UDP_HANDLER_DEBUG 0
 
 #define PACKET_BUILDER_DEBUG 0
 #define ENDPOINT_ACCESS_DEBUG 0
@@ -36,13 +36,13 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define DATETIME_SERVICE_DEBUG 0
 
 // temperature
-#define TEMPERATURE_ENABLE 1
+#define TEMPERATURE_ENABLE 0
 #define TEMPERATURE_DEBUG 0
 #define TEMPERATURE_SENSOR 0 // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
-#define VALUE_BROADCAST_DEBUG 1
+#define VALUE_BROADCAST_DEBUG 0
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1 // Number of endpoints to broadcast automatically - set to 0 to disable
 #define VALUE_BROADCAST_AUTO_EIDS 2 // Comma-separated list of endpoints to broadcast automatically
 #define VALUE_BROADCAST_AUTO_INTERVAL 20 // Timeout in seconds

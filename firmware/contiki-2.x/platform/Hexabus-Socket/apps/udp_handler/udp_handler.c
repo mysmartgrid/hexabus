@@ -385,8 +385,8 @@ static enum hxb_error_code generate_query_response(union hxb_packet_any* buffer,
 	struct hxb_value value;
 	enum hxb_error_code err;
 
-	buffer->eid_header.type = HXB_PTYPE_INFO;
-	buffer->eid_header.eid = eid;
+	buffer->value_header.type = HXB_PTYPE_INFO;
+	buffer->value_header.eid = eid;
 
 	PRINTF("Received query for %lu\n", eid);
 
@@ -404,6 +404,7 @@ static enum hxb_error_code generate_query_response(union hxb_packet_any* buffer,
 		clock_delay_usec(random_rand() >> 1); // wait for max 31ms
 	}
 
+	buffer->value_header.datatype = value.datatype;
 	switch (value.datatype) {
 		case HXB_DTYPE_BOOL:
 		case HXB_DTYPE_UINT8:
@@ -513,10 +514,13 @@ udphandler(process_event_t ev, process_data_t data)
 				bool is_broadcast = packet->header.type == HXB_PTYPE_INFO
 					&& uip_ipaddr_cmp(&UDP_IP_BUF->destipaddr, &hxb_group);
 
+				uip_ipaddr_t srcip = UDP_IP_BUF->srcipaddr;
+				uint16_t srcport = uip_ntohs(UDP_IP_BUF->srcport);
+
 				err = check_crc(packet);
 				if (err) {
 					if (!is_broadcast && !(err & HXB_ERR_INTERNAL)) {
-						udp_handler_send_error(&UDP_IP_BUF->srcipaddr, UDP_IP_BUF->srcport, err);
+						udp_handler_send_error(&srcip, srcport, err);
 					}
 					return;
 				}
@@ -529,14 +533,16 @@ udphandler(process_event_t ev, process_data_t data)
 					case HXB_PTYPE_QUERY:
 						{
 							uint32_t eid = uip_ntohl(packet->p_query.eid);
-							err = udp_handler_send_generated(&UDP_IP_BUF->srcipaddr, UDP_IP_BUF->srcport, generate_query_response, &eid);
+							uip_ipaddr_t src = UDP_IP_BUF->srcipaddr;
+							err = udp_handler_send_generated(&srcip, srcport, generate_query_response, &eid);
 							break;
 						}
 
 					case HXB_PTYPE_EPQUERY:
 						{
 							uint32_t eid = uip_ntohl(packet->p_query.eid);
-							err = udp_handler_send_generated(&UDP_IP_BUF->srcipaddr, UDP_IP_BUF->srcport, generate_epquery_response, &eid);
+							uip_ipaddr_t src = UDP_IP_BUF->srcipaddr;
+							err = udp_handler_send_generated(&srcip, srcport, generate_epquery_response, &eid);
 							break;
 						}
 
@@ -554,7 +560,7 @@ udphandler(process_event_t ev, process_data_t data)
 
 				if (err) {
 					if (!is_broadcast && !(err & HXB_ERR_INTERNAL)) {
-						udp_handler_send_error(&UDP_IP_BUF->srcipaddr, UDP_IP_BUF->srcport, err);
+						udp_handler_send_error(&srcip, srcport, err);
 					}
 					return;
 				}

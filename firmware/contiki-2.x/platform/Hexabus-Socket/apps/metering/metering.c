@@ -99,7 +99,7 @@ static enum hxb_error_code read_power(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_power_name[] = "Power Meter";
+static const char ep_power_name[] PROGMEM = "Power Meter";
 ENDPOINT_DESCRIPTOR endpoint_power = {
 	.datatype = HXB_DTYPE_UINT32,
 	.eid = EP_POWER_METER,
@@ -115,7 +115,7 @@ static enum hxb_error_code read_energy_total(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_energy_total_name[] = "Energy Meter Total";
+static const char ep_energy_total_name[] PROGMEM = "Energy Meter Total";
 ENDPOINT_DESCRIPTOR endpoint_energy_total = {
 	.datatype = HXB_DTYPE_FLOAT,
 	.eid = EP_ENERGY_METER_TOTAL,
@@ -136,7 +136,7 @@ static enum hxb_error_code write_energy(const struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_energy_name[] = "Energy Meter";
+static const char ep_energy_name[] PROGMEM = "Energy Meter";
 ENDPOINT_DESCRIPTOR endpoint_energy = {
 	.datatype = HXB_DTYPE_FLOAT,
 	.eid = EP_ENERGY_METER,
