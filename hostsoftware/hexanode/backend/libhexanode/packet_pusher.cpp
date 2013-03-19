@@ -1,8 +1,57 @@
 #include "packet_pusher.hpp"
 #include <libhexabus/error.hpp>
 #include <libhexabus/crc.hpp>
+#include <sstream>
 
 using namespace hexanode;
+
+
+std::string PacketPusher::float2string(float value) {
+  std::ostringstream oss;
+  oss << std::fixed << std::setprecision(1) << value;
+  return oss.str();
+}
+
+void PacketPusher::push_value(uint32_t eid, 
+    const std::string& value,
+    const std::string& min_value,
+    const std::string& max_value) 
+{
+  std::ostringstream oss;
+  oss << _endpoint << "%" << eid;
+  std::string sensor_id=oss.str();
+  bool success=false;
+  uint8_t retry_counter=0;
+  while (! success && retry_counter < 3) {
+    retry_counter++;
+    try {
+      hexanode::Sensor::Ptr sensor=_sensors->get_by_id(sensor_id);
+      sensor->post_value(_client, _api_uri, value);
+      target << "Sensor " << sensor_id << ": submitted value " << value << std::endl;
+      success=true;
+    } catch (const hexanode::NotFoundException& e) {
+      // The sensor was not found during the get_by_id call.
+      std::cout << "No information regarding sensor " << sensor_id 
+        << " found - creating sensor with boilerplate data." << std::endl;
+      //TODO: Look up name of the sensor.
+      hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
+            _info->get_device_name(_endpoint.address().to_v6()),
+            min_value, max_value));
+      _sensors->add_sensor(new_sensor);
+    } catch (const hexanode::CommunicationException& e) {
+      // An error occured during network communication.
+      std::cout << "Cannot submit sensor values (" << e.what() << ")" << std::endl;
+      std::cout << "Attempting to define sensor at the frontend cache." << std::endl;
+      hexanode::Sensor::Ptr sensor=_sensors->get_by_id(sensor_id);
+      sensor->put(_client, _api_uri, "n/a"); 
+    } catch (const std::exception& e) {
+      target << "Cannot recover from error: " << e.what() << std::endl;
+    }
+  }
+  if (! success) {
+    target << "FAILED to submit sensor value.";
+  }
+}
 
 
 void PacketPusher::printValueHeader(uint32_t eid, const char* datatypeStr)

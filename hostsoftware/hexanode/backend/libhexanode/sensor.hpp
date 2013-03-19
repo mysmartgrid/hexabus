@@ -13,8 +13,8 @@ namespace hexanode {
       typedef boost::shared_ptr<Sensor> Ptr;
       Sensor(const std::string& sensor_id,
           const std::string& sensor_name,
-          const double& min_value,
-          const double& max_value)
+          const std::string& min_value,
+          const std::string& max_value)
         : _sensor_id(sensor_id)
           , _sensor_name(sensor_name)
           , _min_value(min_value)
@@ -25,10 +25,10 @@ namespace hexanode {
       const std::string& get_id() { return _sensor_id; };
       void put( http::client client,
           const uri::uri& api_uri,
-          const double& reading);
+          const std::string& reading);
       void post_value(http::client client,
           const uri::uri& api_uri, 
-          const double& reading);
+          const std::string& reading);
 
     private:
       Sensor (const Sensor& original);
@@ -36,8 +36,8 @@ namespace hexanode {
 
       std::string _sensor_id;
       std::string _sensor_name;
-      double _min_value;
-      double _max_value;
+      std::string _min_value;
+      std::string _max_value;
   };
 };
 

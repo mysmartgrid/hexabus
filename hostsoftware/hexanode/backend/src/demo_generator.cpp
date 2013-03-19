@@ -66,11 +66,11 @@ int main(int argc, char *argv[]) {
   http::client client;
   hexanode::SensorStore sensors;
   uint16_t max_id = 4;
-  double min_value = 15;
-  double max_value = 30;
+  std::string min_value("15");
+  std::string max_value("30");
 
   boost::random::mt19937 gen;
-  boost::random::uniform_int_distribution<> dist(min_value, max_value);
+  boost::random::uniform_int_distribution<> dist(15, 30);
   for (uint16_t id=0; id<max_id; ++id) {
     std::ostringstream oss;
     oss << "Sensor_" << id;
@@ -83,11 +83,13 @@ int main(int argc, char *argv[]) {
         it != sensors.end(); ++it) {
       hexanode::Sensor::Ptr sensor=(*it).second;
       try {
-        sensor->post_value(client, base_uri, dist(gen));
+        std::ostringstream oss;
+        oss << dist(gen);
+        sensor->post_value(client, base_uri, oss.str());
       } catch (const std::exception& e) {
         std::cout << "Cannot submit sensor values (" << e.what() << ")" << std::endl;
         std::cout << "Attempting to re-create sensors." << std::endl;
-        sensor->put(client, base_uri, 0.0); 
+        sensor->put(client, base_uri, "n/a"); 
       }
       continue; // do not sleep
     }

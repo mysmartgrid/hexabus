@@ -14,7 +14,7 @@ using namespace hexanode;
 void Sensor::put(
     http::client client,
     const uri::uri& api_uri, 
-    const double& reading)
+    const std::string& reading)
 {
   std::cout << "Creating sensor " << _sensor_name << std::endl;
     StringBuffer b;
@@ -23,11 +23,11 @@ void Sensor::put(
   writer.String("name");
   writer.String(_sensor_name.c_str(), (SizeType) _sensor_name.length());
   writer.String("value");
-  writer.Double(reading);
+  writer.String(reading.c_str(), (SizeType) reading.length());
   writer.String("minvalue");
-  writer.Double(_min_value);
+  writer.String(_min_value.c_str(), (SizeType) _min_value.length());
   writer.String("maxvalue");
-  writer.Double(_max_value);
+  writer.String(_max_value.c_str(), (SizeType) _max_value.length());
   writer.EndObject();
   std::string json_body(b.GetString());
 
@@ -55,7 +55,7 @@ void Sensor::put(
 void Sensor::post_value(
     http::client client,
     const uri::uri& api_uri, 
-    const double& reading)
+    const std::string& reading)
 {
   //std::cout << "Pushing value "<< reading 
   //  << " to sensor " << sensor_id << std::endl;
@@ -63,7 +63,7 @@ void Sensor::post_value(
   PrettyWriter<StringBuffer> writer(b);
   writer.StartObject();
   writer.String("value");
-  writer.Double(reading);
+  writer.String(reading.c_str(), (SizeType) reading.length());
   writer.EndObject();
   std::string json_body(b.GetString());
 

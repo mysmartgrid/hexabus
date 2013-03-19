@@ -4,14 +4,34 @@
 #include <libhexanode/common.hpp>
 #include <libhexanode/error.hpp>
 #include <libhexanode/sensor_collection.hpp>
+#include <libhexanode/info_query.hpp>
 #include <libhexabus/packet.hpp>
+#include <libhexabus/socket.hpp>
 #include <boost/network/protocol/http/client.hpp>
 #include <boost/network/uri.hpp>
 
 namespace hexanode {
 
   class PacketPusher : public hexabus::PacketVisitor {
+    public:
+      PacketPusher(hexabus::Socket* socket,
+          const boost::asio::ip::udp::endpoint& endpoint,
+          hexanode::SensorStore::Ptr sensors,
+          boost::network::http::client client,
+          const boost::network::uri::uri& api_uri,
+          std::ostream& target)
+        : _info(new hexanode::InfoQuery(socket))
+        , _endpoint(endpoint)
+        , _sensors(sensors)
+        , _client(client)
+        , _api_uri(api_uri)
+        , target(target) {}
+      virtual ~PacketPusher() {}
+
+
     private:
+      hexanode::InfoQuery::Ptr _info;
+      hexabus::Socket* _socket;
       boost::asio::ip::udp::endpoint _endpoint;
       hexanode::SensorStore::Ptr _sensors;
       boost::network::http::client _client;
@@ -20,6 +40,10 @@ namespace hexanode {
 
       void printValueHeader(uint32_t eid, const char* datatypeStr);
 
+      std::string float2string(float value);
+
+      void push_value(uint32_t eid, const std::string& value,
+          const std::string& min_value, const std::string& max_value);
 
       template<typename T>
         void printValuePacket(const hexabus::ValuePacket<T>& packet, const char* datatypeStr)
@@ -29,45 +53,23 @@ namespace hexanode {
           target << "foooo" << std::endl;
           target << std::endl;
         }
-      
-        void printValuePacket (const hexabus::ValuePacket<uint32_t>& packet, const char* datatypeStr)
-        {
-          target << "USCHI!";
-          printValueHeader(packet.eid(), datatypeStr);
-          target << "Value:\t" << packet.value() << std::endl;
-        }
 
-        void printValuePacket (const hexabus::InfoPacket<float>& packet, const char* datatypeStr)
-        {
-          printValueHeader(packet.eid(), datatypeStr);
-          target << "Value:\t" << packet.value() << std::endl;
+      void printValuePacket (const hexabus::ValuePacket<uint32_t>& packet, const char* datatypeStr)
+      {
+        target << "USCHI!";
+        printValueHeader(packet.eid(), datatypeStr);
+        target << "Value:\t" << packet.value() << std::endl;
+      }
 
-          double min_value = 15;
-          double max_value = 30;
-          std::ostringstream oss;
-          oss << _endpoint << "%" << packet.eid();
-          std::string sensor_id=oss.str();
-          hexanode::Sensor::Ptr sensor;
-          try {
-            hexanode::Sensor::Ptr find_sensor=_sensors->get_by_id(sensor_id);
-            sensor=find_sensor;
-          } catch (const hexanode::NotFoundException& e) {
-            std::cout << "No information regarding sensor " << sensor_id << " found - creating sensor with boilerplate data." << std::endl;
-            hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, sensor_id, min_value, max_value));
-            _sensors->add_sensor(new_sensor);
-            sensor=new_sensor;
-          }
-          try {
-            sensor->post_value(_client, _api_uri, packet.value());
-            std::cout << "Sensor " << sensor_id << ": submitted value " << packet.value() << std::endl;
-          } catch (const std::exception& e) {
-            std::cout << "Cannot submit sensor values (" << e.what() << ")" << std::endl;
-            std::cout << "Attempting to re-create sensors." << std::endl;
-            sensor->put(_client, _api_uri, 0.0); 
-            sensor->post_value(_client, _api_uri, packet.value());
-          }
-          target << std::endl;
-        }
+      void printValuePacket (const hexabus::InfoPacket<float>& packet, const char* datatypeStr)
+      {
+        printValueHeader(packet.eid(), datatypeStr);
+        target << "Value:\t" << packet.value() << std::endl;
+        // Assume 20% variability from current value.
+        push_value(packet.eid(), float2string(packet.value()), 
+            float2string(packet.value()*0.8), float2string(packet.value()*1.2));
+        target << std::endl;
+      }
 
       void printValuePacket(const hexabus::ValuePacket<uint8_t>& packet, const char* datatypeStr);
 
@@ -93,17 +95,6 @@ namespace hexanode {
 
 
     public:
-      PacketPusher( const boost::asio::ip::udp::endpoint& endpoint,
-          hexanode::SensorStore::Ptr sensors,
-          boost::network::http::client client,
-          const boost::network::uri::uri& api_uri,
-          std::ostream& target)
-        : _endpoint(endpoint)
-          , _sensors(sensors)
-          , _client(client)
-          , _api_uri(api_uri)
-          , target(target) {}
-      virtual ~PacketPusher() {}
       /**
        * defined in cpp
        */
@@ -111,9 +102,6 @@ namespace hexanode {
       virtual void visit(const hexabus::QueryPacket& query);
       virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery);
       virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo);
-      /** 
-       * not needed.
-       */
       virtual void visit(const hexabus::InfoPacket<bool>& info) { printValuePacket(info, "Bool"); }
       virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { printValuePacket(info, "UInt8"); }
       virtual void visit(const hexabus::InfoPacket<uint32_t>& info) { printValuePacket(info, "UInt32"); }
@@ -123,6 +111,9 @@ namespace hexanode {
       virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "String"); }
       virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (16 bytes)"); }
       virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (66 bytes)"); }
+      /** 
+       * not needed.
+       */
       virtual void visit(const hexabus::WritePacket<bool>& write) {}
       virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
       virtual void visit(const hexabus::WritePacket<uint32_t>& write) {}
