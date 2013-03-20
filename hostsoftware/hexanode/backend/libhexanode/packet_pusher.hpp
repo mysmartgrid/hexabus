@@ -48,34 +48,27 @@ namespace hexanode {
         return oss.str();
       }
 
-      void push_value(uint32_t eid, const std::string& value,
-          const std::string& min_value, const std::string& max_value);
+      void push_value(uint32_t eid, const std::string& value);
 
       template<typename T>
         void printValuePacket(const hexabus::ValuePacket<T>& packet, const char* datatypeStr)
         {
           printValueHeader(packet.eid(), datatypeStr);
-          target << "Value:\t" << packet.value() << std::endl;
-          target << std::endl;
+          target << " Value:\t" << packet.value() << std::endl;
         }
 
       void printValuePacket (const hexabus::ValuePacket<uint32_t>& packet, const char* datatypeStr)
       {
         printValueHeader(packet.eid(), datatypeStr);
-        target << "Value:\t" << packet.value() << std::endl;
-        push_value(packet.eid(), numeric2string(packet.value()), 
-            numeric2string(packet.value()*0.8), numeric2string(packet.value()*1.2));
-        target << std::endl;
+        target << " Value:\t" << packet.value() << std::endl;
+        push_value(packet.eid(), numeric2string(packet.value()));
       }
 
       void printValuePacket (const hexabus::InfoPacket<float>& packet, const char* datatypeStr)
       {
         printValueHeader(packet.eid(), datatypeStr);
-        target << "Value:\t" << packet.value() << std::endl;
-        // Assume 20% variability from current value.
-        push_value(packet.eid(), numeric2string(packet.value()), 
-            numeric2string(packet.value()*0.8), numeric2string(packet.value()*1.2));
-        target << std::endl;
+        target << " Value:\t" << packet.value() << std::endl;
+        push_value(packet.eid(), numeric2string(packet.value()));
       }
 
       void printValuePacket(const hexabus::ValuePacket<uint8_t>& packet, const char* datatypeStr);

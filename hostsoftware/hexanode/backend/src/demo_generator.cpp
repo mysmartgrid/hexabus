@@ -66,8 +66,10 @@ int main(int argc, char *argv[]) {
   http::client client;
   hexanode::SensorStore sensors;
   uint16_t max_id = 4;
-  std::string min_value("15");
-  std::string max_value("30");
+//  std::string min_value("15");
+//  std::string max_value("30");
+  uint32_t min_value=15;
+  uint32_t max_value=30;
 
   boost::random::mt19937 gen;
   boost::random::uniform_int_distribution<> dist(15, 30);

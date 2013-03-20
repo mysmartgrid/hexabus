@@ -1,14 +1,13 @@
 #include "packet_pusher.hpp"
 #include <libhexabus/error.hpp>
 #include <libhexabus/crc.hpp>
+#include "../../../shared/endpoints.h"
 
 using namespace hexanode;
 
 
 void PacketPusher::push_value(uint32_t eid, 
-    const std::string& value,
-    const std::string& min_value,
-    const std::string& max_value) 
+    const std::string& value)
 {
   std::ostringstream oss;
   oss << _endpoint << "%" << eid;
@@ -26,7 +25,14 @@ void PacketPusher::push_value(uint32_t eid,
       // The sensor was not found during the get_by_id call.
       std::cout << "No information regarding sensor " << sensor_id 
         << " found - creating sensor with boilerplate data." << std::endl;
-      //TODO: Look up name of the sensor.
+      int min_value = 0;
+      int max_value = 0;
+      switch(eid) {
+        case EP_POWER_METER: min_value = 0; max_value = 3200; break;
+        case EP_TEMPERATURE: min_value = 15; max_value = 30; break;
+        case EP_HUMIDITY: min_value = 0; max_value = 100; break;
+        case EP_PRESSURE: min_value = 900; max_value = 1050; break;
+      }
       hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
             _info->get_device_name(_endpoint.address().to_v6()),
             min_value, max_value));
@@ -49,9 +55,7 @@ void PacketPusher::push_value(uint32_t eid,
 
 void PacketPusher::printValueHeader(uint32_t eid, const char* datatypeStr)
 {
-  target << "Info" << std::endl
-    << "Endpoint ID:\t" << eid << std::endl
-    << "Datatype:\t" << datatypeStr << std::endl;
+  target << " EID " << eid;
 }
 
 

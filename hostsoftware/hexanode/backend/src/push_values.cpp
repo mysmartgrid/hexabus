@@ -89,7 +89,7 @@ int main (int argc, char const* argv[]) {
       exit(1);
     }
 
-    std::cout << "Received packet from " << pair.second << std::endl;
+    std::cout << "Received " << pair.second;
     hexanode::PacketPusher pp(network, pair.second, sensors, client, base_uri, std::cout);
     pp.visitPacket(*pair.first);
 

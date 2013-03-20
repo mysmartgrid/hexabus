@@ -25,9 +25,11 @@ void Sensor::put(
   writer.String("value");
   writer.String(reading.c_str(), (SizeType) reading.length());
   writer.String("minvalue");
-  writer.String(_min_value.c_str(), (SizeType) _min_value.length());
+  writer.Int(_min_value);
+  //writer.String(_min_value.c_str(), (SizeType) _min_value.length());
   writer.String("maxvalue");
-  writer.String(_max_value.c_str(), (SizeType) _max_value.length());
+  writer.Int(_max_value);
+  //writer.String(_max_value.c_str(), (SizeType) _max_value.length());
   writer.EndObject();
   std::string json_body(b.GetString());
 

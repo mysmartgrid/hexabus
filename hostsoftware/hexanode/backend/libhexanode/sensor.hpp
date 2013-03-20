@@ -13,8 +13,8 @@ namespace hexanode {
       typedef boost::shared_ptr<Sensor> Ptr;
       Sensor(const std::string& sensor_id,
           const std::string& sensor_name,
-          const std::string& min_value,
-          const std::string& max_value)
+          const int32_t min_value,
+          const int32_t max_value)
         : _sensor_id(sensor_id)
           , _sensor_name(sensor_name)
           , _min_value(min_value)
@@ -36,8 +36,8 @@ namespace hexanode {
 
       std::string _sensor_id;
       std::string _sensor_name;
-      std::string _min_value;
-      std::string _max_value;
+      int32_t _min_value;
+      int32_t _max_value;
   };
 };
 
