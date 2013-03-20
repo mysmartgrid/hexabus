@@ -9,6 +9,7 @@
 #include <libhexabus/socket.hpp>
 #include <boost/network/protocol/http/client.hpp>
 #include <boost/network/uri.hpp>
+#include <sstream>
 
 namespace hexanode {
 
@@ -40,7 +41,12 @@ namespace hexanode {
 
       void printValueHeader(uint32_t eid, const char* datatypeStr);
 
-      std::string float2string(float value);
+      template<typename T> 
+      std::string numeric2string(T value) {
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(1) << value;
+        return oss.str();
+      }
 
       void push_value(uint32_t eid, const std::string& value,
           const std::string& min_value, const std::string& max_value);
@@ -50,15 +56,16 @@ namespace hexanode {
         {
           printValueHeader(packet.eid(), datatypeStr);
           target << "Value:\t" << packet.value() << std::endl;
-          target << "foooo" << std::endl;
           target << std::endl;
         }
 
       void printValuePacket (const hexabus::ValuePacket<uint32_t>& packet, const char* datatypeStr)
       {
-        target << "USCHI!";
         printValueHeader(packet.eid(), datatypeStr);
         target << "Value:\t" << packet.value() << std::endl;
+        push_value(packet.eid(), numeric2string(packet.value()), 
+            numeric2string(packet.value()*0.8), numeric2string(packet.value()*1.2));
+        target << std::endl;
       }
 
       void printValuePacket (const hexabus::InfoPacket<float>& packet, const char* datatypeStr)
@@ -66,8 +73,8 @@ namespace hexanode {
         printValueHeader(packet.eid(), datatypeStr);
         target << "Value:\t" << packet.value() << std::endl;
         // Assume 20% variability from current value.
-        push_value(packet.eid(), float2string(packet.value()), 
-            float2string(packet.value()*0.8), float2string(packet.value()*1.2));
+        push_value(packet.eid(), numeric2string(packet.value()), 
+            numeric2string(packet.value()*0.8), numeric2string(packet.value()*1.2));
         target << std::endl;
       }
 

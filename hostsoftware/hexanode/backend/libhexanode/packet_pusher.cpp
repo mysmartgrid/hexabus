@@ -1,16 +1,9 @@
 #include "packet_pusher.hpp"
 #include <libhexabus/error.hpp>
 #include <libhexabus/crc.hpp>
-#include <sstream>
 
 using namespace hexanode;
 
-
-std::string PacketPusher::float2string(float value) {
-  std::ostringstream oss;
-  oss << std::fixed << std::setprecision(1) << value;
-  return oss.str();
-}
 
 void PacketPusher::push_value(uint32_t eid, 
     const std::string& value,

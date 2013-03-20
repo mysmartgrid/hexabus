@@ -4,54 +4,87 @@
 
 using namespace hexanode;
 
-enum ErrorCode {
-	ERR_NONE = 0,
+// TODO: This is copied from the hexinfo.cpp code. 
+// Refactor and create a library for this.
 
-	ERR_UNKNOWN_PARAMETER = 1,
-	ERR_PARAMETER_MISSING = 2,
-	ERR_PARAMETER_FORMAT = 3,
-	ERR_PARAMETER_VALUE_INVALID = 4,
-	ERR_NETWORK = 5,
+struct device_descriptor {
+  boost::asio::ip::address_v6 ipv6_address;
+  std::string name;
 
-	ERR_OTHER = 127
+  bool operator<(const device_descriptor &b) const {
+    return (ipv6_address < b.ipv6_address);
+  }
+};
+
+struct InfoCallback { // calback for populating data structures
+  device_descriptor* device;
+  bool* received;
+  void operator()(const hexabus::Packet& packet, 
+      const boost::asio::ip::udp::endpoint asio_ep) 
+  {
+    const hexabus::EndpointInfoPacket* endpointInfo = dynamic_cast<const hexabus::EndpointInfoPacket*>(&packet);
+    if(endpointInfo != NULL)
+    {
+      if(endpointInfo->eid() == EP_DEVICE_DESCRIPTOR) // If it's endpoint 0 (device descriptor), it contains the device name.
+      {
+        device->name = endpointInfo->value();
+        *received = true;
+      }
+    }
+  }
 };
 
 
-template<typename Filter>
-ErrorCode send_packet_wait(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet, const Filter& filter)
-{
-  try {
-    net->send(packet, addr);
-  } catch (const hexabus::NetworkException& e) {
-    std::cerr << "Could not send packet to " << addr << ": " << e.code().message() << std::endl;
+struct ErrorCallback {
+  void operator()(const hexabus::GenericException& error) {
+    std::cerr << "Error receiving packet: " << error.what() << std::endl;
   }
-
-	try {
-    // TODO: Timeout receive needed.
-    //std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> p = 
-    //  net->receive(filter && hexabus::filtering::sourceIP() == addr);
-    std::cout << "FOOOOOOO" << std::endl;
-   // if (*p.first->eid() == 0) {
-   //   std::cout << "Device Info" << std::endl
-   //     << "Device Name:\t" << endpointInfo.value() << std::endl;
-   // }
-  } catch (const hexabus::NetworkException& e) {
-    std::cerr << "Error receiving packet: " << e.code().message() << std::endl;
-    return ERR_NETWORK;
-  } catch (const hexabus::GenericException& e) {
-    std::cerr << "Error receiving packet: " << e.what() << std::endl;
-    return ERR_NETWORK;
-  }
-
-  return ERR_NONE;
-}
+};
 
 std::string InfoQuery::get_device_name(
-          const boost::asio::ip::address_v6& addr)
+    const boost::asio::ip::address_v6& target_ip) 
 {
+  const unsigned int NUM_RETRIES = 5;
   std::string retval("n/a");
-  send_packet_wait(_network, addr, 
-      hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR), 
-      hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR);
+  device_descriptor device;
+  device.ipv6_address = target_ip;
+
+  std::cout << "Querying device " << target_ip.to_string() << "..." << std::endl;
+
+  // callback handler for incoming (ep)info packets
+  bool received = false;
+  InfoCallback infoCallback = { &device, &received };
+  ErrorCallback errorCallback;
+  boost::signals2::connection c1 = _network->onAsyncError(errorCallback);
+  boost::signals2::connection c2 = _network->onPacketReceived(infoCallback,
+      (hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR))
+      || hexabus::filtering::isEndpointInfo());
+
+  unsigned int retries = 0;
+
+  // epquery the dev.descriptor, to get the name of the device
+  while(!received && retries < NUM_RETRIES)
+  {
+    // send the device name query packet and listen for the reply
+    std::cout << "Sending EPQuery." << std::endl;
+    _network->send(hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR) , target_ip);
+
+    boost::asio::deadline_timer timer(_network->ioService()); // wait for a second
+    timer.expires_from_now(boost::posix_time::milliseconds(1000));
+    timer.async_wait(
+        boost::bind(&boost::asio::io_service::stop, &_network->ioService()));
+
+    _network->ioService().reset();
+    _network->ioService().run();
+
+    retries++;
+  }
+
+  if(!received) {
+    std::cout << "No reply on device descriptor EPQuery from " << target_ip.to_string() << std::endl;
+  } else {
+    retval=device.name;
+  }
+
   return retval;
 }
