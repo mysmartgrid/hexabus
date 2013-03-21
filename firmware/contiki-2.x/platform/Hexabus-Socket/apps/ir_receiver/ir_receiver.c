@@ -7,6 +7,8 @@
 #include "value_broadcast.h"
 #include "hexonoff.h"
 #include "endpoints.h"
+#include "endpoint_registry.h"
+#include <string.h>
 
 #if IR_RECEIVER_DEBUG
 #include <stdio.h>
@@ -27,6 +29,23 @@ static uint8_t ir_byte;
 static uint8_t ir_last_data[4];
 
 static struct timer ir_rep_timer;
+
+static uint32_t ir_get_last_command(void);
+
+static enum hxb_error_code read(struct hxb_value* value)
+{
+	value->v_u32 = ir_get_last_command();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_name[] PROGMEM = "IR remote control receiver";
+ENDPOINT_DESCRIPTOR endpoint_ir_receiver = {
+	.datatype = HXB_DTYPE_UINT32,
+	.eid = EP_IR_RECEIVER,
+	.name = ep_name,
+	.read = read,
+	.write = 0
+};
 
 void ir_receiver_init() {
 
@@ -56,6 +75,8 @@ void ir_receiver_init() {
     timer_set(&ir_rep_timer,CLOCK_SECOND*IR_REP_DELAY);
 
     sei();
+
+	ENDPOINT_REGISTER(endpoint_ir_receiver);
 }
 
 void ir_receiver_reset() {
@@ -69,7 +90,7 @@ void ir_receiver_reset() {
     ir_edge_dir = IR_EDGE_DOWN;
 }
 
-uint32_t ir_get_last_command() {
+static uint32_t ir_get_last_command() {
 #if IR_RECEIVER_RAW_MODE
     return *(uint32_t*) ir_last_data;
 #else

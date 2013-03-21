@@ -54,7 +54,6 @@
 #define IR_EDGE_UP 1
 
 void ir_receiver_init();
-uint32_t ir_get_last_command();
 
 PROCESS_NAME(ir_receiver_process);
 

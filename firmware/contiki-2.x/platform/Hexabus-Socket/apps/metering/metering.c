@@ -32,6 +32,7 @@
  * @(#)$$
  */
 #include "metering.h"
+#include <stdlib.h>
 #include <avr/io.h>
 #include <util/delay.h>
 #include "sys/clock.h"
@@ -43,6 +44,7 @@
 #include "relay.h"
 #include "hexabus_config.h"
 #include "endpoints.h"
+#include "endpoint_registry.h"
 #include "value_broadcast.h"
 
 /** \brief This is a file internal variable that contains the 16 MSB of the
@@ -91,6 +93,59 @@ calc_power(uint16_t pulse_period)
     return (uint16_t)P;
 }
 
+static enum hxb_error_code read_power(struct hxb_value* value)
+{
+	value->v_u32 = metering_get_power();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_power_name[] PROGMEM = "Power Meter";
+ENDPOINT_DESCRIPTOR endpoint_power = {
+	.datatype = HXB_DTYPE_UINT32,
+	.eid = EP_POWER_METER,
+	.name = ep_power_name,
+	.read = read_power,
+	.write = 0
+};
+
+#if METERING_ENERGY
+static enum hxb_error_code read_energy_total(struct hxb_value* value)
+{
+	value->v_float = metering_get_energy_total();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_energy_total_name[] PROGMEM = "Energy Meter Total";
+ENDPOINT_DESCRIPTOR endpoint_energy_total = {
+	.datatype = HXB_DTYPE_FLOAT,
+	.eid = EP_ENERGY_METER_TOTAL,
+	.name = ep_energy_total_name,
+	.read = read_energy_total,
+	.write = 0
+};
+
+static enum hxb_error_code read_energy(struct hxb_value* value)
+{
+	value->v_float = metering_get_energy();
+	return HXB_ERR_SUCCESS;
+}
+
+static enum hxb_error_code write_energy(const struct hxb_value* value)
+{
+	metering_reset_energy();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_energy_name[] PROGMEM = "Energy Meter";
+ENDPOINT_DESCRIPTOR endpoint_energy = {
+	.datatype = HXB_DTYPE_FLOAT,
+	.eid = EP_ENERGY_METER,
+	.name = ep_energy_name,
+	.read = read_energy,
+	.write = write_energy
+};
+#endif
+
 void
 metering_init(void)
 {
@@ -117,6 +172,12 @@ metering_init(void)
   SET_METERING_INT();
 
   metering_start();
+
+	ENDPOINT_REGISTER(endpoint_power);
+#if METERING_ENERGY
+	ENDPOINT_REGISTER(endpoint_energy_total);
+	ENDPOINT_REGISTER(endpoint_energy);
+#endif
 }
 
 void
@@ -303,9 +364,7 @@ ISR(METERING_VECT)
         // the last argument is a void* that can be used for anything. We use it to tell value_broadcast our EID.
         // process_post(&value_broadcast_process, immediate_broadcast_event, (void*)2);
         last_broadcast = clock_time();
-        uint32_t* eid = malloc(sizeof(uint32_t));
-        *eid = EP_POWER_METER;
-        process_post(&value_broadcast_process, immediate_broadcast_event, (void*)eid);
+				broadcast_value(EP_POWER_METER);
       }
     }
 #endif // METERING_IMMEDIATE_BROADCAST

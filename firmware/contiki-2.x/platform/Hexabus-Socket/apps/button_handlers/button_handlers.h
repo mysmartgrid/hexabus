@@ -35,10 +35,6 @@
 
 #include "hexabus_config.h"
 
-#if BUTTON_HAS_EID
-extern int button_pushed;
-#endif
-
 void button_handlers_init(void);
 
 #endif

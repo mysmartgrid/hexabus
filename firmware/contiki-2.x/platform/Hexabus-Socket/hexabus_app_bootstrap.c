@@ -25,6 +25,9 @@
 #if HEXONOFF_ENABLE
 #include "hexonoff.h"
 #endif
+#if HUMIDITY_ENABLE
+#include "humidity.h"
+#endif
 #if ANALOGREAD_ENABLE
 #include "analogread.h"
 #endif
@@ -33,6 +36,9 @@
 #endif
 #if IR_RECEIVER_ENABLE
 #include "ir_receiver.h"
+#endif
+#if SM_UPLOAD_ENABLE
+#include "sm_upload.h"
 #endif
 
 #if HEXABUS_BOOTSTRAP_DEBUG
@@ -59,6 +65,9 @@ void hexabus_bootstrap_init_apps() {
     shutter_init();
     process_start(&shutter_setup_process, NULL);
 #endif
+#if HUMIDITY_ENABLE
+	humidity_init();
+#endif
 #if PRESENCE_DETECTOR_ENABLE
     presence_detector_init();
 #endif
@@ -79,6 +88,9 @@ void hexabus_bootstrap_init_apps() {
 #endif
 #if IR_RECEIVER_ENABLE
     ir_receiver_init();
+#endif
+#if SM_UPLOAD_ENABLE
+	sm_upload_init();
 #endif
 
 }
