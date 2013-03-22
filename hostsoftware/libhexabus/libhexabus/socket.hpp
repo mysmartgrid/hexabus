@@ -42,7 +42,7 @@ namespace hexabus {
 
 			void send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest);
 			std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> receive(const filter_t& filter = filtering::any(),
-					boost::posix_time::time_duration timeout = boost::posix_time::seconds(boost::date_time::pos_infin));
+					boost::posix_time::time_duration timeout = boost::date_time::pos_infin);
 
 			void send(const Packet& packet) { send(packet, GroupAddress); }
 			void send(const Packet& packet, const boost::asio::ip::address_v6& dest) { send(packet, boost::asio::ip::udp::endpoint(dest, HXB_PORT)); }
