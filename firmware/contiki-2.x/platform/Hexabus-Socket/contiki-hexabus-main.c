@@ -121,6 +121,8 @@
 #include "memory_debugger.h"
 #endif
 
+// TODO make this optional
+#include "led_board.h"
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -331,6 +333,8 @@ void initialize(void)
 #if DATETIME_SERVICE_ENABLE
   process_start(&datetime_service_process, NULL);
 #endif
+
+	process_start(&led_board_process, NULL);
 
   hexabus_bootstrap_init_apps();
   hexabus_bootstrap_start_processes();
