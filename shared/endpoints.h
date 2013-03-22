@@ -13,7 +13,7 @@
 #define EP_SM_UP_RECEIVER        10UL
 #define EP_SM_UP_ACKNAK          11UL
 #define EP_SM_RESET_ID           12UL
-#define EP_LED_COLOR             21UL
+#define EP_LED_COLOR             20UL
 #define EP_ANALOGREAD            22UL
 #define EP_SHUTTER               23UL
 #define EP_HEXAPUSH_PRESSED      24UL
