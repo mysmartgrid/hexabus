@@ -21,6 +21,9 @@ There should be an ENABLE option that enables compilation and execution of the a
 // Print a line every MEMORY_DEBUGGER_INTERVAL seconds
 #define MEMORY_DEBUGGER_INTERVAL 10
 
+// LED board
+#define LED_BOARD_DEBUG 1
+
 // button
 #define BUTTON_HAS_EID 1 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
 #define BUTTON_TOGGLES_RELAY 1 // set to 1 to have the button toggle the relay directly
