@@ -16,8 +16,8 @@
 #include <typeinfo>
 namespace po = boost::program_options;
 
-#include "../../../shared/hexabus_packet.h"
 #include "../../../shared/endpoints.h"
+#include "resolv.hpp"
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
@@ -365,22 +365,24 @@ int main(int argc, char** argv) {
 			std::cerr << "Unknown command \"" << command_str << "\"" << std::endl;
 			return ERR_PARAMETER_VALUE_INVALID;
 		}
-  }
+	}
+
+	boost::asio::io_service io;
 
 	if (vm.count("ip")) {
 		boost::system::error_code err;
-		ip = boost::asio::ip::address_v6::from_string(vm["ip"].as<std::string>(), err);
+		ip = hexabus::resolve(io, vm["ip"].as<std::string>(), err);
 		if (err) {
-			std::cerr << vm["ip"].as<std::string>() << " is not a valid IP address" << std::endl;
+			std::cerr << vm["ip"].as<std::string>() << " is not a valid IP address: " << err.message() << std::endl;
 			return ERR_PARAMETER_VALUE_INVALID;
 		}
 	}
 
   if (vm.count("bind")) {
 		boost::system::error_code err;
-    bind_addr = boost::asio::ip::address_v6::from_string(vm["bind"].as<std::string>(), err);
+    bind_addr = hexabus::resolve(io, vm["bind"].as<std::string>(), err);
 		if (err) {
-			std::cerr << vm["bind"].as<std::string>() << " is not a valid IP address" << std::endl;
+			std::cerr << vm["bind"].as<std::string>() << " is not a valid IP address: " << err.message() << std::endl;
 			return ERR_PARAMETER_VALUE_INVALID;
 		}
     std::cout << "Binding to " << bind_addr << std::endl;
@@ -395,7 +397,6 @@ int main(int argc, char** argv) {
 		return ERR_PARAMETER_MISSING;
 	}
 
-	boost::asio::io_service io;
   hexabus::Socket* network;
 
   if (interface) {

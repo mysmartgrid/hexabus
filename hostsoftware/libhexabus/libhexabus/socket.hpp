@@ -5,7 +5,6 @@
 #include <boost/thread.hpp>
 #include <boost/function.hpp>
 #include <string>
-#include "../../../shared/hexabus_packet.h"
 #include <boost/signals2.hpp>
 #include "error.hpp"
 #include "packet.hpp"

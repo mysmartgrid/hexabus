@@ -62,7 +62,6 @@
 #include "temperature.h"
 #include "relay.h"
 #include "eeprom_variables.h"
-#include "../../../../../shared/hexabus_packet.h"
 #include "datetime_service.h"
 #include "state_machine.h"
 
@@ -442,9 +441,9 @@ generate_socket_readings(void *arg)
  // dtostrf(temperature_value, 9, 4, &buffer);
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor4, temperature_as_string());
   // Add Date and Time
-  struct datetime dt;
+  struct hxb_datetime dt;
 	if(getDatetime(&dt) == 0) {
-		char *time[30];
+		char time[30];
 		sprintf(time, "%u:%u:%u, %u.%u.%u", dt.hour, dt.minute, dt.second, dt.day, dt.month, dt.year);
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_datetime, time);
 	} else {
@@ -459,11 +458,11 @@ static unsigned short
 generate_config(void *arg)
 {
 	uint16_t numprinted;
-	extern bool relay_state;
+//	extern bool relay_state;
 
 	static const char httpd_cgi_config_line1[] HTTPD_STRING_ATTR = "<td><input name=\"domain_name\" type=\"text\" size=\"50\" maxlength=\"30\" value=\"%s\"></td></tr>";
 	static const char httpd_cgi_config_line2[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">Default Relay State</td><td><input type=\"radio\" name=\"relay\" value=\"1\" %s>On<input type=\"radio\" name=\"relay\" value=\"0\" %s>Off</td></tr>";
-	static const char httpd_cgi_config_line3[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">S0 meter (Imp./kWh)</td><td><input type=\"text\" size=\"4\" maxlength=\"4\" name=\"s0\" value=\"%s\"></td></tr>";
+//	static const char httpd_cgi_config_line3[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">S0 meter (Imp./kWh)</td><td><input type=\"text\" size=\"4\" maxlength=\"4\" name=\"s0\" value=\"%s\"></td></tr>";
     static const char httpd_cgi_config_line4[] HTTPD_STRING_ATTR = "<tr><input type=\"hidden\" name=\"terminator\" value=\"\"><td align=\"right\">Submit:</td><td><input type=\"submit\" value=\" Submit \" ></td></tr></table></form>"; //additional ampersand from the hidden value simplifies parsing
 
     char* checked = "checked";
@@ -538,8 +537,8 @@ generate_radio_stats(void *arg)
 /*---------------------------------------------------------------------------*/
 void hxbtos(char *dest, char *data, uint8_t datatype)
 {
-	struct datetime *dt;
-	switch(datatype) {
+	struct hxb_datetime *dt;
+	switch ((enum hxb_datatype) datatype) {
 		case HXB_DTYPE_UNDEFINED:	// "Do nothing" Datatype
 			sprintf(dest, "0");		// 0 so the format does not break
 			break;
@@ -552,7 +551,7 @@ void hxbtos(char *dest, char *data, uint8_t datatype)
 			sprintf(dest, "%lu", *(uint32_t*)data);
 			break;
 		case HXB_DTYPE_DATETIME:
-			dt = (struct datetime*)data;
+			dt = (struct hxb_datetime*)data;
 			sprintf(dest, "%u*%u*%u*%u*%u*%u*%u*", dt->hour, dt->minute, dt->second, dt->day, dt->month, (uint16_t)dt->year, dt->weekday); 
 			break;
 		case HXB_DTYPE_FLOAT:
@@ -562,6 +561,11 @@ void hxbtos(char *dest, char *data, uint8_t datatype)
 				i++;
 			}
 			dest[i] = ',';
+			break;
+		case HXB_DTYPE_128STRING:
+		case HXB_DTYPE_66BYTES:
+		case HXB_DTYPE_16BYTES:
+		default:
 			break;
 	}
 }

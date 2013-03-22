@@ -103,6 +103,8 @@
 
 //HEXABUS includes
 #include "metering.h"
+#include "button_handlers.h"
+#include "contiki-hexabus.h"
 #include "relay.h"
 #include "button.h"
 #include "eeprom_variables.h"
@@ -300,7 +302,7 @@ void initialize(void)
 #endif /*RF230BB || RF212BB*/
 
   //initialize random number generator with part of the MAC address
-  random_init(eeprom_read_word(EE_MAC_ADDR + EE_MAC_ADDR_SIZE - 2));
+  random_init(eeprom_read_word((uint16_t*)(EE_MAC_ADDR + EE_MAC_ADDR_SIZE - 2)));
 
 #if WEBSERVER
   process_start(&webserver_nogui_process, NULL);
@@ -326,7 +328,7 @@ void initialize(void)
 
   /* process handling received HEXABUS broadcasts */
 #if STATE_MACHINE_ENABLE
-  process_start(&state_machine_process, NULL);
+  sm_start();
 #endif
 
   /* Datetime service*/

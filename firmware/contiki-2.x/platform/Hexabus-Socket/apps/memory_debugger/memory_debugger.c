@@ -8,6 +8,7 @@
 #include "memory_debugger.h"
 #include "contiki.h"
 #include "sys/etimer.h"
+#include <stdio.h>
 
 
 PROCESS(memory_debugger_process, "Memory Debugger Process");

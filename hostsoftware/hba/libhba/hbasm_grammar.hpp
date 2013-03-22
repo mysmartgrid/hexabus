@@ -22,7 +22,7 @@
 #include <libhba/file_pos.hpp>
 
 // We need this for the hexabus datatype definitions
-#include "../../../shared/hexabus_definitions.h"
+#include "../../../shared/hexabus_types.h"
 #include "../../../shared/hexabus_statemachine_structs.h"
 
 

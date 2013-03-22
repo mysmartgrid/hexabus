@@ -9,7 +9,6 @@
 #define HYT321_HUMIDITY_LENGTH 2
 #define HYT321_TEMPERATURE_LENGTH 4
 
-float read_humidity();
-float read_humidity_temp();
+void humidity_init(void);
 
 #endif

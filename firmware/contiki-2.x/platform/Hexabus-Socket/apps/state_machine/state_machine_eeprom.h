@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "eeprom_variables.h"
-#include "../../../../../shared/hexabus_packet.h"
 #include "../../../../../shared/hexabus_statemachine_structs.h"
 
 // Used for wrapping the eeprom access
