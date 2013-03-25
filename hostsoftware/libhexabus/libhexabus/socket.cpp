@@ -77,12 +77,11 @@ std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> Socket::receive(const fil
 				this,
 				boost::asio::placeholders::error,
 				boost::asio::placeholders::bytes_transferred,
-				result));
+				boost::ref(result)));
 
 	ioService().reset();
 	do {
 		ioService().run();
-		timer.cancel();
 	} while (!ioService().stopped());
 
 	return std::make_pair(result, remoteEndpoint);
