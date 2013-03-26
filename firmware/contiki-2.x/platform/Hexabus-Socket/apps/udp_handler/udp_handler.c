@@ -587,10 +587,14 @@ static void print_local_addresses(void) {
 
 /*---------------------------------------------------------------------------*/
 
+process_event_t udp_handler_ready;
+
 PROCESS_THREAD(udp_handler_process, ev, data) {
 //  static uip_ipaddr_t ipaddr;
   PROCESS_POLLHANDLER(pollhandler());
   PROCESS_EXITHANDLER(exithandler());
+
+	udp_handler_ready = process_alloc_event();
 
   // see: http://senstools.gforge.inria.fr/doku.php?id=contiki:examples
   PROCESS_BEGIN();
@@ -620,6 +624,8 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
 
   print_local_addresses();
   etimer_set(&udp_periodic_timer, 60*CLOCK_SECOND);
+
+	process_post(PROCESS_BROADCAST, udp_handler_ready, NULL);
 
   while(1) {
     //   tcpip_poll_udp(udpconn);

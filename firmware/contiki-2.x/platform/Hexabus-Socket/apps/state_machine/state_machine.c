@@ -2,6 +2,7 @@
 
 #include "hexabus_config.h"
 #include "value_broadcast.h"
+#include "udp_handler.h"
 #include "eeprom_variables.h"
 #include "endpoints.h"
 #include "state_machine.h"
@@ -268,11 +269,6 @@ void check_value_transitions(void* data)
 	}
 }
 
-static void broadcast_reset(void* data)
-{
-	broadcast_value(EP_SM_RESET_ID);
-}
-
 void sm_handle_input(struct hxb_envelope* data)
 {
 	process_post_synch(&state_machine_process, sm_handle_input_event, data);
@@ -310,17 +306,18 @@ PROCESS_THREAD(state_machine_process, ev, data)
   static struct etimer check_timer;
   etimer_set(&check_timer, CLOCK_SECOND * 5); // TODO do we want this configurable?
 
-  // If we've been cold-rebooted (power outage?), send out a broadcast telling everyone so.
-  static struct ctimer sm_bootup_timer; // we need some time so the network can initialize
-  // assume it's a reboot if the timestamp (time since bootup) is less than 1 (second)
-  if(getTimestamp() < 1 && !sm_id_is_zero()) { // only broadcast if ID is not 0 -- 0 is reserved for "no-auto-reset".
-    PRINTF("State machine: Assuming reboot, broadcasting Reset-ID\n");
-    ctimer_set(&sm_bootup_timer, 3 * CLOCK_SECOND, broadcast_reset, NULL); // TODO do we want the timeout configurable?
-  }
-
   while(sm_is_running())
   {
     PROCESS_WAIT_EVENT();
+		if (ev == udp_handler_ready) {
+			// the udp handler has transitioned to "ready" for some reason, most likely a cold reboot
+			// since anything that can bring the udp handler down will also affect the state machine, reset it
+			// special case: ID 0 is reserved for state machines that should not be automatically reset
+			if (!sm_id_is_zero()) {
+				PRINTF("State machine: UDP handler reset, broadcasting Reset-ID\n");
+				broadcast_value(EP_SM_RESET_ID);
+			}
+		}
     if(sm_is_running()) {
       PRINTF("State machine: Received event\r\n");
       PRINTF("state machine: Current state: %d\r\n", curState);

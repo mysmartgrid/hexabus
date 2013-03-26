@@ -20,5 +20,8 @@ CFLAGS += -Wall -Werror -Wno-unused -Wswitch-enum
 flash-jtag2: 
 	avrdude -c jtag2 -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F 
 
+flash-jtag3: 
+	avrdude -c jtag3 -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F 
+
 flash-dragon: 
 	avrdude -c dragon_jtag -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F 
