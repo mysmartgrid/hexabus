@@ -48,16 +48,8 @@
 #include "endpoint_registry.h"
 #include "hexabus_config.h"
 
-#if UDP_HANDLER_DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#define PRINT6ADDR(addr) PRINTF(" %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x ", ((u8_t *)addr)[0], ((u8_t *)addr)[1], ((u8_t *)addr)[2], ((u8_t *)addr)[3], ((u8_t *)addr)[4], ((u8_t *)addr)[5], ((u8_t *)addr)[6], ((u8_t *)addr)[7], ((u8_t *)addr)[8], ((u8_t *)addr)[9], ((u8_t *)addr)[10], ((u8_t *)addr)[11], ((u8_t *)addr)[12], ((u8_t *)addr)[13], ((u8_t *)addr)[14], ((u8_t *)addr)[15])
-#define PRINTLLADDR(lladdr) PRINTF(" %02x:%02x:%02x:%02x:%02x:%02x ",(lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3],(lladdr)->addr[4], (lladdr)->addr[5])
-#else
-#define PRINTF(...)
-#define PRINT6ADDR(addr)
-#define PRINTLLADDR(addr)
-#endif
+#define LOG_LEVEL UDP_HANDLER_DEBUG
+#include "syslog.h"
 
 #define UDP_IP_BUF ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
@@ -72,12 +64,12 @@ AUTOSTART_PROCESSES(&udp_handler_process);
 /*---------------------------------------------------------------------------*/
 static void
 pollhandler(void) {
-  PRINTF("----Socket_UDP_handler: Process polled\r\n");
+	syslog(LOG_DEBUG, "Process polled");
 }
 
 static void
 exithandler(void) {
-  PRINTF("----Socket_UDP_handler: Process exits.\r\n");
+	syslog(LOG_DEBUG, "Process exits.");
 }
 
 static float ntohf(float f)
@@ -188,12 +180,12 @@ static void do_udp_send(const uip_ipaddr_t* toaddr, uint16_t toport, union hxb_p
 	size_t len = prepare_for_send(packet);
 
 	if (len == 0) {
-		PRINTF("Attempted to send invalid packet\n");
+		syslog(LOG_ERR, "Attempted to send invalid packet");
 		return;
 	}
 
 	if (!udpconn) {
-		PRINTF("Not sending: UDP connection not available\n");
+		syslog(LOG_ERR, "Not sending: UDP connection not available");
 		return;
 	}
 
@@ -214,7 +206,7 @@ enum hxb_error_code udp_handler_send_generated(const uip_ipaddr_t* toaddr, uint1
 	union hxb_packet_any send_buffer;
 
 	if (!packet_gen_fn) {
-		PRINTF("Attempted to generate packet by NULL packet_gen_fn");
+		syslog(LOG_ERR, "Attempted to generate packet by NULL packet_gen_fn");
 		return HXB_ERR_INTERNAL;
 	}
 
@@ -312,7 +304,7 @@ static enum hxb_error_code check_crc(const union hxb_packet_any* packet)
 	}
 
 	if (uip_ntohs(crc) != crc16_data((unsigned char*) packet, data_len - 2, 0)) {
-		PRINTF("CRC check failed\n");
+		syslog(LOG_NOTICE, "CRC check failed");
 		return HXB_ERR_CRCFAILED;
 	}
 
@@ -358,7 +350,7 @@ static enum hxb_error_code extract_value(union hxb_packet_any* packet, struct hx
 
 		case HXB_DTYPE_UNDEFINED:
 		default:
-			PRINTF("Packet of unknown datatype.\r\n");
+			syslog(LOG_ERR, "Packet of unknown datatype.");
 			return HXB_ERR_DATATYPE;
 	}
 
@@ -393,7 +385,7 @@ static enum hxb_error_code generate_query_response(union hxb_packet_any* buffer,
 	buffer->value_header.type = HXB_PTYPE_INFO;
 	buffer->value_header.eid = eid;
 
-	PRINTF("Received query for %lu\n", eid);
+	syslog(LOG_INFO, "Received query for %lu", eid);
 
 	// point v_binary and v_string to the appropriate buffer in the source packet.
 	// that way we avoid allocating another buffer and unneeded copies
@@ -405,7 +397,7 @@ static enum hxb_error_code generate_query_response(union hxb_packet_any* buffer,
 	}
 
 	if (uip_ipaddr_cmp(&UDP_IP_BUF->destipaddr, &hxb_group)) {
-		PRINTF("Group query!\r\n");
+		syslog(LOG_INFO, "Group query!");
 		clock_delay_usec(random_rand() >> 1); // wait for max 31ms
 	}
 
@@ -485,13 +477,13 @@ static enum hxb_error_code handle_info(union hxb_packet_any* packet)
 #if STATE_MACHINE_ENABLE
 		sm_handle_input(&envelope);
 #else
-		PRINTF("Received Broadcast, but no handler for datatype.\r\n");
+		syslog(LOG_NOTICE, "Received Broadcast, but no handler for datatype.");
 #endif
 	} else {
 #if DATETIME_SERVICE_ENABLE
 		updateDatetime(&envelope);
 #else
-		PRINTF("Received Broadcast, but no handler for datatype.\r\n");
+		syslog(LOG_NOTICE, "Received Broadcast, but no handler for datatype.");
 #endif
 	}
 
@@ -503,15 +495,13 @@ udphandler(process_event_t ev, process_data_t data)
 {
   if (ev == tcpip_event) {
     if(uip_newdata()) {
-      PRINTF("udp_handler: received '%d' bytes from ", uip_datalen());
-      PRINT6ADDR(&UDP_IP_BUF->srcipaddr);
-      PRINTF("\r\n");
+			syslog(LOG_DEBUG, "received '%d' bytes from " LOG_6ADDR_FMT, uip_datalen(), LOG_6ADDR_VAL(UDP_IP_BUF->srcipaddr));
 
 			union hxb_packet_any* packet = (union hxb_packet_any*)uip_appdata;
 
       // check if it's a Hexabus packet
       if(strncmp(packet->header.magic, HXB_HEADER, 4)) {
-        PRINTF("Received something, but it wasn't a Hexabus packet. Ignoring it.");
+				syslog(LOG_NOTICE, "Received something, but it wasn't a Hexabus packet. Ignoring it.");
       } else {
 				enum hxb_error_code err;
 
@@ -558,7 +548,7 @@ udphandler(process_event_t ev, process_data_t data)
 					case HXB_PTYPE_ERROR:
 					case HXB_PTYPE_EPINFO:
 					default:
-						PRINTF("packet of type %d received, but we do not know what to do with that (yet)\r\n", packet->header.type);
+						syslog(LOG_NOTICE, "packet of type %d received, but we do not know what to do with that (yet)", packet->header.type);
 						err = HXB_ERR_UNEXPECTED_PACKET;
 						break;
 				}
@@ -575,14 +565,12 @@ udphandler(process_event_t ev, process_data_t data)
 }
 
 static void print_local_addresses(void) {
-  PRINTF("\nAddresses [%u max]\n",UIP_DS6_ADDR_NB);
-  int i;
-  for (i=0;i<UIP_DS6_ADDR_NB;i++) {
-    if (uip_ds6_if.addr_list[i].isused) {
-      PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-      PRINTF("\n");
-    }
-  }
+	syslog(LOG_INFO, "Addresses [%u max]",UIP_DS6_ADDR_NB);
+	for (int i = 0; i < UIP_DS6_ADDR_NB; i++) {
+		if (uip_ds6_if.addr_list[i].isused) {
+			syslog(LOG_INFO, " " LOG_6ADDR_FMT, LOG_6ADDR_VAL(uip_ds6_if.addr_list[i].ipaddr));
+		}
+	}
 }
 
 /*---------------------------------------------------------------------------*/
@@ -599,7 +587,7 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   // see: http://senstools.gforge.inria.fr/doku.php?id=contiki:examples
   PROCESS_BEGIN();
 
-  PRINTF("udp_handler: process startup.\r\n");
+	syslog(LOG_INFO, "process startup.");
   // wait 3 second, in order to have the IP addresses well configured
   etimer_set(&udp_periodic_timer, CLOCK_CONF_SECOND*3);
   // wait until the timer has expired
@@ -618,9 +606,7 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   udp_bind(udpconn, UIP_HTONS(HXB_PORT));
   // udp_attach(udpconn, NULL);
 
-  PRINTF("udp_handler: Created connection with remote peer ");
-  PRINT6ADDR(&udpconn->ripaddr);
-  PRINTF("\r\nlocal/remote port %u/%u\r\n", uip_htons(udpconn->lport),uip_htons(udpconn->rport));
+	syslog(LOG_INFO, "Created connection with remote peer " LOG_6ADDR_FMT ", local/remote port %u/%u", LOG_6ADDR_VAL(udpconn->ripaddr), uip_htons(udpconn->lport),uip_htons(udpconn->rport));
 
   print_local_addresses();
   etimer_set(&udp_periodic_timer, 60*CLOCK_SECOND);

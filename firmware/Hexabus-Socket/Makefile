@@ -17,6 +17,8 @@ include $(CONTIKI)/Makefile.include
 
 CFLAGS += -Wall -Werror -Wno-unused -Wswitch-enum
 
+CFLAGS += -D"__SHORT_FILE__=\"`basename $<`\""
+
 flash-jtag2: 
 	avrdude -c jtag2 -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F 
 
