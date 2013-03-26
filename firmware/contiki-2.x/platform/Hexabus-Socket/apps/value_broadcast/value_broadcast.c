@@ -167,11 +167,6 @@ print_local_addresses(void)
     {
       PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
       PRINTF("\n");
-      /* hack to make address "final" */
-      if (state == ADDR_TENTATIVE)
-      {
-        uip_ds6_if.addr_list[i].state = ADDR_PREFERRED;
-      }
     }
   }
 }

@@ -192,6 +192,11 @@ static void do_udp_send(const uip_ipaddr_t* toaddr, uint16_t toport, union hxb_p
 		return;
 	}
 
+	if (!udpconn) {
+		PRINTF("Not sending: UDP connection not available\n");
+		return;
+	}
+
 	if (!toaddr) {
 		toaddr = &hxb_group;
 	}
