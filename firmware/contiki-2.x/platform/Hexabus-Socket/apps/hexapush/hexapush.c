@@ -10,14 +10,8 @@
 
 #include "endpoint_registry.h"
 
-#include <stdio.h>
-
-#if HEXAPUSH_DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL HEXAPUSH_DEBUG
+#include "syslog.h"
 
 
 static uint8_t pressed_vector = 0;
@@ -57,7 +51,7 @@ ENDPOINT_DESCRIPTOR endpoint_hexapush_clicked = {
 
 static void button_clicked(uint8_t button)
 {
-	PRINTF("Clicked %d\n", button);
+	syslog(LOG_DEBUG, "Clicked %d", button);
 
 	clicked_vector |= button;
 	broadcast_value(EP_HEXAPUSH_CLICKED);
@@ -67,12 +61,12 @@ static void button_clicked(uint8_t button)
 static void button_pressed(uint8_t button, uint8_t released, uint16_t pressed_ticks)
 {
 	if (!released && !(pressed_vector & button)) {
-		PRINTF("Pressed %d\n", button);
+		syslog(LOG_DEBUG, "Pressed %d", button);
 
 		pressed_vector |= button;
 		broadcast_value(EP_HEXAPUSH_PRESSED);
 	} else if (released && (pressed_vector & button)) {
-		PRINTF("Released %d\n", button);
+		syslog(LOG_DEBUG, "Released %d", button);
 
 		pressed_vector &= ~button;
 		broadcast_value(EP_HEXAPUSH_PRESSED);
@@ -102,8 +96,6 @@ BUTTON_DESCRIPTOR buttons_hexapush = {
 
 void hexapush_init()
 {
-	PRINTF("Hexapush init\n");
-
 	HEXAPUSH_DDR &= ~HEXAPUSH_MASK;
 	HEXAPUSH_PORT |= HEXAPUSH_MASK;
 

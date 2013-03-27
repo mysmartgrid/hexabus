@@ -8,12 +8,8 @@
 
 #include <util/delay.h>
 
-#if PRESSURE_DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL PRESSURE_DEBUG
+#include "syslog.h"
 
 static int16_t ac1;
 static int16_t ac2;
@@ -77,7 +73,7 @@ void pressure_init() {
     mc = pressure_read16(MC_ADDR);
     md = pressure_read16(MD_ADDR);
 
-    PRINTF("Pressure init complete");
+    syslog(LOG_DEBUG, "Pressure init complete");
 
 }
 
@@ -140,7 +136,7 @@ while(1) {
     up |= pressure_read8(BMP085_VALUE_XLSB);
     up >>= (8-PRESSURE_OVERSAMPLING);
 
-    PRINTF("Raw pressure: %lu ,%u\n", up, ut);
+    syslog(LOG_DEBUG, "Raw pressure: %lu ,%u", up, ut);
 
     //Calculate real temperature (refer datasheet)
     int32_t x1 = (((int32_t)ut-(int32_t)ac6)*(int32_t)ac5)/32768;
@@ -174,7 +170,7 @@ while(1) {
 
     pressure = p+((x1+x2+(int32_t)3791)/16);
 
-    PRINTF("Real pressure: %ld \n", pressure);
+    syslog(LOG_DEBUG, "Real pressure: %ld", pressure);
 
     etimer_set(&pressure_read_delay_timer, CLOCK_SECOND*PRESSURE_READ_DELAY);
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&pressure_read_delay_timer));

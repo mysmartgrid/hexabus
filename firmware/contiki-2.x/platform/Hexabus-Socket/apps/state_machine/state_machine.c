@@ -295,8 +295,8 @@ PROCESS_THREAD(state_machine_process, ev, data)
   dtTransLength = sm_get_number_of_transitions(true);  //eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
 
 #if STATE_MACHINE_DEBUG
-	print_transition_table(true);
 	print_transition_table(false);
+	print_transition_table(true);
 #endif // STATE_MACHINE_DEBUG
 
   // initialize timer

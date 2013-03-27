@@ -44,7 +44,6 @@
 #include "endpoint_registry.h"
 
 
-#define PRINTF(...) printf(__VA_ARGS__)
 /** \brief This is a file internal variable that contains the default state of the relay.
  *
  */

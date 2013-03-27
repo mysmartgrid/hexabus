@@ -6,13 +6,10 @@
 
 #include "eeprom_variables.h"
 #include <stdio.h>
+#include "hexabus_config.h"
 
-#define ENDPOINT_REGISTRY_DEBUG 1
-#if ENDPOINT_REGISTRY_DEBUG
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL ENDPOINT_REGISTRY_DEBUG
+#include "syslog.h"
 
 struct endpoint_registry_entry* _endpoint_chain = 0;
 
@@ -28,24 +25,24 @@ void _endpoint_register(const struct endpoint_descriptor* ep, struct endpoint_re
 	memcpy_P(&ep_copy, ep, sizeof(ep_copy));
 
 	if (ep_copy.eid % 32 == 0) {
-		printf_P(PSTR("Endpoint descriptor %p claims to be synthethic (EID = 0 (mod 32)), ignoring\n"), ep);
+		syslog(LOG_DEBUG, "Endpoint descriptor %p claims to be synthethic (EID = 0 (mod 32)), ignoring", ep);
 		return;
 	}
 
 	for (struct endpoint_registry_entry* head = _endpoint_chain; head; head = head->next) {
 		if (descriptor_eid(head) == ep_copy.eid) {
-			printf_P(PSTR("Endpoint descriptor %p re-registers EID %lu, ignoring\n"), ep, ep_copy.eid);
+			syslog(LOG_DEBUG, "Endpoint descriptor %p re-registers EID %lu, ignoring", ep, ep_copy.eid);
 			return;
 		}
 	}
 
 	if (!ep_copy.name) {
-		printf_P(PSTR("Endpoint %lu has no name, ignoring\n"), ep_copy.eid);
+		syslog(LOG_DEBUG, "Endpoint %lu has no name, ignoring", ep_copy.eid);
 		return;
 	}
 
 	if (!ep_copy.read) {
-		printf_P(PSTR("Endpoint %lu is not readable, ignoring\n"), ep_copy.eid);
+		syslog(LOG_DEBUG, "Endpoint %lu is not readable, ignoring", ep_copy.eid);
 		return;
 	}
 
@@ -62,7 +59,7 @@ void _endpoint_register(const struct endpoint_descriptor* ep, struct endpoint_re
 			break;
 
 		default:
-			printf_P(PSTR("Endpoint %lu has no correct datatype, ignoring\n"), ep_copy.eid);
+			syslog(LOG_DEBUG, "Endpoint %lu has no correct datatype, ignoring", ep_copy.eid);
 			return;
 	}
 #endif
