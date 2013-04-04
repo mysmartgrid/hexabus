@@ -9,7 +9,7 @@ set(hexalog_src "hexalog.cpp")
 include_directories(
   ${CMAKE_SOURCE_DIR} 
   ${CMAKE_BINARY_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR} 
+  ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/libhexabus
   ${Boost_INCLUDE_DIRS}
   ${LIBKLIO_INCLUDE_DIR}
@@ -23,6 +23,8 @@ add_executable(hexaswitch ${hexaswitch_src})
 target_link_libraries(hexaswitch 
   hexabus
   pthread
+  json
+  crypto
   ${Boost_LIBRARIES}
 )
 
@@ -30,9 +32,12 @@ add_executable(hexalog ${hexalog_src})
 target_link_libraries(hexalog
   hexabus
   pthread
+  klio
+  json
+  crypto
   ${Boost_LIBRARIES}
   ${Boost_SYSTEM_LIBRARY}
-  ${LIBKLIO_LIBRARY}
+  curl
   ${SQLITE3_LIBRARIES}
 )
 

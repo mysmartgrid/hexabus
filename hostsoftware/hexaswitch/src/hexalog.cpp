@@ -9,11 +9,10 @@
 
 // libklio includes. TODO: create support for built-system.
 #include <libklio/common.hpp>
-#include <sstream>
 #include <libklio/store.hpp>
 #include <libklio/store-factory.hpp>
 #include <libklio/sensor.hpp>
-#include <libklio/sensorfactory.hpp>
+#include <libklio/sensor-factory.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/algorithm/string.hpp>
 // commandline parsing.
@@ -90,7 +89,7 @@ int main(int argc, char** argv)
   hexabus::NetworkAccess network;
   // TODO: Compile flag etc.
   klio::StoreFactory::Ptr store_factory(new klio::StoreFactory()); 
-  klio::Store::Ptr store(store_factory->openStore(klio::SQLITE3, db));
+  klio::Store::Ptr store(store_factory->create_sqlite3_store(db));
   std::cout << "opened store: " << store->str() << std::endl;
   klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
   klio::TimeConverter::Ptr tc(new klio::TimeConverter());
@@ -185,10 +184,10 @@ int main(int argc, char** argv)
 
       try {
         bool found=false;
-        std::vector<klio::Sensor::uuid_t> uuids = store->getSensorUUIDs();
+        std::vector<klio::Sensor::uuid_t> uuids = store->get_sensor_uuids();
         std::vector<klio::Sensor::uuid_t>::iterator it;
         for(  it = uuids.begin(); it < uuids.end(); it++) {
-          klio::Sensor::Ptr loadedSensor(store->getSensor(*it));
+          klio::Sensor::Ptr loadedSensor(store->get_sensor(*it));
           if (boost::iequals(loadedSensor->name(), sensor_id)) {
             // We have found our sensor. Now add data to it.
             found=true;
@@ -206,7 +205,7 @@ int main(int argc, char** argv)
           // apparently, this is a new sensor. Create a representation in klio for it.
           klio::Sensor::Ptr new_sensor(sensor_factory->createSensor(
                 sensor_id, sensor_unit, sensor_timezone)); 
-          store->addSensor(new_sensor);
+          store->add_sensor(new_sensor);
           std::cout << "Created new sensor: " << new_sensor->str() << std::endl;
           /**
            * 3. Use the sensor instance to save the value.
