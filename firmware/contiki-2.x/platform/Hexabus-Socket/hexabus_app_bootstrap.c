@@ -110,5 +110,4 @@ void hexabus_bootstrap_start_processes() {
 #if IR_RECEIVER_ENABLE
     process_start(&ir_receiver_process, NULL);
 #endif
-
 }

@@ -24,6 +24,8 @@ void _endpoint_register(const struct endpoint_descriptor* ep, struct endpoint_re
 	struct endpoint_descriptor ep_copy;
 	memcpy_P(&ep_copy, ep, sizeof(ep_copy));
 
+	syslog(LOG_DEBUG, "Register endpoint %lu", ep_copy.eid);
+
 	if (ep_copy.eid % 32 == 0) {
 		syslog(LOG_DEBUG, "Endpoint descriptor %p claims to be synthethic (EID = 0 (mod 32)), ignoring", ep);
 		return;

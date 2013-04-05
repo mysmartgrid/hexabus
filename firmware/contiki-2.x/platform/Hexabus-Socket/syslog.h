@@ -18,7 +18,7 @@
 #define LOG_LLADDR_FMT "%02x:%02x:%02x:%02x:%02x:%02x"
 #define LOG_LLADDR_VAL(lladdr) (lladdr).addr[0], (lladdr).addr[1], (lladdr).addr[2], (lladdr).addr[3],(lladdr).addr[4], (lladdr).addr[5]
 
-#if defined(LOG_LEVEL) && LOG_LEVEL > LOG_NONE
+#if defined(LOG_LEVEL) && LOG_LEVEL != LOG_NONE
 
 #include <stdio.h>
 #include <avr/pgmspace.h>
@@ -27,7 +27,7 @@
 #define __SHORT_FILE__ __FILE__
 #endif
 
-#define SYSLOG_PRINT2(line, fmt, ...) printf_P(PSTR("(" __SHORT_FILE__ ":" #line ")\t" fmt "\n"), ##__VA_ARGS__)
+#define SYSLOG_PRINT2(line, fmt, ...) printf_P(PSTR("%-30S" fmt "\n"), PSTR("(" __SHORT_FILE__ ":" #line ")"), ##__VA_ARGS__)
 #define SYSLOG_PRINT(line, fmt, ...) SYSLOG_PRINT2(line, fmt, ##__VA_ARGS__)
 
 #define syslog(level, fmt, ...) \
