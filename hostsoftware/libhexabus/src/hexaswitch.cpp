@@ -264,8 +264,38 @@ ErrorCode send_value_packet(hexabus::Socket* net, const boost::asio::ip::address
 					return send_packet(net, ip, ValuePacket<std::string>(eid, value));
 				}
 
+			case HXB_DTYPE_16BYTES:
+				{
+					boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> buffer;
+					buffer.assign(0);
+					std::stringstream ss;
+					std::ostringstream sending_value;
+					sending_value << "0x";
+					
+					if(value.length() %2)
+					{
+						std::cerr << "Error while converting value: Input must be even number of characters" << std::endl;
+						return ERR_PARAMETER_VALUE_INVALID;
+					}
+
+					if(value.length() > 2 * HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH)
+					{
+						std::cerr << "Error while converting value: Input too long." << std::endl;
+						return ERR_PARAMETER_VALUE_INVALID;
+					}
+
+					for(std::string::const_iterator it = value.begin(); it != value.end(); it+=2)
+					{
+						buffer[(it - value.begin()) / 2] = strtol(std::string(it, it+2).c_str(), 0, 16);
+						sending_value << std::hex << (0xff & (unsigned int)buffer[(it - value.begin()) / 2]);
+					}
+
+					std::cout << "Sending value " << sending_value.str() << std::endl;
+					return send_packet(net, ip, ValuePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >(eid, buffer));
+				}
+
 			default:
-				std::cout << "Unknown data type " << datatype << std::endl;
+				std::cerr << "Unknown data type " << datatype << std::endl;
 				return ERR_PARAMETER_VALUE_INVALID;
 		}
 	} catch (boost::bad_lexical_cast& e) {
@@ -300,7 +330,7 @@ int main(int argc, char** argv) {
     ("bind,b", po::value<std::string>(), "local IP address to use")
     ("interface,I", po::value<std::string>(), "the interface to use for outgoing messages")
     ("eid,e", po::value<uint32_t>(), "Endpoint ID (EID)")
-    ("datatype,d", po::value<unsigned int>(), "{1: Bool | 2: UInt8 | 3: UInt32 | 4: HexaTime | 5: Float | 6: String}")
+    ("datatype,d", po::value<unsigned int>(), "{1: Bool | 2: UInt8 | 3: UInt32 | 4: HexaTime | 5: Float | 6: String | 9: 16Bytes}")
     ("value,v", po::value<std::string>(), "Value")
     ("reliable,r", po::bool_switch(), "Reliable initialization of network access (adds delay, only needed for broadcasts)")
     ;
