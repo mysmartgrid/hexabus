@@ -72,6 +72,9 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   if(condIndex == TRUE_COND_INDEX)    // If the condition is set to TRUE
     return true;
 
+	if (!envelope)
+		return false;
+
   sm_get_condition(condIndex, &cond);
 
 	syslog(LOG_DEBUG, "Checking host IP mask.");
@@ -306,6 +309,9 @@ PROCESS_THREAD(state_machine_process, ev, data)
   while(sm_is_running())
   {
     PROCESS_WAIT_EVENT();
+		if (!sm_is_running())
+			break;
+
 		if (ev == udp_handler_ready) {
 			// the udp handler has transitioned to "ready" for some reason, most likely a cold reboot
 			// since anything that can bring the udp handler down will also affect the state machine, reset it
@@ -313,40 +319,39 @@ PROCESS_THREAD(state_machine_process, ev, data)
 			if (!sm_id_is_zero()) {
 				syslog(LOG_NOTICE, "UDP handler reset, broadcasting Reset-ID");
 				broadcast_value(EP_SM_RESET_ID);
+				curState = 0;
+				// also, unconditionally evaluate value transitions.
+				// with no value, only TRUE transitions can fire, including the often used "initialization" TRUE transition
+				check_value_transitions(NULL);
 			}
-		}
-    if(sm_is_running()) {
+		} else {
 			syslog(LOG_DEBUG, "Received event, current state: %d", curState);
-      if(ev == PROCESS_EVENT_TIMER)
-      {
-        check_datetime_transitions();
-        etimer_reset(&check_timer);
-      }
-			if (ev == sm_handle_input_event) {
-        if(!sm_id_is_zero()) { // if our state machine ID is not 0 (0 means "no auto reset".
-          // check if it's a Reset-ID (this means another state machine on the network was just unexpectedly reset)
-          struct hxb_envelope* envelope = (struct hxb_envelope*)data;
+			if (ev == PROCESS_EVENT_TIMER) {
+				check_datetime_transitions();
+				etimer_reset(&check_timer);
+			} else if (ev == sm_handle_input_event) {
+				if(!sm_id_is_zero()) { // if our state machine ID is not 0 (0 means "no auto reset".
+					// check if it's a Reset-ID (this means another state machine on the network was just unexpectedly reset)
+					struct hxb_envelope* envelope = (struct hxb_envelope*)data;
 					syslog(LOG_DEBUG, "SM_ID is not zero.");
-          if(envelope->eid == EP_SM_RESET_ID && envelope->value.datatype == HXB_DTYPE_16BYTES) {
-            uint32_t localhost[] = { 0, 0, 0, 0x01000000 }; // that's ::1 in IPv6 notation
-            syslog(LOG_NOTICE, "Received Reset-ID from " LOG_6ADDR_FMT, LOG_6ADDR_VAL(envelope->src_ip));
-            if(memcmp(&envelope->src_ip, &localhost , 16)) { // Ignore resets from localhost (the reset ID from localhost was sent BECAUSE we just reset)
-              char* received_sm_id = envelope->value.v_binary;
-              char own_sm_id[16];
-              sm_get_id(own_sm_id);
-              if(!memcmp(received_sm_id, own_sm_id, 16))
-                sm_restart();
-            }
-          }
-        }
+					if(envelope->eid == EP_SM_RESET_ID && envelope->value.datatype == HXB_DTYPE_16BYTES) {
+						uint32_t localhost[] = { 0, 0, 0, 0x01000000 }; // that's ::1 in IPv6 notation
+						syslog(LOG_NOTICE, "Received Reset-ID from " LOG_6ADDR_FMT, LOG_6ADDR_VAL(envelope->src_ip));
+						if(memcmp(&envelope->src_ip, &localhost , 16)) { // Ignore resets from localhost (the reset ID from localhost was sent BECAUSE we just reset)
+							char* received_sm_id = envelope->value.v_binary;
+							char own_sm_id[16];
+							sm_get_id(own_sm_id);
+							if(!memcmp(received_sm_id, own_sm_id, 16))
+								sm_restart();
+						}
+					}
+				}
 
-        // check the values + endpoints.
-        check_value_transitions(data);
+				// check the values + endpoints.
+				check_value_transitions(data);
 
 				syslog(LOG_DEBUG, "Now in state: %d", curState);
-      }
-    } else {
-			syslog(LOG_DEBUG, "State machine is not running - discarding event.");
+			}
     }
   }
 
