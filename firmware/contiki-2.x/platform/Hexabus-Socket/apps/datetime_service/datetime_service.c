@@ -10,12 +10,8 @@
 
 #include <stdlib.h>
 
-#if DATETIME_SERVICE_DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL DATETIME_SERVICE_DEBUG
+#include "syslog.h"
 
 static struct hxb_datetime current_dt;
 static bool time_valid;
@@ -25,7 +21,7 @@ static int valid_counter;
 static struct etimer update_timer;
 
 void updateDatetime(struct hxb_envelope* envelope) {
-	PRINTF("Time: Got update.\n");
+	syslog(LOG_DEBUG, "Time: Got update.");
 
 	current_dt = envelope->value.v_datetime;
 	time_valid = true;
@@ -71,7 +67,7 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
         PROCESS_WAIT_EVENT();
 
         if(ev == PROCESS_EVENT_TIMER) {
-            PRINTF("Time: %d:%d:%d\t%d.%d.%d Day: %d Valid: %d\n", current_dt.hour, current_dt.minute, current_dt.second, current_dt.day, current_dt.month, current_dt.year, current_dt.weekday, time_valid);
+            syslog(LOG_INFO, "Time: %d:%d:%d\t%d.%d.%d Day: %d Valid: %d", current_dt.hour, current_dt.minute, current_dt.second, current_dt.day, current_dt.month, current_dt.year, current_dt.weekday, time_valid);
 
             if(etimer_expired(&update_timer)){
                 etimer_reset(&update_timer);

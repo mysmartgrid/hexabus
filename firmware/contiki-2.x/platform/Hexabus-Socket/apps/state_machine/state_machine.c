@@ -2,6 +2,7 @@
 
 #include "hexabus_config.h"
 #include "value_broadcast.h"
+#include "udp_handler.h"
 #include "eeprom_variables.h"
 #include "endpoints.h"
 #include "state_machine.h"
@@ -11,16 +12,8 @@
 #include <stdlib.h>
 #include <string.h>      // memcpy
 
-#if STATE_MACHINE_DEBUG
-#include <stdio.h>
-#define PRINTF(fmt, ...) printf_P(PSTR(fmt), ##__VA_ARGS__)
-#define PRINT6ADDR(addr) PRINTF(" %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x ", ((u8_t *)addr)[0], ((u8_t *)addr)[1], ((u8_t *)addr)[2], ((u8_t *)addr)[3], ((u8_t *)addr)[4], ((u8_t *)addr)[5], ((u8_t *)addr)[6], ((u8_t *)addr)[7], ((u8_t *)addr)[8], ((u8_t *)addr)[9], ((u8_t *)addr)[10], ((u8_t *)addr)[11], ((u8_t *)addr)[12], ((u8_t *)addr)[13], ((u8_t *)addr)[14], ((u8_t *)addr)[15])
-#define PRINTLLADDR(lladdr) PRINTF(" %02x:%02x:%02x:%02x:%02x:%02x ",(lladdr)->addr[0], (lladdr)->addr[1], (lladdr)->addr[2], (lladdr)->addr[3],(lladdr)->addr[4], (lladdr)->addr[5])
-#else
-#define PRINTF(...)
-#define PRINT6ADDR(addr)
-#define PRINTLLADDR(addr)
-#endif
+#define LOG_LEVEL STATE_MACHINE_DEBUG
+#include "syslog.h"
 
 /*------------------------------------------------------*/
 PROCESS_NAME(state_machine_process);
@@ -46,9 +39,9 @@ uint8_t sm_is_running() {
 
 void sm_start() {
   if (process_is_running(&state_machine_process)) {
-    PRINTF("State machine process is already running - not starting it.\n");
+		syslog(LOG_DEBUG, "State machine process is already running - not starting it.");
   } else {
-    PRINTF("Starting state machine process.\n");
+		syslog(LOG_DEBUG, "Starting state machine process.");
     curState = 0;  // always start in state 0
     process_start(&state_machine_process, NULL);
   }
@@ -56,32 +49,32 @@ void sm_start() {
 
 void sm_stop() {
   if (!process_is_running(&state_machine_process)) {
-    PRINTF("State machine process is already stopped - not stopping it.\n");
+		syslog(LOG_DEBUG, "State machine process is already stopped - not stopping it.");
   } else {
-    PRINTF("Stopping state machine process.\n");
+		syslog(LOG_DEBUG, "Stopping state machine process.");
     process_exit(&state_machine_process);
   }
 }
 
 void sm_restart() {
-  PRINTF("Attempting to restart state machine process.\n");
+	syslog(LOG_DEBUG, "Attempting to restart state machine process.");
   sm_stop();
   // init
   sm_start();
-  PRINTF("Restart complete");
+	syslog(LOG_DEBUG, "Restart complete");
 }
 
 // Evaluates the condition no. condIndex, figure out whether we need to act upon the current hexabus packet
 bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   struct condition cond;
   // get the condition from eeprom
-  PRINTF("Checking condition %d\r\n", condIndex);
+	syslog(LOG_DEBUG, "Checking condition %d", condIndex);
   if(condIndex == TRUE_COND_INDEX)    // If the condition is set to TRUE
     return true;
 
   sm_get_condition(condIndex, &cond);
 
-  PRINTF("Checking host IP mask.\r\n");
+	syslog(LOG_DEBUG, "Checking host IP mask.");
   // check for ANYHOST condition (something other than :: (all zeroes))
   // not_anyhost is == 0 if it's an anyhost condition
   uint8_t not_anyhost = 16;
@@ -96,23 +89,23 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
   // If IP is all zero -> return without any action.
   //ignore IP and EID for Datetime-Conditions and Timestamp-Conditions
   if(cond.value.datatype != HXB_DTYPE_DATETIME && cond.value.datatype != HXB_DTYPE_TIMESTAMP && not_anyhost && memcmp(cond.sourceIP, &envelope->src_ip, 16)) { // If not anyhost AND source IP and cond IP differ
-    PRINTF("not anyhost AND source IP and cond IP differ\r\n");
+		syslog(LOG_DEBUG, "not anyhost AND source IP and cond IP differ");
     return false;
   }
   if(((cond.sourceEID != envelope->eid)) && cond.value.datatype != HXB_DTYPE_DATETIME && cond.value.datatype != HXB_DTYPE_TIMESTAMP) {
-    PRINTF("source EID of received packet and condition differ AND not a Date/Time/Timestamp condition.\r\n");
+		syslog(LOG_DEBUG, "source EID of received packet and condition differ AND not a Date/Time/Timestamp condition.");
     return false;
   }
 
-  PRINTF("IP and EID match / or datetime condition / or anyhost condition\r\n");
+	syslog(LOG_DEBUG, "IP and EID match / or datetime condition / or anyhost condition");
 
   // Check datatypes, return false if they don't match -- TIMESTAMP is exempt from that because it's checked alongside the DATETIME conditions
   if(envelope->value.datatype != cond.value.datatype && cond.value.datatype != HXB_DTYPE_TIMESTAMP) {
-    PRINTF("datatype mismatch");
+		syslog(LOG_DEBUG, "datatype mismatch");
     return false;
   }
 
-  PRINTF("Now checking condition\r\n");
+	syslog(LOG_DEBUG, "Now checking condition");
   // check the actual condition - must be implemented for each datatype individually.
   switch ((enum hxb_datatype) cond.value.datatype)
   {
@@ -167,8 +160,8 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
     case HXB_DTYPE_TIMESTAMP:
       if(cond.op == HXB_SM_TIMESTAMP_OP) // in-state-since
       {
-        PRINTF("Checking in-state-since Condition! Have been in this state for %lu sec.\r\n", getTimestamp() - inStateSince);
-        PRINTF("getTimestamp(): %lu - inStateSince: %lu >= cond.value.data: %lu\r\n", getTimestamp(), inStateSince, cond.value.v_u32);
+				syslog(LOG_DEBUG, "Checking in-state-since Condition! Have been in this state for %lu sec.", getTimestamp() - inStateSince);
+				syslog(LOG_DEBUG, "getTimestamp(): %lu - inStateSince: %lu >= cond.value.data: %lu", getTimestamp(), inStateSince, cond.value.v_u32);
         return getTimestamp() - inStateSince >= cond.value.v_u32;
       }
       break;
@@ -178,7 +171,7 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
 		case HXB_DTYPE_66BYTES:
 		case HXB_DTYPE_UNDEFINED:
     default:
-      PRINTF("Datatype not implemented in state machine (yet).\r\n");
+			syslog(LOG_DEBUG, "Datatype not implemented in state machine (yet).");
       return false;
   }
 
@@ -201,29 +194,29 @@ void check_datetime_transitions()
 		//eeprom_read_block(t, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
 		sm_get_transition(true, i, &t);
 
-		PRINTF("checkDT - curState: %d -- fromState: %d\r\n", curState, t.fromState);
+		syslog(LOG_DEBUG, "checkDT - curState: %d -- fromState: %d", curState, t.fromState);
 		if ((t.fromState == curState) && (eval(t.cond, &dtenvelope))) {
 			// Matching transition found. Check, if an action should be performed.
 			if (t.eid != 0 || t.value.datatype != 0) {
 				// Try executing the command
-				PRINTF("state_machine: Writing to endpoint %ld\r\n", t.eid);
+				syslog(LOG_DEBUG, "Writing to endpoint %ld", t.eid);
 				eid_env.value = t.value;
 				eid_env.eid = t.eid;
 				if (endpoint_write(t.eid, &eid_env) == 0) {
 					inStateSince = getTimestamp();
 					curState = t.goodState;
-					PRINTF("state_machine: Everything is fine \r\n");
+					syslog(LOG_DEBUG, "Everything is fine");
 					break;
 				} else {
 					inStateSince = getTimestamp();
 					curState = t.badState;
-					PRINTF("state_machine: Something bad happened \r\n");
+					syslog(LOG_DEBUG, "Something bad happened");
 					break;
 				}
 			} else {
 				inStateSince = getTimestamp();
 				curState = t.goodState;
-				PRINTF("state_machine: No action performed. \r\n");
+				syslog(LOG_DEBUG, "No action performed.");
 			}
 		}
 	}
@@ -247,35 +240,48 @@ void check_value_transitions(void* data)
 			if (t.eid != 0 || t.value.datatype != 0) {
 				eid_env.eid = t.eid;
 				eid_env.value = t.value;
-				PRINTF("state_machine: Writing to endpoint %ld \r\n", t.eid);
+				syslog(LOG_DEBUG, "Writing to endpoint %ld", t.eid);
 				if (endpoint_write(t.eid, &eid_env) == 0) {
 					inStateSince = getTimestamp();
 					curState = t.goodState;
-					PRINTF("state_machine: Everything is fine \r\n");
+					syslog(LOG_DEBUG, "Everything is fine");
 					break;
 				} else { // Something went wrong
 					inStateSince = getTimestamp();
 					curState = t.badState;
-					PRINTF("state_machine: Something bad happened \r\n");
+					syslog(LOG_DEBUG, "Something bad happened");
 					break;
 				}
 			} else {
 				inStateSince = getTimestamp();
 				curState = t.goodState;
-				PRINTF("state_machine: No action performed. \r\n");
+				syslog(LOG_DEBUG, "No action performed");
 			}
 		}
 	}
 }
 
-static void broadcast_reset(void* data)
-{
-	broadcast_value(EP_SM_RESET_ID);
-}
-
 void sm_handle_input(struct hxb_envelope* data)
 {
 	process_post_synch(&state_machine_process, sm_handle_input_event, data);
+}
+
+static void print_transition_table(bool dttrans)
+{
+	int length = sm_get_number_of_transitions(dttrans);
+
+	if (dttrans) {
+		syslog(LOG_DEBUG, "[date/time table size: %d]:", transLength);
+	} else {
+		syslog(LOG_DEBUG, "[State machine table size: %d]:", transLength);
+	}
+	syslog(LOG_DEBUG, "From | Cond |      EID | Good | Bad");
+	for (int k = 0; k < length; k++) {
+		struct transition tt;
+		sm_get_transition(dttrans, k, &tt);
+		syslog(LOG_DEBUG, "%4d | %4d | %8ld | %4d | %3d", tt.fromState, tt.cond, tt.eid, tt.goodState, tt.badState);
+	}
+	syslog(LOG_DEBUG, "-----------------------------------");
 }
 
 PROCESS_THREAD(state_machine_process, ev, data)
@@ -289,41 +295,28 @@ PROCESS_THREAD(state_machine_process, ev, data)
   dtTransLength = sm_get_number_of_transitions(true);  //eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
 
 #if STATE_MACHINE_DEBUG
-  // output tables so we see if reading it works
-  struct transition tt;
-	int k = 0;
-	PRINTF("[State machine table size: %d]:\r\nFrom | Cond | EID | Good | Bad\r\n", transLength);
-	for (k = 0; k < transLength; k++) {
-		//eeprom_read_block(tt, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
-		sm_get_transition(false, k, &tt);
-		PRINTF(" %d | %d | %ld | %d | %d \r\n", tt.fromState, tt.cond, tt.eid, tt.goodState, tt.badState);
-	}
-	PRINTF("[date/time table size: %d]:\r\nFrom | Cond | EID | Good | Bad\r\n", dtTransLength);
-	for(k = 0; k < dtTransLength; k++) {
-		//eeprom_read_block(tt, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (k * sizeof(struct transition))), sizeof(struct transition));
-		sm_get_transition(true, k, &tt);
-		PRINTF(" %d | %d | %ld | %d | %d \r\n", tt.fromState, tt.cond, tt.eid, tt.goodState, tt.badState);
-	}
+	print_transition_table(false);
+	print_transition_table(true);
 #endif // STATE_MACHINE_DEBUG
 
   // initialize timer
   static struct etimer check_timer;
   etimer_set(&check_timer, CLOCK_SECOND * 5); // TODO do we want this configurable?
 
-  // If we've been cold-rebooted (power outage?), send out a broadcast telling everyone so.
-  static struct ctimer sm_bootup_timer; // we need some time so the network can initialize
-  // assume it's a reboot if the timestamp (time since bootup) is less than 1 (second)
-  if(getTimestamp() < 1 && !sm_id_is_zero()) { // only broadcast if ID is not 0 -- 0 is reserved for "no-auto-reset".
-    PRINTF("State machine: Assuming reboot, broadcasting Reset-ID\n");
-    ctimer_set(&sm_bootup_timer, 3 * CLOCK_SECOND, broadcast_reset, NULL); // TODO do we want the timeout configurable?
-  }
-
   while(sm_is_running())
   {
     PROCESS_WAIT_EVENT();
+		if (ev == udp_handler_ready) {
+			// the udp handler has transitioned to "ready" for some reason, most likely a cold reboot
+			// since anything that can bring the udp handler down will also affect the state machine, reset it
+			// special case: ID 0 is reserved for state machines that should not be automatically reset
+			if (!sm_id_is_zero()) {
+				syslog(LOG_NOTICE, "UDP handler reset, broadcasting Reset-ID");
+				broadcast_value(EP_SM_RESET_ID);
+			}
+		}
     if(sm_is_running()) {
-      PRINTF("State machine: Received event\r\n");
-      PRINTF("state machine: Current state: %d\r\n", curState);
+			syslog(LOG_DEBUG, "Received event, current state: %d", curState);
       if(ev == PROCESS_EVENT_TIMER)
       {
         check_datetime_transitions();
@@ -333,12 +326,10 @@ PROCESS_THREAD(state_machine_process, ev, data)
         if(!sm_id_is_zero()) { // if our state machine ID is not 0 (0 means "no auto reset".
           // check if it's a Reset-ID (this means another state machine on the network was just unexpectedly reset)
           struct hxb_envelope* envelope = (struct hxb_envelope*)data;
-          PRINTF("SM_ID is not zero.");
+					syslog(LOG_DEBUG, "SM_ID is not zero.");
           if(envelope->eid == EP_SM_RESET_ID && envelope->value.datatype == HXB_DTYPE_16BYTES) {
             uint32_t localhost[] = { 0, 0, 0, 0x01000000 }; // that's ::1 in IPv6 notation
-            PRINTF("State machine: Received Reset-ID from ");
-            PRINT6ADDR(&envelope->src_ip);
-            PRINTF("\n");
+            syslog(LOG_NOTICE, "Received Reset-ID from " LOG_6ADDR_FMT, LOG_6ADDR_VAL(envelope->src_ip));
             if(memcmp(&envelope->src_ip, &localhost , 16)) { // Ignore resets from localhost (the reset ID from localhost was sent BECAUSE we just reset)
               char* received_sm_id = envelope->value.v_binary;
               char own_sm_id[16];
@@ -352,10 +343,10 @@ PROCESS_THREAD(state_machine_process, ev, data)
         // check the values + endpoints.
         check_value_transitions(data);
 
-        PRINTF("state machine: Now in state: %d\r\n", curState);
+				syslog(LOG_DEBUG, "Now in state: %d", curState);
       }
     } else {
-      PRINTF("State machine is not running - discarding event.\r\n");
+			syslog(LOG_DEBUG, "State machine is not running - discarding event.");
     }
   }
 

@@ -10,12 +10,8 @@
 #include "endpoint_registry.h"
 #include <string.h>
 
-#if IR_RECEIVER_DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL IR_RECEIVER_DEBUG
+#include "syslog.h"
 
 static uint32_t ir_time;
 static uint32_t ir_time_since_last;
@@ -63,7 +59,7 @@ void ir_receiver_init() {
     ir_bit = 0;
     ir_byte = 0;
 
-    PRINTF("IR receiver init\n");
+    syslog(LOG_DEBUG, "IR receiver init");
     EICRA |= (1<<ISC21 );
     EIMSK |= (1<<INT2 );
 
@@ -187,13 +183,13 @@ PROCESS_THREAD(ir_receiver_process, ev, data) {
 
         if(ev == PROCESS_EVENT_POLL) {
             if(ir_repeat) {
-                PRINTF("Got repeat signal \n");
+                syslog(LOG_DEBUG, "Got repeat signal");
                 ir_repeat = 0;
             } else {
                 if(*(int32_t*)ir_prev_data != *(int32_t*)ir_last_data || timer_expired(&ir_rep_timer) || to_be_repeated()) {
                     memcpy(ir_prev_data, ir_last_data, 4);
                     timer_restart(&ir_rep_timer);
-                    PRINTF("Got new command %d,%d,%d,%d!\n", ir_last_data[0],ir_last_data[1],ir_last_data[2],ir_last_data[3]);
+                    syslog(LOG_DEBUG, "Got new command %d,%d,%d,%d!", ir_last_data[0],ir_last_data[1],ir_last_data[2],ir_last_data[3]);
                     broadcast_value(EP_IR_RECEIVER);
                 } else {
                     timer_restart(&ir_rep_timer);

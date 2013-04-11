@@ -50,8 +50,8 @@
 
 #define UDP_EXAMPLE_ID  190
 
-#define DEBUG VALUE_BROADCAST_DEBUG
-#include "net/uip-debug.h"
+#define LOG_LEVEL VALUE_BROADCAST_DEBUG
+#include "syslog.h"
 
 #define SEND_INTERVAL CLOCK_SECOND * VALUE_BROADCAST_AUTO_INTERVAL
 #define SEND_TIME (random_rand() % (SEND_INTERVAL))
@@ -75,7 +75,7 @@ void broadcast_to_self(struct hxb_value* val, uint32_t eid)
 		.value = *val
  	};
 	uip_ipaddr(&envelope.src_ip, 0, 0, 0, 1);
-	PRINTF("value_broadcast: Sending EID %ld to own state machine.\n", eid);
+	syslog(LOG_DEBUG, "Sending EID %ld to own state machine.", eid);
 	sm_handle_input(&envelope);
 #endif
 }
@@ -111,8 +111,7 @@ static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, voi
 	}
 
 	if (!skip_send) {
-		PRINTF("value_broadcast: Broadcasting EID %ld.\n", eid);
-		PRINTF("value_broadcast: Datatype: %d.\n", val.datatype);
+		syslog(LOG_DEBUG, "Broadcasting EID %ld, datatype %d", eid, val.datatype);
 
 		switch ((enum hxb_datatype) val.datatype) {
 			case HXB_DTYPE_BOOL:
@@ -141,7 +140,7 @@ static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, voi
 
 			case HXB_DTYPE_UNDEFINED:
 			default:
-				PRINTF("value_broadcast: Datatype unknown.\r\n");
+				syslog(LOG_ERR, "Datatype unknown.");
 		}
 	}
 
@@ -156,29 +155,18 @@ void broadcast_value(uint32_t eid)
 static void
 print_local_addresses(void)
 {
-  int i;
-  uint8_t state;
-
-  PRINTF("Client IPv6 addresses: ");
-  for(i = 0; i < UIP_DS6_ADDR_NB; i++)
-  {
-    state = uip_ds6_if.addr_list[i].state;
-    if(uip_ds6_if.addr_list[i].isused && (state == ADDR_TENTATIVE || state == ADDR_PREFERRED))
-    {
-      PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-      PRINTF("\n");
-      /* hack to make address "final" */
-      if (state == ADDR_TENTATIVE)
-      {
-        uip_ds6_if.addr_list[i].state = ADDR_PREFERRED;
-      }
-    }
-  }
+	syslog(LOG_DEBUG, "Client IPv6 addresses:");
+	for (int i = 0; i < UIP_DS6_ADDR_NB; i++)  {
+		uint8_t state = uip_ds6_if.addr_list[i].state;
+		if (uip_ds6_if.addr_list[i].isused && (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
+			syslog(LOG_DEBUG, " " LOG_6ADDR_FMT, LOG_6ADDR_VAL(uip_ds6_if.addr_list[i].ipaddr));
+		}
+	}
 }
 
 void init_value_broadcast(void)
 {
-  PRINTF("Value Broadcast init\n");
+  syslog(LOG_INFO, "Value Broadcast init");
 
   // this wrapper macro is needed to expand HXB_GROUP_RAW before uip_ip6addr, which is a macro
   // it's ugly as day, but it's the least ugly solution i found
@@ -193,10 +181,7 @@ void init_value_broadcast(void)
   uip_ipaddr_copy(&client_conn->ripaddr, &server_ipaddr);
   udp_bind(client_conn, UIP_HTONS(HXB_PORT));
 
-  PRINTF("Created a connection");
-  PRINT6ADDR(&client_conn->ripaddr);
-  PRINTF(" local/remote port %u/%u\n",
-  UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
+	syslog(LOG_DEBUG, "Created a connection " LOG_6ADDR_FMT ", local/remote port %u/%u", LOG_6ADDR_VAL(client_conn->ripaddr), UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 }
 
 /*---------------------------------------------------------------------------*/
@@ -214,7 +199,7 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
 
   init_value_broadcast();
 
-  PRINTF("UDP sender process started\n");
+	syslog(LOG_INFO, "UDP sender process started");
 
 
   etimer_set(&periodic, SEND_INTERVAL);

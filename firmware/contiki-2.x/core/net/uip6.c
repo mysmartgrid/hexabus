@@ -1542,6 +1542,11 @@ uip_process(uint8_t flag)
   uip_ipaddr_copy(&UIP_IP_BUF->destipaddr, &uip_udp_conn->ripaddr);
   uip_ds6_select_src(&UIP_IP_BUF->srcipaddr, &UIP_IP_BUF->destipaddr);
 
+	if (uip_is_addr_unspecified(&UIP_IP_BUF->srcipaddr)) {
+		PRINTF("Not sending from unspecified source\n");
+		goto drop;
+	}
+
   uip_appdata = &uip_buf[UIP_LLH_LEN + UIP_IPTCPH_LEN];
 
 #if UIP_UDP_CHECKSUMS
