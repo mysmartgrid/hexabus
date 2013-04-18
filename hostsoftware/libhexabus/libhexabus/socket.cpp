@@ -183,6 +183,10 @@ void Socket::openSocket(const boost::asio::ip::address_v6& addr, const std::stri
   if (err)
     throw NetworkException("open", err);
 
+  socket.set_option(boost::asio::socket_base::reuse_address(true), err);
+  if (err)
+    throw NetworkException("open", err);
+
   int if_index = 0;
 
   if (interface) {
