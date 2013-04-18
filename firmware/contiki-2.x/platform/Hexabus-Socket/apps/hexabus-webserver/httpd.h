@@ -65,6 +65,7 @@ struct httpd_state {
 
 #if HTTPD_STRING_TYPE==PROGMEM_TYPE
 #define HTTPD_STRING_ATTR PROGMEM
+#include <avr/pgmspace.h>
 /* These will fail if the server strings are above 64K in program flash */
 #define httpd_memcpy       memcpy_P
 #define httpd_strcpy       strcpy_P
