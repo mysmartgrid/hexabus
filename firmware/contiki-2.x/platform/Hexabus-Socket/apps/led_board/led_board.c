@@ -87,7 +87,27 @@ void leds_setselector(uint8_t sel0, uint8_t sel1, uint8_t sel2, uint8_t sel3) {
 	pca9532_update();
 }
 
+// defines for the LED selectors
+#define LED_OFF  0x00
+#define LED_ON   0x01
+#define LED_PWM0 0x02
+#define LED_PWM1 0x03
+
+// Defines which LED color is attached to which LED selector of the PCA9532 chip.
+// This is specific to the LED board used TODO Move to hexabus config?
+// Example: The first revision of the Hexasense board (with three LED clusters)
+#define LED_SELECTOR_0 (r << 6) | (r << 4) | (r << 2) | b
+#define LED_SELECTOR_1 (b << 6) | (g << 4) | (g << 2) | g
+#define LED_SELECTOR_2 b
+#define LED_SELECTOR_3 0
+
+void leds_setrgbselector(uint8_t r, uint8_t g, uint8_t b) {
+	PRINTF("Set LED color r%d g%d b%d\n", r, g, b);
+	leds_setselector(LED_SELECTOR_0, LED_SELECTOR_1, LED_SELECTOR_2, LED_SELECTOR_3);
+}
+
 void leds_setPWM(uint8_t pwm0, uint8_t pwm1) {
+	PRINTF("Set LED PWM: %d %d\n", pwm0, pwm1);
 	pca_state.pwm0 = pwm0;
 	pca_state.pwm1 = pwm1;
 
@@ -101,9 +121,10 @@ void leds_setprescale(uint8_t prescale0, uint8_t prescale1) {
 	pca9532_update();
 }
 
-struct led_board_command current_command;
+struct led_board_command current_command; // used to store the command which came in through Hexabus
+uint8_t current_h, current_s, current_v; // used to store the current hsv values.
 
-static enum hxb_error_code read_led_color(struct hxb_value* val) {
+static enum hxb_error_code read_led_command(struct hxb_value* val) {
 	// TODO memset(val->v_binary, 0, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
 	// TODO memcpy(val->v_binary, current_command, sizeof(current_command));
 	return HXB_ERR_SUCCESS;
@@ -112,26 +133,25 @@ static enum hxb_error_code read_led_color(struct hxb_value* val) {
 enum hsv_case {	V_ZERO, V_FULL, S_ZERO, S_FULL };
 enum hsv_case hsv_simplification_case;
 
-void set_color(uint8_t h, uint8_t s, uint8_t v)
-{
+void set_color(uint8_t h, uint8_t s, uint8_t v) {
+	PRINTF("Set color: h%d s%d v%d\n", h, s, v);
+
 	// in two of the cases, we don't have to calculate much:
 	if(hsv_simplification_case == V_ZERO || hsv_simplification_case == S_ZERO) {
 		if(hsv_simplification_case == V_ZERO) { // if V is zero, that means it's black -- S and H don't matter.
 			// lights out!
 			leds_setselector(LS0_RED_OFF | LS0_BLUE_OFF, LS1_GREEN_OFF | LS1_BLUE_OFF, LS2_BLUE_OFF, LS3);
+			leds_setrgbselector(LED_OFF, LED_OFF, LED_OFF);
 		} else {
 			// all LEDs to "v"
 			leds_setPWM(v,0);
-			leds_setselector(LS0_RED_PWM0 | LS0_BLUE_PWM0, LS1_GREEN_PWM0 | LS1_BLUE_PWM0, LS2_BLUE_PWM0, LS3);
+			leds_setrgbselector(LED_PWM0, LED_PWM0, LED_PWM0);
 		}
-	} 
-	// here we actually have to calculate something
-	else {
+	} else { // here we actually have to calculate something
 		// calculate p, t, and q
 		uint8_t f = (uint8_t)((float)h / 42.666666667f) * 6;
 		uint8_t p, q, t;
-	  if(hsv_simplification_case == S_FULL)
-		{
+	  if(hsv_simplification_case == S_FULL) {
 			p = 0;
 			q = v * (255 - f);
 			t = 0;
@@ -147,21 +167,21 @@ void set_color(uint8_t h, uint8_t s, uint8_t v)
 			if(hsv_simplification_case == S_FULL) {
 				// p = t = 0;
 				leds_setPWM(v,0);
-				leds_setselector(LS0_RED_PWM0 | LS0_BLUE_OFF, LS1_GREEN_OFF | LS1_BLUE_OFF, LS2_BLUE_OFF, LS3);
+				leds_setrgbselector(LED_PWM0, LED_OFF, LED_OFF);
 			} else { // V_FULL
 				leds_setPWM(p,t);
-				leds_setselector(LS0_RED_ON | LS0_BLUE_PWM0, LS1_GREEN_PWM1 | LS1_BLUE_PWM0, LS2_BLUE_PWM0, LS3);
+				leds_setrgbselector(LED_ON, LED_PWM1, LED_PWM0);
 			}
 		} else if(h < 86) { // actually 85 1/3
 			// r = q; g = v; b = p;
 			if(hsv_simplification_case == S_FULL) {
 				// p = 0;
 				leds_setPWM(v,q);
-				leds_setselector(LS0_RED_PWM1 | LS0_BLUE_OFF, LS1_GREEN_PWM0 | LS1_BLUE_OFF, LS2_BLUE_OFF, LS3);
+				leds_setrgbselector(LED_PWM1, LED_PWM0, LED_OFF);
 			} else { // V_FULL
 				// v = 255;
 				leds_setPWM(p,q);
-				leds_setselector(LS0_RED_PWM1 | LS0_BLUE_PWM0, LS1_GREEN_ON | LS1_BLUE_PWM0, LS2_BLUE_PWM0, LS3);
+				leds_setrgbselector(LED_PWM1, LED_ON, LED_PWM0);
 			}
 		} else if(h < 128) { // actually 128
 			// r = p; g = v; b = t;
@@ -169,51 +189,57 @@ void set_color(uint8_t h, uint8_t s, uint8_t v)
 			{
 				// p = t = 0;
 				leds_setPWM(v,0);
-				leds_setselector(LS0_RED_OFF | LS0_BLUE_OFF, LS1_GREEN_PWM0 | LS1_BLUE_OFF, LS2_BLUE_OFF, LS3);
+				leds_setrgbselector(LED_OFF, LED_PWM0, LED_OFF);
 			} else { // V_FULL
 				// v = 255;
 				leds_setPWM(p,t);
-				leds_setselector(LS0_RED_PWM0 | LS0_BLUE_PWM1, LS1_GREEN_ON | LS1_BLUE_PWM1, LS2_BLUE_PWM1, LS3);
+				leds_setrgbselector(LED_PWM0, LED_ON, LED_PWM1);
 			}
 		} else if(h < 171) { // actually 170 2/3
 			// r = p; g = q; b = v;
 			if(hsv_simplification_case == S_FULL) {
 				// p = t = 0;
 				leds_setPWM(v,q);
-				leds_setselector(LS0_RED_OFF | LS0_BLUE_PWM0, LS1_GREEN_PWM1 | LS1_BLUE_PWM0, LS2_BLUE_PWM0, LS3);
+				leds_setrgbselector(LED_OFF, LED_PWM1, LED_PWM0);
 			} else {
 				// v = 255;
 				leds_setPWM(p,q);
-				leds_setselector(LS0_RED_PWM0 | LS0_BLUE_ON, LS1_GREEN_PWM1 | LS1_BLUE_ON, LS2_BLUE_ON, LS3);
+				leds_setrgbselector(LED_PWM0, LED_PWM1, LED_ON);
 			}
 		} else if(h < 214) { // actually 213 1/3
 			// r = t; g = p; b = v;
 			if(hsv_simplification_case == S_FULL) {
 				// p = t = 0;
 				leds_setPWM(v,0);
-				leds_setselector(LS0_RED_OFF | LS0_BLUE_PWM0, LS1_GREEN_OFF | LS1_BLUE_PWM0, LS2_BLUE_PWM0, LS3);
+				leds_setrgbselector(LED_OFF, LED_OFF, LED_PWM0);
 			} else {
 				// v = 255;
 				leds_setPWM(p,t);
-				leds_setselector(LS0_RED_PWM1 | LS0_BLUE_ON, LS1_GREEN_PWM0 | LS1_BLUE_ON, LS2_BLUE_ON, LS3);
+				leds_setrgbselector(LED_PWM1, LED_PWM0, LED_ON);
 			}
 		} else { // 214 .. 255
 			// r = v; g = p; b = q;
 			if(hsv_simplification_case == S_FULL) {
 				// p = t = 0;
 				leds_setPWM(v,q);
-				leds_setselector(LS0_RED_PWM0 | LS0_BLUE_PWM1, LS1_GREEN_OFF | LS1_BLUE_PWM1, LS2_BLUE_PWM1, LS3);
+				leds_setrgbselector(LED_PWM0, LED_OFF, LED_PWM1);
 			} else { // V_FULL
 				// v = 255;
 				leds_setPWM(p,q);
-				leds_setselector(LS0_RED_ON | LS0_BLUE_PWM1, LS1_GREEN_PWM0 | LS1_BLUE_PWM1, LS2_BLUE_PWM1, LS3);
+				leds_setrgbselector(LED_ON, LED_PWM0, LED_PWM1);
 			}
 		}
 	}
 }
 
-void compute_hsv_simplification()
+enum hsv_case compute_hsv_case(uint8_t h, uint8_t s, uint8_t v)
 {
+	// TODO... use this to calculate the cases for each endpoint
+	// and then choose which case to use for the fader, give advantages to FULL cases...
+	return V_FULL;
+}
+
+void compute_hsv_simplification() {
 	// hsv-simplification -- restrict values: We only have 2 PWM channels.
 	// that limits our color space: We set either S or V to be either constant 255 or 0.
 	// -> find the channel (s or v) that has its average closest to 255 or 0.
@@ -247,35 +273,47 @@ void compute_hsv_simplification()
 		}
 	}
 
-	// TODO set v or s to 0 or 255 depending on case.
+	PRINTF("HSV Simplification: s_avg %d, v_avg %d, case %d\n", s_avg, v_avg, hsv_simplification_case);
 }
 
-static enum hxb_error_code set_led_color(const struct hxb_envelope* env)
-{
-	struct led_board_command* cmd = (struct led_board_command*)env->value.v_binary;
+void update_command() { // this is called after a new LED command has been written to current_command.
+	compute_hsv_simplification();
+	current_h = current_command.begin_h; // TODO move to fader, set according to simplification
+	current_s = current_command.begin_s;
+	current_v = current_command.begin_v;
 
+	set_color(current_h, current_s, current_v);
+}
+
+static enum hxb_error_code set_led_command(const struct hxb_envelope* env) {
+	PRINTF("Set LED color\n");
+	struct led_board_command* cmd = (struct led_board_command*)env->value.v_binary;
 	current_command = *cmd;
+
+	update_command();
+
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_led_color[] PROGMEM = "Hexagl0w LED Color";
-ENDPOINT_DESCRIPTOR endpoint_led_color = {
+static const char ep_led_color[] PROGMEM = "Hexagl0w LED Command";
+ENDPOINT_DESCRIPTOR endpoint_led_command = {
 	.datatype = HXB_DTYPE_16BYTES,
 	.eid = EP_LED_COLOR,
 	.name = ep_led_color,
-	.read = read_led_color,
-	.write = set_led_color
+	.read = read_led_command,
+	.write = set_led_command
 };
 
 PROCESS(led_board_process, "LED Board Controller process");
 PROCESS_THREAD(led_board_process, ev, data) {
   PROCESS_BEGIN();
 
+	PRINTF("LED Board control process started.\n");
 	// memset(&current_command, 0, sizeof(current_command)); // clear command
 
 	pca9532_init();
 
-	ENDPOINT_REGISTER(endpoint_led_color);
+	ENDPOINT_REGISTER(endpoint_led_command);
 
 	PROCESS_END();
 }
