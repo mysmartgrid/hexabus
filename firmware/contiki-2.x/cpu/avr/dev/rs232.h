@@ -31,7 +31,6 @@
  * Author:   Adam Dunkels <adam@sics.se>
  *           Simon Barner <barner@in.tum.de>
  *
- * @(#)$Id: rs232.h,v 1.6 2008/11/29 18:36:12 c_oflynn Exp $
  */
 
 #ifndef __RS232_H__
@@ -50,10 +49,20 @@
 #include "dev/rs232_at90usb1287.h"
 #elif defined (__AVR_ATmega128RFA1__)
 #include "dev/rs232_atmega128rfa1.h"
+#elif defined (__AVR_ATmega644__) || defined (__AVR_ATmega328P__)
+#include "dev/rs232_atmega644.h"
+#elif defined (__AVR_ATmega8__) || defined (__AVR_ATmega8515__) \
+   || defined (__AVR_ATmega16__) || defined (__AVR_ATmega32__)
+#include "dev/rs232_atmega32.h"
 #else
 #error "Please implement a rs232 header for your MCU (or set the MCU type \
 in contiki-conf.h)."
 #endif
+
+/******************************************************************************/
+/***   Baud rates                                                             */
+/******************************************************************************/
+#define BAUD_RATE(x) (F_CPU/16/x-1)
 
 /**
  * \brief      Initialize the RS232 module
@@ -99,19 +108,6 @@ rs232_set_input(uint8_t port, int (* f)(unsigned char));
  *             RS232. The string must be terminated by a null
  *             byte. The RS232 module must be correctly initalized and
  *             configured for this function to work.
- */
-void
-rs232_print_p(uint8_t port, prog_char *buf);
-
-/**
- * \brief      Print a text string on RS232
- * \param port The RS232 port to be used.
- * \param str  A pointer to the string that is to be printed
- *
- *             This function prints a string to RS232. The string must
- *             be terminated by a null byte. The RS232 module must be
- *             correctly initalized and configured for this function
- *             to work.
  */
 void
 rs232_print(uint8_t port, char *buf);

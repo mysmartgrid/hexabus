@@ -1,0 +1,3 @@
+endpoint_registry_src = endpoint_registry.c
+
+

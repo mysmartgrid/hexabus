@@ -1,0 +1,7 @@
+#ifndef TESTS_TESTCONFIG_H_IN
+#define TESTS_TESTCONFIG_H_IN 1
+
+#cmakedefine ENABLE_LOGGING 1
+#define TEST_DB_FILE "${CMAKE_CURRENT_BINARY_DIR}/testdb.sql"
+
+#endif /* TESTS_TESTCONFIG_H_IN */

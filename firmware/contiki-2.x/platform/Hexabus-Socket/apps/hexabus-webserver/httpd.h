@@ -37,8 +37,9 @@
 
 
 #include "contiki-net.h"
-#include "httpd-fs.h" 
+#include "httpd-fs.h"
 #include "lib/petsciiconv.h"
+#include "eeprom_variables.h"
 
 struct httpd_state {
   unsigned char timer;
@@ -48,7 +49,7 @@ struct httpd_state {
   char filename[20];
   char state;
   uint16_t error_number; // HTTP error code (if not 404 or 200)
-  struct httpd_fs_file file;  
+  struct httpd_fs_file file;
   int len;
   char *scriptptr;
   int scriptlen;

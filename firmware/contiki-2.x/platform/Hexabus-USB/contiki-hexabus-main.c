@@ -282,6 +282,7 @@ static void initialize(void)
 
 	watchdog_init();
 	watchdog_start();
+	button_handlers_init();
 
 	/* Clock */
 	clock_init();

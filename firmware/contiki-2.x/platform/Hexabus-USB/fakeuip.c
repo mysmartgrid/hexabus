@@ -11,7 +11,7 @@
 
 uip_buf_t uip_aligned_buf;
 
-u16_t uip_len;
+uint16_t uip_len;
 
 struct uip_stats uip_stat;
 
@@ -36,7 +36,7 @@ void tcpip_set_outputfunc(u8_t (* f)(uip_lladdr_t *)) {
   output = f;
 }
 
-u16_t uip_htons(u16_t val) { return UIP_HTONS(val);}
+uint16_t uip_htons(uint16_t val) { return UIP_HTONS(val);}
 
 
 #if THEOLDWAY
@@ -126,7 +126,7 @@ upper_layer_chksum(u8_t proto)
 }
 
 /*---------------------------------------------------------------------------*/
-u16_t
+uint16_t
 uip_icmp6chksum(void)
 {
   return upper_layer_chksum(UIP_PROTO_ICMP6); 
