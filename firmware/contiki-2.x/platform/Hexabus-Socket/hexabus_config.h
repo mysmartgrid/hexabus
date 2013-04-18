@@ -3,6 +3,11 @@ Config file for hexabus
 
 Each app that is either optional or has config settings should have a section in this file.
 There should be an ENABLE option that enables compilation and execution of the app, a DEBUG option which enables the DEBUG define of the app. You can add more options if your app is configurable somehow.
+
+_DEBUG options should be set to:
+ * 0 to disable debug output
+ * one of the LOG_* levels in syslog.h to log everything of higher or equal priority
+ * LOG_DEBUG, 9, or a larger integer to log everything
 */
 #ifndef HEXABUS_CONFIG_H
 #define HEXABUS_CONFIG_H
