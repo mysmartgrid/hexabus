@@ -149,30 +149,37 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 		}
 	} else { // here we actually have to calculate something
 		// calculate p, t, and q
-		uint8_t f = (uint8_t)((float)h / 42.666666667f) * 6;
+		float h_f = (float)h;
+		while(h_f > 42.666666667f) // h-value "in the current sector of the color space"
+			h_f -= 42.666666667f;
+		uint8_t f = (uint8_t)(h_f * 6.f);
 		uint8_t p, q, t;
 	  if(hsv_simplification_case == S_FULL) {
 			p = 0;
 			q = v * (255 - f);
-			t = 0;
+			t = ((uint16_t)v * (uint16_t)f) / 256;
 		} else { // V_FULL
 			p = 255 - s;
 			q = 255 - f;
-			t = ((255 - (uint16_t)s) * (255 - (uint16_t)f)) / 256;
+			t = 255 - ((((uint16_t)s) * (uint16_t)(255 - f)) / 256);
 		}
+
+		PRINTF("HSV intermediate values: f %d, p %d, q %d, t %d\n", f, p, q, t);
 
 		// find out which sector we're in. Each 60degree sector of HSV space corresponds to 42+(2/3)/255 in our H-normalized-to-255 space.
 		if(h < 43) { // actually 42 2/3
+			PRINTF("hi case 1\n");
 			// r = v, g = t, b = p
 			if(hsv_simplification_case == S_FULL) {
-				// p = t = 0;
-				leds_setPWM(v,0);
-				leds_setrgbselector(LED_PWM0, LED_OFF, LED_OFF);
+				// p = 0;
+				leds_setPWM(v,t);
+				leds_setrgbselector(LED_PWM0, LED_PWM1, LED_OFF);
 			} else { // V_FULL
 				leds_setPWM(p,t);
 				leds_setrgbselector(LED_ON, LED_PWM1, LED_PWM0);
 			}
 		} else if(h < 86) { // actually 85 1/3
+			PRINTF("hi case 2\n");
 			// r = q; g = v; b = p;
 			if(hsv_simplification_case == S_FULL) {
 				// p = 0;
@@ -184,21 +191,23 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 				leds_setrgbselector(LED_PWM1, LED_ON, LED_PWM0);
 			}
 		} else if(h < 128) { // actually 128
+			PRINTF("hi case 3\n");
 			// r = p; g = v; b = t;
 			if(hsv_simplification_case == S_FULL)
 			{
-				// p = t = 0;
-				leds_setPWM(v,0);
-				leds_setrgbselector(LED_OFF, LED_PWM0, LED_OFF);
+				// p = 0;
+				leds_setPWM(v,t);
+				leds_setrgbselector(LED_OFF, LED_PWM0, LED_PWM1);
 			} else { // V_FULL
 				// v = 255;
 				leds_setPWM(p,t);
 				leds_setrgbselector(LED_PWM0, LED_ON, LED_PWM1);
 			}
 		} else if(h < 171) { // actually 170 2/3
+			PRINTF("hi case 4\n");
 			// r = p; g = q; b = v;
 			if(hsv_simplification_case == S_FULL) {
-				// p = t = 0;
+				// p = 0;
 				leds_setPWM(v,q);
 				leds_setrgbselector(LED_OFF, LED_PWM1, LED_PWM0);
 			} else {
@@ -207,20 +216,22 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 				leds_setrgbselector(LED_PWM0, LED_PWM1, LED_ON);
 			}
 		} else if(h < 214) { // actually 213 1/3
+			PRINTF("hi case 5\n");
 			// r = t; g = p; b = v;
 			if(hsv_simplification_case == S_FULL) {
-				// p = t = 0;
-				leds_setPWM(v,0);
-				leds_setrgbselector(LED_OFF, LED_OFF, LED_PWM0);
+				// p = 0;
+				leds_setPWM(v,t);
+				leds_setrgbselector(LED_PWM1, LED_OFF, LED_PWM0);
 			} else {
 				// v = 255;
 				leds_setPWM(p,t);
 				leds_setrgbselector(LED_PWM1, LED_PWM0, LED_ON);
 			}
 		} else { // 214 .. 255
+			PRINTF("hi case 6\n");
 			// r = v; g = p; b = q;
 			if(hsv_simplification_case == S_FULL) {
-				// p = t = 0;
+				// p = 0;
 				leds_setPWM(v,q);
 				leds_setrgbselector(LED_PWM0, LED_OFF, LED_PWM1);
 			} else { // V_FULL
