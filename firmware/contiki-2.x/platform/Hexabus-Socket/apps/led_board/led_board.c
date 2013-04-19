@@ -133,6 +133,10 @@ static enum hxb_error_code read_led_command(struct hxb_value* val) {
 enum hsv_case {	V_ZERO, V_FULL, S_ZERO, S_FULL };
 enum hsv_case hsv_simplification_case;
 
+// constants for HSV -> RGB conversion
+#define HUE_SECTORS_F 6.f
+#define HUE_SECTOR_WIDTH (256.f / HUE_SECTORS_F)
+
 void set_color(uint8_t h, uint8_t s, uint8_t v) {
 	PRINTF("Set color: h%d s%d v%d\n", h, s, v);
 
@@ -140,9 +144,8 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 	if(hsv_simplification_case == V_ZERO || hsv_simplification_case == S_ZERO) {
 		if(hsv_simplification_case == V_ZERO) { // if V is zero, that means it's black -- S and H don't matter.
 			// lights out!
-			leds_setselector(LS0_RED_OFF | LS0_BLUE_OFF, LS1_GREEN_OFF | LS1_BLUE_OFF, LS2_BLUE_OFF, LS3);
 			leds_setrgbselector(LED_OFF, LED_OFF, LED_OFF);
-		} else {
+		} else { // S_ZERO - "gray": All color channels are the same brightness
 			// all LEDs to "v"
 			leds_setPWM(v,0);
 			leds_setrgbselector(LED_PWM0, LED_PWM0, LED_PWM0);
@@ -150,13 +153,13 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 	} else { // here we actually have to calculate something
 		// calculate p, t, and q
 		float h_f = (float)h;
-		while(h_f > 42.666666667f) // h-value "in the current sector of the color space"
-			h_f -= 42.666666667f;
-		uint8_t f = (uint8_t)(h_f * 6.f);
+		while(h_f > HUE_SECTOR_WIDTH) // h-value "in the current sector of the color space"
+			h_f -= HUE_SECTOR_WIDTH;
+		uint8_t f = (uint8_t)(h_f * HUE_SECTORS_F); // normalize to 0..255 again
 		uint8_t p, q, t;
 	  if(hsv_simplification_case == S_FULL) {
 			p = 0;
-			q = v * (255 - f);
+			q = ((uint16_t)v * (255 - (((uint16_t)s * (uint16_t)f)) / 256)) / 256;
 			t = ((uint16_t)v * (uint16_t)f) / 256;
 		} else { // V_FULL
 			p = 255 - s;
@@ -167,7 +170,7 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 		PRINTF("HSV intermediate values: f %d, p %d, q %d, t %d\n", f, p, q, t);
 
 		// find out which sector we're in. Each 60degree sector of HSV space corresponds to 42+(2/3)/255 in our H-normalized-to-255 space.
-		if(h < 43) { // actually 42 2/3
+		if(h < 1 * HUE_SECTOR_WIDTH) {
 			PRINTF("hi case 1\n");
 			// r = v, g = t, b = p
 			if(hsv_simplification_case == S_FULL) {
@@ -178,7 +181,7 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 				leds_setPWM(p,t);
 				leds_setrgbselector(LED_ON, LED_PWM1, LED_PWM0);
 			}
-		} else if(h < 86) { // actually 85 1/3
+		} else if(h < 2 * HUE_SECTOR_WIDTH) {
 			PRINTF("hi case 2\n");
 			// r = q; g = v; b = p;
 			if(hsv_simplification_case == S_FULL) {
@@ -190,7 +193,7 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 				leds_setPWM(p,q);
 				leds_setrgbselector(LED_PWM1, LED_ON, LED_PWM0);
 			}
-		} else if(h < 128) { // actually 128
+		} else if(h < 3 * HUE_SECTOR_WIDTH) {
 			PRINTF("hi case 3\n");
 			// r = p; g = v; b = t;
 			if(hsv_simplification_case == S_FULL)
@@ -203,7 +206,7 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 				leds_setPWM(p,t);
 				leds_setrgbselector(LED_PWM0, LED_ON, LED_PWM1);
 			}
-		} else if(h < 171) { // actually 170 2/3
+		} else if(h < 4 * HUE_SECTOR_WIDTH) {
 			PRINTF("hi case 4\n");
 			// r = p; g = q; b = v;
 			if(hsv_simplification_case == S_FULL) {
@@ -215,7 +218,7 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 				leds_setPWM(p,q);
 				leds_setrgbselector(LED_PWM0, LED_PWM1, LED_ON);
 			}
-		} else if(h < 214) { // actually 213 1/3
+		} else if(h < 5 * HUE_SECTOR_WIDTH) {
 			PRINTF("hi case 5\n");
 			// r = t; g = p; b = v;
 			if(hsv_simplification_case == S_FULL) {
@@ -227,7 +230,7 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 				leds_setPWM(p,t);
 				leds_setrgbselector(LED_PWM1, LED_PWM0, LED_ON);
 			}
-		} else { // 214 .. 255
+		} else { // h > 5 * HUE_SECTOR_WIDTH
 			PRINTF("hi case 6\n");
 			// r = v; g = p; b = q;
 			if(hsv_simplification_case == S_FULL) {
@@ -241,13 +244,6 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 			}
 		}
 	}
-}
-
-enum hsv_case compute_hsv_case(uint8_t h, uint8_t s, uint8_t v)
-{
-	// TODO... use this to calculate the cases for each endpoint
-	// and then choose which case to use for the fader, give advantages to FULL cases...
-	return V_FULL;
 }
 
 void compute_hsv_simplification() {
