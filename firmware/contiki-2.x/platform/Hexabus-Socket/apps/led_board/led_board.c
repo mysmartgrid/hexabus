@@ -48,36 +48,6 @@ void pca9532_init() {
 	pca9532_update();
 }
 
-// definitions of LED selectors for the Hexasense beta board
-// (the board with the three LED clusters).
-#define LS0_RED_OFF  0x00
-#define LS0_RED_ON   0x54
-#define LS0_RED_PWM0 0xA8
-#define LS0_RED_PWM1 0xFA
-#define LS1_GREEN_OFF  0x00
-#define LS1_GREEN_ON   0x15
-#define LS1_GREEN_PWM0 0x2A
-#define LS1_GREEN_PWM1 0x3F
-// The blue LEDs are distributed to several LED selectors. Therefore
-// their LED selector codes have to be OR'ed to the other LED selectors.
-#define LS0_BLUE_OFF  0x00
-#define LS0_BLUE_ON   0x01
-#define LS0_BLUE_PWM0 0x02
-#define LS0_BLUE_PWM1 0x03
-#define LS1_BLUE_OFF  0x00
-#define LS1_BLUE_ON   0x40
-#define LS1_BLUE_PWM0 0x80
-#define LS1_BLUE_PWM1 0xC0
-#define LS2_BLUE_OFF  0x00
-#define LS2_BLUE_ON   0x01
-#define LS2_BLUE_PWM0 0x02
-#define LS2_BLUE_PWM1 0x03
-// nothing is attached to LS3
-#define LS3 0x00
-// ============================================================================
-// TODO do this differently! Just send "setselector" the codes (on, off, pwm0/1)
-//      for each color -- and let setselector handle all the board specific stuff
-
 void leds_setselector(uint8_t sel0, uint8_t sel1, uint8_t sel2, uint8_t sel3) {
 	pca_state.LEDSelector0 = sel0;
 	pca_state.LEDSelector1 = sel1;
