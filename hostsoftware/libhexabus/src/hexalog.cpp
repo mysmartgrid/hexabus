@@ -216,58 +216,56 @@ enum ErrorCode {
 
 int main(int argc, char** argv)
 {
-  std::ostringstream oss;
-  oss << "Usage: " << argv[0] << " [-s] <interface> <storefile>";
-  po::options_description desc(oss.str());
-  desc.add_options()
-    ("help,h", "produce help message")
-    ("version,v", "print libklio version and exit")
-    ("storefile,s", po::value<std::string>(), "the data store to use")
-    ("timezone,t", po::value<std::string>(), "the timezone to use for new sensors")
+	std::ostringstream oss;
+ 	oss << "Usage: " << argv[0] << " [-s] <interface> <storefile>";
+ 	po::options_description desc(oss.str());
+ 	desc.add_options()
+   	("help,h", "produce help message")
+	("version,v", "print libklio version and exit")
+	("storefile,s", po::value<std::string>(), "the data store to use")//FIXME: find a better way of informing remote stores
+	("url,u", po::value<std::string>(), "the remote data store url")
+	("timezone,t", po::value<std::string>(), "the timezone to use for new sensors")
 		("interface,I", po::value<std::string>(), "interface to listen on")
 		("bind,b", po::value<std::string>(), "address to bind to")
-    ;
-  po::positional_options_description p;
-  p.add("interface", 1);
-  p.add("storefile", 1);
+	;
+  	po::positional_options_description p;
+  	p.add("interface", 1);
+  	p.add("storefile", 1);
 
-  po::variables_map vm;
+	po::variables_map vm;
 	try {
-		po::store(po::command_line_parser(argc, argv).
-				options(desc).positional(p).run(), vm);
+		po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
 		po::notify(vm);
 	} catch (const std::exception& e) {
 		std::cerr << "Cannot process commandline options: " << e.what() << std::endl;
 		return ERR_UNKNOWN_PARAMETER;
 	}
 
-  // Begin processing of commandline parameters.
-  if (vm.count("help")) {
-    std::cout << desc << std::endl;
-    return ERR_NONE;
-  }
+	// Begin processing of commandline parameters.
+	if (vm.count("help")) {
+		std::cout << desc << std::endl;
+		return ERR_NONE;
+	}
 
-  // TODO: Compile flag etc.
-  if (vm.count("version")) {
-    klio::VersionInfo::Ptr vi(new klio::VersionInfo());
-    std::cout << "libhexabus version " << hexabus::version() << std::endl;
-    std::cout << "klio library version " << vi->getVersion() << std::endl;
-    return ERR_NONE;
-  }
+  	// TODO: Compile flag etc.
+  	if (vm.count("version")) {
+		klio::VersionInfo::Ptr vi(new klio::VersionInfo());
+		std::cout << "libhexabus version " << hexabus::version() << std::endl;
+		std::cout << "klio library version " << vi->getVersion() << std::endl;
+		return ERR_NONE;
+  	}
 
 	if (!vm.count("interface")) {
 		std::cerr << "You must specify an interface to listen on." << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
-  if (!vm.count("storefile")) {
-    std::cerr << "You must specify a store to work on." << std::endl;
-    return ERR_PARAMETER_MISSING;
-  }
+	if (!vm.count("storefile") && !vm.count("url")) {
+		std::cerr << "You must specify a store to work on." << std::endl;
+		return ERR_PARAMETER_MISSING;
+	}
 
 	std::string interface(vm["interface"].as<std::string>());
-	std::string storefile(vm["storefile"].as<std::string>());
 	boost::asio::ip::address_v6 addr(boost::asio::ip::address_v6::any());
-
 	boost::asio::io_service io;
 
 	if (vm.count("bind")) {
@@ -280,26 +278,40 @@ int main(int argc, char** argv)
 		}
 	}
 
-  bfs::path db(storefile);
-  if (! bfs::exists(db)) {
-    std::cerr << "Database " << db << " does not exist, cannot continue." << std::endl;
-    std::cerr << "Hint: you can create a database using klio-store create <dbfile>" << std::endl;
-    return ERR_PARAMETER_VALUE_INVALID;
-  }
-
-  std::string sensor_timezone("Europe/Berlin"); 
-  if (! vm.count("timezone")) {
-    std::cerr << "Using default timezone " << sensor_timezone 
-      << ", change with -t <NEW_TIMEZONE>" << std::endl;
-  } else {
-    sensor_timezone=vm["timezone"].as<std::string>();
-  }
-
 	try {
-		hexabus::Socket network(io, interface);
-
 		klio::StoreFactory::Ptr store_factory(new klio::StoreFactory()); 
-		klio::Store::Ptr store(store_factory->create_sqlite3_store(db));
+		klio::Store::Ptr store;
+
+		if (vm.count("storefile")) {   
+			std::string storefile(vm["storefile"].as<std::string>());
+			bfs::path db(storefile);
+			if (! bfs::exists(db)) {
+				std::cerr << "Database " << db << " does not exist, cannot continue." << std::endl;
+				std::cerr << "Hint: you can create a database using klio-store create <dbfile>" << std::endl;
+				return ERR_PARAMETER_VALUE_INVALID;
+			}
+			store = store_factory->create_sqlite3_store(db);
+
+		} else if (vm.count("url")) {
+			std::string url(vm["url"].as<std::string>());
+
+			//FIXME: remove this line
+			std::string id("d271f4de-36cd-f3d3-00db-3e96755d8736");
+
+                        //FIXME: use create_msg_store()
+			store = store_factory->create_msg_store(url, id, id);
+                        store->initialize();
+		}
+
+		std::string sensor_timezone("Europe/Berlin"); 
+		if (! vm.count("timezone")) {
+			std::cerr << "Using default timezone " << sensor_timezone 
+			<< ", change with -t <NEW_TIMEZONE>" << std::endl;
+		} else {
+			sensor_timezone=vm["timezone"].as<std::string>();
+		}
+
+		hexabus::Socket network(io, interface);
 		std::cout << "opened store: " << store->str() << std::endl;
 		klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
 		klio::TimeConverter::Ptr tc(new klio::TimeConverter());
