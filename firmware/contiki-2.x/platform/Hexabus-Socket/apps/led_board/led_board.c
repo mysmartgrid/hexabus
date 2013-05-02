@@ -8,6 +8,7 @@
 #include "i2c.h"
 
 #include <util/delay.h>
+#include <string.h>
 
 #if LED_BOARD_DEBUG
 #include <stdio.h>
@@ -95,8 +96,8 @@ struct led_board_command current_command; // used to store the command which cam
 uint8_t current_h, current_s, current_v; // used to store the current hsv values.
 
 static enum hxb_error_code read_led_command(struct hxb_value* val) {
-	// TODO memset(val->v_binary, 0, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
-	// TODO memcpy(val->v_binary, current_command, sizeof(current_command));
+	memset(val->v_binary, 0, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
+	memcpy(val->v_binary, &current_command, sizeof(current_command));
 	return HXB_ERR_SUCCESS;
 }
 
@@ -286,7 +287,7 @@ PROCESS_THREAD(led_board_process, ev, data) {
   PROCESS_BEGIN();
 
 	PRINTF("LED Board control process started.\n");
-	// memset(&current_command, 0, sizeof(current_command)); // clear command
+	memset(&current_command, 0, sizeof(current_command)); // clear command
 
 	pca9532_init();
 
