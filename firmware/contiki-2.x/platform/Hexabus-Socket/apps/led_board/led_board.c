@@ -97,7 +97,7 @@ uint8_t current_h, current_s, current_v; // used to store the current hsv values
 
 static enum hxb_error_code read_led_command(struct hxb_value* val) {
 	memset(val->v_binary, 0, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH);
-	memcpy(val->v_binary, current_command, sizeof(current_command));
+	memcpy(val->v_binary, &current_command, sizeof(current_command));
 	return HXB_ERR_SUCCESS;
 }
 
