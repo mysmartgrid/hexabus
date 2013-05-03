@@ -22,6 +22,7 @@ int main (int argc, char const* argv[]) {
     ("help,h", "produce help message")
     ("version", "print libhexanode version and exit")
     ("frontendurl,u", po::value<std::string>(), "URL of frontend API")
+    ("interface,i", po::value<std::string>(), "name of the interface to bind to (e.g. eth0)")
     ;
   po::positional_options_description p;
   p.add("frontendurl", 1);
@@ -64,9 +65,14 @@ int main (int argc, char const* argv[]) {
 
   boost::asio::io_service io;
   hexabus::Socket* network;
-  std::string interface("eth3");
-  network=new hexabus::Socket(io, interface);
-
+  if (vm.count("interface") != 1) {
+    network=new hexabus::Socket(io);
+    std::cout << "Using all interfaces." << std::endl;
+  } else {
+    std::string interface(vm["interface"].as<std::string>());
+    std::cout << "Using interface " << interface << std::endl;
+    network=new hexabus::Socket(io, interface);
+  }
   boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
   std::cout << "Binding to " << bind_addr << std::endl;
   network->listen(bind_addr);
@@ -75,27 +81,35 @@ int main (int argc, char const* argv[]) {
   hexanode::SensorStore::Ptr sensors(new hexanode::SensorStore());
   
   std::cout << "Will now push values." << std::endl;
-    while (true) {
-    std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
+  while (true) {
     try {
-      pair = network->receive();
-    } catch (const hexabus::GenericException& e) {
-      const hexabus::NetworkException* nerror;
-      if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&e))) {
-        std::cerr << "Error receiving packet: " << nerror->code().message() << std::endl;
-      } else {
-        std::cerr << "Error receiving packet: " << e.what() << std::endl;
+      std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
+      try {
+        pair = network->receive();
+      } catch (const hexabus::GenericException& e) {
+        const hexabus::NetworkException* nerror;
+        if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&e))) {
+          std::cerr << "Error receiving packet: " << nerror->code().message() << std::endl;
+        } else {
+          std::cerr << "Error receiving packet: " << e.what() << std::endl;
+        }
+        continue;
       }
-      exit(1);
+
+      std::cout << "Received " << pair.second;
+      hexanode::PacketPusher pp(network, pair.second, sensors, client, base_uri, std::cout);
+      if (pair.first == NULL) {
+        std::cerr << "Received invalid packet - please check libhexabus version!" << std::endl;
+      } else {
+        pp.visitPacket(*pair.first);
+      }
+
+    } catch (const std::exception& e) {
+      std::cerr << "Unexcepted condition: " << e.what() << std::endl;
+      std::cerr << "Discarding and resuming operation." << std::endl;
     }
-
-    std::cout << "Received " << pair.second;
-    hexanode::PacketPusher pp(network, pair.second, sensors, client, base_uri, std::cout);
-    pp.visitPacket(*pair.first);
-
-
-
   }
+
 
 
 

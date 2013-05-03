@@ -9,8 +9,8 @@ var application_root = __dirname
   , app = module.exports = express()
   , server=require("http").createServer(app)
   , io = require('socket.io').listen(server)
-  , redis = require('redis')
-  , Cache=require("./lib/sensorcache");
+  , Cache=require("./lib/sensorcache")
+  , nconf=require('nconf');
 
 var sensorcache = new Cache();
 
