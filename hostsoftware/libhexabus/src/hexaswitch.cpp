@@ -4,15 +4,15 @@
 #include <libhexabus/common.hpp>
 #include <libhexabus/crc.hpp>
 #include <libhexabus/liveness.hpp>
-#include <time.h>
+#include <libhexabus/socket.hpp>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/error.hpp>
+#include <time.h>
 #include <boost/program_options.hpp>
 #include <boost/program_options/positional_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/optional.hpp>
-#include <libhexabus/socket.hpp>
 #include <typeinfo>
 namespace po = boost::program_options;
 

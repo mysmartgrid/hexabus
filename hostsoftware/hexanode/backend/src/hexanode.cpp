@@ -38,9 +38,7 @@ int main (int argc, char const* argv[]) {
   }
   if (vm.count("version")) {
     hexanode::VersionInfo::Ptr hxnode_version(new hexanode::VersionInfo());
-    //hexabus::VersionInfo::Ptr libhxb_version(new hexabus::VersionInfo());
-    std::cout << "hexanode version " << hxnode_version->getVersion() << std::endl;
-    //std::cout << "libhexabus version " << libhxb_version.getVersion() << std::endl;
+    std::cout << "hexanode version " << hxnode_version->get_version() << std::endl;
     return 0;
   }
 

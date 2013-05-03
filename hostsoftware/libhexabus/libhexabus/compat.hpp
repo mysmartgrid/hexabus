@@ -1,6 +1,8 @@
 #ifndef LIBHEXABUS_COMPAT_HPP
 #define LIBHEXABUS_COMPAT_HPP 1
 
+#include "libhexabus/config.h"
+
 #if HAS_MACOS
 
 /*** 

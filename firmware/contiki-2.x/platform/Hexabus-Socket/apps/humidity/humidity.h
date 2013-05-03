@@ -10,5 +10,7 @@
 #define HYT321_TEMPERATURE_LENGTH 4
 
 void humidity_init(void);
+float read_humidity(void);
+float read_humidity_temp(void);
 
 #endif
