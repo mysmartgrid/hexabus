@@ -73,12 +73,10 @@ void leds_setselector(uint8_t sel0, uint8_t sel1, uint8_t sel2, uint8_t sel3) {
 #define LED_SELECTOR_3 0
 
 void leds_setrgbselector(uint8_t r, uint8_t g, uint8_t b) {
-	PRINTF("Set LED color r%d g%d b%d\n", r, g, b);
 	leds_setselector(LED_SELECTOR_0, LED_SELECTOR_1, LED_SELECTOR_2, LED_SELECTOR_3);
 }
 
 void leds_setPWM(uint8_t pwm0, uint8_t pwm1) {
-	PRINTF("Set LED PWM: %d %d\n", pwm0, pwm1);
 	pca_state.pwm0 = pwm0;
 	pca_state.pwm1 = pwm1;
 
@@ -101,7 +99,7 @@ static enum hxb_error_code read_led_command(struct hxb_value* val) {
 	return HXB_ERR_SUCCESS;
 }
 
-enum hsv_case {	V_ZERO, V_FULL, S_ZERO, S_FULL };
+enum hsv_case { V_ZERO, V_FULL, S_ZERO, S_FULL };
 enum hsv_case hsv_simplification_case;
 
 // constants for HSV -> RGB conversion
@@ -109,8 +107,6 @@ enum hsv_case hsv_simplification_case;
 #define HUE_SECTOR_WIDTH (256.f / HUE_SECTORS_F)
 
 void set_color(uint8_t h, uint8_t s, uint8_t v) {
-	PRINTF("Set color: h%d s%d v%d\n", h, s, v);
-
 	// in two of the cases, we don't have to calculate much:
 	if(hsv_simplification_case == V_ZERO || hsv_simplification_case == S_ZERO) {
 		if(hsv_simplification_case == V_ZERO) { // if V is zero, that means it's black -- S and H don't matter.
@@ -138,22 +134,19 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 			t = 255 - ((((uint16_t)s) * (uint16_t)(255 - f)) / 256);
 		}
 
-		PRINTF("HSV intermediate values: f %d, p %d, q %d, t %d\n", f, p, q, t);
-
 		// find out which sector we're in. Each 60degree sector of HSV space corresponds to 42+(2/3)/255 in our H-normalized-to-255 space.
 		if(h < 1 * HUE_SECTOR_WIDTH) {
-			PRINTF("hi case 1\n");
 			// r = v, g = t, b = p
 			if(hsv_simplification_case == S_FULL) {
 				// p = 0;
 				leds_setPWM(v,t);
 				leds_setrgbselector(LED_PWM0, LED_PWM1, LED_OFF);
 			} else { // V_FULL
+				// v = 255;
 				leds_setPWM(p,t);
 				leds_setrgbselector(LED_ON, LED_PWM1, LED_PWM0);
 			}
 		} else if(h < 2 * HUE_SECTOR_WIDTH) {
-			PRINTF("hi case 2\n");
 			// r = q; g = v; b = p;
 			if(hsv_simplification_case == S_FULL) {
 				// p = 0;
@@ -165,10 +158,8 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 				leds_setrgbselector(LED_PWM1, LED_ON, LED_PWM0);
 			}
 		} else if(h < 3 * HUE_SECTOR_WIDTH) {
-			PRINTF("hi case 3\n");
 			// r = p; g = v; b = t;
-			if(hsv_simplification_case == S_FULL)
-			{
+			if(hsv_simplification_case == S_FULL) {
 				// p = 0;
 				leds_setPWM(v,t);
 				leds_setrgbselector(LED_OFF, LED_PWM0, LED_PWM1);
@@ -178,7 +169,6 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 				leds_setrgbselector(LED_PWM0, LED_ON, LED_PWM1);
 			}
 		} else if(h < 4 * HUE_SECTOR_WIDTH) {
-			PRINTF("hi case 4\n");
 			// r = p; g = q; b = v;
 			if(hsv_simplification_case == S_FULL) {
 				// p = 0;
@@ -190,7 +180,6 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 				leds_setrgbselector(LED_PWM0, LED_PWM1, LED_ON);
 			}
 		} else if(h < 5 * HUE_SECTOR_WIDTH) {
-			PRINTF("hi case 5\n");
 			// r = t; g = p; b = v;
 			if(hsv_simplification_case == S_FULL) {
 				// p = 0;
@@ -202,7 +191,6 @@ void set_color(uint8_t h, uint8_t s, uint8_t v) {
 				leds_setrgbselector(LED_PWM1, LED_PWM0, LED_ON);
 			}
 		} else { // h > 5 * HUE_SECTOR_WIDTH
-			PRINTF("hi case 6\n");
 			// r = v; g = p; b = q;
 			if(hsv_simplification_case == S_FULL) {
 				// p = 0;
@@ -254,17 +242,41 @@ void compute_hsv_simplification() {
 	PRINTF("HSV Simplification: s_avg %d, v_avg %d, case %d\n", s_avg, v_avg, hsv_simplification_case);
 }
 
+static uint8_t cycle_count_h, cycle_count_s, cycle_count_v;
+float step_h, step_s, step_v;
+void reset_fade() {
+	// reset cycle counter
+	cycle_count_h = cycle_count_s = cycle_count_v = 0;
+
+	// calculate "step width" for interpolation
+	float d_h = current_command.end_h - current_command.begin_h;
+	float d_s = current_command.end_s - current_command.begin_s;
+	float d_v = current_command.end_v - current_command.begin_v;
+	step_h = (current_command.cycle_time_h != 0) ? (d_h / current_command.cycle_time_h) : 0;
+	step_s = (current_command.cycle_time_s != 0) ? (d_s / current_command.cycle_time_s) : 0;
+	step_v = (current_command.cycle_time_v != 0) ? (d_v / current_command.cycle_time_v) : 0;
+}
+
+void fade_step() { // do one step of the fade animation
+	// update or reset cycle counters
+	cycle_count_h = (cycle_count_h < current_command.cycle_time_h) ? (cycle_count_h + 1) : 0;
+	cycle_count_s = (cycle_count_s < current_command.cycle_time_s) ? (cycle_count_s + 1) : 0;
+	cycle_count_v = (cycle_count_v < current_command.cycle_time_v) ? (cycle_count_v + 1) : 0;
+
+	// set colors
+	uint8_t new_h = current_command.begin_h + ((float)cycle_count_h * step_h);
+	uint8_t new_s = current_command.begin_s + ((float)cycle_count_s * step_s);
+	uint8_t new_v = current_command.begin_v + ((float)cycle_count_v * step_v);
+
+	set_color(new_h, new_s, new_v);
+}
+
 void update_command() { // this is called after a new LED command has been written to current_command.
 	compute_hsv_simplification();
-	current_h = current_command.begin_h; // TODO move to fader, set according to simplification
-	current_s = current_command.begin_s;
-	current_v = current_command.begin_v;
-
-	set_color(current_h, current_s, current_v);
+	reset_fade();
 }
 
 static enum hxb_error_code set_led_command(const struct hxb_envelope* env) {
-	PRINTF("Set LED color\n");
 	struct led_board_command* cmd = (struct led_board_command*)env->value.v_binary;
 	current_command = *cmd;
 
@@ -292,6 +304,17 @@ PROCESS_THREAD(led_board_process, ev, data) {
 	pca9532_init();
 
 	ENDPOINT_REGISTER(endpoint_led_command);
+
+	static struct etimer periodic;
+	etimer_set(&periodic, 0.05 * CLOCK_SECOND);
+	while(1) {
+		PROCESS_YIELD();
+		if(etimer_expired(&periodic)) {
+			etimer_reset(&periodic);
+
+			fade_step();
+		}
+	}
 
 	PROCESS_END();
 }
