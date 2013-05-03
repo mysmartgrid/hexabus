@@ -21,10 +21,12 @@ public class DeviceActivity extends Activity implements HexaDroidDbListener{
 		lv.setAdapter(listAdapter);
     }
 	public void update() {
+		listAdapter.update();
 		runOnUiThread(new Runnable() {
 			
 			public void run() {
-				listAdapter.update();
+				listAdapter.updateData();
+				listAdapter.notifyDataSetChanged();
 			}
 		});
 		
