@@ -10,8 +10,12 @@ import java.util.Collections;
 import java.util.Enumeration;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
@@ -41,6 +45,9 @@ public class HexabusService extends Service {
 	private WifiManager.MulticastLock multicastLock;
 	private ArrayList<Messenger> clients;
 	private boolean started = false;
+	private boolean connected = false;
+	
+	private ConnectionBroadcastReceiver broadcastReceiver;
 	
     static final int MSG_REGISTER = 1;
     static final int MSG_UNREGISTER = 2;
@@ -95,11 +102,69 @@ public class HexabusService extends Service {
 		server = new HexabusServer();
 		listener = new HexabusServiceListener();
 		clients = new ArrayList<Messenger>();
+		IntentFilter intentFilter = new IntentFilter();
+		intentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
+		broadcastReceiver = new ConnectionBroadcastReceiver(this);
+		registerReceiver(broadcastReceiver, intentFilter);
 	}
 	
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-		if(!started) {
+		//TODO wlan check, wlan intent?
+		ConnectivityManager connManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+		NetworkInfo netInfo = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+
+		if (netInfo.isConnected()) {
+		    wifiConnect();
+		}
+		// Continue until explicitly stopped
+		return START_STICKY;
+	}
+	
+	public void onDestroy() {
+		stop();
+		unregisterReceiver(broadcastReceiver);
+		super.onDestroy();
+	}
+	
+	public class HexabusServiceListener extends HexabusListener {
+		@Override
+		public void handlePacket(HexabusPacket packet) {
+			Log.d(TAG, "Packet received: " + packet.getPacketType());
+			Message received = Message.obtain(null, MSG_RECEIVE, packet);
+			try {
+				for(int i=0; i<clients.size();i++){
+				clients.get(i).send(received);
+				Log.d(TAG, "Message send");
+				}
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	
+	private class sendPacketTask extends AsyncTask<HexabusPacket,Void,Void> {
+
+		@Override
+		protected Void doInBackground(HexabusPacket... params) {
+			try {		
+				params[0].broadcastPacket();
+			} catch (HexabusException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return null;
+		}
+		
+	}
+	
+	public void start() {
+		if(!started && connected) {
 			WifiManager wifiManager = (WifiManager)getSystemService(Context.WIFI_SERVICE);
 			multicastLock = wifiManager.createMulticastLock("HexabusService");
 			multicastLock.setReferenceCounted(true);
@@ -152,53 +217,75 @@ public class HexabusService extends Service {
 			listener.register(server);
 			Log.d(TAG, "HexabusServer started");
 			started = true;
-		} 
-		// Continue until explicitly stopped
-		return START_STICKY;
+		}
 	}
 	
-	public void onDestroy() {
+	public void stop() {
 		if(started) {
 			server.shutdown();
 			multicastLock.release();
 			Log.d(TAG, "HexabusServer stopped");
 			started = false;
 		}
-		super.onDestroy();
 	}
 	
-	public class HexabusServiceListener extends HexabusListener {
-		@Override
-		public void handlePacket(HexabusPacket packet) {
-			Log.d(TAG, "Packet received: " + packet.getPacketType());
-			Message received = Message.obtain(null, MSG_RECEIVE, packet);
-			try {
-				for(int i=0; i<clients.size();i++){
-				clients.get(i).send(received);
-				Log.d(TAG, "Message send");
-				}
-			} catch (RemoteException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+	public void wifiConnect() {
+		if(!connected) {
+			connected = true;
+			start();
 		}
+		
 	}
 	
+	public void wifiDisconnect() {
+		if(connected) {
+			connected = false;
+			stop();
+		}
+		
+	}
 	
-	private class sendPacketTask extends AsyncTask<HexabusPacket,Void,Void> {
+	private class ConnectionBroadcastReceiver extends BroadcastReceiver {
+		private HexabusService service;
+		
+		public ConnectionBroadcastReceiver(HexabusService service) {
+			this.service = service;
+		}
 
 		@Override
-		protected Void doInBackground(HexabusPacket... params) {
-			try {		
-				params[0].broadcastPacket();
-			} catch (HexabusException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			return null;
+		public void onReceive(Context context, Intent intent) {
+			// TODO Auto-generated method stub
+			
+			final String action = intent.getAction();
+		    if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
+		        if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
+		            //do stuff
+		            Thread t = new Thread() {
+		                @Override
+		                public void run() {
+		                    try {
+		                    	ConnectivityManager connManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+		            			NetworkInfo netInfo = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+		                            //check if connected!
+		                        while (!netInfo.isConnected()) {
+		                            //Wait to connect
+		                            Thread.sleep(10000); //TODO check ip address instead of just waiting
+		                            netInfo = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+		                        }
+		    				    service.wifiConnect();
+		    				    Log.d(TAG, "connect");
+
+		                    } catch (Exception e) {
+		                    }
+		                }
+		            };
+		            t.start();
+		        } else {
+		            // wifi connection was lost
+					service.wifiDisconnect();
+				    Log.d(TAG, "disconnect");
+		        }
+		    }
 		}
 		
 	}
