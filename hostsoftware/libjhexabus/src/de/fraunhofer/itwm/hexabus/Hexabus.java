@@ -294,7 +294,9 @@ public class Hexabus {
 	 * @return The extracted value
 	 */
 	public static String parseString(byte[] value) {
-		return new String(value);
+		int i = 0;
+		while(i<value.length && value[++i]!=0) {}
+		return new String(value, 0, i);
 	}
 
 	/**
