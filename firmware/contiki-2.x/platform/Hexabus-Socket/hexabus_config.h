@@ -40,8 +40,8 @@ _DEBUG options should be set to:
 #define DATETIME_SERVICE_DEBUG 0
 
 // temperature
-#define TEMPERATURE_ENABLE 0
-#define TEMPERATURE_DEBUG 0
+#define TEMPERATURE_ENABLE 1
+#define TEMPERATURE_DEBUG 1
 #define TEMPERATURE_SENSOR 0 // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
 // value_broadcast

@@ -147,7 +147,7 @@ static void DS18X20_uart_put_temp(const uint8_t subzero,
 	char buffer[sizeof(int)*8+1];
 	size_t i;
 	
-	PRINTF((subzero)?'-':'+');
+	PRINTF((subzero)?"-":"+");
 	PRINTF("%d", (int)cel);
 	PRINTF(".");
 	itoa(cel_frac_bits*DS18X20_FRACCONV,buffer,10);
@@ -188,7 +188,7 @@ uint8_t DS18X20_read_meas_all_verbose( void )
 		    id[0] == DS1822_FAMILY_CODE ) { 
 			// temperature sensor
 			
-			PRINTF ('\r');
+			PRINTF ("\r");
 			
 			ow_byte_wr( DS18X20_READ );           // read command
 			
@@ -203,7 +203,7 @@ uint8_t DS18X20_read_meas_all_verbose( void )
 			} else {
 				PRINTF( " CRC O.K. " );
 			}
-			PRINTF ('\r');
+			PRINTF ("\r");
 		
 			meas = sp[0]; // LSB Temp. from Scrachpad-Data
 			meas |= (uint16_t) (sp[1] << 8); // MSB
