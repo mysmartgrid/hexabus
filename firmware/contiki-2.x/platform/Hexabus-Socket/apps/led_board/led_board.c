@@ -272,6 +272,8 @@ void reset_fade() {
 }
 
 #define H_CYCLE_BITMASK 0x01
+#define S_CYCLE_BITMASK 0x02
+#define V_CYCLE_BITMASK 0x04
 
 void fade_step() { // do one step of the fade animation
 	// update or reset cycle counters
@@ -288,10 +290,32 @@ void fade_step() { // do one step of the fade animation
 	} else { // we're somewhere in the middle, just in/decrease cycle counter.
 		cycle_count_h += (cycle_updown_bitmask & H_CYCLE_BITMASK) ? -1 : +1;
 	}
-
-	// TODO replace by nice counterings.
-	cycle_count_s = (cycle_count_s < current_command.cycle_time_s) ? (cycle_count_s + 1) : 0;
-	cycle_count_v = (cycle_count_v < current_command.cycle_time_v) ? (cycle_count_v + 1) : 0;
+	if(cycle_count_s >= current_command.cycle_time_s) { // has s cycle counter reached top?
+		if(current_command.command & S_CYCLE_BITMASK) { // we're in back-and-forth mode
+			cycle_count_s--;
+			cycle_updown_bitmask |= S_CYCLE_BITMASK;
+		} else { // we're not in back-and-forth-mode, just reset to 0
+			cycle_count_s = 0;
+		}
+	} else if(cycle_count_s == 0) { // has s cycle counter reached zero?
+		cycle_count_s++;
+		cycle_updown_bitmask &= ~S_CYCLE_BITMASK;
+	} else { // we're somewhere in the middle, just in/decrease cycle counter.
+		cycle_count_s += (cycle_updown_bitmask & S_CYCLE_BITMASK) ? -1 : +1;
+	}
+	if(cycle_count_v >= current_command.cycle_time_v) { // has v cycle counter reached top?
+		if(current_command.command & V_CYCLE_BITMASK) { // we're in back-and-forth mode
+			cycle_count_v--;
+			cycle_updown_bitmask |= V_CYCLE_BITMASK;
+		} else { // we're not in back-and-forth-mode, just reset to 0
+			cycle_count_v = 0;
+		}
+	} else if(cycle_count_v == 0) { // has v cycle counter reached zero?
+		cycle_count_v++;
+		cycle_updown_bitmask &= ~V_CYCLE_BITMASK;
+	} else { // we're somewhere in the middle, just in/decrease cycle counter.
+		cycle_count_v += (cycle_updown_bitmask & V_CYCLE_BITMASK) ? -1 : +1;
+	}
 
 	// set colors
 	uint8_t new_h = current_command.begin_h + ((float)cycle_count_h * step_h);
