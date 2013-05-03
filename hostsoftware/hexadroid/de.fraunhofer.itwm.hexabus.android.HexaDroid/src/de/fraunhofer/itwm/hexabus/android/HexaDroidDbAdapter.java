@@ -25,6 +25,7 @@ public class HexaDroidDbAdapter {
 	public static final String KEY_READ = "read";
 	public static final String KEY_WRITE = "write";
 	private static final String KEY_NAME = "name";
+	private static final String KEY_STATE = "last_state";
 
 	private static final String KEY_IP = "ip";
 	private static final String TAG = "HexaDroidDbAdapter";
@@ -36,10 +37,10 @@ public class HexaDroidDbAdapter {
 	private static final String DEVICE_CREATE =
 		"create table devices ( "
 		+ "did integer primary key, name text not null, "
-		+ "ip text not null, desc text not null);";
+		+ "ip text not null unique, desc text not null);";
 	private static final String HAS_EID_CREATE =
 			"create table has_eid ( "
-			+ "did integer not null, eid integer not null, "
+			+ "did integer not null, eid integer not null, last_state text,"
 			+ "primary key (did, eid));";
 	private static final String EID_CREATE =
 			"create table endpoints ( "
@@ -60,8 +61,10 @@ public class HexaDroidDbAdapter {
 		"(7, 'float', 'HexabusPlug+ energy meter total (kWh)', 1, 0)",
 		"(8, 'float', 'HexabusPlug+ energy meter user resettable', 1, 1)",
 		"(9, 'uint8', 'Statemachine control', 1, 1)",
-		"(10, 'bytes', 'Statemachine upload receiver', 0, 1)",
+		"(10, 'nodata', 'Statemachine upload receiver', 0, 1)",//TODO bytes
 		"(11, 'bool', 'Statemachine upload ack/nack', 1, 0)",
+		"(12, 'bool', 'Unknown', 1, 0)",
+		"(21, 'nodata', 'Power meter (W)', 1, 0)",//TODO bytes
 		"(22, 'float', 'Analogread', 1, 0)",
 		"(23, 'uint8', 'Window shutter', 1, 1)",
 		"(24, 'uint8', 'Hexapush pressed buttons', 1, 0)",
@@ -71,13 +74,13 @@ public class HexaDroidDbAdapter {
 		"(28, 'uint8', 'Hexonoff toggle', 1, 1)",
 		"(29, 'float', 'Lightsensor', 1, 0)",
 		"(30, 'uint32', 'IR Receiver', 1, 0)",
-		"(31, 'bool', 'Node liveness', 1, 0)"
+		"(31, 'bool', 'Node liveness', 1, 0)",
 	};
 	private static final String DB_NAME = "data";
 	private static final String DB_DEVICE_TABLE = "devices";
 	private static final String DB_EID_TABLE = "endpoints";
 	private static final String DB_HAS_EID_TABLE = "has_eid";
-	private static final int DB_VERSION = 1;
+	private static final int DB_VERSION = 2;
 	private final Context context;
 
 	private static class DatabaseHelper extends SQLiteOpenHelper {
@@ -105,7 +108,9 @@ public class HexaDroidDbAdapter {
             Log.w(TAG, "Upgrading database from version " + oldVersion + " to "
                     + newVersion + ", which will destroy all old data");
             db.execSQL("drop table if exists " + DB_EID_TABLE);
-            onCreate(db);
+            db.execSQL("drop table if exists " + DB_DEVICE_TABLE);
+            db.execSQL("drop table if exists " + DB_HAS_EID_TABLE);
+           onCreate(db);
         }
 	}
 
@@ -156,15 +161,17 @@ public class HexaDroidDbAdapter {
 					ArrayList<Long> eids = getDeviceEids(cursor.getInt(0));
 					for(Long eid : eids) {
 						Cursor eidCursor = fetchEndpoint(eid);
-						if(eidCursor!=null) {
+						if(eidCursor!=null&&eidCursor.moveToFirst()) {
 							try {
 								if(eid!=0){
-									device.addEndpoint(eid, Hexabus.getDataTypeByString(eidCursor.getString(2)), eidCursor.getString(3));
+									device.addEndpoint(eid, Hexabus.getDataTypeByString(eidCursor.getString(2).toUpperCase()), eidCursor.getString(3));
 								}
 							} catch (HexabusException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
+						} else {
+							Log.d(TAG, "Error missing eid "+eid.toString());
 						}
 					}
 					result.add(device);
@@ -190,7 +197,7 @@ public class HexaDroidDbAdapter {
 				ArrayList<Long> eids = getDeviceEids(cursor.getInt(0));
 				for(Long eid : eids) {
 					Cursor eidCursor = fetchEndpoint(eid);
-					if(eidCursor!=null) {
+					if(eidCursor!=null && eidCursor.getCount()>0) {
 						try {
 							if(eid!=0){
 								result.addEndpoint(eid, Hexabus.getDataTypeByString(eidCursor.getString(2)), eidCursor.getString(3));
@@ -199,6 +206,8 @@ public class HexaDroidDbAdapter {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
+					} else {
+						Log.d(TAG,eid.toString()+Integer.toString(eidCursor.getCount()));
 					}
 				}
 			}
@@ -243,6 +252,54 @@ public class HexaDroidDbAdapter {
 		
 		for(HexaDroidDbListener listener : listeners) {
 			listener.update();
+		}
+		return result;
+	}
+	
+	public long newState(HexabusDevice device, long eid, String state) {
+		long result = -1;
+		Cursor cursor;
+		if(hasEndpoint(device, eid)) {
+			synchronized(dbHelper) {
+				open();
+				cursor = db.query(true, DB_DEVICE_TABLE, new String[] {KEY_DID},
+						KEY_IP + "= ?" , new String[] {device.getInetAddress().getHostAddress()}, null, null, null, null);
+				if(cursor!=null && cursor.moveToFirst()) {
+					ContentValues values = new ContentValues();
+					values.put(KEY_DID, cursor.getInt(0));
+					values.put(KEY_EID, eid);
+					values.put(KEY_STATE, state);
+					result = db.update(DB_HAS_EID_TABLE, values, KEY_DID+"="+cursor.getInt(0)+" and "+KEY_EID+"="+eid, null);
+				}
+				close();
+			}
+		}
+		
+		for(HexaDroidDbListener listener : listeners) {
+			listener.update();
+		}
+		return result;
+	}
+	
+	public String getState(HexabusDevice device, HexabusEndpoint endpoint) {
+		String result= "";
+		Cursor cursor;
+		if(hasEndpoint(device, endpoint.getEid())) {
+			synchronized(dbHelper) {
+				open();
+				cursor = db.query(true, DB_DEVICE_TABLE, new String[] {KEY_DID},
+						KEY_IP + "= ?" , new String[] {device.getInetAddress().getHostAddress()}, null, null, null, null);
+				if(cursor!=null && cursor.moveToFirst()) {
+					cursor = db.query(true, DB_HAS_EID_TABLE, new String[] {KEY_STATE},
+							KEY_DID+"= ?"+" and "+KEY_EID+"= ?", new String[] {Long.toString(cursor.getInt(0)),Long.toString(endpoint.getEid())}, null, null, null, null);
+					if(cursor!=null && cursor.moveToFirst()) {
+						result = cursor.getString(0);
+						if(result==null){
+							result="";
+						}
+					}
+				}
+			}
 		}
 		return result;
 	}
@@ -329,12 +386,37 @@ public class HexaDroidDbAdapter {
 		return cursor;
 	}
 	
+	public boolean hasEndpoint(HexabusDevice device, long eid) {
+		Cursor cursor;
+		boolean result = false;
+		synchronized (dbHelper) {
+			open();
+			cursor = db.query(true, DB_DEVICE_TABLE, new String[] {KEY_DID},
+					KEY_IP + "= ?" , new String[] {device.getInetAddress().getHostAddress()}, null, null, null, null);
+			if(cursor!=null&&cursor.moveToFirst()) {
+				cursor = db.query(true, DB_HAS_EID_TABLE, new String[] {KEY_DID},
+						KEY_DID + "= ? and "+KEY_EID+"= ?" , new String[] {Integer.toString(cursor.getInt(0)),Long.toString(eid)}, null, null, null, null);
+				if(cursor!=null&&cursor.moveToFirst()) {
+					result = true;
+				}
+			}
+			close();
+		}
+		return result;
+	}
+	
 	public void register(HexaDroidDbListener listener) {
 		synchronized(listeners) {
 			listeners.add(listener);
 		}
 	}
 	
+	public void unregister(HexaDroidDbListener listener) {
+		synchronized (listeners) {
+			listeners.remove(listener);
+		}
+	}
+	//TODO unregister
 	public interface HexaDroidDbListener {
 		public void update();
 	}
