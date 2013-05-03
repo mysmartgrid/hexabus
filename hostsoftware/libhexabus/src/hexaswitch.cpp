@@ -442,7 +442,9 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	if (!ip) {
+	if (!ip && command == C_SEND) {
+		ip = hexabus::Socket::GroupAddress;
+	} else if (!ip) {
 		std::cerr << "Command requires an IP address" << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
