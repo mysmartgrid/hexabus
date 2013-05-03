@@ -86,10 +86,6 @@ public class HexaDroid extends TabActivity {
         super.onCreate(savedInstanceState);
 
 		db = new HexaDroidDbAdapter(this);
-		Cursor cursor = db.fetchEndpoint(0);
-		if(cursor.moveToFirst()) {
-			Log.d(TAG,cursor.getString(3));
-		}
 		context = this;
 		Intent service = new Intent(context, HexabusService.class);
 		context.startService(service);
@@ -304,7 +300,43 @@ public class HexaDroid extends TabActivity {
             		public void run() {
             			HexabusDevice device = db.getDeviceByIp(packet.getSourceAddress());
             			if(device!=null){
-            				device = db.getDeviceByIp(packet.getSourceAddress());
+            				if(packet.getPacketType()==Hexabus.PacketType.INFO) {
+            					HexabusInfoPacket infoPacket = (HexabusInfoPacket) packet;
+            					if(!db.hasEndpoint(device, infoPacket.getEid())) {
+            						db.addEndpointToDevice(device, infoPacket.getEid());
+            					}
+            					try {
+            						switch(infoPacket.getDataType()) {
+            						case BOOL:
+            							db.newState(device, infoPacket.getEid(), Boolean.toString(infoPacket.getBool()));
+            							break;
+            						case DATETIME:
+            							db.newState(device, infoPacket.getEid(), infoPacket.getDatetime().toString());
+            							break;
+            						case FLOAT:
+            							db.newState(device, infoPacket.getEid(), Float.toString(infoPacket.getFloat()));
+            							break;
+            						case NODATA:
+            							break;
+            						case STRING:
+            							db.newState(device, infoPacket.getEid(), infoPacket.getString());
+            							break;
+            						case TIMESTAMP:
+            							break;
+            						case UINT32:
+            							db.newState(device, infoPacket.getEid(), Long.toString(infoPacket.getUint32()));
+            							break;
+            						case UINT8:
+            							db.newState(device, infoPacket.getEid(), Short.toString(infoPacket.getUint8()));
+            							break;
+            						default:
+
+            						}
+            					} catch (HexabusException e) {
+            						// TODO Auto-generated catch block
+            						e.printStackTrace();
+            					}
+            				}
             				String endpointString = ": 0";
             				for(Long key : device.getEndpoints().keySet()) {
             					if(key!=0) {
@@ -322,7 +354,6 @@ public class HexaDroid extends TabActivity {
 
 								name = epInfo.getString();
 							} catch (HexabusException e1) {
-								System.err.println(packet.getSourceAddress().getHostAddress());
 								// TODO Auto-generated catch block
 								e1.printStackTrace();
 							} catch (IOException e1) {
@@ -330,6 +361,9 @@ public class HexaDroid extends TabActivity {
 								e1.printStackTrace();
 							}
             				db.addDevice(name, device.getInetAddress().getHostAddress(), "");
+        					if(packet.getPacketType()==Hexabus.PacketType.INFO) {
+        						db.addEndpointToDevice(device, ((HexabusInfoPacket)packet).getEid());
+        					}
             				try {
             					device.fetchEndpoints();
             				} catch (HexabusException e) {
