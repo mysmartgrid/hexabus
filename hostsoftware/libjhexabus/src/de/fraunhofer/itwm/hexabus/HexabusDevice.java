@@ -1,7 +1,7 @@
 package de.fraunhofer.itwm.hexabus;
 
 import java.net.InetAddress;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -9,7 +9,7 @@ import java.net.UnknownHostException;
 public class HexabusDevice {
 	private InetAddress address;
 	private String name;
-	private HashMap<Long,HexabusEndpoint> endpoints;
+	private TreeMap<Long,HexabusEndpoint> endpoints;
 
 	/**
 	 * @param address The InetAddress of the device
@@ -17,7 +17,7 @@ public class HexabusDevice {
 	public HexabusDevice(InetAddress address) {
 		this.address = address;
 		this.name = "";
-		endpoints = new HashMap<Long,HexabusEndpoint>();
+		endpoints = new TreeMap<Long,HexabusEndpoint>();
 		try{
 		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
 		}catch(Hexabus.HexabusException e){
@@ -32,7 +32,7 @@ public class HexabusDevice {
 	public HexabusDevice(InetAddress address, String name) {
 		this.address = address;
 		this.name = name;
-		endpoints = new HashMap<Long,HexabusEndpoint>();
+		endpoints = new TreeMap<Long,HexabusEndpoint>();
 		try{
 		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
 		}catch(Hexabus.HexabusException e){
@@ -46,7 +46,7 @@ public class HexabusDevice {
 		}catch(UnknownHostException e) {
 			//TODO
 		}
-		endpoints = new HashMap<Long,HexabusEndpoint>();
+		endpoints = new TreeMap<Long,HexabusEndpoint>();
 		try{
 		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
 		}catch(Hexabus.HexabusException e){
@@ -61,7 +61,7 @@ public class HexabusDevice {
 		}catch(UnknownHostException e) {
 			//TODO
 		}
-		endpoints = new HashMap<Long,HexabusEndpoint>();
+		endpoints = new TreeMap<Long,HexabusEndpoint>();
 		try{
 		addEndpoint(0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
 		}catch(Hexabus.HexabusException e){
@@ -119,12 +119,12 @@ public class HexabusDevice {
 	/**
 	 * @return The endpoints that are associated with the device
 	 */
-	public HashMap<Long, HexabusEndpoint> getEndpoints() {
+	public TreeMap<Long, HexabusEndpoint> getEndpoints() {
 		return endpoints;
 	}
 
 	public HexabusEndpoint getByEid(long eid) throws Hexabus.HexabusException {
-		if(eid>=(2^32)) {
+		if(eid>=Math.pow(2,32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
 		
@@ -142,8 +142,8 @@ public class HexabusDevice {
 	 * Replaces the currently asscociated endpoints with the result.
 	 */
 	//TODO broken
-	public HashMap<Long, HexabusEndpoint> fetchEndpoints() throws Hexabus.HexabusException, IOException {
-		HashMap<Long, HexabusEndpoint> newEndpoints = new HashMap<Long,HexabusEndpoint>();
+	public TreeMap<Long, HexabusEndpoint> fetchEndpoints() throws Hexabus.HexabusException, IOException {
+		TreeMap<Long, HexabusEndpoint> newEndpoints = new TreeMap<Long,HexabusEndpoint>();
 		HexabusEndpoint deviceDescriptor = new HexabusEndpoint(this, 0, Hexabus.DataType.UINT32, "Hexabus device descriptor");
 		newEndpoints.put(0L, deviceDescriptor);
 		long reply = 0;
