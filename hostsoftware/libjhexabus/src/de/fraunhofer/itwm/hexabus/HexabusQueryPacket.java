@@ -7,7 +7,7 @@ public class HexabusQueryPacket extends HexabusPacket {
 
 	public HexabusQueryPacket(long eid) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.QUERY;
-		if(eid>=(2^32)) {
+		if(eid>=Math.pow(2,32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
 		this.eid = eid;

@@ -12,7 +12,7 @@ public class HexabusInfoPacket extends HexabusPacket {
 
 	public HexabusInfoPacket(long eid, Hexabus.DataType dataType, byte[] payload) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.INFO;
-		if(eid>=(2^32)) {
+		if(eid>=Math.pow(2,32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
 		this.eid = eid;
@@ -25,7 +25,7 @@ public class HexabusInfoPacket extends HexabusPacket {
 
 	public HexabusInfoPacket(long eid, boolean value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.INFO;
-		if(eid>=(2^32)) {
+		if(eid>=Math.pow(2,32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
 		this.eid = eid;
@@ -35,7 +35,7 @@ public class HexabusInfoPacket extends HexabusPacket {
 
 	public HexabusInfoPacket(long eid, float value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.INFO;
-		if(eid>=(2^32)) {
+		if(eid>=Math.pow(2,32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
 		this.eid = eid;
@@ -48,13 +48,13 @@ public class HexabusInfoPacket extends HexabusPacket {
 
 	public HexabusInfoPacket(long eid, short value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.INFO;
-		if(eid>=(2^32)) {
+		if(eid>=Math.pow(2,32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
 		this.eid = eid;
 		this.dataType = Hexabus.DataType.UINT8;
 		// uint8 value as short
-		if(value>=(2^32)) {
+		if(value>=Math.pow(2,32)) {
 			throw new Hexabus.HexabusException("Value too large. UINT8 expected.");
 		}
 		this.payload = new byte[] {(byte) (value & 0xFF)};
@@ -62,7 +62,7 @@ public class HexabusInfoPacket extends HexabusPacket {
 
 	public HexabusInfoPacket(long eid, long value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.INFO;
-		if(eid>=(2^32)) {
+		if(eid>=Math.pow(2,32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
 		this.eid = eid;
@@ -75,7 +75,7 @@ public class HexabusInfoPacket extends HexabusPacket {
 
 	public HexabusInfoPacket(long eid, HexabusTimestamp value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.INFO;
-		if(eid>=(2^32)) {
+		if(eid>=Math.pow(2,32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
 		this.eid = eid;
@@ -89,7 +89,7 @@ public class HexabusInfoPacket extends HexabusPacket {
 
 	public HexabusInfoPacket(long eid, HexabusDatetime value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.INFO;
-		if(eid>=(2^32)) {
+		if(eid>=Math.pow(2,32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
 		this.eid = eid;
@@ -109,7 +109,7 @@ public class HexabusInfoPacket extends HexabusPacket {
 
 	public HexabusInfoPacket(long eid, String value) throws Hexabus.HexabusException {
 		this.packetType = Hexabus.PacketType.INFO;
-		if(eid>=(2^32)) {
+		if(eid>=Math.pow(2,32)) {
 			throw new Hexabus.HexabusException("EID too large");
 		}
 		if(value.length()>127) {
