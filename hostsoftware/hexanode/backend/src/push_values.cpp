@@ -3,6 +3,7 @@
 #include <libhexabus/liveness.hpp>
 #include <libhexabus/socket.hpp>
 #include <libhexanode/sensor.hpp>
+#include <libhexanode/info_query.hpp>
 #include <boost/network/protocol/http/client.hpp>
 #include <boost/network/uri.hpp>
 #include <boost/network/uri/uri_io.hpp>
@@ -63,19 +64,27 @@ int main (int argc, char const* argv[]) {
   std::cout << "Using frontend url " << base_uri << std::endl;
   std::cout << "Pushing incoming values." << std::endl;
 
+  // We need two io services - the info_io is used during the device name lookup.
   boost::asio::io_service io;
+  boost::asio::io_service info_io;
   hexabus::Socket* network;
+  hexabus::Socket* info_network;
   if (vm.count("interface") != 1) {
     network=new hexabus::Socket(io);
+    info_network=new hexabus::Socket(info_io);
     std::cout << "Using all interfaces." << std::endl;
   } else {
     std::string interface(vm["interface"].as<std::string>());
     std::cout << "Using interface " << interface << std::endl;
     network=new hexabus::Socket(io, interface);
+    info_network=new hexabus::Socket(info_io, interface);
   }
   boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
   std::cout << "Binding to " << bind_addr << std::endl;
   network->listen(bind_addr);
+  info_network->bind(bind_addr);
+
+  hexanode::InfoQuery::Ptr info(new hexanode::InfoQuery(info_network));
 
   http::client client;
   hexanode::SensorStore::Ptr sensors(new hexanode::SensorStore());
@@ -97,7 +106,7 @@ int main (int argc, char const* argv[]) {
       }
 
       std::cout << "Received " << pair.second;
-      hexanode::PacketPusher pp(network, pair.second, sensors, client, base_uri, std::cout);
+      hexanode::PacketPusher pp(network, info, pair.second, sensors, client, base_uri, std::cout);
       if (pair.first == NULL) {
         std::cerr << "Received invalid packet - please check libhexabus version!" << std::endl;
       } else {

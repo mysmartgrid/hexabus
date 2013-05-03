@@ -17,9 +17,11 @@ void PacketPusher::push_value(uint32_t eid,
   while (! success && retry_counter < 3) {
     retry_counter++;
     try {
+      std::cerr << "fooooooo" << sensor_id << std::endl;
       hexanode::Sensor::Ptr sensor=_sensors->get_by_id(sensor_id);
       sensor->post_value(_client, _api_uri, value);
       target << "Sensor " << sensor_id << ": submitted value " << value << std::endl;
+      std::cerr << "asdf\n";
       success=true;
     } catch (const hexanode::NotFoundException& e) {
       // The sensor was not found during the get_by_id call.

@@ -16,12 +16,13 @@ namespace hexanode {
   class PacketPusher : public hexabus::PacketVisitor {
     public:
       PacketPusher(hexabus::Socket* socket,
+          hexanode::InfoQuery::Ptr info,
           const boost::asio::ip::udp::endpoint& endpoint,
           hexanode::SensorStore::Ptr sensors,
           boost::network::http::client client,
           const boost::network::uri::uri& api_uri,
           std::ostream& target)
-        : _info(new hexanode::InfoQuery(socket))
+        : _info(info)
         , _endpoint(endpoint)
         , _sensors(sensors)
         , _client(client)
