@@ -1,7 +1,3 @@
-const PORT = 3000;
-const SERVER = '10.23.1.253';
-const channel_current_measurements = 'current_measurements';
-
 var application_root = __dirname
   , path=require('path')
   , express=require('express')
@@ -12,11 +8,23 @@ var application_root = __dirname
   , Cache=require("./lib/sensorcache")
   , nconf=require('nconf');
 
+nconf.env().argv();
+// Setting default values
+nconf.defaults({
+  'port': '3000',
+  'server': '10.23.1.253'
+});
+
+
+
 var sensorcache = new Cache();
+console.log("Using configuration: ");
+console.log(" - server: " + nconf.get('server'));
+console.log(" - port: " + nconf.get('port'));
+
 
 // see http://stackoverflow.com/questions/4600952/node-js-ejs-example
 // for EJS
-
 app.configure(function () {
   app.set('views', __dirname + '/views');
   app.set('view engine', 'ejs');
@@ -57,13 +65,13 @@ app.get('/', function(req, res) {
   console.log("Sensorlist:" + JSON.stringify(sensorcache.render_sensor_list()));
   res.render('index.ejs', 
     {
-      "server": SERVER, 
-      "port": PORT,
-      "sensorlist": sensorcache.render_sensor_list()
+      "server": nconf.get('server'), 
+    "port": nconf.get('port'),
+    "sensorlist": sensorcache.render_sensor_list()
     });
 });
 
-server.listen(PORT);
+server.listen(3000);
 
 io.sockets.on('connection', function (socket) {
   console.log("Registering new client.");
