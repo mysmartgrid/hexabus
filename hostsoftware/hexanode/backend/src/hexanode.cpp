@@ -5,12 +5,15 @@
 #include <libhexanode/callbacks/print_callback.hpp>
 #include <libhexanode/callbacks/button_callback.hpp>
 #include <libhexanode/hexabus/hexapush.hpp>
+#include <libhexanode/hexabus/hexadial.hpp>
 #include <libhexanode/common.hpp>
 #include <libhexabus/common.hpp>
 #include <libhexanode/error.hpp>
 // commandline parsing.
 #include <boost/program_options.hpp>
 #include <boost/program_options/positional_options.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread/thread.hpp>
 namespace po = boost::program_options;
 
 
@@ -52,11 +55,15 @@ int main (int argc, char const* argv[]) {
   boost::asio::io_service io;
   hexabus::Socket socket(io);
   hexanode::HexaPush hexapush(socket);
+  hexanode::HexaDial hexadial(socket);
 
   // Link the midi button event to a hexapush event.
   btn_callback->do_on_buttonevent(boost::bind(
             &hexanode::HexaPush::on_event,
             &hexapush, _1));
+  btn_callback->do_on_dialevent(boost::bind(
+            &hexanode::HexaDial::on_event,
+            &hexadial, _1, _2));
   try {
     midi_ctrl->open();
 
@@ -83,9 +90,15 @@ int main (int argc, char const* argv[]) {
               ptr_callback, _1));
       }
       midi_ctrl->run();
-      std::cout << "Reading MIDI input ... press <enter> to quit." << std::endl;
-      char input;
-      std::cin.get(input);
+     // std::cout << "Reading MIDI input ... press <enter> to quit." << std::endl;
+     // char input;
+     // std::cin.get(input);
+      // TODO: Thread synchronization. The callbacks are triggered from the RTMidi thread 
+      // - this could lead to simultaneous updates. But I don't think this would have a huge impact.
+      while(true) {
+        boost::this_thread::sleep(boost::posix_time::milliseconds(250));
+        hexadial.send_values();
+      }
     }
   } catch (const hexanode::MidiException& ex) {
     std::cerr << "MIDI error: " << ex.what() << std::endl;

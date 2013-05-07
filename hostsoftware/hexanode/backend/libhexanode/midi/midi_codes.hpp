@@ -6,7 +6,8 @@ namespace hexanode {
   // see http://www.midimountain.com/midi/midi_status.htm
   enum midi_status_bytes {
     PAD_RELEASED = 128, // ch1 note off
-    PAD_PRESSED = 144 // ch1 note on
+    PAD_PRESSED = 144, // ch1 note on
+    KNOB_TURNED = 176 // ch1 control/mode change
   };
 };
 
