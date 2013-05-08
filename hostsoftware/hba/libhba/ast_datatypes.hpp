@@ -12,10 +12,10 @@
 #include <boost/spirit/include/phoenix_object.hpp>
 
 #include <boost/variant/recursive_variant.hpp>
-#include <boost/spirit/home/qi.hpp> 
-#include <boost/spirit/home/support/info.hpp> 
-#include <boost/spirit/home/phoenix.hpp> 
-#include <boost/spirit/home/phoenix/statement/sequence.hpp> 
+#include <boost/spirit/home/qi.hpp>
+#include <boost/spirit/home/support/info.hpp>
+#include <boost/spirit/home/phoenix.hpp>
+#include <boost/spirit/home/phoenix/statement/sequence.hpp>
 
 namespace hexabus {
   namespace fusion = boost::fusion;
@@ -79,8 +79,11 @@ namespace hexabus {
 
   struct hba_doc
   {
+    std::string target_ip;
+		std::string device_name;
+    std::string machine_id;
     std::string start_state;
-    std::vector<hba_doc_block> blocks;                           
+    std::vector<hba_doc_block> blocks;
   };
 };
 
@@ -133,6 +136,9 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
     hexabus::hba_doc,
+    (std::string, target_ip)
+		(std::string, device_name)
+    (std::string, machine_id)
     (std::string, start_state)
     (std::vector<hexabus::hba_doc_block>, blocks)
     )

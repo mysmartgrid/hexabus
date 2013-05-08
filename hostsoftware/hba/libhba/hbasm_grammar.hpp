@@ -22,7 +22,7 @@
 #include <libhba/file_pos.hpp>
 
 // We need this for the hexabus datatype definitions
-#include "../../../shared/hexabus_definitions.h"
+#include "../../../shared/hexabus_types.h"
 #include "../../../shared/hexabus_statemachine_structs.h"
 
 
@@ -193,10 +193,20 @@ struct UpdateFileInfo
       error_traceback_t("Invalid identifier")
       );
 
+    target_ip = lit("target")
+      >> ipv6_address > ';';
+
+    device_name = lit("device_name")
+      >> ( lit("0") | identifier )
+      > ';';
+
+    machine_id = lit("machine")
+      >> *(char_("0-9a-fA-F")[_val += _1]) > ';';
+
     startstate %= lit("startstate")
       > identifier
-      > ';'
-      ;
+      > ';';
+
     on_error<rethrow> (
       startstate,
       error_traceback_t("Invalid start state definition")
@@ -221,7 +231,6 @@ struct UpdateFileInfo
       > identifier
       > '{'
       > lit("set") > eid_value > is > float_ > ';'
-      // > lit("datatype") > is > (dt_undef|dt_bool|dt_uint8|dt_uint32|dt_datetime|dt_float|dt_string|dt_timestamp) > ';'
       > lit("goodstate") > identifier > ';'
       > lit("badstate") > identifier > ';'
       > '}'
@@ -243,8 +252,12 @@ struct UpdateFileInfo
       error_traceback_t("Invalid state definition")
       );
 
-    start %= startstate
-      >> +(state | condition)
+    start %=
+      target_ip
+      >> device_name
+      >> machine_id
+      >> -startstate
+      >> *(state | condition)
       > eoi
       ;
 
@@ -262,6 +275,9 @@ struct UpdateFileInfo
     }
 
     qi::rule<Iterator, std::string(), Skip> startstate;
+    qi::rule<Iterator, std::string(), Skip> target_ip;
+    qi::rule<Iterator, std::string(), Skip> device_name;
+    qi::rule<Iterator, std::string(), Skip> machine_id;
     qi::rule<Iterator, state_doc(), Skip> state;
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;
     qi::rule<Iterator, condition_doc(), Skip> condition;

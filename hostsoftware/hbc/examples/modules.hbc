@@ -1,0 +1,43 @@
+# module definition example file
+
+# a module definition looks like a state machine definition, except for the set of placeholderst (the words beginnging with a $ sign)
+module thermostat($THRESHOLD, $THERMOMETER, $HEATER) {
+  states { init, off, on }
+  in(init) {
+    always { # the "always" keyword is shorthand for if(true).
+      write $HEATER.On := 0;
+      goto off;
+    }
+  }
+  in(off) {
+    if(ep $THERMOMETER.Temperature < $THRESHOLD) {
+      write $HEATER.On := 1;
+      goto on;
+    }
+  }
+  in(on) {
+    if(ep $THERMOMETER.Temperature > $THRESHOLD) {
+      write $HEATER.On := 0;
+      goto off;
+    }
+  }
+}
+
+# Let's instantiate the module. We have to define some devices first, and include the endpoint definitions
+device a_thermometer {
+  ip aaaa::50:c4ff:fe04:800e;
+  eids { 3 }
+}
+device a_heater {
+  ip aaaa::50:c4ff:fe04:800c;
+  eids { 1 }
+}
+include std_eid.hbh;
+
+# The module instance now looks like this
+instance my_termostat : thermostat(19, a_thermometer, a_heater);
+
+# of course our module could be instantiated several times with different heaters and thermometers
+# (or with different heaters and the same thermometer)
+# It might also be convenient to put the module definition into an .hbh file and include it from
+# an .hbc file.

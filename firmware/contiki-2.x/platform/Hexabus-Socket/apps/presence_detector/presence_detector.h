@@ -6,7 +6,6 @@
 
 #include "hexabus_config.h"
 
-#define PRESENCE_DETECTOR_EID 26
 #define PRESENCE 1
 #define NO_PRESENCE 0
 

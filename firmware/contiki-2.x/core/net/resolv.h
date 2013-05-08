@@ -53,8 +53,6 @@ CCIF uip_ipaddr_t *resolv_getserver(void);
 CCIF uip_ipaddr_t *resolv_lookup(const char *name);
 CCIF void resolv_query(const char *name);
 
-extern const uip_ipaddr_t resolv_default_dns_server;
-
 PROCESS_NAME(resolv_process);
 
 #endif /* __RESOLV_H__ */

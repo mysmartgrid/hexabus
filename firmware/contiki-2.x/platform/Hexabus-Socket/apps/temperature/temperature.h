@@ -15,7 +15,6 @@
 #include "process.h"
 
 
-PROCESS_NAME(temperature_process);
 #define METERING_VECT 		INT1_vect //Interrupt for the Metering
 
 
@@ -25,14 +24,8 @@ PROCESS_NAME(temperature_process);
 #define DISABLE_METERING_INTERRUPT( ) 			( EIMSK &= ~( 1 << INT1 ) )
 
 
-/** \brief This function returns the measured electrical power in Watt.
- *
- **/
-float 	temperature_get(void);
+void temperature_init(void);
+
 char* temperature_as_string(void);
-void 	temperature_init(void);
-void	temperature_start(void);
-void	temperature_stop(void);
-void	temperature_reset(void);
 
 #endif /* TEMPERATURE_H */

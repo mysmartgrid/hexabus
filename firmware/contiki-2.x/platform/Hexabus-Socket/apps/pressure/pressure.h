@@ -5,7 +5,6 @@
 #include "process.h"
 
 #define BMP085_ADDR 0xEE
-#define PRESSURE_READ_DELAY 20
 
 #define AC1_ADDR 0xAA
 #define AC2_ADDR 0xAC
@@ -29,8 +28,6 @@
 #define PRESSURE_READ_TEMP_DELAY 10UL
 
 void pressure_init();
-float read_pressure();
-float read_pressure_temp();
 
 PROCESS_NAME(pressure_process);
 

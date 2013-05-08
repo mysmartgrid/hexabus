@@ -88,12 +88,6 @@
 volatile int bootloader_mode = 0;
 volatile int bootloader_pkt = 0;
 
-#if RAVEN_REVISION == HEXABUS_SOCKET
-extern uint8_t forwarding_enabled;
-#else
-#define forwarding_enabled (0)
-#endif
-
 extern uint8_t promiscuous_mode;
 
 /*============================ TYPDEFS =======================================*/
@@ -752,14 +746,14 @@ ISR(RADIO_VECT)
 			//       trx_end_callback(isr_timestamp);
 			/* Enable reception of next packet */
 
-			if (forwarding_enabled || promiscuous_mode)
+			if (promiscuous_mode)
 				hal_subregister_write(SR_TRX_CMD, RX_ON);
 			else
 				hal_subregister_write(SR_TRX_CMD, RX_AACK_ON);
 		} else {
 			//transmission ended
 			/* Transition to receive mode*/
-			if (forwarding_enabled || promiscuous_mode)
+			if (promiscuous_mode)
 				hal_subregister_write(SR_TRX_CMD, RX_ON);
 			else
 				hal_subregister_write(SR_TRX_CMD, RX_AACK_ON);

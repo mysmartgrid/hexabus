@@ -65,11 +65,14 @@ add_subdirectory(src)
 
 # add some files to the installation target
 INSTALL(FILES README.txt LICENSE.txt DESTINATION share/doc/hba)
+INSTALL(FILES share/hexabus/std_datatypes.hb DESTINATION share/hexabus)
 
 # CPACK packaging
 INCLUDE(InstallRequiredSystemLibraries)
+SET(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "HexaBus Assembler")
 SET(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
+set(CPACK_PACKAGE_CONTACT "support@mysmartgrid.de")
 SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.txt")
 SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 SET(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
