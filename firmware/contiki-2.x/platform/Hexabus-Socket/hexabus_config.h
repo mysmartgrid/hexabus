@@ -26,7 +26,7 @@ _DEBUG options should be set to:
 #define MEMORY_DEBUGGER_INTERVAL 10
 
 // button
-#define BUTTON_HAS_EID 0 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
+#define BUTTON_HAS_EID 1 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
 #define BUTTON_TOGGLES_RELAY 0 // set to 1 to have the button toggle the relay directly
 
 #define BUTTON_DEBOUNCE_TICKS		1
@@ -47,8 +47,8 @@ _DEBUG options should be set to:
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 1 
-#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 2 // Number of endpoints to broadcast automatically - set to 0 to disable
-#define VALUE_BROADCAST_AUTO_EIDS 3,5 // Comma-separated list of endpoints to broadcast automatically
+#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1 // Number of endpoints to broadcast automatically - set to 0 to disable
+#define VALUE_BROADCAST_AUTO_EIDS 2 // Comma-separated list of endpoints to broadcast automatically
 #define VALUE_BROADCAST_AUTO_INTERVAL 20 // Timeout in seconds
 #define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0 // Number of endpoints to "broadcast" to the local state machine
 #define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2 // Comma-separated list of eids to be sent to local state machine
@@ -67,7 +67,7 @@ _DEBUG options should be set to:
 #define STATE_MACHINE_DEBUG 0
 
 // state machine uploading via Hexabus packets
-#define SM_UPLOAD_ENABLE 0 
+#define SM_UPLOAD_ENABLE 1 
 
 // window blind shutter motor control
 #define SHUTTER_ENABLE 0
@@ -110,7 +110,7 @@ _DEBUG options should be set to:
 #define I2C_DEBUG 0
 
 //humidity sensor
-#define HUMIDITY_ENABLE 1
+#define HUMIDITY_ENABLE 0
 #define HUMIDITY_DEBUG 0 
 
 //pressure sensor
