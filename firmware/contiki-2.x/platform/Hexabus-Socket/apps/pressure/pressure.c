@@ -57,32 +57,6 @@ static uint8_t pressure_read8(uint8_t addr) {
 
 }
 
-void pressure_init() {
-
-    ac1 = pressure_read16(AC1_ADDR);
-    ac2 = pressure_read16(AC2_ADDR);
-    ac3 = pressure_read16(AC3_ADDR);
-    ac4 = pressure_read16(AC4_ADDR);
-    ac5 = pressure_read16(AC5_ADDR);
-    ac6 = pressure_read16(AC6_ADDR);
-    b1 = pressure_read16(B1_ADDR);
-    b2 = pressure_read16(B2_ADDR);
-    mb = pressure_read16(MB_ADDR);
-    mc = pressure_read16(MC_ADDR);
-    md = pressure_read16(MD_ADDR);
-
-    syslog(LOG_DEBUG, "Pressure init complete");
-
-}
-
-static float read_pressure() {
-    return pressure/100.0; //convert Pa to hPa;
-}
-
-static float read_pressure_temp() {
-    return pressure_temp;
-}
-
 static enum hxb_error_code read(struct hxb_value* value)
 {
 	value->v_float = read_pressure();
@@ -111,7 +85,7 @@ void pressure_init() {
   mb = pressure_read16(MB_ADDR);
   mc = pressure_read16(MC_ADDR);
   md = pressure_read16(MD_ADDR);
-  PRINTF("Pressure init complete");
+  syslog(LOG_DEBUG, "Pressure init complete");
 }
 
 float read_pressure() {
