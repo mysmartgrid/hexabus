@@ -54,7 +54,7 @@ namespace hexabus {
 			on_async_error_t asyncError;
 			std::vector<char> data;
 
-			void openSocket(const boost::asio::ip::address_v6& addr, const std::string* interface);
+			void openSocket(const std::string* interface);
 
 			Packet::Ptr parseReceivedPacket(size_t size);
 

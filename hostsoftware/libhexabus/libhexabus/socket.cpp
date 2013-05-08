@@ -24,14 +24,14 @@ Socket::Socket(boost::asio::io_service& io, const std::string& interface) :
   io_service(io),
   socket(io_service)
 {
-  openSocket(boost::asio::ip::address_v6::any(), &interface);
+  openSocket(&interface);
 }
 
 Socket::Socket(boost::asio::io_service& io) :
   io_service(io),
   socket(io_service)
 {
-  openSocket(boost::asio::ip::address_v6::any(), NULL);
+  openSocket(NULL);
 }
 
 Socket::~Socket()
@@ -177,7 +177,7 @@ void Socket::bind(const boost::asio::ip::udp::endpoint& ep) {
     throw NetworkException("bind", err);
 }
 
-void Socket::openSocket(const boost::asio::ip::address_v6& addr, const std::string* interface) {
+void Socket::openSocket(const std::string* interface) {
   boost::system::error_code err;
 
 	data.resize(1500);
