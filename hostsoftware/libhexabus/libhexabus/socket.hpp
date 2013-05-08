@@ -14,12 +14,8 @@
 namespace hexabus {
   class Socket {
     public:
-			typedef boost::signals2::signal<
-				void (const Packet& packet, const boost::asio::ip::udp::endpoint& from)>
-				on_packet_received_t;
-			typedef on_packet_received_t::slot_type on_packet_received_slot_t;
-
 			typedef boost::function<bool (const Packet& packet, const boost::asio::ip::udp::endpoint& from)> filter_t;
+			typedef boost::function<void (const Packet& packet, const boost::asio::ip::udp::endpoint& from)> on_packet_received_slot_t;
 
 			typedef boost::signals2::signal<void (const GenericException& error)> on_async_error_t;
 			typedef on_async_error_t::slot_type on_async_error_slot_t;
@@ -53,16 +49,22 @@ namespace hexabus {
 			boost::asio::io_service& io_service;
 			boost::asio::ip::udp::socket socket;
 			boost::asio::ip::udp::endpoint remoteEndpoint;
-			on_packet_received_t packetReceived;
+			boost::signals2::signal<void (const Packet::Ptr&,
+					const boost::asio::ip::udp::endpoint&)> packetReceived;
 			on_async_error_t asyncError;
 			std::vector<char> data;
 
 			void openSocket(const boost::asio::ip::address_v6& addr, const std::string* interface);
 
-			void beginReceive();
 			Packet::Ptr parseReceivedPacket(size_t size);
-			void syncPacketReceiveHandler(const boost::system::error_code& error, size_t size, Packet::Ptr& result);
-			void asyncPacketReceiveHandler(const boost::system::error_code& error, size_t size);
+
+			void beginReceivePacket(bool async);
+			void packetReceivedHandler(const boost::system::error_code& error, size_t size);
+			void syncPacketReceivedHandler(const boost::system::error_code& error, size_t size);
+			void asyncPacketReceivedHandler(const boost::system::error_code& error, size_t size);
+
+			void syncPacketReceiveCallback(const Packet::Ptr& packet, const boost::asio::ip::udp::endpoint& from,
+					std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint>& result, const filter_t& filter);
   };
 };
 
