@@ -501,7 +501,7 @@ uint16_t calc_crc(void) {
 	uint16_t crc;
 
 	uint16_t c, i;
-	prog_uchar *ptr;
+	const unsigned char PROGMEM *ptr;
 	uint8_t byte = 0;
 	uint8_t crcbit = 0;
 	uint8_t databit = 0;

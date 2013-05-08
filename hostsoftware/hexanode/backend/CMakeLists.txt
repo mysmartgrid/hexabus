@@ -85,8 +85,9 @@ include(CMakeBackwardCompatibilityCXX)
 #  message(FATAL_ERROR "libklio is required.You may set LIBKLIO_HOME")
 #endif( NOT LIBKLIO_FOUND)
 
-#FIND_PACKAGE(Sqlite)
-FIND_PACKAGE(LibHexabus)
+FIND_PACKAGE(OpenSSL REQUIRED)
+FIND_PACKAGE(CppNetlib REQUIRED)
+FIND_PACKAGE(LibHexabus REQUIRED)
 #FIND_PACKAGE(RtMidi)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.

@@ -53,7 +53,7 @@ namespace hexanode {
       typedef boost::shared_ptr<VersionInfo> Ptr;
       VersionInfo () {};
       virtual ~VersionInfo() {};
-      const std::string getVersion();
+      const std::string get_version();
 
     private:
       VersionInfo (const VersionInfo& original);

@@ -75,9 +75,13 @@ struct hba_doc_visitor : boost::static_visitor<>
     ss << std::hex << clause.value;
     if(_datatypes->getDatatype(clause.eid) == HXB_DTYPE_FLOAT) // TODO implement ALL the datatypes
     {
-      ss >> t.value.v_float;
+			float f;
+      ss >> f;
+			t.value.v_float = f;
     } else { // TODO for now, act as if everything were uint32
-      ss >> std::dec >> t.value.v_u32;
+			uint32_t u;
+      ss >> std::dec >> u;
+			t.value.v_u32 = u;
     }
 
     if(clause.name != "true") {
@@ -148,9 +152,13 @@ struct hba_doc_visitor : boost::static_visitor<>
       ss << std::hex << cond.value;
       if(_datatypes->getDatatype(cond.eid) == HXB_DTYPE_FLOAT) // TODO implement ALL the datatypes
       {
-        ss >> c.value.v_float;
+				float f;
+        ss >> f;
+				c.value.v_float = f;
       } else { // TODO for now just treat everything as uint32
-        ss >> std::dec >> c.value.v_u32;
+				uint32_t u;
+        ss >> std::dec >> u;
+				c.value.v_u32 = u;
       }
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     } else if(condition.cond.which() == 1) { // timeout

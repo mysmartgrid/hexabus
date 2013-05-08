@@ -4,15 +4,15 @@
 #include <libhexabus/common.hpp>
 #include <libhexabus/crc.hpp>
 #include <libhexabus/liveness.hpp>
-#include <time.h>
+#include <libhexabus/socket.hpp>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/error.hpp>
+#include <time.h>
 #include <boost/program_options.hpp>
 #include <boost/program_options/positional_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/optional.hpp>
-#include <libhexabus/socket.hpp>
 #include <typeinfo>
 namespace po = boost::program_options;
 
@@ -442,7 +442,9 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	if (!ip) {
+	if (!ip && command == C_SEND) {
+		ip = hexabus::Socket::GroupAddress;
+	} else if (!ip) {
 		std::cerr << "Command requires an IP address" << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
