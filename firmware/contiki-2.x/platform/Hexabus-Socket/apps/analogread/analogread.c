@@ -5,13 +5,44 @@
 #include "contiki.h"
 #include "hexabus_config.h"
 #include "value_broadcast.h"
+#include "endpoints.h"
+#include "endpoint_registry.h"
 
-#if ANALOGREAD_DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL ANALOGREAD_DEBUG
+#include "syslog.h"
+
+static float get_analogvalue(void);
+static float get_lightvalue(void);
+
+static enum hxb_error_code read_analog(struct hxb_value* value)
+{
+	value->v_float = get_analogvalue();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_analogread_name[] PROGMEM = "Analog reader";
+ENDPOINT_DESCRIPTOR endpoint_analogread = {
+	.datatype = HXB_DTYPE_FLOAT,
+	.eid = EP_ANALOGREAD,
+	.name = ep_analogread_name,
+	.read = read_analog,
+	.write = 0
+};
+
+static enum hxb_error_code read_lightsensor(struct hxb_value* value)
+{
+	value->v_float = get_lightvalue();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_lightsensor_name[] PROGMEM = "Lightsensor";
+ENDPOINT_DESCRIPTOR endpoint_lightsensor = {
+	.datatype = HXB_DTYPE_FLOAT,
+	.eid = EP_LIGHTSENSOR,
+	.name = ep_lightsensor_name,
+	.read = read_lightsensor,
+	.write = 0
+};
 
 void analogread_init() {
     ADMUX = (0<<REFS1) | (1<<REFS0); // AVCC as reference
@@ -19,20 +50,27 @@ void analogread_init() {
     ADCSRA |= (1<<ADSC); // initial conversion
     ADMUX = (ADMUX & ~(ANALOGREAD_MUX_BITS)) | (ANALOGREAD_PIN & ANALOGREAD_MUX_BITS); // select pin
     ADCSRA |= (1<<ADEN); //enable ADC
+
+#if ANALOGREAD_ENABLE
+		ENDPOINT_REGISTER(endpoint_analogread);
+#endif
+#if LIGHTSENSOR_ENABLE
+		ENDPOINT_REGISTER(endpoint_lightsensor);
+#endif
 }
 
-float get_analogvalue() {
+static float get_analogvalue() {
     ADCSRA |= (1<<ADSC); // invoke single conversion
-    
+
     while(ADCSRA & (1<<ADSC)) {} // wait for conversion to finish
 
     float voltage = ADCW * ANALOGREAD_MULT;
-    
-    PRINTF("Voltage read: %d mV\n", (uint32_t)(voltage*1000.0));
+
+	syslog(LOG_DEBUG, "Analog value read: %ld / 1000", (uint32_t)(voltage*1000.0));
 
     return voltage;
 }
 
-float get_lightvalue() {
+static float get_lightvalue() {
     return get_analogvalue()/2.5;
 }

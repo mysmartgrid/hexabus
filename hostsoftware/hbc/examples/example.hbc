@@ -1,0 +1,37 @@
+# example program for Hexabus Assembler
+
+# load endpoint definitions from an external file
+include std_eid.hbh;
+
+# a device definition, with an IPv6 address and a list of available endpoints
+device  my_plug {
+  ip caca::50:c4ff:fe04:83af;
+  eids { 1, 4 }
+}
+
+# definition of a state machine
+machine toggle {
+  # the set of states has to be given first. It has to include the initial state, which is always named "init".
+  states { init, on }
+  in(init) {
+    # here, an outgoing transition from the "init" state is defined
+    if(ep my_plug.Button == 1) {
+      # with an action...
+      write my_plug.On := 1;
+      # and the state the transition goes to.
+      goto on;
+    }
+  }
+  in(on) {
+    # the "on" state has two outgoing transitions
+    if(ep my_plug.Button == 1) {
+      write my_plug.On := 0;
+      goto init;
+    }
+    # this one is a timeout, it is executed when the machine remains in the state for 1200 seconds.
+    if(timeout i1200) {
+      write my_plug.On := 0;
+      goto init;
+    }
+  }
+}

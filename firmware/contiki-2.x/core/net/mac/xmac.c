@@ -28,7 +28,6 @@
  *
  * This file is part of the Contiki operating system.
  *
- * $Id: xmac.c,v 1.60 2011/01/25 14:31:09 adamdunkels Exp $
  */
 
 /**
@@ -455,6 +454,7 @@ send_packet(void)
   rtimer_clock_t t;
   rtimer_clock_t encounter_time = 0;
   int strobes;
+  int ret;
 #if 0
   struct xmac_hdr *hdr;
 #endif
@@ -463,7 +463,7 @@ send_packet(void)
   uint8_t strobe[MAX_STROBE_SIZE];
   int strobe_len, len;
   int is_broadcast = 0;
-  int is_reliable;
+/*int is_reliable; */
   struct encounter *e;
   struct queuebuf *packet;
   int is_already_streaming = 0;
@@ -491,13 +491,13 @@ send_packet(void)
            packetbuf_addr(PACKETBUF_ADDR_RECEIVER)->u8[1]);
 #endif /* UIP_CONF_IPV6 */
   }
-  is_reliable = packetbuf_attr(PACKETBUF_ATTR_RELIABLE) ||
-    packetbuf_attr(PACKETBUF_ATTR_ERELIABLE);
+/*  is_reliable = packetbuf_attr(PACKETBUF_ATTR_RELIABLE) ||
+    packetbuf_attr(PACKETBUF_ATTR_ERELIABLE); */
 
   packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
   len = NETSTACK_FRAMER.create();
   strobe_len = len + sizeof(struct xmac_hdr);
-  if(len == 0 || strobe_len > (int)sizeof(strobe)) {
+  if(len < 0 || strobe_len > (int)sizeof(strobe)) {
     /* Failed to send */
    PRINTF("xmac: send failed, too large header\n");
     return MAC_TX_ERR_FATAL;
@@ -612,7 +612,7 @@ send_packet(void)
 	len = NETSTACK_RADIO.read(packetbuf_dataptr(), PACKETBUF_SIZE);
 	if(len > 0) {
 	  packetbuf_set_datalen(len);
-	  if(NETSTACK_FRAMER.parse()) {
+	  if(NETSTACK_FRAMER.parse() >= 0) {
 	    hdr = packetbuf_dataptr();
 	    if(hdr->dispatch == DISPATCH && hdr->type == TYPE_STROBE_ACK) {
 	      if(rimeaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER),
@@ -641,11 +641,11 @@ send_packet(void)
 
 	if(is_broadcast) {
 #if WITH_STROBE_BROADCAST
-	  NETSTACK_RADIO.send(strobe, strobe_len);
+	  ret = NETSTACK_RADIO.send(strobe, strobe_len);
 #else
 	  /* restore the packet to send */
 	  queuebuf_to_packetbuf(packet);
-	  NETSTACK_RADIO.send(packetbuf_hdrptr(), packetbuf_totlen());
+	  ret = NETSTACK_RADIO.send(packetbuf_hdrptr(), packetbuf_totlen());
 #endif
           off();
 	} else {
@@ -653,7 +653,7 @@ send_packet(void)
 	  rtimer_clock_t wt;
 #endif
           on();
-	  NETSTACK_RADIO.send(strobe, strobe_len);
+	  ret = NETSTACK_RADIO.send(strobe, strobe_len);
 #if 0
 	  /* Turn off the radio for a while to let the other side
 	     respond. We don't need to keep our radio on when we know
@@ -662,12 +662,20 @@ send_packet(void)
 	  wt = RTIMER_NOW();
 	  while(RTIMER_CLOCK_LT(RTIMER_NOW(), wt + WAIT_TIME_BEFORE_STROBE_ACK));
 #endif /* 0 */
-
+#if RDC_CONF_HARDWARE_ACK
+ 	  if(ret == RADIO_TX_OK) {
+            got_strobe_ack = 1;
+          } else {
+            off();
+          }
+#else
           if(detect_ack()) {
             got_strobe_ack = 1;
           } else {
             off();
           }
+#endif /* RDC_CONF_HARDWARE_ACK */
+
         }
       }
     }
@@ -694,12 +702,18 @@ send_packet(void)
 
   /* Send the data packet. */
   if((is_broadcast || got_strobe_ack || is_streaming) && collisions == 0) {
-    NETSTACK_RADIO.send(packetbuf_hdrptr(), packetbuf_totlen());
+    ret = NETSTACK_RADIO.send(packetbuf_hdrptr(), packetbuf_totlen());
 
     if(!is_broadcast) {
+#if RDC_CONF_HARDWARE_ACK
+      if(ret == RADIO_TX_OK) {
+        got_ack = 1;
+      }
+#else
       if(detect_ack()) {
         got_ack = 1;
       }
+#endif /* RDC_CONF_HARDWARE_ACK */
     }
   }
   off();
@@ -764,11 +778,20 @@ qsend_packet(mac_callback_t sent, void *ptr)
 }
 /*---------------------------------------------------------------------------*/
 static void
+qsend_list(mac_callback_t sent, void *ptr, struct rdc_buf_list *buf_list)
+{
+  if(buf_list != NULL) {
+    queuebuf_to_packetbuf(buf_list->buf);
+    qsend_packet(sent, ptr);
+  }
+}
+/*---------------------------------------------------------------------------*/
+static void
 input_packet(void)
 {
   struct xmac_hdr *hdr;
 
-  if(NETSTACK_FRAMER.parse()) {
+  if(NETSTACK_FRAMER.parse() >= 0) {
     hdr = packetbuf_dataptr();
 
     if(hdr->dispatch != DISPATCH) {
@@ -846,7 +869,7 @@ input_packet(void)
 			   packetbuf_addr(PACKETBUF_ADDR_SENDER));
 	packetbuf_set_addr(PACKETBUF_ADDR_SENDER, &rimeaddr_node_addr);
 	packetbuf_compact();
-	if(NETSTACK_FRAMER.create()) {
+	if(NETSTACK_FRAMER.create() >= 0) {
 	  /* We turn on the radio in anticipation of the incoming
 	     packet. */
 	  someone_is_sending = 1;
@@ -911,7 +934,7 @@ send_announcement(void *ptr)
     packetbuf_set_addr(PACKETBUF_ADDR_SENDER, &rimeaddr_node_addr);
     packetbuf_set_addr(PACKETBUF_ADDR_RECEIVER, &rimeaddr_null);
     packetbuf_set_attr(PACKETBUF_ATTR_RADIO_TXPOWER, announcement_radio_txpower);
-    if(NETSTACK_FRAMER.create()) {
+    if(NETSTACK_FRAMER.create() >= 0) {
       NETSTACK_RADIO.send(packetbuf_hdrptr(), packetbuf_totlen());
     }
   }
@@ -999,6 +1022,7 @@ const struct rdc_driver xmac_driver =
     "X-MAC",
     init,
     qsend_packet,
+    qsend_list,
     input_packet,
     turn_on,
     turn_off,

@@ -32,7 +32,7 @@
 
 uint8_t nSensors, i;
 volatile int16_t decicelsius;
-volatile int32_t temp_eminus4;
+int32_t temp_eminus4;
 uint8_t error;
 uint8_t gSensorIDs[MAXSENSORS][OW_ROMCODE_SIZE];
 

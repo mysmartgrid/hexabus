@@ -6,3 +6,14 @@ firmware/bootloader/BootloaderFlasher/BootloaderFlasher
 *.swp
 hostsoftware/6switch/build
 firmware/Hexabus-Socket/obj_Hexabus-Socket/
+firmware/Hexabus-Socket/a.out
+firmware/Hexabus-Socket/eeprom.raw
+firmware/Hexabus-Socket/in-hex.eeprom
+firmware/bootloader/Socket/.dep
+firmware/bootloader/Socket/Bootloader.eep
+firmware/bootloader/Socket/Bootloader.lss
+firmware/bootloader/Socket/Bootloader.lst
+firmware/bootloader/Socket/Bootloader.o
+firmware/bootloader/Socket/Bootloader.sym
+firmware/bootloader/Socket/spi.lst
+firmware/bootloader/Socket/spi.o

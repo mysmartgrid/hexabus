@@ -18,6 +18,8 @@
 #include "debug.h"
 #include "tempsensors.h"
 #include "hexabus_config.h"
+#include "endpoint_registry.h"
+#include "endpoints.h"
 
 #if TEMPERATURE_SENSOR == 1
 #include "humidity.h"
@@ -28,8 +30,28 @@
 static struct etimer temperature_periodic_timer;
 
 //local variables
-static float temperature_value=0.0;
+static float temperature_value;
 static char temperature_string_buffer[10];
+
+static float temperature_get(void);
+static void  temperature_start(void);
+static void  temperature_stop(void);
+static void  temperature_reset(void);
+
+static enum hxb_error_code read(struct hxb_value* value)
+{
+	value->v_float = temperature_get();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_name[] PROGMEM = "Temperature Sensor";
+ENDPOINT_DESCRIPTOR endpoint_temperature = {
+	.datatype = HXB_DTYPE_FLOAT,
+	.eid = EP_TEMPERATURE,
+	.name = ep_name,
+	.read = read,
+	.write = 0
+};
 
 /*---------------------------------------------------------------------------*/
 static void
@@ -44,13 +66,14 @@ exithandler(void) {
 /*---------------------------------------------------------------------------*/
 
 void _update_temp_string(void) {
-  dtostrf(temperature_value, 9, 4, &temperature_string_buffer);
+  dtostrf(temperature_value, 9, 4, temperature_string_buffer);
 }
 
 void
 temperature_init(void)
 {
 #if TEMPERATURE_SENSOR == 0
+  temperature_value=0.0;
   PRINTF("-- Temperature: INIT\r\n");
   initTempSensors();
   loopTempSensors();
@@ -58,27 +81,28 @@ temperature_init(void)
   _update_temp_string();
   // PRINTF("Current temp: %s deg C\r\n", temperature_string_buffer);
 #endif
+	ENDPOINT_REGISTER(endpoint_temperature);
 }
 
-void
+static void
 temperature_start(void)
 {
   PRINTF("-- Temperature: START\r\n");
 }
 
-void
+static void
 temperature_stop(void)
 {
   PRINTF("-- Temperature: STOP\r\n");
 }
 
-void
+static void
 temperature_reset(void)
 {
   PRINTF("-- Temperature: RESET\r\n");
 }
 
-float
+static float
 temperature_get(void)
 {
   //getTemperatureFloat(); //TODO: Fixes really strange linker error, somebody needs to look into this. (loopTempSensors, getTemperatureFloat or read_pressure_temp must be executed to be able to compile. Possible bug with avr-binutils)
@@ -103,5 +127,5 @@ char*
 temperature_as_string(void)
 {
   PRINTF("-- Temperature: Get string value\r\n");
-  return &temperature_string_buffer;
+  return temperature_string_buffer;
 }

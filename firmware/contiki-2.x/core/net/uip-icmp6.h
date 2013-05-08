@@ -58,6 +58,10 @@
 #define ICMP6_ECHO_REQUEST              128  /**< Echo request */
 #define ICMP6_ECHO_REPLY                129  /**< Echo reply */
 
+#define ICMP6_ML_QUERY                  130  /**< Multicast listener query */
+#define ICMP6_ML_REPORT                 131  /**< Multicast listener report, MLDv1 */
+#define ICMP6_ML_DONE                   132  /**< Multicast listener done, MLDv1 */
+
 #define ICMP6_RS                        133  /**< Router Solicitation */
 #define ICMP6_RA                        134  /**< Router Advertisement */
 #define ICMP6_NS                        135  /**< Neighbor Solicitation */
@@ -97,10 +101,20 @@
 /** \brief ICMPv6 Error message constant part length */
 #define UIP_ICMP6_ERROR_LEN               4
 
+/** \brief ICMPv6 MLDv1 report length */
+#define UIP_ICMP6_MLD1_LEN               20
+
 /** \brief ICMPv6 Error message constant part */
 typedef struct uip_icmp6_error{
-  u32_t param;
+  uint32_t param;
 } uip_icmp6_error;
+
+/** \brief MLDv1 ICMP packet content */
+typedef struct uip_icmp6_mld1 {
+  u16_t maximum_delay;
+  u16_t reserved;
+  uip_ip6addr_t address;
+} uip_icmp6_mld1;
 
 /** \name ICMPv6 RFC4443 Message processing and sending */
 /** @{ */
@@ -120,7 +134,7 @@ uip_icmp6_echo_request_input(void);
  * \param type 32 bit parameter of the error message, semantic depends on error 
  */
 void
-uip_icmp6_error_output(u8_t type, u8_t code, u32_t param); 
+uip_icmp6_error_output(uint8_t type, uint8_t code, uint32_t param); 
 
 /**
  * \brief Send an icmpv6 message
@@ -131,7 +145,6 @@ uip_icmp6_error_output(u8_t type, u8_t code, u32_t param);
  */
 void
 uip_icmp6_send(uip_ipaddr_t *dest, int type, int code, int payload_len);
-
 
 /** @} */
 

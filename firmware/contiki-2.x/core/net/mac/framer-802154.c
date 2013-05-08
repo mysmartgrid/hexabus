@@ -54,8 +54,13 @@
 #define PRINTADDR(addr)
 #endif
 
-uint8_t mac_dsn;
-uint8_t initialized = 0;
+/**  \brief The sequence number (0x00 - 0xff) added to the transmitted
+ *   data or MAC command frame. The default is a random value within
+ *   the range.
+ */
+static uint8_t mac_dsn;
+
+static uint8_t initialized = 0;
 
 /**  \brief The 16-bit identifier of the PAN on which the device is
  *   sending to.  If this value is 0xffff, the device is not
@@ -155,7 +160,7 @@ create(void)
 
   /* Set the source PAN ID to the global variable. */
   params.src_pid = mac_src_pan_id;
-  
+
   /*
    * Set up the source address using only the long address mode for
    * phase 1.
@@ -175,7 +180,7 @@ create(void)
     return len;
   } else {
     PRINTF("15.4-OUT: too large header: %u\n", len);
-    return 0;
+    return FRAMER_FAILED;
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -192,7 +197,7 @@ parse(void)
          frame.dest_pid != FRAME802154_BROADCASTPANDID) {
         /* Packet to another PAN */
         PRINTF("15.4: for another pan %u\n", frame.dest_pid);
-        return 0;
+        return FRAMER_FAILED;
       }
       if(!is_broadcast_addr(frame.fcf.dest_addr_mode, frame.dest_addr)) {
         packetbuf_set_addr(PACKETBUF_ADDR_RECEIVER, (rimeaddr_t *)&frame.dest_addr);
@@ -210,7 +215,7 @@ parse(void)
 
     return len - frame.payload_len;
   }
-  return 0;
+  return FRAMER_FAILED;
 }
 /*---------------------------------------------------------------------------*/
 const struct framer framer_802154 = {

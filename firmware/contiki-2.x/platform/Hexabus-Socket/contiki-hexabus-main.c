@@ -80,6 +80,8 @@
 #include "dev/serial-line.h"
 #include "dev/slip.h"
 
+#include "lib/random.h"
+
 #if WEBSERVER
 #include "httpd-fs.h"
 #include "httpd-cgi.h"
@@ -100,13 +102,15 @@
 
 
 //HEXABUS includes
-#include "button.h"
 #include "metering.h"
+#include "button_handlers.h"
+#include "contiki-hexabus.h"
 #include "relay.h"
+#include "button.h"
 #include "eeprom_variables.h"
 #include "udp_handler.h"
-#include "mdns_responder.h"
 #include "state_machine.h"
+#include "hexabus_app_bootstrap.h"
 
 // optional HEXABUS apps
 #if VALUE_BROADCAST_ENABLE
@@ -115,43 +119,13 @@
 #if DATETIME_SERVICE_ENABLE
 #include "datetime_service.h"
 #endif
-#if TEMPERATURE_ENABLE
-#include "temperature.h"
-#endif
-#if SHUTTER_ENABLE
-#include "shutter.h"
-#endif
-#if HEXAPUSH_ENABLE
-#include "hexapush.h"
-#endif
-#if PRESENCE_DETECTOR_ENABLE
-#include "presence_detector.h"
-#endif
-#if HEXAPUSH_ENABLE
-#include "hexonoff.h"
-#endif
-#if ANALOGREAD_ENABLE
-#include "analogread.h"
-#endif
 #if MEMORY_DEBUGGER_ENABLE
 #include "memory_debugger.h"
 #endif
-#if I2C_ENABLE
-#include "i2c.h"
-#endif
-#if HUMIDITY_ENABLE
-#include "humidity.h"
-#endif
-#if PRESSURE_ENABLE
-#include "pressure.h"
-#endif
-#if IR_RECEIVER_ENABLE
-#include "ir_receiver.h"
-#endif
+
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
-uint8_t forwarding_enabled; //global variable for forwarding
 uint8_t encryption_enabled = 1; //global variable for AES encryption
 /*-------------------------------------------------------------------------*/
 /*----------------------Configuration of the .elf file---------------------*/
@@ -214,63 +188,9 @@ uint8_t get_relay_default_from_eeprom(void) {
 	return eeprom_read_byte ((const void *)EE_RELAY_DEFAULT);
 }
 
-uint8_t get_forwarding_from_eeprom(void) {
-	return eeprom_read_byte ((const void *)EE_FORWARDING);
-}
-
 void get_aes128key_from_eeprom(uint8_t keyptr[16]) {
 	eeprom_read_block ((void *)keyptr, (const void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
 }
-
-void set_forwarding_to_eeprom(uint8_t val) {
-	 eeprom_write_byte ((uint8_t *)EE_FORWARDING, val);
-	 forwarding_enabled = val;
-}
-
-// State Machine eeprom access
-
-uint8_t sm_get_number_of_conditions() {
-	return eeprom_read_byte ((const void *)EE_STATEMACHINE_N_CONDITIONS);
-}
-
-void sm_set_number_of_conditions(uint8_t number) {
-	eeprom_write_byte ((uint8_t *)EE_STATEMACHINE_N_CONDITIONS, number);
-}
-
-uint8_t sm_get_number_of_transitions(bool datetime) {
-	return (datetime ? eeprom_read_byte ((const void*)EE_STATEMACHINE_N_DT_TRANSITIONS) : eeprom_read_byte ((const void*)EE_STATEMACHINE_N_TRANSITIONS));
-}
-
-void sm_set_number_of_transitions(bool datetime, uint8_t number) {
-	if(datetime)
-		eeprom_write_byte ((uint8_t *)EE_STATEMACHINE_N_DT_TRANSITIONS, number);
-	else 
-		eeprom_write_byte ((uint8_t *)EE_STATEMACHINE_N_TRANSITIONS, number);
-}
-
-void sm_write_condition(uint8_t index, struct condition *cond) {
-	eeprom_write_block(cond, (void *)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)*index), sizeof(struct condition));
-}
-
-void sm_get_condition(uint8_t index, struct condition *cond) {
-	eeprom_read_block(cond, (void *)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)*index), sizeof(struct condition));
-}
-
-void sm_write_transition(bool datetime, uint8_t index, struct transition *trans) {
-	if(datetime)
-		eeprom_write_block(trans, (void *)(EE_STATEMACHINE_DATETIME_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
-	else
-		eeprom_write_block(trans, (void *)(EE_STATEMACHINE_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
-}
-
-void sm_get_transition(bool datetime, uint8_t index, struct transition *trans) {
-	if(datetime)
-		eeprom_read_block(trans, (void *)(EE_STATEMACHINE_DATETIME_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
-	else
-		eeprom_read_block(trans, (void *)(EE_STATEMACHINE_TRANSITIONS + sizeof(struct transition)*index), sizeof(struct transition));
-}
-
-
 
 /*-------------------------Low level initialization------------------------*/
 /*------Done in a subroutine to keep main routine stack usage small--------*/
@@ -278,12 +198,11 @@ void initialize(void)
 {
   watchdog_init();
   watchdog_start();
+	button_handlers_init();
 
   init_lowlevel();
 
   clock_init();
-
-  forwarding_enabled = get_forwarding_from_eeprom();
 
 
 #if ANNOUNCE_BOOT
@@ -380,6 +299,9 @@ void initialize(void)
   process_start(&tcpip_process, NULL);
 #endif /*RF230BB || RF212BB*/
 
+  //initialize random number generator with part of the MAC address
+  random_init(eeprom_read_word((uint16_t*)(EE_MAC_ADDR + EE_MAC_ADDR_SIZE - 2)));
+
 #if WEBSERVER
   process_start(&webserver_nogui_process, NULL);
 #endif
@@ -404,72 +326,16 @@ void initialize(void)
 
   /* process handling received HEXABUS broadcasts */
 #if STATE_MACHINE_ENABLE
-  process_start(&state_machine_process, NULL);
+  sm_start();
 #endif
-
-  /*Init Relay */
-  relay_init();
-
-#if SHUTTER_ENABLE
-  /*Init Shutter*/
-  shutter_init();
-
-  /* process for shutter control*/
-  process_start(&shutter_process, NULL);
-
-  /* calibrate and go to initial position */
-  process_start(&shutter_setup_process, NULL);
-
-#endif
-
-#if HEXAPUSH_ENABLE
-  process_start(&hexapush_process, NULL);
-#endif
-
-#if PRESENCE_DETECTOR_ENABLE
-  presence_detector_init();
-#endif
-
-  mdns_responder_init();
 
   /* Datetime service*/
 #if DATETIME_SERVICE_ENABLE
   process_start(&datetime_service_process, NULL);
 #endif
 
-  /* Button Process */
-  process_start(&button_pressed_process, NULL);
-
-  /* Init Metering */
-  metering_init();
-
-  /* Init Temp Sensor */
-#if TEMPERATURE_ENABLE
-  temperature_init();
-#endif
-
-#if HEXONOFF_ENABLE
-  hexonoff_init();
-#endif
-
-#if ANALOGREAD_ENABLE
-  analogread_init();
-#endif
-
-#if I2C_ENABLE
-  i2c_init();
-#endif
- 
-#if PRESSURE_ENABLE
-  pressure_init();
-#endif
-
-#if IR_RECEIVER_ENABLE
-  ir_receiver_init();
-#endif
-
-  /*Init Relay */
-  relay_init();
+  hexabus_bootstrap_init_apps();
+  hexabus_bootstrap_start_processes();
 
   /* Autostart other processes */
   autostart_start(autostart_processes);
