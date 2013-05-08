@@ -37,22 +37,19 @@ There should be an ENABLE option that enables compilation and execution of the a
 #define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 1
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 1 // Number of endpoints to broadcast automatically - set to 0 to disable
-#define VALUE_BROADCAST_AUTO_EIDS 2 // Comma-separated list of endpoints to broadcast automatically
-#define VALUE_BROADCAST_AUTO_INTERVAL 50 // Timeout in seconds
+#define VALUE_BROADCAST_AUTO_EIDS 2  // Comma-separated list of endpoints to broadcast automatically
+#define VALUE_BROADCAST_AUTO_INTERVAL 90 // Timeout in seconds
 #define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0 // Number of endpoints to "broadcast" to the local state machine
 #define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2 // Comma-separated list of eids to be sent to local state machine
 
 // metering
 #define METERING_IMMEDIATE_BROADCAST 0  // immediately broadcast metering value when change is measured (you still should have the EID in the VALUE_BROADCAST_AUTO_EIDS with some reasonable timeout, so that the value is also broadcast when it reaches and stays at zero)
-#define METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS 3 // number of ticks from the meter until a broadcast is triggered. 1: broadcast every tick ~ roughly every 2 seconds at 100W
+#define METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS 1 // number of ticks from the meter until a broadcast is triggered. 1: broadcast every tick ~ roughly every 2 seconds at 100W
+#define METERING_IMMEDIATE_BROADCAST_MINIMUM_TIMEOUT 20 // minimum number of seconds between two broadcasts, to prevent flooding the network
 #define METERING_ENERGY 1
-/*
-CAUTION:
-Needs external circuitry (see the Wiki)!
--- Disables relay output!
-EXPERIMENTAL!
-*/
+// CAUTION: METERING_ENERGY_PERSISTENT needs external power-down detection circuit. Refer to the Wiki!
 #define METERING_ENERGY_PERSISTENT 0 // Persistently store energy value (number of pulses) in EEPROM. 
+#define S0_ENABLE 0 //S0 meter instead of internal meter.
 
 // state_machine
 #define STATE_MACHINE_ENABLE 1
@@ -112,8 +109,5 @@ EXPERIMENTAL!
 #define IR_RECEIVER_DEBUG 0
 #define IR_REPEAT 1                  // 0 disables repeat, 1 enables repeat for buttons configured in ir_receiver.h
 #define IR_RECEIVER_RAW_MODE 0
-
-//S0 meter
-#define S0_ENABLE 1
 
 #endif // HEXBAUS_CONFIG_H
