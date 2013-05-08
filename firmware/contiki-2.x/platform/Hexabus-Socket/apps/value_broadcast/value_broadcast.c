@@ -74,7 +74,7 @@ void broadcast_to_self(struct hxb_value* val, uint32_t eid)
 		.eid = eid,
 		.value = *val
  	};
-	uip_ipaddr(&envelope.src_ip, 0, 0, 0, 1);
+	uip_ip6addr(&envelope.src_ip, 0, 0, 0, 0, 0, 0, 0, 1);
 	syslog(LOG_DEBUG, "Sending EID %ld to own state machine.", eid);
 	sm_handle_input(&envelope);
 #endif
