@@ -3,8 +3,7 @@
 #include <libhexabus/liveness.hpp>
 #include <libhexabus/socket.hpp>
 #include <libhexabus/filtering.hpp>
-#include <libhexanode/sensor.hpp>
-#include <libhexanode/info_query.hpp>
+#include <libhexanode/solar_calculator.hpp>
 #include <boost/network/protocol/http/client.hpp>
 #include <boost/network/uri.hpp>
 #include <boost/network/uri/uri_io.hpp>
@@ -64,9 +63,9 @@ int main (int argc, char const* argv[]) {
 
   std::cout << "Using this configuration:" << std::endl;
   std::cout << "* Photovoltaik production" << std::endl;
-  std::cout << "   Maximum Power: " << config_tree.get<std::string>("photovoltaik.max_power") << std::endl;
-  std::cout << "   Dial IPv6: " << config_tree.get<std::string>("photovoltaik.dial_ipv6") << std::endl;
+  //std::cout << "   Dial IPv6: " << config_tree.get<std::string>("photovoltaik.dial_ipv6") << std::endl;
   std::cout << "   Dial EID: " << config_tree.get<std::string>("photovoltaik.dial_eid") << std::endl;
+  std::cout << "   Peak Watt: " << config_tree.get<std::string>("photovoltaik.peak_watt") << std::endl;
 
   // We need two listen_io services - the send_io is used during the device name lookup.
   boost::asio::io_service listen_io;
@@ -88,22 +87,23 @@ int main (int argc, char const* argv[]) {
   listen_network->listen(bind_addr);
   send_network->bind(bind_addr);
 
-  boost::asio::ip::address_v6 pv_dial_ipv6 = 
-    boost::asio::ip::address_v6::from_string(
-        config_tree.get<std::string>("photovoltaik.dial_ipv6") 
-        ); 
+ // boost::asio::ip::address_v6 pv_dial_ipv6 = 
+ //   boost::asio::ip::address_v6::from_string(
+ //       config_tree.get<std::string>("photovoltaik.dial_ipv6") 
+ //       ); 
   uint32_t dial_eid = config_tree.get<uint32_t>("photovoltaik.dial_eid");
+  uint32_t peak_watt = config_tree.get<uint32_t>("photovoltaik.peak_watt");
  
-  //hexanode::InfoQuery::Ptr info(new hexanode::InfoQuery(send_network));
-  std::cout << "Transforming incoming values from IP " << pv_dial_ipv6 
-    << " and EID " << dial_eid << std::endl;
+  std::cout << "Transforming incoming values from "
+    << " EID " << dial_eid << std::endl;
 
   while (true) {
     try {
       std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
       try {
         pair = listen_network->receive(
-            hf::sourceIP() == pv_dial_ipv6 && hf::eid() == dial_eid);
+           // (hf::sourceIP() == pv_dial_ipv6) &  // currently unused
+            (hf::eid() == dial_eid));
       } catch (const hexabus::GenericException& e) {
         const hexabus::NetworkException* nerror;
         if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&e))) {
@@ -114,13 +114,13 @@ int main (int argc, char const* argv[]) {
         continue;
       }
 
-      std::cout << "Received " << pair.second << std::endl;
+      std::cout << "Received update from " << pair.second << std::endl;
       // TODO: Write Visitor that implements PV simulation behavior
-      //hexanode::PacketPusher pp(listen_network, info, pair.second, sensors, client, base_uri, std::cout);
+      hexanode::SolarCalculator sc(listen_network, send_network, pair.second, peak_watt);
       if (pair.first == NULL) {
         std::cerr << "Received invalid packet - please check libhexabus version!" << std::endl;
       } else {
-        //pp.visitPacket(*pair.first);
+        sc.visitPacket(*pair.first);
       }
 
     } catch (const std::exception& e) {

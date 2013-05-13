@@ -23,5 +23,14 @@
 #define EP_LIGHTSENSOR           29UL
 #define EP_IR_RECEIVER           30UL
 #define EP_LIVENESS              31UL
+#define EP_GENERIC_DIAL_0        33UL
+#define EP_GENERIC_DIAL_1        34UL
+#define EP_GENERIC_DIAL_2        35UL
+#define EP_GENERIC_DIAL_3        36UL
+#define EP_GENERIC_DIAL_4        37UL
+#define EP_GENERIC_DIAL_5        38UL
+#define EP_GENERIC_DIAL_6        39UL
+#define EP_GENERIC_DIAL_7        40UL
+#define EP_PV_PRODUCTION         41UL
 
 #endif // ENDPOINTS_H_
