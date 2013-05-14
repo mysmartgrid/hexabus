@@ -3,6 +3,7 @@
 
 #include <libhexanode/common.hpp>
 #include <libhexanode/error.hpp>
+#include <libhexanode/historian.hpp>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/socket.hpp>
 
@@ -14,13 +15,17 @@ namespace hexanode {
           hexabus::Socket* receive_socket,
           hexabus::Socket* send_socket,
           const boost::asio::ip::udp::endpoint& endpoint,
-          const uint32_t peak_watt)
+          const uint32_t peak_watt,
+          Historian::Ptr historian
+          )
         : _receive_socket(receive_socket)
         , _send_socket(send_socket)
         , _endpoint(endpoint)
         , _peak_watt(peak_watt)
-        {};
+        , _historian(historian)
+       {};
       virtual ~SolarCalculator() {};
+
 
     private:
       SolarCalculator (const SolarCalculator& original);
@@ -29,8 +34,10 @@ namespace hexanode {
       hexabus::Socket* _send_socket;
       boost::asio::ip::udp::endpoint _endpoint;
       uint32_t _peak_watt;
+      hexanode::Historian::Ptr _historian;
 
       void push_value(const uint32_t eid, const uint8_t value);
+      void push_value(const uint32_t eid, const uint32_t value);
       void printValueHeader(uint32_t eid, const char* datatypeStr);
 
       template<typename T> 
@@ -49,13 +56,11 @@ namespace hexanode {
           std::cout << " Value:\t" << packet.value() << std::endl;
         }
 
+      void printValuePacket(const hexabus::ValuePacket<uint8_t>& packet, 
+          const char* datatypeStr);
+
       void printValuePacket (const hexabus::ValuePacket<uint32_t>& packet, 
-          const char* datatypeStr)
-      {
-        std::cout << "Ignoring uint32 value packet." << std::endl;
-        printValueHeader(packet.eid(), datatypeStr);
-        std::cout << " Value:\t" << packet.value() << std::endl;
-      }
+          const char* datatypeStr);
 
       void printValuePacket (const hexabus::InfoPacket<float>& packet, 
           const char* datatypeStr)
@@ -63,8 +68,6 @@ namespace hexanode {
         std::cout << "Ignoring info packet." << std::endl;
       }
 
-      void printValuePacket(const hexabus::ValuePacket<uint8_t>& packet, 
-          const char* datatypeStr);
 
       template<size_t L>
         void printValuePacket(const hexabus::ValuePacket<boost::array<char, L> >& packet, const char* datatypeStr)

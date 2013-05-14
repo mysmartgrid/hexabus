@@ -1,5 +1,6 @@
 #include "solar_calculator.hpp"
 #include <libhexabus/packet.hpp>
+#include <numeric>
 #include "../../../../shared/endpoints.h"
 
 using namespace hexanode;
@@ -7,13 +8,46 @@ using namespace hexanode;
 void SolarCalculator::push_value(const uint32_t eid, 
     const uint8_t value)
 {
-  std::cout << "Received EID " << eid
-    << " value " << (uint16_t) value << std::endl;
+  std::cout << "Received EID " << eid << std::endl;
+  switch (eid) {
+    case EP_GENERIC_DIAL_0:
+    case EP_GENERIC_DIAL_1:
+    case EP_GENERIC_DIAL_2:
+    case EP_GENERIC_DIAL_3:
+    case EP_GENERIC_DIAL_4:
+    case EP_GENERIC_DIAL_5:
+    case EP_GENERIC_DIAL_6:
+    case EP_GENERIC_DIAL_7:
+      {
+        std::cout << " value " << (uint16_t) value << std::endl;
+        uint32_t current_production = value * (_peak_watt/255);
+        _historian->set_production(current_production);
+        std::cout << "Sending calculated production: " << current_production 
+          << std::endl;
+        _send_socket->send(
+            hexabus::InfoPacket<uint32_t>(EP_PV_PRODUCTION, current_production));
+        break;
+      }
+    default:
+      std::cout << "Received unknown EID - discarding." << std::endl;
+  }
+}
 
-  uint32_t current_production = value * (_peak_watt/255);
-  std::cout << "Sending calculated production: " << current_production << std::endl;
-  _send_socket->send(
-      hexabus::InfoPacket<uint32_t>(EP_PV_PRODUCTION, current_production));
+
+void SolarCalculator::push_value(const uint32_t eid, 
+    const uint32_t value)
+{
+  std::cout << "Received EID " << eid << std::endl;
+  switch (eid) {
+    case EP_POWER_METER:
+      {
+        std::cout << "Received power measurement of " << value << std::endl;
+        _historian->add_consumption(_endpoint, value);
+        break;
+      }
+    default:
+      std::cout << "Received unknown EID - discarding." << std::endl;
+  }
 }
 
 
@@ -24,6 +58,12 @@ void SolarCalculator::printValueHeader(uint32_t eid, const char* datatypeStr)
 
 void SolarCalculator::printValuePacket(
     const hexabus::ValuePacket<uint8_t>& packet, const char* datatypeStr)
+{
+  push_value(packet.eid(), packet.value());
+}
+
+void SolarCalculator::printValuePacket(
+    const hexabus::ValuePacket<uint32_t>& packet, const char* datatypeStr)
 {
   push_value(packet.eid(), packet.value());
 }

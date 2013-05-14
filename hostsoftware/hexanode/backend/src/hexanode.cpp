@@ -90,11 +90,6 @@ int main (int argc, char const* argv[]) {
               ptr_callback, _1));
       }
       midi_ctrl->run();
-     // std::cout << "Reading MIDI input ... press <enter> to quit." << std::endl;
-     // char input;
-     // std::cin.get(input);
-      // TODO: Thread synchronization. The callbacks are triggered from the RTMidi thread 
-      // - this could lead to simultaneous updates. But I don't think this would have a huge impact.
       while(true) {
         boost::this_thread::sleep(boost::posix_time::milliseconds(250));
         hexadial.send_values();
