@@ -32,11 +32,27 @@ void PacketPusher::push_value(uint32_t eid,
         case EP_TEMPERATURE: min_value = 15; max_value = 30; break;
         case EP_HUMIDITY: min_value = 0; max_value = 100; break;
         case EP_PRESSURE: min_value = 900; max_value = 1050; break;
+        case EP_PV_PRODUCTION: min_value = 0; max_value = 4000; break;
       }
-      hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
-            _info->get_device_name(_endpoint.address().to_v6()),
-            min_value, max_value));
-      _sensors->add_sensor(new_sensor);
+      // TODO: Hack for intersolar, clean things up
+      switch(eid) {
+        case EP_PV_PRODUCTION: 
+          {
+            hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
+                  std::string("PV Production"),
+                  min_value, max_value));
+            _sensors->add_sensor(new_sensor);
+            break;
+          }
+        default: 
+          {
+            hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
+                  _info->get_device_name(_endpoint.address().to_v6()),
+                  min_value, max_value));
+            _sensors->add_sensor(new_sensor);
+            break;
+          }
+      }
     } catch (const hexanode::CommunicationException& e) {
       // An error occured during network communication.
       std::cout << "Cannot submit sensor values (" << e.what() << ")" << std::endl;
