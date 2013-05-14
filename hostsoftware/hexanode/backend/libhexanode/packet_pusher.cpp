@@ -27,19 +27,31 @@ void PacketPusher::push_value(uint32_t eid,
         << " found - creating sensor with boilerplate data." << std::endl;
       int min_value = 0;
       int max_value = 0;
+      /*
+       * TODO: Hack for intersolar, clean things up. This should reside in 
+       * a separate configuration file (propertytree parser)
+       */
       switch(eid) {
         case EP_POWER_METER: min_value = 0; max_value = 3200; break;
         case EP_TEMPERATURE: min_value = 15; max_value = 30; break;
         case EP_HUMIDITY: min_value = 0; max_value = 100; break;
         case EP_PRESSURE: min_value = 900; max_value = 1050; break;
         case EP_PV_PRODUCTION: min_value = 0; max_value = 4000; break;
+        case EP_POWER_BALANCE: min_value = -4000; max_value = 4000; break;
       }
-      // TODO: Hack for intersolar, clean things up
       switch(eid) {
         case EP_PV_PRODUCTION: 
           {
             hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
                   std::string("PV Production"),
+                  min_value, max_value));
+            _sensors->add_sensor(new_sensor);
+            break;
+          }
+        case EP_POWER_BALANCE: 
+          {
+            hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
+                  std::string("Power Balance"),
                   min_value, max_value));
             _sensors->add_sensor(new_sensor);
             break;
