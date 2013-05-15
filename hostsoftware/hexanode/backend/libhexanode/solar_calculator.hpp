@@ -15,13 +15,19 @@ namespace hexanode {
           hexabus::Socket* receive_socket,
           hexabus::Socket* send_socket,
           const boost::asio::ip::udp::endpoint& endpoint,
-          const uint32_t peak_watt,
+          const uint32_t& pv_production_eid,
+          const uint32_t& pv_peak_watt,
+          const uint32_t& battery_eid,
+          const uint32_t& battery_peak_watt,
           Historian::Ptr historian
           )
         : _receive_socket(receive_socket)
         , _send_socket(send_socket)
         , _endpoint(endpoint)
-        , _peak_watt(peak_watt)
+        , _pv_production_eid(pv_production_eid)
+        , _pv_peak_watt(pv_peak_watt)
+        , _battery_eid(battery_eid)
+        , _battery_peak_watt(battery_peak_watt)
         , _historian(historian)
        {};
       virtual ~SolarCalculator() {};
@@ -33,7 +39,10 @@ namespace hexanode {
       hexabus::Socket* _receive_socket;
       hexabus::Socket* _send_socket;
       boost::asio::ip::udp::endpoint _endpoint;
-      uint32_t _peak_watt;
+      const uint32_t _pv_production_eid;
+      uint32_t _pv_peak_watt;
+      const uint32_t _battery_eid;
+      uint32_t _battery_peak_watt;
       hexanode::Historian::Ptr _historian;
 
       void push_value(const uint32_t eid, const uint8_t value);

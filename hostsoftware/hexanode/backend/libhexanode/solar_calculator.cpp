@@ -8,28 +8,28 @@ using namespace hexanode;
 void SolarCalculator::push_value(const uint32_t eid, 
     const uint8_t value)
 {
-  std::cout << "Received EID " << eid << std::endl;
-  switch (eid) {
-    case EP_GENERIC_DIAL_0:
-    case EP_GENERIC_DIAL_1:
-    case EP_GENERIC_DIAL_2:
-    case EP_GENERIC_DIAL_3:
-    case EP_GENERIC_DIAL_4:
-    case EP_GENERIC_DIAL_5:
-    case EP_GENERIC_DIAL_6:
-    case EP_GENERIC_DIAL_7:
-      {
-        std::cout << " value " << (uint16_t) value << std::endl;
-        uint32_t current_production = value * (_peak_watt/255);
-        _historian->set_production(current_production);
-        std::cout << "Sending calculated production: " << current_production 
-          << std::endl;
-        _send_socket->send(
-            hexabus::InfoPacket<uint32_t>(EP_PV_PRODUCTION, current_production));
-        break;
-      }
-    default:
-      std::cout << "Received unknown EID - discarding." << std::endl;
+  std::cout << "Received EID " << eid 
+    << " value " << (uint16_t) value << std::endl;
+  if (eid == _pv_production_eid) {
+    uint32_t current_production = value * (_pv_peak_watt/255);
+    _historian->add_production(_endpoint, eid, current_production);
+    std::cout << "Sending calculated production: " << current_production 
+      << std::endl;
+    _send_socket->send(
+        hexabus::InfoPacket<uint32_t>(EP_PV_PRODUCTION, current_production));
+  } else if (eid == _battery_eid) {
+    int32_t current_battery = ((value-127) * (_battery_peak_watt/127));
+    _historian->remove_device(_endpoint, eid);
+    if (current_battery < 0) {
+      _historian->add_production(_endpoint, eid, -1*current_battery);
+    } else {
+      _historian->add_consumption(_endpoint, eid, current_battery);
+    }
+    std::cout << "Battery update: " << current_battery << std::endl;
+    _send_socket->send(
+        hexabus::InfoPacket<float>(EP_BATTERY_BALANCE, current_battery));
+  } else {
+    std::cout << "Received unknown EID - discarding." << std::endl;
   }
 }
 
@@ -37,12 +37,13 @@ void SolarCalculator::push_value(const uint32_t eid,
 void SolarCalculator::push_value(const uint32_t eid, 
     const uint32_t value)
 {
-  std::cout << "Received EID " << eid << std::endl;
+  std::cout << "Received EID " << eid
+    << " value " << value << std::endl;
   switch (eid) {
     case EP_POWER_METER:
       {
         std::cout << "Received power measurement of " << value << std::endl;
-        _historian->add_consumption(_endpoint, value);
+        _historian->add_consumption(_endpoint, eid, value);
         break;
       }
     default:

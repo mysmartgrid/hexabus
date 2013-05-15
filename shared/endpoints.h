@@ -33,5 +33,6 @@
 #define EP_GENERIC_DIAL_7        40UL
 #define EP_PV_PRODUCTION         41UL
 #define EP_POWER_BALANCE         42UL
+#define EP_BATTERY_BALANCE       43UL
 
 #endif // ENDPOINTS_H_
