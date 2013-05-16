@@ -20,7 +20,7 @@ SET(ENABLE_LOGGING 1)
 #ENABLE_TESTING()
 
 set(V_MAJOR 0)
-set(V_MINOR 1)
+set(V_MINOR 2)
 set(V_PATCH 0)
 
 # add a path where some libraries might be stored
@@ -103,7 +103,14 @@ add_subdirectory(RtMidi)
 add_subdirectory(src)
 
 # add some files to the installation target
-INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexanode)
+INSTALL(FILES 
+  README.md LICENSE.txt 
+  DESTINATION share/doc/hexanode)
+
+INSTALL(FILES
+  etc/simulation.ini
+  DESTINATION share/doc/hexanode/simulation.ini)
+
 
 # CPACK packaging
 INCLUDE(InstallRequiredSystemLibraries)

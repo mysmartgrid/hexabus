@@ -20,17 +20,16 @@
                 </div>
                 <div class="span9">
                   <div class="row-fluid">
-
                     <ul class="inline">
-                      <% for (var i=0; i < sensorlist.length; i++) { 
-                      current=sensorlist[i];
-                      %>
-                      <li>
-                      <div id="<%=current.sensor_id%>" style="width:200px;height:160px"></div>
-                      </li>
+                      <% for (var i=0; i < sensorlist.length; i++) {  %>
+                      <%  current=sensorlist[i]; %>
+                      <% if (current.displaytype === "dashboard") { %>
+                          <li>
+                          <div id="<%=current.sensor_id%>" style="width:200px;height:160px"></div>
+                          </li>
+                        <% } %>
                       <% } %>
                     </ul>
-
                   </div>
                 </div>
               </div>
@@ -39,10 +38,26 @@
             </div>
             <div class="tab-pane" id="sensors">
               <h2 class="text-center">Sensors</h2>
-              <p align="center">
-              <div id="gauge" style="width:200px;height:160px"></div>
-              Last update: <div id="timestamp">n/a</div>
-              </p>
+              <div class="row-fluid">
+                <div class="span3">
+                  <p>Last update: <div id="timestamp">n/a</div></p>
+                </div>
+                <div class="span9">
+                  <div class="row-fluid">
+                    <ul class="inline">
+                      <% for (var i=0; i < sensorlist.length; i++) {  %>
+                        <% current=sensorlist[i]; %>
+                        <% if (current.displaytype === "sensors") { %>
+                          <li>
+                          <div id="<%=current.sensor_id%>" style="width:200px;height:160px"></div>
+                          </li>
+                        <% } %>
+                      <% } %>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
 
             </div>
             <div class="tab-pane" id="actors">
@@ -60,7 +75,7 @@
   </div>
 </div> 
 
-
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/raphael.2.1.0.min.js"></script>
 <script src="/js/justgage.1.0.1.min.js"></script>
@@ -81,6 +96,10 @@
         max: <%-JSON.stringify(current.maxvalue)%> 
       };
     <% } %>
+
+  $('a[data-toggle="tab"]').on('click', function (e) {
+    socket.emit('sensor_refresh_data');
+  }); 
 
   window.onload = function() {
     for (var g_id in gauge_data) {

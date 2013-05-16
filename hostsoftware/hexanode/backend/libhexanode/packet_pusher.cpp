@@ -10,7 +10,7 @@ void PacketPusher::push_value(uint32_t eid,
     const std::string& value)
 {
   std::ostringstream oss;
-  oss << _endpoint << "%" << eid;
+  oss << _endpoint.address() << "_" << eid;
   std::string sensor_id=oss.str();
   bool success=false;
   uint8_t retry_counter=0;
@@ -27,16 +27,61 @@ void PacketPusher::push_value(uint32_t eid,
         << " found - creating sensor with boilerplate data." << std::endl;
       int min_value = 0;
       int max_value = 0;
+      /*
+       * TODO: Hack for intersolar, clean things up. This should reside in 
+       * a separate configuration file (propertytree parser)
+       */
       switch(eid) {
         case EP_POWER_METER: min_value = 0; max_value = 3200; break;
         case EP_TEMPERATURE: min_value = 15; max_value = 30; break;
         case EP_HUMIDITY: min_value = 0; max_value = 100; break;
         case EP_PRESSURE: min_value = 900; max_value = 1050; break;
+        case EP_PV_PRODUCTION: min_value = 0; max_value = 4000; break;
+        case EP_POWER_BALANCE: min_value = -10000; max_value = 6000; break;
+        case EP_BATTERY_BALANCE: min_value = -5000; max_value = 5000; break;
       }
-      hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
-            _info->get_device_name(_endpoint.address().to_v6()),
-            min_value, max_value));
-      _sensors->add_sensor(new_sensor);
+      switch(eid) {
+        case EP_PV_PRODUCTION: 
+          {
+            hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
+                  std::string("PV Production"),
+                  min_value, max_value,
+                  std::string("dashboard")
+                  ));
+            _sensors->add_sensor(new_sensor);
+            break;
+          }
+        case EP_POWER_BALANCE: 
+          {
+            hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
+                  std::string("Power Balance"),
+                  min_value, max_value,
+                  std::string("dashboard")
+                  ));
+            _sensors->add_sensor(new_sensor);
+            break;
+          }
+        case EP_BATTERY_BALANCE: 
+          {
+            hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
+                  std::string("Battery"),
+                  min_value, max_value,
+                  std::string("dashboard")
+                  ));
+            _sensors->add_sensor(new_sensor);
+            break;
+          }
+        default: 
+          {
+            hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
+                  _info->get_device_name(_endpoint.address().to_v6()),
+                  min_value, max_value,
+                  std::string("sensors")
+                  ));
+            _sensors->add_sensor(new_sensor);
+            break;
+          }
+      }
     } catch (const hexanode::CommunicationException& e) {
       // An error occured during network communication.
       std::cout << "Cannot submit sensor values (" << e.what() << ")" << std::endl;

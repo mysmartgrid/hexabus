@@ -65,7 +65,7 @@ void MidiController::midievent_loop() {
     }
 
     // Sleep for 10 milliseconds ... platform-dependent.
-    boost::this_thread::sleep(boost::posix_time::milliseconds(20));
+    boost::this_thread::sleep(boost::posix_time::milliseconds(2));
   }
 }
 

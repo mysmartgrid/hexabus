@@ -14,11 +14,13 @@ namespace hexanode {
       Sensor(const std::string& sensor_id,
           const std::string& sensor_name,
           const int32_t min_value,
-          const int32_t max_value)
+          const int32_t max_value,
+          const std::string& type)
         : _sensor_id(sensor_id)
           , _sensor_name(sensor_name)
           , _min_value(min_value)
           , _max_value(max_value)
+          , _displaytype(type)
       {};
       virtual ~Sensor() {};
 
@@ -38,6 +40,7 @@ namespace hexanode {
       std::string _sensor_name;
       int32_t _min_value;
       int32_t _max_value;
+      std::string _displaytype;
   };
 };
 
