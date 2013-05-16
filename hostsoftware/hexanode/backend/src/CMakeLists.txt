@@ -22,7 +22,6 @@ include_directories(
 #  )
 
 add_executable(hxbnode ${hexanode_src})
-add_executable(demo_generator ${demo_generator_src})
 add_executable(push_values ${push_values_src})
 add_executable(simulate_energyflows ${simulate_energyflows_src})
 
@@ -32,13 +31,6 @@ target_link_libraries(hxbnode
   pthread
   rtmidi
   ${HXB_LIBRARIES}
-  ${Boost_LIBRARIES}
-)
-
-target_link_libraries(demo_generator
-  hexanode
-  ${CPPNETLIB_LIBRARIES}
-  ${OPENSSL_LIBRARIES}
   ${Boost_LIBRARIES}
 )
 
