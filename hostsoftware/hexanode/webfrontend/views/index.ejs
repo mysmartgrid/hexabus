@@ -97,7 +97,7 @@
       };
     <% } %>
 
-   $('a[data-toggle="tab"]').on('click', function (e) {
+  $('a[data-toggle="tab"]').on('click', function (e) {
     socket.emit('sensor_refresh_data');
   }); 
 
