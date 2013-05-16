@@ -20,6 +20,7 @@ var SensorCache = function() {
     response={};
     response["sensor_id"]=sensor.id;
     response["name"]=sensor.name;
+    response["displaytype"]=sensor.displaytype;
     response["minvalue"]=sensor.minvalue;
     response["maxvalue"]=sensor.maxvalue;
     response["values"]=sensor.values.toArray();
@@ -57,6 +58,10 @@ var SensorCache = function() {
     sensor.maxvalue=req.body.maxvalue;
     if (sensor.maxvalue == undefined) {
       res.send("Adding a sensor requires a maximum sensor value.", 422);
+    }
+    sensor.displaytype = req.body.displaytype;
+    if (sensor.displaytype == undefined) {
+      res.send("Adding a sensor requires a sensor type.", 422);
     }
     sensor.values=new CBuffer(BUFFER_SIZE);
     if (req.body.value != undefined) {

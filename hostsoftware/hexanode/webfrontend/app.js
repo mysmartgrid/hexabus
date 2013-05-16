@@ -15,8 +15,6 @@ nconf.defaults({
   'server': '10.23.1.253'
 });
 
-
-
 var sensorcache = new Cache();
 console.log("Using configuration: ");
 console.log(" - server: " + nconf.get('server'));

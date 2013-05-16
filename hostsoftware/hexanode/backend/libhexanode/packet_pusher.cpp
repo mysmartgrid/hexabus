@@ -10,7 +10,7 @@ void PacketPusher::push_value(uint32_t eid,
     const std::string& value)
 {
   std::ostringstream oss;
-  oss << _endpoint << "%" << eid;
+  oss << _endpoint.address() << "_" << eid;
   std::string sensor_id=oss.str();
   bool success=false;
   uint8_t retry_counter=0;
@@ -38,13 +38,16 @@ void PacketPusher::push_value(uint32_t eid,
         case EP_PRESSURE: min_value = 900; max_value = 1050; break;
         case EP_PV_PRODUCTION: min_value = 0; max_value = 4000; break;
         case EP_POWER_BALANCE: min_value = -4000; max_value = 4000; break;
+        case EP_BATTERY_BALANCE: min_value = -500; max_value = 500; break;
       }
       switch(eid) {
         case EP_PV_PRODUCTION: 
           {
             hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
                   std::string("PV Production"),
-                  min_value, max_value));
+                  min_value, max_value,
+                  std::string("dashboard")
+                  ));
             _sensors->add_sensor(new_sensor);
             break;
           }
@@ -52,7 +55,19 @@ void PacketPusher::push_value(uint32_t eid,
           {
             hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
                   std::string("Power Balance"),
-                  min_value, max_value));
+                  min_value, max_value,
+                  std::string("dashboard")
+                  ));
+            _sensors->add_sensor(new_sensor);
+            break;
+          }
+        case EP_BATTERY_BALANCE: 
+          {
+            hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
+                  std::string("Battery"),
+                  min_value, max_value,
+                  std::string("dashboard")
+                  ));
             _sensors->add_sensor(new_sensor);
             break;
           }
@@ -60,7 +75,9 @@ void PacketPusher::push_value(uint32_t eid,
           {
             hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
                   _info->get_device_name(_endpoint.address().to_v6()),
-                  min_value, max_value));
+                  min_value, max_value,
+                  std::string("sensors")
+                  ));
             _sensors->add_sensor(new_sensor);
             break;
           }
