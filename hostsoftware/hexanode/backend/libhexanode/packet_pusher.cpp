@@ -37,8 +37,8 @@ void PacketPusher::push_value(uint32_t eid,
         case EP_HUMIDITY: min_value = 0; max_value = 100; break;
         case EP_PRESSURE: min_value = 900; max_value = 1050; break;
         case EP_PV_PRODUCTION: min_value = 0; max_value = 4000; break;
-        case EP_POWER_BALANCE: min_value = -4000; max_value = 4000; break;
-        case EP_BATTERY_BALANCE: min_value = -500; max_value = 500; break;
+        case EP_POWER_BALANCE: min_value = -10000; max_value = 6000; break;
+        case EP_BATTERY_BALANCE: min_value = -5000; max_value = 5000; break;
       }
       switch(eid) {
         case EP_PV_PRODUCTION: 

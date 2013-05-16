@@ -3,9 +3,8 @@
 file(GLOB_RECURSE h_files "*.hpp,*.h")
 file(GLOB_RECURSE cpp_files "*.cpp")
 file(GLOB_RECURSE c_files "*.c")
-set(hexanode_src "hexanode.cpp")
-set(demo_generator_src "demo_generator.cpp")
-set(push_values_src "push_values.cpp")
+set(midi2hexabus_src "midi2hexabus.cpp")
+set(hexabus_webbackend_src "hexabus_webbackend.cpp")
 set(simulate_energyflows_src "simulate_energyflows.cpp")
 
 include_directories(
@@ -21,12 +20,12 @@ include_directories(
 #  #  ${SQLITE3_STATIC_LIBRARY_DIRS}
 #  )
 
-add_executable(hxbnode ${hexanode_src})
-add_executable(push_values ${push_values_src})
+add_executable(midi2hexabus ${midi2hexabus_src})
+add_executable(hexabus_webbackend ${hexabus_webbackend_src})
 add_executable(simulate_energyflows ${simulate_energyflows_src})
 
 # Link the executables
-target_link_libraries(hxbnode 
+target_link_libraries(midi2hexabus 
   hexanode
   pthread
   rtmidi
@@ -34,7 +33,7 @@ target_link_libraries(hxbnode
   ${Boost_LIBRARIES}
 )
 
-target_link_libraries(push_values
+target_link_libraries(hexabus_webbackend
   hexanode
   pthread
   ${CPPNETLIB_LIBRARIES}
@@ -54,8 +53,8 @@ target_link_libraries(simulate_energyflows
 
 # add programs to the install target 
 INSTALL(PROGRAMS 
-  ${CMAKE_CURRENT_BINARY_DIR}/hxbnode
-  ${CMAKE_CURRENT_BINARY_DIR}/push_values
+  ${CMAKE_CURRENT_BINARY_DIR}/midi2hexabus
+  ${CMAKE_CURRENT_BINARY_DIR}/hexabus_webbackend
   ${CMAKE_CURRENT_BINARY_DIR}/simulate_energyflows
   DESTINATION bin)
 

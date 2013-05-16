@@ -97,13 +97,7 @@
       };
     <% } %>
 
-  console.log("BAAAAAR");
- // $().on('click', function (e) {
- //   console.log("FUUUU");
- //   socket.emit('sensor_refresh_data');
- // })
-  $('a[data-toggle="tab"]').on('click', function (e) {
-    console.log("FUUU");
+   $('a[data-toggle="tab"]').on('click', function (e) {
     socket.emit('sensor_refresh_data');
   }); 
 
