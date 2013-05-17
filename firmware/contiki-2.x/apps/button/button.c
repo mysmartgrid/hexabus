@@ -103,7 +103,7 @@ static void button_iterate_once(void)
 						if (activeLevel) {
 							smState = ACTIVE;
 						} else {
-							if (d.clicked && d.click_ticks >= ticks) {
+							if (d.clicked && d.click_ticks <= ticks) {
 								d.clicked(bit);
 							}
 							if (d.pressed && d.pressed_ticks <= ticks) {
