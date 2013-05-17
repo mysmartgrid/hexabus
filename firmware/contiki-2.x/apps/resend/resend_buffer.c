@@ -1,76 +1,77 @@
 #include "resend_buffer.h"
 #include "contiki.h"
+#include "lib/memb.h"
+#include "lib/list.h"
 
 #include <stdint.h>
 #include <stddef.h>
+#include <string.h>
+#include <stdlib.h>
 
 struct buffer_entry {
+	struct buffer_entry *next;
 	uint16_t seqnum;
 	void* data;
 	int length;
 };
 
-static struct buffer_entry* resend_buffer[RESEND_BUFFER_SIZE];
+MEMB(resend_buffer, struct buffer_entry, RESEND_BUFFER_SIZE);
+LIST(resend_buffer_list);
 
-int write_to_buffer(uint16_t seqnum, void* data, int length) {
-	struct buffer_entry* new_entry = malloc(sizeof(struct buffer_entry));
-	new_entry->seqnum = seqnum;
-	new_entry->data = malloc(length);
-	new_entry->length = length;
-	memcpy(new_entry->data, data, length);
+int write_to_buffer(uint16_t seqnum, const void* data, int length) {
+	struct buffer_entry* e;
+	struct buffer_entry* old;
 
-	int i;
-	for(i=0;i<RESEND_BUFFER_SIZE;i++) {
-		if(resend_buffer[i] == NULL) {
-			resend_buffer[i] = new_entry;
-			return 0;
-		}
+
+	while((e=memb_alloc(&resend_buffer))==NULL) {
+		old = list_chop(resend_buffer_list);
+		free(old->data);
+		memb_free(&resend_buffer,old);
 	}
 
-	free(resend_buffer[0]->data);
-	free(resend_buffer[0]);
-	resend_buffer[0] = NULL;
+	void *sdata = malloc(length);
+	memcpy(sdata,data,length);
 
-	for(i=1;i<RESEND_BUFFER_SIZE;i++) {
-		resend_buffer[i-1] = resend_buffer[i];
-	}
+	e->seqnum = seqnum;
+	e->data = sdata;
+	e->length = length;
 
-	resend_buffer[RESEND_BUFFER_SIZE-1] = new_entry;
+	list_push(resend_buffer_list, e);
 
 	return 0;
 }
 
-int read_from_buffer(uint16_t seqnum, void** data, int* length) {
-	int i;
-	for(i=0;i<RESEND_BUFFER_SIZE;i++) {
-		if(resend_buffer[i]->seqnum == seqnum) {
-			*data = malloc(resend_buffer[i]->length);
-			memcpy(*data, resend_buffer[i]->data, resend_buffer[i]->length);
-			*length = resend_buffer[i]->length;
+int read_from_buffer(uint16_t seqnum, void* data, int* length) {
+
+	struct buffer_entry* e = list_head(resend_buffer_list);
+
+	while(e != NULL) {
+		if(e->seqnum == seqnum) {
+			void *rdata = malloc(e->length);
+			memcpy(rdata,e->data,e->length);
+			*length = e->length;
+			data = rdata;
 			return 0;
 		}
+		e = list_item_next(e);
 	}
-
 	return -1;
 }
 
 int clear_buffer() {
-	int i;
-	for(i=0;i<RESEND_BUFFER_SIZE;i++) {
-		free(resend_buffer[i]->data);
-		free(resend_buffer[i]);
-		resend_buffer[i] = NULL;
-	}
+	struct buffer_entry* e;
 
+	while(list_length(resend_buffer_list)) {
+		e = list_pop(resend_buffer_list);
+		free(e->data);
+		memb_free(&resend_buffer, e);
+	}
 	return 0;
 }
 
 int init_buffer() {
-	int i;
-	for(i=0;i<RESEND_BUFFER_SIZE;i++) {
-		resend_buffer[i] = NULL;
-	}
-
+	memb_init(&resend_buffer);
+	list_init(resend_buffer_list);
 	return 0;
 }
 

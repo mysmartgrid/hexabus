@@ -78,6 +78,8 @@
 #include "net/uip-ds6.h"
 #include "net/uip-mld.h"
 
+#include "sequence_number.h"
+
 #include <string.h>
 
 /*---------------------------------------------------------------------------*/
@@ -856,7 +858,6 @@ ext_hdr_options_process(void)
         break;
       case UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM:
 	PRINTF("Processing Hexabus sequence number\n");
-	//TODO parse sequence number header
 	printf("SeqNumfield: %u\n", UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_BUF->seqnum);
 	printf("Flags: %u\n", UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_BUF->flags);
 	if(parse_seqnum_header(uip_ext_opt_offset)) {

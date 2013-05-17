@@ -65,6 +65,8 @@
 #include "contiki-hexabus.h"
 #include "leds.h"
 
+#include "resend_buffer.h"
+
 /* Set ANNOUNCE to send boot messages to USB or RS232 serial port */
 #define ANNOUNCE 1
 
@@ -292,7 +294,7 @@ static void initialize(void)
 
 #if USB_CONF_RS232
 	/* Use rs232 port for serial out (tx, rx, gnd are the three pads behind jackdaw leds */
-	rs232_init(RS232_PORT_0, USART_BAUD_57600,USART_PARITY_NONE | USART_STOP_BITS_1 | USART_DATA_BITS_8);
+	rs232_init(RS232_PORT_0, USART_BAUD_38400,USART_PARITY_NONE | USART_STOP_BITS_1 | USART_DATA_BITS_8);
 	/* Redirect stdout to second port */
 	rs232_redirect_stdout(RS232_PORT_0);
 #if ANNOUNCE
@@ -324,6 +326,8 @@ static void initialize(void)
 
 	//Fix MAC address
 	init_net();
+
+	init_buffer();
 
 #if UIP_CONF_IPV6
 	memcpy(&uip_lladdr.addr, &tmp_addr.u8, 8);

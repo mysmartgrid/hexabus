@@ -182,7 +182,7 @@ extern uint8_t mac_log_802_15_4_rx(const uint8_t* buffer, size_t total_len);
  * The tx pad is the middle one behind the jackdaw leds.
  * RS232 output will work with or without enabling the USB serial port
  */
-#define USB_CONF_RS232           0
+#define USB_CONF_RS232           1
 
 
 /* ************************************************************************** */

@@ -12,6 +12,7 @@
 uip_buf_t uip_aligned_buf;
 
 uint16_t uip_len;
+uint8_t uip_ext_len;
 
 struct uip_stats uip_stat;
 

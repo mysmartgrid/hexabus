@@ -72,7 +72,7 @@ typedef struct {
 #define UIP_ETHTYPE_802154 0x809A
 
 extern usbstick_mode_t usbstick_mode;
-
+extern uip_lladdr_t *destAddrPtr;
 
 int8_t mac_translateIcmpLinkLayer(lltype_t target);
 int8_t mac_translateIPLinkLayer(lltype_t target);

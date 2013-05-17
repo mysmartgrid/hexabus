@@ -1,17 +1,23 @@
 #include "sequence_number.h"
 #include "resend_buffer.h"
-//#include "uip-udp-packet.h"
-#include "contiki-net.h"
-#include "../../../../../../shared/hexabus_packet.h"
+#include "net/uip-udp-packet.h"
+#include "../../../../shared/hexabus_definitions.h"
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+extern uint8_t uip_ext_len;
 
 static uint16_t sequence_number = 0;
 static uint8_t seqnum_valid = 0;
 static uint8_t missing_packets = 0;
 static struct ctimer request_timeout_timer;
-static struct uip_udp_conn *udpconn;
+static struct uip_udp_conn *udpconn = NULL;
 
 #define REQUEST_TINMEOUT CLOCK_SECOND*2 
 #define UDP_IP_BUF ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
+#define UIP_SEQNUM_BUF ((struct uip_ext_hdr_opt_exp_hxb_seqnum *)&uip_buf[uip_l2_l3_hdr_len+offset])
 
 uint16_t increase_seqnum() {
 sequence_number++;
@@ -27,7 +33,7 @@ uint16_t current_seqnum() {
 return sequence_number;
 }
 
-int compare_seqnum_greater_than(uint16_t seqnum) {
+int compare_seqnum_less_than(uint16_t seqnum) {
 //cf. RFC 1982
 if(((int16_t)seqnum - (int16_t)sequence_number)>0)
 	return 1;
@@ -57,50 +63,79 @@ void request_timeout_handler() {
 
 	printf("Request timed out! Resetting...\n");
 	if(UIP_HXB_SEQNUM_MASTER) {
-		send_flag_packet(UIP_EXT_SEQNUM_FLAG_SYNC);
+		send_flag_packet(NULL, 0, UIP_EXT_SEQNUM_FLAG_SYNC);
 	} else {
 		set_seqnum_invalid();
-		send_flag_packet(UIP_EXT_SEQNUM_FLAG_RESYNC);
+		send_flag_packet(NULL, 0, UIP_EXT_SEQNUM_FLAG_RESYNC);
 	}
 }
 
 void send_flag_packet(void* data, int len, uint16_t flags) {
+	
+	if(flags & UIP_EXT_SEQNUM_FLAG_REQUEST) {
+		if(ctimer_expired(&request_timeout_timer)) {
+			ctimer_set(&request_timeout_timer,REQUEST_TINMEOUT,&request_timeout_handler,NULL);
+		}
+	}
+
+#if RAVEN_REVISION == HEXABUS_USB
+	uip_len = len + UIP_LLH_LEN + UIP_IPH_LEN + UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN;
+	uip_udp_packet_send_flags(NULL, data, len, flags);
+
+#else
+	if(udpconn == NULL) {
+		udpconn = udp_new(NULL, UIP_HTONS(0), NULL);
+		udp_bind(udpconn, UIP_HTONS(HXB_PORT));
+	}
 
 	uip_ipaddr_copy(&udpconn->ripaddr, &UDP_IP_BUF->srcipaddr);
 	udpconn->rport = UDP_IP_BUF->srcport;
 	udpconn->lport = UIP_HTONS(HXB_PORT);
 
-	if(flags & UIP_EXT_SEQNUM_FLAG_RESEND) {
-		if(ctimer_expired(&request_timeout_timer)) {
-			ctimer_set(&request_timeout_timer,REQUEST_TINMEOUT,&request_timeout_handler,NULL);
-		}
-	}
 	uip_udp_packet_send_flags(udpconn, data, len, flags);
 
 	memset(&udpconn->ripaddr, 0, sizeof(udpconn->ripaddr));
 	udpconn->rport = 0;
+#endif
 }
 
-int parse_seqnum_header(struct uip_ext_hdr_opt_exp_hxb_seqnum* header) {
+int parse_seqnum_header(int offset) {
 	increase_seqnum();
 
-	if(header->flags & UIP_EXT_SEQNUM_FLAG_SYNC) {
-		if(header->flags & UIP_EXT_SEQNUM_FLAG_MASTER) {
+	printf("Got seqnum: %u\n", UIP_SEQNUM_BUF->seqnum);
+
+	if(UIP_SEQNUM_BUF->flags & UIP_EXT_SEQNUM_FLAG_SYNC) {
+		if(UIP_SEQNUM_BUF->flags & UIP_EXT_SEQNUM_FLAG_MASTER) {
 			printf("Got sync: ");
 			set_seqnum(current_seqnum()-1);
-			if(!seqnum_is_valid() || current_seqnum()!=header->seqnum) {
-				printf("Resyncing to %d\n", header->seqnum);
-				clear_buffer();
-				set_seqnum(header->seqnum);
+			if(current_seqnum()==UIP_SEQNUM_BUF->flags) {
 				set_seqnum_valid();
-			} else {
 				printf("Already synced\n");
+			} else if(!seqnum_is_valid()) {
+				printf("Resyncing to %d\n", UIP_SEQNUM_BUF->seqnum);
+				set_seqnum(UIP_SEQNUM_BUF->seqnum);
+				set_seqnum_valid();
+			} else if(compare_seqnum_less_than(UIP_SEQNUM_BUF->seqnum)) {
+				printf("Missing %u packets, requesting %u.\n", abs(UIP_SEQNUM_BUF->seqnum-current_seqnum()), current_seqnum());
+				set_seqnum_invalid();
+				clear_buffer();
+
+				missing_packets = abs(UIP_SEQNUM_BUF->seqnum-current_seqnum());
+
+				increase_seqnum();
+				send_flag_packet(NULL,0,UIP_EXT_SEQNUM_FLAG_REQUEST);
+				set_seqnum(current_seqnum()-1);
+			} else {
+				printf("Resyncing to %d\n", UIP_SEQNUM_BUF->seqnum);
+				set_seqnum(UIP_SEQNUM_BUF->seqnum);
+				clear_buffer();
+				set_seqnum_valid();
 			}
 		}
 		return 1;
 	}
 
-	if(header->flags & UIP_EXT_SEQNUM_FLAG_RESYNC) {
+	if(UIP_SEQNUM_BUF->flags & UIP_EXT_SEQNUM_FLAG_RESYNC) {
 		set_seqnum(current_seqnum()-1);
 
 		if(UIP_HXB_SEQNUM_MASTER) {
@@ -110,16 +145,16 @@ int parse_seqnum_header(struct uip_ext_hdr_opt_exp_hxb_seqnum* header) {
 		return 1;
 	}
 	
-	if(header->flags & UIP_EXT_SEQNUM_FLAG_RESEND) {
+	if(UIP_SEQNUM_BUF->flags & UIP_EXT_SEQNUM_FLAG_RESEND) {
 		printf("Got resend: ");
 		if(missing_packets!=0) {
-			if(header->seqnum==current_seqnum()) {
-				printf("Got missing packet %d\n", header->seqnum);
+			if(UIP_SEQNUM_BUF->seqnum==current_seqnum()) {
+				printf("Got missing packet %d\n", UIP_SEQNUM_BUF->seqnum);
 				missing_packets--;
 				ctimer_stop(&request_timeout_timer);
 
-				increase_seqnum();
 				if(missing_packets!=0) {
+					increase_seqnum();
 					printf("Still missing %d packets\n", missing_packets);
 					send_flag_packet(NULL, 0, UIP_EXT_SEQNUM_FLAG_REQUEST);
 					set_seqnum(current_seqnum()-1);
@@ -139,55 +174,70 @@ int parse_seqnum_header(struct uip_ext_hdr_opt_exp_hxb_seqnum* header) {
 		}
 	}
 	
-	if(header->flags & UIP_EXT_SEQNUM_FLAG_REQUEST) {
+	if(UIP_SEQNUM_BUF->flags & UIP_EXT_SEQNUM_FLAG_REQUEST) {
 		uint16_t tmp_seqnum = current_seqnum();
 		if(seqnum_is_valid()) {
-			void* data;
+			void* data=NULL;
 			int length;
 
 			printf("Got request: ");
-			if(read_from_buffer(header->seqnum, &data, &length)) {
-				printf("Resent %d\n", header->seqnum);
-				set_seqnum(header->seqnum);
+			if(!read_from_buffer(UIP_SEQNUM_BUF->seqnum, data, &length)) {
+				printf("Resent %d\n", UIP_SEQNUM_BUF->seqnum);
+				set_seqnum(UIP_SEQNUM_BUF->seqnum);
 				send_flag_packet(data,length,UIP_EXT_SEQNUM_FLAG_RESEND);
+				free(data);
 			} else {
-				printf("%d not in buffer\n", header->seqnum);
+				printf("%d not in buffer\n", UIP_SEQNUM_BUF->seqnum);
 			}
-
-			free(data);
 		}
 		set_seqnum(tmp_seqnum-1);
 		return 1;
 	}
 
-	if(seqnum_is_valid() && (header->flags & UIP_EXT_SEQNUM_FLAG_VALID)) {
-		if(current_seqnum()==header->seqnum) {
-			printf("Got correct sequence number.\n");
-			return 0;
-		} else if(compare_seqnum_greater_than(header->seqnum)) {
-			printf("Got packet %d, missing %d packets.\n", header->seqnum, header->seqnum-current_seqnum());
+	if(seqnum_is_valid() && (UIP_SEQNUM_BUF->flags & UIP_EXT_SEQNUM_FLAG_VALID)) {
+		if(current_seqnum()==UIP_SEQNUM_BUF->seqnum) {
+			//////TEST
+			set_seqnum(UIP_SEQNUM_BUF->seqnum-2);
 			send_flag_packet(NULL, 0, UIP_EXT_SEQNUM_FLAG_REQUEST);
-			missing_packets = abs(header->seqnum-current_seqnum());
-			set_seqnum_invalid();
-			clear_buffer();
 			set_seqnum(current_seqnum()-1);
 
+
+			return 1;
+
+			//////TEST
+
+			printf("Got correct sequence number.\n");
+			return 0;
+		} else if(UIP_HXB_SEQNUM_MASTER) {
+			printf("Someone is not in sync...sending resync\n");
+			set_seqnum(current_seqnum()-1);
+			send_flag_packet(NULL, 0, UIP_EXT_SEQNUM_FLAG_SYNC);
 			return 1;
 		} else {
-			printf("Already got packet %d, ignoring.\n", header->seqnum);
-			set_seqnum(current_seqnum()-1);
+			printf("Got wrong packet, requesting resync\n"); //TODO backoff?
+			//set_seqnum_invalid();
+			send_flag_packet(NULL, 0, UIP_EXT_SEQNUM_FLAG_RESYNC);
 			return 1;
 		}
-	} else {
-		if(header->flags & UIP_EXT_SEQNUM_FLAG_MASTER) {
-			printf("Got packet from master, using sequence number %d\n", header->seqnum);
-			set_seqnum(header->seqnum);
+	} else { //TODO wait for resync
+		if(UIP_SEQNUM_BUF->flags & UIP_EXT_SEQNUM_FLAG_MASTER && !UIP_HXB_SEQNUM_MASTER) {
+			printf("Got packet from master, using sequence number %d\n", UIP_SEQNUM_BUF->seqnum);
+			set_seqnum(UIP_SEQNUM_BUF->seqnum); //TODO reset buffer
 			set_seqnum_valid();
 			return 0;
-		} else {
-			printf("Got packet, but own or remote sequence number is not valid, ignoring\n");
-			send_flag_packet(NULL, 0, UIP_EXT_SEQNUM_FLAG_RESYNC);
+		} else if(UIP_HXB_SEQNUM_MASTER) {
+			printf("Remote seqnum is not valid, syncing...\n");
+			send_flag_packet(NULL, 0, UIP_EXT_SEQNUM_FLAG_SYNC);
 			return 1;		
+		} else {
+			printf("Own seqnum not valid, resyncing\n");
+			send_flag_packet(NULL, 0, UIP_EXT_SEQNUM_FLAG_RESYNC);			
+			return 1;
 		}
 	}
+}
+
+void resend_init() {
+	init_buffer();
+	send_flag_packet(NULL, 0, UIP_EXT_SEQNUM_FLAG_RESYNC);
 }

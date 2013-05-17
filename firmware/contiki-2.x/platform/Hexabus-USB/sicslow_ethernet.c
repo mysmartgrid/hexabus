@@ -238,6 +238,9 @@
 #include "rndis/rndis_protocol.h"
 #include "rndis/rndis_task.h"
 
+
+#include "sequence_number.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -250,6 +253,17 @@
 #endif
 
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
+#define UIP_EXT_BUF ((struct uip_ext_hdr *)&uip_buf[uip_l2_l3_hdr_len])
+#define UIP_EXT_OPT_BUF ((struct uip_ext_hdr_opt *)&uip_buf[uip_l2_l3_hdr_len+uip_ext_opt_offset])
+#define UIP_DESTO_BUF  ((struct uip_hbho_hdr *)&uip_buf[UIP_LLH_LEN+UIP_IPH_LEN])
+#define UIP_SEQNUM_BUF ((struct uip_ext_hdr_opt_exp_hxb_seqnum *)&uip_buf[UIP_LLH_LEN+UIP_IPH_LEN+UIP_HBHO_LEN])
+
+static uint8_t uip_ext_opt_offset = 0;
+
+#define UIP_UDP_BUF ((struct uip_udp_hdr *)&uip_buf[uip_l2_l3_hdr_len])
+
+#define IS_EXT_HEADER(PROTO) ((PROTO==UIP_PROTO_HBHO) || (PROTO==UIP_PROTO_DESTO) || (PROTO==UIP_PROTO_ROUTING) || (PROTO==UIP_PROTO_FRAG))
+
 #define ETHBUF(x) ((struct uip_eth_hdr *)x)
 
 //For little endian, such as our friend mr. AVR
@@ -263,6 +277,8 @@ static const uint64_t simple_trans_ethernet_addr = 0x3E3D3C3B3AF2ULL;
 #if UIP_CONF_IPV6_RPL
 static uip_ipaddr_t last_sender;
 #endif
+
+uip_lladdr_t *destAddrPtr = NULL;
 
 extern uint64_t usb_ethernet_addr;
 
@@ -333,7 +349,7 @@ void mac_ethernetToLowpan(uint8_t * ethHeader)
 {
   //Dest address
   uip_lladdr_t destAddr;
-  uip_lladdr_t *destAddrPtr = NULL;
+  destAddrPtr = NULL;
 
   PRINTF("Packet type: 0x%04x\n\r", uip_ntohs(((struct uip_eth_hdr *) ethHeader)->type));
 
@@ -450,6 +466,40 @@ void mac_ethernetToLowpan(uint8_t * ethHeader)
 #endif
   }
 
+//Add sequence number to packet
+
+#if UIP_CONF_IPV6
+
+//TODO handle other headers
+if(UIP_IP_BUF->proto == UIP_PROTO_UDP) {
+  printf("Sending seqnum ");
+
+  int len = uip_len + UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN;
+  memmove(&uip_buf[UIP_LLH_LEN+UIP_IPH_LEN+UIP_HBHO_LEN+UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN],
+          &uip_buf[UIP_LLH_LEN+UIP_IPH_LEN], len>UIP_BUFSIZE?UIP_BUFSIZE:len-UIP_LLH_LEN-UIP_IPH_LEN);
+
+  uip_len += UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN;
+  UIP_IP_BUF->proto = UIP_PROTO_DESTO;
+  UIP_IP_BUF->len[0] = ((uip_len - UIP_IPH_LEN) >> 8);
+  UIP_IP_BUF->len[1] = ((uip_len - UIP_IPH_LEN) & 0xff);
+  UIP_DESTO_BUF->next = UIP_PROTO_UDP;
+  UIP_DESTO_BUF->len  = (UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN) / 8  - 1;
+  UIP_SEQNUM_BUF->tag = UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM;
+  UIP_SEQNUM_BUF->len = UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN - 2;
+  UIP_SEQNUM_BUF->flags = (UIP_HXB_SEQNUM_MASTER? UIP_EXT_SEQNUM_FLAG_MASTER:0) |
+    (seqnum_is_valid() ? UIP_EXT_SEQNUM_FLAG_VALID:0);
+  UIP_SEQNUM_BUF->seqnum = increase_seqnum();
+  printf("%u\n", UIP_SEQNUM_BUF->seqnum);
+
+  write_to_buffer(current_seqnum(),UIP_IP_BUF[UIP_LLH_LEN+UIP_IPH_LEN+UIP_HBHO_LEN+UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN],
+                  uip_len-UIP_LLH_LEN-UIP_IPH_LEN-UIP_HBHO_LEN-UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN);
+
+}
+
+#endif
+
+//////////////////////////////////////
+
 #if UIP_CONF_IPV6
 /* Send the packet to the uip6 stack if it exists, else send to 6lowpan */
 #if UIP_CONF_IPV6_RPL
@@ -544,6 +594,22 @@ void mac_LowpanToEthernet(void)
     }
 #endif
 
+/* Parse sequencen number */
+  uip_ext_len = 0;
+
+  if(UIP_IP_BUF->proto == UIP_PROTO_DESTO || UIP_IP_BUF->proto == UIP_PROTO_HBHO) {
+    uip_ext_opt_offset = 0;
+    
+    while(uip_ext_opt_offset < (UIP_EXT_BUF->len << 3) + 8) {
+        if(UIP_EXT_OPT_BUF->type == UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM) {
+          if(parse_seqnum_header(uip_ext_opt_offset))
+            return;
+        }
+        uip_ext_opt_offset += UIP_EXT_OPT_BUF->len+2;
+     }
+    uip_ext_len += (UIP_EXT_BUF->len << 3) + 8;
+  }
+
   PRINTF("Low2Eth: Sending packet to ethernet\n\r");
 
   uip_len += UIP_LLH_LEN;
@@ -553,6 +619,7 @@ void mac_LowpanToEthernet(void)
   usb_eth_stat.rxok++;
 #endif
   uip_len = 0;
+
 }
 
 /**

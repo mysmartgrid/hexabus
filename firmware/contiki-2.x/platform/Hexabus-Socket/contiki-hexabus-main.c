@@ -111,6 +111,7 @@
 #include "udp_handler.h"
 #include "state_machine.h"
 #include "hexabus_app_bootstrap.h"
+#include "sequence_number.h"
 
 // optional HEXABUS apps
 #if VALUE_BROADCAST_ENABLE
@@ -311,6 +312,7 @@ void initialize(void)
   /* periodically print memory usage */
   process_start(&memory_debugger_process, NULL);
 #endif
+
 
   /* Handler for HEXABUS UDP Packets */
   process_start(&udp_handler_process, NULL);

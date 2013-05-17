@@ -48,11 +48,16 @@ extern uint16_t uip_slen;
 #include "resend_buffer.h"
 #include "sequence_number.h"
 
-#include <string.h>
+#if RAVEN_REVISION==HEXABUS_USB
+  #include "sicslow_ethernet.h"
+#endif
 
-#define UIP_IP_BUF                          ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
-#define UIP_DESTO_BUF                        ((struct uip_hbho_hdr *)&uip_buf[UIP_LLH_LEN+UIP_IPH_LEN])
-#define UIP_SEQNUM_BUF                        ((struct uip_ext_hdr_opt_exp_hxb_seqnum *)&uip_buf[UIP_LLH_LEN+UIP_IPH_LEN+UIP_HBHO_LEN])
+#include <string.h>
+#include <stdio.h>
+
+#define UIP_IP_BUF      ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
+#define UIP_DESTO_BUF   ((struct uip_hbho_hdr *)&uip_buf[UIP_LLH_LEN+UIP_IPH_LEN])
+#define UIP_SEQNUM_BUF  ((struct uip_ext_hdr_opt_exp_hxb_seqnum *)&uip_buf[UIP_LLH_LEN+UIP_IPH_LEN+UIP_HBHO_LEN])
 
 
 static uint16_t hxb_flags = 0;
@@ -62,14 +67,22 @@ void
 uip_udp_packet_send(struct uip_udp_conn *c, const void *data, int len)
 {
 #if UIP_UDP
-  if(data!=NULL) {
+  #if RAVEN_REVISION != HEXABUS_USB
+  if(data!=NULL && c !=NULL) {
     uip_udp_conn = c;
     uip_slen = len;
     memcpy(&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN], data,
            len > UIP_BUFSIZE? UIP_BUFSIZE: len);
     uip_process(UIP_UDP_SEND_CONN);
-    memmove(&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN + UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN],&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN], (len+UIP_UDPH_LEN) > UIP_BUFSIZE? UIP_BUFSIZE: (len+UIP_UDPH_LEN)); // Make space for the DESTO header
-   }
+    memmove(&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN + UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN],&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN], (len+UIP_UDPH_LEN + UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN) > UIP_BUFSIZE? (UIP_BUFSIZE - UIP_HBHO_LEN - UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN) : (len+UIP_UDPH_LEN));
+    uip_slen = 0;
+  }
+
+  #endif
+
+  if(c == NULL) {
+    memcpy(&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN + UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN], data, (len+UIP_LLH_LEN+UIP_IPH_LEN+UIP_HBHO_LEN+UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN)>UIP_BUFSIZE?UIP_BUFSIZE:len);
+  }
 	
 #if UIP_CONF_IPV6
 
@@ -88,19 +101,25 @@ uip_udp_packet_send(struct uip_udp_conn *c, const void *data, int len)
     	UIP_SEQNUM_BUF->seqnum = increase_seqnum();
     	write_to_buffer(current_seqnum(),data,len);
     } else {
-	UIP_SEQNUM_BUF->seqnum = current_seqnum();	
+      UIP_SEQNUM_BUF->seqnum = current_seqnum();	
     }
 
+    printf("Sending nr %u\n", current_seqnum());
+
+#if RAVEN_REVISION==HEXABUS_USB
+    tcpip_output(destAddrPtr);
+#else
     tcpip_ipv6_output();
+#endif
 
 #else
     if(uip_len > 0) {
       tcpip_output();
     }
 #endif
-  uip_slen = 0;
+  uip_len = 0;
   hxb_flags = 0;
-#endif /* UIP_UDP */
+#endif
 }
 
 void
