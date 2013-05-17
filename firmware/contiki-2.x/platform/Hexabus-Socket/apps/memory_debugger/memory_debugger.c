@@ -8,10 +8,14 @@
 #include "memory_debugger.h"
 #include "contiki.h"
 #include "sys/etimer.h"
+#include <stdio.h>
 
 
 PROCESS(memory_debugger_process, "Memory Debugger Process");
 AUTOSTART_PROCESSES(&memory_debugger_process);
+
+#define LOG_LEVEL LOG_DEBUG
+#include "syslog.h"
 
 #define PRINTF(...) printf(__VA_ARGS__)
 //static struct etimer memory_debugger_periodic_timer;
@@ -19,25 +23,24 @@ AUTOSTART_PROCESSES(&memory_debugger_process);
 /*---------------------------------------------------------------------------*/
 static void
 pollhandler(void) {
-	PRINTF("----Socket_memory_debugger_handler: Process polled\r\n");
+	syslog(LOG_DEBUG, "Process polled");
 }
 
 static void
 exithandler(void) {
-	PRINTF("----Socket_memory_debugger_handler: Process exits.\r\n");
+	syslog(LOG_DEBUG, "Process exits.");
 }
 /*---------------------------------------------------------------------------*/
 
 void print_mem_usage(void) {
-  PRINTF("MEMDBG: %d bytes free\r\n", 
-      get_current_free_bytes());
+	syslog(LOG_DEBUG, "%d bytes free", get_current_free_bytes());
 }
 
 void
 memory_debugger_init(void)
 {
-  PRINTF("-- MEMDBG: INIT\r\n");
-  print_mem_usage();
+	syslog(LOG_DEBUG, "INIT");
+	print_mem_usage();
 }
 
 PROCESS_THREAD(memory_debugger_process, ev, data)
@@ -47,7 +50,7 @@ PROCESS_THREAD(memory_debugger_process, ev, data)
   PROCESS_BEGIN();
   PROCESS_PAUSE();
   memory_debugger_init();
-  PRINTF("MEMDBG: process started\n");
+  syslog(LOG_DEBUG, "process started");
 
 
   etimer_set(&periodic, MEMORY_DEBUGGER_INTERVAL*CLOCK_SECOND);

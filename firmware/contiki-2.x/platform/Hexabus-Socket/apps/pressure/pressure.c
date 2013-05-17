@@ -3,14 +3,13 @@
 #include "hexabus_config.h"
 #include "contiki.h"
 
+#include "endpoint_registry.h"
+#include "endpoints.h"
+
 #include <util/delay.h>
 
-#if PRESSURE_DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL PRESSURE_DEBUG
+#include "syslog.h"
 
 static int16_t ac1;
 static int16_t ac2;
@@ -27,7 +26,8 @@ static int16_t md;
 static int32_t pressure = 0;
 static float pressure_temp = 0;
 
-uint16_t pressure_read16(uint8_t addr) {
+
+static uint16_t pressure_read16(uint8_t addr) {
     if(i2c_write_bytes(BMP085_ADDR, &addr, 1)) {
         return 0;
     }
@@ -42,7 +42,7 @@ uint16_t pressure_read16(uint8_t addr) {
 
 }
 
-uint8_t pressure_read8(uint8_t addr) {
+static uint8_t pressure_read8(uint8_t addr) {
     if(i2c_write_bytes(BMP085_ADDR, &addr, 1)) {
         return 0;
     }
@@ -57,46 +57,58 @@ uint8_t pressure_read8(uint8_t addr) {
 
 }
 
+static enum hxb_error_code read(struct hxb_value* value)
+{
+	value->v_float = read_pressure();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_name[] PROGMEM = "Barometric pressure sensor";
+ENDPOINT_DESCRIPTOR endpoint_pressure = {
+	.datatype = HXB_DTYPE_FLOAT,
+	.eid = EP_PRESSURE,
+	.name = ep_name,
+	.read = read,
+	.write = 0
+};
+
 void pressure_init() {
-  
-    ac1 = pressure_read16(AC1_ADDR);
-    ac2 = pressure_read16(AC2_ADDR);
-    ac3 = pressure_read16(AC3_ADDR);
-    ac4 = pressure_read16(AC4_ADDR);
-    ac5 = pressure_read16(AC5_ADDR);
-    ac6 = pressure_read16(AC6_ADDR);
-    b1 = pressure_read16(B1_ADDR);
-    b2 = pressure_read16(B2_ADDR);
-    mb = pressure_read16(MB_ADDR);
-    mc = pressure_read16(MC_ADDR);
-    md = pressure_read16(MD_ADDR);
-
-    process_start(&pressure_process,NULL);
-
-    PRINTF("Pressure init complete");
-
+  ENDPOINT_REGISTER(endpoint_pressure);
+  ac1 = pressure_read16(AC1_ADDR);
+  ac2 = pressure_read16(AC2_ADDR);
+  ac3 = pressure_read16(AC3_ADDR);
+  ac4 = pressure_read16(AC4_ADDR);
+  ac5 = pressure_read16(AC5_ADDR);
+  ac6 = pressure_read16(AC6_ADDR);
+  b1 = pressure_read16(B1_ADDR);
+  b2 = pressure_read16(B2_ADDR);
+  mb = pressure_read16(MB_ADDR);
+  mc = pressure_read16(MC_ADDR);
+  md = pressure_read16(MD_ADDR);
+  syslog(LOG_DEBUG, "Pressure init complete");
 }
 
 float read_pressure() {
-    return pressure/100.0; //convert Pa to hPa;
+  return pressure/100.0; //convert Pa to hPa;
 }
 
 float read_pressure_temp() {
-    return pressure_temp;
+  return pressure_temp;
 }
+
 
 PROCESS(pressure_process, "Priodically reads the pressure sensor");
 
 PROCESS_THREAD(pressure_process, ev, data) {
 
-static struct etimer pressure_read_delay_timer;
-static uint16_t ut;
-static uint32_t up;
-static uint8_t pressure_write[2];
+  static struct etimer pressure_read_delay_timer;
+  static uint16_t ut;
+  static uint32_t up;
+  static uint8_t pressure_write[2];
 
-PROCESS_BEGIN();
+  PROCESS_BEGIN();
 
-while(1) {
+  while(1) {
 
     //Read Temperature
     pressure_write[0] = BMP085_CONTROL;
@@ -105,7 +117,7 @@ while(1) {
 
     etimer_set(&pressure_read_delay_timer, CLOCK_SECOND*PRESSURE_READ_TEMP_DELAY/1000);
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&pressure_read_delay_timer));
-    
+
     ut = pressure_read16(BMP085_VALUE);
 
     //Read Pressure
@@ -115,13 +127,13 @@ while(1) {
 
     etimer_set(&pressure_read_delay_timer, CLOCK_SECOND*PRESSURE_READ_DELAY/1000);  //TODO: oversampling related dalay
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&pressure_read_delay_timer));
-    
+
     up = pressure_read16(BMP085_VALUE);
     up <<= 8;
     up |= pressure_read8(BMP085_VALUE_XLSB);
     up >>= (8-PRESSURE_OVERSAMPLING);
 
-    PRINTF("Raw pressure: %lu ,%u\n", up, ut);
+    syslog(LOG_DEBUG, "Raw pressure: %lu ,%u", up, ut);
 
     //Calculate real temperature (refer datasheet)
     int32_t x1 = (((int32_t)ut-(int32_t)ac6)*(int32_t)ac5)/32768;
@@ -144,9 +156,9 @@ while(1) {
     int32_t p;
 
     if (b7<0x80000000) {
-        p = (b7*2)/b4;
+      p = (b7*2)/b4;
     } else {
-        p = (b7/b4)*2;
+      p = (b7/b4)*2;
     }
 
     x1 = (p/256)*(p/256);
@@ -155,11 +167,11 @@ while(1) {
 
     pressure = p+((x1+x2+(int32_t)3791)/16);
 
-    PRINTF("Real pressure: %ld \n", pressure);
-    
+    syslog(LOG_DEBUG, "Real pressure: %ld", pressure);
+
     etimer_set(&pressure_read_delay_timer, CLOCK_SECOND*PRESSURE_READ_DELAY);
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&pressure_read_delay_timer));
-}
+  }
 
-PROCESS_END();
+  PROCESS_END();
 }

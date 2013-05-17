@@ -28,16 +28,15 @@
  *
  * This file is part of the Contiki operating system.
  *
- * @(#)$Id: elfloader-avr.c,v 1.10 2009/07/16 18:02:34 dak664 Exp $
  */
 
 #include <stdio.h>
 #include <avr/boot.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
-#include "dev/rs232.h"
 #include "elfloader-arch.h"
 #include "lib/mmem.h"
+#include <string.h> //memset
 
 #define R_AVR_NONE             0
 #define R_AVR_32               1
@@ -63,8 +62,8 @@
 
 #define DEBUG 0
 #if DEBUG
-/*#define PRINTF(...) rs232_print_p(RS232_PORT_1, __VA_ARGS__)*/
-#define PRINTF(...) printf(__VA_ARGS__)
+#include <avr/pgmspace.h>
+#define PRINTF(FORMAT,args...) printf_P(PSTR(FORMAT),##args)
 #else
 #define PRINTF(...)
 #endif
@@ -116,7 +115,7 @@ BOOTLOADER_SECTION void
 elfloader_arch_write_rom(int fd, unsigned short textoff, unsigned int size, char *mem)
 {
     unsigned char   buf[SPM_PAGESIZE];
-    unsigned short* flashptr = mem;
+    unsigned short* flashptr = (unsigned short *) mem;
 
 
     // Sanity-check size of loadable module
@@ -127,7 +126,7 @@ elfloader_arch_write_rom(int fd, unsigned short textoff, unsigned int size, char
     // Seek to patched module and burn it to flash (in chunks of
     // size SPM_PAGESIZE, i.e. 256 bytes on the ATmega128)
     cfs_seek(fd, textoff, CFS_SEEK_SET);
-    for (flashptr=mem; flashptr < mem + size; flashptr += SPM_PAGESIZE) {
+    for (flashptr=(unsigned short *)mem; flashptr < (unsigned short *) mem + size; flashptr += SPM_PAGESIZE) {
 	memset (buf, 0, SPM_PAGESIZE);
 	cfs_read(fd, buf, SPM_PAGESIZE);
 
@@ -304,7 +303,7 @@ elfloader_arch_relocate(int fd, unsigned int sectionoffset,
 	*/
 
 	/* new solution */
-    instr[2] = (u8_t) ((int)addr) & 0xff;
+    instr[2] = (uint8_t) ((int)addr) & 0xff;
     instr[3] = ((int)addr) >> 8;
     cfs_write(fd, instr, 4);
     break;

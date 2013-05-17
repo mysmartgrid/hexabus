@@ -6,30 +6,60 @@
 #include "hexabus_config.h"
 #include "value_broadcast.h"
 #include "hexonoff.h"
+#include "endpoints.h"
+#include "endpoint_registry.h"
+#include <string.h>
 
-#if IR_RECEIVER_DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL IR_RECEIVER_DEBUG
+#include "syslog.h"
 
-static uint32_t ir_time = 0;
-static uint32_t ir_time_since_last = 0;
-static uint8_t ir_data[4] = {0,0,0,0};
-static uint8_t ir_prev_data[4] = {0,0,0,0};
-static uint8_t ir_state = IR_IDLE_STATE;
-static uint8_t ir_edge_dir = IR_EDGE_DOWN;
-static uint8_t ir_repeat = 0;
-static uint8_t ir_bit = 0;
-static uint8_t ir_byte = 0;
+static uint32_t ir_time;
+static uint32_t ir_time_since_last;
+static uint8_t ir_data[4];
+static uint8_t ir_prev_data[4];
+static uint8_t ir_state;
+static uint8_t ir_edge_dir;
+static uint8_t ir_repeat;
+static uint8_t ir_bit;
+static uint8_t ir_byte;
 static uint8_t ir_last_data[4];
 
 static struct timer ir_rep_timer;
 
+static uint32_t ir_get_last_command(void);
+
+static enum hxb_error_code read(struct hxb_value* value)
+{
+	value->v_u32 = ir_get_last_command();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_name[] PROGMEM = "IR remote control receiver";
+ENDPOINT_DESCRIPTOR endpoint_ir_receiver = {
+	.datatype = HXB_DTYPE_UINT32,
+	.eid = EP_IR_RECEIVER,
+	.name = ep_name,
+	.read = read,
+	.write = 0
+};
+
 void ir_receiver_init() {
 
-    PRINTF("IR receiver init\n");
+    ir_time = 0;
+    ir_time_since_last = 0;
+
+    int i;
+    for(i=0;i<4;i++) {
+        ir_data[i] = 0;
+        ir_prev_data[i] = 0;
+    }
+    ir_state = IR_IDLE_STATE;
+    ir_edge_dir = IR_EDGE_DOWN;
+    ir_repeat = 0;
+    ir_bit = 0;
+    ir_byte = 0;
+
+    syslog(LOG_DEBUG, "IR receiver init");
     EICRA |= (1<<ISC21 );
     EIMSK |= (1<<INT2 );
 
@@ -40,8 +70,9 @@ void ir_receiver_init() {
 
     timer_set(&ir_rep_timer,CLOCK_SECOND*IR_REP_DELAY);
 
-    process_start(&ir_receiver_process, NULL);
     sei();
+
+	ENDPOINT_REGISTER(endpoint_ir_receiver);
 }
 
 void ir_receiver_reset() {
@@ -55,7 +86,7 @@ void ir_receiver_reset() {
     ir_edge_dir = IR_EDGE_DOWN;
 }
 
-uint32_t ir_get_last_command() {
+static uint32_t ir_get_last_command() {
 #if IR_RECEIVER_RAW_MODE
     return *(uint32_t*) ir_last_data;
 #else
@@ -131,7 +162,7 @@ uint32_t ir_get_last_command() {
 }
 
 uint32_t to_be_repeated() {
-   if(!IR_REPEAT) { 
+   if(!IR_REPEAT) {
        return 0;
    } else if(IR_RECEIVER_RAW_MODE) {
         return 1;
@@ -152,14 +183,14 @@ PROCESS_THREAD(ir_receiver_process, ev, data) {
 
         if(ev == PROCESS_EVENT_POLL) {
             if(ir_repeat) {
-                PRINTF("Got repeat signal \n");
+                syslog(LOG_DEBUG, "Got repeat signal");
                 ir_repeat = 0;
             } else {
                 if(*(int32_t*)ir_prev_data != *(int32_t*)ir_last_data || timer_expired(&ir_rep_timer) || to_be_repeated()) {
                     memcpy(ir_prev_data, ir_last_data, 4);
                     timer_restart(&ir_rep_timer);
-                    PRINTF("Got new command %d,%d,%d,%d!\n", ir_last_data[0],ir_last_data[1],ir_last_data[2],ir_last_data[3]);
-                    broadcast_value(30);
+                    syslog(LOG_DEBUG, "Got new command %d,%d,%d,%d!", ir_last_data[0],ir_last_data[1],ir_last_data[2],ir_last_data[3]);
+                    broadcast_value(EP_IR_RECEIVER);
                 } else {
                     timer_restart(&ir_rep_timer);
                 }

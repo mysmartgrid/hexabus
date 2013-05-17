@@ -1,0 +1,43 @@
+interface usb0 {
+	IgnoreIfMissing on;
+
+	AdvSendAdvert on;
+	AdvCurHopLimit 128;
+	route ::/0 {
+	};
+	prefix fd00::/64 {
+		AdvOnLink on;
+		AdvAutonomous on;
+	};
+};
+
+interface usb1 {
+	IgnoreIfMissing on;
+
+	AdvSendAdvert on;
+	AdvCurHopLimit 128;
+	route ::/0 {
+	};
+	prefix fd01::/64 {
+		AdvOnLink on;
+		AdvAutonomous on;
+	};
+};
+
+interface veth0 {
+	IgnoreIfMissing on;
+
+	AdvSendAdvert on;
+	AdvCurHopLimit 128;
+	route fd00::/64 {
+	};
+};
+
+interface veth1 {
+	IgnoreIfMissing on;
+
+	AdvSendAdvert on;
+	AdvCurHopLimit 128;
+	route fd01::/64 {
+	};
+};

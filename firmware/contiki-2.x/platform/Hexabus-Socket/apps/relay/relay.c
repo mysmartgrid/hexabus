@@ -38,9 +38,12 @@
 #include "dev/leds.h"
 #include <avr/eeprom.h>
 #include "eeprom_variables.h"
+#include "hexabus_config.h"
+#include "metering.h"
+#include "endpoints.h"
+#include "endpoint_registry.h"
 
 
-#define PRINTF(...) printf(__VA_ARGS__)
 /** \brief This is a file internal variable that contains the default state of the relay.
  *
  */
@@ -84,6 +87,7 @@ relay_toggle(void)
 void
 relay_on(void)
 {
+#if ! METERING_ENERGY_PERSISTENT
   if (!relay_state)
     {
 #if RELAY_POWER_SAVING
@@ -101,11 +105,13 @@ relay_on(void)
       relay_leds();
       metering_reset();
     }
+#endif
 }
 
 void
 relay_off(void)
 {
+#if ! METERING_ENERGY_PERSISTENT
 #if RELAY_POWER_SAVING
   DISABLE_RELAY_PWM();
   SET_RELAY_PWM(0x00);
@@ -116,6 +122,7 @@ relay_off(void)
   relay_state = 0;
   relay_leds();
   metering_reset();
+#endif
 }
 
 void
@@ -141,9 +148,35 @@ set_relay_default(bool d_value)
     }
 }
 
+static enum hxb_error_code read(struct hxb_value* value)
+{
+	value->v_bool = relay_get_state() == 0 ? HXB_TRUE : HXB_FALSE;
+	return HXB_ERR_SUCCESS;
+}
+
+static enum hxb_error_code write(const struct hxb_envelope* env)
+{
+	if (env->value.v_bool == HXB_TRUE) {
+		relay_off();  // Note that the relay is connected in normally-closed position, so relay_off turns the power on and vice-versa
+	} else {
+		relay_on();
+	}
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_name[] PROGMEM = "Main Switch";
+ENDPOINT_DESCRIPTOR endpoint_relay = {
+	.datatype = HXB_DTYPE_BOOL,
+	.eid = EP_POWER_SWITCH,
+	.name = ep_name,
+	.read = read,
+	.write = write
+};
+
 void
 relay_init(void)
 {
+#if ! METERING_ENERGY_PERSISTENT
   /* Load reference values from EEPROM */
   relay_default_state = (bool) eeprom_read_byte((void*) EE_RELAY_DEFAULT);
 
@@ -160,5 +193,6 @@ relay_init(void)
 
   //set default state according to eeprom value
   relay_default();
+#endif
+	ENDPOINT_REGISTER(endpoint_relay);
 }
-

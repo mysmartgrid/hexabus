@@ -27,7 +27,11 @@
  *
  */
 
+#include "value_broadcast.h"
+
 #include "contiki.h"
+#include "lib/crc16.h"
+#include <stdlib.h>
 #include "lib/random.h"
 #include "sys/ctimer.h"
 #include "net/uip.h"
@@ -36,21 +40,21 @@
 #include "sys/ctimer.h"
 #include "hexabus_config.h"
 #include "state_machine.h"
+#include "endpoint_registry.h"
+#include "udp_handler.h"
 
-#include "../../../../../../shared/hexabus_packet.h"
+#include "hexabus_packet.h"
 
 #include <stdio.h>
 #include <string.h>
 
 #define UDP_EXAMPLE_ID  190
 
-#define DEBUG VALUE_BROADCAST_DEBUG
-#include "net/uip-debug.h"
+#define LOG_LEVEL VALUE_BROADCAST_DEBUG
+#include "syslog.h"
 
 #define SEND_INTERVAL CLOCK_SECOND * VALUE_BROADCAST_AUTO_INTERVAL
 #define SEND_TIME (random_rand() % (SEND_INTERVAL))
-
-process_event_t immediate_broadcast_event;
 
 static struct uip_udp_conn *client_conn;
 static uip_ipaddr_t server_ipaddr;
@@ -62,122 +66,114 @@ AUTOSTART_PROCESSES(&value_broadcast_process);
 #endif
 
 /*---------------------------------------------------------------------------*/
-void broadcast_to_self(struct hxb_value* val, uint8_t eid)
+void broadcast_to_self(struct hxb_value* val, uint32_t eid)
 {
-
 #if STATE_MACHINE_ENABLE
-
-  struct hxb_envelope* envelope = malloc(sizeof(struct hxb_envelope));
-  memset(envelope->source, 0x00,15);
-  memset((envelope->source)+15,0x01,1);
-  envelope->eid = eid;
-  memcpy(&envelope->value, val, sizeof(struct hxb_value));
-  process_post(PROCESS_BROADCAST, sm_data_received_event, envelope);
-  PRINTF("value_broadcast: Sending EID %d to own state machine.\n", eid);
-
+  struct hxb_envelope envelope = {
+		.src_port = 0,
+		.eid = eid,
+		.value = *val
+ 	};
+	uip_ip6addr(&envelope.src_ip, 0, 0, 0, 0, 0, 0, 0, 1);
+	syslog(LOG_DEBUG, "Sending EID %ld to own state machine.", eid);
+	sm_handle_input(&envelope);
 #endif
 }
 
-void broadcast_value(uint8_t eid)
+static void broadcast_value_ptr(void* data)
 {
-  struct hxb_value val;
-  endpoint_read(eid, &val);
+	broadcast_value(*(uint32_t*) data);
+}
 
-  uint8_t localonly[] = { VALUE_BROADCAST_LOCAL_ONLY_EIDS };
-  broadcast_to_self(&val, eid);
+static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, void* data)
+{
+	struct hxb_value val;
 
-  int i;
-  uint8_t lo = 0;
+	uint32_t eid = *((uint32_t*) data);
 
-  for(i=0; i<VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS; i++)
-  {
-    if(eid == localonly[i])
-    {
-      lo = 1;
-      break;
-    }
-  }
+	// link binary blobs and strings
+	val.v_string = buffer->p_128string.value;
+	if (endpoint_read(eid, &val)) {
+		return HXB_ERR_SUCCESS;
+	}
 
-  if(!lo)
-  {
-    PRINTF("value_broadcast: Broadcasting EID %d.\n", eid);
+	buffer->value_header.type = HXB_PTYPE_INFO;
+	buffer->value_header.eid = eid;
+	buffer->value_header.datatype = val.datatype;
 
-    switch(val.datatype)
-    {
-      case HXB_DTYPE_BOOL:
-      case HXB_DTYPE_UINT8:;
-        struct hxb_packet_int8 packet8;
-        strncpy(&packet8.header, HXB_HEADER, 4);
-        packet8.type = HXB_PTYPE_INFO;
-        packet8.flags = 0;
-        packet8.eid = eid;
-        packet8.datatype = val.datatype;
-        packet8.value = *(uint8_t*)&val.data;
-        packet8.crc = uip_htons(crc16_data((char*)&packet8, sizeof(packet8)-2, 0));
+	uint32_t localonly[] = { VALUE_BROADCAST_LOCAL_ONLY_EIDS };
+	broadcast_to_self(&val, eid);
 
-        uip_udp_packet_sendto(client_conn, &packet8, sizeof(packet8),
-            &server_ipaddr, UIP_HTONS(HXB_PORT));
-        break;
-      case HXB_DTYPE_UINT32:;
-        struct hxb_packet_int32 packet32;
-        strncpy(&packet32.header, HXB_HEADER, 4);
-        packet32.type = HXB_PTYPE_INFO;
-        packet32.flags = 0;
-        packet32.eid = eid;
-        packet32.datatype = val.datatype;
-        packet32.value = uip_htonl(*(uint32_t*)&val.data);
-        packet32.crc = uip_htons(crc16_data((char*)&packet32, sizeof(packet32)-2, 0));
+	bool skip_send = false;
 
-        uip_udp_packet_sendto(client_conn, &packet32, sizeof(packet32),
-            &server_ipaddr, UIP_HTONS(HXB_PORT));
-        break;
-      case HXB_DTYPE_FLOAT:;
-        struct hxb_packet_float packetf;
-        strncpy(&packetf.header, HXB_HEADER, 4);
-        packetf.type = HXB_PTYPE_INFO;
-        packetf.flags = 0;
-        packetf.eid = eid;
-        packetf.datatype = val.datatype;
-        uint32_t value_nbo = uip_htonl(*(uint32_t*)&val.data);
-        packetf.value = *(float*)&value_nbo;
-        packetf.crc = uip_htons(crc16_data((char*)&packetf, sizeof(packetf)-2, 0));
+	for (int i = 0; !skip_send && (i < VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS); i++) {
+		skip_send |= eid == localonly[i];
+	}
 
-        uip_udp_packet_sendto(client_conn, &packetf, sizeof(packetf),
-            &server_ipaddr, UIP_HTONS(HXB_PORT));
-        break;
-      default:
-        PRINTF("value_broadcast: Datatype unknown.\r\n");
-    }
-  }
+	if (!skip_send) {
+		syslog(LOG_DEBUG, "Broadcasting EID %ld, datatype %d", eid, val.datatype);
+
+		switch ((enum hxb_datatype) val.datatype) {
+			case HXB_DTYPE_BOOL:
+			case HXB_DTYPE_UINT8:
+				buffer->p_u8.value = val.v_u8;
+				break;
+
+			case HXB_DTYPE_UINT32:
+			case HXB_DTYPE_TIMESTAMP:
+				buffer->p_u32.value = val.v_u32;
+				break;
+
+			case HXB_DTYPE_FLOAT:
+				buffer->p_float.value = val.v_float;
+				break;
+
+			// these just work because value.$blob points to the buffer anyway
+			case HXB_DTYPE_16BYTES:
+			case HXB_DTYPE_128STRING:
+			case HXB_DTYPE_66BYTES:
+				break;
+
+			case HXB_DTYPE_DATETIME:
+				buffer->p_datetime.value = val.v_datetime;
+				break;
+
+			case HXB_DTYPE_UNDEFINED:
+			default:
+				syslog(LOG_ERR, "Datatype unknown.");
+		}
+	}
+
+	return HXB_ERR_SUCCESS;
+}
+
+void broadcast_value(uint32_t eid)
+{
+	udp_handler_send_generated(NULL, 0, &broadcast_generator, &eid);
 }
 /*---------------------------------------------------------------------------*/
 static void
 print_local_addresses(void)
 {
-  int i;
-  uint8_t state;
-
-  PRINTF("Client IPv6 addresses: ");
-  for(i = 0; i < UIP_DS6_ADDR_NB; i++)
-  {
-    state = uip_ds6_if.addr_list[i].state;
-    if(uip_ds6_if.addr_list[i].isused && (state == ADDR_TENTATIVE || state == ADDR_PREFERRED))
-    {
-      PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-      PRINTF("\n");
-      /* hack to make address "final" */
-      if (state == ADDR_TENTATIVE)
-      {
-        uip_ds6_if.addr_list[i].state = ADDR_PREFERRED;
-      }
-    }
-  }
+	syslog(LOG_DEBUG, "Client IPv6 addresses:");
+	for (int i = 0; i < UIP_DS6_ADDR_NB; i++)  {
+		uint8_t state = uip_ds6_if.addr_list[i].state;
+		if (uip_ds6_if.addr_list[i].isused && (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
+			syslog(LOG_DEBUG, " " LOG_6ADDR_FMT, LOG_6ADDR_VAL(uip_ds6_if.addr_list[i].ipaddr));
+		}
+	}
 }
 
 void init_value_broadcast(void)
 {
-  PRINTF("Value Broadcast init\n");
-  uip_ip6addr(&server_ipaddr, 0xff02, 0, 0, 0, 0, 0, 0, 0x0001); // Link-Local Multicast
+  syslog(LOG_INFO, "Value Broadcast init");
+
+  // this wrapper macro is needed to expand HXB_GROUP_RAW before uip_ip6addr, which is a macro
+  // it's ugly as day, but it's the least ugly solution i found
+  #define PARSER_WRAP(addr, ...) uip_ip6addr(addr, __VA_ARGS__)
+  PARSER_WRAP(&server_ipaddr, HXB_GROUP_RAW);
+  #undef PARSER_WRAP
+
   print_local_addresses();
 
   /* new connection with remote host */
@@ -185,10 +181,7 @@ void init_value_broadcast(void)
   uip_ipaddr_copy(&client_conn->ripaddr, &server_ipaddr);
   udp_bind(client_conn, UIP_HTONS(HXB_PORT));
 
-  PRINTF("Created a connection");
-  PRINT6ADDR(&client_conn->ripaddr);
-  PRINTF(" local/remote port %u/%u\n",
-  UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
+	syslog(LOG_DEBUG, "Created a connection " LOG_6ADDR_FMT ", local/remote port %u/%u", LOG_6ADDR_VAL(client_conn->ripaddr), UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 }
 
 /*---------------------------------------------------------------------------*/
@@ -198,7 +191,7 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
 {
   static struct etimer periodic;
   static struct ctimer backoff_timer[VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS];
-  static uint8_t auto_eids[] = { VALUE_BROADCAST_AUTO_EIDS };
+  static uint32_t auto_eids[] = { VALUE_BROADCAST_AUTO_EIDS };
 
   PROCESS_BEGIN();
 
@@ -206,7 +199,7 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
 
   init_value_broadcast();
 
-  PRINTF("UDP sender process started\n");
+	syslog(LOG_INFO, "UDP sender process started");
 
 
   etimer_set(&periodic, SEND_INTERVAL);
@@ -220,14 +213,8 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
       uint8_t i;
       for(i = 0 ; i < VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS; i++)
       {
-        ctimer_set(&backoff_timer[i], SEND_TIME, broadcast_value, auto_eids[i]);
+        ctimer_set(&backoff_timer[i], SEND_TIME, broadcast_value_ptr, (void*)&auto_eids[i]);
       }
-    }
-
-    if(ev == immediate_broadcast_event)
-    {
-      PRINTF("Value_broadcast: Received immediate_broadcast_event -- EID: %d\r\n", (int)data);
-      broadcast_value((int)data);
     }
   }
 

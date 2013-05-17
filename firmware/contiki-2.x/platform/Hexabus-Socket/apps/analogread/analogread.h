@@ -8,6 +8,4 @@
 
 void analogread_init(void);
 
-float get_analogvalue(void);
-
 #endif /* ANALOGREAD_H_ */

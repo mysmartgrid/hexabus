@@ -97,8 +97,17 @@
 #define NETWORK_PRODUCT_ID    0x008E //Product ID for just RNDIS device
 #else
 #define VENDOR_ID             0x03EB // Atmel vendor ID = 03EBh
+
+#if USB_CONF_MACINTOSH
+//A different product ID avoids instant windows corruption when it tries to use the cached drivers
+//TODO:Get some valid ID's from Atmel
+#define COMPOSITE_PRODUCT_ID  0x9921 //Product ID for composite device
+#define NETWORK_PRODUCT_ID    0x9919 //Product ID for just CDC-ECM device
+#else
 #define COMPOSITE_PRODUCT_ID  0x2021 //Product ID for composite device
 #define NETWORK_PRODUCT_ID    0x2019 //Product ID for just RNDIS device
+#endif
+
 #define MASS_PRODUCT_ID       0x202F //Product ID for mass storage
 #endif
 

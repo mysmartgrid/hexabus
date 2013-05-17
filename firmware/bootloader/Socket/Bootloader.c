@@ -97,7 +97,7 @@ int main(void) {
 		AVR_LEAVE_CRITICAL_REGION();
 	}
 	if(eeprom_read_byte((uint8_t *)EE_BOOTLOADER_FLAG)) {
-		// Read crc from eeprom
+        // Read crc from eeprom
 		uint16_t crc;
 		AVR_ENTER_CRITICAL_REGION();
 		crc = eeprom_read_word ((uint16_t *)EE_BOOTLOADER_CRC);
@@ -107,6 +107,12 @@ int main(void) {
 			Start_Program();
 		}
 	}
+    
+    //Clear statemachine
+    eeprom_write_byte((uint8_t *)EE_STATEMACHINE_N_CONDITIONS, 0x00);
+    eeprom_write_byte((uint8_t *)EE_STATEMACHINE_N_TRANSITIONS, 0x00);
+    eeprom_write_byte((uint8_t *)EE_STATEMACHINE_N_DT_TRANSITIONS, 0x00);
+
 	hardwareInit();
 	transceiver_init();
 	timer_init();
@@ -495,7 +501,7 @@ uint16_t calc_crc(void) {
 	uint16_t crc;
 
 	uint16_t c, i;
-	prog_uchar *ptr;
+	const unsigned char PROGMEM *ptr;
 	uint8_t byte = 0;
 	uint8_t crcbit = 0;
 	uint8_t databit = 0;
