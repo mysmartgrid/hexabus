@@ -79,7 +79,8 @@ _DEBUG options should be set to:
 #define HEXAPUSH_ENABLE 0
 #define HEXAPUSH_CLICK_ENABLE 1
 #define HEXAPUSH_PRESS_RELEASE_ENABLE 1
-#define HEXAPUSH_PRESS_DELAY 6   //multiplied by 50ms, only if Click and Press/Release are enabled
+#define HEXAPUSH_PRESS_DELAY 6   // assume Press after $x/CLOCK_CONF_SECOND ms, only if Click and Press/Release are enabled
+#define HEXAPUSH_CLICK_LIMIT 125 // assume click until $x/CLOCK_CONF_SECOND ms
 #define HEXAPUSH_DEBUG 0
 
 // presence detector
