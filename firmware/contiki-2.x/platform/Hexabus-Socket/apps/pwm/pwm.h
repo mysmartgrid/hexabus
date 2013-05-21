@@ -62,3 +62,6 @@ PROCESS_NAME(pwm_process);
 #define PWM_LOWER_LIMIT		5 //hold on PWM (0x7F: 50%)
 
 #endif /* PWM_H_ */
+
+void pwm_init(void);
+void pwm_start(void);

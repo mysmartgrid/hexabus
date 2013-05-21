@@ -39,11 +39,11 @@
 #include <avr/eeprom.h>
 #include "contiki.h"
 
-#define PRINTF(...) printf(__VA_ARGS__)
+//#define //PRINTF(...) printf(__VA_ARGS__)
 
 void pwm_start(void){
   ENABLE_PWM();
-  PRINTF("PWM enabled\r\n");
+  //PRINTF("PWM enabled\r\n");
 }
 
 
@@ -51,7 +51,7 @@ void pwm_init(void){
   /*PWM Specific Initialization.*/
   SET_PWM_TCCRxA();
   SET_PWM_TCCRxB();
-  PRINTF("PWM init'd\r\n");
+  //PRINTF("PWM init'd\r\n");
 }
 
 
@@ -66,12 +66,12 @@ AUTOSTART_PROCESSES(&pwm_process);
 /*---------------------------------------------------------------------------*/
 static void
 pollhandler(void) {
-  PRINTF("----Socket_pwm_handler: Process polled\r\n");
+  //PRINTF("----Socket_pwm_handler: Process polled\r\n");
 }
 
 static void
 exithandler(void) {
-  PRINTF("----Socket_pwm_handler: Process exits.\r\n");
+  //PRINTF("----Socket_pwm_handler: Process exits.\r\n");
 }
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(pwm_process, ev, data) {
@@ -80,12 +80,12 @@ PROCESS_THREAD(pwm_process, ev, data) {
 
   // see: http://senstools.gforge.inria.fr/doku.php?id=contiki:examples
   PROCESS_BEGIN();
-  PRINTF("pwm: process startup.\r\n");
+  //PRINTF("pwm: process startup.\r\n");
   PROCESS_PAUSE();
 
   // set the timer to 1 sec for use in the loop
   etimer_set(&pwm_periodic_timer, 0.01*CLOCK_SECOND);
-  PRINTF("PWM starting up\r\n");
+  //PRINTF("PWM starting up\r\n");
 	
   while(1){
     PROCESS_YIELD();
