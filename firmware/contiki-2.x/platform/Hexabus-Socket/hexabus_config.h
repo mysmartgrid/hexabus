@@ -45,7 +45,7 @@ _DEBUG options should be set to:
 #define TEMPERATURE_SENSOR 0 // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
 // value_broadcast
-#define VALUE_BROADCAST_ENABLE 1
+#define VALUE_BROADCAST_ENABLE 0
 #define VALUE_BROADCAST_DEBUG 1 
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 0 // Number of endpoints to broadcast automatically - set to 0 to disable
 #define VALUE_BROADCAST_AUTO_EIDS 25 // Comma-separated list of endpoints to broadcast automatically
@@ -78,9 +78,9 @@ _DEBUG options should be set to:
 // hexapush
 #define HEXAPUSH_ENABLE 1
 #define HEXAPUSH_CLICK_ENABLE 1
-#define HEXAPUSH_PRESS_RELEASE_ENABLE 0
+#define HEXAPUSH_PRESS_RELEASE_ENABLE 1
 #define HEXAPUSH_PRESS_DELAY 6   //multiplied by 50ms, only if Click and Press/Release are enabled
-#define HEXAPUSH_DEBUG 1
+#define HEXAPUSH_DEBUG 9
 
 // presence detector
 #define PRESENCE_DETECTOR_ENABLE 0
