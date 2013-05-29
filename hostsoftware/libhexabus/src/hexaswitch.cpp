@@ -469,16 +469,24 @@ int main(int argc, char** argv) {
 		liveness->start();
 	}
 
+	namespace hf = hexabus::filtering;
+
+	if (ip->is_multicast() && (command == C_STATUS || command == C_POWER
+				|| command == C_GET || command == C_EPQUERY || command == C_DEVINFO)) {
+		std::cerr << "Cannot query all devices at once, query them individually." << std::endl;
+		return ERR_PARAMETER_VALUE_INVALID;
+	}
+
 	switch (command) {
 		case C_ON:
 		case C_OFF:
 			return send_packet(network, *ip, hexabus::WritePacket<bool>(EP_POWER_SWITCH, command == C_ON));
 
 		case C_STATUS:
-			return send_packet(network, *ip, hexabus::QueryPacket(EP_POWER_SWITCH));
+			return send_packet_wait(network, *ip, hexabus::QueryPacket(EP_POWER_SWITCH), hf::eid() == EP_POWER_SWITCH && hf::sourceIP() == *ip);
 
 		case C_POWER:
-			return send_packet(network, *ip, hexabus::QueryPacket(EP_POWER_METER));
+			return send_packet_wait(network, *ip, hexabus::QueryPacket(EP_POWER_METER), hf::eid() == EP_POWER_METER && hf::sourceIP() == *ip);
 
 		case C_SET:
 		case C_SEND:
@@ -522,14 +530,14 @@ int main(int argc, char** argv) {
 				uint32_t eid = vm["eid"].as<uint32_t>();
 
 				if (command == C_GET) {
-					return send_packet_wait(network, *ip, hexabus::QueryPacket(eid), hexabus::filtering::eid() == eid);
+					return send_packet_wait(network, *ip, hexabus::QueryPacket(eid), hf::eid() == eid && hf::sourceIP() == *ip);
 				} else {
-					return send_packet_wait(network, *ip, hexabus::EndpointQueryPacket(eid), hexabus::filtering::eid() == eid);
+					return send_packet_wait(network, *ip, hexabus::EndpointQueryPacket(eid), hf::eid() == eid && hf::sourceIP() == *ip);
 				}
 			}
 
 		case C_DEVINFO:
-			return send_packet_wait(network, *ip, hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR), hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR);
+			return send_packet_wait(network, *ip, hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR), hf::eid() == EP_DEVICE_DESCRIPTOR && hf::sourceIP() == *ip);
 
 		default:
 			std::cerr << "BUG: Unknown command" << std::endl;
