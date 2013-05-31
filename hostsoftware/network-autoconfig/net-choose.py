@@ -5,6 +5,7 @@ import subprocess
 import io
 import re
 import random
+import argparse
 
 class DiscoveryFailed(Exception):
 	"""Discovery of networks failed"""
@@ -34,7 +35,7 @@ def discover_present_prefixes(iface):
 					routes.append(ipaddress.ip_network(parts.group(2)))
 			line = tio.readline()
 			proc.wait()
-			if proc.returncode != 0:
+			if proc.returncode != 0 and proc.returncode != 2:
 				raise DiscoveryFailed
 	return (prefixes, routes)
 
@@ -120,11 +121,11 @@ allow-hotplug {0}
 	else:
 		return (header + static).format(interface, next(prefix.hosts()), prefix.prefixlen)
 
-def generate_radvd_fragmet(prefix, interface, routes = None):
+def generate_radvd_fragment(prefix, interface, routes = None):
 	"""Generate a radvd.conf fragment to announce a given prefix, possibly with routes
 
 	Args:
-		prefix: prefix to announce for SLAAC
+		prefix: prefix to announce for SLAAC. If None, SLAAC will be disabled
 		routes: routes to announce. Include ::/0 to enable default routes
 
 	Returns:
@@ -134,27 +135,45 @@ def generate_radvd_fragmet(prefix, interface, routes = None):
 	IgnoreIfMissing on;
 	AdvSendAdvert on;
 
-	prefix {1} {{
-	}};
-"""
-	footer = "}};"
+""".format(interface)
+	prefix_fragment = ""
+	if prefix is not None:
+		prefix_fragment = "\tprefix {0} {{ }};\n".format(prefix)
+	footer = "};"
 	routes_fragment = ""
 	if routes is not None:
 		for route in routes:
 			routes_fragment += "\troute {0} {{ }};\n".format(route)
-	return (header + routes_fragment + footer).format(interface, prefix)
+	return header + prefix_fragment + routes_fragment + footer
 
 if __name__ == '__main__':
+	parser = argparse.ArgumentParser(description = "Autoconfiguration utility for Hexabus routers")
+	parser.add_argument("eth", type = str, help = "Ethernet interface name")
+	parser.add_argument("hxb", type = str, help = "Hexabus interface name")
+
 	try:
-		(prefixes, routes) = discover_present_prefixes("wlan0")
+		args = parser.parse_args()
+
+		(prefixes, routes) = discover_present_prefixes(args.eth)
 		viable = exclude_all(prefixes + routes)
 		nets = select_networks(prefixes, viable)
-		print(nets)
-		print(generate_interfaces_fragment(nets[0], "eth0"))
-		print(generate_radvd_fragmet(nets[1], "usb0"))
+
+		eth_iface = generate_interfaces_fragment(nets[0], args.eth)
+		eth_radvd = ""
+		if nets[0] is not None:
+			eth_radvd = generate_radvd_fragment(nets[0], args.eth, [nets[1]])
+
+		hxb_iface = generate_interfaces_fragment(nets[1], args.hxb)
+		hxb_radvd = generate_radvd_fragment(nets[1], args.hxb, [ipaddress.IPv6Network("::/0")])
+
+		print("====== eth ======")
+		print(eth_iface);
+		print(eth_radvd)
+
+		print("====== hxb ======")
+		print(hxb_iface);
+		print(hxb_radvd)
 	except DiscoveryFailed:
 		exit(1)
-#	except:
-#		exit(2)
-#	for p in prefixes:
-#		print(p)
+	except:
+		exit(2)
