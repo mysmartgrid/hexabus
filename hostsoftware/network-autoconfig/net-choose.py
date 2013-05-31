@@ -79,16 +79,70 @@ def select_networks(prefixes, unusedPrefixes):
 
 	Returns:
 		A tuple (eth, hxb) of prefixes for the ethernet side and the hexabus side
-		of the network. eth may be None if 
+		of the network. eth may be None if an IPv6 network exists already and SLAAC
+		should be used for the ethernet side of things
 	"""
 	hxb = random.choice(unusedPrefixes)
 	while hxb.prefixlen < 63:
 		hxb = random.choice(list(hxb.subnets(1)))
 	if len(prefixes) > 0:
-		return (prefixes[0], list(hxb.subnets(1))[1])
+		return (None, list(hxb.subnets(1))[1])
 	else:
 		nets = list(hxb.subnets(1))
 		return (nets[0], nets[1])
+
+def generate_interfaces_fragment(prefix, interface):
+	"""Generates a part of /etc/network/interfaces
+
+	Args:
+		prefix: prefix to use for the interface
+		interface: interface to configure
+
+	Returns:
+		Configuration fragment for /etc/network/interfaces
+	"""
+	header = """auto {0}
+allow-hotplug {0}
+
+"""
+	slaac = """iface {0} inet6 auto
+	privext 1
+	dhcp 0
+"""
+	static = """iface {0} inet6 static
+	address {1}
+	netmask {2}
+	privext 0
+	scope site
+"""
+	if prefix is None:
+		return (header + slaac).format(interface)
+	else:
+		return (header + static).format(interface, next(prefix.hosts()), prefix.prefixlen)
+
+def generate_radvd_fragmet(prefix, interface, routes = None):
+	"""Generate a radvd.conf fragment to announce a given prefix, possibly with routes
+
+	Args:
+		prefix: prefix to announce for SLAAC
+		routes: routes to announce. Include ::/0 to enable default routes
+
+	Returns:
+		A configuration fragment for a radvd.conf
+	"""
+	header = """interface {0} {{
+	IgnoreIfMissing on;
+	AdvSendAdvert on;
+
+	prefix {1} {{
+	}};
+"""
+	footer = "}};"
+	routes_fragment = ""
+	if routes is not None:
+		for route in routes:
+			routes_fragment += "\troute {0} {{ }};\n".format(route)
+	return (header + routes_fragment + footer).format(interface, prefix)
 
 if __name__ == '__main__':
 	try:
@@ -96,9 +150,11 @@ if __name__ == '__main__':
 		viable = exclude_all(prefixes + routes)
 		nets = select_networks(prefixes, viable)
 		print(nets)
+		print(generate_interfaces_fragment(nets[0], "eth0"))
+		print(generate_radvd_fragmet(nets[1], "usb0"))
 	except DiscoveryFailed:
 		exit(1)
-	except:
-		exit(2)
+#	except:
+#		exit(2)
 #	for p in prefixes:
 #		print(p)
