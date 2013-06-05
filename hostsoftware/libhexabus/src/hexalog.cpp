@@ -222,8 +222,7 @@ int main(int argc, char** argv)
  	desc.add_options()
    	("help,h", "produce help message")
 	("version,v", "print libklio version and exit")
-	("storefile,s", po::value<std::string>(), "the data store to use")//FIXME: find a better way of informing remote stores
-	("url,u", po::value<std::string>(), "the remote data store url")
+	("storefile,s", po::value<std::string>(), "the data store to use")
 	("timezone,t", po::value<std::string>(), "the timezone to use for new sensors")
 		("interface,I", po::value<std::string>(), "interface to listen on")
 		("bind,b", po::value<std::string>(), "address to bind to")
@@ -234,7 +233,8 @@ int main(int argc, char** argv)
 
 	po::variables_map vm;
 	try {
-		po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
+		po::store(po::command_line_parser(argc, argv).
+                    options(desc).positional(p).run(), vm);
 		po::notify(vm);
 	} catch (const std::exception& e) {
 		std::cerr << "Cannot process commandline options: " << e.what() << std::endl;
@@ -259,7 +259,7 @@ int main(int argc, char** argv)
 		std::cerr << "You must specify an interface to listen on." << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
-	if (!vm.count("storefile") && !vm.count("url")) {
+	if (!vm.count("storefile")) {
 		std::cerr << "You must specify a store to work on." << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
@@ -282,26 +282,14 @@ int main(int argc, char** argv)
 		klio::StoreFactory::Ptr store_factory(new klio::StoreFactory()); 
 		klio::Store::Ptr store;
 
-		if (vm.count("storefile")) {   
-			std::string storefile(vm["storefile"].as<std::string>());
-			bfs::path db(storefile);
-			if (! bfs::exists(db)) {
-				std::cerr << "Database " << db << " does not exist, cannot continue." << std::endl;
-				std::cerr << "Hint: you can create a database using klio-store create <dbfile>" << std::endl;
-				return ERR_PARAMETER_VALUE_INVALID;
-			}
-			store = store_factory->create_sqlite3_store(db);
-
-		} else if (vm.count("url")) {
-			std::string url(vm["url"].as<std::string>());
-
-			//FIXME: remove this line
-			std::string id("d271f4de-36cd-f3d3-00db-3e96755d8736");
-
-                        //FIXME: use create_msg_store()
-			store = store_factory->create_msg_store(url, id, id);
-                        store->initialize();
-		}
+                std::string storefile(vm["storefile"].as<std::string>());
+                bfs::path db(storefile);
+                if (! bfs::exists(db)) {
+                        std::cerr << "Database " << db << " does not exist, cannot continue." << std::endl;
+                        std::cerr << "Hint: you can create a database using klio-store create <dbfile>" << std::endl;
+                        return ERR_PARAMETER_VALUE_INVALID;
+                }
+                store = store_factory->create_sqlite3_store(db);
 
 		std::string sensor_timezone("Europe/Berlin"); 
 		if (! vm.count("timezone")) {

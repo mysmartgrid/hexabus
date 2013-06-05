@@ -8,6 +8,7 @@ set(common_lib "resolv.cpp")
 set(hexaswitch_src "hexaswitch.cpp" ${common_lib})
 set(hexalog_src "hexalog.cpp" ${common_lib})
 set(hexaupload_src "hexaupload.cpp" ${common_lib})
+set(hexapost_src "hexapost.cpp" ${common_lib})
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
@@ -54,6 +55,20 @@ if(LIBKLIO_FOUND)
     ${LIBKLIO_LIBRARY}
     ${SQLITE3_LIBRARIES}
   )
+
+  add_executable(hexapost ${hexapost_src})
+  target_link_libraries(hexapost
+    hexabus
+    pthread
+    ${Boost_LIBRARIES}
+    ${Boost_SYSTEM_LIBRARY}
+    curl
+    json
+    crypto
+    ${LIBKLIO_LIBRARY}
+    ${SQLITE3_LIBRARIES}
+  )
+
 endif(LIBKLIO_FOUND)
 
 # add programs to the install target
@@ -65,5 +80,9 @@ INSTALL(PROGRAMS
 if(LIBKLIO_FOUND)
   INSTALL(PROGRAMS
   ${CMAKE_CURRENT_BINARY_DIR}/hexalog
+  DESTINATION bin)
+
+  INSTALL(PROGRAMS
+  ${CMAKE_CURRENT_BINARY_DIR}/hexapost
   DESTINATION bin)
 endif(LIBKLIO_FOUND)
