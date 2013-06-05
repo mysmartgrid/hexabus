@@ -179,7 +179,7 @@ void HexabusServer::updateFluksoValues()
 			std::ifstream file;
 			file.open((*sensors).path().string().c_str());
 			if ( file.fail() )
-				break;
+				continue;
 
 			std::string flukso_data;
 			file >> flukso_data;
