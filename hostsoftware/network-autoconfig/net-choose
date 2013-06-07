@@ -1,0 +1,45 @@
+#!/bin/sh -e
+### BEGIN INIT INFO
+# Provides:          net-choose
+# Required-Start:    $network radvd mrd6
+# Required-Stop:     
+# Should-Start:      
+# Should-Stop:       
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Automatically configures network interfaces.
+### END INIT INFO
+
+PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin"
+
+. /lib/lsb/init-functions
+
+case "$1" in
+	start)
+		if [ ! -e /etc/radvd.conf ]
+		then
+			log_action_begin_msg "Configuring networks"
+			python3 /usr/lib/net-choose/net-choose.py eth0 usb0
+			log_action_end_msg $?
+
+			log_action_begin_msg "Restarting interfaces"
+			/etc/init.d/networking restart
+			/etc/init.d/radvd restart
+			/etc/init.d/mrd6 restart
+			log_action_end_msg $?
+		fi
+		;;
+
+	stop)
+		;;
+
+	force-reload|restart)
+		;;
+
+	*)
+		echo "Usage: /etc/init.d/net-choose {start|stop}"
+		exit 1
+		;;
+esac
+
+exit 0
