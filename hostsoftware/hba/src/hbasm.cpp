@@ -66,7 +66,7 @@ int main(int argc, char **argv)
   if (vm.count("dtdef")) {
     dt_filename = vm["dtdef"].as<std::string>();
   } else {
-    std::cerr << "Error: No data type definition file specified. Output will be generated with blank data types." << std::endl;
+    std::cerr << "Error: No data type definition file specified." << std::endl;
     return 1;
   }
 
