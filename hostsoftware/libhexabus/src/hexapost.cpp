@@ -3,24 +3,23 @@
 #include <sstream>
 #include <string.h>
 #include <unistd.h>
+#include "resolv.hpp"
 
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
 #include <boost/program_options/positional_options.hpp>
 
-#include <libklio/common.hpp>
-#include <libklio/store.hpp>
-#include <libklio/store-factory.hpp>
-#include <libklio/sensor.hpp>
-#include <libklio/sensor-factory.hpp>
-
 #include <libhexabus/common.hpp>
 #include <libhexabus/crc.hpp>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/socket.hpp>
 
-#include "resolv.hpp"
+#include <libklio/common.hpp>
+#include <libklio/store.hpp>
+#include <libklio/store-factory.hpp>
+#include <libklio/sensor.hpp>
+#include <libklio/sensor-factory.hpp>
 
 namespace po = boost::program_options;
 
@@ -31,7 +30,7 @@ private:
     klio::Store::Ptr store;
     klio::TimeConverter::Ptr tc;
     klio::SensorFactory::Ptr sensor_factory;
-    std::string sensor_timezone;
+    std::string timezone;
 
     boost::asio::ip::address_v6 source;
     float packetValue;
@@ -54,20 +53,17 @@ private:
         //Create unique ID for each info message and sensor, <ip>+<endpoint>
         std::ostringstream oss;
         oss << source.to_string() << "-" << eid;
-        std::string sensor_id(oss.str());
-        std::cout << "Received a reading from " << sensor_id << ", value "
-                << reading << std::endl;
+        std::string sensor_name(oss.str());
 
         try {
             klio::Sensor::Ptr sensor;
-            bool valid = false;
 
             //if sensor exists
-            std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_name(sensor_id);
+            std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_name(sensor_name);
             if (sensors.size() > 0) {
+
                 std::vector<klio::Sensor::Ptr>::iterator it = sensors.begin();
                 sensor = (*it);
-                valid = true;
 
             } else {
 
@@ -75,18 +71,18 @@ private:
                 std::string unit = eidToUnit(eid);
                 if (unit.compare("unknown") != 0) {
                     //Create a new sensor
-                    sensor = sensor_factory->createSensor(sensor_id, unit, sensor_timezone);
+                    sensor = sensor_factory->createSensor(sensor_name, unit, timezone);
                     store->add_sensor(sensor);
-                    valid = true;
                     std::cout << "Created new sensor: " << sensor->str() << std::endl;
                 }
             }
 
             //If sensor is valid
-            if (valid) {
+            if (sensor) {
                 //Save the value.
                 store->add_reading(sensor, tc->get_timestamp(), reading);
-                std::cout << "Added reading to sensor " << sensor->name() << std::endl;
+                std::cout << "Added reading " << reading << 
+                        " to sensor " << sensor->name() << std::endl;
             }
 
         } catch (klio::StoreException const& ex) {
@@ -195,8 +191,8 @@ public:
     ReadingLogger(const klio::Store::Ptr& store,
             const klio::TimeConverter::Ptr& tc,
             const klio::SensorFactory::Ptr& sensor_factory,
-            const std::string& sensor_timezone) :
-    store(store), tc(tc), sensor_factory(sensor_factory), sensor_timezone(sensor_timezone) {
+            const std::string& timezone) :
+    store(store), tc(tc), sensor_factory(sensor_factory), timezone(timezone) {
     }
 };
 
@@ -214,20 +210,22 @@ enum ErrorCode {
 int main(int argc, char** argv) {
 
     std::ostringstream oss;
-    oss << "Usage: " << argv[0] << " [-s] <interface> <store url>";
+    oss << "Usage: " << argv[0] << " -I<interface> [-u<store url> -d<device id> -k<device key>]";
     po::options_description desc(oss.str());
 
     desc.add_options()
             ("help,h", "produce help message")
             ("version,v", "print libklio version and exit")
-            ("storeurl,s", po::value<std::string>(), "the remote data store url")
+            ("url,u", po::value<std::string>(), "the remote data store url")
+            ("id,d", po::value<std::string>(), "the store id to use")
+            ("key,k", po::value<std::string>(), "the store key to use")
             ("timezone,t", po::value<std::string>(), "the timezone to use for new sensors")
             ("interface,I", po::value<std::string>(), "interface to listen on")
             ("bind,b", po::value<std::string>(), "address to bind to");
 
     po::positional_options_description p;
     p.add("interface", 1);
-    p.add("storeurl", 1);
+    p.add("url", 1);
 
     po::variables_map vm;
     try {
@@ -254,26 +252,28 @@ int main(int argc, char** argv) {
         return ERR_NONE;
     }
 
+    if (!((vm.count("url") && vm.count("id") && vm.count("key")) ||
+            (!vm.count("id") && !vm.count("url") && !vm.count("key")))) {
+
+        std::cerr << "Store URL, Id, and Key are optional arguments, but when informed, must be all defined." << std::endl;
+        return ERR_PARAMETER_MISSING;
+    }
+
     if (!vm.count("interface")) {
         std::cerr << "You must specify an interface to listen on." << std::endl;
         return ERR_PARAMETER_MISSING;
     }
 
-    if (!vm.count("storeurl")) {
-        std::cerr << "You must specify a remote store to work on." << std::endl;
-        return ERR_PARAMETER_MISSING;
-    }
-
     std::string interface(vm["interface"].as<std::string>());
-    boost::asio::ip::address_v6 addr(boost::asio::ip::address_v6::any());
+    boost::asio::ip::address_v6 address(boost::asio::ip::address_v6::any());
     boost::asio::io_service io;
 
     if (vm.count("bind")) {
 
-        boost::system::error_code err;
-        addr = hexabus::resolve(io, vm["bind"].as<std::string>(), err);
-        if (err) {
-            std::cerr << vm["bind"].as<std::string>() << " is not a valid IP address: " << err.message() << std::endl;
+        boost::system::error_code error;
+        address = hexabus::resolve(io, vm["bind"].as<std::string>(), error);
+        if (error) {
+            std::cerr << vm["bind"].as<std::string>() << " is not a valid IP address: " << error.message() << std::endl;
             return ERR_PARAMETER_FORMAT;
         }
     }
@@ -282,21 +282,26 @@ int main(int argc, char** argv) {
         klio::StoreFactory::Ptr store_factory(new klio::StoreFactory());
         klio::Store::Ptr store;
 
-        std::string storeurl(vm["storeurl"].as<std::string>());
+        if (vm.count("url")) {
 
-        //FIXME: remove this line
-        std::string id("d271f4de-36cd-f3d3-00db-3e96755d8736");
+            store = store_factory->create_msg_store(
+                    vm["url"].as<std::string>(),
+                    vm["id"].as<std::string>(),
+                    vm["key"].as<std::string>());
+        } else {
 
-        //FIXME: use create_msg_store()
-        store = store_factory->create_msg_store(storeurl, id, id);
+            store = store_factory->create_msg_store();
+        }
         store->initialize();
 
-        std::string sensor_timezone("Europe/Berlin");
+        std::string timezone;
+
         if (!vm.count("timezone")) {
-            std::cerr << "Using default timezone " << sensor_timezone
+            timezone = "Europe/Berlin";
+            std::cerr << "Using default timezone " << timezone
                     << ", change with -t <NEW_TIMEZONE>" << std::endl;
         } else {
-            sensor_timezone = vm["timezone"].as<std::string>();
+            timezone = vm["timezone"].as<std::string>();
         }
 
         hexabus::Socket network(io, interface);
@@ -304,8 +309,8 @@ int main(int argc, char** argv) {
         klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
         klio::TimeConverter::Ptr tc(new klio::TimeConverter());
 
-        network.listen(addr);
-        network.onPacketReceived(ReadingLogger(store, tc, sensor_factory, sensor_timezone));
+        network.listen(address);
+        network.onPacketReceived(ReadingLogger(store, tc, sensor_factory, timezone));
 
         io.run();
 

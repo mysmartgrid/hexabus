@@ -72,8 +72,8 @@ struct ReadingLogger : private hexabus::PacketVisitor {
 			 */
 			std::ostringstream oss;
 			oss << source.to_string() << "-" << eid;
-			std::string sensor_id(oss.str());
-			std::cout << "Received a reading from " << sensor_id << ", value "
+			std::string sensor_name(oss.str());
+			std::cout << "Received a reading from " << sensor_name << ", value "
 				<< reading << std::endl;
 
 			/**
@@ -87,7 +87,7 @@ struct ReadingLogger : private hexabus::PacketVisitor {
 				std::vector<klio::Sensor::uuid_t>::iterator it;
 				for(  it = uuids.begin(); it < uuids.end(); it++) {
 					klio::Sensor::Ptr loadedSensor(store->get_sensor(*it));
-					if (boost::iequals(loadedSensor->name(), sensor_id)) {
+					if (boost::iequals(loadedSensor->name(), sensor_name)) {
 						// We have found our sensor. Now add data to it.
 						found=true;
 						/**
@@ -103,7 +103,7 @@ struct ReadingLogger : private hexabus::PacketVisitor {
 				if (! found) {
 					// apparently, this is a new sensor. Create a representation in klio for it.
 					klio::Sensor::Ptr new_sensor(sensor_factory->createSensor(
-								sensor_id, eidToUnit(eid), sensor_timezone)); 
+								sensor_name, eidToUnit(eid), sensor_timezone)); 
 					store->add_sensor(new_sensor);
 					std::cout << "Created new sensor: " << new_sensor->str() << std::endl;
 					/**
