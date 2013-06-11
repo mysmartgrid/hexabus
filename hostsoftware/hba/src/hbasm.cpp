@@ -66,7 +66,8 @@ int main(int argc, char **argv)
   if (vm.count("dtdef")) {
     dt_filename = vm["dtdef"].as<std::string>();
   } else {
-    std::cout << "Warning: No data type definition file specified. Output will be generated with blank data types." << std::endl;
+    std::cerr << "Error: No data type definition file specified." << std::endl;
+    return 1;
   }
 
   if (! vm.count("input")) {
@@ -79,9 +80,9 @@ int main(int argc, char **argv)
   std::ifstream in(infile.c_str(), std::ios_base::in);
 
   if (!in) {
-	std::cerr << "Error: Could not open input file: "
-	  << infile << std::endl;
-	return 1;
+    std::cerr << "Error: Could not open input file: "
+      << infile << std::endl;
+    return 1;
   }
 
   in.unsetf(std::ios::skipws); // No white space skipping!

@@ -582,12 +582,12 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   PROCESS_POLLHANDLER(pollhandler());
   PROCESS_EXITHANDLER(exithandler());
 
-	udp_handler_ready = process_alloc_event();
-
   // see: http://senstools.gforge.inria.fr/doku.php?id=contiki:examples
   PROCESS_BEGIN();
 
 	syslog(LOG_INFO, "process startup.");
+	udp_handler_ready = process_alloc_event();
+
   // wait 3 second, in order to have the IP addresses well configured
   etimer_set(&udp_periodic_timer, CLOCK_CONF_SECOND*3);
   // wait until the timer has expired

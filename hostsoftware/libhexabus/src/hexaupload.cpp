@@ -142,8 +142,6 @@ class RemoteStateMachine : protected RetryingPacketSender {
 					if (u8.value() == STM_STATE_STOPPED) {
 						std::cout << "State machine stopped" << std::endl;
 						finish(ERR_NONE);
-					} else {
-						finish(ERR_SM_OP_FAILED);
 					}
 					break;
 
@@ -151,10 +149,8 @@ class RemoteStateMachine : protected RetryingPacketSender {
 					if (u8.value() == STM_STATE_RUNNING) {
 						std::cout << "State machine is running." << std::endl;
 						finish(ERR_NONE);
-					} else {
-						finish(ERR_SM_OP_FAILED);
 					}
-					break;
+          break;
 			}
 		}
 

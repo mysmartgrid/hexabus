@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <libhba/common.hpp>
 
 using namespace hexabus;
 
@@ -62,14 +63,23 @@ Datatypes::Datatypes(std::string filename)
 
       f.close();
     } else {
-      std::cout << "Error: Could not open datatype definition file. Output file will be generated with blank data types." << std::endl;
+      std::ostringstream oss;
+      oss << "Datatype definition file " << filename << " could not be opened.";
+      throw DatatypeNotFoundException(oss.str());
     }
   }
 }
 
 hxb_datatype Datatypes::getDatatype(uint32_t eid)
 {
-	return datatypes[eid];
-	// (when an element doesn't exist yet, it's initialized with 0, which is HXB_DTYPE_UNDEFINED)
+  std::map<uint32_t, hxb_datatype>::iterator datatype = datatypes.find(eid);
+  if(datatype != datatypes.end())
+  {
+    return datatype->second;
+  } else {
+    std::ostringstream oss;
+    oss << "No datatype definition found for endpoint ID " << eid << ".";
+    throw DatatypeNotFoundException(oss.str());
+  }
 }
 
