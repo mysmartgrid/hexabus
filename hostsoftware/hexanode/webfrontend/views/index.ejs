@@ -34,7 +34,7 @@
               </div>
             </div> <!--- Dashboard -->
             <!--- Sensor pane -->
-            <div class="tab-pane" id="sensors">
+            <div class="tab-pane active" id="sensors">
               <h2 class="text-center">Sensors</h2>
               <div class="row-fluid">
                 <div class="span3">
@@ -110,6 +110,8 @@
     }
     // get up-to-date values for all sensors
     socket.emit('sensor_refresh_data');
+    $('a[href=#sensors]').tab('show');
+    $('a[href=#dash]').tab('show');
   };
 
   socket.on('sensor_update', function(data) {
