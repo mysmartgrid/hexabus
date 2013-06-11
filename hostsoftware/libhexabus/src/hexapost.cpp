@@ -80,8 +80,9 @@ private:
 
             //If sensor is valid
             if (sensor) {
-                time_t now = tc->get_timestamp();
                 time_t last_timestamp = timestamps[sensor_name];
+                time_t now = tc->get_timestamp();
+                timestamps[sensor_name] = now;
 
                 if (last_timestamp > 0) {
 
@@ -90,26 +91,24 @@ private:
                             "reading: " << reading << " " <<
                             unit << std::endl;
 
-                    float energy = reading * ((float) (now - last_timestamp)) / 3600;
+                    long previous_counter = (long) counters[sensor_name];
+                    counters[sensor_name] += reading * ((float) (now - last_timestamp)) / 3600;
+                    long new_counter = (long) counters[sensor_name];
 
-                    if (energy >= 1) {
-                        counters[sensor_name] += energy;
-                        timestamps[sensor_name] = now;
+                    if (new_counter - previous_counter >= 1) {
 
                         //Post counter value to the MSG server
-                        long value = (long) counters[sensor_name];
-                        store->add_reading(sensor, now, value);
+                        store->add_reading(sensor, now, new_counter);
 
                         std::cout << "Sensor: " << sensor_name << " - " <<
                                 "timestamp: " << now << " - " <<
                                 "POST " << store->str() <<
                                 "/sensor/" << sensor->uuid_short() <<
-                                " [" << now << ": " << value << "]" << std::endl;
+                                " [" << now << ": " << new_counter << "]" << std::endl;
                     }
 
                 } else {
                     counters[sensor_name] = 0;
-                    timestamps[sensor_name] = now;
                 }
             }
 
