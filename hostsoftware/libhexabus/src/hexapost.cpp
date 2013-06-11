@@ -27,13 +27,14 @@ namespace po = boost::program_options;
 
 struct ReadingLogger : private hexabus::PacketVisitor {
 private:
+    boost::asio::ip::address_v6 source;
+    float packetValue;
     klio::Store::Ptr store;
     klio::TimeConverter::Ptr tc;
     klio::SensorFactory::Ptr sensor_factory;
     std::string timezone;
-
-    boost::asio::ip::address_v6 source;
-    float packetValue;
+    std::map<std::string, time_t> timestamps;
+    std::map<std::string, float> counters;
 
     const char* eidToUnit(uint32_t eid) {
         switch (eid) {
@@ -45,44 +46,71 @@ private:
     }
 
     void rejectPacket() {
-        std::cout << "Received some packet." << std::endl;
+        std::cout << "Packet rejected." << std::endl;
     }
 
     void acceptPacket(float reading, uint32_t eid) {
 
-        //Create unique ID for each info message and sensor, <ip>+<endpoint>
-        std::ostringstream oss;
-        oss << source.to_string() << "-" << eid;
-        std::string sensor_name(oss.str());
-
         try {
+            //Validate unit
+            std::string unit = eidToUnit(eid);
+            if (unit.compare("unknown") == 0) {
+                return;
+            }
+
+            //Create unique ID for each info message and sensor, <ip>+<endpoint>
+            std::ostringstream oss;
+            oss << source.to_string() << "-" << eid;
+            std::string sensor_name(oss.str());
+
+            std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_name(sensor_name);
             klio::Sensor::Ptr sensor;
 
-            //if sensor exists
-            std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_name(sensor_name);
+            //If sensor already exists
             if (sensors.size() > 0) {
-
                 std::vector<klio::Sensor::Ptr>::iterator it = sensors.begin();
                 sensor = (*it);
 
             } else {
-
-                //if unit is known
-                std::string unit = eidToUnit(eid);
-                if (unit.compare("unknown") != 0) {
-                    //Create a new sensor
-                    sensor = sensor_factory->createSensor(sensor_name, unit, timezone);
-                    store->add_sensor(sensor);
-                    std::cout << "Created new sensor: " << sensor->str() << std::endl;
-                }
+                //Create a new sensor
+                sensor = sensor_factory->createSensor(sensor_name, unit, timezone);
+                store->add_sensor(sensor);
+                std::cout << "Sensor: " << sensor_name << " - created." << std::endl;
             }
 
             //If sensor is valid
             if (sensor) {
-                //Save the value.
-                store->add_reading(sensor, tc->get_timestamp(), reading);
-                std::cout << "Added reading " << reading << 
-                        " to sensor " << sensor->name() << std::endl;
+                time_t now = tc->get_timestamp();
+                time_t last_timestamp = timestamps[sensor_name];
+
+                if (last_timestamp > 0) {
+
+                    std::cout << "Sensor: " << sensor_name << " - " <<
+                            "timestamp: " << now << " - " <<
+                            "reading: " << reading << " " <<
+                            unit << std::endl;
+
+                    float energy = reading * ((float) (now - last_timestamp)) / 3600;
+
+                    if (energy >= 1) {
+                        counters[sensor_name] += energy;
+                        timestamps[sensor_name] = now;
+
+                        //Post counter value to the MSG server
+                        long value = (long) counters[sensor_name];
+                        store->add_reading(sensor, now, value);
+
+                        std::cout << "Sensor: " << sensor_name << " - " <<
+                                "timestamp: " << now << " - " <<
+                                "POST " << store->str() <<
+                                "/sensor/" << sensor->uuid_short() <<
+                                " [" << now << ": " << value << "]" << std::endl;
+                    }
+
+                } else {
+                    counters[sensor_name] = 0;
+                    timestamps[sensor_name] = now;
+                }
             }
 
         } catch (klio::StoreException const& ex) {
@@ -93,19 +121,19 @@ private:
         }
     }
 
-    virtual void visit(const hexabus::ErrorPacket& error) {
+    virtual void visit(const hexabus::ErrorPacket & error) {
         rejectPacket();
     }
 
-    virtual void visit(const hexabus::QueryPacket& query) {
+    virtual void visit(const hexabus::QueryPacket & query) {
         rejectPacket();
     }
 
-    virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery) {
+    virtual void visit(const hexabus::EndpointQueryPacket & endpointQuery) {
         rejectPacket();
     }
 
-    virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo) {
+    virtual void visit(const hexabus::EndpointInfoPacket & endpointInfo) {
         rejectPacket();
     }
 
@@ -183,7 +211,7 @@ private:
 
 public:
 
-    void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint& from) {
+    void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint & from) {
         source = from.address().to_v6();
         visitPacket(packet);
     }
@@ -191,7 +219,7 @@ public:
     ReadingLogger(const klio::Store::Ptr& store,
             const klio::TimeConverter::Ptr& tc,
             const klio::SensorFactory::Ptr& sensor_factory,
-            const std::string& timezone) :
+            const std::string & timezone) :
     store(store), tc(tc), sensor_factory(sensor_factory), timezone(timezone) {
     }
 };
