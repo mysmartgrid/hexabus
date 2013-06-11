@@ -1,6 +1,7 @@
 #include "packet_pusher.hpp"
 #include <libhexabus/error.hpp>
 #include <libhexabus/crc.hpp>
+#include <boost/lexical_cast.hpp>
 #include "../../../shared/endpoints.h"
 
 using namespace hexanode;
@@ -27,24 +28,25 @@ void PacketPusher::push_value(uint32_t eid,
         << " found - creating sensor with boilerplate data." << std::endl;
       int min_value = 0;
       int max_value = 0;
+      std::string unit("");
       /*
        * TODO: Hack for intersolar, clean things up. This should reside in 
        * a separate configuration file (propertytree parser)
        */
       switch(eid) {
-        case EP_POWER_METER: min_value = 0; max_value = 3200; break;
-        case EP_TEMPERATURE: min_value = 15; max_value = 30; break;
-        case EP_HUMIDITY: min_value = 0; max_value = 100; break;
-        case EP_PRESSURE: min_value = 900; max_value = 1050; break;
-        case EP_PV_PRODUCTION: min_value = 0; max_value = 4000; break;
-        case EP_POWER_BALANCE: min_value = -10000; max_value = 6000; break;
-        case EP_BATTERY_BALANCE: min_value = -5000; max_value = 5000; break;
+        case EP_POWER_METER: min_value = 0; max_value = 3200; unit="W"; break;
+        case EP_TEMPERATURE: min_value = 15; max_value = 30; unit="ºC"; break;
+        case EP_HUMIDITY: min_value = 0; max_value = 100; unit="% r.h."; break;
+        case EP_PRESSURE: min_value = 900; max_value = 1050; unit="hPa"; break;
+        case EP_PV_PRODUCTION: min_value = 0; max_value = 5000; unit="W"; break;
+        case EP_POWER_BALANCE: min_value = -10000; max_value = 10000; unit="W"; break;
+        case EP_BATTERY_BALANCE: min_value = -5000; max_value = 5000; unit="W"; break;
       }
       switch(eid) {
         case EP_PV_PRODUCTION: 
           {
             hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
-                  std::string("PV Production"),
+                  std::string("PV Production [") + unit + "]",
                   min_value, max_value,
                   std::string("dashboard")
                   ));
@@ -54,7 +56,7 @@ void PacketPusher::push_value(uint32_t eid,
         case EP_POWER_BALANCE: 
           {
             hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
-                  std::string("Power Balance"),
+                  std::string("Power Balance [") + unit + "]",
                   min_value, max_value,
                   std::string("dashboard")
                   ));
@@ -64,7 +66,7 @@ void PacketPusher::push_value(uint32_t eid,
         case EP_BATTERY_BALANCE: 
           {
             hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
-                  std::string("Battery"),
+                  std::string("Battery [") + unit + "]",
                   min_value, max_value,
                   std::string("dashboard")
                   ));
@@ -74,7 +76,8 @@ void PacketPusher::push_value(uint32_t eid,
         default: 
           {
             hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
-                  _info->get_device_name(_endpoint.address().to_v6()),
+                  _info->get_device_name(_endpoint.address().to_v6())
+                          + " [" + unit + "]",
                   min_value, max_value,
                   std::string("sensors")
                   ));
@@ -89,7 +92,7 @@ void PacketPusher::push_value(uint32_t eid,
       hexanode::Sensor::Ptr sensor=_sensors->get_by_id(sensor_id);
       sensor->put(_client, _api_uri, "n/a"); 
     } catch (const std::exception& e) {
-      target << "Cannot recover from error: " << e.what() << std::endl;
+      target << "Attempting to recover from error: " << e.what() << std::endl;
     }
   }
   if (! success) {

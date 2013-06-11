@@ -2,6 +2,7 @@
 #include <libhexabus/packet.hpp>
 #include <numeric>
 #include "../../../../shared/endpoints.h"
+#include <cstdlib>
 
 using namespace hexanode;
 
@@ -19,6 +20,9 @@ void SolarCalculator::push_value(const uint32_t eid,
         hexabus::InfoPacket<uint32_t>(EP_PV_PRODUCTION, current_production));
   } else if (eid == _battery_eid) {
     int32_t current_battery = ((value-127) * (_battery_peak_watt/127));
+    if (abs(current_battery) < 50) {
+      current_battery = 0;
+    }
     _historian->remove_device(_endpoint, eid);
     if (current_battery < 0) {
       _historian->add_production(_endpoint, eid, -1*current_battery);

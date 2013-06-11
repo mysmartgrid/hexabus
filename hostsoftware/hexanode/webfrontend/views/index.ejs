@@ -8,10 +8,11 @@
             <ul class="nav nav-tabs">
               <li class="active"><a href="#dash" data-toggle="tab">Dashboard</a></li>
               <li><a href="#sensors" data-toggle="tab">Sensors</a></li>
-              <li><a href="#actors" data-toggle="tab">Actors</a></li>
+          <!--    <li><a href="#actors" data-toggle="tab">Actors</a></li> -->
             </ul>
           </div>
           <div class="tab-content">
+            <!--- Dashboard -->
             <div class="tab-pane active" id="dash">
               <h2 class="text-center">Dashboard</h2>
               <div class="row-fluid">
@@ -24,18 +25,15 @@
                       <% for (var i=0; i < sensorlist.length; i++) {  %>
                       <%  current=sensorlist[i]; %>
                       <% if (current.displaytype === "dashboard") { %>
-                          <li>
-                          <div id="<%=current.sensor_id%>" style="width:200px;height:160px"></div>
-                          </li>
-                        <% } %>
+                          <li> <div id="<%=current.sensor_id%>" style="width:200px;height:160px"></div> </li>
+                        <% } %> 
                       <% } %>
                     </ul>
                   </div>
                 </div>
               </div>
-
-
-            </div>
+            </div> <!--- Dashboard -->
+            <!--- Sensor pane -->
             <div class="tab-pane" id="sensors">
               <h2 class="text-center">Sensors</h2>
               <div class="row-fluid">
@@ -48,18 +46,15 @@
                       <% for (var i=0; i < sensorlist.length; i++) {  %>
                         <% current=sensorlist[i]; %>
                         <% if (current.displaytype === "sensors") { %>
-                          <li>
-                          <div id="<%=current.sensor_id%>" style="width:200px;height:160px"></div>
-                          </li>
+                          <li> <div id="<%=current.sensor_id%>" style="width:200px;height:160px"></div> </li>
                         <% } %>
                       <% } %>
                     </ul>
                   </div>
                 </div>
               </div>
-
-
-            </div>
+            </div> <!--- Sensor pane -->
+            <!--
             <div class="tab-pane" id="actors">
               <h2 class="text-center">Actors</h2>
               <p align="center">
@@ -67,7 +62,7 @@
               Last update: <div id="timestamp">n/a</div>
               </p>
             </div>
-
+            -->
           </div>
         </div> <!--- tab-content -->
       </div>
@@ -75,7 +70,7 @@
   </div>
 </div> 
 
-<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="/js/jquery-1.10.1.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/raphael.2.1.0.min.js"></script>
 <script src="/js/justgage.1.0.1.min.js"></script>

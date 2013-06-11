@@ -19,7 +19,6 @@ void Historian::send_power_balance() {
       0, add_to_totals);
   int32_t power_balance =  total_consumption - total_production;
   std::cout << "Sending power balance: " << power_balance << std::endl;
-  // TODO: Really send power balance!
   _send_socket->send(
       hexabus::InfoPacket<float>(EP_POWER_BALANCE, power_balance));
 }
