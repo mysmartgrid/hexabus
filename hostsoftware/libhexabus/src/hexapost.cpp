@@ -65,6 +65,7 @@ private:
 
             std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_name(sensor_name);
             klio::Sensor::Ptr sensor;
+            time_t now = tc->get_timestamp();
 
             //If sensor already exists
             if (sensors.size() > 0) {
@@ -75,19 +76,19 @@ private:
                 //Create a new sensor
                 sensor = sensor_factory->createSensor(sensor_name, unit, timezone);
                 store->add_sensor(sensor);
-                std::cout << "Sensor: " << sensor_name << " - created." << std::endl;
+                std::cout << sensor_name << "   " <<
+                        now << "   created" << std::endl;
             }
 
             //If sensor is valid
             if (sensor) {
                 time_t last_timestamp = timestamps[sensor_name];
-                time_t now = tc->get_timestamp();
                 timestamps[sensor_name] = now;
 
                 if (last_timestamp > 0) {
 
-                    std::cout << "Sensor: " << sensor_name << " - " <<
-                            "timestamp: " << now << " - " <<
+                    std::cout << sensor_name << "   " <<
+                            now << "   " <<
                             "reading: " << reading << " " <<
                             unit << std::endl;
 
@@ -100,10 +101,8 @@ private:
                         //Post counter value to the MSG server
                         store->add_reading(sensor, now, new_counter);
 
-                        std::cout << "Sensor: " << sensor_name << " - " <<
-                                "timestamp: " << now << " - " <<
-                                "POST " << store->str() <<
-                                "/sensor/" << sensor->uuid_short() <<
+                        std::cout << sensor_name << "   " << now << "   " <<
+                                "posting: /sensor/" << sensor->uuid_short() <<
                                 " [" << now << ": " << new_counter << "]" << std::endl;
                     }
 
@@ -237,7 +236,7 @@ enum ErrorCode {
 int main(int argc, char** argv) {
 
     std::ostringstream oss;
-    oss << "Usage: " << argv[0] << " -I<interface> [-u<store url> -d<device id> -k<device key>]";
+    oss << "Usage: " << argv[0] << " -I<interface> [-d<device id> -k<device key [-u<store url>]]>]";
     po::options_description desc(oss.str());
 
     desc.add_options()
@@ -252,7 +251,9 @@ int main(int argc, char** argv) {
 
     po::positional_options_description p;
     p.add("interface", 1);
-    p.add("url", 1);
+    p.add("id", 2);
+    p.add("key", 3);
+    p.add("url", 4);
 
     po::variables_map vm;
     try {
@@ -278,11 +279,16 @@ int main(int argc, char** argv) {
         std::cout << "klio library version " << vi->getVersion() << std::endl;
         return ERR_NONE;
     }
+    
+    if ((vm.count("id") && !vm.count("key")) || (!vm.count("id") && vm.count("key"))) {
 
-    if (!((vm.count("url") && vm.count("id") && vm.count("key")) ||
-            (!vm.count("id") && !vm.count("url") && !vm.count("key")))) {
+        std::cerr << "Store id and key are optional arguments, but when informed, must be both defined." << std::endl;
+        return ERR_PARAMETER_MISSING;
+    }
+    
+    if (vm.count("url") && !(vm.count("id") && vm.count("key"))) {
 
-        std::cerr << "Store URL, Id, and Key are optional arguments, but when informed, must be all defined." << std::endl;
+        std::cerr << "When the mySmartGrid API URL is defined, both store id and key are required." << std::endl;
         return ERR_PARAMETER_MISSING;
     }
 
@@ -309,14 +315,19 @@ int main(int argc, char** argv) {
         klio::StoreFactory::Ptr store_factory(new klio::StoreFactory());
         klio::Store::Ptr store;
 
-        if (vm.count("url")) {
+        if (!vm.count("url") && vm.count("id")) {
+
+            store = store_factory->create_msg_store(
+                    vm["id"].as<std::string>(),
+                    vm["key"].as<std::string>());
+
+        } else if (vm.count("url") && vm.count("id")) {
 
             store = store_factory->create_msg_store(
                     vm["url"].as<std::string>(),
                     vm["id"].as<std::string>(),
                     vm["key"].as<std::string>());
-        } else {
-
+        } else  {
             store = store_factory->create_msg_store();
         }
         store->initialize();
@@ -331,11 +342,19 @@ int main(int argc, char** argv) {
             timezone = vm["timezone"].as<std::string>();
         }
 
-        hexabus::Socket network(io, interface);
-        std::cout << "opened store: " << store->str() << std::endl;
+        std::cout << std::endl <<
+                "Opened store: " << store->str() << std::endl <<
+                "Please, go to http://www.mysmartgrid.de/device/mylist and " << 
+                "enter the activation code above, in order to link this store to your account." << std::endl <<
+                std::endl <<
+                "Sensor                        Timestamp    Event" << std::endl <<
+                "-------------------------------------------------------------" <<
+                std::endl;
+
         klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
         klio::TimeConverter::Ptr tc(new klio::TimeConverter());
 
+        hexabus::Socket network(io, interface);
         network.listen(address);
         network.onPacketReceived(ReadingLogger(store, tc, sensor_factory, timezone));
 
