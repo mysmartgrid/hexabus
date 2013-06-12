@@ -25,6 +25,19 @@ namespace po = boost::program_options;
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
+enum ErrorCode {
+    ERR_NONE = 0,
+
+    ERR_UNKNOWN_PARAMETER = 1,
+    ERR_PARAMETER_MISSING = 2,
+    ERR_PARAMETER_FORMAT = 3,
+    ERR_PARAMETER_VALUE_INVALID = 4,
+    ERR_NETWORK = 5,
+    ERR_KLIO = 6,
+
+    ERR_OTHER = 127
+};
+
 struct ReadingLogger : private hexabus::PacketVisitor {
 private:
     boost::asio::ip::address_v6 source;
@@ -222,17 +235,6 @@ public:
     }
 };
 
-enum ErrorCode {
-    ERR_NONE = 0,
-    ERR_UNKNOWN_PARAMETER = 1,
-    ERR_PARAMETER_MISSING = 2,
-    ERR_PARAMETER_FORMAT = 3,
-    ERR_PARAMETER_VALUE_INVALID = 4,
-    ERR_NETWORK = 5,
-    ERR_KLIO = 6,
-    ERR_OTHER = 127
-};
-
 int main(int argc, char** argv) {
 
     std::ostringstream oss;
@@ -251,9 +253,6 @@ int main(int argc, char** argv) {
 
     po::positional_options_description p;
     p.add("interface", 1);
-    p.add("id", 2);
-    p.add("key", 3);
-    p.add("url", 4);
 
     po::variables_map vm;
     try {
@@ -279,13 +278,13 @@ int main(int argc, char** argv) {
         std::cout << "klio library version " << vi->getVersion() << std::endl;
         return ERR_NONE;
     }
-    
+
     if ((vm.count("id") && !vm.count("key")) || (!vm.count("id") && vm.count("key"))) {
 
         std::cerr << "Store id and key are optional arguments, but when informed, must be both defined." << std::endl;
         return ERR_PARAMETER_MISSING;
     }
-    
+
     if (vm.count("url") && !(vm.count("id") && vm.count("key"))) {
 
         std::cerr << "When the mySmartGrid API URL is defined, both store id and key are required." << std::endl;
@@ -327,7 +326,7 @@ int main(int argc, char** argv) {
                     vm["url"].as<std::string>(),
                     vm["id"].as<std::string>(),
                     vm["key"].as<std::string>());
-        } else  {
+        } else {
             store = store_factory->create_msg_store();
         }
         store->initialize();
@@ -344,7 +343,7 @@ int main(int argc, char** argv) {
 
         std::cout << std::endl <<
                 "Opened store: " << store->str() << std::endl <<
-                "Please, go to http://www.mysmartgrid.de/device/mylist and " << 
+                "Please, go to http://www.mysmartgrid.de/device/mylist and " <<
                 "enter the activation code above, in order to link this store to your account." << std::endl <<
                 std::endl <<
                 "Sensor                        Timestamp    Event" << std::endl <<
