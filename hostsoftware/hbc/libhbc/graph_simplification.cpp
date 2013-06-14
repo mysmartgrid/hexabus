@@ -114,8 +114,8 @@ void GraphSimplification::expandMultipleWrites(graph_t_ptr g) {
       max_vertex_id = (*g)[*vertexIt].vertex_id;
 
   // now iterate over the graph to find command vertices with multiple write commands and expand them
-  boost::tie(vertexIt, vertexEnd) = vertices(*g);
-  for(; vertexIt != vertexEnd; vertexIt++) {
+  vertexIt = vertices(*g).first;
+  for(size_t i = 0; vertexIt != vertices(*g).second; vertexIt = vertices(*g).first + i++) {
     vertex_t& vertex = (*g)[*vertexIt];
 
     if(vertex.type == v_command) {
@@ -142,8 +142,8 @@ void GraphSimplification::expandComplexConditions(graph_t_ptr g) {
     if((*g)[*vertexIt].vertex_id >= max_vertex_id)
       max_vertex_id = (*g)[*vertexIt].vertex_id;
 
-  boost::tie(vertexIt, vertexEnd) = vertices(*g);
-  for(; vertexIt != vertexEnd; vertexIt++) {
+  vertexIt = vertices(*g).first;
+  for(size_t i = 0; vertexIt != vertices(*g).second; vertexIt = vertices(*g).first + i++) {
     vertex_t& vertex = (*g)[*vertexIt];
     // find condition vertices
     if(vertex.type == v_cond) {
@@ -152,64 +152,9 @@ void GraphSimplification::expandComplexConditions(graph_t_ptr g) {
         if(cond.which() == 4) { // if it's a compound condition
           // find out whether it's an AND or an OR condition
           compound_condition_doc comp_cond = boost::get<compound_condition_doc>(cond);
-          if(comp_cond.bool_op == AND) { /*
-            // Make <first part>->(intermediate state)->[no command]-><second part>->[the command]->(target state)
-
-            // find command vertex
-            graph_t::adjacency_iterator adjIt, adjEnd;
-            boost::tie(adjIt, adjEnd) = adjacent_vertices(*vertexIt, *g);
-            vertex_id_t command_vertex_id = *adjIt;
-
-            // find originating state vertex
-            graph_t::inv_adjacency_iterator revIt, revEnd;
-            boost::tie(revIt, revEnd) = inv_adjacent_vertices(*vertexIt, *g);
-            vertex_id_t originating_state_id = *revIt;
-
-            // find target state vertex
-            boost::tie(adjIt, adjEnd) = adjacent_vertices(command_vertex_id, *g);
-            vertex_id_t target_state_id = *adjIt;
-
-            // split condition
-            condition_doc cond_b = comp_cond.condition_b;
-            // assign first part to "original" condition
-            vertex.contents = comp_cond.condition_a;
-            // update the node's name
-            hbc_printer pr;
-            std::ostringstream cond_a_oss;
-            pr(comp_cond.condition_a, cond_a_oss);
-            vertex.name = cond_a_oss.str();
-
-            // cut edge to target state
-            boost::remove_edge(command_vertex_id, target_state_id, *g);
-
-            // make new intermediate state
-            vertex_id_t intermediate_state_id = add_vertex(g, "intermediate\\nstate", (*g)[originating_state_id].machine_id, ++max_vertex_id, v_state);
-            // TODO This state needs a state ID!
-
-            // make node-name
-            std::ostringstream newcnd_oss;
-            pr(cond_b, newcnd_oss);
-            // add new condition vertex
-            vertex_id_t new_cond_vertex_id = add_vertex(g, newcnd_oss.str(), vertex.machine_id, ++max_vertex_id, v_cond, cond_b);
-
-            // make new dummy command vertex; move original command vertex "down".
-            command_block_doc dummy_command; // leave it empty
-            std::string target_name = (*g)[target_state_id].name;
-            dummy_command.goto_command.lineno = 0;
-            dummy_command.goto_command.target_state = target_name.substr(target_name.find_last_of("."));
-            std::ostringstream cmd_oss;
-            pr(dummy_command, cmd_oss);
-            vertex_id_t dummy_cmd_v_id = add_vertex(g, cmd_oss.str(), (*g)[command_vertex_id].machine_id, ++max_vertex_id, v_command, dummy_command);
-
-
-            // ...cut the old command vertex's edges, and link everything together.
-            boost::remove_edge(*vertexIt, command_vertex_id, *g);
-            add_edge(g, *vertexIt, dummy_cmd_v_id, e_if_com);
-            add_edge(g, dummy_cmd_v_id, intermediate_state_id, e_to_state);
-            add_edge(g, intermediate_state_id, new_cond_vertex_id, e_from_state);
-            add_edge(g, new_cond_vertex_id, command_vertex_id, e_if_com);
-            add_edge(g, command_vertex_id, target_state_id, e_to_state);
-            */
+          if(comp_cond.bool_op == AND) {
+            // The semantics of AND conditions are still not clear.
+            throw GraphSimplificationException("AND operator (&&) not supported yet.");
           } else { // OR
             // Make two conditions; duplicate command vertex
             // what do we have, what do we need?
@@ -254,6 +199,8 @@ void GraphSimplification::expandComplexConditions(graph_t_ptr g) {
             add_edge(g, originating_state_id, new_cond_vertex, e_from_state);
             add_edge(g, new_cond_vertex, new_cmd_vertex, e_if_com);
             add_edge(g, new_cmd_vertex, target_state_id, e_to_state);
+
+            i--; // don't increment index: we have to look at it again, in case it was a nested complex condition
           }
         }
       } catch (boost::bad_get b) {
