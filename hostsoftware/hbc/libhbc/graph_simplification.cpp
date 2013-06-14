@@ -115,7 +115,7 @@ void GraphSimplification::expandMultipleWrites(graph_t_ptr g) {
 
   // now iterate over the graph to find command vertices with multiple write commands and expand them
   vertexIt = vertices(*g).first;
-  for(size_t i = 0; vertexIt != vertices(*g).second; vertexIt = vertices(*g).first + i++) {
+  for(size_t i = 0; vertexIt != vertices(*g).second; vertexIt = vertices(*g).first + ++i) {
     vertex_t& vertex = (*g)[*vertexIt];
 
     if(vertex.type == v_command) {
@@ -143,7 +143,7 @@ void GraphSimplification::expandComplexConditions(graph_t_ptr g) {
       max_vertex_id = (*g)[*vertexIt].vertex_id;
 
   vertexIt = vertices(*g).first;
-  for(size_t i = 0; vertexIt != vertices(*g).second; vertexIt = vertices(*g).first + i++) {
+  for(size_t i = 0; vertexIt != vertices(*g).second; vertexIt = vertices(*g).first + ++i) {
     vertex_t& vertex = (*g)[*vertexIt];
     // find condition vertices
     if(vertex.type == v_cond) {
