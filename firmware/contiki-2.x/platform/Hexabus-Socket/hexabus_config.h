@@ -101,9 +101,12 @@ _DEBUG options should be set to:
 
 // read analog input pin
 #define ANALOGREAD_ENABLE 0
+#define ACS709_ENABLE 1
 #define ANALOGREAD_DEBUG 1
-#define ANALOGREAD_PIN 0 // 0 to 7
+#define ANALOGREAD_PIN 8 // 0 to 7 for single ended input, 8-29 for differential operation
 #define ANALOGREAD_MULT 0.0024414062 // readings are multiplied with this value to calculate the value sent to the endpoint. Set to 0.0024414062 to get the Voltage reading (in Volts) at 2.5V supply voltage
+#define ACS709_MULT 0.087098818 // factor to convert the 10 bit ADC-value to power ( ( ( (3.3V/2) / 1024 ) * 1000 ) / 18.5 ), where 3.3V is the supply voltage and 18.5mV/A is the resolution of the ACS709
+// TODO: Documentation, ACS709_MULT could be a factor added to ANALOGREAD_MULT
 
 //i2c master
 #define I2C_ENABLE 0

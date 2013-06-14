@@ -23,5 +23,6 @@
 #define EP_LIGHTSENSOR           29UL
 #define EP_IR_RECEIVER           30UL
 #define EP_LIVENESS              31UL
+#define EP_ACS709                2UL
 
 #endif // ENDPOINTS_H_
