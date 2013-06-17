@@ -46,8 +46,10 @@ private:
     klio::TimeConverter::Ptr tc;
     klio::SensorFactory::Ptr sensor_factory;
     std::string timezone;
-    std::map<std::string, time_t> timestamps;
-    std::map<std::string, float> counters;
+    std::map<std::string, time_t> previous_timestamps;
+    std::map<std::string, float> previous_readings;
+    std::map<std::string, float> accumulated_consumption;
+    std::map<std::string, long> counters;
 
     const char* eidToUnit(uint32_t eid) {
         switch (eid) {
@@ -78,7 +80,7 @@ private:
 
             std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_name(sensor_name);
             klio::Sensor::Ptr sensor;
-            time_t now = tc->get_timestamp();
+            time_t timestamp = tc->get_timestamp();
 
             //If sensor already exists
             if (sensors.size() > 0) {
@@ -90,39 +92,51 @@ private:
                 sensor = sensor_factory->createSensor(sensor_name, unit, timezone);
                 store->add_sensor(sensor);
                 std::cout << sensor_name << "   " <<
-                        now << "   created" << std::endl;
+                        timestamp << "   created" << std::endl;
             }
+            
+            std::cout << sensor_name << "   " <<
+                    timestamp << "   " <<
+                    "reading: " << reading << " " <<
+                    unit << std::endl;
 
-            //If sensor is valid
-            if (sensor) {
-                time_t last_timestamp = timestamps[sensor_name];
-                timestamps[sensor_name] = now;
+            time_t previous_timestamp = previous_timestamps[sensor_name];
+            float consumption = 0;
+            long counter = 0;
 
-                if (last_timestamp > 0) {
+            //If not the first reading
+            if (previous_timestamp > 0) {
 
-                    std::cout << sensor_name << "   " <<
-                            now << "   " <<
-                            "reading: " << reading << " " <<
-                            unit << std::endl;
+                float previous_reading = previous_readings[sensor_name];
+                consumption = accumulated_consumption[sensor_name];
+                counter = counters[sensor_name];
 
-                    long previous_counter = (long) counters[sensor_name];
-                    counters[sensor_name] += reading * ((float) (now - last_timestamp)) / 3600;
-                    long new_counter = (long) counters[sensor_name];
+                //Average power
+                reading = (float) (reading + previous_reading) / 2;
 
-                    if (new_counter - previous_counter >= 1) {
+                float elapsed_time = timestamp - previous_timestamp;
+                consumption += (float) reading * elapsed_time / 3600;
 
-                        //Post counter value to the MSG server
-                        store->add_reading(sensor, now, new_counter);
+                if (consumption >= 1) {
 
-                        std::cout << sensor_name << "   " << now << "   " <<
-                                "posting: /sensor/" << sensor->uuid_short() <<
-                                " [" << now << ": " << new_counter << "]" << std::endl;
-                    }
+                    float fraction = consumption - (long) consumption;
+                    timestamp -= (long) elapsed_time * fraction / consumption;
+                    counter += consumption - fraction;
+                    consumption = fraction;
 
-                } else {
-                    counters[sensor_name] = 0;
+                    //Post counter value to the MSG server
+                    store->add_reading(sensor, timestamp, counter);
+
+                    std::cout << sensor_name << "   " << timestamp << "   " <<
+                            "posting: /sensor/" << sensor->uuid_short() <<
+                            " [" << timestamp << ": " << counter << "]" << std::endl;
                 }
             }
+
+            previous_timestamps[sensor_name] = timestamp;
+            previous_readings[sensor_name] = reading;
+            accumulated_consumption[sensor_name] = consumption;
+            counters[sensor_name] = counter;
 
         } catch (klio::StoreException const& ex) {
             std::cout << "Failed to record reading: " << ex.what() << std::endl;
