@@ -134,10 +134,10 @@ private:
 
                 //Estimated timestamp of the previous reading
                 time_t timestamp = previous_timestamp +
-                        
+
                         //elapsed time
-                        (long) ((now - previous_timestamp) * 
-                        
+                        (long) ((now - previous_timestamp) *
+
                         //time fraction
                         ((integer_reading - previous_reading) / consumed));
 
