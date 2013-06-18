@@ -49,7 +49,7 @@ private:
     std::map<std::string, time_t> timestamps;
     std::map<std::string, float> readings;
     std::map<std::string, float> measurements;
-
+    
     const char* eidToUnit(uint32_t eid) {
         switch (eid) {
             case 2:
@@ -123,21 +123,22 @@ private:
             float previous_reading = readings[sensor->name()];
             measurement = measurements[sensor->name()];
 
-            //Average power
+            //Average power in watt
             float power = (reading + previous_reading) / 2;
 
-            //Energy transformed during the elapsed time
-            float energy = elapsed_time * power / 3600;
-
+            //Energy in watt-hour, consumed during the elapsed time
+            float energy = power * elapsed_time / 3600;
+            
             //Measurement still not posted to MSG
             float pending = (measurement - (long) measurement) + energy;
 
             measurement += energy;
 
+            //At least 1 watt-hour has been consumed since the last posting
             if (pending >= 1) {
 
                 //Adjust timestamp for when the accumulated measurement was an integer
-                time_t timestamp = now - (long) (elapsed_time * (pending - (long) pending) / pending);
+                time_t timestamp = previous_timestamp + (long) (elapsed_time * ((long) pending) / pending);
 
                 //Post measurement to MSG
                 store->add_reading(sensor, timestamp, (long) measurement);
