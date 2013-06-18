@@ -115,23 +115,27 @@ private:
 
     virtual void post_kwh_reading(klio::Sensor::Ptr sensor, time_t now, float reading) {
 
-        reading *= 1000; //watt-hour
+        //Convert to watt-hour
+        reading *= 1000;
+
         time_t previous_timestamp = previous_timestamps[sensor->name()];
+        float previous_reading = previous_readings[sensor->name()];
 
         //If not the first reading
-        if (previous_timestamp > 0) {
+        if (previous_timestamp > 0 && reading > previous_reading) {
 
-            float previous_reading = previous_readings[sensor->name()];
-            float consumed = (reading - (long) previous_reading);
+            float consumed = reading - previous_reading;
 
             //At least 1 watt-hour has been consumed since the last posting
             if (consumed >= 1) {
 
-                //Adjust timestamp for when the accumulated measurement was an integer
-                float fraction = ((long) consumed) / consumed;
+                //Most recent integer reading
+                long value = (long) (previous_reading + (long) consumed);
+
+                //Estimated timestamp of the previous reading
                 time_t elapsed_time = now - previous_timestamp;
+                float fraction = (value - previous_reading) / consumed;
                 time_t timestamp = previous_timestamp + (long) (elapsed_time * fraction);
-                long value = (long) previous_reading + (long) consumed;
 
                 //Post measurement to MSG
                 store->add_reading(sensor, timestamp, value);
@@ -139,10 +143,15 @@ private:
                 std::cout << sensor->name() << "   " << now <<
                         "   posting: /sensor/" << sensor->uuid_short() <<
                         " [" << timestamp << ": " << value << "]" << std::endl;
+
+                previous_timestamps[sensor->name()] = timestamp;
+                previous_readings[sensor->name()] = value;
             }
+
+        } else {
+            previous_timestamps[sensor->name()] = now;
+            previous_readings[sensor->name()] = reading;
         }
-        previous_readings[sensor->name()] = reading;
-        previous_timestamps[sensor->name()] = now;
     }
 
     virtual void visit(const hexabus::ErrorPacket & error) {
