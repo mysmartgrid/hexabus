@@ -130,22 +130,22 @@ private:
             if (consumed >= 1) {
 
                 //Most recent integer reading
-                long value = (long) (previous_reading + (long) consumed);
+                long integer_reading = (long) (previous_reading + (long) consumed);
 
                 //Estimated timestamp of the previous reading
                 time_t elapsed_time = now - previous_timestamp;
-                float fraction = (value - previous_reading) / consumed;
+                float fraction = (integer_reading - previous_reading) / consumed;
                 time_t timestamp = previous_timestamp + (long) (elapsed_time * fraction);
 
                 //Post measurement to MSG
-                store->add_reading(sensor, timestamp, value);
+                store->add_reading(sensor, timestamp, integer_reading);
 
                 std::cout << sensor->name() << "   " << now <<
                         "   posting: /sensor/" << sensor->uuid_short() <<
-                        " [" << timestamp << ": " << value << "]" << std::endl;
+                        " [" << timestamp << ": " << integer_reading << "]" << std::endl;
 
                 previous_timestamps[sensor->name()] = timestamp;
-                previous_readings[sensor->name()] = value;
+                previous_readings[sensor->name()] = integer_reading;
             }
 
         } else {
@@ -369,7 +369,7 @@ int main(int argc, char** argv) {
                 "enter the activation code above, in order to link this store to your account." << std::endl <<
                 std::endl <<
                 "Sensor                        Timestamp    Event" << std::endl <<
-                "-------------------------------------------------------------" <<
+                "-----------------------------------------------------------------------" <<
                 std::endl;
 
         klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
