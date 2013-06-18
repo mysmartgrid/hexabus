@@ -115,7 +115,7 @@ private:
 
     virtual void post_kwh_reading(klio::Sensor::Ptr sensor, time_t now, float reading) {
 
-        //Convert to watt-hour
+        //Convert reading to watt-hour
         reading *= 1000;
 
         time_t previous_timestamp = previous_timestamps[sensor->name()];
@@ -126,16 +126,20 @@ private:
 
             float consumed = reading - previous_reading;
 
-            //At least 1 watt-hour has been consumed since the last posting
+            //At least 1 watt-hour has been consumed since last posting
             if (consumed >= 1) {
 
                 //Most recent integer reading
                 long integer_reading = (long) (previous_reading + (long) consumed);
 
                 //Estimated timestamp of the previous reading
-                time_t elapsed_time = now - previous_timestamp;
-                float fraction = (integer_reading - previous_reading) / consumed;
-                time_t timestamp = previous_timestamp + (long) (elapsed_time * fraction);
+                time_t timestamp = previous_timestamp +
+                        
+                        //elapsed time
+                        (long) ((now - previous_timestamp) * 
+                        
+                        //time fraction
+                        ((integer_reading - previous_reading) / consumed));
 
                 //Post measurement to MSG
                 store->add_reading(sensor, timestamp, integer_reading);
