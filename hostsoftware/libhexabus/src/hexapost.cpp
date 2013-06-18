@@ -96,50 +96,12 @@ private:
                         now << "   created" << std::endl;
             }
 
-            std::cout << sensor_name << "   " <<
-                    now << "   " <<
-                    "reading: " << reading << " " <<
-                    unit << std::endl;
+            if (reading > 0) {
+                std::cout << sensor_name << "   " << now << "   " <<
+                        "reading: " << reading << " " << unit << std::endl;
 
-            time_t previous_timestamp = timestamps[sensor_name];
-            time_t timestamp = now;
-            float measurement = 0;
-
-            //If not the first reading
-            if (previous_timestamp > 0) {
-
-                long elapsed_time = timestamp - previous_timestamp;
-                float previous_reading = readings[sensor_name];
-                measurement = measurements[sensor_name];
-
-                //Average power
-                reading = (reading + previous_reading) / 2;
-
-                //Energy transformed during the elapsed time
-                float energy = reading * elapsed_time / 3600;
-
-                //Measurement still not posted to MSG
-                float pending = measurement - (long) measurement + energy;
-
-                measurement += energy;
-
-                if (pending >= 1) {
-
-                    //Adjust timestamp for when the accumulated measurement was an integer
-                    timestamp -= elapsed_time * (pending - (long) pending) / pending;
-
-                    //Post measurement to MSG
-                    store->add_reading(sensor, timestamp, (long) measurement);
-
-                    std::cout << sensor_name << "   " << now << "   " <<
-                            "posting: /sensor/" << sensor->uuid_short() <<
-                            " [" << timestamp << ": " << (long) measurement << "]" << std::endl;
-                }
+                post_watt_reading(sensor, now, reading);
             }
-
-            timestamps[sensor_name] = timestamp;
-            readings[sensor_name] = reading;
-            measurements[sensor_name] = measurement;
 
         } catch (klio::StoreException const& ex) {
             std::cout << "Failed to record reading: " << ex.what() << std::endl;
@@ -147,6 +109,48 @@ private:
         } catch (std::exception const& ex) {
             std::cout << "Failed to record reading: " << ex.what() << std::endl;
         }
+    }
+
+    virtual void post_watt_reading(klio::Sensor::Ptr sensor, time_t now, float reading) {
+
+        time_t previous_timestamp = timestamps[sensor->name()];
+        float measurement = 0;
+
+        //If not the first reading
+        if (previous_timestamp > 0) {
+
+            float elapsed_time = now - previous_timestamp;
+            float previous_reading = readings[sensor->name()];
+            measurement = measurements[sensor->name()];
+
+            //Average power
+            float power = (reading + previous_reading) / 2;
+
+            //Energy transformed during the elapsed time
+            float energy = elapsed_time * power / 3600;
+
+            //Measurement still not posted to MSG
+            float pending = (measurement - (long) measurement) + energy;
+
+            measurement += energy;
+
+            if (pending >= 1) {
+
+                //Adjust timestamp for when the accumulated measurement was an integer
+                time_t timestamp = now - (long) (elapsed_time * (pending - (long) pending) / pending);
+
+                //Post measurement to MSG
+                store->add_reading(sensor, timestamp, (long) measurement);
+
+                std::cout << sensor->name() << "   " << now <<
+                        "   posting: /sensor/" << sensor->uuid_short() <<
+                        " [" << timestamp << ": " << (long) measurement << "]" << std::endl;
+            }
+        }
+
+        timestamps[sensor->name()] = now;
+        readings[sensor->name()] = reading;
+        measurements[sensor->name()] = measurement;
     }
 
     virtual void visit(const hexabus::ErrorPacket & error) {
