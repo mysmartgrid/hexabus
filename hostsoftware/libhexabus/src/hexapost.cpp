@@ -25,6 +25,16 @@ namespace po = boost::program_options;
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
+/*
+ * Ely: This command is very similar to hexalog. Initially I made hexalog able
+ * to log readings into a remote store. However, Mathias asked me to implement this
+ * as a different command.
+ */
+
+/*
+ * Ely: We have similar enumerations like this in multiple files. 
+ * I think they should be defined only once.
+ */
 enum ErrorCode {
     ERR_NONE = 0,
 
@@ -38,6 +48,10 @@ enum ErrorCode {
     ERR_OTHER = 127
 };
 
+/*
+ * Ely: I think the implementations of PacketVisitor should extend a single 
+ * NullObject, and therefore avoid declaring so many default methods.
+ */
 struct ReadingLogger : private hexabus::PacketVisitor {
 protected:
     boost::asio::ip::address_v6 source;
