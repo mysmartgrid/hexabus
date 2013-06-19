@@ -39,7 +39,7 @@ enum ErrorCode {
 };
 
 struct ReadingLogger : private hexabus::PacketVisitor {
-private:
+protected:
     boost::asio::ip::address_v6 source;
     float packetValue;
     klio::Store::Ptr store;
@@ -53,6 +53,7 @@ private:
         switch (eid) {
             case 7:
                 return "kWh";
+                //TODO: support other units
             default:
                 return "unknown";
         }
@@ -70,7 +71,6 @@ private:
             //Validate unit
             std::string unit = eidToUnit(eid);
             if (unit.compare("unknown") == 0) {
-                //TODO: support other units
                 return;
             }
 
@@ -112,6 +112,8 @@ private:
             std::cout << "Failed to record reading: " << ex.what() << std::endl;
         }
     }
+
+private:
 
     virtual void post_kwh_reading(klio::Sensor::Ptr sensor, time_t now, float reading) {
 
@@ -191,7 +193,7 @@ private:
     }
 
     virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) {
-        // TODO: handle this properly
+        rejectPacket();
     }
 
     virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info) {
@@ -199,15 +201,15 @@ private:
     }
 
     virtual void visit(const hexabus::InfoPacket<std::string>& info) {
-        // TODO: handle this properly
+        rejectPacket();
     }
 
     virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) {
-        // TODO: handle this properly
+        rejectPacket();
     }
 
     virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) {
-        // TODO: handle this properly
+        rejectPacket();
     }
 
     virtual void visit(const hexabus::WritePacket<bool>& write) {
