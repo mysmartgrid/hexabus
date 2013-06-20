@@ -25,13 +25,20 @@ namespace po = boost::program_options;
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
-/*
- * Ely: This command is very similar to hexalog. Initially I made hexalog able
- * to log readings into a remote store. However, Mathias asked me to implement this
- * as a different command.
+/**
+ * COMMENTS
+ * 
+ * Ely: This command is very similar to hexalog. It listens to energy
+ * measurements broadcast in the network and POSTs them to a remote libklio
+ * store at mySmartGrid.
+ * 
+ * Some people in the team think it should be a separate command, some other 
+ * people think hexalog should be extended to incorporate this functionality.
  */
 
-/*
+/**
+ * COMMENTS
+ * 
  * Ely: We have similar enumerations like this in multiple files. 
  * I think they should be defined only once.
  */
@@ -49,6 +56,8 @@ enum ErrorCode {
 };
 
 /*
+ * COMMENTS
+ * 
  * Ely: I think the implementations of PacketVisitor should extend a single 
  * NullObject, and therefore avoid declaring so many default methods.
  */
