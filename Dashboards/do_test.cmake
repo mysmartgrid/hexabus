@@ -274,7 +274,7 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
       endif( NOT CMAKE_TOOLCHAIN_FILE )
     endif()
 
-    #ctest_submit (RETURN_VALUE ${LAST_RETURN_VALUE})
+    ctest_submit (RETURN_VALUE ${LAST_RETURN_VALUE})
     # todo: create package, upload to distribution server
     # do the packing only if switch is on and
     if( (${UPDATE_RETURN_VALUE} GREATER 0 AND PROPERLY_BUILT_AND_INSTALLED) OR ${first_checkout})
