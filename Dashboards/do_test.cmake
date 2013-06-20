@@ -1,0 +1,337 @@
+# -*- mode: cmake; -*-
+# bernd.loerwald@itwm.fraunhofer.de
+# update by kai.krueger@itwm.fraunhofer.de
+
+# cdash / ctest information ########################################################
+
+set(CTEST_PROJECT_NAME "hexabus")
+set(CTEST_NIGHTLY_START_TIME "04:00:00 CET")
+
+set(CTEST_DROP_METHOD     "http")
+set(CTEST_DROP_SITE       "cdash.hexabus.de")
+set(CTEST_DROP_LOCATION   "/submit.php?project=${CTEST_PROJECT_NAME}")
+set(CTEST_DROP_SITE_CDASH TRUE)
+set(CTEST_USE_LAUNCHERS   0)
+set(CTEST_TEST_TIMEOUT   180)
+set(KDE_CTEST_DASHBOARD_DIR "/tmp/$ENV{USER}")
+
+set(CTEST_PACKAGE_SITE "packages.mysmartgrid.de")
+
+site_name(CTEST_SITE)
+
+# test configuration ###############################################################
+# parse arguments
+string (REPLACE "," ";" SCRIPT_ARGUMENTS "${CTEST_SCRIPT_ARG}")
+foreach (ARGUMENT ${SCRIPT_ARGUMENTS})
+  if ("${ARGUMENT}" MATCHES "^([^=]+)=(.+)$" )
+    set ("${CMAKE_MATCH_1}" "${CMAKE_MATCH_2}")
+  endif()
+endforeach()
+
+if (NOT TESTING_MODEL)
+  message (FATAL_ERROR "No TESTING_MODEL given (available: Nightly, Coverage)")
+endif()
+
+if (NOT GIT_BRANCH)
+  set (GIT_BRANCH "develop")
+endif()
+
+if (NOT BOOST_VERSION)
+#  set (BOOST_VERSION "1.49")
+endif()
+
+if (NOT COMPILER)
+  set (COMPILER "gcc")
+endif()
+
+if (NOT PARALLEL_JOBS)
+  set (PARALLEL_JOBS 1)
+endif()
+
+if (NOT REPOSITORY_URL)
+  set (REPOSITORY_URL "git_gpispace:gpispace.git")
+endif ()
+
+if (NOT BUILD_TMP_DIR)
+  set (BUILD_TMP_DIR "/tmp")
+endif ()
+
+if (${COMPILER} STREQUAL "gcc")
+  set (CMAKE_C_COMPILER "gcc")
+  set (CMAKE_CXX_COMPILER "g++")
+elseif( ${COMPILER} STREQUAL "clang" )
+  set (CMAKE_C_COMPILER "clang")
+  set (CMAKE_CXX_COMPILER "clang++")
+elseif (${COMPILER} STREQUAL "intel")
+  set (CMAKE_C_COMPILER "icc")
+  set (CMAKE_CXX_COMPILER "icpc")
+else()
+  message (FATAL_ERROR "unknown compiler '${COMPILER}'")
+endif()
+
+set (ENV{CC} ${CMAKE_C_COMPILER})
+set (ENV{CXX} ${CMAKE_CXX_COMPILER})
+
+if(CMAKE_TOOLCHAIN_FILE)
+  include(${CMAKE_TOOLCHAIN_FILE})
+  if( openwrt_arch ) 
+    set(CMAKE_SYSTEM_PROCESSOR ${openwrt_arch})
+  endif()
+endif()
+
+# variables / configuration based on test configuration ############################
+set(_projectNameDir "${CTEST_PROJECT_NAME}")
+
+# set (CTEST_BUILD_NAME "${CMAKE_SYSTEM_PROCESSOR}-${COMPILER}-boost${BOOST_VERSION}-${GIT_BRANCH}")
+set (CTEST_BUILD_NAME "${CMAKE_SYSTEM_PROCESSOR}-${COMPILER}-${GIT_BRANCH}")
+
+set (CTEST_BASE_DIRECTORY   "${BUILD_TMP_DIR}/$ENV{USER}/${CTEST_PROJECT_NAME}/${TESTING_MODEL}")
+set (CTEST_SOURCE_DIRECTORY "${CTEST_BASE_DIRECTORY}/src-${GIT_BRANCH}" )
+set (CTEST_BINARY_DIRECTORY "${CTEST_BASE_DIRECTORY}/build-${CTEST_BUILD_NAME}")
+set (CTEST_INSTALL_DIRECTORY "${CTEST_BASE_DIRECTORY}/install-${CTEST_BUILD_NAME}")
+
+if (${TESTING_MODEL} STREQUAL "Nightly")
+  set (CMAKE_BUILD_TYPE "Release")
+elseif (${TESTING_MODEL} STREQUAL "Continuous")
+  set (CMAKE_BUILD_TYPE "Release")
+elseif (${TESTING_MODEL} STREQUAL "Coverage")
+  set (CMAKE_BUILD_TYPE "Profile")
+  set (ENABLE_CODECOVERAGE 1)
+
+  find_program (CTEST_COVERAGE_COMMAND NAMES gcov)
+  find_program (CTEST_MEMORYCHECK_COMMAND NAMES valgrind)
+else()
+  message (FATAL_ERROR "Unknown TESTING_MODEL ${TESTING_MODEL} (available: Nightly, Coverage, Continuous)")
+endif()
+
+set(CTEST_PROJECT_SUBPROJECTS)
+file(GLOB _dummy ${CTEST_SOURCE_DIRECTORY}/hostsoftware/*/CMakeLists.txt)
+foreach ( line ${_dummy})
+  get_filename_component(_currentDir "${line}" PATH)
+  get_filename_component(_item "${_currentDir}" NAME)
+  message("====>${line}<====${_currentDir}===${_item}")
+  list(APPEND CTEST_PROJECT_SUBPROJECTS ${_item})
+endforeach()
+
+set(URL "https://github.com/mysmartgrid/hexabus.git")
+
+# external software ################################################################
+
+if (${COMPILER} STREQUAL "intel")
+  set (ADDITIONAL_SUFFIX "intel")
+else()
+  set (ADDITIONAL_SUFFIX "gcc")
+endif()
+
+macro (set_if_exists NAME PATH)
+  if (EXISTS ${PATH})
+    set (${NAME} ${PATH})
+    set ($ENV{Name} ${PATH})
+  endif()
+endmacro()
+
+
+if( NOT CMAKE_TOOLCHAIN_FILE )
+  set (EXTERNAL_SOFTWARE "$ENV{HOME}/external_software")
+  set_if_exists (BOOST_ROOT ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION}/${ADDITIONAL_SUFFIX})
+  set_if_exists (GRAPHVIZ_HOME ${EXTERNAL_SOFTWARE}/graphviz/2.24)
+else()
+  set_if_exists (EXTERNAL_SOFTWARE "/home/projects/msgrid/x-tools/arm-unknown-linux-gnueabihf/opt")
+  set_if_exists (BOOST_ROOT ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION})
+endif()
+# LIBKLIO_HOME
+# LIBHXB_HOME
+
+
+# cmake options ####################################################################
+
+set (CTEST_BUILD_FLAGS "-k -j ${PARALLEL_JOBS}")
+set (CTEST_CMAKE_GENERATOR "Unix Makefiles")
+
+
+# prepare binary directory (clear, write initial cache) ############################
+
+if (NOT "${TESTING_MODEL}" STREQUAL "Continuous")
+  file (REMOVE_RECURSE "${CTEST_INSTALL_DIRECTORY}")
+  ctest_empty_binary_directory ("${CTEST_BINARY_DIRECTORY}")
+endif()
+
+if (NOT EXISTS "${CTEST_BINARY_DIRECTORY}")
+  file (MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
+endif()
+
+# prepare source directory (do initial checkout, switch branch) ####################
+find_program (CTEST_GIT_COMMAND NAMES git)
+
+if (NOT EXISTS ${CTEST_SOURCE_DIRECTORY}/.git)
+  set (CTEST_CHECKOUT_COMMAND "${CTEST_GIT_COMMAND} clone -b ${GIT_BRANCH} ${URL} ${CTEST_SOURCE_DIRECTORY}")
+  set (first_checkout 1)
+else()
+  set (first_checkout 0)
+endif()
+
+# do testing #######################################################################
+
+set (UPDATE_RETURN_VALUE 0)
+
+ctest_start (${TESTING_MODEL})
+
+ctest_update (RETURN_VALUE UPDATE_RETURN_VALUE)
+message("Update returned: ${UPDATE_RETURN_VALUE}")
+
+if ("${TESTING_MODEL}" STREQUAL "Continuous" AND first_checkout EQUAL 0)
+  if (UPDATE_RETURN_VALUE EQUAL 0)
+    return()
+  endif ()
+endif ()
+
+# start loop over all subprojects  #################################################
+foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
+  message("====>  build ${subproject}")
+  set_property(GLOBAL PROPERTY SubProject ${subproject})
+  set_property (GLOBAL PROPERTY Label ${subproject})
+  #set (CMAKE_INSTALL_PREFIX ${CTEST_INSTALL_DIRECTORY}/${subproject})
+  set (CMAKE_INSTALL_PREFIX ${CTEST_INSTALL_DIRECTORY})
+
+  set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY}/hbc)
+  #set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY}/)
+  set(ENV{CMAKE_ADDITIONAL_PATH} ${CTEST_INSTALL_DIRECTORY})
+  foreach(dir ${CTEST_PROJECT_SUBPROJECTS})
+    # set_if_exists ( ${CTEST_INSTALL_DIRECTORY}/${dir})
+  endforeach()
+
+  # write CMakeCache file here
+  file (WRITE "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt"
+    "# Automatically generated in ctest script (write_initial_cache())\n\n")
+
+  foreach (VARIABLE_NAME
+      CMAKE_BUILD_TYPE
+      CMAKE_INSTALL_PREFIX
+      CMAKE_TOOLCHAIN_FILE
+      CMAKE_CXX_COMPILER
+      CMAKE_C_COMPILER
+      CMAKE_SYSTEM_PROCESSOR
+      #    OS_NAME
+      #    OS_VERSION
+      CMAKE_ADDITIONAL_PATH
+
+      CTEST_TIMEOUT
+      CTEST_USE_LAUNCHERS
+
+      ENABLE_CODECOVERAGE
+
+      HBC_HOME
+
+      BOOST_ROOT
+      GRAPHVIZ_HOME
+
+      )
+    if (DEFINED ${VARIABLE_NAME})
+      file (APPEND "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt" "${VARIABLE_NAME}:STRING=${${VARIABLE_NAME}}\n")
+    endif()
+  endforeach()
+
+  set(CONFIGURE_RETURN_VALUE 0)
+  if( EXISTS ${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject} )
+    file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}/${subproject}")
+
+    ctest_configure (BUILD ${CTEST_BINARY_DIRECTORY}/${subproject} 
+      SOURCE ${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject} 
+      APPEND RETURN_VALUE CONFIGURE_RETURN_VALUE
+      )
+
+    if( STAGING_DIR)
+      include(${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt)
+      set(ENV{STAGING_DIR}     ${OPENWRT_STAGING_DIR})
+    endif( STAGING_DIR)
+
+    if (${CONFIGURE_RETURN_VALUE} EQUAL 0)
+      ctest_build (BUILD ${CTEST_BINARY_DIRECTORY}/${subproject} 
+	APPEND  RETURN_VALUE BUILD_RETURN_VALUE
+	TARGET install NUMBER_ERRORS BUILD_ERRORS
+	)
+
+      if (${BUILD_ERRORS} EQUAL 0)
+	set (PROPERLY_BUILT_AND_INSTALLED TRUE)
+      endif()
+
+      if (${TESTING_MODEL} STREQUAL "Coverage")
+	ctest_coverage (RETURN_VALUE LAST_RETURN_VALUE)
+	ctest_memcheck (RETURN_VALUE LAST_RETURN_VALUE)
+      endif()
+
+      if( NOT CMAKE_TOOLCHAIN_FILE )
+	if (PROPERLY_BUILT_AND_INSTALLED)
+	  ctest_test (BUILD "${CTEST_BINARY_DIRECTORY}"
+	    INCLUDE_LABEL "${subproject}"
+	    SCHEDULE_RANDOM true RETURN_VALUE LAST_RETURN_VALUE PARALLEL_LEVEL ${PARALLEL_JOBS})
+	else()
+	  ctest_test (BUILD "${CTEST_BINARY_DIRECTORY}"
+	    INCLUDE_LABEL "${subproject}"
+	    SCHEDULE_RANDOM true EXCLUDE_LABEL "requires_installation"
+	    RETURN_VALUE LAST_RETURN_VALUE)
+	endif()
+      endif( NOT CMAKE_TOOLCHAIN_FILE )
+    endif()
+
+    #ctest_submit (RETURN_VALUE ${LAST_RETURN_VALUE})
+    # todo: create package, upload to distribution server
+    # do the packing only if switch is on and
+    if( (${UPDATE_RETURN_VALUE} GREATER 0 AND PROPERLY_BUILT_AND_INSTALLED) OR ${first_checkout})
+      include(${CTEST_BINARY_DIRECTORY}/CPackConfig.cmake)
+      if( STAGING_DIR)
+	set(ENV{PATH}            ${OPENWRT_STAGING_DIR}/host/bin:$ENV{PATH})
+      endif( STAGING_DIR)
+      # do the packaging
+      execute_process(
+	COMMAND cpack -G DEB
+	WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}
+	)
+      # install for other packages
+      #execute_process(
+      #  COMMAND make install
+      #  WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}
+      #  )
+
+      # upload files
+      if( ${CTEST_PUSH_PACKAGES})
+	message( "OS_NAME .....: ${OS_NAME}")
+	message( "OS_VERSION ..: ${OS_VERSION}")
+	message( "CMAKE_SYSTEM_PROCESSOR ..: ${CMAKE_SYSTEM_PROCESSOR}")
+
+	if(CPACK_ARCHITECTUR)
+	  set(OPKG_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CPACK_ARCHITECTUR}")
+	  set(_package_file "${OPKG_FILE_NAME}.ipk")
+	else(CPACK_ARCHITECTUR)
+	  set(_package_file "${CPACK_PACKAGE_FILE_NAME}.deb")
+	endif(CPACK_ARCHITECTUR)
+	message("==> Upload packages - ${_package_file}")
+	set(_export_host ${CTEST_PACKAGE_SITE})
+	set(_remote_dir "packages/${OS_NAME}/${OS_VERSION}/${CMAKE_SYSTEM_PROCESSOR}")
+	if( NOT ${GIT_BRANCH} STREQUAL "master")
+	  set(_remote_dir "packages/${OS_NAME}/${OS_VERSION}/${CMAKE_SYSTEM_PROCESSOR}/${GIT_BRANCH}")
+	endif()
+	execute_process(
+	  COMMAND ssh ${_export_host} mkdir -p ${_remote_dir}
+	  )
+	execute_process(
+	  COMMAND scp -p ${_package_file} ${_export_host}:${_remote_dir}/${_package_file}
+	  WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
+	  )
+      endif()
+
+    endif()
+
+  else()
+    message("====>Skipping ${subproject}")
+  endif()
+
+endforeach()
+# end loop over all subprojects  ###################################################
+
+#file (REMOVE_RECURSE "${CTEST_INSTALL_DIRECTORY}")
+#if (NOT "${TESTING_MODEL}" STREQUAL "Continuous")
+#  file (REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
+#endif()
+
+return (${LAST_RETURN_VALUE})
