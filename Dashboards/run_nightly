@@ -3,7 +3,7 @@
 # export https_proxy=http://squid.itwm.fhg.de:3128/
 
 export LANG=en_US.UTF-8
-export CTEST="echo /usr/bin/ctest"
+export CTEST="/usr/bin/ctest"
 
 echo "Running ctest"
 
