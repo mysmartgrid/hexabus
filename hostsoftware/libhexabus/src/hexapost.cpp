@@ -143,19 +143,20 @@ private:
         //Convert reading to watt-hour
         reading *= 1000;
 
-        time_t previous_timestamp = previous_timestamps[sensor->name()];
         float previous_reading = previous_readings[sensor->name()];
 
         //If not the first reading
-        if (previous_timestamp > 0 && reading > previous_reading) {
+        if (previous_reading > 0 && reading > previous_reading) {
 
             float consumed = reading - previous_reading;
 
             //At least 1 watt-hour has been consumed since last posting
             if (consumed >= 1) {
 
+                time_t previous_timestamp = previous_timestamps[sensor->name()];
+
                 //Most recent integer reading
-                long integer_reading = (long) (previous_reading + (long) consumed);
+                long integer_reading = (long) previous_reading + (long) consumed;
 
                 //Estimated timestamp of the previous reading
                 time_t timestamp = previous_timestamp +
@@ -402,7 +403,7 @@ int main(int argc, char** argv) {
                 "enter the activation code above, in order to link this store to your account." << std::endl <<
                 std::endl <<
                 "Sensor                        Timestamp    Event" << std::endl <<
-                "-----------------------------------------------------------------------" <<
+                std::string(70, '-') <<
                 std::endl;
 
         klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
