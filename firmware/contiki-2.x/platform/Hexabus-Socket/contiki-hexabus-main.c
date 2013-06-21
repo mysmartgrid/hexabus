@@ -31,7 +31,7 @@
  * @(#)$$
  */
 #define ANNOUNCE_BOOT 1    //adds about 600 bytes to program size
-//#define //PRINTF(FORMAT,args...) printf_P(PSTR(FORMAT),##args)
+#define PRINTF(FORMAT,args...) printf_P(PSTR(FORMAT),##args)
 
 #define DEBUG 1
 #if DEBUG
@@ -207,7 +207,7 @@ void initialize(void)
 
 
 #if ANNOUNCE_BOOT
-  //PRINTF("\n*******Booting %s*******\n",CONTIKI_VERSION_STRING);
+  PRINTF("\n*******Booting %s*******\n",CONTIKI_VERSION_STRING);
 #endif
 
 /* rtimers needed for radio cycling */
@@ -267,9 +267,9 @@ void initialize(void)
 
 #if ANNOUNCE_BOOT
  #if RF230BB
-  //PRINTF("%s %s, channel %u",NETSTACK_MAC.name, NETSTACK_RDC.name, rf230_get_channel());
+  PRINTF("%s %s, channel %u",NETSTACK_MAC.name, NETSTACK_RDC.name, rf230_get_channel());
  #elif RF212BB
-  //PRINTF("%s %s, channel %u",NETSTACK_MAC.name, NETSTACK_RDC.name, rf212_get_channel());
+  PRINTF("%s %s, channel %u",NETSTACK_MAC.name, NETSTACK_RDC.name, rf212_get_channel());
  #endif /* RF230BB */
   if (NETSTACK_RDC.channel_check_interval) {//function pointer is zero for sicslowmac
     unsigned short tmp;
@@ -277,13 +277,13 @@ void initialize(void)
                                    NETSTACK_RDC.channel_check_interval());
     if (tmp<65535) printf_P(PSTR(", check rate %u Hz"),tmp);
   }
-  //PRINTF("\n");
+  PRINTF("\n");
 
 #if UIP_CONF_IPV6_RPL
-  //PRINTF("RPL Enabled\n");
+  PRINTF("RPL Enabled\n");
 #endif
 #if UIP_CONF_ROUTER
-  //PRINTF("Routing Enabled\n");
+  PRINTF("Routing Enabled\n");
 #endif
 
 #endif /* ANNOUNCE_BOOT */
@@ -359,13 +359,13 @@ void initialize(void)
 #if COFFEE_FILES
   int fa = cfs_open( "/index.html", CFS_READ);
   if (fa<0) {     //Make some default web content
-    //PRINTF("No index.html file found, creating upload.html!\n");
-    //PRINTF("Formatting FLASH file system for coffee...");
+    PRINTF("No index.html file found, creating upload.html!\n");
+    PRINTF("Formatting FLASH file system for coffee...");
     cfs_coffee_format();
-    //PRINTF("Done!\n");
+    PRINTF("Done!\n");
     fa = cfs_open( "/index.html", CFS_WRITE);
     int r = cfs_write(fa, &"It works!", 9);
-    if (r<0) //PRINTF("Can''t create /index.html!\n");
+    if (r<0) PRINTF("Can''t create /index.html!\n");
     cfs_close(fa);
 //  fa = cfs_open("upload.html"), CFW_WRITE);
 // <html><body><form action="upload.html" enctype="multipart/form-data" method="post"><input name="userfile" type="file" size="50" /><input value="Upload" type="submit" /></form></body></html>
@@ -393,26 +393,26 @@ void initialize(void)
   for (i=0;i<UIP_DS6_ADDR_NB;i++) {
 	if (uip_ds6_if.addr_list[i].isused) {	  
 	   httpd_cgi_sprint_ip6(uip_ds6_if.addr_list[i].ipaddr,buf);
-       //PRINTF("IPv6 Address: %s\n",buf);
+       PRINTF("IPv6 Address: %s\n",buf);
 	}
   }
 	eeprom_read_block(buf, (const void*) EE_DOMAIN_NAME, EE_DOMAIN_NAME_SIZE);
 	buf[EE_DOMAIN_NAME_SIZE] = 0;
 	size=httpd_fs_get_size();
 #ifndef COFFEE_FILES
-   //PRINTF(".%s online with fixed %u byte web content\n",buf,size);
+   PRINTF(".%s online with fixed %u byte web content\n",buf,size);
 #elif COFFEE_FILES==1
-   //PRINTF(".%s online with static %u byte EEPROM file system\n",buf,size);
+   PRINTF(".%s online with static %u byte EEPROM file system\n",buf,size);
 #elif COFFEE_FILES==2
-   //PRINTF(".%s online with dynamic %u KB EEPROM file system\n",buf,size>>10);
+   PRINTF(".%s online with dynamic %u KB EEPROM file system\n",buf,size>>10);
 #elif COFFEE_FILES==3
-   //PRINTF(".%s online with static %u byte program memory file system\n",buf,size);
+   PRINTF(".%s online with static %u byte program memory file system\n",buf,size);
 #elif COFFEE_FILES==4
-   //PRINTF(".%s online with dynamic %u KB program memory file system\n",buf,size>>10);
+   PRINTF(".%s online with dynamic %u KB program memory file system\n",buf,size>>10);
 #endif /* COFFEE_FILES */
 
 #else
-   //PRINTF("Online\n");
+   PRINTF("Online\n");
 #endif /* WEBSERVER */
 
 #endif /* ANNOUNCE_BOOT */
@@ -444,6 +444,6 @@ main(void)
 
 void log_message(char *m1, char *m2)
 {
-  //PRINTF("%s%s\n", m1, m2);
+  PRINTF("%s%s\n", m1, m2);
 }
 
