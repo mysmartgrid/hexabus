@@ -167,20 +167,24 @@ private:
                         ((integer_reading - previous_reading) / consumed));
 
                 //Post measurement to MSG
-                store->add_reading(sensor, timestamp, integer_reading);
-
-                std::cout << sensor->name() << "   " << now <<
-                        "   posting: /sensor/" << sensor->uuid_short() <<
-                        " [" << timestamp << ": " << integer_reading << "]" << std::endl;
-
-                previous_timestamps[sensor->name()] = timestamp;
-                previous_readings[sensor->name()] = integer_reading;
+                post_reading(sensor, timestamp, integer_reading);
             }
 
         } else {
             previous_timestamps[sensor->name()] = now;
             previous_readings[sensor->name()] = reading;
         }
+    }
+
+    virtual void post_reading(klio::Sensor::Ptr sensor, time_t timestamp, long reading) {
+
+        std::cout << std::string(43, ' ') << "posting: [" <<
+                timestamp << ": " << reading << "]" << std::endl;
+
+        store->add_reading(sensor, timestamp, reading);
+
+        previous_timestamps[sensor->name()] = timestamp;
+        previous_readings[sensor->name()] = reading;
     }
 
     virtual void visit(const hexabus::ErrorPacket & error) {
