@@ -299,7 +299,7 @@ class BinaryDeserializer {
 		std::string read_string();
 
 		template<typename T>
-		Packet::Ptr checkInfo(bool info, uint8_t eid, const T& value, uint8_t flags);
+		Packet::Ptr checkInfo(bool info, uint32_t eid, const T& value, uint8_t flags);
 
 		template<typename T>
 		Packet::Ptr check(const T& packet);
@@ -402,7 +402,7 @@ std::string BinaryDeserializer::read_string()
 }
 
 template<typename T>
-Packet::Ptr BinaryDeserializer::checkInfo(bool info, uint8_t eid, const T& value, uint8_t flags)
+Packet::Ptr BinaryDeserializer::checkInfo(bool info, uint32_t eid, const T& value, uint8_t flags)
 {
 	if (info) {
 		return check(InfoPacket<T>(eid, value, flags));

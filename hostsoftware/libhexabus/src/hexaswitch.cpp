@@ -4,15 +4,15 @@
 #include <libhexabus/common.hpp>
 #include <libhexabus/crc.hpp>
 #include <libhexabus/liveness.hpp>
-#include <time.h>
+#include <libhexabus/socket.hpp>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/error.hpp>
+#include <time.h>
 #include <boost/program_options.hpp>
 #include <boost/program_options/positional_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/optional.hpp>
-#include <libhexabus/socket.hpp>
 #include <typeinfo>
 namespace po = boost::program_options;
 
@@ -211,7 +211,8 @@ ErrorCode send_packet_wait(hexabus::Socket* net, const boost::asio::ip::address_
 	}
 
 	try {
-		std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> p = net->receive(filter && hexabus::filtering::sourceIP() == addr);
+		namespace hf = hexabus::filtering;
+		std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> p = net->receive((filter || hf::isError()) && hf::sourceIP() == addr);
 		
 		print_packet(*p.first);
 	} catch (const hexabus::NetworkException& e) {
@@ -442,7 +443,9 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	if (!ip) {
+	if (!ip && command == C_SEND) {
+		ip = hexabus::Socket::GroupAddress;
+	} else if (!ip) {
 		std::cerr << "Command requires an IP address" << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
@@ -467,16 +470,24 @@ int main(int argc, char** argv) {
 		liveness->start();
 	}
 
+	namespace hf = hexabus::filtering;
+
+	if (ip->is_multicast() && (command == C_STATUS || command == C_POWER
+				|| command == C_GET || command == C_EPQUERY || command == C_DEVINFO)) {
+		std::cerr << "Cannot query all devices at once, query them individually." << std::endl;
+		return ERR_PARAMETER_VALUE_INVALID;
+	}
+
 	switch (command) {
 		case C_ON:
 		case C_OFF:
 			return send_packet(network, *ip, hexabus::WritePacket<bool>(EP_POWER_SWITCH, command == C_ON));
 
 		case C_STATUS:
-			return send_packet(network, *ip, hexabus::QueryPacket(EP_POWER_SWITCH));
+			return send_packet_wait(network, *ip, hexabus::QueryPacket(EP_POWER_SWITCH), hf::eid() == EP_POWER_SWITCH && hf::sourceIP() == *ip);
 
 		case C_POWER:
-			return send_packet(network, *ip, hexabus::QueryPacket(EP_POWER_METER));
+			return send_packet_wait(network, *ip, hexabus::QueryPacket(EP_POWER_METER), hf::eid() == EP_POWER_METER && hf::sourceIP() == *ip);
 
 		case C_SET:
 		case C_SEND:
@@ -520,14 +531,14 @@ int main(int argc, char** argv) {
 				uint32_t eid = vm["eid"].as<uint32_t>();
 
 				if (command == C_GET) {
-					return send_packet_wait(network, *ip, hexabus::QueryPacket(eid), hexabus::filtering::eid() == eid);
+					return send_packet_wait(network, *ip, hexabus::QueryPacket(eid), hf::eid() == eid && hf::sourceIP() == *ip);
 				} else {
-					return send_packet_wait(network, *ip, hexabus::EndpointQueryPacket(eid), hexabus::filtering::eid() == eid);
+					return send_packet_wait(network, *ip, hexabus::EndpointQueryPacket(eid), hf::eid() == eid && hf::sourceIP() == *ip);
 				}
 			}
 
 		case C_DEVINFO:
-			return send_packet_wait(network, *ip, hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR), hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR);
+			return send_packet_wait(network, *ip, hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR), hf::eid() == EP_DEVICE_DESCRIPTOR && hf::sourceIP() == *ip);
 
 		default:
 			std::cerr << "BUG: Unknown command" << std::endl;

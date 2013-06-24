@@ -66,7 +66,8 @@ int main(int argc, char **argv)
   if (vm.count("dtdef")) {
     dt_filename = vm["dtdef"].as<std::string>();
   } else {
-    std::cout << "Warning: No data type definition file specified. Output will be generated with blank data types." << std::endl;
+    std::cerr << "Error: No data type definition file specified." << std::endl;
+    return 1;
   }
 
   if (! vm.count("input")) {
@@ -79,9 +80,9 @@ int main(int argc, char **argv)
   std::ifstream in(infile.c_str(), std::ios_base::in);
 
   if (!in) {
-	std::cerr << "Error: Could not open input file: "
-	  << infile << std::endl;
-	return 1;
+    std::cerr << "Error: Could not open input file: "
+      << infile << std::endl;
+    return 1;
   }
 
   in.unsetf(std::ios::skipws); // No white space skipping!
@@ -211,7 +212,7 @@ int main(int argc, char **argv)
 
 			// then add the device name
 			boost::array<char,64> dev_name; // make an array that's as long as a chunk of the uploader
-			BOOST_FOREACH(char c, dev_name) { // fill it with zeros
+			BOOST_FOREACH(char& c, dev_name) { // fill it with zeros
 				c = '\0';
 			}
 			for(size_t i = 0; i < std::min((size_t)30, ast.device_name.size()); ++i) { // copy device name from AST to the array (only first 30 bytes, we don't have more space in the EEPROM

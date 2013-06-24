@@ -425,7 +425,7 @@ int main(int argc, char** argv)
 			(hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR))
 			|| hexabus::filtering::isEndpointInfo());
 
-		int retries = 0;
+		unsigned int retries = 0;
 
 		// epquery the dev.descriptor, to get the name of the device
 		while(!received && retries < NUM_RETRIES)
@@ -477,7 +477,7 @@ int main(int argc, char** argv)
 		BOOST_FOREACH(uint32_t endpoint_id, device.endpoint_ids)
 		{
 			// put each EP into this list three times, so that it is queried at maximum three times
-			for(int i = 0; i < NUM_RETRIES; i++)
+			for(unsigned int i = 0; i < NUM_RETRIES; i++)
 				eps_to_query.insert(endpoint_id);
 		}
 
