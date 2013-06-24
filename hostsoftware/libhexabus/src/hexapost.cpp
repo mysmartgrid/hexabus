@@ -25,23 +25,6 @@ namespace po = boost::program_options;
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
-/**
- * COMMENTS
- * 
- * Ely: This command is very similar to hexalog. It listens to energy
- * measurements broadcast in the network and POSTs them to a remote libklio
- * store at mySmartGrid.
- * 
- * Some people in the team think it should be a separate command, some other 
- * people think hexalog should be extended to incorporate this functionality.
- */
-
-/**
- * COMMENTS
- * 
- * Ely: We have similar enumerations like this in multiple files. 
- * I think they should be defined only once.
- */
 enum ErrorCode {
     ERR_NONE = 0,
 
@@ -55,12 +38,6 @@ enum ErrorCode {
     ERR_OTHER = 127
 };
 
-/*
- * COMMENTS
- * 
- * Ely: I think the implementations of PacketVisitor should extend a single 
- * NullObject, and therefore avoid declaring so many default methods.
- */
 struct ReadingLogger : private hexabus::PacketVisitor {
 protected:
     boost::asio::ip::address_v6 source;
@@ -140,6 +117,8 @@ private:
 
     virtual void post_kwh_reading(klio::Sensor::Ptr sensor, time_t now, float reading) {
 
+        //TODO: When the mSG API is able to accept float values, make this function simply POST the reading
+        
         //Convert reading to watt-hour
         reading *= 1000;
 
@@ -158,7 +137,7 @@ private:
                 //Most recent integer reading
                 long integer_reading = (long) previous_reading + (long) consumed;
 
-                //Estimated timestamp of the previous reading
+                //Estimated timestamp of the integer reading
                 time_t timestamp = previous_timestamp +
 
                         //elapsed time
