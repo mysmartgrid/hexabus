@@ -28,6 +28,11 @@ foreach (ARGUMENT ${SCRIPT_ARGUMENTS})
   endif()
 endforeach()
 
+if (NOT DEBUG)
+  set(doSubmit true)
+else
+  set(doSubmit false)
+endif()
 if (NOT TESTING_MODEL)
   message (FATAL_ERROR "No TESTING_MODEL given (available: Nightly, Coverage)")
 endif()
@@ -113,6 +118,23 @@ foreach ( line ${_dummy})
   list(APPEND CTEST_PROJECT_SUBPROJECTS ${_item})
 endforeach()
 
+# create project.xml
+set(projectFile "${CTEST_BINARY_DIRECTORY}/Project.xml")
+file(WRITE ${projectFile}  "<Project name=\"${CTEST_PROJECT_NAME}\">
+")
+  
+foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
+  file(APPEND ${projectFile}
+      "<SubProject name=\"${subproject}\"></SubProject>
+")
+endforeach()
+file(APPEND ${projectFile}
+    "</Project>
+")
+if(doSubmit)
+  ctest_submit(FILES "${CTEST_BINARY_DIRECTORY}/Project.xml") 
+endif()
+
 set(URL "https://github.com/mysmartgrid/hexabus.git")
 
 # external software ################################################################
@@ -136,7 +158,8 @@ if( NOT CMAKE_TOOLCHAIN_FILE )
   set_if_exists (BOOST_ROOT ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION}/${ADDITIONAL_SUFFIX})
   set_if_exists (GRAPHVIZ_HOME ${EXTERNAL_SOFTWARE}/graphviz/2.24)
 else()
-  set_if_exists (EXTERNAL_SOFTWARE "/home/projects/msgrid/x-tools/arm-unknown-linux-gnueabihf/opt")
+  message("=== Cross env Name: ${CrossName}")
+  set_if_exists (EXTERNAL_SOFTWARE "${_baseDir}/opt")
   set_if_exists (BOOST_ROOT ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION})
 endif()
 # LIBKLIO_HOME
@@ -274,7 +297,9 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
       endif( NOT CMAKE_TOOLCHAIN_FILE )
     endif()
 
-    ctest_submit (RETURN_VALUE ${LAST_RETURN_VALUE})
+    if(doSubmit)
+      ctest_submit (RETURN_VALUE ${LAST_RETURN_VALUE})
+    endif()
     # todo: create package, upload to distribution server
     # do the packing only if switch is on and
     if( (${UPDATE_RETURN_VALUE} GREATER 0 AND PROPERLY_BUILT_AND_INSTALLED) OR ${first_checkout})
