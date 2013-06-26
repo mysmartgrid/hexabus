@@ -67,6 +67,10 @@ add_subdirectory(src)
 include(CTest)
 enable_testing()
 
+# enable unit testing
+include(CTest)
+enable_testing()
+
 # add some files to the installation target
 INSTALL(FILES README.txt LICENSE.txt DESTINATION share/doc/hba)
 INSTALL(FILES share/hexabus/std_datatypes.hb DESTINATION share/hexabus)

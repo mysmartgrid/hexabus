@@ -53,6 +53,8 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 include (UseCodeCoverage)
 
+include (UseCodeCoverage)
+
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-non-virtual-dtor -g -fomit-frame-pointer")
 
 set(CMAKE_CXX_FLAGS_EXPERIMENTAL "-O0 -g -ggdb -Wall -Werror -W -Wshadow")

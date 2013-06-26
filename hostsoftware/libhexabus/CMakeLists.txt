@@ -102,6 +102,10 @@ add_subdirectory(tests)
 include(CTest)
 enable_testing()
 
+# enable unit testing
+include(CTest)
+enable_testing()
+
 # add some files to the installation target
 INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
 
