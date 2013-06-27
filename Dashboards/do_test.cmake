@@ -174,6 +174,7 @@ else()
   message("=== Cross env Name: ${CrossName}")
   set_if_exists (EXTERNAL_SOFTWARE "${_baseDir}/opt")
   set_if_exists (BOOST_ROOT ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION})
+  set_if_exists (LIBKLIO_HOME "/tmp/$ENV{USER}/libklio/Nightly/install-${CTEST_BUILD_NAME}")
 endif()
 # LIBKLIO_HOME
 # LIBHXB_HOME
