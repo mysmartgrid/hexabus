@@ -89,7 +89,7 @@ var SensorCache = function() {
 
   this.send_current_data = function(callback) {
     for (key in sensors) {
-      console.log("Sensors: " + JSON.stringify(sensors));
+      //console.log("Sensors: " + JSON.stringify(sensors));
       var sensor = sensors[key];
       //console.log("Emitting last sensor value: " + JSON.stringify(self.render_sensor_lastvalue(sensor)));
       callback(self.render_sensor_lastvalue(sensor));
@@ -105,7 +105,7 @@ var SensorCache = function() {
         var entry={};
         entry[unix]=req.body.value;
         sensor.values.push(entry);
-        console.log("Emitting last sensor value: " + JSON.stringify(this.render_sensor_lastvalue(sensor)));
+        //console.log("Emitting last sensor value: " + JSON.stringify(this.render_sensor_lastvalue(sensor)));
         self.emit('sensor_update', this.render_sensor_lastvalue(sensor));
         res.send("OK");
       } else {

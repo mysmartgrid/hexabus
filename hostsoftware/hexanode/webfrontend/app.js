@@ -26,7 +26,7 @@ console.log(" - port: " + nconf.get('port'));
 app.configure(function () {
   app.set('views', __dirname + '/views');
   app.set('view engine', 'ejs');
-  app.use(connect.logger('dev'));
+//  app.use(connect.logger('dev'));
   app.use(express.bodyParser());
   app.use(express.methodOverride());
   app.use(app.router);
@@ -69,7 +69,7 @@ app.get('/', function(req, res) {
     });
 });
 
-server.listen(3000);
+server.listen(nconf.get('port'));
 
 io.sockets.on('connection', function (socket) {
   console.log("Registering new client.");
@@ -84,7 +84,7 @@ io.sockets.on('connection', function (socket) {
   });
   // a client can also initiate a data update.
   socket.on('sensor_refresh_data', function() {
-    console.log("Refresh data event.");
+  //  console.log("Refresh data event.");
     sensorcache.send_current_data(function(msg) {
       socket.volatile.emit('sensor_update', { sensor: msg });
     });
