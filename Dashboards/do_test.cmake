@@ -29,10 +29,11 @@ foreach (ARGUMENT ${SCRIPT_ARGUMENTS})
 endforeach()
 
 if (NOT DEBUG)
-  set(doSubmit true)
-else
-  set(doSubmit false)
+  set(doSubmit 1)
+else()
+  set(doSubmit 0)
 endif()
+
 if (NOT TESTING_MODEL)
   message (FATAL_ERROR "No TESTING_MODEL given (available: Nightly, Coverage)")
 endif()
@@ -87,8 +88,18 @@ endif()
 # variables / configuration based on test configuration ############################
 set(_projectNameDir "${CTEST_PROJECT_NAME}")
 
-# set (CTEST_BUILD_NAME "${CMAKE_SYSTEM_PROCESSOR}-${COMPILER}-boost${BOOST_VERSION}-${GIT_BRANCH}")
-set (CTEST_BUILD_NAME "${CMAKE_SYSTEM_PROCESSOR}-${COMPILER}-${GIT_BRANCH}")
+if(BOOST_VERSION)
+  set(_boost_str "-boost${BOOST_VERSION}")
+else()
+  set(_boost_str "")
+endif()
+if(CMAKE_COMPILER_VERSION)
+  set(_compiler_str "${COMPILER}${CMAKE_COMPILER_VERSION}")
+else()
+  set(_compiler_str "${COMPILER}")
+endif()
+
+set (CTEST_BUILD_NAME "${CMAKE_SYSTEM_PROCESSOR}-${_compiler_str}${_boost_str}-${GIT_BRANCH}")
 
 set (CTEST_BASE_DIRECTORY   "${BUILD_TMP_DIR}/$ENV{USER}/${CTEST_PROJECT_NAME}/${TESTING_MODEL}")
 set (CTEST_SOURCE_DIRECTORY "${CTEST_BASE_DIRECTORY}/src-${GIT_BRANCH}" )
@@ -109,7 +120,9 @@ else()
   message (FATAL_ERROR "Unknown TESTING_MODEL ${TESTING_MODEL} (available: Nightly, Coverage, Continuous)")
 endif()
 
+# find and submit subproject list ##################################################
 set(CTEST_PROJECT_SUBPROJECTS)
+list(APPEND CTEST_PROJECT_SUBPROJECTS "libhexabus")
 file(GLOB _dummy ${CTEST_SOURCE_DIRECTORY}/hostsoftware/*/CMakeLists.txt)
 foreach ( line ${_dummy})
   get_filename_component(_currentDir "${line}" PATH)
@@ -218,7 +231,8 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
 
   set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY}/hbc)
   #set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY}/)
-  set(ENV{CMAKE_ADDITIONAL_PATH} ${CTEST_INSTALL_DIRECTORY})
+  set(CMAKE_ADDITIONAL_PATH ${CTEST_INSTALL_DIRECTORY})
+  #set(ENV{CMAKE_ADDITIONAL_PATH} ${CTEST_INSTALL_DIRECTORY})
   foreach(dir ${CTEST_PROJECT_SUBPROJECTS})
     # set_if_exists ( ${CTEST_INSTALL_DIRECTORY}/${dir})
   endforeach()
@@ -236,7 +250,7 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
       CMAKE_SYSTEM_PROCESSOR
       #    OS_NAME
       #    OS_VERSION
-      CMAKE_ADDITIONAL_PATH
+      
 
       CTEST_TIMEOUT
       CTEST_USE_LAUNCHERS
@@ -251,6 +265,13 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
       )
     if (DEFINED ${VARIABLE_NAME})
       file (APPEND "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt" "${VARIABLE_NAME}:STRING=${${VARIABLE_NAME}}\n")
+    endif()
+  endforeach()
+  foreach (VARIABLE_NAME
+      CMAKE_ADDITIONAL_PATH
+      )
+    if (DEFINED ${VARIABLE_NAME})
+      file (APPEND "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt" "${VARIABLE_NAME}:PATH=${${VARIABLE_NAME}}\n")
     endif()
   endforeach()
 
