@@ -211,7 +211,8 @@ ErrorCode send_packet_wait(hexabus::Socket* net, const boost::asio::ip::address_
 	}
 
 	try {
-		std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> p = net->receive(filter && hexabus::filtering::sourceIP() == addr);
+		namespace hf = hexabus::filtering;
+		std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> p = net->receive((filter || hf::isError()) && hf::sourceIP() == addr);
 		
 		print_packet(*p.first);
 	} catch (const hexabus::NetworkException& e) {

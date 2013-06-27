@@ -333,16 +333,19 @@ namespace filtering {
 				result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 				{
 					typename Left::result_type l = _left.value(packet, from);
-					bool operatorShortcutResult = Op()(true, false);
 
-					if (l && (bool(*l) == operatorShortcutResult)) {
-						return operatorShortcutResult;
+					if (l && (Op()(*l, true) == Op()(*l, false))) {
+						return Op()(*l, true);
 					}
 
 					typename Right::result_type r = _right.value(packet, from);
 
-					return l && r
-						? result_type(Op()(*l, *r))
+					if (l && !r && (Op()(*l, true) != Op()(*l, false))) {
+						return result_type();
+					}
+
+					return l || r
+						? result_type(Op()(l.get_value_or(false), r.get_value_or(false)))
 						: result_type();
 				}
 
