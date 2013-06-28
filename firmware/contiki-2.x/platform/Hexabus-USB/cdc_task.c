@@ -115,6 +115,8 @@ static uint8_t previous_uart_usb_control_line_state = 0;
 static uint8_t timer = 0;
 static struct etimer et;
 
+static uint8_t menu_active = 0;
+
 PROCESS(cdc_process, "CDC serial process");
 
 /**
@@ -254,6 +256,11 @@ ipaddr_add(const uip_ipaddr_t *addr)
 }
 #endif
 
+void menu_activate() {
+	menu_active = 1;
+	menu_print();
+}
+
 /**
  \brief Process incomming char on debug port
  */
@@ -267,6 +274,10 @@ void menu_process(char c)
 
         if (usbstick_mode.sneeze) c='S';
 
+        /* Only parse input if menu has been activated to prevent accidental reboots */
+
+        if (!menu_active) return;
+
 		switch(c) {
 			case '\r':
 			case '\n':
@@ -275,6 +286,7 @@ void menu_process(char c)
 			case 'h':
 			case '?':
 				menu_print();
+				return;
 				break;
 			case 's':
 				PRINTF_P(PSTR("Jackdaw now in sniffer mode\n\r"));
@@ -384,6 +396,8 @@ void menu_process(char c)
 				PRINTF_P(PSTR("%c is not a valid option! h for menu\n\r"), c);
 				break;
 		}
+
+	menu_active = 0;
 
 	return;
 
