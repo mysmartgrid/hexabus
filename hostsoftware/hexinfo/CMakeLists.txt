@@ -51,6 +51,8 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 
+include (UseCodeCoverage)
+
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-non-virtual-dtor -g -fomit-frame-pointer")
 
 set(CMAKE_CXX_FLAGS_EXPERIMENTAL "-O0 -g -ggdb -Wall -Werror -W -Wshadow")
@@ -99,6 +101,10 @@ FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS
 
 # Reflect the package structure
 add_subdirectory(src)
+
+# enable unit testing
+include(CTest)
+enable_testing()
 
 # add some files to the installation target
 INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexinfo)

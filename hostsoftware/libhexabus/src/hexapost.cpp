@@ -118,7 +118,7 @@ private:
     virtual void post_kwh_reading(klio::Sensor::Ptr sensor, time_t now, float reading) {
 
         //TODO: When the mSG API is able to accept float values, make this function simply POST the reading
-        
+
         //Convert reading to watt-hour
         reading *= 1000;
 
@@ -347,7 +347,7 @@ int main(int argc, char** argv) {
 
     try {
         klio::StoreFactory::Ptr store_factory(new klio::StoreFactory());
-        klio::Store::Ptr store;
+        klio::MSGStore::Ptr store;
 
         if (!vm.count("url") && vm.count("id")) {
 
@@ -378,12 +378,19 @@ int main(int argc, char** argv) {
 
         std::cout << std::endl <<
                 "Opened store: " << store->str() << std::endl <<
-                "Please, go to http://www.mysmartgrid.de/device/mylist and " <<
-                "enter the activation code above, in order to link this store to your account." << std::endl <<
                 std::endl <<
+
+                "Please, go to http://www.mysmartgrid.de/device/mylist and " <<
+                "enter the activation code " << store->activation_code() <<
+                ", in order to link this store to your account." << std::endl <<
+                std::endl <<
+
+                "For future postings to this store, please inform: " <<
+                "-d" << store->id() << " -k" << store->key() << std::endl <<
+                std::endl <<
+
                 "Sensor                        Timestamp    Event" << std::endl <<
-                std::string(70, '-') <<
-                std::endl;
+                std::string(70, '-') << std::endl;
 
         klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
         klio::TimeConverter::Ptr tc(new klio::TimeConverter());
