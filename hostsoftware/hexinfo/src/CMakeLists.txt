@@ -10,6 +10,8 @@ include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${Boost_INCLUDE_DIRS}
+  ${HBX_INCLUDE_DIR}
+  ${HBC_INCLUDE_DIR}
 )
 #link_directories(
 #  #  ${SQLITE3_STATIC_LIBRARY_DIRS}
