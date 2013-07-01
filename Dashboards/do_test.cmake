@@ -34,6 +34,10 @@ else()
   set(doSubmit 0)
 endif()
 
+if (NOT FORCE_CONTINUOUS)
+  set(FORCE_CONTINUOUS 0)
+endif()
+
 if (NOT TESTING_MODEL)
   message (FATAL_ERROR "No TESTING_MODEL given (available: Nightly, Coverage)")
 endif()
@@ -174,10 +178,8 @@ else()
   message("=== Cross env Name: ${CrossName}")
   set_if_exists (EXTERNAL_SOFTWARE "${_baseDir}/opt")
   set_if_exists (BOOST_ROOT ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION})
-  set_if_exists (LIBKLIO_HOME "/tmp/$ENV{USER}/libklio/Nightly/install-${CTEST_BUILD_NAME}")
 endif()
-# LIBKLIO_HOME
-# LIBHXB_HOME
+set_if_exists (LIBKLIO_HOME "/tmp/$ENV{USER}/libklio/${TESTING_MODEL}/install-${CTEST_BUILD_NAME}")
 
 
 # cmake options ####################################################################
@@ -216,7 +218,7 @@ ctest_start (${TESTING_MODEL})
 ctest_update (RETURN_VALUE UPDATE_RETURN_VALUE)
 message("Update returned: ${UPDATE_RETURN_VALUE}")
 
-if ("${TESTING_MODEL}" STREQUAL "Continuous" AND first_checkout EQUAL 0)
+if ("${TESTING_MODEL}" STREQUAL "Continuous" AND first_checkout EQUAL 0 AND FORCE_CONTINUOUS EQUAL 0)
   if (UPDATE_RETURN_VALUE EQUAL 0)
     return()
   endif ()
@@ -230,13 +232,8 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
   #set (CMAKE_INSTALL_PREFIX ${CTEST_INSTALL_DIRECTORY}/${subproject})
   set (CMAKE_INSTALL_PREFIX ${CTEST_INSTALL_DIRECTORY})
 
-  set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY}/hbc)
-  #set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY}/)
-  set(CMAKE_ADDITIONAL_PATH ${CTEST_INSTALL_DIRECTORY})
-  #set(ENV{CMAKE_ADDITIONAL_PATH} ${CTEST_INSTALL_DIRECTORY})
-  foreach(dir ${CTEST_PROJECT_SUBPROJECTS})
-    # set_if_exists ( ${CTEST_INSTALL_DIRECTORY}/${dir})
-  endforeach()
+  set_if_exists (HBX_HOME ${CTEST_INSTALL_DIRECTORY})
+  set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY})
 
   # write CMakeCache file here
   file (WRITE "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt"
@@ -258,6 +255,9 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
 
       ENABLE_CODECOVERAGE
 
+
+      LIBKLIO_HOME
+      HXB_HOME
       HBC_HOME
 
       BOOST_ROOT

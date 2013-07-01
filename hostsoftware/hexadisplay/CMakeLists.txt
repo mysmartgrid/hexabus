@@ -27,6 +27,10 @@ set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_MODULE_PATH})
 
+if(CMAKE_TOOLCHAIN_FILE)
+  list(APPEND CMAKE_FIND_ROOT_PATH ${HXB_HOME})
+endif()
+
 include (UseCodeCoverage)
 
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-non-virtual-dtor -g -fomit-frame-pointer")
@@ -58,7 +62,7 @@ set(CMAKE_CXX_FLAGS "-Wall ")
 include(CMakeBackwardCompatibilityCXX)
 
 FIND_PACKAGE(Sqlite)
-FIND_PACKAGE(Hexabus)
+FIND_PACKAGE(LibHexabus)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
 SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
