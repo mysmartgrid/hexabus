@@ -50,9 +50,9 @@ if(LIBKLIO_FOUND)
     pthread
     ${Boost_LIBRARIES}
     ${Boost_SYSTEM_LIBRARY}
-    curl
-    json
-    crypto
+    ${CURL_LIBRARY}
+    ${JSON_LIBRARY}
+#    crypto
     ${LIBKLIO_LIBRARY}
     ${SQLITE3_LIBRARIES}
   )
@@ -63,9 +63,9 @@ if(LIBKLIO_FOUND)
     pthread
     ${Boost_LIBRARIES}
     ${Boost_SYSTEM_LIBRARY}
-    curl
-    json
-    crypto
+    ${CURL_LIBRARY}
+    ${JSON_LIBRARY}
+#    crypto
     ${LIBKLIO_LIBRARY}
     ${SQLITE3_LIBRARIES}
   )
