@@ -19,7 +19,8 @@ include_directories(
 )
 if(LIBKLIO_FOUND)
   include_directories(
-  ${SQLITE3_STATIC_LIBRARY_DIRS}
+    ${LIBKLIO_INCLUDE_DIR}
+    ${SQLITE3_STATIC_LIBRARY_DIRS}
   )
   link_directories(
   ${SQLITE3_STATIC_LIBRARY_DIRS}

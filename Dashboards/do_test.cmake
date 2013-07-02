@@ -28,6 +28,16 @@ foreach (ARGUMENT ${SCRIPT_ARGUMENTS})
   endif()
 endforeach()
 
+if (NOT DEBUG)
+  set(doSubmit 1)
+else()
+  set(doSubmit 0)
+endif()
+
+if (NOT FORCE_CONTINUOUS)
+  set(FORCE_CONTINUOUS 0)
+endif()
+
 if (NOT TESTING_MODEL)
   message (FATAL_ERROR "No TESTING_MODEL given (available: Nightly, Coverage)")
 endif()
@@ -82,8 +92,18 @@ endif()
 # variables / configuration based on test configuration ############################
 set(_projectNameDir "${CTEST_PROJECT_NAME}")
 
-# set (CTEST_BUILD_NAME "${CMAKE_SYSTEM_PROCESSOR}-${COMPILER}-boost${BOOST_VERSION}-${GIT_BRANCH}")
-set (CTEST_BUILD_NAME "${CMAKE_SYSTEM_PROCESSOR}-${COMPILER}-${GIT_BRANCH}")
+if(BOOST_VERSION)
+  set(_boost_str "-boost${BOOST_VERSION}")
+else()
+  set(_boost_str "")
+endif()
+if(CMAKE_COMPILER_VERSION)
+  set(_compiler_str "${COMPILER}${CMAKE_COMPILER_VERSION}")
+else()
+  set(_compiler_str "${COMPILER}")
+endif()
+
+set (CTEST_BUILD_NAME "${CMAKE_SYSTEM_PROCESSOR}-${_compiler_str}${_boost_str}-${GIT_BRANCH}")
 
 set (CTEST_BASE_DIRECTORY   "${BUILD_TMP_DIR}/$ENV{USER}/${CTEST_PROJECT_NAME}/${TESTING_MODEL}")
 set (CTEST_SOURCE_DIRECTORY "${CTEST_BASE_DIRECTORY}/src-${GIT_BRANCH}" )
@@ -104,7 +124,9 @@ else()
   message (FATAL_ERROR "Unknown TESTING_MODEL ${TESTING_MODEL} (available: Nightly, Coverage, Continuous)")
 endif()
 
+# find and submit subproject list ##################################################
 set(CTEST_PROJECT_SUBPROJECTS)
+list(APPEND CTEST_PROJECT_SUBPROJECTS "libhexabus")
 file(GLOB _dummy ${CTEST_SOURCE_DIRECTORY}/hostsoftware/*/CMakeLists.txt)
 foreach ( line ${_dummy})
   get_filename_component(_currentDir "${line}" PATH)
@@ -112,6 +134,23 @@ foreach ( line ${_dummy})
   message("====>${line}<====${_currentDir}===${_item}")
   list(APPEND CTEST_PROJECT_SUBPROJECTS ${_item})
 endforeach()
+
+# create project.xml
+set(projectFile "${CTEST_BINARY_DIRECTORY}/Project.xml")
+file(WRITE ${projectFile}  "<Project name=\"${CTEST_PROJECT_NAME}\">
+")
+  
+foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
+  file(APPEND ${projectFile}
+      "<SubProject name=\"${subproject}\"></SubProject>
+")
+endforeach()
+file(APPEND ${projectFile}
+    "</Project>
+")
+if(doSubmit)
+  ctest_submit(FILES "${CTEST_BINARY_DIRECTORY}/Project.xml") 
+endif()
 
 set(URL "https://github.com/mysmartgrid/hexabus.git")
 
@@ -136,11 +175,11 @@ if( NOT CMAKE_TOOLCHAIN_FILE )
   set_if_exists (BOOST_ROOT ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION}/${ADDITIONAL_SUFFIX})
   set_if_exists (GRAPHVIZ_HOME ${EXTERNAL_SOFTWARE}/graphviz/2.24)
 else()
-  set_if_exists (EXTERNAL_SOFTWARE "/home/projects/msgrid/x-tools/arm-unknown-linux-gnueabihf/opt")
+  message("=== Cross env Name: ${CrossName}")
+  set_if_exists (EXTERNAL_SOFTWARE "${_baseDir}/opt")
   set_if_exists (BOOST_ROOT ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION})
 endif()
-# LIBKLIO_HOME
-# LIBHXB_HOME
+set_if_exists (LIBKLIO_HOME "/tmp/$ENV{USER}/libklio/${TESTING_MODEL}/install-${CTEST_BUILD_NAME}")
 
 
 # cmake options ####################################################################
@@ -179,7 +218,7 @@ ctest_start (${TESTING_MODEL})
 ctest_update (RETURN_VALUE UPDATE_RETURN_VALUE)
 message("Update returned: ${UPDATE_RETURN_VALUE}")
 
-if ("${TESTING_MODEL}" STREQUAL "Continuous" AND first_checkout EQUAL 0)
+if ("${TESTING_MODEL}" STREQUAL "Continuous" AND first_checkout EQUAL 0 AND FORCE_CONTINUOUS EQUAL 0)
   if (UPDATE_RETURN_VALUE EQUAL 0)
     return()
   endif ()
@@ -193,12 +232,8 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
   #set (CMAKE_INSTALL_PREFIX ${CTEST_INSTALL_DIRECTORY}/${subproject})
   set (CMAKE_INSTALL_PREFIX ${CTEST_INSTALL_DIRECTORY})
 
-  set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY}/hbc)
-  #set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY}/)
-  set(ENV{CMAKE_ADDITIONAL_PATH} ${CTEST_INSTALL_DIRECTORY})
-  foreach(dir ${CTEST_PROJECT_SUBPROJECTS})
-    # set_if_exists ( ${CTEST_INSTALL_DIRECTORY}/${dir})
-  endforeach()
+  set_if_exists (HBX_HOME ${CTEST_INSTALL_DIRECTORY})
+  set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY})
 
   # write CMakeCache file here
   file (WRITE "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt"
@@ -213,13 +248,16 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
       CMAKE_SYSTEM_PROCESSOR
       #    OS_NAME
       #    OS_VERSION
-      CMAKE_ADDITIONAL_PATH
+      
 
       CTEST_TIMEOUT
       CTEST_USE_LAUNCHERS
 
       ENABLE_CODECOVERAGE
 
+
+      LIBKLIO_HOME
+      HXB_HOME
       HBC_HOME
 
       BOOST_ROOT
@@ -228,6 +266,13 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
       )
     if (DEFINED ${VARIABLE_NAME})
       file (APPEND "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt" "${VARIABLE_NAME}:STRING=${${VARIABLE_NAME}}\n")
+    endif()
+  endforeach()
+  foreach (VARIABLE_NAME
+      CMAKE_ADDITIONAL_PATH
+      )
+    if (DEFINED ${VARIABLE_NAME})
+      file (APPEND "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt" "${VARIABLE_NAME}:PATH=${${VARIABLE_NAME}}\n")
     endif()
   endforeach()
 
@@ -274,7 +319,9 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
       endif( NOT CMAKE_TOOLCHAIN_FILE )
     endif()
 
-    ctest_submit (RETURN_VALUE ${LAST_RETURN_VALUE})
+    if(doSubmit)
+      ctest_submit (RETURN_VALUE ${LAST_RETURN_VALUE})
+    endif()
     # todo: create package, upload to distribution server
     # do the packing only if switch is on and
     if( (${UPDATE_RETURN_VALUE} GREATER 0 AND PROPERLY_BUILT_AND_INSTALLED) OR ${first_checkout})
