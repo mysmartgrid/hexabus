@@ -50,11 +50,12 @@ if(LIBKLIO_FOUND)
     pthread
     ${Boost_LIBRARIES}
     ${Boost_SYSTEM_LIBRARY}
-    ${CURL_LIBRARY}
+    ${CURL_LIBRARIES}
     ${JSON_LIBRARY}
 #    crypto
     ${LIBKLIO_LIBRARY}
     ${SQLITE3_LIBRARIES}
+    ${OPENSSL_CRYPTO_LIBRARY}
   )
 
   add_executable(hexapost ${hexapost_src})
@@ -63,11 +64,12 @@ if(LIBKLIO_FOUND)
     pthread
     ${Boost_LIBRARIES}
     ${Boost_SYSTEM_LIBRARY}
-    ${CURL_LIBRARY}
+    ${CURL_LIBRARIES}
     ${JSON_LIBRARY}
 #    crypto
     ${LIBKLIO_LIBRARY}
     ${SQLITE3_LIBRARIES}
+    ${OPENSSL_CRYPTO_LIBRARY}
   )
 
 endif(LIBKLIO_FOUND)

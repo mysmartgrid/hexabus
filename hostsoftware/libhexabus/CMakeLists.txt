@@ -91,6 +91,7 @@ include(CMakeBackwardCompatibilityCXX)
 find_package(Libklio)
 if( LIBKLIO_FOUND )
   FIND_PACKAGE(Sqlite)
+  FIND_PACKAGE(OpenSSL REQUIRED)
 endif( LIBKLIO_FOUND )
 
 # We depend on boost >= 1.46.1 because of the updated filesystem
