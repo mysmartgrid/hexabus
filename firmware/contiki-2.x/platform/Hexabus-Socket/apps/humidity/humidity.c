@@ -3,15 +3,14 @@
 #include "hexabus_config.h"
 #include "contiki.h"
 
+#include "endpoint_registry.h"
+#include "endpoints.h"
+
 #include <util/delay.h>
 
 
-#if HUMIDITY_DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL HUMIDITY_DEBUG
+#include "syslog.h"
 
 float read_humidity() {
 
@@ -32,7 +31,7 @@ float read_humidity() {
 
     uint16_t rawhum = ((bytes[0]<<8 | bytes[1]) & 0x3FFF);
 
-    PRINTF("Raw Humidity: %d\n", rawhum);
+    syslog(LOG_DEBUG, "Raw Humidity: %d", rawhum);
 
     return (100.0/16384.0*rawhum);
 }
@@ -55,7 +54,27 @@ float read_humidity_temp() {
 
     uint16_t rawtemp = bytes[2]<<6 | (bytes[3]&0x3F);
 
-    PRINTF("Raw Temperature: %d\n", rawtemp);
+    syslog(LOG_DEBUG, "Raw Temperature: %d", rawtemp);
 
     return (165.0/16384.0*rawtemp)-40.0;
+}
+
+static enum hxb_error_code read(struct hxb_value* value)
+{
+	value->v_float = read_humidity();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_name[] PROGMEM = "Humidity sensor";
+ENDPOINT_DESCRIPTOR endpoint_humidity = {
+	.datatype = HXB_DTYPE_FLOAT,
+	.eid = EP_HUMIDITY,
+	.name = ep_name,
+	.read = read,
+	.write = 0
+};
+
+void humidity_init(void)
+{
+	ENDPOINT_REGISTER(endpoint_humidity);
 }

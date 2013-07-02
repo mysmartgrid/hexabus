@@ -4,15 +4,18 @@
 #include "sys/clock.h"
 #include "sys/etimer.h" //contiki event timer library
 #include "contiki.h"
+#include "endpoint_registry.h"
+#include "endpoints.h"
 
 #include <avr/interrupt.h>
 
-#if SHUTTER_DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL SHUTTER_DEBUG
+#include "syslog.h"
+
+static void    shutter_toggle(uint8_t);
+static void    shutter_set(uint8_t);
+static void    shutter_stop(void);
+static uint8_t shutter_get_state(void);
 
 static int8_t shutter_direction;
 static int shutter_goal;
@@ -21,8 +24,33 @@ static int shutter_upperbound;
 
 static process_event_t shutter_poke;
 
+static enum hxb_error_code read(struct hxb_value* value)
+{
+	value->v_u8 = shutter_get_state();
+	return HXB_ERR_SUCCESS;
+}
+
+static enum hxb_error_code write(const struct hxb_envelope* env)
+{
+	shutter_toggle(env->value.v_u8);
+	return HXB_ERR_SUCCESS;
+}
+
+
+
+static const char ep_name[] PROGMEM = "Window Shutter";
+ENDPOINT_DESCRIPTOR endpoint_shutter = {
+	.datatype = HXB_DTYPE_UINT8,
+	.eid = EP_SHUTTER,
+	.name = ep_name,
+	.read = read,
+	.write = write
+};
+
+
+
 void shutter_init(void) {
-    PRINTF("Shutter init\n");
+    syslog(LOG_DEBUG, "Shutter init");
     SHUTTER_DDR |= ( 0x00 | (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
     SHUTTER_DDR &= ~( (1<<PA4) | (1<<PA5) );
     SHUTTER_PORT |= ( (1<<PA4) | (1<<PA5) ); //pull-ups for encoder inputs
@@ -40,31 +68,32 @@ void shutter_init(void) {
     shutter_pos = SHUTTER_MAX_BOUND/2;
     shutter_upperbound = SHUTTER_MAX_BOUND;
 
+	ENDPOINT_REGISTER(endpoint_shutter);
 }
 
-void shutter_open(void) {
-    PRINTF("Shutter opening\n");
+static void shutter_open(void) {
+    syslog(LOG_DEBUG, "Shutter opening");
     shutter_direction = SHUTTER_DIR_UP;
     SHUTTER_PORT &= ~(1<<SHUTTER_OUT_DOWN);
     SHUTTER_PORT |= (1<<SHUTTER_OUT_UP);
     process_post(&shutter_process, shutter_poke, NULL);
 }
 
-void shutter_close(void) {
-    PRINTF("Shutter closing\n");
+static void shutter_close(void) {
+    syslog(LOG_DEBUG, "Shutter closing");
     shutter_direction = SHUTTER_DIR_DOWN;
     SHUTTER_PORT &= ~(1<<SHUTTER_OUT_UP);
     SHUTTER_PORT |= (1<<SHUTTER_OUT_DOWN);
     process_post(&shutter_process, shutter_poke, NULL);
 }
 
-void shutter_stop(void) {
-    PRINTF("Shutter stop\n");
+static void shutter_stop(void) {
+    syslog(LOG_DEBUG, "Shutter stop");
     shutter_direction = SHUTTER_DIR_STOP;
     SHUTTER_PORT &= ~( (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
 }
 
-void shutter_set(uint8_t val) {
+static void shutter_set(uint8_t val) {
 
     if(val == 255) {
         shutter_goal = SHUTTER_MAX_BOUND; //completely open
@@ -75,17 +104,17 @@ void shutter_set(uint8_t val) {
     }
 
     if(shutter_goal > shutter_pos) {
-        PRINTF("Shutter moving to %d\n", shutter_goal);
+        syslog(LOG_DEBUG, "Shutter moving to %d", shutter_goal);
         shutter_open();
     } else if(shutter_goal < shutter_pos){
-        PRINTF("Shutter moving to %d\n", shutter_goal);
+        syslog(LOG_DEBUG, "Shutter moving to %d", shutter_goal);
         shutter_close();
     } else {
-        PRINTF("Shutter not moving, already at %d\n", shutter_goal);
+        syslog(LOG_DEBUG, "Shutter not moving, already at %d", shutter_goal);
     }
 }
 
-void shutter_toggle(uint8_t val) {
+static void shutter_toggle(uint8_t val) {
     if(shutter_direction==SHUTTER_DIR_STOP && val!=0){
         shutter_set(val);
     } else {
@@ -93,7 +122,7 @@ void shutter_toggle(uint8_t val) {
     }
 }
 
-uint8_t shutter_get_state(void) {
+static uint8_t shutter_get_state(void) {
     return shutter_pos * ((float)shutter_upperbound/255.0);
 }
 
@@ -106,7 +135,7 @@ PROCESS_THREAD(shutter_setup_process, ev, data) {
 
 
     if(SHUTTER_CALIBRATE_ON_BOOT) {
-        PRINTF("Shutter calibrating...\n");
+        syslog(LOG_DEBUG, "Shutter calibrating...");
         shutter_toggle(1);
         while(shutter_direction != SHUTTER_DIR_STOP) {
             PROCESS_PAUSE();
@@ -116,11 +145,11 @@ PROCESS_THREAD(shutter_setup_process, ev, data) {
         while(shutter_direction != SHUTTER_DIR_STOP) {
             PROCESS_PAUSE();
         }
-        PRINTF("Shutter calibration finished\n");
+        syslog(LOG_DEBUG, "Shutter calibration finished");
 
     }
     if(SHUTTER_INITIAL_POSITON) {
-        PRINTF("Shutter moving to initial position");
+        syslog(LOG_DEBUG, "Shutter moving to initial position");
         shutter_toggle(SHUTTER_INITIAL_POSITON);
     }
 
@@ -143,18 +172,18 @@ PROCESS_THREAD(shutter_process, ev, data) {
         if(ev == PROCESS_EVENT_POLL) {
             etimer_restart(&encoder_timer);
             shutter_pos += shutter_direction;
-            PRINTF("Shutter at position: %d\n", shutter_pos);
+            syslog(LOG_DEBUG, "Shutter at position: %d", shutter_pos);
             if (((shutter_pos >= shutter_goal)&&(shutter_direction == SHUTTER_DIR_UP)) || ((shutter_pos <= shutter_goal)&&(shutter_direction == SHUTTER_DIR_DOWN))) {
                 shutter_stop();
             }
         } else if(ev == PROCESS_EVENT_TIMER) {
-            PRINTF("Shutter encoder timed out\n");
+            syslog(LOG_DEBUG, "Shutter encoder timed out");
             if(shutter_direction == SHUTTER_DIR_UP) {
                 shutter_upperbound = shutter_pos;
-                PRINTF("Shutter has new upperbound: %d\n", shutter_upperbound);
+                syslog(LOG_DEBUG, "Shutter has new upperbound: %d", shutter_upperbound);
             } else if(shutter_direction == SHUTTER_DIR_DOWN) {
                 shutter_pos = 1;
-                PRINTF("Shutter reset position to 1\n");
+                syslog(LOG_DEBUG, "Shutter reset position to 1");
             }
             shutter_stop();
         } else if(ev == shutter_poke) {

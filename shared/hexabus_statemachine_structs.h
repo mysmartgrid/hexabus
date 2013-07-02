@@ -1,7 +1,7 @@
 #ifndef HEXABUS_STATEMACHINE_STRUCTS_H_
 #define HEXABUS_STATEMACHINE_STRUCTS_H_
 
-#include "hexabus_value.h"
+#include "hexabus_types.h"
 
 // these structs implement a simple table layout
 
@@ -40,7 +40,7 @@ struct transition {
 // "true" condition "index"
 #define TRUE_COND_INDEX 255
 
-#define EE_STATEMACHINE_CHUNK_SIZE        64
+#define EE_STATEMACHINE_CHUNK_SIZE 64
 
 #endif
 

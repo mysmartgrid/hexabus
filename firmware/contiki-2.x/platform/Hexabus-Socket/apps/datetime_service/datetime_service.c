@@ -8,25 +8,29 @@
 #include "eeprom_variables.h"
 #include <avr/eeprom.h>
 
-#include <stdio.h>
+#include <stdlib.h>
 
-#if DATETIME_SERVICE_DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL DATETIME_SERVICE_DEBUG
+#include "syslog.h"
 
-static process_event_t dt_update_event;
-static struct datetime current_dt;
+static struct hxb_datetime current_dt;
 static bool time_valid;
 static uint32_t timestamp; // seconds since datetime-service was started.
 
+static int valid_counter;
+static struct etimer update_timer;
+
 void updateDatetime(struct hxb_envelope* envelope) {
-    process_post(&datetime_service_process, dt_update_event, envelope);
+	syslog(LOG_DEBUG, "Time: Got update.");
+
+	current_dt = envelope->value.v_datetime;
+	time_valid = true;
+	valid_counter = 0;
+
+	etimer_restart(&update_timer);
 }
 
-int getDatetime(struct datetime *dt) {
+int getDatetime(struct hxb_datetime *dt) {
     dt->hour = current_dt.hour;
     dt->minute = current_dt.minute;
     dt->second = current_dt.second;
@@ -50,8 +54,6 @@ PROCESS(datetime_service_process, "Keeps the Date and Time up-to-date\n");
 
 PROCESS_THREAD(datetime_service_process, ev, data) {
 
-    static struct etimer update_timer;
-    static int valid_counter;
 
     PROCESS_BEGIN();
 
@@ -65,7 +67,7 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
         PROCESS_WAIT_EVENT();
 
         if(ev == PROCESS_EVENT_TIMER) {
-            PRINTF("Time: %d:%d:%d\t%d.%d.%d Day: %d Valid: %d\n", current_dt.hour, current_dt.minute, current_dt.second, current_dt.day, current_dt.month, current_dt.year, current_dt.weekday, time_valid);
+            syslog(LOG_INFO, "Time: %d:%d:%d\t%d.%d.%d Day: %d Valid: %d", current_dt.hour, current_dt.minute, current_dt.second, current_dt.day, current_dt.month, current_dt.year, current_dt.weekday, time_valid);
 
             if(etimer_expired(&update_timer)){
                 etimer_reset(&update_timer);
@@ -104,15 +106,6 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
                     }
                 }
             }
-        } else if(ev == dt_update_event) {
-            PRINTF("Time: Got update.\n");
-
-            current_dt = *(struct datetime*)&(((struct hxb_envelope*)data)->value.data);
-            time_valid = true;
-            valid_counter = 0;
-
-            etimer_restart(&update_timer);
-            free(data);
         }
     }
     PROCESS_END();

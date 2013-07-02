@@ -41,6 +41,7 @@ static void
 show_leds(unsigned char changed)
 {
   if(changed & LEDS_GREEN) {
+    /* Green did change */
     if((invert ^ leds) & LEDS_GREEN) {
       ENERGEST_ON(ENERGEST_TYPE_LED_GREEN);
     } else {
@@ -116,8 +117,7 @@ leds_toggle(unsigned char ledv)
 /*   invert the invert register using the leds parameter */
 void
 leds_invert(unsigned char ledv) {
-	leds = leds ^ ledv;
-  //invert = invert ^ ledv;
+  invert = invert ^ ledv;
   show_leds(ledv);
 }
 /*---------------------------------------------------------------------------*/

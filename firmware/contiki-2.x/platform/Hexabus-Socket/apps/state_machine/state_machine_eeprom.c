@@ -63,32 +63,38 @@ void sm_get_transition(bool datetime, uint8_t index, struct transition *trans) {
 }
 
 bool sm_write_chunk(uint8_t chunk_id, char* data) {
-  /**
-   * 1. Check for valid offset: if offset+length > MAX_SIZE abort.
-   * 2. Write Block:
-	eeprom_update_block(cond, (void *)(EE_STATEMACHINE_CONDITIONS + sizeof(struct condition)*index), sizeof(struct condition));
-
-   */
-  // printf("Chunk ID: %d, Chunk offset: %d\r\n", chunk_id, chunk_id*EE_STATEMACHINE_CHUNK_SIZE);
-  if(((chunk_id+1) * (EE_STATEMACHINE_CHUNK_SIZE))
-      > EE_STATEMACHINE_ID_SIZE +
-        EE_STATEMACHINE_N_CONDITIONS_SIZE + EE_STATEMACHINE_CONDITIONS_SIZE
-      + EE_STATEMACHINE_N_DT_TRANSITIONS_SIZE + EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE
-      + EE_STATEMACHINE_N_TRANSITIONS_SIZE + EE_STATEMACHINE_TRANSITIONS_SIZE) 
-  {
-    // printf("offset too large - not writing to EEPROM.\r\n");
-    return false;
-  } else {
-    // printf("writing to eeprom at %u\r\n", chunk_id*EE_STATEMACHINE_CHUNK_SIZE);
-    cli();
-		eeprom_update_block(data,
-        (void *)(EE_STATEMACHINE_ID + (chunk_id * EE_STATEMACHINE_CHUNK_SIZE)), 
-        EE_STATEMACHINE_CHUNK_SIZE
-      );
-    eeprom_busy_wait();
-    sei();
-    // The write fails if no function call follows an EEPROM write. This is strangeness.
-    _delay_ms(2);
-    return true;
-  }
+	// check where the chunk goes: the first chunk goes to the EE_DOMAIN_NAME area of the eeprom
+	if(chunk_id == 0) {
+		if(data[0] == '\0') // if the first byte of the new name is zero, don't write anything (leave the old name in the eeprom)
+			return true;
+		cli();
+		eeprom_update_block(data, (void*)(EE_DOMAIN_NAME), EE_DOMAIN_NAME_SIZE);
+		eeprom_busy_wait();
+		sei();
+		// The write fails if no function call follows an EEPROM write. This is strangeness.
+		_delay_ms(2);
+		return true;
+	} else { // the other chunks go to the EE_STATEMACHINE_... area
+		chunk_id -= 1; // subtract 1 from chunk id, because the first chunk went to the DOMAIN_NAME, so we have to restart counting from 0
+		// check if chunk offset is valid
+		if(((chunk_id+1) * (EE_STATEMACHINE_CHUNK_SIZE))
+				> EE_STATEMACHINE_ID_SIZE +
+				EE_STATEMACHINE_N_CONDITIONS_SIZE + EE_STATEMACHINE_CONDITIONS_SIZE
+				+ EE_STATEMACHINE_N_DT_TRANSITIONS_SIZE + EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE
+				+ EE_STATEMACHINE_N_TRANSITIONS_SIZE + EE_STATEMACHINE_TRANSITIONS_SIZE) 
+		{
+			return false;
+		} else { // write chunk to eeprom
+			cli();
+			eeprom_update_block(data,
+					(void *)(EE_STATEMACHINE_ID + (chunk_id * EE_STATEMACHINE_CHUNK_SIZE)), 
+					EE_STATEMACHINE_CHUNK_SIZE
+					);
+			eeprom_busy_wait();
+			sei();
+			// The write fails if no function call follows an EEPROM write. This is strangeness.
+			_delay_ms(2);
+			return true;
+		}
+	}
 }

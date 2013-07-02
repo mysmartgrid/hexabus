@@ -62,7 +62,6 @@
 #include "temperature.h"
 #include "relay.h"
 #include "eeprom_variables.h"
-#include "../../../../../shared/hexabus_packet.h"
 #include "datetime_service.h"
 #include "state_machine.h"
 
@@ -85,8 +84,6 @@ extern char TCPBUF[512];
 // TODO #define RADIOSTATS 1
 #endif
 
-#define WS_HXB_DTYPE_UINT16 0x08
-
 /*
 #if RADIOSTATS
 uint8_t RF212_rsigsi, rf212_last_rssi;
@@ -108,7 +105,6 @@ static const char   adrs_name[] HTTPD_STRING_ATTR = "addresses";
 static const char   nbrs_name[] HTTPD_STRING_ATTR = "neighbors";
 static const char   rtes_name[] HTTPD_STRING_ATTR = "routes";
 static const char config_name[] HTTPD_STRING_ATTR = "config";
-static const char get_sm_name[] HTTPD_STRING_ATTR = "get_sm";
 
 /*Process states for processes cgi*/
 static const char      closed[] HTTPD_STRING_ATTR = "CLOSED";
@@ -445,9 +441,9 @@ generate_socket_readings(void *arg)
  // dtostrf(temperature_value, 9, 4, &buffer);
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor4, temperature_as_string());
   // Add Date and Time
-  struct datetime dt;
+  struct hxb_datetime dt;
 	if(getDatetime(&dt) == 0) {
-		char *time[30];
+		char time[30];
 		sprintf(time, "%u:%u:%u, %u.%u.%u", dt.hour, dt.minute, dt.second, dt.day, dt.month, dt.year);
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_datetime, time);
 	} else {
@@ -462,13 +458,12 @@ static unsigned short
 generate_config(void *arg)
 {
 	uint16_t numprinted;
-	extern bool relay_state;
+//	extern bool relay_state;
 
 	static const char httpd_cgi_config_line1[] HTTPD_STRING_ATTR = "<td><input name=\"domain_name\" type=\"text\" size=\"50\" maxlength=\"30\" value=\"%s\"></td></tr>";
 	static const char httpd_cgi_config_line2[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">Default Relay State</td><td><input type=\"radio\" name=\"relay\" value=\"1\" %s>On<input type=\"radio\" name=\"relay\" value=\"0\" %s>Off</td></tr>";
-	static const char httpd_cgi_config_line3[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">Forwarding</td><td><input type=\"radio\" name=\"routing\" value=\"1\" %s>On<input type=\"radio\" name=\"routing\" value=\"0\" %s>Off</td></tr>";
-	static const char httpd_cgi_config_line4[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">S0 meter (Imp./kWh)</td><td><input type=\"text\" size=\"4\" maxlength=\"4\" name=\"s0\" value=\"%s\"></td></tr>";
-    static const char httpd_cgi_config_line5[] HTTPD_STRING_ATTR = "<tr><input type=\"hidden\" name=\"terminator\" value=\"\"><td align=\"right\">Submit:</td><td><input type=\"submit\" value=\" Submit \" ></td></tr></table></form>"; //additional ampersand from the hidden value simplifies parsing
+//	static const char httpd_cgi_config_line3[] HTTPD_STRING_ATTR = "<tr><td align=\"right\">S0 meter (Imp./kWh)</td><td><input type=\"text\" size=\"4\" maxlength=\"4\" name=\"s0\" value=\"%s\"></td></tr>";
+    static const char httpd_cgi_config_line4[] HTTPD_STRING_ATTR = "<tr><input type=\"hidden\" name=\"terminator\" value=\"\"><td align=\"right\">Submit:</td><td><input type=\"submit\" value=\" Submit \" ></td></tr></table></form>"; //additional ampersand from the hidden value simplifies parsing
 
     char* checked = "checked";
 	numprinted=0;
@@ -481,11 +476,6 @@ generate_config(void *arg)
 	else
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line2, "", checked);
 
-	if (get_forwarding_from_eeprom())
-		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line3, checked, "");
-	else
-		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line3, "", checked);
-
 #if S0_ENABLE
     char s0val[5];
     uint32_t refval= (eeprom_read_word((void*) EE_METERING_REF));
@@ -493,10 +483,10 @@ generate_config(void *arg)
 
     ltoa(refval, s0val, 10);
 
-   numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line4, s0val);
+   numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line3, s0val);
 #endif
 
-	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line5);
+	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line4);
 
 	return numprinted;
 
@@ -547,8 +537,8 @@ generate_radio_stats(void *arg)
 /*---------------------------------------------------------------------------*/
 void hxbtos(char *dest, char *data, uint8_t datatype)
 {
-	struct datetime *dt;
-	switch(datatype) {
+	struct hxb_datetime *dt;
+	switch ((enum hxb_datatype) datatype) {
 		case HXB_DTYPE_UNDEFINED:	// "Do nothing" Datatype
 			sprintf(dest, "0");		// 0 so the format does not break
 			break;
@@ -560,10 +550,8 @@ void hxbtos(char *dest, char *data, uint8_t datatype)
 		case HXB_DTYPE_TIMESTAMP:
 			sprintf(dest, "%lu", *(uint32_t*)data);
 			break;
-		case WS_HXB_DTYPE_UINT16:
-			sprintf(dest, "%u", *(uint16_t*)data);
 		case HXB_DTYPE_DATETIME:
-			dt = (struct datetime*)data;
+			dt = (struct hxb_datetime*)data;
 			sprintf(dest, "%u*%u*%u*%u*%u*%u*%u*", dt->hour, dt->minute, dt->second, dt->day, dt->month, (uint16_t)dt->year, dt->weekday); 
 			break;
 		case HXB_DTYPE_FLOAT:
@@ -574,69 +562,12 @@ void hxbtos(char *dest, char *data, uint8_t datatype)
 			}
 			dest[i] = ',';
 			break;
+		case HXB_DTYPE_128STRING:
+		case HXB_DTYPE_66BYTES:
+		case HXB_DTYPE_16BYTES:
+		default:
+			break;
 	}
-}
-/*---------------------------------------------------------------------------*/
-static unsigned short
-get_sm_tables(void *arg)
-{
-  static const char httpd_cgi_trans_table_line[] HTTPD_STRING_ATTR = "%c%u.%u.%lu.%u.%s.%u.%u.%c";
-  static const char httpd_cgi_cond_table_line[] HTTPD_STRING_ATTR = "%c%s.%lu.%u.%u.%s.%c";
-  static const char httpd_cgi_char[] HTTPD_STRING_ATTR = "%c";
-  uint16_t numprinted = 0;
-  uint8_t length = 0;
-  uint8_t i, j;
-  struct transition *trans;
-  struct condition *cond;
-  char buffer[30];  // Max. size because of datetime: 6*3 Digits (uint8) + 1*5 Digits (uint16) + 7*'*' = 18 + 5 + 7 = 30 Byte
-  char ip[33];
-
-  // Read Condition Table. Unused conditions will have a datatype equal to 0
-  cond = malloc(sizeof(struct condition));
-  length = sm_get_number_of_conditions();  //eeprom_read_byte((void*)EE_STATEMACHINE_CONDITIONS);
-  numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-');
-
-  for(i = 0;i < length;i++) {
-    //eeprom_read_block(cond, (void*)(1 + EE_STATEMACHINE_CONDITIONS + (i * sizeof(struct condition))), sizeof(struct condition));
-    sm_get_condition(i, cond);
-    if(cond->value.datatype == HXB_DTYPE_DATETIME) {
-      hxbtos(buffer, cond->value.data, HXB_DTYPE_UINT32);
-    } else {
-      hxbtos(buffer, cond->value.data, cond->value.datatype);
-    }
-    for(j = 0;j < 16;j++){
-      sprintf(ip + 2*j, "%02x", cond->sourceIP[j]);
-    }
-    numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_cond_table_line, NULL,
-        ip, cond->sourceEID, cond->value.datatype, cond->op, buffer, NULL);
-  }
-  numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '.');
-  free(cond);
-
-  // Now the transition tables
-  length = sm_get_number_of_transitions(false);  //eeprom_read_byte((void*)EE_STATEMACHINE_TRANSITIONS);
-  trans = malloc(sizeof(struct transition));
-  numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '-');
-
-  for(i = 0;i < length;i++) {
-    //eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
-    sm_get_transition(false, i, trans);
-    hxbtos(buffer, trans->value.data, trans->value.datatype);
-    numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_trans_table_line, NULL,
-        trans->fromState, trans->cond, trans->eid, trans->value.datatype, buffer, trans->goodState, trans->badState, NULL);
-  }
-
-  length = sm_get_number_of_transitions(true);  //eeprom_read_byte((void*)EE_STATEMACHINE_DATETIME_TRANSITIONS);
-
-  for(i = 0;i < length;i++) {
-    //eeprom_read_block(trans, (void*)(1 + EE_STATEMACHINE_DATETIME_TRANSITIONS + (i * sizeof(struct transition))), sizeof(struct transition));
-    sm_get_transition(true, i, trans);
-    numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_trans_table_line, NULL,
-          trans->fromState, trans->cond, trans->eid, trans->value.datatype, buffer, trans->goodState, trans->badState, NULL);
-  }
-  numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_char, '.');
-  free(trans);
-  return numprinted;
 }
 /*---------------------------------------------------------------------------*/
 static
@@ -658,17 +589,6 @@ PT_THREAD(set_config(struct httpd_state *s, char *ptr))
   PSOCK_BEGIN(&s->sout);
 
   PSOCK_GENERATOR_SEND(&s->sout, generate_config, s);
-
-  PSOCK_END(&s->sout);
-}
-
-/*---------------------------------------------------------------------------*/
-static
-PT_THREAD(get_statemachine(struct httpd_state *s, char *ptr))
-{
-  PSOCK_BEGIN(&s->sout);
-
-  PSOCK_GENERATOR_SEND(&s->sout, get_sm_tables, s);
 
   PSOCK_END(&s->sout);
 }
@@ -701,7 +621,6 @@ HTTPD_CGI_CALL(   rtes,   rtes_name, routes         );
 #endif
 HTTPD_CGI_CALL(socket_stat, socket_status_name, socket_readings);
 HTTPD_CGI_CALL(config, config_name, set_config);
-HTTPD_CGI_CALL(get_sm, get_sm_name, get_statemachine);
 
 void
 httpd_cgi_init(void)
@@ -718,7 +637,6 @@ httpd_cgi_init(void)
 #endif
   httpd_cgi_add(&socket_stat);
   httpd_cgi_add(&config);
-	httpd_cgi_add(&get_sm);
 }
 /*---------------------------------------------------------------------------*/
 

@@ -195,7 +195,6 @@ typedef enum
 static int rf212_prepare(const void *data, unsigned short len);
 static int rf212_transmit(unsigned short len);
 int rf212_send(const void *data, unsigned short len);
-int rf212_read(void *buf, unsigned short bufsize);
 int rf212_on(void);
 int rf212_off(void);
 

@@ -3,18 +3,17 @@
 
 #include <stdint.h>
 #include <string>
-#include "../../../shared/hexabus_definitions.h"
-
-#define NUMBER_OF_EIDS 32
+#include <map>
+#include "../../../shared/hexabus_types.h"
 
 namespace hexabus {
   class Datatypes {
     public:
       static Datatypes* getInstance(std::string filename = "datatypes");
-      uint8_t getDatatype(uint8_t eid);
+      hxb_datatype getDatatype(uint32_t eid);
     private:
       static Datatypes* instance;
-      uint8_t datatypes[NUMBER_OF_EIDS];
+      std::map<uint32_t, hxb_datatype> datatypes;
       Datatypes(std::string filename);
       Datatypes();
   };

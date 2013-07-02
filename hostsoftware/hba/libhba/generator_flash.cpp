@@ -64,21 +64,24 @@ struct hba_doc_visitor : boost::static_visitor<>
     }
 
     // construct binary representation
-    struct transition t;
+    struct transition t = { 0 }; // zero initialize all the fields
     t.fromState = state_id; // TODO need to cast here? // better: Make sure only valid IDs are generated
     t.cond = cond_id;
     t.eid = clause.eid;
     t.goodState = goodstate_id;
     t.badState = badstate_id;
     t.value.datatype = _datatypes->getDatatype(clause.eid);
-    memset(t.value.data, 0, sizeof(t.value.data)); // most of the time only four bytes needes, so keep the rest at 0
     std::stringstream ss;
     ss << std::hex << clause.value;
     if(_datatypes->getDatatype(clause.eid) == HXB_DTYPE_FLOAT) // TODO implement ALL the datatypes
     {
-      ss >> *(float*)t.value.data;
+			float f;
+      ss >> f;
+			t.value.v_float = f;
     } else { // TODO for now, act as if everything were uint32
-      ss >> std::dec >> *(uint32_t*)t.value.data;
+			uint32_t u;
+      ss >> std::dec >> u;
+			t.value.v_u32 = u;
     }
 
     if(clause.name != "true") {
@@ -149,9 +152,13 @@ struct hba_doc_visitor : boost::static_visitor<>
       ss << std::hex << cond.value;
       if(_datatypes->getDatatype(cond.eid) == HXB_DTYPE_FLOAT) // TODO implement ALL the datatypes
       {
-        ss >> *(float*)c.value.data;
+				float f;
+        ss >> f;
+				c.value.v_float = f;
       } else { // TODO for now just treat everything as uint32
-        ss >> std::dec >> *(uint32_t*)c.value.data;
+				uint32_t u;
+        ss >> std::dec >> u;
+				c.value.v_u32 = u;
       }
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     } else if(condition.cond.which() == 1) { // timeout
@@ -166,7 +173,7 @@ struct hba_doc_visitor : boost::static_visitor<>
       c.sourceEID = 0; // set to 0 because state machine won't care about the EID in a timestamp condition
       c.op = HXB_SM_TIMESTAMP_OP; // operator for timestamp comparison
       c.value.datatype = HXB_DTYPE_TIMESTAMP;
-      *(uint32_t*)&c.value.data = cond.value;
+      c.value.v_u32 = cond.value;
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     } else {
       cond_datetime_doc cond = boost::get<cond_datetime_doc>(condition.cond);
@@ -211,7 +218,7 @@ struct hba_doc_visitor : boost::static_visitor<>
       c.sourceEID = 0;
       c.op = cond.field | cond.op;
       c.value.datatype = HXB_DTYPE_DATETIME;
-      *(uint32_t*)&c.value.data = cond.value;
+      c.value.v_u32 = cond.value;
 
       _conditions_bin.insert(std::pair<unsigned int, struct condition>(condition.id, c));
     }

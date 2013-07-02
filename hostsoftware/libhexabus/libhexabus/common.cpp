@@ -22,7 +22,8 @@
 
 namespace hexabus {
 
-#define STR(x) #x
+#define STR2(x) #x
+#define STR(x) STR2(x)
 
 	const char* version()
 	{

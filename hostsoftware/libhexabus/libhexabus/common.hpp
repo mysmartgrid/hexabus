@@ -44,6 +44,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <libhexabus/compat.hpp>
 
 namespace hexabus {
 	const char* version();

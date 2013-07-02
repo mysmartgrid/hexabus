@@ -22,7 +22,7 @@
 #include <libhba/file_pos.hpp>
 
 // We need this for the hexabus datatype definitions
-#include "../../../shared/hexabus_definitions.h"
+#include "../../../shared/hexabus_types.h"
 #include "../../../shared/hexabus_statemachine_structs.h"
 
 
@@ -196,6 +196,10 @@ struct UpdateFileInfo
     target_ip = lit("target")
       >> ipv6_address > ';';
 
+    device_name = lit("device_name")
+      >> ( lit("0") | identifier )
+      > ';';
+
     machine_id = lit("machine")
       >> *(char_("0-9a-fA-F")[_val += _1]) > ';';
 
@@ -250,9 +254,10 @@ struct UpdateFileInfo
 
     start %=
       target_ip
+      >> device_name
       >> machine_id
-      >> startstate
-      >> +(state | condition)
+      >> -startstate
+      >> *(state | condition)
       > eoi
       ;
 
@@ -271,6 +276,7 @@ struct UpdateFileInfo
 
     qi::rule<Iterator, std::string(), Skip> startstate;
     qi::rule<Iterator, std::string(), Skip> target_ip;
+    qi::rule<Iterator, std::string(), Skip> device_name;
     qi::rule<Iterator, std::string(), Skip> machine_id;
     qi::rule<Iterator, state_doc(), Skip> state;
     qi::rule<Iterator, if_clause_doc(), Skip> if_clause;

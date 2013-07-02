@@ -9,9 +9,6 @@ PROCESS_NAME(value_broadcast_process);
 // #endif
 
 void broadcast_value(uint32_t eid);
-void broadcast_value_ptr(void* eidp);
 void init_value_broadcast(void);
-
-extern process_event_t immediate_broadcast_event;
 
 #endif

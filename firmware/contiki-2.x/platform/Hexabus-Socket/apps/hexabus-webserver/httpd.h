@@ -65,6 +65,7 @@ struct httpd_state {
 
 #if HTTPD_STRING_TYPE==PROGMEM_TYPE
 #define HTTPD_STRING_ATTR PROGMEM
+#include <avr/pgmspace.h>
 /* These will fail if the server strings are above 64K in program flash */
 #define httpd_memcpy       memcpy_P
 #define httpd_strcpy       strcpy_P
@@ -92,19 +93,5 @@ struct httpd_state {
 
 void httpd_init(void);
 void httpd_appcall(void *state);
-
-#define SM_COND_LENGTH (EE_STATEMACHINE_N_CONDITIONS_SIZE+EE_STATEMACHINE_CONDITIONS_SIZE)
-#define SM_TRANS_LENGTH (EE_STATEMACHINE_N_TRANSITIONS_SIZE+EE_STATEMACHINE_TRANSITIONS_SIZE)
-#define SM_DTTRANS_LENGHT (EE_STATEMACHINE_N_DT_TRANSITIONS_SIZE+EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE)
-
-#define COND 1
-#define TRANS 2
-#define DTTRANS 3
-
-static uint8_t sm_success;
-
-#define SM_UPLOAD_SUCCESS 0
-#define SM_UPLOAD_IMGTOOLARGE 1
-#define SM_UPLOAD_PARSINGERROR 2
 
 #endif /* __HTTPD_H__ */
