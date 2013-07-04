@@ -1,0 +1,8 @@
+#!/bin/sh
+
+set -e
+
+if [ x$1 = xpurge ]
+then
+	userdel -r hexalog
+fi

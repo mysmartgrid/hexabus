@@ -94,6 +94,7 @@ FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS test_exec_monitor program_options 
 # Reflect the package structure
 add_subdirectory(libhexabus)
 add_subdirectory(src)
+add_subdirectory(etc)
 add_subdirectory(tests)
 
 # add some files to the installation target
@@ -113,17 +114,15 @@ SET(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 SET(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 SET(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
-SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch" "Send a switch command to the
-hexabus devices.")
-SET(CPACK_SOURCE_STRIP_FILES "")
-SET(CPACK_STRIP_FILES "bin/hexaswitch")
-SET(CPACK_STRIP_FILES "bin/hexalog")
+SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch;Hexabus node interrogation utility" "hexalog;Hexabus logging utility" "hexaupload;Hexabus statemachine upload utility")
+SET(CPACK_STRIP_FILES ON)
 
-set(CPACK_SET_DESTDIR On)
-set(CPACK_SOURCE_STRIP_FILES "")
 set(CPACK_GENERATOR "DEB;TBZ2")
 set(CPACK_SECTION "net")
 
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
+
+set(CPACK_SET_DESTDIR ON)
 INCLUDE(CPack)
 
 ### print some output for the user
