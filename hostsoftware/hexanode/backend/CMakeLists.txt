@@ -34,7 +34,11 @@ set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where m
 # path here, subsequent checks will resolve everything else
 set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_MODULE_PATH})
+
+if(CMAKE_TOOLCHAIN_FILE)
+  list(APPEND CMAKE_FIND_ROOT_PATH ${HXB_HOME})
+endif()
 
 # Detect the system we're compiling on
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -71,7 +75,11 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_PROFILE} -Wno-non-virtual-dtor -p
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_PROFILE} -ftest-coverage")
 
 # Releases are made with the release build. Optimize code.
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wno-non-virtual-dtor -Werror")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wno-non-virtual-dtor")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-unused-but-set-variable")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-delete-non-virtual-dtor")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Werror")
 
 # allways set these flags
 set(CMAKE_CXX_FLAGS "-Wall ")
@@ -88,6 +96,7 @@ include(CMakeBackwardCompatibilityCXX)
 FIND_PACKAGE(OpenSSL REQUIRED)
 FIND_PACKAGE(CppNetlib REQUIRED)
 FIND_PACKAGE(LibHexabus REQUIRED)
+find_package(Alsa)
 #FIND_PACKAGE(RtMidi)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
@@ -113,29 +122,24 @@ INSTALL(FILES
 
 
 # CPACK packaging
-INCLUDE(InstallRequiredSystemLibraries)
-SET(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
-SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Mathias Dalheimer")
-SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "hexanode")
-SET(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
-set(CPACK_PACKAGE_CONTACT "support@mysmartgrid.de")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "support@mysmartgrid.de")
-SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
-SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
-SET(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
-SET(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
-SET(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
-SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
-SET(CPACK_PACKAGE_EXECUTABLES "hexanode" "A virtual hexabus device.")
-SET(CPACK_SOURCE_STRIP_FILES "")
-SET(CPACK_STRIP_FILES "bin/hexanode")
+include(InstallRequiredSystemLibraries)
+set(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
+set(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
+set(CPACK_PACKAGE_CONTACT "Fraunhofer ITWM <support@mysmartgrid.de>")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "hexanode")
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
+set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 
-set(CPACK_SET_DESTDIR On)
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
+
+set(CPACK_PACKAGE_EXECUTABLES "hexanode" "A virtual hexabus device.")
 set(CPACK_SOURCE_STRIP_FILES "")
-set(CPACK_GENERATOR "DEB;TBZ2")
+set(CPACK_STRIP_FILES "bin/hexanode")
 set(CPACK_SECTION "net")
-
-INCLUDE(CPack)
+include(CPackTools)
 
 ### print some output for the user
 message("")

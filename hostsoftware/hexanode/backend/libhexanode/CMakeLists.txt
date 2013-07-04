@@ -18,6 +18,8 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
+  ${CPPNETLIB_INCLUDE_DIR}
+  ${HXB_INCLUDE_DIR}
 )
 
 file(GLOB all_hexanode_src 
