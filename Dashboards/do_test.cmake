@@ -175,12 +175,14 @@ endmacro()
 
 if( NOT CMAKE_TOOLCHAIN_FILE )
   set (EXTERNAL_SOFTWARE "$ENV{HOME}/external_software")
-  set_if_exists (BOOST_ROOT ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION}/${ADDITIONAL_SUFFIX})
+  set_if_exists (BOOST_ROOT ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION})
   set_if_exists (GRAPHVIZ_HOME ${EXTERNAL_SOFTWARE}/graphviz/2.24)
 else()
   message("=== Cross env Name: ${CrossName}")
   set_if_exists (EXTERNAL_SOFTWARE "${_baseDir}/opt")
   set_if_exists (BOOST_ROOT ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION})
+  set_if_exists (CPPNETLIB_HOME ${EXTERNAL_SOFTWARE}/usr)
+  set_if_exists (ALSA_HOME ${EXTERNAL_SOFTWARE}/cpp-netlib_boost/${BOOST_VERSION}/)
 endif()
 set_if_exists (LIBKLIO_HOME "${BUILD_TMP_DIR}/libklio/${TESTING_MODEL}/install-${CTEST_BUILD_NAME}")
 
@@ -270,6 +272,8 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
       LIBKLIO_HOME
       HXB_HOME
       HBC_HOME
+      CPPNETLIB_HOME 
+      ALSA_HOME 
 
       BOOST_ROOT
       GRAPHVIZ_HOME
