@@ -2,6 +2,9 @@
 # bernd.loerwald@itwm.fraunhofer.de
 # update by kai.krueger@itwm.fraunhofer.de
 
+include(Tools.cmake)
+FindOS(OS_NAME OS_VERSION)
+
 # cdash / ctest information ########################################################
 
 set(CTEST_PROJECT_NAME "hexabus")
@@ -13,7 +16,6 @@ set(CTEST_DROP_LOCATION   "/submit.php?project=${CTEST_PROJECT_NAME}")
 set(CTEST_DROP_SITE_CDASH TRUE)
 set(CTEST_USE_LAUNCHERS   0)
 set(CTEST_TEST_TIMEOUT   180)
-set(KDE_CTEST_DASHBOARD_DIR "/tmp/$ENV{USER}")
 
 set(CTEST_PACKAGE_SITE "packages.mysmartgrid.de")
 
@@ -63,7 +65,7 @@ if (NOT REPOSITORY_URL)
 endif ()
 
 if (NOT BUILD_TMP_DIR)
-  set (BUILD_TMP_DIR "/tmp")
+  set (BUILD_TMP_DIR "/tmp/$ENV{USER}")
 endif ()
 
 if (${COMPILER} STREQUAL "gcc")
@@ -105,7 +107,7 @@ endif()
 
 set (CTEST_BUILD_NAME "${CMAKE_SYSTEM_PROCESSOR}-${_compiler_str}${_boost_str}-${GIT_BRANCH}")
 
-set (CTEST_BASE_DIRECTORY   "${BUILD_TMP_DIR}/$ENV{USER}/${CTEST_PROJECT_NAME}/${TESTING_MODEL}")
+set (CTEST_BASE_DIRECTORY   "${BUILD_TMP_DIR}/${CTEST_PROJECT_NAME}/${TESTING_MODEL}")
 set (CTEST_SOURCE_DIRECTORY "${CTEST_BASE_DIRECTORY}/src-${GIT_BRANCH}" )
 set (CTEST_BINARY_DIRECTORY "${CTEST_BASE_DIRECTORY}/build-${CTEST_BUILD_NAME}")
 set (CTEST_INSTALL_DIRECTORY "${CTEST_BASE_DIRECTORY}/install-${CTEST_BUILD_NAME}")
@@ -134,6 +136,7 @@ foreach ( line ${_dummy})
   message("====>${line}<====${_currentDir}===${_item}")
   list(APPEND CTEST_PROJECT_SUBPROJECTS ${_item})
 endforeach()
+list(APPEND CTEST_PROJECT_SUBPROJECTS "hexanode")
 
 # create project.xml
 set(projectFile "${CTEST_BINARY_DIRECTORY}/Project.xml")
@@ -179,7 +182,7 @@ else()
   set_if_exists (EXTERNAL_SOFTWARE "${_baseDir}/opt")
   set_if_exists (BOOST_ROOT ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION})
 endif()
-set_if_exists (LIBKLIO_HOME "/tmp/$ENV{USER}/libklio/${TESTING_MODEL}/install-${CTEST_BUILD_NAME}")
+set_if_exists (LIBKLIO_HOME "${BUILD_TMP_DIR}/libklio/${TESTING_MODEL}/install-${CTEST_BUILD_NAME}")
 
 
 # cmake options ####################################################################
@@ -192,8 +195,8 @@ set (CTEST_CMAKE_GENERATOR "Unix Makefiles")
 
 if (NOT "${TESTING_MODEL}" STREQUAL "Continuous")
   file (REMOVE_RECURSE "${CTEST_INSTALL_DIRECTORY}")
-  ctest_empty_binary_directory ("${CTEST_BINARY_DIRECTORY}")
 endif()
+ctest_empty_binary_directory ("${CTEST_BINARY_DIRECTORY}")
 
 if (NOT EXISTS "${CTEST_BINARY_DIRECTORY}")
   file (MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}")
@@ -207,6 +210,9 @@ if (NOT EXISTS ${CTEST_SOURCE_DIRECTORY}/.git)
   set (first_checkout 1)
 else()
   set (first_checkout 0)
+endif()
+if(FORCE_CONTINUOUS)
+  set (first_checkout 1)
 endif()
 
 # do testing #######################################################################
@@ -234,6 +240,11 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
 
   set_if_exists (HBX_HOME ${CTEST_INSTALL_DIRECTORY})
   set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY})
+  if(${subproject} STREQUAL "hexanode")
+    set(CTEST_SUBPROJECT_SOURCE_DIR  ${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject}/backend )
+  else()
+    set(CTEST_SUBPROJECT_SOURCE_DIR  ${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject} )
+  endif()
 
   # write CMakeCache file here
   file (WRITE "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt"
@@ -277,11 +288,11 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
   endforeach()
 
   set(CONFIGURE_RETURN_VALUE 0)
-  if( EXISTS ${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject} )
+  if( EXISTS ${CTEST_SUBPROJECT_SOURCE_DIR} )
     file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}/${subproject}")
 
     ctest_configure (BUILD ${CTEST_BINARY_DIRECTORY}/${subproject} 
-      SOURCE ${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject} 
+      SOURCE ${CTEST_SUBPROJECT_SOURCE_DIR} 
       APPEND RETURN_VALUE CONFIGURE_RETURN_VALUE
       )
 
@@ -322,22 +333,23 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
     if(doSubmit)
       ctest_submit (RETURN_VALUE ${LAST_RETURN_VALUE})
     endif()
+
     # todo: create package, upload to distribution server
     # do the packing only if switch is on and
     if( (${UPDATE_RETURN_VALUE} GREATER 0 AND PROPERLY_BUILT_AND_INSTALLED) OR ${first_checkout})
-      include(${CTEST_BINARY_DIRECTORY}/CPackConfig.cmake)
+      include(${CTEST_BINARY_DIRECTORY}/${subproject}/CPackConfig.cmake)
       if( STAGING_DIR)
 	set(ENV{PATH}            ${OPENWRT_STAGING_DIR}/host/bin:$ENV{PATH})
       endif( STAGING_DIR)
       # do the packaging
       execute_process(
 	COMMAND cpack -G DEB
-	WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}
+	WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
 	)
       # install for other packages
       #execute_process(
       #  COMMAND make install
-      #  WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}
+      #  WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
       #  )
 
       # upload files
@@ -358,9 +370,11 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
 	if( NOT ${GIT_BRANCH} STREQUAL "master")
 	  set(_remote_dir "packages/${OS_NAME}/${OS_VERSION}/${CMAKE_SYSTEM_PROCESSOR}/${GIT_BRANCH}")
 	endif()
+	message("Execute: ssh ${_export_host} mkdir -p ${_remote_dir}")
 	execute_process(
 	  COMMAND ssh ${_export_host} mkdir -p ${_remote_dir}
 	  )
+	message("Execute scp -p ${_package_file} ${_export_host}:${_remote_dir}/${_package_file}")
 	execute_process(
 	  COMMAND scp -p ${_package_file} ${_export_host}:${_remote_dir}/${_package_file}
 	  WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}

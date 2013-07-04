@@ -2,10 +2,10 @@
 
 # generic support code, provides the kde_ctest_setup() macro, which sets up everything required:
 get_filename_component(_currentDir "${CMAKE_CURRENT_LIST_FILE}" PATH)
-include( "${_currentDir}/KDECTestNightly.cmake")
 
 macro(my_ctest_setup)
   set(_git_default_branch "development")
+  set(_arch "default")
 
   # init branch to checkout
   if( NOT _git_branch )
@@ -26,6 +26,17 @@ macro(my_ctest_setup)
       set(CMAKE_TOOLCHAIN_FILE "CMAKE_TOOLCHAIN_FILE-NO_FOUND")
     endif(${TARGET_ARCH} MATCHES "ar71xx")
   endif(NOT TARGET_ARCH)
+
+  # check if ToolChainFile is set
+  if ( _toolchain_file )
+    set(CMAKE_TOOLCHAIN_FILE ${_toolchain_file})
+    message("======>  toolchain")
+    message("Cross Compiling...${CMAKE_TOOLCHAIN_FILE}")
+    get_filename_component(_baseDir "${_toolchain_file}" PATH)
+    string(REGEX REPLACE ".*/" "" _toochain ${_baseDir})
+    message("Cross Compiling...${_toochain}")
+    string(REGEX REPLACE "(.*)-(.*)-(.*)-(.*)" "\\1" _arch ${_toochain})
+  endif ( _toolchain_file )
 
   # initialisation compiler
   if( NOT compiler )
@@ -53,9 +64,9 @@ macro(my_ctest_setup)
 
   # setup CTEST_BUILD_NAME
   if( ${_git_branch} STREQUAL ${_git_default_branch} )
-    set(CTEST_BUILD_NAME "${CTEST_BUILD_ARCH}-${COMPILER_ID}-default")
+    set(CTEST_BUILD_NAME "${CTEST_BUILD_ARCH}-${COMPILER_ID}-${_arch}")
   else( ${_git_branch} STREQUAL ${_git_default_branch} )
-    set(CTEST_BUILD_NAME "${CTEST_BUILD_ARCH}-${COMPILER_ID}-default-${_git_branch}")
+    set(CTEST_BUILD_NAME "${CTEST_BUILD_ARCH}-${COMPILER_ID}-${_arch}-${_git_branch}")
   endif( ${_git_branch} STREQUAL ${_git_default_branch} )
 
   set(_projectNameDir "${CTEST_PROJECT_NAME}")
@@ -112,7 +123,7 @@ function(FindOS OS_NAME OS_VERSION)
       if( ${releasefile} MATCHES "redhat-release" )
 	ReadRelease_redhat(${_data})# OS_NAME OS_VERSION)
       elseif( ${releasefile} MATCHES "SuSE-release" )
-	ReadRelease_SuSE(${_data})# OS_NAME OS_VERSION)
+	ReadRelease_SuSE(${_data} OS_NAME OS_VERSION)
       elseif( ${releasefile} MATCHES "lsb-release" )
 	ReadRelease_lsb(${_data})# OS_NAME OS_VERSION)
       endif( ${releasefile} MATCHES "redhat-release" )
