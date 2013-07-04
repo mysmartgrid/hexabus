@@ -11,6 +11,7 @@ include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR} 
   ${HXB_INCLUDE_DIR}
+  ${LIBKLIO_INCLUDE_DIR}
   ${Boost_INCLUDE_DIRS}
 )
 add_executable(hexa-display
@@ -22,9 +23,9 @@ add_executable(hexa-display
 # Link the executables
 target_link_libraries(hexa-display 
   hexadisplay
-  klio
   pthread
   ${Boost_LIBRARIES}
+  ${LIBKLIO_LIBRARY}
   ${SQLITE3_LIBRARIES}
   ${QT_LIBRARIES}
 )

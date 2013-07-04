@@ -27,6 +27,7 @@ include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
   ${HXB_INCLUDE_DIR}
+  ${LIBKLIO_INCLUDE_DIR}
 )
 
 ADD_LIBRARY(hexadisplay 
