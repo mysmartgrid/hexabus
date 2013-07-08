@@ -17,7 +17,7 @@ set(CTEST_DROP_SITE_CDASH TRUE)
 set(CTEST_USE_LAUNCHERS   0)
 set(CTEST_TEST_TIMEOUT   180)
 
-set(CTEST_PACKAGE_SITE "packages.mysmartgrid.de")
+set(CTEST_PACKAGE_SITE "msgrid@packages.mysmartgrid.de")
 
 site_name(CTEST_SITE)
 
@@ -360,12 +360,9 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
       execute_process(
 	COMMAND cpack -G DEB
 	WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
+	RESULT_VARIABLE COMMAND_ERRORS
 	)
-      # install for other packages
-      #execute_process(
-      #  COMMAND make install
-      #  WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
-      #  )
+      message("cpack returned: ${COMMAND_ERRORS}")
 
       # upload files
       if( ${CTEST_PUSH_PACKAGES})
@@ -393,7 +390,9 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
 	execute_process(
 	  COMMAND scp -p ${_package_file} ${_export_host}:${_remote_dir}/${_package_file}
 	  WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
+	  RESULT_VARIABLE COMMAND_ERRORS
 	  )
+	message("scp returned: ${COMMAND_ERRORS}")
       endif()
 
     endif()

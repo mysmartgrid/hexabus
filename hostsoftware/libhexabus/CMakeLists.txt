@@ -130,16 +130,9 @@ SET(CPACK_STRIP_FILES ON)
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
 
-set(CPACK_PACKAGE_EXECUTABLES "hexalog" "Send a switch command to the hexabus devices.")
-set(CPACK_PACKAGE_EXECUTABLES "hexapost" "Send a switch command to the hexabus devices.")
-set(CPACK_PACKAGE_EXECUTABLES "hexaswitch" "Send a switch command to the hexabus devices.")
-set(CPACK_PACKAGE_EXECUTABLES "hexaupload" "Send a switch command to the hexabus devices.")
-set(CPACK_GENERATOR "DEB;TBZ2")
 set(CPACK_SECTION "net")
-include(CPackTools)
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
-
-set(CPACK_SET_DESTDIR ON)
+include(CPackTools)
 
 ### print some output for the user
 message("")
