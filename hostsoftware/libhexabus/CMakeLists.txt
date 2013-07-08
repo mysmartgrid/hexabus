@@ -104,6 +104,7 @@ FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS test_exec_monitor program_options 
 # Reflect the package structure
 add_subdirectory(libhexabus)
 add_subdirectory(src)
+add_subdirectory(etc)
 add_subdirectory(tests)
 
 # enable unit testing
@@ -124,6 +125,8 @@ set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
+SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch;Hexabus node interrogation utility" "hexalog;Hexabus logging utility" "hexaupload;Hexabus statemachine upload utility")
+SET(CPACK_STRIP_FILES ON)
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
 
@@ -131,13 +134,12 @@ set(CPACK_PACKAGE_EXECUTABLES "hexalog" "Send a switch command to the hexabus de
 set(CPACK_PACKAGE_EXECUTABLES "hexapost" "Send a switch command to the hexabus devices.")
 set(CPACK_PACKAGE_EXECUTABLES "hexaswitch" "Send a switch command to the hexabus devices.")
 set(CPACK_PACKAGE_EXECUTABLES "hexaupload" "Send a switch command to the hexabus devices.")
-set(CPACK_SOURCE_STRIP_FILES "")
-set(CPACK_STRIP_FILES "bin/hexaswitch")
-set(CPACK_STRIP_FILES "bin/hexalog")
-set(CPACK_STRIP_FILES "bin/hexapost")
-set(CPACK_STRIP_FILES "bin/hexaupload")
+set(CPACK_GENERATOR "DEB;TBZ2")
 set(CPACK_SECTION "net")
 include(CPackTools)
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
+
+set(CPACK_SET_DESTDIR ON)
 
 ### print some output for the user
 message("")
@@ -150,7 +152,9 @@ message("  boost system lib: ${Boost_SYSTEM_LIBRARY}")
 message("  boost filesystem lib: ${Boost_FILESYSTEM_LIBRARY}")
 if( LIBKLIO_FOUND )
   message(" sqlite3 include: ${SQLITE3_INCLUDE_DIR}, lib: ${SQLITE3_LIBRARIES}")
+  message(" libklio include: ${LIBKLIO_INCLUDE_DIR}, lib: ${LIBKLIO_LIBRARIES}")
   message(" libklio include: ${LIBKLIO_INCLUDE_DIR}, lib: ${LIBKLIO_LIBRARY}")
+  message(" libklio include: ${LIBKLIO_INCLUDE_DIR}, lib: ${LIBKLIO_LIBRARIES}")
 endif( LIBKLIO_FOUND )
 message("  extended logging: ${ENABLE_LOGGING}")
 

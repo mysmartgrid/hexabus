@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -e
+
+if ! id hexalog >/dev/null 2>&1
+then
+	useradd -m -r hexalog
+	klio-store create ~hexalog/store.db
+fi
