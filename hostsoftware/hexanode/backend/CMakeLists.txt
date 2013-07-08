@@ -95,8 +95,12 @@ include(CMakeBackwardCompatibilityCXX)
 
 FIND_PACKAGE(OpenSSL REQUIRED)
 FIND_PACKAGE(CppNetlib REQUIRED)
-FIND_PACKAGE(LibHexabus REQUIRED)
+FIND_PACKAGE(LibHexabus)
 find_package(Alsa)
+
+if (NOT HXB_FOUND)
+  message(FATAL_ERROR "libhexabus ist required.")
+endif()
 #FIND_PACKAGE(RtMidi)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
