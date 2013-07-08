@@ -241,10 +241,9 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
   message("====>  build ${subproject}")
   set_property(GLOBAL PROPERTY SubProject ${subproject})
   set_property (GLOBAL PROPERTY Label ${subproject})
-  #set (CMAKE_INSTALL_PREFIX ${CTEST_INSTALL_DIRECTORY}/${subproject})
-  set (CMAKE_INSTALL_PREFIX ${CTEST_INSTALL_DIRECTORY})
+  set (CMAKE_INSTALL_PREFIX "/usr")
 
-  set_if_exists (HBX_HOME ${CTEST_INSTALL_DIRECTORY})
+  set_if_exists (HXB_HOME ${CTEST_INSTALL_DIRECTORY})
   set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY})
   if(${subproject} STREQUAL "hexanode")
     set(CTEST_SUBPROJECT_SOURCE_DIR  ${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject}/backend )
@@ -312,10 +311,18 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
     if (${CONFIGURE_RETURN_VALUE} EQUAL 0)
       ctest_build (BUILD ${CTEST_BINARY_DIRECTORY}/${subproject} 
 	APPEND  RETURN_VALUE BUILD_RETURN_VALUE
-	TARGET install NUMBER_ERRORS BUILD_ERRORS
+	NUMBER_ERRORS BUILD_ERRORS
 	)
 
-      if (${BUILD_ERRORS} EQUAL 0)
+      message("======> run Install:  <===")
+      execute_process(
+	COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX=${CTEST_INSTALL_DIRECTORY} -P cmake_install.cmake
+	WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject} 
+	RESULT_VARIABLE INSTALL_ERRORS
+	)
+      message("======> Install: ${INSTALL_ERRORS} <===")
+
+      if (${BUILD_ERRORS} EQUAL 0 AND ${INSTALL_ERRORS} EQUAL 0)
 	set (PROPERLY_BUILT_AND_INSTALLED TRUE)
       endif()
 
