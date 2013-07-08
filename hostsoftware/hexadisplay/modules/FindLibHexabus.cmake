@@ -60,7 +60,7 @@ IF( HXB_HOME )
   SET(_hxb_HOME ${HXB_HOME})
 ENDIF( HXB_HOME )
 
-message(${_hxb_INCLUDE_SEARCH_DIRS})
+#message("${_hxb_INCLUDE_SEARCH_DIRS}")
 
 
 find_path (HXB_INCLUDE_DIR libhexabus/common.hpp

@@ -27,6 +27,12 @@ set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_MODULE_PATH})
 
+if(CMAKE_TOOLCHAIN_FILE)
+  list(APPEND CMAKE_FIND_ROOT_PATH ${HXB_HOME})
+endif()
+
+include (UseCodeCoverage)
+
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wno-non-virtual-dtor -g -fomit-frame-pointer")
 
 set(CMAKE_CXX_FLAGS_EXPERIMENTAL "-O0 -g -ggdb -Wall -Werror -W -Wshadow")
@@ -47,7 +53,8 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_PROFILE} -Wno-non-virtual-dtor -p
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_PROFILE} -ftest-coverage")
 
 # Releases are made with the release build. Optimize code.
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wno-non-virtual-dtor -Werror")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wno-non-virtual-dtor")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Werror")
 
 # allways set these flags
 set(CMAKE_CXX_FLAGS "-Wall ")
@@ -55,8 +62,10 @@ set(CMAKE_CXX_FLAGS "-Wall ")
 # Check for some compiler stuff
 include(CMakeBackwardCompatibilityCXX)
 
+# find libklio
+find_package(Libklio)
 FIND_PACKAGE(Sqlite)
-FIND_PACKAGE(Hexabus)
+FIND_PACKAGE(LibHexabus)
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
 SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
@@ -85,34 +94,35 @@ INCLUDE_DIRECTORIES( ${CMAKE_BINARY_DIR} )
 add_subdirectory(libhexadisplay)
 add_subdirectory(src)
 
+# enable unit testing
+include(CTest)
+enable_testing()
+
 # add some files to the installation target
 INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexadisplay)
 
 # CPACK packaging
 INCLUDE(InstallRequiredSystemLibraries)
 SET(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
-SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Mathias Dalheimer")
-SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "hexadisplay")
 SET(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
-set(CPACK_PACKAGE_CONTACT "support@mysmartgrid.de")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "support@mysmartgrid.de")
+set(CPACK_PACKAGE_CONTACT "Fraunhofer ITWM <support@mysmartgrid.de>")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "hexadisplay")
 SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 SET(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 SET(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 SET(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
-SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
-SET(CPACK_PACKAGE_EXECUTABLES "hexadisplay" "Send a switch command to the
-hexabus devices.")
+
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
+
+SET(CPACK_PACKAGE_EXECUTABLES "hexadisplay" "Send a switch command to the hexabus devices.")
 SET(CPACK_SOURCE_STRIP_FILES "")
 SET(CPACK_STRIP_FILES "bin/hexadisplay")
 
 set(CPACK_SET_DESTDIR On)
 set(CPACK_SOURCE_STRIP_FILES "")
-set(CPACK_GENERATOR "DEB;TBZ2")
 set(CPACK_SECTION "net")
-
-INCLUDE(CPack)
+include(CPackTools)
 
 ### print some output for the user
 message("")

@@ -16,6 +16,7 @@ add_executable(hbcomp ${hbcomp_src})
 target_link_libraries(hbcomp 
   hbc
   ${Boost_LIBRARIES}
+  pthread
 )
 
 # add programs to the install target 

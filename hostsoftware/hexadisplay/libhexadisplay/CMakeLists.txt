@@ -22,10 +22,12 @@ QT4_ADD_RESOURCES(hexadisplay_rcc_resources ${hexadisplay_resources})
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR} 
   ${Boost_INCLUDE_DIRS}
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
   ${HXB_INCLUDE_DIR}
+  ${LIBKLIO_INCLUDE_DIR}
 )
 
 ADD_LIBRARY(hexadisplay 

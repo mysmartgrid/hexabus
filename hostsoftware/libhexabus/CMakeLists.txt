@@ -34,7 +34,13 @@ set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where m
 # path here, subsequent checks will resolve everything else
 set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_MODULE_PATH})
+
+if(CMAKE_TOOLCHAIN_FILE)
+  list(APPEND CMAKE_FIND_ROOT_PATH ${LIBKLIO_HOME})
+endif()
+
+include (UseCodeCoverage)
 
 # Detect the system we're compiling on
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -70,7 +76,11 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_PROFILE} -Wno-non-virtual-dtor -p
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_PROFILE} -ftest-coverage")
 
 # Releases are made with the release build. Optimize code.
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wno-non-virtual-dtor -Werror")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wno-non-virtual-dtor")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-unused-but-set-variable")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-delete-non-virtual-dtor")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Werror")
 
 # allways set these flags
 set(CMAKE_CXX_FLAGS "-Wall ")
@@ -97,33 +107,32 @@ add_subdirectory(src)
 add_subdirectory(etc)
 add_subdirectory(tests)
 
+# enable unit testing
+include(CTest)
+enable_testing()
+
 # add some files to the installation target
 INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
 
 # CPACK packaging
-INCLUDE(InstallRequiredSystemLibraries)
-SET(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
-SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Mathias Dalheimer")
-SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "hexaswitch")
-SET(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
-set(CPACK_PACKAGE_CONTACT "support@mysmartgrid.de")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "support@mysmartgrid.de")
-SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
-SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
-SET(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
-SET(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
-SET(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
-SET(CPACK_PACKAGE_INSTALL_DIRECTORY "CMake ${CMake_VERSION_MAJOR}.${CMake_VERSION_MINOR}")
+include(InstallRequiredSystemLibraries)
+set(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
+set(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
+set(CPACK_PACKAGE_CONTACT "Fraunhofer ITWM <support@mysmartgrid.de>")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "libhexabus")
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
+set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch;Hexabus node interrogation utility" "hexalog;Hexabus logging utility" "hexaupload;Hexabus statemachine upload utility")
 SET(CPACK_STRIP_FILES ON)
 
-set(CPACK_GENERATOR "DEB;TBZ2")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
+
 set(CPACK_SECTION "net")
-
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
-
-set(CPACK_SET_DESTDIR ON)
-INCLUDE(CPack)
+include(CPackTools)
 
 ### print some output for the user
 message("")
@@ -136,6 +145,8 @@ message("  boost system lib: ${Boost_SYSTEM_LIBRARY}")
 message("  boost filesystem lib: ${Boost_FILESYSTEM_LIBRARY}")
 if( LIBKLIO_FOUND )
   message(" sqlite3 include: ${SQLITE3_INCLUDE_DIR}, lib: ${SQLITE3_LIBRARIES}")
+  message(" libklio include: ${LIBKLIO_INCLUDE_DIR}, lib: ${LIBKLIO_LIBRARIES}")
+  message(" libklio include: ${LIBKLIO_INCLUDE_DIR}, lib: ${LIBKLIO_LIBRARY}")
   message(" libklio include: ${LIBKLIO_INCLUDE_DIR}, lib: ${LIBKLIO_LIBRARIES}")
 endif( LIBKLIO_FOUND )
 message("  extended logging: ${ENABLE_LOGGING}")
