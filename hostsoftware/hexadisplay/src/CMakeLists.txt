@@ -24,8 +24,8 @@ add_executable(hexa-display
 target_link_libraries(hexa-display 
   hexadisplay
   pthread
-  ${Boost_LIBRARIES}
   ${LIBKLIO_LIBRARY}
+  ${Boost_LIBRARIES}
   ${SQLITE3_LIBRARIES}
   ${QT_LIBRARIES}
 )
