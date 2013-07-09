@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# export https_proxy=http://squid.itwm.fhg.de:3128/
+
+export LANG=en_US.UTF-8
+export CTEST="/usr/bin/ctest"
+
+echo "Running ctest"
+
+dir=${HOME}/hexabus/Dashboards
+TEST_SCRIPT="${dir}/do_test.cmake,TESTING_MODEL=Continuous"
+TOOLCHAIN_AVR="/usr/local/OpenWrt-SDK-ar71xx-for-Linux-x86_64-gcc-4.3.3+cs_uClibc-0.9.30.1/staging_dir/host/Modules/Toolchain-OpenWRT.cmake"
+
+# compiliere alle xx-dev branches
+allBranches=`git branch -a | grep remotes | sed -e 's%remotes/origin/%%' | grep '.*[-_]dev$' `
+for branch in ${allBranches}
+do
+  ${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,GIT_BRANCH=${branch}
+
+  for toolchain in `find ${HOME}/x-tools/ -name Toolchain-RaspberryPi.cmake`
+  do
+     echo "Compiling with toolchain ${toolchain}"
+     ${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,GIT_BRANCH=${branch},BOOST_VERSION=1.49,CMAKE_TOOLCHAIN_FILE=${toolchain},FORCE_CONTINUOUS=1
+     ${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,GIT_BRANCH=${branch},BOOST_VERSION=1.53,CMAKE_TOOLCHAIN_FILE=${toolchain},FORCE_CONTINUOUS=1
+  done
+done

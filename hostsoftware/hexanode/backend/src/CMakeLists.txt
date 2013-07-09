@@ -15,6 +15,8 @@ include_directories(
   ${CMAKE_BINARY_DIR}/libhexanode
   ${Boost_INCLUDE_DIRS}
   ${RTMIDI_INCLUDE_DIR}
+  ${CPPNETLIB_INCLUDE_DIR}
+  ${HXB_INCLUDE_DIR}
 )
 #link_directories(
 #  #  ${SQLITE3_STATIC_LIBRARY_DIRS}
