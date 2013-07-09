@@ -5,7 +5,7 @@
 #include <libklio/store.hpp>
 #include <libklio/store-factory.hpp>
 #include <libklio/sensor.hpp>
-#include <libklio/sensorfactory.hpp>
+#include <libklio/sensor-factory.hpp>
 #include <libklio/sensor.hpp>
 #include <libklio/time.hpp>
 #include <QString>

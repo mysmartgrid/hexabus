@@ -47,29 +47,29 @@ if(LIBKLIO_FOUND)
   add_executable(hexalog ${hexalog_src})
   target_link_libraries(hexalog
     hexabus
+    ${LIBKLIO_LIBRARY}
     ${Boost_LIBRARIES}
     ${Boost_SYSTEM_LIBRARY}
     ${JSON_LIBRARY}
-    ${LIBKLIO_LIBRARY}
     ${CURL_LIBRARIES}
     ${SQLITE3_LIBRARIES}
     ${GNUTLS_LIBRARIES}
     pthread
-#    ${OPENSSL_CRYPTO_LIBRARY}
+    ${OPENSSL_CRYPTO_LIBRARY}
 #    gcrypt
   )
 
   add_executable(hexapost ${hexapost_src})
   target_link_libraries(hexapost
     hexabus
+    ${LIBKLIO_LIBRARY}
     ${Boost_LIBRARIES}
     ${Boost_SYSTEM_LIBRARY}
     ${JSON_LIBRARY}
-    ${LIBKLIO_LIBRARY}
     ${CURL_LIBRARIES}
     ${SQLITE3_LIBRARIES}
     ${GNUTLS_LIBRARIES}
-    #${OPENSSL_CRYPTO_LIBRARY}
+    ${OPENSSL_CRYPTO_LIBRARY}
     pthread
   )
 

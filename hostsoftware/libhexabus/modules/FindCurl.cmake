@@ -97,9 +97,16 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
   endif(WIN32)
 
   if( PC_CURL_STATIC_LIBRARIES )
+    set(_CURL_LIBRARIES "")
     foreach(lib ${PC_CURL_STATIC_LIBRARIES})
       string(TOUPPER ${lib} _NAME_UPPER)
 
+      if ( ${lib} STREQUAL "ldap" )
+        find_package(Ldap)
+        if(NOT ${LDAP_LIBRARY} STREQUAL "LDAP_LIBRARY-NOTFOUND")
+          set(_CURL_LIBRARIES ${_CURL_LIBRARIES} ${LDAP_LIBRARY})
+        endif()
+      endif()
       find_library(CURL_${_NAME_UPPER}_LIBRARY NAMES "lib${lib}.a"
 	HINTS
 	${_curl_LIBRARIES_SEARCH_DIRS}
@@ -108,7 +115,6 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
 	)
       #list(APPEND CURL_LIBRARIES ${_dummy})
     endforeach()
-    set(_CURL_LIBRARIES "")
     foreach(lib ${PC_CURL_STATIC_LIBRARIES})
       string(TOUPPER ${lib} _NAME_UPPER)
       if( NOT ${CURL_${_NAME_UPPER}_LIBRARY} STREQUAL "CURL_${_NAME_UPPER}_LIBRARY-NOTFOUND" )

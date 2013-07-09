@@ -60,6 +60,7 @@ include(CMakeBackwardCompatibilityCXX)
 
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
+set(Boost_USE_STATIC_LIBS ON)
 FIND_PACKAGE(Boost 1.46.1 COMPONENTS program_options filesystem system)
 
 # Reflect the package structure
