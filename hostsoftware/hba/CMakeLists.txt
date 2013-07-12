@@ -52,6 +52,10 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Werror")
 
 # allways set these flags
 set(CMAKE_CXX_FLAGS "-Wall ")
+# disable ipa-sra, as this breaks binaries on raspberry
+if(CMAKE_COMPILER_IS_GNUCXX)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-ipa-sra")
+endif()
 
 # Check for some compiler stuff
 include(CMakeBackwardCompatibilityCXX)
