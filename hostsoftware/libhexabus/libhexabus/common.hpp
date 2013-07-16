@@ -37,6 +37,9 @@
 
 #ifdef ENABLE_LOGGING
 #include <iostream>
+#ifdef LOG
+# undef LOG
+#endif
 #define LOG(msg) std::cout << msg << std::endl;
 #else
 #define LOG(msg)

@@ -96,14 +96,35 @@ include(CMakeBackwardCompatibilityCXX)
 find_package(Libklio)
 if( LIBKLIO_FOUND )
   FIND_PACKAGE(Sqlite)
+  FIND_PACKAGE(OpenSSL REQUIRED)
+  FIND_PACKAGE(Gnutls REQUIRED)
+  add_definitions ("-DBOOST_FILESYSTEM_VERSION=3")
 endif( LIBKLIO_FOUND )
 
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
 SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
   "1.49.0" "1.49" "1.50.0" "1.50")
+set(Boost_USE_STATIC_LIBS ON)
 SET(Boost_DETAILED_FAILURE_MSG true)
 FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS test_exec_monitor program_options filesystem system date_time thread)
+
+# libjson
+include(FindJson)
+if( NOT JSON_FOUND)
+  message(FATAL_ERROR "libjson ist required. Install json or call cmake -DJSON_HOME=path_to_json_install")
+endif( NOT JSON_FOUND)
+include_directories(${JSON_INCLUDE_DIR})
+
+# check for curl
+IF(WIN32)
+  add_definitions(-DCURL_STATICLIB)
+  include(FindCURL_WIN32)
+else(WIN32)
+  # add_definitions(-DCURL_STATICLIB)
+  include(FindCurl)
+  include(FindGnutls)
+endif(WIN32)
 
 # Reflect the package structure
 add_subdirectory(libhexabus)
@@ -150,6 +171,8 @@ message("  boost filesystem lib: ${Boost_FILESYSTEM_LIBRARY}")
 if( LIBKLIO_FOUND )
   message(" sqlite3 include: ${SQLITE3_INCLUDE_DIR}, lib: ${SQLITE3_LIBRARIES}")
   message(" libklio include: ${LIBKLIO_INCLUDE_DIR}, lib: ${LIBKLIO_LIBRARY}")
+  message(" curl    include: ${CURL_INCLUDE_DIR}, lib: ${CURL_LIBRARIES}")
+  message(" gnutls  include: ${GNUTLS_INCLUDE_DIR}, lib: ${GNUTLS_LIBRARIES}")
 endif( LIBKLIO_FOUND )
 message("  extended logging: ${ENABLE_LOGGING}")
 
