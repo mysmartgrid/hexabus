@@ -96,11 +96,7 @@ protected:
             std::cout << sensor_name << "   " << now << "   " <<
                     "reading: " << reading << " " << unit << std::endl;
 
-            //TODO: support other units
-            if (unit.compare("kWh") == 0) {
-
-                store->add_reading(sensor, now, reading);
-            }
+            store->add_reading(sensor, now, reading);
 
         } catch (klio::StoreException const& ex) {
             std::cout << "Failed to record reading: " << ex.what() << std::endl;
