@@ -46,8 +46,6 @@ protected:
     klio::TimeConverter::Ptr tc;
     klio::SensorFactory::Ptr sensor_factory;
     std::string timezone;
-    std::map<std::string, time_t> previous_timestamps;
-    std::map<std::string, float> previous_readings;
 
     const char* eidToUnit(uint32_t eid) {
         switch (eid) {
@@ -95,14 +93,13 @@ protected:
                         now << "   created" << std::endl;
             }
 
-            if (reading > 0) {
+            std::cout << sensor_name << "   " << now << "   " <<
+                    "reading: " << reading << " " << unit << std::endl;
 
-                std::cout << sensor_name << "   " << now << "   " <<
-                        "reading: " << reading << " " << unit << std::endl;
+            //TODO: support other units
+            if (unit.compare("kWh") == 0) {
 
-                if (unit.compare("kWh") == 0) {
-                    post_kwh_reading(sensor, now, reading);
-                }
+                store->add_reading(sensor, now, reading);
             }
 
         } catch (klio::StoreException const& ex) {
@@ -114,58 +111,6 @@ protected:
     }
 
 private:
-
-    virtual void post_kwh_reading(klio::Sensor::Ptr sensor, time_t now, float reading) {
-
-        //TODO: When the mSG API is able to accept float values, make this function simply POST the reading
-
-        //Convert reading to watt-hour
-        reading *= 1000;
-
-        float previous_reading = previous_readings[sensor->name()];
-
-        //If not the first reading
-        if (previous_reading > 0 && reading > previous_reading) {
-
-            float consumed = reading - previous_reading;
-
-            //At least 1 watt-hour has been consumed since last posting
-            if (consumed >= 1) {
-
-                time_t previous_timestamp = previous_timestamps[sensor->name()];
-
-                //Most recent integer reading
-                long integer_reading = (long) previous_reading + (long) consumed;
-
-                //Estimated timestamp of the integer reading
-                time_t timestamp = previous_timestamp +
-
-                        //elapsed time
-                        (long) ((now - previous_timestamp) *
-
-                        //time fraction
-                        ((integer_reading - previous_reading) / consumed));
-
-                //Post measurement to MSG
-                post_reading(sensor, timestamp, integer_reading);
-            }
-
-        } else {
-            previous_timestamps[sensor->name()] = now;
-            previous_readings[sensor->name()] = reading;
-        }
-    }
-
-    virtual void post_reading(klio::Sensor::Ptr sensor, time_t timestamp, long reading) {
-
-        std::cout << std::string(43, ' ') << "posting: [" <<
-                timestamp << ": " << reading << "]" << std::endl;
-
-        store->add_reading(sensor, timestamp, reading);
-
-        previous_timestamps[sensor->name()] = timestamp;
-        previous_readings[sensor->name()] = reading;
-    }
 
     virtual void visit(const hexabus::ErrorPacket & error) {
         rejectPacket();
