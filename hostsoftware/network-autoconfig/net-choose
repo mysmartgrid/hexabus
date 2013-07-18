@@ -1,8 +1,8 @@
 #!/bin/sh -e
 ### BEGIN INIT INFO
 # Provides:          net-choose
-# Required-Start:    $network radvd mrd6
-# Required-Stop:     
+# Required-Start:    $network $remote_fs radvd mrd6
+# Required-Stop:     $remote_fs
 # Should-Start:      
 # Should-Stop:       
 # Default-Start:     2 3 4 5
