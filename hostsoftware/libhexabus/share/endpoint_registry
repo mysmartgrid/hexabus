@@ -1,0 +1,248 @@
+; This file contains a registry of endpoints.
+;
+; The registry constists of any number of eid descriptors, where every eid descriptor is of the format
+;
+; eid <eid#> {
+;   type <type>
+;   description "<description>"
+;   unit "<unit>"                 ; optional
+;   access <access>
+; }
+;
+; where:
+;  * <eid#> is any valid EID number
+;  * <description> is some string
+;  * <unit> is some string
+;  * <access> is one of
+;     * R - read-only
+;     * W - write-only
+;     * RW - read-write
+;  * <type> is one of
+;     * BOOL
+;     * UINT8
+;     * UINT32
+;     * DATETIME
+;     * FLOAT
+;     * 128STRING
+;     * TIMESTAMP
+;     * 66BYTES
+;     * 16BYTES
+
+
+eid 1 {
+	type BOOL
+	description "HexabusPlug relay"
+	access RW
+}
+
+eid 2 {
+	type UINT32
+	description "HexabusPlug+ power meter"
+	unit "W"
+	access R
+}
+
+eid 3 {
+	type FLOAT
+	description "Temperature sensor"
+	unit "°C"
+	access R
+}
+
+eid 4 {
+	type BOOL
+	description "internal Button (on board / plug)"
+	access R
+}
+
+eid 5 {
+	type FLOAT
+	description "Humidity sensor"
+	unit "%r.h."
+	access R
+}
+
+eid 6 {
+	type FLOAT
+	description "Barometric pressure sensor"
+	unit "hPa"
+	access R
+}
+
+eid 7 {
+	type FLOAT
+	description "HexabusPlug+ energy meter total"
+	unit "kWh"
+	access R
+}
+
+eid 8 {
+	type FLOAT
+	description "HexabusPlug+ energy meter user resettable"
+	unit "kWh"
+	access RW
+}
+
+eid 9 {
+	type UINT8
+	description "Statemachine control"
+	access RW
+}
+
+eid 10 {
+	type 66BYTES
+	description "Statemachine upload receiver"
+	access W
+}
+
+eid 11 {
+	type BOOL
+	description "Statemachine upload ack/nack"
+	access R
+}
+
+eid 12 {
+	type 16BYTES
+	description "Statemachine emergency reset ID"
+	access R
+}
+
+eid 20 {
+	type UINT8
+	description "LED / Hexagl0w Color"
+	access RW
+}
+
+eid 21 {
+	type 66BYTES
+	description "Power meter [Flukso]"
+	unit "W"
+	access R
+}
+
+eid 22 {
+	type FLOAT
+	description "Analogread"
+	access R
+}
+
+eid 23 {
+	type UINT8
+	description "Window shutter"
+	access RW
+}
+
+eid 24 {
+	type UINT8
+	description "Hexapush pressed buttons"
+	access R
+}
+
+eid 25 {
+	type UINT8
+	description "Hexapush clicked buttons"
+	access R
+}
+
+eid 26 {
+	type UINT8
+	description "Presence detector"
+	access RW
+}
+
+eid 27 {
+	type UINT8
+	description "Hexonoff set"
+	access RW
+}
+
+eid 28 {
+	type UINT8
+	description "Hexonoff toggle"
+	access RW
+}
+
+eid 29 {
+	type FLOAT
+	description "Lightsensor"
+	access R
+}
+
+eid 30 {
+	type UINT32
+	description "IR Receiver"
+	access R
+}
+
+eid 31 {
+	type BOOL
+	description "Node liveness"
+	access R
+}
+
+eid 33 {
+	type UINT8
+	description "Generic dial gauge #0"
+	access R
+}
+
+eid 34 {
+	type UINT8
+	description "Generic dial gauge #1"
+	access R
+}
+
+eid 35 {
+	type UINT8
+	description "Generic dial gauge #2"
+	access R
+}
+
+eid 36 {
+	type UINT8
+	description "Generic dial gauge #3"
+	access R
+}
+
+eid 37 {
+	type UINT8
+	description "Generic dial gauge #4"
+	access R
+}
+
+eid 38 {
+	type UINT8
+	description "Generic dial gauge #5"
+	access R
+}
+
+eid 39 {
+	type UINT8
+	description "Generic dial gauge #6"
+	access R
+}
+
+eid 40 {
+	type UINT8
+	description "Generic dial gauge #7"
+	access R
+}
+
+eid 41 {
+	type UINT32
+	description "PV power production measurement"
+	access R
+}
+
+eid 42 {
+	type FLOAT
+	description "Power balance (Production - Consumption)"
+	access R
+}
+
+eid 43 {
+	type FLOAT
+	description "Battery power balance (in - out)"
+	access R
+}
+

@@ -138,6 +138,7 @@ enable_testing()
 
 # add some files to the installation target
 INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
+INSTALL(FILES share/endpoint_registry DESTINATION share/libhexabus)
 
 # CPACK packaging
 include(InstallRequiredSystemLibraries)
