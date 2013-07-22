@@ -21,6 +21,7 @@
 #ifndef LIBKLIO_ERROR_HPP
 #define LIBKLIO_ERROR_HPP 1
 
+#include <libhexanode/common.hpp>
 #include <string>
 #include <exception>
 
