@@ -99,7 +99,11 @@ include(CMakeBackwardCompatibilityCXX)
 
 FIND_PACKAGE(OpenSSL REQUIRED)
 FIND_PACKAGE(CppNetlib REQUIRED)
-FIND_PACKAGE(LibHexabus)
+FIND_PACKAGE(LibHexabus REQUIRED)
+FIND_PACKAGE(Libklio REQUIRED)
+include(FindJson)
+include(FindCurl)
+FIND_PACKAGE(Gnutls REQUIRED)
 find_package(Alsa)
 
 if (NOT HXB_FOUND)

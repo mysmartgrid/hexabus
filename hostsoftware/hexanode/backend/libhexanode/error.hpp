@@ -18,8 +18,8 @@
  *
  */
 
-#ifndef LIBKLIO_ERROR_HPP
-#define LIBKLIO_ERROR_HPP 1
+#ifndef LIBHEXANODE_ERROR_HPP
+#define LIBHEXANODE_ERROR_HPP 1
 
 #include <libhexanode/common.hpp>
 #include <string>
