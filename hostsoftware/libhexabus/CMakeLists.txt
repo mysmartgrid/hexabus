@@ -156,7 +156,6 @@ SET(CPACK_STRIP_FILES ON)
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
 
 set(CPACK_SECTION "net")
-set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
 include(CPackTools)
 
 ### print some output for the user
