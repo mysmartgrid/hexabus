@@ -5,6 +5,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 #include <libklio/store.hpp>
 #include <libklio/store-factory.hpp>
@@ -130,7 +132,7 @@ struct ReadingLogger : private hexabus::PacketVisitor {
 		{
 		}
 
-		void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint & from)
+		void onPacket(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint & from)
 		{
 			source = from.address().to_v6();
 			visitPacket(packet);
@@ -208,7 +210,7 @@ enum ErrorCode {
 int main(int argc, char** argv)
 {
 	std::ostringstream oss;
-	oss << "Usage: " << argv[0] << " -I<interface> [-d<device id> -k<device key [-u<store url>]]>]";
+	oss << "Usage: " << argv[0] << " -c <configuration file> { -L <interface> | -C [url] | -H }";
 	po::options_description desc(oss.str());
 
 	desc.add_options()
@@ -216,15 +218,14 @@ int main(int argc, char** argv)
 		("version,v", "print version info and exit")
 		("config,c", po::value<std::string>(), "path to bridge configuration file (will be created if not present)")
 		("timezone,t", po::value<std::string>(), "the timezone to use for new sensors")
-		("interface,I", po::value<std::string>(), "interface to listen on");
-
-	po::positional_options_description p;
-	p.add("interface", 1);
+		("listen,L", po::value<std::string>(), "listen on interface and post measurements to mySmartGrid")
+		("create,C", po::value<std::string>()->implicit_value(""), "create a configuration and register the device to mySmartGrid")
+		("heartbeat,H", "perform heartbeat and possibly firmware upgrade");
 
 	po::variables_map vm;
 	try {
 		po::store(po::command_line_parser(argc, argv).
-				options(desc).positional(p).run(), vm);
+				options(desc).run(), vm);
 		po::notify(vm);
 
 	} catch (const std::exception& e) {
@@ -250,86 +251,99 @@ int main(int argc, char** argv)
 		return ERR_PARAMETER_MISSING;
 	}
 
-	if (!vm.count("interface")) {
-		std::cerr << "You must specify an interface to listen on." << std::endl;
-		return ERR_PARAMETER_MISSING;
-	}
+
 
 	klio::StoreFactory store_factory;
 	klio::MSGStore::Ptr store;
-	bool newly_created_store = false;
 
 	std::string config = vm["config"].as<std::string>();
-	try {
-		if (!exists(boost::filesystem::path(config))) {
-			store = store_factory.create_msg_store();
+	if (vm.count("create")) {
+		boost::uuids::random_generator new_uuid;
 
-			BridgeConfiguration store_config(
-					store->url(),
-					store->id(),
-					store->key());
-			save_config(config, store_config);
-			newly_created_store = true;
+		if (vm["create"].as<std::string>() != "") {
+			store = store_factory.create_msg_store(
+					vm["create"].as<std::string>(),
+					to_string(new_uuid()),
+					to_string(new_uuid()));
 		} else {
-			BridgeConfiguration store_config = load_config(config);
-
-			store = store_factory.create_msg_store(store_config.url(), store_config.device_id(), store_config.device_key());
+			store = store_factory.create_msg_store();
 		}
-	} catch (std::exception& e) {
-		std::cerr << "Could not initialize MSG store: " << e.what() << std::endl;
-		return ERR_KLIO;
-	}
-
-	std::string timezone;
-	if (!vm.count("timezone")) {
-		// TODO: timezone from locale?
-		timezone = "Europe/Berlin";
-		std::cerr << "Using default timezone " << timezone
-			<< ", change with -t <NEW_TIMEZONE>" << std::endl;
-	} else {
-		timezone = vm["timezone"].as<std::string>();
-	}
-
-	std::string interface(vm["interface"].as<std::string>());
-	boost::asio::io_service io;
-
-	try {
 		store->initialize();
 
-		if (newly_created_store) {
-			std::cout << "Opened store: " << store->str() << std::endl <<
-				std::endl <<
-				"Please visit http://www.mysmartgrid.de/device/mylist and " <<
-				"enter the activation code " << store->activation_code() <<
-				" to link this store to your account." << std::endl <<
-				std::endl;
+		BridgeConfiguration store_config(
+				store->url(),
+				store->id(),
+				store->key());
+		save_config(config, store_config);
+
+		std::cout << "Opened store: " << store->str() << std::endl <<
+			std::endl <<
+			"Please visit http://www.mysmartgrid.de/device/mylist and " <<
+			"enter the activation code " << store->activation_code() <<
+			" to link this store to your account." << std::endl <<
+			std::endl;
+
+		return ERR_NONE;
+	} else {
+		try {
+			if (!exists(boost::filesystem::path(config))) {
+				std::cerr << "Configuration file not found" << std::endl;
+				return ERR_PARAMETER_VALUE_INVALID;
+			} else {
+				BridgeConfiguration store_config = load_config(config);
+
+				store = store_factory.create_msg_store(store_config.url(), store_config.device_id(), store_config.device_key());
+			}
+		} catch (std::exception& e) {
+			std::cerr << "Could not initialize MSG store: " << e.what() << std::endl;
+			return ERR_KLIO;
 		}
 
-		std::cout << std::endl <<
-			"Sensor                        Timestamp    Event" << std::endl <<
-			std::string(70, '-') << std::endl;
+		if (vm.count("listen")) {
+			std::string timezone;
+			if (!vm.count("timezone")) {
+				// TODO: timezone from locale?
+				timezone = "Europe/Berlin";
+				std::cerr << "Using default timezone " << timezone
+					<< ", change with -t <NEW_TIMEZONE>" << std::endl;
+			} else {
+				timezone = vm["timezone"].as<std::string>();
+			}
 
-		klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
-		klio::TimeConverter::Ptr tc(new klio::TimeConverter());
+			try {
+				store->initialize();
 
-		hexabus::Socket socket(io, interface);
-		socket.listen(boost::asio::ip::address_v6::any());
+				std::cout << std::endl <<
+					"Sensor                        Timestamp    Event" << std::endl <<
+					std::string(70, '-') << std::endl;
 
-		ReadingLogger logger(socket, store, tc, sensor_factory, timezone);
+				klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
+				klio::TimeConverter::Ptr tc(new klio::TimeConverter());
 
-		socket.onPacketReceived(boost::bind(&ReadingLogger::operator(), &logger, _1, _2));
+				boost::asio::io_service io;
+				hexabus::Socket socket(io, vm["listen"].as<std::string>());
+				socket.listen(boost::asio::ip::address_v6::any());
 
-		io.run();
-	} catch (const hexabus::NetworkException& e) {
-		std::cerr << "Network error: " << e.code().message() << std::endl;
-		return ERR_NETWORK;
-	} catch (const klio::GenericException& e) {
-		std::cerr << "Klio error: " << e.reason() << std::endl;
-		return ERR_KLIO;
-	} catch (const std::exception& e) {
-		std::cerr << "Error: " << e.what() << std::endl;
-		return ERR_OTHER;
+				ReadingLogger logger(socket, store, tc, sensor_factory, timezone);
+
+				socket.onPacketReceived(boost::bind(&ReadingLogger::onPacket, &logger, _1, _2));
+
+				io.run();
+			} catch (const hexabus::NetworkException& e) {
+				std::cerr << "Network error: " << e.code().message() << std::endl;
+				return ERR_NETWORK;
+			} catch (const klio::GenericException& e) {
+				std::cerr << "Klio error: " << e.reason() << std::endl;
+				return ERR_KLIO;
+			} catch (const std::exception& e) {
+				std::cerr << "Error: " << e.what() << std::endl;
+				return ERR_OTHER;
+			}
+		} else if (vm.count("heartbeat")) {
+			// TODO
+		} else {
+			std::cerr << "You must specify which action I should take" << std::endl;
+			return ERR_PARAMETER_MISSING;
+		}
 	}
-
-	return ERR_NONE;
 }
