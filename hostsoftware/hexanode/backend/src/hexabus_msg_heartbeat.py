@@ -62,6 +62,26 @@ def download_upgrade_package(target):
 	target.write(content)
 	target.flush()
 
+def perform_upgrade():
+	with tempfile.NamedTemporaryFile(prefix="update_", suffix=".sh") as target_file:
+		download_upgrade_package(target_file)
+		success = subprocess.call(["/bin/sh", target_file.name]) == 0
+		if success:
+			http_request("POST", api_url + "/event/105", { 'device': device_id })
+		else:
+			http_request("POST", api_url + "/event/106", { 'device': device_id })
+
+def perform_service(config):
+	print(config)
+	with tempfile.NamedTemporaryFile(prefix="device_key_") as device_key:
+		device_key.write(base64.decodebyte(bytes(config.devicekey, "ascii")))
+		device_key.flush()
+		with open("/root/.ssh/authorized_keys", "a") as authorized_keys:
+			authorized_keys.write(config.techkey)
+		with open("/root/.ssh/known_hosts", "a") as known_hosts:
+			known_hosts.write(config.hostkey)
+		subprocess.call(["ssh", "-i", device_key.name, "-p", config["port"], "-u", config["user"], "-L", config["tunnelport"] + ":localhost:22", config["host"]])
+
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--url")
@@ -76,14 +96,10 @@ if __name__ == "__main__":
 	api_url = args.url
 	try:
 		status = perform_heartbeat()
-#		if status["upgrade"] != 0:
-		with tempfile.NamedTemporaryFile(prefix="update_", suffix=".sh") as target_file:
-			download_upgrade_package(target_file)
-			success = subprocess.call(["/bin/sh", target_file.name]) == 0
-			if success:
-				http_request("POST", api_url + "/event/105", { 'device': device_id })
-			else:
-				http_request("POST", api_url + "/event/106", { 'device': device_id })
+		if status["upgrade"] != 0:
+			perform_upgrade()
+		if "support" in status != None:
+			print(1)
 
 	except Exception as e:
 		print("Heartbeat failed:")
