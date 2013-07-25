@@ -49,9 +49,10 @@ protected:
 
     const char* eidToUnit(uint32_t eid) {
         switch (eid) {
+            case 3:
+                return "C";
             case 7:
                 return "kWh";
-                //TODO: support other units
             default:
                 return "unknown";
         }
