@@ -31,12 +31,12 @@ def http_request(method, url, body):
 	context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
 	context.verify_mode = ssl.CERT_NONE
 	client = http.client.HTTPSConnection(url_parts.hostname, url_parts.port, context=context)
-	client.set_debuglevel(1)
 	client.request(method, url_parts.path, message, {
 		'X-Digest': signature,
 		'X-Version': '1.0',
-		'Accept': 'application/json',
-		'Content-Type': 'application/json'
+		'Accept': 'application/json,text/html',
+		'Content-Type': 'application/json',
+		'User-Agent': 'hexabus_msg_heartbeat'
 	})
 	response = client.getresponse()
 	if response.status != 200:
@@ -57,8 +57,8 @@ def perform_heartbeat():
 	return http_request("POST", api_url + "/device/" + device_id, message)
 
 def download_upgrade_package(target):
-#	content = base64.decodebytes(http_request("GET", api_url + "/firmware/" + device_id, {}))
-	content = b'#!/bin/sh\n\ndate\n'
+	content = base64.decodebytes(bytes(http_request("GET", api_url + "/firmware/" + device_id, {})["data"], 'ascii'))
+	print(content)
 	target.write(content)
 	target.flush()
 
@@ -71,16 +71,23 @@ def perform_upgrade():
 		else:
 			http_request("POST", api_url + "/event/106", { 'device': device_id })
 
-def perform_service(config):
-	print(config)
+def perform_support(config):
 	with tempfile.NamedTemporaryFile(prefix="device_key_") as device_key:
-		device_key.write(base64.decodebyte(bytes(config.devicekey, "ascii")))
+		device_key.write(base64.decodebytes(bytes(config["devicekey"], "ascii")))
 		device_key.flush()
 		with open("/root/.ssh/authorized_keys", "a") as authorized_keys:
-			authorized_keys.write(config.techkey)
+			authorized_keys.write(config["techkey"])
 		with open("/root/.ssh/known_hosts", "a") as known_hosts:
-			known_hosts.write(config.hostkey)
-		subprocess.call(["ssh", "-i", device_key.name, "-p", config["port"], "-u", config["user"], "-L", config["tunnelport"] + ":localhost:22", config["host"]])
+			known_hosts.write(config["host"] + " " + " ".join(config["hostkey"].split(" ")[0:2]) + "\n")
+		cmd = [
+				"dbclient",
+				"-i", device_key.name,
+				"-p", str(config["port"]),
+				"-l", config["user"],
+				"-N",
+				"-R", "{0}:localhost:22".format(config["tunnelPort"]),
+				config["host"]]
+		subprocess.call(cmd)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
@@ -99,7 +106,7 @@ if __name__ == "__main__":
 		if status["upgrade"] != 0:
 			perform_upgrade()
 		if "support" in status != None:
-			print(1)
+			perform_support(status["support"])
 
 	except Exception as e:
 		print("Heartbeat failed:")
