@@ -1,0 +1,50 @@
+#!/bin/sh -e
+### BEGIN INIT INFO
+# Provides:          reverse-ssh
+# Required-Start:    $network $remote_fs
+# Required-Stop:     $remote_fs
+# Should-Start:      
+# Should-Stop:       
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Manages reverse SSH connections to mySmartGrid support servers
+### END INIT INFO
+
+PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin"
+
+PID_FILE=/var/run/reverse-ssh.pid
+ID_FILE=/var/run/reverse-ssh.id
+
+. /lib/lsb/init-functions
+. /etc/reverse-ssh
+
+case "$1" in
+	start)
+		log_action_begin_msg "Starting reverse-ssh"
+		echo "$SUPPORT_TECHKEY" >> /root/.ssh/authorized_keys
+		echo "$SUPPORT_HOSTKEY" >> /root/.ssh/known_hosts
+		start-stop-daemon -S -x `which dbclient` -b -m -p "${PID_FILE}" -- -p "${SUPPORT_PORT}" -N -R "${SUPPORT_TUNNELPORT}:localhost:22" "${SUPPORT_USER}@${SUPPORT_HOST}" -i "${ID_FILE}" -y
+		log_action_end_msg $?
+		;;
+
+	stop)
+		log_action_begin_msg "Starting reverse-ssh"
+		start-stop-daemon -K -p "${PID_FILE}"
+
+		sed -i "/$SUPPORT_HOST/d" /root/.ssh/authorized_keys
+		sed -i "/$SUPPORT_HOST/d" /root/.ssh/known_hosts
+		log_action_end_msg $?
+		;;
+
+	force-reload|restart)
+		$0 stop
+		$0 start
+		;;
+
+	*)
+		echo "Usage: /etc/init.d/reverse-ssh {start|stop}"
+		exit 1
+		;;
+esac
+
+exit 0

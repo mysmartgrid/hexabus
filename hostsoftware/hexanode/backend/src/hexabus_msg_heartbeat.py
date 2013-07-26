@@ -48,7 +48,7 @@ def http_request(method, url, body):
 def perform_heartbeat():
 	message = {
 		'firmware': {
-			'version': '0.6.0-1',
+			'version': '2.0.4-rc3',
 			'releasetime': '20120524_1158',
 			'build': 'f0ba69e4fea1d0c411a068e5a19d0734511805bd',
 			'tag': 'flukso-2.0.3-rc1-19-gf0ba69e'
@@ -72,22 +72,17 @@ def perform_upgrade():
 			http_request("POST", api_url + "/event/106", { 'device': device_id })
 
 def perform_support(config):
-	with tempfile.NamedTemporaryFile(prefix="device_key_") as device_key:
+	with open("/var/run/reverse-ssh.id", "w+b") as device_key:
 		device_key.write(base64.decodebytes(bytes(config["devicekey"], "ascii")))
 		device_key.flush()
-		with open("/root/.ssh/authorized_keys", "a") as authorized_keys:
-			authorized_keys.write(config["techkey"])
-		with open("/root/.ssh/known_hosts", "a") as known_hosts:
-			known_hosts.write(config["host"] + " " + " ".join(config["hostkey"].split(" ")[0:2]) + "\n")
-		cmd = [
-				"dbclient",
-				"-i", device_key.name,
-				"-p", str(config["port"]),
-				"-l", config["user"],
-				"-N",
-				"-R", "{0}:localhost:22".format(config["tunnelPort"]),
-				config["host"]]
-		subprocess.call(cmd)
+		with open("/etc/reverse-ssh", "w+") as reverse_cfg:
+			reverse_cfg.write('SUPPORT_TECHKEY="{0}"\n'.format(config["techkey"].strip()))
+			reverse_cfg.write('SUPPORT_HOSTKEY="{0}"\n'.format(config["hostkey"].strip()))
+			reverse_cfg.write('SUPPORT_PORT="{0}"\n'.format(config["port"]))
+			reverse_cfg.write('SUPPORT_TUNNELPORT="{0}"\n'.format(config["tunnelPort"]))
+			reverse_cfg.write('SUPPORT_USER="{0}"\n'.format(config["user"]))
+			reverse_cfg.write('SUPPORT_HOST="{0}"\n'.format(config["host"]))
+		subprocess.call(["service", "reverse-ssh", "start"])
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()

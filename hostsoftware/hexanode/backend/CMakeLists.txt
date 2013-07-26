@@ -134,6 +134,9 @@ INSTALL(FILES
   etc/simulation.ini
   DESTINATION share/doc/hexanode/simulation.ini)
 
+INSTALL(FILES etc/init.d/reverse-ssh DESTINATION /etc/init.d)
+INSTALL(FILES etc/reverse-ssh DESTINATION /etc)
+
 
 # CPACK packaging
 include(InstallRequiredSystemLibraries)
