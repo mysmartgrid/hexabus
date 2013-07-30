@@ -1,4 +1,5 @@
 #include <iostream>
+#include <unistd.h>
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/positional_options.hpp>
@@ -7,6 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/optional.hpp>
 
 #include <libklio/store.hpp>
 #include <libklio/store-factory.hpp>
@@ -216,6 +218,38 @@ enum ErrorCode {
     ERR_OTHER = 127
 };
 
+static ErrorCode create_new_store(const std::string&  config, boost::optional<const std::string&> url)
+{
+	boost::uuids::random_generator new_uuid;
+	klio::StoreFactory store_factory;
+	klio::MSGStore::Ptr store;
+
+	if (url) {
+		store = store_factory.create_msg_store(
+				*url,
+				to_string(new_uuid()),
+				to_string(new_uuid()));
+	} else {
+		store = store_factory.create_msg_store();
+	}
+	store->initialize();
+
+	BridgeConfiguration store_config(
+			store->url(),
+			store->id(),
+			store->key());
+	save_config(config, store_config);
+
+	std::cout << "Created store: " << store->str() << std::endl <<
+		std::endl <<
+		"Please visit http://www.mysmartgrid.de/device/mylist and " <<
+		"enter the activation code " << store->activation_code() <<
+		" to link this store to your account." << std::endl <<
+		std::endl;
+
+	return ERR_NONE;
+}
+
 int main(int argc, char** argv)
 {
 	std::ostringstream oss;
@@ -262,53 +296,41 @@ int main(int argc, char** argv)
 
 
 
-	klio::StoreFactory store_factory;
-	klio::MSGStore::Ptr store;
-
 	std::string config = vm["config"].as<std::string>();
 	if (vm.count("create")) {
-		boost::uuids::random_generator new_uuid;
-
 		if (vm["create"].as<std::string>() != "") {
-			store = store_factory.create_msg_store(
-					vm["create"].as<std::string>(),
-					to_string(new_uuid()),
-					to_string(new_uuid()));
+			return create_new_store(config, vm["create"].as<std::string>());
 		} else {
-			store = store_factory.create_msg_store();
+			return create_new_store(config, boost::none);
 		}
-		store->initialize();
-
-		BridgeConfiguration store_config(
-				store->url(),
-				store->id(),
-				store->key());
-		save_config(config, store_config);
-
-		std::cout << "Opened store: " << store->str() << std::endl <<
-			std::endl <<
-			"Please visit http://www.mysmartgrid.de/device/mylist and " <<
-			"enter the activation code " << store->activation_code() <<
-			" to link this store to your account." << std::endl <<
-			std::endl;
-
-		return ERR_NONE;
 	} else {
+		klio::StoreFactory store_factory;
+		boost::optional<BridgeConfiguration> parsed_config;
+
 		try {
 			if (!exists(boost::filesystem::path(config))) {
 				std::cerr << "Configuration file not found" << std::endl;
 				return ERR_PARAMETER_VALUE_INVALID;
 			} else {
-				BridgeConfiguration store_config = load_config(config);
-
-				store = store_factory.create_msg_store(store_config.url(), store_config.device_id(), store_config.device_key());
+				parsed_config = load_config(config);
 			}
-		} catch (std::exception& e) {
+		} catch (const std::exception& e) {
 			std::cerr << "Could not initialize MSG store: " << e.what() << std::endl;
 			return ERR_KLIO;
 		}
 
-		if (vm.count("listen")) {
+		BridgeConfiguration& store_config = *parsed_config;
+		klio::MSGStore::Ptr store = store_factory.create_msg_store(store_config.url(), store_config.device_id(), store_config.device_key());
+
+		if (vm.count("heartbeat")) {
+			execlp(
+					"hexabus_msg_heartbeat",
+					"hexabus_msg_heartbeat",
+					"--url", store_config.url().c_str(),
+					"--device", store_config.device_id().c_str(),
+					"--key", store_config.device_key().c_str(),
+					(char*) NULL);
+		} else if (vm.count("listen")) {
 			std::string timezone;
 			if (!vm.count("timezone")) {
 				// TODO: timezone from locale?
@@ -348,8 +370,6 @@ int main(int argc, char** argv)
 				std::cerr << "Error: " << e.what() << std::endl;
 				return ERR_OTHER;
 			}
-		} else if (vm.count("heartbeat")) {
-			// TODO
 		} else {
 			std::cerr << "You must specify which action I should take" << std::endl;
 			return ERR_PARAMETER_MISSING;
