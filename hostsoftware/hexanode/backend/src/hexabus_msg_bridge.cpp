@@ -15,6 +15,7 @@
 
 #include <libhexabus/packet.hpp>
 #include <libhexabus/socket.hpp>
+#include <libhexabus/endpoint_registry.hpp>
 
 #include <libhexanode/device_interrogator.hpp>
 
@@ -29,14 +30,22 @@ struct ReadingLogger : private hexabus::PacketVisitor {
 		std::string timezone;
 
 		boost::asio::ip::address_v6 source;
+		hexabus::EndpointRegistry ep_registry;
 
 		const char* eidToUnit(uint32_t eid) {
-			switch (eid) {
-				case 7:  return "kWh";
-				//TODO: support other units
+			hexabus::EndpointRegistry::const_iterator found = ep_registry.find(eid);
 
-				default: return NULL;
-			}
+			if (found == ep_registry.end() || !found->second.unit())
+				return NULL;
+
+			const std::string& unit = *found->second.unit();
+
+			if (unit == "kWh")
+				return "kWh";
+			else if (unit == "°C")
+				return "c";
+
+			return NULL;
     }
 
 		void acceptPacket(float reading, uint32_t eid)
