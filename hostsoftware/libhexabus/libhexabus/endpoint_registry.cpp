@@ -11,7 +11,7 @@
 
 using namespace hexabus;
 
-const char* EndpointRegistry::default_path = LIBHEXABUS_INSTALL_PREFIX "/share/endpoint_registry";
+const char* EndpointRegistry::default_path = LIBHEXABUS_INSTALL_PREFIX "/share/libhexabus/endpoint_registry";
 
 static boost::filesystem::path path_from_env_or_default()
 {
