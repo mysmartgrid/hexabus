@@ -150,3 +150,28 @@ void EndpointRegistry::reload()
 
 	_eids = eids;
 }
+
+EndpointRegistry::const_iterator EndpointRegistry::begin() const
+{
+	return _eids.begin();
+}
+
+EndpointRegistry::const_iterator EndpointRegistry::end() const
+{
+	return _eids.end();
+}
+
+EndpointRegistry::const_iterator EndpointRegistry::find(uint32_t eid) const
+{
+	return _eids.find(eid);
+}
+
+const EndpointDescriptor& EndpointRegistry::lookup(uint32_t eid) const
+{
+	const_iterator found = find(eid);
+
+	if (found == end())
+		throw std::out_of_range("eid");
+
+	return found->second;
+}

@@ -1,5 +1,5 @@
-#ifndef LIBHEXABUS_EID__REGISTRY_HPP
-#define LIBHEXABUS_EID__REGISTRY_HPP 1
+#ifndef LIBHEXABUS_ENDPOINT__REGISTRY_HPP
+#define LIBHEXABUS_ENDPOINT__REGISTRY_HPP 1
 
 #include <stdint.h>
 #include <string>
@@ -56,11 +56,18 @@ namespace hexabus {
 		public:
 			static const char* default_path;
 
+			typedef std::map<uint32_t, EndpointDescriptor>::const_iterator const_iterator;
+
 			EndpointRegistry();
 			EndpointRegistry(const boost::filesystem::path& path);
 
 			const boost::filesystem::path& path() const { return _path; }
 
+			const_iterator begin() const;
+			const_iterator end() const;
+
+			const_iterator find(uint32_t eid) const;
+			const EndpointDescriptor& lookup(uint32_t eid) const;
 
 			void reload();
 	};
