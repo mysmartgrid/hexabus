@@ -50,11 +50,11 @@ protected:
     const char* eidToUnit(uint32_t eid) {
         switch (eid) {
             case 3:
-                return "C";
+                return "degC";
             case 5:
                 return "rh";
             case 6:
-                return "kPa";
+                return "hPa";
             case 7:
                 return "kWh";
             default:
