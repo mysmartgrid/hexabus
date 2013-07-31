@@ -51,6 +51,10 @@ protected:
         switch (eid) {
             case 3:
                 return "C";
+            case 5:
+                return "rh";
+            case 6:
+                return "kPa";
             case 7:
                 return "kWh";
             default:
