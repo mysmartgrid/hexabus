@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -e
+
+if ! id hexabus >/dev/null 2>&1
+then
+	useradd -r hexabus
+	update-rc.d reverse-ssh defaults
+fi
+
+svc -u /etc/service/hexabus_msg_bridge

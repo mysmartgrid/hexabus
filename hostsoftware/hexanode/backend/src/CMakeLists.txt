@@ -73,6 +73,7 @@ target_link_libraries(simulate_energyflows
 INSTALL(PROGRAMS 
   ${CMAKE_CURRENT_BINARY_DIR}/midi2hexabus
   ${CMAKE_CURRENT_BINARY_DIR}/hexabus_webbackend
+  ${CMAKE_CURRENT_BINARY_DIR}/hexabus_msg_bridge
   ${CMAKE_CURRENT_BINARY_DIR}/simulate_energyflows
   DESTINATION bin)
 

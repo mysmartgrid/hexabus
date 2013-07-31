@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -e
+
+if [ "x$1" = "xpurge" ]
+then
+	userdel hexabus
+
+	update-rc.d reverse-ssh remove
+
+	svc -d /etc/service/hexabus_msg_bridge
+	rm -rf /etc/service/hexabus_msg_bridge
+fi

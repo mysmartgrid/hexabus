@@ -85,10 +85,6 @@ struct ReadingLogger : private hexabus::PacketVisitor {
 					std::cout << sensor_name << "   " <<
 						now << "   created" << std::endl;
 				}
-
-				std::cout << sensor_name << "   " << now << "   " <<
-					"reading: " << reading << " " << unit << std::endl;
-
 				store->add_reading(sensor, now, reading);
 
 			} catch (klio::StoreException const& ex) {
@@ -347,10 +343,6 @@ int main(int argc, char** argv)
 
 			try {
 				store->initialize();
-
-				std::cout << std::endl <<
-					"Sensor                        Timestamp    Event" << std::endl <<
-					std::string(70, '-') << std::endl;
 
 				klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
 				klio::TimeConverter::Ptr tc(new klio::TimeConverter());
