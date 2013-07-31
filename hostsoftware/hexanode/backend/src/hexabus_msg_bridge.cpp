@@ -44,8 +44,12 @@ struct ReadingLogger : private hexabus::PacketVisitor {
 
 			if (unit == "kWh")
 				return "kWh";
-			else if (unit == "°C")
+			else if (unit == "degC")
 				return "c";
+			else if (unit == "%r.h.")
+				return "rh";
+			else if (unit == "hPa")
+				return "hPa";
 
 			return NULL;
     }

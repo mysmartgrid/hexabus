@@ -45,7 +45,7 @@ eid 2 {
 eid 3 {
 	type FLOAT
 	description "Temperature sensor"
-	unit "°C"
+	unit "degC"
 	access R
 }
 
