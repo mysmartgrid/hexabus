@@ -101,13 +101,20 @@ _DEBUG options should be set to:
 
 // read analog input pin
 #define ANALOGREAD_ENABLE 0
-#define ACS709_ENABLE 1
 #define ANALOGREAD_DEBUG 1
 #define ANALOGREAD_PIN 8 // 0 to 7 for single ended input, 8-29 for differential operation
 #define ANALOGREAD_MULT 0.0024414062 // readings are multiplied with this value to calculate the value sent to the endpoint. Set to 0.0024414062 to get the Voltage reading (in Volts) at 2.5V supply voltage
 #define ACS709_MULT 0.087098818 // factor to convert the 10 bit ADC-value to power ( ( ( (3.3V/2) / 1024 ) * 1000 ) / 18.5 ), where 3.3V is the supply voltage and 18.5mV/A is the resolution of the ACS709
 // TODO: Documentation, ACS709_MULT could be a factor added to ANALOGREAD_MULT
 // TODO: For SCT013-030 LIGHTSENSOR should work just fine - EDIT: according to http://openenergymonitor.org/emon/buildingblocks/ct-sensors-interface the SCT alternates between VACANCY - 1V and VACANCY + 1V therefore some modifications are necessary.
+
+#define HALLSENSOR_ENABLE 1
+#define HALLSENSOR_DEBUG 1
+#define HALLSENSOR_PIN 1
+#define HALLSENSOR_REF_PIN 0 // for future use
+#define HALLSENSOR_FAULT_ENABLE 0
+#define HALLSENSOR_FAULT_EN PC6
+#define HALLSENSOR_FAULT PC7
 
 //i2c master
 #define I2C_ENABLE 0

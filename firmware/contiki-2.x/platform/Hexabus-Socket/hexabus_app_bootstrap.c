@@ -92,6 +92,10 @@ void hexabus_bootstrap_init_apps() {
 #if SM_UPLOAD_ENABLE
 	sm_upload_init();
 #endif
+#if HALLSENSOR_ENABLE
+    hallsensor_stop();
+    hallsensor_init();
+#endif
 
 }
 
@@ -109,5 +113,8 @@ void hexabus_bootstrap_start_processes() {
 #endif
 #if IR_RECEIVER_ENABLE
     process_start(&ir_receiver_process, NULL);
+#endif
+#if HALLSENSOR_ENABLE
+    hallsensor_start();
 #endif
 }
