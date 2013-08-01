@@ -1,6 +1,6 @@
 #!/bin/sh
 
-IFACE=eth0
+IFACE=usb0
 CONFIG=/etc/hexabus_msg_bridge.conf
 
 if [ -f $CONFIG ]
