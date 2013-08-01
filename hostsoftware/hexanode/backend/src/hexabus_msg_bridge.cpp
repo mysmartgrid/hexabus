@@ -19,13 +19,10 @@
 #include <libhexabus/socket.hpp>
 #include <libhexabus/endpoint_registry.hpp>
 
-#include <libhexanode/device_interrogator.hpp>
-
 namespace po = boost::program_options;
 
 struct ReadingLogger : private hexabus::PacketVisitor {
 	private:
-		hexanode::DeviceInterrogator interrogator;
 		klio::Store::Ptr store;
 		klio::TimeConverter::Ptr tc;
 		klio::SensorFactory::Ptr sensor_factory;
@@ -134,12 +131,11 @@ struct ReadingLogger : private hexabus::PacketVisitor {
 		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) { }
 
 	public:
-		ReadingLogger(hexabus::Socket& socket,
-				const klio::Store::Ptr& store,
+		ReadingLogger(const klio::Store::Ptr& store,
 				const klio::TimeConverter::Ptr& tc,
 				const klio::SensorFactory::Ptr& sensor_factory,
 				const std::string & timezone)
-			: interrogator(socket), store(store), tc(tc), sensor_factory(sensor_factory), timezone(timezone)
+			: store(store), tc(tc), sensor_factory(sensor_factory), timezone(timezone)
 		{
 		}
 
@@ -253,7 +249,7 @@ static ErrorCode create_new_store(const std::string&  config, boost::optional<co
 int main(int argc, char** argv)
 {
 	std::ostringstream oss;
-	oss << "Usage: " << argv[0] << " -c <configuration file> { -L <interface> | -C [url] | -H }";
+	oss << "Usage: " << argv[0] << " -c <configuration file> { -L <interface> | -C [url] | -A | -H }";
 	po::options_description desc(oss.str());
 
 	desc.add_options()
@@ -263,6 +259,7 @@ int main(int argc, char** argv)
 		("timezone,t", po::value<std::string>(), "the timezone to use for new sensors")
 		("listen,L", po::value<std::string>(), "listen on interface and post measurements to mySmartGrid")
 		("create,C", po::value<std::string>()->implicit_value(""), "create a configuration and register the device to mySmartGrid")
+		("activationcode,A", "print activation code for the mySmartGrid store")
 		("heartbeat,H", "perform heartbeat and possibly firmware upgrade");
 
 	po::variables_map vm;
@@ -322,7 +319,9 @@ int main(int argc, char** argv)
 		BridgeConfiguration& store_config = *parsed_config;
 		klio::MSGStore::Ptr store = store_factory.create_msg_store(store_config.url(), store_config.device_id(), store_config.device_key());
 
-		if (vm.count("heartbeat")) {
+		if (vm.count("activationcode")) {
+			std::cout << store->activation_code() << std::endl;
+		} else if (vm.count("heartbeat")) {
 			execlp(
 					"hexabus_msg_heartbeat",
 					"hexabus_msg_heartbeat",
@@ -351,7 +350,7 @@ int main(int argc, char** argv)
 				hexabus::Socket socket(io, vm["listen"].as<std::string>());
 				socket.listen(boost::asio::ip::address_v6::any());
 
-				ReadingLogger logger(socket, store, tc, sensor_factory, timezone);
+				ReadingLogger logger(store, tc, sensor_factory, timezone);
 
 				socket.onPacketReceived(boost::bind(&ReadingLogger::onPacket, &logger, _1, _2));
 
