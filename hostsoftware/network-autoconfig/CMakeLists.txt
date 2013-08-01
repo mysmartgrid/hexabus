@@ -30,7 +30,7 @@ set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where m
 # No user settings below
 ###################################################################################################
 
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_SOURCE_DIR}/../cmake_modules ${CMAKE_MODULE_PATH})
 
 # enable unit testing
 include(CTest)
@@ -54,7 +54,7 @@ set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "python3 (>= 3.2.3) radvd mrd6")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "python3 (>= 3.2.3), radvd, mrd6")
 
 set(CPACK_SECTION "net")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
