@@ -40,6 +40,9 @@
 #if SM_UPLOAD_ENABLE
 #include "sm_upload.h"
 #endif
+#if HALLSENSOR_ENABLE
+#include "hallsensor.h"
+#endif
 
 #if HEXABUS_BOOTSTRAP_DEBUG
 #include <stdio.h>
@@ -93,7 +96,6 @@ void hexabus_bootstrap_init_apps() {
 	sm_upload_init();
 #endif
 #if HALLSENSOR_ENABLE
-    hallsensor_stop();
     hallsensor_init();
 #endif
 
@@ -113,8 +115,5 @@ void hexabus_bootstrap_start_processes() {
 #endif
 #if IR_RECEIVER_ENABLE
     process_start(&ir_receiver_process, NULL);
-#endif
-#if HALLSENSOR_ENABLE
-    hallsensor_start();
 #endif
 }
