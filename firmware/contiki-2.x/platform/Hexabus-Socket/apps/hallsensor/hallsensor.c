@@ -3,7 +3,7 @@
 //#include "sys/clock.h"
 //#include "sys/etimer.h" //contiki event timer library
 //#include "contiki.h"
-//#include "hexabus_config.h"
+#include "hexabus_config.h"
 //#include "value_broadcast.h"
 #include "endpoints.h"
 #include "endpoint_registry.h"
@@ -20,7 +20,7 @@ static enum hxb_error_code read_hallsensor(struct hxb_value* value)
 	float mean = 0;
 	for ( uint8_t i = 0; i < 96; i++ )
 	{
-		mean += sample[i];
+		mean += samples[i];
 	}
 	value->v_float = mean/96;
 	return HXB_ERR_SUCCESS;
@@ -35,10 +35,11 @@ ENDPOINT_DESCRIPTOR endpoint_hallsensor = {
 	.write = 0
 };
 
-void power_init() {
+void hallsensor_init() {
 	ADMUX = (0<<REFS1) | (1<<REFS0); // AVCC as reference
 	ADCSRA = (1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2); // prescaler 128
-	ADCSRA |= (1<<ADFR) | (1<<ADIE); // free running adc with interrupt enabled
+	ADCSRA |= (1<<ADATE) | (1<<ADIE); // free running adc with interrupt enabled
+	ADCSRB &= ~((1<<ADTS2) | (1<<ADTS1) | (1<<ADTS0));
 	ADMUX = (ADMUX & ~(HALLSENSOR_MUX_BITS)) | (HALLSENSOR_PIN & HALLSENSOR_MUX_BITS); // select pin
 	ADCSRA |= (1<<ADEN); //enable ADC
 

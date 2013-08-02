@@ -44,33 +44,6 @@ ENDPOINT_DESCRIPTOR endpoint_lightsensor = {
 	.write = 0
 };
 
-static void acs709_reset_fault()
-{
-	PORTC &= ~(1<<PC6); // set PC6 low to reset fault detection
-	//TODO: wait for >= 500ns
-	PORTC |= (1<<PC6);
-};
-
-static enum hxb_error_code read_acs709(struct hxb_value* value)
-{
-	if ( PINC & (1<<PC7) ) {
-		value->v_float = get_analogvalue();
-		return HXB_ERR_SUCCESS;
-	} else {
-		acs709_reset_fault();
-	}
-	return HXB_ERR_INTERNAL;
-}
-
-static const char ep_acs709_name[] PROGMEM = "ACS709 power meter";
-ENDPOINT_DESCRIPTOR endpoint_acs709 = {
-	.datatype = HXB_DTYPE_FLOAT,
-	.eid = EP_ACS709,
-	.name = ep_acs709_name,
-	.read = read_acs709,
-	.write = 0
-};
-
 void analogread_init() {
     ADMUX = (0<<REFS1) | (1<<REFS0); // AVCC as reference
     ADCSRA = (1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2); // prescaler 128
@@ -84,12 +57,6 @@ void analogread_init() {
 #if LIGHTSENSOR_ENABLE
 		ENDPOINT_REGISTER(endpoint_lightsensor);
 #endif
-#if ACS709_ENABLE
-		DDRC |= (1<<PC6); // PC6 (FAULT_EN) as output
-		PORTC |= (1<<PC6); // set PC6 high to enable fault detection
-		DDRC &= ~(1<<PC7); // PC7 (FAULT) as input
-		ENDPOINT_REGISTER(endpoint_acs709);
-#endif
 }
 
 static float get_analogvalue() {
@@ -97,11 +64,9 @@ static float get_analogvalue() {
 
     while(ADCSRA & (1<<ADSC)) {} // wait for conversion to finish
 
+    float voltage = 0.0;
 #if ANOLGREAD_ENABLE
-    float voltage = ADCW * ANALOGREAD_MULT;
-#endif
-#if ACS709_ENABLE
-    float voltage = ADCW * ACS709_MULT;
+    voltage = ADCW * ANALOGREAD_MULT;
 #endif
 
 	syslog(LOG_DEBUG, "Analog value read: %ld / 1000", (uint32_t)(voltage*1000.0));

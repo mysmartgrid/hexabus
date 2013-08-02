@@ -21,7 +21,7 @@ _DEBUG options should be set to:
 #define WEBSERVER_DEBUG 0
 
 // Memory debugger process
-#define MEMORY_DEBUGGER_ENABLE 1
+#define MEMORY_DEBUGGER_ENABLE 0
 // Print a line every MEMORY_DEBUGGER_INTERVAL seconds
 #define MEMORY_DEBUGGER_INTERVAL 10
 
