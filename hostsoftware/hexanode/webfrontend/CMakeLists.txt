@@ -52,8 +52,8 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 
 # add some files to the installation target
-install(FILE app.js DESTINATION share/hexanode_webfrontend/)
-install(FILE package.json DESTINATION share/hexanode_webfrontend/)
+install(FILES app.js DESTINATION share/hexanode_webfrontend/)
+install(FILES package.json DESTINATION share/hexanode_webfrontend/)
 install(DIRECTORY lib DESTINATION share/hexanode_webfrontend/)
 install(DIRECTORY public DESTINATION share/hexanode_webfrontend/)
 install(DIRECTORY tools DESTINATION share/hexanode_webfrontend/)
