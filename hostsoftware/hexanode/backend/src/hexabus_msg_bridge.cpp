@@ -329,6 +329,7 @@ int main(int argc, char** argv)
 					"--device", store_config.device_id().c_str(),
 					"--key", store_config.device_key().c_str(),
 					(char*) NULL);
+			std::cerr << "Could not perform heartbeat: " << strerror(errno) << std::endl;
 		} else if (vm.count("listen")) {
 			std::string timezone;
 			if (!vm.count("timezone")) {
