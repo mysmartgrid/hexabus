@@ -129,7 +129,6 @@ endif(WIN32)
 # Reflect the package structure
 add_subdirectory(libhexabus)
 add_subdirectory(src)
-add_subdirectory(etc)
 add_subdirectory(tests)
 
 # enable unit testing
