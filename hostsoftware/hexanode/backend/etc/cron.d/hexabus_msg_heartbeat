@@ -1,0 +1,4 @@
+CONFIG=/etc/hexabus_msg_bridge.conf
+PATH=/usr/bin:/usr/local/bin
+
+*/10 * * * * root hexabus_msg_bridge -c $CONFIG -H
