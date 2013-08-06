@@ -5,7 +5,6 @@ set -e
 if ! id hexanode >/dev/null 2>&1
 then
 	useradd -r -m hexanode
-	update-rc.d reverse-ssh defaults
 fi
 
-su -c 'npm install /usr/share/hexabus_webfrontend' hexanode
+su -c 'cd ~; npm install /usr/share/hexanode_webfrontend' hexanode
