@@ -154,6 +154,9 @@ SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch;Hexabus node interrogation utility" "h
 SET(CPACK_STRIP_FILES ON)
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
+if(LIBKLIO_FOUND)
+	set(CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS}, libsqlite3-0 (>= 3.7), libgnutls26 (>= 2.12)")
+endif()
 
 set(CPACK_SECTION "net")
 include(CPackTools)
