@@ -129,7 +129,6 @@ endif(WIN32)
 # Reflect the package structure
 add_subdirectory(libhexabus)
 add_subdirectory(src)
-add_subdirectory(etc)
 add_subdirectory(tests)
 
 # enable unit testing
@@ -138,6 +137,7 @@ enable_testing()
 
 # add some files to the installation target
 INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
+INSTALL(FILES share/endpoint_registry DESTINATION share/libhexabus)
 
 # CPACK packaging
 include(InstallRequiredSystemLibraries)
@@ -154,9 +154,11 @@ SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch;Hexabus node interrogation utility" "h
 SET(CPACK_STRIP_FILES ON)
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
+if(LIBKLIO_FOUND)
+	set(CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS}, libsqlite3-0 (>= 3.7), libgnutls26 (>= 2.12)")
+endif()
 
 set(CPACK_SECTION "net")
-set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
 include(CPackTools)
 
 ### print some output for the user

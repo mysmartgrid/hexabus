@@ -59,20 +59,6 @@ if(LIBKLIO_FOUND)
 #    gcrypt
   )
 
-  add_executable(hexapost ${hexapost_src})
-  target_link_libraries(hexapost
-    hexabus
-    ${LIBKLIO_LIBRARY}
-    ${Boost_LIBRARIES}
-    ${Boost_SYSTEM_LIBRARY}
-    ${JSON_LIBRARY}
-    ${CURL_LIBRARIES}
-    ${SQLITE3_LIBRARIES}
-    ${GNUTLS_LIBRARIES}
-    ${OPENSSL_CRYPTO_LIBRARY}
-    pthread
-  )
-
 endif(LIBKLIO_FOUND)
 
 # add programs to the install target
@@ -84,9 +70,5 @@ INSTALL(PROGRAMS
 if(LIBKLIO_FOUND)
   INSTALL(PROGRAMS
   ${CMAKE_CURRENT_BINARY_DIR}/hexalog
-  DESTINATION bin)
-
-  INSTALL(PROGRAMS
-  ${CMAKE_CURRENT_BINARY_DIR}/hexapost
   DESTINATION bin)
 endif(LIBKLIO_FOUND)

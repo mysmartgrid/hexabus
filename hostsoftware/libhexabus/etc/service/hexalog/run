@@ -1,6 +1,0 @@
-#!/bin/sh
-
-STORE=~/hexalog/store.db
-IFACE=eth0
-
-exec setuidgid hexalog hexalog -I $IFACE -s $STORE 2>&1

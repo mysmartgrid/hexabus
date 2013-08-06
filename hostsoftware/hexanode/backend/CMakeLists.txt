@@ -99,7 +99,12 @@ include(CMakeBackwardCompatibilityCXX)
 
 FIND_PACKAGE(OpenSSL REQUIRED)
 FIND_PACKAGE(CppNetlib REQUIRED)
-FIND_PACKAGE(LibHexabus)
+FIND_PACKAGE(LibHexabus REQUIRED)
+FIND_PACKAGE(Libklio REQUIRED)
+FIND_PACKAGE(Sqlite REQUIRED)
+include(FindJson)
+include(FindCurl)
+FIND_PACKAGE(Gnutls REQUIRED)
 find_package(Alsa)
 
 if (NOT HXB_FOUND)
@@ -129,6 +134,13 @@ INSTALL(FILES
   etc/simulation.ini
   DESTINATION share/doc/hexanode/simulation.ini)
 
+INSTALL(PROGRAMS etc/init.d/reverse-ssh DESTINATION /etc/init.d)
+INSTALL(FILES etc/reverse-ssh DESTINATION /etc)
+INSTALL(FILES etc/cron.d/hexabus_msg_heartbeat DESTINATION /etc/cron.d)
+INSTALL(PROGRAMS src/hexabus_msg_heartbeat DESTINATION bin)
+INSTALL(PROGRAMS etc/service/hexabus_msg_bridge/run DESTINATION /etc/service/hexabus_msg_bridge)
+INSTALL(PROGRAMS etc/service/hexabus_msg_bridge/log/run DESTINATION /etc/service/hexabus_msg_bridge/log)
+
 
 # CPACK packaging
 include(InstallRequiredSystemLibraries)
@@ -142,7 +154,8 @@ set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13), libsqlite3-0 (>= 3.7), libgnutls26 (>= 2.12), libssl1.0.0, libasound2")
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/debian/preinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
 
 set(CPACK_PACKAGE_EXECUTABLES "hexanode" "A virtual hexabus device.")
 set(CPACK_SOURCE_STRIP_FILES "")

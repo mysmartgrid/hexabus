@@ -1,0 +1,11 @@
+#!/bin/sh
+
+IFACE=usb0
+CONFIG=/etc/hexabus_msg_bridge.conf
+
+if [ -f $CONFIG ]
+then
+	exec setuidgid hexabus hexabus_msg_bridge -c $CONFIG -L $IFACE 2>&1
+else
+	hexabus_msg_bridge -c $CONFIG -C
+fi

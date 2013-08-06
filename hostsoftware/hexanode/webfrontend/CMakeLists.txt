@@ -52,11 +52,15 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 
 # add some files to the installation target
+install(FILES app.js DESTINATION share/hexanode_webfrontend/)
+install(FILES package.json DESTINATION share/hexanode_webfrontend/)
 install(DIRECTORY lib DESTINATION share/hexanode_webfrontend/)
 install(DIRECTORY public DESTINATION share/hexanode_webfrontend/)
 install(DIRECTORY tools DESTINATION share/hexanode_webfrontend/)
 install(DIRECTORY views DESTINATION share/hexanode_webfrontend/)
 
+INSTALL(PROGRAMS etc/service/hexanode/run DESTINATION /etc/service/hexanode)
+INSTALL(PROGRAMS etc/service/hexanode/log/run DESTINATION /etc/service/hexanode/log)
 
 # CPACK packaging
 include(InstallRequiredSystemLibraries)
@@ -70,8 +74,9 @@ set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 
-#set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "nodejs (>= 0.10), npm (>= 1.2)")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
 
 set(CPACK_PACKAGE_EXECUTABLES "hexanode webfrontend" "A virtual hexabus display device.")
 set(CPACK_SOURCE_STRIP_FILES "")

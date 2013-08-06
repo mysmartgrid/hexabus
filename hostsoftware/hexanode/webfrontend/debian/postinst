@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -e
+
+if ! id hexanode >/dev/null 2>&1
+then
+	useradd -r -m hexanode
+fi
+
+su -c 'cd ~; npm install /usr/share/hexanode_webfrontend' hexanode
