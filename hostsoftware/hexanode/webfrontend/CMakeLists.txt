@@ -59,6 +59,8 @@ install(DIRECTORY public DESTINATION share/hexanode_webfrontend/)
 install(DIRECTORY tools DESTINATION share/hexanode_webfrontend/)
 install(DIRECTORY views DESTINATION share/hexanode_webfrontend/)
 
+INSTALL(PROGRAMS etc/service/hexanode/run DESTINATION /etc/service/hexanode)
+INSTALL(PROGRAMS etc/service/hexanode/log/run DESTINATION /etc/service/hexanode/log)
 
 # CPACK packaging
 include(InstallRequiredSystemLibraries)
