@@ -9,8 +9,6 @@
     "express": "*",
     "connect": "2.7.9",
     "ejs": "*",
-    "redis": "*",
-    "hiredis": "*",
     "socket.io": "0.9.13",
     "CBuffer": "*",
     "request": "*",
