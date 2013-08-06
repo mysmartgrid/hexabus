@@ -1,9 +1,9 @@
 {
-  "name": "application-name",
+  "name": "hexanode-webfrontend",
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "node app"
+    "start": "js app"
   },
   "dependencies": {
     "express": "*",
