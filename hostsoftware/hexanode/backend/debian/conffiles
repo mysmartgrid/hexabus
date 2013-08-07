@@ -3,4 +3,3 @@
 /etc/hexabus_msg_bridge.conf
 /etc/init.d/reverse-ssh
 /etc/reverse-ssh
-/etc/cron.d/hexabus_msg_heartbeat
