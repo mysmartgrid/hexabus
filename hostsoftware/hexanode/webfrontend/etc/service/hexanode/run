@@ -1,3 +1,8 @@
 #!/bin/sh
 
-exec setuidgid hexanode server=127.0.0.1 port=3000 npm start hexanode-webfrontend
+cd ~hexanode
+# find one local IPv4 address
+# we will simply assume that only one IPv4 address is configured
+addr=`ip -o -f inet address show | grep eth0 | awk '{print $4}' | head -n1`
+addr=`dirname $addr`
+exec setuidgid hexanode env server=$addr port=3000 npm start hexanode-webfrontend
