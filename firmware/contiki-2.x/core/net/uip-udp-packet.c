@@ -61,7 +61,7 @@ uip_udp_packet_send(struct uip_udp_conn *c, const void *data, int len)
 
 #if UIP_IPV6_MULTICAST
   /* Let the multicast engine process the datagram before we send it */
-  if(uip_is_addr_mcast_routable(&uip_udp_conn->ripaddr)) {
+  if(uip_is_addr_routable_mcast(&uip_udp_conn->ripaddr)) {
     uip_mcast6_out();
   }
 #endif /* UIP_IPV6_MULTICAST */

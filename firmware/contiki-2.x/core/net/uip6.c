@@ -1155,7 +1155,7 @@ uip_process(uint8_t flag)
    * expect UIP_BUF to be unmodified
    */
 #if UIP_IPV6_MULTICAST
-  if(uip_is_addr_mcast_routable(&UIP_IP_BUF->destipaddr)) {
+  if(uip_is_addr_routable_mcast(&UIP_IP_BUF->destipaddr)) {
     if(uip_mcast6_in()) {
       /* Bypass the forwarding code, the engine handled it */
       goto process;

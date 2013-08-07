@@ -878,7 +878,7 @@ roll_trickle_accept(uint8_t in)
   PRINTF("Trickle: Multicast I/O\n");
 
 #if UIP_CONF_IPV6_CHECKS
-  if(uip_is_addr_mcast_non_routable(&UIP_IP_BUF->destipaddr)){
+  if(!uip_is_addr_routable_mcast(&UIP_IP_BUF->destipaddr)){
     PRINTF("Trickle: Mcast I/O, bad destinarion\n");
     STATS_ADD(mcast_bad);
     return 0;
