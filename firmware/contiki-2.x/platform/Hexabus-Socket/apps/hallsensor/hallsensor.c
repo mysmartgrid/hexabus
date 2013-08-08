@@ -31,7 +31,7 @@ static enum hxb_error_code read_hallsensor(struct hxb_value* value)
 static const char ep_hallsensor_name[] PROGMEM = "Hallsensor metering";
 ENDPOINT_DESCRIPTOR endpoint_hallsensor = {
 	.datatype = HXB_DTYPE_FLOAT,
-	.eid = EP_POWER_METER,
+	.eid = EP_HALLSENSOR,
 	.name = ep_hallsensor_name,
 	.read = read_hallsensor,
 	.write = 0
