@@ -219,7 +219,7 @@ handle_dao_timer(void *ptr)
       /* Send a DAO for own multicast addresses */
       for(i = 0; i < UIP_DS6_MADDR_NB; i++) {
         if(uip_ds6_if.maddr_list[i].isused
-            && uip_is_addr_mcast_global(&uip_ds6_if.maddr_list[i].ipaddr)) {
+            && uip_is_addr_routable_mcast(&uip_ds6_if.maddr_list[i].ipaddr)) {
           dao_output(instance->current_dag->preferred_parent, RPL_MCAST_LIFETIME,
               &uip_ds6_if.maddr_list[i].ipaddr);
         }

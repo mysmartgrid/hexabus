@@ -661,7 +661,7 @@ dao_input(void)
   PRINTF("\n");
 
 #if UIP_IPV6_MULTICAST_RPL
-  if(uip_is_addr_mcast_global(&prefix)) {
+  if(uip_is_addr_routable_mcast(&prefix)) {
     mcast_group = uip_ds6_mcast_route_add(&prefix);
     if(mcast_group) {
       mcast_group->dag = dag;
