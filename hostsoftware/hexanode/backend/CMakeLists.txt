@@ -154,7 +154,7 @@ set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13), libsqlite3-0 (>= 3.7), libgnutls26 (>= 2.12), libssl1.0.0, libasound2, python3 (>= 3.2)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13), libsqlite3-0 (>= 3.7), libgnutls26 (>= 2.12), libssl1.0.0, libasound2, python3 (>= 3.2), libhexabus (>= 0.6.0.200)")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/debian/preinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
 
 set(CPACK_PACKAGE_EXECUTABLES "hexanode" "A virtual hexabus device.")
