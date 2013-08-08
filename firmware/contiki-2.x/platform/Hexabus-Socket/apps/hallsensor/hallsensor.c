@@ -16,6 +16,7 @@ static uint8_t pos;
 
 static enum hxb_error_code read_hallsensor(struct hxb_value* value)
 {
+	syslog(LOG_DEBUG, "Reading hallsensor value");
 	//value->v_float = get_analogvalue();
 	float mean = 0;
 	for ( uint8_t i = 0; i < 96; i++ )
@@ -23,6 +24,7 @@ static enum hxb_error_code read_hallsensor(struct hxb_value* value)
 		mean += samples[i];
 	}
 	value->v_float = mean/96;
+	syslog(LOG_DEBUG, "Hallsensor value read: %f", value->v_float);
 	return HXB_ERR_SUCCESS;
 }
 
