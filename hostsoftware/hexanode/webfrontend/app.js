@@ -15,6 +15,21 @@ nconf.defaults({
   'server': '10.23.1.253'
 });
 
+server.listen(nconf.get('port'));
+
+// drop root if we ever had it, our arguments say so.
+// this includes all supplemental groups, of course
+if (nconf.get('uid')) {
+	var uid = nconf.get('uid');
+	uid = parseInt(uid) || uid;
+	var gid = nconf.get('gid') || uid;
+	gid = parseInt(gid) || gid;
+
+	process.setgid(gid);
+	process.setgroups([gid]);
+	process.setuid(uid);
+}
+
 var sensorcache = new Cache();
 console.log("Using configuration: ");
 console.log(" - server: " + nconf.get('server'));
@@ -68,8 +83,6 @@ app.get('/', function(req, res) {
     "sensorlist": sensorcache.render_sensor_list()
     });
 });
-
-server.listen(nconf.get('port'));
 
 io.sockets.on('connection', function (socket) {
   console.log("Registering new client.");

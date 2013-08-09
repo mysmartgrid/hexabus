@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "js app"
+    "start": "exec js app"
   },
   "dependencies": {
     "express": "*",

@@ -5,4 +5,11 @@ cd ~hexanode
 # we will simply assume that only one IPv4 address is configured
 addr=`ip -o -f inet address show | grep eth0 | awk '{print $4}' | head -n1`
 addr=`dirname $addr`
-exec setuidgid hexanode env server=$addr port=3000 npm start hexanode-webfrontend
+
+port=80
+uid=hexanode 
+
+export addr
+export port
+export uid
+exec js node_modules/hexanode-webfrontend/app.js
