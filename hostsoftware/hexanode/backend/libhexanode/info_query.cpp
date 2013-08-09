@@ -55,10 +55,10 @@ std::string InfoQuery::get_device_name(
   bool received = false;
   InfoCallback infoCallback = { &device, &received };
   ErrorCallback errorCallback;
-  boost::signals2::connection c1 = _network->onAsyncError(errorCallback);
-  boost::signals2::connection c2 = _network->onPacketReceived(infoCallback,
+  boost::signals2::scoped_connection c1(_network->onAsyncError(errorCallback));
+  boost::signals2::scoped_connection c2(_network->onPacketReceived(infoCallback,
       (hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR))
-      || hexabus::filtering::isEndpointInfo());
+      || hexabus::filtering::isEndpointInfo()));
 
   unsigned int retries = 0;
 
