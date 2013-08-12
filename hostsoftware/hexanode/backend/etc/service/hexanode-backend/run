@@ -1,3 +1,3 @@
 #!/bin/sh
 
-setuidgid hexanode hexabus_webbackend -u 127.0.0.1 -i eth0
+exec setuidgid hexanode hexabus_webbackend -u 127.0.0.1 -i eth0
