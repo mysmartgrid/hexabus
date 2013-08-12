@@ -137,6 +137,8 @@ INSTALL(FILES etc/ssl/certs/msg_CA.crt DESTINATION /etc/ssl/certs)
 INSTALL(PROGRAMS src/hexabus_msg_heartbeat DESTINATION bin)
 INSTALL(PROGRAMS etc/service/hexabus_msg_bridge/run DESTINATION /etc/service/hexabus_msg_bridge)
 INSTALL(PROGRAMS etc/service/hexabus_msg_bridge/log/run DESTINATION /etc/service/hexabus_msg_bridge/log)
+INSTALL(PROGRAMS etc/service/hexanode-backend/run DESTINATION /etc/service/hexanode-backend)
+INSTALL(PROGRAMS etc/service/hexanode-backend/log/run DESTINATION /etc/service/hexanode-backend/log)
 
 
 # CPACK packaging
