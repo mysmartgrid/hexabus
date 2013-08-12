@@ -249,13 +249,13 @@ static ErrorCode create_new_store(const std::string&  config, boost::optional<co
 int main(int argc, char** argv)
 {
 	std::ostringstream oss;
-	oss << "Usage: " << argv[0] << " -c <configuration file> { -L <interface> | -C [url] | -A | -H }";
+	oss << "Usage: " << argv[0] << " [ -c <configuration file> ] { -L <interface> | -C [url] | -A | -H }";
 	po::options_description desc(oss.str());
 
 	desc.add_options()
 		("help,h", "produce help message")
 		("version,v", "print version info and exit")
-		("config,c", po::value<std::string>(), "path to bridge configuration file (will be created if not present)")
+		("config,c", po::value<std::string>()->default_value("/etc/hexabus_msg_bridge.conf"), "path to bridge configuration file (will be created if not present)")
 		("timezone,t", po::value<std::string>(), "the timezone to use for new sensors")
 		("listen,L", po::value<std::string>(), "listen on interface and post measurements to mySmartGrid")
 		("create,C", po::value<std::string>()->implicit_value(""), "create a configuration and register the device to mySmartGrid")
