@@ -133,6 +133,7 @@ INSTALL(FILES
 INSTALL(PROGRAMS etc/init.d/reverse-ssh DESTINATION /etc/init.d)
 INSTALL(FILES etc/reverse-ssh DESTINATION /etc)
 INSTALL(FILES etc/cron.d/hexabus_msg_heartbeat DESTINATION /etc/cron.d)
+INSTALL(FILES etc/ssl/certs/msg_CA.crt DESTINATION /etc/ssl/certs)
 INSTALL(PROGRAMS src/hexabus_msg_heartbeat DESTINATION bin)
 INSTALL(PROGRAMS etc/service/hexabus_msg_bridge/run DESTINATION /etc/service/hexabus_msg_bridge)
 INSTALL(PROGRAMS etc/service/hexabus_msg_bridge/log/run DESTINATION /etc/service/hexabus_msg_bridge/log)

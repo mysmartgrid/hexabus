@@ -29,8 +29,9 @@ def http_request(method, url, body):
 
 	url_parts = urllib.parse.urlparse(url, allow_fragments=False)
 	context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
-	context.verify_mode = ssl.CERT_NONE
-	client = http.client.HTTPSConnection(url_parts.hostname, url_parts.port, context=context)
+	context.verify_mode = ssl.CERT_REQUIRED
+	context.load_verify_locations(cafile = "/etc/ssl/certs/msg_CA.crt")
+	client = http.client.HTTPSConnection(url_parts.hostname, url_parts.port, context=context, check_hostname=False)
 	client.request(method, url_parts.path, message, {
 		'X-Digest': signature,
 		'X-Version': '1.0',
@@ -58,7 +59,6 @@ def perform_heartbeat():
 
 def download_upgrade_package(target):
 	content = base64.decodebytes(bytes(http_request("GET", api_url + "/firmware/" + device_id, {})["data"], 'ascii'))
-	print(content)
 	target.write(content)
 	target.flush()
 
