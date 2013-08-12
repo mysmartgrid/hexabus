@@ -282,14 +282,14 @@ int main(int argc, char** argv)
 		klio::StoreFactory::Ptr store_factory(new klio::StoreFactory()); 
 		klio::Store::Ptr store;
 
-                std::string storefile(vm["storefile"].as<std::string>());
-                bfs::path db(storefile);
-                if (! bfs::exists(db)) {
-                        std::cerr << "Database " << db << " does not exist, cannot continue." << std::endl;
-                        std::cerr << "Hint: you can create a database using klio-store create <dbfile>" << std::endl;
-                        return ERR_PARAMETER_VALUE_INVALID;
-                }
-                store = store_factory->create_sqlite3_store(db);
+		std::string storefile(vm["storefile"].as<std::string>());
+		bfs::path db(storefile);
+		if (! bfs::exists(db)) {
+			std::cerr << "Database " << db << " does not exist, cannot continue." << std::endl;
+			std::cerr << "Hint: you can create a database using klio-store create <dbfile>" << std::endl;
+			return ERR_PARAMETER_VALUE_INVALID;
+		}
+		store = store_factory->open_sqlite3_store(db);
 
 		std::string sensor_timezone("Europe/Berlin"); 
 		if (! vm.count("timezone")) {
