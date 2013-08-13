@@ -103,7 +103,7 @@ struct ReadingLogger : private hexabus::PacketVisitor {
 				if (! found) {
 					// apparently, this is a new sensor. Create a representation in klio for it.
 					klio::Sensor::Ptr new_sensor(sensor_factory->createSensor(
-								sensor_name, eidToUnit(eid), sensor_timezone)); 
+								sensor_name, sensor_name, eidToUnit(eid), sensor_timezone)); 
 					store->add_sensor(new_sensor);
 					std::cout << "Created new sensor: " << new_sensor->str() << std::endl;
 					/**

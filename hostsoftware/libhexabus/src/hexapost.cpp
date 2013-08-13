@@ -80,25 +80,22 @@ protected:
             //Create unique ID for each info message and sensor, <ip>+<endpoint>
             std::ostringstream oss;
             oss << source.to_string() << "-" << eid;
-            std::string sensor_name(oss.str());
+            std::string unique_id(oss.str());
 
-            std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_name(sensor_name);
             klio::Sensor::Ptr sensor;
 
-            //If sensor already exists
-            if (sensors.size() > 0) {
-                std::vector<klio::Sensor::Ptr>::iterator it = sensors.begin();
-                sensor = (*it);
+            try {
+                sensor = store->get_sensor_by_external_id(unique_id);
 
-            } else {
+            } catch (klio::StoreException const& ex) {
+
                 //Create a new sensor
-                sensor = sensor_factory->createSensor(sensor_name, unit, timezone);
+                sensor = sensor_factory->createSensor(unique_id, unique_id, unit, timezone);
                 store->add_sensor(sensor);
-                std::cout << sensor_name << "   " <<
-                        now << "   created" << std::endl;
+                std::cout << unique_id << "   " << now << "   created" << std::endl;
             }
 
-            std::cout << sensor_name << "   " << now << "   " <<
+            std::cout << unique_id << "   " << now << "   " <<
                     "reading: " << reading << " " << unit << std::endl;
 
             store->add_reading(sensor, now, reading);
@@ -306,7 +303,9 @@ int main(int argc, char** argv) {
             store = store_factory->create_msg_store(
                     vm["url"].as<std::string>(),
                     vm["id"].as<std::string>(),
-                    vm["key"].as<std::string>());
+                    vm["key"].as<std::string>(),
+                    "libklio store",
+                    "libklio");
         } else {
             store = store_factory->create_msg_store();
         }
