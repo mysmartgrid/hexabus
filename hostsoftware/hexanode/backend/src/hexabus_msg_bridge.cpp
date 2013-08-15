@@ -343,14 +343,14 @@ int main(int argc, char** argv)
 			}
 
 			try {
+				boost::asio::io_service io;
+				hexabus::Socket socket(io, vm["listen"].as<std::string>());
+				socket.listen(boost::asio::ip::address_v6::any());
+
 				store->initialize();
 
 				klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
 				klio::TimeConverter::Ptr tc(new klio::TimeConverter());
-
-				boost::asio::io_service io;
-				hexabus::Socket socket(io, vm["listen"].as<std::string>());
-				socket.listen(boost::asio::ip::address_v6::any());
 
 				ReadingLogger logger(store, tc, sensor_factory, timezone);
 
@@ -368,7 +368,7 @@ int main(int argc, char** argv)
 				return ERR_OTHER;
 			}
 		} else {
-			std::cerr << "You must specify which action I should take" << std::endl;
+			std::cerr << "No action specified" << std::endl;
 			return ERR_PARAMETER_MISSING;
 		}
 	}
