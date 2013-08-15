@@ -43,7 +43,7 @@ void DeviceInterrogator::packet_received(const Packet& packet, const boost::asio
 
 void DeviceInterrogator::timeout(const boost::system::error_code& err)
 {
-	if (!err) {
+	if (!err && running_queries.size()) {
 		std::pop_heap(running_queries.begin(), running_queries.end());
 		base_query& back = running_queries.back();
 
