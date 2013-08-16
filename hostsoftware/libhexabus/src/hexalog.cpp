@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <set>
 #include <string.h>
 #include <libhexabus/common.hpp>
 #include <libhexabus/crc.hpp>
@@ -205,13 +206,14 @@ class Logger : private hexabus::PacketVisitor {
 		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
 
 	public:
-		Logger(const std::string& store_file,
+		Logger(const bfs::path& store_file,
 			klio::Store::Ptr& store,
 			klio::TimeConverter& tc,
 			klio::SensorFactory& sensor_factory,
 			const std::string& sensor_timezone,
 			hexabus::Socket& socket)
-			: store_file(store_file), store(store), tc(tc), sensor_factory(sensor_factory), sensor_timezone(sensor_timezone), interrogator(socket)
+			: store_file(store_file), store(store), tc(tc), sensor_factory(sensor_factory),
+				sensor_timezone(sensor_timezone), interrogator(socket)
 		{
 		}
 
@@ -223,54 +225,43 @@ class Logger : private hexabus::PacketVisitor {
 
 		void rotate_stores()
 		{
-			try {
-				std::cout << "Rotating store " << store_file << "..." << std::endl;
+			std::cout << "Rotating store " << store_file << "..." << std::endl;
 
-				{
-					std::cout << "Loading sensor schema" << std::endl;
-					std::vector<klio::Sensor::uuid_t> uuids = store->get_sensor_uuids();
-					std::vector<klio::Sensor::uuid_t>::const_iterator it, end;
-					for (it = uuids.begin(), end = uuids.end(); it != end; ++it) {
-						klio::Sensor::Ptr sensor = store->get_sensor(*it);
+			{
+				std::cout << "Loading sensor schema" << std::endl;
+				std::vector<klio::Sensor::uuid_t> uuids = store->get_sensor_uuids();
+				std::vector<klio::Sensor::uuid_t>::const_iterator it, end;
+				for (it = uuids.begin(), end = uuids.end(); it != end; ++it) {
+					klio::Sensor::Ptr sensor = store->get_sensor(*it);
 
-						sensor_cache[sensor->name()] = sensor;
-					}
+					sensor_cache[sensor->name()] = sensor;
 				}
+			}
 
-				std::cout << "Rotating files" << std::endl;
-				store->close();
+			std::cout << "Reopening store" << std::endl;
+			store->close();
+			store = klio::StoreFactory().create_sqlite3_store(store_file);
+			store->open();
+			store->initialize();
 
-				bfs::path dir = store_file.parent_path();
-				uint32_t rotate_top = 1;
-				while (exists(dir / (store_file.filename().native() + "." + to_string(rotate_top)))) {
-					rotate_top++;
-				}
-				while (rotate_top > 1) {
-					bfs::path old_name = dir / (store_file.filename().native() + "." + to_string(rotate_top - 1));
-					bfs::path new_name = dir / (store_file.filename().native() + "." + to_string(rotate_top));
-					std::cout << "Move " << old_name << " -> " << new_name << std::endl;
-					rename(old_name, new_name);
-					rotate_top--;
-				}
-				std::cout << "Move " << store_file << " -> " << (dir / (store_file.filename().native() + ".1")) << std::endl;
-				rename(store_file, dir / (store_file.filename().native() + ".1"));
-
-				std::cout << "Create new store " << store_file << std::endl;
-				store = klio::StoreFactory().create_sqlite3_store(store_file);
-				store->open();
-				store->initialize();
-
+			{
 				std::cout << "Adding sensors..." << std::endl;
+				std::set<klio::Sensor::uuid_t> new_sensors;
+				{
+					std::vector<klio::Sensor::uuid_t> uuids = store->get_sensor_uuids();
+					new_sensors.insert(uuids.begin(), uuids.end());
+				}
+
 				std::map<std::string, klio::Sensor::Ptr>::const_iterator it, end;
 				for (it = sensor_cache.begin(), end = sensor_cache.end(); it != end; ++it) {
-					store->add_sensor(it->second);
-					std::cout << it->second->name() << std::endl;
+					if (!new_sensors.count(it->second->uuid())) {
+						store->add_sensor(it->second);
+						std::cout << it->second->name() << std::endl;
+					}
 				}
-
-				std::cout << "Rotation done" << std::endl;
-			} catch (const std::exception& e) {
-				std::cerr << "Could not rotate: " << e.what() << ", resuming as if nothing happened" << std::endl;
 			}
+
+			std::cout << "Rotation done" << std::endl;
 		}
 };
 
