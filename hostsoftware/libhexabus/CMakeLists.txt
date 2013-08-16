@@ -95,6 +95,7 @@ if( LIBKLIO_FOUND )
   FIND_PACKAGE(OpenSSL REQUIRED)
   FIND_PACKAGE(Gnutls REQUIRED)
   add_definitions ("-DBOOST_FILESYSTEM_VERSION=3")
+	add_subdirectory(libhexalog)
 endif( LIBKLIO_FOUND )
 
 # We depend on boost >= 1.46.1 because of the updated filesystem

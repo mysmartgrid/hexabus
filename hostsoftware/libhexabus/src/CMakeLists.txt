@@ -47,6 +47,7 @@ if(LIBKLIO_FOUND)
   add_executable(hexalog ${hexalog_src})
   target_link_libraries(hexalog
     hexabus
+		libhexalog
     ${LIBKLIO_LIBRARY}
     ${Boost_LIBRARIES}
     ${Boost_SYSTEM_LIBRARY}
