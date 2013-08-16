@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <boost/scope_exit.hpp>
+
 #include "filtering.hpp"
 #include "../../../../shared/endpoints.h"
 
@@ -20,50 +22,62 @@ void DeviceInterrogator::packet_received(const Packet& packet, const boost::asio
 {
 	running_queries_t::iterator it = running_queries.begin();
 	bool order_destroyed = false;
+	DeviceInterrogator* _this = this;
+
+	BOOST_SCOPE_EXIT((&running_queries) (&order_destroyed) (_this)) {
+		if (order_destroyed) {
+			std::make_heap(running_queries.begin(), running_queries.end());
+		}
+		_this->reschedule_timer();
+	} BOOST_SCOPE_EXIT_END
 
 	while (it != running_queries.end()) {
 		base_query& q = *it;
 
 		if (q.filter(packet, from)) {
+			BOOST_SCOPE_EXIT((&running_queries) (&order_destroyed) (&it)) {
+				running_queries.erase(it);
+				order_destroyed = true;
+			} BOOST_SCOPE_EXIT_END
+
 			q.response(packet);
-			running_queries.erase(it);
-			order_destroyed = true;
 		} else {
 			it++;
 		}
-	}
-
-	if (order_destroyed) {
-		std::make_heap(running_queries.begin(), running_queries.end());
-	}
-	if (running_queries.size()) {
-		reschedule_timer();
 	}
 }
 
 void DeviceInterrogator::timeout(const boost::system::error_code& err)
 {
 	if (!err && running_queries.size()) {
+		boost::posix_time::ptime now = boost::asio::deadline_timer::traits_type::now();
+
 		std::pop_heap(running_queries.begin(), running_queries.end());
 		base_query& back = running_queries.back();
 
 		if (back.retries++ == back.max_retries) {
+			BOOST_SCOPE_EXIT((&running_queries)) {
+				running_queries.pop_back();
+			} BOOST_SCOPE_EXIT_END
+
 			back.failure(NetworkException("Device not responding",
 						boost::system::error_code(boost::system::errc::timed_out, boost::system::generic_category())));
-			running_queries.pop_back();
 		} else {
 			back.deadline += boost::posix_time::seconds(1);
 			std::push_heap(running_queries.begin(), running_queries.end());
 			socket.send(*back.packet, back.device);
-			reschedule_timer();
 		}
+
+		reschedule_timer();
 	}
 }
 
 void DeviceInterrogator::reschedule_timer()
 {
-	timer.expires_at(running_queries[0].deadline);
-	timer.async_wait(boost::bind(&DeviceInterrogator::timeout, this, _1));
+	if (running_queries.size()) {
+		timer.expires_at(running_queries[0].deadline);
+		timer.async_wait(boost::bind(&DeviceInterrogator::timeout, this, _1));
+	}
 }
 
 void DeviceInterrogator::queue_query(
