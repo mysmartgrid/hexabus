@@ -17,6 +17,8 @@
 #include <libklio/sensor-factory.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/lambda/lambda.hpp>
+#include <boost/lambda/bind.hpp>
 // commandline parsing.
 #include <boost/program_options.hpp>
 #include <boost/program_options/positional_options.hpp>
@@ -31,7 +33,8 @@ namespace po = boost::program_options;
 
 class Logger : private hexabus::PacketVisitor {
 	private:
-		klio::Store& store;
+		bfs::path store_file;
+		klio::Store::Ptr store;
 		klio::TimeConverter& tc;
 		klio::SensorFactory& sensor_factory;
 		std::string sensor_timezone;
@@ -44,6 +47,13 @@ class Logger : private hexabus::PacketVisitor {
 		std::map<std::string, klio::Sensor::Ptr> sensor_cache;
 
 		boost::asio::ip::address_v6 source;
+
+		static std::string to_string(uint32_t u)
+		{
+			std::stringstream o;
+			o << u;
+			return o.str();
+		}
 
 		const char* eid_to_unit(uint32_t eid)
 		{
@@ -60,7 +70,7 @@ class Logger : private hexabus::PacketVisitor {
 		void record_reading(klio::Sensor::Ptr sensor, klio::timestamp_t ts, double value)
 		{
 			try {
-				store.add_reading(sensor, ts, value);
+				store->add_reading(sensor, ts, value);
 				std::cout << "Added reading " << value << " to sensor " << sensor->name() << std::endl;
 			} catch (klio::StoreException const& ex) {
 				std::cout << "Failed to record reading: " << ex.what() << std::endl;
@@ -77,7 +87,7 @@ class Logger : private hexabus::PacketVisitor {
 					eid_to_unit(new_sensor_backlog[sensor_name].first),
 					sensor_timezone);
 
-			store.add_sensor(sensor);
+			store->add_sensor(sensor);
 			sensor_cache.insert(std::make_pair(sensor_name, sensor));
 			std::cout << "Created new sensor: " << sensor->str() << std::endl;
 
@@ -123,7 +133,7 @@ class Logger : private hexabus::PacketVisitor {
 			if (sensor_cache.count(sensor_name)) {
 				sensor = sensor_cache[sensor_name];
 			} else {
-				std::vector<klio::Sensor::Ptr> sensors = store.get_sensors_by_name(sensor_name);
+				std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_name(sensor_name);
 				if (sensors.size()) {
 					sensor = sensors[0];
 				}
@@ -195,12 +205,13 @@ class Logger : private hexabus::PacketVisitor {
 		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
 
 	public:
-		Logger(klio::Store& store,
+		Logger(const std::string& store_file,
+			klio::Store::Ptr& store,
 			klio::TimeConverter& tc,
 			klio::SensorFactory& sensor_factory,
 			const std::string& sensor_timezone,
 			hexabus::Socket& socket)
-			: store(store), tc(tc), sensor_factory(sensor_factory), sensor_timezone(sensor_timezone), interrogator(socket)
+			: store_file(store_file), store(store), tc(tc), sensor_factory(sensor_factory), sensor_timezone(sensor_timezone), interrogator(socket)
 		{
 		}
 
@@ -208,6 +219,58 @@ class Logger : private hexabus::PacketVisitor {
 		{
 			source = from.address().to_v6();
 			visitPacket(packet);
+		}
+
+		void rotate_stores()
+		{
+			try {
+				std::cout << "Rotating store " << store_file << "..." << std::endl;
+
+				{
+					std::cout << "Loading sensor schema" << std::endl;
+					std::vector<klio::Sensor::uuid_t> uuids = store->get_sensor_uuids();
+					std::vector<klio::Sensor::uuid_t>::const_iterator it, end;
+					for (it = uuids.begin(), end = uuids.end(); it != end; ++it) {
+						klio::Sensor::Ptr sensor = store->get_sensor(*it);
+
+						sensor_cache[sensor->name()] = sensor;
+					}
+				}
+
+				std::cout << "Rotating files" << std::endl;
+				store->close();
+
+				bfs::path dir = store_file.parent_path();
+				uint32_t rotate_top = 1;
+				while (exists(dir / (store_file.filename().native() + "." + to_string(rotate_top)))) {
+					rotate_top++;
+				}
+				while (rotate_top > 1) {
+					bfs::path old_name = dir / (store_file.filename().native() + "." + to_string(rotate_top - 1));
+					bfs::path new_name = dir / (store_file.filename().native() + "." + to_string(rotate_top));
+					std::cout << "Move " << old_name << " -> " << new_name << std::endl;
+					rename(old_name, new_name);
+					rotate_top--;
+				}
+				std::cout << "Move " << store_file << " -> " << (dir / (store_file.filename().native() + ".1")) << std::endl;
+				rename(store_file, dir / (store_file.filename().native() + ".1"));
+
+				std::cout << "Create new store " << store_file << std::endl;
+				store = klio::StoreFactory().create_sqlite3_store(store_file);
+				store->open();
+				store->initialize();
+
+				std::cout << "Adding sensors..." << std::endl;
+				std::map<std::string, klio::Sensor::Ptr>::const_iterator it, end;
+				for (it = sensor_cache.begin(), end = sensor_cache.end(); it != end; ++it) {
+					store->add_sensor(it->second);
+					std::cout << it->second->name() << std::endl;
+				}
+
+				std::cout << "Rotation done" << std::endl;
+			} catch (const std::exception& e) {
+				std::cerr << "Could not rotate: " << e.what() << ", resuming as if nothing happened" << std::endl;
+			}
 		}
 };
 
@@ -231,19 +294,19 @@ enum ErrorCode {
 int main(int argc, char** argv)
 {
 	std::ostringstream oss;
- 	oss << "Usage: " << argv[0] << " [-s] <interface> <storefile>";
- 	po::options_description desc(oss.str());
- 	desc.add_options()
-   	("help,h", "produce help message")
-	("version,v", "print libklio version and exit")
-	("storefile,s", po::value<std::string>(), "the data store to use")
-	("timezone,t", po::value<std::string>(), "the timezone to use for new sensors")
+	oss << "Usage: " << argv[0] << " <interface> [-s] <storefile>";
+	po::options_description desc(oss.str());
+	desc.add_options()
+		("help,h", "produce help message")
+		("version,v", "print version and exit")
+		("storefile,s", po::value<std::string>(), "the data store to use")
+		("timezone,t", po::value<std::string>(), "the timezone to use for new sensors")
 		("interface,I", po::value<std::string>(), "interface to listen on")
-		("bind,b", po::value<std::string>(), "address to bind to")
-	;
-  	po::positional_options_description p;
-  	p.add("interface", 1);
-  	p.add("storefile", 1);
+		("bind,b", po::value<std::string>(), "address to bind to");
+
+	po::positional_options_description p;
+	p.add("interface", 1);
+	p.add("storefile", 1);
 
 	po::variables_map vm;
 	try {
@@ -261,13 +324,13 @@ int main(int argc, char** argv)
 		return ERR_NONE;
 	}
 
-  	// TODO: Compile flag etc.
-  	if (vm.count("version")) {
+	// TODO: Compile flag etc.
+	if (vm.count("version")) {
 		klio::VersionInfo::Ptr vi(new klio::VersionInfo());
 		std::cout << "libhexabus version " << hexabus::version() << std::endl;
 		std::cout << "klio library version " << vi->getVersion() << std::endl;
 		return ERR_NONE;
-  	}
+	}
 
 	if (!vm.count("interface")) {
 		std::cerr << "You must specify an interface to listen on." << std::endl;
@@ -318,11 +381,31 @@ int main(int argc, char** argv)
 		klio::SensorFactory sensor_factory;
 		klio::TimeConverter tc;
 
+		Logger logger(storefile, store, tc, sensor_factory, sensor_timezone, network);
+
 		network.listen(addr);
-		Logger logger(*store, tc, sensor_factory, sensor_timezone, network);
 		network.onPacketReceived(boost::ref(logger));
 
-		io.run();
+		boost::asio::signal_set rotate_handler(io, SIGHUP);
+
+		while (true) {
+			bool hup_received = false;
+
+			using namespace boost::lambda;
+			rotate_handler.async_wait(
+					(var(hup_received) = true,
+					boost::lambda::bind(&boost::asio::io_service::stop, &io)));
+
+			io.reset();
+			io.run();
+
+			std::cout << "stopped " << hup_received << std::endl;
+			if (hup_received) {
+				logger.rotate_stores();
+			} else {
+				break;
+			}
+		}
 	} catch (const hexabus::NetworkException& e) {
 		std::cerr << "Network error: " << e.code().message() << std::endl;
 		return ERR_NETWORK;
