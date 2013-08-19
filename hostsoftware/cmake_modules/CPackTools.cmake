@@ -2,7 +2,7 @@
 
 function (get_revision_info REV_INFO)
   execute_process (
-    COMMAND git rev-list origin..HEAD
+    COMMAND git rev-list origin/master..HEAD
     COMMAND wc -l
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE _out_git
