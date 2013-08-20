@@ -88,16 +88,6 @@ set(CMAKE_CXX_FLAGS "-Wall ")
 # Check for some compiler stuff
 include(CMakeBackwardCompatibilityCXX)
 
-# find libklio
-find_package(Libklio)
-if( LIBKLIO_FOUND )
-  FIND_PACKAGE(Sqlite)
-  FIND_PACKAGE(OpenSSL REQUIRED)
-  FIND_PACKAGE(Gnutls REQUIRED)
-  add_definitions ("-DBOOST_FILESYSTEM_VERSION=3")
-	add_subdirectory(libhexalog)
-endif( LIBKLIO_FOUND )
-
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
 SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
@@ -105,6 +95,16 @@ SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
 set(Boost_USE_STATIC_LIBS ON)
 SET(Boost_DETAILED_FAILURE_MSG true)
 FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS test_exec_monitor program_options filesystem system date_time thread)
+
+# find libklio
+find_package(Libklio)
+if( LIBKLIO_FOUND )
+  FIND_PACKAGE(Sqlite)
+  FIND_PACKAGE(OpenSSL REQUIRED)
+  FIND_PACKAGE(Gnutls REQUIRED)
+  add_definitions ("-DBOOST_FILESYSTEM_VERSION=3")
+  add_subdirectory(libhexalog)
+endif( LIBKLIO_FOUND )
 
 # libjson
 include(FindJson)
