@@ -28,7 +28,7 @@ class Logger : private PacketVisitor {
 
 		boost::asio::ip::address_v6 source;
 
-		const char* eid_to_unit(uint32_t eid);
+		virtual const char* eid_to_unit(uint32_t eid);
 
 		void on_sensor_name_received(const std::string& sensor_name, const hexabus::Packet& ep_info);
 
