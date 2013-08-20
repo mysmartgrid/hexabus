@@ -29,7 +29,7 @@ namespace po = boost::program_options;
 
 #include <unistd.h>
 
-#include <libhexalog/logger.hpp>
+#include <libhexabus/logger.hpp>
 
 #include "resolv.hpp"
 

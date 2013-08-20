@@ -1,7 +1,13 @@
 # -*- mode: cmake; -*-
 
 
-file(GLOB hdrs *.h *.hpp)
+if(LIBKLIO_FOUND)
+	file(GLOB hdrs *.h *.hpp logger/*.h logger/*.hpp)
+	file(GLOB all_hexabus_src *.cpp *.hpp logger/*.cpp logger/*.hpp)
+else()
+	file(GLOB hdrs *.h *.hpp)
+	file(GLOB all_hexabus_src *.cpp *.hpp)
+endif()
 install(FILES ${hdrs} DESTINATION include/libhexabus)
 
 configure_file(config.h.in ${CMAKE_BINARY_DIR}/libhexabus/config.h)
@@ -15,7 +21,6 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${CMAKE_CURRENT_BINARY_DIR}
 )
-file(GLOB all_hexabus_src *.cpp *.hpp)
 set(hexabus_src ${all_hexabus_src})
 ADD_LIBRARY(hexabus ${hexabus_src})
 
