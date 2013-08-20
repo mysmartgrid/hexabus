@@ -20,6 +20,7 @@ include_directories(
   ${CMAKE_BINARY_DIR}
   ${Boost_INCLUDE_DIRS}
   ${CMAKE_CURRENT_BINARY_DIR}
+  ${LIBKLIO_INCLUDE_DIR}
 )
 set(hexabus_src ${all_hexabus_src})
 ADD_LIBRARY(hexabus ${hexabus_src})
