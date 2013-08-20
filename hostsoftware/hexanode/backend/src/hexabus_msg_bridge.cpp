@@ -19,25 +19,19 @@
 #include <libhexabus/socket.hpp>
 #include <libhexabus/endpoint_registry.hpp>
 
+#include <libhexabus/logger.hpp>
+
 namespace po = boost::program_options;
 
-struct ReadingLogger : private hexabus::PacketVisitor {
+struct ReadingLogger : public hexabus::Logger {
 	private:
 		klio::Store::Ptr store;
-		klio::TimeConverter::Ptr tc;
-		klio::SensorFactory::Ptr sensor_factory;
-		std::string timezone;
+		
+		static const char* UNKNOWN_UNIT;
 
-		boost::asio::ip::address_v6 source;
-		hexabus::EndpointRegistry ep_registry;
-
-		const char* eidToUnit(uint32_t eid) {
-			hexabus::EndpointRegistry::const_iterator found = ep_registry.find(eid);
-
-			if (found == ep_registry.end() || !found->second.unit())
-				return NULL;
-
-			const std::string& unit = *found->second.unit();
+		const char* eid_to_unit(uint32_t eid)
+		{
+			std::string unit(hexabus::Logger::eid_to_unit(eid));
 
 			if (unit == "kWh")
 				return "kWh";
@@ -47,105 +41,54 @@ struct ReadingLogger : private hexabus::PacketVisitor {
 				return "rh";
 			else if (unit == "hPa")
 				return "hPa";
+			else
+				return UNKNOWN_UNIT;
+		}
 
-			return NULL;
-    }
-
-		void acceptPacket(float reading, uint32_t eid)
+		klio::Sensor::Ptr lookup_sensor(const std::string& name)
 		{
+			std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_name(name);
+			return sensors.size()
+				? sensors[0]
+				: klio::Sensor::Ptr();
+		}
+
+		void new_sensor_found(klio::Sensor::Ptr sensor)
+		{
+			if (sensor->unit() == UNKNOWN_UNIT)
+				return;
+
+			store->add_sensor(sensor);
+			std::cout << "Created new sensor: " << sensor->str() << std::endl;
+		}
+
+		void record_reading(klio::Sensor::Ptr sensor, klio::timestamp_t ts, double value)
+		{
+			if (sensor->unit() == UNKNOWN_UNIT)
+				return;
+
 			try {
-				time_t now = tc->get_timestamp();
-
-				//Validate unit
-				const char* unit = eidToUnit(eid);
-				if (!unit) {
-					return;
-				}
-
-				//Create unique ID for each info message and sensor, <ip>+<endpoint>
-				std::ostringstream oss;
-				oss << source.to_string() << "-" << eid;
-				std::string sensor_name(oss.str());
-
-				std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_name(sensor_name);
-				klio::Sensor::Ptr sensor;
-
-				//If sensor already exists
-				if (sensors.size() > 0) {
-					std::vector<klio::Sensor::Ptr>::iterator it = sensors.begin();
-					sensor = (*it);
-
-				} else {
-					//Create a new sensor
-					sensor = sensor_factory->createSensor(sensor_name, unit, timezone);
-					store->add_sensor(sensor);
-					std::cout << sensor_name << "   " <<
-						now << "   created" << std::endl;
-				}
-				store->add_reading(sensor, now, reading);
-
+				store->add_reading(sensor, ts, value);
+				std::cout << "Added reading " << value << " to sensor " << sensor->name() << std::endl;
 			} catch (klio::StoreException const& ex) {
 				std::cout << "Failed to record reading: " << ex.what() << std::endl;
-
 			} catch (std::exception const& ex) {
 				std::cout << "Failed to record reading: " << ex.what() << std::endl;
 			}
 		}
 
-		// these packets contain readings. process them.
-		virtual void visit(const hexabus::InfoPacket<bool>& info)
-		{
-			acceptPacket(info.value(), info.eid());
-		}
-		virtual void visit(const hexabus::InfoPacket<uint8_t>& info)
-		{
-			acceptPacket(info.value(), info.eid());
-		}
-		virtual void visit(const hexabus::InfoPacket<uint32_t>& info)
-		{
-			acceptPacket(info.value(), info.eid());
-		}
-		virtual void visit(const hexabus::InfoPacket<float>& info)
-		{
-			acceptPacket(info.value(), info.eid());
-		}
-
-		// don't process these packets, they never contain useful readings
-		virtual void visit(const hexabus::ErrorPacket & error) { }
-		virtual void visit(const hexabus::QueryPacket & query) { }
-		virtual void visit(const hexabus::EndpointQueryPacket & endpointQuery) { }
-		virtual void visit(const hexabus::EndpointInfoPacket & endpointInfo) { }
-		virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) { }
-		virtual void visit(const hexabus::InfoPacket<std::string>& info) { }
-		virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info) { }
-		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { }
-		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { }
-		virtual void visit(const hexabus::WritePacket<bool>& write) { }
-		virtual void visit(const hexabus::WritePacket<uint8_t>& write) { }
-		virtual void visit(const hexabus::WritePacket<uint32_t>& write) { }
-		virtual void visit(const hexabus::WritePacket<float>& write) { }
-		virtual void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) { }
-		virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) { }
-		virtual void visit(const hexabus::WritePacket<std::string>& write) { }
-		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) { }
-		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) { }
-
 	public:
-		ReadingLogger(const klio::Store::Ptr& store,
-				const klio::TimeConverter::Ptr& tc,
-				const klio::SensorFactory::Ptr& sensor_factory,
-				const std::string & timezone)
-			: store(store), tc(tc), sensor_factory(sensor_factory), timezone(timezone)
+		ReadingLogger(klio::TimeConverter& tc,
+			klio::SensorFactory& sensor_factory,
+			const std::string& sensor_timezone,
+			hexabus::DeviceInterrogator& interrogator,
+			hexabus::EndpointRegistry& registry,
+			klio::Store::Ptr store)
+			: Logger(tc, sensor_factory, sensor_timezone, interrogator, registry), store(store)
 		{
-		}
-
-		void onPacket(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint & from)
-		{
-			source = from.address().to_v6();
-			visitPacket(packet);
 		}
 };
-
+const char* ReadingLogger::UNKNOWN_UNIT = "unknown";
 
 class BridgeConfiguration {
 	private:
@@ -214,6 +157,9 @@ enum ErrorCode {
     ERR_OTHER = 127
 };
 
+static const char* STORE_TYPE = "raspberrypi";
+static const char* STORE_DESCRIPTION = "Hexabus sensor log";
+
 static ErrorCode create_new_store(const std::string&  config, boost::optional<const std::string&> url)
 {
 	boost::uuids::random_generator new_uuid;
@@ -224,7 +170,9 @@ static ErrorCode create_new_store(const std::string&  config, boost::optional<co
 		store = store_factory.create_msg_store(
 				*url,
 				to_string(new_uuid()),
-				to_string(new_uuid()));
+				to_string(new_uuid()),
+				STORE_DESCRIPTION,
+				STORE_TYPE);
 	} else {
 		store = store_factory.create_msg_store();
 	}
@@ -317,7 +265,7 @@ int main(int argc, char** argv)
 		}
 
 		BridgeConfiguration& store_config = *parsed_config;
-		klio::MSGStore::Ptr store = store_factory.create_msg_store(store_config.url(), store_config.device_id(), store_config.device_key());
+		klio::MSGStore::Ptr store = store_factory.create_msg_store(store_config.url(), store_config.device_id(), store_config.device_key(), STORE_DESCRIPTION, STORE_TYPE);
 
 		if (vm.count("activationcode")) {
 			std::cout << store->activation_code() << std::endl;
@@ -352,9 +300,11 @@ int main(int argc, char** argv)
 				klio::SensorFactory::Ptr sensor_factory(new klio::SensorFactory());
 				klio::TimeConverter::Ptr tc(new klio::TimeConverter());
 
-				ReadingLogger logger(store, tc, sensor_factory, timezone);
+				hexabus::DeviceInterrogator interrogator(socket);
+				hexabus::EndpointRegistry registry;
+				ReadingLogger logger(*tc, *sensor_factory, timezone, interrogator, registry, store);
 
-				socket.onPacketReceived(boost::bind(&ReadingLogger::onPacket, &logger, _1, _2));
+				socket.onPacketReceived(boost::ref(logger));
 
 				io.run();
 			} catch (const hexabus::NetworkException& e) {
