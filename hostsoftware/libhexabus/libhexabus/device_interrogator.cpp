@@ -5,7 +5,7 @@
 #include <boost/scope_exit.hpp>
 
 #include "filtering.hpp"
-#include "../../../../shared/endpoints.h"
+#include "../../../shared/endpoints.h"
 
 using namespace hexabus;
 

@@ -1,6 +1,6 @@
 #include "logger.hpp"
 
-#include "../../../../shared/endpoints.h"
+#include "../../../shared/endpoints.h"
 
 using namespace hexabus;
 
