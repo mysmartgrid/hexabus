@@ -50,6 +50,7 @@ set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-unused-variable")
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-unknown-pragmas")
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-delete-non-virtual-dtor")
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-type-limits")
+set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-uninitialized")
 
 if (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
   set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-deprecated-writable-strings")

@@ -38,6 +38,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_SOURCE_DIR}/../../cmak
 
 if(CMAKE_TOOLCHAIN_FILE)
   list(APPEND CMAKE_FIND_ROOT_PATH ${HXB_HOME})
+  list(APPEND CMAKE_FIND_ROOT_PATH ${LIBKLIO_HOME})
 endif()
 
 include ( CompilerFlags )
