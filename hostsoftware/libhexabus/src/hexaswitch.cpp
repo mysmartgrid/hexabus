@@ -456,7 +456,11 @@ int main(int argc, char** argv) {
 	if (command == C_LISTEN) {
     std::cout << "Entering listen mode." << std::endl;
 		try {
-			network->listen(bind_addr);
+			if (!vm.count("bind")) {
+				network->listen();
+			} else {
+				network->listen(bind_addr);
+			}
 		} catch (const hexabus::NetworkException& e) {
 			std::cerr << "Cannot listen on " << bind_addr << ": " << e.code().message() << std::endl;
 			return ERR_NETWORK;
