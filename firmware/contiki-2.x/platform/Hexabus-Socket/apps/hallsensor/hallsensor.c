@@ -35,15 +35,18 @@ ENDPOINT_DESCRIPTOR endpoint_hallsensor = {
 };
 
 void hallsensor_init() {
+#if HALLSENSOR_ENABLE
 	ADMUX = (0<<REFS1) | (1<<REFS0); // AVCC as reference
 	ADCSRA = (1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2); // prescaler 128
 	ADCSRA |= (1<<ADATE) | (1<<ADIE); // free running adc with interrupt enabled
 	ADCSRB &= ~((1<<ADTS2) | (1<<ADTS1) | (1<<ADTS0));
 	ADMUX = (ADMUX & ~(HALLSENSOR_MUX_BITS)) | (HALLSENSOR_PIN & HALLSENSOR_MUX_BITS); // select pin
 	ADCSRA |= (1<<ADEN); //enable ADC
+	ADCSRA |= (1<<ADSC); //start first conversion
 
-#if HALLSENSOR_ENABLE
 	ENDPOINT_REGISTER(endpoint_hallsensor);
+
+	pos = 0;
 #endif
 #if HALLSENSOR_FAULT_ENABLE
 	DDRC |= (1<<HALLSENSOR_FAULT_EN); // PC6 (FAULT_EN) as output
