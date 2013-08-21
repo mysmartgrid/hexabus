@@ -7,24 +7,21 @@
 //#include "value_broadcast.h"
 #include "endpoints.h"
 #include "endpoint_registry.h"
+#include <avr/interrupt.h>
+#include <stdlib.h>
 
 #define LOG_LEVEL HALLSENSOR_DEBUG
 #include "syslog.h"
 
 static uint16_t samples[96];
 static uint8_t pos;
+volatile static float average;
 
 static enum hxb_error_code read_hallsensor(struct hxb_value* value)
 {
 	syslog(LOG_DEBUG, "Reading hallsensor value");
-	//value->v_float = get_analogvalue();
-	float mean = 0;
-	for ( uint8_t i = 0; i < 96; i++ )
-	{
-		mean += samples[i];
-	}
-	value->v_float = mean/96;
-	syslog(LOG_DEBUG, "Hallsensor value read: %f", value->v_float);
+	value->v_float = average;
+
 	return HXB_ERR_SUCCESS;
 }
 
@@ -61,6 +58,15 @@ ISR(ADC_vect)
 {
 	samples[pos++] = ADCW;
 	if ( pos >= 96 )
+	{
 		pos = 0;
+		uint16_t mean = 0;
+		for ( uint8_t i = 0; i < 96; i++ )
+		{
+			mean += abs(samples[i] - 512);
+		}
+		uint32_t v = ((uint32_t)mean)*322;
+		average = ((float)v)/1848.0/96.0*230.0;
+	}
 }
 
