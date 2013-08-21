@@ -18,6 +18,7 @@ include_directories(
   ${RTMIDI_INCLUDE_DIR}
   ${CPPNETLIB_INCLUDE_DIR}
   ${HXB_INCLUDE_DIR}
+  ${LIBKLIO_INCLUDE_DIR}
 )
 #link_directories(
 #  #  ${SQLITE3_STATIC_LIBRARY_DIRS}
@@ -57,6 +58,7 @@ target_link_libraries(hexabus_msg_bridge
   ${SQLITE3_LIBRARIES}
   ${GNUTLS_LIBRARIES}
   ${OPENSSL_CRYPTO_LIBRARY}
+  ${LIBKLIO_LIBRARY}
   pthread
 )
 

@@ -1,3 +1,4 @@
+# -*- mode: cmake; -*-
 # - Find CPPNETLIB
 # Find the native CPPNETLIB includes and library
 #
