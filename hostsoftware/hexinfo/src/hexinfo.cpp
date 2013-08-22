@@ -516,7 +516,8 @@ int main(int argc, char** argv)
 			print_dev_info(device);
 			std::cout << std::endl;
 			for(std::set<endpoint_descriptor>::iterator it = endpoints.begin(); it != endpoints.end(); ++it)
-				print_ep_info(*it);
+				if (device.endpoint_ids.count(it->eid))
+					print_ep_info(*it);
 		}
 
 		devices.insert(device);
