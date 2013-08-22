@@ -19,7 +19,7 @@
 #include <libhexabus/socket.hpp>
 #include <libhexabus/endpoint_registry.hpp>
 
-#include <libhexabus/logger.hpp>
+#include <libhexabus/logger/logger.hpp>
 
 namespace po = boost::program_options;
 
