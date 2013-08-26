@@ -196,8 +196,8 @@ void get_aes128key_from_eeprom(uint8_t keyptr[16]) {
 /*------Done in a subroutine to keep main routine stack usage small--------*/
 void initialize(void)
 {
-  watchdog_init();
-  watchdog_start();
+//  watchdog_init();
+//  watchdog_start();
 	button_handlers_init();
 
   init_lowlevel();
@@ -412,14 +412,28 @@ extern char rf212_interrupt_flag, rf212processflag; // this is still not impleme
 /*-------------------------------------------------------------------------*/
 /*------------------------- Main Scheduler loop----------------------------*/
 /*-------------------------------------------------------------------------*/
+#include "epaper.h"
+#include "epd27.h"
 int
 main(void)
 {
   initialize();
 
+	epd27_init();
+
+	int i = 1;
+	int x = 0;
   while(1) {
+		printf("asdf %i\n", x);
+		if ((x++ & 0xfff) == 0) {
+			printf("begin %i\n", i++);
+			epaper_cat();
+			printf("done\n");
+		}
+		epd27_pwm_release();
     process_run();
     watchdog_periodic();
+		epd27_pwm_init();
 
 }
   return 0;
