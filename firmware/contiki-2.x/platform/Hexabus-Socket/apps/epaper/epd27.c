@@ -204,6 +204,12 @@ void epd27_image_at45(uint16_t pageindex, EPD_stage stage) {
 
 
 
+static void spi_delay10us_send(const uint8_t *buffer, uint16_t length)
+{
+	_delay_us(10);
+	SPI_send(buffer, length);
+}
+
 void epd27_begin(void) {
   // power up sequence
   uart_puts_P("\r\nEPD27 begin.");
@@ -243,89 +249,65 @@ void epd27_begin(void) {
   epd27_wait_cog_ready();
 
 // channel select
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x01), 2);
-	_delay_us(10);
-	SPI_send(channel_select, channel_select_length);
+	spi_delay10us_send(CU8(0x70, 0x01), 2);
+	spi_delay10us_send(channel_select, channel_select_length);
 
 	// DC/DC frequency
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x06), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0xff), 2);
+	spi_delay10us_send(CU8(0x70, 0x06), 2);
+	spi_delay10us_send(CU8(0x72, 0xff), 2);
 
 	// high power mode osc
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x07), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x9d), 2);
+	spi_delay10us_send(CU8(0x70, 0x07), 2);
+	spi_delay10us_send(CU8(0x72, 0x9d), 2);
 
 
 	// disable ADC
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x08), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x00), 2);
+	spi_delay10us_send(CU8(0x70, 0x08), 2);
+	spi_delay10us_send(CU8(0x72, 0x00), 2);
 
 	// Vcom level
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x09), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0xd0, 0x00), 3);
+	spi_delay10us_send(CU8(0x70, 0x09), 2);
+	spi_delay10us_send(CU8(0x72, 0xd0, 0x00), 3);
 
 	// gate and source voltage levels
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x04), 2);
-	_delay_us(10);
-	SPI_send(gate_source, gate_source_length);
+	spi_delay10us_send(CU8(0x70, 0x04), 2);
+	spi_delay10us_send(gate_source, gate_source_length);
 
 	_delay_ms(5);  //???
 
 	// driver latch on
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x03), 2);
-	_delay_us(10);
-  SPI_send(CU8(0x72, 0x01), 2);
+	spi_delay10us_send(CU8(0x70, 0x03), 2);
+  spi_delay10us_send(CU8(0x72, 0x01), 2);
 
 	// driver latch off
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x03), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x00), 2);
+	spi_delay10us_send(CU8(0x70, 0x03), 2);
+	spi_delay10us_send(CU8(0x72, 0x00), 2);
 
 	_delay_ms(5);
 
 	// charge pump positive voltage on
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x05), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x01), 2);
+	spi_delay10us_send(CU8(0x70, 0x05), 2);
+	spi_delay10us_send(CU8(0x72, 0x01), 2);
 
 	// final delay before PWM off
 	_delay_ms(30);
 	PWM_stop();
 
 	// charge pump negative voltage on
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x05), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x03), 2);
+	spi_delay10us_send(CU8(0x70, 0x05), 2);
+	spi_delay10us_send(CU8(0x72, 0x03), 2);
 
 	_delay_ms(30);
 
 	// Vcom driver on
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x05), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x0f), 2);
+	spi_delay10us_send(CU8(0x70, 0x05), 2);
+	spi_delay10us_send(CU8(0x72, 0x0f), 2);
 
 	_delay_ms(30);
 
 	// output enable to disable
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x02), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x24), 2);
+	spi_delay10us_send(CU8(0x70, 0x02), 2);
+	spi_delay10us_send(CU8(0x72, 0x24), 2);
 }
 
 void epd27_end(void) {
@@ -339,70 +321,50 @@ void epd27_end(void) {
 	//digitalWrite(this->EPD_Pin_BORDER, HIGH);
 
 	// latch reset turn on
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x03), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x01), 2);
+	spi_delay10us_send(CU8(0x70, 0x03), 2);
+	spi_delay10us_send(CU8(0x72, 0x01), 2);
 
 	// output enable off
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x02), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x05), 2);
+	spi_delay10us_send(CU8(0x70, 0x02), 2);
+	spi_delay10us_send(CU8(0x72, 0x05), 2);
 
 	// Vcom power off
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x05), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x0e), 2);
+	spi_delay10us_send(CU8(0x70, 0x05), 2);
+	spi_delay10us_send(CU8(0x72, 0x0e), 2);
 
 	// power off negative charge pump
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x05), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x02), 2);
+	spi_delay10us_send(CU8(0x70, 0x05), 2);
+	spi_delay10us_send(CU8(0x72, 0x02), 2);
 
 	// discharge
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x04), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x0c), 2);
+	spi_delay10us_send(CU8(0x70, 0x04), 2);
+	spi_delay10us_send(CU8(0x72, 0x0c), 2);
 
 	_delay_ms(120);
 
 	// all charge pumps off
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x05), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x00), 2);
+	spi_delay10us_send(CU8(0x70, 0x05), 2);
+	spi_delay10us_send(CU8(0x72, 0x00), 2);
 
 	// turn of osc
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x07), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x0d), 2);
+	spi_delay10us_send(CU8(0x70, 0x07), 2);
+	spi_delay10us_send(CU8(0x72, 0x0d), 2);
 
 	// discharge internal - 1
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x04), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x50), 2);
+	spi_delay10us_send(CU8(0x70, 0x04), 2);
+	spi_delay10us_send(CU8(0x72, 0x50), 2);
 
 	_delay_ms(40);
 
 	// discharge internal - 2
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x04), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0xA0), 2);
+	spi_delay10us_send(CU8(0x70, 0x04), 2);
+	spi_delay10us_send(CU8(0x72, 0xA0), 2);
 
 	_delay_ms(40);
 
 	// discharge internal - 3
-	_delay_us(10);
-	SPI_send(CU8(0x70, 0x04), 2);
-	_delay_us(10);
-	SPI_send(CU8(0x72, 0x00), 2);
+	spi_delay10us_send(CU8(0x70, 0x04), 2);
+	spi_delay10us_send(CU8(0x72, 0x00), 2);
 
 	// turn of power and all signals
 	//digitalWrite(this->EPD_Pin_RESET, LOW);
@@ -480,7 +442,6 @@ void epd27_frame_fixed_repeat(uint8_t fixed_value, EPD_stage stage) {
 		} else {
 			stage_time -= t_start - t_end + 1 + UINT16_MAX;
 		}
-		printf("%u %u %i\n", t_start, t_end, stage_time);
 	} while (stage_time > 0);
 }
 
@@ -523,14 +484,11 @@ int epd27_temperature_to_factor_10x(int temperature) {
 void epd27_line(uint16_t line, const uint8_t *data, 
     uint8_t fixed_value, bool read_progmem, EPD_stage stage) {
   // charge pump voltage levels
-  _delay_us(10);
-  SPI_send(CU8(0x70, 0x04), 2);
-  _delay_us(10);
-  SPI_send(gate_source, gate_source_length);
+  spi_delay10us_send(CU8(0x70, 0x04), 2);
+  spi_delay10us_send(gate_source, gate_source_length);
 
   // send data
-  _delay_us(10);
-  SPI_send(CU8(0x70, 0x0a), 2);
+  spi_delay10us_send(CU8(0x70, 0x0a), 2);
   _delay_us(10);
 
   // CS low
@@ -621,10 +579,8 @@ void epd27_line(uint16_t line, const uint8_t *data,
   epd27_cs_high();
 
   // output data to panel
-  _delay_us(10);
-  SPI_send(CU8(0x70, 0x02), 2);
-  _delay_us(10);
-  SPI_send(CU8(0x72, 0x2f), 2);
+  spi_delay10us_send(CU8(0x70, 0x02), 2);
+  spi_delay10us_send(CU8(0x72, 0x2f), 2);
 
 }
 
