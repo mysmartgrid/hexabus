@@ -17,12 +17,10 @@
 
 static uint16_t epd27_factored_stage_time = STAGE_TIME;
 // magic foo.
-static uint8_t cs[] = {0x72, 0x00, 0x00, 0x00, 0x7f, 0xff, 0xfe, 0x00, 0x00};
-static uint8_t gs[] = {0x72, 0x00};
-PROGMEM const prog_uint8_t *channel_select = cs;
-uint16_t channel_select_length = sizeof(cs);
-PROGMEM const prog_uint8_t *gate_source = gs;
-uint16_t gate_source_length = sizeof(gs);
+static uint8_t channel_select[] = {0x72, 0x00, 0x00, 0x00, 0x7f, 0xff, 0xfe, 0x00, 0x00};
+static uint8_t gate_source[] = {0x72, 0x00};
+uint16_t channel_select_length = sizeof(channel_select);
+uint16_t gate_source_length = sizeof(gate_source);
 
 /**
  * helper functions
@@ -74,12 +72,12 @@ void SPI_send(const uint8_t *buffer, uint16_t length) {
 }
 
 
-void PWM_start() {
+static void PWM_start() {
   TCCR0B |= (1<<CS10); // enable counter, no prescaling
 }
 
 
-void PWM_stop() {
+static void PWM_stop() {
   TCCR0B &= ~((1<<CS10)); // disable counter
   //_delay_ms(1);
   EPD_PORT_PWM &= ~(1 << EPD_PIN_PWM); // set pin low.
@@ -431,7 +429,7 @@ void epd27_frame_data(const prog_uint8_t *image, EPD_stage stage) {
 
 void epd27_frame_fixed_repeat(uint8_t fixed_value, EPD_stage stage) {
   uart_puts_P("\r\nEPD27 frame_fixed_repeat");
-  int16_t stage_time = epd27_factored_stage_time;
+  int32_t stage_time = epd27_factored_stage_time;
 	do {
     uart_puts_P(".");
 		uint16_t t_start = millis();
@@ -446,7 +444,7 @@ void epd27_frame_fixed_repeat(uint8_t fixed_value, EPD_stage stage) {
 }
 
 void epd27_frame_data_repeat(const prog_uint8_t *new_image, EPD_stage stage){
-  int16_t stage_time = epd27_factored_stage_time;
+  int32_t stage_time = epd27_factored_stage_time;
 	do {
 		uint16_t t_start = millis();
 		epd27_frame_data(new_image, stage);
