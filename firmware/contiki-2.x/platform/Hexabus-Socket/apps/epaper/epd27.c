@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <util/delay.h>
-#include <sys/clock.h>
+#include <dev/watchdog.h>
 
 #define uart_puts_P printf
 
@@ -28,11 +28,6 @@ uint16_t gate_source_length = sizeof(gate_source);
 /**
  * helper functions
  */
-
-static uint16_t millis()
-{
-	return clock_time() * (1000 / CLOCK_CONF_SECOND);
-}
 
 // map to spi library
 void SPI_put(uint8_t c) {
@@ -502,7 +497,6 @@ int epd27_temperature_to_factor_10x(int temperature) {
   return 7;
 
 }
-#include <avr/wdt.h>
 
 // single line display - very low-level
 // also has to handle AVR progmem
@@ -512,7 +506,7 @@ void epd27_line(uint16_t line, const uint8_t *data,
   spi_delay10us_send(CU8(0x70, 0x04), 2);
   spi_delay10us_send(gate_source, gate_source_length);
 
-	wdt_reset();
+	watchdog_periodic();
 
   // send data
   spi_delay10us_send(CU8(0x70, 0x0a), 2);

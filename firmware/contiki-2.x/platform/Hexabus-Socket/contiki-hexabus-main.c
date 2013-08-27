@@ -423,7 +423,7 @@ main(void)
 	int x = 0;
   while(1) {
 		printf("asdf %i\n", x);
-		if ((++x & 0x3ff) == 0) {
+		if ((++x & 0xfff) == 0) {
 			printf("begin %i\n", i++);
 			epaper_cat();
 			printf("done\n");

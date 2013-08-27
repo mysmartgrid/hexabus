@@ -8,7 +8,8 @@
 
 #include "cat_2_7.xbm"
 
-static int idx = 4;
+static int idx = 1;
+static int old_idx = -1;
 
 void epaper_cat()
 {
@@ -18,10 +19,17 @@ void epaper_cat()
   epd27_wait_cog_ready();
   epd27_begin(); // power up the EPD panel
   epd27_set_temperature(22); // adjust for current temperature
-  epd27_clear();
-	idx += 11;
-	epd27_image_at45(idx, EPD_inverse);
-	epd27_image_at45(idx, EPD_normal);
+	if (old_idx == -1) {
+		epd27_clear();
+	} else {
+		epd27_image_at45(4 + 11 * old_idx, EPD_compensate);
+		epd27_image_at45(4 + 11 * old_idx, EPD_white);
+	}
+	old_idx = idx;
+	epd27_image_at45(4 + 11 * idx, EPD_inverse);
+	epd27_image_at45(4 + 11 * idx, EPD_normal);
+	if (++idx == 6)
+		idx = 0;
 //  epd27_image_whitescreen(cat_2_7_bits);
   epd27_end();   // power down the EPD panel
 	at45_release();
