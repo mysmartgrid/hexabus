@@ -26,7 +26,9 @@ struct at45_page_t {
   uint8_t data[AT45_PAGE_SIZE];
 };
 
-void at45_init(void);
+void at45_acquire(void);
+void at45_release(void);
+
 void at45_erase_all_pages(void);
 uint8_t at45_status(void); 
 uint8_t at45_is_ready(void);

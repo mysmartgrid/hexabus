@@ -15,7 +15,10 @@
 #define CU8(...) (ARRAY(const uint8_t, __VA_ARGS__))
 
 
-static uint16_t epd27_factored_stage_time = STAGE_TIME;
+// STAGE_TIME is smaller than the time needed for one iteration at the default
+// frequency of a hexabus device with a temperature correction factor for 22°C
+// this, store only an iteration count relative to that.
+static uint16_t epd27_stage_iterations = 0;
 // magic foo.
 static uint8_t channel_select[] = {0x72, 0x00, 0x00, 0x00, 0x7f, 0xff, 0xfe, 0x00, 0x00};
 static uint8_t gate_source[] = {0x72, 0x00};
@@ -41,10 +44,6 @@ void epd27_wait_cog_ready(void) {
       (EPD_INPUT_PORT_BUSY & (1<<EPD_PIN_BUSY))) {
     ;;
 	}
-}
-
-uint16_t epd27_get_factored_stage_time(void) {
-  return epd27_factored_stage_time;
 }
 
 void epd27_cs_low(void) {
@@ -90,7 +89,7 @@ static void PWM_stop() {
 
 static uint8_t port_pwm, ddr_pwm, tccr0a, ocr0b;
 
-void epd27_pwm_init(void) {
+static void epd27_pwm_acquire(void) {
 	port_pwm = EPD_PORT_PWM;
 	ddr_pwm = EPD_DDR_PWM;
 	tccr0a = TCCR0A;
@@ -106,7 +105,7 @@ void epd27_pwm_init(void) {
   OCR0B = 128-1; // Duty cycle 50% (Anm. ob 128 oder 127 bitte prüfen) 
 }
 
-void epd27_pwm_release()
+static void epd27_pwm_release()
 {
 	EPD_PORT_PWM = port_pwm;
 	EPD_DDR_PWM = ddr_pwm;
@@ -115,8 +114,30 @@ void epd27_pwm_release()
 }
 
 
-void epd27_init(void) {
+static uint8_t port_epd_cs, ddr_epd_cs;
+static uint8_t port_panel_on, ddr_panel_on;
+static uint8_t port_border, ddr_border;
+static uint8_t port_discharge, ddr_discharge;
+static uint8_t port_reset, ddr_reset;
+static uint8_t port_busy, ddr_busy;
+
+void epd27_acquire(void) {
   uart_puts_P("\r\nEPD27 init.");
+
+	port_epd_cs = EPD_PORT_EPD_CS;
+	port_panel_on = EPD_PORT_PANEL_ON;
+	port_border = EPD_PORT_BORDER;
+	port_discharge = EPD_PORT_DISCHARGE;
+	port_reset = EPD_PORT_RESET;
+	port_busy = EPD_PORT_BUSY;
+	ddr_epd_cs = EPD_DDR_EPD_CS;
+	ddr_panel_on = EPD_DDR_PANEL_ON;
+	ddr_border = EPD_DDR_BORDER;
+	ddr_discharge = EPD_DDR_DISCHARGE;
+	ddr_reset = EPD_DDR_RESET;
+	ddr_busy = EPD_DDR_BUSY;
+
+
   // Configure output pins.
   EPD_PORT_EPD_CS |= (1 << EPD_PIN_EPD_CS);
   EPD_DDR_EPD_CS |= (1 << EPD_PIN_EPD_CS);
@@ -141,7 +162,25 @@ void epd27_init(void) {
   //EPD_PORT_EPD_CS &= ~(1 << EPD_PIN_EPD_CS);
   epd27_cs_low();
 
-  epd27_pwm_init();
+  epd27_pwm_acquire();
+}
+
+void epd27_release()
+{
+	epd27_pwm_release();
+
+	EPD_PORT_EPD_CS = port_epd_cs;
+	EPD_PORT_PANEL_ON = port_panel_on;
+	EPD_PORT_BORDER = port_border;
+	EPD_PORT_DISCHARGE = port_discharge;
+	EPD_PORT_RESET = port_reset;
+	EPD_PORT_BUSY = port_busy;
+	EPD_DDR_EPD_CS = ddr_epd_cs;
+	EPD_DDR_PANEL_ON = ddr_panel_on;
+	EPD_DDR_BORDER = ddr_border;
+	EPD_DDR_DISCHARGE = ddr_discharge;
+	EPD_DDR_RESET = ddr_reset;
+	EPD_DDR_BUSY = ddr_busy;
 }
 
 
@@ -385,7 +424,9 @@ void epd27_end(void) {
 }
 
 void  epd27_set_temperature(int16_t temperature) {
-  epd27_factored_stage_time = STAGE_TIME * epd27_temperature_to_factor_10x(temperature) / 10;
+	epd27_stage_iterations = epd27_temperature_to_factor_10x(temperature) / epd27_temperature_to_factor_10x(22);
+	if (epd27_stage_iterations == 0)
+		epd27_stage_iterations = 1;
 }
 
 void epd27_clear() {
@@ -427,34 +468,19 @@ void epd27_frame_data(const prog_uint8_t *image, EPD_stage stage) {
 }
 
 
-void epd27_frame_fixed_repeat(uint8_t fixed_value, EPD_stage stage) {
+void epd27_frame_fixed_repeat(uint8_t fixed_value, EPD_stage stage)
+{
   uart_puts_P("\r\nEPD27 frame_fixed_repeat");
-  int32_t stage_time = epd27_factored_stage_time;
-	do {
+	for (int16_t iterations_left = epd27_stage_iterations; iterations_left > 0; iterations_left--) {
     uart_puts_P(".");
-		uint16_t t_start = millis();
 		epd27_frame_fixed(fixed_value, stage);
-		uint16_t t_end = millis();
-		if (t_end > t_start) {
-			stage_time -= t_end - t_start;
-		} else {
-			stage_time -= t_start - t_end + 1 + UINT16_MAX;
-		}
-	} while (stage_time > 0);
+	}
 }
 
 void epd27_frame_data_repeat(const prog_uint8_t *new_image, EPD_stage stage){
-  int32_t stage_time = epd27_factored_stage_time;
-	do {
-		uint16_t t_start = millis();
+	for (int16_t iterations_left = epd27_stage_iterations; iterations_left > 0; iterations_left--) {
 		epd27_frame_data(new_image, stage);
-		uint16_t t_end = millis();
-		if (t_end > t_start) {
-			stage_time -= t_end - t_start;
-		} else {
-			stage_time -= t_start - t_end + 1 + UINT16_MAX;
-		}
-	} while (stage_time > 0);
+	}
 }
 
 int epd27_temperature_to_factor_10x(int temperature) {
@@ -476,6 +502,7 @@ int epd27_temperature_to_factor_10x(int temperature) {
   return 7;
 
 }
+#include <avr/wdt.h>
 
 // single line display - very low-level
 // also has to handle AVR progmem
@@ -484,6 +511,8 @@ void epd27_line(uint16_t line, const uint8_t *data,
   // charge pump voltage levels
   spi_delay10us_send(CU8(0x70, 0x04), 2);
   spi_delay10us_send(gate_source, gate_source_length);
+
+	wdt_reset();
 
   // send data
   spi_delay10us_send(CU8(0x70, 0x0a), 2);

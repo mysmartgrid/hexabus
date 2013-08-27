@@ -23,7 +23,7 @@ void at45_select(void) {
   AT45_CS_PORT &= ~(1 << AT45_CS); 
 } 
 
-void at45_release(void) { 
+void at45_deselect(void) { 
   AT45_CS_PORT |= (1 << AT45_CS); 
 } 
 
@@ -32,9 +32,18 @@ uint8_t at45_rw(uint8_t data) {
   return spi_rw(data);
 } 
 
+static uint8_t cs_port, sck_port, cs_ddr, mosi_ddr, sck_ddr, miso_ddr, spcr, spsr;
+
 // initialisation of SPI towards the AT45 chip 
-void at45_init(void) __attribute__ ((optimize(1))); 
-void at45_init(void) { 
+void at45_acquire(void) { 
+	cs_port = AT45_CS_PORT;
+	sck_port = AT45_SCK_PORT;
+	cs_ddr = AT45_CS_DDR;
+	mosi_ddr = AT45_MOSI_DDR;
+	sck_ddr = AT45_SCK_DDR;
+	miso_ddr = AT45_MISO_DDR;
+	spcr = SPCR;
+	spsr = SPSR;
   // Configure output pins.
   AT45_CS_PORT  |= (1 << AT45_CS);
   AT45_SCK_PORT |= (1 << AT45_SCK); 
@@ -51,7 +60,19 @@ void at45_init(void) {
  // set SPI rate = CLK/64 
   SPCR = (1<<SPE)|(1<<MSTR)|(1<<SPR1); 
   SPSR &= ~(1<<SPI2X); 
-} 
+}
+
+void at45_release()
+{
+	AT45_CS_PORT = cs_port;
+	AT45_SCK_PORT = sck_port;
+	AT45_CS_DDR = cs_ddr;
+	AT45_MOSI_DDR = mosi_ddr;
+	AT45_SCK_DDR = sck_ddr;
+	AT45_MISO_DDR = miso_ddr;
+	SPCR = spcr;
+	SPSR = spsr;
+}
 
 void at45_erase_all_pages(void) {
   at45_select(); 
@@ -59,7 +80,7 @@ void at45_erase_all_pages(void) {
   at45_rw(0x94); 
   at45_rw(0x80); 
   at45_rw(0x9a); 
-  at45_release(); 
+  at45_deselect(); 
 }
 
 void at45_get_version(struct at45_version_t* version) {
@@ -69,7 +90,7 @@ void at45_get_version(struct at45_version_t* version) {
   version->data[1] = at45_rw(0x00); 
   version->data[2] = at45_rw(0x00); 
   version->data[3] = at45_rw(0x00); 
-  at45_release(); 
+  at45_deselect(); 
 }
 
 
@@ -96,7 +117,7 @@ uint8_t at45_status(void) {
   // do dummy writes.
   at45_rw(0xFF); 
   result = at45_rw(0xFF); 
-  at45_release(); 
+  at45_deselect(); 
   return result; 
 } 
 
@@ -121,7 +142,7 @@ uint8_t at45_read_page_to_buf_1(uint16_t addr_page) {
 	at45_rw((uint8_t) (((addr_page << 2) & 0x3f00) >> 8) );
 	at45_rw((uint8_t) ((addr_page << 2) & 0x00fc) );
 	at45_rw(0x00); 
-	at45_release(); 
+	at45_deselect(); 
 	return 1; 
   } 
   return 0; 
@@ -139,7 +160,7 @@ uint8_t at45_write_from_buf_1(uint16_t addr_page) {
 	at45_rw((uint8_t) (((addr_page << 2) & 0x3f00) >> 8));
 	at45_rw((uint8_t) ((addr_page << 2) & 0x00fc));
 	at45_rw(0x00); 
-	at45_release(); 
+	at45_deselect(); 
 	return 0; 
   } 
   return 1; 
@@ -161,7 +182,7 @@ void at45_read_from_buf_1(uint8_t * dst, uint16_t count, uint16_t addr) {
 	//uart_puts(conversion_buffer);
 	//uart_puts_P(":");
   }
-  at45_release(); 
+  at45_deselect(); 
 } 
 
 void at45_dump_page(struct at45_page_t* page) {
@@ -186,7 +207,7 @@ void at45_write_to_buf_1(const uint8_t *src, uint16_t count, uint16_t addr) {
   at45_rw((uint8_t)addr); 
   //at45_rw(0x00); 
   while(count--) at45_rw(src[i++]); 
-  at45_release();    
+  at45_deselect();    
 
 } 
 

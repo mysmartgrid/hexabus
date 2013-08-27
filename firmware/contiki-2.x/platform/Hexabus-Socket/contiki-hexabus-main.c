@@ -196,8 +196,8 @@ void get_aes128key_from_eeprom(uint8_t keyptr[16]) {
 /*------Done in a subroutine to keep main routine stack usage small--------*/
 void initialize(void)
 {
-//  watchdog_init();
-//  watchdog_start();
+  watchdog_init();
+  watchdog_start();
 	button_handlers_init();
 
   init_lowlevel();
@@ -419,21 +419,17 @@ main(void)
 {
   initialize();
 
-	epd27_init();
-
 	int i = 1;
 	int x = 0;
   while(1) {
 		printf("asdf %i\n", x);
-		if ((x++ & 0xfff) == 0) {
+		if ((++x & 0x3ff) == 0) {
 			printf("begin %i\n", i++);
 			epaper_cat();
 			printf("done\n");
 		}
-		epd27_pwm_release();
     process_run();
     watchdog_periodic();
-		epd27_pwm_init();
 
 }
   return 0;

@@ -16,7 +16,8 @@ typedef enum {           // Image pixel -> Display pixel
 /***
  * high level API
  */
-void epd27_init(void);
+void epd27_acquire(void);
+void epd27_release(void);
 // power up and power down the EPD panel
 void epd27_begin(void);
 void epd27_end(void);
@@ -47,13 +48,10 @@ int epd27_temperature_to_factor_10x(int temperature);
 // also has to handle AVR progmem
 void epd27_line(uint16_t line, const uint8_t *data, 
     uint8_t fixed_value, bool read_progmem, EPD_stage stage);
-uint16_t epd27_get_factored_stage_time(void);
 void epd27_image_transfersection(uint16_t startline, uint16_t endline, 
     struct at45_page_t* page, EPD_stage stage);
 
 
-void epd27_pwm_init(void);
-void epd27_pwm_release();;
 void epd27_wait_cog_ready(void);
 #endif /* EPD27_H */
 
