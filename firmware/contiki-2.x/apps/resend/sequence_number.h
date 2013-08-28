@@ -2,6 +2,7 @@
 #define SEQUENCE_NUMBER_H_
 
 #include <stdint.h>
+#include "process.h"
 
 uint16_t increase_seqnum();
 uint16_t current_seqnum();
@@ -15,6 +16,9 @@ void set_seqnum_invalid();
 int compare_seqnum_greater_than(uint16_t seqnum);
 void send_flag_packet(void* data, int len, uint16_t flags);
 int parse_seqnum_header(int offset);
-void resend_init();
+
+#if RAVEN_REVSISION!=HEXABUS_USB
+PROCESS_NAME(resend_init_process);
+#endif
 
 #endif

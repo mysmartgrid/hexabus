@@ -858,8 +858,6 @@ ext_hdr_options_process(void)
         break;
       case UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM:
 	PRINTF("Processing Hexabus sequence number\n");
-	printf("SeqNumfield: %u\n", UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_BUF->seqnum);
-	printf("Flags: %u\n", UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_BUF->flags);
 	if(parse_seqnum_header(uip_ext_opt_offset)) {
 		return 1;
 	}
@@ -1555,7 +1553,7 @@ uip_process(uint8_t flag)
   uip_ds6_select_src(&UIP_IP_BUF->srcipaddr, &UIP_IP_BUF->destipaddr);
 
 	if (uip_is_addr_unspecified(&UIP_IP_BUF->srcipaddr)) {
-		PRINTF("Not sending from unspecified source\n");
+		printf("Not sending from unspecified source\n");
 		goto drop;
 	}
 

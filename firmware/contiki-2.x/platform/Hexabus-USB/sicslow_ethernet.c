@@ -595,18 +595,21 @@ void mac_LowpanToEthernet(void)
 #endif
 
 /* Parse sequencen number */
+
   uip_ext_len = 0;
 
   if(UIP_IP_BUF->proto == UIP_PROTO_DESTO || UIP_IP_BUF->proto == UIP_PROTO_HBHO) {
     uip_ext_opt_offset = 0;
     
+    printf("parsing seqnum header\n");
+
     while(uip_ext_opt_offset < (UIP_EXT_BUF->len << 3) + 8) {
-        if(UIP_EXT_OPT_BUF->type == UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM) {
-          if(parse_seqnum_header(uip_ext_opt_offset))
-            return;
-        }
-        uip_ext_opt_offset += UIP_EXT_OPT_BUF->len+2;
-     }
+      if(UIP_EXT_OPT_BUF->type == UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM) {
+        if(parse_seqnum_header(uip_ext_opt_offset))
+        return;
+      }
+      uip_ext_opt_offset += UIP_EXT_OPT_BUF->len+2;
+    }
     uip_ext_len += (UIP_EXT_BUF->len << 3) + 8;
   }
 

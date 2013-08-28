@@ -21,4 +21,6 @@ enum hxb_error_code udp_handler_send_generated(const uip_ipaddr_t* toaddr, uint1
 
 enum hxb_error_code udp_handler_send_error(const uip_ipaddr_t* toaddr, uint16_t toport, enum hxb_error_code code);
 
+void udp_handler_send_raw_flags(const uip_ipaddr_t* toaddr, uint16_t toport, uint16_t flags, uint16_t len, void *data);
+
 #endif /* UDP_HANDLER_H_ */

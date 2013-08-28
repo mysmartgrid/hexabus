@@ -175,7 +175,7 @@ extern uint8_t mac_log_802_15_4_rx(const uint8_t* buffer, size_t total_len);
  * run-time configuration (COMx on Windows, ttyACMx on Linux, tty.usbmodemx on Mac)
  * Debug printfs will go to this port unless USB_CONF_RS232 is set.
  */
-#define USB_CONF_SERIAL          1
+#define USB_CONF_SERIAL          0
  
 /* RS232 debugs have less effect on network timing and are less likely
  * to be dropped due to buffer overflow. Only tx is implemented at present.

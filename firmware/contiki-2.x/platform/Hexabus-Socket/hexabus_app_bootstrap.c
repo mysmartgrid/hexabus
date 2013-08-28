@@ -3,6 +3,8 @@
 
 #include "hexabus_app_bootstrap.h"
 
+#include "sequence_number.h"
+
 #include "button.h"
 #include "relay.h"
 #include "metering.h"
@@ -56,6 +58,8 @@ void hexabus_bootstrap_init_apps() {
     metering_stop();
     metering_init();
     metering_start();
+
+    process_start(&resend_init_process, NULL);
 
 #if I2C_ENABLE
     i2c_init();

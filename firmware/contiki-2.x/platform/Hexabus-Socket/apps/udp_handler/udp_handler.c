@@ -232,6 +232,25 @@ enum hxb_error_code udp_handler_send_error(const uip_ipaddr_t* toaddr, uint16_t 
 	return HXB_ERR_SUCCESS;
 }
 
+void udp_handler_send_raw_flags(const uip_ipaddr_t* toaddr, uint16_t toport, uint16_t flags, uint16_t len, void *data) {
+	
+	if (!udpconn) {
+		syslog(LOG_ERR, "Not sending: UDP connection not available");
+		return;
+	}
+
+	if (!toaddr) {
+		toaddr = &hxb_group;
+	}
+
+	if (!toport) {
+		toport = HXB_PORT;
+	}
+
+	uip_udp_packet_sendto_flags(udpconn, data, len, toaddr, UIP_HTONS(toport), flags);
+	syslog(LOG_DEBUG, "Sent flag packet.");
+}
+
 static enum hxb_error_code check_crc(const union hxb_packet_any* packet)
 {
 	uint16_t data_len = 0;
@@ -609,9 +628,13 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
 	syslog(LOG_INFO, "Created connection with remote peer " LOG_6ADDR_FMT ", local/remote port %u/%u", LOG_6ADDR_VAL(udpconn->ripaddr), uip_htons(udpconn->lport),uip_htons(udpconn->rport));
 
   print_local_addresses();
-  etimer_set(&udp_periodic_timer, 60*CLOCK_SECOND);
 
 	process_post(PROCESS_BROADCAST, udp_handler_ready, NULL);
+
+	//udp_handler_send_raw_flags(NULL, 0, UIP_EXT_SEQNUM_FLAG_SYNCREQ, 0, NULL);
+
+  etimer_set(&udp_periodic_timer, 60*CLOCK_SECOND);
+
 
   while(1) {
     //   tcpip_poll_udp(udpconn);

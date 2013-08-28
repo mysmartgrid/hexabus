@@ -62,30 +62,30 @@ extern uint16_t uip_slen;
 
 static uint16_t hxb_flags = 0;
 
+static uint16_t loss = 0;
+
 /*---------------------------------------------------------------------------*/
 void
 uip_udp_packet_send(struct uip_udp_conn *c, const void *data, int len)
 {
 #if UIP_UDP
-  #if RAVEN_REVISION != HEXABUS_USB
   if(data!=NULL && c !=NULL) {
+    #if RAVEN_REVISION != HEXABUS_USB
+
     uip_udp_conn = c;
     uip_slen = len;
     memcpy(&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN], data,
            len > UIP_BUFSIZE? UIP_BUFSIZE: len);
     uip_process(UIP_UDP_SEND_CONN);
     memmove(&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN + UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN],&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN], (len+UIP_UDPH_LEN + UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN) > UIP_BUFSIZE? (UIP_BUFSIZE - UIP_HBHO_LEN - UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN) : (len+UIP_UDPH_LEN));
-    uip_slen = 0;
-  }
+    
+    #endif
 
-  #endif
-
-  if(c == NULL) {
+  } else if(c == NULL) {
     memcpy(&uip_buf[UIP_LLH_LEN + UIP_IPH_LEN + UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN], data, (len+UIP_LLH_LEN+UIP_IPH_LEN+UIP_HBHO_LEN+UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN)>UIP_BUFSIZE?UIP_BUFSIZE:len);
   }
 	
 #if UIP_CONF_IPV6
-
     uip_len += UIP_HBHO_LEN + UIP_EXT_HDR_OPT_EXP_HXB_SEQNUM_LEN;
     UIP_IP_BUF->proto = UIP_PROTO_DESTO;
     UIP_IP_BUF->len[0] = ((uip_len - UIP_IPH_LEN) >> 8);
@@ -104,29 +104,39 @@ uip_udp_packet_send(struct uip_udp_conn *c, const void *data, int len)
       UIP_SEQNUM_BUF->seqnum = current_seqnum();	
     }
 
-    printf("Sending nr %u\n", current_seqnum());
+    printf("\tSending nr %u\n", current_seqnum());
 
 #if RAVEN_REVISION==HEXABUS_USB
     tcpip_output(destAddrPtr);
 #else
-    tcpip_ipv6_output();
-#endif
+    //loss++;
+    //if((loss%5)!=0) {
+      printf("Sending...\n");
+      tcpip_ipv6_output();
+    //}
+    uip_len = 0;
+    uip_slen = 0;
+#endif //RAVEN_REVISION
 
 #else
     if(uip_len > 0) {
       tcpip_output();
     }
-#endif
-  uip_len = 0;
+#endif //UIP_CONF_IPV6
   hxb_flags = 0;
-#endif
+#endif //UIP_UDP
 }
 
 void
-uip_udp_packet_send_flags(struct uip_udp_conn *c, const void *data, int len, uint16_t flags)
+uip_udp_packet_sendto_flags(struct uip_udp_conn *c, const void *data, int len,
+         const uip_ipaddr_t *toaddr, uint16_t toport, uint16_t flags)
 {
 	hxb_flags = flags;
-	uip_udp_packet_send(c, data, len);
+  #if RAVEN_REVISION==HEXABUS_USB
+  uip_udp_packet_send(c, data, len);
+  #else
+	uip_udp_packet_sendto(c, data, len, toaddr, toport);
+  #endif
 }
 
 /*---------------------------------------------------------------------------*/
