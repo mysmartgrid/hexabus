@@ -16,6 +16,7 @@ typedef enum {           // Image pixel -> Display pixel
 /***
  * high level API
  */
+void epd27_init(void);
 void epd27_acquire(void);
 void epd27_release(void);
 // power up and power down the EPD panel

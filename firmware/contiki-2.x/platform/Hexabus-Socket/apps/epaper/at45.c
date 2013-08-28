@@ -30,24 +30,26 @@ void at45_deselect(void) {
 // at45db161d read/write 
 uint8_t at45_rw(uint8_t data) { 
   return spi_rw(data);
-} 
+}
 
-static uint8_t cs_port, sck_port, cs_ddr, mosi_ddr, sck_ddr, miso_ddr, spcr, spsr;
+void at45_init()
+{
+	AT45_CS_PORT  |= (1 << AT45_CS);
+	AT45_CS_DDR   |= (1 << AT45_CS);
+}
+
+static uint8_t sck_port, mosi_ddr, sck_ddr, miso_ddr, spcr, spsr;
 
 // initialisation of SPI towards the AT45 chip 
 void at45_acquire(void) { 
-	cs_port = AT45_CS_PORT;
 	sck_port = AT45_SCK_PORT;
-	cs_ddr = AT45_CS_DDR;
 	mosi_ddr = AT45_MOSI_DDR;
 	sck_ddr = AT45_SCK_DDR;
 	miso_ddr = AT45_MISO_DDR;
 	spcr = SPCR;
 	spsr = SPSR;
   // Configure output pins.
-  AT45_CS_PORT  |= (1 << AT45_CS);
   AT45_SCK_PORT |= (1 << AT45_SCK); 
-  AT45_CS_DDR   |= (1 << AT45_CS);
   AT45_MOSI_DDR |= (1 << AT45_MOSI);
   AT45_SCK_DDR  |= (1 << AT45_SCK); 
   // Configure input pins.
@@ -64,9 +66,7 @@ void at45_acquire(void) {
 
 void at45_release()
 {
-	AT45_CS_PORT = cs_port;
 	AT45_SCK_PORT = sck_port;
-	AT45_CS_DDR = cs_ddr;
 	AT45_MOSI_DDR = mosi_ddr;
 	AT45_SCK_DDR = sck_ddr;
 	AT45_MISO_DDR = miso_ddr;

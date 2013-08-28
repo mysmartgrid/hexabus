@@ -109,52 +109,35 @@ static void epd27_pwm_release()
 }
 
 
-static uint8_t port_epd_cs, ddr_epd_cs;
-static uint8_t port_panel_on, ddr_panel_on;
-static uint8_t port_border, ddr_border;
-static uint8_t port_discharge, ddr_discharge;
-static uint8_t port_reset, ddr_reset;
-static uint8_t port_busy, ddr_busy;
+void epd27_init()
+{
+	// Configure output pins.
+	EPD_PORT_EPD_CS |= (1 << EPD_PIN_EPD_CS);
+	EPD_DDR_EPD_CS |= (1 << EPD_PIN_EPD_CS);
+	EPD_PORT_PANEL_ON |= (1 << EPD_PIN_PANEL_ON);
+	EPD_DDR_PANEL_ON |= (1 << EPD_PIN_PANEL_ON);
+	//EPD_PORT_BORDER |= (1 << EPD_PIN_BORDER);
+	//EPD_DDR_BORDER |= (1 << EPD_PIN_BORDER);
+	EPD_PORT_DISCHARGE |= (1 << EPD_PIN_DISCHARGE);
+	EPD_DDR_DISCHARGE |= (1 << EPD_PIN_DISCHARGE);
+	EPD_PORT_RESET |= (1 << EPD_PIN_RESET);
+	EPD_DDR_RESET |= (1 << EPD_PIN_RESET);
+
+	// Configure input pins.
+	EPD_PORT_BUSY &= ~(1 << EPD_PIN_BUSY); 
+	EPD_DDR_BUSY &= ~(1 << EPD_PIN_BUSY); 
+
+	// set initial values - all low.
+	EPD_PORT_RESET &= ~(1 << EPD_PIN_RESET);
+	EPD_PORT_PANEL_ON &= ~(1 << EPD_PIN_PANEL_ON);
+	//EPD_PORT_BORDER &= ~(1 << EPD_PIN_BORDER);
+	EPD_PORT_DISCHARGE &= ~(1 << EPD_PIN_DISCHARGE);
+	//EPD_PORT_EPD_CS &= ~(1 << EPD_PIN_EPD_CS);
+}
 
 void epd27_acquire(void) {
   uart_puts_P("\r\nEPD27 init.");
 
-	port_epd_cs = EPD_PORT_EPD_CS;
-	port_panel_on = EPD_PORT_PANEL_ON;
-	port_border = EPD_PORT_BORDER;
-	port_discharge = EPD_PORT_DISCHARGE;
-	port_reset = EPD_PORT_RESET;
-	port_busy = EPD_PORT_BUSY;
-	ddr_epd_cs = EPD_DDR_EPD_CS;
-	ddr_panel_on = EPD_DDR_PANEL_ON;
-	ddr_border = EPD_DDR_BORDER;
-	ddr_discharge = EPD_DDR_DISCHARGE;
-	ddr_reset = EPD_DDR_RESET;
-	ddr_busy = EPD_DDR_BUSY;
-
-
-  // Configure output pins.
-  EPD_PORT_EPD_CS |= (1 << EPD_PIN_EPD_CS);
-  EPD_DDR_EPD_CS |= (1 << EPD_PIN_EPD_CS);
-  EPD_PORT_PANEL_ON |= (1 << EPD_PIN_PANEL_ON);
-  EPD_DDR_PANEL_ON |= (1 << EPD_PIN_PANEL_ON);
-  //EPD_PORT_BORDER |= (1 << EPD_PIN_BORDER);
-  //EPD_DDR_BORDER |= (1 << EPD_PIN_BORDER);
-  EPD_PORT_DISCHARGE |= (1 << EPD_PIN_DISCHARGE);
-  EPD_DDR_DISCHARGE |= (1 << EPD_PIN_DISCHARGE);
-  EPD_PORT_RESET |= (1 << EPD_PIN_RESET);
-  EPD_DDR_RESET |= (1 << EPD_PIN_RESET);
-
-  // Configure input pins.
-  EPD_PORT_BUSY &= ~(1 << EPD_PIN_BUSY); 
-  EPD_DDR_BUSY &= ~(1 << EPD_PIN_BUSY); 
-
-  // set initial values - all low.
-  EPD_PORT_RESET &= ~(1 << EPD_PIN_RESET);
-  EPD_PORT_PANEL_ON &= ~(1 << EPD_PIN_PANEL_ON);
-  //EPD_PORT_BORDER &= ~(1 << EPD_PIN_BORDER);
-  EPD_PORT_DISCHARGE &= ~(1 << EPD_PIN_DISCHARGE);
-  //EPD_PORT_EPD_CS &= ~(1 << EPD_PIN_EPD_CS);
   epd27_cs_low();
 
   epd27_pwm_acquire();
@@ -163,19 +146,6 @@ void epd27_acquire(void) {
 void epd27_release()
 {
 	epd27_pwm_release();
-
-	EPD_PORT_EPD_CS = port_epd_cs;
-	EPD_PORT_PANEL_ON = port_panel_on;
-	EPD_PORT_BORDER = port_border;
-	EPD_PORT_DISCHARGE = port_discharge;
-	EPD_PORT_RESET = port_reset;
-	EPD_PORT_BUSY = port_busy;
-	EPD_DDR_EPD_CS = ddr_epd_cs;
-	EPD_DDR_PANEL_ON = ddr_panel_on;
-	EPD_DDR_BORDER = ddr_border;
-	EPD_DDR_DISCHARGE = ddr_discharge;
-	EPD_DDR_RESET = ddr_reset;
-	EPD_DDR_BUSY = ddr_busy;
 }
 
 

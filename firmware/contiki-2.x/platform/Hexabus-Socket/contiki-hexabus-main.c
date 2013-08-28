@@ -122,6 +122,9 @@
 #if MEMORY_DEBUGGER_ENABLE
 #include "memory_debugger.h"
 #endif
+#if EPAPER_ENABLE
+#include "epaper.h"
+#endif
 
 
 uint8_t nSensors = 0; //number of found temperature sensors
@@ -207,6 +210,9 @@ void initialize(void)
 
 #if ANNOUNCE_BOOT
   PRINTF("\n*******Booting %s*******\n",CONTIKI_VERSION_STRING);
+#endif
+#if EPAPER_ENABLE
+	epaper_init();
 #endif
 
 /* rtimers needed for radio cycling */
@@ -412,16 +418,18 @@ extern char rf212_interrupt_flag, rf212processflag; // this is still not impleme
 /*-------------------------------------------------------------------------*/
 /*------------------------- Main Scheduler loop----------------------------*/
 /*-------------------------------------------------------------------------*/
-#include "epaper.h"
-#include "epd27.h"
 int
 main(void)
 {
   initialize();
 
+	unsigned int i = 1;
+	unsigned int x = 0;
+	uint8_t temp = 15;
+	uint8_t hum = 10;
   while(1) {
 		printf(".");
-		if ((++x & 0xfff) == 0) {
+		if ((++x & 0xffff) == 0) {
 			printf("begin %i\n", i++);
 			epaper_display_measurement(22, temp, hum);
 			hum += 10;

@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+void epaper_init(void);
+
 // display a measurement tuple of (temperature, humidity) [°C, %r.h.] on the epaper display
 // images are pulled from an associated AT45 flash chip, the data layout is assumed to be
 // as specified by the hexasense flash generator

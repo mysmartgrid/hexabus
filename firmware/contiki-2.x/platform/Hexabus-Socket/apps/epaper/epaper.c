@@ -9,6 +9,12 @@
 #define LOG_LEVEL LOG_EMERG
 #include "syslog.h"
 
+void epaper_init(void)
+{
+	epd27_init();
+	at45_init();
+}
+
 static int old_idx = -1;
 
 void epaper_display_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes_hum)
