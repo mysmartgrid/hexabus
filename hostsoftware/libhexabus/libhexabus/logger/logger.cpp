@@ -47,34 +47,34 @@ const char* Logger::eid_to_unit(uint32_t eid)
 	}
 }
 
-void Logger::on_sensor_name_received(const std::string& sensor_name, const hexabus::Packet& ep_info)
+void Logger::on_sensor_name_received(const std::string& sensor_id, const hexabus::Packet& ep_info)
 {
 	klio::Sensor::Ptr sensor = sensor_factory.createSensor(
-			sensor_name,
+			sensor_id,
 			static_cast<const hexabus::EndpointInfoPacket&>(ep_info).value(),
-			eid_to_unit(new_sensor_backlog[sensor_name].first),
+			eid_to_unit(new_sensor_backlog[sensor_id].first),
 			sensor_timezone);
 
 	new_sensor_found(sensor);
-	sensor_cache.insert(std::make_pair(sensor_name, sensor));
+	sensor_cache.insert(std::make_pair(sensor_id, sensor));
 
-	new_sensor_t& backlog = new_sensor_backlog[sensor_name];
+	new_sensor_t& backlog = new_sensor_backlog[sensor_id];
 	klio::readings_it_t it, end;
 	for (it = backlog.second.begin(), end = backlog.second.end(); it != end; ++it) {
 		record_reading(sensor, it->first, it->second);
 	}
 
-	new_sensor_backlog.erase(sensor_name);
+	new_sensor_backlog.erase(sensor_id);
 }
 
-void Logger::on_sensor_error(const std::string& sensor_name, const hexabus::GenericException& err)
+void Logger::on_sensor_error(const std::string& sensor_id, const hexabus::GenericException& err)
 {
 	std::cerr
 		<< "Error getting device name: " << err.what() << ", "
-		<< "dropping " << new_sensor_backlog[sensor_name].second.size() 
-		<< " readings from " << sensor_name << std::endl;
+		<< "dropping " << new_sensor_backlog[sensor_id].second.size() 
+		<< " readings from " << sensor_id << std::endl;
 
-	new_sensor_backlog.erase(sensor_name);
+	new_sensor_backlog.erase(sensor_id);
 }
 
 void Logger::accept_packet(double value, uint32_t eid)
@@ -85,7 +85,7 @@ void Logger::accept_packet(double value, uint32_t eid)
 	 */
 	std::ostringstream oss;
 	oss << source.to_string() << "-" << eid;
-	std::string sensor_name(oss.str());
+	std::string sensor_id(oss.str());
 
 	/**
 	 * 2. Ask for a sensor instance. If none is known for this
@@ -95,10 +95,10 @@ void Logger::accept_packet(double value, uint32_t eid)
 	klio::Sensor::Ptr sensor;
 	klio::timestamp_t now = tc.get_timestamp();
 
-	if (sensor_cache.count(sensor_name)) {
-		sensor = sensor_cache[sensor_name];
+	if (sensor_cache.count(sensor_id)) {
+		sensor = sensor_cache[sensor_id];
 	} else {
-		sensor = lookup_sensor(sensor_name);
+		sensor = lookup_sensor(sensor_id);
 	}
 
 	if (sensor) {
@@ -107,15 +107,15 @@ void Logger::accept_packet(double value, uint32_t eid)
 		 */
 		record_reading(sensor, now, value);
 	} else {
-		if (!new_sensor_backlog.count(sensor_name)) {
-			new_sensor_backlog[sensor_name].first = eid;
+		if (!new_sensor_backlog.count(sensor_id)) {
+			new_sensor_backlog[sensor_id].first = eid;
 			interrogator.send_request(
 					source,
 					hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR),
 					hexabus::filtering::IsEndpointInfo(),
-					boost::bind(&Logger::on_sensor_name_received, this, sensor_name, _1),
-					boost::bind(&Logger::on_sensor_error, this, sensor_name, _1));
+					boost::bind(&Logger::on_sensor_name_received, this, sensor_id, _1),
+					boost::bind(&Logger::on_sensor_error, this, sensor_id, _1));
 		}
-		new_sensor_backlog[sensor_name].second.insert(std::make_pair(now, value));
+		new_sensor_backlog[sensor_id].second.insert(std::make_pair(now, value));
 	}
 }

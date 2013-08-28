@@ -38,12 +38,9 @@ class Logger : public hexabus::Logger {
 		bfs::path store_file;
 		klio::Store::Ptr store;
 
-		klio::Sensor::Ptr lookup_sensor(const std::string& name)
+		klio::Sensor::Ptr lookup_sensor(const std::string& id)
 		{
-			std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_name(name);
-			return sensors.size()
-				? sensors[0]
-				: klio::Sensor::Ptr();
+			return store->get_sensor_by_external_id(id);
 		}
 
 		void new_sensor_found(klio::Sensor::Ptr sensor)
