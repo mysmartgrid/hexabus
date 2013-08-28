@@ -36,7 +36,6 @@ uint8_t at45_is_ready(void);
 uint8_t at45_wait_ready(void);
 void at45_get_version(struct at45_version_t* version);
 uint8_t at45_read_page(struct at45_page_t* page, uint16_t addr_page);
-void at45_dump_page(struct at45_page_t* page);
 
 /** low level routines below **/
 uint8_t at45_read_page_to_buf_1(uint16_t addr_page);

@@ -3,12 +3,9 @@
 #include <stdint.h>
 #include <avr/io.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <util/delay.h>
 #include <dev/watchdog.h>
-
-#define uart_puts_P printf
 
 // inline arrays
 #define ARRAY(type, ...) ((type[]){__VA_ARGS__})
@@ -136,8 +133,6 @@ void epd27_init()
 }
 
 void epd27_acquire(void) {
-  uart_puts_P("\r\nEPD27 init.");
-
   epd27_cs_low();
 
   epd27_pwm_acquire();
@@ -179,7 +174,6 @@ void epd27_image_at45(uint16_t pageindex, EPD_stage stage) {
     memset(page, 0x00, AT45_PAGE_SIZE);
     if (! at45_read_page(page, curpage_idx)) {
       free(page);
-      uart_puts_P("Failed to read page from AT45 - ABORTING");
       return;
     } else {
       //uart_puts_P("\r\nPage ");
@@ -214,7 +208,6 @@ static void spi_delay10us_send(const uint8_t *buffer, uint16_t length)
 
 void epd27_begin(void) {
   // power up sequence
-  uart_puts_P("\r\nEPD27 begin.");
 	SPI_put(0x00);
   // set initial values - all low.
   EPD_PORT_RESET &= ~(1 << EPD_PIN_RESET);
@@ -313,7 +306,6 @@ void epd27_begin(void) {
 }
 
 void epd27_end(void) {
-  uart_puts_P("\r\nEPD27 end.");
   epd27_frame_fixed(0x55, EPD_normal); // dummy frame
 	epd27_line(0x7fffu, 0, 0x55, false, EPD_normal); // dummy_line
 	_delay_ms(25);
@@ -395,7 +387,6 @@ void  epd27_set_temperature(int16_t temperature) {
 }
 
 void epd27_clear() {
-  uart_puts_P("EPD27 clear.");
   epd27_frame_fixed_repeat(0xff, EPD_compensate);
   epd27_frame_fixed_repeat(0xff, EPD_white);
   epd27_frame_fixed_repeat(0xaa, EPD_inverse);
@@ -435,9 +426,7 @@ void epd27_frame_data(const prog_uint8_t *image, EPD_stage stage) {
 
 void epd27_frame_fixed_repeat(uint8_t fixed_value, EPD_stage stage)
 {
-  uart_puts_P("\r\nEPD27 frame_fixed_repeat");
 	for (int16_t iterations_left = epd27_stage_iterations; iterations_left > 0; iterations_left--) {
-    uart_puts_P(".");
 		epd27_frame_fixed(fixed_value, stage);
 	}
 }

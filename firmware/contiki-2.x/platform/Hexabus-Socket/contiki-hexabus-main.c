@@ -421,31 +421,12 @@ extern char rf212_interrupt_flag, rf212processflag; // this is still not impleme
 int
 main(void)
 {
-  initialize();
+	initialize();
 
-	unsigned int i = 1;
-	unsigned int x = 0;
-	uint8_t temp = 15;
-	uint8_t hum = 10;
-  while(1) {
-		printf(".");
-		if ((++x & 0xffff) == 0) {
-			printf("begin %i\n", i++);
-			epaper_display_measurement(22, temp, hum);
-			hum += 10;
-			if (hum > 100) {
-				hum = 10;
-				temp += 1;
-			}
-			if (temp > 30) {
-				temp = 15;
-			}
-			printf("done\n");
-		}
-    process_run();
-    watchdog_periodic();
-
-}
+	while(1) {
+		process_run();
+		watchdog_periodic();
+	}
   return 0;
 }
 

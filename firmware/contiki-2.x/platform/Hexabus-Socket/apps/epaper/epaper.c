@@ -25,13 +25,13 @@ void epaper_display_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t me
 	struct index_entry_t entry;
 	uint8_t err;
 	if ((err = index_find_entry(&entry, mes_temp, mes_hum)) != AT45_TABLE_SUCCESS) {
-		syslog(LOG_EMERG, "Could not find entry for %f °C/%f %%rh", mes_temp, mes_hum);
+		syslog(LOG_EMERG, "Could not find entry for %i °C/%i %%rh", mes_temp, mes_hum);
 	} else {
 		epd27_wait_cog_ready();
 		epd27_begin(); // power up the EPD panel
 		epd27_set_temperature(board_temp); // adjust for current temperature
 		int idx = entry.page_idx;
-		syslog(LOG_EMERG, "page %i for %i °C/%i %%rh", idx, (int) mes_temp, (int) mes_hum);
+		syslog(LOG_DEBUG, "page %i for %i °C/%i %%rh", idx, (int) mes_temp, (int) mes_hum);
 		if (old_idx == -1) {
 			epd27_clear();
 		} else {
