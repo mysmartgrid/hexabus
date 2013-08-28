@@ -419,13 +419,19 @@ main(void)
 {
   initialize();
 
-	int i = 1;
-	int x = 0;
   while(1) {
-		printf("asdf %i\n", x);
+		printf(".");
 		if ((++x & 0xfff) == 0) {
 			printf("begin %i\n", i++);
-			epaper_cat();
+			epaper_display_measurement(22, temp, hum);
+			hum += 10;
+			if (hum > 100) {
+				hum = 10;
+				temp += 1;
+			}
+			if (temp > 30) {
+				temp = 15;
+			}
 			printf("done\n");
 		}
     process_run();
