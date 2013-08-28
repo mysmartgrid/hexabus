@@ -40,7 +40,11 @@ class Logger : public hexabus::Logger {
 
 		klio::Sensor::Ptr lookup_sensor(const std::string& id)
 		{
-			return store->get_sensor_by_external_id(id);
+			try {
+				return store->get_sensor_by_external_id(id);
+			} catch (...) {
+				return klio::Sensor::Ptr();
+			}
 		}
 
 		void new_sensor_found(klio::Sensor::Ptr sensor)
