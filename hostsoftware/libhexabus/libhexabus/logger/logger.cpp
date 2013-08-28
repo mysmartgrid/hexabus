@@ -50,8 +50,8 @@ const char* Logger::eid_to_unit(uint32_t eid)
 void Logger::on_sensor_name_received(const std::string& sensor_name, const hexabus::Packet& ep_info)
 {
 	klio::Sensor::Ptr sensor = sensor_factory.createSensor(
-			static_cast<const hexabus::EndpointInfoPacket&>(ep_info).value(),
 			sensor_name,
+			static_cast<const hexabus::EndpointInfoPacket&>(ep_info).value(),
 			eid_to_unit(new_sensor_backlog[sensor_name].first),
 			sensor_timezone);
 
