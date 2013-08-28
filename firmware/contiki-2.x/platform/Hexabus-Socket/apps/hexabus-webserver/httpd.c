@@ -462,6 +462,7 @@ const char httpd_socket_status_file[] HTTPD_STRING_ATTR = "socket_stat.shtml ";
 static
 PT_THREAD(handle_input(struct httpd_state *s))
 {
+	int found = 0;
 
 	PSOCK_BEGIN(&s->sin);
 
@@ -513,7 +514,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 				if (s->inputbuf[i]==0) break;
 			}
 			//parse config data
-			int found=0;
+			found = 0;
 
 			//look for the combination "\r\n\r\n"; the post data follow thereafter
 			while (!found)

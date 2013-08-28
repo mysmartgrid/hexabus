@@ -9,16 +9,12 @@
 
 #include <stdlib.h>
 
-#if DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL SM_UPLOAD_DEBUG
+#include "syslog.h"
 
 static enum hxb_error_code read_control(struct hxb_value* value)
 {
-	PRINTF("READ on SM_CONTROL EP occurred\n");
+	syslog(LOG_DEBUG, "READ on SM_CONTROL EP occurred");
 	if (sm_is_running()) {
 		value->v_u8 = STM_STATE_RUNNING;
 	} else {
@@ -54,7 +50,7 @@ ENDPOINT_DESCRIPTOR endpoint_sm_upload_control = {
 
 static enum hxb_error_code read_receiver(struct hxb_value* value)
 {
-	PRINTF("READ on SM_UP_RECEIVER EP occurred\n");
+	syslog(LOG_DEBUG, "READ on SM_UP_RECEIVER EP occurred");
 	return HXB_ERR_SUCCESS;
 }
 
@@ -69,21 +65,19 @@ static enum hxb_error_code send_acknack(union hxb_packet_any* packet, void* data
 
 static enum hxb_error_code write_receiver(const struct hxb_envelope* env)
 {
-	PRINTF("SM: Attempting to write new chunk to EEPROM\n");
-	if (env->value.datatype == HXB_DTYPE_66BYTES) {
-		char* payload = env->value.v_binary;
-		uint8_t chunk_id = (uint8_t) payload[0];
-		bool result = sm_write_chunk(chunk_id, payload + 1);
-		PRINTF(result.value ? "SENDING ACK" : "SENDING NACK");
-		udp_handler_send_generated(&env->src_ip, env->src_port, &send_acknack, &result);
-		return result
-			? HXB_ERR_SUCCESS
-			: HXB_ERR_INVALID_VALUE;
+	char* payload = env->value.v_binary;
+	uint8_t chunk_id = (uint8_t) payload[0];
+	syslog(LOG_DEBUG, "SM: Attempting to write new chunk %i to EEPROM", chunk_id);
+	bool result = sm_write_chunk(chunk_id, payload + 1);
+	if (result) {
+		syslog(LOG_DEBUG, "SENDING ACK");
 	} else {
-		// send NAK to SM_SENDER
-		PRINTF("SENDING ERROR DATATYPE");
-		return HXB_ERR_DATATYPE;
+		syslog(LOG_DEBUG, "SENDING NACK");
 	}
+	udp_handler_send_generated(&env->src_ip, env->src_port, &send_acknack, &result);
+	return result
+		? HXB_ERR_SUCCESS
+		: HXB_ERR_INVALID_VALUE;
 }
 
 static const char ep_receiver_name[] PROGMEM = "Statemachine Upload Receiver";
@@ -97,7 +91,7 @@ ENDPOINT_DESCRIPTOR endpoint_sm_upload_receiver = {
 
 static enum hxb_error_code read_acknack(struct hxb_value* value)
 {
-	PRINTF("READ on SM_UP_ACKNAK EP occurred\n");
+	syslog(LOG_DEBUG, "READ on SM_UP_ACKNAK EP occurred");
 	return HXB_ERR_SUCCESS;
 }
 
@@ -112,7 +106,7 @@ ENDPOINT_DESCRIPTOR endpoint_sm_upload_acknack = {
 
 static enum hxb_error_code read_reset(struct hxb_value* value)
 {
-	PRINTF("READ on SM_RESET_ID EP occurred\n");
+	syslog(LOG_DEBUG, "READ on SM_RESET_ID EP occurred");
 	sm_get_id(value->v_binary);
 	return HXB_ERR_SUCCESS;
 }

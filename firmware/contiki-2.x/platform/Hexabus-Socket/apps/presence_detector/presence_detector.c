@@ -47,12 +47,8 @@
 #include <avr/eeprom.h>
 #include <avr/interrupt.h>
 
-#if PRESENCE_DETECTOR_DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL PRESENCE_DETECTOR_DEBUG
+#include "syslog.h"
 
 #if PRESENCE_DETECTOR_SERVER
 static struct ctimer pd_timeout; 

@@ -5,24 +5,20 @@
 #include "endpoints.h"
 #include "endpoint_registry.h"
 
-#if HEXONOFF_DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL HEXONOFF_DEBUG
+#include "syslog.h"
 
 static uint8_t output_vector;
 
 
 static void set_outputs(uint8_t o_vec) {
     HEXONOFF_PORT = ((HEXONOFF_PORT & ~(output_vector)) | (o_vec & output_vector));
-    PRINTF("Setting outputs to %d => %d\n", o_vec, HEXONOFF_PORT);
+    syslog(LOG_INFO, "Setting outputs to %d => %d", o_vec, HEXONOFF_PORT);
 }
 
 static void toggle_outputs(uint8_t o_vec) {
     HEXONOFF_PORT = ((HEXONOFF_PORT & ~(output_vector)) | (~(HEXONOFF_PORT) & output_vector & o_vec));
-    PRINTF("Toggling outputs %d => %d\n", o_vec,HEXONOFF_PORT);
+    syslog(LOG_INFO, "Toggling outputs %d => %d", o_vec,HEXONOFF_PORT);
 }
 
 static uint8_t get_outputs() {
@@ -66,8 +62,6 @@ ENDPOINT_DESCRIPTOR endpoint_hexonoff_toggle = {
 };
 
 void hexonoff_init(void) {
-    PRINTF("Hexonoff init\n");
-
     output_vector = 0;
 
     #if defined(HEXONOFF_OUT0)

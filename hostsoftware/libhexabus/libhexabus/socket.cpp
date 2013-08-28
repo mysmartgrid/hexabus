@@ -24,14 +24,14 @@ Socket::Socket(boost::asio::io_service& io, const std::string& interface) :
   io_service(io),
   socket(io_service)
 {
-  openSocket(boost::asio::ip::address_v6::any(), &interface);
+  openSocket(&interface);
 }
 
 Socket::Socket(boost::asio::io_service& io) :
   io_service(io),
   socket(io_service)
 {
-  openSocket(boost::asio::ip::address_v6::any(), NULL);
+  openSocket(NULL);
 }
 
 Socket::~Socket()
@@ -42,53 +42,100 @@ Socket::~Socket()
 	// FIXME: maybe errors should be logged somewhere
 }
 
-void Socket::beginReceive()
+static void timeout_handler(const boost::system::error_code& error, boost::asio::io_service& io)
 {
-	socket.async_receive_from(boost::asio::buffer(data, data.size()), remoteEndpoint,
-			boost::bind(&Socket::packetReceiveHandler,
-				this,
-				boost::asio::placeholders::error,
-				boost::asio::placeholders::bytes_transferred));
-}
-
-std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> Socket::receive(const filter_t& filter)
-{
-	boost::system::error_code err;
-
-	while (true) {
-		socket.receive_from(boost::asio::buffer(data, data.size()), remoteEndpoint, 0, err);
-		if (err)
-			throw NetworkException("receive", err);
-
-		Packet::Ptr packet = deserialize(&data[0], data.size());
-		if (filter(*packet, remoteEndpoint)) {
-			return std::make_pair(packet, remoteEndpoint);
-		}
+	if (!error) {
+		io.stop();
 	}
 }
 
-class PredicatedReceive {
-	private:
-		Socket::on_packet_received_slot_t _slot;
-		Socket::filter_t _filter;
+void Socket::beginReceivePacket(bool async)
+{
+	if (!packetReceived.empty()) {
+		socket.async_receive_from(boost::asio::buffer(data, data.size()), remoteEndpoint,
+				boost::bind(async ? &Socket::asyncPacketReceivedHandler : &Socket::syncPacketReceivedHandler,
+					this,
+					boost::asio::placeholders::error,
+					boost::asio::placeholders::bytes_transferred));
+	}
+}
 
-	public:
-		PredicatedReceive(Socket::on_packet_received_slot_t slot, Socket::filter_t filter)
-			: _slot(slot), _filter(filter)
-		{}
+void Socket::packetReceivedHandler(const boost::system::error_code& error, size_t size)
+{
+	if (error)
+		throw NetworkException("receive", error);
+	Packet::Ptr packet = parseReceivedPacket(size);
 
-		void operator()(const Packet& packet, const boost::asio::ip::udp::endpoint& from)
-		{
-			if (_filter(packet, from))
-				_slot(packet, from);
-		}
-};
+	packetReceived(packet, remoteEndpoint);
+}
+
+void Socket::syncPacketReceivedHandler(const boost::system::error_code& error, size_t size)
+{
+	packetReceivedHandler(error, size);
+	beginReceivePacket(false);
+}
+
+void Socket::asyncPacketReceivedHandler(const boost::system::error_code& error, size_t size)
+{
+	try {
+		packetReceivedHandler(error, size);
+	} catch (const GenericException& ge) {
+		asyncError(ge);
+	} catch (...) {
+		beginReceivePacket(true);
+		throw;
+	}
+	beginReceivePacket(true);
+}
+
+void Socket::syncPacketReceiveCallback(const Packet::Ptr& packet, const boost::asio::ip::udp::endpoint& from,
+		std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint>& result, const filter_t& filter)
+{
+	if (filter(*packet, from)) {
+		result = std::make_pair(packet, from);
+		ioService().stop();
+	}
+}
+
+std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> Socket::receive(const filter_t& filter, boost::posix_time::time_duration timeout)
+{
+	std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> result;
+
+	boost::asio::deadline_timer timer(ioService());
+	if (!timeout.is_pos_infinity()) {
+		timer.expires_from_now(timeout);
+		timer.async_wait(
+				boost::bind(
+					timeout_handler,
+					boost::asio::placeholders::error,
+					boost::ref(ioService())));
+	}
+
+	boost::signals2::scoped_connection sr(
+		packetReceived.connect(
+			boost::bind(&Socket::syncPacketReceiveCallback, this, _1, _2, boost::ref(result), boost::cref(filter))));
+
+	beginReceivePacket(false);
+
+	ioService().reset();
+	ioService().run();
+
+	return result;
+}
+
+static void predicated_receive(const Packet::Ptr& packet, const boost::asio::ip::udp::endpoint& from,
+		const Socket::on_packet_received_slot_t& slot, const Socket::filter_t& filter)
+{
+	if (filter(*packet, from))
+		slot(*packet, from);
+}
 
 bs2::connection Socket::onPacketReceived(const on_packet_received_slot_t& callback, const filter_t& filter)
 {
-	bs2::connection result = packetReceived.connect(PredicatedReceive(callback, filter));
+	bs2::connection result = packetReceived.connect(
+			boost::bind(predicated_receive, _1, _2, callback, filter));
 
-	beginReceive();
+	beginReceivePacket(true);
 
 	return result;
 }
@@ -98,22 +145,9 @@ bs2::connection Socket::onAsyncError(const on_async_error_slot_t& callback)
 	return asyncError.connect(callback);
 }
 
-void Socket::packetReceiveHandler(const boost::system::error_code& error, size_t size)
+Packet::Ptr Socket::parseReceivedPacket(size_t size)
 {
-	if (error) {
-		asyncError(NetworkException("receive", error));
-		return;
-	}
-	Packet::Ptr packet;
-	try {
-		packet = deserialize(&data[0], data.size());
-	} catch (const BadPacketException& e) {
-		asyncError(e);
-		return;
-	}
-	packetReceived(*packet, remoteEndpoint);
-	if (!packetReceived.empty())
-		beginReceive();
+	return deserialize(&data[0], std::min(size, data.size()));
 }
 
 void Socket::send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest)
@@ -143,7 +177,7 @@ void Socket::bind(const boost::asio::ip::udp::endpoint& ep) {
     throw NetworkException("bind", err);
 }
 
-void Socket::openSocket(const boost::asio::ip::address_v6& addr, const std::string* interface) {
+void Socket::openSocket(const std::string* interface) {
   boost::system::error_code err;
 
 	data.resize(1500);
@@ -153,6 +187,10 @@ void Socket::openSocket(const boost::asio::ip::address_v6& addr, const std::stri
     throw NetworkException("open", err);
 
   socket.set_option(boost::asio::ip::multicast::hops(64), err);
+  if (err)
+    throw NetworkException("open", err);
+
+  socket.set_option(boost::asio::socket_base::reuse_address(true), err);
   if (err)
     throw NetworkException("open", err);
 

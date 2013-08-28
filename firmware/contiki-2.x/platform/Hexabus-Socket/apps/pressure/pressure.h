@@ -28,6 +28,8 @@
 #define PRESSURE_READ_TEMP_DELAY 10UL
 
 void pressure_init();
+float read_pressure_temp();
+float read_pressure();
 
 PROCESS_NAME(pressure_process);
 

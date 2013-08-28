@@ -8,12 +8,8 @@
 #include "endpoints.h"
 #include "endpoint_registry.h"
 
-#if ANALOGREAD_DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+#define LOG_LEVEL ANALOGREAD_DEBUG
+#include "syslog.h"
 
 static float get_analogvalue(void);
 static float get_lightvalue(void);
@@ -70,7 +66,7 @@ static float get_analogvalue() {
 
     float voltage = ADCW * ANALOGREAD_MULT;
 
-    PRINTF("Analog value read: %ld / 1000\n", (uint32_t)(voltage*1000.0));
+	syslog(LOG_DEBUG, "Analog value read: %ld / 1000", (uint32_t)(voltage*1000.0));
 
     return voltage;
 }

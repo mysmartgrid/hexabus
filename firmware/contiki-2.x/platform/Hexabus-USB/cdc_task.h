@@ -60,6 +60,8 @@
 //_____ D E C L A R A T I O N S ____________________________________________
 
 
+void menu_actviate(void);
+
 void rawmode_enable(void);
 void rawmode_disable(void);
 
