@@ -19,6 +19,7 @@ include_directories(
   ${CPPNETLIB_INCLUDE_DIR}
   ${HXB_INCLUDE_DIR}
   ${LIBKLIO_INCLUDE_DIR}
+  ${SQLITE3_INCLUDE_DIR}
 )
 #link_directories(
 #  #  ${SQLITE3_STATIC_LIBRARY_DIRS}
