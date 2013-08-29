@@ -10,3 +10,5 @@ then
 	svc -u /etc/service/hexabus_msg_bridge
 	svc -u /etc/service/hexanode-backend
 fi
+
+update-ca-certificates

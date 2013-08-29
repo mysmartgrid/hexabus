@@ -93,7 +93,7 @@ INSTALL(FILES
 INSTALL(PROGRAMS etc/init.d/reverse-ssh DESTINATION /etc/init.d)
 INSTALL(FILES etc/reverse-ssh DESTINATION /etc)
 INSTALL(FILES etc/cron.d/hexabus_msg_heartbeat DESTINATION /etc/cron.d)
-INSTALL(FILES etc/ssl/certs/msg_CA.crt DESTINATION /etc/ssl/certs)
+INSTALL(FILES msg_CA.crt DESTINATION /usr/local/share/ca-certificates)
 INSTALL(PROGRAMS src/hexabus_msg_heartbeat DESTINATION bin)
 INSTALL(PROGRAMS etc/service/hexabus_msg_bridge/run DESTINATION /etc/service/hexabus_msg_bridge)
 INSTALL(PROGRAMS etc/service/hexabus_msg_bridge/log/run DESTINATION /etc/service/hexabus_msg_bridge/log)
@@ -113,7 +113,7 @@ set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13), libsqlite3-0 (>= 3.7), libgnutls26 (>= 2.12), libssl1.0.0, libasound2, python3 (>= 3.2), libhexabus (>= 0.6.0.200)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13), libsqlite3-0 (>= 3.7), libgnutls26 (>= 2.12), libssl1.0.0, libasound2, python3 (>= 3.2), libhexabus (>= 0.6.0.200), ca-certificates")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/debian/preinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
 
 set(CPACK_PACKAGE_EXECUTABLES "hexanode" "A virtual hexabus device.")

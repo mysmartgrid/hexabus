@@ -13,3 +13,5 @@ then
 
 	update-rc.d reverse-ssh remove
 fi
+
+update-ca-certificates --fresh
