@@ -14,4 +14,9 @@ void epaper_init(void);
 // NOTE: this method may take a long time to run
 void epaper_display_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes_hum);
 
+// this function behaves much like epaper_display_measurement, but updates the screen only if
+//   a) the last display update was more than ten minutes ago, or
+//   b) past updates since a full refresh would have caused a display change already
+void epaper_update_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes_hum);
+
 #endif
