@@ -41,7 +41,7 @@ _DEBUG options should be set to:
 
 // temperature
 #define TEMPERATURE_ENABLE 1
-#define TEMPERATURE_DEBUG 9
+#define TEMPERATURE_DEBUG 0
 #define TEMPERATURE_SENSOR 1 // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
 // value_broadcast
@@ -113,7 +113,7 @@ _DEBUG options should be set to:
 
 //humidity sensor
 #define HUMIDITY_ENABLE 1
-#define HUMIDITY_DEBUG 9
+#define HUMIDITY_DEBUG 0
 
 //pressure sensor
 #define PRESSURE_ENABLE 0 

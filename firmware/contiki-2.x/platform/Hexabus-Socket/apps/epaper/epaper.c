@@ -97,13 +97,16 @@ void epaper_update_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes
 		goto end;
 	}
 
-	if ((skipped_update_idx == -1 && last_update_at == 0)
-			|| (diff > 10*60)
-			|| (skipped_update_idx != -1 && skipped_update_idx != screen_idx)) {
+	if (old_idx != screen_idx 
+			&& ((diff >= 10*60)
+				|| (last_update_at == 0)
+				|| (skipped_update_idx != -1 && skipped_update_idx != screen_idx))) {
 		last_update_at = now;
 		skipped_update_idx = -1;
+		syslog(LOG_DEBUG, "Redrawing display");
 		display_page(board_temp, screen_idx);
-	} else if (skipped_update_idx == -1 && screen_idx != old_idx) {
+	} else if (skipped_update_idx == -1) {
+		syslog(LOG_DEBUG, "Not redrawing display yet [1]");
 		skipped_update_idx = screen_idx;
 	}
 
