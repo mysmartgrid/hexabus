@@ -1,3 +1,5 @@
+#include "hexabus_config.h"
+
 #include "epaper.h"
 #include "epd27.h"
 
@@ -8,8 +10,10 @@
 
 #include "at45.h"
 #include "measurement_index.h"
-#define LOG_LEVEL LOG_EMERG
+#define LOG_LEVEL EPAPER_DEBUG
 #include "syslog.h"
+
+#include "../../../../shared/endpoints.h"
 
 void epaper_init(void)
 {
@@ -105,4 +109,27 @@ void epaper_update_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes
 
 end:
 	release();
+}
+
+void epaper_handle_input(struct hxb_value* val, uint32_t eid)
+{
+	static uint8_t current_temperature = 0xff;
+	static uint8_t current_humidity = 0xff;
+
+	if (eid == EP_TEMPERATURE) {
+		current_temperature = val->v_float;
+	} else if (eid == EP_HUMIDITY) {
+		current_humidity = val->v_float;
+	} else {
+		return;
+	}
+
+	if (current_temperature != 0xff && current_humidity != 0xff) {
+		syslog(LOG_DEBUG, "Updating display (%u %u)", current_temperature, current_humidity);
+		epaper_update_measurement(current_temperature,
+				current_temperature,
+				10 * (current_humidity / 10));
+	} else {
+		syslog(LOG_DEBUG, "Not updating display, not ready (%u %u)", current_temperature, current_humidity);
+	}
 }

@@ -42,6 +42,7 @@
 #include "state_machine.h"
 #include "endpoint_registry.h"
 #include "udp_handler.h"
+#include "epaper.h"
 
 #include "hexabus_packet.h"
 
@@ -77,6 +78,9 @@ void broadcast_to_self(struct hxb_value* val, uint32_t eid)
 	uip_ip6addr(&envelope.src_ip, 0, 0, 0, 0, 0, 0, 0, 1);
 	syslog(LOG_DEBUG, "Sending EID %ld to own state machine.", eid);
 	sm_handle_input(&envelope);
+#endif
+#if EPAPER_ENABLE
+	epaper_handle_input(val, eid);
 #endif
 }
 
