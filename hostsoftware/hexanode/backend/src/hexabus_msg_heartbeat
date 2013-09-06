@@ -30,7 +30,7 @@ def http_request(method, url, body):
 	url_parts = urllib.parse.urlparse(url, allow_fragments=False)
 	context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
 	context.verify_mode = ssl.CERT_REQUIRED
-	context.load_verify_locations(cafile = "/etc/ssl/certs/msg_CA.crt")
+	context.load_verify_locations(cafile = "/etc/ssl/certs/msg_CA.pem")
 	client = http.client.HTTPSConnection(url_parts.hostname, url_parts.port, context=context, check_hostname=False)
 	client.request(method, url_parts.path, message, {
 		'X-Digest': signature,
