@@ -13,7 +13,7 @@ _DEBUG options should be set to:
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 0 
+#define UDP_HANDLER_DEBUG 0
 
 #define ENDPOINT_REGISTRY_DEBUG 0
 
@@ -40,16 +40,16 @@ _DEBUG options should be set to:
 #define DATETIME_SERVICE_DEBUG 0
 
 // temperature
-#define TEMPERATURE_ENABLE 0
-#define TEMPERATURE_DEBUG 1
-#define TEMPERATURE_SENSOR 0 // 0 - ds80x20, 1 - HYT321, 2 - BMP085
+#define TEMPERATURE_ENABLE 1
+#define TEMPERATURE_DEBUG 0
+#define TEMPERATURE_SENSOR 1 // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 1 
 #define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 2 // Number of endpoints to broadcast automatically - set to 0 to disable
-#define VALUE_BROADCAST_AUTO_EIDS 2,7 // Comma-separated list of endpoints to broadcast automatically
-#define VALUE_BROADCAST_AUTO_INTERVAL 20 // Timeout in seconds
+#define VALUE_BROADCAST_AUTO_EIDS /*3,5,*/44,45 // Comma-separated list of endpoints to broadcast automatically
+#define VALUE_BROADCAST_AUTO_INTERVAL 5 // Timeout in seconds
 #define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0 // Number of endpoints to "broadcast" to the local state machine
 #define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2 // Comma-separated list of eids to be sent to local state machine
 
@@ -112,8 +112,8 @@ _DEBUG options should be set to:
 #define I2C_DEBUG 0
 
 //humidity sensor
-#define HUMIDITY_ENABLE 0
-#define HUMIDITY_DEBUG 0 
+#define HUMIDITY_ENABLE 1
+#define HUMIDITY_DEBUG 0
 
 //pressure sensor
 #define PRESSURE_ENABLE 0 
@@ -125,5 +125,9 @@ _DEBUG options should be set to:
 #define IR_RECEIVER_DEBUG 0
 #define IR_REPEAT 1 // 0 disables repeat, 1 enables repeat for buttons configured in ir_receiver.h
 #define IR_RECEIVER_RAW_MODE 0
+
+//pt100 temperatur sensors for heater
+#define PT100_ENABLE 1
+#define PT100_DEBUG 0
 
 #endif // HEXBAUS_CONFIG_H
