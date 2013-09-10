@@ -92,6 +92,7 @@ void epaper_update_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes
 		: now + 1 + (UINT32_MAX - last_update_at);
 	int16_t screen_idx = find_page_index(mes_temp, mes_hum);
 
+	syslog(LOG_DEBUG, "Updating display to %i °C/%i %%rh", mes_temp, mes_hum);
 	if (screen_idx < 0) {
 		syslog(LOG_EMERG, "Could not find entry for %i °C/%i %%rh", mes_temp, mes_hum);
 		goto end;
@@ -105,9 +106,11 @@ void epaper_update_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes
 		skipped_update_idx = -1;
 		syslog(LOG_DEBUG, "Redrawing display");
 		display_page(board_temp, screen_idx);
-	} else if (skipped_update_idx == -1) {
+	} else if (skipped_update_idx == -1 && old_idx != screen_idx) {
 		syslog(LOG_DEBUG, "Not redrawing display yet [1]");
 		skipped_update_idx = screen_idx;
+	} else {
+		syslog(LOG_DEBUG, "No reason to redraw display");
 	}
 
 end:
@@ -128,7 +131,6 @@ void epaper_handle_input(struct hxb_value* val, uint32_t eid)
 	}
 
 	if (current_temperature != 0xff && current_humidity != 0xff) {
-		syslog(LOG_DEBUG, "Updating display (%u %u)", current_temperature, current_humidity);
 		epaper_update_measurement(current_temperature,
 				current_temperature,
 				10 * (current_humidity / 10));
