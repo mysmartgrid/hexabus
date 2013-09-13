@@ -1,10 +1,5 @@
 #include "hallsensor.h"
-//#include <util/delay.h>
-//#include "sys/clock.h"
-//#include "sys/etimer.h" //contiki event timer library
-//#include "contiki.h"
 #include "hexabus_config.h"
-//#include "value_broadcast.h"
 #include "endpoints.h"
 #include "endpoint_registry.h"
 #include <avr/interrupt.h>
@@ -14,13 +9,21 @@
 #include "syslog.h"
 
 static uint16_t samples[96];
-static uint8_t pos;
+static float values[50];
+static uint8_t samplepos;
+static uint8_t valuepos;
 volatile static float average;
 
 static enum hxb_error_code read_hallsensor(struct hxb_value* value)
 {
 	syslog(LOG_DEBUG, "Reading hallsensor value");
-	value->v_float = average;
+	//Calculate the mean power for one second to reduce noise
+	float power = 0;
+	for ( uint8_t i = 0; i < 50; i++ )
+	{
+		power += values[i];
+	}
+	value->v_float = power/50.0;
 
 	return HXB_ERR_SUCCESS;
 }
@@ -46,7 +49,8 @@ void hallsensor_init() {
 
 	ENDPOINT_REGISTER(endpoint_hallsensor);
 
-	pos = 0;
+	samplepos = 0;
+	valuepos = 0;
 #endif
 #if HALLSENSOR_FAULT_ENABLE
 	DDRC |= (1<<HALLSENSOR_FAULT_EN); // PC6 (FAULT_EN) as output
@@ -59,17 +63,23 @@ void hallsensor_init() {
 //This equals 4000 times per second
 ISR(ADC_vect)
 {
-	samples[pos++] = ADCW;
-	if ( pos >= 96 )
+	samples[samplepos++] = ADCW;
+	if ( samplepos >= 96 )
 	{
-		pos = 0;
+		// We have sampled one mains sine, so we reset the counter and calculate the absolute average
+		samplepos = 0;
+
 		uint16_t mean = 0;
 		for ( uint8_t i = 0; i < 96; i++ )
 		{
+			//Compensate for the offset of Vcc/2 and add up the absolute values
 			mean += abs(samples[i] - 512);
 		}
 		uint32_t v = ((uint32_t)mean)*322;
-		average = ((float)v)/1848.0/96.0*230.0;
+		values[valuepos++] = ((float)v)/1848.0/96.0*230.0;
+
+		if ( valuepos >= 50 )
+			valuepos = 0;
 	}
 }
 
