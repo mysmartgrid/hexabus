@@ -126,7 +126,7 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 					target << "Invalid value";
 					break;
 				default:
-					target << "(unknown)";
+					target << "(unknown: " <<  static_cast<unsigned int>(error.code()) << ")";
 					break;
 			}
 			target << std::endl;
