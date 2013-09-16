@@ -113,6 +113,7 @@ allow-hotplug {0}
 	slaac = """iface {0} inet6 auto
 	privext 1
 	dhcp 0
+	post-up (sysctl net.ipv6.conf.{0}.accept_ra=2; rdisc6 {0}) >/dev/null
 """
 	static = """iface {0} inet6 static
 	address {1}
