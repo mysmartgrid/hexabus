@@ -8,22 +8,19 @@
 #define LOG_LEVEL HALLSENSOR_DEBUG
 #include "syslog.h"
 
-static uint16_t samples[96];
-static float values[50];
+#define HALLSENSOR_SAMPLES_PER_SECOND 4500
+#define HALLSENSOR_SAMPLES_PER_SINE 90
+
+volatile static uint16_t samplesum; // 10bit ADC -512 -> 9bit ADC * 96 -> 16bit
+volatile static uint16_t valuesum; // 9bit averaged ADC value
+static float average;
 static uint8_t samplepos;
 static uint8_t valuepos;
-volatile static float average;
 
 static enum hxb_error_code read_hallsensor(struct hxb_value* value)
 {
 	syslog(LOG_DEBUG, "Reading hallsensor value");
-	//Calculate the mean power for one second to reduce noise
-	float power = 0;
-	for ( uint8_t i = 0; i < 50; i++ )
-	{
-		power += values[i];
-	}
-	value->v_float = power/50.0;
+	value->v_float = average;
 
 	return HXB_ERR_SUCCESS;
 }
@@ -51,6 +48,9 @@ void hallsensor_init() {
 
 	samplepos = 0;
 	valuepos = 0;
+	samplesum = 0;
+	valuesum = 0;
+	average = 0.0;
 #endif
 #if HALLSENSOR_FAULT_ENABLE
 	DDRC |= (1<<HALLSENSOR_FAULT_EN); // PC6 (FAULT_EN) as output
@@ -59,27 +59,27 @@ void hallsensor_init() {
 #endif
 }
 
-//Assumption: This interrupt is executed 96 per mains sine
-//This equals 4000 times per second
+//Assumption: This interrupt is executed HALLSENSOR_SAMPLES_PER_SINE times per mains sine
 ISR(ADC_vect)
 {
-	samples[samplepos++] = ADCW;
-	if ( samplepos >= 96 )
+	//Compensate for the offset of Vcc/2 and add up the absolute values
+	samplesum += abs(ADCW - 512);
+	if ( ++samplepos >= HALLSENSOR_SAMPLES_PER_SINE )
 	{
-		// We have sampled one mains sine, so we reset the counter and calculate the absolute average
 		samplepos = 0;
-
-		uint16_t mean = 0;
-		for ( uint8_t i = 0; i < 96; i++ )
+		syslog(LOG_DEBUG, "calculated sine value: %u", samplesum);
+		valuesum += samplesum;
+		samplesum = 0;
+		if ( ++valuepos >= 50 ) // mains frequency of 50Hz -> 50 sines per second
 		{
-			//Compensate for the offset of Vcc/2 and add up the absolute values
-			mean += abs(samples[i] - 512);
-		}
-		uint32_t v = ((uint32_t)mean)*322;
-		values[valuepos++] = ((float)v)/1848.0/96.0*230.0;
-
-		if ( valuepos >= 50 )
+			syslog(LOG_DEBUG, "calculated seconds value: %u", valuesum);
 			valuepos = 0;
+			// 10bit ADC with AREF = 3.3V as reference -> 3.22 mV resolution
+			// ACS709 datasheet: 28mV/A at 5V Vcc -> 28*3.3/5 = 18.48mv/A at 3.3V Vcc
+			// 230V mains voltage
+			average = ((float)((valuesum/50)*322))/1848.0/90.0*230.0;
+			valuesum = 0;
+		}
 	}
 }
 
