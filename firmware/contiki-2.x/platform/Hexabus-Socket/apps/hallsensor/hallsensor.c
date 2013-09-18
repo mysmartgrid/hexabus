@@ -2,6 +2,7 @@
 #include "hexabus_config.h"
 #include "endpoints.h"
 #include "endpoint_registry.h"
+#include "value_broadcast.h"
 #include <avr/interrupt.h>
 #include <stdlib.h>
 
@@ -79,6 +80,7 @@ ISR(ADC_vect)
 			// 230V mains voltage
 			average = ((float)((valuesum/50)*322))/1848.0/90.0*230.0;
 			valuesum = 0;
+			broadcast_value(EP_HALLSENSOR);
 		}
 	}
 }
