@@ -64,7 +64,7 @@ void EndpointRegistry::reload()
 	boost::filesystem::ifstream file(_path, std::ios_base::in);
 
 	if (!file.good())
-		throw GenericException("File not found");
+		throw GenericException("Endpoint registry file not found");
 
 	boost::property_tree::ptree ptree;
 
@@ -79,7 +79,7 @@ void EndpointRegistry::reload()
 	typedef boost::property_tree::ptree::const_iterator iterator;
 	for (iterator it = ptree.begin(), end = ptree.end(); it != end; it++) {
 		if (it->first != "eid") {
-			throw GenericException("Invalid registry file");
+			throw GenericException("Invalid endpoint registry file");
 		}
 
 		uint32_t eid;
