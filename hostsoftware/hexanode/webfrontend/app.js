@@ -12,7 +12,7 @@ nconf.env().argv();
 // Setting default values
 nconf.defaults({
   'port': '3000',
-  'server': '10.23.1.253'
+  'server': '10.23.1.250'
 });
 
 server.listen(nconf.get('port'));
