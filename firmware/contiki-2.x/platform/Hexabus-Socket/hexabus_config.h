@@ -21,7 +21,7 @@ _DEBUG options should be set to:
 #define WEBSERVER_DEBUG 0
 
 // Memory debugger process
-#define MEMORY_DEBUGGER_ENABLE 0
+#define MEMORY_DEBUGGER_ENABLE 1
 // Print a line every MEMORY_DEBUGGER_INTERVAL seconds
 #define MEMORY_DEBUGGER_INTERVAL 10
 
@@ -40,7 +40,7 @@ _DEBUG options should be set to:
 #define DATETIME_SERVICE_DEBUG 0
 
 // temperature
-#define TEMPERATURE_ENABLE 1
+#define TEMPERATURE_ENABLE 0
 #define TEMPERATURE_DEBUG 1
 #define TEMPERATURE_SENSOR 0 // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
@@ -107,7 +107,7 @@ _DEBUG options should be set to:
 #define ANALOGREAD_MULT 0.0024414062 // readings are multiplied with this value to calculate the value sent to the endpoint. Set to 0.0024414062 to get the Voltage reading (in Volts) at 2.5V supply voltage
 
 //i2c master
-#define I2C_ENABLE 1
+#define I2C_ENABLE 0
 #define I2C_DEBUG 0
 
 //humidity sensor

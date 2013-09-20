@@ -58,13 +58,13 @@
 
 #define TRICKLE_VERBOSE 0
 
-#if DEBUG && TRICKLE_VERBOSE
+//#if DEBUG && TRICKLE_VERBOSE
 #define VERBOSE_PRINTF(...) PRINTF(__VA_ARGS__)
 #define VERBOSE_PRINT_SEED(s) PRINT_SEED(s)
-#else
-#define VERBOSE_PRINTF(...)
-#define VERBOSE_PRINT_SEED(...)
-#endif
+//#else
+//#define VERBOSE_PRINTF(...)
+//#define VERBOSE_PRINT_SEED(...)
+//#endif
 /*---------------------------------------------------------------------------*/
 /* Data Representation */
 /*---------------------------------------------------------------------------*/

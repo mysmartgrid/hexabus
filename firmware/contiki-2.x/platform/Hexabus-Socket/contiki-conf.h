@@ -53,6 +53,7 @@
 #define F_CPU          8000000UL
 #endif
 #include <stdint.h>
+#include "net/uip-mcast6/uip-mcast6-engines.h"
 
 typedef int32_t s32_t;
 typedef unsigned char u8_t;
@@ -100,7 +101,7 @@ typedef unsigned long off_t;
 #define RIMEADDR_CONF_SIZE        8
 #define UIP_CONF_ICMP6            1
 #define UIP_CONF_UDP              1
-#define UIP_CONF_TCP              1
+#define UIP_CONF_TCP              0
 #define NETSTACK_CONF_NETWORK       sicslowpan_driver
 #define SICSLOWPAN_CONF_COMPRESSION SICSLOWPAN_COMPRESSION_HC06
 #else
@@ -218,6 +219,11 @@ typedef unsigned long off_t;
 #define UIP_ARCH_IPCHKSUM        1
 #define UIP_CONF_PINGADDRCONF    0
 #define UIP_CONF_LOGGING         0
+
+#define UIP_MCAST6_CONF_ENGINE	UIP_MCAST6_ENGINE_TRICKLE
+#define ROLL_TRICKLE_CONF_BUFF_NUM 2
+#define ROLL_TRICKLE_SHORT_SEEDS 1
+//#define UIP_MCAST6_CONF_ENGINE 0
 
 #endif /* RPL */
 
