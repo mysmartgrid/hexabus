@@ -55,33 +55,54 @@ app.get('/api', function(req, res) {
 });
 
 app.get('/api/sensor', function(req, res) {
-  sensorcache.list_sensors(req, res);
+	res.send(JSON.stringify(sensorcache.get_sensor_info_list()));
 });
 
 app.get('/api/sensor/:id/latest', function(req, res) {
-  sensorcache.get_last_value(req, res);
+	var result = sensorcache.get_last_value(req.params.id);
+	if (result) {
+		res.send(JSON.stringify(result));
+	} else {
+		res.send("Sensor " + req.params.id + " not found", 404);
+	}
 });
 
 app.get('/api/sensor/:id', function(req, res) {
-  sensorcache.get_sensor(req, res);
+	var sensor = sensorcache.get_sensor_info(req.params.id);
+	if (sensor) {
+		res.send(JSON.stringify(sensor));
+	} else {
+		res.send("Sensor " + req.params.id + " not found", 404);
+	}
 });
 
 app.put('/api/sensor/:id', function(req, res) {
-  sensorcache.add_sensor(req, res);
+	try {
+		var id = req.params.id;
+		var sensor = sensorcache.add_sensor(id, req.body);
+		res.send("New sensor " + id + " added");
+	} catch(err) {
+		res.send(err, 422);
+	}
 });
 
 app.post('/api/sensor/:id', function(req, res) {
-  sensorcache.add_value(req, res);
+	try {
+		sensorcache.add_value(req.params.id, req.body.value);
+		res.send("OK");
+	} catch(err) {
+		if (err == "Sensor not found") {
+			res.send("Sensor " + req.params.id + " not found", 404);
+		} else if (err == "Value required") {
+			res.send(err, 422);
+		} else {
+			res.send(err, 500);
+		}
+	}
 });
 
 app.get('/', function(req, res) {
-  console.log("Sensorlist:" + JSON.stringify(sensorcache.render_sensor_list()));
-  res.render('index.ejs', 
-    {
-      "server": nconf.get('server'), 
-    "port": nconf.get('port'),
-    "sensorlist": sensorcache.render_sensor_list()
-    });
+  res.render('index.ejs');
 });
 
 io.sockets.on('connection', function (socket) {
@@ -98,7 +119,7 @@ io.sockets.on('connection', function (socket) {
   // a client can also initiate a data update.
   socket.on('sensor_refresh_data', function() {
   //  console.log("Refresh data event.");
-    sensorcache.send_current_data(function(msg) {
+    sensorcache.enumerate_current_values(function(msg) {
       socket.volatile.emit('sensor_update', { sensor: msg });
     });
   });

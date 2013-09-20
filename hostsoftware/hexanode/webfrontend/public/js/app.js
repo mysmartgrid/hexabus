@@ -61,7 +61,7 @@ angular.module('dashboard').controller('gaugesDisplayController', ['$scope', 'So
 	Socket.on('sensor_update', function(data) {
 		lastSensorValueReceivedAt = new Date();
 
-		var sensorId = data.sensor.sensor_id;
+		var sensorId = data.sensor.id;
 		$scope.sensorList[sensorId] = {
 			id: sensorId,
 			min: 0,
