@@ -98,6 +98,11 @@
 #define IAD_TIMEOUT_DETACH 300
 #define IAD_TIMEOUT_ATTACH 600
 
+#define P_ON_STR "HXB_P_ON"
+#define P_OFF_STR "HXB_P_OFF"
+#define P_SUC_STR "$HXB_P_SUCCESS&\n"
+#define P_FAL_STR "$HXB_P_FAILED&\n"
+
 //_____ D E C L A R A T I O N S ____________________________________________
 
 
@@ -116,6 +121,10 @@ static uint8_t timer = 0;
 static struct etimer et;
 
 static uint8_t menu_active = 0;
+
+static uint8_t pairing_pos = 0;
+static bool is_parsing = false;
+static char parsed_str[20];
 
 PROCESS(cdc_process, "CDC serial process");
 
@@ -261,6 +270,42 @@ void menu_activate() {
 	menu_print();
 }
 
+int process_pairing_command(char c) {
+
+	printf("%c\n", c);
+
+	if(c=='&' && is_parsing) {
+		is_parsing = false;
+		parsed_str[pairing_pos] = '\0';
+		pairing_pos = 0;
+
+		if(!strcmp_P(parsed_str, PSTR(P_ON_STR))) {
+			//TODO start prov
+			PRINTF_P(PSTR(P_SUC_STR));
+		} else if(!strcmp_P(parsed_str, PSTR(P_OFF_STR))) {
+			//TODO end prov
+			printf("Stopping\n");
+		}
+		return 1;
+
+	} else if(!is_parsing && c=='$') {
+		is_parsing = true;
+		pairing_pos = 0;
+		return 1;
+	} else if(is_parsing) {
+		parsed_str[pairing_pos] = c;
+		pairing_pos++;
+
+		if(pairing_pos >= 20) {
+			is_parsing = false;
+			pairing_pos = 0;
+		}
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 /**
  \brief Process incomming char on debug port
  */
@@ -269,14 +314,16 @@ void menu_process(char c)
 
 		uint8_t i;
 
-        /* Any attempt to read an RF230 register in sneeze mode (e.g. rssi) will hang the MCU */
-        /* So convert any command into a sneeze off */
-
-        if (usbstick_mode.sneeze) c='S';
+		if(process_pairing_command(c)) return;
 
         /* Only parse input if menu has been activated to prevent accidental reboots */
 
         if (!menu_active) return;
+
+        /* Any attempt to read an RF230 register in sneeze mode (e.g. rssi) will hang the MCU */
+        /* So convert any command into a sneeze off */
+
+        if (usbstick_mode.sneeze) c='S';
 
 		switch(c) {
 			case '\r':
