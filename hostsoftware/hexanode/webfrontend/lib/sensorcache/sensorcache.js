@@ -68,7 +68,7 @@ var SensorCache = function() {
 		}
 
 		sensors[sensor.id] = sensor;
-		this.emit('sensor_metadata_refresh');
+		this.emit('sensor_new', render_sensor_info(sensor));
 		return sensor;
 	}
 

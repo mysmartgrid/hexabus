@@ -110,12 +110,12 @@ io.sockets.on('connection', function (socket) {
   sensorcache.on('sensor_update', function(msg) {
     socket.volatile.emit('sensor_update', { sensor: msg });
   });
-  // If the sensor metadata changes (e.g. a new sensor occurs),
-  // let the client know. This triggers e.g. a refresh of the HTML 
-  // page.
-  sensorcache.on('sensor_metadata_refresh', function(msg) {
-    socket.volatile.emit('sensor_metadata_refresh');
-  });
+	sensorcache.on('sensor_new', function(sensor) {
+		socket.volatile.emit('sensor_new', sensor);
+	});
+	socket.on('sensor_request_metadata', function(sensor_id) {
+		socket.volatile.emit('sensor_metadata', sensorcache.get_sensor_info(sensor_id));
+	});
   // a client can also initiate a data update.
   socket.on('sensor_refresh_data', function() {
   //  console.log("Refresh data event.");

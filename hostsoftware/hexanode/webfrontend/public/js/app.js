@@ -19,7 +19,9 @@ angular.module('dashboard').factory('Socket', ['$rootScope', '$location', functi
 		return socket;
 	}
 
-	socket.emit = connection.emit;
+	socket.emit = function(id, message) {
+		connection.emit(id, message);
+	};
 
 	socket.volatile_emit = function(id, message) {
 		return connection.volatile.emit(id, message);
@@ -37,49 +39,51 @@ angular.module('dashboard').controller('gaugesDisplayController', ['$scope', 'So
 
 	$scope.sensorList = {};
 
-	var newGauge = function(sensor) {
-		gauges[sensor.id] = new JustGage(sensor);
-//  window.onload = function() {
-//    for (var g_id in gauge_data) {
-//      var current = gauge_data[g_id];
-//      console.log("Preparing gauge for " + JSON.stringify(current.title));
-//      gauges[g_id] = (new JustGage({
-//        id: g_id, 
-//        value: "n/a", 
-//        min: current.min,
-//        max: current.max,
-//        title: current.title
-//      }));
-//    }
-//    // get up-to-date values for all sensors
-//    socket.emit('sensor_refresh_data');
-//    $('a[href=#sensors]').tab('show');
-//    $('a[href=#dash]').tab('show');
-//  };
+	var updateDisplay = function() {
+		lastSensorValueReceivedAt = new Date();
+		keepLastUpdateCurrent();
+	};
+
+	$scope.initGauge = function(sensor) {
+		if (!gauges[sensor.id]) {
+			gauges[sensor.id] = {
+				refresh: function() {}
+			};
+			$timeout(function() {
+				gauges[sensor.id] = new JustGage({
+					id: sensor.id,
+					value: "n/a",
+					min: sensor.minvalue,
+					max: sensor.maxvalue,
+					title: sensor.name
+				});
+			}, 0, false);
+		}
 	}
 
+	var sensorMetadataHandler = function(sensor) {
+		$scope.sensorList[sensor.id] = sensor;
+
+		updateDisplay();
+	};
+
+	Socket.on('sensor_new', sensorMetadataHandler);
+	Socket.on('sensor_metadata', sensorMetadataHandler);
+
 	Socket.on('sensor_update', function(data) {
-		lastSensorValueReceivedAt = new Date();
-
 		var sensorId = data.sensor.id;
-		$scope.sensorList[sensorId] = {
-			id: sensorId,
-			min: 0,
-			max: 100,
-			title: sensorId
-		};
-		for (key in data.sensor.value) {
-			$scope.sensorList[sensorId].value = data.sensor.value[key];
-		}
-		$timeout(function() {
-			if (!gauges[sensorId]) {
-				gauges[sensorId] = newGauge($scope.sensorList[sensorId]);
-			} else {
-				gauges[sensorId].refresh();
+		if (sensorId in $scope.sensorList) {
+			for (key in data.sensor.value) {
+				$scope.sensorList[sensorId].value = data.sensor.value[key];
+				if (sensorId in gauges) {
+					gauges[sensorId].refresh(data.sensor.value[key]);
+				}
 			}
-		});
+		} else {
+			Socket.emit('sensor_request_metadata', sensorId);
+		}
 
-		keepLastUpdateCurrent();
+		updateDisplay();
 	});
 
 	var waitingLastUpdateRecalc;
@@ -104,26 +108,4 @@ angular.module('dashboard').controller('gaugesDisplayController', ['$scope', 'So
 
 		waitingLastUpdateRecalc = $timeout(keepLastUpdateCurrent, nextUpdateIn);
 	};
-
-//  <% for (var i=0; i < sensorlist.length; i++) { 
-//    current=sensorlist[i];
-//    %>
-//      gauge_data["<%=current.sensor_id%>"]= {
-//        title: "<%=current.name%>",
-//        value: <%-JSON.stringify(current.values)%>,
-//        min: <%-JSON.stringify(current.minvalue)%>,
-//        max: <%-JSON.stringify(current.maxvalue)%> 
-//      };
-//    <% } %>
-//
-//  $('a[data-toggle="tab"]').on('click', function (e) {
-//    socket.emit('sensor_refresh_data');
-//  }); 
-//
-//
-//  socket.on('sensor_metadata_refresh', function() {
-//    // Trigger a hard reload from the server. This is initiated
-//    // by the server e.g. if a new sensor is available.
-//    window.location.reload(true);
-//  });
 }]);

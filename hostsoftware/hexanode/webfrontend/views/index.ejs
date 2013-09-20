@@ -1,7 +1,7 @@
 <% include header %>
 
 <script src="/js/raphael.2.1.0.min.js"></script>
-<script src="/js/justgage.1.0.1.min.js"></script>
+<script src="/js/justgage.1.0.1.js"></script>
 
 <div class="tab-content" ng-controller="gaugesDisplayController">
   <div class="tab-pane active" id="dashboard">
@@ -24,9 +24,9 @@
                 </div>
                 <div class="span9">
                   <div class="row-fluid">
-                    <ul class="inline">
+                    <ul class="inline" id="asdf">
                       <li ng-repeat="sensor in sensorList">
-                        <div id="{{sensor.id}}" style="width: 200px; height: 160px"></div>
+                        <div id="{{sensor.id}}" style="width: 200px; height: 160px"></div>{{initGauge(sensor)}}
                       </li>
                     </ul>
                   </div>
