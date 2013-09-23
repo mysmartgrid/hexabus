@@ -108,6 +108,14 @@ var SensorCache = function() {
 		}
 	}
 
+	this.get_last_value_info = function(id) {
+		if (id in sensors) {
+			return render_sensor_lastvalue(sensors[id]);
+		} else {
+			return null;
+		}
+	}
+
 };
 
 util.inherits(SensorCache, EventEmitter);

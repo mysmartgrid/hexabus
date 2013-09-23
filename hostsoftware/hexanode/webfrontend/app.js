@@ -123,5 +123,13 @@ io.sockets.on('connection', function (socket) {
       socket.volatile.emit('sensor_update', { sensor: msg });
     });
   });
+
+	socket.emit('clear_state');
+
+	var list = sensorcache.get_sensor_info_list();
+	for (sensor in list) {
+		socket.emit('sensor_metadata', list[sensor]);
+		socket.emit('sensor_update', { sensor: sensorcache.get_last_value_info(list[sensor].id) });
+	}
 });
 

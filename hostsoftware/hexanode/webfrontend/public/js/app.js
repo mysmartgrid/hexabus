@@ -67,23 +67,31 @@ angular.module('dashboard').controller('gaugesDisplayController', ['$scope', 'So
 		updateDisplay();
 	};
 
+	Socket.on('clear_state', function() {
+		console.log(1);
+		$scope.sensorList = {};
+		gauges = {};
+	});
+
 	Socket.on('sensor_new', sensorMetadataHandler);
 	Socket.on('sensor_metadata', sensorMetadataHandler);
 
 	Socket.on('sensor_update', function(data) {
-		var sensorId = data.sensor.id;
-		if (sensorId in $scope.sensorList) {
-			for (key in data.sensor.value) {
-				$scope.sensorList[sensorId].value = data.sensor.value[key];
-				if (sensorId in gauges) {
-					gauges[sensorId].refresh(data.sensor.value[key]);
+		$timeout(function() {
+			var sensorId = data.sensor.id;
+			if (sensorId in $scope.sensorList) {
+				for (key in data.sensor.value) {
+					$scope.sensorList[sensorId].value = data.sensor.value[key];
+					if (sensorId in gauges) {
+						gauges[sensorId].refresh(data.sensor.value[key]);
+					}
 				}
+			} else {
+				Socket.emit('sensor_request_metadata', sensorId);
 			}
-		} else {
-			Socket.emit('sensor_request_metadata', sensorId);
-		}
 
-		updateDisplay();
+			updateDisplay();
+		});
 	});
 
 	var waitingLastUpdateRecalc;
