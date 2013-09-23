@@ -26,15 +26,23 @@ angular.module('dashboard').controller('gaugesDisplayController', ['$scope', 'So
 		attrs = attrs || {};
 
 		var bound = control.getBBox();
-		var box = $('<input type="text" style="position: absolute" />')
-			.css("left", bound.x)
-			.css("top", bound.y)
-			.css("width", attrs.width || (bound.x2 - bound.x))
-			.css("height", attrs.height || (bound.y2 - bound.y))
+
+		var pos = {
+			left: attrs.left || (bound.x + "px"),
+			top: attrs.top || (bound.y + "px"),
+			width: attrs.width || ((bound.x2 - bound.x) + "px"),
+			height: attrs.height || ((bound.y2 - bound.y) + "px")
+		};
+		var container = $('<div style="position: absolute" />')
+			.css("left", pos.left)
+			.css("top", pos.top);
+		var box = $('<input type="text" style="position: relative" />')
+			.css("width", pos.width)
+			.css("height", pos.height)
 			.attr("value", control.attrs.text);
-		var button = $('<input type="button" style="position: absolute" value="OK" />')
-			.css("left", bound.x + box.outerWidth())
-			.css("top", bound.y);
+		var button = $('<input type="button" value="OK" style="position: absolute" />')
+			.css("left", box.css("right"));
+		container.append(box, button);
 		for (key in control.attrs) {
 			if (typeof key == "string" && key.startsWith("font")) {
 				box.css(key, control.attrs[key]);
@@ -43,8 +51,7 @@ angular.module('dashboard').controller('gaugesDisplayController', ['$scope', 'So
 		}
 
 		var cleanup = function() {
-			box.remove();
-			button.remove();
+			container.remove();
 			pendingUpdateControl = null;
 		};
 
@@ -53,10 +60,18 @@ angular.module('dashboard').controller('gaugesDisplayController', ['$scope', 'So
 		};
 
 		var waitingCleanup = null;
-
-		box.blur(function() {
+		var scheduleCleanup = function() {
 			waitingCleanup = $timeout(cleanup, 100);
-		});
+		};
+		var abortCleanup = function(ev) {
+			if (waitingCleanup) {
+				$timeout.cancel(waitingCleanup);
+			}
+			pendingUpdateControl = $(ev.target);
+		};
+
+		box.blur(scheduleCleanup);
+		box.focus(abortCleanup);
 		box.keydown(function(ev) {
 			if (ev.which == 13) {
 				accept();
@@ -64,18 +79,15 @@ angular.module('dashboard').controller('gaugesDisplayController', ['$scope', 'So
 				cleanup();
 			}
 		});
-		button.focus(function() {
-			if (waitingCleanup) {
-				$timeout.cancel(waitingCleanup);
-			}
-		});
+
+		button.blur(scheduleCleanup);
+		button.focus(abortCleanup);
 		button.click(function() {
 			accept();
 			cleanup();
 		});
 
-		element.append(box);
-		element.append(button);
+		element.append(container);
 		box.focus();
 
 		pendingUpdateControl = box;
@@ -108,6 +120,7 @@ angular.module('dashboard').controller('gaugesDisplayController', ['$scope', 'So
 							$(document.getElementById(sensor.id)),
 							gauges[sensor.id].txtTitle,
 							{
+								left: "0px",
 								width: "140px"
 							},
 							function(value) {
