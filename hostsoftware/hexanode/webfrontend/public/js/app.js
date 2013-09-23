@@ -1,34 +1,6 @@
 angular.module('dashboard', [
+	'ng-socket'
 ]);
-
-angular.module('dashboard').factory('Socket', ['$rootScope', '$location', function($rootScope, $location) {
-	var socket = {};
-
-	var connection = io.connect($location.protocol() + "://" + $location.host() + ":" + $location.port());
-
-	var wrap_message = function(callback) {
-		return function(data) {
-			$rootScope.$apply(function() {
-				callback(data);
-			});
-		};
-	};
-
-	socket.on = function(id, callback) {
-		connection.on(id, wrap_message(callback));
-		return socket;
-	}
-
-	socket.emit = function(id, message) {
-		connection.emit(id, message);
-	};
-
-	socket.volatile_emit = function(id, message) {
-		return connection.volatile.emit(id, message);
-	};
-
-	return socket;
-}]);
 
 angular.module('dashboard').controller('gaugesDisplayController', ['$scope', 'Socket', '$timeout', function($scope, Socket, $timeout) {
 	var lastSensorValueReceivedAt;
