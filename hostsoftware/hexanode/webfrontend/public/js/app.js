@@ -35,6 +35,8 @@ angular.module('dashboard').controller('gaugesDisplayController', ['$scope', 'So
 
 	var gauges = {};
 
+	var pendingUpdateControl = null;
+
 	$scope.lastUpdate = "never";
 
 	$scope.sensorList = {};
@@ -42,6 +44,79 @@ angular.module('dashboard').controller('gaugesDisplayController', ['$scope', 'So
 	var updateDisplay = function() {
 		lastSensorValueReceivedAt = new Date();
 		keepLastUpdateCurrent();
+
+		if (pendingUpdateControl) {
+			pendingUpdateControl.focus();
+		}
+	};
+
+	var placeUpdateControl = function(element, control, attrs, doneCb) {
+		attrs = attrs || {};
+
+		var bound = control.getBBox();
+		var box = $('<input type="text" style="position: absolute" />')
+			.css("left", bound.x)
+			.css("top", bound.y)
+			.css("width", attrs.width || (bound.x2 - bound.x))
+			.css("height", attrs.height || (bound.y2 - bound.y))
+			.attr("value", control.attrs.text);
+		var button = $('<input type="button" style="position: absolute" value="OK" />')
+			.css("left", bound.x + box.outerWidth())
+			.css("top", bound.y);
+		for (key in control.attrs) {
+			if (typeof key == "string" && key.startsWith("font")) {
+				box.css(key, control.attrs[key]);
+				button.css(key, control.attrs[key]);
+			}
+		}
+
+		var cleanup = function() {
+			box.remove();
+			button.remove();
+			pendingUpdateControl = null;
+		};
+
+		var accept = function() {
+			doneCb(box.prop("value"));
+		};
+
+		var waitingCleanup = null;
+
+		box.blur(function() {
+			waitingCleanup = $timeout(cleanup, 100);
+		});
+		box.keydown(function(ev) {
+			if (ev.which == 13) {
+				accept();
+				ev.preventDefault();
+				cleanup();
+			}
+		});
+		button.focus(function() {
+			if (waitingCleanup) {
+				$timeout.cancel(waitingCleanup);
+			}
+		});
+		button.click(function() {
+			accept();
+			cleanup();
+		});
+
+		element.append(box);
+		element.append(button);
+		box.focus();
+
+		pendingUpdateControl = box;
+	};
+
+	var renewGauge = function(sensor) {
+		delete gauges[sensor.id];
+		$timeout(function() {
+			delete $scope.sensorList[sensor.id];
+			$timeout(function() {
+				$scope.sensorList[sensor.id] = sensor;
+			});
+		});
 	};
 
 	$scope.initGauge = function(sensor) {
@@ -52,10 +127,42 @@ angular.module('dashboard').controller('gaugesDisplayController', ['$scope', 'So
 			$timeout(function() {
 				gauges[sensor.id] = new JustGage({
 					id: sensor.id,
-					value: "n/a",
+					value: "" + sensor.value,
 					min: sensor.minvalue,
 					max: sensor.maxvalue,
-					title: sensor.name
+					title: sensor.name,
+					titleClick: function() {
+						placeUpdateControl(
+							$(document.getElementById(sensor.id)),
+							gauges[sensor.id].txtTitle,
+							{
+								width: "140px"
+							},
+							function(value) {
+								sensor.name = value;
+								renewGauge(sensor);
+							});
+					},
+					minClick: function() {
+						placeUpdateControl(
+							$(document.getElementById(sensor.id)),
+							gauges[sensor.id].txtMin,
+							null,
+							function(value) {
+								sensor.minvalue = +value;
+								renewGauge(sensor);
+							});
+					},
+					maxClick: function() {
+						placeUpdateControl(
+							$(document.getElementById(sensor.id)),
+							gauges[sensor.id].txtMax,
+							null,
+							function(value) {
+								sensor.maxvalue = +value;
+								renewGauge(sensor);
+							});
+					}
 				});
 			}, 0, false);
 		}
@@ -68,7 +175,6 @@ angular.module('dashboard').controller('gaugesDisplayController', ['$scope', 'So
 	};
 
 	Socket.on('clear_state', function() {
-		console.log(1);
 		$scope.sensorList = {};
 		gauges = {};
 	});
