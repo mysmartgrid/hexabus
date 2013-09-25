@@ -26,7 +26,17 @@
                   <div class="row-fluid">
                     <ul class="inline" id="asdf">
                       <li ng-repeat="sensor in sensorList">
-                        <div id="{{sensor.id}}" style="width: 200px; height: 160px; position: relative"></div>{{initGauge(sensor)}}
+                        <gauge
+                          id="{{sensor.id}}"
+                          class="gauge"
+                          title="{{sensor.name}}"
+                          min="{{sensor.minvalue}}"
+                          max="{{sensor.maxvalue}}"
+                          value="{{sensor.value}}"
+                          gauge="sensor.gauge"
+                          min-click="minClick(sensor)"
+                          max-click="maxClick(sensor)"
+                          title-click="titleClick(sensor)" />
                       </li>
                     </ul>
                   </div>
