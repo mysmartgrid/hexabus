@@ -57,19 +57,20 @@ angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) 
 
 							watchers['value'] = scope.$watch('value', function(val) {
 								val = +val;
-								if (val || val == 0) {
+								if (!isNaN(val)) {
 									g.refresh(val);
 								}
 							});
 							watchers['min'] = scope.$watch('min', function(min) {
 								min = +min;
-								if (min != g.config.min) {
+								if (!isNaN(min) && min != g.config.min) {
+									console.log(min + " : " + g.config.min);
 									makeGauge();
 								}
 							});
 							watchers['max'] = scope.$watch('max', function(max) {
 								max = +max;
-								if (max != g.config.max) {
+								if (!isNaN(max) && max != g.config.max) {
 									makeGauge();
 								}
 							});

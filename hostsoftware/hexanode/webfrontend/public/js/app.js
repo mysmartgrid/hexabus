@@ -19,103 +19,61 @@ angular.module('dashboard', [
 		}
 	};
 
-	var placeUpdateControl = function(element, control, attrs, doneCb) {
-		attrs = attrs || {};
-
+	var placeUpdateControl = function(forSensor, control, attrs, done) {
+		var element = $(document.getElementById(forSensor.id));
 		var bound = control.getBBox();
 
-		var pos = {
+		attrs = attrs || {};
+
+		var config = {
 			left: attrs.left || (bound.x + "px"),
 			top: attrs.top || (bound.y + "px"),
 			width: attrs.width || ((bound.x2 - bound.x) + "px"),
-			height: attrs.height || ((bound.y2 - bound.y) + "px")
+			height: attrs.height || ((bound.y2 - bound.y) + "px"),
+
+			done: function(value) {
+				$scope.$apply(function() {
+					done(value);
+				});
+			},
+			font: {},
+
+			value: control.attrs.text
 		};
-		var container = $('<div style="position: absolute" />')
-			.css("left", pos.left)
-			.css("top", pos.top);
-		var box = $('<input type="text" style="position: relative" />')
-			.css("width", pos.width)
-			.css("height", pos.height)
-			.attr("value", control.attrs.text);
-		var button = $('<input type="button" value="OK" style="position: absolute" />')
-			.css("left", box.css("right"));
-		container.append(box, button);
-		console.log(control.attrs);
 		for (key in control.attrs) {
 			if (typeof key == "string" && key.substr(0, 4) == "font") {
-				box.css(key, control.attrs[key]);
-				button.css(key, control.attrs[key]);
+				config.font[key] = control.attrs[key];
 			}
 		}
 
-		var cleanup = function() {
-			container.remove();
-			pendingUpdateControl = null;
-		};
-
-		var accept = function() {
-			$scope.$apply(function() {
-				doneCb(box.prop("value"));
-			});
-		};
-
-		var waitingCleanup = null;
-		var scheduleCleanup = function() {
-			waitingCleanup = $timeout(cleanup, 100);
-		};
-		var abortCleanup = function(ev) {
-			if (waitingCleanup) {
-				$timeout.cancel(waitingCleanup);
-			}
-			pendingUpdateControl = $(ev.target);
-		};
-
-		box.blur(scheduleCleanup);
-		box.focus(abortCleanup);
-		box.keydown(function(ev) {
-			if (ev.which == 13) {
-				accept();
-				ev.preventDefault();
-				cleanup();
-			}
-		});
-
-		button.blur(scheduleCleanup);
-		button.focus(abortCleanup);
-		button.click(function() {
-			accept();
-			cleanup();
-		});
-
-		element.append(container);
-		box.focus();
-
-		pendingUpdateControl = box;
+		pendingUpdateControl = new UpdateControl(element, config);
 	};
 
 	$scope.minClick = function(sensor) {
 		placeUpdateControl(
-			$(document.getElementById(sensor.id)),
+			sensor,
 			sensor.gauge.txtMin,
 			null,
 			function(value) {
 				sensor.minvalue = +value;
+				pendingUpdateControl = null;
 			});
 	};
 
 	$scope.maxClick = function(sensor) {
 		placeUpdateControl(
-			$(document.getElementById(sensor.id)),
+			sensor,
 			sensor.gauge.txtMax,
 			null,
 			function(value) {
 				sensor.maxvalue = +value;
+				pendingUpdateControl = null;
 			});
 	};
 
 	$scope.titleClick = function(sensor) {
 		placeUpdateControl(
-			$(document.getElementById(sensor.id)),
+			sensor,
 			sensor.gauge.txtTitle,
 			{
 				left: "0px",
@@ -123,6 +81,7 @@ angular.module('dashboard', [
 			},
 			function(value) {
 				sensor.name = value;
+				pendingUpdateControl = null;
 			});
 	};
 
