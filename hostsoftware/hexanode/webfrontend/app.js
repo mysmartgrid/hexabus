@@ -6,6 +6,7 @@ var application_root = __dirname
   , server=require("http").createServer(app)
   , io = require('socket.io').listen(server)
   , Cache=require("./lib/sensorcache")
+	, hexabus=require("./lib/hexabus")
   , nconf=require('nconf');
 
 nconf.env().argv();
@@ -101,6 +102,20 @@ app.post('/api/sensor/:id', function(req, res) {
 	}
 });
 
+app.post('/api/device/rename/:ip', function(req, res) {
+	try {
+		if (typeof req.body.name != "string") {
+			res.send("No name given", 400);
+		}
+		new hexabus().rename_device(req.params.ip, req.body.name, function() {
+			res.send("Success");
+		});
+	} catch (err) {
+		console.log(err);
+		res.send(err, 500);
+	}
+});
+
 app.get('/', function(req, res) {
   res.render('index.ejs');
 });
@@ -123,6 +138,21 @@ io.sockets.on('connection', function (socket) {
       socket.volatile.emit('sensor_update', { sensor: msg });
     });
   });
+	socket.on('device_rename', function(msg) {
+		if (sensorcache.get_sensor_info(msg.device)) {
+			try {
+				console.log(msg.device.replace(/_.*/g, ""));
+				new hexabus().rename_device(msg.device.replace(/_.*/g, ""), msg.newName, function() {
+					sensorcache.remove_sensor(msg.device);
+					socket.emit('device_rename_error', null);
+				});
+			} catch (err) {
+				socket.emit('device_rename_error', err);
+			}
+		} else {
+			socket.emit('device_rename_error', "No such device");
+		}
+	});
 
 	socket.emit('clear_state');
 

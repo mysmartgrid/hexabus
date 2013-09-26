@@ -80,7 +80,8 @@ angular.module('dashboard', [
 				width: "140px"
 			},
 			function(value) {
-				sensor.name = value;
+				Socket.emit('device_rename', { device: sensor.id, newName: value });
+//				sensor.name = value;
 				pendingUpdateControl = null;
 			});
 	};

@@ -87,7 +87,7 @@ var SensorCache = function() {
 	}
 
 	this.add_value = function(id, value) {
-		if (!id in sensors) {
+		if (!(id in sensors)) {
 			throw "Sensor not found";
 		}
 		if (!value) {
@@ -115,6 +115,12 @@ var SensorCache = function() {
 			return null;
 		}
 	}
+
+	this.remove_sensor = function(id) {
+		if (id in sensors) {
+			delete sensors[id];
+		}
+	};
 
 };
 
