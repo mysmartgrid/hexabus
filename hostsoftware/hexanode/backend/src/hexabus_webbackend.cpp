@@ -84,9 +84,8 @@ int main (int argc, char const* argv[]) {
   network->listen(bind_addr);
 
   http::client client;
-  hexanode::SensorStore::Ptr sensors(new hexanode::SensorStore());
 
-	hexanode::PacketPusher pp(network, sensors, client, base_uri, std::cout);
+	hexanode::PacketPusher pp(network, client, base_uri, std::cout);
   
   std::cout << "Will now push values." << std::endl;
   while (true) {

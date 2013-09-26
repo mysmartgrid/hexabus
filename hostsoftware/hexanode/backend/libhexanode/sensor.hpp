@@ -33,9 +33,6 @@ namespace hexanode {
           const std::string& reading);
 
     private:
-      Sensor (const Sensor& original);
-      Sensor& operator= (const Sensor& rhs);
-
       std::string _sensor_id;
       std::string _sensor_name;
       int32_t _min_value;

@@ -88,6 +88,9 @@ angular.module('dashboard', [
 
 	var sensorMetadataHandler = function(sensor) {
 		$scope.sensorList[sensor.id] = sensor;
+		for (key in sensor.values) {
+			$scope.sensorList[sensor.id].value = sensor.values[key];
+		}
 
 		updateDisplay();
 	};

@@ -20,7 +20,7 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 		oss << device << "_" << it->first;
 		std::string sensor_id = oss.str();
 
-		std::cout << "Creating sensor " << sensor_id << std::endl;
+		target << "Creating sensor " << sensor_id << std::endl;
 		int min_value = 0;
 		int max_value = 0;
 		std::string unit("");
@@ -41,13 +41,13 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 		if (unit == "degC") {
 			unit = "°C";
 		}
-		hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
+		hexanode::Sensor new_sensor(sensor_id,
 					static_cast<const hexabus::EndpointInfoPacket&>(info).value() + " [" + unit + "]",
 					min_value, max_value,
 					std::string("sensors")
-					));
-		_sensors->add_sensor(new_sensor);
-		new_sensor->put(_client, _api_uri, it->second); 
+					);
+		_sensors.insert(std::make_pair(sensor_id, new_sensor));
+		new_sensor.put(_client, _api_uri, it->second); 
 	}
 
 	_unidentified_devices.erase(device);
@@ -56,7 +56,65 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 void PacketPusher::deviceInfoError(const boost::asio::ip::address_v6& device, const hexabus::GenericException& error)
 {
 	_unidentified_devices.erase(device);
-	std::cout << "No reply to device descriptor EPQuery from " << device << ": " << error.what() << std::endl;
+	target << "No reply to device descriptor EPQuery from " << device << ": " << error.what() << std::endl;
+}
+
+void PacketPusher::defineSensor(const std::string& sensor_id, uint32_t eid, const std::string& value)
+{
+	switch (eid) {
+		case EP_PV_PRODUCTION:
+		case EP_POWER_BALANCE:
+		case EP_BATTERY_BALANCE:
+			{
+				target << "No information regarding sensor " << sensor_id 
+					<< " found - creating sensor with boilerplate data." << std::endl;
+				int min_value = 0;
+				int max_value = 0;
+				std::string unit("W");
+				std::string name;
+				switch(eid) {
+					case EP_PV_PRODUCTION:
+						min_value = 0;
+						max_value = 5000;
+						name = "PV Production";
+						break;
+
+					case EP_POWER_BALANCE:
+						min_value = -10000;
+						max_value = 10000;
+						name = "Power Balance";
+						break;
+
+					case EP_BATTERY_BALANCE:
+						min_value = -5000;
+						max_value = 5000;
+						name = "Battery";
+						break;
+				}
+				hexanode::Sensor new_sensor(sensor_id,
+						name + " [" + unit + "]",
+						min_value, max_value,
+						std::string("dashboard")
+						);
+				_sensors.insert(std::make_pair(sensor_id, new_sensor));
+				new_sensor.put(_client, _api_uri, value);
+			}
+			break;
+
+		default:
+			boost::asio::ip::address_v6 addr = _endpoint.address().to_v6();
+			if (_unidentified_devices.count(addr) == 0) {
+				_info.send_request(
+						addr,
+						hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR),
+						hexabus::filtering::isEndpointInfo() && hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR,
+						boost::bind(&PacketPusher::deviceInfoReceived, this, addr, _1),
+						boost::bind(&PacketPusher::deviceInfoError, this, addr, _1));
+				_unidentified_devices.insert(std::make_pair(_endpoint.address().to_v6(), std::map<uint32_t, std::string>()));
+			}
+			_unidentified_devices[addr][eid] = value;
+			break;
+	}
 }
 
 void PacketPusher::push_value(uint32_t eid, const std::string& value)
@@ -65,69 +123,19 @@ void PacketPusher::push_value(uint32_t eid, const std::string& value)
   oss << _endpoint.address() << "_" << eid;
   std::string sensor_id=oss.str();
 	try {
-		hexanode::Sensor::Ptr sensor = _sensors->get_by_id(sensor_id);
-		sensor->post_value(_client, _api_uri, value);
-		target << "Sensor " << sensor_id << ": submitted value " << value << std::endl;
-		return;
-	} catch (const hexanode::NotFoundException& e) {
-		// The sensor was not found during the get_by_id call.
-		switch (eid) {
-			case EP_PV_PRODUCTION:
-			case EP_POWER_BALANCE:
-			case EP_BATTERY_BALANCE:
-				{
-					std::cout << "No information regarding sensor " << sensor_id 
-						<< " found - creating sensor with boilerplate data." << std::endl;
-					int min_value = 0;
-					int max_value = 0;
-					std::string unit("W");
-					std::string name;
-					switch(eid) {
-						case EP_PV_PRODUCTION:
-							min_value = 0;
-							max_value = 5000;
-							name = "PV Production";
-							break;
-
-						case EP_POWER_BALANCE:
-							min_value = -10000;
-							max_value = 10000;
-							name = "Power Balance";
-							break;
-
-						case EP_BATTERY_BALANCE:
-							min_value = -5000;
-							max_value = 5000;
-							name = "Battery";
-							break;
-					}
-					hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
-								name + " [" + unit + "]",
-								min_value, max_value,
-								std::string("dashboard")
-								));
-					_sensors->add_sensor(new_sensor);
-				}
-				break;
-
-			default:
-				boost::asio::ip::address_v6 addr = _endpoint.address().to_v6();
-				if (_unidentified_devices.count(addr) == 0) {
-					_info.send_request(
-							addr,
-							hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR),
-							hexabus::filtering::isEndpointInfo() && hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR,
-							boost::bind(&PacketPusher::deviceInfoReceived, this, addr, _1),
-							boost::bind(&PacketPusher::deviceInfoError, this, addr, _1));
-					_unidentified_devices.insert(std::make_pair(_endpoint.address().to_v6(), std::map<uint32_t, std::string>()));
-				}
-				_unidentified_devices[addr][eid] = value;
-				break;
+		std::map<std::string, hexanode::Sensor>::iterator sensor = _sensors.find(sensor_id);
+		if (sensor != _sensors.end()) {
+			sensor->second.post_value(_client, _api_uri, value);
+			target << "Sensor " << sensor_id << ": submitted value " << value << std::endl;
+		} else {
+			defineSensor(sensor_id, eid, value);
 		}
 	} catch (const hexanode::CommunicationException& e) {
 		// An error occured during network communication.
-//		std::cout << "Cannot submit sensor values (" << e.what() << ")" << std::endl;
-//		std::cout << "Attempting to define sensor at the frontend cache." << std::endl;
+		// remove local copy of the sensor and redefine
+		_sensors.erase(sensor_id);
+		defineSensor(sensor_id, eid, value);
+		target << "Removed sensor " << sensor_id << " from cache" << std::endl;
 	} catch (const std::exception& e) {
 		target << "Attempting to recover from error: " << e.what() << std::endl;
 	}
