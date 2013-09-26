@@ -11,20 +11,23 @@ namespace hexanode {
   class Sensor {
     public:
       typedef boost::shared_ptr<Sensor> Ptr;
-      Sensor(const std::string& sensor_id,
+      Sensor(const boost::asio::ip::address_v6& sensor_ip,
+					uint32_t sensor_eid,
           const std::string& sensor_name,
+					const std::string& unit,
           const int32_t min_value,
           const int32_t max_value,
           const std::string& type)
-        : _sensor_id(sensor_id)
+        : _sensor_ip(sensor_ip)
+				  , _sensor_eid(sensor_eid)
           , _sensor_name(sensor_name)
+					, _unit(unit)
           , _min_value(min_value)
           , _max_value(max_value)
           , _displaytype(type)
       {};
       virtual ~Sensor() {};
 
-      const std::string& get_id() { return _sensor_id; };
       void put( http::client client,
           const uri::uri& api_uri,
           const std::string& reading);
@@ -33,8 +36,10 @@ namespace hexanode {
           const std::string& reading);
 
     private:
-      std::string _sensor_id;
+			boost::asio::ip::address_v6 _sensor_ip;
+			uint32_t _sensor_eid;
       std::string _sensor_name;
+      std::string _unit;
       int32_t _min_value;
       int32_t _max_value;
       std::string _displaytype;

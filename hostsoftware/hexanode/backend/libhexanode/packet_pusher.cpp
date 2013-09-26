@@ -16,9 +16,7 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 	std::map<uint32_t, std::string> eids = _unidentified_devices[device];
 
 	for (iter it = eids.begin(), end = eids.end(); it != end; ++it) {
-		std::ostringstream oss;
-		oss << device << "_" << it->first;
-		std::string sensor_id = oss.str();
+		std::string sensor_id = sensorID(device, it->first);
 
 		target << "Creating sensor " << sensor_id << std::endl;
 		int min_value = 0;
@@ -41,8 +39,9 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 		if (unit == "degC") {
 			unit = "°C";
 		}
-		hexanode::Sensor new_sensor(sensor_id,
-					static_cast<const hexabus::EndpointInfoPacket&>(info).value() + " [" + unit + "]",
+		hexanode::Sensor new_sensor(device, it->first,
+					static_cast<const hexabus::EndpointInfoPacket&>(info).value(),
+					unit,
 					min_value, max_value,
 					std::string("sensors")
 					);
@@ -91,8 +90,9 @@ void PacketPusher::defineSensor(const std::string& sensor_id, uint32_t eid, cons
 						name = "Battery";
 						break;
 				}
-				hexanode::Sensor new_sensor(sensor_id,
-						name + " [" + unit + "]",
+				hexanode::Sensor new_sensor(_endpoint.address().to_v6(), eid,
+						name,
+						unit,
 						min_value, max_value,
 						std::string("dashboard")
 						);
@@ -119,9 +119,7 @@ void PacketPusher::defineSensor(const std::string& sensor_id, uint32_t eid, cons
 
 void PacketPusher::push_value(uint32_t eid, const std::string& value)
 {
-  std::ostringstream oss;
-  oss << _endpoint.address() << "_" << eid;
-  std::string sensor_id=oss.str();
+  std::string sensor_id = sensorID(_endpoint.address().to_v6(), eid);
 	try {
 		std::map<std::string, hexanode::Sensor>::iterator sensor = _sensors.find(sensor_id);
 		if (sensor != _sensors.end()) {

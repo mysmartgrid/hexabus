@@ -48,6 +48,13 @@ namespace hexanode {
 			void deviceInfoReceived(const boost::asio::ip::address_v6& device, const hexabus::Packet& info);
 			void deviceInfoError(const boost::asio::ip::address_v6& device, const hexabus::GenericException& error);
 
+			static std::string sensorID(const boost::asio::ip::address_v6& addr, uint32_t eid)
+			{
+				std::ostringstream oss;
+				oss << addr << "(" << eid << ")";
+				return oss.str();
+			}
+
 			void defineSensor(const std::string& sensor_id, uint32_t eid, const std::string& value);
 
       void push_value(uint32_t eid, const std::string& value);

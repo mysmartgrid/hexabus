@@ -25,14 +25,18 @@ var SensorCache = function() {
 			displaytype: sensor.displaytype,
 			minvalue: sensor.minvalue,
 			maxvalue: sensor.maxvalue,
+			unit: sensor.unit,
 			values: sensor.values.toArray()
 		};
 	}
 
-	this.get_sensor_info_list = function() {
+	this.get_sensor_info_list = function(fn) {
 		var result = [];
+		fn = fn || function() { return true; };
 		for (var id in sensors) {
-			result.push(render_sensor_info(sensors[id]));
+			if (fn(id)) {
+				result.push(render_sensor_info(sensors[id]));
+			}
 		}
 		return result;
 	}
@@ -57,6 +61,7 @@ var SensorCache = function() {
 			minvalue: params.minvalue,
 			maxvalue: params.maxvalue,
 			displaytype: params.displaytype,
+			unit: params.unit,
 
 			values: new CBuffer(BUFFER_SIZE)
 		};
@@ -81,7 +86,7 @@ var SensorCache = function() {
 	}
 
 	this.enumerate_current_values = function(callback) {
-		for (id in sensors) {
+		for (var id in sensors) {
 			callback(render_sensor_lastvalue(sensors[id]));
 		}
 	}
@@ -116,9 +121,9 @@ var SensorCache = function() {
 		}
 	}
 
-	this.remove_sensor = function(id) {
-		if (id in sensors) {
-			delete sensors[id];
+	this.for_all = function(fn) {
+		for (var id in sensors) {
+			fn(sensors[id]);
 		}
 	};
 

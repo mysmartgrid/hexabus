@@ -38,7 +38,7 @@ angular.module('dashboard', [
 			},
 			font: {},
 
-			value: control.attrs.text
+			value: attrs.text || control.attrs.text
 		};
 		for (key in control.attrs) {
 			if (typeof key == "string" && key.substr(0, 4) == "font") {
@@ -77,7 +77,8 @@ angular.module('dashboard', [
 			sensor.gauge.txtTitle,
 			{
 				left: "0px",
-				width: "140px"
+				width: "140px",
+				text: sensor.name
 			},
 			function(value) {
 				Socket.emit('device_rename', { device: sensor.id, newName: value });
@@ -116,6 +117,10 @@ angular.module('dashboard', [
 
 			updateDisplay();
 		});
+	});
+
+	Socket.on('device_renamed', function(data) {
+		$scope.sensorList[data.device].name = data.name;
 	});
 
 	var waitingLastUpdateRecalc;

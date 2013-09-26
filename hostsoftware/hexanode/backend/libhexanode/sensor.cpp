@@ -22,6 +22,8 @@ void Sensor::put(
   writer.StartObject();
   writer.String("name");
   writer.String(_sensor_name.c_str(), (SizeType) _sensor_name.length());
+  writer.String("unit");
+  writer.String(_unit.c_str(), (SizeType) _unit.length());
   writer.String("value");
   writer.String(reading.c_str(), (SizeType) reading.length());
   writer.String("minvalue");
@@ -38,7 +40,9 @@ void Sensor::put(
   uri::uri create;
   create << api_uri 
     << uri::path("/sensor/") 
-    << uri::path(uri::encoded(_sensor_id));
+		<< uri::path(uri::encoded(_sensor_ip.to_string()))
+		<< uri::path("/")
+		<< uri::path(uri::encoded(boost::lexical_cast<std::string>(_sensor_eid)));
   http::client::request request(create);
   request << header("Content-Type", "application/json");
   std::ostringstream converter;
@@ -74,7 +78,9 @@ void Sensor::post_value(
   uri::uri create;
   create << api_uri 
     << uri::path("/sensor/") 
-    << uri::path(uri::encoded(_sensor_id));
+		<< uri::path(uri::encoded(_sensor_ip.to_string()))
+		<< uri::path("/")
+		<< uri::path(uri::encoded(boost::lexical_cast<std::string>(_sensor_eid)));
   http::client::request request(create);
   request << header("Content-Type", "application/json");
   std::ostringstream converter;
