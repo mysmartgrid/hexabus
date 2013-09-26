@@ -7,6 +7,7 @@
 #include <libhexabus/packet.hpp>
 #include <libhexabus/socket.hpp>
 #include <libhexabus/device_interrogator.hpp>
+#include <libhexabus/endpoint_registry.hpp>
 #include <boost/network/protocol/http/client.hpp>
 #include <boost/network/uri.hpp>
 #include <sstream>
@@ -37,13 +38,14 @@ namespace hexanode {
 
     private:
 			hexabus::DeviceInterrogator _info;
+			hexabus::EndpointRegistry _ep_registry;
       hexabus::Socket* _socket;
       boost::asio::ip::udp::endpoint _endpoint;
       hexanode::SensorStore::Ptr _sensors;
       boost::network::http::client _client;
       boost::network::uri::uri _api_uri;
       std::ostream& target;
-			std::map<boost::asio::ip::address_v6, std::set<uint32_t> > _unidentified_devices;
+			std::map<boost::asio::ip::address_v6, std::map<uint32_t, std::string> > _unidentified_devices;
 
 			void deviceInfoReceived(const boost::asio::ip::address_v6& device, const hexabus::Packet& info);
 			void deviceInfoError(const boost::asio::ip::address_v6& device, const hexabus::GenericException& error);

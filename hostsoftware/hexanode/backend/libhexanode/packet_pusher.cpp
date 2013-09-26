@@ -12,12 +12,12 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 		return;
 	}
 
-	typedef std::set<uint32_t>::const_iterator iter;
-	std::set<uint32_t> eids = _unidentified_devices[device];
+	typedef std::map<uint32_t, std::string>::const_iterator iter;
+	std::map<uint32_t, std::string> eids = _unidentified_devices[device];
 
 	for (iter it = eids.begin(), end = eids.end(); it != end; ++it) {
 		std::ostringstream oss;
-		oss << device << "_" << *it;
+		oss << device << "_" << it->first;
 		std::string sensor_id = oss.str();
 
 		std::cout << "Creating sensor " << sensor_id << std::endl;
@@ -28,11 +28,18 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 		 * TODO: Hack for intersolar, clean things up. This should reside in 
 		 * a separate configuration file (propertytree parser)
 		 */
-		switch(*it) {
-			case EP_POWER_METER: min_value = 0; max_value = 3200; unit="W"; break;
-			case EP_TEMPERATURE: min_value = 15; max_value = 30; unit="°C"; break;
-			case EP_HUMIDITY: min_value = 0; max_value = 100; unit="% r.h."; break;
-			case EP_PRESSURE: min_value = 900; max_value = 1050; unit="hPa"; break;
+		switch(it->first) {
+			case EP_POWER_METER: min_value = 0; max_value = 3200; break;
+			case EP_TEMPERATURE: min_value = 15; max_value = 30; break;
+			case EP_HUMIDITY: min_value = 0; max_value = 100; break;
+			case EP_PRESSURE: min_value = 900; max_value = 1050; break;
+		}
+		hexabus::EndpointRegistry::const_iterator ep_it;
+		if ((ep_it = _ep_registry.find(it->first)) != _ep_registry.end() && ep_it->second.unit()) {
+			unit = *ep_it->second.unit();
+		}
+		if (unit == "degC") {
+			unit = "°C";
 		}
 		hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
 					static_cast<const hexabus::EndpointInfoPacket&>(info).value() + " [" + unit + "]",
@@ -40,6 +47,7 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 					std::string("sensors")
 					));
 		_sensors->add_sensor(new_sensor);
+		new_sensor->put(_client, _api_uri, it->second); 
 	}
 
 	_unidentified_devices.erase(device);
@@ -111,17 +119,15 @@ void PacketPusher::push_value(uint32_t eid, const std::string& value)
 							hexabus::filtering::isEndpointInfo() && hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR,
 							boost::bind(&PacketPusher::deviceInfoReceived, this, addr, _1),
 							boost::bind(&PacketPusher::deviceInfoError, this, addr, _1));
-					_unidentified_devices.insert(std::make_pair(_endpoint.address().to_v6(), std::set<uint32_t>()));
+					_unidentified_devices.insert(std::make_pair(_endpoint.address().to_v6(), std::map<uint32_t, std::string>()));
 				}
-				_unidentified_devices[addr].insert(eid);
+				_unidentified_devices[addr][eid] = value;
 				break;
 		}
 	} catch (const hexanode::CommunicationException& e) {
 		// An error occured during network communication.
-		std::cout << "Cannot submit sensor values (" << e.what() << ")" << std::endl;
-		std::cout << "Attempting to define sensor at the frontend cache." << std::endl;
-		hexanode::Sensor::Ptr sensor=_sensors->get_by_id(sensor_id);
-		sensor->put(_client, _api_uri, "n/a"); 
+//		std::cout << "Cannot submit sensor values (" << e.what() << ")" << std::endl;
+//		std::cout << "Attempting to define sensor at the frontend cache." << std::endl;
 	} catch (const std::exception& e) {
 		target << "Attempting to recover from error: " << e.what() << std::endl;
 	}
