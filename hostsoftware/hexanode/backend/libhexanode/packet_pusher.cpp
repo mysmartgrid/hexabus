@@ -6,6 +6,50 @@
 
 using namespace hexanode;
 
+void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device, const hexabus::Packet& info)
+{
+	if (_unidentified_devices.count(device) == 0) {
+		return;
+	}
+
+	typedef std::set<uint32_t>::const_iterator iter;
+	std::set<uint32_t> eids = _unidentified_devices[device];
+
+	for (iter it = eids.begin(), end = eids.end(); it != end; ++it) {
+		std::ostringstream oss;
+		oss << device << "_" << *it;
+		std::string sensor_id = oss.str();
+
+		std::cout << "Creating sensor " << sensor_id << " with boilerplate data" << std::endl;
+		int min_value = 0;
+		int max_value = 0;
+		std::string unit("");
+		/*
+		 * TODO: Hack for intersolar, clean things up. This should reside in 
+		 * a separate configuration file (propertytree parser)
+		 */
+		switch(*it) {
+			case EP_POWER_METER: min_value = 0; max_value = 3200; unit="W"; break;
+			case EP_TEMPERATURE: min_value = 15; max_value = 30; unit="°C"; break;
+			case EP_HUMIDITY: min_value = 0; max_value = 100; unit="% r.h."; break;
+			case EP_PRESSURE: min_value = 900; max_value = 1050; unit="hPa"; break;
+		}
+		hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
+					static_cast<const hexabus::EndpointInfoPacket&>(info).value() + " [" + unit + "]",
+					min_value, max_value,
+					std::string("sensors")
+					));
+		_sensors->add_sensor(new_sensor);
+	}
+
+	_unidentified_devices.erase(device);
+}
+
+void PacketPusher::deviceInfoError(const boost::asio::ip::address_v6& device, const hexabus::GenericException& error)
+{
+	_unidentified_devices.erase(device);
+	std::cout << "No reply on device descriptor EPQuery from " << device << ": " << error.what() << std::endl;
+}
 
 void PacketPusher::push_value(uint32_t eid, 
     const std::string& value)
@@ -13,78 +57,69 @@ void PacketPusher::push_value(uint32_t eid,
   std::ostringstream oss;
   oss << _endpoint.address() << "_" << eid;
   std::string sensor_id=oss.str();
-  bool success=false;
-  uint8_t retry_counter=0;
-  while (! success && retry_counter < 3) {
+	int retry_counter = 0;
+  while (retry_counter < 3) {
     retry_counter++;
     try {
-      hexanode::Sensor::Ptr sensor=_sensors->get_by_id(sensor_id);
+      hexanode::Sensor::Ptr sensor = _sensors->get_by_id(sensor_id);
       sensor->post_value(_client, _api_uri, value);
       target << "Sensor " << sensor_id << ": submitted value " << value << std::endl;
-      success=true;
+			return;
     } catch (const hexanode::NotFoundException& e) {
-      // The sensor was not found during the get_by_id call.
-      std::cout << "No information regarding sensor " << sensor_id 
-        << " found - creating sensor with boilerplate data." << std::endl;
-      int min_value = 0;
-      int max_value = 0;
-      std::string unit("");
-      /*
-       * TODO: Hack for intersolar, clean things up. This should reside in 
-       * a separate configuration file (propertytree parser)
-       */
-      switch(eid) {
-        case EP_POWER_METER: min_value = 0; max_value = 3200; unit="W"; break;
-        case EP_TEMPERATURE: min_value = 15; max_value = 30; unit="ºC"; break;
-        case EP_HUMIDITY: min_value = 0; max_value = 100; unit="% r.h."; break;
-        case EP_PRESSURE: min_value = 900; max_value = 1050; unit="hPa"; break;
-        case EP_PV_PRODUCTION: min_value = 0; max_value = 5000; unit="W"; break;
-        case EP_POWER_BALANCE: min_value = -10000; max_value = 10000; unit="W"; break;
-        case EP_BATTERY_BALANCE: min_value = -5000; max_value = 5000; unit="W"; break;
-      }
-      switch(eid) {
-        case EP_PV_PRODUCTION: 
-          {
-            hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
-                  std::string("PV Production [") + unit + "]",
-                  min_value, max_value,
-                  std::string("dashboard")
-                  ));
-            _sensors->add_sensor(new_sensor);
-            break;
-          }
-        case EP_POWER_BALANCE: 
-          {
-            hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
-                  std::string("Power Balance [") + unit + "]",
-                  min_value, max_value,
-                  std::string("dashboard")
-                  ));
-            _sensors->add_sensor(new_sensor);
-            break;
-          }
-        case EP_BATTERY_BALANCE: 
-          {
-            hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
-                  std::string("Battery [") + unit + "]",
-                  min_value, max_value,
-                  std::string("dashboard")
-                  ));
-            _sensors->add_sensor(new_sensor);
-            break;
-          }
-        default: 
-          {
-            hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
-                  _info->get_device_name(_endpoint.address().to_v6())
-                          + " [" + unit + "]",
-                  min_value, max_value,
-                  std::string("sensors")
-                  ));
-            _sensors->add_sensor(new_sensor);
-            break;
-          }
-      }
+			// The sensor was not found during the get_by_id call.
+			switch (eid) {
+				case EP_PV_PRODUCTION:
+				case EP_POWER_BALANCE:
+				case EP_BATTERY_BALANCE:
+					{
+						std::cout << "No information regarding sensor " << sensor_id 
+							<< " found - creating sensor with boilerplate data." << std::endl;
+						int min_value = 0;
+						int max_value = 0;
+						std::string unit("W");
+						std::string name;
+						switch(eid) {
+							case EP_PV_PRODUCTION:
+								min_value = 0;
+								max_value = 5000;
+								name = "PV Production";
+								break;
+
+							case EP_POWER_BALANCE:
+								min_value = -10000;
+								max_value = 10000;
+								name = "Power Balance";
+								break;
+
+							case EP_BATTERY_BALANCE:
+								min_value = -5000;
+								max_value = 5000;
+								name = "Battery";
+								break;
+						}
+						hexanode::Sensor::Ptr new_sensor(new hexanode::Sensor(sensor_id, 
+									name + " [" + unit + "]",
+									min_value, max_value,
+									std::string("dashboard")
+									));
+						_sensors->add_sensor(new_sensor);
+					}
+					break;
+
+				default:
+					boost::asio::ip::address_v6 addr = _endpoint.address().to_v6();
+					if (_unidentified_devices.count(addr) == 0) {
+						_info.send_request(
+								addr,
+								hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR),
+								hexabus::filtering::isEndpointInfo() && hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR,
+								boost::bind(&PacketPusher::deviceInfoReceived, this, addr, _1),
+								boost::bind(&PacketPusher::deviceInfoError, this, addr, _1));
+						_unidentified_devices.insert(std::make_pair(_endpoint.address().to_v6(), std::set<uint32_t>()));
+					}
+					_unidentified_devices[addr].insert(eid);
+					break;
+			}
     } catch (const hexanode::CommunicationException& e) {
       // An error occured during network communication.
       std::cout << "Cannot submit sensor values (" << e.what() << ")" << std::endl;
@@ -95,9 +130,7 @@ void PacketPusher::push_value(uint32_t eid,
       target << "Attempting to recover from error: " << e.what() << std::endl;
     }
   }
-  if (! success) {
-    target << "FAILED to submit sensor value.";
-  }
+	target << "FAILED to submit sensor value." << std::endl;
 }
 
 

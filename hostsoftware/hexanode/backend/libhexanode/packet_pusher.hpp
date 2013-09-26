@@ -4,41 +4,49 @@
 #include <libhexanode/common.hpp>
 #include <libhexanode/error.hpp>
 #include <libhexanode/sensor_collection.hpp>
-#include <libhexanode/info_query.hpp>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/socket.hpp>
+#include <libhexabus/device_interrogator.hpp>
 #include <boost/network/protocol/http/client.hpp>
 #include <boost/network/uri.hpp>
 #include <sstream>
+#include <map>
+#include <set>
 
 namespace hexanode {
 
   class PacketPusher : public hexabus::PacketVisitor {
     public:
       PacketPusher(hexabus::Socket* socket,
-          hexanode::InfoQuery::Ptr info,
-          const boost::asio::ip::udp::endpoint& endpoint,
           hexanode::SensorStore::Ptr sensors,
           boost::network::http::client client,
           const boost::network::uri::uri& api_uri,
           std::ostream& target)
-        : _info(info)
-        , _endpoint(endpoint)
+        : _info(*socket)
         , _sensors(sensors)
         , _client(client)
         , _api_uri(api_uri)
         , target(target) {}
       virtual ~PacketPusher() {}
 
+			void push(const boost::asio::ip::udp::endpoint& endpoint, const hexabus::Packet& packet)
+			{
+				_endpoint = endpoint;
+				visitPacket(packet);
+			}
 
     private:
-      hexanode::InfoQuery::Ptr _info;
+			hexabus::DeviceInterrogator _info;
       hexabus::Socket* _socket;
       boost::asio::ip::udp::endpoint _endpoint;
       hexanode::SensorStore::Ptr _sensors;
       boost::network::http::client _client;
       boost::network::uri::uri _api_uri;
       std::ostream& target;
+			std::map<boost::asio::ip::address_v6, std::set<uint32_t> > _unidentified_devices;
+
+			void deviceInfoReceived(const boost::asio::ip::address_v6& device, const hexabus::Packet& info);
+			void deviceInfoError(const boost::asio::ip::address_v6& device, const hexabus::GenericException& error);
 
       void printValueHeader(uint32_t eid, const char* datatypeStr);
 
