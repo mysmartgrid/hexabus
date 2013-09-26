@@ -81,15 +81,15 @@ angular.module('dashboard', [
 			},
 			function(value) {
 				Socket.emit('device_rename', { device: sensor.id, newName: value });
-//				sensor.name = value;
 				pendingUpdateControl = null;
 			});
 	};
 
 	var sensorMetadataHandler = function(sensor) {
 		$scope.sensorList[sensor.id] = sensor;
-		for (key in sensor.values) {
-			$scope.sensorList[sensor.id].value = sensor.values[key];
+		var val = sensor.values[sensor.values.length - 1];
+		for (key in val) {
+			$scope.sensorList[sensor.id].value = val[key];
 		}
 
 		updateDisplay();

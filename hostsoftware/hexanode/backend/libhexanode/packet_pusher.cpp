@@ -22,7 +22,7 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 
 		target << "Creating sensor " << sensor_id << std::endl;
 		int min_value = 0;
-		int max_value = 0;
+		int max_value = 100;
 		std::string unit("");
 		/*
 		 * TODO: Hack for intersolar, clean things up. This should reside in 
@@ -139,5 +139,4 @@ void PacketPusher::push_value(uint32_t eid, const std::string& value)
 	} catch (const std::exception& e) {
 		target << "Attempting to recover from error: " << e.what() << std::endl;
 	}
-	target << "FAILED to submit sensor value." << std::endl;
 }

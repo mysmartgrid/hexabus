@@ -56,7 +56,7 @@ namespace hexanode {
 			void pushFromPacket(const hexabus::ValuePacket<T>& packet)
 			{
 				std::ostringstream oss;
-				oss << std::fixed << std::setprecision(1) << packet.value();
+				oss << std::fixed << std::setprecision(1) << float(packet.value());
 
 				push_value(packet.eid(), oss.str());
 			}
