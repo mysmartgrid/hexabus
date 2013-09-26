@@ -104,7 +104,7 @@ int main (int argc, char const* argv[]) {
         continue;
       }
 
-      std::cout << "Received " << pair.second;
+      std::cout << "Received from " << pair.second << std::endl;
       if (pair.first == NULL) {
         std::cerr << "Received invalid packet - please check libhexabus version!" << std::endl;
       } else {
