@@ -123,7 +123,7 @@ angular.module('dashboard', [
 
 		var nextUpdateIn = 5000;
 		if (lastSensorValueReceivedAt) {
-			var secondsDiff = (Date.now() - lastSensorValueReceivedAt) / 1000;
+			var secondsDiff = Math.round((Date.now() - lastSensorValueReceivedAt) / 1000);
 			if (secondsDiff == 0) {
 				$scope.lastUpdate = "now";
 			} else if (secondsDiff < 60) {
