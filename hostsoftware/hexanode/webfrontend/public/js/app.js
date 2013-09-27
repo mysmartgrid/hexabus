@@ -120,7 +120,9 @@ angular.module('dashboard', [
 	});
 
 	Socket.on('device_renamed', function(data) {
-		$scope.sensorList[data.device].name = data.name;
+		if (data.device in $scope.sensorList) {
+			$scope.sensorList[data.device].name = data.name;
+		}
 	});
 
 	var waitingLastUpdateRecalc;

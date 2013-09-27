@@ -150,6 +150,7 @@ io.sockets.on('connection', function (socket) {
 					sensorcache.for_all(function(sensor) {
 						if (sensor.id.substr(0, s.length) == s) {
 							sensor.name = msg.newName;
+							socket.broadcast.emit('device_renamed', { device: sensor.id, name: msg.newName });
 							socket.emit('device_renamed', { device: sensor.id, name: msg.newName });
 						}
 					});
