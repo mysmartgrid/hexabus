@@ -32,8 +32,8 @@ void Sensor::put(
   writer.String("maxvalue");
   writer.Int(_max_value);
   //writer.String(_max_value.c_str(), (SizeType) _max_value.length());
-  writer.String("displaytype");
-  writer.String(_displaytype.c_str(), (SizeType) _displaytype.length());
+  writer.String("type");
+  writer.String(_type.c_str(), (SizeType) _type.length());
   writer.EndObject();
   std::string json_body(b.GetString());
 

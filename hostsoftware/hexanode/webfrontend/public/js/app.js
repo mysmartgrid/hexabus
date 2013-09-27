@@ -55,7 +55,7 @@ angular.module('dashboard', [
 			sensor.gauge.txtMin,
 			null,
 			function(value) {
-				sensor.minvalue = +value;
+				Socket.emit('sensor_change_metadata', { id: sensor.id, data: { minvalue: +value } });
 				pendingUpdateControl = null;
 			});
 	};
@@ -66,7 +66,7 @@ angular.module('dashboard', [
 			sensor.gauge.txtMax,
 			null,
 			function(value) {
-				sensor.maxvalue = +value;
+				Socket.emit('sensor_change_metadata', { id: sensor.id, data: { maxvalue: +value } });
 				pendingUpdateControl = null;
 			});
 	};
@@ -81,17 +81,14 @@ angular.module('dashboard', [
 				text: sensor.name
 			},
 			function(value) {
-				Socket.emit('device_rename', { device: sensor.id, newName: value });
+				Socket.emit('device_rename', { device: sensor.ip, name: value });
 				pendingUpdateControl = null;
 			});
 	};
 
 	var sensorMetadataHandler = function(sensor) {
 		$scope.sensorList[sensor.id] = sensor;
-		var val = sensor.values[sensor.values.length - 1];
-		for (key in val) {
-			$scope.sensorList[sensor.id].value = val[key];
-		}
+		$scope.sensorList[sensor.id].value = 0;
 
 		updateDisplay();
 	};
@@ -106,23 +103,15 @@ angular.module('dashboard', [
 
 	Socket.on('sensor_update', function(data) {
 		$timeout(function() {
-			var sensorId = data.sensor.id;
+			var sensorId = data.sensor;
 			if (sensorId in $scope.sensorList) {
-				for (key in data.sensor.value) {
-					$scope.sensorList[sensorId].value = data.sensor.value[key];
-				}
+				$scope.sensorList[sensorId].value = data.value.value;
 			} else {
 				Socket.emit('sensor_request_metadata', sensorId);
 			}
 
 			updateDisplay();
 		});
-	});
-
-	Socket.on('device_renamed', function(data) {
-		if (data.device in $scope.sensorList) {
-			$scope.sensorList[data.device].name = data.name;
-		}
 	});
 
 	var waitingLastUpdateRecalc;

@@ -5,125 +5,28 @@ var EventEmitter = require('events').EventEmitter;
 
 
 var SensorCache = function() {
-	var sensors = {};
+	var values = {};
 
 	var unix_ts = function() {
 		return Math.round((+new Date()) / 1000);
 	}
 
-	var render_sensor_lastvalue = function(sensor) {
-		return {
-			id: sensor.id,
-			value: sensor.values.last()
+	this.add_value = function(sensor, value) {
+		values[sensor.id] = {
+			ts: unix_ts(),
+			value: value
 		};
+		this.emit('sensor_update', { sensor: sensor.id, value: values[sensor.id] });
 	}
 
-	var render_sensor_info = function(sensor) {
-		return {
-			id: sensor.id,
-			name: sensor.name,
-			displaytype: sensor.displaytype,
-			minvalue: sensor.minvalue,
-			maxvalue: sensor.maxvalue,
-			unit: sensor.unit,
-			values: sensor.values.toArray()
-		};
+	this.get_current_value = function(sensor) {
+		return values[sensor.id];
 	}
 
-	this.get_sensor_info_list = function(fn) {
-		var result = [];
-		fn = fn || function() { return true; };
-		for (var id in sensors) {
-			if (fn(id)) {
-				result.push(render_sensor_info(sensors[id]));
-			}
-		}
-		return result;
-	}
-
-	this.add_sensor = function(id, params) {
-		console.log("Attempting to create sensor: " + JSON.stringify(params));
-
-		if (id == undefined)
-			throw "id required";
-		if (params.name == undefined)
-			throw "name required";
-		if (params.minvalue == undefined)
-			throw "minvalue required";
-		if (params.maxvalue == undefined)
-			throw "maxvalue required";
-		if (params.displaytype == undefined)
-			throw "displaytype required";
-
-		var sensor = {
-			id: id,
-			name: params.name,
-			minvalue: params.minvalue,
-			maxvalue: params.maxvalue,
-			displaytype: params.displaytype,
-			unit: params.unit,
-
-			values: new CBuffer(BUFFER_SIZE)
-		};
-
-		if (params.value != undefined) {
-			var entry = {};
-			entry[unix_ts()] = params.value;
-			sensor.values.push(entry);
-		}
-
-		sensors[sensor.id] = sensor;
-		this.emit('sensor_new', render_sensor_info(sensor));
-		return sensor;
-	}
-
-	this.get_sensor_info = function(id) {
-		if (id in sensors) {
-			return render_sensor_info(sensors[id]);
-		} else {
-			return null;
-		}
-	}
-
-	this.enumerate_current_values = function(callback) {
-		for (var id in sensors) {
-			callback(render_sensor_lastvalue(sensors[id]));
-		}
-	}
-
-	this.add_value = function(id, value) {
-		if (!(id in sensors)) {
-			throw "Sensor not found";
-		}
-		if (!value) {
-			throw "Value required";
-		}
-		var sensor = sensors[id];
-		var entry = {};
-		entry[unix_ts()] = value;
-		sensor.values.push(entry);
-		this.emit('sensor_update', render_sensor_lastvalue(sensor));
-	}
-
-	this.get_last_value = function(id) {
-		if (id in sensors) {
-			return sensors[id].values.last();
-		} else {
-			return null;
-		}
-	}
-
-	this.get_last_value_info = function(id) {
-		if (id in sensors) {
-			return render_sensor_lastvalue(sensors[id]);
-		} else {
-			return null;
-		}
-	}
-
-	this.for_all = function(fn) {
-		for (var id in sensors) {
-			fn(sensors[id]);
+	this.enumerate_current_values = function(cb) {
+		cb = cb || function() {};
+		for (var key in values) {
+			cb({ sensor: key, value: values[key] });
 		}
 	};
 

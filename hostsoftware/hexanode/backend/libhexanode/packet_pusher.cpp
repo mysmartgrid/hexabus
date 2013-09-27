@@ -43,10 +43,14 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 					static_cast<const hexabus::EndpointInfoPacket&>(info).value(),
 					unit,
 					min_value, max_value,
-					std::string("sensors")
+					std::string("sensor")
 					);
 		_sensors.insert(std::make_pair(sensor_id, new_sensor));
-		new_sensor.put(_client, _api_uri, it->second); 
+		try {
+			new_sensor.put(_client, _api_uri, it->second); 
+		} catch (const std::exception& e) {
+			target << "Error defining sensor " << device << "(" << it->first << "): " << e.what() << std::endl;
+		}
 	}
 
 	_unidentified_devices.erase(device);
@@ -126,6 +130,7 @@ void PacketPusher::push_value(uint32_t eid, const std::string& value)
 			sensor->second.post_value(_client, _api_uri, value);
 			target << "Sensor " << sensor_id << ": submitted value " << value << std::endl;
 		} else {
+			target << "Sensor " << sensor_id << " not found, defining" << std::endl;
 			defineSensor(sensor_id, eid, value);
 		}
 	} catch (const hexanode::CommunicationException& e) {

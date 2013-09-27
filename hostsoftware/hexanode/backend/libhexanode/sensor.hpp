@@ -24,7 +24,7 @@ namespace hexanode {
 					, _unit(unit)
           , _min_value(min_value)
           , _max_value(max_value)
-          , _displaytype(type)
+          , _type(type)
       {};
       virtual ~Sensor() {};
 
@@ -42,7 +42,7 @@ namespace hexanode {
       std::string _unit;
       int32_t _min_value;
       int32_t _max_value;
-      std::string _displaytype;
+      std::string _type;
   };
 };
 

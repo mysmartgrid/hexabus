@@ -64,7 +64,6 @@ angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) 
 							watchers['min'] = scope.$watch('min', function(min) {
 								min = +min;
 								if (!isNaN(min) && min != g.config.min) {
-									console.log(min + " : " + g.config.min);
 									makeGauge();
 								}
 							});

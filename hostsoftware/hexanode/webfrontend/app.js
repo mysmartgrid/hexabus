@@ -5,15 +5,18 @@ var application_root = __dirname
   , app = module.exports = express()
   , server=require("http").createServer(app)
   , io = require('socket.io').listen(server)
-  , Cache=require("./lib/sensorcache")
-	, hexabus=require("./lib/hexabus")
+	, Cache = require("./lib/sensorcache")
+	, SensorRegistry = require("./lib/sensorregistry")
+	, hexabus = require("./lib/hexabus")
+	, fs = require("fs")
   , nconf=require('nconf');
 
 nconf.env().argv();
 // Setting default values
 nconf.defaults({
   'port': '3000',
-  'server': '10.23.1.250'
+  'server': '10.23.1.250',
+	'config': '.'
 });
 
 server.listen(nconf.get('port'));
@@ -31,10 +34,19 @@ if (nconf.get('uid')) {
 	process.setuid(uid);
 }
 
-var sensorcache = new Cache();
+var configDir = nconf.get('config');
+var sensors_file = configDir + '/sensors.json';
+var sensor_registry;
+try {
+	sensor_registry = new SensorRegistry(fs.existsSync(sensors_file) ? sensors_file : undefined);
+} catch (e) {
+	sensor_registry = new SensorRegistry();
+}
+var sensor_cache = new Cache();
 console.log("Using configuration: ");
 console.log(" - server: " + nconf.get('server'));
 console.log(" - port: " + nconf.get('port'));
+console.log(" - config dir: " + nconf.get('config'));
 
 
 // see http://stackoverflow.com/questions/4600952/node-js-ejs-example
@@ -56,62 +68,63 @@ app.get('/api', function(req, res) {
 });
 
 app.get('/api/sensor', function(req, res) {
-	res.send(JSON.stringify(sensorcache.get_sensor_info_list()));
+	res.send(JSON.stringify(sensor_registry.get_sensors()));
 });
 
 app.get('/api/sensor/:ip/:eid/latest', function(req, res) {
-	var result = sensorcache.get_last_value(req.params.ip + "_" + req.params.eid);
-	if (result) {
-		res.send(JSON.stringify(result));
+	var sensor = sensor_registry.get_sensor(req.params.ip, req.params.eid);
+	if (!sensor) {
+		res.send("Sensor not found", 404);
+	} else if (sensor_cache.get_current_value(sensor) == undefined) {
+		res.send("No value yet", 404);
 	} else {
-		res.send("Sensor " + req.params.id + " not found", 404);
+		res.send(JSON.stringify(sensor_cache.get_current_value(sensor.id)));
 	}
 });
 
-app.get('/api/sensor/:ip/:eid', function(req, res) {
-	var sensor = sensorcache.get_sensor_info(req.params.ip + "_" + req.params.eid);
+app.get('/api/sensor/:ip/:eid/info', function(req, res) {
+	var sensor = sensor_registry.get_sensor(req.params.ip, req.params.eid);
 	if (sensor) {
 		res.send(JSON.stringify(sensor));
 	} else {
-		res.send("Sensor " + req.params.id + " not found", 404);
+		res.send("Sensor not found", 404);
 	}
 });
 
 app.put('/api/sensor/:ip/:eid', function(req, res) {
-	try {
-		var id = req.params.ip + "_" + req.params.eid;
-		var sensor = sensorcache.add_sensor(id, req.body);
-		res.send("New sensor " + id + " added");
-	} catch(err) {
-		res.send(err, 422);
+	if (sensor_registry.get_sensor(req.params.ip, req.params.eid)) {
+		res.send("Sensor exists", 200);
+	} else {
+		try {
+			var sensor = sensor_registry.add_sensor(req.params.ip, req.params.eid, req.body);
+			sensor_cache.add_value(sensor, parseFloat(req.body.value));
+			sensor_registry.save(sensors_file);
+			res.send("Sensor added", 200);
+		} catch(err) {
+			res.send(err, 400);
+		}
 	}
 });
 
 app.post('/api/sensor/:ip/:eid', function(req, res) {
-	try {
-		sensorcache.add_value(req.params.ip + "_" + req.params.eid, req.body.value);
-		res.send("OK");
-	} catch(err) {
-		if (err == "Sensor not found") {
-			res.send("Sensor " + req.params.ip + "_" + req.params.eid + " not found", 404);
-		} else if (err == "Value required") {
-			res.send(err, 422);
-		} else {
-			res.send(err, 500);
-		}
+	var sensor = sensor_registry.get_sensor(req.params.ip, req.params.eid);
+	var value = parseFloat(req.body.value);
+	if (!sensor) {
+		res.send("Not found", 404);
+	} else if (isNaN(value)) {
+		res.send("Bad value", 400);
+	} else {
+		sensor_cache.add_value(sensor, value);
+		res.send("Value added", 200);
 	}
 });
 
 app.post('/api/device/rename/:ip', function(req, res) {
 	try {
-		if (typeof req.body.name != "string") {
+		if (!req.body.name) {
 			res.send("No name given", 400);
 		}
-		new hexabus().rename_device(req.params.ip, req.body.name, function() {
-			var s = req.params.ip + "_";
-			sensorcache.remove_matching(function(id) {
-				return id.substr(0, s.length) == s;
-			});
+		hexabus.rename_device(req.params.ip, req.body.name, function() {
 			res.send("Success");
 		});
 	} catch (err) {
@@ -126,49 +139,82 @@ app.get('/', function(req, res) {
 
 io.sockets.on('connection', function (socket) {
   console.log("Registering new client.");
-  sensorcache.on('sensor_update', function(msg) {
-    socket.volatile.emit('sensor_update', { sensor: msg });
-  });
-	sensorcache.on('sensor_new', function(sensor) {
+	sensor_cache.on('sensor_update', function(update) {
+		socket.volatile.emit('sensor_update', update);
+	});
+	sensor_registry.on('sensor_new', function(sensor) {
 		socket.volatile.emit('sensor_new', sensor);
 	});
-	socket.on('sensor_request_metadata', function(sensor_id) {
-		socket.volatile.emit('sensor_metadata', sensorcache.get_sensor_info(sensor_id));
+	socket.on('sensor_request_metadata', function(id) {
+		var sensor = sensor_registry.get_sensor_by_id(id);
+		if (sensor) {
+			socket.volatile.emit('sensor_metadata', sensor);
+			var value = { sensor: id, value: sensor_cache.get_current_value(sensor) };
+			if (value.value != undefined) {
+				socket.volatile.emit('sensor_update', value);
+			}
+		}
 	});
   // a client can also initiate a data update.
   socket.on('sensor_refresh_data', function() {
   //  console.log("Refresh data event.");
-    sensorcache.enumerate_current_values(function(msg) {
-      socket.volatile.emit('sensor_update', { sensor: msg });
-    });
+		sensor_cache.enumerate_current_values(function(update) {
+			socket.volatile.emit('sensor_update', udpate);
+		});
   });
 	socket.on('device_rename', function(msg) {
-		if (sensorcache.get_sensor_info(msg.device)) {
+		var sensors = sensor_registry.get_sensors(function(sensor) {
+			return sensor.ip == msg.device;
+		});
+		if (sensors.length > 0) {
 			try {
-				new hexabus().rename_device(msg.device.replace(/_.*/g, ""), msg.newName, function() {
-					var s = msg.device.replace(/_.*/g, "_");
-					sensorcache.for_all(function(sensor) {
-						if (sensor.id.substr(0, s.length) == s) {
-							sensor.name = msg.newName;
-							socket.broadcast.emit('device_renamed', { device: sensor.id, name: msg.newName });
-							socket.emit('device_renamed', { device: sensor.id, name: msg.newName });
+				hexabus.rename_device(msg.device, msg.name, function() {
+					for (var key in sensors) {
+						sensors[key].name = msg.name;
+						socket.broadcast.emit('sensor_metadata', sensors[key]);
+						socket.emit('sensor_metadata', sensors[key]);
+						var value = sensor_cache.get_current_value(sensors[key]);
+						if (value) {
+							socket.broadcast.emit('sensor_update', value);
+							socket.emit('sensor_update', value);
 						}
-					});
+					}
 				});
 			} catch (err) {
+				console.log(err);
 				socket.emit('device_rename_error', { device: msg.device, error: err });
 			}
 		} else {
 			socket.emit('device_rename_error', { device: msg.device, error: "No such device" });
 		}
 	});
+	socket.on('sensor_change_metadata', function(msg) {
+		var sensor = sensor_registry.get_sensor_by_id(msg.id);
+		if (sensor) {
+			var keys = ["minvalue", "maxvalue"];
+			for (var i in keys) {
+				var key = keys[i];
+				sensor[key] = msg.data[key] || sensor[key];
+			}
+			sensor_registry.save(sensors_file);
+			socket.broadcast.emit('sensor_metadata', sensor);
+			socket.emit('sensor_metadata', sensor);
+			var value = { sensor: sensor.id, value: sensor_cache.get_current_value(sensor) };
+			if (value.value) {
+				socket.broadcast.emit('sensor_update', value);
+				socket.emit('sensor_update', value);
+			}
+		}
+	});
 
 	socket.emit('clear_state');
 
-	var list = sensorcache.get_sensor_info_list();
+	var list = sensor_registry.get_sensors();
 	for (var sensor in list) {
 		socket.emit('sensor_metadata', list[sensor]);
-		socket.emit('sensor_update', { sensor: sensorcache.get_last_value_info(list[sensor].id) });
 	}
+	sensor_cache.enumerate_current_values(function(value) {
+		socket.emit('sensor_update', value);
+	});
 });
 
