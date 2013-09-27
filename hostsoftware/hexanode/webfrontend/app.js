@@ -168,7 +168,11 @@ io.sockets.on('connection', function (socket) {
 		});
 		if (sensors.length > 0) {
 			try {
-				hexabus.rename_device(msg.device, msg.name, function() {
+				hexabus.rename_device(msg.device, msg.name, function(err) {
+					if (err) {
+						console.log(err);
+						return;
+					}
 					for (var key in sensors) {
 						sensors[key].name = msg.name;
 						socket.broadcast.emit('sensor_metadata', sensors[key]);

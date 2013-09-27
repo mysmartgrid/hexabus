@@ -9,8 +9,8 @@ var hexabus = function() {
 		}
 		var command = "hexaupload --ip " + addr.canonicalForm() + " --rename '" + newName.replace("'", "''") + "'";
 		exec(command, function(error, stdout, stderr) {
-			if (error) {
-				console.log(error);
+			if (error && cb) {
+				cb(error);
 			} else if (cb) {
 				cb();
 			}
