@@ -177,8 +177,8 @@ io.sockets.on('connection', function (socket) {
 						sensors[key].name = msg.name;
 						socket.broadcast.emit('sensor_metadata', sensors[key]);
 						socket.emit('sensor_metadata', sensors[key]);
-						var value = sensor_cache.get_current_value(sensors[key]);
-						if (value) {
+						var value = { sensor: sensors[key].id, value: sensor_cache.get_current_value(sensors[key]) };
+						if (value.value) {
 							socket.broadcast.emit('sensor_update', value);
 							socket.emit('sensor_update', value);
 						}
