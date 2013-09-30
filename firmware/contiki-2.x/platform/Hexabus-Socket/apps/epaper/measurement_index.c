@@ -1,4 +1,5 @@
 #include "measurement_index.h"
+#include "epd27_conf.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
@@ -100,7 +101,19 @@ uint8_t index_get_last_entry(struct index_entry_t* entry) {
       return errcode;
     } 
     current_entry_idx++;
+		asm ("wdr");
   }
   errcode = index_get_entry(entry, current_entry_idx - 1);
   return AT45_TABLE_SUCCESS;
+}
+
+uint16_t index_get_special_screen(uint8_t id)
+{
+	struct index_entry_t last_entry;
+	if (!index_get_last_entry(&last_entry))
+		return 0;
+
+	uint16_t special_0_idx = last_entry.page_idx + PAGES_PER_SCREEN;
+
+	return special_0_idx + id * PAGES_PER_SCREEN;
 }

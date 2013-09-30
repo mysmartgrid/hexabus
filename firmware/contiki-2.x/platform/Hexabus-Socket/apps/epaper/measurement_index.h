@@ -27,5 +27,7 @@ uint8_t index_find_entry(struct index_entry_t* entry, uint8_t temp, uint8_t hum)
 uint8_t index_get_first_entry(struct index_entry_t* entry);
 uint8_t index_get_last_entry(struct index_entry_t* entry);
 
+uint16_t index_get_special_screen(uint8_t id);
+
 #endif /* MEASUREMENT_INDEX_H */
 

@@ -211,9 +211,6 @@ void initialize(void)
 #if ANNOUNCE_BOOT
   PRINTF("\n*******Booting %s*******\n",CONTIKI_VERSION_STRING);
 #endif
-#if EPAPER_ENABLE
-	epaper_init();
-#endif
 
 /* rtimers needed for radio cycling */
   rtimer_init();
@@ -407,6 +404,10 @@ void initialize(void)
 #endif /* WEBSERVER */
 
 #endif /* ANNOUNCE_BOOT */
+#if EPAPER_ENABLE
+	epaper_init();
+	epaper_display_special(EP_SCREEN_BOOT);
+#endif
 }
 
 #if RF230BB

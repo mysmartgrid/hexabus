@@ -47,9 +47,9 @@ _DEBUG options should be set to:
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 1 
-#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 2 // Number of endpoints to broadcast automatically - set to 0 to disable
+#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 4 // Number of endpoints to broadcast automatically - set to 0 to disable
 #define VALUE_BROADCAST_AUTO_EIDS 3,5,44,45 // Comma-separated list of endpoints to broadcast automatically
-#define VALUE_BROADCAST_AUTO_INTERVAL 5 // Timeout in seconds
+#define VALUE_BROADCAST_AUTO_INTERVAL 20 // Timeout in seconds
 #define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0 // Number of endpoints to "broadcast" to the local state machine
 #define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2 // Comma-separated list of eids to be sent to local state machine
 

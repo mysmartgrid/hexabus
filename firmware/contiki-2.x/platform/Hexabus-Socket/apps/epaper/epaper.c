@@ -86,6 +86,20 @@ void epaper_update_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes
 	static int16_t skipped_update_idx = -1;
 	static uint32_t last_update_at = 0;
 
+	// clamp temperature to first out-of-range values, as those are rendered
+	// as "<X" and ">Y", respectively
+	if (mes_temp < 15) {
+		mes_temp = 14;
+	} else if (mes_temp > 30) {
+		mes_temp = 31;
+	}
+	// clamp temperature to valid range
+	if (mes_hum < 10) {
+		mes_hum = 10;
+	} else if (mes_hum > 90) {
+		mes_hum = 90;
+	}
+
 	uint32_t now = clock_seconds();
 	uint32_t diff = last_update_at < now
 		? now - last_update_at
@@ -117,11 +131,11 @@ end:
 	release();
 }
 
+static uint8_t current_temperature = 0xff;
+static uint8_t current_humidity = 0xff;
+
 void epaper_handle_input(struct hxb_value* val, uint32_t eid)
 {
-	static uint8_t current_temperature = 0xff;
-	static uint8_t current_humidity = 0xff;
-
 	if (eid == EP_TEMPERATURE) {
 		current_temperature = val->v_float;
 	} else if (eid == EP_HUMIDITY) {
@@ -137,4 +151,20 @@ void epaper_handle_input(struct hxb_value* val, uint32_t eid)
 	} else {
 		syslog(LOG_DEBUG, "Not updating display, not ready (%u %u)", current_temperature, current_humidity);
 	}
+}
+
+void epaper_display_special(enum epaper_special_screen screen)
+{
+	acquire();
+
+	uint16_t page_idx = index_get_special_screen(screen);
+	if (!page_idx) {
+		syslog(LOG_ERR, "Could not dislay special screen %i", screen);
+		goto end;
+	}
+
+	display_page(20, page_idx);
+
+end:
+	release();
 }
