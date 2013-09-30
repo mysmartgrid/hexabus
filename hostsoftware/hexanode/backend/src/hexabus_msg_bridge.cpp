@@ -45,12 +45,13 @@ struct ReadingLogger : public hexabus::Logger {
 				return UNKNOWN_UNIT;
 		}
 
-		klio::Sensor::Ptr lookup_sensor(const std::string& name)
+		klio::Sensor::Ptr lookup_sensor(const std::string& id)
 		{
-			std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_name(name);
-			return sensors.size()
-				? sensors[0]
-				: klio::Sensor::Ptr();
+			try {
+				return store->get_sensor_by_external_id(id);
+			} catch (...) {
+				return klio::Sensor::Ptr();
+			}
 		}
 
 		void new_sensor_found(klio::Sensor::Ptr sensor)

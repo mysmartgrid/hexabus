@@ -172,9 +172,7 @@ if __name__ == '__main__':
 		nets = select_networks(prefixes, viable)
 
 		eth_iface = generate_interfaces_fragment(nets[0], args.eth)
-		eth_radvd = ""
-		if nets[0] is not None:
-			eth_radvd = generate_radvd_fragment(nets[0], args.eth, [nets[1]])
+		eth_radvd = generate_radvd_fragment(nets[0], args.eth, [nets[1]])
 
 		hxb_iface = generate_interfaces_fragment(nets[1], args.hxb)
 		hxb_radvd = generate_radvd_fragment(nets[1], args.hxb, [ipaddress.IPv6Network("::/0")])

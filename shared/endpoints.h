@@ -34,5 +34,7 @@
 #define EP_PV_PRODUCTION         41UL
 #define EP_POWER_BALANCE         42UL
 #define EP_BATTERY_BALANCE       43UL
+#define EP_HEATER_HOT            44UL
+#define EP_HEATER_COLD           45UL
 
 #endif // ENDPOINTS_H_
