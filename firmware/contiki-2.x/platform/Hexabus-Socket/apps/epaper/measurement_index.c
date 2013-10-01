@@ -101,7 +101,6 @@ uint8_t index_get_last_entry(struct index_entry_t* entry) {
       return errcode;
     } 
     current_entry_idx++;
-		asm ("wdr");
   }
   errcode = index_get_entry(entry, current_entry_idx - 1);
   return AT45_TABLE_SUCCESS;
@@ -109,11 +108,34 @@ uint8_t index_get_last_entry(struct index_entry_t* entry) {
 
 uint16_t index_get_special_screen(uint8_t id)
 {
-	struct index_entry_t last_entry;
-	if (!index_get_last_entry(&last_entry))
+	static uint16_t first_special_screen = 0;
+
+	if (!first_special_screen) {
+		struct at45_page_t* page = malloc(sizeof(uint8_t [AT45_PAGE_SIZE]));
+		uint16_t last_page = 0;
+
+		for (uint16_t index_page = 0; ; index_page++) {
+			if (!at45_read_page(page, index_page)) {
+				goto exit;
+			}
+			for (uint16_t index_in_page = 0; index_in_page < INDEX_ENTRIES_PER_PAGE; index_in_page++) {
+				struct index_entry_t* entry;
+				entry = (struct index_entry_t*) (page->data + index_in_page * sizeof(*entry));
+				if (entry->temp == 0xde && entry->hum == 0xad && entry->page_idx == 0xbeef) {
+					first_special_screen = last_page + PAGES_PER_SCREEN;
+					goto exit;
+				} else {
+					last_page = entry->page_idx;
+				}
+			}
+		}
+
+exit:
+		free(page);
+	}
+
+	if (first_special_screen == 0)
 		return 0;
 
-	uint16_t special_0_idx = last_entry.page_idx + PAGES_PER_SCREEN;
-
-	return special_0_idx + id * PAGES_PER_SCREEN;
+	return first_special_screen + id * PAGES_PER_SCREEN;
 }
