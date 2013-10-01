@@ -124,8 +124,12 @@ app.post('/api/device/rename/:ip', function(req, res) {
 		if (!req.body.name) {
 			res.send("No name given", 400);
 		}
-		hexabus.rename_device(req.params.ip, req.body.name, function() {
-			res.send("Success");
+		hexabus.rename_device(req.params.ip, req.body.name, function(err) {
+			if (err) {
+				res.send(JSON.stringify(err), 500);
+			} else {
+				res.send("Success");
+			}
 		});
 	} catch (err) {
 		console.log(err);
@@ -170,7 +174,7 @@ io.sockets.on('connection', function (socket) {
 			try {
 				hexabus.rename_device(msg.device, msg.name, function(err) {
 					if (err) {
-						console.log(err);
+						socket.emit('device_rename_error', { device: msg.device, error: err });
 						return;
 					}
 					for (var key in sensors) {
@@ -198,7 +202,7 @@ io.sockets.on('connection', function (socket) {
 			var keys = ["minvalue", "maxvalue"];
 			for (var i in keys) {
 				var key = keys[i];
-				sensor[key] = msg.data[key] || sensor[key];
+				sensor[key] = (msg.data[key] != undefined) ? msg.data[key] : sensor[key];
 			}
 			sensor_registry.save(sensors_file);
 			socket.broadcast.emit('sensor_metadata', sensor);

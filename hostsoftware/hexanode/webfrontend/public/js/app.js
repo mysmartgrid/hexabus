@@ -33,6 +33,12 @@ angular.module('dashboard', [
 
 			done: function(value) {
 				$scope.$apply(function() {
+					var elems = attrs.shadow_all
+						? $(document.getElementsByClassName("gauge-" + forSensor.ip))
+						: $(document.getElementById(forSensor.id));
+					var div = $('<div class="spinner-large transient" /><div class="updating-thus-disabled transient" />');
+					elems.append(div);
+
 					done(value);
 				});
 			},
@@ -78,7 +84,8 @@ angular.module('dashboard', [
 			{
 				left: "0px",
 				width: "140px",
-				text: sensor.name
+				text: sensor.name,
+				shadow_all: true
 			},
 			function(value) {
 				Socket.emit('device_rename', { device: sensor.ip, name: value });
@@ -89,6 +96,8 @@ angular.module('dashboard', [
 	var sensorMetadataHandler = function(sensor) {
 		$scope.sensorList[sensor.id] = sensor;
 		$scope.sensorList[sensor.id].value = 0;
+
+		$(document.getElementById(sensor.id)).children(".transient").remove();
 
 		updateDisplay();
 	};
@@ -112,6 +121,11 @@ angular.module('dashboard', [
 
 			updateDisplay();
 		});
+	});
+
+	Socket.on('device_rename_error', function(msg) {
+		$(document.getElementsByClassName("gauge-" + msg.device)).children(".transient").remove();
+		alert("Could not rename device: communication timed out");
 	});
 
 	var waitingLastUpdateRecalc;

@@ -28,7 +28,7 @@
                       <li ng-repeat="sensor in sensorList">
                         <gauge
                           id="{{sensor.id}}"
-                          class="gauge"
+                          class="gauge gauge-{{sensor.ip}}"
                           title="{{sensor.name}} [{{sensor.unit}}]"
                           min="{{sensor.minvalue}}"
                           max="{{sensor.maxvalue}}"

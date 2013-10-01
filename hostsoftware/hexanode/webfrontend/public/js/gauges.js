@@ -7,6 +7,7 @@ angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) 
 			max: '@',
 			title: '@',
 			value: '@',
+			class: '@',
 
 			titleClick: '&',
 			minClick: '&',
