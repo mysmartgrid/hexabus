@@ -2,7 +2,6 @@
 #define HALLSENSOR_H_ 
 
 #include <stdbool.h>
-#include "process.h"
 
 #define HALLSENSOR_MUX_BITS 0x1F
 

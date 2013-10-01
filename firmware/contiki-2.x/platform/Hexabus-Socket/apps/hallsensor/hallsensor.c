@@ -17,11 +17,20 @@ volatile static uint16_t valuesum; // 9bit averaged ADC value
 static float average;
 static uint8_t samplepos;
 static uint8_t valuepos;
+static float calibration_value;
+static uint32_t hallsensor_calibration;
 
 static enum hxb_error_code read_hallsensor(struct hxb_value* value)
 {
 	syslog(LOG_DEBUG, "Reading hallsensor value");
 	value->v_float = average;
+
+	return HXB_ERR_SUCCESS;
+}
+
+static enum hxb_error_code calibrate_hallsensor(const struct hxb_envelope* env) {
+	syslog(LOG_DEBUG, "Calibrating for %lu", env->value.v_u32);
+	hallsensor_calibration = env->value.v_u32;
 
 	return HXB_ERR_SUCCESS;
 }
@@ -32,7 +41,7 @@ ENDPOINT_DESCRIPTOR endpoint_hallsensor = {
 	.eid = EP_HALLSENSOR,
 	.name = ep_hallsensor_name,
 	.read = read_hallsensor,
-	.write = 0
+	.write = calibrate_hallsensor
 };
 
 void hallsensor_init() {
@@ -52,6 +61,7 @@ void hallsensor_init() {
 	samplesum = 0;
 	valuesum = 0;
 	average = 0.0;
+	hallsensor_calibration = 0;
 #endif
 #if HALLSENSOR_FAULT_ENABLE
 	DDRC |= (1<<HALLSENSOR_FAULT_EN); // PC6 (FAULT_EN) as output
@@ -68,19 +78,28 @@ ISR(ADC_vect)
 	if ( ++samplepos >= HALLSENSOR_SAMPLES_PER_SINE )
 	{
 		samplepos = 0;
-		syslog(LOG_DEBUG, "calculated sine value: %u", samplesum);
+		//syslog(LOG_DEBUG, "calculated sine value: %u", samplesum);
 		valuesum += samplesum;
 		samplesum = 0;
 		if ( ++valuepos >= 50 ) // mains frequency of 50Hz -> 50 sines per second
 		{
 			syslog(LOG_DEBUG, "calculated seconds value: %u", valuesum);
 			valuepos = 0;
-			// 10bit ADC with AREF = 3.3V as reference -> 3.22 mV resolution
-			// ACS709 datasheet: 28mV/A at 5V Vcc -> 28*3.3/5 = 18.48mv/A at 3.3V Vcc
-			// 230V mains voltage
-			average = ((float)((valuesum/50)*322))/1848.0/90.0*230.0;
-			valuesum = 0;
-			broadcast_value(EP_HALLSENSOR);
+			if ( hallsensor_calibration > 0 )
+			{
+				calibration_value = valuesum/hallsensor_calibration;
+				valuesum = 0;
+				syslog(LOG_DEBUG, "new calibration factor: %u", (uint32_t) (calibration_value*100.0));
+				hallsensor_calibration = 0;
+			} else {
+				// 10bit ADC with AREF = 3.3V as reference -> 3.22 mV resolution
+				// ACS709 datasheet: 28mV/A at 5V Vcc -> 28*3.3/5 = 18.48mv/A at 3.3V Vcc
+				// 230V mains voltage
+				//average = ((float)((valuesum/50)*322))/1848.0/90.0*230.0;
+				average = ((float)valuesum)/calibration_value;
+				valuesum = 0;
+				broadcast_value(EP_HALLSENSOR);
+			}
 		}
 	}
 }
