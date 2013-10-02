@@ -51,7 +51,7 @@ var UpdateControl = function(element, config) {
 	};
 	var focusLost = function() {
 		cancelFocusLost();
-		focusLostHandler = window.setTimeout(finish, 100);
+		focusLostHandler = window.setTimeout(finish, 200);
 	};
 
 	var focusedControl = box;
