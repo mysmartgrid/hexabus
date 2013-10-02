@@ -125,6 +125,9 @@
 #if EPAPER_ENABLE
 #include "epaper.h"
 #endif
+#if HEXASENSE_ENABLE
+#include "hexasense.h"
+#endif
 
 
 uint8_t nSensors = 0; //number of found temperature sensors
@@ -194,6 +197,8 @@ uint8_t get_relay_default_from_eeprom(void) {
 void get_aes128key_from_eeprom(uint8_t keyptr[16]) {
 	eeprom_read_block ((void *)keyptr, (const void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
 }
+
+#include <util/delay.h>
 
 /*-------------------------Low level initialization------------------------*/
 /*------Done in a subroutine to keep main routine stack usage small--------*/
@@ -407,6 +412,9 @@ void initialize(void)
 #if EPAPER_ENABLE
 	epaper_init();
 	epaper_display_special(EP_SCREEN_BOOT);
+#endif
+#if HEXASENSE_ENABLE
+	hexasense_init();
 #endif
 }
 
