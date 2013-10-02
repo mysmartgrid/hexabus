@@ -49,6 +49,7 @@
 		<script src="/js/angular-1.0.8.min.js"></script>
 		<script src="/socket.io/socket.io.js"></script>
 		<script src="/js/bootstrap.min.js"></script>
+		<script src="/js/jquery.localize.js"></script>
 
 		<script src="/js/ng-socket.js"></script>
 		<script src="/js/gauges.js"></script>
@@ -64,14 +65,14 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="brand" href="/#">Hexabus Console</a>
+          <a class="brand" href="/#" data-localize="navbar.console">Hexabus Console</a>
           <div class="nav-collapse collapse">
             <ul class="nav" id="main_nav">
-              <li class="active"><a href="/#dashboard">Main</a></li>
-              <li><a href="#config">Configuration</a></li>
+              <li class="active"><a href="/#dashboard" data-localize="navbar.main">Main</a></li>
+              <li><a href="#config" data-localize="navbar.configuration">Configuration</a></li>
 						</ul>
 						<ul class="nav pull-right">
-							<li><a class="pull-right" href="#about">About</a></li>
+							<li><a class="pull-right" href="#about" data-localize="navbar.about">About</a></li>
             </ul>
           </div><!--/.nav-collapse -->
         </div>

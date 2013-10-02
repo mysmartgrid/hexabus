@@ -3,6 +3,20 @@
     http://twitter.github.com/bootstrap/javascript.html#tabs -->
     <script>
       $(".collapse").collapse();
+
+			(function() {
+				var localizeBySelector = function(selector) {
+					$(selector).localize("lang", { pathPrefix: "/lang/", language: "de" });
+				};
+				localizeBySelector("[data-localize]");
+
+				angular.module('i18n', []).factory('Lang', function() {
+					return {
+						localize: localizeBySelector,
+						pack: $.localize.data.lang
+					};
+				});
+			})();
     </script>
 
   </body>

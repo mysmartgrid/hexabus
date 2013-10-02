@@ -10,17 +10,16 @@
         <div class="span12">
           <div class="tabbable">
             <ul class="nav nav-tabs">
-              <li class="active"><a href="#dash" data-toggle="tab">Dashboard</a></li>
-              <li><a href="#sensors" data-toggle="tab">Sensors</a></li>
+              <li class="active"><a href="#dash" data-toggle="tab" data-localize="dashboard.dashboard">Dashboard</a></li>
             </ul>
           </div>
           <div class="tab-content">
             <!--- Dashboard -->
             <div class="tab-pane active" id="dash">
-              <h2 class="text-center">Dashboard</h2>
+              <h2 class="text-center" data-localize="dashboard.dashboard">Dashboard</h2>
               <div class="row-fluid">
                 <div class="span3">
-                  <p>Last update: {{lastUpdate}}</p>
+                  <p><span data-localize="dashboard.last-update.label">Last update:</span> <span id="last-update-when" /></p>
                 </div>
                 <div class="span9">
                   <div class="row-fluid">

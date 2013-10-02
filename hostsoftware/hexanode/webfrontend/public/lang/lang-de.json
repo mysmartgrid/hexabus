@@ -1,0 +1,23 @@
+{
+	"navbar": {
+		"console": "Hexabus Basisstation",
+		"main": "Übersicht",
+		"configuration": "Konfiguration",
+		"about": "Über Hexabus"
+	},
+
+	"dashboard": {
+		"dashboard": "Alle Sensoren",
+		"last-update": {
+			"label": "Letztes Update:",
+			"now": "jetzt",
+			"seconds-ago": "vor {ago} Sekunden",
+			"minutes-ago": "vor {ago} Minuten"
+		}
+	},
+
+	"rename-error": {
+		"template": "Konnte Gerät nicht umbenennen: {reason}",
+		"timeout": "Kommunikation mit dem Gerät nicht möglich"
+	}
+}

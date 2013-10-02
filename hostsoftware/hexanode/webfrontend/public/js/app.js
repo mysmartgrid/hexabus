@@ -1,7 +1,9 @@
 angular.module('dashboard', [
 	'ng-socket',
-	'gauges'
-]).controller('gaugesDisplayController', ['$scope', 'Socket', '$timeout', function($scope, Socket, $timeout) {
+	'gauges',
+	'i18n'
+])
+.controller('gaugesDisplayController', ['$scope', 'Socket', '$timeout', 'Lang', function($scope, Socket, $timeout, Lang) {
 	var lastSensorValueReceivedAt;
 
 	var pendingUpdateControl = null;
@@ -125,7 +127,7 @@ angular.module('dashboard', [
 
 	Socket.on('device_rename_error', function(msg) {
 		$(document.getElementsByClassName("gauge-" + msg.device)).children(".transient").remove();
-		alert("Could not rename device: communication timed out");
+		alert(Lang.pack["rename-error"]["template"].replace("{reason}", Lang.pack["rename-error"]["timeout"]));
 	});
 
 	var waitingLastUpdateRecalc;
@@ -138,14 +140,26 @@ angular.module('dashboard', [
 		var nextUpdateIn = 5000;
 		if (lastSensorValueReceivedAt) {
 			var secondsDiff = Math.round((Date.now() - lastSensorValueReceivedAt) / 1000);
+			var span = $("#last-update-when");
+			var ago;
 			if (secondsDiff == 0) {
-				$scope.lastUpdate = "now";
+				span
+					.text("now")
+					.data("localize", "dashboard.last-update.now");
 			} else if (secondsDiff < 60) {
-				$scope.lastUpdate = Math.round(secondsDiff) + " seconds ago";
+				ago = Math.round(secondsDiff);
+				span
+					.text("{ago} seconds ago")
+					.data("localize", "dashboard.last-update.seconds-ago");
 			} else {
-				$scope.lastUpdate = Math.round(secondsDiff / 60) + " minutes ago";
+				ago = Math.round(secondsDiff / 60);
+				span
+					.text("{ago} minutes ago")
+					.data("localize", "dashboard.last-update.minutes-ago");
 				nextUpdateIn = 30000;
 			}
+			Lang.localize(span);
+			span.text(span.text().replace("{ago}", ago));
 		}
 
 		waitingLastUpdateRecalc = $timeout(keepLastUpdateCurrent, nextUpdateIn);
