@@ -2,6 +2,7 @@
 #define HEXASENSE_H_
 
 #include <stdint.h>
+#include "process.h"
 
 #define HEXASENSE_LED1_PORT PORTC
 #define HEXASENSE_LED1_DDR  DDRC
@@ -19,6 +20,8 @@
 #define HEXASENSE_BUTTON2_PORT PINA
 #define HEXASENSE_BUTTON2_DDR  DDRA
 #define HEXASENSE_BUTTON2_PIN  2
+
+PROCESS_NAME(hexasense_feedback_process);
 
 void hexasense_init(void);
 
