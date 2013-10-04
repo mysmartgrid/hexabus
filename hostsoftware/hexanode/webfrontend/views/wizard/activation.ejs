@@ -1,20 +1,22 @@
 <% include ../header %>
 
 <div class="page text-center wizard-step" ng-controller="wizardActivation">
-	<p class="lead" data-localize="activation-message1">We now need to link this device with your account on mySmartGrid.</p>
-	<p class="lead" data-localize="activation-message2">If you don't have an account yet, please create one first: <a href="https://www.mysmartgrid.de/user/register" class="btn" target="_blank">Create mSG Account</a></p>
+	<p class="lead" data-localize="wizard.activation.about-activate">We will now link this device with your account on mySmartGrid.</p>
+	<p class="lead">
+		<span data-localize="wizard.activation.no-account">If you don't have an account yet, please create one first:</span>
+		<a href="https://www.mysmartgrid.de/user/register" class="btn" target="_blank" data-localize="wizard.activation.create-account">Create mSG Account</a>
+	</p>
 	<div ng-hide="registering || registered || failed" class="lead page">
-		If you have a mySmartGrid, account, you can <button class="btn btn-success" ng-click="register()">register your device</button>
+		<button class="btn btn-success" ng-click="register()" data-localize="wizard.activation.link-msg">Link your device with mySmartGrid</button>
 	</div>
-	<p ng-show="registering" class="lead"><img src="/img/spinner-small.gif" />Registering device with mySmartGrid</p>
+	<p ng-show="registering" class="lead"><img src="/img/spinner-small.gif" /><span data-localize="wizard.activation.linking">Registering device with mySmartGrid</span></p>
 	<div ng-show="registered" class="page">
-		<p class="lead" data-localize="activation-message3">Now, please enter the code</p>
+		<p class="lead" data-localize="wizard.activation.code-prompt">Now, please enter this code on the mySmartGrid page to link the device to your account:</p>
 		<p class="lead">{{activationCode}}</p>
-		<p class="lead" data-localize="activation-message4">on the mySmartGrid page to link the device to your account.</p>
-		<a href="https://www.mysmartgrid.de/device/mylist" target="_blank" class="btn btn-success">Link account</a>
-		<a href="/wizard/success" class="btn btn-success" ng-show="registered">Continue</a>
+		<a href="https://www.mysmartgrid.de/device/mylist" target="_blank" class="btn btn-success" data-localize="wizard.activation.link">Link account</a>
+		<a href="/wizard/success" class="btn btn-success" ng-show="registered" data-localize="wizard.activation.continue">Continue</a>
 	</div>
-	<p ng-show="failed" class="lead text-error">An error occured</p>
+	<p ng-show="failed" class="lead text-error" data-localize="wizard.activation.error">An error occured</p>
 </div>
 
 <% include ../footer %>

@@ -21,5 +21,43 @@
 	"rename-error": {
 		"template": "Konnte Gerät nicht umbenennen: {reason}",
 		"timeout": "Kommunikation mit dem Gerät nicht möglich"
+	},
+
+	"wizard": {
+		"new": {
+			"welcome": "Willkommen auf ihrer neuen Hexabus Basisstation.",
+			"unconfigured": "Diese Basisstation ist noch nicht eingerichtet.",
+			"start-configuration": "Jetzt einrichten"
+		},
+
+		"connection": {
+			"about-connect": "Wir werden nun versuchen eine passende Netzwerkkonfiguration zu erstellen. Außerdem werden wir überprüfen, ob mysmartgrid.de erreichbar ist.",
+			"configure": "Netzwerk einrichten",
+			"configuring": "Netzwerk wird eingerichtet...",
+			"connecting": "Verbindung zu mysmartgrid.de wird überprüft...",
+			"configured": "&#10003; Netzwerk eingerichtet.",
+			"connected": "&#10003; mysmartgrid.de ist erreichbar.",
+			"can-activate": "Sie können jetzt ihr Gerät aktivieren.",
+			"activate": "Gerät aktivieren",
+			"failure": "Fehler beim einrichten des Netzwerkes"
+		},
+
+		"activation": {
+			"about-activate": "Wir werden diese Basisstation nun mit ihrem mySmartGrid-Account verknüpfen.",
+			"no-account": "Falls Sie noch nicht bei mySmartGrid angemeldet sind, melden Sie sich bitte zuerst an:",
+			"create-account": "Anmelden",
+			"link-msg": "Basisstation mit mySmartGrid verknüpfen",
+			"linking": "Basisstation wird mit mySmartGrid verknüpft",
+			"code-prompt": "Geben Sie nun bitte folgenden Code auf mySmartGrid ein:",
+			"link": "Zu mySmartGrid",
+			"continue": "Weiter",
+			"error": "Es ist ein Fehler aufgetreten"
+		},
+
+		"success": {
+			"grats": "&#10003; Einrichtung erfolgreich abgeschlossen",
+			"linked": "Gerät ist mit mySmartGrid verknüpft",
+			"to-dashboard": "Weiter zur Übersicht"
+		}
 	}
 }

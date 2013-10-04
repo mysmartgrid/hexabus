@@ -1,21 +1,19 @@
 <% include ../header %>
 
 <div id="connection"  class="page text-center wizard-step" ng-controller="wizardConnection">
-	<p class="lead" data-localize="connection-message1">Welcome.</p>
-	<p class="lead" data-localize="connection-message2">We now try to create a suitable network configuration.</p>
-	<p class="lead" data-localize="connection-message3">We also check whether mysmartgrid.de is reachable.</p>
+	<p class="lead" data-localize="wizard.connection.about-connect">We will now try to create a suitable configuration for your network and check whether mysmartgrid.de is reachable or not.</p>
 	<div ng-hide="active() || configured || connected">
-		<button class="btn btn-success" data-localize="configure-network" ng-click="configure()">Configure network</button>
+		<button class="btn btn-success" data-localize="wizard.connection.configure" ng-click="configure()">Configure network</button>
 	</div>
-	<p ng-show="active() && !configured" class="lead"><img src="/img/spinner-small.gif" />Configuring network</p>
-	<p ng-show="active() && !connected" class="lead"><img src="/img/spinner-small.gif"/>Checking connection</p>
-	<p ng-show="configured" class="lead text-success" data-localize="connection-network-configured">&#10003; Network configured</p>
-	<div ng-show="connected">
-		<p class="lead text-success">&#10003; Success</p>
-		<p class="lead">You can now activate your device</p>
-		<a href="/wizard/activation" class="btn btn-success">Activate device</a>
+	<p ng-show="active() && !configured" class="lead"><img src="/img/spinner-small.gif" /><span data-localize="wizard.connection.configuring">Configuring network</span></p>
+	<p ng-show="active() && !connected" class="lead"><img src="/img/spinner-small.gif" /><span data-localize="wizard.connection.connecting">Checking connection</span></p>
+	<p ng-show="configured" class="lead text-success" data-localize="wizard.connection.configured">&#10003; Network configured</p>
+	<p ng-show="connected" class="lead text-success" data-localize="wizard.connection.connected">&#10003; mysmartgrid.de is reachable</p>
+	<div ng-show="connected && configured">
+		<p class="lead" data-localize="wizard.connection.can-activate">You can now activate your device</p>
+		<a href="/wizard/activation" class="btn btn-success" data-localize="wizard.connection.activate">Activate device</a>
 	</div>
-	<p ng-show="failed" class="lead text-error">Unable to configure network.</p>
+	<p ng-show="failed" class="lead text-error" data-localize="wizard.connection.failure">Unable to configure network.</p>
 </div>
 
 <% include ../footer %>
