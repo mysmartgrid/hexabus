@@ -23,7 +23,7 @@ var SensorRegistry = function(file) {
 		if (eid == undefined)
 			throw "eid required";
 
-		return ip + "(" + eid + ")";
+		return ip + "." + eid;
 	};
 
 	this.add_sensor = function(ip, eid, params) {
