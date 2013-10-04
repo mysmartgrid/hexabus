@@ -7,7 +7,8 @@ var application_root = __dirname
   , io = require('socket.io').listen(server)
 	, Cache = require("./lib/sensorcache")
 	, SensorRegistry = require("./lib/sensorregistry")
-	, hexabus = require("./lib/hexabus")
+	, hexabus = require("./lib/hexabus")()
+	, Wizard = require("./lib/wizard")
 	, fs = require("fs")
   , nconf=require('nconf');
 
@@ -140,6 +141,12 @@ app.post('/api/device/rename/:ip', function(req, res) {
 app.get('/', function(req, res) {
   res.render('index.ejs');
 });
+app.get('/wizard', function(req, res) {
+	res.redirect('/wizard/new');
+});
+app.get('/wizard/:step', function(req, res) {
+	res.render('wizard/' + req.params.step  + '.ejs');
+});
 
 io.sockets.on('connection', function (socket) {
   console.log("Registering new client.");
@@ -213,6 +220,22 @@ io.sockets.on('connection', function (socket) {
 				socket.emit('sensor_update', value);
 			}
 		}
+	});
+
+	socket.on('wizard_configure', function() {
+		var wizard = new Wizard();
+
+		wizard.configure_network(function(progress) {
+			socket.emit('wizard_configure_step', progress);
+		});
+	});
+
+	socket.on('wizard_register', function() {
+		var wizard = new Wizard();
+
+		wizard.registerMsg(function(progress) {
+			socket.emit('wizard_register_step', progress);
+		});
 	});
 
 	socket.emit('clear_state');

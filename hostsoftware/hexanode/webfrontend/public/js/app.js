@@ -164,4 +164,58 @@ angular.module('dashboard', [
 
 		waitingLastUpdateRecalc = $timeout(keepLastUpdateCurrent, nextUpdateIn);
 	};
+}])
+.controller('wizardConnection', ['$scope', 'Socket', function($scope, Socket) {
+	$scope.configure = function() {
+		Socket.emit('wizard_configure');
+		$scope.checking = true;
+		$scope.stepsDone = 1;
+	};
+
+	$scope.active = function() {
+		return $scope.stepsDone > 0;
+	};
+
+	Socket.on('wizard_configure_step', function(progress) {
+		if (progress.error) {
+			$scope.failed = true;
+		} else {
+			switch (progress.step) {
+				case 'autoconf':
+					$scope.configured = true;
+					$scope.stepsDone++;
+					break;
+
+				case 'check_msg':
+					$scope.connected = true;
+					$scope.stepsDone++;
+					break;
+			}
+
+			if ($scope.stepsDone == 3) {
+				$scope.stepsDone = 0;
+			}
+		}
+	});
+}])
+.controller('wizardActivation', ['$scope', 'Socket', function($scope, Socket) {
+	$scope.register = function() {
+		Socket.emit('wizard_register');
+		$scope.registering = true;
+	};
+
+	Socket.on('wizard_register_step', function(progress) {
+		if (progress.error) {
+			$scope.failed = true;
+			$scope.registering = false;
+		} else {
+			switch (progress.step) {
+				case 'register_code':
+					$scope.registering = false;
+					$scope.registered = true;
+					$scope.activationCode = progress.code;
+					break;
+			}
+		}
+	});
 }]);

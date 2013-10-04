@@ -18,4 +18,4 @@ var hexabus = function() {
 	};
 };
 
-module.exports = new hexabus();
+module.exports = hexabus;

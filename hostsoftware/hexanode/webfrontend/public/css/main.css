@@ -25,3 +25,9 @@ div.spinner-large {
 	bottom: 0;
 	background: center url('/img/spinner-large.gif') no-repeat;
 }
+.wizard-step {
+	position: absolute;
+	top: 40%;
+	bottom: 20%;
+	width: 100%;
+}

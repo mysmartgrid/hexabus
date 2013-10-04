@@ -1,0 +1,91 @@
+<% include footer %>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  var socket = io.connect('http://<%=server%>:<%=port%>');
+  socket.on('connection_update', function(data) {
+	var is_connected = data['is_connected'];
+	if(is_connected) {
+		// hide loading and disconnected
+		$('#connection-loading,#disconnected').hide();
+		// show connected
+		$('#connected').show();
+	} else {
+		// hide loading and connected
+		$('#connection-loading,#connected').hide();
+		// show disconnected
+		$('#disconnected').show();
+	}
+	});
+  socket.on('activation_update', function(data) {
+	var activation = data['activation'];
+	$('#activation-code').text(activation);
+	// hide loading
+	$('#activation-loading').hide();
+	// show activation code
+	$('#activation-block').show();
+	});
+
+  socket.on('device_update', function(data) {
+	var devices = data['devicelist']['devices'];
+	console.log(devices)
+	var list = $('.devicelist');
+	for(var device in devices) {
+		list.append('<div class="input-append"><input class="devicename" value="'+devices[device]['name']+' " type="text" disabled></input><button class="btn edit devices">Edit</button></div><ul><li class="deviceip">'+devices[device]['ip']+'</li></ul>');
+		var eids = devices[device]['eids'].join(", ");
+			var j = parseInt(device)
+			$(list.find(".deviceip")[j]).append('<li>'+eids+'</li>');
+	}
+	$('.edit.devices').on('click', function() {
+		$(this).prev().prop('disabled', false);
+		$('#devices-submit').show();
+	});
+	$('.page').hide();
+	if(devices!==undefined) {
+		$('#devices-block').show();
+	} else {
+		$('#nodevices-block').show();
+	}
+});
+  window.onload = function() {
+	//socket.emit('check_connection');
+	//socket.emit('get_activation');
+	//socket.emit('get_devices');
+}
+
+	$('#start-button').on('click', function() {
+		$('.page').not('#connection').hide();
+		$('#connection').show();
+	});
+	$('#configure-network').on('click', function() {
+		$('#connection-start').hide();
+		$('connection-loading').show();
+		socket.emit('check_connection');
+	});
+	$('#start-activation').on('click', function() {
+		$('.page').not('#activation').hide();
+		$('#activation').show();
+		socket.emit('get_activation');
+	});
+	$('#link-account').on('click', function() {
+		$('#link-account').removeClass('btn-success');
+		$('#finish-wizard').show();
+	});
+	$('#finish-wizard').on('click', function() {
+		$('.page').not('#success').hide();
+		$('#success').show();
+	});
+$('.submit.devices').on('click', function() {
+	var devicenames = $('.devicename');
+	var deviceips = $('.deviceip');
+	var devices = {};
+	for(var i=0;i<devicenames.length;i++) {
+		if($(devicenames[i]).is(':enabled')) {
+			devices[$(deviceips[i]).text()] = devicenames[i].value;
+		}
+	}
+	if(!$.isEmptyObject(devices)){
+		socket.emit('submit_devices', devices);
+	}
+});
+
+

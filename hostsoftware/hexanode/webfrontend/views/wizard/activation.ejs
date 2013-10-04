@@ -1,0 +1,20 @@
+<% include ../header %>
+
+<div class="page text-center wizard-step" ng-controller="wizardActivation">
+	<p class="lead" data-localize="activation-message1">We now need to link this device with your account on mySmartGrid.</p>
+	<p class="lead" data-localize="activation-message2">If you don't have an account yet, please create one first: <a href="https://www.mysmartgrid.de/user/register" class="btn" target="_blank">Create mSG Account</a></p>
+	<div ng-hide="registering || registered || failed" class="lead page">
+		If you have a mySmartGrid, account, you can <button class="btn btn-success" ng-click="register()">register your device</button>
+	</div>
+	<p ng-show="registering" class="lead"><img src="/img/spinner-small.gif" />Registering device with mySmartGrid</p>
+	<div ng-show="registered" class="page">
+		<p class="lead" data-localize="activation-message3">Now, please enter the code</p>
+		<p class="lead">{{activationCode}}</p>
+		<p class="lead" data-localize="activation-message4">on the mySmartGrid page to link the device to your account.</p>
+		<a href="https://www.mysmartgrid.de/device/mylist" target="_blank" class="btn btn-success">Link account</a>
+		<a href="/wizard/success" class="btn btn-success" ng-show="registered">Continue</a>
+	</div>
+	<p ng-show="failed" class="lead text-error">An error occured</p>
+</div>
+
+<% include ../footer %>
