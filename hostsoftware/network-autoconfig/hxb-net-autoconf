@@ -6,8 +6,8 @@ then
 	exit 1
 fi
 
-python3 /usr/lib/net-choose/net-choose.py eth0 usb0
+python3 /usr/lib/hxb-net-autoconf/hxb-net-autoconf.py eth0 usb0 || exit 2
 
-/etc/init.d/networking restart
-/etc/init.d/radvd restart
-/etc/init.d/mrd6 restart
+/etc/init.d/networking restart || exit 3
+/etc/init.d/radvd restart || exit 4
+/etc/init.d/mrd6 restart || exit 5
