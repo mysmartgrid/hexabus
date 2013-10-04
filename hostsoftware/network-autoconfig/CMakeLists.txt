@@ -38,8 +38,8 @@ enable_testing()
 
 # add some files to the installation target
 #INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
-INSTALL(FILES ipaddress.py net-choose.py DESTINATION lib/net-choose PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-INSTALL(PROGRAMS net-choose DESTINATION bin)
+INSTALL(PROGRAMS ipaddress.py hxb-net-autoconf.py DESTINATION lib/hxb-net-autoconf)
+INSTALL(PROGRAMS hxb-net-autoconf DESTINATION bin)
 
 # CPACK packaging
 include(InstallRequiredSystemLibraries)
