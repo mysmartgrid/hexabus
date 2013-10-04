@@ -1,0 +1,27 @@
+body {
+	padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+}
+.gauge {
+	position: relative;
+	width: 200px;
+	height: 160px;
+}
+.transient {
+}
+div.updating-thus-disabled {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	background-color: black;
+	opacity: 0.1;
+}
+div.spinner-large {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	background: center url('/img/spinner-large.gif') no-repeat;
+}
