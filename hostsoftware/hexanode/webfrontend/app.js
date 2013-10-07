@@ -173,9 +173,6 @@ app.get('/wizard/current', function(req, res) {
 	console.log(config);
 	res.render('wizard/current.ejs', config);
 });
-app.get('/wizard/:step', function(req, res) {
-	res.render('wizard/' + req.params.step  + '.ejs');
-});
 app.post('/wizard/reset', function(req, res) {
 	try {
 		fs.unlinkSync(sensors_file);
@@ -199,6 +196,9 @@ app.post('/wizard/reset', function(req, res) {
 			res.redirect('/');
 		});
 	});
+});
+app.get('/wizard/:step', function(req, res) {
+	res.render('wizard/' + req.params.step  + '.ejs');
 });
 
 io.sockets.on('connection', function (socket) {
