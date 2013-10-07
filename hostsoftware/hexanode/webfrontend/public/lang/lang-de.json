@@ -5,7 +5,8 @@
 		"console": "Hexabus Basisstation",
 		"main": "Übersicht",
 		"configuration": "Konfiguration",
-		"about": "Über Hexabus"
+		"about": "Über Hexabus",
+		"network-status": "Netzwerkstatus"
 	},
 
 	"dashboard": {

@@ -42,7 +42,12 @@
           <div class="nav-collapse collapse">
             <ul class="nav" id="main_nav">
               <li class="active"><a href="/#dashboard" data-localize="navbar.main">Main</a></li>
-              <li><a href="#config" data-localize="navbar.configuration">Configuration</a></li>
+							<li class="dropdown">
+								<a class="dropdown-toggle" data-toggle="dropdown" data-localize="navbar.configuration">Configuration<b class="caret"></b></a>
+								<ul class="dropdown-menu">
+									<li><a href="/wizard/current" data-localize="navbar.network-status">Network status</a></li>
+								</ul>
+							</li>
 						</ul>
 						<ul class="nav pull-right">
 							<li><a class="pull-right" href="#about" data-localize="navbar.about">About</a></li>
