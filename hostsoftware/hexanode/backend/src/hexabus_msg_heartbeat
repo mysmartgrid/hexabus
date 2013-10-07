@@ -49,10 +49,10 @@ def http_request(method, url, body):
 def perform_heartbeat():
 	message = {
 		'firmware': {
-			'version': '1.0.0-0',
-			'releasetime': '20120524_1158',
-			'build': 'f0ba69e4fea1d0c411a068e5a19d0734511805bd',
-			'tag': 'flukso-2.0.3-rc1-19-gf0ba69e'
+			'version': '0.9.0-0',
+			'releasetime': '20130916_0000',
+			'build': 'ec378baf8a24ea9bb9de48306fcd39a5f3f0315a',
+			'tag': 'hexapi-0.9.0-dev'
 		}
 	}
 	return http_request("POST", api_url + "/device/" + device_id, message)
