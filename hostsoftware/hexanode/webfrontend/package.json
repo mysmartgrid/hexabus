@@ -14,6 +14,7 @@
     "request": "*",
     "nconf": "*",
     "cookie-signature": "*",
-    "buffer-crc32": "*"
+    "buffer-crc32": "*",
+		"ipv6": "*"
   }
 }
