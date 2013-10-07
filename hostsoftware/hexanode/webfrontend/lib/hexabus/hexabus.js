@@ -52,7 +52,6 @@ var hexabus = function() {
 			}
 
 			ifaces[dev].forEach(function(detail) {
-				console.log(detail);
 				if (detail.family == 'IPv6') {
 					target.v6.push(detail.address);
 				} else if (detail.family == 'IPv4' && read_v4) {
