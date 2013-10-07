@@ -7,5 +7,9 @@ if [ -f $CONFIG ]
 then
 	exec setuidgid hexabus hexabus_msg_bridge -c $CONFIG -L $IFACE 2>&1
 else
-	hexabus_msg_bridge -c $CONFIG -C 2>&1
+	# wait for it to come into existence
+	until [ -f $CONFIG ]
+	do
+		sleep 1
+	done
 fi
