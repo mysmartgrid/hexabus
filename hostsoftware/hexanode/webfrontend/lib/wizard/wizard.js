@@ -3,7 +3,7 @@ var exec = require('child_process').exec;
 
 var Wizard = function() {
 	var networkAutoconf = function(cb) {
-		var command = nconf.get('debug_wizard')
+		var command = nconf.get('debug-wizard')
 			? 'sleep 2'
 			: 'sudo hxb-net-autoconf init';
 		exec(command, function(error, stdout, stderr) {
@@ -31,17 +31,17 @@ var Wizard = function() {
 	};
 
 	this.deconfigure_network = function(cb) {
-		var command = nconf.get('debug_wizard')
+		var command = nconf.get('debug-wizard')
 			? 'sleep 0'
 			: 'sudo hxb-net-autoconf forget';
 		exec(command, cb);
 	};
 
 	this.registerMSG = function(cb) {
-		var program = nconf.get('debug_wizard')
+		var program = nconf.get('debug-wizard')
 			? '../backend/build/src/hexabus_msg_bridge --config bridge.conf'
 			: 'sudo hexabus_msg_bridge';
-		var register_command = nconf.get('debug_wizard')
+		var register_command = nconf.get('debug-wizard')
 			? program + ' --create https://dev3-api.mysmartgrid.de:8443'
 			: program + ' --create';
 		var retrieve_command = program + ' --activationcode';
@@ -62,9 +62,9 @@ var Wizard = function() {
 	};
 
 	this.unregisterMSG = function(cb) {
-		var script = nconf.get('debug_wizard')
-			? 'rm bridge.conf'
-			: 'sudo rm /etc/hexabus_msg_bridge.conf; sudo svc -k /etc/service/hexabus_msg_bridge';
+		var script = nconf.get('debug-wizard')
+			? 'rm -f bridge.conf'
+			: 'sudo rm -f /etc/hexabus_msg_bridge.conf; sudo svc -k /etc/service/hexabus_msg_bridge';
 		exec(script, cb);
 	};
 };
