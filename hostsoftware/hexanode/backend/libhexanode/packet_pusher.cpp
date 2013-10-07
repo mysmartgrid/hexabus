@@ -128,7 +128,6 @@ void PacketPusher::push_value(uint32_t eid, const std::string& value)
 		std::map<std::string, hexanode::Sensor>::iterator sensor = _sensors.find(sensor_id);
 		if (sensor != _sensors.end()) {
 			sensor->second.post_value(_client, _api_uri, value);
-			target << "Sensor " << sensor_id << ": submitted value " << value << std::endl;
 		} else {
 			target << "Sensor " << sensor_id << " not found, defining" << std::endl;
 			defineSensor(sensor_id, eid, value);
