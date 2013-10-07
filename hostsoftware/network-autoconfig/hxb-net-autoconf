@@ -1,13 +1,30 @@
 #!/bin/sh -e
 
-if [ -e /etc/radvd.conf ]
-then
-	echo "Networks already configured"
-	exit 1
-fi
+case "$1" in
+	init)
+		if [ -e /etc/radvd.conf ]
+		then
+			echo "Networks already configured"
+			exit 1
+		fi
 
-python3 /usr/lib/hxb-net-autoconf/hxb-net-autoconf.py eth0 usb0 || exit 2
+		cp /etc/network/interfaces /etc/network/.interfaces-pre-autoconfig
+		python3 /usr/lib/hxb-net-autoconf/hxb-net-autoconf.py eth0 usb0 || exit 2
 
-/etc/init.d/networking restart || exit 3
-/etc/init.d/radvd restart || exit 4
-/etc/init.d/mrd6 restart || exit 5
+		service networking restart || exit 3
+		service radvd restart || exit 4
+		service mrd6 restart || exit 5
+		;;
+
+	forget)
+		service radvd stop
+		service mrd6 stop
+		cp /etc/network/.interfaces-pre-autoconfig /etc/network/interfaces
+		service networking restart
+		;;
+
+	*)
+		echo "No action given"
+		exit 1
+		;;
+esac

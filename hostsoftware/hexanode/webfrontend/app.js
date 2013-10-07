@@ -37,13 +37,20 @@ if (nconf.get('uid')) {
 
 var configDir = nconf.get('config');
 var sensors_file = configDir + '/sensors.json';
+
 var sensor_registry;
-try {
-	sensor_registry = new SensorRegistry(fs.existsSync(sensors_file) ? sensors_file : undefined);
-} catch (e) {
-	sensor_registry = new SensorRegistry();
+var sensor_cache;
+
+function open_config() {
+	try {
+		sensor_registry = new SensorRegistry(fs.existsSync(sensors_file) ? sensors_file : undefined);
+	} catch (e) {
+		sensor_registry = new SensorRegistry();
+	}
+	sensor_cache = new Cache();
 }
-var sensor_cache = new Cache();
+open_config();
+
 console.log("Using configuration: ");
 console.log(" - port: " + nconf.get('port'));
 console.log(" - config dir: " + nconf.get('config'));
@@ -163,6 +170,19 @@ app.get('/wizard/current', function(req, res) {
 app.get('/wizard/:step', function(req, res) {
 	res.render('wizard/' + req.params.step  + '.ejs');
 });
+app.post('/wizard/reset', function(req, res) {
+	fs.unlinkSync(sensors_file);
+	open_config();
+
+	var wizard = new Wizard();
+	wizard.deconfigure_network(function(err) {
+		if (err) throw err;
+		wizard.unregisterMSG(function(err) {
+			if (err) throw err;
+			res.redirect('/');
+		});
+	});
+});
 
 io.sockets.on('connection', function (socket) {
   console.log("Registering new client.");
@@ -249,7 +269,7 @@ io.sockets.on('connection', function (socket) {
 	socket.on('wizard_register', function() {
 		var wizard = new Wizard();
 
-		wizard.registerMsg(function(progress) {
+		wizard.registerMSG(function(progress) {
 			socket.emit('wizard_register_step', progress);
 		});
 	});

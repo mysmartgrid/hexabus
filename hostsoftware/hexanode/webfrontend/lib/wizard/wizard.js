@@ -5,7 +5,7 @@ var Wizard = function() {
 	var networkAutoconf = function(cb) {
 		var command = nconf.get('debug_wizard')
 			? 'sleep 2'
-			: 'sudo hxb-net-autoconf';
+			: 'sudo hxb-net-autoconf init';
 		exec(command, function(error, stdout, stderr) {
 			if (error) {
 				cb({ step: 'autoconf', error: error });
@@ -30,7 +30,14 @@ var Wizard = function() {
 		checkMSG(cb);
 	};
 
-	this.registerMsg = function(cb) {
+	this.deconfigure_network = function(cb) {
+		var command = nconf.get('debug_wizard')
+			? 'sleep 0'
+			: 'sudo hxb-net-autoconf forget';
+		exec(command, cb);
+	};
+
+	this.registerMSG = function(cb) {
 		var program = nconf.get('debug_wizard')
 			? '../backend/build/src/hexabus_msg_bridge --config bridge.conf'
 			: 'sudo hexabus_msg_bridge';
@@ -52,6 +59,13 @@ var Wizard = function() {
 				});
 			}
 		});
+	};
+
+	this.unregisterMSG = function(cb) {
+		var script = nconf.get('debug_wizard')
+			? 'rm bridge.conf'
+			: 'sudo rm /etc/hexabus_msg_bridge.conf; sudo svc -k /etc/service/hexabus_msg_bridge';
+		exec(script, cb);
 	};
 };
 
