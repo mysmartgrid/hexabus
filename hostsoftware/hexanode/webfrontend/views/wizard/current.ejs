@@ -1,0 +1,40 @@
+<% include ../header %>
+
+<div class="page">
+	<div class="span3"></div>
+	<div class="span9">
+		<h3 data-localize="wizard.current.lan-addrs">LAN connection</h3>
+		<table class="table">
+			<tr>
+				<th class="span2">IPv4</th>
+				<td class="span4">
+					<% for (var addr in addrs.lan.v4) { %>
+					<div><%= addrs.lan.v4[addr] %></div>
+					<% } %>
+				</td>
+			</tr>
+			<tr>
+				<th class="span2">IPv6</th>
+				<td class="span4">
+					<% for (var addr in addrs.lan.v6) { %>
+					<div><%= addrs.lan.v6[addr] %></div>
+					<% } %>
+				</td>
+			</tr>
+		</table>
+
+		<h3 data-localize="wizard.current.hxb-addrs">Hexabus network</h3>
+		<table class="table">
+			<tr>
+				<th class="span2">IPv6</th>
+				<td class="span4">
+					<% for (var addr in addrs.hxb.v6) { %>
+					<div><%= addrs.hxb.v6[addr] %></div>
+					<% } %>
+				</td>
+			</tr>
+		</table>
+	</div>
+</div>
+
+<% include ../footer %>

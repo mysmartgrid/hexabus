@@ -58,6 +58,11 @@
 			"grats": "&#10003; Einrichtung erfolgreich abgeschlossen",
 			"linked": "Gerät ist mit mySmartGrid verknüpft",
 			"to-dashboard": "Weiter zur Übersicht"
+		},
+
+		"current": {
+			"lan-addrs": "Adressen im lokalen Netz",
+			"hxb-addrs": "Adressen im Hexabus-Netz"
 		}
 	}
 }

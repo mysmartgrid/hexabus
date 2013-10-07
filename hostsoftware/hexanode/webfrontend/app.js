@@ -7,7 +7,8 @@ var application_root = __dirname
   , io = require('socket.io').listen(server)
 	, Cache = require("./lib/sensorcache")
 	, SensorRegistry = require("./lib/sensorregistry")
-	, hexabus = require("./lib/hexabus")()
+	, Hexabus = require("./lib/hexabus")
+	, hexabus = new Hexabus()
 	, Wizard = require("./lib/wizard")
 	, fs = require("fs")
   , nconf=require('nconf');
@@ -16,7 +17,6 @@ nconf.env().argv();
 // Setting default values
 nconf.defaults({
   'port': '3000',
-  'server': '10.23.1.250',
 	'config': '.'
 });
 
@@ -45,7 +45,6 @@ try {
 }
 var sensor_cache = new Cache();
 console.log("Using configuration: ");
-console.log(" - server: " + nconf.get('server'));
 console.log(" - port: " + nconf.get('port'));
 console.log(" - config dir: " + nconf.get('config'));
 
@@ -139,10 +138,27 @@ app.post('/api/device/rename/:ip', function(req, res) {
 });
 
 app.get('/', function(req, res) {
-  res.render('index.ejs');
+	fs.exists('/etc/radvd.conf', function(exists) {
+		if (exists) {
+			res.render('index.ejs');
+		} else {
+			res.redirect('/wizard/new');
+		}
+	});
 });
 app.get('/wizard', function(req, res) {
-	res.redirect('/wizard/new');
+	fs.exists('/etc/radvd.conf', function(exists) {
+		if (exists) {
+			res.redirect('/wizard/current');
+		} else {
+			res.redirect('/wizard/new');
+		}
+	});
+});
+app.get('/wizard/current', function(req, res) {
+	var config = hexabus.read_current_config();
+	console.log(config);
+	res.render('wizard/current.ejs', config);
 });
 app.get('/wizard/:step', function(req, res) {
 	res.render('wizard/' + req.params.step  + '.ejs');
