@@ -140,7 +140,7 @@ angular.module('dashboard', [
 		var nextUpdateIn = 5000;
 		if (lastSensorValueReceivedAt) {
 			var secondsDiff = Math.round((Date.now() - lastSensorValueReceivedAt) / 1000);
-			var span = $('<span id="last-update-when" />');
+			var span = $('<span id="last-update-when"></span>');
 			var ago;
 			if (secondsDiff == 0) {
 				span

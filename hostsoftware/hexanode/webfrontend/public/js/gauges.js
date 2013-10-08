@@ -1,6 +1,6 @@
 angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) {
 	return {
-		restrict: 'E',
+		restrict: 'A',
 		scope: {
 			id: '@',
 			min: '@',
