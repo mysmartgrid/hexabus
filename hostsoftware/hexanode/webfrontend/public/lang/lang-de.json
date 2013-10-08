@@ -1,8 +1,8 @@
 {
-	"title": "Hexabus Basisstation",
+	"title": "HexaBus-Basisstation",
 
 	"navbar": {
-		"console": "Hexabus Basisstation",
+		"console": "HexaBus-Basisstation",
 		"main": "Übersicht",
 		"configuration": "Konfiguration",
 		"about": "Über Hexabus",
@@ -27,25 +27,25 @@
 
 	"wizard": {
 		"new": {
-			"welcome": "Willkommen auf ihrer neuen Hexabus Basisstation.",
+			"welcome": "Willkommen auf Ihrer neuen HexaBus-Basisstation",
 			"unconfigured": "Diese Basisstation ist noch nicht eingerichtet.",
 			"start-configuration": "Jetzt einrichten"
 		},
 
 		"connection": {
-			"about-connect": "Wir werden nun versuchen eine passende Netzwerkkonfiguration zu erstellen. Außerdem werden wir überprüfen, ob mysmartgrid.de erreichbar ist.",
+			"about-connect": "In diesem Schritt richten wir das Netzwerk ein. Außerdem überprüfen wir, ob mySmartGrid.de erreichbar ist.",
 			"configure": "Netzwerk einrichten",
-			"configuring": "Netzwerk wird eingerichtet...",
-			"connecting": "Verbindung zu mysmartgrid.de wird überprüft...",
-			"configured": "&#10003; Netzwerk eingerichtet.",
-			"connected": "&#10003; mysmartgrid.de ist erreichbar.",
-			"can-activate": "Sie können jetzt ihr Gerät aktivieren.",
+			"configuring": "Netzwerk wird eingerichtet ...",
+			"connecting": "Verbindung zu mySmartGrid.de wird überprüft ...",
+			"configured": "&#10003; Netzwerk ist eingerichtet.",
+			"connected": "&#10003; mySmartGrid.de ist erreichbar.",
+			"can-activate": "Sie können jetzt Ihr Gerät aktivieren.",
 			"activate": "Gerät aktivieren",
-			"failure": "Fehler beim einrichten des Netzwerkes"
+			"failure": "Fehler beim Einrichten des Netzwerks"
 		},
 
 		"activation": {
-			"about-activate": "Wir werden diese Basisstation nun mit ihrem mySmartGrid-Account verknüpfen.",
+			"about-activate": "In diesem Schritt verknüpfen wir diese Basisstation mit Ihrem mySmartGrid-Account.",
 			"no-account": "Falls Sie noch nicht bei mySmartGrid angemeldet sind, melden Sie sich bitte zuerst an:",
 			"create-account": "Anmelden",
 			"link-msg": "Basisstation mit mySmartGrid verknüpfen",
@@ -53,7 +53,7 @@
 			"code-prompt": "Geben Sie nun bitte folgenden Code auf mySmartGrid ein:",
 			"link": "Zu mySmartGrid",
 			"continue": "Weiter",
-			"error": "Es ist ein Fehler aufgetreten"
+			"error": "Fehler beim Verknüpfen mit mySmartGrid"
 		},
 
 		"success": {
@@ -68,7 +68,7 @@
 		},
 
 		"reset-device": {
-			"consequences": "Wenn Sie fortfahren, wird ihr Gerät auf Werkseinstellungen zurückgesetzt. Sämtliche Sensordaten und Sensoreinstellungen werden gelöscht, die Verknüpfung dieses Gerätes zu mySmartGrid wird aufgehoben und Sie werden den Zugriff auf ihr Hexabus-Netzwerk verlieren.",
+			"consequences": "Wenn Sie fortfahren, wird Ihr Gerät auf Werkseinstellungen zurückgesetzt. Sämtliche Sensordaten und Sensoreinstellungen werden gelöscht, die Verknüpfung dieses Gerätes zu mySmartGrid wird aufgehoben und Sie werden den Zugriff auf Ihr Hexabus-Netzwerk verlieren.",
 			"continue": "Gerät trotzdem zurücksetzen",
 			"abort": "Zurück zur Übersicht"
 		}
