@@ -153,7 +153,7 @@ app.post('/api/device/rename/:ip', function(req, res) {
 app.get('/', function(req, res) {
 	fs.exists('/etc/radvd.conf', function(exists) {
 		if (exists) {
-			res.render('index.ejs');
+			res.render('index.ejs', { active_tabpage: 'dashboard' });
 		} else {
 			res.redirect('/wizard/new');
 		}
@@ -170,6 +170,7 @@ app.get('/wizard', function(req, res) {
 });
 app.get('/wizard/current', function(req, res) {
 	var config = hexabus.read_current_config();
+	config.active_tabpage = 'configuration';
 	res.render('wizard/current.ejs', config);
 });
 app.post('/wizard/reset', function(req, res) {
@@ -195,7 +196,7 @@ app.post('/wizard/reset', function(req, res) {
 	});
 });
 app.get('/wizard/:step', function(req, res) {
-	res.render('wizard/' + req.params.step  + '.ejs');
+	res.render('wizard/' + req.params.step  + '.ejs', { active_tabpage: 'configuration' });
 });
 
 io.sockets.on('connection', function (socket) {

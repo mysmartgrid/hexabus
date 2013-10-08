@@ -41,8 +41,8 @@
           <a class="brand" href="/#" data-localize="navbar.console">Hexabus Console</a>
           <div class="nav-collapse collapse">
             <ul class="nav" id="main_nav">
-              <li class="active"><a href="/#dashboard" data-localize="navbar.main">Main</a></li>
-							<li class="dropdown">
+							<li class="<%= (active_tabpage || 'dashboard') == 'dashboard' ? 'active' : '' %>"><a href="/#dashboard" data-localize="navbar.main">Main</a></li>
+							<li class="dropdown <%= (active_tabpage || 'configuration') == 'configuration' ? 'active' : '' %>">
 								<a class="dropdown-toggle" data-toggle="dropdown" data-localize="navbar.configuration">Configuration<b class="caret"></b></a>
 								<ul class="dropdown-menu">
 									<li><a href="/wizard/current" data-localize="navbar.network-status">Network status</a></li>
