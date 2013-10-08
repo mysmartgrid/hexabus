@@ -4,7 +4,7 @@
 	"navbar": {
 		"console": "HexaBus-Basisstation",
 		"main": "Übersicht",
-		"configuration": "Konfiguration",
+		"configuration": "Einrichten",
 		"about": "Über Hexabus",
 		"network-status": "Netzwerkstatus",
 		"reset-device": "Gerät zurücksetzen"
