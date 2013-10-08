@@ -19,6 +19,7 @@ case "$1" in
 	forget)
 		service radvd stop
 		service mrd6 stop
+		rm /etc/radvd.conf
 		cp /etc/network/.interfaces-pre-autoconfig /etc/network/interfaces
 		service networking restart
 		;;

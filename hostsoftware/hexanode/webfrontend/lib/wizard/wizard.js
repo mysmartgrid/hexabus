@@ -33,7 +33,7 @@ var Wizard = function() {
 	this.deconfigure_network = function(cb) {
 		var command = nconf.get('debug-wizard')
 			? 'sleep 0'
-			: 'sudo hxb-net-autoconf forget';
+			: 'sudo hxb-net-autoconf forget && sudo reboot';
 		exec(command, cb);
 	};
 
