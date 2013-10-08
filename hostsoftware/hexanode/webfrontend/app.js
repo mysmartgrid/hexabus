@@ -114,7 +114,7 @@ app.put('/api/sensor/:ip/:eid', function(req, res) {
 			sensor_registry.save(sensors_file);
 			res.send("Sensor added", 200);
 		} catch(err) {
-			res.send(err, 400);
+			res.send(JSON.stringify(err), 400);
 		}
 	}
 });
@@ -146,7 +146,7 @@ app.post('/api/device/rename/:ip', function(req, res) {
 		});
 	} catch (err) {
 		console.log(err);
-		res.send(err, 500);
+		res.send(JSON.stringify(err), 500);
 	}
 });
 
@@ -170,7 +170,6 @@ app.get('/wizard', function(req, res) {
 });
 app.get('/wizard/current', function(req, res) {
 	var config = hexabus.read_current_config();
-	console.log(config);
 	res.render('wizard/current.ejs', config);
 });
 app.post('/wizard/reset', function(req, res) {
@@ -183,14 +182,12 @@ app.post('/wizard/reset', function(req, res) {
 	var wizard = new Wizard();
 	wizard.deconfigure_network(function(err) {
 		if (err) {
-			console.log(err);
-			res.send(err, 500);
+			res.send(JSON.stringify({ step: "deconfigure_network", error: err }), 500);
 			return;
 		}
 		wizard.unregisterMSG(function(err) {
 			if (err) {
-				console.log(err);
-				res.send(err, 500);
+				res.send(JSON.stringify({ step: "unregisterMSG", error: err }), 500);
 				return;
 			}
 			res.redirect('/');
