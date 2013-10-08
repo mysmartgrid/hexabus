@@ -62,7 +62,7 @@ var SensorRegistry = function(file) {
 		if (!sensor) {
 			throw "No such sensor";
 		}
-		sensor.last_updated = unix_ts();
+		sensor.last_update = unix_ts();
 	};
 
 	this.get_sensors = function(fn) {
