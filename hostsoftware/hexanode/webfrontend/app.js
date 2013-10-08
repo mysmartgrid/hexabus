@@ -55,6 +55,12 @@ console.log("Using configuration: ");
 console.log(" - port: " + nconf.get('port'));
 console.log(" - config dir: " + nconf.get('config'));
 
+if (nconf.get('socket-debug') !== undefined) {
+	io.set('log level', nconf.get('socket-debug'));
+} else {
+	io.set('log level', 1);
+}
+
 
 // see http://stackoverflow.com/questions/4600952/node-js-ejs-example
 // for EJS
@@ -167,21 +173,32 @@ app.get('/wizard/current', function(req, res) {
 	console.log(config);
 	res.render('wizard/current.ejs', config);
 });
-app.get('/wizard/:step', function(req, res) {
-	res.render('wizard/' + req.params.step  + '.ejs');
-});
 app.post('/wizard/reset', function(req, res) {
-	fs.unlinkSync(sensors_file);
+	try {
+		fs.unlinkSync(sensors_file);
+	} catch (e) {
+	}
 	open_config();
 
 	var wizard = new Wizard();
 	wizard.deconfigure_network(function(err) {
-		if (err) throw err;
+		if (err) {
+			console.log(err);
+			res.send(err, 500);
+			return;
+		}
 		wizard.unregisterMSG(function(err) {
-			if (err) throw err;
+			if (err) {
+				console.log(err);
+				res.send(err, 500);
+				return;
+			}
 			res.redirect('/');
 		});
 	});
+});
+app.get('/wizard/:step', function(req, res) {
+	res.render('wizard/' + req.params.step  + '.ejs');
 });
 
 io.sockets.on('connection', function (socket) {
