@@ -140,7 +140,7 @@ angular.module('dashboard', [
 		var nextUpdateIn = 5000;
 		if (lastSensorValueReceivedAt) {
 			var secondsDiff = Math.round((Date.now() - lastSensorValueReceivedAt) / 1000);
-			var span = $("#last-update-when");
+			var span = $('<span id="last-update-when" />');
 			var ago;
 			if (secondsDiff == 0) {
 				span
@@ -160,6 +160,7 @@ angular.module('dashboard', [
 			}
 			Lang.localize(span);
 			span.text(span.text().replace("{ago}", ago));
+			$("#last-update-when").replaceWith(span);
 		}
 
 		waitingLastUpdateRecalc = $timeout(keepLastUpdateCurrent, nextUpdateIn);

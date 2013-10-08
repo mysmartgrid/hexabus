@@ -5,9 +5,13 @@ angular.module('ng-socket', []).factory('Socket', ['$rootScope', '$location', fu
 
 	var wrap_message = function(callback) {
 		return function(data) {
-			$rootScope.$apply(function() {
+			if ($rootScope.$$phase == "$apply") {
 				callback(data);
-			});
+			} else {
+				$rootScope.$apply(function() {
+					callback(data);
+				});
+			}
 		};
 	};
 
