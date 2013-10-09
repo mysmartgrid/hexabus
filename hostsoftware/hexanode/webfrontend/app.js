@@ -191,9 +191,14 @@ app.post('/wizard/reset', function(req, res) {
 				res.send(JSON.stringify({ step: "unregisterMSG", error: err }), 500);
 				return;
 			}
-			res.redirect('/');
+			res.redirect('/wizard/resetdone');
 		});
 	});
+});
+app.get('/wizard/resetdone', function(req, res) {
+	res.render('wizard/resetdone.ejs', { active_tabpage: 'configuration' });
+	var wizard = new Wizard();
+	wizard.complete_reset();
 });
 app.get('/wizard/:step', function(req, res) {
 	res.render('wizard/' + req.params.step  + '.ejs', { active_tabpage: 'configuration' });

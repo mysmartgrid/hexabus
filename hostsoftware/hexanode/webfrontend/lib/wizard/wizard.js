@@ -37,6 +37,13 @@ var Wizard = function() {
 		exec(command, cb);
 	};
 
+	this.complete_reset = function() {
+		var command = nconf.get('debug-wizard')
+			? 'sleep 0'
+			: 'sudo reboot';
+		exec(command, function() {});
+	};
+
 	this.registerMSG = function(cb) {
 		var program = nconf.get('debug-wizard')
 			? '../backend/build/src/hexabus_msg_bridge --config bridge.conf'

@@ -70,7 +70,8 @@
 		"reset-device": {
 			"consequences": "Wenn Sie fortfahren, wird ihr Gerät auf Werkseinstellungen zurückgesetzt. Sämtliche Sensordaten und Sensoreinstellungen werden gelöscht, die Verknüpfung dieses Gerätes zu mySmartGrid wird aufgehoben und Sie werden den Zugriff auf ihr Hexabus-Netzwerk verlieren.",
 			"continue": "Gerät trotzdem zurücksetzen",
-			"abort": "Zurück zur Übersicht"
+			"abort": "Zurück zur Übersicht",
+			"reboot": "Ihre Basisstation wird jetzt neu starten. Bitte warten Sie einige Minuten, bevor Sie wieder auf ihre Basisstation zugreifen."
 		}
 	}
 }
