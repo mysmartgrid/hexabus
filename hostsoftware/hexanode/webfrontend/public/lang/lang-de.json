@@ -64,7 +64,10 @@
 
 		"current": {
 			"lan-addrs": "Adressen im lokalen Netz",
-			"hxb-addrs": "Adressen im Hexabus-Netz"
+			"hxb-addrs": "Adressen im Hexabus-Netz",
+			"msg-connection-ok": "mySmartGrid ist erreichbar",
+			"msg-connection-fail": "mySmartGrid ist nicht erreichbar",
+			"request-support": "Support anfordern"
 		},
 
 		"reset-device": {

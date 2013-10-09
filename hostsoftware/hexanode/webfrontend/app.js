@@ -170,8 +170,21 @@ app.get('/wizard', function(req, res) {
 });
 app.get('/wizard/current', function(req, res) {
 	var config = hexabus.read_current_config();
-	config.active_tabpage = 'configuration';
-	res.render('wizard/current.ejs', config);
+	hexabus.get_heartbeat_state(function(err, state) {
+		config.active_tabpage = 'configuration';
+
+		if (err) {
+			config.heartbeat_ok = false;
+			config.heartbeat_messages = [err];
+		} else {
+			config.heartbeat_ok = state.code == 0;
+			config.heartbeat_code = state.code;
+			config.heartbeat_messages = state.messages;
+			config.heartbeat_state = state;
+		}
+
+		res.render('wizard/current.ejs', config);
+	});
 });
 app.post('/wizard/reset', function(req, res) {
 	try {
