@@ -132,6 +132,21 @@ angular.module('dashboard', [
 
 	var waitingLastUpdateRecalc;
 
+
+	var lastUpdateTexts = {
+		now: "now",
+		seconds: "{ago} seconds ago",
+		minutes: "{ago} minutes ago"
+	};
+
+	// work around jQuery-localize not being able to cache anything at all
+	if (!Lang.pack) {
+		Lang.localize($("<span></span>"));
+	}
+	lastUpdateTexts.now = Lang.pack["dashboard"]["last-update"]["now"];
+	lastUpdateTexts.seconds = Lang.pack["dashboard"]["last-update"]["seconds-ago"];
+	lastUpdateTexts.minutes = Lang.pack["dashboard"]["last-update"]["minutes-ago"];
+
 	var keepLastUpdateCurrent = function() {
 		if (waitingLastUpdateRecalc) {
 			$timeout.cancel(waitingLastUpdateRecalc);
@@ -140,27 +155,19 @@ angular.module('dashboard', [
 		var nextUpdateIn = 5000;
 		if (lastSensorValueReceivedAt) {
 			var secondsDiff = Math.round((Date.now() - lastSensorValueReceivedAt) / 1000);
-			var span = $('<span id="last-update-when"></span>');
-			var ago;
+			var span = $('#last-update-when');
+			var ago, template;
 			if (secondsDiff == 0) {
-				span
-					.text("now")
-					.data("localize", "dashboard.last-update.now");
+				template = lastUpdateTexts.now;
 			} else if (secondsDiff < 60) {
 				ago = Math.round(secondsDiff);
-				span
-					.text("{ago} seconds ago")
-					.data("localize", "dashboard.last-update.seconds-ago");
+				template = lastUpdateTexts.seconds;
 			} else {
 				ago = Math.round(secondsDiff / 60);
-				span
-					.text("{ago} minutes ago")
-					.data("localize", "dashboard.last-update.minutes-ago");
+				template = lastUpdateTexts.minutes;
 				nextUpdateIn = 30000;
 			}
-			Lang.localize(span);
-			span.text(span.text().replace("{ago}", ago));
-			$("#last-update-when").replaceWith(span);
+			span.text(template.replace("{ago}", ago));
 		}
 
 		waitingLastUpdateRecalc = $timeout(keepLastUpdateCurrent, nextUpdateIn);
