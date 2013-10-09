@@ -17,6 +17,15 @@
 					};
 				});
 			})();
+
+			// fix bootstrap dropdowns not working on mobile devices
+			// taken from http://stackoverflow.com/a/18107103
+			jQuery(document).ready(function($) {
+				$("li.dropdown a").click(function(e){
+					$(this).next('ul.dropdown-menu').css("display", "block");
+					e.stopPropagation();
+				});
+			});
     </script>
 
   </body>
