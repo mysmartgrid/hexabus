@@ -15,6 +15,7 @@ namespace hexanode {
 					uint32_t sensor_eid,
           const std::string& sensor_name,
 					const std::string& unit,
+					const std::string& description,
           const int32_t min_value,
           const int32_t max_value,
           const std::string& type)
@@ -22,6 +23,7 @@ namespace hexanode {
 				  , _sensor_eid(sensor_eid)
           , _sensor_name(sensor_name)
 					, _unit(unit)
+					, _description(description)
           , _min_value(min_value)
           , _max_value(max_value)
           , _type(type)
@@ -40,6 +42,7 @@ namespace hexanode {
 			uint32_t _sensor_eid;
       std::string _sensor_name;
       std::string _unit;
+      std::string _description;
       int32_t _min_value;
       int32_t _max_value;
       std::string _type;

@@ -7,17 +7,19 @@
 		"configuration": "Konfiguration",
 		"about": "Über Hexabus",
 		"network-status": "Netzwerkstatus",
-		"reset-device": "Gerät zurücksetzen"
+		"reset-device": "Basisstation zurücksetzen",
+		"device-list": "Geräteliste"
+	},
+
+	"last-update": {
+		"label": "Letztes Update:",
+		"now": "jetzt",
+		"seconds-ago": "vor {ago} Sekunden",
+		"minutes-ago": "vor {ago} Minuten"
 	},
 
 	"dashboard": {
-		"dashboard": "Alle Sensoren",
-		"last-update": {
-			"label": "Letztes Update:",
-			"now": "jetzt",
-			"seconds-ago": "vor {ago} Sekunden",
-			"minutes-ago": "vor {ago} Minuten"
-		}
+		"dashboard": "Alle Sensoren"
 	},
 
 	"rename-error": {

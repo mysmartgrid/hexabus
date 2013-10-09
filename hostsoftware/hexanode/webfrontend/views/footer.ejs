@@ -10,10 +10,37 @@
 				};
 				localizeBySelector("[data-localize]");
 
+				var localizeLastUpdate = function(unix_ts) {
+					var lastUpdateTexts = {
+						now: "now",
+						seconds: "{ago} seconds ago",
+						minutes: "{ago} minutes ago"
+					};
+
+					lastUpdateTexts.now = $.localize.data.lang["last-update"]["now"];
+					lastUpdateTexts.seconds = $.localize.data.lang["last-update"]["seconds-ago"];
+					lastUpdateTexts.minutes = $.localize.data.lang["last-update"]["minutes-ago"];
+
+					var secondsDiff = Math.round((Date.now() - 1000 * unix_ts) / 1000);
+					var ago, template;
+					if (secondsDiff == 0) {
+						template = lastUpdateTexts.now;
+					} else if (secondsDiff < 60) {
+						ago = Math.round(secondsDiff);
+						template = lastUpdateTexts.seconds;
+					} else {
+						ago = Math.round(secondsDiff / 60);
+						template = lastUpdateTexts.minutes;
+						nextUpdateIn = 30000;
+					}
+					return template.replace("{ago}", ago);
+				};
+
 				angular.module('i18n', []).factory('Lang', function() {
 					return {
 						localize: localizeBySelector,
-						pack: $.localize.data.lang
+						pack: $.localize.data.lang,
+						localizeLastUpdate: localizeLastUpdate
 					};
 				});
 			})();

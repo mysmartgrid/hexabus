@@ -51,6 +51,20 @@ function open_config() {
 }
 open_config();
 
+var save_sensor_registry = function() {
+	sensor_registry.save(sensors_file);
+};
+
+setInterval(save_sensor_registry, 10 * 60 * 1000);
+process.on('SIGINT', function() {
+	save_sensor_registry();
+	process.exit();
+});
+process.on('SIGTERM', function() {
+	save_sensor_registry();
+	process.exit();
+});
+
 console.log("Using configuration: ");
 console.log(" - port: " + nconf.get('port'));
 console.log(" - config dir: " + nconf.get('config'));
@@ -111,7 +125,7 @@ app.put('/api/sensor/:ip/:eid', function(req, res) {
 		try {
 			var sensor = sensor_registry.add_sensor(req.params.ip, req.params.eid, req.body);
 			sensor_cache.add_value(sensor, parseFloat(req.body.value));
-			sensor_registry.save(sensors_file);
+			save_sensor_registry();
 			res.send("Sensor added", 200);
 		} catch(err) {
 			res.send(JSON.stringify(err), 400);
@@ -128,6 +142,7 @@ app.post('/api/sensor/:ip/:eid', function(req, res) {
 		res.send("Bad value", 400);
 	} else {
 		sensor_cache.add_value(sensor, value);
+		sensor_registry.value_received(req.params.ip, req.params.eid);
 		res.send("Value added", 200);
 	}
 });
@@ -213,6 +228,32 @@ app.get('/wizard/resetdone', function(req, res) {
 	var wizard = new Wizard();
 	wizard.complete_reset();
 });
+app.get('/wizard/devices', function(req, res) {
+	var devices = {};
+
+	sensor_registry.get_sensors(function(sensor) {
+		var device = (devices[sensor.ip] = devices[sensor.ip] || { name: sensor.name, ip: sensor.ip, eids: [] });
+
+		device.eids.push({
+			eid: sensor.eid,
+			description: sensor.description,
+			unit: sensor.unit
+		});
+
+		var later_update = Math.max(sensor.last_update || 0, sensor.last_value_received || 0);
+		if (device.last_update === undefined || device.last_update > later_update) {
+			device.last_update = later_update;
+		}
+	});
+
+	for (var key in devices) {
+		devices[key].eids.sort(function(a, b) {
+			return b.eid - a.eid;
+		});
+	}
+
+	res.render('wizard/devices.ejs', { active_tabpage: 'configuration', devices: devices });
+});
 app.get('/wizard/:step', function(req, res) {
 	res.render('wizard/' + req.params.step  + '.ejs', { active_tabpage: 'configuration' });
 });
@@ -280,7 +321,7 @@ io.sockets.on('connection', function (socket) {
 				var key = keys[i];
 				sensor[key] = (msg.data[key] != undefined) ? msg.data[key] : sensor[key];
 			}
-			sensor_registry.save(sensors_file);
+			save_sensor_registry();
 			socket.broadcast.emit('sensor_metadata', sensor);
 			socket.emit('sensor_metadata', sensor);
 			var value = { sensor: sensor.id, value: sensor_cache.get_current_value(sensor) };

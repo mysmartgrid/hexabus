@@ -21,7 +21,7 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 		target << "Creating sensor " << sensor_id << std::endl;
 		int min_value = 0;
 		int max_value = 100;
-		std::string unit("");
+		std::string unit, desc;
 		/*
 		 * TODO: Hack for intersolar, clean things up. This should reside in 
 		 * a separate configuration file (propertytree parser)
@@ -35,6 +35,7 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 		hexabus::EndpointRegistry::const_iterator ep_it;
 		if ((ep_it = _ep_registry.find(it->first)) != _ep_registry.end() && ep_it->second.unit()) {
 			unit = *ep_it->second.unit();
+			desc = ep_it->second.description();
 		}
 		if (unit == "degC") {
 			unit = "°C";
@@ -42,6 +43,7 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 		hexanode::Sensor new_sensor(device, it->first,
 					static_cast<const hexabus::EndpointInfoPacket&>(info).value(),
 					unit,
+					desc,
 					min_value, max_value,
 					std::string("sensor")
 					);
@@ -97,6 +99,7 @@ void PacketPusher::defineSensor(const std::string& sensor_id, uint32_t eid, cons
 				hexanode::Sensor new_sensor(_endpoint.address().to_v6(), eid,
 						name,
 						unit,
+						name,
 						min_value, max_value,
 						std::string("dashboard")
 						);

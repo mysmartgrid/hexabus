@@ -24,6 +24,8 @@ void Sensor::put(
   writer.String(_sensor_name.c_str(), (SizeType) _sensor_name.length());
   writer.String("unit");
   writer.String(_unit.c_str(), (SizeType) _unit.length());
+  writer.String("description");
+  writer.String(_description.c_str(), (SizeType) _description.length());
   writer.String("value");
   writer.String(reading.c_str(), (SizeType) reading.length());
   writer.String("minvalue");

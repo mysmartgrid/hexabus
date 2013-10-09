@@ -6,11 +6,8 @@ var SensorRegistry = function(file) {
 	var sensors = {};
 
 	if (file) {
-		fs.readFile(file, function(err, data) {
-			if (err)
-				throw err;
-			sensors = JSON.parse(data);
-		});
+		var data = fs.readFileSync(file);
+		sensors = JSON.parse(data);
 	}
 
 	var unix_ts = function() {
@@ -33,10 +30,11 @@ var SensorRegistry = function(file) {
 			eid: eid,
 
 			id: sensor_id(ip, eid),
-			last_update: unix_ts()
+			last_update: unix_ts(),
+			last_value_received: undefined
 		};
 
-		var keys = ["name", "minvalue", "maxvalue", "type", "unit"];
+		var keys = ["name", "minvalue", "maxvalue", "type", "unit", "description"];
 		for (var key in keys) {
 			if (!(keys[key] in params)) {
 				throw keys[key] + " required";
@@ -64,6 +62,14 @@ var SensorRegistry = function(file) {
 		}
 		sensor.last_update = unix_ts();
 	};
+
+	this.value_received = function(ip, eid) {
+		var sensor = this.get_sensor(ip, eid);
+		if (!sensor) {
+			throw "No such sensor";
+		}
+		sensor.last_value_received = unix_ts();
+	}
 
 	this.get_sensors = function(fn) {
 		var result = [];
