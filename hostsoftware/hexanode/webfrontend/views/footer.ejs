@@ -23,7 +23,7 @@
 
 					var secondsDiff = Math.round((Date.now() - 1000 * unix_ts) / 1000);
 					var ago, template;
-					if (secondsDiff == 0) {
+					if (secondsDiff <= 1) {
 						template = lastUpdateTexts.now;
 					} else if (secondsDiff < 60) {
 						ago = Math.round(secondsDiff);

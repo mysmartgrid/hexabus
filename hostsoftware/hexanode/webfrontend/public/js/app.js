@@ -204,4 +204,44 @@ angular.module('dashboard', [
 	$scope.devices = window.known_hexabus_devices;
 
 	$scope.Lang = Lang;
+
+	var now = function() {
+		return Math.round((+new Date()) / 1000);
+	};
+
+	Socket.on('sensor_update', function(data) {
+		if ($scope.devices[data.device]) {
+			$scope.devices[data.device].last_update = now();
+		}
+	});
+
+	var on_sensor_metadata = function(sensor) {
+		var device = ($scope.devices[sensor.ip] = $scope.devices[sensor.ip] || { ip: sensor.ip, eids: [] });
+
+		device.name = sensor.name;
+		device.last_update = now();
+
+		var eid = {
+			eid: parseInt(sensor.eid),
+			description: sensor.description,
+			unit: sensor.unit
+		};
+
+		var found = false;
+		for (var key in device.eids) {
+			found = found || device.eids[key].eid == eid.eid;
+			if (found)
+				break;
+		}
+
+		if (!found) {
+			device.eids.push(eid);
+			device.eids.sort(function(a, b) {
+				return b.eid - a.eid;
+			});
+		}
+	};
+
+	Socket.on('sensor_new', on_sensor_metadata);
+	Socket.on('sensor_metadata', on_sensor_metadata);
 }]);
