@@ -7,17 +7,19 @@
 		"configuration": "Einrichten",
 		"about": "Über Hexabus",
 		"network-status": "Netzwerkstatus",
-		"reset-device": "Gerät zurücksetzen"
+		"reset-device": "Basisstation zurücksetzen",
+		"device-list": "Geräteliste"
+	},
+
+	"last-update": {
+		"label": "Letztes Update:",
+		"now": "jetzt",
+		"seconds-ago": "vor {ago} Sekunden",
+		"minutes-ago": "vor {ago} Minuten"
 	},
 
 	"dashboard": {
-		"dashboard": "Alle Sensoren",
-		"last-update": {
-			"label": "Letztes Update:",
-			"now": "jetzt",
-			"seconds-ago": "vor {ago} Sekunden",
-			"minutes-ago": "vor {ago} Minuten"
-		}
+		"dashboard": "Alle Sensoren"
 	},
 
 	"rename-error": {
@@ -41,7 +43,8 @@
 			"connected": "&#10003; mySmartGrid.de ist erreichbar.",
 			"can-activate": "Sie können jetzt Ihr Gerät aktivieren.",
 			"activate": "Gerät aktivieren",
-			"failure": "Fehler beim Einrichten des Netzwerks"
+			"autoconf-failure": "Fehler beim Einrichten des Netzwerks",
+			"msg-failure": "mysmartgrid.de ist nicht erreichbar"
 		},
 
 		"activation": {
@@ -64,13 +67,58 @@
 
 		"current": {
 			"lan-addrs": "Adressen im lokalen Netz",
-			"hxb-addrs": "Adressen im Hexabus-Netz"
+			"hxb-addrs": "Adressen im Hexabus-Netz",
+			"msg-connection-ok": "mySmartGrid ist erreichbar",
+			"msg-connection-fail": "mySmartGrid ist nicht erreichbar",
+			"request-support": "Support anfordern",
+			"msg-error-code": "Fehlercode:"
 		},
 
 		"reset-device": {
 			"consequences": "Wenn Sie fortfahren, wird Ihr Gerät auf Werkseinstellungen zurückgesetzt. Sämtliche Sensordaten und Sensoreinstellungen werden gelöscht, die Verknüpfung dieses Gerätes zu mySmartGrid wird aufgehoben und Sie werden den Zugriff auf Ihr Hexabus-Netzwerk verlieren.",
 			"continue": "Gerät trotzdem zurücksetzen",
-			"abort": "Zurück zur Übersicht"
+			"abort": "Zurück zur Übersicht",
+			"reboot": "Ihre Basisstation wird jetzt neu starten. Bitte warten Sie einige Minuten, bevor Sie wieder auf ihre Basisstation zugreifen."
+		}
+	},
+
+	"endpoint-registry": {
+		"descriptions": {
+			"1": "HexabusPlug Relais",
+			"2": "HexabusPlug+ gemessener Verbrauch",
+			"3": "Raumtemperatursensor",
+			"4": "Interner Button",
+			"5": "Raumfeuchtesensor",
+			"6": "Drucksensor",
+			"7": "HexabusPlug+ gemessener Gesamtverbrauch",
+			"8": "HexabusPlug+ gemessener Gesamtverbrauch (zurücksetzbar)",
+			"9": "Statemachine control",
+			"10": "Statemachine upload receiver",
+			"11": "Statemachine upload ack/nack",
+			"12": "Statemachine emergency reset ID",
+			"20": "LED / Hexagl0w",
+			"21": "Flukso",
+			"22": "Analogread",
+			"23": "Window shutter",
+			"24": "Hexapush pressed buttons",
+			"25": "Hexapush clicked buttons",
+			"26": "Presence detector",
+			"27": "Hexonoff set",
+			"28": "Hexonoff toggle",
+			"29": "Lightsensor",
+			"30": "IR Receiver",
+			"31": "Node liveness",
+			"33": "Generic dial gauge #0",
+			"34": "Generic dial gauge #1",
+			"35": "Generic dial gauge #2",
+			"36": "Generic dial gauge #3",
+			"37": "Generic dial gauge #4",
+			"38": "Generic dial gauge #5",
+			"39": "Generic dial gauge #6",
+			"40": "Generic dial gauge #7",
+			"41": "PV power production measurement",
+			"42": "Power balance (Production - Consumption)",
+			"43": "Battery power balance (in - out)"
 		}
 	}
 }

@@ -1,6 +1,7 @@
 var exec = require('child_process').exec;
 var v6 = require('ipv6').v6;
 var os = require('os');
+var fs = require('fs');
 
 var hexabus = function() {
 	this.rename_device = function(addr, newName, cb) {
@@ -61,6 +62,23 @@ var hexabus = function() {
 		}
 
 		return config;
+	};
+
+	this.get_heartbeat_state = function(cb) {
+		fs.readFile('/var/run/hexabus_msg_heartbeat.state', { encoding: 'utf8' }, function(err, data) {
+			if (err) {
+				cb(err, undefined);
+			} else {
+				var lines = data.split('\n');
+				lines = lines.slice(0, -1);
+				var messages = lines.slice(0, -1);
+				var ret = parseInt(lines[lines.length - 1]);
+				cb(undefined, {
+					code: ret,
+					messages: messages
+				});
+			}
+		});
 	};
 };
 

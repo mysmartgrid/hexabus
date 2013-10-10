@@ -3,7 +3,7 @@
 <script src="/js/raphael.2.1.0.min.js"></script>
 <script src="/js/justgage.1.0.1.js"></script>
 
-<div class="tab-content" ng-controller="gaugesDisplayController">
+<div class="tab-content" data-ng-controller="gaugesDisplayController">
   <div class="tab-pane active" id="dashboard">
     <div class="container">
       <div class="row-fluid">
@@ -19,23 +19,24 @@
               <h2 class="text-center" data-localize="dashboard.dashboard">Dashboard</h2>
               <div class="row-fluid">
                 <div class="span3">
-                  <p><span data-localize="dashboard.last-update.label">Last update:</span> <span id="last-update-when" /></p>
+                  <p><span data-localize="last-update.label">Last update:</span> <span id="last-update-when"></span></p>
                 </div>
                 <div class="span9">
                   <div class="row-fluid">
                     <ul class="inline">
-                      <li ng-repeat="sensor in sensorList">
-                        <gauge
+                      <li data-ng-repeat="sensor in sensorList">
+                        <div data-ng-gauge="gauge"
                           id="{{sensor.id}}"
                           class="gauge gauge-{{sensor.ip}}"
-                          title="{{sensor.name}} [{{sensor.unit}}]"
-                          min="{{sensor.minvalue}}"
-                          max="{{sensor.maxvalue}}"
-                          value="{{sensor.value}}"
-                          gauge="sensor.gauge"
-                          min-click="minClick(sensor)"
-                          max-click="maxClick(sensor)"
-                          title-click="titleClick(sensor)" />
+                          title="{{sensor.description | localize:'endpoint-registry.descriptions':sensor.eid }}"
+                          data-title-text="{{sensor.name}} [{{sensor.unit}}]"
+                          data-min="{{sensor.minvalue}}"
+                          data-max="{{sensor.maxvalue}}"
+                          data-value="{{sensor.value}}"
+                          data-gauge="sensor.gauge"
+                          data-min-click="minClick(sensor)"
+                          data-max-click="maxClick(sensor)"
+                          data-title-click="titleClick(sensor)"></div>
                       </li>
                     </ul>
                   </div>

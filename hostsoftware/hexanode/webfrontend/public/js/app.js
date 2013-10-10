@@ -140,26 +140,7 @@ angular.module('dashboard', [
 		var nextUpdateIn = 5000;
 		if (lastSensorValueReceivedAt) {
 			var secondsDiff = Math.round((Date.now() - lastSensorValueReceivedAt) / 1000);
-			var span = $("#last-update-when");
-			var ago;
-			if (secondsDiff == 0) {
-				span
-					.text("now")
-					.data("localize", "dashboard.last-update.now");
-			} else if (secondsDiff < 60) {
-				ago = Math.round(secondsDiff);
-				span
-					.text("{ago} seconds ago")
-					.data("localize", "dashboard.last-update.seconds-ago");
-			} else {
-				ago = Math.round(secondsDiff / 60);
-				span
-					.text("{ago} minutes ago")
-					.data("localize", "dashboard.last-update.minutes-ago");
-				nextUpdateIn = 30000;
-			}
-			Lang.localize(span);
-			span.text(span.text().replace("{ago}", ago));
+			$('#last-update-when').text(Lang.localizeLastUpdate(lastSensorValueReceivedAt / 1000));
 		}
 
 		waitingLastUpdateRecalc = $timeout(keepLastUpdateCurrent, nextUpdateIn);
@@ -176,25 +157,33 @@ angular.module('dashboard', [
 		return $scope.stepsDone > 0;
 	};
 
+	$scope.failed = function() {
+		return $scope.autoconf_failed || $scope.msg_failed;
+	};
+
 	Socket.on('wizard_configure_step', function(progress) {
-		if (progress.error) {
-			$scope.failed = true;
-		} else {
-			switch (progress.step) {
-				case 'autoconf':
+		switch (progress.step) {
+			case 'autoconf':
+				if (!progress.error) {
 					$scope.configured = true;
 					$scope.stepsDone++;
-					break;
+				} else {
+					$scope.autoconf_failed = true;
+				}
+				break;
 
-				case 'check_msg':
+			case 'check_msg':
+				if (!progress.error) {
 					$scope.connected = true;
 					$scope.stepsDone++;
-					break;
-			}
+				} else {
+					$scope.msg_failed = true;
+				}
+				break;
+		}
 
-			if ($scope.stepsDone == 3) {
-				$scope.stepsDone = 0;
-			}
+		if ($scope.stepsDone == 3) {
+			$scope.stepsDone = 0;
 		}
 	});
 }])
@@ -218,4 +207,49 @@ angular.module('dashboard', [
 			}
 		}
 	});
+}])
+.controller('devicesList', ['$scope', 'Socket', 'Lang', function($scope, Socket, Lang) {
+	$scope.devices = window.known_hexabus_devices;
+
+	$scope.Lang = Lang;
+
+	var now = function() {
+		return Math.round((+new Date()) / 1000);
+	};
+
+	Socket.on('sensor_update', function(data) {
+		if ($scope.devices[data.device]) {
+			$scope.devices[data.device].last_update = now();
+		}
+	});
+
+	var on_sensor_metadata = function(sensor) {
+		var device = ($scope.devices[sensor.ip] = $scope.devices[sensor.ip] || { ip: sensor.ip, eids: [] });
+
+		device.name = sensor.name;
+		device.last_update = now();
+
+		var eid = {
+			eid: parseInt(sensor.eid),
+			description: sensor.description,
+			unit: sensor.unit
+		};
+
+		var found = false;
+		for (var key in device.eids) {
+			found = found || device.eids[key].eid == eid.eid;
+			if (found)
+				break;
+		}
+
+		if (!found) {
+			device.eids.push(eid);
+			device.eids.sort(function(a, b) {
+				return b.eid - a.eid;
+			});
+		}
+	};
+
+	Socket.on('sensor_new', on_sensor_metadata);
+	Socket.on('sensor_metadata', on_sensor_metadata);
 }]);

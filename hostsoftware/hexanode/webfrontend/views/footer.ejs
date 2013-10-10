@@ -2,7 +2,7 @@
     <!--- enable navigation, see
     http://twitter.github.com/bootstrap/javascript.html#tabs -->
     <script>
-      $(".collapse").collapse();
+      $(".nav-collapse").collapse('hide');
 
 			(function() {
 				var localizeBySelector = function(selector) {
@@ -10,13 +10,64 @@
 				};
 				localizeBySelector("[data-localize]");
 
-				angular.module('i18n', []).factory('Lang', function() {
-					return {
-						localize: localizeBySelector,
-						pack: $.localize.data.lang
+				var localizeLastUpdate = function(unix_ts) {
+					var lastUpdateTexts = {
+						now: "now",
+						seconds: "{ago} seconds ago",
+						minutes: "{ago} minutes ago"
 					};
-				});
+
+					lastUpdateTexts.now = $.localize.data.lang["last-update"]["now"];
+					lastUpdateTexts.seconds = $.localize.data.lang["last-update"]["seconds-ago"];
+					lastUpdateTexts.minutes = $.localize.data.lang["last-update"]["minutes-ago"];
+
+					var secondsDiff = Math.round((Date.now() - 1000 * unix_ts) / 1000);
+					var ago, template;
+					if (secondsDiff <= 1) {
+						template = lastUpdateTexts.now;
+					} else if (secondsDiff < 60) {
+						ago = Math.round(secondsDiff);
+						template = lastUpdateTexts.seconds;
+					} else {
+						ago = Math.round(secondsDiff / 60);
+						template = lastUpdateTexts.minutes;
+						nextUpdateIn = 30000;
+					}
+					return template.replace("{ago}", ago);
+				};
+
+				angular.module('i18n', [])
+					.factory('Lang', function() {
+						return {
+							localize: localizeBySelector,
+							pack: $.localize.data.lang,
+							localizeLastUpdate: localizeLastUpdate
+						};
+					})
+					.filter('localize', function() {
+						return function(text, prefix, key) {
+							var pack = $.localize.data.lang;
+							if (prefix != undefined) {
+								var parts = prefix.split('.');
+								for (var idx in parts) {
+									pack = pack[parts[idx]] || {};
+								}
+							}
+							return pack[key] != undefined
+								? pack[key]
+								: text;
+						};
+					});
 			})();
+
+			// fix bootstrap dropdowns not working on mobile devices
+			// taken from http://stackoverflow.com/a/18107103
+			jQuery(document).ready(function($) {
+				$("li.dropdown a").click(function(e){
+					$(this).next('ul.dropdown-menu').css("display", "block");
+					e.stopPropagation();
+				});
+			});
     </script>
 
   </body>
