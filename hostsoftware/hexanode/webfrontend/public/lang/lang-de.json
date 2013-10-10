@@ -70,7 +70,8 @@
 			"hxb-addrs": "Adressen im Hexabus-Netz",
 			"msg-connection-ok": "mySmartGrid ist erreichbar",
 			"msg-connection-fail": "mySmartGrid ist nicht erreichbar",
-			"request-support": "Support anfordern"
+			"request-support": "Support anfordern",
+			"msg-error-code": "Fehlercode:"
 		},
 
 		"reset-device": {
