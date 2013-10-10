@@ -43,7 +43,8 @@
 			"connected": "&#10003; mysmartgrid.de ist erreichbar.",
 			"can-activate": "Sie können jetzt ihr Gerät aktivieren.",
 			"activate": "Gerät aktivieren",
-			"failure": "Fehler beim einrichten des Netzwerkes"
+			"autoconf-failure": "Fehler beim einrichten des Netzwerkes",
+			"msg-failure": "mysmartgrid.de ist nicht erreichbar"
 		},
 
 		"activation": {

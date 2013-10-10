@@ -157,25 +157,33 @@ angular.module('dashboard', [
 		return $scope.stepsDone > 0;
 	};
 
+	$scope.failed = function() {
+		return $scope.autoconf_failed || $scope.msg_failed;
+	};
+
 	Socket.on('wizard_configure_step', function(progress) {
-		if (progress.error) {
-			$scope.failed = true;
-		} else {
-			switch (progress.step) {
-				case 'autoconf':
+		switch (progress.step) {
+			case 'autoconf':
+				if (!progress.error) {
 					$scope.configured = true;
 					$scope.stepsDone++;
-					break;
+				} else {
+					$scope.autoconf_failed = true;
+				}
+				break;
 
-				case 'check_msg':
+			case 'check_msg':
+				if (!progress.error) {
 					$scope.connected = true;
 					$scope.stepsDone++;
-					break;
-			}
+				} else {
+					$scope.msg_failed = true;
+				}
+				break;
+		}
 
-			if ($scope.stepsDone == 3) {
-				$scope.stepsDone = 0;
-			}
+		if ($scope.stepsDone == 3) {
+			$scope.stepsDone = 0;
 		}
 	});
 }])
