@@ -12,7 +12,7 @@
 				<p>{{device.ip}}</p>
 			</th>
 			<td>
-				<p data-ng-repeat="eid in device.eids">{{eid.description}} ({{eid.unit}})</p>
+				<p data-ng-repeat="eid in device.eids">{{eid.description | localize:'endpoint-registry.descriptions':eid.eid }} ({{eid.unit}})</p>
 				<p><span data-localize="last-update.label">Last update.</span> {{ Lang.localizeLastUpdate(device.last_update) }}</p>
 			</td>
 		</tr>

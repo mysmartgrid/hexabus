@@ -5,9 +5,10 @@ angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) 
 			id: '@',
 			min: '@',
 			max: '@',
-			title: '@',
+			title: '@titleText',
 			value: '@',
 			class: '@',
+			interpolate_title: '@title',
 
 			titleClick: '&',
 			minClick: '&',
