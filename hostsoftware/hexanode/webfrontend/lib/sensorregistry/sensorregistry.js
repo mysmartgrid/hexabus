@@ -24,7 +24,6 @@ var SensorRegistry = function(file) {
 	};
 
 	this.add_sensor = function(ip, eid, params) {
-
 		var sensor = {
 			ip: ip,
 			eid: eid,
@@ -34,7 +33,7 @@ var SensorRegistry = function(file) {
 			last_value_received: undefined
 		};
 
-		var keys = ["name", "minvalue", "maxvalue", "type", "unit", "description"];
+		var keys = ["name", "minvalue", "maxvalue", "type", "unit", "description", "function"];
 		for (var key in keys) {
 			if (!(keys[key] in params)) {
 				throw keys[key] + " required";

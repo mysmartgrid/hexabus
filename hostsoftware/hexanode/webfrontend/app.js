@@ -261,7 +261,9 @@ app.get('/wizard/:step', function(req, res) {
 io.sockets.on('connection', function (socket) {
   console.log("Registering new client.");
 	sensor_cache.on('sensor_update', function(update) {
-		socket.volatile.emit('sensor_update', update);
+		if (update.sensor.function != "infrastructure") {
+			socket.volatile.emit('sensor_update', { sensor: update.sensor.id, device: update.sensor.ip, value: update.value });
+		}
 	});
 	sensor_registry.on('sensor_new', function(sensor) {
 		socket.volatile.emit('sensor_new', sensor);
@@ -270,7 +272,7 @@ io.sockets.on('connection', function (socket) {
 		var sensor = sensor_registry.get_sensor_by_id(id);
 		if (sensor) {
 			socket.volatile.emit('sensor_metadata', sensor);
-			var value = { sensor: id, value: sensor_cache.get_current_value(sensor) };
+			var value = { sensor: id, device: sensor.ip, value: sensor_cache.get_current_value(sensor) };
 			if (value.value != undefined) {
 				socket.volatile.emit('sensor_update', value);
 			}
@@ -324,7 +326,7 @@ io.sockets.on('connection', function (socket) {
 			save_sensor_registry();
 			socket.broadcast.emit('sensor_metadata', sensor);
 			socket.emit('sensor_metadata', sensor);
-			var value = { sensor: sensor.id, value: sensor_cache.get_current_value(sensor) };
+			var value = { sensor: sensor.id, devic: sensor.ip, value: sensor_cache.get_current_value(sensor) };
 			if (value.value) {
 				socket.broadcast.emit('sensor_update', value);
 				socket.emit('sensor_update', value);
@@ -350,12 +352,15 @@ io.sockets.on('connection', function (socket) {
 
 	socket.emit('clear_state');
 
-	var list = sensor_registry.get_sensors();
-	for (var sensor in list) {
-		socket.emit('sensor_metadata', list[sensor]);
-	}
+	var list = sensor_registry.get_sensors(function(sensor) {
+		if (sensor.function != "infrastructure") {
+			socket.emit('sensor_metadata', sensor);
+		}
+	});
 	sensor_cache.enumerate_current_values(function(value) {
-		socket.emit('sensor_update', value);
+		if (sensor_registry.get_sensor_by_id(value.sensor).function != "infrastructure") {
+			socket.emit('sensor_update', value);
+		}
 	});
 });
 

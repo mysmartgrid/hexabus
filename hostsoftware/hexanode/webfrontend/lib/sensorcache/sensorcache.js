@@ -16,7 +16,7 @@ var SensorCache = function() {
 			ts: unix_ts(),
 			value: value
 		};
-		this.emit('sensor_update', { sensor: sensor.id, device: sensor.ip, value: values[sensor.id] });
+		this.emit('sensor_update', { sensor: sensor, value: values[sensor.id] });
 	}
 
 	this.get_current_value = function(sensor) {
