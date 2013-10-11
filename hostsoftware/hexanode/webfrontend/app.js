@@ -5,8 +5,7 @@ var application_root = __dirname
   , app = module.exports = express()
   , server=require("http").createServer(app)
   , io = require('socket.io').listen(server)
-	, Cache = require("./lib/sensorcache")
-	, SensorRegistry = require("./lib/sensorregistry")
+	, DeviceTree = require("./lib/devicetree")
 	, Hexabus = require("./lib/hexabus")
 	, hexabus = new Hexabus()
 	, Wizard = require("./lib/wizard")
@@ -36,31 +35,29 @@ if (nconf.get('uid')) {
 }
 
 var configDir = nconf.get('config');
-var sensors_file = configDir + '/sensors.json';
+var devicetree_file = configDir + '/devicetree.json';
 
-var sensor_registry;
-var sensor_cache;
+var devicetree;
 
 function open_config() {
 	try {
-		sensor_registry = new SensorRegistry(fs.existsSync(sensors_file) ? sensors_file : undefined);
+		devicetree = new DeviceTree(fs.existsSync(devicetree_file) ? devicetree_file : undefined);
 	} catch (e) {
-		sensor_registry = new SensorRegistry();
+		devicetree = new DeviceTree();
 	}
-	sensor_cache = new Cache();
 }
 open_config();
 
-var save_sensor_registry = function(cb) {
-	sensor_registry.save(sensors_file, cb);
+var save_devicetree = function(cb) {
+	devicetree.save(devicetree_file, cb || Object);
 };
 
-setInterval(save_sensor_registry, 10 * 60 * 1000);
+setInterval(save_devicetree, 10 * 60 * 1000);
 process.on('SIGINT', function() {
-	save_sensor_registry(process.exit);
+	save_devicetree(process.exit);
 });
 process.on('SIGTERM', function() {
-	save_sensor_registry(process.exit);
+	save_devicetree(process.exit);
 });
 
 console.log("Using configuration: ");
@@ -92,74 +89,83 @@ app.get('/api', function(req, res) {
   res.send("API is running.");
 });
 
-app.get('/api/sensor', function(req, res) {
-	res.send(JSON.stringify(sensor_registry.get_sensors()));
-});
-
-app.get('/api/sensor/:ip/:eid/latest', function(req, res) {
-	var sensor = sensor_registry.get_sensor(req.params.ip, req.params.eid);
-	if (!sensor) {
-		res.send("Sensor not found", 404);
-	} else if (sensor_cache.get_current_value(sensor) == undefined) {
-		res.send("No value yet", 404);
-	} else {
-		res.send(JSON.stringify(sensor_cache.get_current_value(sensor.id)));
-	}
-});
-
-app.get('/api/sensor/:ip/:eid/info', function(req, res) {
-	var sensor = sensor_registry.get_sensor(req.params.ip, req.params.eid);
-	if (sensor) {
-		res.send(JSON.stringify(sensor));
-	} else {
-		res.send("Sensor not found", 404);
-	}
-});
+//app.get('/api/sensor', function(req, res) {
+//	res.send(JSON.stringify(sensor_registry.get_sensors()));
+//});
+//
+//app.get('/api/sensor/:ip/:eid/latest', function(req, res) {
+//	var sensor = sensor_registry.get_sensor(req.params.ip, req.params.eid);
+//	if (!sensor) {
+//		res.send("Sensor not found", 404);
+//	} else if (sensor_cache.get_current_value(sensor) == undefined) {
+//		res.send("No value yet", 404);
+//	} else {
+//		res.send(JSON.stringify(sensor_cache.get_current_value(sensor.id)));
+//	}
+//});
+//
+//app.get('/api/sensor/:ip/:eid/info', function(req, res) {
+//	var sensor = sensor_registry.get_sensor(req.params.ip, req.params.eid);
+//	if (sensor) {
+//		res.send(JSON.stringify(sensor));
+//	} else {
+//		res.send("Sensor not found", 404);
+//	}
+//});
 
 app.put('/api/sensor/:ip/:eid', function(req, res) {
-	if (sensor_registry.get_sensor(req.params.ip, req.params.eid)) {
+	var device = devicetree.devices[req.params.ip];
+	if (device && device.endpoints[req.params.eid]) {
 		res.send("Sensor exists", 200);
 	} else {
 		try {
-			var sensor = sensor_registry.add_sensor(req.params.ip, req.params.eid, req.body);
-			sensor_cache.add_value(sensor, parseFloat(req.body.value));
-			save_sensor_registry();
+			var endpoint = devicetree.add_endpoint(req.params.ip, req.params.eid, req.body);
+			endpoint.last_value = {
+				unix_ts: Math.round(Date.now() / 1000),
+				value: parseFloat(req.body.value)
+			};
 			res.send("Sensor added", 200);
 		} catch(err) {
+			console.log(err);
+			console.log(err.stack);
 			res.send(JSON.stringify(err), 400);
 		}
 	}
 });
 
 app.post('/api/sensor/:ip/:eid', function(req, res) {
-	var sensor = sensor_registry.get_sensor(req.params.ip, req.params.eid);
-	var value = parseFloat(req.body.value);
-	if (!sensor) {
+	var device = devicetree.devices[req.params.ip];
+	if (!device || !device.endpoints[req.params.eid]) {
 		res.send("Not found", 404);
-	} else if (isNaN(value)) {
-		res.send("Bad value", 400);
 	} else {
-		sensor_cache.add_value(sensor, value);
-		sensor_registry.value_received(req.params.ip, req.params.eid);
-		res.send("Value added", 200);
+		var value = parseFloat(req.body.value);
+		if (isNaN(value)) {
+			res.send("Bad value", 400);
+		} else {
+			device.endpoints[req.params.eid].last_value = {
+				unix_ts: Math.round(Date.now() / 1000),
+				value: value
+			};
+			res.send("Value added");
+		}
 	}
 });
 
 app.post('/api/device/rename/:ip', function(req, res) {
-	try {
-		if (!req.body.name) {
-			res.send("No name given", 400);
-		}
+	if (!req.body.name) {
+		res.send("No name given", 400);
+	} else {
 		hexabus.rename_device(req.params.ip, req.body.name, function(err) {
 			if (err) {
 				res.send(JSON.stringify(err), 500);
 			} else {
 				res.send("Success");
+				var device = devicetree.devices[req.params.ip];
+				if (device) {
+					device.name = req.body.name;
+				}
 			}
 		});
-	} catch (err) {
-		console.log(err);
-		res.send(JSON.stringify(err), 500);
 	}
 });
 
@@ -229,26 +235,14 @@ app.get('/wizard/resetdone', function(req, res) {
 app.get('/wizard/devices', function(req, res) {
 	var devices = {};
 
-	sensor_registry.get_sensors(function(sensor) {
-		var device = (devices[sensor.ip] = devices[sensor.ip] || { name: sensor.name, ip: sensor.ip, eids: [] });
+	devicetree.forEach(function(device) {
+		var entry = devices[device.ip] = { name: device.name, ip: device.ip, eids: [] };
 
-		device.eids.push({
-			eid: sensor.eid,
-			description: sensor.description,
-			unit: sensor.unit
-		});
-
-		var later_update = Math.max(sensor.last_update || 0, sensor.last_value_received || 0);
-		if (device.last_update === undefined || device.last_update > later_update) {
-			device.last_update = later_update;
-		}
-	});
-
-	for (var key in devices) {
-		devices[key].eids.sort(function(a, b) {
+		device.forEachEndpoint(entry.eids.push);
+		entry.eids.sort(function(a, b) {
 			return b.eid - a.eid;
 		});
-	}
+	});
 
 	res.render('wizard/devices.ejs', { active_tabpage: 'configuration', devices: devices });
 });
@@ -258,77 +252,65 @@ app.get('/wizard/:step', function(req, res) {
 
 io.sockets.on('connection', function (socket) {
   console.log("Registering new client.");
-	sensor_cache.on('sensor_update', function(update) {
-		if (update.sensor.function != "infrastructure") {
-			socket.volatile.emit('sensor_update', { sensor: update.sensor.id, device: update.sensor.ip, value: update.value });
+
+	var broadcast_sensor = function(sensor) {
+		socket.broadcast.emit('sensor_metadata', sensor);
+		socket.emit('sensor_metadata', sensor);
+	};
+	var send_sensor_update = function(ep) {
+		socket.emit('sensor_update', { sensor: ep.id, device: ep.device.ip, value: ep.last_value });
+	};
+
+	devicetree.on('endpoint_new_value', function(ep) {
+		if (ep.function == "sensor") {
+			send_sensor_update(ep);
 		}
 	});
-	sensor_registry.on('sensor_new', function(sensor) {
-		socket.volatile.emit('sensor_new', sensor);
+	devicetree.on('endpoint_new', function(ep) {
+		if (ep.function == "sensor") {
+			socket.emit('sensor_new', ep);
+		}
 	});
+	devicetree.on('device_renamed', function(dev) {
+		dev.forEachEndpoint(broadcast_sensor);
+	});
+
 	socket.on('sensor_request_metadata', function(id) {
-		var sensor = sensor_registry.get_sensor_by_id(id);
+		var sensor = devicetree.endpoint_by_id(id);
 		if (sensor) {
-			socket.volatile.emit('sensor_metadata', sensor);
-			var value = { sensor: id, device: sensor.ip, value: sensor_cache.get_current_value(sensor) };
-			if (value.value != undefined) {
-				socket.volatile.emit('sensor_update', value);
+			socket.emit('sensor_metadata', sensor);
+			if (sensor.last_value != undefined) {
+				send_sensor_update(sensor);
 			}
 		}
 	});
-  // a client can also initiate a data update.
-  socket.on('sensor_refresh_data', function() {
-  //  console.log("Refresh data event.");
-		sensor_cache.enumerate_current_values(function(update) {
-			socket.volatile.emit('sensor_update', udpate);
-		});
-  });
 	socket.on('device_rename', function(msg) {
-		var sensors = sensor_registry.get_sensors(function(sensor) {
-			return sensor.ip == msg.device;
-		});
-		if (sensors.length > 0) {
-			try {
-				hexabus.rename_device(msg.device, msg.name, function(err) {
-					if (err) {
-						socket.emit('device_rename_error', { device: msg.device, error: err });
-						return;
-					}
-					for (var key in sensors) {
-						sensors[key].name = msg.name;
-						socket.broadcast.emit('sensor_metadata', sensors[key]);
-						socket.emit('sensor_metadata', sensors[key]);
-						var value = { sensor: sensors[key].id, value: sensor_cache.get_current_value(sensors[key]) };
-						if (value.value) {
-							socket.broadcast.emit('sensor_update', value);
-							socket.emit('sensor_update', value);
-						}
-					}
-				});
-			} catch (err) {
-				console.log(err);
-				socket.emit('device_rename_error', { device: msg.device, error: err });
-			}
-		} else {
-			socket.emit('device_rename_error', { device: msg.device, error: "No such device" });
+		var device = devicetree.devices[msg.device];
+		if (!device) {
+			socket.emit('device_rename_error', { device: msg.device, error: 'Device not found' });
+			return;
 		}
+		if (!msg.name) {
+			socket.emit('device_rename_error', { device: msg.device, error: 'No name given' });
+			return;
+		}
+
+		hexabus.rename_device(msg.device, msg.name, function(err) {
+			if (err) {
+				socket.emit('device_rename_error', { device: msg.device, error: err });
+				return;
+			}
+			device.name = msg.name;
+		});
 	});
 	socket.on('sensor_change_metadata', function(msg) {
-		var sensor = sensor_registry.get_sensor_by_id(msg.id);
+		var sensor = devicetree.endpoint_by_id(msg.id);
 		if (sensor) {
-			var keys = ["minvalue", "maxvalue"];
-			for (var i in keys) {
-				var key = keys[i];
+			["minvalue", "maxvalue"].forEach(function(key) {
 				sensor[key] = (msg.data[key] != undefined) ? msg.data[key] : sensor[key];
-			}
-			save_sensor_registry();
-			socket.broadcast.emit('sensor_metadata', sensor);
-			socket.emit('sensor_metadata', sensor);
-			var value = { sensor: sensor.id, devic: sensor.ip, value: sensor_cache.get_current_value(sensor) };
-			if (value.value) {
-				socket.broadcast.emit('sensor_update', value);
-				socket.emit('sensor_update', value);
-			}
+			});
+			save_devicetree();
+			broadcast_sensor(sensor);
 		}
 	});
 
@@ -350,15 +332,15 @@ io.sockets.on('connection', function (socket) {
 
 	socket.emit('clear_state');
 
-	var list = sensor_registry.get_sensors(function(sensor) {
-		if (sensor.function != "infrastructure") {
-			socket.emit('sensor_metadata', sensor);
-		}
-	});
-	sensor_cache.enumerate_current_values(function(value) {
-		if (sensor_registry.get_sensor_by_id(value.sensor).function != "infrastructure") {
-			socket.emit('sensor_update', value);
-		}
+	devicetree.forEach(function(device) {
+		device.forEachEndpoint(function(ep) {
+			if (ep.function == "sensor") {
+				socket.emit('sensor_metadata', ep);
+				if (ep.last_value) {
+					send_sensor_update(ep);
+				}
+			}
+		});
 	});
 });
 
