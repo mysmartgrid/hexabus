@@ -78,6 +78,7 @@
 #include "dev/leds.h"
 #include "bootloader_send.h"
 #include "eeprom_variables.h"
+#include "provisioning.h"
 
 #if JACKDAW_CONF_USE_SETTINGS
 #include "settings.h"
@@ -272,7 +273,7 @@ void menu_activate() {
 
 int process_pairing_command(char c) {
 
-	printf("%c\n", c);
+	//printf("%c", c);
 
 	if(c=='&' && is_parsing) {
 		is_parsing = false;
@@ -282,6 +283,7 @@ int process_pairing_command(char c) {
 		if(!strcmp_P(parsed_str, PSTR(P_ON_STR))) {
 			//TODO start prov
 			PRINTF_P(PSTR(P_SUC_STR));
+			provisioning_master();
 		} else if(!strcmp_P(parsed_str, PSTR(P_OFF_STR))) {
 			//TODO end prov
 			printf("Stopping\n");

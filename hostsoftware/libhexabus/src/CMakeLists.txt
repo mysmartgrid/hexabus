@@ -9,6 +9,7 @@ set(hexaswitch_src "hexaswitch.cpp" ${common_lib})
 set(hexalog_src "hexalog.cpp" ${common_lib})
 set(hexaupload_src "hexaupload.cpp" ${common_lib})
 set(hexapost_src "hexapost.cpp" ${common_lib})
+set(hexapair_src "hexapair.cpp" ${common_lib})
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
@@ -43,6 +44,14 @@ target_link_libraries(hexaupload
   ${Boost_LIBRARIES}
 )
 
+add_executable(hexapair ${hexapair_src})
+# Link the executables
+target_link_libraries(hexapair
+  hexabus
+  ${LIBUSB_1_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
 if(LIBKLIO_FOUND)
   add_executable(hexalog ${hexalog_src})
   target_link_libraries(hexalog
@@ -65,6 +74,7 @@ endif(LIBKLIO_FOUND)
 INSTALL(PROGRAMS
   ${CMAKE_CURRENT_BINARY_DIR}/hexaswitch
   ${CMAKE_CURRENT_BINARY_DIR}/hexaupload
+  ${CMAKE_CURRENT_BINARY_DIR}/hexapair
   DESTINATION bin)
 
 if(LIBKLIO_FOUND)
