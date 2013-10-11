@@ -51,18 +51,16 @@ function open_config() {
 }
 open_config();
 
-var save_sensor_registry = function() {
-	sensor_registry.save(sensors_file);
+var save_sensor_registry = function(cb) {
+	sensor_registry.save(sensors_file, cb);
 };
 
 setInterval(save_sensor_registry, 10 * 60 * 1000);
 process.on('SIGINT', function() {
-	save_sensor_registry();
-	process.exit();
+	save_sensor_registry(process.exit);
 });
 process.on('SIGTERM', function() {
-	save_sensor_registry();
-	process.exit();
+	save_sensor_registry(process.exit);
 });
 
 console.log("Using configuration: ");

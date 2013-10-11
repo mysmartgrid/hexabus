@@ -93,8 +93,7 @@ var SensorRegistry = function(file) {
 		cb = cb || function() {};
 
 		fs.writeFile(file, JSON.stringify(sensors), function(err) {
-			if (err)
-				throw err;
+			cb(err);
 		});
 	};
 };
