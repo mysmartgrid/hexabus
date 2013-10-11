@@ -250,6 +250,20 @@ app.get('/wizard/:step', function(req, res) {
 	res.render('wizard/' + req.params.step  + '.ejs', { active_tabpage: 'configuration' });
 });
 
+var ep_is_old = function(ep) {
+	return ep.age >= 60 * 60 * 1000;
+};
+
+setInterval(function() {
+	devicetree.forEach(function(device) {
+		device.forEachEndpoint(function(ep) {
+			if (ep.function == "sensor" && ep_is_old(ep)) {
+				devicetree.emit('sensor_timeout', { sensor: ep });
+			}
+		});
+	});
+}, 1000);
+
 io.sockets.on('connection', function (socket) {
   console.log("Registering new client.");
 
@@ -273,6 +287,9 @@ io.sockets.on('connection', function (socket) {
 	});
 	devicetree.on('device_renamed', function(dev) {
 		dev.forEachEndpoint(broadcast_sensor);
+	});
+	devicetree.on('sensor_timeout', function(msg) {
+		socket.emit('sensor_timeout', msg);
 	});
 
 	socket.on('sensor_request_metadata', function(id) {
@@ -334,7 +351,7 @@ io.sockets.on('connection', function (socket) {
 
 	devicetree.forEach(function(device) {
 		device.forEachEndpoint(function(ep) {
-			if (ep.function == "sensor") {
+			if (ep.function == "sensor" && !ep_is_old(ep)) {
 				socket.emit('sensor_metadata', ep);
 				if (ep.last_value) {
 					send_sensor_update(ep);

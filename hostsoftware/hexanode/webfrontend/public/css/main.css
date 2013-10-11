@@ -17,6 +17,15 @@ div.updating-thus-disabled {
 	background-color: black;
 	opacity: 0.1;
 }
+div.gauge-disabled {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	background-color: black;
+	opacity: 0.6;
+}
 div.spinner-large {
 	position: absolute;
 	left: 0;

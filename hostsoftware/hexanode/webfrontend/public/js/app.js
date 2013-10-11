@@ -38,7 +38,7 @@ angular.module('dashboard', [
 					var elems = attrs.shadow_all
 						? $(document.getElementsByClassName("gauge-" + forSensor.ip))
 						: $(document.getElementById(forSensor.id));
-					var div = $('<div class="spinner-large transient" /><div class="updating-thus-disabled transient" />');
+					var div = $('<div class="spinner-large transient"></div><div class="updating-thus-disabled transient"></div>');
 					elems.append(div);
 
 					done(value);
@@ -98,6 +98,7 @@ angular.module('dashboard', [
 	var sensorMetadataHandler = function(sensor) {
 		$scope.sensorList[sensor.id] = sensor;
 		$scope.sensorList[sensor.id].value = 0;
+		$scope.sensorList[sensor.id].has_value = false;
 
 		$(document.getElementById(sensor.id)).children(".transient").remove();
 
@@ -117,12 +118,20 @@ angular.module('dashboard', [
 			var sensorId = data.sensor;
 			if (sensorId in $scope.sensorList) {
 				$scope.sensorList[sensorId].value = data.value.value;
+				$scope.sensorList[sensorId].hide = false;
+				$scope.sensorList[sensorId].has_value = true;
 			} else {
 				Socket.emit('sensor_request_metadata', sensorId);
 			}
 
 			updateDisplay();
 		});
+	});
+
+	Socket.on('sensor_timeout', function(msg) {
+		if ($scope.sensorList[msg.sensor.id]) {
+			$scope.sensorList[msg.sensor.id].hide = true;
+		}
 	});
 
 	Socket.on('device_rename_error', function(msg) {

@@ -7,6 +7,7 @@ angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) 
 			max: '@',
 			title: '@titleText',
 			value: '@',
+			disabled: '@',
 			class: '@',
 			interpolate_title: '@title',
 
@@ -16,8 +17,8 @@ angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) 
 
 			gauge: '='
 		},
-		replace: true,
-		template: '<div/>',
+		replace: false,
+		template: '<div></div>',
 		compile: function (element, attrs, transclude) {
 			return {
 				post: function (scope, element, attrs, controller) {
@@ -78,6 +79,16 @@ angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) 
 							watchers['title'] = scope.$watch('title', function(title) {
 								if (title != g.config.title) {
 									makeGauge();
+								}
+							});
+							watchers['disabled'] = scope.$watch('disabled', function(disabled) {
+								var elem = $(document.getElementById(scope.id));
+								if (disabled && disabled != "false") {
+									if (!elem.children(".gauge-disabled").size()) {
+										elem.append($('<div class="gauge-disabled"></div>'));
+									}
+								} else {
+									elem.children(".gauge-disabled").remove();
 								}
 							});
 						});

@@ -24,7 +24,8 @@
                 <div class="span9">
                   <div class="row-fluid">
                     <ul class="inline">
-                      <li data-ng-repeat="sensor in sensorList">
+                      <li data-ng-repeat="sensor in sensorList"
+                          data-ng-hide="sensor.hide">
                         <div data-ng-gauge="gauge"
                           id="{{sensor.id}}"
                           class="gauge gauge-{{sensor.ip}}"
@@ -34,9 +35,11 @@
                           data-max="{{sensor.maxvalue}}"
                           data-value="{{sensor.value}}"
                           data-gauge="sensor.gauge"
+                          data-disabled="{{!sensor.has_value}}"
                           data-min-click="minClick(sensor)"
                           data-max-click="maxClick(sensor)"
-                          data-title-click="titleClick(sensor)"></div>
+                          data-title-click="titleClick(sensor)">
+                        </div>
                       </li>
                     </ul>
                   </div>

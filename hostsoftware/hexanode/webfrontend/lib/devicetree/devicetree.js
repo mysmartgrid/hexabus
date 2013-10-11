@@ -42,12 +42,11 @@ var Device = function(ip, name, emitter, rest) {
 		"last_update": {
 			enumerable: true,
 			get: function() { return last_update; }
+		},
+		"age": {
+			get: function() { return new Date() - this.last_update; }
 		}
 	});
-
-	this.age = function() {
-		return new Date() - this.last_update;
-	};
 
 	this.forEachEndpoint = function(cb) {
 		for (var key in this.endpoints) {
@@ -120,7 +119,10 @@ var Endpoint = function(device, eid, params, emitter) {
 				last_value = val;
 				this.update();
 				emitter.emit('endpoint_new_value', this);
-			}
+			},
+		},
+		"age": {
+			get: function() { return new Date() - this.last_update; }
 		}
 	});
 
@@ -145,10 +147,6 @@ var Endpoint = function(device, eid, params, emitter) {
 	};
 	endpoint_keys.forEach(add_key.bind(this));
 	function_keys[params.function].forEach(add_key.bind(this));
-
-	this.age = function() {
-		return new Date() - this.last_update;
-	};
 };
 
 
