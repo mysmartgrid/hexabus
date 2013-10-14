@@ -358,6 +358,17 @@ io.sockets.on('connection', function (socket) {
 		});
 	});
 
+	socket.on('device_remove', function(msg) {
+		try {
+			devicetree.remove(msg.device);
+			save_devicetree();
+			socket.emit('device_removed', msg);
+			socket.broadcast.emit('device_removed', msg);
+		} catch (e) {
+			console.log({ msg: msg, error: e });
+		}
+	});
+
 	socket.emit('clear_state');
 
 	devicetree.forEach(function(device) {

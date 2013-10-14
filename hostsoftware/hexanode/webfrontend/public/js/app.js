@@ -97,6 +97,7 @@ angular.module('dashboard', [
 
 	var sensorMetadataHandler = function(sensor) {
 		$scope.sensorList[sensor.id] = sensor;
+		console.log(sensor);
 		$scope.sensorList[sensor.id].value = 0;
 		$scope.sensorList[sensor.id].has_value = false;
 
@@ -112,6 +113,14 @@ angular.module('dashboard', [
 
 	Socket.on('sensor_new', sensorMetadataHandler);
 	Socket.on('sensor_metadata', sensorMetadataHandler);
+
+	Socket.on('device_removed', function(msg) {
+		for (var id in $scope.sensorList) {
+			if ($scope.sensorList[id].ip == msg.device) {
+				delete $scope.sensorList[id];
+			}
+		}
+	});
 
 	Socket.on('sensor_update', function(data) {
 		$timeout(function() {
@@ -261,4 +270,24 @@ angular.module('dashboard', [
 
 	Socket.on('sensor_new', on_sensor_metadata);
 	Socket.on('sensor_metadata', on_sensor_metadata);
+
+	Socket.on('device_removed', function(msg) {
+		for (var id in $scope.devices) {
+			if ($scope.devices[id].ip == msg.device) {
+				delete $scope.devices[id];
+			}
+		}
+	});
+
+	$scope.remove = function(device) {
+		var message = "Do you really want to remove {device}?";
+
+		message = ((Lang.pack["wizard"] || {})["device-list"] || {})["forget-dialog"] || message;
+
+		message = message.replace("{device}", device.name);
+		if (confirm(message)) {
+			Socket.emit('device_remove', { device: device.ip });
+			Socket.emit('device_removed', { device: device.ip });
+		}
+	};
 }]);

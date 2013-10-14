@@ -79,6 +79,11 @@
 			"continue": "Gerät trotzdem zurücksetzen",
 			"abort": "Zurück zur Übersicht",
 			"reboot": "Ihre Basisstation wird jetzt neu starten. Bitte warten Sie einige Minuten, bevor Sie wieder auf ihre Basisstation zugreifen."
+		},
+
+		"device-list": {
+			"forget-device": "Gerät entfernen",
+			"forget-dialog": "Möchten Sie das Gerät {device} wirklich entfernen?"
 		}
 	},
 

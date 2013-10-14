@@ -198,6 +198,14 @@ var DeviceTree = function(file) {
 		}
 	};
 
+	this.remove = function(ip) {
+		if (devices[ip]) {
+			delete devices[ip];
+		} else {
+			throw "No such device";
+		}
+	};
+
 	this.endpoint_by_id = function(id) {
 		var parts = id.split('.');
 		var dev = devices[parts[0]];
