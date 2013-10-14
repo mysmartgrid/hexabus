@@ -205,12 +205,15 @@ json_string_writer json(const std::string& str)
 	return json_string_writer(str);
 }
 
-void write_dev_desc_json(const device_descriptor& dev, std::ostream& target)
+bool write_dev_desc_json(const device_descriptor& dev, std::ostream& target, bool emit_comma)
 {
 	static hexabus::EndpointRegistry ep_registry;
 
 	// if name == "", we might as well assume temporary communication problems
 	if (dev.name.length() != 0) {
+		if (emit_comma) {
+			target << "," << std::endl;
+		}
 		target
 			<< "{" << std::endl
 			<< "\t\"name\": \"" << json(dev.name) << "\"," << std::endl
@@ -674,9 +677,7 @@ int main(int argc, char** argv)
 
 			for(std::set<device_descriptor>::iterator it = devices.begin(); it != devices.end(); ++it)
 			{
-				if(it!=devices.begin())
-					out << "," << std::endl;
-				write_dev_desc_json(*it, out);
+				write_dev_desc_json(*it, out, it != devices.begin());
 			}
 
 			out << "]}" << std::endl;
