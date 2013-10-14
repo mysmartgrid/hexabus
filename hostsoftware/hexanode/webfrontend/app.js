@@ -232,7 +232,7 @@ app.get('/wizard/current', function(req, res) {
 });
 app.post('/wizard/reset', function(req, res) {
 	try {
-		fs.unlinkSync(sensors_file);
+		fs.unlinkSync(devicetree_file);
 	} catch (e) {
 	}
 	open_config();
@@ -263,7 +263,11 @@ app.get('/wizard/devices', function(req, res) {
 	devicetree.forEach(function(device) {
 		var entry = devices[device.ip] = { name: device.name, ip: device.ip, eids: [] };
 
-		device.forEachEndpoint(entry.eids.push);
+		device.forEachEndpoint(function(ep) {
+			if (ep.function != "infrastructure") {
+				entry.eids.push(ep);
+			}
+		});
 		entry.eids.sort(function(a, b) {
 			return b.eid - a.eid;
 		});
@@ -275,15 +279,15 @@ app.get('/wizard/:step', function(req, res) {
 	res.render('wizard/' + req.params.step  + '.ejs', { active_tabpage: 'configuration' });
 });
 
-var ep_is_old = function(ep) {
+var sensor_is_old = function(ep) {
 	return ep.age >= 60 * 60 * 1000;
 };
 
 setInterval(function() {
 	devicetree.forEach(function(device) {
 		device.forEachEndpoint(function(ep) {
-			if (ep.function == "sensor" && ep_is_old(ep)) {
-				devicetree.emit('sensor_timeout', { sensor: ep });
+			if (ep.function == "sensor" && sensor_is_old(ep)) {
+				devicetree.emit('ep_timeout', { ep: ep });
 			}
 		});
 	});
@@ -292,30 +296,30 @@ setInterval(function() {
 io.sockets.on('connection', function (socket) {
   console.log("Registering new client.");
 
-	var broadcast_sensor = function(sensor) {
-		socket.broadcast.emit('sensor_metadata', sensor);
-		socket.emit('sensor_metadata', sensor);
+	var broadcast_ep = function(ep) {
+		socket.broadcast.emit('ep_metadata', ep);
+		socket.emit('ep_metadata', ep);
 	};
-	var send_sensor_update = function(ep) {
-		socket.emit('sensor_update', { sensor: ep.id, device: ep.device.ip, value: ep.last_value });
+	var send_ep_update = function(ep) {
+		socket.emit('ep_update', { ep: ep.id, device: ep.device.ip, value: ep.last_value });
 	};
 
 	var devicetree_events = {
 		endpoint_new_value: function(ep) {
 			if (ep.function == "sensor") {
-				send_sensor_update(ep);
+				send_ep_update(ep);
 			}
 		},
 		endpoint_new: function(ep) {
 			if (ep.function == "sensor") {
-				socket.emit('sensor_new', ep);
+				socket.emit('ep_new', ep);
 			}
 		},
 		device_renamed: function(dev) {
-			dev.forEachEndpoint(broadcast_sensor);
+			dev.forEachEndpoint(broadcast_ep);
 		},
-		sensor_timeout: function(msg) {
-			socket.emit('sensor_timeout', msg);
+		ep_timeout: function(msg) {
+			socket.emit('ep_timeout', msg);
 		}
 	};
 
@@ -328,12 +332,12 @@ io.sockets.on('connection', function (socket) {
 		}
 	});
 
-	socket.on('sensor_request_metadata', function(id) {
-		var sensor = devicetree.endpoint_by_id(id);
-		if (sensor) {
-			socket.emit('sensor_metadata', sensor);
-			if (sensor.last_value != undefined) {
-				send_sensor_update(sensor);
+	socket.on('ep_request_metadata', function(id) {
+		var ep = devicetree.endpoint_by_id(id);
+		if (ep) {
+			socket.emit('ep_metadata', ep);
+			if (ep.last_value != undefined) {
+				send_ep_update(ep);
 			}
 		}
 	});
@@ -356,14 +360,14 @@ io.sockets.on('connection', function (socket) {
 			device.name = msg.name;
 		});
 	});
-	socket.on('sensor_change_metadata', function(msg) {
-		var sensor = devicetree.endpoint_by_id(msg.id);
-		if (sensor) {
+	socket.on('ep_change_metadata', function(msg) {
+		var ep = devicetree.endpoint_by_id(msg.id);
+		if (ep) {
 			["minvalue", "maxvalue"].forEach(function(key) {
-				sensor[key] = (msg.data[key] != undefined) ? msg.data[key] : sensor[key];
+				ep[key] = (msg.data[key] != undefined) ? msg.data[key] : ep[key];
 			});
 			save_devicetree();
-			broadcast_sensor(sensor);
+			broadcast_ep(ep);
 		}
 	});
 
@@ -398,11 +402,9 @@ io.sockets.on('connection', function (socket) {
 
 	devicetree.forEach(function(device) {
 		device.forEachEndpoint(function(ep) {
-			if (ep.function == "sensor" && !ep_is_old(ep)) {
-				socket.emit('sensor_metadata', ep);
-				if (ep.last_value) {
-					send_sensor_update(ep);
-				}
+			socket.emit('ep_metadata', ep);
+			if (ep.last_value) {
+				send_ep_update(ep);
 			}
 		});
 	});

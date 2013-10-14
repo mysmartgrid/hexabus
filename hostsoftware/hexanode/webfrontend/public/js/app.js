@@ -63,7 +63,7 @@ angular.module('dashboard', [
 			sensor.gauge.txtMin,
 			null,
 			function(value) {
-				Socket.emit('sensor_change_metadata', { id: sensor.id, data: { minvalue: +value } });
+				Socket.emit('ep_change_metadata', { id: sensor.id, data: { minvalue: +value } });
 				pendingUpdateControl = null;
 			});
 	};
@@ -74,7 +74,7 @@ angular.module('dashboard', [
 			sensor.gauge.txtMax,
 			null,
 			function(value) {
-				Socket.emit('sensor_change_metadata', { id: sensor.id, data: { maxvalue: +value } });
+				Socket.emit('ep_change_metadata', { id: sensor.id, data: { maxvalue: +value } });
 				pendingUpdateControl = null;
 			});
 	};
@@ -95,15 +95,16 @@ angular.module('dashboard', [
 			});
 	};
 
-	var sensorMetadataHandler = function(sensor) {
-		$scope.sensorList[sensor.id] = sensor;
-		console.log(sensor);
-		$scope.sensorList[sensor.id].value = 0;
-		$scope.sensorList[sensor.id].has_value = false;
+	var epMetadataHandler = function(ep) {
+		if (ep.function == "sensor") {
+			$scope.sensorList[ep.id] = ep;
+			$scope.sensorList[ep.id].value = 0;
+			$scope.sensorList[ep.id].has_value = false;
 
-		$(document.getElementById(sensor.id)).children(".transient").remove();
+			$(document.getElementById(ep.id)).children(".transient").remove();
 
-		updateDisplay();
+			updateDisplay();
+		}
 	};
 
 	Socket.on('clear_state', function() {
@@ -111,8 +112,8 @@ angular.module('dashboard', [
 		gauges = {};
 	});
 
-	Socket.on('sensor_new', sensorMetadataHandler);
-	Socket.on('sensor_metadata', sensorMetadataHandler);
+	Socket.on('ep_new', epMetadataHandler);
+	Socket.on('ep_metadata', epMetadataHandler);
 
 	Socket.on('device_removed', function(msg) {
 		for (var id in $scope.sensorList) {
@@ -122,24 +123,24 @@ angular.module('dashboard', [
 		}
 	});
 
-	Socket.on('sensor_update', function(data) {
+	Socket.on('ep_update', function(data) {
 		$timeout(function() {
-			var sensorId = data.sensor;
-			if (sensorId in $scope.sensorList) {
-				$scope.sensorList[sensorId].value = data.value.value;
-				$scope.sensorList[sensorId].hide = false;
-				$scope.sensorList[sensorId].has_value = true;
+			var epId = data.ep;
+			if (epId in $scope.sensorList && $scope.sensorList[epId].function == "sensor") {
+				$scope.sensorList[epId].value = data.value.value;
+				$scope.sensorList[epId].hide = false;
+				$scope.sensorList[epId].has_value = true;
 			} else {
-				Socket.emit('sensor_request_metadata', sensorId);
+				Socket.emit('ep_request_metadata', sensorId);
 			}
 
 			updateDisplay();
 		});
 	});
 
-	Socket.on('sensor_timeout', function(msg) {
-		if ($scope.sensorList[msg.sensor.id]) {
-			$scope.sensorList[msg.sensor.id].hide = true;
+	Socket.on('ep_timeout', function(msg) {
+		if (msg.ep.function == "sensor" && $scope.sensorList[msg.ep.id]) {
+			$scope.sensorList[msg.ep.id].hide = true;
 		}
 	});
 
@@ -235,22 +236,25 @@ angular.module('dashboard', [
 		return Math.round((+new Date()) / 1000);
 	};
 
-	Socket.on('sensor_update', function(data) {
+	Socket.on('ep_update', function(data) {
 		if ($scope.devices[data.device]) {
 			$scope.devices[data.device].last_update = now();
 		}
 	});
 
-	var on_sensor_metadata = function(sensor) {
-		var device = ($scope.devices[sensor.ip] = $scope.devices[sensor.ip] || { ip: sensor.ip, eids: [] });
+	var on_ep_metadata = function(ep) {
+		if (ep.function == "infrastructure") {
+			return;
+		}
+		var device = ($scope.devices[ep.ip] = $scope.devices[ep.ip] || { ip: ep.ip, eids: [] });
 
-		device.name = sensor.name;
+		device.name = ep.name;
 		device.last_update = now();
 
 		var eid = {
-			eid: parseInt(sensor.eid),
-			description: sensor.description,
-			unit: sensor.unit
+			eid: parseInt(ep.eid),
+			description: ep.description,
+			unit: ep.unit
 		};
 
 		var found = false;
@@ -268,8 +272,8 @@ angular.module('dashboard', [
 		}
 	};
 
-	Socket.on('sensor_new', on_sensor_metadata);
-	Socket.on('sensor_metadata', on_sensor_metadata);
+	Socket.on('ep_new', on_ep_metadata);
+	Socket.on('ep_metadata', on_ep_metadata);
 
 	Socket.on('device_removed', function(msg) {
 		for (var id in $scope.devices) {
