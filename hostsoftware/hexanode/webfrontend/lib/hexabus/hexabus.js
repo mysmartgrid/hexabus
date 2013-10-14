@@ -1,7 +1,10 @@
+'use strict';
+
 var exec = require('child_process').exec;
 var v6 = require('ipv6').v6;
 var os = require('os');
 var fs = require('fs');
+var nconf = require('nconf');
 
 var hexabus = function() {
 	this.rename_device = function(addr, newName, cb) {
@@ -79,6 +82,23 @@ var hexabus = function() {
 					messages: messages
 				});
 			}
+		});
+	};
+
+	this.enumerate_network = function(cb) {
+		cb = cb || Object;
+		var interfaces = (nconf.get("debug-hxb-ifaces") || "eth0,usb0").split(",");
+		interfaces.forEach(function(iface) {
+			exec("hexinfo --discover --interface " + iface + " --json --devfile -", function(error, stdout, stderr) {
+				if (error) {
+					cb({ error: error });
+				} else {
+					var devices = JSON.parse(stdout).devices;
+					devices.forEach(function(dev) {
+						cb({ device: dev });
+					});
+				}
+			});
 		});
 	};
 };

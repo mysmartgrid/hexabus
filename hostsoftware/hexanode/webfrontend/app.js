@@ -52,7 +52,32 @@ var save_devicetree = function(cb) {
 	devicetree.save(devicetree_file, cb || Object);
 };
 
+var enumerate_network = function() {
+	hexabus.enumerate_network(function(dev) {
+		if (dev.error) {
+			console.log(dev.error);
+		} else {
+			dev = dev.device;
+			for (var key in dev.endpoints) {
+				var ep = dev.endpoints[key];
+				ep.name = ep.name || dev.name;
+				if (ep.function == "sensor") {
+					ep.minvalue = 0;
+					ep.maxvalue = 100;
+				}
+				if (!devicetree.devices[dev.ip]
+					|| !devicetree.devices[dev.ip].endpoints[ep.eid]) {
+					devicetree.add_endpoint(dev.ip, ep.eid, ep);
+				}
+			}
+		}
+	});
+};
+
+enumerate_network();
+
 setInterval(save_devicetree, 10 * 60 * 1000);
+setInterval(enumerate_network, 60 * 60 * 1000);
 process.on('SIGINT', function() {
 	save_devicetree(process.exit);
 });
@@ -382,4 +407,3 @@ io.sockets.on('connection', function (socket) {
 		});
 	});
 });
-
