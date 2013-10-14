@@ -275,21 +275,32 @@ io.sockets.on('connection', function (socket) {
 		socket.emit('sensor_update', { sensor: ep.id, device: ep.device.ip, value: ep.last_value });
 	};
 
-	devicetree.on('endpoint_new_value', function(ep) {
-		if (ep.function == "sensor") {
-			send_sensor_update(ep);
+	var devicetree_events = {
+		endpoint_new_value: function(ep) {
+			if (ep.function == "sensor") {
+				send_sensor_update(ep);
+			}
+		},
+		endpoint_new: function(ep) {
+			if (ep.function == "sensor") {
+				socket.emit('sensor_new', ep);
+			}
+		},
+		device_renamed: function(dev) {
+			dev.forEachEndpoint(broadcast_sensor);
+		},
+		sensor_timeout: function(msg) {
+			socket.emit('sensor_timeout', msg);
 		}
-	});
-	devicetree.on('endpoint_new', function(ep) {
-		if (ep.function == "sensor") {
-			socket.emit('sensor_new', ep);
+	};
+
+	for (var ev in devicetree_events) {
+		devicetree.on(ev, devicetree_events[ev]);
+	}
+	socket.on('disconnect', function() {
+		for (var ev in devicetree_events) {
+			devicetree.removeListener(ev, devicetree_events[ev]);
 		}
-	});
-	devicetree.on('device_renamed', function(dev) {
-		dev.forEachEndpoint(broadcast_sensor);
-	});
-	devicetree.on('sensor_timeout', function(msg) {
-		socket.emit('sensor_timeout', msg);
 	});
 
 	socket.on('sensor_request_metadata', function(id) {
