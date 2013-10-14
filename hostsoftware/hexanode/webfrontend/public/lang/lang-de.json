@@ -19,7 +19,8 @@
 	},
 
 	"dashboard": {
-		"dashboard": "Alle Sensoren"
+		"all-sensors": "Alle Sensoren",
+		"all-actors": "Alle Aktoren"
 	},
 
 	"rename-error": {

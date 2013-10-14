@@ -3,7 +3,7 @@ angular.module('dashboard', [
 	'gauges',
 	'i18n'
 ])
-.controller('gaugesDisplayController', ['$scope', 'Socket', '$timeout', 'Lang', function($scope, Socket, $timeout, Lang) {
+.controller('dashboardController', ['$scope', 'Socket', '$timeout', 'Lang', function($scope, Socket, $timeout, Lang) {
 	var lastSensorValueReceivedAt;
 
 	var pendingUpdateControl = null;
