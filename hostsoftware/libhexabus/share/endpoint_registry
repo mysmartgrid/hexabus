@@ -39,7 +39,7 @@ eid 1 {
 	type BOOL
 	description "HexabusPlug relay"
 	access RW
-	function sensor
+	function actor
 }
 
 eid 2 {
