@@ -99,17 +99,17 @@ if( LIBKLIO_FOUND )
     message(FATAL_ERROR "libjson ist required. Install json or call cmake -DJSON_HOME=path_to_json_install")
   endif( NOT JSON_FOUND)
   include_directories(${JSON_INCLUDE_DIR})
-endif( LIBKLIO_FOUND )
 
-# check for curl
-IF(WIN32)
-  add_definitions(-DCURL_STATICLIB)
-  include(FindCURL_WIN32)
-else(WIN32)
-  # add_definitions(-DCURL_STATICLIB)
-  include(FindCurl)
-  include(FindGnutls)
-endif(WIN32)
+  # check for curl
+  IF(WIN32)
+    add_definitions(-DCURL_STATICLIB)
+    include(FindCURL_WIN32)
+  else(WIN32)
+    # add_definitions(-DCURL_STATICLIB)
+    include(FindCurl)
+    include(FindGnutls)
+  endif(WIN32)
+endif( LIBKLIO_FOUND )
 
 # Reflect the package structure
 add_subdirectory(libhexabus)
