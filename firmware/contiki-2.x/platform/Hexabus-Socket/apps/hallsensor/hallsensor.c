@@ -18,7 +18,7 @@ static float average;
 static uint8_t samplepos;
 static uint8_t valuepos;
 static float calibration_value;
-static uint32_t hallsensor_calibration;
+static float hallsensor_calibration;
 
 static enum hxb_error_code read_hallsensor(struct hxb_value* value)
 {
@@ -29,8 +29,8 @@ static enum hxb_error_code read_hallsensor(struct hxb_value* value)
 }
 
 static enum hxb_error_code calibrate_hallsensor(const struct hxb_envelope* env) {
-	syslog(LOG_DEBUG, "Calibrating for %lu", env->value.v_u32);
-	hallsensor_calibration = env->value.v_u32;
+	syslog(LOG_DEBUG, "Calibrating for %lu", (uint32_t) env->value.v_float);
+	hallsensor_calibration = env->value.v_float;
 
 	return HXB_ERR_SUCCESS;
 }
