@@ -7,7 +7,7 @@ angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) 
 			max: '@',
 			title: '@titleText',
 			value: '@',
-			disabled: '@',
+			disabled: '=',
 			class: '@',
 			interpolate_title: '@title',
 

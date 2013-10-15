@@ -21,6 +21,7 @@ var Device = function(ip, name, emitter, rest) {
 		last_update = new Date();
 	};
 
+	var name;
 	Object.defineProperties(this, {
 		"ip": {
 			value: ip,
@@ -32,7 +33,7 @@ var Device = function(ip, name, emitter, rest) {
 			set: function(val) {
 				name = val;
 				this.update();
-				emitter.emit('device_renamed', device);
+				emitter.emit('device_renamed', this);
 			}
 		},
 		"endpoints": {
@@ -107,7 +108,7 @@ var Endpoint = function(device, eid, params, emitter) {
 		},
 		"name": {
 			enumerable: true,
-			value: device.name
+			get: function() { return device.name; }
 		},
 		"last_update": {
 			enumerable: true,
