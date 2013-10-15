@@ -3,6 +3,8 @@
 #include "endpoints.h"
 #include "endpoint_registry.h"
 #include "value_broadcast.h"
+#include <avr/eeprom.h>
+#include "eeprom_variables.h"
 #include <avr/interrupt.h>
 #include <stdlib.h>
 
@@ -62,6 +64,7 @@ void hallsensor_init() {
 	valuesum = 0;
 	average = 0.0;
 	hallsensor_calibration = 0;
+	calibration_value = eeprom_read_float((float*) EE_HALLSENSOR_CAL);
 #endif
 #if HALLSENSOR_FAULT_ENABLE
 	DDRC |= (1<<HALLSENSOR_FAULT_EN); // PC6 (FAULT_EN) as output
@@ -88,6 +91,7 @@ ISR(ADC_vect)
 			if ( hallsensor_calibration > 0 )
 			{
 				calibration_value = valuesum/hallsensor_calibration;
+				eeprom_update_float((float*) EE_HALLSENSOR_CAL, calibration_value);
 				valuesum = 0;
 				syslog(LOG_DEBUG, "new calibration factor: %u", (uint32_t) (calibration_value*100.0));
 				hallsensor_calibration = 0;
