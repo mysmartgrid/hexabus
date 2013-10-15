@@ -1,5 +1,7 @@
 #include "hexabus_config.h"
 
+#include <math.h>
+
 #include "epaper.h"
 #include "epd27.h"
 
@@ -146,8 +148,8 @@ void epaper_handle_input(struct hxb_value* val, uint32_t eid)
 
 	if (current_temperature != 0xff && current_humidity != 0xff) {
 		epaper_update_measurement(current_temperature,
-				current_temperature,
-				10 * (current_humidity / 10));
+				round(current_temperature),
+				10 * round(current_humidity / 10.0));
 	} else {
 		syslog(LOG_DEBUG, "Not updating display, not ready (%u %u)", current_temperature, current_humidity);
 	}
