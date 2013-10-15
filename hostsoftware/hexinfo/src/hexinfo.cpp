@@ -257,6 +257,10 @@ bool write_dev_desc_json(const device_descriptor& dev, std::ostream& target, boo
 		target
 			<< "\t]" << std::endl
 			<< "}" << std::endl;
+
+		return true;
+	} else {
+		return false;
 	}
 }
 
@@ -675,9 +679,10 @@ int main(int argc, char** argv)
 
 			out << "{\"devices\": [" << std::endl;
 
+			bool hasWritten = false;
 			for(std::set<device_descriptor>::iterator it = devices.begin(); it != devices.end(); ++it)
 			{
-				write_dev_desc_json(*it, out, it != devices.begin());
+				hasWritten |= write_dev_desc_json(*it, out, hasWritten && it != devices.begin());
 			}
 
 			out << "]}" << std::endl;
