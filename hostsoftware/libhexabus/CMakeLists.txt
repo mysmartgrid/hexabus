@@ -92,14 +92,14 @@ if( LIBKLIO_FOUND )
   FIND_PACKAGE(OpenSSL REQUIRED)
   FIND_PACKAGE(Gnutls REQUIRED)
   add_definitions ("-DBOOST_FILESYSTEM_VERSION=3")
-endif( LIBKLIO_FOUND )
 
-# libjson
-include(FindJson)
-if( NOT JSON_FOUND)
-  message(FATAL_ERROR "libjson ist required. Install json or call cmake -DJSON_HOME=path_to_json_install")
-endif( NOT JSON_FOUND)
-include_directories(${JSON_INCLUDE_DIR})
+  # libjson
+  include(FindJson)
+  if( NOT JSON_FOUND)
+    message(FATAL_ERROR "libjson ist required. Install json or call cmake -DJSON_HOME=path_to_json_install")
+  endif( NOT JSON_FOUND)
+  include_directories(${JSON_INCLUDE_DIR})
+endif( LIBKLIO_FOUND )
 
 # check for curl
 IF(WIN32)
