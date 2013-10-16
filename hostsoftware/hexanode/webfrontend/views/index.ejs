@@ -32,6 +32,19 @@
 		</div> <!-- all-sensors -->
 		<div class="tab-pane" id="all-actors">
 			<h2 class="text-center" data-localize="dashboard.all-actors">All actors</h2>
+			<div class="row-fluid">
+				<div class="span9">
+					<ul class="inline">
+						<li data-ng-repeat="actor in actorList">
+							<div data-vis-endpoint=""
+							     data-endpoint="actor"
+							     data-enable-edit="true"
+							     data-edit-done="editDone">
+							</div>
+						</li>
+					</ul>
+				</div>
+			</div>
 		</div> <!-- all-actors -->
 	</div>
 </div> 

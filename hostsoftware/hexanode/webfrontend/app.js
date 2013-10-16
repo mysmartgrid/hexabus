@@ -371,6 +371,12 @@ io.sockets.on('connection', function (socket) {
 		}
 	});
 
+	socket.on('ep_set', function(msg) {
+		hexabus.write_endpoint(msg.ip, msg.eid, msg.type, msg.value, function(err) {
+			console.log(err);
+		});
+	});
+
 	socket.on('wizard_configure', function() {
 		var wizard = new Wizard();
 

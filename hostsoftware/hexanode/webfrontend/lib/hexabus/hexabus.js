@@ -101,6 +101,16 @@ var hexabus = function() {
 			});
 		});
 	};
+
+	this.read_endpoint = function(ip, eid, cb) {
+	};
+
+	this.write_endpoint = function(ip, eid, type, value, cb) {
+		var command = "hexaswitch set " + ip + " --eid " + eid + " --datatype " + type + " --value " + value;
+		exec(command, function(error, stdout, stderr) {
+			cb(error);
+		});
+	};
 };
 
 module.exports = hexabus;

@@ -12,6 +12,7 @@ angular.module('dashboard', [
 	$scope.lastUpdate = "never";
 
 	$scope.sensorList = {};
+	$scope.actorList = {};
 
 	var updateDisplay = function() {
 		lastSensorValueReceivedAt = new Date();
@@ -26,8 +27,7 @@ angular.module('dashboard', [
 		pendingUpdateControl = $scope.sensorList[endpoint.id].control;
 	};
 
-	$scope.editDone = function(endpoint, data) {
-		console.log(1);
+	var sensorEditDone = function(endpoint, data) {
 		var entry = $scope.sensorList[endpoint.id];
 		if (data.minvalue != undefined) {
 			entry.control.cover();
@@ -42,30 +42,55 @@ angular.module('dashboard', [
 		pendingUpdateControl = null;
 	};
 
-	var epMetadataHandler = function(ep) {
-		if (ep.function == "sensor") {
-			var entry;
-			var new_ep = false;
-			if (!$scope.sensorList[ep.id]) {
-				$scope.sensorList[ep.id] = { ep_desc: {} };
-				new_ep = true;
-			}
-			entry = $scope.sensorList[ep.id];
+	var actorEditDone = function(endpoint, data) {
+		Socket.emit('ep_set', {
+			ip: endpoint.ip,
+			eid: endpoint.eid,
+			type: endpoint.type,
+			value: data.value ? 1 : 0
+		});
+	};
 
-			for (var key in ep) {
-				entry.ep_desc[key] = ep[key];
-			}
-			if (new_ep) {
-				entry.ep_desc.value = 0;
-				entry.ep_desc.has_value = false;
-			}
-
-			if (entry.control) {
-				entry.control.uncover();
-			}
-
-			updateDisplay();
+	$scope.editDone = function(endpoint, data) {
+		if (endpoint.function == "sensor") {
+			sensorEditDone(endpoint, data);
+		} else if (endpoint.function == "actor") {
+			actorEditDone(endpoint, data);
 		}
+	};
+
+	var epMetadataHandler = function(ep) {
+		var target;
+
+		if (ep.function == "actor") {
+			target = $scope.actorList;
+		} else if (ep.function == "sensor") {
+			target = $scope.sensorList;
+		} else {
+			return;
+		}
+
+		var entry;
+		var new_ep = false;
+		if (!target[ep.id]) {
+			target[ep.id] = { ep_desc: {} };
+			new_ep = true;
+		}
+		entry = target[ep.id];
+
+		for (var key in ep) {
+			entry.ep_desc[key] = ep[key];
+		}
+		if (new_ep) {
+			entry.ep_desc.value = 0;
+			entry.ep_desc.has_value = false;
+		}
+
+		if (entry.control) {
+			entry.control.uncover();
+		}
+
+		updateDisplay();
 	};
 
 	Socket.on('clear_state', function() {

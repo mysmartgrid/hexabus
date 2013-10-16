@@ -92,7 +92,7 @@ angular.module('controls', [
 		scope: {
 			endpoint: '=',
 			control: '=',
-			enableEdit: '@',
+			enableEdit: '=',
 			hasValue: '=',
 			editBegin: '=',
 			editDone: '=',
@@ -232,13 +232,72 @@ angular.module('controls', [
 		}
 	};
 }])
+.directive('visBoolSwitch', [function() {
+	return {
+		restrict: 'A',
+		scope: {
+			endpoint: '=',
+			control: '=',
+			enableEdit: '=',
+			editDone: '=',
+			id: '@'
+		},
+		replace: true,
+		template:
+			'<div>' +
+				'<div class="">{{endpoint.name}} [{{endpoint.eid}}]</div>' +
+				'<div class="make-switch" data-on="success" data-off="default">' + 
+					'<input type="checkbox" />' + 
+				'</div>' + 
+			'</div>',
+		compile: function(element, attrs, transclude) {
+			return {
+				post: function(scope, element, attrs, controller) {
+					var control = scope.control = {};
+
+					$elem = $(element).find(".make-switch");
+
+					$elem.bootstrapSwitch();
+
+					Object.defineProperties(control, {
+						enabled: {
+							get: function() { return $elem.bootstrapSwitch('isActive'); },
+							set: function(en) { $elem.bootstrapSwitch('setActive', en); }
+						},
+
+						value: {
+							get: function() { return $elem.bootstrapSwitch('status'); },
+							set: function(val) {
+								$elem.bootstrapSwitch('setState', val);
+							}
+						}
+					});
+
+					control.cover = function() {
+					};
+					control.uncover = function() {
+					};
+
+					$elem.on('switch-change', function(ev, data) {
+						scope.editDone(scope.endpoint, {
+							value: data.value
+						});
+					});
+
+					control.enabled = scope.enableEdit;
+					control.value = scope.endpoint.value;
+				}
+			};
+		}
+	};
+}])
 .directive('visEndpoint', [function() {
 	return {
 		restrict: 'A',
 		scope: {
 			num: '@',
 			endpoint: '=',
-			enableEdit: '@',
+			enableEdit: '=',
 			editBegin: '=',
 			editDone: '=',
 		},
@@ -249,13 +308,25 @@ angular.module('controls', [
 					'<div data-vis-gauge="" ' + 
 						'data-css-class="gauge" ' +
 						'data-endpoint="endpoint.ep_desc" ' +
-						'data-enable-edit="{{enableEdit}}" ' +
+						'data-enable-edit="enableEdit" ' +
 						'data-edit-begin="editBegin" ' +
 						'data-edit-done="editDone" ' +
 						'data-has-value="endpoint.ep_desc.has_value" ' +
 						'data-control="endpoint.control">' + 
 					'</div>' +
 				'</div>' + 
+				'<div data-ng-switch-when="actor">' + 
+					'<div data-ng-switch="endpoint.ep_desc.type">' + 
+						'<div data-ng-switch-when="1">' + 
+							'<div data-vis-bool-switch="vis-bool-switch" ' + 
+								'data-endpoint="endpoint.ep_desc" ' + 
+								'data-enable-edit="enableEdit" ' + 
+								'data-edit-done="editDone" ' +
+								'data-control="endpoint.control">' + 
+							'</div>' +
+						'</div>' +
+					'</div>' +
+				'</div>' +
 			'</div>',
 		compile: function(element, attrs, transclude) {
 			return {
