@@ -86,6 +86,14 @@ ISR(ADC_vect)
 		samplesum = 0;
 		if ( ++valuepos >= 50 ) // mains frequency of 50Hz -> 50 sines per second
 		{
+#if HALLSENSOR_FAULT_ENABLE
+			if ( ( PINC & (1<<HALLSENSOR_FAULT) ) == 0 ) //HALLSENSOR_FAULT is connected to !FAULT of the ACS709
+			{
+				syslog(LOG_DEBUG, "hallsensor fault state detected");
+				average = -1;
+				return;
+			}
+#endif
 			syslog(LOG_DEBUG, "calculated seconds value: %u", valuesum);
 			valuepos = 0;
 			if ( hallsensor_calibration > 0 )

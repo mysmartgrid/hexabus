@@ -109,10 +109,10 @@ _DEBUG options should be set to:
 // TODO: For SCT013-030 LIGHTSENSOR should work just fine - EDIT: according to http://openenergymonitor.org/emon/buildingblocks/ct-sensors-interface the SCT alternates between VACANCY - 1V and VACANCY + 1V therefore some modifications are necessary.
 
 #define HALLSENSOR_ENABLE 1
-#define HALLSENSOR_DEBUG 1
+#define HALLSENSOR_DEBUG 8
 #define HALLSENSOR_PIN 1
 #define HALLSENSOR_REF_PIN 0 // for future use
-#define HALLSENSOR_FAULT_ENABLE 0
+#define HALLSENSOR_FAULT_ENABLE 1
 #define HALLSENSOR_FAULT_EN PC6
 #define HALLSENSOR_FAULT PC7
 
