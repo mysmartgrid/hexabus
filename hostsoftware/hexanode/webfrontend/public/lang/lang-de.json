@@ -19,7 +19,8 @@
 	},
 
 	"dashboard": {
-		"dashboard": "Alle Sensoren"
+		"all-sensors": "Alle Sensoren",
+		"all-actors": "Alle Aktoren"
 	},
 
 	"rename-error": {
@@ -79,13 +80,18 @@
 			"continue": "Gerät trotzdem zurücksetzen",
 			"abort": "Zurück zur Übersicht",
 			"reboot": "Ihre Basisstation wird jetzt neu starten. Bitte warten Sie einige Minuten, bevor Sie wieder auf ihre Basisstation zugreifen."
+		},
+
+		"device-list": {
+			"forget-device": "Gerät entfernen",
+			"forget-dialog": "Möchten Sie das Gerät {device} wirklich entfernen?"
 		}
 	},
 
 	"endpoint-registry": {
 		"descriptions": {
 			"1": "HexabusPlug Relais",
-			"2": "HexabusPlug+ gemessener Verbrauch",
+			"2": "HexabusPlug+ gemessene Leistung",
 			"3": "Raumtemperatursensor",
 			"4": "Interner Button",
 			"5": "Raumfeuchtesensor",
@@ -98,27 +104,27 @@
 			"12": "Statemachine emergency reset ID",
 			"20": "LED / Hexagl0w",
 			"21": "Flukso",
-			"22": "Analogread",
-			"23": "Window shutter",
-			"24": "Hexapush pressed buttons",
-			"25": "Hexapush clicked buttons",
-			"26": "Presence detector",
-			"27": "Hexonoff set",
-			"28": "Hexonoff toggle",
-			"29": "Lightsensor",
-			"30": "IR Receiver",
+			"22": "Analogwerte",
+			"23": "Rollladensteuerung",
+			"24": "Hexapush gedrückte buttons",
+			"25": "Hexapush geclickte buttons",
+			"26": "Bewegungsmelder",
+			"27": "Hexonoff outputs setzen",
+			"28": "Hexonoff outputs umschalten",
+			"29": "Lichtsensor",
+			"30": "IR-Empfänger",
 			"31": "Node liveness",
-			"33": "Generic dial gauge #0",
-			"34": "Generic dial gauge #1",
-			"35": "Generic dial gauge #2",
-			"36": "Generic dial gauge #3",
-			"37": "Generic dial gauge #4",
-			"38": "Generic dial gauge #5",
-			"39": "Generic dial gauge #6",
-			"40": "Generic dial gauge #7",
-			"41": "PV power production measurement",
-			"42": "Power balance (Production - Consumption)",
-			"43": "Battery power balance (in - out)"
+			"33": "Drehknopf #0",
+			"34": "Drehknopf #1",
+			"35": "Drehknopf #2",
+			"36": "Drehknopf #3",
+			"37": "Drehknopf #4",
+			"38": "Drehknopf #5",
+			"39": "Drehknopf #6",
+			"40": "Drehknopf #7",
+			"41": "PV Produktionsmessung",
+			"42": "Netzbezug (Produktion - Verbrauch)",
+			"43": "Batterieleistung (Ladeleistung - Entladeleistung)"
 		}
 	}
 }
