@@ -103,7 +103,7 @@ angular.module('controls', [
 		template:
 			'<div data-ng-gauge="gauge" ' + 
 				'id="{{endpoint.id}}" ' +
-				'class="{{cssClass}} {{cssClass}}-{{endpoint.ip}}" ' +
+				'class="vis-endpoint {{cssClass}}-{{endpoint.ip}}" ' +
 				'data-title-text="{{endpoint.name}} [{{endpoint.unit}}]" ' +
 				'data-min="{{endpoint.minvalue}}" ' +
 				'data-max="{{endpoint.maxvalue}}" ' +
@@ -244,20 +244,24 @@ angular.module('controls', [
 		},
 		replace: true,
 		template:
-			'<div>' +
-				'<div class="">{{endpoint.name}} [{{endpoint.eid}}]</div>' +
-				'<div class="make-switch" data-on="success" data-off="default">' + 
-					'<input type="checkbox" />' + 
-				'</div>' + 
+			'<div class="vis-bool-switch vis-endpoint">' +
+				'<div class="title text-center">{{endpoint.name}} [{{endpoint.eid}}]</div>' +
+				'<div class="switch-container">' +
+					'<div class="make-switch switch-large" data-on="success" data-off="default">' + 
+						'<input type="checkbox" />' + 
+					'</div>' + 
+				'</div>' +
 			'</div>',
 		compile: function(element, attrs, transclude) {
 			return {
 				post: function(scope, element, attrs, controller) {
 					var control = scope.control = {};
 
-					$elem = $(element).find(".make-switch");
+					var $elem = $(element).find(".make-switch");
 
 					$elem.bootstrapSwitch();
+
+					var dropChange = false;
 
 					Object.defineProperties(control, {
 						enabled: {
@@ -268,7 +272,9 @@ angular.module('controls', [
 						value: {
 							get: function() { return $elem.bootstrapSwitch('status'); },
 							set: function(val) {
+								dropChange = true;
 								$elem.bootstrapSwitch('setState', val);
+								dropChange = false;
 							}
 						}
 					});
@@ -279,9 +285,15 @@ angular.module('controls', [
 					};
 
 					$elem.on('switch-change', function(ev, data) {
-						scope.editDone(scope.endpoint, {
-							value: data.value
-						});
+						if (!dropChange) {
+							scope.editDone(scope.endpoint, {
+								value: data.value
+							});
+						}
+					});
+
+					scope.$watch('endpoint.value', function(value) {
+						control.value = value;
 					});
 
 					control.enabled = scope.enableEdit;
