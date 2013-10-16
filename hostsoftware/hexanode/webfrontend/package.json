@@ -1,0 +1,20 @@
+{
+  "name": "hexanode-webfrontend",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "exec js app"
+  },
+  "dependencies": {
+    "express": "*",
+    "connect": "2.7.9",
+    "ejs": "*",
+    "socket.io": "0.9.13",
+    "CBuffer": "*",
+    "request": "*",
+    "nconf": "*",
+    "cookie-signature": "*",
+    "buffer-crc32": "*",
+		"ipv6": "*"
+  }
+}

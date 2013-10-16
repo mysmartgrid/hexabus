@@ -13,7 +13,7 @@ _DEBUG options should be set to:
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 0
+#define UDP_HANDLER_DEBUG 0 
 
 #define ENDPOINT_REGISTRY_DEBUG 0
 
@@ -27,7 +27,7 @@ _DEBUG options should be set to:
 
 // button
 #define BUTTON_HAS_EID 1 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
-#define BUTTON_TOGGLES_RELAY 1 // set to 1 to have the button toggle the relay directly
+#define BUTTON_TOGGLES_RELAY 0 // set to 1 to have the button toggle the relay directly
 
 #define BUTTON_DEBOUNCE_TICKS		1
 #define BUTTON_PIN							PIND
@@ -41,7 +41,7 @@ _DEBUG options should be set to:
 
 // temperature
 #define TEMPERATURE_ENABLE 0
-#define TEMPERATURE_DEBUG 0
+#define TEMPERATURE_DEBUG 1
 #define TEMPERATURE_SENSOR 0 // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
 // value_broadcast
@@ -54,10 +54,11 @@ _DEBUG options should be set to:
 #define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2 // Comma-separated list of eids to be sent to local state machine
 
 // metering
+#define METERING_POWER 1
 #define METERING_IMMEDIATE_BROADCAST 1  // immediately broadcast metering value when change is measured (you still should have the EID in the VALUE_BROADCAST_AUTO_EIDS with some reasonable timeout, so that the value is also broadcast when it reaches and stays at zero)
 #define METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS 1 // number of ticks from the meter until a broadcast is triggered. 1: broadcast every tick ~ roughly every 2 seconds at 100W
 #define METERING_IMMEDIATE_BROADCAST_MINIMUM_TIMEOUT 20 // minimum number of seconds between two broadcasts, to prevent flooding the network
-#define METERING_ENERGY 0
+#define METERING_ENERGY 1
 // CAUTION: METERING_ENERGY_PERSISTENT needs external power-down detection circuit. Refer to the Wiki!
 #define METERING_ENERGY_PERSISTENT 0 // Persistently store energy value (number of pulses) in EEPROM. 
 #define S0_ENABLE 0 //S0 meter instead of internal meter.
@@ -67,7 +68,7 @@ _DEBUG options should be set to:
 #define STATE_MACHINE_DEBUG 0
 
 // state machine uploading via Hexabus packets
-#define SM_UPLOAD_ENABLE 1
+#define SM_UPLOAD_ENABLE 1 
 
 // window blind shutter motor control
 #define SHUTTER_ENABLE 0
@@ -76,10 +77,11 @@ _DEBUG options should be set to:
 #define SHUTTER_INITIAL_POSITON 1
 
 // hexapush
-#define HEXAPUSH_ENABLE 1
+#define HEXAPUSH_ENABLE 0
 #define HEXAPUSH_CLICK_ENABLE 1
 #define HEXAPUSH_PRESS_RELEASE_ENABLE 1
-#define HEXAPUSH_PRESS_DELAY 6   //multiplied by 50ms, only if Click and Press/Release are enabled
+#define HEXAPUSH_PRESS_DELAY 6   // assume Press after $x/CLOCK_CONF_SECOND ms, only if Click and Press/Release are enabled
+#define HEXAPUSH_CLICK_LIMIT 125 // assume click until $x/CLOCK_CONF_SECOND ms
 #define HEXAPUSH_DEBUG 0
 
 // presence detector
@@ -92,7 +94,7 @@ _DEBUG options should be set to:
 #define PRESENCE_DETECTOR_CLIENT_KEEP_ALIVE 60 // in seconds, 0 to disable
 
 // hexonoff
-#define HEXONOFF_ENABLE 1
+#define HEXONOFF_ENABLE 0
 #define HEXONOFF_DEBUG 0
 #define HEXONOFF_INITIAL_VALUE 0
 
@@ -110,24 +112,30 @@ _DEBUG options should be set to:
 
 #define HALLSENSOR_ENABLE 1
 #define HALLSENSOR_DEBUG 8
-#define HALLSENSOR_PIN 1
+#define HALLSENSOR_ADC 1
+#define HALLSENSOR_PIN PA1
+#define HALLSENSOR_PORT PORTA
+#define HALLSENSOR_DDR DDRA
 #define HALLSENSOR_REF_PIN 0 // for future use
 #define HALLSENSOR_FAULT_ENABLE 1
 #define HALLSENSOR_FAULT_EN PC6
 #define HALLSENSOR_FAULT PC7
+#define HALLSENSOR_FAULT_PORT PORTC
+#define HALLSENSOR_FAULT_PIN PINC
+#define HALLSENSOR_FAULT_DDR DDRC
 
 //i2c master
-#define I2C_ENABLE 0
+#define I2C_ENABLE 1
 #define I2C_DEBUG 0
 
 //humidity sensor
 #define HUMIDITY_ENABLE 0
-#define HUMIDITY_DEBUG 0
+#define HUMIDITY_DEBUG 0 
 
 //pressure sensor
-#define PRESSURE_ENABLE 0
-#define PRESSURE_DEBUG 0
-#define PRESSURE_OVERSAMPLING 3  //0 to 3
+#define PRESSURE_ENABLE 0 
+#define PRESSURE_DEBUG 1
+#define PRESSURE_OVERSAMPLING 2  //0 to 3
 
 //ir_receiver
 #define IR_RECEIVER_ENABLE 0

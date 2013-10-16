@@ -1,0 +1,7 @@
+{
+	"name": "wizard",
+	"main": "wizard.js",
+	"dependencies": {
+		"ipv6": "*"
+	}
+}

@@ -1,0 +1,8 @@
+1. Start hexanode web frontend four times (in a screen or so):
+  $ EXPRESS_ENV=production server=10.23.1.253 port=300{0-3} node app.js
+2. Start nginx w/ local configuration:
+  $ sudo nginx -c nginx.conf -p .
+  (reload mit  sudo nginx -s reload)
+3. Run
+  $ sh benchmark.sh
+4. Evaluate.

@@ -48,11 +48,13 @@ ENDPOINT_DESCRIPTOR endpoint_hallsensor = {
 
 void hallsensor_init() {
 #if HALLSENSOR_ENABLE
+	HALLSENSOR_DDR &= ~(1<<HALLSENSOR_PIN);
+	HALLSENSOR_PORT |= (1<<HALLSENSOR_PIN);
 	ADMUX = (0<<REFS1) | (1<<REFS0); // AVCC as reference
 	ADCSRA = (1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2); // prescaler 128
 	ADCSRA |= (1<<ADATE) | (1<<ADIE); // free running adc with interrupt enabled
 	ADCSRB &= ~((1<<ADTS2) | (1<<ADTS1) | (1<<ADTS0));
-	ADMUX = (ADMUX & ~(HALLSENSOR_MUX_BITS)) | (HALLSENSOR_PIN & HALLSENSOR_MUX_BITS); // select pin
+	ADMUX = (ADMUX & ~(HALLSENSOR_MUX_BITS)) | (HALLSENSOR_ADC & HALLSENSOR_MUX_BITS); // select pin
 	ADCSRA |= (1<<ADEN); //enable ADC
 	ADCSRA |= (1<<ADSC); //start first conversion
 
@@ -67,9 +69,9 @@ void hallsensor_init() {
 	calibration_value = eeprom_read_float((float*) EE_HALLSENSOR_CAL);
 #endif
 #if HALLSENSOR_FAULT_ENABLE
-	DDRC |= (1<<HALLSENSOR_FAULT_EN); // PC6 (FAULT_EN) as output
-	PORTC |= (1<<HALLSENSOR_FAULT_EN); // set PC6 high to enable fault detection
-	DDRC &= ~(1<<HALLSENSOR_FAULT); // PC7 (FAULT) as input
+	HALLSENSOR_FAULT_DDR |= (1<<HALLSENSOR_FAULT_EN); // PC6 (FAULT_EN) as output
+	HALLSENSOR_FAULT_PORT |= (1<<HALLSENSOR_FAULT_EN); // set PC6 high to enable fault detection
+	HALLSENSOR_FAULT_DDR &= ~(1<<HALLSENSOR_FAULT); // PC7 (FAULT) as input
 #endif
 }
 
@@ -87,7 +89,7 @@ ISR(ADC_vect)
 		if ( ++valuepos >= 50 ) // mains frequency of 50Hz -> 50 sines per second
 		{
 #if HALLSENSOR_FAULT_ENABLE
-			if ( ( PINC & (1<<HALLSENSOR_FAULT) ) == 0 ) //HALLSENSOR_FAULT is connected to !FAULT of the ACS709
+			if ( ( HALLSENSOR_FAULT_PIN & (1<<HALLSENSOR_FAULT) ) == 0 ) //HALLSENSOR_FAULT is connected to !FAULT of the ACS709
 			{
 				syslog(LOG_DEBUG, "hallsensor fault state detected");
 				average = -1;
