@@ -46,7 +46,6 @@
 #include "packetbuf.h"
 #include "eeprom_variables.h"
 #include "provisioning.h"
-#include "cdc_task.h"
 
 
 #define DEBUG 0
@@ -65,7 +64,8 @@ extern void get_aes128key_from_eeprom(uint8_t*);
 extern uint8_t encryption_enabled;
 
 #define PROVISIONING_HEADER "PROVISIONING"
-#define PROV_TIMEOUT 500
+#define PROV_TIMEOUT_USB 500
+#define PROV_TIMEOUT_SOCKET 30
 
 /** \internal The provisioning message structure. */
 struct provisioning_m_t {
@@ -108,6 +108,8 @@ void provisioning_done_leds(void)
 }
 
 #if RAVEN_REVISION == HEXABUS_USB
+
+#include "cdc_task.h"
 /*
  * the master publishes its PAN ID on the bootloader channel
  */
@@ -146,16 +148,16 @@ PROCESS_THREAD(provisioning_process, ev, data)
 
 	rf212_set_pan_addr(0x0001, 0, NULL);
 	time = clock_time();
-	//Wait max. PROV_TIMEOUTs for provisioning message from Socket that we can start with the transfer
+	//Wait max. PROV_TIMEOUT_USBs for provisioning message from Socket that we can start with the transfer
 		do {
 			PROCESS_PAUSE();
 
-			if (clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT)
+			if (clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT_USB)
 				break;
 			while(!bootloader_pkt) {
 				PROCESS_PAUSE();
 				provisioning_leds();
-				if (clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT)
+				if (clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT_USB)
 					break;
 			}
 			length = rf212_read(packetbuf_dataptr(), PACKETBUF_SIZE);
@@ -167,7 +169,7 @@ PROCESS_THREAD(provisioning_process, ev, data)
 			}
 		} while(packetbuf_datalen() != sizeof(PROVISIONING_HEADER) || strncmp((char*)packetbuf_dataptr(), PROVISIONING_HEADER, sizeof(PROVISIONING_HEADER)));
 	// timer expired
-	if(clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT) {
+	if(clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT_USB) {
 		mac_dst_pan_id = prov_pan_id;
 		mac_src_pan_id = prov_pan_id;
 		rf212_set_pan_addr(prov_pan_id, 0, NULL);
@@ -240,10 +242,10 @@ int provisioning_slave(void) {
 
 	rf212_set_pan_addr(0x0001, 0, NULL);
 	time = clock_time();
-	//Ask Master every 500ms and for max. PROV_TIMEOUTs to start provisioning
+	//Ask Master every 500ms and for max. PROV_TIMEOUT_SOCKETs to start provisioning
 		uint16_t length;
 		do {
-			if (clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT)
+			if (clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT_SOCKET)
 				break;
 			provisioning_leds();
 		    packetbuf_copyfrom(PROVISIONING_HEADER, sizeof(PROVISIONING_HEADER));
@@ -261,7 +263,7 @@ int provisioning_slave(void) {
 			}
 		} while(packetbuf_datalen() != sizeof(struct provisioning_m_t) || strncmp((char*)packetbuf_dataptr(), PROVISIONING_HEADER, sizeof(PROVISIONING_HEADER)));
 	// timer expired
-	if(clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT) {
+	if(clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT_SOCKET) {
 		mac_dst_pan_id = old_pan_id;
 		mac_src_pan_id = old_pan_id;
 		rf212_set_pan_addr(old_pan_id, 0, NULL);

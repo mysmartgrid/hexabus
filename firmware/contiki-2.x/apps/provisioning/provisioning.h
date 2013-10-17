@@ -37,12 +37,11 @@
 
 #include "contiki-conf.h"
 
-PROCESS_NAME(provisioning_process);
-
 /*indicates ongoing provisioning*/
 void provisioning_leds(void);
 
 #if RAVEN_REVISION == HEXABUS_USB
+PROCESS_NAME(provisioning_process);
 int provisioning_master(void);
 #elif RAVEN_REVISION == HEXABUS_SOCKET 
 int provisioning_slave(void);
