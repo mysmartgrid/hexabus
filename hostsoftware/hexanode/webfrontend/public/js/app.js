@@ -73,7 +73,10 @@ angular.module('dashboard', [
 		var entry;
 		var new_ep = false;
 		if (!target[ep.id]) {
-			target[ep.id] = { ep_desc: {} };
+			target[ep.id] = {
+				ep_desc: {},
+				associated: {}
+		 	};
 			new_ep = true;
 		}
 		entry = target[ep.id];
@@ -84,6 +87,32 @@ angular.module('dashboard', [
 		if (new_ep) {
 			entry.ep_desc.value = 0;
 			entry.ep_desc.has_value = false;
+
+			var associate = function(target) {
+				if (target.ep_desc.ip == entry.ep_desc.ip) {
+					var master, slave;
+					if (target.ep_desc.eid == 2 && entry.ep_desc.eid == 1) {
+						master = target;
+						slave = entry;
+					} else if (target.ep_desc.eid == 1 && entry.ep_desc.eid == 2) {
+						master = entry;
+						slave = target;
+					}
+					if (master && slave) {
+						master.associated[slave.ep_desc.id] = {
+							id: slave.ep_desc.id,
+
+							ep: slave
+						};
+					}
+				}
+			};
+			for (var key in $scope.sensorList) {
+				associate($scope.sensorList[key]);
+			}
+			for (var key in $scope.actorList) {
+				associate($scope.actorList[key]);
+			}
 		}
 
 		if (entry.control) {
