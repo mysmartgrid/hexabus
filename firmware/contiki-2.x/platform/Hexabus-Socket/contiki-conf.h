@@ -207,7 +207,7 @@ typedef unsigned long off_t;
 
 #define UIP_CONF_ROUTER                 0
 #define UIP_CONF_ND6_SEND_RA		    0
-#define UIP_CONF_ND6_REACHABLE_TIME     600000
+#define UIP_CONF_ND6_REACHABLE_TIME     6000
 #define UIP_CONF_ND6_RETRANS_TIMER      10000
 
 #undef UIP_CONF_UDP_CONNS

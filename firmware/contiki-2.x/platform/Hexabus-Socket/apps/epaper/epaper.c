@@ -4,6 +4,10 @@
 
 #include "epaper.h"
 #include "epd27.h"
+#include "udp_handler.h"
+
+#include "process.h"
+#include "etimer.h"
 
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
@@ -17,11 +21,18 @@
 
 #include "../../../../shared/endpoints.h"
 
+PROCESS_NAME(epaper_process);
+PROCESS(epaper_process, "HexaBus EPaper display");
+
 void epaper_init(void)
 {
 	epd27_init();
 	at45_init();
+	process_start(&epaper_process, NULL);
 }
+
+
+static bool allow_auto_display = true;
 
 
 static int16_t find_page_index(uint8_t temp, uint8_t hum)
@@ -83,6 +94,9 @@ void epaper_display_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t me
 
 void epaper_update_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes_hum)
 {
+	if (!allow_auto_display)
+		return;
+
 	acquire();
 	
 	static int16_t skipped_update_idx = -1;
@@ -169,4 +183,30 @@ void epaper_display_special(enum epaper_special_screen screen)
 
 end:
 	release();
+}
+
+
+PROCESS_THREAD(epaper_process, ev, data)
+{
+	PROCESS_BEGIN();
+
+	syslog(LOG_INFO, "process startup.");
+
+	while (1) {
+		PROCESS_WAIT_EVENT();
+		if (ev == udp_handler_event) {
+			switch (*(udp_handler_event_t*) data) {
+				case UDP_HANDLER_DOWN:
+					allow_auto_display = false;
+					epaper_display_special(EP_SCREEN_NO_CONNECTION);
+					break;
+
+				case UDP_HANDLER_UP:
+					allow_auto_display = true;
+					break;
+			}
+		}
+	}
+
+	PROCESS_END();
 }

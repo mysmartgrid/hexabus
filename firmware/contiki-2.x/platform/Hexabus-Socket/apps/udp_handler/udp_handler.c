@@ -54,7 +54,14 @@
 #define UDP_IP_BUF ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
 static struct uip_udp_conn *udpconn;
-static struct etimer udp_periodic_timer;
+static struct etimer udp_unreachable_timer;
+static udp_handler_event_t state;
+
+static void reset_unreachable_timer()
+{
+	syslog(LOG_DEBUG, "resetting unreachable timer");
+	etimer_set(&udp_unreachable_timer, 60 * CLOCK_CONF_SECOND);
+}
 
 static uip_ipaddr_t hxb_group;
 
@@ -473,6 +480,14 @@ static enum hxb_error_code handle_info(union hxb_packet_any* packet)
 		return HXB_ERR_SUCCESS;
 	}
 
+	if (uip_ipaddr_cmp(uip_ds6_defrt_choose(), &envelope.src_ip)) {
+		reset_unreachable_timer();
+		if (state == UDP_HANDLER_DOWN) {
+			state = UDP_HANDLER_UP;
+			process_post(PROCESS_BROADCAST, udp_handler_event, &state);
+		}
+	}
+
 	if (packet->value_header.datatype != HXB_DTYPE_DATETIME) {
 #if STATE_MACHINE_ENABLE
 		sm_handle_input(&envelope);
@@ -493,7 +508,12 @@ static enum hxb_error_code handle_info(union hxb_packet_any* packet)
 static void
 udphandler(process_event_t ev, process_data_t data)
 {
-  if (ev == tcpip_event) {
+	if (ev == PROCESS_EVENT_TIMER) {
+		if (etimer_expired(&udp_unreachable_timer)) {
+			state = UDP_HANDLER_DOWN;
+			process_post(PROCESS_BROADCAST, udp_handler_event, &state);
+		}
+	} else if (ev == tcpip_event) {
     if(uip_newdata()) {
 			syslog(LOG_DEBUG, "received '%d' bytes from " LOG_6ADDR_FMT, uip_datalen(), LOG_6ADDR_VAL(UDP_IP_BUF->srcipaddr));
 
@@ -575,7 +595,7 @@ static void print_local_addresses(void) {
 
 /*---------------------------------------------------------------------------*/
 
-process_event_t udp_handler_ready;
+process_event_t udp_handler_event;
 
 PROCESS_THREAD(udp_handler_process, ev, data) {
 //  static uip_ipaddr_t ipaddr;
@@ -586,10 +606,10 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   PROCESS_BEGIN();
 
 	syslog(LOG_INFO, "process startup.");
-	udp_handler_ready = process_alloc_event();
+	udp_handler_event = process_alloc_event();
 
   // wait 3 second, in order to have the IP addresses well configured
-  etimer_set(&udp_periodic_timer, CLOCK_CONF_SECOND*3);
+  etimer_set(&udp_unreachable_timer, CLOCK_CONF_SECOND*3);
   // wait until the timer has expired
   PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_TIMER);
 
@@ -609,9 +629,10 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
 	syslog(LOG_INFO, "Created connection with remote peer " LOG_6ADDR_FMT ", local/remote port %u/%u", LOG_6ADDR_VAL(udpconn->ripaddr), uip_htons(udpconn->lport),uip_htons(udpconn->rport));
 
   print_local_addresses();
-  etimer_set(&udp_periodic_timer, 60*CLOCK_SECOND);
 
-	process_post(PROCESS_BROADCAST, udp_handler_ready, NULL);
+	reset_unreachable_timer();
+	state = UDP_HANDLER_UP;
+	process_post(PROCESS_BROADCAST, udp_handler_event, &state);
 
   while(1) {
     //   tcpip_poll_udp(udpconn);
