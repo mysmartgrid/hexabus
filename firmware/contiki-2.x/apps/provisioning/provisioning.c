@@ -46,6 +46,7 @@
 #include "packetbuf.h"
 #include "eeprom_variables.h"
 #include "provisioning.h"
+#include "cdc_task.h"
 
 
 #define DEBUG 0
@@ -64,7 +65,7 @@ extern void get_aes128key_from_eeprom(uint8_t*);
 extern uint8_t encryption_enabled;
 
 #define PROVISIONING_HEADER "PROVISIONING"
-#define PROV_TIMEOUT 3
+#define PROV_TIMEOUT 500
 
 /** \internal The provisioning message structure. */
 struct provisioning_m_t {
@@ -95,8 +96,8 @@ void provisioning_done_leds(void)
 {
 	leds_off(LEDS_ALL);
 	uint8_t i;
+	watchdog_periodic();
 	for(i=0;i<5;i++){
-		watchdog_periodic();
 		if (i & 1) {
 			leds_on(LEDS_GREEN);
 		} else {
@@ -110,8 +111,25 @@ void provisioning_done_leds(void)
 /*
  * the master publishes its PAN ID on the bootloader channel
  */
-int provisioning_master(void) {
-	clock_time_t time;
+
+int provisioning_master(void)
+{
+	process_start(&provisioning_process, NULL);
+	return 0;
+}
+
+PROCESS(provisioning_process, "Provisioning process");
+
+PROCESS_THREAD(provisioning_process, ev, data)
+{
+	PROCESS_EXITHANDLER(goto exit);
+
+	static clock_time_t time;
+	static uint16_t prov_pan_id;
+	static uint16_t length;
+
+	PROCESS_BEGIN();
+
 	leds_off(LEDS_ALL);
 	PRINTF("provisioning: started as master\n");
 
@@ -121,7 +139,7 @@ int provisioning_master(void) {
 
 	extern uint16_t mac_dst_pan_id;
 	extern uint16_t mac_src_pan_id;
-	uint16_t prov_pan_id = mac_src_pan_id;
+	prov_pan_id = mac_src_pan_id;
 	//set pan_id for frame creation to 0x0001
 	mac_dst_pan_id = 0x0001;
 	mac_src_pan_id = 0x0001;
@@ -129,11 +147,13 @@ int provisioning_master(void) {
 	rf212_set_pan_addr(0x0001, 0, NULL);
 	time = clock_time();
 	//Wait max. PROV_TIMEOUTs for provisioning message from Socket that we can start with the transfer
-		uint16_t length;
 		do {
+			PROCESS_PAUSE();
+
 			if (clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT)
 				break;
 			while(!bootloader_pkt) {
+				PROCESS_PAUSE();
 				provisioning_leds();
 				if (clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT)
 					break;
@@ -152,10 +172,7 @@ int provisioning_master(void) {
 		mac_src_pan_id = prov_pan_id;
 		rf212_set_pan_addr(prov_pan_id, 0, NULL);
 		bootloader_mode = 0;
-		//indicate normal operation
-		leds_off(LEDS_ALL);
-		leds_on(LEDS_GREEN);
-		return -1;
+		printf_P(PSTR(P_FAL_STR));
 	} else {
 
 		struct provisioning_m_t *packet;
@@ -183,16 +200,19 @@ int provisioning_master(void) {
 		NETSTACK_RDC.send(NULL,NULL);
 		packetbuf_clear();
 		encryption_enabled = tmp_enc;
-		provisioning_done_leds();
+		//provisioning_done_leds();
 		mac_dst_pan_id = prov_pan_id;
 		mac_src_pan_id = prov_pan_id;
 		rf212_set_pan_addr(prov_pan_id, 0, NULL);
 		bootloader_mode = 0;
-		//indicate normal operation
-		leds_off(LEDS_ALL);
-		leds_on(LEDS_GREEN);
-		return 0;
+		printf_P(PSTR(P_SUC_STR));
 	}
+
+	exit: ;
+	//indicate normal operation
+	leds_off(LEDS_ALL);
+	leds_on(LEDS_GREEN);
+	PROCESS_END();
 }
 
 

@@ -37,6 +37,8 @@
 
 #include "contiki-conf.h"
 
+PROCESS_NAME(provisioning_process);
+
 /*indicates ongoing provisioning*/
 void provisioning_leds(void);
 

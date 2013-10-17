@@ -99,11 +99,6 @@
 #define IAD_TIMEOUT_DETACH 300
 #define IAD_TIMEOUT_ATTACH 600
 
-#define P_ON_STR "HXB_P_ON"
-#define P_OFF_STR "HXB_P_OFF"
-#define P_SUC_STR "$HXB_P_SUCCESS&\n"
-#define P_FAL_STR "$HXB_P_FAILED&\n"
-
 //_____ D E C L A R A T I O N S ____________________________________________
 
 
@@ -281,12 +276,11 @@ int process_pairing_command(char c) {
 		pairing_pos = 0;
 
 		if(!strcmp_P(parsed_str, PSTR(P_ON_STR))) {
-			//TODO start prov
 			PRINTF_P(PSTR(P_SUC_STR));
 			provisioning_master();
 		} else if(!strcmp_P(parsed_str, PSTR(P_OFF_STR))) {
-			//TODO end prov
-			printf("Stopping\n");
+			PRINTF_P(PSTR(P_SUC_STR));
+			process_exit(&provisioning_process);
 		}
 		return 1;
 
