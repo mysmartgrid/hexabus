@@ -306,12 +306,12 @@ io.sockets.on('connection', function (socket) {
 
 	var devicetree_events = {
 		endpoint_new_value: function(ep) {
-			if (ep.function == "sensor") {
+			if (ep.function == "sensor" || ep.function == "actor") {
 				send_ep_update(ep);
 			}
 		},
 		endpoint_new: function(ep) {
-			if (ep.function == "sensor") {
+			if (ep.function == "sensor" || ep.function == "actor") {
 				socket.emit('ep_new', ep);
 			}
 		},
@@ -373,7 +373,19 @@ io.sockets.on('connection', function (socket) {
 
 	socket.on('ep_set', function(msg) {
 		hexabus.write_endpoint(msg.ip, msg.eid, msg.type, msg.value, function(err) {
-			console.log(err);
+			if (err) {
+				console.log(err);
+			} else {
+				var ep = devicetree.endpoint_by_id(msg.id);
+				if (ep) {
+					ep.last_value = {
+						unix_ts: Math.round(Date.now() / 1000),
+						value: msg.value
+					};
+				} else {
+					console.log("Endpoint not found");
+				}
+			}
 		});
 	});
 

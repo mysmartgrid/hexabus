@@ -46,8 +46,9 @@ angular.module('dashboard', [
 		Socket.emit('ep_set', {
 			ip: endpoint.ip,
 			eid: endpoint.eid,
+			id: endpoint.id,
 			type: endpoint.type,
-			value: data.value ? 1 : 0
+			value: data.value
 		});
 	};
 
@@ -141,13 +142,19 @@ angular.module('dashboard', [
 	Socket.on('ep_update', function(data) {
 		$timeout(function() {
 			var epId = data.ep;
-			if (epId in $scope.sensorList && $scope.sensorList[epId].ep_desc.function == "sensor") {
-				$scope.sensorList[epId].ep_desc.value = data.value.value;
-				$scope.sensorList[epId].hide = false;
-				$scope.sensorList[epId].ep_desc.has_value = true;
+			var ep;
+			if (epId in $scope.sensorList) {
+				var ep = $scope.sensorList[epId];
+			} else if (epId in $scope.actorList) {
+				var ep = $scope.actorList[epId];
 			} else {
 				Socket.emit('ep_request_metadata', epId);
+				return;
 			}
+
+			ep.ep_desc.value = data.value.value;
+			ep.hide = false;
+			ep.ep_desc.has_value = true;
 
 			updateDisplay();
 		});
