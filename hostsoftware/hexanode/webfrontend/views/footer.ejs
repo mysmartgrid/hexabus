@@ -44,8 +44,20 @@
 							localizeLastUpdate: localizeLastUpdate
 						};
 					})
+					.filter('displayUnit', function() {
+						return function(text) {
+							if (text == "degC") {
+								return "°C";
+							} else {
+								return text;
+							}
+						};
+					})
 					.filter('localize', function() {
 						return function(text, prefix, key) {
+							if (key == undefined) {
+								key = text;
+							}
 							var pack = $.localize.data.lang;
 							if (prefix != undefined) {
 								var parts = prefix.split('.');

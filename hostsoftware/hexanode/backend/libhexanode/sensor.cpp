@@ -37,11 +37,7 @@ void Sensor::put(
   PrettyWriter<StringBuffer> writer(b);
   writer.StartObject();
 	jstring(writer, "name", _sensor_name);
-	if (_ep_info.unit() && *_ep_info.unit() == "degC") {
-		jstring(writer, "unit", "°C");
-	} else {
-		jstring(writer, "unit", _ep_info.unit().get_value_or(""));
-	}
+	jstring(writer, "unit", _ep_info.unit().get_value_or(""));
 	jstring(writer, "description", _ep_info.description());
 	switch (_ep_info.function()) {
 		case hexabus::EndpointDescriptor::sensor:
