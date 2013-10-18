@@ -96,13 +96,13 @@ void provisioning_done_leds(void)
 {
 	leds_off(LEDS_ALL);
 	uint8_t i;
-	watchdog_periodic();
 	for(i=0;i<5;i++){
 		if (i & 1) {
 			leds_on(LEDS_GREEN);
 		} else {
 			leds_off(LEDS_GREEN);
 		}
+		watchdog_periodic();
 		_delay_ms(500);
 	}
 }

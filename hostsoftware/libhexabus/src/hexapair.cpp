@@ -9,6 +9,8 @@
 #include <libhexabus/packet.hpp>
 #include <libhexabus/error.hpp>
 #include <libhexabus/socket.hpp>
+#include "../../../shared/endpoints.h"
+#include "../../../shared/hexabus_definitions.h"
 
 #define BAUD 	57600
 #define VENID	0x24ad
@@ -25,6 +27,16 @@ namespace po = boost::program_options;
 namespace ba = boost::asio;
 
 bool verbose = false;
+
+struct rcv_callback {
+	ba::ip::address_v6* ip;
+	ba::io_service* io;
+	void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep)
+	{
+		*ip = asio_ep.address().to_v6();
+		io->stop();
+	}
+};
 
 class hxb_serial {
 public:
@@ -58,7 +70,7 @@ private:
 	int parse_cmd() {
 
 		if(verbose)
-			std::cout << "Testing: " << cmd_buf << std::endl;
+			std::cout << "Read: " << cmd_buf << std::endl;
 
 		if(!cmd_buf.compare(P_SUC_STR)) {
 			if(verbose)
@@ -170,6 +182,7 @@ void timeout(const boost::system::error_code& e, hxb_serial* stick) {
 }
 
 
+
 int main(int argc, char** argv)
 {
 	// the command line interface
@@ -183,7 +196,7 @@ int main(int argc, char** argv)
 		("stop,s", "Cancel a running pairing process")
 		("device,D", po::value<std::string>(), "Use a specific serial device")
 		("baud,B", po::value<unsigned int>(), "Set the baud rate for the serial device.")
-		//("noinfo,n", "Do not ask for device info after pairing is finished")
+		("noinfo,n", "Do not ask for device info after pairing is finished")
 		("verbose,V", "print more status information")
 		;
 
@@ -240,7 +253,22 @@ int main(int argc, char** argv)
 	sdev.set_option(ba::serial_port_base::baud_rate(baud));
 
 	hxb_serial stick(&sdev, &io);
+	
+	hexabus::Socket* network;
 
+	if(!vm.count("noinfo")) {
+		//Initialize network
+
+		try {
+			network = new hexabus::Socket(io);
+		} catch(const hexabus::NetworkException& e) {
+			std::cerr << "Could not open socket: " << e.code().message() << std::endl;
+			return 1;
+		}
+
+		ba::ip::address_v6 bind_addr(ba::ip::address_v6::any());
+		network->listen();
+	}
 
 	//TODO flush buffer
 
@@ -261,9 +289,19 @@ int main(int argc, char** argv)
 			timeout_timer.expires_from_now(boost::posix_time::seconds(vm["timeout"].as<unsigned int>()));
 			timeout_timer.async_wait(boost::bind(&timeout, ba::placeholders::error, &stick));
 
-			stick.start_reading();
-
-			io.run();
+			if(!vm.count("noinfo")) {
+				ba::ip::address_v6 ip;
+				rcv_callback cb = {&ip, &io};
+				boost::signals2::connection con = network->onPacketReceived(cb, hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR));
+				io.run();
+				con.disconnect();
+				if(verbose)
+					std::cout << "Found device: ";
+				std::cout << ip.to_string() << std::endl;
+			} else {
+				stick.start_reading();
+				io.run();
+			}
 
 			timeout_timer.cancel();
 
