@@ -92,13 +92,14 @@ static void broadcast_value_ptr(void* data)
 static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, void* data)
 {
 	struct hxb_value val;
+	enum hxb_error_code err;
 
 	uint32_t eid = *((uint32_t*) data);
 
 	// link binary blobs and strings
 	val.v_string = buffer->p_128string.value;
-	if (endpoint_read(eid, &val)) {
-		return HXB_ERR_SUCCESS;
+	if ((err = endpoint_read(eid, &val))) {
+		return err;
 	}
 
 	buffer->value_header.type = HXB_PTYPE_INFO;

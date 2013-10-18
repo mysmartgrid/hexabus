@@ -54,22 +54,25 @@ static uint16_t adc_get_super_sample(uint8_t channel)
 	return buffer / SUPERSAMPLING_MAX_ITERATION;
 }
 
-static float temperature_adc(uint8_t channel)
+static enum hxb_error_code temperature_adc(uint8_t channel, float* target)
 {
 	uint16_t adc = adc_get_super_sample(channel);
-	return PT100_TEMP_MIN + (PT100_TEMP_MAX - PT100_TEMP_MIN) / (PT100_ADC_MAX - PT100_ADC_MIN) * (float)adc;
+	if (adc == 0 || adc == 1023) {
+		return HXB_ERR_NO_VALUE;
+	} else {
+		*target = PT100_TEMP_MIN + (PT100_TEMP_MAX - PT100_TEMP_MIN) / (PT100_ADC_MAX - PT100_ADC_MIN) * (float)adc;
+		return HXB_ERR_SUCCESS;
+	}
 }
 
 static enum hxb_error_code read_hot(struct hxb_value* value)
 {
-	value->v_float = temperature_adc(PT100_CHANNEL_HOT);
-	return HXB_ERR_SUCCESS;
+	return temperature_adc(PT100_CHANNEL_HOT, &value->v_float);
 }
 
 static enum hxb_error_code read_cold(struct hxb_value* value)
 {
-	value->v_float = temperature_adc(PT100_CHANNEL_COLD);
-	return HXB_ERR_SUCCESS;
+	return temperature_adc(PT100_CHANNEL_COLD, &value->v_float);
 }
 
 static const char ep_hot[] PROGMEM = "Heater inflow temperature";
