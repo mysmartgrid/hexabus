@@ -51,6 +51,8 @@
 #define LOG_LEVEL UDP_HANDLER_DEBUG
 #include "syslog.h"
 
+#include "health.h"
+
 #define UDP_IP_BUF ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
 static struct uip_udp_conn *udpconn;
@@ -508,9 +510,11 @@ udphandler(process_event_t ev, process_data_t data)
 			if (!route_valid && state != UDP_HANDLER_DOWN) {
 				state = UDP_HANDLER_DOWN;
 				process_post(PROCESS_BROADCAST, udp_handler_event, &state);
+				health_update(HE_NO_CONNECTION, true);
 			} else if (route_valid && state == UDP_HANDLER_DOWN) {
 				state = UDP_HANDLER_UP;
 				process_post(PROCESS_BROADCAST, udp_handler_event, &state);
+				health_update(HE_NO_CONNECTION, false);
 			}
 		}
 	} else if (ev == tcpip_event) {

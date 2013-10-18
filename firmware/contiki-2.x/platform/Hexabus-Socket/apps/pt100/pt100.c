@@ -6,6 +6,8 @@
 #define LOG_LEVEL PT100_DEBUG
 #include "syslog.h"
 
+#include "health.h"
+
 #define SUPERSAMPLING_MAX_ITERATION 8
 
 static uint16_t adc_get_single_sample(uint8_t channel);
@@ -65,14 +67,34 @@ static enum hxb_error_code temperature_adc(uint8_t channel, float* target)
 	}
 }
 
+static void channel_live(uint8_t channel, uint8_t live)
+{
+	// keep this bitmask in sync with all users
+	static uint8_t live_channels = 3;
+	if (live) {
+		live_channels |= (1 << channel);
+	} else {
+		live_channels &= ~(1 << channel);
+	}
+	if (!live_channels) {
+		health_update(HE_HARDWARE_DEFECT, 1);
+	} else {
+		health_update(HE_HARDWARE_DEFECT, 0);
+	}
+}
+
 static enum hxb_error_code read_hot(struct hxb_value* value)
 {
-	return temperature_adc(PT100_CHANNEL_HOT, &value->v_float);
+	enum hxb_error_code err = temperature_adc(PT100_CHANNEL_HOT, &value->v_float);
+	channel_live(0, !err);
+	return err;
 }
 
 static enum hxb_error_code read_cold(struct hxb_value* value)
 {
-	return temperature_adc(PT100_CHANNEL_COLD, &value->v_float);
+	enum hxb_error_code err = temperature_adc(PT100_CHANNEL_COLD, &value->v_float);
+	channel_live(1, !err);
+	return err;
 }
 
 static const char ep_hot[] PROGMEM = "Heater inflow temperature";

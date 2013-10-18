@@ -128,7 +128,7 @@ _DEBUG options should be set to:
 
 // epaper display and at45 driver
 #define EPAPER_ENABLE 1
-#define EPAPER_DEBUG 9
+#define EPAPER_DEBUG 0
 
 //pt100 temperatur sensors for heater
 #define PT100_ENABLE 1

@@ -19,6 +19,8 @@
 #define LOG_LEVEL EPAPER_DEBUG
 #include "syslog.h"
 
+#include "health.h"
+
 #include "../../../../shared/endpoints.h"
 
 PROCESS_NAME(epaper_process);
@@ -150,6 +152,13 @@ end:
 static uint8_t current_temperature = 0xff;
 static uint8_t current_humidity = 0xff;
 
+static void render_current()
+{
+		epaper_update_measurement(current_temperature,
+				round(current_temperature),
+				10 * round(current_humidity / 10.0));
+}
+
 void epaper_handle_input(struct hxb_value* val, uint32_t eid)
 {
 	if (eid == EP_TEMPERATURE) {
@@ -161,9 +170,7 @@ void epaper_handle_input(struct hxb_value* val, uint32_t eid)
 	}
 
 	if (current_temperature != 0xff && current_humidity != 0xff) {
-		epaper_update_measurement(current_temperature,
-				round(current_temperature),
-				10 * round(current_humidity / 10.0));
+		render_current();
 	} else {
 		syslog(LOG_DEBUG, "Not updating display, not ready (%u %u)", current_temperature, current_humidity);
 	}
@@ -194,22 +201,24 @@ end:
 
 PROCESS_THREAD(epaper_process, ev, data)
 {
-	PROCESS_BEGIN();
+	static char defect_locked = false;
 
-	syslog(LOG_INFO, "process startup.");
+	PROCESS_BEGIN();
 
 	while (1) {
 		PROCESS_WAIT_EVENT();
-		if (ev == udp_handler_event) {
-			switch (*(udp_handler_event_t*) data) {
-				case UDP_HANDLER_DOWN:
-					allow_auto_display = false;
-					epaper_display_special(EP_SCREEN_NO_CONNECTION);
-					break;
-
-				case UDP_HANDLER_UP:
-					allow_auto_display = true;
-					break;
+		if (!defect_locked && ev == health_event) {
+			health_status_t status = *(health_status_t*) data;
+			if (status & HE_HARDWARE_DEFECT) {
+				allow_auto_display = false;
+				defect_locked = true;
+				epaper_display_special(EP_SCREEN_HARDWARE_ERROR);
+			} else if (status & HE_NO_CONNECTION) {
+				allow_auto_display = false;
+				epaper_display_special(EP_SCREEN_NO_CONNECTION);
+			} else {
+				allow_auto_display = true;
+				render_current();
 			}
 		}
 	}

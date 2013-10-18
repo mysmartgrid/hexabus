@@ -129,6 +129,7 @@
 #include "hexasense.h"
 #endif
 
+#include "health.h"
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -216,6 +217,8 @@ void initialize(void)
 #if ANNOUNCE_BOOT
   PRINTF("\n*******Booting %s*******\n",CONTIKI_VERSION_STRING);
 #endif
+
+	health_event = process_alloc_event();
 
 /* rtimers needed for radio cycling */
   rtimer_init();
