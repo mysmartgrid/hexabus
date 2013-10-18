@@ -4,6 +4,8 @@
 	known_hexabus_devices = <%- JSON.stringify(devices) %>;
 </script>
 
+<a href="/wizard/devices/add" class="btn" data-localize="wizard.devices.add">Add device</a>
+
 <div class="container" data-ng-controller="devicesList">
 	<table class="table table-hover">
 		<tr data-ng-repeat="device in devices">

@@ -1,0 +1,35 @@
+<% include ../header %>
+
+<div id="add_device"  class="container" data-ng-controller="devicesAdd">
+	<div data-ng-hide="searching || found || error">
+		<h3 data-localize="wizard.devices.add">Add device</h3>
+		<p class="lead" data-localize="wizard.devices.enable-pairing">Some motivational text, that we will soon add a device.</p>
+		<button class="btn btn-success" data-ng-click="search()" data-localize="wizard.devices.add">Add device</button>
+	</div>
+	<div data-ng-show="searching">
+		<h3 data-localize="wizard.devices.searching">Searching for new device</h3>
+		<p class="lead" data-localize="wizard.devices.push-button">Please push the button on your device for three seconds.</p>
+		<img src="/img/spinner-large.gif" alt="" />
+	</div>
+	<div data-ng-show="error">
+		<h3 class="text-error" data-localize="wizard.devices.error">No device found</h3>
+		<p class="lead" data-localize="wizard.devices.errormsg">Could not find any device: {{errormsg}}</p>
+	</div>
+	<div data-ng-show="found">
+		<h3 data-localize="wizard.devices.found">New device found</h3>
+		<p class="lead" data-localize="wizard.devices.ready">Your device is now ready to be used.</p>
+		<table class="table">
+			<tr >
+				<th>
+					<p>{{device.name}}</p>
+					<p>{{device.ip}}</p>
+				</th>
+				<td>
+					<p data-ng-repeat="eid in device.eids">{{eid}}</p>
+				</td>
+			</tr>
+		</table>
+	</div>
+</div>
+
+<% include ../footer %>

@@ -64,6 +64,15 @@
 			"to-dashboard": "Weiter zur Übersicht"
 		},
 
+		"devices": {
+			"add": "Gerät hinzufügen",
+			"enable-pairing": "Motivierender Text",
+			"searching": "Suche nach neuem Gerät",
+			"push-button": "Bitte drücken Sie den Knopf an ihrem Gerät für drei Sekunden.",
+			"found": "Neues Gerät gefunden",
+			"ready": "Ihr Gerät ist jetzt einsatzbereit."
+		},
+
 		"current": {
 			"lan-addrs": "Adressen im lokalen Netz",
 			"hxb-addrs": "Adressen im Hexabus-Netz",

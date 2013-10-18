@@ -244,4 +244,25 @@ angular.module('dashboard', [
 
 	Socket.on('sensor_new', on_sensor_metadata);
 	Socket.on('sensor_metadata', on_sensor_metadata);
+}])
+.controller('devicesAdd', ['$scope', 'Socket', 'Lang', function($scope, Socket, Lang) {
+	
+	$scope.search = function() {
+		console.log("Searching");
+		Socket.emit('devices_add');
+		$scope.searching = true;
+	};
+
+	var on_device_found = function(msg) {
+		$scope.searching = false;
+		if(msg.error !== undefined) {
+			$scope.error = true;
+			$scope.errormsg = msg.error;
+		} else {
+			$scope.device = msg.device;
+			$scope.found = true;
+		}
+	}
+
+	Socket.on('device_found', on_device_found);
 }]);

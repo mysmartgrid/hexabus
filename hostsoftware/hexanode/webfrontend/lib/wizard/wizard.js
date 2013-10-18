@@ -74,6 +74,19 @@ var Wizard = function() {
 			: 'sudo rm -f /etc/hexabus_msg_bridge.conf; sudo svc -k /etc/service/hexabus_msg_bridge';
 		exec(script, cb);
 	};
+
+	this.addDevice = function(cb) {
+		var script = nconf.get('debug-wizard')
+			? 'sleep 1 && cat tools/device.json'
+			: 'sudo hexapair';
+		exec(script, function(error, stdout, stderr) {
+			if (error) {
+				cb({ device: stdout, error: stderr });
+			} else {
+				cb({ device: JSON.parse(stdout), error: undefined });
+			}
+		});
+	};
 };
 
 module.exports = Wizard;

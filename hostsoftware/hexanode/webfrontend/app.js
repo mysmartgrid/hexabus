@@ -167,7 +167,7 @@ app.post('/api/device/rename/:ip', function(req, res) {
 
 app.get('/', function(req, res) {
 	fs.exists('/etc/radvd.conf', function(exists) {
-		if (exists) {
+		if (!exists) {
 			res.render('index.ejs', { active_tabpage: 'dashboard' });
 		} else {
 			res.redirect('/wizard/new');
@@ -253,6 +253,9 @@ app.get('/wizard/devices', function(req, res) {
 	}
 
 	res.render('wizard/devices.ejs', { active_tabpage: 'configuration', devices: devices });
+});
+app.get('/wizard/devices/add', function(req, res) {
+	res.render('wizard/add_device.ejs', { active_tabpage: 'configuration' });
 });
 app.get('/wizard/:step', function(req, res) {
 	res.render('wizard/' + req.params.step  + '.ejs', { active_tabpage: 'configuration' });
@@ -345,6 +348,14 @@ io.sockets.on('connection', function (socket) {
 
 		wizard.registerMSG(function(progress) {
 			socket.emit('wizard_register_step', progress);
+		});
+	});
+
+	socket.on('devices_add', function() {
+		var wizard = new Wizard();
+
+		wizard.addDevice(function(msg) {
+			socket.emit('device_found', msg);
 		});
 	});
 
