@@ -59,8 +59,7 @@ static udp_handler_event_t state;
 
 static void reset_unreachable_timer()
 {
-	syslog(LOG_DEBUG, "resetting unreachable timer");
-	etimer_set(&udp_unreachable_timer, 60 * CLOCK_CONF_SECOND);
+	etimer_set(&udp_unreachable_timer, 2 * CLOCK_CONF_SECOND);
 }
 
 static uip_ipaddr_t hxb_group;
@@ -480,14 +479,6 @@ static enum hxb_error_code handle_info(union hxb_packet_any* packet)
 		return HXB_ERR_SUCCESS;
 	}
 
-	if (uip_ipaddr_cmp(uip_ds6_defrt_choose(), &envelope.src_ip)) {
-		reset_unreachable_timer();
-		if (state == UDP_HANDLER_DOWN) {
-			state = UDP_HANDLER_UP;
-			process_post(PROCESS_BROADCAST, udp_handler_event, &state);
-		}
-	}
-
 	if (packet->value_header.datatype != HXB_DTYPE_DATETIME) {
 #if STATE_MACHINE_ENABLE
 		sm_handle_input(&envelope);
@@ -510,8 +501,17 @@ udphandler(process_event_t ev, process_data_t data)
 {
 	if (ev == PROCESS_EVENT_TIMER) {
 		if (etimer_expired(&udp_unreachable_timer)) {
-			state = UDP_HANDLER_DOWN;
-			process_post(PROCESS_BROADCAST, udp_handler_event, &state);
+			reset_unreachable_timer();
+			uip_ds6_defrt_t* rtr = uip_ds6_defrt_lookup(uip_ds6_defrt_choose());
+			bool expired = stimer_expired(&rtr->lifetime);
+			bool route_valid = rtr && rtr->isused && (rtr->isinfinite || !expired);
+			if (!route_valid && state != UDP_HANDLER_DOWN) {
+				state = UDP_HANDLER_DOWN;
+				process_post(PROCESS_BROADCAST, udp_handler_event, &state);
+			} else if (route_valid && state == UDP_HANDLER_DOWN) {
+				state = UDP_HANDLER_UP;
+				process_post(PROCESS_BROADCAST, udp_handler_event, &state);
+			}
 		}
 	} else if (ev == tcpip_event) {
     if(uip_newdata()) {

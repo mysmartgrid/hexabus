@@ -411,7 +411,7 @@ void initialize(void)
 #endif /* ANNOUNCE_BOOT */
 #if EPAPER_ENABLE
 	epaper_init();
-//	epaper_display_special(EP_SCREEN_BOOT);
+	epaper_display_special(EP_SCREEN_BOOT);
 #endif
 #if HEXASENSE_ENABLE
 	hexasense_init();

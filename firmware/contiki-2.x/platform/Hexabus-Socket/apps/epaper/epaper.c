@@ -91,6 +91,7 @@ void epaper_display_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t me
 	release();
 }
 
+static uint32_t last_update_at = 0;
 
 void epaper_update_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes_hum)
 {
@@ -100,7 +101,6 @@ void epaper_update_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes
 	acquire();
 	
 	static int16_t skipped_update_idx = -1;
-	static uint32_t last_update_at = 0;
 
 	// clamp temperature to first out-of-range values, as those are rendered
 	// as "<X" and ">Y", respectively
@@ -173,9 +173,15 @@ void epaper_display_special(enum epaper_special_screen screen)
 {
 	acquire();
 
+	// this works well enough as a "force redraw" flag
+	last_update_at = 0;
+
 	uint16_t page_idx = index_get_special_screen(screen);
 	if (!page_idx) {
 		syslog(LOG_ERR, "Could not dislay special screen %i", screen);
+		goto end;
+	} else if (page_idx == old_idx) {
+		syslog(LOG_INFO, "Screen %i already displayed", screen);
 		goto end;
 	}
 
