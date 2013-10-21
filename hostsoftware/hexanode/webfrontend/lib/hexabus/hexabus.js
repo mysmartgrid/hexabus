@@ -97,6 +97,7 @@ var hexabus = function() {
 					devices.forEach(function(dev) {
 						cb({ device: dev });
 					});
+					cb({ done: true });
 				}
 			});
 		});

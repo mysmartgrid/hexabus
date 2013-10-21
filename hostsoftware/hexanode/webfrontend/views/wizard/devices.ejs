@@ -20,6 +20,9 @@
 			</td>
 		</tr>
 	</table>
+	<div data-ng-show="!scanDone" class="text-center">
+		<img src="/img/spinner-small.gif" alt="Searching" /> <span data-localize="wizard.device-list.scanning">Searching for devices</span>
+	</div>
 </div>
 
 <% include ../footer %>

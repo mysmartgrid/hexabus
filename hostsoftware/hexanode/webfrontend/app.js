@@ -52,9 +52,12 @@ var save_devicetree = function(cb) {
 	devicetree.save(devicetree_file, cb || Object);
 };
 
-var enumerate_network = function() {
+var enumerate_network = function(cb) {
+	cb = cb || Object;
 	hexabus.enumerate_network(function(dev) {
-		if (dev.error) {
+		if (dev.done) {
+			cb();
+		} else if (dev.error) {
 			console.log(dev.error);
 		} else {
 			dev = dev.device;
@@ -417,6 +420,12 @@ io.sockets.on('connection', function (socket) {
 		} catch (e) {
 			console.log({ msg: msg, error: e });
 		}
+	});
+
+	socket.on('devices_enumerate', function() {
+		enumerate_network(function() {
+			socket.emit('devices_enumerate_done');
+		});
 	});
 
 	socket.emit('clear_state');

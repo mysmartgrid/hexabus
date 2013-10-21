@@ -305,6 +305,12 @@ angular.module('dashboard', [
 		}
 	});
 
+	Socket.emit('devices_enumerate');
+
+	Socket.on('devices_enumerate_done', function() {
+		$scope.scanDone = true;
+	});
+
 	$scope.remove = function(device) {
 		var message = "Do you really want to remove {device}?";
 
