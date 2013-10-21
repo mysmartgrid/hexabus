@@ -137,7 +137,8 @@ angular.module('controls', [
 				'<div data-ng-gauge="gauge" ' + 
 					'id="{{endpoint.ep_desc.id}}" ' +
 					'class="vis-endpoint {{cssClass}}-{{endpoint.ep_desc.ip}}" ' +
-					'data-title-text="{{endpoint.ep_desc.name}} [{{endpoint.ep_desc.unit}}]" ' +
+					'data-title-text="{{endpoint.ep_desc.name}} [{{endpoint.ep_desc.unit | displayUnit | ' + 
+						'localize:\'endpoint-registry.units\'}}]" ' +
 					'data-min="{{endpoint.ep_desc.minvalue}}" ' +
 					'data-max="{{endpoint.ep_desc.maxvalue}}" ' +
 					'data-value="{{endpoint.ep_desc.value}}" ' +
@@ -163,10 +164,10 @@ angular.module('controls', [
 						content: function() {
 							var html =
 								'<div data-vis-associated-functions="associated-functions" ' + 
-								'data-endpoint="endpoint" ' + 
-								'data-enable-edit="enableEdit" ' +
-								'data-edit-begin="editBegin" ' +
-								'data-edit-done="editDone"></div>';
+									'data-endpoint="endpoint" ' + 
+									'data-enable-edit="enableEdit" ' +
+									'data-edit-begin="editBegin" ' +
+									'data-edit-done="editDone"></div>';
 							return $compile(html)(scope);
 						},
 						placement: "bottom",

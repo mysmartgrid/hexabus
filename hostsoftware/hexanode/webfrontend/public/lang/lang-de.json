@@ -125,6 +125,10 @@
 			"41": "PV Produktionsmessung",
 			"42": "Netzbezug (Produktion - Verbrauch)",
 			"43": "Batterieleistung (Ladeleistung - Entladeleistung)"
+		},
+
+		"units": {
+			"%r.h.": "rF"
 		}
 	}
 }

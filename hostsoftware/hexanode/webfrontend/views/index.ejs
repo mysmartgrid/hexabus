@@ -18,7 +18,7 @@
 				<div class="span9">
 					<ul class="inline">
 						<li data-ng-repeat="sensor in sensorList"
-						    data-ng-hide="sensor.hide">
+						    data-ng-hide="sensor.hide || !sensor.ep_desc.unit">
 							<div data-vis-endpoint=""
 							     data-endpoint="sensor"
 							     data-enable-edit="true"
