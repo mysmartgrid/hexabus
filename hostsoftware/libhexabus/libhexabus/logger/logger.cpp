@@ -47,7 +47,7 @@ const char* Logger::eid_to_unit(uint32_t eid)
 	}
 }
 
-void Logger::on_sensor_name_received(const std::string& sensor_id, const hexabus::Packet& ep_info)
+void Logger::on_sensor_name_received(const std::string& sensor_id, const boost::asio::ip::address_v6& address, const hexabus::Packet& ep_info)
 {
 	klio::Sensor::Ptr sensor = sensor_factory.createSensor(
 			sensor_id,
@@ -55,7 +55,7 @@ void Logger::on_sensor_name_received(const std::string& sensor_id, const hexabus
 			eid_to_unit(new_sensor_backlog[sensor_id].first),
 			sensor_timezone);
 
-	new_sensor_found(sensor);
+	new_sensor_found(sensor, address);
 	sensor_cache.insert(std::make_pair(sensor_id, sensor));
 
 	new_sensor_t& backlog = new_sensor_backlog[sensor_id];
@@ -113,7 +113,7 @@ void Logger::accept_packet(double value, uint32_t eid)
 					source,
 					hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR),
 					hexabus::filtering::IsEndpointInfo(),
-					boost::bind(&Logger::on_sensor_name_received, this, sensor_id, _1),
+					boost::bind(&Logger::on_sensor_name_received, this, sensor_id, source, _1),
 					boost::bind(&Logger::on_sensor_error, this, sensor_id, _1));
 		}
 		new_sensor_backlog[sensor_id].second.insert(std::make_pair(now, value));

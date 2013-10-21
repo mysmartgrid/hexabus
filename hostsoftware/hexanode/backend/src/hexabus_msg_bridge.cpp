@@ -9,6 +9,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/optional.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <libklio/store.hpp>
 #include <libklio/store-factory.hpp>
@@ -21,11 +22,22 @@
 
 #include <libhexabus/logger/logger.hpp>
 
+#include "../../../shared/endpoints.h"
+
 namespace po = boost::program_options;
 
 struct ReadingLogger : public hexabus::Logger {
 	private:
+		struct SensorInfo {
+			boost::posix_time::ptime last_value_received_at;
+			boost::posix_time::ptime last_name_checked_at;
+			boost::asio::ip::address_v6 address;
+		};
+
+		hexabus::Socket& socket;
 		klio::Store::Ptr store;
+		std::map<klio::Sensor::Ptr, SensorInfo> sensor_infos;
+		boost::asio::deadline_timer info_timer;
 		
 		static const char* UNKNOWN_UNIT;
 
@@ -48,18 +60,36 @@ struct ReadingLogger : public hexabus::Logger {
 		klio::Sensor::Ptr lookup_sensor(const std::string& id)
 		{
 			try {
-				return store->get_sensor_by_external_id(id);
+				klio::Sensor::Ptr ptr = store->get_sensor_by_external_id(id);
+
+				if (ptr) {
+					std::string addr_str = id.substr(0, id.find_first_of('-'));
+
+					SensorInfo info = {
+						boost::posix_time::second_clock::local_time(),
+						boost::posix_time::second_clock::local_time(),
+						boost::asio::ip::address_v6::from_string(addr_str)
+					};
+					sensor_infos.insert(std::make_pair(ptr, info));
+				}
+				return ptr;
 			} catch (...) {
 				return klio::Sensor::Ptr();
 			}
 		}
 
-		void new_sensor_found(klio::Sensor::Ptr sensor)
+		void new_sensor_found(klio::Sensor::Ptr sensor, const boost::asio::ip::address_v6& address)
 		{
 			if (sensor->unit() == UNKNOWN_UNIT)
 				return;
 
 			store->add_sensor(sensor);
+			SensorInfo info = {
+				boost::posix_time::second_clock::local_time(),
+				boost::posix_time::second_clock::local_time(),
+				address
+			};
+			sensor_infos.insert(std::make_pair(sensor, info));
 			std::cout << "Created new sensor: " << sensor->str() << std::endl;
 		}
 
@@ -67,6 +97,8 @@ struct ReadingLogger : public hexabus::Logger {
 		{
 			if (sensor->unit() == UNKNOWN_UNIT)
 				return;
+
+			sensor_infos[sensor].last_value_received_at = boost::posix_time::second_clock::local_time();
 
 			try {
 				store->add_reading(sensor, ts, value);
@@ -78,15 +110,66 @@ struct ReadingLogger : public hexabus::Logger {
 			}
 		}
 
+		void arm_timer()
+		{
+			info_timer.expires_from_now(boost::posix_time::minute(1));
+			info_timer.async_wait(boost::bind(&ReadingLogger::timer_expired, this, _1));
+		}
+
+		void timer_expired(const boost::system::error_code& err)
+		{
+			using namespace boost::posix_time;
+
+			arm_timer();
+			if (!err) {
+				typedef std::map<klio::Sensor::Ptr, SensorInfo>::iterator iter_t;
+
+				iter_t item = sensor_infos.end();
+				for (iter_t it = sensor_infos.begin(), end = sensor_infos.end(); it != end; it++) {
+					if (item == end
+							|| it->second.last_name_checked_at < item->second.last_name_checked_at) {
+						item = it;
+					}
+				}
+				if (item == sensor_infos.end()) {
+					return;
+				}
+
+				SensorInfo& oldest = item->second;
+
+				if (second_clock::local_time() - oldest.last_name_checked_at >= hour(1)) {
+					oldest.last_name_checked_at = second_clock::local_time();
+					interrogator.send_request(
+							oldest.address,
+							hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR),
+							hexabus::filtering::IsEndpointInfo(),
+							boost::bind(&ReadingLogger::on_sensor_name_received, this, item->first, _1),
+							boost::bind(&ReadingLogger::on_sensor_error, this, item->first, _1));
+				}
+			}
+		}
+
+		void on_sensor_name_received(const klio::Sensor::Ptr& sensor, const hexabus::Packet& ep_info)
+		{
+			sensor->name(static_cast<const hexabus::EndpointInfoPacket&>(ep_info).value());
+			store->update_sensor(sensor);
+		}
+
+		void on_sensor_error(const klio::Sensor::Ptr& sensor, const hexabus::GenericException& err)
+		{
+		}
+
 	public:
-		ReadingLogger(klio::TimeConverter& tc,
+		ReadingLogger(hexabus::Socket& socket,
+			klio::TimeConverter& tc,
 			klio::SensorFactory& sensor_factory,
 			const std::string& sensor_timezone,
 			hexabus::DeviceInterrogator& interrogator,
 			hexabus::EndpointRegistry& registry,
 			klio::Store::Ptr store)
-			: Logger(tc, sensor_factory, sensor_timezone, interrogator, registry), store(store)
+			: Logger(tc, sensor_factory, sensor_timezone, interrogator, registry), socket(socket), store(store), info_timer(socket.ioService())
 		{
+			arm_timer();
 		}
 };
 const char* ReadingLogger::UNKNOWN_UNIT = "unknown";
@@ -303,7 +386,7 @@ int main(int argc, char** argv)
 
 				hexabus::DeviceInterrogator interrogator(socket);
 				hexabus::EndpointRegistry registry;
-				ReadingLogger logger(*tc, *sensor_factory, timezone, interrogator, registry, store);
+				ReadingLogger logger(socket, *tc, *sensor_factory, timezone, interrogator, registry, store);
 
 				socket.onPacketReceived(boost::ref(logger));
 
