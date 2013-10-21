@@ -69,6 +69,8 @@ def exclude_all(netlist):
 				next.extend(net.address_exclude(i))
 			elif net_contains(i, net):
 				next.extend(i.address_exclude(net))
+			else:
+				next.extend([net])
 		result = next
 	return result
 
@@ -142,7 +144,7 @@ def generate_radvd_fragment(prefix, interface, adv_interval, routes = None):
 interface {0} {{
 	IgnoreIfMissing on;
 	AdvSendAdvert on;
-	MaxRtrAdvInterval {{1}};
+	MaxRtrAdvInterval {1};
 
 """.format(interface, adv_interval)
 	prefix_fragment = ""
@@ -174,7 +176,7 @@ if __name__ == '__main__':
 		nets = select_networks(prefixes, viable)
 
 		eth_iface = generate_interfaces_fragment(nets[0], args.eth)
-		eth_radvd = generate_radvd_fragment(nets[0], args.eth, 600, [nets[1]])
+		eth_radvd = generate_radvd_fragment(nets[0], args.eth, 600, [nets[1].supernet(1)])
 
 		hxb_iface = generate_interfaces_fragment(nets[1], args.hxb)
 		hxb_radvd = generate_radvd_fragment(nets[1], args.hxb, 40, [ipaddress.IPv6Network("::/0")])
