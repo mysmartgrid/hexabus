@@ -154,9 +154,13 @@ static uint8_t current_humidity = 0xff;
 
 static void render_current()
 {
+	if (current_temperature != 0xff && current_humidity != 0xff) {
 		epaper_update_measurement(current_temperature,
 				round(current_temperature),
 				10 * round(current_humidity / 10.0));
+	} else {
+		syslog(LOG_DEBUG, "Not updating display, not ready (%u %u)", current_temperature, current_humidity);
+	}
 }
 
 void epaper_handle_input(struct hxb_value* val, uint32_t eid)
@@ -169,11 +173,7 @@ void epaper_handle_input(struct hxb_value* val, uint32_t eid)
 		return;
 	}
 
-	if (current_temperature != 0xff && current_humidity != 0xff) {
-		render_current();
-	} else {
-		syslog(LOG_DEBUG, "Not updating display, not ready (%u %u)", current_temperature, current_humidity);
-	}
+	render_current();
 }
 
 void epaper_display_special(enum epaper_special_screen screen)
@@ -201,17 +201,14 @@ end:
 
 PROCESS_THREAD(epaper_process, ev, data)
 {
-	static char defect_locked = false;
-
 	PROCESS_BEGIN();
 
 	while (1) {
 		PROCESS_WAIT_EVENT();
-		if (!defect_locked && ev == health_event) {
+		if (ev == health_event) {
 			health_status_t status = *(health_status_t*) data;
 			if (status & HE_HARDWARE_DEFECT) {
 				allow_auto_display = false;
-				defect_locked = true;
 				epaper_display_special(EP_SCREEN_HARDWARE_ERROR);
 			} else if (status & HE_NO_CONNECTION) {
 				allow_auto_display = false;

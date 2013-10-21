@@ -44,10 +44,10 @@ static enum hxb_error_code read(struct hxb_value* value)
 {
 #if TEMPERATURE_SENSOR == 1
   if (read_humidity_temp(&value->v_float)) {
-		health_update(HE_HARDWARE_DEFECT, 0);
+		health_update(HE_HYT_BROKEN, 0);
 		return HXB_ERR_SUCCESS;
 	} else {
-		health_update(HE_HARDWARE_DEFECT, 1);
+		health_update(HE_HYT_BROKEN, 1);
 		return HXB_ERR_NO_VALUE;
 	}
 #else

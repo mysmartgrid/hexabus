@@ -77,9 +77,9 @@ static void channel_live(uint8_t channel, uint8_t live)
 		live_channels &= ~(1 << channel);
 	}
 	if (!live_channels) {
-		health_update(HE_HARDWARE_DEFECT, 1);
+		health_update(HE_PT100_BROKEN, 1);
 	} else {
-		health_update(HE_HARDWARE_DEFECT, 0);
+		health_update(HE_PT100_BROKEN, 0);
 	}
 }
 
