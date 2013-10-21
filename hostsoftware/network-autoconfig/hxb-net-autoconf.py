@@ -126,7 +126,7 @@ allow-hotplug {0}
 	else:
 		return (header + static).format(interface, next(prefix.hosts()), prefix.prefixlen)
 
-def generate_radvd_fragment(prefix, interface, routes = None):
+def generate_radvd_fragment(prefix, interface, adv_interval, routes = None):
 	"""Generate a radvd.conf fragment to announce a given prefix, possibly with routes
 
 	Args:
@@ -142,8 +142,9 @@ def generate_radvd_fragment(prefix, interface, routes = None):
 interface {0} {{
 	IgnoreIfMissing on;
 	AdvSendAdvert on;
+	MaxRtrAdvInterval {{1}};
 
-""".format(interface)
+""".format(interface, adv_interval)
 	prefix_fragment = ""
 	if prefix is not None:
 		prefix_fragment = "\tprefix {0} {{ }};\n".format(prefix)
@@ -173,10 +174,10 @@ if __name__ == '__main__':
 		nets = select_networks(prefixes, viable)
 
 		eth_iface = generate_interfaces_fragment(nets[0], args.eth)
-		eth_radvd = generate_radvd_fragment(nets[0], args.eth, [nets[1]])
+		eth_radvd = generate_radvd_fragment(nets[0], args.eth, 600, [nets[1]])
 
 		hxb_iface = generate_interfaces_fragment(nets[1], args.hxb)
-		hxb_radvd = generate_radvd_fragment(nets[1], args.hxb, [ipaddress.IPv6Network("::/0")])
+		hxb_radvd = generate_radvd_fragment(nets[1], args.hxb, 40, [ipaddress.IPv6Network("::/0")])
 
 		interfaces = open(args.interfaces, "a") if args.interfaces != "-" else sys.stdout
 		radvd = open(args.radvd, "a") if args.radvd != "-" else sys.stdout

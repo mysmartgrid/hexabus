@@ -287,3 +287,14 @@ eid 43 {
 	function sensor
 }
 
+eid 44 {
+	type FLOAT
+	description "Temperatur sensor for heater inflow"
+	access R
+}
+
+eid 45 {
+	type FLOAT
+	description "Temperatur sensor for heater outflow"
+	access R
+}
