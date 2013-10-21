@@ -35,9 +35,10 @@ struct ReadingLogger : public hexabus::Logger {
 		};
 
 		hexabus::Socket& socket;
-		klio::Store::Ptr store;
+		klio::MSGStore::Ptr store;
 		std::map<klio::Sensor::Ptr, SensorInfo> sensor_infos;
 		boost::asio::deadline_timer info_timer;
+		boost::asio::deadline_timer flush_timer;
 		
 		static const char* UNKNOWN_UNIT;
 
@@ -73,8 +74,12 @@ struct ReadingLogger : public hexabus::Logger {
 					sensor_infos.insert(std::make_pair(ptr, info));
 				}
 				return ptr;
-			} catch (...) {
-				return klio::Sensor::Ptr();
+			} catch (const klio::StoreException& e) {
+				if (e.what() == "Sensor " + id + " could not be found.") {
+					return klio::Sensor::Ptr();
+				} else {
+					throw;
+				}
 			}
 		}
 
@@ -103,16 +108,15 @@ struct ReadingLogger : public hexabus::Logger {
 			try {
 				store->add_reading(sensor, ts, value);
 				std::cout << "Added reading " << value << " to sensor " << sensor->name() << std::endl;
-			} catch (klio::StoreException const& ex) {
-				std::cout << "Failed to record reading: " << ex.what() << std::endl;
 			} catch (std::exception const& ex) {
 				std::cout << "Failed to record reading: " << ex.what() << std::endl;
+				throw;
 			}
 		}
 
-		void arm_timer()
+		void schedule_info_update()
 		{
-			info_timer.expires_from_now(boost::posix_time::minute(1));
+			info_timer.expires_from_now(boost::posix_time::minutes(1));
 			info_timer.async_wait(boost::bind(&ReadingLogger::timer_expired, this, _1));
 		}
 
@@ -120,7 +124,7 @@ struct ReadingLogger : public hexabus::Logger {
 		{
 			using namespace boost::posix_time;
 
-			arm_timer();
+			schedule_info_update();
 			if (!err) {
 				typedef std::map<klio::Sensor::Ptr, SensorInfo>::iterator iter_t;
 
@@ -137,7 +141,7 @@ struct ReadingLogger : public hexabus::Logger {
 
 				SensorInfo& oldest = item->second;
 
-				if (second_clock::local_time() - oldest.last_name_checked_at >= hour(1)) {
+				if (second_clock::local_time() - oldest.last_name_checked_at >= hours(1)) {
 					oldest.last_name_checked_at = second_clock::local_time();
 					interrogator.send_request(
 							oldest.address,
@@ -159,6 +163,21 @@ struct ReadingLogger : public hexabus::Logger {
 		{
 		}
 
+		void schedule_flush()
+		{
+			flush_timer.expires_from_now(boost::posix_time::minutes(5));
+			flush_timer.async_wait(boost::bind(&ReadingLogger::force_flush, this, _1));
+		}
+
+		void force_flush(const boost::system::error_code& err)
+		{
+			schedule_flush();
+
+			if (!err) {
+				store->flush();
+			}
+		}
+
 	public:
 		ReadingLogger(hexabus::Socket& socket,
 			klio::TimeConverter& tc,
@@ -166,10 +185,12 @@ struct ReadingLogger : public hexabus::Logger {
 			const std::string& sensor_timezone,
 			hexabus::DeviceInterrogator& interrogator,
 			hexabus::EndpointRegistry& registry,
-			klio::Store::Ptr store)
-			: Logger(tc, sensor_factory, sensor_timezone, interrogator, registry), socket(socket), store(store), info_timer(socket.ioService())
+			klio::MSGStore::Ptr store)
+			: Logger(tc, sensor_factory, sensor_timezone, interrogator, registry), socket(socket), store(store),
+			  info_timer(socket.ioService()), flush_timer(socket.ioService())
 		{
-			arm_timer();
+			schedule_info_update();
+			schedule_flush();
 		}
 };
 const char* ReadingLogger::UNKNOWN_UNIT = "unknown";
