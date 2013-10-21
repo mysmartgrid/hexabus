@@ -197,11 +197,14 @@ app.post('/api/device/rename/:ip', function(req, res) {
 app.get('/', function(req, res) {
 	fs.exists('/etc/radvd.conf', function(exists) {
 		if (exists) {
-			res.render('index.ejs', { active_tabpage: 'dashboard' });
+			res.render('index.ejs', { active_nav: 'dashboard' });
 		} else {
 			res.redirect('/wizard/new');
 		}
 	});
+});
+app.get('/about', function(req, res) {
+	res.render('about.ejs', { active_nav: 'about' });
 });
 app.get('/wizard', function(req, res) {
 	fs.exists('/etc/radvd.conf', function(exists) {
@@ -215,7 +218,7 @@ app.get('/wizard', function(req, res) {
 app.get('/wizard/current', function(req, res) {
 	var config = hexabus.read_current_config();
 	hexabus.get_heartbeat_state(function(err, state) {
-		config.active_tabpage = 'configuration';
+		config.active_nav = 'configuration';
 
 		if (err) {
 			config.heartbeat_ok = false;
@@ -253,7 +256,7 @@ app.post('/wizard/reset', function(req, res) {
 	});
 });
 app.get('/wizard/resetdone', function(req, res) {
-	res.render('wizard/resetdone.ejs', { active_tabpage: 'configuration' });
+	res.render('wizard/resetdone.ejs', { active_nav: 'configuration' });
 	var wizard = new Wizard();
 	wizard.complete_reset();
 });
@@ -273,10 +276,10 @@ app.get('/wizard/devices', function(req, res) {
 		});
 	});
 
-	res.render('wizard/devices.ejs', { active_tabpage: 'configuration', devices: devices });
+	res.render('wizard/devices.ejs', { active_nav: 'configuration', devices: devices });
 });
 app.get('/wizard/:step', function(req, res) {
-	res.render('wizard/' + req.params.step  + '.ejs', { active_tabpage: 'configuration' });
+	res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
 });
 
 var sensor_is_old = function(ep) {
