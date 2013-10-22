@@ -54,7 +54,7 @@
 			"create-account": "Anmelden",
 			"link-msg": "Basisstation mit mySmartGrid verknüpfen",
 			"linking": "Basisstation wird mit mySmartGrid verknüpft",
-			"code-prompt": "Geben Sie nun bitte folgenden Code auf mySmartGrid ein:",
+			"please-link": "Geben verbinden Sie dieses Gerät nun mit ihrem mySmartGrid-Account:",
 			"link": "Zu mySmartGrid",
 			"continue": "Weiter",
 			"error": "Fehler beim Verknüpfen mit mySmartGrid"
