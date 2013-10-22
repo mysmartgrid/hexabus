@@ -303,18 +303,14 @@ setInterval(function() {
 io.sockets.on('connection', function (socket) {
   console.log("Registering new client.");
 
-	var actOrDie = function(cb) {
-		return function() {
+	var on = function(ev, cb) {
+		socket.on(ev, function(data) {
 			try {
-				cb.call(this, arguments);
+				cb(data);
 			} catch (e) {
 				socket.emit('_error_', e);
 			}
-		};
-	};
-
-	var on = function(ev, cb) {
-		socket.on(ev, actOrDie(cb));
+		});
 	};
 
 	var broadcast = function(ev, data) {

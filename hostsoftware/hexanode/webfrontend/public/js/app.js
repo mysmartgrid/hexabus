@@ -270,8 +270,11 @@ angular.module('dashboard', [
 		}
 		var device = ($scope.devices[ep.ip] = $scope.devices[ep.ip] || { ip: ep.ip, eids: [] });
 
+		ep.last_update = Math.round((+new Date(ep.last_update)) / 1000);
 		device.name = ep.name;
-		device.last_update = now();
+		if (!device.last_update || device.last_update < ep.last_update) {
+			device.last_update = ep.last_update;
+		}
 
 		var eid = {
 			eid: parseInt(ep.eid),
