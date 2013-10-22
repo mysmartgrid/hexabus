@@ -303,12 +303,32 @@ setInterval(function() {
 io.sockets.on('connection', function (socket) {
   console.log("Registering new client.");
 
+	var actOrDie = function(cb) {
+		return function() {
+			try {
+				cb.call(this, arguments);
+			} catch (e) {
+				socket.emit('_error_', e);
+			}
+		};
+	};
+
+	var on = function(ev, cb) {
+		socket.on(ev, actOrDie(cb));
+	};
+
+	var broadcast = function(ev, data) {
+		socket.broadcast.emit(ev, data);
+		socket.emit(ev, data);
+	};
+
+	var emit = socket.emit.bind(socket);
+
 	var broadcast_ep = function(ep) {
-		socket.broadcast.emit('ep_metadata', ep);
-		socket.emit('ep_metadata', ep);
+		broadcast('ep_metadata', ep);
 	};
 	var send_ep_update = function(ep) {
-		socket.emit('ep_update', { ep: ep.id, device: ep.device.ip, value: ep.last_value });
+		emit('ep_update', { ep: ep.id, device: ep.device.ip, value: ep.last_value });
 	};
 
 	var devicetree_events = {
@@ -319,55 +339,55 @@ io.sockets.on('connection', function (socket) {
 		},
 		endpoint_new: function(ep) {
 			if (ep.function == "sensor" || ep.function == "actor") {
-				socket.emit('ep_new', ep);
+				emit('ep_new', ep);
 			}
 		},
 		device_renamed: function(dev) {
 			dev.forEachEndpoint(broadcast_ep);
 		},
 		ep_timeout: function(msg) {
-			socket.emit('ep_timeout', msg);
+			emit('ep_timeout', msg);
 		}
 	};
 
 	for (var ev in devicetree_events) {
 		devicetree.on(ev, devicetree_events[ev]);
 	}
-	socket.on('disconnect', function() {
+	on('disconnect', function() {
 		for (var ev in devicetree_events) {
 			devicetree.removeListener(ev, devicetree_events[ev]);
 		}
 	});
 
-	socket.on('ep_request_metadata', function(id) {
+	on('ep_request_metadata', function(id) {
 		var ep = devicetree.endpoint_by_id(id);
 		if (ep) {
-			socket.emit('ep_metadata', ep);
+			emit('ep_metadata', ep);
 			if (ep.last_value != undefined) {
 				send_ep_update(ep);
 			}
 		}
 	});
-	socket.on('device_rename', function(msg) {
+	on('device_rename', function(msg) {
 		var device = devicetree.devices[msg.device];
 		if (!device) {
-			socket.emit('device_rename_error', { device: msg.device, error: 'Device not found' });
+			emit('device_rename_error', { device: msg.device, error: 'Device not found' });
 			return;
 		}
 		if (!msg.name) {
-			socket.emit('device_rename_error', { device: msg.device, error: 'No name given' });
+			emit('device_rename_error', { device: msg.device, error: 'No name given' });
 			return;
 		}
 
 		hexabus.rename_device(msg.device, msg.name, function(err) {
 			if (err) {
-				socket.emit('device_rename_error', { device: msg.device, error: err });
+				emit('device_rename_error', { device: msg.device, error: err });
 				return;
 			}
 			device.name = msg.name;
 		});
 	});
-	socket.on('ep_change_metadata', function(msg) {
+	on('ep_change_metadata', function(msg) {
 		var ep = devicetree.endpoint_by_id(msg.id);
 		if (ep) {
 			["minvalue", "maxvalue"].forEach(function(key) {
@@ -378,7 +398,7 @@ io.sockets.on('connection', function (socket) {
 		}
 	});
 
-	socket.on('ep_set', function(msg) {
+	on('ep_set', function(msg) {
 		hexabus.write_endpoint(msg.ip, msg.eid, msg.type, msg.value, function(err) {
 			if (err) {
 				console.log(err);
@@ -396,44 +416,43 @@ io.sockets.on('connection', function (socket) {
 		});
 	});
 
-	socket.on('wizard_configure', function() {
+	on('wizard_configure', function() {
 		var wizard = new Wizard();
 
 		wizard.configure_network(function(progress) {
-			socket.emit('wizard_configure_step', progress);
+			emit('wizard_configure_step', progress);
 		});
 	});
 
-	socket.on('wizard_register', function() {
+	on('wizard_register', function() {
 		var wizard = new Wizard();
 
 		wizard.registerMSG(function(progress) {
-			socket.emit('wizard_register_step', progress);
+			emit('wizard_register_step', progress);
 		});
 	});
 
-	socket.on('device_remove', function(msg) {
+	on('device_remove', function(msg) {
 		try {
 			devicetree.remove(msg.device);
 			save_devicetree();
-			socket.emit('device_removed', msg);
-			socket.broadcast.emit('device_removed', msg);
+			broadcast('device_removed', msg);
 		} catch (e) {
 			console.log({ msg: msg, error: e });
 		}
 	});
 
-	socket.on('devices_enumerate', function() {
+	on('devices_enumerate', function() {
 		enumerate_network(function() {
-			socket.emit('devices_enumerate_done');
+			emit('devices_enumerate_done');
 		});
 	});
 
-	socket.emit('clear_state');
+	emit('clear_state');
 
 	devicetree.forEach(function(device) {
 		device.forEachEndpoint(function(ep) {
-			socket.emit('ep_metadata', ep);
+			emit('ep_metadata', ep);
 			if (ep.last_value) {
 				send_ep_update(ep);
 			}
