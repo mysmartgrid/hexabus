@@ -265,22 +265,18 @@ enum ErrorCode {
 static const char* STORE_TYPE = "raspberrypi";
 static const char* STORE_DESCRIPTION = "Hexabus sensor log";
 
-static ErrorCode create_new_store(const std::string&  config, boost::optional<const std::string&> url)
+static ErrorCode create_new_store(const std::string&  config, const std::string& url)
 {
 	boost::uuids::random_generator new_uuid;
 	klio::StoreFactory store_factory;
 	klio::MSGStore::Ptr store;
 
-	if (url) {
-		store = store_factory.create_msg_store(
-				*url,
-				to_string(new_uuid()),
-				to_string(new_uuid()),
-				STORE_DESCRIPTION,
-				STORE_TYPE);
-	} else {
-		store = store_factory.create_msg_store();
-	}
+	store = store_factory.create_msg_store(
+			url,
+			to_string(new_uuid()),
+			to_string(new_uuid()),
+			STORE_DESCRIPTION,
+			STORE_TYPE);
 	store->initialize();
 
 	BridgeConfiguration store_config(
@@ -351,7 +347,7 @@ int main(int argc, char** argv)
 		if (vm["create"].as<std::string>() != "") {
 			return create_new_store(config, vm["create"].as<std::string>());
 		} else {
-			return create_new_store(config, boost::none);
+			return create_new_store(config, "https://api.mysmartgrid.de:8443");
 		}
 	} else {
 		klio::StoreFactory store_factory;
