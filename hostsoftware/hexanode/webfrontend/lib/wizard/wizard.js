@@ -85,9 +85,11 @@ var Wizard = function() {
 				cb({ device: stdout, error: stderr });
 			} else {
 				var dev = JSON.parse(stdout);
+				dev = dev.devices[0];
 				for (var key in dev.endpoints) {
+console.log(dev.ip)
 					var ep = dev.endpoints[key];
-					ep.name =  dev.name;
+					ep.name = ep.name || dev.name;
 					if (ep.function == "sensor") {
 						ep.minvalue = 0;
 						ep.maxvalue = 100;
