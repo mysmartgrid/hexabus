@@ -97,7 +97,7 @@ endif( LIBKLIO_FOUND )
 # libjson
 include(FindJson)
 if( NOT JSON_FOUND)
-  message(FATAL_ERROR "libjson ist required. Install json or call cmake -DJSON_HOME=path_to_json_install")
+  message(FATAL_ERROR "libjson is required. Install json or call cmake -DJSON_HOME=path_to_json_install")
 endif( NOT JSON_FOUND)
 include_directories(${JSON_INCLUDE_DIR})
 
@@ -135,7 +135,7 @@ set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
-SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch;Hexabus node interrogation utility" "hexalog;Hexabus logging utility" "hexaupload;Hexabus statemachine upload utility")
+SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch;Hexabus node interrogation utility" "hexalog;Hexabus logging utility" "hexaupload;Hexabus statemachine upload utility" "hexapair;Hexabus device pairing utility")
 SET(CPACK_STRIP_FILES ON)
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
