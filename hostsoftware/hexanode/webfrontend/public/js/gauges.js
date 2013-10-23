@@ -5,18 +5,21 @@ angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) 
 			id: '@',
 			min: '@',
 			max: '@',
-			title: '@',
+			title: '@titleText',
 			value: '@',
+			disabled: '=',
 			class: '@',
+			interpolate_title: '@title',
 
 			titleClick: '&',
 			minClick: '&',
 			maxClick: '&',
+			valueClick: '&',
 
 			gauge: '='
 		},
-		replace: true,
-		template: '<div/>',
+		replace: false,
+		template: '<div></div>',
 		compile: function (element, attrs, transclude) {
 			return {
 				post: function (scope, element, attrs, controller) {
@@ -32,29 +35,23 @@ angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) 
 						$timeout(function() {
 							element.empty();
 							watchers = {};
-							scope.gauge = g = new JustGage({
+
+							var config = {
 								id: scope.id,
 								min: +scope.min,
 								max: +scope.max,
 								title: scope.title,
-								value: +scope.value,
-
-								titleClick: function() {
+								value: +scope.value
+							};
+							["title", "min", "max", "value"].forEach(function(part) {
+								var key = part + "Click";
+								config[key] = function() {
 									scope.$apply(function() {
-										scope.titleClick();
-									});
-								},
-								minClick: function() {
-									scope.$apply(function() {
-										scope.minClick();
-									});
-								},
-								maxClick: function() {
-									scope.$apply(function() {
-										scope.maxClick();
+										scope[key]();
 									});
 								}
 							});
+							scope.gauge = g = new JustGage(config);
 
 							watchers['value'] = scope.$watch('value', function(val) {
 								val = +val;
@@ -77,6 +74,16 @@ angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) 
 							watchers['title'] = scope.$watch('title', function(title) {
 								if (title != g.config.title) {
 									makeGauge();
+								}
+							});
+							watchers['disabled'] = scope.$watch('disabled', function(disabled) {
+								var elem = $(document.getElementById(scope.id));
+								if (disabled && disabled != "false") {
+									if (!elem.children(".gauge-disabled").size()) {
+										elem.append($('<div class="gauge-disabled"></div>'));
+									}
+								} else {
+									elem.children(".gauge-disabled").remove();
 								}
 							});
 						});

@@ -47,7 +47,7 @@ class Logger : public hexabus::Logger {
 			}
 		}
 
-		void new_sensor_found(klio::Sensor::Ptr sensor)
+		void new_sensor_found(klio::Sensor::Ptr sensor, const boost::asio::ip::address_v6&)
 		{
 			store->add_sensor(sensor);
 			std::cout << "Created new sensor: " << sensor->str() << std::endl;

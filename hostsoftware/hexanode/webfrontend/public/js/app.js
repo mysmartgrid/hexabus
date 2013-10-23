@@ -1,9 +1,10 @@
 angular.module('dashboard', [
 	'ng-socket',
 	'gauges',
-	'i18n'
+	'i18n',
+	'controls'
 ])
-.controller('gaugesDisplayController', ['$scope', 'Socket', '$timeout', 'Lang', function($scope, Socket, $timeout, Lang) {
+.controller('dashboardController', ['$scope', 'Socket', '$timeout', 'Lang', function($scope, Socket, $timeout, Lang) {
 	var lastSensorValueReceivedAt;
 
 	var pendingUpdateControl = null;
@@ -11,6 +12,7 @@ angular.module('dashboard', [
 	$scope.lastUpdate = "never";
 
 	$scope.sensorList = {};
+	$scope.actorList = {};
 
 	var updateDisplay = function() {
 		lastSensorValueReceivedAt = new Date();
@@ -21,85 +23,102 @@ angular.module('dashboard', [
 		}
 	};
 
-	var placeUpdateControl = function(forSensor, control, attrs, done) {
-		var element = $(document.getElementById(forSensor.id));
-		var bound = control.getBBox();
+	$scope.editBegin = function(endpoint, data) {
+		pendingUpdateControl = $scope.sensorList[endpoint.id].control;
+	};
 
-		attrs = attrs || {};
+	var sensorEditDone = function(endpoint, data) {
+		var entry = $scope.sensorList[endpoint.id];
+		if (data.minvalue != undefined) {
+			entry.control.cover();
+			Socket.emit('ep_change_metadata', { id: endpoint.id, data: { minvalue: data.minvalue } });
+		} else if (data.maxvalue != undefined) {
+			entry.control.cover();
+			Socket.emit('ep_change_metadata', { id: endpoint.id, data: { maxvalue: data.maxvalue } });
+		} else if (data.name != undefined) {
+			entry.control.coverClass();
+			Socket.emit('device_rename', { device: endpoint.ip, name: data.name });
+		}
+		pendingUpdateControl = null;
+	};
 
-		var config = {
-			left: attrs.left || (bound.x + "px"),
-			top: attrs.top || (bound.y + "px"),
-			width: attrs.width || ((bound.x2 - bound.x) + "px"),
-			height: attrs.height || ((bound.y2 - bound.y) + "px"),
+	var actorEditDone = function(endpoint, data) {
+		Socket.emit('ep_set', {
+			ip: endpoint.ip,
+			eid: endpoint.eid,
+			id: endpoint.id,
+			type: endpoint.type,
+			value: data.value
+		});
+	};
 
-			done: function(value) {
-				$scope.$apply(function() {
-					var elems = attrs.shadow_all
-						? $(document.getElementsByClassName("gauge-" + forSensor.ip))
-						: $(document.getElementById(forSensor.id));
-					var div = $('<div class="spinner-large transient" /><div class="updating-thus-disabled transient" />');
-					elems.append(div);
+	$scope.editDone = function(endpoint, data) {
+		if (endpoint.function == "sensor") {
+			sensorEditDone(endpoint, data);
+		} else if (endpoint.function == "actor") {
+			actorEditDone(endpoint, data);
+		}
+	};
 
-					done(value);
-				});
-			},
-			font: {},
+	var epMetadataHandler = function(ep) {
+		var target;
 
-			value: attrs.text || control.attrs.text
-		};
-		for (key in control.attrs) {
-			if (typeof key == "string" && key.substr(0, 4) == "font") {
-				config.font[key] = control.attrs[key];
+		if (ep.function == "actor") {
+			target = $scope.actorList;
+		} else if (ep.function == "sensor") {
+			target = $scope.sensorList;
+		} else {
+			return;
+		}
+
+		var entry;
+		var new_ep = false;
+		if (!target[ep.id]) {
+			target[ep.id] = {
+				ep_desc: {},
+				associated: {}
+		 	};
+			new_ep = true;
+		}
+		entry = target[ep.id];
+
+		for (var key in ep) {
+			entry.ep_desc[key] = ep[key];
+		}
+		if (new_ep) {
+			entry.ep_desc.value = 0;
+			entry.ep_desc.has_value = false;
+
+			var associate = function(target) {
+				if (target.ep_desc.ip == entry.ep_desc.ip) {
+					var master, slave;
+					if (target.ep_desc.eid == 2 && entry.ep_desc.eid == 1) {
+						master = target;
+						slave = entry;
+					} else if (target.ep_desc.eid == 1 && entry.ep_desc.eid == 2) {
+						master = entry;
+						slave = target;
+					}
+					if (master && slave) {
+						master.associated[slave.ep_desc.id] = {
+							id: slave.ep_desc.id,
+
+							ep: slave
+						};
+					}
+				}
+			};
+			for (var key in $scope.sensorList) {
+				associate($scope.sensorList[key]);
+			}
+			for (var key in $scope.actorList) {
+				associate($scope.actorList[key]);
 			}
 		}
 
-		pendingUpdateControl = new UpdateControl(element, config);
-	};
-
-	$scope.minClick = function(sensor) {
-		placeUpdateControl(
-			sensor,
-			sensor.gauge.txtMin,
-			null,
-			function(value) {
-				Socket.emit('sensor_change_metadata', { id: sensor.id, data: { minvalue: +value } });
-				pendingUpdateControl = null;
-			});
-	};
-
-	$scope.maxClick = function(sensor) {
-		placeUpdateControl(
-			sensor,
-			sensor.gauge.txtMax,
-			null,
-			function(value) {
-				Socket.emit('sensor_change_metadata', { id: sensor.id, data: { maxvalue: +value } });
-				pendingUpdateControl = null;
-			});
-	};
-
-	$scope.titleClick = function(sensor) {
-		placeUpdateControl(
-			sensor,
-			sensor.gauge.txtTitle,
-			{
-				left: "0px",
-				width: "140px",
-				text: sensor.name,
-				shadow_all: true
-			},
-			function(value) {
-				Socket.emit('device_rename', { device: sensor.ip, name: value });
-				pendingUpdateControl = null;
-			});
-	};
-
-	var sensorMetadataHandler = function(sensor) {
-		$scope.sensorList[sensor.id] = sensor;
-		$scope.sensorList[sensor.id].value = 0;
-
-		$(document.getElementById(sensor.id)).children(".transient").remove();
+		if (entry.control) {
+			entry.control.uncover();
+		}
 
 		updateDisplay();
 	};
@@ -109,20 +128,42 @@ angular.module('dashboard', [
 		gauges = {};
 	});
 
-	Socket.on('sensor_new', sensorMetadataHandler);
-	Socket.on('sensor_metadata', sensorMetadataHandler);
+	Socket.on('ep_new', epMetadataHandler);
+	Socket.on('ep_metadata', epMetadataHandler);
 
-	Socket.on('sensor_update', function(data) {
-		$timeout(function() {
-			var sensorId = data.sensor;
-			if (sensorId in $scope.sensorList) {
-				$scope.sensorList[sensorId].value = data.value.value;
-			} else {
-				Socket.emit('sensor_request_metadata', sensorId);
+	Socket.on('device_removed', function(msg) {
+		for (var id in $scope.sensorList) {
+			if ($scope.sensorList[id].ep_desc.ip == msg.device) {
+				delete $scope.sensorList[id];
 			}
+		}
+	});
+
+	Socket.on('ep_update', function(data) {
+		$timeout(function() {
+			var epId = data.ep;
+			var ep;
+			if (epId in $scope.sensorList) {
+				var ep = $scope.sensorList[epId];
+			} else if (epId in $scope.actorList) {
+				var ep = $scope.actorList[epId];
+			} else {
+				Socket.emit('ep_request_metadata', epId);
+				return;
+			}
+
+			ep.ep_desc.value = data.value.value;
+			ep.hide = false;
+			ep.ep_desc.has_value = true;
 
 			updateDisplay();
 		});
+	});
+
+	Socket.on('ep_timeout', function(msg) {
+		if (msg.ep.function == "sensor" && $scope.sensorList[msg.ep.id]) {
+			$scope.sensorList[msg.ep.id].hide = true;
+		}
 	});
 
 	Socket.on('device_rename_error', function(msg) {
@@ -157,25 +198,33 @@ angular.module('dashboard', [
 		return $scope.stepsDone > 0;
 	};
 
+	$scope.failed = function() {
+		return $scope.autoconf_failed || $scope.msg_failed;
+	};
+
 	Socket.on('wizard_configure_step', function(progress) {
-		if (progress.error) {
-			$scope.failed = true;
-		} else {
-			switch (progress.step) {
-				case 'autoconf':
+		switch (progress.step) {
+			case 'autoconf':
+				if (!progress.error) {
 					$scope.configured = true;
 					$scope.stepsDone++;
-					break;
+				} else {
+					$scope.autoconf_failed = true;
+				}
+				break;
 
-				case 'check_msg':
+			case 'check_msg':
+				if (!progress.error) {
 					$scope.connected = true;
 					$scope.stepsDone++;
-					break;
-			}
+				} else {
+					$scope.msg_failed = true;
+				}
+				break;
+		}
 
-			if ($scope.stepsDone == 3) {
-				$scope.stepsDone = 0;
-			}
+		if ($scope.stepsDone == 3) {
+			$scope.stepsDone = 0;
 		}
 	});
 }])
@@ -209,22 +258,28 @@ angular.module('dashboard', [
 		return Math.round((+new Date()) / 1000);
 	};
 
-	Socket.on('sensor_update', function(data) {
+	Socket.on('ep_update', function(data) {
 		if ($scope.devices[data.device]) {
 			$scope.devices[data.device].last_update = now();
 		}
 	});
 
-	var on_sensor_metadata = function(sensor) {
-		var device = ($scope.devices[sensor.ip] = $scope.devices[sensor.ip] || { ip: sensor.ip, eids: [] });
+	var on_ep_metadata = function(ep) {
+		if (ep.function == "infrastructure") {
+			return;
+		}
+		var device = ($scope.devices[ep.ip] = $scope.devices[ep.ip] || { ip: ep.ip, eids: [] });
 
-		device.name = sensor.name;
-		device.last_update = now();
+		ep.last_update = Math.round((+new Date(ep.last_update)) / 1000);
+		device.name = ep.name;
+		if (!device.last_update || device.last_update < ep.last_update) {
+			device.last_update = ep.last_update;
+		}
 
 		var eid = {
-			eid: parseInt(sensor.eid),
-			description: sensor.description,
-			unit: sensor.unit
+			eid: parseInt(ep.eid),
+			description: ep.description,
+			unit: ep.unit
 		};
 
 		var found = false;
@@ -242,8 +297,35 @@ angular.module('dashboard', [
 		}
 	};
 
-	Socket.on('sensor_new', on_sensor_metadata);
-	Socket.on('sensor_metadata', on_sensor_metadata);
+
+	Socket.on('ep_new', on_ep_metadata);
+	Socket.on('ep_metadata', on_ep_metadata);
+
+	Socket.on('device_removed', function(msg) {
+		for (var id in $scope.devices) {
+			if ($scope.devices[id].ip == msg.device) {
+				delete $scope.devices[id];
+			}
+		}
+	});
+
+	Socket.emit('devices_enumerate');
+
+	Socket.on('devices_enumerate_done', function() {
+		$scope.scanDone = true;
+	});
+
+	$scope.remove = function(device) {
+		var message = "Do you really want to remove {device}?";
+
+		message = ((Lang.pack["wizard"] || {})["device-list"] || {})["forget-dialog"] || message;
+
+		message = message.replace("{device}", device.name);
+		if (confirm(message)) {
+			Socket.emit('device_remove', { device: device.ip });
+			Socket.emit('device_removed', { device: device.ip });
+		}
+	};
 }])
 .controller('devicesAdd', ['$scope', 'Socket', 'Lang', function($scope, Socket, Lang) {
 	
@@ -259,6 +341,7 @@ angular.module('dashboard', [
 			$scope.error = true;
 			$scope.errormsg = msg.error;
 		} else {
+console.log(msg.device);
 			$scope.device = msg.device;
 			$scope.found = true;
 		}

@@ -36,13 +36,40 @@
 					return template.replace("{ago}", ago);
 				};
 
-				angular.module('i18n', []).factory('Lang', function() {
-					return {
-						localize: localizeBySelector,
-						pack: $.localize.data.lang,
-						localizeLastUpdate: localizeLastUpdate
-					};
-				});
+				angular.module('i18n', [])
+					.factory('Lang', function() {
+						return {
+							localize: localizeBySelector,
+							pack: $.localize.data.lang,
+							localizeLastUpdate: localizeLastUpdate
+						};
+					})
+					.filter('displayUnit', function() {
+						return function(text) {
+							if (text == "degC") {
+								return "°C";
+							} else {
+								return text;
+							}
+						};
+					})
+					.filter('localize', function() {
+						return function(text, prefix, key) {
+							if (key == undefined) {
+								key = text;
+							}
+							var pack = $.localize.data.lang;
+							if (prefix != undefined) {
+								var parts = prefix.split('.');
+								for (var idx in parts) {
+									pack = pack[parts[idx]] || {};
+								}
+							}
+							return pack[key] != undefined
+								? pack[key]
+								: text;
+						};
+					});
 			})();
 
 			// fix bootstrap dropdowns not working on mobile devices

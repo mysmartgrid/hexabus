@@ -14,11 +14,17 @@
 				<p>{{device.ip}}</p>
 			</th>
 			<td>
-				<p data-ng-repeat="eid in device.eids">{{eid.description}} ({{eid.unit}})</p>
-				<p><span data-localize="last-update.label">Last update.</span> {{ Lang.localizeLastUpdate(device.last_update) }}</p>
+				<p data-ng-repeat="eid in device.eids">{{eid.description | localize:'endpoint-registry.descriptions':eid.eid }} ({{eid.unit | displayUnit | localize:'endpoint-registry.units'}})</p>
+				<p><span data-localize="last-update.label">Last update:</span> {{ Lang.localizeLastUpdate(device.last_update) }}</p>
+			</td>
+			<td>
+				<a href="#" data-ng-click="remove(device)" class="btn btn-danger" data-localize="wizard.device-list.forget-device">Forget device</a>
 			</td>
 		</tr>
 	</table>
+	<div data-ng-show="!scanDone" class="text-center">
+		<img src="/img/spinner-small.gif" alt="Searching" /> <span data-localize="wizard.device-list.scanning">Searching for devices</span>
+	</div>
 </div>
 
 <% include ../footer %>

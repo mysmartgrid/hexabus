@@ -1,5 +1,6 @@
 var nconf = require('nconf');
 var exec = require('child_process').exec;
+var DeviceTree = require("../devicetree")
 
 var Wizard = function() {
 	var networkAutoconf = function(cb) {
@@ -75,7 +76,7 @@ var Wizard = function() {
 		exec(script, cb);
 	};
 
-	this.addDevice = function(cb) {
+	this.addDevice = function(devicetree, cb) {
 		var script = nconf.get('debug-wizard')
 			? 'sleep 1 && cat tools/device.json'
 			: 'sudo hexapair -D /dev/ttyACM0 -t 30';
@@ -83,7 +84,20 @@ var Wizard = function() {
 			if (error) {
 				cb({ device: stdout, error: stderr });
 			} else {
-				cb({ device: JSON.parse(stdout), error: undefined });
+				var dev = JSON.parse(stdout);
+				for (var key in dev.endpoints) {
+					var ep = dev.endpoints[key];
+					ep.name =  dev.name;
+					if (ep.function == "sensor") {
+						ep.minvalue = 0;
+						ep.maxvalue = 100;
+					}
+					if (!devicetree.devices[dev.ip]
+						|| !devicetree.devices[dev.ip].endpoints[ep.eid]) {
+						devicetree.add_endpoint(dev.ip, ep.eid, ep);
+					}
+				}
+				cb({ device: devicetree.devices[dev.ip], error: undefined });
 			}
 		});
 	};

@@ -21,7 +21,6 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 		target << "Creating sensor " << sensor_id << std::endl;
 		int min_value = 0;
 		int max_value = 100;
-		std::string unit, desc;
 		/*
 		 * TODO: Hack for intersolar, clean things up. This should reside in 
 		 * a separate configuration file (propertytree parser)
@@ -32,21 +31,15 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 			case EP_HUMIDITY: min_value = 0; max_value = 100; break;
 			case EP_PRESSURE: min_value = 900; max_value = 1050; break;
 		}
-		hexabus::EndpointRegistry::const_iterator ep_it;
-		if ((ep_it = _ep_registry.find(it->first)) != _ep_registry.end() && ep_it->second.unit()) {
-			unit = *ep_it->second.unit();
-			desc = ep_it->second.description();
-		}
-		if (unit == "degC") {
-			unit = "°C";
-		}
-		hexanode::Sensor new_sensor(device, it->first,
-					static_cast<const hexabus::EndpointInfoPacket&>(info).value(),
-					unit,
-					desc,
-					min_value, max_value,
-					std::string("sensor")
-					);
+		hexabus::EndpointRegistry::const_iterator ep_it = _ep_registry.find(it->first);
+		const hexabus::EndpointDescriptor& desc = ep_it != _ep_registry.end()
+			? ep_it->second
+			: hexabus::EndpointDescriptor(it->first, "", boost::none, HXB_DTYPE_FLOAT, hexabus::EndpointDescriptor::read, hexabus::EndpointDescriptor::sensor);
+		hexanode::Sensor new_sensor(device,
+				desc,
+				static_cast<const hexabus::EndpointInfoPacket&>(info).value(),
+				min_value, max_value,
+				std::string("sensor"));
 		_sensors.insert(std::make_pair(sensor_id, new_sensor));
 		try {
 			new_sensor.put(_client, _api_uri, it->second); 
@@ -96,9 +89,8 @@ void PacketPusher::defineSensor(const std::string& sensor_id, uint32_t eid, cons
 						name = "Battery";
 						break;
 				}
-				hexanode::Sensor new_sensor(_endpoint.address().to_v6(), eid,
-						name,
-						unit,
+				hexanode::Sensor new_sensor(_endpoint.address().to_v6(),
+						hexabus::EndpointDescriptor(eid, name, unit, HXB_DTYPE_FLOAT, hexabus::EndpointDescriptor::read, hexabus::EndpointDescriptor::sensor),
 						name,
 						min_value, max_value,
 						std::string("dashboard")

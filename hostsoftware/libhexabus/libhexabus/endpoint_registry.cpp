@@ -86,8 +86,10 @@ void EndpointRegistry::reload()
 		std::string description;
 		boost::optional<std::string> unit;
 		std::string access_str;
-		uint32_t access;
+		EndpointDescriptor::Access access;
+		EndpointDescriptor::Function function;
 		std::string type_str;
+		std::string function_str;
 		hxb_datatype type;
 
 		try {
@@ -132,6 +134,14 @@ void EndpointRegistry::reload()
 			throw GenericException(o.str());
 		}
 
+		function_str = single_child(it->second, "function", eid);
+		if (boost::equals(function_str, "sensor"))
+			function = EndpointDescriptor::sensor;
+		else if (boost::equals(function_str, "actor"))
+			function = EndpointDescriptor::actor;
+		else if (boost::equals(function_str, "infrastructure"))
+			function = EndpointDescriptor::infrastructure;
+
 		access_str = single_child(it->second, "access", eid);
 		if (boost::equals(access_str, "R"))
 			access = EndpointDescriptor::read;
@@ -145,7 +155,7 @@ void EndpointRegistry::reload()
 			throw GenericException(o.str());
 		}
 
-		eids.insert(std::make_pair(eid, EndpointDescriptor(eid, description, unit, type, access)));
+		eids.insert(std::make_pair(eid, EndpointDescriptor(eid, description, unit, type, access, function)));
 	}
 
 	_eids = eids;

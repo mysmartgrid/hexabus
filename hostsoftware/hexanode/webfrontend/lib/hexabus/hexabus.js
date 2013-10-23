@@ -1,22 +1,26 @@
+'use strict';
+
 var exec = require('child_process').exec;
 var v6 = require('ipv6').v6;
 var os = require('os');
 var fs = require('fs');
+var nconf = require('nconf');
 
 var hexabus = function() {
 	this.rename_device = function(addr, newName, cb) {
 		addr = new v6.Address(addr);
 		if (!addr.valid) {
-			throw "Invalid address";
+			cb({ error: "Invalid address" });
+		} else {
+			var command = "hexaupload --ip " + addr.canonicalForm() + " --rename '" + newName.replace("'", "''") + "'";
+			exec(command, function(error, stdout, stderr) {
+				if (error && cb) {
+					cb(error);
+				} else if (cb) {
+					cb();
+				}
+			});
 		}
-		var command = "hexaupload --ip " + addr.canonicalForm() + " --rename '" + newName.replace("'", "''") + "'";
-		exec(command, function(error, stdout, stderr) {
-			if (error && cb) {
-				cb(error);
-			} else if (cb) {
-				cb();
-			}
-		});
 	};
 
 	this.read_current_config = function() {
@@ -78,6 +82,40 @@ var hexabus = function() {
 					messages: messages
 				});
 			}
+		});
+	};
+
+	this.enumerate_network = function(cb) {
+		cb = cb || Object;
+		var interfaces = (nconf.get("debug-hxb-ifaces") || "eth0,usb0").split(",");
+		interfaces.forEach(function(iface) {
+			exec("hexinfo --discover --interface " + iface + " --json --devfile -", function(error, stdout, stderr) {
+				if (error) {
+					cb({ error: error });
+				} else {
+					var devices = JSON.parse(stdout).devices;
+					devices.forEach(function(dev) {
+						cb({ device: dev });
+					});
+					cb({ done: true });
+				}
+			});
+		});
+	};
+
+	this.read_endpoint = function(ip, eid, cb) {
+	};
+
+	this.write_endpoint = function(ip, eid, type, value, cb) {
+		var command = "hexaswitch set " + ip + " --eid " + eid + " --datatype " + type + " --value ";
+		// type 1 is bool
+		if (type == 1) {
+			command = command + (value ? "1" : "0");
+		}	else {
+			command = command + value;
+		}
+		exec(command, function(error, stdout, stderr) {
+			cb(error);
 		});
 	};
 };

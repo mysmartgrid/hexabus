@@ -1,7 +1,8 @@
 body {
 	padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
 }
-.gauge {
+
+.vis-endpoint {
 	position: relative;
 	width: 200px;
 	height: 160px;
@@ -17,6 +18,15 @@ div.updating-thus-disabled {
 	background-color: black;
 	opacity: 0.1;
 }
+div.gauge-disabled {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	background-color: black;
+	opacity: 0.6;
+}
 div.spinner-large {
 	position: absolute;
 	left: 0;
@@ -29,5 +39,29 @@ div.spinner-large {
 	position: absolute;
 	top: 40%;
 	bottom: 20%;
+	width: 100%;
+}
+
+
+.vis-bool-switch {
+	padding: 1.4em;
+	position: relative;
+}
+.vis-bool-switch .title {
+	color: #999;
+	font-size: 1.4em;
+	padding-bottom: 0.4em;
+}
+.vis-bool-switch .switch-container {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	right: 0;
+	left: 0;
+	margin: auto;
+	height: 20%;
+	width: 50%;
+}
+.vis-bool-switch .make-switch {
 	width: 100%;
 }
