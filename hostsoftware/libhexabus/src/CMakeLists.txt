@@ -48,7 +48,7 @@ add_executable(hexapair ${hexapair_src})
 # Link the executables
 target_link_libraries(hexapair
   hexabus
-  ${LIBUSB_1_LIBRARIES}
+  pthread
   ${Boost_LIBRARIES}
 )
 

@@ -4,7 +4,6 @@
 #include <boost/program_options/positional_options.hpp>
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <libusb-1.0/libusb.h>
 #include <libhexabus/common.hpp>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/error.hpp>

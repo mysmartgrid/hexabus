@@ -91,7 +91,6 @@ if( LIBKLIO_FOUND )
   FIND_PACKAGE(Sqlite)
   FIND_PACKAGE(OpenSSL REQUIRED)
   FIND_PACKAGE(Gnutls REQUIRED)
-  FIND_PACKAGE(libusb-1.0 REQUIRED)
   add_definitions ("-DBOOST_FILESYSTEM_VERSION=3")
 endif( LIBKLIO_FOUND )
 
@@ -111,13 +110,6 @@ else(WIN32)
   include(FindCurl)
   include(FindGnutls)
 endif(WIN32)
-
-# libusb
-include(Findlibusb-1.0)
-if( NOT LIBUSB_1_FOUND)
-  message(FATAL_ERROR "libusb-1.0 is required.")
-endif( NOT LIBUSB_1_FOUND)
-include_directories(${LIBUSB_1_INCLUDE_DIR})
 
 # Reflect the package structure
 add_subdirectory(libhexabus)
