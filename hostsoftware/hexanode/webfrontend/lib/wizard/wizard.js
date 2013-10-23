@@ -78,7 +78,7 @@ var Wizard = function() {
 	this.addDevice = function(cb) {
 		var script = nconf.get('debug-wizard')
 			? 'sleep 1 && cat tools/device.json'
-			: 'sudo hexapair';
+			: 'sudo hexapair -D /dev/ttyACM0 -t 30';
 		exec(script, function(error, stdout, stderr) {
 			if (error) {
 				cb({ device: stdout, error: stderr });
