@@ -1,6 +1,7 @@
 var nconf = require('nconf');
 var exec = require('child_process').exec;
 var DeviceTree = require("../devicetree")
+var v6 = require('ipv6').v6;
 
 var Wizard = function() {
 	var networkAutoconf = function(cb) {
@@ -84,22 +85,34 @@ var Wizard = function() {
 			if (error) {
 				cb({ device: stdout, error: stderr });
 			} else {
-				var dev = JSON.parse(stdout);
-				dev = dev.devices[0];
-				for (var key in dev.endpoints) {
-console.log(dev.ip)
-					var ep = dev.endpoints[key];
-					ep.name = ep.name || dev.name;
-					if (ep.function == "sensor") {
-						ep.minvalue = 0;
-						ep.maxvalue = 100;
-					}
-					if (!devicetree.devices[dev.ip]
-						|| !devicetree.devices[dev.ip].endpoints[ep.eid]) {
-						devicetree.add_endpoint(dev.ip, ep.eid, ep);
-					}
-				}
-				cb({ device: devicetree.devices[dev.ip], error: undefined });
+				//var interfaces = (nconf.get("debug-hxb-ifaces") || "eth0,usb0").split(",");
+				var interfaces = ["usb0"]
+				var addr = new v6.Address(stdout.replace(/\s+$/g, ''));
+				interfaces.forEach(function(iface) {
+					var command="sudo hexinfo --interface " + iface + " --ip " + addr.canonicalForm() + " --json --devfile -";
+					exec(command, function(error, stdout, stderr) {
+						if (error) {
+							cb({ error: stderr });
+						} else {
+							console.log(stdout);
+							var dev = JSON.parse(stdout);
+							dev = dev.devices[0];
+							for (var key in dev.endpoints) {
+								var ep = dev.endpoints[key];
+								ep.name = ep.name || dev.name;
+								if (ep.function == "sensor") {
+									ep.minvalue = 0;
+									ep.maxvalue = 100;
+								}
+								if (!devicetree.devices[dev.ip]
+									|| !devicetree.devices[dev.ip].endpoints[ep.eid]) {
+									devicetree.add_endpoint(dev.ip, ep.eid, ep);
+								}
+							}
+							cb({ device: devicetree.devices[dev.ip], error: undefined });
+						}
+					});
+				});
 			}
 		});
 	};
