@@ -13,6 +13,34 @@ angular.module('dashboard', [
 
 	$scope.sensorList = {};
 	$scope.actorList = {};
+	$scope.views = all_views;
+
+	$scope.current_view = $scope.sensorList;
+	$scope.hide_unitless = true;
+
+	$scope.setView = function(view) {
+		if (view == "sensors") {
+			$("#view-name").text(Lang.pack["dashboard"]["all-sensors"]);
+			$scope.current_view = $scope.sensorList;
+			$scope.hide_unitless = true;
+		} else if (view == "actors") {
+			$("#view-name").text(Lang.pack["dashboard"]["all-actors"]);
+			$scope.current_view = $scope.actorList;
+			$scope.hide_unitless = false;
+		} else {
+			$("#view-name").text(view.name);
+			$scope.hide_unitless = false;
+
+			$scope.current_view = [];
+			view.devices.forEach(function(id) {
+				if ($scope.sensorList[id]) {
+					$scope.current_view.push($scope.sensorList[id]);
+				} else if ($scope.actorList[id]) {
+					$scope.current_view.push($scope.actorList[id]);
+				}
+			});
+		}
+	};
 
 	var updateDisplay = function() {
 		lastSensorValueReceivedAt = new Date();
@@ -196,8 +224,6 @@ angular.module('dashboard', [
 		used_hash[id] = true;
 	});
 
-	$scope.name = "test";
-
 	for (var dev in known_hexabus_devices) {
 		known_hexabus_devices[dev].eids.forEach(function(ep) {
 			if (ep.function != "infrastructure" &&
@@ -226,7 +252,7 @@ angular.module('dashboard', [
 		devices.each(function() {
 			view_content.push($(this).data("endpoint-id"));
 		});
-		console.log(view_content);
+		$("#device-order").attr("value", JSON.stringify(view_content));
 	};
 }])
 .controller('wizardConnection', ['$scope', 'Socket', function($scope, Socket) {

@@ -8,7 +8,7 @@
 <div class="container" data-ng-controller="viewConfig">
 	<div class="row-fluid">
 		<label for="name">Name of view:</label>
-		<input type="text" data-ng-model="name" id="name" />
+		<input type="text" id="name" name="view_name" form="form" value="<%= view_name %>" />
 	</div>
 	<div class="row-fluid">
 		<div class="span4">
@@ -47,7 +47,10 @@
 	<hr />
 	<div class="row-fluid">
 		<div class="span3 offset9">
-			<button data-ng-click="doneClick()">Save</button>
+			<form method="post" action="/view/edit/<%= view_id %>" id="form">
+				<input type="hidden" name="device_order" id="device-order" value="" />
+				<button data-ng-click="doneClick()">Save</button>
+			</form>
 		</div>
 	</div>
 </div>

@@ -233,6 +233,7 @@ var DeviceTree = function(file) {
 			});
 		}
 		views = json.views;
+		console.log(views);
 	}
 
 	this.add_endpoint = function(ip, eid, params) {
