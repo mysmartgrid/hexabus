@@ -226,7 +226,9 @@ app.get('/wizard/current', function(req, res) {
 
 		if (err) {
 			config.heartbeat_ok = false;
+			config.heartbeat_code = 0;
 			config.heartbeat_messages = [err];
+			config.heartbeat_state = "";
 		} else {
 			config.heartbeat_ok = state.code == 0;
 			config.heartbeat_code = state.code;
