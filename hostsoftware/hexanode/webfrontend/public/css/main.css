@@ -43,6 +43,25 @@ div.spinner-large {
 }
 
 
+.device-list-container {
+	height: 20em;
+	overflow: auto;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
+}
+.device-list-helper-row {
+	height: 4em;
+}
+.device-list > tbody > tr.device-list-helper-row:not(:only-child) {
+	display: none;
+}
+tr.device-list-helper-row td {
+	background-color: #ada !important;
+}
+
+
 .vis-bool-switch {
 	padding: 1.4em;
 	position: relative;

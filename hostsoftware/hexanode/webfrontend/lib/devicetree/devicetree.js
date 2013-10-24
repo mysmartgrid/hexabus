@@ -154,6 +154,7 @@ var Endpoint = function(device, eid, params, emitter) {
 
 var DeviceTree = function(file) {
 	var devices = {};
+	var views = {};
 
 	if (file) {
 		var data = fs.readFileSync(file);
@@ -217,8 +218,13 @@ var DeviceTree = function(file) {
 		return ep;
 	};
 
-	Object.defineProperty(this, "devices", {
-		value: devices
+	Object.defineProperties(this, {
+		devices: {
+			value: devices
+		},
+		views: {
+			value: views
+		}
 	});
 
 	this.save = function(file, cb) {

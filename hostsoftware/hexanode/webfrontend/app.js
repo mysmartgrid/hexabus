@@ -286,6 +286,26 @@ app.get('/wizard/:step', function(req, res) {
 	res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
 });
 
+app.get('/view/edit/:id', function(req, res) {
+	var devices = {};
+	var used = [];
+
+	devicetree.forEach(function(device) {
+		var entry = devices[device.ip] = { name: device.name, ip: device.ip, eids: [] };
+
+		device.forEachEndpoint(function(ep) {
+			if (ep.function != "infrastructure") {
+				entry.eids.push(ep);
+			}
+		});
+		entry.eids.sort(function(a, b) {
+			return b.eid - a.eid;
+		});
+	});
+
+	res.render('view/edit.ejs', { active_nav: 'configuration', known_devices: devices, used_devices: used });
+});
+
 var sensor_is_old = function(ep) {
 	return ep.age >= 60 * 60 * 1000;
 };

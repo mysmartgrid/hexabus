@@ -187,6 +187,48 @@ angular.module('dashboard', [
 		waitingLastUpdateRecalc = $timeout(keepLastUpdateCurrent, nextUpdateIn);
 	};
 }])
+.controller('viewConfig', ['$scope', function($scope) {
+	$scope.usedEndpoints = [];
+	$scope.unusedEndpoints = [];
+
+	var used_hash = {};
+	used_hexabus_devices.forEach(function(id) {
+		used_hash[id] = true;
+	});
+
+	$scope.name = "test";
+
+	for (var dev in known_hexabus_devices) {
+		known_hexabus_devices[dev].eids.forEach(function(ep) {
+			if (ep.function != "infrastructure" &&
+				(ep.function == "actor" || ep.unit)) {
+				if (used_hash[ep.id]) {
+					$scope.usedEndpoints.push(ep);
+				} else {
+					$scope.unusedEndpoints.push(ep);
+				}
+			}
+		});
+	}
+
+	$(".device-list > tbody").sortable({
+		cursorAt: {
+			left: 5,
+			top: 5
+		},
+		connectWith: ".device-list > tbody"
+	});
+
+	$scope.doneClick = function() {
+		var view_content = [];
+
+		var devices = $(".devices-for-view *[data-endpoint-id]");
+		devices.each(function() {
+			view_content.push($(this).data("endpoint-id"));
+		});
+		console.log(view_content);
+	};
+}])
 .controller('wizardConnection', ['$scope', 'Socket', function($scope, Socket) {
 	$scope.configure = function() {
 		Socket.emit('wizard_configure');
