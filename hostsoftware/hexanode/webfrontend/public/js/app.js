@@ -229,13 +229,17 @@ angular.module('dashboard', [
 			if (ep.function != "infrastructure" &&
 				(ep.function == "actor" || ep.unit)) {
 				if (used_hash[ep.id]) {
-					$scope.usedEndpoints.push(ep);
+					used_hash[ep.id] = ep;
 				} else {
 					$scope.unusedEndpoints.push(ep);
 				}
 			}
 		});
 	}
+
+	used_hexabus_devices.forEach(function(id) {
+		$scope.usedEndpoints.push(used_hash[id]);
+	});
 
 	$(".device-list > tbody").sortable({
 		cursorAt: {
