@@ -15,40 +15,62 @@ angular.module('dashboard', [
 	$scope.actorList = {};
 	$scope.views = all_views;
 
-	$scope.current_view = $scope.sensorList;
+	$scope.current_view = {};
 	$scope.hide_unitless = true;
 
 	$scope.setView = function(view) {
 		if (view == "sensors") {
 			$("#view-name").text(Lang.pack["dashboard"]["all-sensors"]);
-			$scope.current_view = $scope.sensorList;
+			$scope.current_view = {
+				view: "sensors",
+				endpoints: $scope.sensorList
+			};
 			$scope.hide_unitless = true;
 		} else if (view == "actors") {
 			$("#view-name").text(Lang.pack["dashboard"]["all-actors"]);
-			$scope.current_view = $scope.actorList;
+			$scope.current_view = {
+				view: "actors",
+				endpoints: $scope.actorList
+			};
 			$scope.hide_unitless = false;
 		} else {
 			$("#view-name").text(view.name);
 			$scope.hide_unitless = false;
 
-			$scope.current_view = [];
+			$scope.current_view = {
+				view: view,
+				endpoints: []
+			};
 			view.devices.forEach(function(id) {
 				if ($scope.sensorList[id]) {
-					$scope.current_view.push($scope.sensorList[id]);
+					$scope.current_view.endpoints.push($scope.sensorList[id]);
 				} else if ($scope.actorList[id]) {
-					$scope.current_view.push($scope.actorList[id]);
+					$scope.current_view.endpoints.push($scope.actorList[id]);
 				}
 			});
 		}
 	};
 
-	var updateDisplay = function() {
-		lastSensorValueReceivedAt = new Date();
-		keepLastUpdateCurrent();
+	$scope.setView("sensors");
 
-		if (pendingUpdateControl) {
-			pendingUpdateControl.focus();
+	var updateDisplayScheduled;
+	var updateDisplay = function() {
+		if (updateDisplayScheduled) {
+			$timeout.cancel(updateDisplayScheduled);
 		}
+
+		updateDisplayScheduled = $timeout(function() {
+			lastSensorValueReceivedAt = new Date();
+			keepLastUpdateCurrent();
+
+			if (pendingUpdateControl) {
+				pendingUpdateControl.focus();
+			}
+
+			if ($scope.current_view.view == "sensors" || $scope.current_view.view == "actors") {
+				$scope.setView($scope.current_view.view);
+			}
+		}, 100);
 	};
 
 	$scope.editBegin = function(endpoint, data) {
@@ -137,10 +159,14 @@ angular.module('dashboard', [
 				}
 			};
 			for (var key in $scope.sensorList) {
-				associate($scope.sensorList[key]);
+				if (key.substr(0, 1) != "$") {
+					associate($scope.sensorList[key]);
+				}
 			}
 			for (var key in $scope.actorList) {
-				associate($scope.actorList[key]);
+				if (key.substr(0, 1) != "$") {
+					associate($scope.actorList[key]);
+				}
 			}
 		}
 
@@ -156,8 +182,8 @@ angular.module('dashboard', [
 		gauges = {};
 	});
 
-	Socket.on('ep_new', epMetadataHandler);
-	Socket.on('ep_metadata', epMetadataHandler);
+	Socket.on('ep_new', epMetadataHandler, { apply: false });
+	Socket.on('ep_metadata', epMetadataHandler, { apply: false });
 
 	Socket.on('device_removed', function(msg) {
 		for (var id in $scope.sensorList) {
@@ -168,25 +194,23 @@ angular.module('dashboard', [
 	});
 
 	Socket.on('ep_update', function(data) {
-		$timeout(function() {
-			var epId = data.ep;
-			var ep;
-			if (epId in $scope.sensorList) {
-				var ep = $scope.sensorList[epId];
-			} else if (epId in $scope.actorList) {
-				var ep = $scope.actorList[epId];
-			} else {
-				Socket.emit('ep_request_metadata', epId);
-				return;
-			}
+		var epId = data.ep;
+		var ep;
+		if (epId in $scope.sensorList) {
+			var ep = $scope.sensorList[epId];
+		} else if (epId in $scope.actorList) {
+			var ep = $scope.actorList[epId];
+		} else {
+			Socket.emit('ep_request_metadata', epId);
+			return;
+		}
 
-			ep.ep_desc.value = data.value.value;
-			ep.hide = false;
-			ep.ep_desc.has_value = true;
+		ep.ep_desc.value = data.value.value;
+		ep.hide = false;
+		ep.ep_desc.has_value = true;
 
-			updateDisplay();
-		});
-	});
+		updateDisplay();
+	}, { apply: false });
 
 	Socket.on('ep_timeout', function(msg) {
 		if (msg.ep.function == "sensor" && $scope.sensorList[msg.ep.id]) {
