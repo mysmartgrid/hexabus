@@ -43,6 +43,7 @@ function open_config() {
 	try {
 		devicetree = new DeviceTree(fs.existsSync(devicetree_file) ? devicetree_file : undefined);
 	} catch (e) {
+		console.log(e);
 		devicetree = new DeviceTree();
 	}
 }
@@ -201,7 +202,10 @@ app.post('/api/device/rename/:ip', function(req, res) {
 app.get('/', function(req, res) {
 	fs.exists('/etc/radvd.conf', function(exists) {
 		if (exists) {
-			res.render('index.ejs', { active_nav: 'dashboard' });
+			res.render('index.ejs', {
+				active_nav: 'dashboard',
+				views: devicetree.views
+			});
 		} else {
 			res.redirect('/wizard/new');
 		}
@@ -226,7 +230,9 @@ app.get('/wizard/current', function(req, res) {
 
 		if (err) {
 			config.heartbeat_ok = false;
+			config.heartbeat_code = 0;
 			config.heartbeat_messages = [err];
+			config.heartbeat_state = "";
 		} else {
 			config.heartbeat_ok = state.code == 0;
 			config.heartbeat_code = state.code;
@@ -284,6 +290,64 @@ app.get('/wizard/devices', function(req, res) {
 });
 app.get('/wizard/:step', function(req, res) {
 	res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
+});
+
+app.get('/view/new', function(req, res) {
+	var count = devicetree.views.length;
+
+	devicetree.views.push({
+		id: Math.round(Date.now() / 1000) + "." + count,
+		name: "",
+		devices: []
+	});
+
+	res.redirect('/view/edit/' + count);
+});
+app.get('/view/edit/:id', function(req, res) {
+	var view = devicetree.views[req.params.id];
+
+	if (!view) {
+		res.send("view " + req.params.id + " not found", 404);
+		return;
+	}
+
+	var devices = {};
+	var used = view.devices;
+
+	devicetree.forEach(function(device) {
+		var entry = devices[device.ip] = { name: device.name, ip: device.ip, eids: [] };
+
+		device.forEachEndpoint(function(ep) {
+			if (ep.function != "infrastructure") {
+				entry.eids.push(ep);
+			}
+		});
+		entry.eids.sort(function(a, b) {
+			return b.eid - a.eid;
+		});
+	});
+
+	res.render('view/edit.ejs', {
+		active_nav: 'configuration',
+		known_devices: devices,
+		used_devices: used,
+		view_name: view.name,
+		view_id: req.params.id
+ 	});
+});
+app.post('/view/edit/:id', function(req, res) {
+	var view = devicetree.views[req.params.id];
+
+	if (!view) {
+		res.send("view not found", 404);
+		return;
+	}
+
+	view.devices = JSON.parse(req.body.device_order);
+	view.name = req.body.view_name;
+	save_devicetree();
+
+	res.redirect('/');
 });
 
 var sensor_is_old = function(ep) {

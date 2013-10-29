@@ -9,22 +9,22 @@ var unix_ts = function() {
 }
 
 var Device = function(ip, name, emitter, rest) {
-	rest = rest || {};
+	var endpoints = {};
+	var last_update;
+	var name;
 
-	if (ip == undefined)
-		throw "Required parameter: ip";
-	if (name == undefined)
-		throw "Required parameter: name";
-
-	var last_update = rest.last_update || new Date();
-	this.update = function() {
-		last_update = new Date();
+	this.toJSON = function() {
+		return {
+			ip: ip,
+			name: name,
+			last_update: last_update,
+			endpoints: endpoints
+		};
 	};
 
-	var name;
 	Object.defineProperties(this, {
 		"ip": {
-			value: ip,
+			get: function() { return ip; },
 			enumerable: true
 		},
 		"name": {
@@ -37,7 +37,7 @@ var Device = function(ip, name, emitter, rest) {
 			}
 		},
 		"endpoints": {
-			value: {},
+			value: endpoints,
 			enumerable: true
 		},
 		"last_update": {
@@ -49,6 +49,10 @@ var Device = function(ip, name, emitter, rest) {
 		}
 	});
 
+	this.update = function() {
+		last_update = new Date();
+	};
+
 	this.forEachEndpoint = function(cb) {
 		for (var key in this.endpoints) {
 			if (this.endpoints.hasOwnProperty(key)) {
@@ -56,6 +60,33 @@ var Device = function(ip, name, emitter, rest) {
 			}
 		}
 	};
+
+	if (arguments.length == 1) {
+		var obj = ip;
+
+		emitter = obj.emitter;
+
+		ip = obj.dev.ip;
+		name = obj.dev.name;
+		last_update = new Date(obj.dev.last_update);
+
+		for (var ep_id in obj.dev.endpoints) {
+			endpoints[ep_id] = new Endpoint({
+				device: this,
+				emitter: emitter,
+				ep: obj.dev.endpoints[ep_id]
+			});
+		}
+	} else {
+		rest = rest || {};
+
+		last_update = rest.last_update || new Date();
+	}
+
+	if (ip == undefined)
+		throw "Required parameter: ip";
+	if (name == undefined)
+		throw "Required parameter: name";
 };
 
 
@@ -77,19 +108,14 @@ var endpoint_id = function(ip, eid) {
 };
 
 var Endpoint = function(device, eid, params, emitter) {
-	if (eid == undefined)
-		throw "Required parameter: eid";
-	eid = parseInt(eid);
-	if (isNaN(eid))
-		throw "Invalid: eid. Expected: int";
+	var last_update;
+	var last_value;
 
-	var last_update = new Date();
 	this.update = function(val) {
 		last_update = new Date();
 		this.device.update();
 	};
 
-	var last_value;
 	Object.defineProperties(this, {
 		"eid": {
 			enumerable: true,
@@ -97,14 +123,14 @@ var Endpoint = function(device, eid, params, emitter) {
 		},
 		"id": {
 			enumerable: true,
-			value: endpoint_id(device.ip, eid)
+			get: function() { return endpoint_id(device.ip, eid); }
 		},
 		"ip": {
 			enumerable: true,
-			value: device.ip
+			get: function() { return device.ip; }
 		},
 		"device": {
-			value: device
+			get: function() { return device; }
 		},
 		"name": {
 			enumerable: true,
@@ -127,7 +153,7 @@ var Endpoint = function(device, eid, params, emitter) {
 		}
 	});
 
-	var add_key = function(desc) {
+	var add_key = function(to, desc) {
 		var key, writable;
 		if (typeof desc == "object") {
 			key = desc.name;
@@ -140,36 +166,73 @@ var Endpoint = function(device, eid, params, emitter) {
 		if (params[key] == undefined)
 			throw "Required field: " + key;
 
-		Object.defineProperty(this, key, {
+		Object.defineProperty(to, key, {
 			enumerable: true,
 			writable: writable,
 			value: params[key]
 		});
 	};
-	endpoint_keys.forEach(add_key.bind(this));
-	function_keys[params.function].forEach(add_key.bind(this));
+
+	var add_function_keys = function(to) {
+		var add = function(key) {
+			add_key(to, key);
+		};
+		endpoint_keys.forEach(add);
+		function_keys[params.function].forEach(add);
+	};
+
+	this.toJSON = function() {
+		var json = {
+			last_value: this.last_value
+		};
+
+		for (var key in this) {
+			json[key] = this[key];
+		}
+
+		return json;
+	};
+
+	if (arguments.length == 1) {
+		var obj = device;
+
+		device = obj.device;
+		emitter = obj.emitter;
+
+		eid = obj.ep.eid;
+		last_update = new Date(obj.ep.last_update);
+		last_value = obj.ep.last_value;
+		params = obj.ep;
+	} else {
+		last_update = new Date();
+	}
+
+	if (eid == undefined)
+		throw "Required parameter: eid";
+	eid = parseInt(eid);
+	if (isNaN(eid))
+		throw "Invalid: eid. Expected: int";
+
+	add_function_keys(this);
 };
 
 
 
 var DeviceTree = function(file) {
 	var devices = {};
+	var views = [];
 
 	if (file) {
 		var data = fs.readFileSync(file);
-		var devs_s = JSON.parse(data);
-		for (var key in devs_s) {
-			var dev_s = devs_s[key];
-			var dev = new Device(dev_s.ip, dev_s.name, this, dev_s);
+		var json = JSON.parse(data);
 
-			for (var key_ep in dev_s.endpoints) {
-				var ep_s = dev_s.endpoints[key_ep];
-				var ep = new Endpoint(dev, key_ep, ep_s, this);
-				dev.endpoints[key_ep] = ep;
-			}
-
-			devices[key] = dev;
+		for (var key in json.devices) {
+			devices[key] = new Device({
+				emitter: this,
+				dev: json.devices[key]
+			});
 		}
+		views = json.views;
 	}
 
 	this.add_endpoint = function(ip, eid, params) {
@@ -217,12 +280,21 @@ var DeviceTree = function(file) {
 		return ep;
 	};
 
-	Object.defineProperty(this, "devices", {
-		value: devices
+	Object.defineProperties(this, {
+		devices: {
+			value: devices
+		},
+		views: {
+			value: views
+		}
 	});
 
 	this.save = function(file, cb) {
-		fs.writeFile(file, JSON.stringify(devices), function(err) {
+		var json = {
+			devices: devices,
+			views: views
+		};
+		fs.writeFile(file, JSON.stringify(json, null, '\t'), function(err) {
 			if (cb) {
 				cb(err);
 			}
