@@ -43,6 +43,7 @@ function open_config() {
 	try {
 		devicetree = new DeviceTree(fs.existsSync(devicetree_file) ? devicetree_file : undefined);
 	} catch (e) {
+		console.log(e);
 		devicetree = new DeviceTree();
 	}
 }

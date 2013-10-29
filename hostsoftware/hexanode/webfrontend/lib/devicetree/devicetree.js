@@ -202,7 +202,7 @@ var Endpoint = function(device, eid, params, emitter) {
 		eid = obj.ep.eid;
 		last_update = new Date(obj.ep.last_update);
 		last_value = obj.ep.last_value;
-		params = obj.ep.params;
+		params = obj.ep;
 	} else {
 		last_update = new Date();
 	}
@@ -233,7 +233,6 @@ var DeviceTree = function(file) {
 			});
 		}
 		views = json.views;
-		console.log(views);
 	}
 
 	this.add_endpoint = function(ip, eid, params) {
