@@ -20,6 +20,7 @@ add_executable(hexadaemon ${hexadaemon_src} ${cpp_files})
 # Link the executables
 target_link_libraries(hexadaemon
   pthread
+  uci #TODO: search for uci bindings
   ${HXB_LIBRARIES}
   ${Boost_LIBRARIES}
 )

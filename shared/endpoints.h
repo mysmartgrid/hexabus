@@ -13,6 +13,7 @@
 #define EP_SM_UP_RECEIVER          10UL
 #define EP_SM_UP_ACKNAK            11UL
 #define EP_SM_RESET_ID             12UL
+#define EP_GEN_POWER_METER         21UL
 #define EP_ANALOGREAD              22UL
 #define EP_SHUTTER                 23UL
 #define EP_HEXAPUSH_PRESSED        24UL
@@ -37,5 +38,10 @@
 #define EP_HEATER_HOT              44UL
 #define EP_HEATER_COLD             45UL
 #define EP_HEXASENSE_BUTTON_STATE  46UL
+#define EP_FLUKSO_L1               47UL
+#define EP_FLUKSO_L2               48UL
+#define EP_FLUKSO_L3               49UL
+#define EP_FLUKSO_S01              50UL
+#define EP_FLUKSO_S02              51UL
 
 #endif // ENDPOINTS_H_
