@@ -122,6 +122,7 @@ allow-hotplug {0}
 	netmask {2}
 	privext 0
 	scope site
+	post-up (sysctl net.ipv6.conf.{0}.accept_ra=2; rdisc6 {0}) >/dev/null
 """
 	if prefix is None:
 		return (header + slaac).format(interface)
