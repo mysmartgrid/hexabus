@@ -18,11 +18,18 @@ namespace hexadaemon {
 			void epqueryhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void eid0handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void eid2handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
-			void eid21handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			//void eid21handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void l1handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void l2handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void l3handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void s01handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void s02handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 
 			void broadcast_handler(const boost::system::error_code& error);
 
 			void errorhandler(const hexabus::GenericException& error);
+
+			void loadSensorMapping();
 
 		private:
 			hexabus::Socket _socket;
@@ -30,6 +37,7 @@ namespace hexadaemon {
 			int _interval;
 			bool _debug;
 			std::map<std::string, uint32_t> _flukso_values;
+			std::map<int, std::string> _sensor_mapping;
 
 			int getFluksoValue();
 			void updateFluksoValues();

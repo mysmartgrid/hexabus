@@ -35,5 +35,10 @@
 #define EP_PV_PRODUCTION         41UL
 #define EP_POWER_BALANCE         42UL
 #define EP_BATTERY_BALANCE       43UL
+#define EP_FLUKSO_L1             44UL 
+#define EP_FLUKSO_L2             45UL 
+#define EP_FLUKSO_L3             46UL 
+#define EP_FLUKSO_S01            47UL 
+#define EP_FLUKSO_S02            48UL 
 
 #endif // ENDPOINTS_H_
