@@ -119,7 +119,7 @@ var Endpoint = function(device, eid, params, emitter) {
 	Object.defineProperties(this, {
 		"eid": {
 			enumerable: true,
-			value: eid
+			get: function() { return eid; }
 		},
 		"id": {
 			enumerable: true,
