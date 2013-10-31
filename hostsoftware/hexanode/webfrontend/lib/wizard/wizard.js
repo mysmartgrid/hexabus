@@ -80,7 +80,7 @@ var Wizard = function() {
 	this.addDevice = function(devicetree, cb) {
 		var script = nconf.get('debug-wizard')
 			? 'sleep 1 && cat tools/device.json'
-			: 'sudo hexapair -D /dev/ttyACM0 -t 30';
+			: 'hexapair -D /dev/ttyACM0 -t 30';
 		exec(script, function(error, stdout, stderr) {
 			if (error) {
 				cb({ device: stdout, error: stderr });
@@ -89,12 +89,13 @@ var Wizard = function() {
 				var interfaces = ["usb0"]
 				var addr = new v6.Address(stdout.replace(/\s+$/g, ''));
 				interfaces.forEach(function(iface) {
-					var command="sudo hexinfo --interface " + iface + " --ip " + addr.canonicalForm() + " --json --devfile -";
+					var command = nconf.get('debug-wizard')
+						? 'echo \''+stdout+'\''
+						: 'hexinfo --interface ' + iface + ' --ip ' + addr.canonicalForm() + ' --json --devfile -';
 					exec(command, function(error, stdout, stderr) {
 						if (error) {
 							cb({ error: stderr });
 						} else {
-							console.log(stdout);
 							var dev = JSON.parse(stdout);
 							dev = dev.devices[0];
 							for (var key in dev.endpoints) {
