@@ -301,6 +301,7 @@ void HexabusServer::updateFluksoValues()
 
 void HexabusServer::loadSensorMapping()
 {
+	_debug && std::cout << "loading sensor mapping" << std::endl;
 	uci_context *ctx = uci_alloc_context();
 	uci_package *flukso;
 	uci_load(ctx, "flukso", &flukso);
@@ -308,41 +309,54 @@ void HexabusServer::loadSensorMapping()
 	{
 		int port;
 		std::string id;
-		uci_ptr res;
-		char portKey[13], idKey[11];
-		snprintf(portKey, 13, "flukso.%d.port", i);
-		snprintf(idKey, 11, "flukso.%d.id", i);
-		uci_lookup_ptr(ctx, &res, portKey, false);
+		struct uci_ptr res;
+		char portKey[14], idKey[12];
+		snprintf(portKey, 14, "flukso.%d.port", i);
+		snprintf(idKey, 12, "flukso.%d.id", i);
+		_debug && std::cout << "Looking up " << portKey << std::endl;
+		if (uci_lookup_ptr(ctx, &res, portKey, true) != UCI_OK)
+		{
+			std::cerr << "Port lookup " << portKey << " failed!" << std::endl;
+			uci_perror(ctx, "hexadaemon");
+			continue;
+		}
 		if (!(res.flags & uci_ptr::UCI_LOOKUP_COMPLETE)) {
-			std::cerr << "Unable to load sensor port configuration" << std::endl;
-			return;
+			std::cerr << "Unable to load sensor port " << portKey << " configuration" << std::endl;
+			continue;
 		}
 		if (res.last->type != UCI_TYPE_OPTION) {
-			std::cerr << "Looking up sensor port configuration failed" << std::endl;
-			return;
+			std::cerr << "Looking up sensor port " << i << " configuration failed, not an option" << std::endl;
+			continue;
 		}
-		if (res.o->type != UCI_TYPE_STRING) {
-			std::cerr << "Looking up sensor port configuration failed" << std::endl;
-			return;
+		if (res.o->type == UCI_TYPE_LIST) {
+			port = atoi(list_to_element(res.o->v.list.next)->name);
+		} else {
+			port = atoi(res.o->v.string);
 		}
-		_debug && std::cout << "uci load: " << portKey << ": " << res.o->v.string << std::endl;
-		port = atoi(res.o->v.string);
-		uci_lookup_ptr(ctx, &res, idKey, false);
+		_debug && std::cout << "Port: " << port << std::endl;
+		_debug && std::cout << "Looking up " << idKey << std::endl;
+		if (uci_lookup_ptr(ctx, &res, idKey, true) != UCI_OK)
+		{
+			std::cerr << "Id lookup " << idKey << " failed!" << std::endl;
+			uci_perror(ctx, "hexadaemon");
+			continue;
+		}
 		if (!(res.flags & uci_ptr::UCI_LOOKUP_COMPLETE)) {
-			std::cerr << "Unable to load sensor id configuration" << std::endl;
-			return;
+			std::cerr << "Unable to load sensor id " << idKey << " configuration" << std::endl;
+			continue;
 		}
 		if (res.last->type != UCI_TYPE_OPTION) {
-			std::cerr << "Looking up sensor id configuration failed" << std::endl;
-			return;
+			std::cerr << "Looking up sensor id " << i << " configuration failed, not an option" << std::endl;
+			continue;
 		}
 		if (res.o->type != UCI_TYPE_STRING) {
-			std::cerr << "Looking up sensor id configuration failed" << std::endl;
-			return;
+			std::cerr << "Looking up sensor id " << i << " configuration failed, not a string but " << res.o->type << std::endl;
+			continue;
 		}
-		_debug && std::cout << "uci load: " << idKey << ": " << res.o->v.string << std::endl;
+		_debug && std::cout << "Id: " << res.o->v.string << std::endl;
 		id = res.o->v.string;
 		_sensor_mapping[port] = id;
 	}
 	uci_free_context(ctx);
+	_debug && std::cout << "sensor mapping loaded" << std::endl;
 }
