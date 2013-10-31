@@ -12,7 +12,9 @@
 
 #include "endpoints.h"
 
+extern "C" {
 #include <uci.h>
+}
 
 using namespace hexadaemon;
 
