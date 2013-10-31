@@ -147,6 +147,8 @@ void HexabusServer::eid2handler(const hexabus::Packet& p, const boost::asio::ip:
 void HexabusServer::l1handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
 	_debug && std::cout << "Query for Phase 1 received" << std::endl;
+	updateFluksoValues();
+	_debug && std::cout << "Looking for _flukso_values[" << _sensor_mapping[1] << "]" << std::endl;
 	try {
 		int value = _flukso_values[_sensor_mapping[1]];
 		if ( value >= 0 )
@@ -159,6 +161,8 @@ void HexabusServer::l1handler(const hexabus::Packet& p, const boost::asio::ip::u
 void HexabusServer::l2handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
 	_debug && std::cout << "Query for Phase 2 received" << std::endl;
+	updateFluksoValues();
+	_debug && std::cout << "Looking for _flukso_values[" << _sensor_mapping[2] << "]" << std::endl;
 	try {
 		int value = _flukso_values[_sensor_mapping[2]];
 		if ( value >= 0 )
@@ -171,6 +175,8 @@ void HexabusServer::l2handler(const hexabus::Packet& p, const boost::asio::ip::u
 void HexabusServer::l3handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
 	_debug && std::cout << "Query for Phase 3 received" << std::endl;
+	updateFluksoValues();
+	_debug && std::cout << "Looking for _flukso_values[" << _sensor_mapping[3] << "]" << std::endl;
 	try {
 		int value = _flukso_values[_sensor_mapping[3]];
 		if ( value >= 0 )
@@ -183,6 +189,8 @@ void HexabusServer::l3handler(const hexabus::Packet& p, const boost::asio::ip::u
 void HexabusServer::s01handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
 	_debug && std::cout << "Query for S0 1 received" << std::endl;
+	updateFluksoValues();
+	_debug && std::cout << "Looking for _flukso_values[" << _sensor_mapping[4] << "]" << std::endl;
 	try {
 		int value = _flukso_values[_sensor_mapping[4]];
 		if ( value >= 0 )
@@ -195,6 +203,8 @@ void HexabusServer::s01handler(const hexabus::Packet& p, const boost::asio::ip::
 void HexabusServer::s02handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
 	_debug && std::cout << "Query for S0 2 received" << std::endl;
+	updateFluksoValues();
+	_debug && std::cout << "Looking for _flukso_values[" << _sensor_mapping[5] << "]" << std::endl;
 	try {
 		int value = _flukso_values[_sensor_mapping[5]];
 		if ( value >= 0 )
