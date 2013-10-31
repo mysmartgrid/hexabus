@@ -56,7 +56,7 @@ void HexabusServer::epqueryhandler(const hexabus::Packet& p, const boost::asio::
 	try {
 		switch (packet->eid()) {
 			case EP_DEVICE_DESCRIPTOR:
-				_socket.send(hexabus::EndpointInfoPacket(EP_DEVICE_DESCRIPTOR, HXB_DTYPE_UINT32, "HexaDaemon", HXB_FLAG_NONE), from);
+				_socket.send(hexabus::EndpointInfoPacket(EP_DEVICE_DESCRIPTOR, HXB_DTYPE_UINT32, "Flukso", HXB_FLAG_NONE), from);
 				break;
 			case EP_POWER_METER:
 				_socket.send(hexabus::EndpointInfoPacket(EP_POWER_METER, HXB_DTYPE_UINT32, "HexabusPlug+ Power meter (W)", HXB_FLAG_NONE), from);
@@ -89,7 +89,7 @@ void HexabusServer::eid0handler(const hexabus::Packet& p, const boost::asio::ip:
 {
 	_debug && std::cout << "Query for EID 0 received" << std::endl;
 	try {
-		uint32_t eids = (1 << EP_DEVICE_DESCRIPTOR) | (1 << EP_POWER_METER) | (1 << EP_GEN_POWER_METER);
+		uint32_t eids = (1 << EP_DEVICE_DESCRIPTOR) | (1 << EP_POWER_METER) | (1 << EP_FLUKSO_L1) | (1 << EP_FLUKSO_L2) | (1 << EP_FLUKSO_L3) | (1 << EP_FLUKSO_S01) | (1 << EP_FLUKSO_S02);
 		_socket.send(hexabus::InfoPacket<uint32_t>(EP_DEVICE_DESCRIPTOR, eids), from);
 	} catch ( const hexabus::NetworkException& e ) {
 		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
