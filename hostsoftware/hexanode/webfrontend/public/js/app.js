@@ -332,6 +332,8 @@ angular.module('dashboard', [
 	$scope.search = function() {
 		console.log("Searching");
 		Socket.emit('devices_add');
+		$scope.error = false;
+		$scope.found = false;
 		$scope.searching = true;
 	};
 
@@ -341,7 +343,6 @@ angular.module('dashboard', [
 			$scope.error = true;
 			$scope.errormsg = msg.error;
 		} else {
-console.log(msg.device);
 			$scope.device = msg.device;
 			$scope.found = true;
 		}
