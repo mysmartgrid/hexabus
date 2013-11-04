@@ -189,6 +189,15 @@ void HexabusServer::s02handler(const hexabus::Packet& p, const boost::asio::ip::
 	}
 }
 
+unsigned long endpoints[5] = {
+	EP_FLUKSO_L1,
+	EP_FLUKSO_L2,
+	EP_FLUKSO_L3,
+	EP_FLUKSO_S01,
+	EP_FLUKSO_S02
+};
+
+
 void HexabusServer::broadcast_handler(const boost::system::error_code& error)
 {
 	_debug && std::cout << "Broadcasting current values." << std::endl;
@@ -197,6 +206,13 @@ void HexabusServer::broadcast_handler(const boost::system::error_code& error)
 		int value = getFluksoValue();
 		if ( value >= 0 )
 			_socket.send(hexabus::InfoPacket<uint32_t>(EP_POWER_METER, value));
+
+		for ( unsigned int i = 1; i < 6; i++ )
+		{
+			int value = _flukso_values[_sensor_mapping[i]];
+			if ( value >= 0 )
+				_socket.send(hexabus::InfoPacket<uint32_t>(endpoints[i], value));
+		}
 
 		_timer.expires_from_now(boost::posix_time::seconds(_interval+(rand()%_interval)));
 		_timer.async_wait(boost::bind(&HexabusServer::broadcast_handler, this, _1));
