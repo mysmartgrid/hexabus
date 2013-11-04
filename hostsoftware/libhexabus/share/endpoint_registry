@@ -290,6 +290,7 @@ eid 43 {
 eid 44 {
 	type FLOAT
 	description "Temperatur sensor for heater inflow"
+	unit "degC"
 	access R
 	function sensor
 }
@@ -297,6 +298,7 @@ eid 44 {
 eid 45 {
 	type FLOAT
 	description "Temperatur sensor for heater outflow"
+	unit "degC"
 	access R
 	function sensor
 }

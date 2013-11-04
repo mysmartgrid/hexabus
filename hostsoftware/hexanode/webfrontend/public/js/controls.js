@@ -370,7 +370,10 @@ angular.module('controls', [
 		replace: true,
 		template:
 			'<div class="vis-bool-switch vis-endpoint">' +
-				'<div class="title text-center">{{endpoint.ep_desc.name}} [{{endpoint.ep_desc.eid}}]</div>' +
+				'<div class="title text-center">{{endpoint.ep_desc.name}}</div>' +
+				'<div class="title text-center">' + 
+					'{{endpoint.ep_desc.eid | localize:\'endpoint-registry.descriptions\':endpoint.ep_desc.eid}}' + 
+				'</div>' +
 				'<div class="switch-container">' +
 					'<div data-bool-switch="bool-switch" ' + 
 						'data-endpoint="endpoint" ' + 

@@ -11,14 +11,12 @@
 #include "../../../shared/endpoints.h"
 #include "../../../shared/hexabus_definitions.h"
 
-#define BAUD 	57600
-#define VENID	0x24ad
-#define PRODID	0x008e
-
 #define P_ON_STR "$HXB_P_ON&"
 #define P_OFF_STR "$HXB_P_OFF&"
 #define P_SUC_STR "$HXB_P_SUCCESS&"
 #define P_FAL_STR "$HXB_P_FAILED&"
+
+#define BAUD   57600
 
 #define RESPONSE_TIMEOUT 5
 
@@ -47,20 +45,30 @@ public:
 	
 	void initiate_pairing() {
 		std::string sstart = P_ON_STR;
-		ba::write(*dev, ba::buffer(sstart.c_str(),sstart.size()));
+		try {
+			ba::write(*dev, ba::buffer(sstart.c_str(),sstart.size()));
+		} catch (std::exception& e) {
+			std::cerr << "Communication with hexabus stick failed: " << e.what() << std::endl;
+			exit(-1);
+		}
 	}
 
 	void cancel_pairing() {
 		std::string sstop = P_OFF_STR;
-		ba::write(*dev, ba::buffer(sstop.c_str(),sstop.size()));
+		try {
+			ba::write(*dev, ba::buffer(sstop.c_str(),sstop.size()));
+		} catch (std::exception& e) {
+			std::cerr << "Communication with hexabus stick failed: " << e.what() << std::endl;
+			exit(-1);
+		}
 	}
 
 	void start_reading() {
-		ba::async_read(*dev, ba::buffer(read_buf), boost::bind(&hxb_serial::read_char, this));
+		ba::async_read(*dev, ba::buffer(read_buf), boost::bind(&hxb_serial::read_char, this, ba::placeholders::error));
 	}
 
-	int get_return() {
-		return return_val;
+	int get_parse_status() {
+		return parse_status;
 	}
 
 	ba::io_service* io;
@@ -68,8 +76,10 @@ public:
 private:
 	int parse_cmd() {
 
+		/*
 		if(verbose)
 			std::cout << "Read: " << cmd_buf << std::endl;
+		*/
 
 		if(!cmd_buf.compare(P_SUC_STR)) {
 			if(verbose)
@@ -83,36 +93,41 @@ private:
 			return -1;
 		} else {
 			if(verbose)
-				std::cout << "Unknown command" << std::endl;
+				std::cout << "Unknown command...";
 		}
 
 		cmd_buf.clear();
 		return 0;
 	}
 
-	void read_char() {
-		if(read_buf[0] == '$') {
-			cmd_buf.clear();
-			cmd_buf.push_back(read_buf[0]);
-		} else if(read_buf[0] == '&') {
-			cmd_buf.push_back(read_buf[0]);
-			return_val = parse_cmd();
-			if (return_val) {
-				io->stop();
-				return;
+	void read_char(const boost::system::error_code& e) {
+		if(!e) {
+			if(read_buf[0] == '$') {
+				cmd_buf.clear();
+				cmd_buf.push_back(read_buf[0]);
+			} else if(read_buf[0] == '&') {
+				cmd_buf.push_back(read_buf[0]);
+				parse_status = parse_cmd();
+				if (parse_status) {
+					io->stop();
+					return;
+				}
+			} else {
+				cmd_buf.push_back(read_buf[0]);
 			}
-		} else {
-			cmd_buf.push_back(read_buf[0]);
-		}
 
-		start_reading();
+			start_reading();
+		} else {
+			std::cerr << "Communication with hexabus stick failed." << std::endl;
+			exit(-1);
+		}
 	}
 
 	ba::serial_port* dev;
 	boost::array<char, 1> read_buf;
 	std::string cmd_buf;
 	unsigned int timeout_time;
-	int return_val;
+	int parse_status;
 };
 
 
@@ -124,14 +139,13 @@ void response_timeout(const boost::system::error_code& e, hxb_serial* stick) {
 	}
 }
 
-
 void stop_pairing(hxb_serial *stick) {
 	ba::deadline_timer response_timer(*(stick->io));
 
 	stick->io->reset();
 
 	if(verbose)
-		std::cout << "Canceling running pairing" << std::endl;
+		std::cout << "Canceling running pairing...";
 
 	stick->cancel_pairing();
 	stick->start_reading();
@@ -142,7 +156,7 @@ void stop_pairing(hxb_serial *stick) {
 	stick->io->run();
 	response_timer.cancel();
 	
-	if(stick->get_return() == -1) {
+	if(stick->get_parse_status() == -1) {
 		std::cerr << "Could not cancel previous pairing." << std::endl;
 		exit(-1);
 	}
@@ -154,7 +168,7 @@ void start_pairing(hxb_serial *stick) {
 	stick->io->reset();
 
 	if(verbose)
-		std::cout << "Initiating new pairing" << std::endl;
+		std::cout << "Initiating new pairing...";
 
 	stick->initiate_pairing();
 	stick->start_reading();
@@ -165,7 +179,7 @@ void start_pairing(hxb_serial *stick) {
 	stick->io->run();
 	response_timer.cancel();
 
-	if(stick->get_return() == -1) {
+	if(stick->get_parse_status() == -1) {
 		std::cerr << "Could not initiate pairing." << std::endl;
 		exit(-1);
 	}
@@ -283,7 +297,7 @@ int main(int argc, char** argv)
 			io.reset();
 
 			if(verbose)
-				std::cout << "Waitung for pairing to complete" << std::endl;
+				std::cout << "Waitung for pairing to complete...";
 
 			timeout_timer.expires_from_now(boost::posix_time::seconds(vm["timeout"].as<unsigned int>()));
 			timeout_timer.async_wait(boost::bind(&timeout, ba::placeholders::error, &stick));
@@ -304,7 +318,7 @@ int main(int argc, char** argv)
 
 			timeout_timer.cancel();
 
-			if(stick.get_return() == -1) {
+			if(stick.get_parse_status() == -1) {
 				std::cerr << "Pairing failed." << std::endl;
 				exit(-1);
 			}

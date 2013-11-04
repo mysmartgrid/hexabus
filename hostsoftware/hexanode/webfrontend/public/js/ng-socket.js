@@ -3,9 +3,9 @@ angular.module('ng-socket', []).factory('Socket', ['$rootScope', '$location', fu
 
 	var connection = io.connect($location.protocol() + "://" + $location.host() + ":" + $location.port());
 
-	var wrap_message = function(callback) {
+	var wrap_message = function(callback, options) {
 		return function(data) {
-			if ($rootScope.$$phase == "$apply") {
+			if ($rootScope.$$phase == "$apply" || !options.apply) {
 				callback(data);
 			} else {
 				$rootScope.$apply(function() {
@@ -15,8 +15,8 @@ angular.module('ng-socket', []).factory('Socket', ['$rootScope', '$location', fu
 		};
 	};
 
-	socket.on = function(id, callback) {
-		connection.on(id, wrap_message(callback));
+	socket.on = function(id, callback, options) {
+		connection.on(id, wrap_message(callback, options || {}));
 		return socket;
 	}
 

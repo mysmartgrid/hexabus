@@ -145,7 +145,7 @@ uint8_t at45_read_page_to_buf_1(uint16_t addr_page) {
 } 
 
 // copy from the buffer over to the chip 
-uint8_t at45_write_from_buf_1(uint16_t addr_page) __attribute__ ((optimize(1))); 
+uint8_t at45_write_from_buf_1(uint16_t addr_page); 
 
 uint8_t at45_write_from_buf_1(uint16_t addr_page) { 
   // 4096 - number of pages AT45DB161D 
@@ -182,7 +182,7 @@ void at45_read_from_buf_1(uint8_t * dst, uint16_t count, uint16_t addr) {
 } 
 
 // transferring the data over to BUFFER 1 
-void at45_write_to_buf_1(const uint8_t *src, uint16_t count, uint16_t addr) __attribute__ ((optimize(1))); 
+void at45_write_to_buf_1(const uint8_t *src, uint16_t count, uint16_t addr); 
 
 void at45_write_to_buf_1(const uint8_t *src, uint16_t count, uint16_t addr) { 
   uint16_t i = 0; 
