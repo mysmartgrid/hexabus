@@ -51,7 +51,15 @@ angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) 
 									});
 								}
 							});
-							scope.gauge = g = new JustGage(config);
+							try {
+								scope.gauge = g = new JustGage(config);
+							} catch (e) {
+								// ignore "no element to draw onto", since that happens only when a gauge
+								// is unloaded before the actual display is created.
+								if (e != "No element with given id found") {
+									throw e;
+								}
+							}
 
 							watchers['value'] = scope.$watch('value', function(val) {
 								val = +val;
