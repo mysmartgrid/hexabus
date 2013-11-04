@@ -38,8 +38,8 @@ HexabusServer::HexabusServer(boost::asio::io_service& io, int interval, bool deb
 
 	_socket.onPacketReceived(boost::bind(&HexabusServer::epqueryhandler, this, _1, _2), hf::isEndpointQuery());
 	_socket.onPacketReceived(boost::bind(&HexabusServer::eid0handler, this, _1, _2), hf::isQuery() && hf::eid() == EP_DEVICE_DESCRIPTOR);
+	_socket.onPacketReceived(boost::bind(&HexabusServer::eid32handler, this, _1, _2), hf::isQuery() && hf::eid() == EP_EXT_DEV_DESC_1);
 	_socket.onPacketReceived(boost::bind(&HexabusServer::eid2handler, this, _1, _2), hf::isQuery() && hf::eid() == EP_POWER_METER);
-	//_socket.onPacketReceived(boost::bind(&HexabusServer::eid21handler, this, _1, _2), hf::isQuery() && hf::eid() == EP_GEN_POWER_METER);
 	_socket.onPacketReceived(boost::bind(&HexabusServer::l1handler, this, _1, _2), hf::isQuery() && hf::eid() == EP_FLUKSO_L1);
 	_socket.onPacketReceived(boost::bind(&HexabusServer::l2handler, this, _1, _2), hf::isQuery() && hf::eid() == EP_FLUKSO_L2);
 	_socket.onPacketReceived(boost::bind(&HexabusServer::l3handler, this, _1, _2), hf::isQuery() && hf::eid() == EP_FLUKSO_L3);
@@ -89,8 +89,19 @@ void HexabusServer::eid0handler(const hexabus::Packet& p, const boost::asio::ip:
 {
 	_debug && std::cout << "Query for EID 0 received" << std::endl;
 	try {
-		uint32_t eids = (1 << EP_DEVICE_DESCRIPTOR) | (1 << EP_POWER_METER) | (1 << EP_FLUKSO_L1) | (1 << EP_FLUKSO_L2) | (1 << EP_FLUKSO_L3) | (1 << EP_FLUKSO_S01) | (1 << EP_FLUKSO_S02);
+		uint32_t eids = (1 << EP_DEVICE_DESCRIPTOR) | (1 << EP_POWER_METER);
 		_socket.send(hexabus::InfoPacket<uint32_t>(EP_DEVICE_DESCRIPTOR, eids), from);
+	} catch ( const hexabus::NetworkException& e ) {
+		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
+	}
+}
+
+void HexabusServer::eid32handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
+{
+	_debug && std::cout << "Query for EID 32 received" << std::endl;
+	try {
+		uint32_t eids = (1 << (EP_EXT_DEV_DESC_1 - EP_EXT_DEV_DESC_1) | (1 << (EP_FLUKSO_L1 - EP_EXT_DEV_DESC_1)) | (1 << (EP_FLUKSO_L2 - EP_EXT_DEV_DESC_1)) | (1 << (EP_FLUKSO_L3 - EP_EXT_DEV_DESC_1)) | (1 << (EP_FLUKSO_S01 - EP_EXT_DEV_DESC_1)) | (1 << (EP_FLUKSO_S02 - EP_EXT_DEV_DESC_1));
+		_socket.send(hexabus::InfoPacket<uint32_t>(EP_EXT_DEV_DESC_1, eids), from);
 	} catch ( const hexabus::NetworkException& e ) {
 		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
 	}
@@ -107,42 +118,6 @@ void HexabusServer::eid2handler(const hexabus::Packet& p, const boost::asio::ip:
 		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
 	}
 }
-
-/*void HexabusServer::eid21handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
-{
-	_debug && std::cout << "Query for EID 21 received" << std::endl;
-
-	updateFluksoValues();
-
-	try {
-		for ( std::map<std::string, uint32_t>::iterator it = _flukso_values.begin(); it != _flukso_values.end(); it++ )
-		{
-			boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> data;
-			unsigned short hash;
-			for ( unsigned int pos = 0; pos < 16; pos++ )
-			{
-				std::stringstream ss(it->first.substr(2*pos, 2));
-				ss >> std::hex >> hash;
-				data[pos] = hash;
-			}
-			union {
-				uint32_t u32;
-				char raw[sizeof(it->second)];
-			} c = { htonl(it->second) };
-			for ( unsigned int pos = 0; pos < sizeof(uint32_t); pos++ )
-			{
-				data[16+pos] = c.raw[pos];
-			}
-
-			for ( unsigned int pos = 16 + sizeof(uint32_t); pos < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; pos++ )
-				data[pos] = 0;
-
-			_socket.send(hexabus::InfoPacket< boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(EP_GEN_POWER_METER, data), from);
-		}
-	} catch ( const hexabus::NetworkException& e ) {
-		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
-	}
-}*/
 
 void HexabusServer::l1handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
@@ -303,8 +278,6 @@ void HexabusServer::updateFluksoValues()
 			//pad array with zeros
 			for ( unsigned int pos = 16 + sizeof(value); pos < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; pos++ )
 				data[pos] = 0;
-
-			_socket.send(hexabus::InfoPacket< boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(EP_GEN_POWER_METER, data));
 		}
 	}
 }
