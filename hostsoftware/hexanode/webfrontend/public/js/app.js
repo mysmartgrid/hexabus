@@ -421,4 +421,11 @@ angular.module('dashboard', [
 			Socket.emit('device_removed', { device: device.ip });
 		}
 	};
+}])
+.controller('healthController', ['$scope', 'Socket', function($scope, Socket) {
+	$scope.errorState = false;
+
+	Socket.on('health_update', function(state) {
+		$scope.errorState = state;
+	});
 }]);
