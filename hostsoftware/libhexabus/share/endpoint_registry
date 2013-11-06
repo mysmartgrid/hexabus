@@ -125,6 +125,13 @@ eid 12 {
 	function infrastructure
 }
 
+eid 13 {
+	type BOOL
+	description "Relay default state config"
+	access RW
+	function infrastructure
+} 
+
 eid 20 {
 	type UINT8
 	description "LED / Hexagl0w Color"
