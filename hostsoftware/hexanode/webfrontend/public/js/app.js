@@ -445,4 +445,11 @@ angular.module('dashboard', [
 	}
 
 	Socket.on('device_found', on_device_found);
+}])
+.controller('healthController', ['$scope', 'Socket', function($scope, Socket) {
+	$scope.errorState = false;
+
+	Socket.on('health_update', function(state) {
+		$scope.errorState = state;
+	});
 }]);

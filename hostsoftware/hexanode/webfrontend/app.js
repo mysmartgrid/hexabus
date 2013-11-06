@@ -387,6 +387,16 @@ io.sockets.on('connection', function (socket) {
 
 	var emit = socket.emit.bind(socket);
 
+	var health_update_timeout;
+	var send_health_update = function() {
+		setTimeout(send_health_update, 60 * 1000);
+		hexabus.get_heartbeat_state(function(err, state) {
+			emit('health_update', !err && state.code != 0);
+		});
+	};
+
+	send_health_update();
+
 	var broadcast_ep = function(ep) {
 		broadcast('ep_metadata', ep);
 	};
@@ -420,6 +430,7 @@ io.sockets.on('connection', function (socket) {
 		for (var ev in devicetree_events) {
 			devicetree.removeListener(ev, devicetree_events[ev]);
 		}
+		clearTimeout(health_update_timeout);
 	});
 
 	on('ep_request_metadata', function(id) {

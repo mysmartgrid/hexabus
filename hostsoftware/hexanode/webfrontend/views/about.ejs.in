@@ -1,6 +1,6 @@
 <% include header %>
 
-<div class="container" data-ng-controller="dashboardController">
+<div class="container">
 	Version: @HXB_VERSION@
 </div> 
 
