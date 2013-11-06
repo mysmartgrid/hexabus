@@ -85,8 +85,7 @@ var Wizard = function() {
 			if (error) {
 				cb({ device: stdout, error: stderr });
 			} else {
-				//var interfaces = (nconf.get("debug-hxb-ifaces") || "eth0,usb0").split(",");
-				var interfaces = ["usb0"]
+				var interfaces = (nconf.get("debug-hxb-ifaces") || "eth0,usb0").split(",");
 				var addr = new v6.Address(stdout.replace(/\s+$/g, ''));
 				interfaces.forEach(function(iface) {
 					var command = nconf.get('debug-wizard')
@@ -97,20 +96,24 @@ var Wizard = function() {
 							cb({ error: stderr });
 						} else {
 							var dev = JSON.parse(stdout);
-							dev = dev.devices[0];
-							for (var key in dev.endpoints) {
-								var ep = dev.endpoints[key];
-								ep.name = ep.name || dev.name;
-								if (ep.function == "sensor") {
-									ep.minvalue = 0;
-									ep.maxvalue = 100;
+							if(dev && dev.devices && dev.devices[0] && dev.devices[0].endpoints) {
+								dev = dev.devices[0];
+								for (var key in dev.endpoints) {
+									var ep = dev.endpoints[key];
+									ep.name = ep.name || dev.name;
+									if (ep.function == "sensor") {
+										ep.minvalue = 0;
+										ep.maxvalue = 100;
+									}
+									if (!devicetree.devices[dev.ip]
+										|| !devicetree.devices[dev.ip].endpoints[ep.eid]) {
+										devicetree.add_endpoint(dev.ip, ep.eid, ep);
+									}
 								}
-								if (!devicetree.devices[dev.ip]
-									|| !devicetree.devices[dev.ip].endpoints[ep.eid]) {
-									devicetree.add_endpoint(dev.ip, ep.eid, ep);
-								}
+								cb({ device: devicetree.devices[dev.ip], error: undefined });
+							} else {
+								cb({error: "Error while querying device"});
 							}
-							cb({ device: devicetree.devices[dev.ip], error: undefined });
 						}
 					});
 				});
