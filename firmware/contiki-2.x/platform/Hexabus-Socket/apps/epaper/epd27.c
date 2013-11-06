@@ -393,14 +393,14 @@ void epd27_clear() {
   epd27_frame_fixed_repeat(0xaa, EPD_normal);
 }
 
-void epd27_image_whitescreen(const prog_uint8_t *image) {
+void epd27_image_whitescreen(const uint8_t *image) {
   epd27_frame_fixed_repeat(0xaa, EPD_compensate);
   epd27_frame_fixed_repeat(0xaa, EPD_white);
   epd27_frame_data_repeat(image, EPD_inverse);
   epd27_frame_data_repeat(image, EPD_normal);
 }
 
-void epd27_image_transition(const prog_uint8_t *old_image, const prog_uint8_t *new_image) {
+void epd27_image_transition(const uint8_t *old_image, const uint8_t *new_image) {
   epd27_frame_data_repeat(old_image, EPD_compensate);
   epd27_frame_data_repeat(old_image, EPD_white);
   epd27_frame_data_repeat(new_image, EPD_inverse);
@@ -417,7 +417,7 @@ void epd27_frame_fixed(uint8_t fixed_value, EPD_stage stage) {
 	}
 }
 
-void epd27_frame_data(const prog_uint8_t *image, EPD_stage stage) {
+void epd27_frame_data(const uint8_t *image, EPD_stage stage) {
   for (uint8_t line = 0; line < LINES_PER_DISPLAY ; ++line) {
 		epd27_line(line, &image[line * BYTES_PER_LINE], 0, true, stage);
 	}
@@ -431,7 +431,7 @@ void epd27_frame_fixed_repeat(uint8_t fixed_value, EPD_stage stage)
 	}
 }
 
-void epd27_frame_data_repeat(const prog_uint8_t *new_image, EPD_stage stage){
+void epd27_frame_data_repeat(const uint8_t *new_image, EPD_stage stage){
 	for (int16_t iterations_left = epd27_stage_iterations; iterations_left > 0; iterations_left--) {
 		epd27_frame_data(new_image, stage);
 	}
