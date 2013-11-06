@@ -82,17 +82,6 @@
 
 #include "lib/random.h"
 
-#if WEBSERVER
-#include "httpd-fs.h"
-#include "httpd-cgi.h"
-#include "webserver-nogui.h"
-#endif
-
-#ifdef COFFEE_FILES
-#include "cfs/cfs.h"
-#include "cfs/cfs-coffee.h"
-#endif
-
 #if UIP_CONF_ROUTER&&0
 #include "net/routing/rimeroute.h"
 #include "net/rime/rime-udp.h"
@@ -313,10 +302,6 @@ void initialize(void)
   //initialize random number generator with part of the MAC address
   random_init(eeprom_read_word((uint16_t*)(EE_MAC_ADDR + EE_MAC_ADDR_SIZE - 2)));
 
-#if WEBSERVER
-  process_start(&webserver_nogui_process, NULL);
-#endif
-
 #if MEMORY_DEBUGGER_ENABLE 
   memory_debugger_init();
   /* periodically print memory usage */
@@ -351,23 +336,6 @@ void initialize(void)
   /* Autostart other processes */
   autostart_start(autostart_processes);
 
-  /*---If using coffee file system create initial web content if necessary---*/
-#if COFFEE_FILES
-  int fa = cfs_open( "/index.html", CFS_READ);
-  if (fa<0) {     //Make some default web content
-    PRINTF("No index.html file found, creating upload.html!\n");
-    PRINTF("Formatting FLASH file system for coffee...");
-    cfs_coffee_format();
-    PRINTF("Done!\n");
-    fa = cfs_open( "/index.html", CFS_WRITE);
-    int r = cfs_write(fa, &"It works!", 9);
-    if (r<0) PRINTF("Can''t create /index.html!\n");
-    cfs_close(fa);
-//  fa = cfs_open("upload.html"), CFW_WRITE);
-// <html><body><form action="upload.html" enctype="multipart/form-data" method="post"><input name="userfile" type="file" size="50" /><input value="Upload" type="submit" /></form></body></html>
-  }
-#endif /* COFFEE_FILES */
-
 /* Add addresses for testing */
 #if 0
 {  
@@ -380,36 +348,6 @@ void initialize(void)
 
 /*--------------------------Announce the configuration---------------------*/
 #if ANNOUNCE_BOOT
-
-#if WEBSERVER
-  uint8_t i;
-  char buf[80];
-  unsigned int size;
-
-  for (i=0;i<UIP_DS6_ADDR_NB;i++) {
-	if (uip_ds6_if.addr_list[i].isused) {	  
-	   httpd_cgi_sprint_ip6(uip_ds6_if.addr_list[i].ipaddr,buf);
-       PRINTF("IPv6 Address: %s\n",buf);
-	}
-  }
-	eeprom_read_block(buf, (const void*) EE_DOMAIN_NAME, EE_DOMAIN_NAME_SIZE);
-	buf[EE_DOMAIN_NAME_SIZE] = 0;
-	size=httpd_fs_get_size();
-#ifndef COFFEE_FILES
-   PRINTF(".%s online with fixed %u byte web content\n",buf,size);
-#elif COFFEE_FILES==1
-   PRINTF(".%s online with static %u byte EEPROM file system\n",buf,size);
-#elif COFFEE_FILES==2
-   PRINTF(".%s online with dynamic %u KB EEPROM file system\n",buf,size>>10);
-#elif COFFEE_FILES==3
-   PRINTF(".%s online with static %u byte program memory file system\n",buf,size);
-#elif COFFEE_FILES==4
-   PRINTF(".%s online with dynamic %u KB program memory file system\n",buf,size>>10);
-#endif /* COFFEE_FILES */
-
-#else
-   PRINTF("Online\n");
-#endif /* WEBSERVER */
 
 #endif /* ANNOUNCE_BOOT */
 #if EPAPER_ENABLE
