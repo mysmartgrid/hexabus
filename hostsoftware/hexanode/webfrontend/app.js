@@ -499,7 +499,7 @@ io.sockets.on('connection', function (socket) {
 		var wizard = new Wizard();
 
 		wizard.addDevice(devicetree, function(msg) {
-			socket.emit('device_found', msg);
+			emit('device_found', msg);
 		});
 	});
 
