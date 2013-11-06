@@ -100,7 +100,7 @@ void HexabusServer::eid32handler(const hexabus::Packet& p, const boost::asio::ip
 {
 	_debug && std::cout << "Query for EID 32 received" << std::endl;
 	try {
-		uint32_t eids = (1 << (EP_EXT_DEV_DESC_1 - EP_EXT_DEV_DESC_1) | (1 << (EP_FLUKSO_L1 - EP_EXT_DEV_DESC_1)) | (1 << (EP_FLUKSO_L2 - EP_EXT_DEV_DESC_1)) | (1 << (EP_FLUKSO_L3 - EP_EXT_DEV_DESC_1)) | (1 << (EP_FLUKSO_S01 - EP_EXT_DEV_DESC_1)) | (1 << (EP_FLUKSO_S02 - EP_EXT_DEV_DESC_1));
+		uint32_t eids = (1 << (EP_EXT_DEV_DESC_1 - EP_EXT_DEV_DESC_1)) | (1 << (EP_FLUKSO_L1 - EP_EXT_DEV_DESC_1)) | (1 << (EP_FLUKSO_L2 - EP_EXT_DEV_DESC_1)) | (1 << (EP_FLUKSO_L3 - EP_EXT_DEV_DESC_1)) | (1 << (EP_FLUKSO_S01 - EP_EXT_DEV_DESC_1)) | (1 << (EP_FLUKSO_S02 - EP_EXT_DEV_DESC_1));
 		_socket.send(hexabus::InfoPacket<uint32_t>(EP_EXT_DEV_DESC_1, eids), from);
 	} catch ( const hexabus::NetworkException& e ) {
 		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
