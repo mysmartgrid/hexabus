@@ -50,7 +50,7 @@ int main(int argc, char** argv)
 
   bool debug = false;
   std::string logfile = "/tmp/hexadaemon.log";
-  int interval = 60;
+  int interval = 2;
 
   if (vm.count("help")) {
     std::cout << desc << std::endl;
