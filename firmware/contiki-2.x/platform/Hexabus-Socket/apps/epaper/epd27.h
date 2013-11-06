@@ -1,8 +1,10 @@
 #ifndef EPD27_H
 #define EPD27_H 1
 
+#define __PROGTYPES_
+
 #include <stdbool.h>
-#include <avr/pgmspace.h> // PROGMEM, prog_uint8_t
+#include <avr/pgmspace.h> // PROGMEM, uint8_t
 #include "epd27_conf.h"
 #include "at45.h"
 
@@ -26,9 +28,9 @@ void epd27_set_temperature(int16_t temperature);
 // clear display (anything -> white)
 void epd27_clear(void);
 // assuming a clear (white) screen output an image (PROGMEM data)
-void epd27_image_whitescreen(const prog_uint8_t *image);
+void epd27_image_whitescreen(const uint8_t *image);
 // change from old image to new image (PROGMEM data)
-void epd27_image_transition(const prog_uint8_t *old_image, const prog_uint8_t *new_image);
+void epd27_image_transition(const uint8_t *old_image, const uint8_t *new_image);
 void epd27_image_at45(uint16_t pageindex, EPD_stage stage);
 
 /***
@@ -36,12 +38,12 @@ void epd27_image_at45(uint16_t pageindex, EPD_stage stage);
  */
 // single frame refresh
 void epd27_frame_fixed(uint8_t fixed_value, EPD_stage stage);
-void epd27_frame_data(const prog_uint8_t *new_image, EPD_stage stage);
+void epd27_frame_data(const uint8_t *new_image, EPD_stage stage);
 //TODO: Check EPD_reader implementation if beneficial
 //void epd27_frame_cb(uint32_t address, EPD_reader *reader, EPD_stage stage);
 // stage_time frame refresh
 void epd27_frame_fixed_repeat(uint8_t fixed_value, EPD_stage stage);
-void epd27_frame_data_repeat(const prog_uint8_t *new_image, EPD_stage stage);
+void epd27_frame_data_repeat(const uint8_t *new_image, EPD_stage stage);
 //void epd27_frame_cb_repeat(uint32_t address, EPD_reader *reader, EPD_stage stage);
 // convert temperature to compensation factor
 int epd27_temperature_to_factor_10x(int temperature);
