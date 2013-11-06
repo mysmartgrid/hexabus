@@ -136,16 +136,12 @@ if( NOT WITHOUT_CPACK )
   set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
   set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
   set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
-  SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch;Hexabus node interrogation utility" "hexalog;Hexabus logging utility" "hexaupload;Hexabus statemachine upload utility")
+  SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch;Hexabus node interrogation utility" "hexalog;Hexabus logging utility" "hexaupload;Hexabus statemachine upload utility" "hexapair;Hexabus device pairing utility")
   SET(CPACK_STRIP_FILES ON)
 
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
   if(LIBKLIO_FOUND)
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS}, libsqlite3-0 (>= 3.7), libgnutls26 (>= 2.12)")
-  endif()
-
-  set(CPACK_SECTION "net")
-  include(CPackTools)
+	set(CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS}, libsqlite3-0 (>= 3.7), libgnutls26 (>= 2.12)")
 endif()
 
 ### print some output for the user

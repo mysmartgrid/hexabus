@@ -45,10 +45,11 @@ enum hxb_error_code {
 	HXB_ERR_INVALID_VALUE = 0x05, // A value was encountered that cannot be interpreted
 
 	// internal error values
-	HXB_ERR_INTERNAL         = 0x80, // this is just a flag.
+	HXB_ERR_INTERNAL         = 0x80, // this is just a threshold. everything above is considered internal to a device and should never reach the network
 
-	HXB_ERR_MALFORMED_PACKET = 0x80,
-	HXB_ERR_UNEXPECTED_PACKET = 0x81
+	HXB_ERR_MALFORMED_PACKET  = 0x80,
+	HXB_ERR_UNEXPECTED_PACKET = 0x81,
+	HXB_ERR_NO_VALUE          = 0x82
 };
 
 // Operators for comparison in state machine

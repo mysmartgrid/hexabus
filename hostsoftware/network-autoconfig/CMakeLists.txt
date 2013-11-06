@@ -38,8 +38,8 @@ enable_testing()
 
 # add some files to the installation target
 #INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
-INSTALL(FILES ipaddress.py net-choose.py DESTINATION lib/net-choose PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-INSTALL(FILES net-choose DESTINATION /etc/init.d PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+INSTALL(PROGRAMS ipaddress.py hxb-net-autoconf.py DESTINATION lib/hxb-net-autoconf)
+INSTALL(PROGRAMS hxb-net-autoconf DESTINATION bin)
 
 # CPACK packaging
 include(InstallRequiredSystemLibraries)
@@ -57,7 +57,6 @@ set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "python3 (>= 3.2.3), radvd, mrd6")
 
 set(CPACK_SECTION "net")
-set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
 include(CPackTools)
 
 ### print some output for the user

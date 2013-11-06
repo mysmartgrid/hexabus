@@ -83,6 +83,7 @@ static void button_pressed(uint8_t button, uint8_t released, uint16_t ticks)
 {
 	if (released) {
 		provisioning_slave();
+		broadcast_value(0);
 	} else {
 		provisioning_leds();
 	}

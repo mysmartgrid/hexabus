@@ -7,6 +7,7 @@
 #include <libhexabus/packet.hpp>
 #include <libhexabus/error.hpp>
 #include <libhexabus/socket.hpp>
+#include <libhexabus/endpoint_registry.hpp>
 
 #include <libhbc/ast_datatypes.hpp>
 #include <libhbc/skipper.hpp>
@@ -179,19 +180,88 @@ void write_dev_desc(const device_descriptor& dev, std::ostream& target)
 	target << "}" << std::endl << std::endl;
 }
 
-void write_dev_desc_json(const device_descriptor& dev, std::ostream& target)
-{
-	target << "{\"name\": \"" << remove_specialchars(dev.name) << "\"," << std::endl;
-	target << "\"ip\": \"" << dev.ipv6_address.to_string() << "\"," << std::endl;
-	target << "\"eids\": [ ";
-	for(std::set<uint32_t>::const_iterator it = dev.endpoint_ids.begin(); it != dev.endpoint_ids.end(); ) // no increment here!
+struct json_string_writer {
+	std::string str;
+	json_string_writer(const std::string& str) : str(str) {}
+
+	friend std::ostream& operator<<(std::ostream& target, const json_string_writer& jsw)
 	{
-		target << *it;
-		if(++it != dev.endpoint_ids.end()) // increment here to see if we have to put a comma
-			target << ", ";
+		for (std::string::const_iterator it = jsw.str.begin(), end = jsw.str.end(); it != end; it++) {
+			switch (*it) {
+				case '"': target << "\""; break;
+				case '\n': target << "\n"; break;
+				case '\r': target << "\r"; break;
+				case '\t': target << "\t"; break;
+				case '\v': target << "\v"; break;
+				default: target << *it;
+			}
+		}
+		return target;
 	}
-	target << " ]" << std::endl;
-	target << "}" << std::endl;
+};
+
+json_string_writer json(const std::string& str)
+{
+	return json_string_writer(str);
+}
+
+bool write_dev_desc_json(const device_descriptor& dev, std::ostream& target, bool emit_comma)
+{
+	static hexabus::EndpointRegistry ep_registry;
+
+	// if name == "", we might as well assume temporary communication problems
+	if (dev.name.length() != 0) {
+		if (emit_comma) {
+			target << "," << std::endl;
+		}
+		target
+			<< "{" << std::endl
+			<< "\t\"name\": \"" << json(dev.name) << "\"," << std::endl
+			<< "\t\"ip\": \"" << dev.ipv6_address << "\"," << std::endl
+			<< "\t\"endpoints\": [" << std::endl;
+		for (std::set<uint32_t>::const_iterator it = dev.endpoint_ids.begin(), end = dev.endpoint_ids.end(); it != end; ) {
+			// device descriptors are not interesting
+			if (*it % 32 == 0) {
+				it++;
+				continue;
+			}
+
+			target
+				<< "\t\t{" << std::endl
+				<< "\t\t\t\"eid\": " << *it << "," << std::endl;
+
+			hexabus::EndpointRegistry::const_iterator ep_it = ep_registry.find(*it);
+			if (ep_it != ep_registry.end()) {
+				target
+					<< "\t\t\t\"unit\": \"" << json(ep_it->second.unit().get_value_or("")) << "\"," << std::endl
+					<< "\t\t\t\"description\": \"" << json(ep_it->second.description()) << "\"," << std::endl
+					<< "\t\t\t\"function\": \"";
+				switch (ep_it->second.function()) {
+					case hexabus::EndpointDescriptor::sensor:         target << "sensor"; break;
+					case hexabus::EndpointDescriptor::actor:          target << "actor"; break;
+					case hexabus::EndpointDescriptor::infrastructure: target << "infrastructure"; break;
+				}
+				target << "\"," << std::endl
+					<< "\t\t\t\"type\": " << ep_it->second.type() << std::endl;
+			} else {
+			}
+
+			target << "\t\t}";
+
+			it++;
+			if (it != end) {
+				target << ",";
+			}
+			target << std::endl;
+		}
+		target
+			<< "\t]" << std::endl
+			<< "}" << std::endl;
+
+		return true;
+	} else {
+		return false;
+	}
 }
 
 void write_ep_desc(const endpoint_descriptor& ep, std::ostream& target)
@@ -609,11 +679,10 @@ int main(int argc, char** argv)
 
 			out << "{\"devices\": [" << std::endl;
 
+			bool hasWritten = false;
 			for(std::set<device_descriptor>::iterator it = devices.begin(); it != devices.end(); ++it)
 			{
-				if(it!=devices.begin())
-					out << "," << std::endl;
-				write_dev_desc_json(*it, out);
+				hasWritten |= write_dev_desc_json(*it, out, hasWritten && it != devices.begin());
 			}
 
 			out << "]}" << std::endl;

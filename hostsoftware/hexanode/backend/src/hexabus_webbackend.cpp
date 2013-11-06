@@ -3,7 +3,6 @@
 #include <libhexabus/liveness.hpp>
 #include <libhexabus/socket.hpp>
 #include <libhexanode/sensor.hpp>
-#include <libhexanode/info_query.hpp>
 #include <boost/network/protocol/http/client.hpp>
 #include <boost/network/uri.hpp>
 #include <boost/network/uri/uri_io.hpp>
@@ -14,6 +13,10 @@ namespace po = boost::program_options;
 
 using namespace boost::network;
 
+bool is_info(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint&)
+{
+	return packet.type() == HXB_PTYPE_INFO;
+}
 
 int main (int argc, char const* argv[]) {
   std::ostringstream oss;
@@ -68,33 +71,28 @@ int main (int argc, char const* argv[]) {
   boost::asio::io_service io;
   boost::asio::io_service info_io;
   hexabus::Socket* network;
-  hexabus::Socket* info_network;
   if (vm.count("interface") != 1) {
     network=new hexabus::Socket(io);
-    info_network=new hexabus::Socket(info_io);
     std::cout << "Using all interfaces." << std::endl;
   } else {
     std::string interface(vm["interface"].as<std::string>());
     std::cout << "Using interface " << interface << std::endl;
     network=new hexabus::Socket(io, interface);
-    info_network=new hexabus::Socket(info_io, interface);
   }
   boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
   std::cout << "Binding to " << bind_addr << std::endl;
   network->listen(bind_addr);
-  info_network->bind(bind_addr);
-
-  hexanode::InfoQuery::Ptr info(new hexanode::InfoQuery(info_network));
 
   http::client client;
-  hexanode::SensorStore::Ptr sensors(new hexanode::SensorStore());
+
+	hexanode::PacketPusher pp(network, client, base_uri, std::cout);
   
   std::cout << "Will now push values." << std::endl;
   while (true) {
     try {
       std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
       try {
-        pair = network->receive();
+        pair = network->receive(is_info);
       } catch (const hexabus::GenericException& e) {
         const hexabus::NetworkException* nerror;
         if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&e))) {
@@ -105,12 +103,10 @@ int main (int argc, char const* argv[]) {
         continue;
       }
 
-      std::cout << "Received " << pair.second;
-      hexanode::PacketPusher pp(network, info, pair.second, sensors, client, base_uri, std::cout);
       if (pair.first == NULL) {
         std::cerr << "Received invalid packet - please check libhexabus version!" << std::endl;
       } else {
-        pp.visitPacket(*pair.first);
+        pp.push(pair.second, *pair.first);
       }
 
     } catch (const std::exception& e) {

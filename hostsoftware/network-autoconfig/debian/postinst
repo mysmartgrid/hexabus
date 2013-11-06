@@ -1,7 +1,0 @@
-#!/bin/sh
-
-set -e
-
-if [ -x "/etc/init.d/net-choose" ]; then
-	update-rc.d net-choose defaults >/dev/null
-fi

@@ -8,3 +8,5 @@ then
 fi
 
 su -c 'cd ~; npm install /usr/share/hexanode_webfrontend' hexanode
+svc -d /etc/service/hexanode-webfrontend
+svc -u /etc/service/hexanode-webfrontend

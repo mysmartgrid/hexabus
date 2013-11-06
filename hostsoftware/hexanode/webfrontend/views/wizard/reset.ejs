@@ -1,0 +1,13 @@
+<% include ../header %>
+
+<div class="container">
+	<div class="alert alert-danger" data-localize="wizard.reset-device.consequences">
+		If you continue, your device will be reset to factory defaults. All sensor data and sensor configuration will be lost, your link to mySmartGrid will be broken and your Hexabus network will be rendered inaccessible.
+	</div>
+	<form method="post" action="/wizard/reset">
+		<button type="submit" class="btn btn-danger" data-localize="wizard.reset-device.continue">Reset this device</button>
+		<a href="/" class="btn btn-default" data-localize="wizard.reset-device.abort">Return to dashboard</a>
+	</form>
+</div>
+
+<% include ../footer %>

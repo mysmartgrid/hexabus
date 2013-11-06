@@ -38,6 +38,7 @@
 #include <avr/wdt.h>
 #include "dev/watchdog.h"
 #include "provisioning.h"
+#include "cdc_task.h"
 
 static void button_pressed(uint8_t button, uint8_t released, uint16_t ticks)
 {
@@ -53,6 +54,11 @@ static void button_pressed(uint8_t button, uint8_t released, uint16_t ticks)
 	}
 }
 
+static void button_clicked(uint8_t button)
+{
+	menu_activate();
+}
+
 BUTTON_DESCRIPTOR buttons_system = {
 	.port = &BUTTON_PIN,
 	.mask = 1 << BUTTON_BIT,
@@ -62,7 +68,7 @@ BUTTON_DESCRIPTOR buttons_system = {
 	.click_ticks = CLOCK_SECOND * BUTTON_CLICK_MS / 1000,
 	.pressed_ticks = 1 + CLOCK_SECOND * BUTTON_CLICK_MS / 1000,
 	
-	.clicked = 0,
+	.clicked = button_clicked,
 	.pressed = button_pressed
 };
 

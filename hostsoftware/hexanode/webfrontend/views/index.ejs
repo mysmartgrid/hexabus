@@ -1,142 +1,45 @@
 <% include header %>
-<div class="tab-content">
-  <div class="tab-pane active" id="dashboard">
-    <div class="container">
-      <div class="row-fluid">
-        <div class="span12">
-          <div class="tabbable">
-            <ul class="nav nav-tabs">
-              <li class="active"><a href="#dash" data-toggle="tab">Dashboard</a></li>
-              <li><a href="#sensors" data-toggle="tab">Sensors</a></li>
-          <!--    <li><a href="#actors" data-toggle="tab">Actors</a></li> -->
-            </ul>
-          </div>
-          <div class="tab-content">
-            <!--- Dashboard -->
-            <div class="tab-pane active" id="dash">
-              <h2 class="text-center">Dashboard</h2>
-              <div class="row-fluid">
-                <div class="span3">
-                  <p>Last update: <div id="timestamp">n/a</div></p>
-                </div>
-                <div class="span9">
-                  <div class="row-fluid">
-                    <ul class="inline">
-                      <% for (var i=0; i < sensorlist.length; i++) {  %>
-                      <%  current=sensorlist[i]; %>
-                      <% if (current.displaytype === "dashboard") { %>
-                          <li> <div id="<%=current.sensor_id%>" style="width:200px;height:160px"></div> </li>
-                        <% } %> 
-                      <% } %>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div> <!--- Dashboard -->
-            <!--- Sensor pane -->
-            <div class="tab-pane active" id="sensors">
-              <h2 class="text-center">Sensors</h2>
-              <div class="row-fluid">
-                <div class="span3">
-                  <p>Last update: <div id="timestamp">n/a</div></p>
-                </div>
-                <div class="span9">
-                  <div class="row-fluid">
-                    <ul class="inline">
-                      <% for (var i=0; i < sensorlist.length; i++) {  %>
-                        <% current=sensorlist[i]; %>
-                        <% if (current.displaytype === "sensors") { %>
-                          <li> <div id="<%=current.sensor_id%>" style="width:200px;height:160px"></div> </li>
-                        <% } %>
-                      <% } %>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div> <!--- Sensor pane -->
-            <!--
-            <div class="tab-pane" id="actors">
-              <h2 class="text-center">Actors</h2>
-              <p align="center">
-              <div id="gauge" style="width:200px;height:160px"></div>
-              Last update: <div id="timestamp">n/a</div>
-              </p>
-            </div>
-            -->
-          </div>
-        </div> <!--- tab-content -->
-      </div>
-    </div>
-  </div>
-</div> 
 
-<script type="text/javascript" src="/js/jquery-1.10.1.min.js"></script>
-<script src="/socket.io/socket.io.js"></script>
 <script src="/js/raphael.2.1.0.min.js"></script>
-<script src="/js/justgage.1.0.1.min.js"></script>
+<script src="/js/justgage.1.0.1.js"></script>
+
 <script>
-  var g;
-  var socket = io.connect('http://<%=server%>:<%=port%>');
-
-  var gauge_data={};
-  var gauges={};
-
-  <% for (var i=0; i < sensorlist.length; i++) { 
-    current=sensorlist[i];
-    %>
-      gauge_data["<%=current.sensor_id%>"]= {
-        title: "<%=current.name%>",
-        value: <%-JSON.stringify(current.values)%>,
-        min: <%-JSON.stringify(current.minvalue)%>,
-        max: <%-JSON.stringify(current.maxvalue)%> 
-      };
-    <% } %>
-
-  $('a[data-toggle="tab"]').on('click', function (e) {
-    socket.emit('sensor_refresh_data');
-  }); 
-
-  window.onload = function() {
-    for (var g_id in gauge_data) {
-      var current = gauge_data[g_id];
-      console.log("Preparing gauge for " + JSON.stringify(current.title));
-      gauges[g_id] = (new JustGage({
-        id: g_id, 
-        value: "n/a", 
-        min: current.min,
-        max: current.max,
-        title: current.title
-      }));
-    }
-    // get up-to-date values for all sensors
-    socket.emit('sensor_refresh_data');
-    $('a[href=#sensors]').tab('show');
-    $('a[href=#dash]').tab('show');
-  };
-
-  socket.on('sensor_update', function(data) {
-    console.log("Received: " + JSON.stringify(data.sensor));
-    //        console.log("div: " + $("div#m1_value").text());
-    g_id=data.sensor.sensor_id;
-    for(var key in data.sensor["value"]) {
-      measurement=data.sensor["value"][key.toString()];
-      timestamp=key;
-      var date = new Date(timestamp*1000);
-      gauges[g_id].refresh(measurement);
-      var hours=date.getHours();
-      if (hours   < 10) {hours   = "0"+hours;}
-      var mins=date.getMinutes();
-      if (mins < 10) {mins = "0"+mins;}
-      var seconds=date.getSeconds();
-      if (seconds < 10) {seconds = "0"+seconds;}
-      $("div#timestamp").text(hours+":" + mins + ":" + seconds);
-    }
-  });
-  socket.on('sensor_metadata_refresh', function() {
-    // Trigger a hard reload from the server. This is initiated
-    // by the server e.g. if a new sensor is available.
-    window.location.reload(true);
-  });
+	all_views = <%- JSON.stringify(views) %>
 </script>
+
+<div class="container" data-ng-controller="dashboardController">
+	<ul class="nav nav-tabs">
+		<li class="active">
+			<a href="#" data-ng-click="setView('sensors')" data-toggle="tab" data-localize="dashboard.all-sensors">All sensors</a>
+		</li>
+		<li>
+			<a href="#" data-ng-click="setView('actors')" data-toggle="tab" data-localize="dashboard.all-actors">All actors</a>
+		</li>
+		<li data-ng-repeat="view in views">
+			<a href="#" data-ng-click="setView(view)" data-toggle="tab">{{view.name}}</a>
+		</li>
+	</ul>
+	<div class="tab-content">
+		<h2 class="text-center" data-localize="dashboard.all-sensors" id="view-name">All sensors</h2>
+		<div class="row-fluid">
+			<div class="span3">
+				<p><span data-localize="last-update.label">Last update:</span> <span id="last-update-when"></span></p>
+			</div>
+			<div class="span9">
+				<ul class="inline">
+					<li data-ng-repeat="ep in current_view.endpoints"
+							data-ng-hide="ep.hide || !ep.ep_desc.unit && hide_unitless">
+						<div data-vis-endpoint=""
+								 data-endpoint="ep"
+								 data-enable-edit="true"
+								 data-edit-begin="editBegin"
+								 data-edit-done="editDone">
+						</div>
+					</li>
+				</ul>
+			</div>
+		</div> <!-- all-sensors -->
+	</div>
+</div> 
 
 <% include footer %>
