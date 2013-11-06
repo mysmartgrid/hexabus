@@ -23,6 +23,7 @@
 #define EP_LIGHTSENSOR             29UL
 #define EP_IR_RECEIVER             30UL
 #define EP_LIVENESS                31UL
+#define EP_EXT_DEV_DESC_1          32UL
 #define EP_GENERIC_DIAL_0          33UL
 #define EP_GENERIC_DIAL_1          34UL
 #define EP_GENERIC_DIAL_2          35UL
