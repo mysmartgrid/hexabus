@@ -190,6 +190,7 @@ void HexabusServer::s02handler(const hexabus::Packet& p, const boost::asio::ip::
 }
 
 unsigned long endpoints[5] = {
+	0, // Dummy value as there is no sensor 0
 	EP_FLUKSO_L1,
 	EP_FLUKSO_L2,
 	EP_FLUKSO_L3,
