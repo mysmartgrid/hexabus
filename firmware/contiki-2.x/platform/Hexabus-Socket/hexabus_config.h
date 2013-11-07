@@ -46,12 +46,15 @@ _DEBUG options should be set to:
 
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
-#define VALUE_BROADCAST_DEBUG 1 
-#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 5 // Number of endpoints to broadcast automatically - set to 0 to disable
+#define VALUE_BROADCAST_DEBUG 0
+#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 0 // Number of endpoints to broadcast automatically - set to 0 to disable
 #define VALUE_BROADCAST_AUTO_EIDS 3,5,44,45,46 // Comma-separated list of endpoints to broadcast automatically
 #define VALUE_BROADCAST_AUTO_INTERVAL 20 // Timeout in seconds
 #define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0 // Number of endpoints to "broadcast" to the local state machine
 #define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2 // Comma-separated list of eids to be sent to local state machine
+
+// relay
+#define RELAY_ENABLE 1
 
 // metering
 #define METERING_POWER 0
@@ -127,15 +130,15 @@ _DEBUG options should be set to:
 #define IR_RECEIVER_RAW_MODE 0
 
 // epaper display and at45 driver
-#define EPAPER_ENABLE 1
+#define EPAPER_ENABLE 0
 #define EPAPER_DEBUG 0
 
 //pt100 temperatur sensors for heater
-#define PT100_ENABLE 1
+#define PT100_ENABLE 0
 #define PT100_DEBUG 0
 
 // interface app for the hexasense board
-#define HEXASENSE_ENABLE 1
+#define HEXASENSE_ENABLE 0
 #define HEXASENSE_DEBUG LOG_DEBUG
 
 #endif // HEXBAUS_CONFIG_H
