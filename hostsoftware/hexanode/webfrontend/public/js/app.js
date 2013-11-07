@@ -393,6 +393,7 @@ angular.module('dashboard', [
 		}
 	};
 
+
 	Socket.on('ep_new', on_ep_metadata);
 	Socket.on('ep_metadata', on_ep_metadata);
 
@@ -421,4 +422,40 @@ angular.module('dashboard', [
 			Socket.emit('device_removed', { device: device.ip });
 		}
 	};
+}])
+.controller('devicesAdd', ['$scope', 'Socket', 'Lang', function($scope, Socket, Lang) {
+	
+	$scope.search = function() {
+		Socket.emit('devices_add');
+		$scope.error = false;
+		$scope.found = false;
+		$scope.searching = true;
+	};
+
+	var on_device_found = function(msg) {
+		$scope.searching = false;
+		if(msg.error !== undefined) {
+			$scope.error = true;
+			$scope.errormsg = msg.error;
+		} else {
+			var eids = {}
+			for(key in msg.device.endpoints) {
+				if(msg.device.endpoints[key].function != "infrastructure") {
+					eids[key]=msg.device.endpoints[key];
+				}
+			}
+			msg.device.endpoints = eids;
+			$scope.device = msg.device;
+			$scope.found = true;
+		}
+	}
+
+	Socket.on('device_found', on_device_found);
+}])
+.controller('healthController', ['$scope', 'Socket', function($scope, Socket) {
+	$scope.errorState = false;
+
+	Socket.on('health_update', function(state) {
+		$scope.errorState = state;
+	});
 }]);
