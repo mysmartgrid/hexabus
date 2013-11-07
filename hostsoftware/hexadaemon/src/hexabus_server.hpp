@@ -19,6 +19,8 @@ namespace hexadaemon {
 			void eid0handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void eid32handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void eid2handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void smcontrolhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void smuploadhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void l1handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void l2handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void l3handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
@@ -30,12 +32,16 @@ namespace hexadaemon {
 			void errorhandler(const hexabus::GenericException& error);
 
 			void loadSensorMapping();
+			std::string loadDeviceName();
+			void saveDeviceName(std::string name);
 
 		private:
 			hexabus::Socket _socket;
 			boost::asio::deadline_timer _timer;
 			int _interval;
 			bool _debug;
+			uint8_t _sm_state;
+			std::string _device_name;
 			std::map<std::string, uint32_t> _flukso_values;
 			std::map<int, std::string> _sensor_mapping;
 
