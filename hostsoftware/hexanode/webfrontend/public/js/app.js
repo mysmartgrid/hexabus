@@ -426,7 +426,6 @@ angular.module('dashboard', [
 .controller('devicesAdd', ['$scope', 'Socket', 'Lang', function($scope, Socket, Lang) {
 	
 	$scope.search = function() {
-		console.log("Searching");
 		Socket.emit('devices_add');
 		$scope.error = false;
 		$scope.found = false;
@@ -439,6 +438,13 @@ angular.module('dashboard', [
 			$scope.error = true;
 			$scope.errormsg = msg.error;
 		} else {
+			var eids = {}
+			for(key in msg.device.endpoints) {
+				if(msg.device.endpoints[key].function != "infrastructure") {
+					eids[key]=msg.device.endpoints[key];
+				}
+			}
+			msg.device.endpoints = eids;
 			$scope.device = msg.device;
 			$scope.found = true;
 		}
