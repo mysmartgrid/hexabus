@@ -73,7 +73,7 @@
 			"not_found": "Kein Gerät gefunden",
 			"not_found_msg": "Es konnte kein Gerät gefunden werden: {{errormsg}}",
 			"retry": "Erneut versuchen",
-			"push-button": "Bitte drücken Sie den Knopf an ihrem Gerät für drei Sekunden.",
+			"push-button": "Bitte drücken Sie den Verbindungsknopf an ihrem Gerät bis die LED rot blinkt.",
 			"found": "Neues Gerät gefunden",
 			"ready": "Ihr Gerät ist jetzt einsatzbereit.",
 			"add_additional": "Weiteres Gerät hinzufügen",
