@@ -166,7 +166,13 @@ static void render_current()
 void epaper_handle_input(struct hxb_value* val, uint32_t eid)
 {
 	if (eid == EP_TEMPERATURE) {
-		current_temperature = val->v_float;
+		if (val->v_float < 0) {
+			current_temperature = 0;
+		} else if (val->v_float > UINT8_MAX) {
+			current_temperature = UINT8_MAX;
+		} else {
+			current_temperature = val->v_float;
+		}
 	} else if (eid == EP_HUMIDITY) {
 		current_humidity = val->v_float;
 	} else {
