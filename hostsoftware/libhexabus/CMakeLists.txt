@@ -92,24 +92,24 @@ if( LIBKLIO_FOUND )
   FIND_PACKAGE(OpenSSL REQUIRED)
   FIND_PACKAGE(Gnutls REQUIRED)
   add_definitions ("-DBOOST_FILESYSTEM_VERSION=3")
+
+  # libjson
+  include(FindJson)
+  if( NOT JSON_FOUND)
+    message(FATAL_ERROR "libjson ist required. Install json or call cmake -DJSON_HOME=path_to_json_install")
+  endif( NOT JSON_FOUND)
+  include_directories(${JSON_INCLUDE_DIR})
+
+  # check for curl
+  IF(WIN32)
+    add_definitions(-DCURL_STATICLIB)
+    include(FindCURL_WIN32)
+  else(WIN32)
+    # add_definitions(-DCURL_STATICLIB)
+    include(FindCurl)
+    include(FindGnutls)
+  endif(WIN32)
 endif( LIBKLIO_FOUND )
-
-# libjson
-include(FindJson)
-if( NOT JSON_FOUND)
-  message(FATAL_ERROR "libjson is required. Install json or call cmake -DJSON_HOME=path_to_json_install")
-endif( NOT JSON_FOUND)
-include_directories(${JSON_INCLUDE_DIR})
-
-# check for curl
-IF(WIN32)
-  add_definitions(-DCURL_STATICLIB)
-  include(FindCURL_WIN32)
-else(WIN32)
-  # add_definitions(-DCURL_STATICLIB)
-  include(FindCurl)
-  include(FindGnutls)
-endif(WIN32)
 
 # Reflect the package structure
 add_subdirectory(libhexabus)
@@ -124,27 +124,26 @@ enable_testing()
 INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
 INSTALL(FILES share/endpoint_registry DESTINATION share/libhexabus)
 
-# CPACK packaging
-include(InstallRequiredSystemLibraries)
-set(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
-set(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
-set(CPACK_PACKAGE_CONTACT "Fraunhofer ITWM <support@mysmartgrid.de>")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "libhexabus")
-set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
-set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
-set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
-set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
-SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch;Hexabus node interrogation utility" "hexalog;Hexabus logging utility" "hexaupload;Hexabus statemachine upload utility" "hexapair;Hexabus device pairing utility")
-SET(CPACK_STRIP_FILES ON)
+if( NOT WITHOUT_CPACK )
+  # CPACK packaging
+  include(InstallRequiredSystemLibraries)
+  set(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
+  set(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
+  set(CPACK_PACKAGE_CONTACT "Fraunhofer ITWM <support@mysmartgrid.de>")
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "libhexabus")
+  set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
+  set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
+  set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
+  set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
+  SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch;Hexabus node interrogation utility" "hexalog;Hexabus logging utility" "hexaupload;Hexabus statemachine upload utility" "hexapair;Hexabus device pairing utility")
+  SET(CPACK_STRIP_FILES ON)
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
-if(LIBKLIO_FOUND)
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
+  if(LIBKLIO_FOUND)
 	set(CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS}, libsqlite3-0 (>= 3.7), libgnutls26 (>= 2.12)")
+  endif()
 endif()
-
-set(CPACK_SECTION "net")
-include(CPackTools)
 
 ### print some output for the user
 message("")

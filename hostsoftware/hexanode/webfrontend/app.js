@@ -288,6 +288,9 @@ app.get('/wizard/devices', function(req, res) {
 
 	res.render('wizard/devices.ejs', { active_nav: 'configuration', devices: devices });
 });
+app.get('/wizard/devices/add', function(req, res) {
+	res.render('wizard/add_device.ejs', { active_nav: 'configuration' });
+});
 app.get('/wizard/:step', function(req, res) {
 	res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
 });
@@ -384,6 +387,16 @@ io.sockets.on('connection', function (socket) {
 
 	var emit = socket.emit.bind(socket);
 
+	var health_update_timeout;
+	var send_health_update = function() {
+		setTimeout(send_health_update, 60 * 1000);
+		hexabus.get_heartbeat_state(function(err, state) {
+			emit('health_update', !err && state.code != 0);
+		});
+	};
+
+	send_health_update();
+
 	var broadcast_ep = function(ep) {
 		broadcast('ep_metadata', ep);
 	};
@@ -417,6 +430,7 @@ io.sockets.on('connection', function (socket) {
 		for (var ev in devicetree_events) {
 			devicetree.removeListener(ev, devicetree_events[ev]);
 		}
+		clearTimeout(health_update_timeout);
 	});
 
 	on('ep_request_metadata', function(id) {
@@ -489,6 +503,14 @@ io.sockets.on('connection', function (socket) {
 
 		wizard.registerMSG(function(progress) {
 			emit('wizard_register_step', progress);
+		});
+	});
+
+	on('devices_add', function() {
+		var wizard = new Wizard();
+
+		wizard.addDevice(devicetree, function(msg) {
+			emit('device_found', msg);
 		});
 	});
 
