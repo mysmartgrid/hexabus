@@ -22,7 +22,11 @@
 		<table class="table">
 			<tr >
 				<th>
-					<p>{{device.name}}</p>
+					<p id="device_name" data-ng-hide="rename" data-ng-click="show_rename($event)">{{device.name}}</p>
+					<div data-ng-show="rename" class="input-append">
+						<input class="span2" id="renameField" type="text" data-ng-model="new_name">
+						<button data-ng-click="rename_device(device.ip)" class="btn" type="button" data-localize="wizard.devices.rename">Rename</button>
+					</div>
 					<p>{{device.ip}}</p>
 				</th>
 				<td>

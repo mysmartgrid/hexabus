@@ -429,6 +429,7 @@ angular.module('dashboard', [
 		Socket.emit('devices_add');
 		$scope.error = false;
 		$scope.found = false;
+		$scope.rename = false;
 		$scope.searching = true;
 	};
 
@@ -446,8 +447,20 @@ angular.module('dashboard', [
 			}
 			msg.device.endpoints = eids;
 			$scope.device = msg.device;
+			$scope.new_name = msg.device.name;
 			$scope.found = true;
 		}
+	}
+
+	$scope.show_rename = function() {
+		$scope.rename = true;
+	}
+
+	$scope.rename_device = function(ip) {
+		var name = $scope.new_name;
+		Socket.emit('device_rename', {device: ip, name: name})
+		$scope.device.name = name;
+		$scope.rename = false;
 	}
 
 	Socket.on('device_found', on_device_found);

@@ -73,6 +73,7 @@
 			"not_found": "Kein Gerät gefunden",
 			"not_found_msg": "Es konnte kein Gerät gefunden werden: {{errormsg}}",
 			"retry": "Erneut versuchen",
+			"rename": "Umbenennen",
 			"push-button": "Bitte drücken Sie den Verbindungsknopf an ihrem Gerät bis die LED rot blinkt.",
 			"found": "Neues Gerät gefunden",
 			"ready": "Ihr Gerät ist jetzt einsatzbereit.",
