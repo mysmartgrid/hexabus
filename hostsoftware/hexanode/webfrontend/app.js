@@ -50,7 +50,20 @@ function open_config() {
 open_config();
 
 var save_devicetree = function(cb) {
-	devicetree.save(devicetree_file, cb || Object);
+	var tempfile = devicetree_file + ".new";
+	devicetree.save(tempfile, function(err) {
+		if (err) {
+			if (cb) {
+				cb(err);
+			}
+		} else {
+			fs.rename(tempfile, devicetree_file, function(err) {
+				if (cb) {
+					cb(err);
+				}
+			});
+		}
+	});
 };
 
 var enumerate_network = function(cb) {
@@ -80,13 +93,12 @@ var enumerate_network = function(cb) {
 
 enumerate_network();
 
-setInterval(save_devicetree, 10 * 60 * 1000);
 setInterval(enumerate_network, 60 * 60 * 1000);
 process.on('SIGINT', function() {
-	save_devicetree(process.exit);
+	save_devicetree(function() { process.exit(); });
 });
 process.on('SIGTERM', function() {
-	save_devicetree(process.exit);
+	save_devicetree(function() { process.exit(); });
 });
 
 console.log("Using configuration: ");
