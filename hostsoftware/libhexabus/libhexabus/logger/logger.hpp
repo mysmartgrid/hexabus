@@ -30,7 +30,7 @@ class Logger : private PacketVisitor {
 
 		virtual const char* eid_to_unit(uint32_t eid);
 
-		void on_sensor_name_received(const std::string& sensor_name, const hexabus::Packet& ep_info);
+		void on_sensor_name_received(const std::string& sensor_name, const boost::asio::ip::address_v6& address, const hexabus::Packet& ep_info);
 
 		void on_sensor_error(const std::string& sensor_name, const hexabus::GenericException& err);
 
@@ -65,7 +65,7 @@ class Logger : private PacketVisitor {
 
 	protected:
 		virtual void record_reading(klio::Sensor::Ptr sensor, klio::timestamp_t ts, double value) = 0;
-		virtual void new_sensor_found(klio::Sensor::Ptr sensor) = 0;
+		virtual void new_sensor_found(klio::Sensor::Ptr sensor, const boost::asio::ip::address_v6& address) = 0;
 		virtual klio::Sensor::Ptr lookup_sensor(const std::string& name) = 0;
 
 	public:

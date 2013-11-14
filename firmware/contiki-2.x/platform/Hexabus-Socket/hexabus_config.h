@@ -13,7 +13,7 @@ _DEBUG options should be set to:
 #define HEXABUS_CONFIG_H
 
 // udp_handler
-#define UDP_HANDLER_DEBUG 0 
+#define UDP_HANDLER_DEBUG 0
 
 #define ENDPOINT_REGISTRY_DEBUG 0
 
@@ -41,8 +41,8 @@ _DEBUG options should be set to:
 
 // temperature
 #define TEMPERATURE_ENABLE 0
-#define TEMPERATURE_DEBUG 1
-#define TEMPERATURE_SENSOR 0 // 0 - ds80x20, 1 - HYT321, 2 - BMP085
+#define TEMPERATURE_DEBUG 0
+#define TEMPERATURE_SENSOR 1 // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
@@ -58,10 +58,11 @@ _DEBUG options should be set to:
 #define METERING_IMMEDIATE_BROADCAST 1  // immediately broadcast metering value when change is measured (you still should have the EID in the VALUE_BROADCAST_AUTO_EIDS with some reasonable timeout, so that the value is also broadcast when it reaches and stays at zero)
 #define METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS 1 // number of ticks from the meter until a broadcast is triggered. 1: broadcast every tick ~ roughly every 2 seconds at 100W
 #define METERING_IMMEDIATE_BROADCAST_MINIMUM_TIMEOUT 20 // minimum number of seconds between two broadcasts, to prevent flooding the network
-#define METERING_ENERGY 1
+#define METERING_ENERGY 0
 // CAUTION: METERING_ENERGY_PERSISTENT needs external power-down detection circuit. Refer to the Wiki!
 #define METERING_ENERGY_PERSISTENT 0 // Persistently store energy value (number of pulses) in EEPROM. 
-#define S0_ENABLE 0 //S0 meter instead of internal meter.
+#define S0_ENABLE 1 //S0 meter instead of internal meter.
+#define METERING_DEBUG 8
 
 // state_machine
 #define STATE_MACHINE_ENABLE 1
@@ -125,12 +126,12 @@ _DEBUG options should be set to:
 #define HALLSENSOR_FAULT_DDR DDRC
 
 //i2c master
-#define I2C_ENABLE 1
+#define I2C_ENABLE 0
 #define I2C_DEBUG 0
 
 //humidity sensor
 #define HUMIDITY_ENABLE 0
-#define HUMIDITY_DEBUG 0 
+#define HUMIDITY_DEBUG 0
 
 //pressure sensor
 #define PRESSURE_ENABLE 0 
@@ -142,5 +143,17 @@ _DEBUG options should be set to:
 #define IR_RECEIVER_DEBUG 0
 #define IR_REPEAT 1 // 0 disables repeat, 1 enables repeat for buttons configured in ir_receiver.h
 #define IR_RECEIVER_RAW_MODE 0
+
+// epaper display and at45 driver
+#define EPAPER_ENABLE 0
+#define EPAPER_DEBUG 0
+
+//pt100 temperatur sensors for heater
+#define PT100_ENABLE 0
+#define PT100_DEBUG 0
+
+// interface app for the hexasense board
+#define HEXASENSE_ENABLE 0
+#define HEXASENSE_DEBUG LOG_DEBUG
 
 #endif // HEXBAUS_CONFIG_H

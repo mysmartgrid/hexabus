@@ -45,10 +45,10 @@ set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-non-virtual-dtor")
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-system-headers")
 
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-unused-parameter")
-set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-unused-but-set-variable")
+#set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-unused-but-set-variable") #not supported by openwrt build toolchain
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-unused-variable")
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-unknown-pragmas")
-set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-delete-non-virtual-dtor")
+#set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-delete-non-virtual-dtor") #not supported by openwrt build toolchain
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-type-limits")
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-uninitialized")
 
@@ -82,7 +82,7 @@ if(NOT WIN32)
 
     ## Releases are made with the release build. Optimize code.
     set(CMAKE_CXX_FLAGS_RELEASE "-Os")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fstack-protector-all")
+    #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fstack-protector-all") #not supported by openwrt build toolchain
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-missing-field-initializers")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${FLAGS_WARNINGS}")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Werror"

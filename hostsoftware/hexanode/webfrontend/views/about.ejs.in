@@ -1,0 +1,7 @@
+<% include header %>
+
+<div class="container" data-ng-controller="dashboardController">
+	Version: @HXB_VERSION@
+</div> 
+
+<% include footer %>

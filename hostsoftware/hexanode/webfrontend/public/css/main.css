@@ -1,7 +1,8 @@
 body {
 	padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
 }
-.gauge {
+
+.vis-endpoint {
 	position: relative;
 	width: 200px;
 	height: 160px;
@@ -38,5 +39,48 @@ div.spinner-large {
 	position: absolute;
 	top: 40%;
 	bottom: 20%;
+	width: 100%;
+}
+
+
+.device-list-container {
+	height: 20em;
+	overflow: auto;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
+}
+.device-list-helper-row {
+	height: 4em;
+}
+.device-list > tbody > tr.device-list-helper-row:not(:only-child) {
+	display: none;
+}
+tr.device-list-helper-row td {
+	background-color: #ada !important;
+}
+
+
+.vis-bool-switch {
+	padding: 1.4em;
+	position: relative;
+}
+.vis-bool-switch .title {
+	color: #999;
+	font-size: 1.4em;
+	padding-bottom: 0.4em;
+}
+.vis-bool-switch .switch-container {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	right: 0;
+	left: 0;
+	margin: auto;
+	height: 20%;
+	width: 50%;
+}
+.vis-bool-switch .make-switch {
 	width: 100%;
 }

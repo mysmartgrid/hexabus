@@ -40,6 +40,9 @@
 #if SM_UPLOAD_ENABLE
 #include "sm_upload.h"
 #endif
+#if PT100_ENABLE
+#include "pt100.h"
+#endif
 #if HALLSENSOR_ENABLE
 #include "hallsensor.h"
 #endif
@@ -94,6 +97,9 @@ void hexabus_bootstrap_init_apps() {
 #endif
 #if SM_UPLOAD_ENABLE
 	sm_upload_init();
+#endif
+#if PT100_ENABLE
+	pt100_init();
 #endif
 #if HALLSENSOR_ENABLE
     hallsensor_init();

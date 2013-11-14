@@ -27,6 +27,8 @@
 #include "pressure.h"
 #endif
 
+#include "health.h"
+
 static struct etimer temperature_periodic_timer;
 
 //local variables
@@ -40,8 +42,18 @@ static void  temperature_reset(void);
 
 static enum hxb_error_code read(struct hxb_value* value)
 {
+#if TEMPERATURE_SENSOR == 1
+  if (read_humidity_temp(&value->v_float)) {
+		health_update(HE_HYT_BROKEN, 0);
+		return HXB_ERR_SUCCESS;
+	} else {
+		health_update(HE_HYT_BROKEN, 1);
+		return HXB_ERR_NO_VALUE;
+	}
+#else
 	value->v_float = temperature_get();
 	return HXB_ERR_SUCCESS;
+#endif
 }
 
 static const char ep_name[] PROGMEM = "Temperature Sensor";
@@ -114,8 +126,6 @@ temperature_get(void)
   _update_temp_string();
   PRINTF("Current temp: %s deg C\r\n", temperature_string_buffer);
   return temperature_value;
-#elif TEMPERATURE_SENSOR == 1
-  return read_humidity_temp();
 #elif TEMPERATURE_SENSOR == 2
   return read_pressure_temp();
 #else

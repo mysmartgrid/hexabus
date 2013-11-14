@@ -20,11 +20,12 @@
     <link rel="shortcut icon" href="../assets/ico/favicon.png" />
 
 		<script src="/js/jquery-1.10.2.min.js"></script>
-		<script src="/js/angular-1.0.8.min.js"></script>
+		<script src="/js/angular-1.0.8.js"></script>
 		<script src="/socket.io/socket.io.js"></script>
 		<script src="/js/bootstrap.min.js"></script>
 		<script src="/js/bootstrap-switch.js"></script>
 		<script src="/js/jquery.localize.js"></script>
+		<script src="/js/jquery-ui-1.10.3.custom.js"></script>
 
 		<script src="/js/ng-socket.js"></script>
 		<script src="/js/gauges.js"></script>
@@ -43,8 +44,8 @@
           <a class="brand" href="/#" data-localize="navbar.console">Hexabus Console</a>
           <div class="nav-collapse collapse">
             <ul class="nav" id="main_nav">
-							<li class="<%= (active_tabpage || 'dashboard') == 'dashboard' ? 'active' : '' %>"><a href="/#dashboard" data-localize="navbar.main">Main</a></li>
-							<li class="dropdown <%= (active_tabpage || 'configuration') == 'configuration' ? 'active' : '' %>">
+							<li class="<%= active_nav == 'dashboard' ? 'active' : '' %>"><a href="/#dashboard" data-localize="navbar.main">Main</a></li>
+							<li class="dropdown <%= active_nav == 'configuration' ? 'active' : '' %>">
 								<a class="dropdown-toggle" data-toggle="dropdown" data-localize="navbar.configuration">Configuration<b class="caret"></b></a>
 								<ul class="dropdown-menu">
 									<li><a href="/wizard/current" data-localize="navbar.network-status">Network status</a></li>
@@ -55,7 +56,9 @@
 							</li>
 						</ul>
 						<ul class="nav pull-right">
-							<li><a class="pull-right" href="#about" data-localize="navbar.about">About</a></li>
+							<li class="<%= active_nav == 'about' ? 'active' : '' %>">
+								<a class="pull-right" href="/about" data-localize="navbar.about">About</a>
+							</li>
             </ul>
           </div><!--/.nav-collapse -->
         </div>

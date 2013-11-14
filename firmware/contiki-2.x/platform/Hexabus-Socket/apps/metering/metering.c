@@ -290,7 +290,7 @@ metering_get_power(void)
 void
 metering_set_s0_calibration(uint16_t value) {
     metering_stop();
-    printf("metering_set_s0_calibration: %u\n", value);
+    syslog(LOG_LEVEL, "metering_set_s0_calibration: %u\n", value);
     eeprom_write_word((uint16_t*) EE_METERING_REF, ((3600000*CLOCK_SECOND)/(value*10))); 
     metering_init();
     metering_start();
@@ -300,7 +300,7 @@ uint16_t
 metering_get_s0_calibration() {
     uint16_t res;
     res = eeprom_read_word((uint16_t*) EE_METERING_REF);
-    printf("metering_get_s0_calibration: %u\n", res);
+    syslog(LOG_LEVEL, "metering_get_s0_calibration: %u\n", res);
     return ((3600000*CLOCK_SECOND)/res)/10;
 }
 

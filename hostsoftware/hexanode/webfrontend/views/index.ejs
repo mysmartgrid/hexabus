@@ -3,49 +3,42 @@
 <script src="/js/raphael.2.1.0.min.js"></script>
 <script src="/js/justgage.1.0.1.js"></script>
 
+<script>
+	all_views = <%- JSON.stringify(views) %>
+</script>
+
 <div class="container" data-ng-controller="dashboardController">
 	<ul class="nav nav-tabs">
-		<li class="active"><a href="#all-sensors" data-toggle="tab" data-localize="dashboard.all-sensors">All sensors</a></li>
-		<li><a href="#all-actors" data-toggle="tab" data-localize="dashboard.all-actors">All actors</a></li>
+		<li class="active">
+			<a href="#" data-ng-click="setView('sensors')" data-toggle="tab" data-localize="dashboard.all-sensors">All sensors</a>
+		</li>
+		<li>
+			<a href="#" data-ng-click="setView('actors')" data-toggle="tab" data-localize="dashboard.all-actors">All actors</a>
+		</li>
+		<li data-ng-repeat="view in views">
+			<a href="#" data-ng-click="setView(view)" data-toggle="tab">{{view.name}}</a>
+		</li>
 	</ul>
 	<div class="tab-content">
-		<div class="tab-pane active" id="all-sensors">
-			<h2 class="text-center" data-localize="dashboard.all-sensors">All sensors</h2>
-			<div class="row-fluid">
-				<div class="span3">
-					<p><span data-localize="last-update.label">Last update:</span> <span id="last-update-when"></span></p>
-				</div>
-				<div class="span9">
-					<ul class="inline">
-						<li data-ng-repeat="sensor in sensorList"
-						    data-ng-hide="sensor.hide">
-							<div data-vis-endpoint=""
-							     data-endpoint="sensor"
-							     data-enable-edit="true"
-							     data-edit-begin="editBegin"
-							     data-edit-done="editDone">
-							</div>
-						</li>
-					</ul>
-				</div>
+		<h2 class="text-center" data-localize="dashboard.all-sensors" id="view-name">All sensors</h2>
+		<div class="row-fluid">
+			<div class="span3">
+				<p><span data-localize="last-update.label">Last update:</span> <span id="last-update-when"></span></p>
+			</div>
+			<div class="span9">
+				<ul class="inline">
+					<li data-ng-repeat="ep in current_view.endpoints"
+							data-ng-hide="ep.hide || !ep.ep_desc.unit && hide_unitless">
+						<div data-vis-endpoint=""
+								 data-endpoint="ep"
+								 data-enable-edit="true"
+								 data-edit-begin="editBegin"
+								 data-edit-done="editDone">
+						</div>
+					</li>
+				</ul>
 			</div>
 		</div> <!-- all-sensors -->
-		<div class="tab-pane" id="all-actors">
-			<h2 class="text-center" data-localize="dashboard.all-actors">All actors</h2>
-			<div class="row-fluid">
-				<div class="span9">
-					<ul class="inline">
-						<li data-ng-repeat="actor in actorList">
-							<div data-vis-endpoint=""
-							     data-endpoint="actor"
-							     data-enable-edit="true"
-							     data-edit-done="editDone">
-							</div>
-						</li>
-					</ul>
-				</div>
-			</div>
-		</div> <!-- all-actors -->
 	</div>
 </div> 
 

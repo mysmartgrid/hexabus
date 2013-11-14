@@ -42,6 +42,7 @@
 #include "state_machine.h"
 #include "endpoint_registry.h"
 #include "udp_handler.h"
+#include "epaper.h"
 
 #include "hexabus_packet.h"
 
@@ -78,6 +79,9 @@ void broadcast_to_self(struct hxb_value* val, uint32_t eid)
 	syslog(LOG_DEBUG, "Sending EID %ld to own state machine.", eid);
 	sm_handle_input(&envelope);
 #endif
+#if EPAPER_ENABLE
+	epaper_handle_input(val, eid);
+#endif
 }
 
 static void broadcast_value_ptr(void* data)
@@ -88,13 +92,14 @@ static void broadcast_value_ptr(void* data)
 static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, void* data)
 {
 	struct hxb_value val;
+	enum hxb_error_code err;
 
 	uint32_t eid = *((uint32_t*) data);
 
 	// link binary blobs and strings
 	val.v_string = buffer->p_128string.value;
-	if (endpoint_read(eid, &val)) {
-		return HXB_ERR_SUCCESS;
+	if ((err = endpoint_read(eid, &val))) {
+		return err;
 	}
 
 	buffer->value_header.type = HXB_PTYPE_INFO;

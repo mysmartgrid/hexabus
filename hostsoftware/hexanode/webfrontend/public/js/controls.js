@@ -86,7 +86,39 @@ var UpdateControl = function(element, config) {
 
 angular.module('controls', [
 ])
-.directive('visGauge', [function() {
+.directive('visAssociatedFunctions', [function() {
+	return {
+		restrict: 'A',
+		scope: {
+			endpoint: '=',
+			enableEdit: '=',
+			editBegin: '=',
+			editDone: '='
+		},
+		replace: false,
+		template: 
+			'<div>' +
+				'<div data-ng-repeat="assoc in endpoint.associated">' +
+					'<div data-ng-switch="assoc.ep.ep_desc.eid">' +
+						'<div data-ng-switch-when="1">' +
+							'<div data-bool-switch="bool-switch" ' + 
+								'data-endpoint="assoc.ep" ' + 
+								'data-control="assoc.control" ' + 
+								'data-enable-edit="enableEdit" ' + 
+								'data-edit-done="editDone"></div>' + 
+						'</div>' +
+					'</div>' +
+				'</div>' +
+			'</div>',
+		compile: function() {
+			return {
+				post: function(scope, element, attrs, controller) {
+				}
+			};
+		}
+	};
+}])
+.directive('visGauge', ["$compile", function($compile) {
 	return {
 		restrict: 'A',
 		scope: {
@@ -101,18 +133,23 @@ angular.module('controls', [
 		},
 		replace: false,
 		template:
-			'<div data-ng-gauge="gauge" ' + 
-				'id="{{endpoint.id}}" ' +
-				'class="{{cssClass}} {{cssClass}}-{{endpoint.ip}}" ' +
-				'data-title-text="{{endpoint.name}} [{{endpoint.unit}}]" ' +
-				'data-min="{{endpoint.minvalue}}" ' +
-				'data-max="{{endpoint.maxvalue}}" ' +
-				'data-value="{{endpoint.value}}" ' +
-				'data-gauge="control.gauge" ' +
-				'data-disabled="!hasValue" ' +
-				'data-min-click="minClick()" ' +
-				'data-max-click="maxClick()" ' +
-				'data-title-click="titleClick()">' +
+			'<div class="vis-gauge-tooltip">' + 
+				'<div data-ng-gauge="gauge" ' + 
+					'id="{{endpoint.ep_desc.id}}" ' +
+					'class="vis-endpoint {{cssClass}}-{{endpoint.ep_desc.ip}}" ' +
+					'data-title-text="{{endpoint.ep_desc.name}} [{{endpoint.ep_desc.unit | displayUnit | ' + 
+						'localize:\'endpoint-registry.units\'}}]" ' +
+					'data-min="{{endpoint.ep_desc.minvalue}}" ' +
+					'data-max="{{endpoint.ep_desc.maxvalue}}" ' +
+					'data-value="{{endpoint.ep_desc.value}}" ' +
+					'data-gauge="control.gauge" ' +
+					'data-disabled="!hasValue" ' +
+					'data-min-click="minClick()" ' +
+					'data-max-click="maxClick()" ' +
+					'data-title-click="titleClick()" ' +
+					'data-value-click="valueClick()" ' +
+					'title="{{endpoint.ep_desc.description | ' +
+						'localize:\'endpoint-registry.descriptions\':endpoint.ep_desc.eid}}"></div>' + 
 			'</div>',
 		compile: function(element, attrs, transclude) {
 			return {
@@ -120,8 +157,25 @@ angular.module('controls', [
 					scope.control = {};
 					var pendingUpdateControl = null;
 
+					var tt = element;
+					tt.popover({
+						html: true,
+						title: scope.endpoint.ep_desc.name,
+						content: function() {
+							var html =
+								'<div data-vis-associated-functions="associated-functions" ' + 
+									'data-endpoint="endpoint" ' + 
+									'data-enable-edit="enableEdit" ' +
+									'data-edit-begin="editBegin" ' +
+									'data-edit-done="editDone"></div>';
+							return $compile(html)(scope);
+						},
+						placement: "bottom",
+						trigger: "manual"
+					});
+
 					var placeUpdateControl = function(control, attrs, done) {
-						var element = $(document.getElementById(scope.endpoint.id));
+						var element = $(document.getElementById(scope.endpoint.ep_desc.id));
 						var bound = control.getBBox();
 
 						attrs = attrs || {};
@@ -149,24 +203,24 @@ angular.module('controls', [
 					scope.control.cover = function() {
 						var div = $('<div class="spinner-large transient"></div>' +
 							'<div class="updating-thus-disabled transient"></div>');
-						$(document.getElementById(scope.endpoint.id))
+						$(document.getElementById(scope.endpoint.ep_desc.id))
 							.append(div);
 					};
 
 					scope.control.coverClass = function() {
 						var div = $('<div class="spinner-large transient"></div>' +
 							'<div class="updating-thus-disabled transient"></div>');
-						$(document.getElementsByClassName(scope.cssClass + "-" + scope.endpoint.ip))
+						$(document.getElementsByClassName(scope.cssClass + "-" + scope.endpoint.ep_desc.ip))
 							.append(div);
 					};
 
 					scope.control.uncover = function() {
-						$(document.getElementById(scope.endpoint.id))
+						$(document.getElementById(scope.endpoint.ep_desc.id))
 							.children(".transient").remove();
 					};
 
 					scope.control.uncoverClass = function() {
-						$(document.getElementsByClassName(scope.cssClass + "-" + scope.endpoint.ip))
+						$(document.getElementsByClassName(scope.cssClass + "-" + scope.endpoint.ep_desc.ip))
 							.children(".transient").remove();
 					};
 
@@ -174,12 +228,12 @@ angular.module('controls', [
 						if (!scope.enableEdit) {
 							return;
 						}
-						scope.editBegin(scope.endpoint, { target: "minvalue" });
+						scope.editBegin(scope.endpoint.ep_desc, { target: "minvalue" });
 						placeUpdateControl(
 								scope.control.gauge.txtMin,
 								null,
 								function(value) {
-									scope.editDone(scope.endpoint, {
+									scope.editDone(scope.endpoint.ep_desc, {
 										minvalue: +value
 									});
 									pendingUpdateControl = null;
@@ -190,12 +244,12 @@ angular.module('controls', [
 						if (!scope.enableEdit) {
 							return;
 						}
-						scope.editBegin(scope.endpoint, { target: "maxvalue" });
+						scope.editBegin(scope.endpoint.ep_desc, { target: "maxvalue" });
 						placeUpdateControl(
 								scope.control.gauge.txtMax,
 								null,
 								function(value) {
-									scope.editDone(scope.endpoint, {
+									scope.editDone(scope.endpoint.ep_desc, {
 										maxvalue: +value
 									});
 									pendingUpdateControl = null;
@@ -206,20 +260,25 @@ angular.module('controls', [
 						if (!scope.enableEdit) {
 							return;
 						}
-						scope.editBegin(scope.endpoint, { target: "name" });
+						scope.editBegin(scope.endpoint.ep_desc, { target: "name" });
 						placeUpdateControl(
 								scope.control.gauge.txtTitle,
 								{
 									left: "0px",
 									width: "140px",
-									text: scope.endpoint.name
+									text: scope.endpoint.ep_desc.name
 								},
 								function(value) {
-									scope.editDone(scope.endpoint, {
+									scope.editDone(scope.endpoint.ep_desc, {
 										name: value
 									});
 									pendingUpdateControl = null;
 								});
+					};
+
+					scope.valueClick = function() {
+						console.log(scope.endpoint.associated);
+						element.popover("toggle");
 					};
 
 					scope.control.focus = function() {
@@ -227,6 +286,72 @@ angular.module('controls', [
 							pendingUpdateControl.focus();
 						}
 					};
+				}
+			};
+		}
+	};
+}])
+.directive('boolSwitch', [function() {
+	return {
+		restrict: 'A',
+		scope: {
+			endpoint: '=',
+			control: '=',
+			enableEdit: '=',
+			editDone: '=',
+			id: '@'
+		},
+		replace: true,
+		template:
+			'<div class="make-switch switch-large" data-on="success" data-off="default">' + 
+				'<input type="checkbox" />' + 
+			'</div>',
+		compile: function(element, attrs, transclude) {
+			return {
+				post: function(scope, element, attrs, controller) {
+					var control = scope.control = {};
+
+					var $elem = $(element);
+
+					$elem.bootstrapSwitch();
+
+					var dropChange = false;
+
+					Object.defineProperties(control, {
+						enabled: {
+							get: function() { return $elem.bootstrapSwitch('isActive'); },
+							set: function(en) { $elem.bootstrapSwitch('setActive', en); }
+						},
+
+						value: {
+							get: function() { return $elem.bootstrapSwitch('status'); },
+							set: function(val) {
+								dropChange = true;
+								$elem.bootstrapSwitch('setState', val);
+								dropChange = false;
+							}
+						}
+					});
+
+					control.cover = function() {
+					};
+					control.uncover = function() {
+					};
+
+					$elem.on('switch-change', function(ev, data) {
+						if (!dropChange) {
+							scope.editDone(scope.endpoint.ep_desc, {
+								value: data.value
+							});
+						}
+					});
+
+					scope.$watch('endpoint.ep_desc.value', function(value) {
+						control.value = value;
+					});
+
+					control.enabled = scope.enableEdit;
+					control.value = scope.endpoint.ep_desc.value;
 				}
 			};
 		}
@@ -244,48 +369,22 @@ angular.module('controls', [
 		},
 		replace: true,
 		template:
-			'<div>' +
-				'<div class="">{{endpoint.name}} [{{endpoint.eid}}]</div>' +
-				'<div class="make-switch" data-on="success" data-off="default">' + 
-					'<input type="checkbox" />' + 
-				'</div>' + 
+			'<div class="vis-bool-switch vis-endpoint">' +
+				'<div class="title text-center">{{endpoint.ep_desc.name}}</div>' +
+				'<div class="title text-center">' + 
+					'{{endpoint.ep_desc.eid | localize:\'endpoint-registry.descriptions\':endpoint.ep_desc.eid}}' + 
+				'</div>' +
+				'<div class="switch-container">' +
+					'<div data-bool-switch="bool-switch" ' + 
+						'data-endpoint="endpoint" ' + 
+						'data-control="control" ' + 
+						'data-enable-edit="enableEdit" ' + 
+						'data-edit-done="editDone"></div>' + 
+				'</div>' +
 			'</div>',
 		compile: function(element, attrs, transclude) {
 			return {
 				post: function(scope, element, attrs, controller) {
-					var control = scope.control = {};
-
-					$elem = $(element).find(".make-switch");
-
-					$elem.bootstrapSwitch();
-
-					Object.defineProperties(control, {
-						enabled: {
-							get: function() { return $elem.bootstrapSwitch('isActive'); },
-							set: function(en) { $elem.bootstrapSwitch('setActive', en); }
-						},
-
-						value: {
-							get: function() { return $elem.bootstrapSwitch('status'); },
-							set: function(val) {
-								$elem.bootstrapSwitch('setState', val);
-							}
-						}
-					});
-
-					control.cover = function() {
-					};
-					control.uncover = function() {
-					};
-
-					$elem.on('switch-change', function(ev, data) {
-						scope.editDone(scope.endpoint, {
-							value: data.value
-						});
-					});
-
-					control.enabled = scope.enableEdit;
-					control.value = scope.endpoint.value;
 				}
 			};
 		}
@@ -307,7 +406,7 @@ angular.module('controls', [
 				'<div data-ng-switch-when="sensor">' +
 					'<div data-vis-gauge="" ' + 
 						'data-css-class="gauge" ' +
-						'data-endpoint="endpoint.ep_desc" ' +
+						'data-endpoint="endpoint" ' +
 						'data-enable-edit="enableEdit" ' +
 						'data-edit-begin="editBegin" ' +
 						'data-edit-done="editDone" ' +
@@ -319,7 +418,7 @@ angular.module('controls', [
 					'<div data-ng-switch="endpoint.ep_desc.type">' + 
 						'<div data-ng-switch-when="1">' + 
 							'<div data-vis-bool-switch="vis-bool-switch" ' + 
-								'data-endpoint="endpoint.ep_desc" ' + 
+								'data-endpoint="endpoint" ' + 
 								'data-enable-edit="enableEdit" ' + 
 								'data-edit-done="editDone" ' +
 								'data-control="endpoint.control">' + 

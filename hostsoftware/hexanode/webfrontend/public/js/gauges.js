@@ -14,6 +14,7 @@ angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) 
 			titleClick: '&',
 			minClick: '&',
 			maxClick: '&',
+			valueClick: '&',
 
 			gauge: '='
 		},
@@ -34,29 +35,31 @@ angular.module('gauges', []).directive('gauge', ["$timeout", function($timeout) 
 						$timeout(function() {
 							element.empty();
 							watchers = {};
-							scope.gauge = g = new JustGage({
+
+							var config = {
 								id: scope.id,
 								min: +scope.min,
 								max: +scope.max,
 								title: scope.title,
-								value: +scope.value,
-
-								titleClick: function() {
+								value: +scope.value
+							};
+							["title", "min", "max", "value"].forEach(function(part) {
+								var key = part + "Click";
+								config[key] = function() {
 									scope.$apply(function() {
-										scope.titleClick();
-									});
-								},
-								minClick: function() {
-									scope.$apply(function() {
-										scope.minClick();
-									});
-								},
-								maxClick: function() {
-									scope.$apply(function() {
-										scope.maxClick();
+										scope[key]();
 									});
 								}
 							});
+							try {
+								scope.gauge = g = new JustGage(config);
+							} catch (e) {
+								// ignore "no element to draw onto", since that happens only when a gauge
+								// is unloaded before the actual display is created.
+								if (e != "No element with given id found") {
+									throw e;
+								}
+							}
 
 							watchers['value'] = scope.$watch('value', function(val) {
 								val = +val;

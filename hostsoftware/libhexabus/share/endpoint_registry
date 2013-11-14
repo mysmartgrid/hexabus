@@ -287,6 +287,52 @@ eid 43 {
 	function sensor
 }
 
+eid 44 {
+	type FLOAT
+	description "Temperatur sensor for heater inflow"
+	unit "degC"
+	access R
+	function sensor
+}
+
+eid 45 {
+	type FLOAT
+	description "Temperatur sensor for heater outflow"
+	unit "degC"
+	access R
+	function sensor
+}
+
+eid 47 {
+	type UINT32
+	description "Flukso Phase 1"
+	access R
+}
+
+eid 48 {
+	type UINT32
+	description "Flukso Phase 2"
+	access R
+}
+
+eid 49 {
+	type UINT32
+	description "Flukso Phase 3"
+	access R
+}
+
+eid 50 {
+	type UINT32
+	description "Flukso S0 1"
+	access R
+}
+
+eid 51 {
+	type UINT32
+	description "Flukso S0 2"
+	access R
+}
+
 eid 52 {
 	type UINT32
 	description "S0 meter calibration"

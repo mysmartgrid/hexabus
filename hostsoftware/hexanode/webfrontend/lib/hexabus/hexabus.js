@@ -97,6 +97,7 @@ var hexabus = function() {
 					devices.forEach(function(dev) {
 						cb({ device: dev });
 					});
+					cb({ done: true });
 				}
 			});
 		});
@@ -106,7 +107,13 @@ var hexabus = function() {
 	};
 
 	this.write_endpoint = function(ip, eid, type, value, cb) {
-		var command = "hexaswitch set " + ip + " --eid " + eid + " --datatype " + type + " --value " + value;
+		var command = "hexaswitch set " + ip + " --eid " + eid + " --datatype " + type + " --value ";
+		// type 1 is bool
+		if (type == 1) {
+			command = command + (value ? "1" : "0");
+		}	else {
+			command = command + value;
+		}
 		exec(command, function(error, stdout, stderr) {
 			cb(error);
 		});

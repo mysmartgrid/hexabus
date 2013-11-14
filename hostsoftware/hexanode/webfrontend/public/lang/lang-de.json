@@ -54,7 +54,7 @@
 			"create-account": "Anmelden",
 			"link-msg": "Basisstation mit mySmartGrid verknüpfen",
 			"linking": "Basisstation wird mit mySmartGrid verknüpft",
-			"code-prompt": "Geben Sie nun bitte folgenden Code auf mySmartGrid ein:",
+			"please-link": "Geben verbinden Sie dieses Gerät nun mit ihrem mySmartGrid-Account:",
 			"link": "Zu mySmartGrid",
 			"continue": "Weiter",
 			"error": "Fehler beim Verknüpfen mit mySmartGrid"
@@ -84,7 +84,8 @@
 
 		"device-list": {
 			"forget-device": "Gerät entfernen",
-			"forget-dialog": "Möchten Sie das Gerät {device} wirklich entfernen?"
+			"forget-dialog": "Möchten Sie das Gerät {device} wirklich entfernen?",
+			"scanning": "Suche nach Geräten im Netzwerk"
 		}
 	},
 
@@ -125,6 +126,10 @@
 			"41": "PV Produktionsmessung",
 			"42": "Netzbezug (Produktion - Verbrauch)",
 			"43": "Batterieleistung (Ladeleistung - Entladeleistung)"
+		},
+
+		"units": {
+			"%r.h.": "rF"
 		}
 	}
 }
