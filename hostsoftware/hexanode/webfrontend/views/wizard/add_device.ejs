@@ -19,13 +19,16 @@
 	<div data-ng-show="found">
 		<h3 data-localize="wizard.devices.found">New device found</h3>
 		<p class="lead" data-localize="wizard.devices.ready">Your device is now ready to be used.</p>
+		<p class="lead" data-localize="wizard.devices.click_rename">Please click on the name of the device, if you want rename it.</p>
 		<table class="table">
 			<tr >
 				<th>
-					<p id="device_name" data-ng-hide="rename" data-ng-click="show_rename($event)">{{device.name}}</p>
-					<div data-ng-show="rename" class="input-append">
-						<input class="span2" id="renameField" type="text" data-ng-model="new_name">
-						<button data-ng-click="rename_device(device.ip)" class="btn" type="button" data-localize="wizard.devices.rename">Rename</button>
+					<p data-ng-hide="rename" data-ng-click="show_rename($event)">{{device.name}}</p>
+					<div data-ng-show="rename" class="input-append control-group {{rename_error_class}}">
+						<input id="renameField" data-ng-disabled="renaming" class="span2" type="text" data-ng-model="new_name">
+						<button data-ng-disabled="renaming" data-ng-click="rename_device(device.ip)" class="btn" type="button" data-localize="wizard.devices.rename">Rename</button>
+						<img data-ng-show="renaming" src="/img/spinner-small.gif" alt="" />
+						<label for="renameField" class="control-label" data-ng-show="rename_error">{{rename_error_msg}}</label>
 					</div>
 					<p>{{device.ip}}</p>
 				</th>
