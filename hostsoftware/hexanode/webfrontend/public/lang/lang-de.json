@@ -38,9 +38,9 @@
 		"connection": {
 			"about-connect": "In diesem Schritt richten wir das Netzwerk ein. Außerdem überprüfen wir, ob mySmartGrid.de erreichbar ist.",
 			"configure": "Netzwerk einrichten",
-			"configuring": "Netzwerk wird eingerichtet ...",
+			"configuring": "Lokales Hexabusnetzwerk wird eingerichtet ...",
 			"connecting": "Verbindung zu mySmartGrid.de wird überprüft ...",
-			"configured": "&#10003; Netzwerk ist eingerichtet.",
+			"configured": "&#10003; Lokales Hexabusnetzwerk ist eingerichtet.",
 			"connected": "&#10003; mySmartGrid.de ist erreichbar.",
 			"can-activate": "Sie können jetzt Ihr Gerät aktivieren.",
 			"activate": "Gerät aktivieren",

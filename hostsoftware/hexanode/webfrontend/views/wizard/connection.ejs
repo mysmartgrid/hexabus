@@ -5,9 +5,9 @@
 	<div data-ng-hide="active() || configured || connected">
 		<button class="btn btn-success" data-localize="wizard.connection.configure" data-ng-click="configure()">Configure network</button>
 	</div>
-	<p data-ng-show="active() && !configured && !failed()" class="lead"><img src="/img/spinner-small.gif" alt="" /><span data-localize="wizard.connection.configuring">Configuring network</span></p>
+	<p data-ng-show="active() && !configured && !failed()" class="lead"><img src="/img/spinner-small.gif" alt="" /><span data-localize="wizard.connection.configuring">Configuring local Hexabus network</span></p>
 	<p data-ng-show="active() && !connected && !failed()" class="lead"><img src="/img/spinner-small.gif" alt="" /><span data-localize="wizard.connection.connecting">Checking connection</span></p>
-	<p data-ng-show="configured" class="lead text-success" data-localize="wizard.connection.configured">&#10003; Network configured</p>
+	<p data-ng-show="configured" class="lead text-success" data-localize="wizard.connection.configured">&#10003; Local Hexabus network configured</p>
 	<p data-ng-show="connected" class="lead text-success" data-localize="wizard.connection.connected">&#10003; mysmartgrid.de is reachable</p>
 	<div data-ng-show="connected && configured">
 		<p class="lead" data-localize="wizard.connection.can-activate">You can now activate your device</p>
