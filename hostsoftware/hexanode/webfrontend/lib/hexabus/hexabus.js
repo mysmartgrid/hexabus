@@ -85,6 +85,16 @@ var hexabus = function() {
 		});
 	};
 
+	this.clear_heartbeat_state = function(cb) {
+		exec("sudo -s 'echo 0 > /var/run/hexabus_msg_heartbeat.state'", function(error, stdout, stderr) {
+			if (error) {
+				cb({ error: error });
+			} else {
+				cb(null);
+			}
+		});
+	};
+
 	this.enumerate_network = function(cb) {
 		cb = cb || Object;
 		var interfaces = (nconf.get("debug-hxb-ifaces") || "eth0,usb0").split(",");

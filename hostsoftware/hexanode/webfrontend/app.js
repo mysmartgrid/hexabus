@@ -36,6 +36,7 @@ if (nconf.get('uid')) {
 
 var configDir = nconf.get('config');
 var devicetree_file = configDir + '/devicetree.json';
+var heartbeat_state_valid_file = configDir + '/heartbeat_state_valid';
 
 var devicetree;
 
@@ -258,6 +259,7 @@ app.get('/wizard/current', function(req, res) {
 app.post('/wizard/reset', function(req, res) {
 	try {
 		fs.unlinkSync(devicetree_file);
+		fs.unlinkSync(heartbeat_state_valid_file);
 	} catch (e) {
 	}
 	open_config();
@@ -399,8 +401,12 @@ io.sockets.on('connection', function (socket) {
 	var health_update_timeout;
 	var send_health_update = function() {
 		setTimeout(send_health_update, 60 * 1000);
-		hexabus.get_heartbeat_state(function(err, state) {
-			emit('health_update', !err && state.code != 0);
+		fs.exists(heartbeat_state_valid_file, function(exists) {
+			if (exists) {
+				hexabus.get_heartbeat_state(function(err, state) {
+					emit('health_update', !err && state.code != 0);
+				});
+			}
 		});
 	};
 
@@ -504,6 +510,9 @@ io.sockets.on('connection', function (socket) {
 
 		wizard.configure_network(function(progress) {
 			emit('wizard_configure_step', progress);
+			hexabus.clear_heartbeat_state(function() {
+				fs.writeFileSync(heartbeat_state_valid_file, "");
+			});
 		});
 	});
 
