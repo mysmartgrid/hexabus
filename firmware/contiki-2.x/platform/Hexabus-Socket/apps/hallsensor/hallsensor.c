@@ -50,6 +50,7 @@ void hallsensor_init() {
 #if HALLSENSOR_ENABLE
 	HALLSENSOR_DDR &= ~(1<<HALLSENSOR_PIN);
 	HALLSENSOR_PORT |= (1<<HALLSENSOR_PIN);
+
 	ADMUX = (0<<REFS1) | (1<<REFS0); // AVCC as reference
 	ADCSRA = (1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2); // prescaler 128
 	ADCSRA |= (1<<ADATE) | (1<<ADIE); // free running adc with interrupt enabled

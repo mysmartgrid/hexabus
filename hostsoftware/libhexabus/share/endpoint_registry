@@ -134,7 +134,7 @@ eid 20 {
 
 eid 21 {
 	type 66BYTES
-	description "Power meter [Flukso]"
+	description "Hallsensor"
 	unit "W"
 	access R
 	function sensor
