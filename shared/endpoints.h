@@ -35,5 +35,6 @@
 #define EP_PV_PRODUCTION         41UL
 #define EP_POWER_BALANCE         42UL
 #define EP_BATTERY_BALANCE       43UL
+#define EP_S0_CALIBRATION          52UL
 
 #endif // ENDPOINTS_H_

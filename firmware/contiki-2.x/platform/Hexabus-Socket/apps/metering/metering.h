@@ -72,6 +72,7 @@ void    metering_stop(void);
 void    metering_reset(void);
 bool    metering_calibrate(void);
 void    metering_calibration_stop(void);
+uint16_t   metering_get_s0_calibration();
 void    metering_set_s0_calibration(uint16_t value);
 
 #if METERING_ENERGY

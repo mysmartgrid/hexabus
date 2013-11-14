@@ -47,6 +47,9 @@
 #include "endpoint_registry.h"
 #include "value_broadcast.h"
 
+#define LOG_LEVEL METERING_DEBUG
+#include "syslog.h"
+
 /** \brief This is a file internal variable that contains the 16 MSB of the
  *         metering pulse period.
  *
@@ -110,6 +113,29 @@ ENDPOINT_DESCRIPTOR endpoint_power = {
 	.read = read_power,
 	.write = 0
 };
+
+#if S0_ENABLE
+static enum hxb_error_code write_s0_calibration(const struct hxb_envelope* value)
+{
+	metering_set_s0_calibration((uint16_t) value->value.v_u32);
+	return HXB_ERR_SUCCESS;
+}
+
+static enum hxb_error_code read_s0_calibration(struct hxb_value* value)
+{
+	value->v_u32 = (uint32_t) metering_get_s0_calibration();
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_s0_calibration_name[] PROGMEM = "S0 Calibration";
+ENDPOINT_DESCRIPTOR endpoint_s0_calibration = {
+	.datatype = HXB_DTYPE_UINT32,
+	.eid = EP_S0_CALIBRATION,
+	.name = ep_s0_calibration_name,
+	.read = read_s0_calibration,
+	.write = write_s0_calibration
+};
+#endif // S0_ENABLE
 
 #if METERING_ENERGY
 static enum hxb_error_code read_energy_total(struct hxb_value* value)
@@ -178,6 +204,9 @@ metering_init(void)
 
 #if METERING_POWER
 	ENDPOINT_REGISTER(endpoint_power);
+#endif
+#if S0_ENABLE
+	ENDPOINT_REGISTER(endpoint_s0_calibration);
 #endif
 #if METERING_ENERGY
 	ENDPOINT_REGISTER(endpoint_energy_total);
@@ -261,9 +290,18 @@ metering_get_power(void)
 void
 metering_set_s0_calibration(uint16_t value) {
     metering_stop();
+    printf("metering_set_s0_calibration: %u\n", value);
     eeprom_write_word((uint16_t*) EE_METERING_REF, ((3600000*CLOCK_SECOND)/(value*10))); 
     metering_init();
     metering_start();
+}
+
+uint16_t
+metering_get_s0_calibration() {
+    uint16_t res;
+    res = eeprom_read_word((uint16_t*) EE_METERING_REF);
+    printf("metering_get_s0_calibration: %u\n", res);
+    return ((3600000*CLOCK_SECOND)/res)/10;
 }
 
 /* starts the metering calibration if the calibration flag is 0xFF else returns 0*/

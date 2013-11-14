@@ -546,7 +546,7 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			else if (s->inputbuf[0] == '0')
 				set_relay_default(1);
 
-#if S0_ENABLE
+#if 0 //S0_ENABLE
 			PSOCK_READTO(&s->sin, ISO_equal);
 			//check for s0 calibration value
 			PSOCK_READTO(&s->sin, ISO_amper);

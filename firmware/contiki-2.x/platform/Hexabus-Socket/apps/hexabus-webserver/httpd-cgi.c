@@ -476,7 +476,7 @@ generate_config(void *arg)
 	else
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line2, "", checked);
 
-#if S0_ENABLE
+#if 0 // S0_ENABLE
     char s0val[5];
     uint32_t refval= (eeprom_read_word((void*) EE_METERING_REF));
     refval = ((3600000*CLOCK_SECOND)/(refval*10));            // 1h*1000(for kilowatts) / refval*10(to fit into 16bits)
