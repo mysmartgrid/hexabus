@@ -33,29 +33,43 @@ enum ErrorCode {
 	ERR_OTHER = 127
 };
 
+static bool oneline = false;
+
 struct PacketPrinter : public hexabus::PacketVisitor {
 	private:
 		std::ostream& target;
 
 		void printValueHeader(uint32_t eid, const char* datatypeStr)
 		{
-			target << "Info" << std::endl
-				<< "Endpoint ID:\t" << eid << std::endl
-				<< "Datatype:\t" << datatypeStr << std::endl;
+			if (oneline) {
+				target << "Info;EID " << eid << ";Datatype " << datatypeStr << ";";
+			} else {
+				target << "Info" << std::endl
+					<< "Endpoint ID:\t" << eid << std::endl
+					<< "Datatype:\t" << datatypeStr << std::endl;
+			}
 		}
 
 		template<typename T>
 		void printValuePacket(const hexabus::ValuePacket<T>& packet, const char* datatypeStr)
 		{
 			printValueHeader(packet.eid(), datatypeStr);
-			target << "Value:\t" << packet.value() << std::endl;
+			if (oneline) {
+				target << "Value " << packet.value();
+			} else {
+				target << "Value:\t" << packet.value() << std::endl;
+			}
 			target << std::endl;
 		}
 
 		void printValuePacket(const hexabus::ValuePacket<uint8_t>& packet, const char* datatypeStr)
 		{
 			printValueHeader(packet.eid(), datatypeStr);
-			target << "Value:\t" << (int) packet.value() << std::endl;
+			if (oneline) {
+				target << "Value " << (int) packet.value();
+			} else {
+				target << "Value:\t" << (int) packet.value() << std::endl;
+			}
 			target << std::endl;
 		}
 
@@ -74,7 +88,11 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 
 			std::cout << std::endl << std::endl;
 
-			target << "Value:\t" << hexstream.str() << std::endl; 
+			if (oneline) {
+				target << "Value " << hexstream.str();
+			} else {
+				target << "Value:\t" << hexstream.str() << std::endl; 
+			}
 			target << std::endl;
 		}
 
@@ -85,8 +103,12 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 
 		virtual void visit(const hexabus::ErrorPacket& error)
 		{
-			target << "Error" << std::endl
-				<< "Error code:\t";
+			if (oneline) {
+				target << "Error;Error Code ";
+			} else {
+				target << "Error" << std::endl
+					<< "Error code:\t";
+			}
 			switch (error.code()) {
 				case HXB_ERR_UNKNOWNEID:
 					target << "Unknown EID";
@@ -104,10 +126,9 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 					target << "Invalid value";
 					break;
 				default:
-					target << "(unknown)";
+					target << "(unknown: " <<  static_cast<unsigned int>(error.code()) << ")";
 					break;
 			}
-			target << std::endl;
 			target << std::endl;
 		}
 
@@ -117,12 +138,20 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo)
 		{
 			if (endpointInfo.eid() == 0) {
-				target << "Device Info" << std::endl
-					<< "Device Name:\t" << endpointInfo.value() << std::endl;
+				if (oneline) {
+					target << "Device Info;Device Name " << endpointInfo.value();
+				} else {
+					target << "Device Info" << std::endl
+						<< "Device Name:\t" << endpointInfo.value() << std::endl;
+				}
 			} else {
-				target << "Endpoint Info\n"
-					<< "Endpoint ID:\t" << endpointInfo.eid() << std::endl
-					<< "EP Datatype:\t";
+				if (oneline) {
+					target << "Endpoint Info;EID " << endpointInfo.eid() << ";Datatype ";
+				} else {
+					target << "Endpoint Info\n"
+						<< "Endpoint ID:\t" << endpointInfo.eid() << std::endl
+						<< "EP Datatype:\t";
+				}
 				switch(endpointInfo.datatype()) {
 					case HXB_DTYPE_BOOL:
 						target << "Bool";
@@ -155,8 +184,12 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 						target << "(unknown)";
 						break;
 				}
-				target << std::endl;
-				target << "EP Name:\t" << endpointInfo.value() << std::endl;
+				if (oneline) {
+					target << ";Name " << endpointInfo.value();
+				} else {
+					target << std::endl;
+					target << "EP Name:\t" << endpointInfo.value() << std::endl;
+				}
 			}
 			target << std::endl;
 		}
@@ -304,6 +337,7 @@ int main(int argc, char** argv) {
     ("datatype,d", po::value<unsigned int>(), "{1: Bool | 2: UInt8 | 3: UInt32 | 4: HexaTime | 5: Float | 6: String}")
     ("value,v", po::value<std::string>(), "Value")
     ("reliable,r", po::bool_switch(), "Reliable initialization of network access (adds delay, only needed for broadcasts)")
+    ("oneline", po::bool_switch(), "Print each receive packet on one line")
     ;
   po::positional_options_description p;
   p.add("command", 1);
@@ -329,6 +363,8 @@ int main(int argc, char** argv) {
     std::cout << desc << std::endl;
     return 0;
   }
+
+	oneline = vm.count("oneline") && vm["oneline"].as<bool>();
 
   if (vm.count("version")) {
     std::cout << "hexaswitch -- command line hexabus client" << std::endl;
@@ -420,7 +456,11 @@ int main(int argc, char** argv) {
 	if (command == C_LISTEN) {
     std::cout << "Entering listen mode." << std::endl;
 		try {
-			network->listen(bind_addr);
+			if (!vm.count("bind")) {
+				network->listen();
+			} else {
+				network->listen(bind_addr);
+			}
 		} catch (const hexabus::NetworkException& e) {
 			std::cerr << "Cannot listen on " << bind_addr << ": " << e.code().message() << std::endl;
 			return ERR_NETWORK;
@@ -438,7 +478,11 @@ int main(int argc, char** argv) {
 				return ERR_NETWORK;
 			}
 
-			std::cout << "Received packet from " << pair.second << std::endl;
+			if (oneline) {
+				std::cout << "From " << pair.second << ";";
+			} else {
+				std::cout << "Received packet from " << pair.second << std::endl;
+			}
 			print_packet(*pair.first);
 		}
 	}

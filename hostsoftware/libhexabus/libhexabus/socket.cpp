@@ -52,6 +52,7 @@ static void timeout_handler(const boost::system::error_code& error, boost::asio:
 void Socket::beginReceivePacket(bool async)
 {
 	if (!packetReceived.empty()) {
+		socket.cancel();
 		socket.async_receive_from(boost::asio::buffer(data, data.size()), remoteEndpoint,
 				boost::bind(async ? &Socket::asyncPacketReceivedHandler : &Socket::syncPacketReceivedHandler,
 					this,
@@ -71,21 +72,25 @@ void Socket::packetReceivedHandler(const boost::system::error_code& error, size_
 
 void Socket::syncPacketReceivedHandler(const boost::system::error_code& error, size_t size)
 {
-	packetReceivedHandler(error, size);
-	beginReceivePacket(false);
+	if (error.value() != boost::system::errc::operation_canceled) {
+		packetReceivedHandler(error, size);
+		beginReceivePacket(false);
+	}
 }
 
 void Socket::asyncPacketReceivedHandler(const boost::system::error_code& error, size_t size)
 {
-	try {
-		packetReceivedHandler(error, size);
-	} catch (const GenericException& ge) {
-		asyncError(ge);
-	} catch (...) {
+	if (error.value() != boost::system::errc::operation_canceled) {
+		try {
+			packetReceivedHandler(error, size);
+		} catch (const GenericException& ge) {
+			asyncError(ge);
+		} catch (...) {
+			beginReceivePacket(true);
+			throw;
+		}
 		beginReceivePacket(true);
-		throw;
 	}
-	beginReceivePacket(true);
 }
 
 void Socket::syncPacketReceiveCallback(const Packet::Ptr& packet, const boost::asio::ip::udp::endpoint& from,

@@ -30,6 +30,7 @@ namespace hexabus {
 			boost::signals2::connection onPacketReceived(const on_packet_received_slot_t& callback, const filter_t& filter = filtering::any());
 			boost::signals2::connection onAsyncError(const on_async_error_slot_t& callback);
       
+			void listen() { listen(GroupAddress); }
 			void listen(const boost::asio::ip::address_v6& addr);
 			void bind(const boost::asio::ip::udp::endpoint& ep);
 			void bind(const boost::asio::ip::address_v6& addr) { bind(boost::asio::ip::udp::endpoint(addr, 0)); }

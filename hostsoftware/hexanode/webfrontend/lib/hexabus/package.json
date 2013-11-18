@@ -1,0 +1,7 @@
+{
+	"name": "hexabus",
+	"main": "hexabus.js",
+	"dependencies": {
+		"ipv6": "*"
+	}
+}

@@ -176,7 +176,9 @@ metering_init(void)
 
   metering_start();
 
+#if METERING_POWER
 	ENDPOINT_REGISTER(endpoint_power);
+#endif
 #if METERING_ENERGY
 	ENDPOINT_REGISTER(endpoint_energy_total);
 	ENDPOINT_REGISTER(endpoint_energy);

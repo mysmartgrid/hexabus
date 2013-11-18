@@ -1,0 +1,3 @@
+#!/bin/sh
+
+exec multilog t /var/log/hexabus_msg_bridge

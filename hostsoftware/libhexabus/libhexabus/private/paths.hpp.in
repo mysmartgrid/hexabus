@@ -1,0 +1,6 @@
+#ifndef LIBHEXABUS_PATHS_HPP
+#define LIBHEXABUS_PATHS_HPP 1
+
+#define LIBHEXABUS_INSTALL_PREFIX "/usr"
+
+#endif
