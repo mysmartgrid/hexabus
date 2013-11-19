@@ -118,6 +118,8 @@ if( NOT WITHOUT_CPACK )
   if(LIBKLIO_FOUND)
 	set(CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS}, libsqlite3-0 (>= 3.7), libgnutls26 (>= 2.12)")
   endif()
+  set(CPACK_SECTION "net")
+  include(CPackTools)
 endif()
 
 ### print some output for the user
