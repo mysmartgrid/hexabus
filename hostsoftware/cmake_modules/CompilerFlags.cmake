@@ -1,5 +1,8 @@
 # -*- mode: cmake; -*-
 
+include ( CheckCompiler )
+info_compiler()
+
 if (${CMAKE_BUILD_TYPE} MATCHES "Release")
   add_definitions("-DNDEBUG")
 endif()
@@ -45,12 +48,17 @@ set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-non-virtual-dtor")
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-system-headers")
 
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-unused-parameter")
-#set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-unused-but-set-variable") #not supported by openwrt build toolchain
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-unused-variable")
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-unknown-pragmas")
-#set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-delete-non-virtual-dtor") #not supported by openwrt build toolchain
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-type-limits")
 set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-uninitialized")
+
+if( NOT ${CMAKE_SYSTEM_PROCESSOR} MATCHES "mips" )
+# OR  ${CMAKE_CXX_COMPILER_MAJOR}>=4 AND 
+#      ${CMAKE_CXX_COMPILER_MINOR}4))  # gcc version <= 4.3.3
+  set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-unused-but-set-variable") #not supported by openwrt build toolchain
+  set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-delete-non-virtual-dtor") #not supported by openwrt build toolchain
+endif()
 
 if (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
   set (FLAGS_WARNINGS "${FLAGS_WARNINGS} -Wno-deprecated-writable-strings")
