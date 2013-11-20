@@ -15,6 +15,7 @@ class BinarySerializer : public PacketVisitor {
 	private:
 		std::vector<char>& _target;
 		size_t _headerStart;
+		uint16_t _seqNum;
 
 		void append_u8(uint8_t value);
 		void append_u16(uint16_t value);
@@ -38,7 +39,7 @@ class BinarySerializer : public PacketVisitor {
 		void appendCRC();
 
 	public:
-		BinarySerializer(std::vector<char>& target);
+		BinarySerializer(std::vector<char>& target, uint16_t seqNum);
 
 		virtual void visit(const ErrorPacket& error);
 		virtual void visit(const QueryPacket& query);
@@ -66,8 +67,8 @@ class BinarySerializer : public PacketVisitor {
 		virtual void visit(const WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write);
 };
 
-BinarySerializer::BinarySerializer(std::vector<char>& target)
-	: _target(target)
+BinarySerializer::BinarySerializer(std::vector<char>& target, uint16_t seqNum)
+	: _target(target), _seqNum(seqNum)
 {
 }
 
@@ -117,6 +118,7 @@ void BinarySerializer::appendHeader(const Packet& packet)
 	_target.insert(_target.end(), HXB_HEADER, HXB_HEADER + strlen(HXB_HEADER));
 	_target.push_back(packet.type());
 	_target.push_back(packet.flags());
+	append_u16(_seqNum);
 }
 
 void BinarySerializer::appendEIDHeader(const EIDPacket& packet)
@@ -142,6 +144,7 @@ void BinarySerializer::visit(const ErrorPacket& error)
 {
 	appendHeader(error);
 	append_u8(error.code());
+	append_u16(error.cause());
 	appendCRC();
 }
 
@@ -270,10 +273,10 @@ void BinarySerializer::visit(const WritePacket<boost::array<char, HXB_66BYTES_PA
 
 // }}}
 
-std::vector<char> hexabus::serialize(const Packet& packet)
+std::vector<char> hexabus::serialize(const Packet& packet, uint16_t seqNum)
 {
 	std::vector<char> result;
-	BinarySerializer serializer(result);
+	BinarySerializer serializer(result, seqNum);
 
 	serializer.visitPacket(packet);
 
@@ -301,7 +304,7 @@ class BinaryDeserializer {
 		std::string read_string();
 
 		template<typename T>
-		Packet::Ptr checkInfo(bool info, uint32_t eid, const T& value, uint8_t flags);
+		Packet::Ptr checkInfo(bool info, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum);
 
 		template<typename T>
 		Packet::Ptr check(const T& packet);
@@ -404,12 +407,12 @@ std::string BinaryDeserializer::read_string()
 }
 
 template<typename T>
-Packet::Ptr BinaryDeserializer::checkInfo(bool info, uint32_t eid, const T& value, uint8_t flags)
+Packet::Ptr BinaryDeserializer::checkInfo(bool info, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum)
 {
 	if (info) {
-		return check(InfoPacket<T>(eid, value, flags));
+		return check(InfoPacket<T>(eid, value, flags, seqNum));
 	} else {
-		return check(WritePacket<T>(eid, value, flags));
+		return check(WritePacket<T>(eid, value, flags, seqNum));
 	}
 }
 
@@ -430,12 +433,14 @@ Packet::Ptr BinaryDeserializer::deserialize()
 
 	uint8_t type = read_u8();
 	uint8_t flags = read_u8();
+	uint16_t seqNum = read_u16();
 
 	switch (type) {
 		case HXB_PTYPE_ERROR:
 			{
 				uint8_t code = read_u8();
-				return check(ErrorPacket(code, flags));
+				uint16_t cause = read_u16();
+				return check(ErrorPacket(code, cause, flags, seqNum));
 			}
 
 		case HXB_PTYPE_INFO:
@@ -447,16 +452,16 @@ Packet::Ptr BinaryDeserializer::deserialize()
 
 				switch (datatype) {
 					case HXB_DTYPE_BOOL:
-						return checkInfo<bool>(info, eid, read_u8(), flags);
+						return checkInfo<bool>(info, eid, read_u8(), flags, seqNum);
 
 					case HXB_DTYPE_UINT8:
-						return checkInfo<uint8_t>(info, eid, read_u8(), flags);
+						return checkInfo<uint8_t>(info, eid, read_u8(), flags, seqNum);
 
 					case HXB_DTYPE_UINT32:
-						return checkInfo<uint32_t>(info, eid, read_u32(), flags);
+						return checkInfo<uint32_t>(info, eid, read_u32(), flags, seqNum);
 
 					case HXB_DTYPE_FLOAT:
-						return checkInfo<float>(info, eid, read_float(), flags);
+						return checkInfo<float>(info, eid, read_float(), flags, seqNum);
 
 					case HXB_DTYPE_DATETIME:
 						{
@@ -477,20 +482,20 @@ Packet::Ptr BinaryDeserializer::deserialize()
 							if (dt.date().day_of_week() != weekday)
 								throw BadPacketException("Invalid datetime format");
 
-							return checkInfo<boost::posix_time::ptime>(info, eid, dt, flags);
+							return checkInfo<boost::posix_time::ptime>(info, eid, dt, flags, seqNum);
 						}
 
 					case HXB_DTYPE_TIMESTAMP:
-						return checkInfo<boost::posix_time::time_duration>(info, eid, boost::posix_time::seconds(read_u32()), flags);
+						return checkInfo<boost::posix_time::time_duration>(info, eid, boost::posix_time::seconds(read_u32()), flags, seqNum);
 
 					case HXB_DTYPE_128STRING:
-						return checkInfo<std::string>(info, eid, read_string(), flags);
+						return checkInfo<std::string>(info, eid, read_string(), flags, seqNum);
 
 					case HXB_DTYPE_16BYTES:
-						return checkInfo<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >(info, eid, read_bytes<HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags);
+						return checkInfo<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >(info, eid, read_bytes<HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags, seqNum);
 
 					case HXB_DTYPE_66BYTES:
-						return checkInfo<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(info, eid, read_bytes<HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags);
+						return checkInfo<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(info, eid, read_bytes<HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags, seqNum);
 
 					default:
 						throw BadPacketException("Invalid datatype");
@@ -500,20 +505,20 @@ Packet::Ptr BinaryDeserializer::deserialize()
 		case HXB_PTYPE_QUERY:
 			{
 				uint32_t eid = read_u32();
-				return check(QueryPacket(eid, flags));
+				return check(QueryPacket(eid, flags, seqNum));
 			}
 
 		case HXB_PTYPE_EPQUERY:
 			{
 				uint32_t eid = read_u32();
-				return check(EndpointQueryPacket(eid, flags));
+				return check(EndpointQueryPacket(eid, flags, seqNum));
 			}
 
 		case HXB_PTYPE_EPINFO:
 			{
 				uint32_t eid = read_u32();
 				uint8_t datatype = read_u8();
-				return check(EndpointInfoPacket(eid, datatype, read_string(), flags));
+				return check(EndpointInfoPacket(eid, datatype, read_string(), flags, seqNum));
 			}
 
 		default:

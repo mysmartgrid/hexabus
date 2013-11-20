@@ -37,10 +37,11 @@ namespace hexabus {
 		private:
 			uint8_t _type;
 			uint8_t _flags;
+			uint16_t _sequenceNumber;
 
 		protected:
-			Packet(uint8_t type, uint8_t flags = 0)
-				: _type(type), _flags(flags)
+			Packet(uint8_t type, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: _type(type), _flags(flags), _sequenceNumber(sequenceNumber)
 			{}
 
 		public:
@@ -48,6 +49,7 @@ namespace hexabus {
 
 			uint8_t type() const { return _type; }
 			uint8_t flags() const { return _flags; }
+			uint16_t sequenceNumber() const { return _sequenceNumber; }
 
 			virtual void accept(PacketVisitor& visitor) const = 0;
 	};
@@ -99,13 +101,15 @@ namespace hexabus {
 	class ErrorPacket : public Packet {
 		private:
 			uint8_t _code;
+			uint16_t _cause;
 
 		public:
-			ErrorPacket(uint8_t code, uint8_t flags = 0)
-				: Packet(HXB_PTYPE_ERROR, flags), _code(code)
+			ErrorPacket(uint8_t code, uint16_t cause, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: Packet(HXB_PTYPE_ERROR, flags, sequenceNumber), _code(code), _cause(cause)
 			{}
 
 			uint8_t code() const { return _code; }
+			uint16_t cause() const { return _cause; }
 
 			virtual void accept(PacketVisitor& visitor) const
 			{
@@ -118,8 +122,8 @@ namespace hexabus {
 			uint32_t _eid;
 
 		public:
-			EIDPacket(uint8_t type, uint32_t eid, uint8_t flags = 0)
-				: Packet(type, flags), _eid(eid)
+			EIDPacket(uint8_t type, uint32_t eid, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: Packet(type, flags, sequenceNumber), _eid(eid)
 			{}
 
 			uint32_t eid() const { return _eid; }
@@ -127,8 +131,8 @@ namespace hexabus {
 
 	class QueryPacket : public EIDPacket {
 		public:
-			QueryPacket(uint32_t eid, uint8_t flags = 0)
-				: EIDPacket(HXB_PTYPE_QUERY, eid, flags)
+			QueryPacket(uint32_t eid, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: EIDPacket(HXB_PTYPE_QUERY, eid, flags, sequenceNumber)
 			{}
 
 			virtual void accept(PacketVisitor& visitor) const
@@ -139,8 +143,8 @@ namespace hexabus {
 
 	class EndpointQueryPacket : public EIDPacket {
 		public:
-			EndpointQueryPacket(uint32_t eid, uint8_t flags = 0)
-				: EIDPacket(HXB_PTYPE_EPQUERY, eid, flags)
+			EndpointQueryPacket(uint32_t eid, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: EIDPacket(HXB_PTYPE_EPQUERY, eid, flags, sequenceNumber)
 			{}
 
 			virtual void accept(PacketVisitor& visitor) const
@@ -154,8 +158,8 @@ namespace hexabus {
 			uint8_t _datatype;
 
 		public:
-			TypedPacket(uint8_t type, uint32_t eid, uint8_t datatype, uint8_t flags = 0)
-				: EIDPacket(type, eid, flags), _datatype(datatype)
+			TypedPacket(uint8_t type, uint32_t eid, uint8_t datatype, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: EIDPacket(type, eid, flags, sequenceNumber), _datatype(datatype)
 			{}
 
 			uint8_t datatype() const { return _datatype; }
@@ -193,8 +197,8 @@ namespace hexabus {
 			TValue _value;
 
 		protected:
-			ValuePacket(uint8_t type, uint32_t eid, const TValue& value, uint8_t flags = 0)
-				: TypedPacket(type, eid, calculateDatatype(), flags), _value(value)
+			ValuePacket(uint8_t type, uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: TypedPacket(type, eid, calculateDatatype(), flags, sequenceNumber), _value(value)
 			{}
 
 		public:
@@ -207,15 +211,15 @@ namespace hexabus {
 			std::string _value;
 
 		protected:
-			ValuePacket(uint8_t type, uint32_t eid, const std::string& value, uint8_t flags = 0)
-				: TypedPacket(type, eid, HXB_DTYPE_128STRING, flags), _value(value)
+			ValuePacket(uint8_t type, uint32_t eid, const std::string& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: TypedPacket(type, eid, HXB_DTYPE_128STRING, flags, sequenceNumber), _value(value)
 			{
 				if (value.size() > HXB_STRING_PACKET_MAX_BUFFER_LENGTH)
 					throw std::out_of_range("value");
 			}
 
-			ValuePacket(uint8_t type, uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0)
-				: TypedPacket(type, eid, datatype, flags), _value(value)
+			ValuePacket(uint8_t type, uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: TypedPacket(type, eid, datatype, flags, sequenceNumber), _value(value)
 			{
 				if (value.size() > HXB_STRING_PACKET_MAX_BUFFER_LENGTH)
 					throw std::out_of_range("value");
@@ -228,8 +232,8 @@ namespace hexabus {
 	template<typename TValue>
 	class InfoPacket : public ValuePacket<TValue> {
 		public:
-			InfoPacket(uint32_t eid, const TValue& value, uint8_t flags = 0)
-				: ValuePacket<TValue>(HXB_PTYPE_INFO, eid, value, flags)
+			InfoPacket(uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: ValuePacket<TValue>(HXB_PTYPE_INFO, eid, value, flags, sequenceNumber)
 			{}
 
 			virtual void accept(PacketVisitor& visitor) const
@@ -241,8 +245,8 @@ namespace hexabus {
 	template<typename TValue>
 	class WritePacket : public ValuePacket<TValue> {
 		public:
-			WritePacket(uint32_t eid, const TValue& value, uint8_t flags = 0)
-				: ValuePacket<TValue>(HXB_PTYPE_WRITE, eid, value, flags)
+			WritePacket(uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: ValuePacket<TValue>(HXB_PTYPE_WRITE, eid, value, flags, sequenceNumber)
 			{}
 
 			virtual void accept(PacketVisitor& visitor) const
@@ -253,8 +257,8 @@ namespace hexabus {
 
 	class EndpointInfoPacket : public ValuePacket<std::string> {
 		public:
-			EndpointInfoPacket(uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0)
-				: ValuePacket<std::string>(HXB_PTYPE_EPINFO, eid, datatype, value, flags)
+			EndpointInfoPacket(uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: ValuePacket<std::string>(HXB_PTYPE_EPINFO, eid, datatype, value, flags, sequenceNumber)
 			{}
 
 			virtual void accept(PacketVisitor& visitor) const

@@ -155,15 +155,19 @@ Packet::Ptr Socket::parseReceivedPacket(size_t size)
 	return deserialize(&data[0], std::min(size, data.size()));
 }
 
-void Socket::send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest)
+uint16_t Socket::send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest)
 {
 	boost::system::error_code err;
 
-	std::vector<char> data = serialize(packet);
+	uint16_t seqNum = 0;
+
+	std::vector<char> data = serialize(packet, seqNum);
 
 	socket.send_to(boost::asio::buffer(&data[0], data.size()), dest, 0, err);
 	if (err)
 		throw NetworkException("send", err);
+
+	return seqNum;
 }
 
 void Socket::listen(const boost::asio::ip::address_v6& addr) {
