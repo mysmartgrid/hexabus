@@ -11,22 +11,27 @@ dir=${HOME}/hexabus/Dashboards
 TEST_SCRIPT="${dir}/do_test.cmake,TESTING_MODEL=Nightly"
 TOOLCHAIN_rasp1="/home/projects/msgrid/x-tools/arm-unknown-linux-gnueabi-4.6.3/Toolchain-RaspberryPi.cmake"
 TOOLCHAIN_rasp2="/home/projects/msgrid/x-tools/arm-unknown-linux-gnueabihf/Toolchain-RaspberryPi.cmake"
+TOOLCHAIN_rasp3="/home/projects/msgrid/x-tools/gcc-linaro-arm-linux-gnueabihf-raspbian/Toolchain-RaspberryPi.cmake"
 TOOLCHAIN_AVR="/usr/local/OpenWrt-SDK-ar71xx-for-Linux-x86_64-gcc-4.3.3+cs_uClibc-0.9.30.1/staging_dir/host/Modules/Toolchain-OpenWRT.cmake"
 
-${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,GIT_BRANCH=master,CTEST_PUSH_PACKAGES=1
-${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,GIT_BRANCH=development,CTEST_PUSH_PACKAGES=1
+${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,BOOST_VERSION=1.49,GIT_BRANCH=master,CTEST_PUSH_PACKAGES=1
+${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,BOOST_VERSION=1.49,GIT_BRANCH=development,CTEST_PUSH_PACKAGES=1
 
-if [ -f ${TOOLCHAIN_rasp1} ]; then
-    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=master,BOOST_VERSION=1.49,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp1}
-    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=development,BOOST_VERSION=1.49,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp1}
-    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=master,BOOST_VERSION=1.53,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp1}
-    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=development,BOOST_VERSION=1.53,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp1}
-fi
-if [ -f ${TOOLCHAIN_rasp2} ]; then
-    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=master,BOOST_VERSION=1.49,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp2}
-    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=development,BOOST_VERSION=1.49,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp2}
-    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=master,BOOST_VERSION=1.53,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp2}
-    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=development,BOOST_VERSION=1.53,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp2}
+#if [ -f ${TOOLCHAIN_rasp1} ]; then
+#    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=master,BOOST_VERSION=1.49,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp1}
+#    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=development,BOOST_VERSION=1.49,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp1}
+#    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=master,BOOST_VERSION=1.53,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp1}
+#    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=development,BOOST_VERSION=1.53,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp1}
+#fi
+#if [ -f ${TOOLCHAIN_rasp2} ]; then
+#    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=master,BOOST_VERSION=1.49,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp2}
+#    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=development,BOOST_VERSION=1.49,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp2}
+#    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=master,BOOST_VERSION=1.53,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp2}
+#    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=development,BOOST_VERSION=1.53,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp2}
+#fi
+if [ -f ${TOOLCHAIN_rasp3} ]; then
+    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=master,BOOST_VERSION=1.49,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp3}
+    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=development,BOOST_VERSION=1.49,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp3}
 fi
 if [ -f ${TOOLCHAIN_AVR} ]; then
     ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=master,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_AVR}
@@ -41,6 +46,9 @@ do
   ${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,TESTING_MODEL=Continuous,GIT_BRANCH=${branch}
   ${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,TESTING_MODEL=Coverage,GIT_BRANCH=${branch}
   ${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=clang,TESTING_MODEL=Coverage,GIT_BRANCH=${branch}
+if [ -f ${TOOLCHAIN_rasp3} ]; then
+  ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=${branch},BOOST_VERSION=1.49,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp3}
+fi
 
   # ${CTEST} -V -VV -S ${dir}/LibKlioNightly.cmake,_git_branch=${branch}
   #${CTEST} -V -VV -S ${dir}/LibKlioContinuous.cmake,_git_branch=${branch}
@@ -48,8 +56,8 @@ do
   #${CTEST} -V -VV -S ${dir}/LibKlioCoverage.cmake,_git_branch=${branch},compiler=clang
   for toolchain in `find ${HOME}/x-tools/ -name Toolchain-RaspberryPi.cmake`
   do
-     echo "Compiling with toolchain ${toolchain}"
-     ${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,GIT_BRANCH=${branch},BOOST_VERSION=1.53,CMAKE_TOOLCHAIN_FILE=${toolchain}
+     #echo "Compiling with toolchain ${toolchain}"
+     #${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,GIT_BRANCH=${branch},BOOST_VERSION=1.53,CMAKE_TOOLCHAIN_FILE=${toolchain}
      #${CTEST} -V -VV -S ${dir}/LibKlioNightly.cmake,_git_branch=${branch},_toolchain_file=${toolchain}
      #${CTEST} -V -VV -S ${dir}/LibKlioCoverage.cmake,_git_branch=${branch},_toolchain_file=${toolchain}
   done

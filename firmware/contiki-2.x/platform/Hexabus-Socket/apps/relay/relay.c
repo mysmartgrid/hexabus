@@ -203,6 +203,7 @@ ENDPOINT_DESCRIPTOR endpoint_relay_config = {
 void
 relay_init(void)
 {
+#if RELAY_ENABLE
 #if ! METERING_ENERGY_PERSISTENT
   /* Load reference values from EEPROM */
   relay_default_state = (bool) eeprom_read_byte((void*) EE_RELAY_DEFAULT);
@@ -221,6 +222,7 @@ relay_init(void)
   //set default state according to eeprom value
   relay_default();
 #endif
-	ENDPOINT_REGISTER(endpoint_relay);
+  ENDPOINT_REGISTER(endpoint_relay);
   ENDPOINT_REGISTER(endpoint_relay_config);
+#endif
 }

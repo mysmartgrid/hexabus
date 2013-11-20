@@ -3,6 +3,12 @@
 IFACE=usb0
 CONFIG=/etc/hexabus_msg_bridge.conf
 
+# wait until we have a routable address on usb0
+while ! (ip -o -6 address show usb0 | grep -v "inet6 fe80::") >/dev/null 2>&1
+do
+	sleep 1
+done
+
 if [ -f $CONFIG ]
 then
 	exec setuidgid hexabus hexabus_msg_bridge -c $CONFIG -L $IFACE 2>&1

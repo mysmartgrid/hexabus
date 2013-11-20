@@ -36,6 +36,10 @@ enum hxb_datatype {
 	HXB_DTYPE_16BYTES   = 0x09, // raw 16 byte array, e.g. state machine ID.
 };
 
+enum hxb_flags {
+	HXB_FLAG_NONE = 0x00, // No flags set
+};
+
 // Error codes
 enum hxb_error_code {
 	HXB_ERR_SUCCESS       = 0x00, // reserved: No error
