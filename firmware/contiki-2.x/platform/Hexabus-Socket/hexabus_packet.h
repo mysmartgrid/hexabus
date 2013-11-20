@@ -9,9 +9,10 @@
 #include "net/uip.h"
 
 #define HXB_PACKET_HEADER \
-	char    magic[4];   /* HXB_HEADER, of course      */\
-	uint8_t type;       /* actually enum hxb_datatype */\
-	uint8_t flags;      /* unused                     */
+	char     magic[4];       /* HXB_HEADER, of course      */\
+	uint8_t  type;           /* actually enum hxb_datatype */\
+	uint8_t  flags;          /* e.g. for requesting ACKs   */\
+	uint16_t seqence_number; /* for reliable transmission  */
 
 #define HXB_PACKET_FOOTER \
 	uint16_t crc;                        /* CRC16-Kermit / Contiki's crc16_data() */
@@ -30,7 +31,8 @@ struct hxb_eidpacket_header {
 
 struct hxb_packet_error {
 	HXB_PACKET_HEADER
-	uint8_t error_code;                  /* actually enum hxb_error_code */
+	uint16_t cause_sequence_number;
+	uint8_t  error_code;                  /* actually enum hxb_error_code */
 	HXB_PACKET_FOOTER
 } __attribute__((packed));
 
