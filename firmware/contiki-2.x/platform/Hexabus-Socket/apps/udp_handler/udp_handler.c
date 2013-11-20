@@ -38,7 +38,6 @@
 #include "contiki.h"
 #include "contiki-lib.h"
 #include "contiki-net.h"
-#include "httpd-cgi.h"
 #include "lib/crc16.h"
 #include <util/delay.h>
 #include "net/uip-udp-packet.h"
