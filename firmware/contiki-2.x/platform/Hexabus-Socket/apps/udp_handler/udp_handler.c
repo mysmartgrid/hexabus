@@ -227,11 +227,12 @@ enum hxb_error_code udp_handler_send_generated(const uip_ipaddr_t* toaddr, uint1
 	return HXB_ERR_SUCCESS;
 }
 
-enum hxb_error_code udp_handler_send_error(const uip_ipaddr_t* toaddr, uint16_t toport, enum hxb_error_code code)
+enum hxb_error_code udp_handler_send_error(const uip_ipaddr_t* toaddr, uint16_t toport, enum hxb_error_code code, uint16_t cause_sequence_number)
 {
 	struct hxb_packet_error err = {
 		.type = HXB_PTYPE_ERROR,
-		.error_code = code
+		.error_code = code,
+		.cause_sequence_number = cause_sequence_number
 	};
 
 	do_udp_send(toaddr, toport, (union hxb_packet_any*) &err);
@@ -538,7 +539,7 @@ udphandler(process_event_t ev, process_data_t data)
 				err = check_crc(packet);
 				if (err) {
 					if (!is_broadcast && !(err & HXB_ERR_INTERNAL)) {
-						udp_handler_send_error(&srcip, srcport, err);
+						udp_handler_send_error(&srcip, srcport, err, packet->header.sequence_number);
 					}
 					return;
 				}
@@ -578,7 +579,7 @@ udphandler(process_event_t ev, process_data_t data)
 
 				if (err) {
 					if (!is_broadcast && !(err & HXB_ERR_INTERNAL)) {
-						udp_handler_send_error(&srcip, srcport, err);
+						udp_handler_send_error(&srcip, srcport, err, packet->header.sequence_number);
 					}
 					return;
 				}

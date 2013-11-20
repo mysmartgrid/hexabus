@@ -12,7 +12,7 @@
 	char     magic[4];       /* HXB_HEADER, of course      */\
 	uint8_t  type;           /* actually enum hxb_datatype */\
 	uint8_t  flags;          /* e.g. for requesting ACKs   */\
-	uint16_t seqence_number; /* for reliable transmission  */
+	uint16_t sequence_number; /* for reliable transmission  */
 
 #define HXB_PACKET_FOOTER \
 	uint16_t crc;                        /* CRC16-Kermit / Contiki's crc16_data() */
