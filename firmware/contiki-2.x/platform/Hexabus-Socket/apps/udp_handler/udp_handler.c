@@ -46,6 +46,7 @@
 #include "datetime_service.h"
 #include "endpoint_registry.h"
 #include "hexabus_config.h"
+#include "sequence_numbers.h"
 
 #define LOG_LEVEL UDP_HANDLER_DEBUG
 #include "syslog.h"
@@ -175,6 +176,11 @@ static size_t prepare_for_send(union hxb_packet_any* packet)
 			packet->p_error.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 			break;
 
+		case HXB_PTYPE_ACK:
+			len = sizeof(packet->p_ack);
+			packet->p_ack.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
+			break;
+
 		default:
 			return 0;
 	}
@@ -185,6 +191,8 @@ static size_t prepare_for_send(union hxb_packet_any* packet)
 static void do_udp_send(const uip_ipaddr_t* toaddr, uint16_t toport, union hxb_packet_any* packet)
 {
 	size_t len = prepare_for_send(packet);
+
+	packet->header.sequence_number = next_sequence_number(toaddr);
 
 	if (len == 0) {
 		syslog(LOG_ERR, "Attempted to send invalid packet");
@@ -236,6 +244,18 @@ enum hxb_error_code udp_handler_send_error(const uip_ipaddr_t* toaddr, uint16_t 
 	};
 
 	do_udp_send(toaddr, toport, (union hxb_packet_any*) &err);
+
+	return HXB_ERR_SUCCESS;
+}
+
+enum hxb_error_code udp_handler_send_ack(const uip_ipaddr_t* toaddr, uint16_t toport, uint16_t cause_sequence_number)
+{
+	struct hxb_packet_ack ack = {
+		.type = HXB_PTYPE_ACK,
+		.cause_sequence_number = cause_sequence_number
+	};
+
+	do_udp_send(toaddr, toport, (union hxb_packet_any*) &ack);
 
 	return HXB_ERR_SUCCESS;
 }
@@ -305,6 +325,11 @@ static enum hxb_error_code check_crc(const union hxb_packet_any* packet)
 		case HXB_PTYPE_EPQUERY:
 			data_len = sizeof(packet->p_query);
 			crc = packet->p_query.crc;
+			break;
+
+		case HXB_PTYPE_ACK:
+			data_len = sizeof(packet->p_ack);
+			crc = packet->p_ack.crc;
 			break;
 
 		default:
@@ -529,6 +554,8 @@ udphandler(process_event_t ev, process_data_t data)
       } else {
 				enum hxb_error_code err;
 
+				bool want_ack = packet->header.flags & HXB_FLAG_WANT_ACK;
+
 				// don't send error packets for broadcasts
 				bool is_broadcast = packet->header.type == HXB_PTYPE_INFO
 					&& uip_ipaddr_cmp(&UDP_IP_BUF->destipaddr, &hxb_group);
@@ -543,6 +570,9 @@ udphandler(process_event_t ev, process_data_t data)
 					}
 					return;
 				}
+
+				//TODO check for reordering
+				insert_sequence_number(&srcip, packet->header.sequence_number);
 
 				switch ((enum hxb_packet_type) packet->header.type) {
 					case HXB_PTYPE_WRITE:
@@ -569,6 +599,10 @@ udphandler(process_event_t ev, process_data_t data)
 						err = handle_info(packet);
 						break;
 
+					//case HXB_PTYPE_REPORT:
+					//case HXB_PTYPE_EPREPORT:
+					//case HXB_PTYPE_PINFO:
+					case HXB_PTYPE_ACK:
 					case HXB_PTYPE_ERROR:
 					case HXB_PTYPE_EPINFO:
 					default:

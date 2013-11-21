@@ -29,6 +29,12 @@ struct hxb_eidpacket_header {
 	HXB_EIDPACKET_HEADER
 } __attribute__((packed));
 
+struct hxb_packet_ack {
+	HXB_PACKET_HEADER
+	uint16_t cause_sequence_number;
+	HXB_PACKET_FOOTER
+} __attribute__((packed));
+
 struct hxb_packet_error {
 	HXB_PACKET_HEADER
 	uint8_t  error_code;                  /* actually enum hxb_error_code */
@@ -103,6 +109,7 @@ union hxb_packet_any {
 
 	struct hxb_packet_error p_error;
 	struct hxb_packet_query p_query;
+	struct hxb_packet_ack p_ack;
 	struct hxb_packet_u8 p_u8;
 	struct hxb_packet_u32 p_u32;
 	struct hxb_packet_datetime p_datetime;
