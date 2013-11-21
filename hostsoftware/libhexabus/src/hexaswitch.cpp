@@ -118,48 +118,9 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 			printValue(report);
 		}
 
-	public:
-		PacketPrinter(std::ostream& target)
-			: target(target)
-		{}
-
-		virtual void visit(const hexabus::ErrorPacket& error)
+		void printEndpointHeader(const hexabus::EndpointInfoPacket& endpointInfo)
 		{
-			if (oneline) {
-				target << "Error;Error Code ";
-			} else {
-				target << "Error" << std::endl
-					<< "Error code:\t";
-			}
-			switch (error.code()) {
-				case HXB_ERR_UNKNOWNEID:
-					target << "Unknown EID";
-					break;
-				case HXB_ERR_WRITEREADONLY:
-					target << "Write on readonly endpoint";
-					break;
-				case HXB_ERR_CRCFAILED:
-					target << "CRC failed";
-					break;
-				case HXB_ERR_DATATYPE:
-					target << "Datatype mismatch";
-					break;
-				case HXB_ERR_INVALID_VALUE:
-					target << "Invalid value";
-					break;
-				default:
-					target << "(unknown: " <<  static_cast<unsigned int>(error.code()) << ")";
-					break;
-			}
-			target << std::endl;
-		}
-
-		virtual void visit(const hexabus::QueryPacket& query) {}
-		virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery) {}
-
-		virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo)
-		{
-			if (endpointInfo.eid() == 0) {
+			if (endpointInfo.eid() % 32 == 0) {
 				if (oneline) {
 					target << "Device Info;Device Name " << endpointInfo.value();
 				} else {
@@ -174,6 +135,36 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 						<< "Endpoint ID:\t" << endpointInfo.eid() << std::endl
 						<< "EP Datatype:\t";
 				}
+			}
+		}
+
+		void printEndpointHeader(const hexabus::EndpointReportPacket& endpointInfo)
+		{
+			if (endpointInfo.eid() % 32 == 0) {
+				if (oneline) {
+					target << "Device Info;Cause " << endpointInfo.cause() << ";Device Name " << endpointInfo.value();
+				} else {
+					target << "Device Info" << std::endl
+						<< "Cause:\t" << endpointInfo.cause() << std::endl
+						<< "Device Name:\t" << endpointInfo.value() << std::endl;
+				}
+			} else {
+				if (oneline) {
+					target << "Endpoint Info;Cause " << endpointInfo.cause() << ";EID " << endpointInfo.eid() << ";Datatype ";
+				} else {
+					target << "Endpoint Info\n"
+						<< "Cause:\t" << endpointInfo.cause() << std::endl
+						<< "Endpoint ID:\t" << endpointInfo.eid() << std::endl
+						<< "EP Datatype:\t";
+				}
+			}
+		}
+
+		template<typename Packet>
+		void printEndpointInfo(const Packet& endpointInfo)
+		{
+			printEndpointHeader(endpointInfo);
+			if (endpointInfo.eid() % 32 != 0) {
 				switch(endpointInfo.datatype()) {
 					case HXB_DTYPE_BOOL:
 						target << "Bool";
@@ -215,6 +206,48 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 			}
 			target << std::endl;
 		}
+
+	public:
+		PacketPrinter(std::ostream& target)
+			: target(target)
+		{}
+
+		virtual void visit(const hexabus::ErrorPacket& error)
+		{
+			if (oneline) {
+				target << "Error;Error Code ";
+			} else {
+				target << "Error" << std::endl
+					<< "Error code:\t";
+			}
+			switch (error.code()) {
+				case HXB_ERR_UNKNOWNEID:
+					target << "Unknown EID";
+					break;
+				case HXB_ERR_WRITEREADONLY:
+					target << "Write on readonly endpoint";
+					break;
+				case HXB_ERR_CRCFAILED:
+					target << "CRC failed";
+					break;
+				case HXB_ERR_DATATYPE:
+					target << "Datatype mismatch";
+					break;
+				case HXB_ERR_INVALID_VALUE:
+					target << "Invalid value";
+					break;
+				default:
+					target << "(unknown: " <<  static_cast<unsigned int>(error.code()) << ")";
+					break;
+			}
+			target << std::endl;
+		}
+
+		virtual void visit(const hexabus::QueryPacket& query) {}
+		virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery) {}
+
+		virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo) { printEndpointInfo(endpointInfo); }
+		virtual void visit(const hexabus::EndpointReportPacket& endpointReport) { printEndpointInfo(endpointReport); }
 
 		virtual void visit(const hexabus::InfoPacket<bool>& info) { printValuePacket(info, "Bool"); }
 		virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { printValuePacket(info, "UInt8"); }

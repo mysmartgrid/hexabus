@@ -52,6 +52,7 @@ class Logger : private PacketVisitor {
 		virtual void visit(const hexabus::QueryPacket& query) {}
 		virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery) {}
 		virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo) {}
+		virtual void visit(const hexabus::EndpointReportPacket& endpointInfo) {}
 
 		virtual void visit(const hexabus::WritePacket<bool>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}

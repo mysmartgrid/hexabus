@@ -68,6 +68,7 @@ namespace hexabus {
 	template<typename TValue>
 	class WritePacket;
 	class EndpointInfoPacket;
+	class EndpointReportPacket;
 
 	template<template<typename TValue> class TPacket>
 	class TypedPacketVisitor {
@@ -113,6 +114,7 @@ namespace hexabus {
 			virtual void visit(const QueryPacket& query) = 0;
 			virtual void visit(const EndpointQueryPacket& endpointQuery) = 0;
 			virtual void visit(const EndpointInfoPacket& endpointInfo) = 0;
+			virtual void visit(const EndpointReportPacket& endpointReport) = 0;
 
 			virtual void visitPacket(const Packet& packet)
 			{
@@ -300,6 +302,23 @@ namespace hexabus {
 			EndpointInfoPacket(uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
 				: ValuePacket<std::string>(HXB_PTYPE_EPINFO, eid, datatype, value, flags, sequenceNumber)
 			{}
+
+			virtual void accept(PacketVisitor& visitor) const
+			{
+				visitor.visit(*this);
+			}
+	};
+
+	class EndpointReportPacket : public ValuePacket<std::string> {
+		private:
+			uint16_t _cause;
+
+		public:
+			EndpointReportPacket(uint16_t cause, uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: ValuePacket<std::string>(HXB_PTYPE_EPREPORT, eid, datatype, value, flags, sequenceNumber)
+			{}
+
+			uint16_t cause() const { return _cause; }
 
 			virtual void accept(PacketVisitor& visitor) const
 			{

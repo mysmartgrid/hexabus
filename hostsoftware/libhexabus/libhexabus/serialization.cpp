@@ -197,6 +197,7 @@ class BinarySerializer :
 		virtual void visit(const QueryPacket& query);
 		virtual void visit(const EndpointQueryPacket& endpointQuery);
 		virtual void visit(const EndpointInfoPacket& endpointInfo);
+		virtual void visit(const EndpointReportPacket& endpointReport);
 };
 
 std::vector<char> BinarySerializer::serialize(const Packet& packet, uint16_t seqNum)
@@ -229,12 +230,19 @@ void BinarySerializer::visit(const EndpointQueryPacket& endpointQuery)
 	append_u32(endpointQuery.eid());
 }
 
-
 void BinarySerializer::visit(const EndpointInfoPacket& endpointInfo)
 {
 	append_u32(endpointInfo.eid());
 	append_u8(endpointInfo.datatype());
 	appendValue(endpointInfo);
+}
+
+void BinarySerializer::visit(const EndpointReportPacket& endpointReport)
+{
+	append_u32(endpointReport.cause());
+	append_u32(endpointReport.eid());
+	append_u8(endpointReport.datatype());
+	appendValue(endpointReport);
 }
 
 // }}}
@@ -494,6 +502,14 @@ Packet::Ptr BinaryDeserializer::deserialize()
 				uint32_t eid = read_u32();
 				uint8_t datatype = read_u8();
 				return check(EndpointInfoPacket(eid, datatype, read_string(), flags, seqNum));
+			}
+
+		case HXB_PTYPE_EPREPORT:
+			{
+				uint16_t cause = read_u16();
+				uint32_t eid = read_u32();
+				uint8_t datatype = read_u8();
+				return check(EndpointReportPacket(cause, eid, datatype, read_string(), flags, seqNum));
 			}
 
 		default:
