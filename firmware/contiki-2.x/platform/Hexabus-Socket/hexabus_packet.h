@@ -31,8 +31,8 @@ struct hxb_eidpacket_header {
 
 struct hxb_packet_error {
 	HXB_PACKET_HEADER
-	uint16_t cause_sequence_number;
 	uint8_t  error_code;                  /* actually enum hxb_error_code */
+	uint16_t cause_sequence_number;
 	HXB_PACKET_FOOTER
 } __attribute__((packed));
 
