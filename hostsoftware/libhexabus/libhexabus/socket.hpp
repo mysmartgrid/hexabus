@@ -30,8 +30,7 @@ namespace hexabus {
 			boost::signals2::connection onPacketReceived(const on_packet_received_slot_t& callback, const filter_t& filter = filtering::any());
 			boost::signals2::connection onAsyncError(const on_async_error_slot_t& callback);
       
-			void listen() { listen(GroupAddress); }
-			void listen(const boost::asio::ip::address_v6& addr);
+			void listen();
 			void bind(const boost::asio::ip::udp::endpoint& ep);
 			void bind(const boost::asio::ip::address_v6& addr) { bind(boost::asio::ip::udp::endpoint(addr, 0)); }
 
@@ -58,6 +57,8 @@ namespace hexabus {
 			boost::signals2::signal<void (const Packet::Ptr&,
 					const boost::asio::ip::udp::endpoint&)> packetReceived;
 			on_async_error_t asyncError;
+			bool listening;
+			int if_index;
 			std::vector<char> data;
 
 			std::map<boost::asio::ip::udp::endpoint, Association> _associations;

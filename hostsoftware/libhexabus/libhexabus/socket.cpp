@@ -83,6 +83,7 @@ void Socket::syncPacketReceivedHandler(const boost::system::error_code& error, s
 void Socket::asyncPacketReceivedHandler(const boost::system::error_code& error, size_t size)
 {
 	if (error.value() != boost::system::errc::operation_canceled) {
+		std::cout << socket.local_endpoint() << std::endl;
 		try {
 			packetReceivedHandler(error, size);
 		} catch (const GenericException& ge) {
@@ -172,20 +173,34 @@ uint16_t Socket::send(const Packet& packet, const boost::asio::ip::udp::endpoint
 	return seqNum;
 }
 
-void Socket::listen(const boost::asio::ip::address_v6& addr) {
-  boost::system::error_code err;
+void Socket::listen()
+{
+	listening = true;
 
-  socket.bind(boost::asio::ip::udp::endpoint(addr, HXB_PORT), err);
-  if (err)
-    throw NetworkException("listen", err);
+	boost::system::error_code err;
+
+	socket.set_option(boost::asio::socket_base::reuse_address(true), err);
+	if (err)
+		throw NetworkException("listen", err);
+
+	socket.bind(boost::asio::ip::udp::endpoint(GroupAddress, HXB_PORT), err);
+	if (err)
+		throw NetworkException("listen", err);
+
+	socket.set_option(
+		boost::asio::ip::multicast::join_group(GroupAddress, if_index),
+		err);
+	if (err)
+		throw NetworkException("listen", err);
 }
 
-void Socket::bind(const boost::asio::ip::udp::endpoint& ep) {
-  boost::system::error_code err;
+void Socket::bind(const boost::asio::ip::udp::endpoint& ep)
+{
+	boost::system::error_code err;
 
-  socket.bind(ep, err);
-  if (err)
-    throw NetworkException("bind", err);
+	socket.bind(ep, err);
+	if (err)
+		throw NetworkException("bind", err);
 }
 
 void Socket::openSocket(const std::string* interface) {
@@ -201,12 +216,6 @@ void Socket::openSocket(const std::string* interface) {
   if (err)
     throw NetworkException("open", err);
 
-  socket.set_option(boost::asio::socket_base::reuse_address(true), err);
-  if (err)
-    throw NetworkException("open", err);
-
-  int if_index = 0;
-
   if (interface) {
     if_index = if_nametoindex(interface->c_str());
     if (if_index == 0) {
@@ -217,14 +226,13 @@ void Socket::openSocket(const std::string* interface) {
       throw NetworkException("open", err);
   }
 
-  socket.set_option(
-    boost::asio::ip::multicast::join_group(
-      boost::asio::ip::address_v6::from_string(HXB_GROUP),
-      if_index),
-    err);
 	socket.set_option(boost::asio::ip::multicast::enable_loopback(true));
   if (err)
     throw NetworkException("open", err);
+
+	socket.set_option(boost::asio::socket_base::reuse_address(false), err);
+	if (err)
+		throw NetworkException("open", err);
 
 	scheduleAssociationGC();
 }
