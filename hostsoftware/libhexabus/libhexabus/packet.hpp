@@ -34,6 +34,10 @@ namespace hexabus {
 		public:
 			typedef std::tr1::shared_ptr<Packet> Ptr;
 
+			enum Flags {
+				want_ack = HXB_FLAG_WANT_ACK
+			};
+
 		private:
 			uint8_t _type;
 			uint8_t _flags;
