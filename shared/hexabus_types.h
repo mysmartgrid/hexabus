@@ -12,7 +12,7 @@ enum hxb_packet_type {
 	HXB_PTYPE_ERROR    = 0x00, // An error occured -- check the error code field for more information
 	HXB_PTYPE_INFO     = 0x01, // Endpoint provides information
 	HXB_PTYPE_QUERY    = 0x02, // Endpoint is requested to provide information
-	//HXB_PTYPE_REPORT   = 0x03, // Endpoint provides information with seqence number of the causing QUERY
+	HXB_PTYPE_REPORT   = 0x03, // Endpoint provides information with seqence number of the causing QUERY
 	HXB_PTYPE_WRITE    = 0x04, // Endpoint is requested to set its value
 	HXB_PTYPE_EPINFO   = 0x09, // Endpoint metadata
 	HXB_PTYPE_EPQUERY  = 0x0A, // Request endpoint metadata

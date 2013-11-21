@@ -50,10 +50,21 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 			}
 		}
 
-		template<typename T>
-		void printValuePacket(const hexabus::ValuePacket<T>& packet, const char* datatypeStr)
+		void printReportHeader(uint32_t eid, const char* datatypeStr, uint16_t cause)
 		{
-			printValueHeader(packet.eid(), datatypeStr);
+			if (oneline) {
+				target << "Report;Cause " << cause << ";EID " << eid << ";Datatype " << datatypeStr << ";";
+			} else {
+				target << "Info" << std::endl
+					<< "Cause:\t" << cause << std::endl
+					<< "Endpoint ID:\t" << eid << std::endl
+					<< "Datatype:\t" << datatypeStr << std::endl;
+			}
+		}
+
+		template<typename T>
+		void printValue(const hexabus::ValuePacket<T>& packet)
+		{
 			if (oneline) {
 				target << "Value " << packet.value();
 			} else {
@@ -62,9 +73,8 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 			target << std::endl;
 		}
 
-		void printValuePacket(const hexabus::ValuePacket<uint8_t>& packet, const char* datatypeStr)
+		void printValue(const hexabus::ValuePacket<uint8_t>& packet)
 		{
-			printValueHeader(packet.eid(), datatypeStr);
 			if (oneline) {
 				target << "Value " << (int) packet.value();
 			} else {
@@ -74,10 +84,8 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		}
 
 		template<size_t L>
-		void printValuePacket(const hexabus::ValuePacket<boost::array<char, L> >& packet, const char* datatypeStr)
+		void printValue(const hexabus::ValuePacket<boost::array<char, L> >& packet)
 		{
-			printValueHeader(packet.eid(), datatypeStr);
-
 			std::stringstream hexstream;
 
 			hexstream << std::hex << std::setfill('0');
@@ -94,6 +102,20 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 				target << "Value:\t" << hexstream.str() << std::endl; 
 			}
 			target << std::endl;
+		}
+
+		template<typename TValue>
+		void printValuePacket(const hexabus::InfoPacket<TValue>& info, const char* datatypeStr)
+		{
+			printValueHeader(info.eid(), datatypeStr);
+			printValue(info);
+		}
+
+		template<typename TInfo>
+		void printReportPacket(const hexabus::ReportPacket<TInfo>& report, const char* datatypeStr)
+		{
+			printReportHeader(report.eid(), datatypeStr, report.cause());
+			printValue(report);
 		}
 
 	public:
@@ -203,6 +225,16 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "String"); }
 		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (16 bytes)"); }
 		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (66 bytes)"); }
+
+		virtual void visit(const hexabus::ReportPacket<bool>& report) { printReportPacket(report, "Bool"); }
+		virtual void visit(const hexabus::ReportPacket<uint8_t>& report) { printReportPacket(report, "UInt8"); }
+		virtual void visit(const hexabus::ReportPacket<uint32_t>& report) { printReportPacket(report, "UInt32"); }
+		virtual void visit(const hexabus::ReportPacket<float>& report) { printReportPacket(report, "Float"); }
+		virtual void visit(const hexabus::ReportPacket<boost::posix_time::ptime>& report) { printReportPacket(report, "Datetime"); }
+		virtual void visit(const hexabus::ReportPacket<boost::posix_time::time_duration>& report) { printReportPacket(report, "Timestamp"); }
+		virtual void visit(const hexabus::ReportPacket<std::string>& report) { printReportPacket(report, "String"); }
+		virtual void visit(const hexabus::ReportPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& report) { printReportPacket(report, "Binary (16 bytes)"); }
+		virtual void visit(const hexabus::ReportPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& report) { printReportPacket(report, "Binary (66 bytes)"); }
 
 		virtual void visit(const hexabus::WritePacket<bool>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
