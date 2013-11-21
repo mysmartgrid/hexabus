@@ -340,6 +340,7 @@ angular.module('dashboard', [
 					$scope.registering = false;
 					$scope.registered = true;
 					$scope.activationCode = progress.code;
+					$scope.gotoPage = window.location.origin + '/wizard/success';
 					break;
 			}
 		}
