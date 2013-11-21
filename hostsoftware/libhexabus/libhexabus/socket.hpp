@@ -37,16 +37,21 @@ namespace hexabus {
 
 			boost::asio::ip::udp::endpoint localEndpoint() const { return socket.local_endpoint(); }
 
-			void send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest);
+			uint16_t send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest);
 			std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> receive(const filter_t& filter = filtering::any(),
 					boost::posix_time::time_duration timeout = boost::date_time::pos_infin);
 
-			void send(const Packet& packet) { send(packet, GroupAddress); }
-			void send(const Packet& packet, const boost::asio::ip::address_v6& dest) { send(packet, boost::asio::ip::udp::endpoint(dest, HXB_PORT)); }
+			uint16_t send(const Packet& packet) { return send(packet, GroupAddress); }
+			uint16_t send(const Packet& packet, const boost::asio::ip::address_v6& dest) { return send(packet, boost::asio::ip::udp::endpoint(dest, HXB_PORT)); }
 
 			boost::asio::io_service& ioService() { return io_service; }
 
     private:
+			struct Association {
+				boost::posix_time::ptime lastUpdate;
+				uint16_t seqNum;
+			};
+
 			boost::asio::io_service& io_service;
 			boost::asio::ip::udp::socket socket;
 			boost::asio::ip::udp::endpoint remoteEndpoint;
@@ -54,6 +59,9 @@ namespace hexabus {
 					const boost::asio::ip::udp::endpoint&)> packetReceived;
 			on_async_error_t asyncError;
 			std::vector<char> data;
+
+			std::map<boost::asio::ip::udp::endpoint, Association> _associations;
+			boost::asio::deadline_timer _association_gc_timer;
 
 			void openSocket(const std::string* interface);
 
@@ -66,6 +74,11 @@ namespace hexabus {
 
 			void syncPacketReceiveCallback(const Packet::Ptr& packet, const boost::asio::ip::udp::endpoint& from,
 					std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint>& result, const filter_t& filter);
+
+			void associationGCTimeout(const boost::system::error_code& error);
+			void scheduleAssociationGC();
+
+			uint16_t generateSequenceNumber(const boost::asio::ip::udp::endpoint& target);
   };
 };
 

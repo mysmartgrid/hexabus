@@ -27,17 +27,18 @@ BOOST_AUTO_TEST_CASE ( check_sanity ) {
 
 BOOST_AUTO_TEST_CASE ( check_write_uint8_packet_generation ) {
 	std::cout << "Checking generation of uint8 write packet against stored reference packet." << std::endl;
-	unsigned char testpacket[] = { 'H', 'X', '0', 'C', // Header
+	unsigned char testpacket[] = { 'H', 'X', '0', 'D', // Header
 		0x04,               // Packet Type: Write
 		0x00,               // Flags: None
+		1, 0,               // sequence number
 		0, 0, 0, 23,        // Endpoint ID: 23
 		0x02,               // Datatype: Uint8
 		42,                 // Value: 42
-		0xb1, 0x43          // CRC
+		0x90, 0x86          // CRC
 	};
 
 	hexabus::WritePacket<uint8_t> p(23, 42, 0);
-	std::vector<char> pi8 = hexabus::serialize(p);
+	std::vector<char> pi8 = hexabus::serialize(p, 256);
 
 	if (sizeof(testpacket) != pi8.size())
 	  BOOST_FAIL("Size of generated packet differs from test packet");
@@ -55,17 +56,18 @@ BOOST_AUTO_TEST_CASE ( check_write_uint8_packet_generation ) {
 
 BOOST_AUTO_TEST_CASE ( check_write_bool_packet_generation ) {
 	std::cout << "Checking generation of bool write packet against stored reference packet." << std::endl;
-	unsigned char testpacket[] = { 'H', 'X', '0', 'C', // Header
+	unsigned char testpacket[] = { 'H', 'X', '0', 'D', // Header
 		0x04,               // Packet Type: Write
 		0x00,               // Flags: None
+		1, 0,               // sequence number
 		0, 0, 0, 23,        // Endpoint ID: 23
 		0x01,               // Datatype: Boolean
 		0x01,               // Value: true
-		0x04, 0xfa          // CRC
+		0x25, 0x3f          // CRC
 	};
 
 	hexabus::WritePacket<bool> p(23, true, 0);
-	std::vector<char> pi8 = hexabus::serialize(p);
+	std::vector<char> pi8 = hexabus::serialize(p, 256);
 
 	if (sizeof(testpacket) != pi8.size())
 		BOOST_FAIL("Size of generated packet differs from test packet");
@@ -83,17 +85,18 @@ BOOST_AUTO_TEST_CASE ( check_write_bool_packet_generation ) {
 
 BOOST_AUTO_TEST_CASE ( check_write_uint32_packet_generation ) {
 	std::cout << "Checking generation of uint32 write packet against stored reference packet." << std::endl;
-	unsigned char testpacket[] = { 'H', 'X', '0', 'C', // Header
+	unsigned char testpacket[] = { 'H', 'X', '0', 'D', // Header
 		0x04,               // Packet Type: Write
 		0x00,               // Flags: None
+		1, 0,               // sequence number
 		0, 0, 0, 42,        // Endpoint ID: 42
 		0x03,               // Datatype: Uint32
 		0xfc, 0xde, 0x41, 0xb2, // Value: 4242424242
-		0xd6, 0x3e          // CRC
+		0xdf, 0xf2          // CRC
 	};
 
 	hexabus::WritePacket<uint32_t> p(42, 4242424242u, 0);
-	std::vector<char> pi32 = hexabus::serialize(p);
+	std::vector<char> pi32 = hexabus::serialize(p, 256);
 
 	if (sizeof(testpacket) != pi32.size())
 		BOOST_FAIL("Size of generated packet differs from test packet");
@@ -111,17 +114,18 @@ BOOST_AUTO_TEST_CASE ( check_write_uint32_packet_generation ) {
 
 BOOST_AUTO_TEST_CASE ( check_write_float_packet_generation ) {
 	std::cout << "Checking generation of float write packet against stored reference packet." << std::endl;
-	unsigned char testpacket[] = { 'H', 'X', '0', 'C', // Header
+	unsigned char testpacket[] = { 'H', 'X', '0', 'D', // Header
 		0x04,               // Packet Type: Write
 		0x00,               // Flags: None
+		1, 0,               // sequence number
 		0, 0, 0, 42,        // Endpoint ID: 42
 		0x05,               // Datatype: Uint32
 		0x41, 0xbb, 0x5c, 0x29, // Value 23.42
-		0x34, 0xf6          // CRC
+		0x3d, 0x3a          // CRC
 	};
 
 	hexabus::WritePacket<float> p(42, 23.42, 0);
-	std::vector<char> pif = hexabus::serialize(p);
+	std::vector<char> pif = hexabus::serialize(p, 256);
 
 	if (sizeof(testpacket) != pif.size())
 		BOOST_FAIL("Size of generated packet differs from test packet");

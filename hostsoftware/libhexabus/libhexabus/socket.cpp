@@ -21,15 +21,17 @@ namespace bs2 = boost::signals2;
 const boost::asio::ip::address_v6 Socket::GroupAddress = boost::asio::ip::address_v6::from_string(HXB_GROUP);
 
 Socket::Socket(boost::asio::io_service& io, const std::string& interface) :
-  io_service(io),
-  socket(io_service)
+	io_service(io),
+	socket(io_service),
+	_association_gc_timer(io)
 {
   openSocket(&interface);
 }
 
 Socket::Socket(boost::asio::io_service& io) :
-  io_service(io),
-  socket(io_service)
+	io_service(io),
+	socket(io_service),
+	_association_gc_timer(io)
 {
   openSocket(NULL);
 }
@@ -155,15 +157,19 @@ Packet::Ptr Socket::parseReceivedPacket(size_t size)
 	return deserialize(&data[0], std::min(size, data.size()));
 }
 
-void Socket::send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest)
+uint16_t Socket::send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest)
 {
 	boost::system::error_code err;
 
-	std::vector<char> data = serialize(packet);
+	uint16_t seqNum = generateSequenceNumber(dest);
+
+	std::vector<char> data = serialize(packet, seqNum);
 
 	socket.send_to(boost::asio::buffer(&data[0], data.size()), dest, 0, err);
 	if (err)
 		throw NetworkException("send", err);
+
+	return seqNum;
 }
 
 void Socket::listen(const boost::asio::ip::address_v6& addr) {
@@ -219,4 +225,52 @@ void Socket::openSocket(const std::string* interface) {
 	socket.set_option(boost::asio::ip::multicast::enable_loopback(true));
   if (err)
     throw NetworkException("open", err);
+
+	scheduleAssociationGC();
+}
+
+void Socket::scheduleAssociationGC()
+{
+	_association_gc_timer.expires_from_now(boost::posix_time::hours(1));
+}
+
+void Socket::associationGCTimeout(const boost::system::error_code& error)
+{
+	if (!error) {
+		typedef std::map<boost::asio::ip::udp::endpoint, Association> map_t;
+
+		map_t new_associations;
+		boost::posix_time::ptime now = boost::posix_time::second_clock::universal_time();
+		for (map_t::const_iterator it = _associations.begin(), end = _associations.end(); it != end; ++it) {
+			if (now - it->second.lastUpdate <= boost::posix_time::hours(2)) {
+				new_associations.insert(*it);
+			}
+		}
+
+		_associations = new_associations;
+	}
+
+	scheduleAssociationGC();
+}
+
+uint16_t Socket::generateSequenceNumber(const boost::asio::ip::udp::endpoint& target)
+{
+	bool is_new = !_associations.count(target);
+	Association& assoc = _associations[target];
+
+	if (is_new) {
+		assoc.lastUpdate = boost::posix_time::microsec_clock::universal_time();
+		assoc.seqNum = assoc.lastUpdate.time_of_day().total_microseconds() % std::numeric_limits<uint16_t>::max();
+
+		boost::asio::ip::address_v6::bytes_type bytes = target.address().to_v6().to_bytes();
+		for (uint32_t i = 0; i < 16; i += 2) {
+			assoc.seqNum += bytes[i] | (bytes[i + 1] << 8);
+		}
+
+		assoc.seqNum += std::rand() % std::numeric_limits<uint16_t>::max();
+	} else {
+		assoc.lastUpdate = boost::posix_time::second_clock::universal_time();
+	}
+
+	return assoc.seqNum++;
 }
