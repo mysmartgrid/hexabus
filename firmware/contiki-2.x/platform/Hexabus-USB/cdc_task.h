@@ -60,10 +60,17 @@
 //_____ D E C L A R A T I O N S ____________________________________________
 
 
+void menu_actviate(void);
+
 void rawmode_enable(void);
 void rawmode_disable(void);
 
 PROCESS_NAME(cdc_process);
+
+#define P_ON_STR "HXB_P_ON"
+#define P_OFF_STR "HXB_P_OFF"
+#define P_SUC_STR "\n$HXB_P_SUCCESS&\n"
+#define P_FAL_STR "\n$HXB_P_FAILED&\n"
 
 /** @} */
 

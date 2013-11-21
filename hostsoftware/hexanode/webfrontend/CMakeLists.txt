@@ -22,6 +22,22 @@ SET(ENABLE_LOGGING 1)
 set(V_MAJOR 0)
 set(V_MINOR 2)
 set(V_PATCH 0)
+function (get_revision_info REV_INFO)
+  execute_process (
+    COMMAND git rev-list origin/master..HEAD
+    COMMAND wc -l
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE _out_git
+    ERROR_VARIABLE _err_git
+    RESULT_VARIABLE _res_git
+    )
+  if (${_res_git} EQUAL 0)
+    string (STRIP "${_out_git}" _out_git)
+    set (${REV_INFO} ${_out_git} PARENT_SCOPE)
+  endif()
+endfunction()
+get_revision_info (PROJECT_REVISION)
+set(HXB_VERSION "${V_MAJOR}.${V_MINOR}.${V_PATCH}.${PROJECT_REVISION}")
 
 # add a path where some libraries might be stored
 set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where many locally installed libraries can be found")
@@ -52,26 +68,33 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 
 # add some files to the installation target
+configure_file(views/about.ejs.in ${CMAKE_BINARY_DIR}/views/about.ejs)
+install(FILES app.js DESTINATION share/hexanode_webfrontend/)
+install(FILES package.json DESTINATION share/hexanode_webfrontend/)
 install(DIRECTORY lib DESTINATION share/hexanode_webfrontend/)
 install(DIRECTORY public DESTINATION share/hexanode_webfrontend/)
 install(DIRECTORY tools DESTINATION share/hexanode_webfrontend/)
 install(DIRECTORY views DESTINATION share/hexanode_webfrontend/)
+install(DIRECTORY ${CMAKE_BINARY_DIR}/views DESTINATION share/hexanode_webfrontend/)
 
+INSTALL(PROGRAMS etc/service/hexanode-webfrontend/run DESTINATION /etc/service/hexanode-webfrontend)
+INSTALL(PROGRAMS etc/service/hexanode-webfrontend/log/run DESTINATION /etc/service/hexanode-webfrontend/log)
 
 # CPACK packaging
 include(InstallRequiredSystemLibraries)
 set(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
 set(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
 set(CPACK_PACKAGE_CONTACT "Fraunhofer ITWM <support@mysmartgrid.de>")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "hexanode")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A hexabus display device built with nodejs")
 #set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 #set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 
-#set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "nodejs (>= 0.10), npm (>= 1.2)")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
 
 set(CPACK_PACKAGE_EXECUTABLES "hexanode webfrontend" "A virtual hexabus display device.")
 set(CPACK_SOURCE_STRIP_FILES "")

@@ -12,8 +12,9 @@ _DEBUG options should be set to:
 #ifndef HEXABUS_CONFIG_H
 #define HEXABUS_CONFIG_H
 
-// udp_handler
-#define UDP_HANDLER_DEBUG 0 
+// options common to all incarnations of Hexabus devices
+
+#define UDP_HANDLER_DEBUG 0
 
 #define ENDPOINT_REGISTRY_DEBUG 0
 
@@ -39,35 +40,95 @@ _DEBUG options should be set to:
 #define DATETIME_SERVICE_ENABLE 1
 #define DATETIME_SERVICE_DEBUG 0
 
-// temperature
-#define TEMPERATURE_ENABLE 1
-#define TEMPERATURE_DEBUG 1
-#define TEMPERATURE_SENSOR 0 // 0 - ds80x20, 1 - HYT321, 2 - BMP085
-
-// value_broadcast
-#define VALUE_BROADCAST_ENABLE 1
-#define VALUE_BROADCAST_DEBUG 1 
-#define VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS 2 // Number of endpoints to broadcast automatically - set to 0 to disable
-#define VALUE_BROADCAST_AUTO_EIDS 2,7 // Comma-separated list of endpoints to broadcast automatically
-#define VALUE_BROADCAST_AUTO_INTERVAL 20 // Timeout in seconds
-#define VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS 0 // Number of endpoints to "broadcast" to the local state machine
-#define VALUE_BROADCAST_LOCAL_ONLY_EIDS 2 // Comma-separated list of eids to be sent to local state machine
-
-// metering
-#define METERING_IMMEDIATE_BROADCAST 1  // immediately broadcast metering value when change is measured (you still should have the EID in the VALUE_BROADCAST_AUTO_EIDS with some reasonable timeout, so that the value is also broadcast when it reaches and stays at zero)
-#define METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS 1 // number of ticks from the meter until a broadcast is triggered. 1: broadcast every tick ~ roughly every 2 seconds at 100W
-#define METERING_IMMEDIATE_BROADCAST_MINIMUM_TIMEOUT 20 // minimum number of seconds between two broadcasts, to prevent flooding the network
-#define METERING_ENERGY 1
-// CAUTION: METERING_ENERGY_PERSISTENT needs external power-down detection circuit. Refer to the Wiki!
-#define METERING_ENERGY_PERSISTENT 0 // Persistently store energy value (number of pulses) in EEPROM. 
-#define S0_ENABLE 0 //S0 meter instead of internal meter.
-
 // state_machine
 #define STATE_MACHINE_ENABLE 1
 #define STATE_MACHINE_DEBUG 0
 
 // state machine uploading via Hexabus packets
 #define SM_UPLOAD_ENABLE 1 
+
+
+
+// Device profiles. Choose a profile for the device you want to build or add a new profile.
+#define HXB_PROFILE_PLUG            1
+#define HXB_PROFILE_PLUGPLUS        2
+#define HXB_PROFILE_EMOS            3
+#define HXB_PROFILE_TEMPSENSOR      4
+#define HXB_PROFILE_HUMIDITYSENSOR  5
+#define HXB_PROFILE_PRESSURESENSOR  6
+
+#define HXB_DEVICE_PROFILE   HXB_PROFILE_EMOS
+
+#define HAVE(x) (HXB_DEVICE_PROFILE == HXB_PROFILE_ ## x)
+
+
+// temperature
+#define TEMPERATURE_ENABLE (HAVE(EMOS) || HAVE(TEMPSENSOR) || HAVE(HUMIDITYSENSOR))
+#define TEMPERATURE_DEBUG 0
+#define TEMPERATURE_SENSOR (HAVE(EMOS) || HAVE(HUMIDITYSENSOR) ? 1 : 0) // 0 - ds80x20, 1 - HYT321, 2 - BMP085
+
+// value_broadcast
+#define VALUE_BROADCAST_ENABLE 1
+#define VALUE_BROADCAST_DEBUG 0
+#define VALUE_BROADCAST_AUTO_INTERVAL 20 // Timeout in seconds
+#if HAVE(PLUG)
+ #define VALUE_BROADCAST_AUTO_EIDS EP_POWER_SWITCH
+#elif HAVE(PLUGPLUS)
+ #define VALUE_BROADCAST_AUTO_EIDS EP_POWER_SWITCH, EP_POWER_METER
+#elif HAVE(EMOS)
+ #define VALUE_BROADCAST_AUTO_EIDS EP_TEMPERATURE, EP_HUMIDITY, EP_HEATER_HOT, EP_HEATER_COLD, EP_HEXASENSE_BUTTON_STATE
+#elif HAVE(TEMPSENSOR)
+ #define VALUE_BROADCAST_AUTO_EIDS EP_TEMPERATURE
+#elif HAVE(HUMIDITYSENSOR)
+ #define VALUE_BROADCAST_AUTO_EIDS EP_TEMPERATURE, EP_HUMIDITY
+#elif HAVE(PRESSURESENSOR)
+ #define VALUE_BROADCAST_AUTO_EIDS EP_TEMPERATURE, EP_PRESSURE
+#endif
+#if !defined(VALUE_BROADCAST_AUTO_EIDS)
+ #error "Don't know which EIDs to broadcast"
+#endif
+
+// relay
+#define RELAY_ENABLE (HAVE(PLUG) || HAVE(PLUGPLUS))
+
+// metering
+#define METERING_POWER (HAVE(PLUGPLUS))
+#define METERING_IMMEDIATE_BROADCAST 1  // immediately broadcast metering value when change is measured (you still should have the EID in the VALUE_BROADCAST_AUTO_EIDS with some reasonable timeout, so that the value is also broadcast when it reaches and stays at zero)
+#define METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS 1 // number of ticks from the meter until a broadcast is triggered. 1: broadcast every tick ~ roughly every 2 seconds at 100W
+#define METERING_IMMEDIATE_BROADCAST_MINIMUM_TIMEOUT VALUE_BROADCAST_AUTO_INTERVAL // minimum number of seconds between two broadcasts, to prevent flooding the network
+#define METERING_ENERGY 0
+// CAUTION: METERING_ENERGY_PERSISTENT needs external power-down detection circuit. Refer to the Wiki!
+#define METERING_ENERGY_PERSISTENT 0 // Persistently store energy value (number of pulses) in EEPROM. 
+#define S0_ENABLE 0 //S0 meter instead of internal meter.
+
+//i2c master
+#define I2C_ENABLE (HAVE(EMOS) || HAVE(HUMIDITYSENSOR))
+#define I2C_DEBUG 0
+
+//pressure sensor
+#define PRESSURE_ENABLE (HAVE(PRESSURESENSOR))
+#define PRESSURE_DEBUG 0
+#define PRESSURE_OVERSAMPLING 2  //0 to 3
+
+//humidity sensor
+#define HUMIDITY_ENABLE (HAVE(EMOS) || HAVE(HUMIDITYSENSOR))
+#define HUMIDITY_DEBUG 0
+
+// epaper display and at45 driver
+#define EPAPER_ENABLE (HAVE(EMOS))
+#define EPAPER_DEBUG 0
+
+//pt100 temperatur sensors for heater
+#define PT100_ENABLE (HAVE(EMOS))
+#define PT100_DEBUG 0
+
+// interface app for the hexasense board
+#define HEXASENSE_ENABLE (HAVE(EMOS))
+#define HEXASENSE_DEBUG 0
+
+
+
+// these things are not generally enabled. If you want to use them, add a profile or enable them locally.
 
 // window blind shutter motor control
 #define SHUTTER_ENABLE 0
@@ -105,19 +166,6 @@ _DEBUG options should be set to:
 #define ANALOGREAD_DEBUG 1
 #define ANALOGREAD_PIN 0 // 0 to 7
 #define ANALOGREAD_MULT 0.0024414062 // readings are multiplied with this value to calculate the value sent to the endpoint. Set to 0.0024414062 to get the Voltage reading (in Volts) at 2.5V supply voltage
-
-//i2c master
-#define I2C_ENABLE 1
-#define I2C_DEBUG 0
-
-//humidity sensor
-#define HUMIDITY_ENABLE 0
-#define HUMIDITY_DEBUG 0 
-
-//pressure sensor
-#define PRESSURE_ENABLE 0 
-#define PRESSURE_DEBUG 1
-#define PRESSURE_OVERSAMPLING 2  //0 to 3
 
 //ir_receiver
 #define IR_RECEIVER_ENABLE 0

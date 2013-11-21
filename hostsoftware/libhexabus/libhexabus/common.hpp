@@ -33,7 +33,7 @@
 #endif
 
 //#define ENABLE_LOGGING 0
-#include <config.h>
+#include <libhexabus/config.h>
 
 #ifdef ENABLE_LOGGING
 #include <iostream>
