@@ -88,7 +88,8 @@ void DeviceInterrogator::queue_query(
 		const boost::function<void (const GenericException&)>& failure_cb,
 		int max_tries)
 {
-	base_query query = { 0 };
+	base_query query;
+	query.retries = 0;
 	query.max_retries = max_tries - 1;
 	query.device = device;
 	query.filter = filter;
