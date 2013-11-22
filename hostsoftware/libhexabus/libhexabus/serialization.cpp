@@ -305,7 +305,7 @@ class BinaryDeserializer {
 		std::string read_string();
 
 		template<typename T>
-		Packet::Ptr checkInfo(uint8_t packetType, uint16_t cause, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum);
+		Packet::Ptr checkInfo(uint8_t packetType, uint16_t cause, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum, const boost::asio::ip::address_v6& source);
 
 		template<typename T>
 		Packet::Ptr check(const T& packet);
@@ -408,7 +408,7 @@ std::string BinaryDeserializer::read_string()
 }
 
 template<typename T>
-Packet::Ptr BinaryDeserializer::checkInfo(uint8_t packetType, uint16_t cause, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum)
+Packet::Ptr BinaryDeserializer::checkInfo(uint8_t packetType, uint16_t cause, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum, const boost::asio::ip::address_v6& source)
 {
 	switch (packetType) {
 		case HXB_PTYPE_INFO:
@@ -419,6 +419,9 @@ Packet::Ptr BinaryDeserializer::checkInfo(uint8_t packetType, uint16_t cause, ui
 
 		case HXB_PTYPE_REPORT:
 			return check(ReportPacket<T>(cause, eid, value, flags, seqNum));
+
+		case HXB_PTYPE_PINFO:
+			return check(ProxyInfoPacket<T>(source, eid, value, flags, seqNum));
 
 		default:
 			throw BadPacketException("checkInfo assumptions violated");
@@ -455,26 +458,34 @@ Packet::Ptr BinaryDeserializer::deserialize()
 		case HXB_PTYPE_INFO:
 		case HXB_PTYPE_WRITE:
 		case HXB_PTYPE_REPORT:
+		case HXB_PTYPE_PINFO:
 			{
 				uint16_t cause = 0;
+				boost::asio::ip::address_v6 source;
 				if (type == HXB_PTYPE_REPORT) {
 					cause = read_u16();
+				} else if (type == HXB_PTYPE_PINFO) {
+					boost::asio::ip::address_v6::bytes_type bytes;
+					for (size_t i = 0; i < 16; i++) {
+						bytes[i] = read_u8();
+					}
+					source = boost::asio::ip::address_v6(bytes);
 				}
 				uint32_t eid = read_u32();
 				uint8_t datatype = read_u8();
 
 				switch (datatype) {
 					case HXB_DTYPE_BOOL:
-						return checkInfo<bool>(type, cause, eid, read_u8(), flags, seqNum);
+						return checkInfo<bool>(type, cause, eid, read_u8(), flags, seqNum, source);
 
 					case HXB_DTYPE_UINT8:
-						return checkInfo<uint8_t>(type, cause, eid, read_u8(), flags, seqNum);
+						return checkInfo<uint8_t>(type, cause, eid, read_u8(), flags, seqNum, source);
 
 					case HXB_DTYPE_UINT32:
-						return checkInfo<uint32_t>(type, cause, eid, read_u32(), flags, seqNum);
+						return checkInfo<uint32_t>(type, cause, eid, read_u32(), flags, seqNum, source);
 
 					case HXB_DTYPE_FLOAT:
-						return checkInfo<float>(type, cause, eid, read_float(), flags, seqNum);
+						return checkInfo<float>(type, cause, eid, read_float(), flags, seqNum, source);
 
 					case HXB_DTYPE_DATETIME:
 						{
@@ -483,7 +494,7 @@ Packet::Ptr BinaryDeserializer::deserialize()
 							uint8_t second = read_u8();
 							uint8_t day = read_u8();
 							uint8_t month = read_u8();
-							uint16_t year = read_u8();
+							uint16_t year = read_u16();
 							uint8_t weekday = read_u8();
 
 							boost::posix_time::ptime dt(
@@ -495,20 +506,20 @@ Packet::Ptr BinaryDeserializer::deserialize()
 							if (dt.date().day_of_week() != weekday)
 								throw BadPacketException("Invalid datetime format");
 
-							return checkInfo<boost::posix_time::ptime>(type, cause, eid, dt, flags, seqNum);
+							return checkInfo<boost::posix_time::ptime>(type, cause, eid, dt, flags, seqNum, source);
 						}
 
 					case HXB_DTYPE_TIMESTAMP:
-						return checkInfo<boost::posix_time::time_duration>(type, cause, eid, boost::posix_time::seconds(read_u32()), flags, seqNum);
+						return checkInfo<boost::posix_time::time_duration>(type, cause, eid, boost::posix_time::seconds(read_u32()), flags, seqNum, source);
 
 					case HXB_DTYPE_128STRING:
-						return checkInfo<std::string>(type, cause, eid, read_string(), flags, seqNum);
+						return checkInfo<std::string>(type, cause, eid, read_string(), flags, seqNum, source);
 
 					case HXB_DTYPE_16BYTES:
-						return checkInfo<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >(type, cause, eid, read_bytes<HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags, seqNum);
+						return checkInfo<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >(type, cause, eid, read_bytes<HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags, seqNum, source);
 
 					case HXB_DTYPE_66BYTES:
-						return checkInfo<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(type, cause, eid, read_bytes<HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags, seqNum);
+						return checkInfo<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(type, cause, eid, read_bytes<HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags, seqNum, source);
 
 					default:
 						throw BadPacketException("Invalid datatype");

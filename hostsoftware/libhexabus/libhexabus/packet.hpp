@@ -114,6 +114,7 @@ namespace hexabus {
 			using TypedPacketVisitor<InfoPacket>::visit;
 			using TypedPacketVisitor<ReportPacket>::visit;
 			using TypedPacketVisitor<WritePacket>::visit;
+			using TypedPacketVisitor<ProxyInfoPacket>::visit;
 
 			virtual void visit(const ErrorPacket& error) = 0;
 			virtual void visit(const QueryPacket& query) = 0;
@@ -279,7 +280,7 @@ namespace hexabus {
 
 		public:
 			ReportPacket(uint16_t cause, uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
-				: ValuePacket<TValue>(HXB_PTYPE_REPORT, eid, value, flags, sequenceNumber)
+				: ValuePacket<TValue>(HXB_PTYPE_REPORT, eid, value, flags, sequenceNumber), _cause(cause)
 			{}
 
 			uint16_t cause() const { return _cause; }
@@ -297,7 +298,7 @@ namespace hexabus {
 
 		public:
 			ProxyInfoPacket(const boost::asio::ip::address_v6& source, uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
-				: ValuePacket<TValue>(HXB_PTYPE_PINFO, eid, value, flags, sequenceNumber)
+				: ValuePacket<TValue>(HXB_PTYPE_PINFO, eid, value, flags, sequenceNumber), _source(source)
 			{}
 
 			const boost::asio::ip::address_v6& source() const { return _source; }
@@ -339,7 +340,7 @@ namespace hexabus {
 
 		public:
 			EndpointReportPacket(uint16_t cause, uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
-				: ValuePacket<std::string>(HXB_PTYPE_EPREPORT, eid, datatype, value, flags, sequenceNumber)
+				: ValuePacket<std::string>(HXB_PTYPE_EPREPORT, eid, datatype, value, flags, sequenceNumber), _cause(cause)
 			{}
 
 			uint16_t cause() const { return _cause; }
