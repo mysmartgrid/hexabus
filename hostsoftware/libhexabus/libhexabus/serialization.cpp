@@ -160,11 +160,10 @@ class TypedPacketSerializer: public virtual SerializerBuffer, public virtual Typ
 		virtual void visit(const TPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
 };
 
-template<template<typename TValue> class TPacket>
-class ReportPacketSerializer: public virtual SerializerBuffer, public virtual TypedPacketVisitor<TPacket> {
+class ReportPacketSerializer: public virtual SerializerBuffer, public virtual TypedPacketVisitor<ReportPacket> {
 	private:
 		template<typename TValue>
-		void append(const TPacket<TValue>& packet)
+		void append(const ReportPacket<TValue>& packet)
 		{
 			append_u16(packet.cause());
 			append_u32(packet.eid());
@@ -172,22 +171,47 @@ class ReportPacketSerializer: public virtual SerializerBuffer, public virtual Ty
 			appendValue(packet);
 		}
 
-		virtual void visit(const TPacket<bool>& packet) { append(packet); }
-		virtual void visit(const TPacket<uint8_t>& packet) { append(packet); }
-		virtual void visit(const TPacket<uint32_t>& packet) { append(packet); }
-		virtual void visit(const TPacket<float>& packet) { append(packet); }
-		virtual void visit(const TPacket<boost::posix_time::ptime>& packet) { append(packet); }
-		virtual void visit(const TPacket<boost::posix_time::time_duration>& packet) { append(packet); }
-		virtual void visit(const TPacket<std::string>& packet) { append(packet); }
-		virtual void visit(const TPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
-		virtual void visit(const TPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
+		virtual void visit(const ReportPacket<bool>& packet) { append(packet); }
+		virtual void visit(const ReportPacket<uint8_t>& packet) { append(packet); }
+		virtual void visit(const ReportPacket<uint32_t>& packet) { append(packet); }
+		virtual void visit(const ReportPacket<float>& packet) { append(packet); }
+		virtual void visit(const ReportPacket<boost::posix_time::ptime>& packet) { append(packet); }
+		virtual void visit(const ReportPacket<boost::posix_time::time_duration>& packet) { append(packet); }
+		virtual void visit(const ReportPacket<std::string>& packet) { append(packet); }
+		virtual void visit(const ReportPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
+		virtual void visit(const ReportPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
+};
+
+class ProxyInfoPacketSerializer : public virtual SerializerBuffer, public virtual TypedPacketSerializer<ProxyInfoPacket> {
+	private:
+		template<typename TValue>
+		void append(const ProxyInfoPacket<TValue>& packet)
+		{
+			boost::asio::ip::address_v6::bytes_type source = packet.source().to_bytes();
+
+			_target.insert(_target.end(), source.begin(), source.end());
+			append_u32(packet.eid());
+			append_u8(packet.datatype());
+			appendValue(packet);
+		}
+
+		virtual void visit(const ProxyInfoPacket<bool>& packet) { append(packet); }
+		virtual void visit(const ProxyInfoPacket<uint8_t>& packet) { append(packet); }
+		virtual void visit(const ProxyInfoPacket<uint32_t>& packet) { append(packet); }
+		virtual void visit(const ProxyInfoPacket<float>& packet) { append(packet); }
+		virtual void visit(const ProxyInfoPacket<boost::posix_time::ptime>& packet) { append(packet); }
+		virtual void visit(const ProxyInfoPacket<boost::posix_time::time_duration>& packet) { append(packet); }
+		virtual void visit(const ProxyInfoPacket<std::string>& packet) { append(packet); }
+		virtual void visit(const ProxyInfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
+		virtual void visit(const ProxyInfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
 };
 
 class BinarySerializer :
 		private virtual SerializerBuffer,
 		private virtual TypedPacketSerializer<InfoPacket>,
-		private virtual ReportPacketSerializer<ReportPacket>,
+		private virtual ReportPacketSerializer,
 		private virtual TypedPacketSerializer<WritePacket>,
+		private virtual ProxyInfoPacketSerializer,
 		private virtual PacketVisitor {
 	public:
 		std::vector<char> serialize(const Packet& packet, uint16_t seqNum);
@@ -198,6 +222,7 @@ class BinarySerializer :
 		virtual void visit(const EndpointQueryPacket& endpointQuery);
 		virtual void visit(const EndpointInfoPacket& endpointInfo);
 		virtual void visit(const EndpointReportPacket& endpointReport);
+		virtual void visit(const AckPacket& ack);
 };
 
 std::vector<char> BinarySerializer::serialize(const Packet& packet, uint16_t seqNum)
@@ -239,10 +264,15 @@ void BinarySerializer::visit(const EndpointInfoPacket& endpointInfo)
 
 void BinarySerializer::visit(const EndpointReportPacket& endpointReport)
 {
-	append_u32(endpointReport.cause());
+	append_u16(endpointReport.cause());
 	append_u32(endpointReport.eid());
 	append_u8(endpointReport.datatype());
 	appendValue(endpointReport);
+}
+
+void BinarySerializer::visit(const AckPacket& ack)
+{
+	append_u16(ack.cause());
 }
 
 // }}}
@@ -510,6 +540,11 @@ Packet::Ptr BinaryDeserializer::deserialize()
 				uint32_t eid = read_u32();
 				uint8_t datatype = read_u8();
 				return check(EndpointReportPacket(cause, eid, datatype, read_string(), flags, seqNum));
+			}
+
+		case HXB_PTYPE_ACK:
+			{
+				return check(AckPacket(read_u16(), flags, seqNum));
 			}
 
 		default:

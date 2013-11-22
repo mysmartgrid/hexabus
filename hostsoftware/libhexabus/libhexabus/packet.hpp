@@ -8,6 +8,7 @@
 #include <boost/static_assert.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/type_traits.hpp>
+#include <boost/asio/ip/address_v6.hpp>
 #include <boost/array.hpp>
 #include "../../../shared/hexabus_types.h"
 #include "../../../shared/hexabus_definitions.h"
@@ -69,6 +70,9 @@ namespace hexabus {
 	class WritePacket;
 	class EndpointInfoPacket;
 	class EndpointReportPacket;
+	class AckPacket;
+	template<typename TValue>
+	class ProxyInfoPacket;
 
 	template<template<typename TValue> class TPacket>
 	class TypedPacketVisitor {
@@ -102,7 +106,8 @@ namespace hexabus {
 	class PacketVisitor :
 			public virtual TypedPacketVisitor<InfoPacket>,
 			public virtual TypedPacketVisitor<ReportPacket>,
-			public virtual TypedPacketVisitor<WritePacket> {
+			public virtual TypedPacketVisitor<WritePacket>,
+			public virtual TypedPacketVisitor<ProxyInfoPacket> {
 		public:
 			virtual ~PacketVisitor() {}
 
@@ -115,6 +120,7 @@ namespace hexabus {
 			virtual void visit(const EndpointQueryPacket& endpointQuery) = 0;
 			virtual void visit(const EndpointInfoPacket& endpointInfo) = 0;
 			virtual void visit(const EndpointReportPacket& endpointReport) = 0;
+			virtual void visit(const AckPacket& ack) = 0;
 
 			virtual void visitPacket(const Packet& packet)
 			{
@@ -285,6 +291,24 @@ namespace hexabus {
 	};
 
 	template<typename TValue>
+	class ProxyInfoPacket : public ValuePacket<TValue> {
+		private:
+			boost::asio::ip::address_v6 _source;
+
+		public:
+			ProxyInfoPacket(const boost::asio::ip::address_v6& source, uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: ValuePacket<TValue>(HXB_PTYPE_PINFO, eid, value, flags, sequenceNumber)
+			{}
+
+			const boost::asio::ip::address_v6& source() const { return _source; }
+
+			virtual void accept(PacketVisitor& visitor) const
+			{
+				visitor.visit(*this);
+			}
+	};
+
+	template<typename TValue>
 	class WritePacket : public ValuePacket<TValue> {
 		public:
 			WritePacket(uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
@@ -316,6 +340,23 @@ namespace hexabus {
 		public:
 			EndpointReportPacket(uint16_t cause, uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
 				: ValuePacket<std::string>(HXB_PTYPE_EPREPORT, eid, datatype, value, flags, sequenceNumber)
+			{}
+
+			uint16_t cause() const { return _cause; }
+
+			virtual void accept(PacketVisitor& visitor) const
+			{
+				visitor.visit(*this);
+			}
+	};
+
+	class AckPacket : public Packet {
+		private:
+			uint16_t _cause;
+
+		public:
+			AckPacket(uint16_t cause, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: Packet(HXB_PTYPE_ACK, flags, sequenceNumber), _cause(cause)
 			{}
 
 			uint16_t cause() const { return _cause; }

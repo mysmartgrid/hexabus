@@ -33,7 +33,7 @@ namespace po = boost::program_options;
 
 #include "resolv.hpp"
 
-class Logger : public hexabus::Logger, virtual hexabus::TypedPacketVisitor<hexabus::ReportPacket>::Empty {
+class Logger : public hexabus::Logger {
 	private:
 		bfs::path store_file;
 		klio::Store::Ptr store;
