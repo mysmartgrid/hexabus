@@ -45,36 +45,23 @@ void SerializerBuffer::append_u8(uint8_t value)
 
 void SerializerBuffer::append_u16(uint16_t value)
 {
-	union {
-		uint16_t u16;
-		char raw[sizeof(value)];
-	} c;
-
-	c.u16 = htons(value);
-
-	_target.insert(_target.end(), c.raw, c.raw + sizeof(c.raw));
+	_target.push_back((value >> 8) & 0xFF);
+	_target.push_back((value >> 0) & 0xFF);
 }
 
 void SerializerBuffer::append_u32(uint32_t value)
 {
-	union {
-		uint32_t u32;
-		char raw[sizeof(value)];
-	} c = { htonl(value) };
-
-	_target.insert(_target.end(), c.raw, c.raw + sizeof(c.raw));
+	_target.push_back((value >> 24) & 0xFF);
+	_target.push_back((value >> 16) & 0xFF);
+	_target.push_back((value >> 8) & 0xFF);
+	_target.push_back((value >> 0) & 0xFF);
 }
 
 void SerializerBuffer::append_float(float value)
 {
-	union {
-		float f;
-		uint32_t u32;
-		char raw[sizeof(value)];
-	} c = { value };
-	c.u32 = htonl(c.u32);
-
-	_target.insert(_target.end(), c.raw, c.raw + sizeof(c.raw));
+	uint32_t bits;
+	memcpy(&bits, &value, sizeof(value));
+	append_u32(bits);
 }
 
 void SerializerBuffer::appendValue(const ValuePacket<bool>& value)
@@ -348,38 +335,31 @@ uint16_t BinaryDeserializer::read_u16()
 {
 	checkLength(sizeof(uint16_t));
 
-	union {
-		char raw[sizeof(uint16_t)];
-		uint16_t u16;
-	} c;
-	memcpy(c.raw, _packet + _offset, sizeof(c.raw));
+	uint16_t val;
+	memcpy(&val, _packet + _offset, sizeof(val));
+	_offset += sizeof(val);
 
-	_offset += sizeof(uint16_t);
-	return ntohs(c.u16);
+	return ntohs(val);
 }
 
 uint32_t BinaryDeserializer::read_u32()
 {
 	checkLength(sizeof(uint32_t));
 
-	union C {
-		char raw[sizeof(uint32_t)];
-		uint32_t u32;
-	} c;
-	memcpy(c.raw, _packet + _offset, sizeof(c.raw));
+	uint32_t val;
+	memcpy(&val, _packet + _offset, sizeof(val));
+	_offset += sizeof(val);
 
-	_offset += sizeof(uint32_t);
-	return ntohl(c.u32);
+	return ntohl(val);
 }
 
 float BinaryDeserializer::read_float()
 {
-	union {
-		uint32_t u32;
-		float f;
-	} c = { read_u32() };
-
-	return c.f;
+	uint32_t bits = read_u32();
+	float result;
+	
+	memcpy(&result, &bits, sizeof(bits));
+	return result;
 }
 
 template<size_t L>
