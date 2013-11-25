@@ -68,10 +68,8 @@ namespace hexabus {
 
 			Packet::Ptr parseReceivedPacket(size_t size);
 
-			void beginReceivePacket(bool async);
+			void beginReceivePacket();
 			void packetReceivedHandler(const boost::system::error_code& error, size_t size);
-			void syncPacketReceivedHandler(const boost::system::error_code& error, size_t size);
-			void asyncPacketReceivedHandler(const boost::system::error_code& error, size_t size);
 
 			void syncPacketReceiveCallback(const Packet::Ptr& packet, const boost::asio::ip::udp::endpoint& from,
 					std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint>& result, const filter_t& filter);

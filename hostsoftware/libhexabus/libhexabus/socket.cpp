@@ -51,12 +51,15 @@ static void timeout_handler(const boost::system::error_code& error, boost::asio:
 	}
 }
 
-void Socket::beginReceivePacket(bool async)
+void Socket::beginReceivePacket()
 {
 	if (!packetReceived.empty()) {
 		socket.cancel();
-		socket.async_receive_from(boost::asio::buffer(data, data.size()), remoteEndpoint,
-				boost::bind(async ? &Socket::asyncPacketReceivedHandler : &Socket::syncPacketReceivedHandler,
+		socket.async_receive_from(
+				boost::asio::buffer(data, data.size()),
+				remoteEndpoint,
+				boost::bind(
+					&Socket::packetReceivedHandler,
 					this,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred));
@@ -65,34 +68,21 @@ void Socket::beginReceivePacket(bool async)
 
 void Socket::packetReceivedHandler(const boost::system::error_code& error, size_t size)
 {
-	if (error)
-		throw NetworkException("receive", error);
-	Packet::Ptr packet = parseReceivedPacket(size);
-
-	packetReceived(packet, remoteEndpoint);
-}
-
-void Socket::syncPacketReceivedHandler(const boost::system::error_code& error, size_t size)
-{
 	if (error.value() != boost::system::errc::operation_canceled) {
-		packetReceivedHandler(error, size);
-		beginReceivePacket(false);
-	}
-}
-
-void Socket::asyncPacketReceivedHandler(const boost::system::error_code& error, size_t size)
-{
-	if (error.value() != boost::system::errc::operation_canceled) {
-		std::cout << socket.local_endpoint() << std::endl;
 		try {
-			packetReceivedHandler(error, size);
+			if (error)
+				throw NetworkException("receive", error);
+			Packet::Ptr packet = parseReceivedPacket(size);
+
+			packetReceived(packet, remoteEndpoint);
+			beginReceivePacket();
 		} catch (const GenericException& ge) {
+			beginReceivePacket();
 			asyncError(ge);
 		} catch (...) {
-			beginReceivePacket(true);
+			beginReceivePacket();
 			throw;
 		}
-		beginReceivePacket(true);
 	}
 }
 
@@ -103,6 +93,11 @@ void Socket::syncPacketReceiveCallback(const Packet::Ptr& packet, const boost::a
 		result = std::make_pair(packet, from);
 		ioService().stop();
 	}
+}
+
+static void sync_error(const GenericException& error)
+{
+	throw error;
 }
 
 std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> Socket::receive(const filter_t& filter, boost::posix_time::time_duration timeout)
@@ -119,11 +114,13 @@ std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> Socket::receive(const fil
 					boost::ref(ioService())));
 	}
 
-	boost::signals2::scoped_connection sr(
+	boost::signals2::scoped_connection rc(
 		packetReceived.connect(
 			boost::bind(&Socket::syncPacketReceiveCallback, this, _1, _2, boost::ref(result), boost::cref(filter))));
+	boost::signals2::scoped_connection ec(
+		asyncError.connect(sync_error, boost::signals2::at_front));
 
-	beginReceivePacket(false);
+	beginReceivePacket();
 
 	ioService().reset();
 	ioService().run();
@@ -143,7 +140,7 @@ bs2::connection Socket::onPacketReceived(const on_packet_received_slot_t& callba
 	bs2::connection result = packetReceived.connect(
 			boost::bind(predicated_receive, _1, _2, callback, filter));
 
-	beginReceivePacket(true);
+	beginReceivePacket();
 
 	return result;
 }
