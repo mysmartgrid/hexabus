@@ -22,7 +22,10 @@ const boost::asio::ip::address_v6 Socket::GroupAddress = boost::asio::ip::addres
 
 Socket::Socket(boost::asio::io_service& io, const std::string& interface) :
 	io_service(io),
-	socket(io_service),
+	socket_m(io_service),
+	socket_u(io_service),
+	data_m(1500, 0),
+	data_u(1500, 0),
 	_association_gc_timer(io)
 {
   openSocket(&interface);
@@ -30,7 +33,10 @@ Socket::Socket(boost::asio::io_service& io, const std::string& interface) :
 
 Socket::Socket(boost::asio::io_service& io) :
 	io_service(io),
-	socket(io_service),
+	socket_m(io_service),
+	socket_u(io_service),
+	data_m(1500, 0),
+	data_u(1500, 0),
 	_association_gc_timer(io)
 {
   openSocket(NULL);
@@ -40,7 +46,8 @@ Socket::~Socket()
 {
 	boost::system::error_code err;
 
-	socket.close(err);
+	socket_m.close(err);
+	socket_u.close(err);
 	// FIXME: maybe errors should be logged somewhere
 }
 
@@ -54,27 +61,41 @@ static void timeout_handler(const boost::system::error_code& error, boost::asio:
 void Socket::beginReceivePacket()
 {
 	if (!packetReceived.empty()) {
-		socket.cancel();
-		socket.async_receive_from(
-				boost::asio::buffer(data, data.size()),
-				remoteEndpoint,
-				boost::bind(
-					&Socket::packetReceivedHandler,
-					this,
-					boost::asio::placeholders::error,
-					boost::asio::placeholders::bytes_transferred));
+		struct {
+			boost::asio::ip::udp::socket& socket;
+			boost::asio::ip::udp::endpoint& remote;
+			std::vector<char>& data;
+		} sockets[2] = {
+			{ socket_m, remote_m, data_m },
+			{ socket_u, remote_u, data_u }
+		};
+
+		for (int i = 0; i < 2; i++) {
+			sockets[i].socket.cancel();
+			sockets[i].socket.async_receive_from(
+					boost::asio::buffer(sockets[i].data, sockets[i].data.size()),
+					sockets[i].remote,
+					boost::bind(
+						&Socket::packetReceivedHandler,
+						this,
+						boost::asio::placeholders::error,
+						boost::ref(sockets[i].data),
+						boost::ref(sockets[i].remote),
+						boost::asio::placeholders::bytes_transferred));
+		}
 	}
 }
 
-void Socket::packetReceivedHandler(const boost::system::error_code& error, size_t size)
+void Socket::packetReceivedHandler(const boost::system::error_code& error, const std::vector<char>& buffer, const boost::asio::ip::udp::endpoint& remote, size_t size)
 {
 	if (error.value() != boost::system::errc::operation_canceled) {
 		try {
 			if (error)
 				throw NetworkException("receive", error);
-			Packet::Ptr packet = parseReceivedPacket(size);
 
-			packetReceived(packet, remoteEndpoint);
+			Packet::Ptr packet = deserialize(&buffer[0], std::min(size, buffer.size()));
+
+			packetReceived(packet, remote);
 			beginReceivePacket();
 		} catch (const GenericException& ge) {
 			beginReceivePacket();
@@ -150,11 +171,6 @@ bs2::connection Socket::onAsyncError(const on_async_error_slot_t& callback)
 	return asyncError.connect(callback);
 }
 
-Packet::Ptr Socket::parseReceivedPacket(size_t size)
-{
-	return deserialize(&data[0], std::min(size, data.size()));
-}
-
 uint16_t Socket::send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest)
 {
 	boost::system::error_code err;
@@ -163,7 +179,7 @@ uint16_t Socket::send(const Packet& packet, const boost::asio::ip::udp::endpoint
 
 	std::vector<char> data = serialize(packet, seqNum);
 
-	socket.send_to(boost::asio::buffer(&data[0], data.size()), dest, 0, err);
+	socket_u.send_to(boost::asio::buffer(&data[0], data.size()), dest, 0, err);
 	if (err)
 		throw NetworkException("send", err);
 
@@ -172,19 +188,12 @@ uint16_t Socket::send(const Packet& packet, const boost::asio::ip::udp::endpoint
 
 void Socket::listen()
 {
-	listening = true;
-
 	boost::system::error_code err;
-
-	socket.set_option(boost::asio::socket_base::reuse_address(true), err);
+	socket_m.bind(boost::asio::ip::udp::endpoint(GroupAddress, HXB_PORT), err);
 	if (err)
 		throw NetworkException("listen", err);
 
-	socket.bind(boost::asio::ip::udp::endpoint(GroupAddress, HXB_PORT), err);
-	if (err)
-		throw NetworkException("listen", err);
-
-	socket.set_option(
+	socket_m.set_option(
 		boost::asio::ip::multicast::join_group(GroupAddress, if_index),
 		err);
 	if (err)
@@ -195,41 +204,39 @@ void Socket::bind(const boost::asio::ip::udp::endpoint& ep)
 {
 	boost::system::error_code err;
 
-	socket.bind(ep, err);
+	socket_u.bind(ep, err);
 	if (err)
 		throw NetworkException("bind", err);
 }
 
-void Socket::openSocket(const std::string* interface) {
-  boost::system::error_code err;
+void Socket::openSocket(const std::string* interface)
+{
+	boost::system::error_code err;
 
-	data.resize(1500);
+	socket_m.open(boost::asio::ip::udp::v6(), err);
+	if (err) throw NetworkException("open", err);
 
-  socket.open(boost::asio::ip::udp::v6(), err);
-  if (err)
-    throw NetworkException("open", err);
+	socket_u.open(boost::asio::ip::udp::v6(), err);
+	if (err) throw NetworkException("open", err);
 
-  socket.set_option(boost::asio::ip::multicast::hops(64), err);
-  if (err)
-    throw NetworkException("open", err);
+	socket_u.set_option(boost::asio::ip::multicast::hops(64), err);
+	if (err) throw NetworkException("open", err);
 
-  if (interface) {
-    if_index = if_nametoindex(interface->c_str());
-    if (if_index == 0) {
-      throw NetworkException("open", boost::system::error_code(boost::system::errc::no_such_device, boost::system::generic_category()));
-    }
-    socket.set_option(boost::asio::ip::multicast::outbound_interface(if_index), err);
-    if (err)
-      throw NetworkException("open", err);
-  }
+	if (interface) {
+		if_index = if_nametoindex(interface->c_str());
+		if (if_index == 0) {
+			throw NetworkException("open", boost::system::error_code(boost::system::errc::no_such_device, boost::system::generic_category()));
+		}
 
-	socket.set_option(boost::asio::ip::multicast::enable_loopback(true));
-  if (err)
-    throw NetworkException("open", err);
+		socket_u.set_option(boost::asio::ip::multicast::outbound_interface(if_index), err);
+		if (err) throw NetworkException("open", err);
+	}
 
-	socket.set_option(boost::asio::socket_base::reuse_address(false), err);
-	if (err)
-		throw NetworkException("open", err);
+	socket_u.set_option(boost::asio::ip::multicast::enable_loopback(true));
+	if (err) throw NetworkException("open", err);
+
+	socket_m.set_option(boost::asio::socket_base::reuse_address(true), err);
+	if (err) throw NetworkException("open", err);
 
 	scheduleAssociationGC();
 }
