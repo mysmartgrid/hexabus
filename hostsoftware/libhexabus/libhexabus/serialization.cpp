@@ -174,9 +174,9 @@ class ProxyInfoPacketSerializer : public virtual SerializerBuffer, public virtua
 		template<typename TValue>
 		void append(const ProxyInfoPacket<TValue>& packet)
 		{
-			boost::asio::ip::address_v6::bytes_type source = packet.source().to_bytes();
+			boost::asio::ip::address_v6::bytes_type origin = packet.origin().to_bytes();
 
-			_target.insert(_target.end(), source.begin(), source.end());
+			_target.insert(_target.end(), origin.begin(), origin.end());
 			append_u32(packet.eid());
 			append_u8(packet.datatype());
 			appendValue(packet);

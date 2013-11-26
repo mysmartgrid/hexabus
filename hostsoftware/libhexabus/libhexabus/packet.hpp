@@ -129,18 +129,28 @@ namespace hexabus {
 			}
 	};
 
-	class ErrorPacket : public Packet {
+	class CausedPacket {
+		private:
+			uint16_t _cause;
+
+		protected:
+			CausedPacket(uint16_t cause) : _cause(cause) {}
+			~CausedPacket() {}
+
+		public:
+			uint16_t cause() const { return _cause; }
+	};
+
+	class ErrorPacket : public Packet, public CausedPacket {
 		private:
 			uint8_t _code;
-			uint16_t _cause;
 
 		public:
 			ErrorPacket(uint8_t code, uint16_t cause, uint8_t flags = 0, uint16_t sequenceNumber = 0)
-				: Packet(HXB_PTYPE_ERROR, flags, sequenceNumber), _code(code), _cause(cause)
+				: Packet(HXB_PTYPE_ERROR, flags, sequenceNumber), CausedPacket(cause), _code(code)
 			{}
 
 			uint8_t code() const { return _code; }
-			uint16_t cause() const { return _cause; }
 
 			virtual void accept(PacketVisitor& visitor) const
 			{
@@ -274,16 +284,11 @@ namespace hexabus {
 	};
 
 	template<typename TValue>
-	class ReportPacket : public ValuePacket<TValue> {
-		private:
-			uint16_t _cause;
-
+	class ReportPacket : public ValuePacket<TValue>, public CausedPacket {
 		public:
 			ReportPacket(uint16_t cause, uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
-				: ValuePacket<TValue>(HXB_PTYPE_REPORT, eid, value, flags, sequenceNumber), _cause(cause)
+				: ValuePacket<TValue>(HXB_PTYPE_REPORT, eid, value, flags, sequenceNumber), CausedPacket(cause)
 			{}
-
-			uint16_t cause() const { return _cause; }
 
 			virtual void accept(PacketVisitor& visitor) const
 			{
@@ -291,17 +296,24 @@ namespace hexabus {
 			}
 	};
 
-	template<typename TValue>
-	class ProxyInfoPacket : public ValuePacket<TValue> {
+	class ProxiedPacket {
 		private:
-			boost::asio::ip::address_v6 _source;
+			boost::asio::ip::address_v6 _origin;
+
+		protected:
+			ProxiedPacket(const boost::asio::ip::address_v6& origin) : _origin(origin) {}
+			~ProxiedPacket() {}
 
 		public:
-			ProxyInfoPacket(const boost::asio::ip::address_v6& source, uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
-				: ValuePacket<TValue>(HXB_PTYPE_PINFO, eid, value, flags, sequenceNumber), _source(source)
-			{}
+			const boost::asio::ip::address_v6& origin() const { return _origin; }
+	};
 
-			const boost::asio::ip::address_v6& source() const { return _source; }
+	template<typename TValue>
+	class ProxyInfoPacket : public ValuePacket<TValue>, public ProxiedPacket {
+		public:
+			ProxyInfoPacket(const boost::asio::ip::address_v6& origin, uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: ValuePacket<TValue>(HXB_PTYPE_PINFO, eid, value, flags, sequenceNumber), ProxiedPacket(origin)
+			{}
 
 			virtual void accept(PacketVisitor& visitor) const
 			{
@@ -334,16 +346,11 @@ namespace hexabus {
 			}
 	};
 
-	class EndpointReportPacket : public ValuePacket<std::string> {
-		private:
-			uint16_t _cause;
-
+	class EndpointReportPacket : public ValuePacket<std::string>, public CausedPacket {
 		public:
 			EndpointReportPacket(uint16_t cause, uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
-				: ValuePacket<std::string>(HXB_PTYPE_EPREPORT, eid, datatype, value, flags, sequenceNumber), _cause(cause)
+				: ValuePacket<std::string>(HXB_PTYPE_EPREPORT, eid, datatype, value, flags, sequenceNumber), CausedPacket(cause)
 			{}
-
-			uint16_t cause() const { return _cause; }
 
 			virtual void accept(PacketVisitor& visitor) const
 			{
@@ -351,16 +358,11 @@ namespace hexabus {
 			}
 	};
 
-	class AckPacket : public Packet {
-		private:
-			uint16_t _cause;
-
+	class AckPacket : public Packet, public CausedPacket {
 		public:
 			AckPacket(uint16_t cause, uint8_t flags = 0, uint16_t sequenceNumber = 0)
-				: Packet(HXB_PTYPE_ACK, flags, sequenceNumber), _cause(cause)
+				: Packet(HXB_PTYPE_ACK, flags, sequenceNumber), CausedPacket(cause)
 			{}
-
-			uint16_t cause() const { return _cause; }
 
 			virtual void accept(PacketVisitor& visitor) const
 			{
