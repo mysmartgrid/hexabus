@@ -8,6 +8,7 @@
 #include <boost/static_assert.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/type_traits.hpp>
+#include <boost/asio/ip/address_v6.hpp>
 #include <boost/array.hpp>
 #include "../../../shared/hexabus_types.h"
 #include "../../../shared/hexabus_definitions.h"
@@ -64,37 +65,63 @@ namespace hexabus {
 	template<typename TValue>
 	class InfoPacket;
 	template<typename TValue>
+	class ReportPacket;
+	template<typename TValue>
 	class WritePacket;
 	class EndpointInfoPacket;
+	class EndpointReportPacket;
+	class AckPacket;
+	template<typename TValue>
+	class ProxyInfoPacket;
 
-	class PacketVisitor {
+	template<template<typename TValue> class TPacket>
+	class TypedPacketVisitor {
+		public:
+			virtual ~TypedPacketVisitor() {}
+
+			virtual void visit(const TPacket<bool>& info) = 0;
+			virtual void visit(const TPacket<uint8_t>& info) = 0;
+			virtual void visit(const TPacket<uint32_t>& info) = 0;
+			virtual void visit(const TPacket<float>& info) = 0;
+			virtual void visit(const TPacket<boost::posix_time::ptime>& info) = 0;
+			virtual void visit(const TPacket<boost::posix_time::time_duration>& info) = 0;
+			virtual void visit(const TPacket<std::string>& info) = 0;
+			virtual void visit(const TPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) = 0;
+			virtual void visit(const TPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) = 0;
+
+			class Empty : public virtual TypedPacketVisitor {
+				public:
+					virtual void visit(const TPacket<bool>& info) {}
+					virtual void visit(const TPacket<uint8_t>& info) {}
+					virtual void visit(const TPacket<uint32_t>& info) {}
+					virtual void visit(const TPacket<float>& info) {}
+					virtual void visit(const TPacket<boost::posix_time::ptime>& info) {}
+					virtual void visit(const TPacket<boost::posix_time::time_duration>& info) {}
+					virtual void visit(const TPacket<std::string>& info) {}
+					virtual void visit(const TPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) {}
+					virtual void visit(const TPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) {}
+			};
+	};
+
+	class PacketVisitor :
+			public virtual TypedPacketVisitor<InfoPacket>,
+			public virtual TypedPacketVisitor<ReportPacket>,
+			public virtual TypedPacketVisitor<WritePacket>,
+			public virtual TypedPacketVisitor<ProxyInfoPacket> {
 		public:
 			virtual ~PacketVisitor() {}
+
+			using TypedPacketVisitor<InfoPacket>::visit;
+			using TypedPacketVisitor<ReportPacket>::visit;
+			using TypedPacketVisitor<WritePacket>::visit;
+			using TypedPacketVisitor<ProxyInfoPacket>::visit;
 
 			virtual void visit(const ErrorPacket& error) = 0;
 			virtual void visit(const QueryPacket& query) = 0;
 			virtual void visit(const EndpointQueryPacket& endpointQuery) = 0;
 			virtual void visit(const EndpointInfoPacket& endpointInfo) = 0;
-
-			virtual void visit(const InfoPacket<bool>& info) = 0;
-			virtual void visit(const InfoPacket<uint8_t>& info) = 0;
-			virtual void visit(const InfoPacket<uint32_t>& info) = 0;
-			virtual void visit(const InfoPacket<float>& info) = 0;
-			virtual void visit(const InfoPacket<boost::posix_time::ptime>& info) = 0;
-			virtual void visit(const InfoPacket<boost::posix_time::time_duration>& info) = 0;
-			virtual void visit(const InfoPacket<std::string>& info) = 0;
-			virtual void visit(const InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) = 0;
-			virtual void visit(const InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) = 0;
-
-			virtual void visit(const WritePacket<bool>& write) = 0;
-			virtual void visit(const WritePacket<uint8_t>& write) = 0;
-			virtual void visit(const WritePacket<uint32_t>& write) = 0;
-			virtual void visit(const WritePacket<float>& write) = 0;
-			virtual void visit(const WritePacket<boost::posix_time::ptime>& write) = 0;
-			virtual void visit(const WritePacket<boost::posix_time::time_duration>& write) = 0;
-			virtual void visit(const WritePacket<std::string>& write) = 0;
-			virtual void visit(const WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) = 0;
-			virtual void visit(const WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) = 0;
+			virtual void visit(const EndpointReportPacket& endpointReport) = 0;
+			virtual void visit(const AckPacket& ack) = 0;
 
 			virtual void visitPacket(const Packet& packet)
 			{
@@ -247,6 +274,42 @@ namespace hexabus {
 	};
 
 	template<typename TValue>
+	class ReportPacket : public ValuePacket<TValue> {
+		private:
+			uint16_t _cause;
+
+		public:
+			ReportPacket(uint16_t cause, uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: ValuePacket<TValue>(HXB_PTYPE_REPORT, eid, value, flags, sequenceNumber), _cause(cause)
+			{}
+
+			uint16_t cause() const { return _cause; }
+
+			virtual void accept(PacketVisitor& visitor) const
+			{
+				visitor.visit(*this);
+			}
+	};
+
+	template<typename TValue>
+	class ProxyInfoPacket : public ValuePacket<TValue> {
+		private:
+			boost::asio::ip::address_v6 _source;
+
+		public:
+			ProxyInfoPacket(const boost::asio::ip::address_v6& source, uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: ValuePacket<TValue>(HXB_PTYPE_PINFO, eid, value, flags, sequenceNumber), _source(source)
+			{}
+
+			const boost::asio::ip::address_v6& source() const { return _source; }
+
+			virtual void accept(PacketVisitor& visitor) const
+			{
+				visitor.visit(*this);
+			}
+	};
+
+	template<typename TValue>
 	class WritePacket : public ValuePacket<TValue> {
 		public:
 			WritePacket(uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
@@ -264,6 +327,40 @@ namespace hexabus {
 			EndpointInfoPacket(uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
 				: ValuePacket<std::string>(HXB_PTYPE_EPINFO, eid, datatype, value, flags, sequenceNumber)
 			{}
+
+			virtual void accept(PacketVisitor& visitor) const
+			{
+				visitor.visit(*this);
+			}
+	};
+
+	class EndpointReportPacket : public ValuePacket<std::string> {
+		private:
+			uint16_t _cause;
+
+		public:
+			EndpointReportPacket(uint16_t cause, uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: ValuePacket<std::string>(HXB_PTYPE_EPREPORT, eid, datatype, value, flags, sequenceNumber), _cause(cause)
+			{}
+
+			uint16_t cause() const { return _cause; }
+
+			virtual void accept(PacketVisitor& visitor) const
+			{
+				visitor.visit(*this);
+			}
+	};
+
+	class AckPacket : public Packet {
+		private:
+			uint16_t _cause;
+
+		public:
+			AckPacket(uint16_t cause, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: Packet(HXB_PTYPE_ACK, flags, sequenceNumber), _cause(cause)
+			{}
+
+			uint16_t cause() const { return _cause; }
 
 			virtual void accept(PacketVisitor& visitor) const
 			{

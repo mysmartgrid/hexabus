@@ -13,7 +13,10 @@
 
 namespace hexabus {
 
-class Logger : private PacketVisitor {
+class Logger :
+		private PacketVisitor,
+		virtual hexabus::TypedPacketVisitor<hexabus::ReportPacket>::Empty, 
+		virtual hexabus::TypedPacketVisitor<hexabus::ProxyInfoPacket>::Empty {
 	protected:
 		klio::TimeConverter& tc;
 		klio::SensorFactory& sensor_factory;
@@ -43,6 +46,7 @@ class Logger : private PacketVisitor {
 		virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info);
 
 		// FIXME: handle these properly, we should not drop valid info packets
+		// REPORT and PINFO packets are also dropped, as indicated by the ::Empty subvisitors
 		virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) {} 
 		virtual void visit(const hexabus::InfoPacket<std::string>& info) {} 
 		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) {} 
@@ -52,6 +56,8 @@ class Logger : private PacketVisitor {
 		virtual void visit(const hexabus::QueryPacket& query) {}
 		virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery) {}
 		virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo) {}
+		virtual void visit(const hexabus::EndpointReportPacket& endpointInfo) {}
+		virtual void visit(const hexabus::AckPacket& ack) {}
 
 		virtual void visit(const hexabus::WritePacket<bool>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}

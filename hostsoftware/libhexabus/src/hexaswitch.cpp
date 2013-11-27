@@ -50,10 +50,33 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 			}
 		}
 
-		template<typename T>
-		void printValuePacket(const hexabus::ValuePacket<T>& packet, const char* datatypeStr)
+		void printReportHeader(uint32_t eid, const char* datatypeStr, uint16_t cause)
 		{
-			printValueHeader(packet.eid(), datatypeStr);
+			if (oneline) {
+				target << "Report;Cause " << cause << ";EID " << eid << ";Datatype " << datatypeStr << ";";
+			} else {
+				target << "Report" << std::endl
+					<< "Cause:\t" << cause << std::endl
+					<< "Endpoint ID:\t" << eid << std::endl
+					<< "Datatype:\t" << datatypeStr << std::endl;
+			}
+		}
+
+		void printProxyInfoHeader(const boost::asio::ip::address_v6& source, uint32_t eid, const char* datatypeStr)
+		{
+			if (oneline) {
+				target << "ProxyInfo;Source " << source << ";EID " << eid << ";Datatype " << datatypeStr << ";";
+			} else {
+				target << "ProxyInfo" << std::endl
+					<< "Source:\t" << source << std::endl
+					<< "Endpoint ID:\t" << eid << std::endl
+					<< "Datatype:\t" << datatypeStr << std::endl;
+			}
+		}
+
+		template<typename T>
+		void printValue(const hexabus::ValuePacket<T>& packet)
+		{
 			if (oneline) {
 				target << "Value " << packet.value();
 			} else {
@@ -62,9 +85,8 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 			target << std::endl;
 		}
 
-		void printValuePacket(const hexabus::ValuePacket<uint8_t>& packet, const char* datatypeStr)
+		void printValue(const hexabus::ValuePacket<uint8_t>& packet)
 		{
-			printValueHeader(packet.eid(), datatypeStr);
 			if (oneline) {
 				target << "Value " << (int) packet.value();
 			} else {
@@ -74,10 +96,8 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		}
 
 		template<size_t L>
-		void printValuePacket(const hexabus::ValuePacket<boost::array<char, L> >& packet, const char* datatypeStr)
+		void printValue(const hexabus::ValuePacket<boost::array<char, L> >& packet)
 		{
-			printValueHeader(packet.eid(), datatypeStr);
-
 			std::stringstream hexstream;
 
 			hexstream << std::hex << std::setfill('0');
@@ -92,6 +112,116 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 				target << "Value " << hexstream.str();
 			} else {
 				target << "Value:\t" << hexstream.str() << std::endl; 
+			}
+			target << std::endl;
+		}
+
+		template<typename TValue>
+		void printValuePacket(const hexabus::InfoPacket<TValue>& info, const char* datatypeStr)
+		{
+			printValueHeader(info.eid(), datatypeStr);
+			printValue(info);
+		}
+
+		template<typename TInfo>
+		void printReportPacket(const hexabus::ReportPacket<TInfo>& report, const char* datatypeStr)
+		{
+			printReportHeader(report.eid(), datatypeStr, report.cause());
+			printValue(report);
+		}
+
+		template<typename TInfo>
+		void printProxyInfoPacket(const hexabus::ProxyInfoPacket<TInfo>& proxyInfo, const char* datatypeStr)
+		{
+			printProxyInfoHeader(proxyInfo.source(), proxyInfo.eid(), datatypeStr);
+			printValue(proxyInfo);
+		}
+
+		void printEndpointHeader(const hexabus::EndpointInfoPacket& endpointInfo)
+		{
+			if (endpointInfo.eid() % 32 == 0) {
+				if (oneline) {
+					target << "Device Info;Device Name " << endpointInfo.value();
+				} else {
+					target << "Device Info" << std::endl
+						<< "Device Name:\t" << endpointInfo.value() << std::endl;
+				}
+			} else {
+				if (oneline) {
+					target << "Endpoint Info;EID " << endpointInfo.eid() << ";Datatype ";
+				} else {
+					target << "Endpoint Info\n"
+						<< "Endpoint ID:\t" << endpointInfo.eid() << std::endl
+						<< "EP Datatype:\t";
+				}
+			}
+		}
+
+		void printEndpointHeader(const hexabus::EndpointReportPacket& endpointInfo)
+		{
+			if (endpointInfo.eid() % 32 == 0) {
+				if (oneline) {
+					target << "Device Info;Cause " << endpointInfo.cause() << ";Device Name " << endpointInfo.value();
+				} else {
+					target << "Device Info" << std::endl
+						<< "Cause:\t" << endpointInfo.cause() << std::endl
+						<< "Device Name:\t" << endpointInfo.value() << std::endl;
+				}
+			} else {
+				if (oneline) {
+					target << "Endpoint Info;Cause " << endpointInfo.cause() << ";EID " << endpointInfo.eid() << ";Datatype ";
+				} else {
+					target << "Endpoint Info\n"
+						<< "Cause:\t" << endpointInfo.cause() << std::endl
+						<< "Endpoint ID:\t" << endpointInfo.eid() << std::endl
+						<< "EP Datatype:\t";
+				}
+			}
+		}
+
+		template<typename Packet>
+		void printEndpointInfo(const Packet& endpointInfo)
+		{
+			printEndpointHeader(endpointInfo);
+			if (endpointInfo.eid() % 32 != 0) {
+				switch(endpointInfo.datatype()) {
+					case HXB_DTYPE_BOOL:
+						target << "Bool";
+						break;
+					case HXB_DTYPE_UINT8:
+						target << "UInt8";
+						break;
+					case HXB_DTYPE_UINT32:
+						target << "UInt32";
+						break;
+					case HXB_DTYPE_DATETIME:
+						target << "Datetime";
+						break;
+					case HXB_DTYPE_FLOAT:
+						target << "Float";
+						break;
+					case HXB_DTYPE_TIMESTAMP:
+						target << "Timestamp";
+						break;
+					case HXB_DTYPE_128STRING:
+						target << "String";
+						break;
+					case HXB_DTYPE_16BYTES:
+						target << "Binary (16bytes)";
+						break;
+					case HXB_DTYPE_66BYTES:
+						target << "Binary (66bytes)";
+						break;
+					default:
+						target << "(unknown)";
+						break;
+				}
+				if (oneline) {
+					target << ";Name " << endpointInfo.value();
+				} else {
+					target << std::endl;
+					target << "EP Name:\t" << endpointInfo.value() << std::endl;
+				}
 			}
 			target << std::endl;
 		}
@@ -135,64 +265,10 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::QueryPacket& query) {}
 		virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery) {}
 
-		virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo)
-		{
-			if (endpointInfo.eid() == 0) {
-				if (oneline) {
-					target << "Device Info;Device Name " << endpointInfo.value();
-				} else {
-					target << "Device Info" << std::endl
-						<< "Device Name:\t" << endpointInfo.value() << std::endl;
-				}
-			} else {
-				if (oneline) {
-					target << "Endpoint Info;EID " << endpointInfo.eid() << ";Datatype ";
-				} else {
-					target << "Endpoint Info\n"
-						<< "Endpoint ID:\t" << endpointInfo.eid() << std::endl
-						<< "EP Datatype:\t";
-				}
-				switch(endpointInfo.datatype()) {
-					case HXB_DTYPE_BOOL:
-						target << "Bool";
-						break;
-					case HXB_DTYPE_UINT8:
-						target << "UInt8";
-						break;
-					case HXB_DTYPE_UINT32:
-						target << "UInt32";
-						break;
-					case HXB_DTYPE_DATETIME:
-						target << "Datetime";
-						break;
-					case HXB_DTYPE_FLOAT:
-						target << "Float";
-						break;
-					case HXB_DTYPE_TIMESTAMP:
-						target << "Timestamp";
-						break;
-					case HXB_DTYPE_128STRING:
-						target << "String";
-						break;
-					case HXB_DTYPE_16BYTES:
-						target << "Binary (16bytes)";
-						break;
-					case HXB_DTYPE_66BYTES:
-						target << "Binary (66bytes)";
-						break;
-					default:
-						target << "(unknown)";
-						break;
-				}
-				if (oneline) {
-					target << ";Name " << endpointInfo.value();
-				} else {
-					target << std::endl;
-					target << "EP Name:\t" << endpointInfo.value() << std::endl;
-				}
-			}
-			target << std::endl;
-		}
+		virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo) { printEndpointInfo(endpointInfo); }
+		virtual void visit(const hexabus::EndpointReportPacket& endpointReport) { printEndpointInfo(endpointReport); }
+
+		virtual void visit(const hexabus::AckPacket& ack) {}
 
 		virtual void visit(const hexabus::InfoPacket<bool>& info) { printValuePacket(info, "Bool"); }
 		virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { printValuePacket(info, "UInt8"); }
@@ -203,6 +279,26 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "String"); }
 		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (16 bytes)"); }
 		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (66 bytes)"); }
+
+		virtual void visit(const hexabus::ReportPacket<bool>& report) { printReportPacket(report, "Bool"); }
+		virtual void visit(const hexabus::ReportPacket<uint8_t>& report) { printReportPacket(report, "UInt8"); }
+		virtual void visit(const hexabus::ReportPacket<uint32_t>& report) { printReportPacket(report, "UInt32"); }
+		virtual void visit(const hexabus::ReportPacket<float>& report) { printReportPacket(report, "Float"); }
+		virtual void visit(const hexabus::ReportPacket<boost::posix_time::ptime>& report) { printReportPacket(report, "Datetime"); }
+		virtual void visit(const hexabus::ReportPacket<boost::posix_time::time_duration>& report) { printReportPacket(report, "Timestamp"); }
+		virtual void visit(const hexabus::ReportPacket<std::string>& report) { printReportPacket(report, "String"); }
+		virtual void visit(const hexabus::ReportPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& report) { printReportPacket(report, "Binary (16 bytes)"); }
+		virtual void visit(const hexabus::ReportPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& report) { printReportPacket(report, "Binary (66 bytes)"); }
+
+		virtual void visit(const hexabus::ProxyInfoPacket<bool>& proxyInfo) { printProxyInfoPacket(proxyInfo, "Bool"); }
+		virtual void visit(const hexabus::ProxyInfoPacket<uint8_t>& proxyInfo) { printProxyInfoPacket(proxyInfo, "UInt8"); }
+		virtual void visit(const hexabus::ProxyInfoPacket<uint32_t>& proxyInfo) { printProxyInfoPacket(proxyInfo, "UInt32"); }
+		virtual void visit(const hexabus::ProxyInfoPacket<float>& proxyInfo) { printProxyInfoPacket(proxyInfo, "Float"); }
+		virtual void visit(const hexabus::ProxyInfoPacket<boost::posix_time::ptime>& proxyInfo) { printProxyInfoPacket(proxyInfo, "Datetime"); }
+		virtual void visit(const hexabus::ProxyInfoPacket<boost::posix_time::time_duration>& proxyInfo) { printProxyInfoPacket(proxyInfo, "Timestamp"); }
+		virtual void visit(const hexabus::ProxyInfoPacket<std::string>& proxyInfo) { printProxyInfoPacket(proxyInfo, "String"); }
+		virtual void visit(const hexabus::ProxyInfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& proxyInfo) { printProxyInfoPacket(proxyInfo, "Binary (16 bytes)"); }
+		virtual void visit(const hexabus::ProxyInfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& proxyInfo) { printProxyInfoPacket(proxyInfo, "Binary (66 bytes)"); }
 
 		virtual void visit(const hexabus::WritePacket<bool>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
@@ -459,7 +555,7 @@ int main(int argc, char** argv) {
 			if (!vm.count("bind")) {
 				network->listen();
 			} else {
-				network->listen(bind_addr);
+				network->bind(boost::asio::ip::udp::endpoint(bind_addr, HXB_PORT));
 			}
 		} catch (const hexabus::NetworkException& e) {
 			std::cerr << "Cannot listen on " << bind_addr << ": " << e.code().message() << std::endl;

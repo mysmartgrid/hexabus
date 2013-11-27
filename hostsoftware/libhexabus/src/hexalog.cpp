@@ -230,7 +230,11 @@ int main(int argc, char** argv)
 
 		Logger logger(storefile, store, tc, sensor_factory, sensor_timezone, di, reg);
 
-		network.listen(addr);
+		if (vm.count("bind")) {
+			network.bind(boost::asio::ip::udp::endpoint(addr, HXB_PORT));
+		} else {
+			network.listen();
+		}
 		network.onPacketReceived(boost::ref(logger));
 
 		boost::asio::signal_set rotate_handler(io, SIGHUP);
