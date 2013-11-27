@@ -1,68 +1,40 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "sequence_numbers.h"
 #include "lib/crc16.h"
 #include "lib/random.h"
+#include "hexabus_types.h"
 
-static struct seqnum_entry* seqnum_table[SEQNUM_TABLE_LENGTH];
-static uint8_t list_end = 0;
+static uint16_t sequence_number;
+static uint16_t *seqnum_table[SEQNUM_TABLE_LENGTH];
 
-void init_sequence_number_table() {
-	int i;
-	for(i=0; i<SEQNUM_TABLE_LENGTH; i++) {
-		if(seqnum_table[i]!=NULL) {
-			free(seqnum_table[i]);
-			seqnum_table[i] = NULL;
-		}
-	}
+
+uint16_t next_sequence_number() {
+	return sequence_number++;
 }
 
-void insert_entry(struct seqnum_entry* new_entry) {
+enum hxb_error_code insert_sequence_number(const uip_ipaddr_t* toaddr, uint16_t seqnum) {
 	
-	int i;
-	for(i=0; i<SEQNUM_TABLE_LENGTH; i++) {
-		if(seqnum_table[i]==NULL)
-			break;
+	uint16_t crc = crc16_data((unsigned char*)toaddr, 16, 0);
+	uint8_t hash = (uint8_t)(((crc>>12)^(crc>>8)^(crc>>4)^crc)&0x000f);
 
-		if(new_entry->ip_hash == seqnum_table[i]->ip_hash) {
-			seqnum_table[i]->seqnum = new_entry->seqnum;
-			return;
-		}
+	if(seqnum_table[hash] == NULL) {
+		seqnum_table[hash] = malloc(sizeof(uint16_t));
+		*seqnum_table[hash] = seqnum;
+	} else if(*seqnum_table[hash] == seqnum) {
+		return HXB_ERR_RETRANSMISSION;
+	} else {
+		*seqnum_table[hash] = seqnum;
 	}
-
-	free(seqnum_table[list_end]);
-	seqnum_table[list_end] = new_entry;
-	list_end++;
-	if(list_end>=SEQNUM_TABLE_LENGTH)
-		list_end=0;
+	return HXB_ERR_SUCCESS;
 }
 
-uint16_t next_sequence_number(const uip_ipaddr_t* toaddr) {
-	struct seqnum_entry* new_entry = NULL;
-	uint16_t hash = crc16_data((unsigned char*)toaddr, 16, 0);
-
+void sequence_number_init() {
+	sequence_number = random_rand();
 	int i;
-	for(i=0; i<SEQNUM_TABLE_LENGTH; i++) {
-		if(seqnum_table[i]==NULL)
-			break;
-
-		if(hash == seqnum_table[i]->ip_hash)
-			return seqnum_table[i]->seqnum++;
+	for (i = 0; i < SEQNUM_TABLE_LENGTH; i++)
+	{
+		seqnum_table[i] = NULL;
 	}
-
-	new_entry = malloc(sizeof(struct seqnum_entry));
-	new_entry->ip_hash = hash;
-	new_entry->seqnum = random_rand();
-
-	insert_entry(new_entry);
-
-	return new_entry->seqnum;
-}
-
-void insert_sequence_number(const uip_ipaddr_t* toaddr, uint16_t seqnum) {
-	struct seqnum_entry* new_entry = NULL;
-	new_entry->ip_hash = crc16_data((unsigned char*)toaddr, 16, 0);
-	new_entry->seqnum = seqnum;
-
-	insert_entry(new_entry);
 }

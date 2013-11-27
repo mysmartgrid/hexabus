@@ -192,7 +192,7 @@ static void do_udp_send(const uip_ipaddr_t* toaddr, uint16_t toport, union hxb_p
 {
 	size_t len = prepare_for_send(packet);
 
-	packet->header.sequence_number = next_sequence_number(toaddr);
+	packet->header.sequence_number = next_sequence_number();
 
 	if (len == 0) {
 		syslog(LOG_ERR, "Attempted to send invalid packet");
@@ -645,6 +645,8 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
 
 	syslog(LOG_INFO, "process startup.");
 	udp_handler_event = process_alloc_event();
+
+	sequence_number_init();
 
   // wait 3 second, in order to have the IP addresses well configured
   etimer_set(&udp_unreachable_timer, CLOCK_CONF_SECOND*3);

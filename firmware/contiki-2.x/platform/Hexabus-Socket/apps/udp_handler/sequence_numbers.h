@@ -3,17 +3,13 @@
 
 #include <stddef.h>
 #include "net/uip.h"
+#include "hexabus_types.h"
 
 #define SEQNUM_TABLE_LENGTH 16
 
-struct seqnum_entry {
-	uint16_t ip_hash;
-	uint16_t seqnum;
-};
-
-void init_sequence_number_table();
-void insert_sequence_number(const uip_ipaddr_t* toaddr, uint16_t seqnum);
-uint16_t next_sequence_number(const uip_ipaddr_t* toaddr);
+void sequence_number_init();
+enum hxb_error_code insert_sequence_number(const uip_ipaddr_t* toaddr, uint16_t seqnum);
+uint16_t next_sequence_number();
 
 
 #endif
