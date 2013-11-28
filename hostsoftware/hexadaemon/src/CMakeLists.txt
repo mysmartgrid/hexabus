@@ -10,6 +10,7 @@ include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${Boost_INCLUDE_DIRS}
+  ${HXB_INCLUDE_DIR}
   "../../../shared"
 )
 #link_directories(
