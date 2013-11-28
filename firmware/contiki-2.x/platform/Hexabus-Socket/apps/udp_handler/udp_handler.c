@@ -192,7 +192,7 @@ static void do_udp_send(const uip_ipaddr_t* toaddr, uint16_t toport, union hxb_p
 {
 	size_t len = prepare_for_send(packet);
 
-	packet->header.sequence_number = next_sequence_number();
+	packet->header.sequence_number = next_sequence_number(toaddr);
 
 	if (len == 0) {
 		syslog(LOG_ERR, "Attempted to send invalid packet");
@@ -570,9 +570,6 @@ udphandler(process_event_t ev, process_data_t data)
 					}
 					return;
 				}
-
-				//TODO check for reordering
-				insert_sequence_number(&srcip, packet->header.sequence_number);
 
 				switch ((enum hxb_packet_type) packet->header.type) {
 					case HXB_PTYPE_WRITE:
