@@ -199,8 +199,8 @@ void generate_pinfo(std::vector<char>& vect, hexabus::ProxyInfoPacket<T>& packet
 	vect.clear();
 	packet = hexabus::ProxyInfoPacket<T>(addr, 0x14131210, value_default<T>::value, 0xAA, 0xBB98);
 	generate_header(vect, HXB_PTYPE_PINFO, 0xAA, 0xBB98);
-	vect.insert(vect.end(), bytes.begin(), bytes.end());
 	generate_info_part<T>(vect, 0x14131210);
+	vect.insert(vect.end(), bytes.begin(), bytes.end());
 	generate_footer(vect);
 }
 
@@ -220,9 +220,9 @@ void generate_report(std::vector<char>& vect, hexabus::ReportPacket<T>& packet)
 	vect.clear();
 	packet = hexabus::ReportPacket<T>(0x9876, 0x14131210, value_default<T>::value, 0xAA, 0xBB98);
 	generate_header(vect, HXB_PTYPE_REPORT, 0xAA, 0xBB98);
+	generate_info_part<T>(vect, 0x14131210);
 	vect.push_back(0x98);
 	vect.push_back(0x76);
-	generate_info_part<T>(vect, 0x14131210);
 	generate_footer(vect);
 }
 
@@ -231,9 +231,9 @@ void generate_epreport(std::vector<char>& vect, hexabus::EndpointReportPacket& p
 	vect.clear();
 	packet = hexabus::EndpointReportPacket(0x9876, 0x14131210, HXB_DTYPE_128STRING, value_default<std::string>::value, 0xAA, 0xBB98);
 	generate_header(vect, HXB_PTYPE_EPREPORT, 0xAA, 0xBB98);
+	generate_info_part<std::string>(vect, 0x14131210);
 	vect.push_back(0x98);
 	vect.push_back(0x76);
-	generate_info_part<std::string>(vect, 0x14131210);
 	generate_footer(vect);
 }
 

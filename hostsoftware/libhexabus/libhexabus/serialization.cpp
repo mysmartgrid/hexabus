@@ -152,10 +152,10 @@ class ReportPacketSerializer: public virtual SerializerBuffer, public virtual Ty
 		template<typename TValue>
 		void append(const ReportPacket<TValue>& packet)
 		{
-			append_u16(packet.cause());
 			append_u32(packet.eid());
 			append_u8(packet.datatype());
 			appendValue(packet);
+			append_u16(packet.cause());
 		}
 
 		virtual void visit(const ReportPacket<bool>& packet) { append(packet); }
@@ -176,10 +176,10 @@ class ProxyInfoPacketSerializer : public virtual SerializerBuffer, public virtua
 		{
 			boost::asio::ip::address_v6::bytes_type origin = packet.origin().to_bytes();
 
-			_target.insert(_target.end(), origin.begin(), origin.end());
 			append_u32(packet.eid());
 			append_u8(packet.datatype());
 			appendValue(packet);
+			_target.insert(_target.end(), origin.begin(), origin.end());
 		}
 
 		virtual void visit(const ProxyInfoPacket<bool>& packet) { append(packet); }
@@ -251,10 +251,10 @@ void BinarySerializer::visit(const EndpointInfoPacket& endpointInfo)
 
 void BinarySerializer::visit(const EndpointReportPacket& endpointReport)
 {
-	append_u16(endpointReport.cause());
 	append_u32(endpointReport.eid());
 	append_u8(endpointReport.datatype());
 	appendValue(endpointReport);
+	append_u16(endpointReport.cause());
 }
 
 void BinarySerializer::visit(const AckPacket& ack)
@@ -292,7 +292,7 @@ class BinaryDeserializer {
 		std::string read_string();
 
 		template<typename T>
-		Packet::Ptr checkInfo(uint8_t packetType, uint16_t cause, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum, const boost::asio::ip::address_v6& source);
+		Packet::Ptr completeAndCheck(uint8_t packetType, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum);
 
 		template<typename T>
 		Packet::Ptr check(const T& packet);
@@ -388,7 +388,7 @@ std::string BinaryDeserializer::read_string()
 }
 
 template<typename T>
-Packet::Ptr BinaryDeserializer::checkInfo(uint8_t packetType, uint16_t cause, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum, const boost::asio::ip::address_v6& source)
+Packet::Ptr BinaryDeserializer::completeAndCheck(uint8_t packetType, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum)
 {
 	switch (packetType) {
 		case HXB_PTYPE_INFO:
@@ -398,13 +398,23 @@ Packet::Ptr BinaryDeserializer::checkInfo(uint8_t packetType, uint16_t cause, ui
 			return check(WritePacket<T>(eid, value, flags, seqNum));
 
 		case HXB_PTYPE_REPORT:
-			return check(ReportPacket<T>(cause, eid, value, flags, seqNum));
+			{
+				uint16_t cause = read_u16();
+				return check(ReportPacket<T>(cause, eid, value, flags, seqNum));
+			}
 
 		case HXB_PTYPE_PINFO:
-			return check(ProxyInfoPacket<T>(source, eid, value, flags, seqNum));
+			{
+				boost::asio::ip::address_v6::bytes_type bytes;
+				for (size_t i = 0; i < 16; i++) {
+					bytes[i] = read_u8();
+				}
+				boost::asio::ip::address_v6 source(bytes);
+				return check(ProxyInfoPacket<T>(source, eid, value, flags, seqNum));
+			}
 
 		default:
-			throw BadPacketException("checkInfo assumptions violated");
+			throw BadPacketException("completeAndCheck assumptions violated");
 	}
 }
 
@@ -440,32 +450,21 @@ Packet::Ptr BinaryDeserializer::deserialize()
 		case HXB_PTYPE_REPORT:
 		case HXB_PTYPE_PINFO:
 			{
-				uint16_t cause = 0;
-				boost::asio::ip::address_v6 source;
-				if (type == HXB_PTYPE_REPORT) {
-					cause = read_u16();
-				} else if (type == HXB_PTYPE_PINFO) {
-					boost::asio::ip::address_v6::bytes_type bytes;
-					for (size_t i = 0; i < 16; i++) {
-						bytes[i] = read_u8();
-					}
-					source = boost::asio::ip::address_v6(bytes);
-				}
 				uint32_t eid = read_u32();
 				uint8_t datatype = read_u8();
 
 				switch (datatype) {
 					case HXB_DTYPE_BOOL:
-						return checkInfo<bool>(type, cause, eid, read_u8(), flags, seqNum, source);
+						return completeAndCheck<bool>(type, eid, read_u8(), flags, seqNum);
 
 					case HXB_DTYPE_UINT8:
-						return checkInfo<uint8_t>(type, cause, eid, read_u8(), flags, seqNum, source);
+						return completeAndCheck<uint8_t>(type, eid, read_u8(), flags, seqNum);
 
 					case HXB_DTYPE_UINT32:
-						return checkInfo<uint32_t>(type, cause, eid, read_u32(), flags, seqNum, source);
+						return completeAndCheck<uint32_t>(type, eid, read_u32(), flags, seqNum);
 
 					case HXB_DTYPE_FLOAT:
-						return checkInfo<float>(type, cause, eid, read_float(), flags, seqNum, source);
+						return completeAndCheck<float>(type, eid, read_float(), flags, seqNum);
 
 					case HXB_DTYPE_DATETIME:
 						{
@@ -486,20 +485,20 @@ Packet::Ptr BinaryDeserializer::deserialize()
 							if (dt.date().day_of_week() != weekday)
 								throw BadPacketException("Invalid datetime format");
 
-							return checkInfo<boost::posix_time::ptime>(type, cause, eid, dt, flags, seqNum, source);
+							return completeAndCheck<boost::posix_time::ptime>(type, eid, dt, flags, seqNum);
 						}
 
 					case HXB_DTYPE_TIMESTAMP:
-						return checkInfo<boost::posix_time::time_duration>(type, cause, eid, boost::posix_time::seconds(read_u32()), flags, seqNum, source);
+						return completeAndCheck<boost::posix_time::time_duration>(type, eid, boost::posix_time::seconds(read_u32()), flags, seqNum);
 
 					case HXB_DTYPE_128STRING:
-						return checkInfo<std::string>(type, cause, eid, read_string(), flags, seqNum, source);
+						return completeAndCheck<std::string>(type, eid, read_string(), flags, seqNum);
 
 					case HXB_DTYPE_16BYTES:
-						return checkInfo<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >(type, cause, eid, read_bytes<HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags, seqNum, source);
+						return completeAndCheck<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >(type, eid, read_bytes<HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags, seqNum);
 
 					case HXB_DTYPE_66BYTES:
-						return checkInfo<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(type, cause, eid, read_bytes<HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags, seqNum, source);
+						return completeAndCheck<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(type, eid, read_bytes<HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags, seqNum);
 
 					default:
 						throw BadPacketException("Invalid datatype");
@@ -527,10 +526,11 @@ Packet::Ptr BinaryDeserializer::deserialize()
 
 		case HXB_PTYPE_EPREPORT:
 			{
-				uint16_t cause = read_u16();
 				uint32_t eid = read_u32();
 				uint8_t datatype = read_u8();
-				return check(EndpointReportPacket(cause, eid, datatype, read_string(), flags, seqNum));
+				std::string value = read_string();
+				uint16_t cause = read_u16();
+				return check(EndpointReportPacket(cause, eid, datatype, value, flags, seqNum));
 			}
 
 		case HXB_PTYPE_ACK:
