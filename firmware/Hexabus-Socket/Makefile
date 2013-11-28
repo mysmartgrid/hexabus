@@ -19,6 +19,15 @@ CFLAGS += -Wall -Werror -Wno-unused -Wswitch-enum
 
 CFLAGS += -D"__SHORT_FILE__=\"`basename $<`\""
 
+init-jtag2:
+	( \
+		echo erase; \
+		echo "write lfuse 0 0xe2"; \
+		echo "write hfuse 0 0x10"; \
+		echo "write efuse 0 0xff"; \
+		echo "write eeprom 1 0x02 0xb5 0x5a 0xff 0xfe 0x0b ${SHORTADDR}" \
+	) | avrdude -p atmega1284p -P usb -c jtag2 -F -t
+
 flash-jtag2: 
 	avrdude -c jtag2 -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F 
 
