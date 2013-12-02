@@ -19,10 +19,17 @@
 	<div data-ng-show="found">
 		<h3 data-localize="wizard.devices.found">New device found</h3>
 		<p class="lead" data-localize="wizard.devices.ready">Your device is now ready to be used.</p>
+		<p class="lead" data-localize="wizard.devices.click_rename">Please click on the name of the device, if you want rename it.</p>
 		<table class="table">
 			<tr >
 				<th>
-					<p>{{device.name}}</p>
+					<p data-ng-hide="rename" data-ng-click="show_rename($event)">{{device.name}}</p>
+					<form data-ng-show="rename" ng-submit="rename_device(device.ip)" class="input-append control-group {{rename_error_class}}">
+						<input id="renameField" data-ng-disabled="renaming" class="span2" type="text" data-ng-model="new_name">
+						<button data-ng-disabled="renaming" data-ng-click="rename_device(device.ip)" class="btn" type="button" data-localize="wizard.devices.rename">Rename</button>
+						<img data-ng-show="renaming" src="/img/spinner-small.gif" alt="" />
+						<label for="renameField" class="control-label" data-ng-show="rename_error">{{undefined | localize:'wizard.devices.hexaupload-errors':rename_error_msg}}</label>
+					</form>
 					<p>{{device.ip}}</p>
 				</th>
 				<td>

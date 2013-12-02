@@ -42,6 +42,22 @@ struct ReadingLogger : public hexabus::Logger {
 		
 		static const char* UNKNOWN_UNIT;
 
+		std::string get_sensor_id(const boost::asio::ip::address_v6& source, uint32_t eid)
+		{
+			std::stringstream id;
+
+			boost::asio::ip::address_v6::bytes_type bytes = source.to_bytes();
+			id << std::hex << std::setfill('0');
+			for (size_t i = 8; i < 16; ++i) {
+				id << std::setw(2) << (0xFF & bytes[i]);
+				if (i < 15) {
+					id << ":";
+				}
+			}
+			id << std::dec << "-" << eid;
+			return id.str();
+		}
+
 		const char* eid_to_unit(uint32_t eid)
 		{
 			std::string unit(hexabus::Logger::eid_to_unit(eid));
