@@ -90,11 +90,45 @@ namespace filtering {
 	template<typename T>
 	struct is_filter<Value<T> > : boost::mpl::true_ {};
 
+	struct Cause {
+		typedef uint16_t value_type;
+		typedef boost::optional<value_type> result_type;
+
+		result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
+		{
+			const CausedPacket* cause = dynamic_cast<const CausedPacket*>(&packet);
+			return cause
+				? cause->cause()
+				: result_type();
+		}
+
+		bool operator()(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
+		{
+			result_type v = value(packet, from);
+			return v && *v;
+		}
+	};
+
+	template<>
+	struct is_filter<Cause> : boost::mpl::true_ {};
+
 	template<typename TValue>
 	struct IsInfo : IsOfType<InfoPacket<TValue> > {};
 
 	template<typename T>
 	struct is_filter<IsInfo<T> > : boost::mpl::true_ {};
+
+	template<typename TValue>
+	struct IsReport : IsOfType<ReportPacket<TValue> > {};
+
+	template<typename T>
+	struct is_filter<IsReport<T> > : boost::mpl::true_ {};
+
+	template<typename TValue>
+	struct IsProxyInfo : IsOfType<ProxyInfoPacket<TValue> > {};
+
+	template<typename T>
+	struct is_filter<IsProxyInfo<T> > : boost::mpl::true_ {};
 
 	template<typename TValue>
 	struct IsWrite : IsOfType<WritePacket<TValue> > {};
@@ -106,6 +140,16 @@ namespace filtering {
 
 	template<>
 	struct is_filter<IsEndpointInfo> : boost::mpl::true_ {};
+
+	struct IsEndpointReport : IsOfType<EndpointReportPacket> {};
+
+	template<>
+	struct is_filter<IsEndpointReport> : boost::mpl::true_ {};
+
+	struct IsAck : IsOfType<AckPacket> {};
+
+	template<>
+	struct is_filter<IsAck> : boost::mpl::true_ {};
 
 	struct SourceIP {
 		typedef boost::asio::ip::address_v6 value_type;
@@ -119,6 +163,22 @@ namespace filtering {
 
 	template<>
 	struct is_filter<SourceIP> : boost::mpl::true_ {};
+
+	struct OriginIP {
+		typedef boost::asio::ip::address_v6 value_type;
+		typedef boost::optional<value_type> result_type;
+
+		result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
+		{
+			const ProxiedPacket* pinfo = dynamic_cast<const ProxiedPacket*>(&packet);
+			return pinfo
+				? pinfo->origin()
+				: result_type();
+		}
+	};
+
+	template<>
+	struct is_filter<OriginIP> : boost::mpl::true_ {};
 
 	struct SourcePort {
 		typedef uint16_t value_type;
@@ -193,8 +253,16 @@ namespace filtering {
 	template<typename TValue>
 	static inline IsInfo<TValue> isInfo() { return IsInfo<TValue>(); }
 	template<typename TValue>
+	static inline IsReport<TValue> isReport() { return IsReport<TValue>(); }
+	template<typename TValue>
+	static inline IsProxyInfo<TValue> isProxyInfo() { return IsProxyInfo<TValue>(); }
+	template<typename TValue>
 	static inline IsWrite<TValue> isWrite() { return IsWrite<TValue>(); }
 	static inline IsEndpointInfo isEndpointInfo() { return IsEndpointInfo(); }
+	static inline IsEndpointReport isEndpointReport() { return IsEndpointReport(); }
+	static inline IsAck isAck() { return IsAck(); }
+	static inline Cause cause() { return Cause(); }
+	static inline OriginIP originIP() { return OriginIP(); }
 	static inline SourceIP sourceIP() { return SourceIP(); }
 	static inline SourcePort sourcePort() { return SourcePort(); }
 	template<typename TValue>

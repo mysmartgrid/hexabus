@@ -65,10 +65,10 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		void printProxyInfoHeader(const boost::asio::ip::address_v6& source, uint32_t eid, const char* datatypeStr)
 		{
 			if (oneline) {
-				target << "ProxyInfo;Source " << source << ";EID " << eid << ";Datatype " << datatypeStr << ";";
+				target << "ProxyInfo;Origin " << source << ";EID " << eid << ";Datatype " << datatypeStr << ";";
 			} else {
 				target << "ProxyInfo" << std::endl
-					<< "Source:\t" << source << std::endl
+					<< "Origin:\t" << source << std::endl
 					<< "Endpoint ID:\t" << eid << std::endl
 					<< "Datatype:\t" << datatypeStr << std::endl;
 			}
@@ -133,7 +133,7 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		template<typename TInfo>
 		void printProxyInfoPacket(const hexabus::ProxyInfoPacket<TInfo>& proxyInfo, const char* datatypeStr)
 		{
-			printProxyInfoHeader(proxyInfo.source(), proxyInfo.eid(), datatypeStr);
+			printProxyInfoHeader(proxyInfo.origin(), proxyInfo.eid(), datatypeStr);
 			printValue(proxyInfo);
 		}
 
