@@ -17,6 +17,10 @@
 #define HXB_PACKET_FOOTER \
 	uint16_t crc;                        /* CRC16-Kermit / Contiki's crc16_data() */
 
+#define HXB_CAUSE_FOOTER \
+	uint16_t cause_sequence_number; \
+	HXB_PACKET_FOOTER
+
 struct hxb_packet_header {
 	HXB_PACKET_HEADER
 } __attribute__((packed));
@@ -31,15 +35,13 @@ struct hxb_eidpacket_header {
 
 struct hxb_packet_ack {
 	HXB_PACKET_HEADER
-	uint16_t cause_sequence_number;
-	HXB_PACKET_FOOTER
+	HXB_CAUSE_FOOTER
 } __attribute__((packed));
 
 struct hxb_packet_error {
 	HXB_PACKET_HEADER
-	uint8_t  error_code;                  /* actually enum hxb_error_code */
-	uint16_t cause_sequence_number;
-	HXB_PACKET_FOOTER
+	uint8_t  error_code;            /* actually enum hxb_error_code */
+	HXB_CAUSE_FOOTER
 } __attribute__((packed));
 
 // used for QUERY and EPQUERY
@@ -47,6 +49,8 @@ struct hxb_packet_query {
 	HXB_EIDPACKET_HEADER
 	HXB_PACKET_FOOTER
 } __attribute__((packed));
+
+/* INFO, EPINFO */
 
 #define HXB_VALUEPACKET_HEADER \
 	HXB_EIDPACKET_HEADER \
@@ -101,6 +105,54 @@ struct hxb_packet_16bytes {
 } __attribute__((packed));
 
 
+/* REPORT, EPREPORT */
+
+// used for BOOL und UINT8
+struct hxb_packet_u8_re {
+	HXB_VALUEPACKET_HEADER
+	uint8_t value;
+	HXB_CAUSE_FOOTER
+} __attribute__((packed));
+
+// used for UINT32 and TIMESTAMP
+struct hxb_packet_u32_re {
+	HXB_VALUEPACKET_HEADER
+	uint32_t value;
+	HXB_CAUSE_FOOTER
+} __attribute__((packed));
+
+struct hxb_packet_datetime_re {
+	HXB_VALUEPACKET_HEADER
+	struct hxb_datetime value;
+	HXB_CAUSE_FOOTER
+} __attribute__((packed));
+
+struct hxb_packet_float_re {
+	HXB_VALUEPACKET_HEADER
+	float value;
+	HXB_CAUSE_FOOTER
+} __attribute__((packed));
+
+struct hxb_packet_128string_re {
+	HXB_VALUEPACKET_HEADER
+	char value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1];
+	HXB_CAUSE_FOOTER
+} __attribute__((packed));
+
+struct hxb_packet_66bytes_re {
+	HXB_VALUEPACKET_HEADER
+	char value[HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH];
+	HXB_CAUSE_FOOTER
+} __attribute__((packed));
+
+struct hxb_packet_16bytes_re {
+	HXB_VALUEPACKET_HEADER
+	char value[HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH];
+	HXB_CAUSE_FOOTER
+} __attribute__((packed));
+
+
+//TODO cause seq ans ende!
 
 union hxb_packet_any {
 	struct hxb_packet_header header;
@@ -117,6 +169,14 @@ union hxb_packet_any {
 	struct hxb_packet_128string p_128string;
 	struct hxb_packet_66bytes p_66bytes;
 	struct hxb_packet_16bytes p_16bytes;
+
+	struct hxb_packet_u8_re p_u8_re;
+	struct hxb_packet_u32_re p_u32_re;
+	struct hxb_packet_datetime_re p_datetime_re;
+	struct hxb_packet_float_re p_float_re;
+	struct hxb_packet_128string_re p_128string_re;
+	struct hxb_packet_66bytes_re p_66bytes_re;
+	struct hxb_packet_16bytes_re p_16bytes_re;
 };
 
 
@@ -135,6 +195,7 @@ struct hxb_envelope {
 #undef HXB_PACKET_HEADER
 #undef HXB_PACKET_FOOTER
 #undef HXB_EIDPACKET_HEADER
+#undef HXB_CAUSE_FOOTER
 #undef HXB_VALUEPACKET_HEADER
 
 #endif
