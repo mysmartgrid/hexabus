@@ -31,7 +31,6 @@
  *Author: 	Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
  *			Mathias Dalheimer <>
  */
-
 #include "udp_handler.h"
 #include <string.h>
 #include <stdlib.h>
@@ -106,7 +105,7 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 
 	strncpy(packet->header.magic, HXB_HEADER, strlen(HXB_HEADER));
 	packet->header.flags = 0;
-	packet->header.sequence_number = next_sequence_number(toaddr);
+	packet->header.sequence_number = uip_htons(next_sequence_number(toaddr));
 
 	switch ((enum hxb_packet_type) packet->header.type) {
 		case HXB_PTYPE_INFO:
@@ -166,39 +165,46 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 				case HXB_DTYPE_UINT32:
 					len = sizeof(packet->p_u32_re);
 					packet->p_u32_re.value = uip_htonl(packet->p_u32_re.value);
+					packet->p_u32_re.cause_sequence_number = uip_htons(packet->p_u32_re.cause_sequence_number);
 					packet->p_u32_re.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 					break;
 
 				case HXB_DTYPE_DATETIME:
 					len = sizeof(packet->p_datetime_re);
 					packet->p_datetime_re.value.year = uip_htons(packet->p_datetime_re.value.year);
+					packet->p_datetime_re.cause_sequence_number = uip_htons(packet->p_datetime_re.cause_sequence_number);
 					packet->p_datetime_re.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 					break;
 
 				case HXB_DTYPE_FLOAT:
 					len = sizeof(packet->p_float_re);
 					packet->p_float_re.value = htonf(packet->p_float_re.value);
+					packet->p_float_re.cause_sequence_number = uip_htons(packet->p_float_re.cause_sequence_number);
 					packet->p_float_re.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 					break;
 
 				case HXB_DTYPE_BOOL:
 				case HXB_DTYPE_UINT8:
 					len = sizeof(packet->p_u8_re);
+					packet->p_u8_re.cause_sequence_number = uip_htons(packet->p_u8_re.cause_sequence_number);
 					packet->p_u8_re.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 					break;
 
 				case HXB_DTYPE_128STRING:
 					len = sizeof(packet->p_128string_re);
+					packet->p_128string_re.cause_sequence_number = uip_htons(packet->p_128string_re.cause_sequence_number);
 					packet->p_128string_re.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 					break;
 
 				case HXB_DTYPE_66BYTES:
 					len = sizeof(packet->p_66bytes_re);
+					packet->p_66bytes_re.cause_sequence_number = uip_htons(packet->p_66bytes_re.cause_sequence_number);
 					packet->p_66bytes_re.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 					break;
 
 				case HXB_DTYPE_16BYTES:
 					len = sizeof(packet->p_16bytes_re);
+					packet->p_16bytes_re.cause_sequence_number = uip_htons(packet->p_16bytes_re.cause_sequence_number);
 					packet->p_16bytes_re.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 					break;
 
@@ -224,6 +230,7 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 		case HXB_PTYPE_EPREPORT:
 			len = sizeof(packet->p_128string_re);
 			packet->eid_header.eid = uip_htonl(packet->eid_header.eid);
+			packet->p_128string_re.cause_sequence_number = uip_htons(packet->p_128string_re.cause_sequence_number);
 			packet->p_128string_re.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 			break;
 
@@ -696,7 +703,7 @@ udphandler(process_event_t ev, process_data_t data)
 						{
 							struct eid_cause ec = {
 								.eid = uip_ntohl(packet->p_query.eid),
-								.cause_sequence_number = uip_htons(packet->p_query.sequence_number),
+								.cause_sequence_number = uip_ntohs(packet->p_query.sequence_number),
 							};
 							uip_ipaddr_t src = UDP_IP_BUF->srcipaddr;
 							err = udp_handler_send_generated(&srcip, srcport, generate_query_response, &ec);
@@ -707,7 +714,7 @@ udphandler(process_event_t ev, process_data_t data)
 						{
 							struct eid_cause ec = {
 								.eid = uip_ntohl(packet->p_query.eid),
-								.cause_sequence_number = uip_htons(packet->p_query.sequence_number),
+								.cause_sequence_number = uip_ntohs(packet->p_query.sequence_number),
 							};
 							uip_ipaddr_t src = UDP_IP_BUF->srcipaddr;
 							err = udp_handler_send_generated(&srcip, srcport, generate_epquery_response, &ec);
