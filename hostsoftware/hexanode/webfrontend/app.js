@@ -53,6 +53,38 @@ var save_devicetree = function(cb) {
 	devicetree.save(devicetree_file, cb || Object);
 };
 
+var add_endpoint = function(ip, eid, params) {
+	// FIXME: ugly hack for min/maxvalues, move this to $somewhere_useful
+	switch (params.eid) {
+		case 2: // power meter
+			params.minvalue = 0;
+			params.maxvalue = 3600;
+			break;
+
+		case 3: // temperature
+			params.minvalue = 10;
+			params.maxvalue = 35;
+			break;
+
+		case 5: // humidity sensor
+			params.minvalue = 0;
+			params.maxvalue = 100;
+			break;
+
+		case 44: // pt100 sensors for heater inflow/outflow
+		case 45:
+			params.minvalue = 0;
+			params.maxvalue = 100;
+			break;
+
+		default:
+			params.minvalue = 0;
+			params.maxvalue = 100;
+			break;
+	}
+	return devicetree.add_endpoint(ip, eid, params);
+};
+
 var enumerate_network = function(cb) {
 	cb = cb || Object;
 	hexabus.enumerate_network(function(dev) {
@@ -71,7 +103,7 @@ var enumerate_network = function(cb) {
 				}
 				if (!devicetree.devices[dev.ip]
 					|| !devicetree.devices[dev.ip].endpoints[ep.eid]) {
-					devicetree.add_endpoint(dev.ip, ep.eid, ep);
+					add_endpoint(dev.ip, ep.eid, ep);
 				}
 			}
 		}
@@ -149,7 +181,7 @@ app.put('/api/sensor/:ip/:eid', function(req, res) {
 		res.send("Sensor exists", 200);
 	} else {
 		try {
-			var endpoint = devicetree.add_endpoint(req.params.ip, req.params.eid, req.body);
+			var endpoint = add_endpoint(req.params.ip, req.params.eid, req.body);
 			endpoint.last_value = {
 				unix_ts: Math.round(Date.now() / 1000),
 				value: parseFloat(req.body.value)
