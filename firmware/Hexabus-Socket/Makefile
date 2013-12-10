@@ -20,12 +20,16 @@ CFLAGS += -Wall -Werror -Wno-unused -Wswitch-enum
 CFLAGS += -D"__SHORT_FILE__=\"`basename $<`\""
 
 init-jtag2:
+	@[ -n "${NAME}" ] || (echo "NAME required"; exit 1)
+	@[ `echo -n "${NAME}" | wc -c` -lt 31 ] || (echo "NAME too long"; exit 1)
 	( \
 		echo erase; \
 		echo "write lfuse 0 0xe2"; \
 		echo "write hfuse 0 0x10"; \
 		echo "write efuse 0 0xff"; \
-		echo "write eeprom 1 0x02 0xb5 0x5a 0xff 0xfe 0x0b ${SHORTADDR}" \
+		echo "write eeprom 1 0x02 0xb5 0x5a 0xff 0xfe 0x0b ${SHORTADDR}"; \
+		i=33; for j in `echo -n '${NAME}' | hexdump -e '/1 " 0x%.2x"'`; do echo write eeprom $$i $$j; i=$$(($$i+1)); done; \
+		while [ $$i -lt 63 ]; do echo write eeprom $$i 0; i=$$(($$i + 1)); done; \
 	) | avrdude -p atmega1284p -P usb -c jtag2 -F -t
 
 flash-jtag2: 
