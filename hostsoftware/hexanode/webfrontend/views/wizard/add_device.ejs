@@ -25,7 +25,7 @@
 				<th>
 					<p data-ng-hide="rename" data-ng-click="show_rename($event)">{{device.name}}</p>
 					<form data-ng-show="rename" ng-submit="rename_device(device.ip)" class="input-append control-group {{rename_error_class}}">
-						<input id="renameField" data-ng-disabled="renaming" class="span2" type="text" data-ng-model="new_name">
+						<input id="renameField" focus-if="rename" data-ng-disabled="renaming" class="span2" type="text" data-ng-model="new_name">
 						<button data-ng-disabled="renaming" data-ng-click="rename_device(device.ip)" class="btn" type="button" data-localize="wizard.devices.rename">Rename</button>
 						<img data-ng-show="renaming" src="/img/spinner-small.gif" alt="" />
 						<label for="renameField" class="control-label" data-ng-show="rename_error">{{undefined | localize:'wizard.devices.hexaupload-errors':rename_error_msg}}</label>
