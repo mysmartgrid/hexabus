@@ -222,20 +222,20 @@ void print_packet(const hexabus::Packet& packet)
 	pp.visitPacket(packet);
 }
 
-ErrorCode send_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet)
+ErrorCode send_packet(hexabus::Socket& net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet)
 {
-  try {
-    net->send(packet, addr);
-  } catch (const hexabus::NetworkException& e) {
-    std::cerr << "Could not send packet to " << addr << ": " << e.code().message() << std::endl;
+	try {
+		net.send(packet, addr);
+	} catch (const hexabus::NetworkException& e) {
+		std::cerr << "Could not send packet to " << addr << ": " << e.code().message() << std::endl;
 		return ERR_NETWORK;
-  }
+	}
 
 	return ERR_NONE;
 }
 
 template<typename Filter>
-ErrorCode send_packet_wait(hexabus::Socket* net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet, const Filter& filter)
+ErrorCode send_packet_wait(hexabus::Socket& net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet, const Filter& filter)
 {
 	ErrorCode err;
 	
@@ -245,7 +245,7 @@ ErrorCode send_packet_wait(hexabus::Socket* net, const boost::asio::ip::address_
 
 	try {
 		namespace hf = hexabus::filtering;
-		std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> p = net->receive((filter || hf::isError()) && hf::sourceIP() == addr);
+		std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> p = net.receive((filter || hf::isError()) && hf::sourceIP() == addr);
 		
 		print_packet(*p.first);
 	} catch (const hexabus::NetworkException& e) {
@@ -260,7 +260,7 @@ ErrorCode send_packet_wait(hexabus::Socket* net, const boost::asio::ip::address_
 }
 
 template<template<typename TValue> class ValuePacket>
-ErrorCode send_value_packet(hexabus::Socket* net, const boost::asio::ip::address_v6& ip, uint32_t eid, uint8_t datatype, const std::string& value)
+ErrorCode send_value_packet(hexabus::Socket& net, const boost::asio::ip::address_v6& ip, uint32_t eid, uint8_t datatype, const std::string& value)
 {
 	try { // handle errors in value lexical_cast
 		switch (datatype) {
@@ -332,7 +332,7 @@ int main(int argc, char** argv) {
     ("command,c", po::value<std::string>(), "{get|set|epquery|send|listen|on|off|status|power|devinfo}")
     ("ip,i", po::value<std::string>(), "the hostname to connect to")
     ("bind,b", po::value<std::string>(), "local IP address to use")
-    ("interface,I", po::value<std::string>(), "the interface to use for outgoing messages")
+    ("interface,I", po::value<std::vector<std::string> >(), "for listen: interface to listen on. otherwise: outgoing interface for multicasts")
     ("eid,e", po::value<uint32_t>(), "Endpoint ID (EID)")
     ("datatype,d", po::value<unsigned int>(), "{1: Bool | 2: UInt8 | 3: UInt32 | 4: HexaTime | 5: Float | 6: String}")
     ("value,v", po::value<std::string>(), "Value")
@@ -356,7 +356,7 @@ int main(int argc, char** argv) {
 
 	Command command;
 	boost::optional<boost::asio::ip::address_v6> ip;
-	boost::optional<std::string> interface;
+	std::vector<std::string> interface;
   boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
 
   if (vm.count("help")) {
@@ -365,6 +365,7 @@ int main(int argc, char** argv) {
   }
 
 	oneline = vm.count("oneline") && vm["oneline"].as<bool>();
+	interface = vm["interface"].as<std::vector<std::string> >();
 
   if (vm.count("version")) {
     std::cout << "hexaswitch -- command line hexabus client" << std::endl;
@@ -425,51 +426,45 @@ int main(int argc, char** argv) {
     std::cout << "Binding to " << bind_addr << std::endl;
   }
 
-	if (vm.count("interface")) {
-		interface = vm["interface"].as<std::string>();
-	}
-
-	if (command == C_LISTEN && !interface) {
+	if (command == C_LISTEN && !interface.size()) {
 		std::cerr << "Command LISTEN requires an interface to listen on." << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
 
-  hexabus::Socket* network;
+	hexabus::Listener listener(io);
+	hexabus::Socket socket(io);
 
-  if (interface) {
-    std::cout << "Using interface " << *interface << std::endl;
-    try {
-      network = new hexabus::Socket(io, *interface);
-    } catch (const hexabus::NetworkException& e) {
-      std::cerr << "Could not open socket on interface " << *interface << ": " << e.code().message() << std::endl;
-			return ERR_NETWORK;
-    }
-  } else {
-    try {
-      network = new hexabus::Socket(io);
-    } catch (const hexabus::NetworkException& e) {
-      std::cerr << "Could not open socket: " << e.code().message() << std::endl;
-			return ERR_NETWORK;
-    }
-  }
+	if (interface.size()) {
+		std::cout << "Using interface " << interface[0] << std::endl;
 
-	if (command == C_LISTEN) {
-    std::cout << "Entering listen mode." << std::endl;
 		try {
-			if (!vm.count("bind")) {
-				network->listen();
-			} else {
-				network->listen(bind_addr);
-			}
+			socket.mcast_from(interface[0]);
 		} catch (const hexabus::NetworkException& e) {
-			std::cerr << "Cannot listen on " << bind_addr << ": " << e.code().message() << std::endl;
+			std::cerr << "Could not open socket on interface " << interface[0] << ": " << e.code().message() << std::endl;
 			return ERR_NETWORK;
 		}
+	}
+
+	if (command == C_LISTEN) {
+		std::cout << "Entering listen mode on";
+
+		for (std::vector<std::string>::const_iterator it = interface.begin(), end = interface.end();
+				it != end;
+				it++) {
+			std::cout << " " << *it;
+			try {
+				listener.listen(*it);
+			} catch (const hexabus::NetworkException& e) {
+				std::cerr << "Cannot listen on " << *it << ": " << e.what() << "; " << e.code().message() << std::endl;
+				return ERR_NETWORK;
+			}
+		}
+		std::cout << std::endl;
 
 		while (true) {
 			std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
 			try {
-				pair = network->receive();
+				pair = listener.receive();
 			} catch (const hexabus::NetworkException& e) {
 				std::cerr << "Error receiving packet: " << e.code().message() << std::endl;
 				return ERR_NETWORK;
@@ -493,13 +488,13 @@ int main(int argc, char** argv) {
 		std::cerr << "Command requires an IP address" << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
-	if (ip->is_multicast() && !interface) {
+	if (ip->is_multicast() && !interface.size()) {
 		std::cerr << "Sending to multicast requires an interface to send from" << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
 
 	try {
-		network->bind(bind_addr);
+		socket.bind(bind_addr);
 	} catch (const hexabus::NetworkException& e) {
 		std::cerr << "Cannot bind to " << bind_addr << ": " << e.code().message() << std::endl;
 		return ERR_NETWORK;
@@ -507,7 +502,7 @@ int main(int argc, char** argv) {
 
 	hexabus::LivenessReporter* liveness =
     vm.count("reliable") && vm["reliable"].as<bool>()
-    ? new hexabus::LivenessReporter(*network)
+    ? new hexabus::LivenessReporter(socket)
     : 0;
 	if (liveness) {
 		liveness->establishPaths(1);
@@ -525,13 +520,13 @@ int main(int argc, char** argv) {
 	switch (command) {
 		case C_ON:
 		case C_OFF:
-			return send_packet(network, *ip, hexabus::WritePacket<bool>(EP_POWER_SWITCH, command == C_ON));
+			return send_packet(socket, *ip, hexabus::WritePacket<bool>(EP_POWER_SWITCH, command == C_ON));
 
 		case C_STATUS:
-			return send_packet_wait(network, *ip, hexabus::QueryPacket(EP_POWER_SWITCH), hf::eid() == EP_POWER_SWITCH && hf::sourceIP() == *ip);
+			return send_packet_wait(socket, *ip, hexabus::QueryPacket(EP_POWER_SWITCH), hf::eid() == EP_POWER_SWITCH && hf::sourceIP() == *ip);
 
 		case C_POWER:
-			return send_packet_wait(network, *ip, hexabus::QueryPacket(EP_POWER_METER), hf::eid() == EP_POWER_METER && hf::sourceIP() == *ip);
+			return send_packet_wait(socket, *ip, hexabus::QueryPacket(EP_POWER_METER), hf::eid() == EP_POWER_METER && hf::sourceIP() == *ip);
 
 		case C_SET:
 		case C_SEND:
@@ -555,9 +550,9 @@ int main(int argc, char** argv) {
 					std::string value = vm["value"].as<std::string>();
 
 					if (command == C_SET) {
-						return send_value_packet<hexabus::WritePacket>(network, *ip, eid, dtype, value);
+						return send_value_packet<hexabus::WritePacket>(socket, *ip, eid, dtype, value);
 					} else {
-						return send_value_packet<hexabus::InfoPacket>(network, *ip, eid, dtype, value);
+						return send_value_packet<hexabus::InfoPacket>(socket, *ip, eid, dtype, value);
 					}
 				} catch (const std::exception& e) {
 					std::cerr << "Cannot process option: " << e.what() << std::endl;
@@ -575,14 +570,14 @@ int main(int argc, char** argv) {
 				uint32_t eid = vm["eid"].as<uint32_t>();
 
 				if (command == C_GET) {
-					return send_packet_wait(network, *ip, hexabus::QueryPacket(eid), hf::eid() == eid && hf::sourceIP() == *ip);
+					return send_packet_wait(socket, *ip, hexabus::QueryPacket(eid), hf::eid() == eid && hf::sourceIP() == *ip);
 				} else {
-					return send_packet_wait(network, *ip, hexabus::EndpointQueryPacket(eid), hf::eid() == eid && hf::sourceIP() == *ip);
+					return send_packet_wait(socket, *ip, hexabus::EndpointQueryPacket(eid), hf::eid() == eid && hf::sourceIP() == *ip);
 				}
 			}
 
 		case C_DEVINFO:
-			return send_packet_wait(network, *ip, hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR), hf::eid() == EP_DEVICE_DESCRIPTOR && hf::sourceIP() == *ip);
+			return send_packet_wait(socket, *ip, hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR), hf::eid() == EP_DEVICE_DESCRIPTOR && hf::sourceIP() == *ip);
 
 		default:
 			std::cerr << "BUG: Unknown command" << std::endl;
