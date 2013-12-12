@@ -18,11 +18,11 @@ namespace hexanode {
 
   class PacketPusher : public hexabus::PacketVisitor {
     public:
-      PacketPusher(hexabus::Socket* socket,
+      PacketPusher(hexabus::Socket& socket,
           boost::network::http::client client,
           const boost::network::uri::uri& api_uri,
           std::ostream& target)
-        : _info(*socket)
+        : _info(socket)
         , _client(client)
         , _api_uri(api_uri)
         , target(target) {}
@@ -37,7 +37,6 @@ namespace hexanode {
     private:
 			hexabus::DeviceInterrogator _info;
 			hexabus::EndpointRegistry _ep_registry;
-      hexabus::Socket* _socket;
       boost::asio::ip::udp::endpoint _endpoint;
 			std::map<std::string, hexanode::Sensor> _sensors;
       boost::network::http::client _client;

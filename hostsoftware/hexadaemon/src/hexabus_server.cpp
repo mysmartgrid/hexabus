@@ -29,6 +29,21 @@ HexabusServer::HexabusServer(boost::asio::io_service& io, int interval, bool deb
 	, _sm_state(0)
 	, _device_name("Flukso")
 {
+  _init();
+}
+
+HexabusServer::HexabusServer(boost::asio::io_service& io, const std::string &interface, int interval, bool debug)
+    : _socket(io, interface)
+	, _timer(io)
+	, _interval(interval)
+	, _debug(debug)
+	, _sm_state(0)
+	, _device_name("Flukso")
+{
+  _init();
+}
+
+void HexabusServer::_init() {
 	std::string name = loadDeviceName();
 	if ( !name.empty() )
 		_device_name = name;

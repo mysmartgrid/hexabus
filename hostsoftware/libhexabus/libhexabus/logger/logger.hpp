@@ -32,6 +32,7 @@ class Logger :
 		boost::asio::ip::address_v6 source;
 
 		virtual const char* eid_to_unit(uint32_t eid);
+		virtual std::string get_sensor_id(const boost::asio::ip::address_v6& source, uint32_t eid);
 
 		void on_sensor_name_received(const std::string& sensor_name, const boost::asio::ip::address_v6& address, const hexabus::Packet& ep_info);
 

@@ -267,20 +267,10 @@ int main(int argc, char** argv)
 
 	hxb_serial stick(&sdev, &io);
 	
-	hexabus::Socket* network;
+	hexabus::Listener network(io);
 
 	if(!vm.count("noinfo")) {
-		//Initialize network
-
-		try {
-			network = new hexabus::Socket(io);
-		} catch(const hexabus::NetworkException& e) {
-			std::cerr << "Could not open socket: " << e.code().message() << std::endl;
-			return 1;
-		}
-
-		ba::ip::address_v6 bind_addr(ba::ip::address_v6::any());
-		network->listen();
+		network.listen();
 	}
 
 	//TODO flush buffer
@@ -305,7 +295,7 @@ int main(int argc, char** argv)
 			if(!vm.count("noinfo")) {
 				ba::ip::address_v6 ip;
 				rcv_callback cb = {&ip, &io};
-				boost::signals2::connection con = network->onPacketReceived(cb, hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR));
+				boost::signals2::connection con = network.onPacketReceived(cb, hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR));
 				io.run();
 				con.disconnect();
 				if(verbose)
