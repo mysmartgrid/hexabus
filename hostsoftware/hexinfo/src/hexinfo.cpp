@@ -415,14 +415,12 @@ int main(int argc, char** argv)
 	std::set<boost::asio::ip::address_v6> addresses; // Holds the list of addresses to scan -- either filled with everything we "discover" or with just one "ip"
 	// init the network interface
 	boost::asio::io_service io;
-	hexabus::Socket* network;
+	hexabus::Socket* network = new hexabus::Socket(io);
 	try {
 		if(vm.count("interface")) {
 			if(verbose)
 				std::cout << "Using network interface " << vm["interface"].as<std::string>() << "." << std::endl;
-			network = new hexabus::Socket(io, vm["interface"].as<std::string>());
-		} else {
-			network = new hexabus::Socket(io);
+			network->mcast_from(vm["interface"].as<std::string>());
 		}
 	} catch(const hexabus::NetworkException& e) {
 		std::cerr << "Could not open socket: " << e.code().message() << std::endl;

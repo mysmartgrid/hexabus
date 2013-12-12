@@ -26,7 +26,7 @@ int main (int argc, char const* argv[]) {
     ("help,h", "produce help message")
     ("version", "print libhexanode version and exit")
     ("frontendurl,u", po::value<std::string>(), "URL of frontend API")
-    ("interface,i", po::value<std::string>(), "name of the interface to bind to (e.g. eth0)")
+    ("interface,i", po::value<std::vector<std::string> >(), "name of an interface to listen on (e.g. eth0)")
     ;
   po::positional_options_description p;
   p.add("frontendurl", 1);
@@ -67,32 +67,27 @@ int main (int argc, char const* argv[]) {
   std::cout << "Using frontend url " << base_uri << std::endl;
   std::cout << "Pushing incoming values." << std::endl;
 
-  // We need two io services - the info_io is used during the device name lookup.
-  boost::asio::io_service io;
-  boost::asio::io_service info_io;
-  hexabus::Socket* network;
-  if (vm.count("interface") != 1) {
-    network=new hexabus::Socket(io);
-    std::cout << "Using all interfaces." << std::endl;
-  } else {
-    std::string interface(vm["interface"].as<std::string>());
-    std::cout << "Using interface " << interface << std::endl;
-    network=new hexabus::Socket(io, interface);
-  }
-  boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
-  std::cout << "Binding to " << bind_addr << std::endl;
-  network->listen(bind_addr);
+	boost::asio::io_service io;
+	hexabus::Listener listener(io);
+	hexabus::Socket socket(io);
+
+	const std::vector<std::string>& ifaces = vm["interface"].as<std::vector<std::string> >();
+	if (!ifaces.size()) {
+		std::cout << "No listener interface given" << std::endl;
+		return 1;
+	}
+	std::for_each(ifaces.begin(), ifaces.end(), boost::bind(&hexabus::Listener::listen, &listener, _1));
 
   http::client client;
 
-	hexanode::PacketPusher pp(network, client, base_uri, std::cout);
+	hexanode::PacketPusher pp(socket, client, base_uri, std::cout);
   
   std::cout << "Will now push values." << std::endl;
   while (true) {
     try {
       std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
       try {
-        pair = network->receive(is_info);
+        pair = listener.receive(is_info);
       } catch (const hexabus::GenericException& e) {
         const hexabus::NetworkException* nerror;
         if ((nerror = dynamic_cast<const hexabus::NetworkException*>(&e))) {

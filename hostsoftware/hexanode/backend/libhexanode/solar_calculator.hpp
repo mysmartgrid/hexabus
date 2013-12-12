@@ -12,7 +12,7 @@ namespace hexanode {
     public:
       typedef boost::shared_ptr<SolarCalculator> Ptr;
       SolarCalculator(
-          hexabus::Socket* receive_socket,
+          hexabus::Listener* receive_socket,
           hexabus::Socket* send_socket,
           const boost::asio::ip::udp::endpoint& endpoint,
           const uint32_t& pv_production_eid,
@@ -36,7 +36,7 @@ namespace hexanode {
     private:
       SolarCalculator (const SolarCalculator& original);
       SolarCalculator& operator= (const SolarCalculator& rhs);
-      hexabus::Socket* _receive_socket;
+      hexabus::Listener* _receive_socket;
       hexabus::Socket* _send_socket;
       boost::asio::ip::udp::endpoint _endpoint;
       const uint32_t _pv_production_eid;
