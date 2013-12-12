@@ -7,4 +7,4 @@ do
 done
 sleep 10
 
-exec setuidgid hexanode hexabus_webbackend -u 127.0.0.1 -i eth0 2>&1
+exec setuidgid hexanode hexabus_webbackend -u 127.0.0.1 -i eth0 -i usb0 2>&1
