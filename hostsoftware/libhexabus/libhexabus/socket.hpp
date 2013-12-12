@@ -22,6 +22,9 @@ namespace hexabus {
 
 			static const boost::asio::ip::address_v6 GroupAddress;
 
+		private:
+			void openSocket();
+
 		protected:
 			boost::asio::io_service& io;
 			boost::asio::ip::udp::socket socket;
@@ -29,8 +32,6 @@ namespace hexabus {
 			boost::signals2::signal<void (const Packet::Ptr&, const boost::asio::ip::udp::endpoint&)> packetReceived;
 			on_async_error_t asyncError;
 			std::vector<char> data;
-
-			virtual void openSocket();
 
 			int iface_idx(const std::string& iface);
 
@@ -63,26 +64,30 @@ namespace hexabus {
 	};
 
 	class Listener : public SocketBase {
-		protected:
-			virtual void openSocket();
+		private:
+			void configureSocket();
 
 		public:
 			Listener(boost::asio::io_service& io)
 				: SocketBase(io)
-			{}
+			{
+				configureSocket();
+			}
 
 			void listen(const std::string& dev = "");
 			void ignore(const std::string& dev = "");
 	};
 
 	class Socket : public SocketBase {
-		protected:
-			virtual void openSocket();
+		private:
+			void configureSocket();
 
 		public:
 			Socket(boost::asio::io_service& io)
 				: SocketBase(io)
-			{}
+			{
+				configureSocket();
+			}
 
 			void mcast_from(const std::string& dev);
 

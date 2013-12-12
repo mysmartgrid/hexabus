@@ -172,11 +172,9 @@ std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> SocketBase::receive(
 
 
 
-void Listener::openSocket()
+void Listener::configureSocket()
 {
 	boost::system::error_code err;
-
-	SocketBase::openSocket();
 
 	socket.set_option(boost::asio::socket_base::reuse_address(true), err);
 	if (err)
@@ -211,11 +209,9 @@ void Listener::ignore(const std::string& dev)
 
 
 
-void Socket::openSocket()
+void Socket::configureSocket()
 {
 	boost::system::error_code err;
-
-	SocketBase::openSocket();
 
 	socket.set_option(boost::asio::ip::multicast::hops(64), err);
 	if (err)
