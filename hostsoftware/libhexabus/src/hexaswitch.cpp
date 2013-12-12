@@ -365,7 +365,9 @@ int main(int argc, char** argv) {
   }
 
 	oneline = vm.count("oneline") && vm["oneline"].as<bool>();
-	interface = vm["interface"].as<std::vector<std::string> >();
+	if (vm.count("interface")) {
+		interface = vm["interface"].as<std::vector<std::string> >();
+	}
 
   if (vm.count("version")) {
     std::cout << "hexaswitch -- command line hexabus client" << std::endl;
