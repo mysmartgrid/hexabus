@@ -152,7 +152,7 @@ interface {0} {{
 	if prefix is not None:
 		prefix_fragment = """	prefix {0} {{
 		AdvPreferredLifetime {1};
-		AdvDefaultLifetime {2};
+		AdvValidLifetime {2};
 	}};
 """.format(prefix, adv_interval, 3 * adv_interval)
 	footer = "};\n"
