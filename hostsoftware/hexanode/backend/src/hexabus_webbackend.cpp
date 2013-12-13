@@ -82,7 +82,6 @@ int main (int argc, char const* argv[]) {
 
 	hexanode::PacketPusher pp(socket, client, base_uri, std::cout);
   
-  std::cout << "Will now push values." << std::endl;
   while (true) {
     try {
       std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
@@ -109,9 +108,6 @@ int main (int argc, char const* argv[]) {
       std::cerr << "Discarding and resuming operation." << std::endl;
     }
   }
-
-
-
 
   return 0;
 }
