@@ -68,6 +68,19 @@ var hexabus = function() {
 		return config;
 	};
 
+	this.get_activation_code = function(cb) {
+		var program = nconf.get('debug-wizard')
+			? '../backend/build/src/hexabus_msg_bridge --config bridge.conf -A'
+			: 'hexabus_msg_bridge -A';
+		exec(program, function(error, stdout, stderr) {
+			if (error) {
+				cb(error, undefined);
+			} else {
+				cb(undefined, stdout);
+			}
+		});
+	};
+
 	this.get_heartbeat_state = function(cb) {
 		fs.readFile('/var/run/hexabus_msg_heartbeat.state', { encoding: 'utf8' }, function(err, data) {
 			if (err) {

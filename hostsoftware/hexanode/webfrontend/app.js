@@ -151,30 +151,6 @@ app.get('/api', function(req, res) {
   res.send("API is running.");
 });
 
-//app.get('/api/sensor', function(req, res) {
-//	res.send(JSON.stringify(sensor_registry.get_sensors()));
-//});
-//
-//app.get('/api/sensor/:ip/:eid/latest', function(req, res) {
-//	var sensor = sensor_registry.get_sensor(req.params.ip, req.params.eid);
-//	if (!sensor) {
-//		res.send("Sensor not found", 404);
-//	} else if (sensor_cache.get_current_value(sensor) == undefined) {
-//		res.send("No value yet", 404);
-//	} else {
-//		res.send(JSON.stringify(sensor_cache.get_current_value(sensor.id)));
-//	}
-//});
-//
-//app.get('/api/sensor/:ip/:eid/info', function(req, res) {
-//	var sensor = sensor_registry.get_sensor(req.params.ip, req.params.eid);
-//	if (sensor) {
-//		res.send(JSON.stringify(sensor));
-//	} else {
-//		res.send("Sensor not found", 404);
-//	}
-//});
-
 app.put('/api/sensor/:ip/:eid', function(req, res) {
 	var device = devicetree.devices[req.params.ip];
 	if (device && device.endpoints[req.params.eid]) {
@@ -232,16 +208,16 @@ app.post('/api/device/rename/:ip', function(req, res) {
 });
 
 app.get('/', function(req, res) {
-	fs.exists('/etc/radvd.conf', function(exists) {
-		if (exists) {
-			res.render('index.ejs', {
-				active_nav: 'dashboard',
-				views: devicetree.views
-			});
-		} else {
-			res.redirect('/wizard/new');
-		}
-	});
+	if (!fs.existsSync('/etc/radvd.conf')) {
+		res.redirect('/wizard/new');
+	} else if (!fs.existsSync('/etc/hexabus_msg_bridge.conf') && !nconf.get('debug-wizard')) {
+		res.redirect('/wizard/activation');
+	} else {
+		res.render('index.ejs', {
+			active_nav: 'dashboard',
+			views: devicetree.views
+		});
+	}
 });
 app.get('/about', function(req, res) {
 	res.render('about.ejs', { active_nav: 'about' });
@@ -257,22 +233,26 @@ app.get('/wizard', function(req, res) {
 });
 app.get('/wizard/current', function(req, res) {
 	var config = hexabus.read_current_config();
-	hexabus.get_heartbeat_state(function(err, state) {
-		config.active_nav = 'configuration';
+	hexabus.get_activation_code(function(err, activation_code) {
+		config.activation_code = activation_code;
 
-		if (err) {
-			config.heartbeat_ok = false;
-			config.heartbeat_code = 0;
-			config.heartbeat_messages = [err];
-			config.heartbeat_state = "";
-		} else {
-			config.heartbeat_ok = state.code == 0;
-			config.heartbeat_code = state.code;
-			config.heartbeat_messages = state.messages;
-			config.heartbeat_state = state;
-		}
+		hexabus.get_heartbeat_state(function(err, state) {
+			config.active_nav = 'configuration';
 
-		res.render('wizard/current.ejs', config);
+			if (err) {
+				config.heartbeat_ok = false;
+				config.heartbeat_code = 0;
+				config.heartbeat_messages = [err];
+				config.heartbeat_state = "";
+			} else {
+				config.heartbeat_ok = state.code == 0;
+				config.heartbeat_code = state.code;
+				config.heartbeat_messages = state.messages;
+				config.heartbeat_state = state;
+			}
+
+			res.render('wizard/current.ejs', config);
+		});
 	});
 });
 app.post('/wizard/reset', function(req, res) {

@@ -14,6 +14,11 @@
 			<% } %>
 			<p><span data-localize="wizard.current.msg-error-code">Exit code:</span> <%= heartbeat_code %></p>
 		</div>
+		<% if (activation_code) { %>
+		<div class="alert alert-info">
+			<span data-localize="wizard.current.activation-code"></span>: <%= activation_code %>
+		</div>
+		<% } %>
 		<a href="mailto:support@mysmartgrid.de?Subject=Support&Body=<%= encodeURIComponent(JSON.stringify(heartbeat_state)) %>" data-localize="wizard.current.request-support">Request support</a>
 		<% } %>
 		<h3 data-localize="wizard.current.lan-addrs">LAN connection</h3>
