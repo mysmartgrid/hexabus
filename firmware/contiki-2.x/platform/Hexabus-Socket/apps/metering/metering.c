@@ -271,15 +271,14 @@ bool
 metering_calibrate(void)
 {
   unsigned char cal_flag = eeprom_read_byte((void*)EE_METERING_CAL_FLAG);
-  if (cal_flag == 0xFF) {
+  if (cal_flag == 0xFF && !metering_calibration) {
     metering_calibration = true;
+		metering_calibration_state = 0;
     leds_on(LEDS_ALL);
     //stop calibration if there was no pulse in 60 seconds
     ctimer_set(&metering_stop_timer, CLOCK_SECOND*60,(void *)(void *) metering_calibration_stop,NULL);
-    return true;
   }
-  else
-    return false;
+	return metering_calibration;
 }
 
 /* if socket is not equipped with metering then calibration should stop automatically after some time */
