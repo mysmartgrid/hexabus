@@ -152,8 +152,6 @@ struct hxb_packet_16bytes_re {
 } __attribute__((packed));
 
 
-//TODO cause seq ans ende!
-
 union hxb_packet_any {
 	struct hxb_packet_header header;
 	struct hxb_eidpacket_header eid_header;
@@ -190,6 +188,12 @@ struct hxb_envelope {
 	uint16_t          src_port;
 	uint32_t          eid;
 	struct hxb_value  value;
+};
+
+struct hxb_queue_packet {
+	uip_ipaddr_t			to_ip;
+	uint16_t				to_port;
+	union hxb_packet_any	packet;
 };
 
 #undef HXB_PACKET_HEADER

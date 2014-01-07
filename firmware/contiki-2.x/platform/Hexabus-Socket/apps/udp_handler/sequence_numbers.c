@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdio.h>
 
 #include "sequence_numbers.h"
 #include "lib/crc16.h"

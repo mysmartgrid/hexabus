@@ -46,6 +46,7 @@
 #include "endpoint_registry.h"
 #include "hexabus_config.h"
 #include "sequence_numbers.h"
+#include "reliability.h"
 
 #define LOG_LEVEL UDP_HANDLER_DEBUG
 #include "syslog.h"
@@ -104,8 +105,8 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 	size_t len;
 
 	strncpy(packet->header.magic, HXB_HEADER, strlen(HXB_HEADER));
-	packet->header.flags = 0;
-	packet->header.sequence_number = uip_htons(next_sequence_number(toaddr));
+	if((packet->header.sequence_number) == 0) 
+		packet->header.sequence_number = uip_htons(next_sequence_number(toaddr));
 
 	switch ((enum hxb_packet_type) packet->header.type) {
 		case HXB_PTYPE_INFO:
@@ -246,6 +247,8 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 			packet->p_ack.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 			break;
 
+		case HXB_PTYPE_PINFO:
+		//TODO
 		default:
 			return 0;
 	}
@@ -282,6 +285,9 @@ enum hxb_error_code udp_handler_send_generated(const uip_ipaddr_t* toaddr, uint1
 {
 	enum hxb_error_code err;
 	union hxb_packet_any send_buffer;
+
+	send_buffer.header.sequence_number = 0;
+	send_buffer.header.flags = HXB_FLAG_NONE;
 
 	if (!packet_gen_fn) {
 		syslog(LOG_ERR, "Attempted to generate packet by NULL packet_gen_fn");
@@ -445,6 +451,8 @@ static enum hxb_error_code check_crc(const union hxb_packet_any* packet)
 			crc = packet->p_ack.crc;
 			break;
 
+		case HXB_PTYPE_PINFO:
+		//TODO
 		default:
 			return HXB_ERR_MALFORMED_PACKET;
 	}
@@ -677,6 +685,7 @@ udphandler(process_event_t ev, process_data_t data)
       } else {
 				enum hxb_error_code err;
 
+				// TODO handle UL_ACK
 				bool want_ack = packet->header.flags & HXB_FLAG_WANT_ACK;
 
 				// don't send error packets for broadcasts
@@ -722,13 +731,17 @@ udphandler(process_event_t ev, process_data_t data)
 						}
 
 					case HXB_PTYPE_INFO:
-						err = handle_info(packet);
+						//err = handle_info(packet);
 						break;
 
 					case HXB_PTYPE_REPORT:
 					case HXB_PTYPE_EPREPORT:
-					//case HXB_PTYPE_PINFO:
+					case HXB_PTYPE_PINFO:
+						err = handle_info(packet);
+						//TODO send ack
 					case HXB_PTYPE_ACK:
+						//TODO only process acks from master
+						process_ack(packet->p_ack.cause_sequence_number);
 					case HXB_PTYPE_ERROR:
 					case HXB_PTYPE_EPINFO:
 					default:

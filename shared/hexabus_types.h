@@ -1,6 +1,9 @@
 #ifndef HEXABUS_TYPES_H_
 #define HEXABUS_TYPES_H_
 
+
+#include <stdint.h>
+
 // Boolean values
 enum hxb_bool {
 	HXB_FALSE = 0,
@@ -18,7 +21,7 @@ enum hxb_packet_type {
 	HXB_PTYPE_EPQUERY  = 0x0A, // Request endpoint metadata
 	HXB_PTYPE_EPREPORT = 0x0B, // Endpoint metadata with seqence number of the causing EPQUERY
 	HXB_PTYPE_ACK      = 0x10, // Acknowledgement for INFO, EPINFO and PINFO packets
-	//HXB_PTYPE_PINFO    = 0x11, // Endpoint provides information with IP address of causing node
+	HXB_PTYPE_PINFO    = 0x11, // Endpoint provides information with IP address of causing node
 
 };
 
@@ -37,8 +40,9 @@ enum hxb_datatype {
 };
 
 enum hxb_flags {
-	HXB_FLAG_NONE       = 0x00, // No flags set
-	HXB_FLAG_WANT_ACK   = 0x01, // sending node requires acknowledgement
+	HXB_FLAG_NONE       	= 0x00, // No flags set
+	HXB_FLAG_WANT_ACK   	= 0x01, // sending node requires acknowledgement
+	HXB_FLAG_WANT_UL_ACK	= 0x02, //TODO additonal flag for state machine changes?
 };
 
 // Error codes
@@ -56,7 +60,8 @@ enum hxb_error_code {
 
 	HXB_ERR_MALFORMED_PACKET  = 0x80,
 	HXB_ERR_UNEXPECTED_PACKET = 0x81,
-	HXB_ERR_NO_VALUE          = 0x82
+	HXB_ERR_NO_VALUE          = 0x82,
+	HXB_ERR_OUT_OF_MEMORY     = 0x83
 };
 
 // Operators for comparison in state machine
