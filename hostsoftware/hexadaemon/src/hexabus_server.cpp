@@ -22,7 +22,8 @@ namespace hf = hexabus::filtering;
 namespace bf = boost::filesystem;
 
 HexabusServer::HexabusServer(boost::asio::io_service& io, int interval, bool debug)
-	: _socket(io)
+	: _listener(io)
+	, _socket(io)
 	, _timer(io)
 	, _interval(interval)
 	, _debug(debug)
@@ -33,13 +34,15 @@ HexabusServer::HexabusServer(boost::asio::io_service& io, int interval, bool deb
 }
 
 HexabusServer::HexabusServer(boost::asio::io_service& io, const std::string &interface, int interval, bool debug)
-    : _socket(io, interface)
+	: _listener(io)
+	, _socket(io)
 	, _timer(io)
 	, _interval(interval)
 	, _debug(debug)
 	, _sm_state(0)
 	, _device_name("Flukso")
 {
+  _listener.listen(interface);
   _init();
 }
 
@@ -51,7 +54,7 @@ void HexabusServer::_init() {
 	loadSensorMapping();
 
 	try {
-		_socket.listen(boost::asio::ip::address_v6::from_string("::"));
+		_socket.bind(boost::asio::ip::address_v6::from_string("::"));
 	} catch ( const hexabus::NetworkException& error ) {
 		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
 		exit(1);

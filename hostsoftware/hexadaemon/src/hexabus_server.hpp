@@ -40,6 +40,7 @@ namespace hexadaemon {
 			void _init();
 
 		private:
+			hexabus::Listener _listener;
 			hexabus::Socket _socket;
 			boost::asio::deadline_timer _timer;
 			int _interval;
