@@ -1,6 +1,9 @@
 #ifndef HEXABUS_TYPES_H_
 #define HEXABUS_TYPES_H_
 
+
+#include <stdint.h>
+
 // Boolean values
 enum hxb_bool {
 	HXB_FALSE = 0,
@@ -37,25 +40,28 @@ enum hxb_datatype {
 };
 
 enum hxb_flags {
-	HXB_FLAG_NONE       = 0x00, // No flags set
-	HXB_FLAG_WANT_ACK   = 0x01, // sending node requires acknowledgement
+	HXB_FLAG_NONE       	= 0x00, // No flags set
+	HXB_FLAG_WANT_ACK   	= 0x01, // sending node requires acknowledgement
+	HXB_FLAG_WANT_UL_ACK	= 0x02, //TODO additonal flag for state machine changes?
 };
 
 // Error codes
 enum hxb_error_code {
-	HXB_ERR_SUCCESS       = 0x00, // reserved: No error
-	HXB_ERR_UNKNOWNEID    = 0x01, // A request for an endpoint which does not exist on the device was received
-	HXB_ERR_WRITEREADONLY = 0x02, // A WRITE was received for a readonly endpoint
-	HXB_ERR_CRCFAILED     = 0x03, // A packet failed the CRC check -- TODO How can we find out what information was lost?
-	HXB_ERR_DATATYPE      = 0x04, // A packet with a datatype that does not fit the endpoint was received
-	HXB_ERR_INVALID_VALUE = 0x05, // A value was encountered that cannot be interpreted
+	HXB_ERR_SUCCESS        = 0x00, // reserved: No error
+	HXB_ERR_UNKNOWNEID     = 0x01, // A request for an endpoint which does not exist on the device was received
+	HXB_ERR_WRITEREADONLY  = 0x02, // A WRITE was received for a readonly endpoint
+	HXB_ERR_CRCFAILED      = 0x03, // A packet failed the CRC check -- TODO How can we find out what information was lost?
+	HXB_ERR_DATATYPE       = 0x04, // A packet with a datatype that does not fit the endpoint was received
+	HXB_ERR_INVALID_VALUE  = 0x05, // A value was encountered that cannot be interpreted
+	HXB_ERR_RETRANSMISSION = 0x06, // A packet was received more than once
 
 	// internal error values
 	HXB_ERR_INTERNAL         = 0x80, // this is just a threshold. everything above is considered internal to a device and should never reach the network
 
 	HXB_ERR_MALFORMED_PACKET  = 0x80,
 	HXB_ERR_UNEXPECTED_PACKET = 0x81,
-	HXB_ERR_NO_VALUE          = 0x82
+	HXB_ERR_NO_VALUE          = 0x82,
+	HXB_ERR_OUT_OF_MEMORY     = 0x83
 };
 
 // Operators for comparison in state machine
