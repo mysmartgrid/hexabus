@@ -274,6 +274,7 @@ metering_calibrate(void)
   if (cal_flag == 0xFF && !metering_calibration) {
     metering_calibration = true;
 		metering_calibration_state = 0;
+		relay_off();
     leds_on(LEDS_ALL);
     //stop calibration if there was no pulse in 60 seconds
     ctimer_set(&metering_stop_timer, CLOCK_SECOND*60,(void *)(void *) metering_calibration_stop,NULL);
@@ -335,6 +336,7 @@ ISR(METERING_VECT)
 
        metering_calibration_state = 0;
        metering_calibration = false;
+			 relay_on();
        relay_leds();
      }
    }
