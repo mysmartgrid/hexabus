@@ -32,6 +32,9 @@ init-jtag2:
 		while [ $$i -lt 63 ]; do echo write eeprom $$i 0; i=$$(($$i + 1)); done; \
 	) | avrdude -p atmega1284p -P usb -c jtag2 -F -t
 
+calibrate:
+	echo "write eeprom 63 0 0 28 0 255" | avrdude -p atmega1284p -P usb -c jtag2 -F -t
+
 flash-jtag2: 
 	avrdude -c jtag2 -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F 
 
