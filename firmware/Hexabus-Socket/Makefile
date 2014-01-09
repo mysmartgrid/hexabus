@@ -35,6 +35,23 @@ init-jtag2:
 calibrate:
 	echo "write eeprom 63 0 0 28 0 255" | avrdude -p atmega1284p -P usb -c jtag2 -F -t
 
+macname:
+	( \
+		echo -n "write eeprom 33 "; \
+		( \
+			( \
+				echo -n "Plug"; \
+				avrdude -p atmega1284p -P usb -c jtag2 -F -U eeprom:r:/dev/stdout:r -qq \
+					| tail -c+8 | head -c2 \
+					| hexdump -e '/1 "%.2x"' \
+			) \
+				| hexdump -e '/1 " 0x%.2x"'; \
+				echo " 0" \
+		) \
+	) \
+		| (sleep 7 && avrdude -p atmega1284p -P usb -c jtag2 -F -t -qq)
+
+
 flash-jtag2: 
 	avrdude -c jtag2 -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F 
 
