@@ -95,7 +95,7 @@ _DEBUG options should be set to:
 #define METERING_POWER (HAVE(PLUGPLUS))
 #define METERING_IMMEDIATE_BROADCAST 1  // immediately broadcast metering value when change is measured (you still should have the EID in the VALUE_BROADCAST_AUTO_EIDS with some reasonable timeout, so that the value is also broadcast when it reaches and stays at zero)
 #define METERING_IMMEDIATE_BROADCAST_NUMBER_OF_TICKS 1 // number of ticks from the meter until a broadcast is triggered. 1: broadcast every tick ~ roughly every 2 seconds at 100W
-#define METERING_IMMEDIATE_BROADCAST_MINIMUM_TIMEOUT VALUE_BROADCAST_AUTO_INTERVAL // minimum number of seconds between two broadcasts, to prevent flooding the network
+#define METERING_IMMEDIATE_BROADCAST_MINIMUM_TIMEOUT 1 // minimum number of seconds between two broadcasts, to prevent flooding the network
 #define METERING_ENERGY (HAVE(PLUGPLUS))
 // CAUTION: METERING_ENERGY_PERSISTENT needs external power-down detection circuit. Refer to the Wiki!
 #define METERING_ENERGY_PERSISTENT 0 // Persistently store energy value (number of pulses) in EEPROM. 

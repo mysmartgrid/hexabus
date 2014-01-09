@@ -211,6 +211,10 @@ void
 metering_reset(void)
 {
   metering_power = 0;
+	broadcast_value(EP_POWER_METER);
+#if METERING_ENERGY
+	broadcast_value(EP_ENERGY_METER_TOTAL);
+#endif
 }
 
 #if METERING_ENERGY
@@ -370,7 +374,12 @@ ISR(METERING_VECT)
         // the last argument is a void* that can be used for anything. We use it to tell value_broadcast our EID.
         // process_post(&value_broadcast_process, immediate_broadcast_event, (void*)2);
         last_broadcast = clock_time();
-				broadcast_value(EP_POWER_METER);
+
+				static uint32_t last_power = 0xffffffff;
+				if (last_power != metering_power) {
+					broadcast_value(EP_POWER_METER);
+					last_power = metering_power;
+				}
       }
     }
 #endif // METERING_IMMEDIATE_BROADCAST
