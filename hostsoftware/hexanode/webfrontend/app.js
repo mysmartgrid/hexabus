@@ -85,6 +85,10 @@ var add_endpoint = function(ip, eid, params) {
 	return devicetree.add_endpoint(ip, eid, params);
 };
 
+var ignore_endpoint = function(ip, eid) {
+	return eid == 7 || eid == 8;
+};
+
 var enumerate_network = function(cb) {
 	cb = cb || Object;
 	hexabus.enumerate_network(function(dev) {
@@ -101,8 +105,9 @@ var enumerate_network = function(cb) {
 					ep.minvalue = 0;
 					ep.maxvalue = 100;
 				}
-				if (!devicetree.devices[dev.ip]
-					|| !devicetree.devices[dev.ip].endpoints[ep.eid]) {
+				if ((!devicetree.devices[dev.ip]
+							|| !devicetree.devices[dev.ip].endpoints[ep.eid])
+						&& !ignore_endpoint(dev.ip, ep.eid)) {
 					add_endpoint(dev.ip, ep.eid, ep);
 				}
 			}
@@ -152,6 +157,10 @@ app.get('/api', function(req, res) {
 });
 
 app.put('/api/sensor/:ip/:eid', function(req, res) {
+	if (ignore_endpoint(req.params.ip, req.params.eid)) {
+		res.send("Ignored", 200);
+		return;
+	}
 	var device = devicetree.devices[req.params.ip];
 	if (device && device.endpoints[req.params.eid]) {
 		res.send("Sensor exists", 200);
@@ -172,6 +181,10 @@ app.put('/api/sensor/:ip/:eid', function(req, res) {
 });
 
 app.post('/api/sensor/:ip/:eid', function(req, res) {
+	if (ignore_endpoint(req.params.ip, req.params.eid)) {
+		res.send("Ignored", 200);
+		return;
+	}
 	var device = devicetree.devices[req.params.ip];
 	if (!device || !device.endpoints[req.params.eid]) {
 		res.send("Not found", 404);
