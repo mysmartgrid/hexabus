@@ -9,26 +9,31 @@
 #include "sequence_numbers.h"
 #include "udp_handler.h"
 
+#define MAX(a,b) (((a)>(b))?(a):(b)) //TODO hmmm...
+
 enum hxb_send_state_t {
-	INIT		= 0,
-	READY		= 1,
-	WAIT_ACK	= 2,
-	FAILED		= 3,
+	SINIT		= 0,
+	SREADY		= 1,
+	SWAIT_ACK	= 2,
+	SFAILED		= 3,
 };
 
 enum hxb_recv_state_t {
-	INIT 		= 0,
-	READY 		= 1,
-	FAILED 		= 2,
+	RINIT 		= 0,
+	RREADY 		= 1,
+	RFAILED 	= 2,
 };
 
-static enum hxb_send_state_t send_state = INIT;
-static enum hxb_recv_state_t recv_state = INIT;
+static enum hxb_send_state_t send_state = SINIT;
+static enum hxb_recv_state_t recv_state = RINIT;
 static uint8_t fail;
 static bool ack;
 static uint8_t retrans;
 static uint16_t want_ack_for;
 static struct etimer timeout_timer;
+static struct hxb_queue_packet R;
+static bool recved_packet;
+static uint16_t rseq_num;
 
 PROCESS(reliability_send_process, "Reliability sending state machine");
 AUTOSTART_PROCESSES(&reliability_send_process);
@@ -38,7 +43,7 @@ PACKETQUEUE(send_queue, SEND_QUEUE_SIZE);
 enum hxb_error_code packet_generator(union hxb_packet_any* buffer, void* data) {
 	
 	if(want_ack_for == 0) {
-		want_ack_for = next_sequence_number(&((struct hxb_queue_packet*)data)->to_ip);
+		want_ack_for = next_sequence_number(&((struct hxb_queue_packet*)data)->ip);
 	}
 
 	memcpy(buffer, &((struct hxb_queue_packet*)data)->packet, sizeof(union hxb_packet_any));
@@ -48,7 +53,7 @@ enum hxb_error_code packet_generator(union hxb_packet_any* buffer, void* data) {
 }
 
 enum hxb_error_code send_packet(struct hxb_queue_packet* data) {
-	return udp_handler_send_generated(&((struct hxb_queue_packet*)data)->to_ip, ((struct hxb_queue_packet*)data)->to_port, &packet_generator, (void*)data);
+	return udp_handler_send_generated(&((struct hxb_queue_packet*)data)->ip, ((struct hxb_queue_packet*)data)->port, &packet_generator, (void*)data);
 }
 
 void process_ack(uint16_t sequence_number) {
@@ -78,16 +83,16 @@ static void run_send_state_machine() {
 	//TODO: proper error handling
 
 	switch(send_state) {
-		case INIT:
+		case SINIT:
 			fail = 0;
-			send_state = READY;
+			send_state = SREADY;
 			break;
-		case READY:
+		case SREADY:
 			if (packetqueue_len(&send_queue) > 0) {
 				if(!send_packet((struct hxb_queue_packet *)packetqueue_first(&send_queue))) {
 					retrans = 0;
 					ack = false;
-					send_state = WAIT_ACK;
+					send_state = SWAIT_ACK;
 					etimer_set(&timeout_timer, RETRANS_TIMEOUT);
 				}
 			} else {
@@ -95,23 +100,23 @@ static void run_send_state_machine() {
 			}
 
 			break;
-		case WAIT_ACK:
+		case SWAIT_ACK:
 			if(ack) {
 				want_ack_for = 0;
 				free(packetqueue_first(&send_queue));
 				packetqueue_dequeue(&send_queue);
-				send_state = READY;
+				send_state = SREADY;
 			} else if(etimer_expired(&timeout_timer)) {
 				if(retrans++ < RETRANS_LIMIT) {
 					send_packet((struct hxb_queue_packet *)packetqueue_first(&send_queue));
 					etimer_set(&timeout_timer, RETRANS_TIMEOUT);
 				} else {
 					fail = 1;
-					send_state = FAILED;
+					send_state = SFAILED;
 				}
 			}
 			break;
-		case FAILED:
+		case SFAILED:
 			if(fail == 2) {
 				//TODO recover
 			}
@@ -119,16 +124,76 @@ static void run_send_state_machine() {
 	}
 }
 
+enum hxb_error_code receive_packet(struct hxb_queue_packet* packet) {
+	if(memcpy(&R, packet, sizeof(struct hxb_queue_packet))) {
+		return HXB_ERR_OUT_OF_MEMORY;
+	}
+
+	recved_packet = true;
+
+	return HXB_ERR_SUCCESS;
+}
+
+bool allows_implicit_ack(union hxb_packet_any* packet) {
+	switch(packet->header.type) {
+		case HXB_PTYPE_QUERY:
+		case HXB_PTYPE_EPQUERY:
+		case HXB_PTYPE_WRITE:
+			return true;
+			break;
+		default:
+			return false;
+	}
+}
+
+bool is_ack_for(union hxb_packet_any* packet, uint16_t seq_num) {
+	switch(packet->header.type) {
+		case HXB_PTYPE_REPORT:
+		case HXB_PTYPE_EPREPORT:
+		case HXB_PTYPE_ACK:
+			return (seq_num == packet->header.sequence_number);
+			break;
+		default:
+			return false;
+	}
+}
+
 static void run_recv_state_machine() {
 	switch(recv_state) {
-		case INIT:
-
+		case RINIT:
+			rseq_num = 0;
+			recv_state = RREADY;
 			break;
-		case READY:
+		case RREADY:
+			if(fail) {
+				recv_state = RFAILED;
+			} else if(recved_packet){
+				if((R.packet.header.flags & HXB_FLAG_WANT_ACK) && !allows_implicit_ack(&(R.packet))) { //TODO only use flag?
+					udp_handler_send_ack(&(R.ip), R.port, R.packet.header.sequence_number);
 
+					if(R.packet.header.sequence_number <= rseq_num) {
+						//TODO handle reordering here
+						recv_state = RREADY;
+						break;
+					}
+				}
+
+				rseq_num = MAX(rseq_num, R.packet.header.sequence_number);
+
+				if(want_ack_for != 0 && is_ack_for(&(R.packet), want_ack_for)) {
+					ack = true;
+					recv_state = RREADY;
+				} else {
+					//TODO packet to upper layer
+					recv_state = RREADY;
+				}
+			}
 			break;
-		case FAILED:
-
+		case RFAILED:
+			if(false) { //TODO if correct packet from master
+				fail = 0;
+				recv_state = RREADY;
+			}
 			break;
 	}
 }

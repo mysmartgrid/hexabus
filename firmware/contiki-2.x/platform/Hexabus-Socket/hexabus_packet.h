@@ -191,8 +191,8 @@ struct hxb_envelope {
 };
 
 struct hxb_queue_packet {
-	uip_ipaddr_t			to_ip;
-	uint16_t				to_port;
+	uip_ipaddr_t			ip;
+	uint16_t				port;
 	union hxb_packet_any	packet;
 };
 
