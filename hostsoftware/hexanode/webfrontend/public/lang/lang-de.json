@@ -28,6 +28,12 @@
 		"timeout": "Kommunikation mit dem Gerät nicht möglich"
 	},
 
+	"alert": {
+		"errors": {
+			"lt_error":"lt_error",
+			"gt_error":"gt_error"
+		}
+	},
 	"wizard": {
 		"new": {
 			"welcome": "Willkommen auf Ihrer neuen HexaBus-Basisstation",

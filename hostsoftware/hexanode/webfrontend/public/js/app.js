@@ -283,6 +283,9 @@ angular.module('dashboard', [
 		$("#device-order").attr("value", JSON.stringify(view_content));
 	};
 }])
+.controller('alertController', ['$scope', 'Socket', function($scope, Socket) {
+	$scope.error = window.error;
+}])
 .controller('wizardConnection', ['$scope', 'Socket', function($scope, Socket) {
 	$scope.configure = function() {
 		Socket.emit('wizard_configure');
@@ -325,6 +328,7 @@ angular.module('dashboard', [
 	});
 }])
 .controller('wizardActivation', ['$scope', 'Socket', function($scope, Socket) {
+	$scope.error = window.error;
 	$scope.register = function() {
 		Socket.emit('wizard_register');
 		$scope.registering = true;

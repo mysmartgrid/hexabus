@@ -1,5 +1,23 @@
 <% include ../header %>
 
+<script>
+	<% if(typeof error != "undefined") { %>
+		error = <%- JSON.stringify(error) %>;
+	<% } %>
+</script>
+
+<div class="container" data-ng-controller="alertController">
+	<% if(typeof error != "undefined") { %>
+	<div class="alert alert-danger" data-ng-show="error">
+		{{undefined | localize:'alert.errors':error}}
+		<div data-ng-show="error=='gt_error'">
+			<a href="/wizard/reset" class="btn btn-danger" data-localize="navbar.reset-device" >Reset device</a>
+		</div>
+	</div>
+	<% } %>
+
+</div>
+
 <div id="start" class="page text-center wizard-step">
 	<p class="lead" data-localize="wizard.new.welcome">Welcome to your new Hexabus Base Station.</p>
 	<p class="lead" data-localize="wizard.new.unconfigured">This base station is not yet configured.</p>
