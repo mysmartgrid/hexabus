@@ -654,6 +654,73 @@ static enum hxb_error_code handle_info(union hxb_packet_any* packet)
 	return HXB_ERR_SUCCESS;
 }
 
+void udp_handler_handle_incoming(struct hxb_queue_packet* R) {
+
+	uip_ipaddr_t addr;
+	enum hxb_error_code err;
+	union hxb_packet_any* packet = &(R->packet);
+
+	// don't send error packets for broadcasts
+	bool is_broadcast = packet->header.type == HXB_PTYPE_INFO
+		&& uip_ipaddr_cmp(&UDP_IP_BUF->destipaddr, &hxb_group);
+
+	switch ((enum hxb_packet_type) packet->header.type) {
+		case HXB_PTYPE_WRITE:
+			err = handle_write(packet);
+			break;
+
+		case HXB_PTYPE_QUERY:
+			{
+				struct eid_cause ec = {
+					.eid = uip_ntohl(packet->p_query.eid),
+					.cause_sequence_number = uip_ntohs(packet->p_query.sequence_number),
+				};
+				err = udp_handler_send_generated(&(R->ip), R->port, generate_query_response, &ec);
+				break;
+			}
+
+		case HXB_PTYPE_EPQUERY:
+			{
+				struct eid_cause ec = {
+					.eid = uip_ntohl(packet->p_query.eid),
+					.cause_sequence_number = uip_ntohs(packet->p_query.sequence_number),
+				};
+				err = udp_handler_send_generated(&(R->ip), R->port, generate_epquery_response, &ec);
+				break;
+			}
+
+		case HXB_PTYPE_REPORT:
+		case HXB_PTYPE_EPREPORT:
+			err = handle_info(packet);
+			break;
+		case HXB_PTYPE_PINFO:
+			uip_ip6addr(&addr, 0,0,0,0,0,0,0,0); //TODO
+			if(uip_ipaddr_cmp(&(R->ip), &addr)) {
+				err = handle_info(packet);
+			} else {
+				err = HXB_ERR_UNEXPECTED_PACKET;
+			}
+			break;
+		case HXB_PTYPE_ACK:
+			err = HXB_ERR_SUCCESS;
+			break;
+		case HXB_PTYPE_ERROR:
+		case HXB_PTYPE_INFO:
+		case HXB_PTYPE_EPINFO:
+		default:
+			syslog(LOG_NOTICE, "packet of type %d received, but we do not know what to do with that (yet)", packet->header.type);
+			err = HXB_ERR_UNEXPECTED_PACKET;
+			break;
+	}
+
+	if (err) {
+		if (!is_broadcast && !(err & HXB_ERR_INTERNAL)) {
+			udp_handler_send_error(&(R->ip), R->port, err, uip_ntohs(packet->header.sequence_number));
+		}
+		return;
+	}
+}
+
 static void
 udphandler(process_event_t ev, process_data_t data)
 {
@@ -685,77 +752,27 @@ udphandler(process_event_t ev, process_data_t data)
       } else {
 				enum hxb_error_code err;
 
-				// TODO handle UL_ACK
-				bool want_ack = packet->header.flags & HXB_FLAG_WANT_ACK;
+				struct hxb_queue_packet R = {
+					.ip = UDP_IP_BUF->srcipaddr,
+					.port = uip_ntohs(UDP_IP_BUF->srcport),
+					.packet = *packet,
+				};
 
 				// don't send error packets for broadcasts
 				bool is_broadcast = packet->header.type == HXB_PTYPE_INFO
 					&& uip_ipaddr_cmp(&UDP_IP_BUF->destipaddr, &hxb_group);
 
-				uip_ipaddr_t srcip = UDP_IP_BUF->srcipaddr;
-				uint16_t srcport = uip_ntohs(UDP_IP_BUF->srcport);
-
 				err = check_crc(packet);
 				if (err) {
 					if (!is_broadcast && !(err & HXB_ERR_INTERNAL)) {
-						udp_handler_send_error(&srcip, srcport, err, uip_ntohs(packet->header.sequence_number));
+						udp_handler_send_error(&(R.ip), R.port, err, uip_ntohs(packet->header.sequence_number));
 					}
 					return;
 				}
 
-				switch ((enum hxb_packet_type) packet->header.type) {
-					case HXB_PTYPE_WRITE:
-						err = handle_write(packet);
-						break;
+				receive_packet(&R);
 
-					case HXB_PTYPE_QUERY:
-						{
-							struct eid_cause ec = {
-								.eid = uip_ntohl(packet->p_query.eid),
-								.cause_sequence_number = uip_ntohs(packet->p_query.sequence_number),
-							};
-							uip_ipaddr_t src = UDP_IP_BUF->srcipaddr;
-							err = udp_handler_send_generated(&srcip, srcport, generate_query_response, &ec);
-							break;
-						}
 
-					case HXB_PTYPE_EPQUERY:
-						{
-							struct eid_cause ec = {
-								.eid = uip_ntohl(packet->p_query.eid),
-								.cause_sequence_number = uip_ntohs(packet->p_query.sequence_number),
-							};
-							uip_ipaddr_t src = UDP_IP_BUF->srcipaddr;
-							err = udp_handler_send_generated(&srcip, srcport, generate_epquery_response, &ec);
-							break;
-						}
-
-					case HXB_PTYPE_INFO:
-						//err = handle_info(packet);
-						break;
-
-					case HXB_PTYPE_REPORT:
-					case HXB_PTYPE_EPREPORT:
-					case HXB_PTYPE_PINFO:
-						err = handle_info(packet);
-						//TODO send ack
-					case HXB_PTYPE_ACK:
-						//TODO only process acks from master
-						process_ack(packet->p_ack.cause_sequence_number);
-					case HXB_PTYPE_ERROR:
-					case HXB_PTYPE_EPINFO:
-					default:
-						syslog(LOG_NOTICE, "packet of type %d received, but we do not know what to do with that (yet)", packet->header.type);
-						err = HXB_ERR_UNEXPECTED_PACKET;
-						break;
-				}
-
-				if (err) {
-					if (!is_broadcast && !(err & HXB_ERR_INTERNAL)) {
-						udp_handler_send_error(&srcip, srcport, err, uip_ntohs(packet->header.sequence_number));
-					}
-					return;
-				}
       }
     }
   }

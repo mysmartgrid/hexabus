@@ -13,7 +13,7 @@ _DEBUG options should be set to:
 #define HEXABUS_CONFIG_H
 
 // options common to all incarnations of Hexabus devices
-
+#define MASTER_IP_ADDR 0,0,0,0,0,0,0,0
 #define UDP_HANDLER_DEBUG 0
 
 #define ENDPOINT_REGISTRY_DEBUG 0

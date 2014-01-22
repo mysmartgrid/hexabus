@@ -7,13 +7,14 @@
 
 static uint16_t seqnum_table[SEQNUM_TABLE_LENGTH];
 
+uint8_t hash_ip(const uip_ipaddr_t* toaddr) {
+	uint16_t crc = crc16_data((unsigned char*)toaddr, 16, 0);
+	return (uint8_t)(((crc>>12)^(crc>>8)^(crc>>4)^crc)&0x000f);
+}
+
 uint16_t next_sequence_number(const uip_ipaddr_t* toaddr) {
 
-	uint16_t crc = crc16_data((unsigned char*)toaddr, 16, 0);
-	uint8_t hash = (uint8_t)(((crc>>12)^(crc>>8)^(crc>>4)^crc)&0x000f);
-
-	return seqnum_table[hash]++;
-
+	return seqnum_table[hash_ip(toaddr)]++;
 }
 
 void sequence_number_init() {

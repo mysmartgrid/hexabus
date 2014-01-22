@@ -33,4 +33,6 @@ enum hxb_error_code udp_handler_send_error(const uip_ipaddr_t* toaddr, uint16_t 
 
 enum hxb_error_code udp_handler_send_ack(const uip_ipaddr_t* toaddr, uint16_t toport, uint16_t cause_sequence_number);
 
+void udp_handler_handle_incoming(struct hxb_queue_packet* R);
+
 #endif /* UDP_HANDLER_H_ */
