@@ -284,7 +284,8 @@ void HexabusServer::broadcast_handler(const boost::system::error_code& error)
 		int value = getFluksoValue();
 		if ( value >= 0 )
 		{
-			//_socket.send(hexabus::InfoPacket<uint32_t>(EP_POWER_METER, value));
+			for ( std::vector<hexabus::Socket*>::iterator it = _sockets.begin(), end = _sockets.end(); it != end; it++ )
+				(*it)->send(hexabus::InfoPacket<uint32_t>(EP_POWER_METER, value));
 		}
 
 		for ( unsigned int i = 1; i < 6; i++ )
@@ -292,7 +293,8 @@ void HexabusServer::broadcast_handler(const boost::system::error_code& error)
 			int value = _flukso_values[_sensor_mapping[i]];
 			if ( value >= 0 )
 			{
-				//_socket.send(hexabus::InfoPacket<uint32_t>(endpoints[i], value));
+				for ( std::vector<hexabus::Socket*>::iterator it = _sockets.begin(), end = _sockets.end(); it != end; it++ )
+					(*it)->send(hexabus::InfoPacket<uint32_t>(endpoints[i], value));
 			}
 		}
 
