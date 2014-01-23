@@ -30,8 +30,8 @@
 
 	"alert": {
 		"errors": {
-			"lt_error":"lt_error",
-			"gt_error":"gt_error"
+			"lt_error":"Dieser Einrichtungsschritt ist noch nicht verfügbar. Bitte führen Sie erst die vorherigen Schritte durch. Sie wurden auf den aktuellen Schritt umgeleitet.",
+			"gt_error":"Dieser Einrichtungsschritt wurde bereits durchgeführt. Sie wurden auf den aktuellen Schritt umgeleitet. Falls Sie den Einrichtungsprozess erneut beginnen wollen, setzen Sie bitte die Basisstation zurück."
 		}
 	},
 	"wizard": {
@@ -63,6 +63,11 @@
 			"please-link": "Verbinden Sie dieses Gerät nun mit ihrem mySmartGrid-Account:",
 			"link": "Zu mySmartGrid",
 			"error": "Fehler beim Verknüpfen mit mySmartGrid"
+		},
+
+		"msg": {
+			"activate": "Um die Einrichtung zu beenden, muss dieses Gerät mit ihrem mySmartGrid-Account verbunden werden.",
+			"retrieving": "Aktivierungscode wird abgerufen"
 		},
 
 		"success": {

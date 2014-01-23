@@ -350,6 +350,23 @@ angular.module('dashboard', [
 		}
 	});
 }])
+.controller('wizardMSG', ['$scope', 'Socket', function($scope, Socket) {
+	$scope.error = window.error;
+	Socket.emit('get_activation_code');
+	$scope.working = true;
+
+	Socket.on('activation_code', function(data) {
+		if (data.error) {
+			$scope.failed = true;
+			$scope.working = false;
+		} else {
+			$scope.working = false;
+			$scope.registered = true;
+			$scope.activationCode = data.code;
+			$scope.gotoPage = window.location.origin + '/wizard/success';
+		}
+	});
+}])
 .controller('devicesList', ['$scope', 'Socket', 'Lang', function($scope, Socket, Lang) {
 	$scope.devices = window.known_hexabus_devices;
 

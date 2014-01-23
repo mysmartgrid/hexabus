@@ -93,6 +93,20 @@ var Wizard = function() {
 		exec(script, cb);
 	};
 
+	this.getActivationCode = function(cb) {
+		var program = nconf.get('debug-wizard')
+			? '../backend/build/src/hexabus_msg_bridge --config bridge.conf'
+			: 'sudo hexabus_msg_bridge';
+		var retrieve_command = program + ' --activationcode';
+		exec(retrieve_command, function(error, stdout, stderr) {
+			if (error) {
+				cb({ error: error });
+			} else {
+				cb({ error: undefined, code: stdout });
+			}
+		});
+	};
+
 	this.addDevice = function(devicetree, cb) {
 		var script = nconf.get('debug-wizard')
 			? 'sleep 1 && cat tools/device.json'

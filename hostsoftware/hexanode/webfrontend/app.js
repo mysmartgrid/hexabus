@@ -299,6 +299,7 @@ app.get('/wizard/:step', function(req, res) {
 			case '1': return 'connection';
 			case '2': return 'activation';
 			case '3': return 'msg';
+			default: return 'reset';
 		}
 	}
 	switch(req.params.step) {
@@ -334,6 +335,20 @@ app.get('/wizard/:step', function(req, res) {
 			} else if(wizard_step<'2') {
 				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'lt_error' });
 			} else if(wizard_step>'2' || wizard_step=='0') {
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'gt_error' });
+			} else {
+				res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
+			}
+			return;
+		case "msg":
+			var current_step = getCurrentStep(wizard_step);
+			if(wizard_step==undefined) {
+				nconf.set('wizard_step', '1');
+				nconf.save();
+				res.render('wizard/new.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step<'3') {
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step>'3' || wizard_step=='0') {
 				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'gt_error' });
 			} else {
 				res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
@@ -456,7 +471,6 @@ io.sockets.on('connection', function (socket) {
 		setTimeout(send_health_update, 60 * 1000);
 		hexabus.get_heartbeat_state(function(err, state) {
 			var wizard_step = nconf.get('wizard_step');
-			console.log(wizard_step)
 			emit('health_update', ((err || state.code != 0) && wizard_step == '0'));
 		});
 	};
@@ -569,6 +583,14 @@ io.sockets.on('connection', function (socket) {
 
 		wizard.registerMSG(function(progress) {
 			emit('wizard_register_step', progress);
+		});
+	});
+
+	on('get_activation_code', function() {
+		var wizard = new Wizard();
+
+		wizard.getActivationCode(function(data) {
+			emit('activation_code', data);
 		});
 	});
 
