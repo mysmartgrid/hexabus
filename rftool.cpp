@@ -29,22 +29,20 @@ class nlmsg {
 	protected:
 		struct nl_msg* msg;
 
+		void put_raw(int type, const void* data, size_t len)
+		{
+			int err = nla_put(msg, type, len, data);
+
+			if (err)
+				throw std::runtime_error(nl_geterror(err));
+		}
+
 		void put(int type, const std::string& str)
-		{
-			int err = nla_put(msg, type, str.size() + 1,
-				str.c_str());
+		{ put_raw(type, str.c_str(), str.size() + 1); }
 
-			if (err)
-				throw std::runtime_error(nl_geterror(err));
-		}
-
-		void put(int type, int32_t i)
-		{
-			int err = nla_put(msg, type, sizeof(i), &i);
-
-			if (err)
-				throw std::runtime_error(nl_geterror(err));
-		}
+		template<typename T>
+		void put(int type, T i)
+		{ put_raw(type, &i, sizeof(i)); }
 
 	public:
 		nlmsg(int family, int hdrlen, int flags, int cmd)
@@ -68,29 +66,69 @@ class nlmsg {
 
 class list_phy : public nlmsg {
 	public:
-		list_phy(int family, const char* iface = 0)
+		list_phy(int family, const std::string& iface = "")
 			: nlmsg(family, 0,
-				NLM_F_REQUEST | (iface ? 0 : NLM_F_DUMP),
+				NLM_F_REQUEST | (iface.size() ? 0 : NLM_F_DUMP),
 				IEEE802154_LIST_PHY)
 		{
-			if (iface)
+			if (iface.size())
 				put(IEEE802154_ATTR_PHY_NAME, iface);
 		}
 };
 
+class add_iface : public nlmsg {
+	public:
+		add_iface(int family, const std::string& phy, const std::string& iface = "")
+			: nlmsg(family, 0, NLM_F_REQUEST, IEEE802154_ADD_IFACE)
+		{
+			put(IEEE802154_ATTR_PHY_NAME, phy);
+			if (iface.size())
+				put(IEEE802154_ATTR_DEV_NAME, iface);
+
+			put<uint8_t>(IEEE802154_ATTR_DEV_TYPE, IEEE802154_DEV_WPAN);
+		}
+
+		void hwaddr(const uint8_t addr[8])
+		{ put_raw(IEEE802154_ATTR_HW_ADDR, addr, IEEE802154_ADDR_LEN); }
+};
+
+class start : public nlmsg {
+	public:
+		start(int family, const std::string& dev)
+			: nlmsg(family, 0, NLM_F_REQUEST, IEEE802154_START_REQ)
+		{
+			put<uint8_t>(IEEE802154_ATTR_BCN_ORD, 15);
+			put<uint8_t>(IEEE802154_ATTR_SF_ORD, 15);
+			put<uint8_t>(IEEE802154_ATTR_BAT_EXT, 0);
+			put<uint8_t>(IEEE802154_ATTR_COORD_REALIGN, 0);
+			put<uint8_t>(IEEE802154_ATTR_PAN_COORD, 0);
+			put(IEEE802154_ATTR_DEV_NAME, dev);
+		}
+
+		void pan_id(uint16_t pan)
+		{ put(IEEE802154_ATTR_COORD_PAN_ID, pan); }
+
+		void short_addr(uint16_t addr)
+		{ put(IEEE802154_ATTR_COORD_SHORT_ADDR, addr); }
+
+		void channel(uint8_t channel)
+		{ put(IEEE802154_ATTR_CHANNEL, channel); }
+
+		void page(uint8_t page)
+		{ put(IEEE802154_ATTR_PAGE, page); }
+};
+
 class phy_setparams : public nlmsg {
 	public:
-		phy_setparams(int family, const char* phy)
+		phy_setparams(int family, const std::string& phy)
 			: nlmsg(family, 0, NLM_F_REQUEST,
 				IEEE802154_SET_PHYPARAMS)
 		{
 			put(IEEE802154_ATTR_PHY_NAME, phy);
 		}
 
-		void txpower(int txp)
-		{
-			put(IEEE802154_ATTR_TXPOWER, txp);
-		}
+		void txpower(int32_t txp)
+		{ put(IEEE802154_ATTR_TXPOWER, txp); }
 };
 
 }
@@ -107,26 +145,6 @@ class parser {
 			friend class parser;
 
 			private:
-				enum nlattr_type {
-					NLA_UNSPEC,
-					NLA_U8,
-					NLA_U16,
-					NLA_U32,
-					NLA_U64,
-					NLA_STRING,
-					NLA_FLAG,
-					NLA_MSECS,
-					NLA_NESTED,
-					NLA_NESTED_COMPAT,
-					NLA_NUL_STRING,
-					NLA_BINARY,
-					NLA_S8,
-					NLA_S16,
-					NLA_S32,
-					NLA_S64,
-					__NLA_TYPE_MAX,
-				};
-
 				std::vector<struct nlattr*>& data;
 
 				nlattrs(std::vector<struct nlattr*>& data)
@@ -134,46 +152,44 @@ class parser {
 				{
 				}
 
-				void check_type(size_t attr, int type) const
+				template<typename T>
+				T check_fixed(size_t attr) const
 				{
-					std::cout << nla_type(data.at(attr)) << ":" << NLA_STRING << std::endl;
-					if (nla_type(data.at(attr)) != type)
+					if (nla_len(data.at(attr)) != sizeof(T))
 						throw std::logic_error("type mistmatch");
+					return *static_cast<const T*>(nla_data(data.at(attr)));
+				}
+
+				std::string check_string(size_t attr) const
+				{
+					const char* p = static_cast<const char*>(nla_data(data.at(attr)));
+					if (p[nla_len(data.at(attr)) - 1] != 0)
+						throw std::logic_error("type mismatch");
+					return p;
 				}
 
 			public:
 				bool operator[](size_t attr) const
 				{
-					return data.at(attr);
+					return attr > 0
+						&& attr < data.size()
+						&& data[attr];
 				}
 
-				const char* str(size_t attr) const
-				{
-					check_type(attr, NLA_STRING);
-					return nla_get_string(data[attr]);
-				}
+				std::string str(size_t attr) const
+				{ return check_string(attr); }
 
 				uint8_t u8(size_t attr) const
-				{
-					check_type(attr, NLA_U8);
-					return nla_get_u8(data[attr]);
-				}
+				{ return check_fixed<uint8_t>(attr); }
 
 				int32_t s32(size_t attr) const
-				{
-					check_type(attr, NLA_S32);
-					return *static_cast<const int32_t*>(raw(attr));
-				}
+				{ return check_fixed<int32_t>(attr); }
 
 				size_t length(size_t attr) const
-				{
-					return nla_len(data[attr]);
-				}
+				{ return nla_len(data[attr]); }
 
 				const void* raw(size_t attr) const
-				{
-					return nla_data(data[attr]);
-				}
+				{ return nla_data(data[attr]); }
 		};
 
 	protected:
@@ -241,12 +257,12 @@ class list_phy : public parser {
 				return NL_STOP;
 			}
 
-//			p.name = attrs.str(IEEE802154_ATTR_PHY_NAME);
+			p.name = attrs.str(IEEE802154_ATTR_PHY_NAME);
 			p.channel = attrs.u8(IEEE802154_ATTR_CHANNEL);
-//			p.page = attrs.u8(IEEE802154_ATTR_PAGE);
-//			if (attrs[IEEE802154_ATTR_TXPOWER]) {
-//				p.txpower = attrs.s32(IEEE802154_ATTR_TXPOWER);
-//			}
+			p.page = attrs.u8(IEEE802154_ATTR_PAGE);
+			if (attrs[IEEE802154_ATTR_TXPOWER]) {
+				p.txpower = attrs.s32(IEEE802154_ATTR_TXPOWER);
+			}
 
 			if (attrs[IEEE802154_ATTR_CHANNEL_PAGE_LIST]) {
 				int len = attrs.length(IEEE802154_ATTR_CHANNEL_PAGE_LIST);
@@ -267,6 +283,28 @@ class list_phy : public parser {
 
 			return NL_OK;
 		}
+};
+
+class add_iface : public parser {
+	private:
+		std::string _name;
+		std::string _phy;
+
+	public:
+		add_iface()
+		{
+			has_valid();
+		}
+
+		virtual int valid(const parser::nlattrs& attrs)
+		{
+			_name = attrs.str(IEEE802154_ATTR_DEV_NAME);
+			_phy = attrs.str(IEEE802154_ATTR_PHY_NAME);
+			return NL_OK;
+		}
+
+		const std::string& name() const { return _name; }
+		const std::string& phy() const { return _phy; }
 };
 
 }
@@ -332,14 +370,43 @@ class nlsock {
 			return result;
 		}
 
-		void set_txpower(int txp)
+		void set_txpower(const std::string& dev, int txp)
 		{
-			msgs::phy_setparams cmd(family, "wpan-phy0");
+			msgs::phy_setparams cmd(family, dev);
 			parsers::parser p;
 
 			cmd.txpower(txp);
 			send(cmd);
 			recv(p);
+		}
+
+		void add_iface(const std::string& phy, const std::string& iface = "")
+		{
+			msgs::add_iface cmd(family, phy, iface);
+			parsers::parser p;
+			parsers::add_iface pi;
+
+			uint8_t addr[8] = { 0xde, 0xad, 0xbe, 0xef,
+				0xca, 0xfe, 0xba, 0xbe };
+
+			cmd.hwaddr(addr);
+			send(cmd);
+			recv(pi);
+			recv(p);
+
+			std::cout << "added " << pi.name() << " to " << pi.phy() << std::endl;
+		}
+
+		void start(const std::string& dev)
+		{
+			msgs::start start(family, dev);
+
+			start.short_addr(0x1234);
+			start.pan_id(0x031f);
+			start.channel(0);
+			start.page(2);
+
+			send(start);
 		}
 };
 
@@ -347,7 +414,6 @@ int main(int, const char*[])
 {
 	nlsock sock;
 
-	sock.set_txpower(3);
 	std::vector<phy> phys = sock.list_phy();
 	for (size_t i = 0; i < phys.size(); i++) {
 		phy& p = phys[i];
@@ -364,4 +430,7 @@ int main(int, const char*[])
 					<< ": " << p.pages[j] << std::endl;
 		}
 	}
+	sock.set_txpower("wpan-phy0", 3);
+	sock.add_iface("wpan-phy0", "wpan8");
+	sock.start("wpan8");
 }
