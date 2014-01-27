@@ -75,11 +75,17 @@ int main(int argc, char** argv)
 
   if (vm.count("interface")) {
     interface = vm["interface"].as<std::string>();
+  } else {
+    std::cerr << "You have to specify at least one interface." << std::endl;
+    return 1;
   }
 
 
   if (vm.count("address")) {
     address = vm["address"].as<std::string>();
+  } else {
+    std::cerr << "You have to specify at least one address." << std::endl;
+    return 1;
   }
 
   try
