@@ -22,7 +22,7 @@ namespace hf = hexabus::filtering;
 namespace bf = boost::filesystem;
 
 HexabusServer::HexabusServer(boost::asio::io_service& io, const std::vector<std::string> interfaces, const std::vector<std::string> addresses, int interval, bool debug)
-	: _listener()
+	: _listener(io)
 	, _sockets()
 	, _timer(io)
 	, _interval(interval)
@@ -30,23 +30,21 @@ HexabusServer::HexabusServer(boost::asio::io_service& io, const std::vector<std:
 	, _sm_state(0)
 	, _device_name("Flukso")
 {
-  for ( unsigned int i = 0; i < interfaces.size(); i++ )
-  {
-    _listener.push_back(new hexabus::Listener(io));
-    _listener[i]->listen(interfaces[i]);
-  }
-  for ( unsigned int i = 0; i < addresses.size(); i++ )
-  {
-    _sockets.push_back(new hexabus::Socket(io));
-    try {
-      _debug && std::cout << "Listening on " << addresses[i] << std::endl;
-      _sockets[i]->bind(boost::asio::ip::udp::endpoint(boost::asio::ip::address_v6::from_string(addresses[i]), 61616));
-    } catch ( const hexabus::NetworkException& error ) {
-      std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
-	  exit(1);
-    }
-  }
-  _init();
+	for ( unsigned int i = 0; i < interfaces.size(); i++ ) {
+		_listener.listen(interfaces[i]);
+	}
+	for ( unsigned int i = 0; i < addresses.size(); i++ ) {
+		_sockets.push_back(new hexabus::Socket(io));
+		try {
+			_debug && std::cout << "Listening on " << addresses[i] << std::endl;
+			_sockets[i]->bind(boost::asio::ip::udp::endpoint(boost::asio::ip::address_v6::from_string(addresses[i]), 61616));
+			_sockets[i]->mcast_from(interfaces[0]);
+		} catch ( const hexabus::NetworkException& error ) {
+			std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
+			exit(1);
+		}
+	}
+	_init();
 }
 
 void HexabusServer::_init() {
@@ -58,54 +56,67 @@ void HexabusServer::_init() {
 
 	for ( std::vector<hexabus::Socket*>::iterator it = _sockets.begin(), end = _sockets.end(); it != end; it++ )
 	{
-		(*it)->onPacketReceived(boost::bind(&HexabusServer::epqueryhandler, this, _1, _2, boost::ref(*it)), hf::isEndpointQuery());
-		(*it)->onPacketReceived(boost::bind(&HexabusServer::eid0handler, this, _1, _2, boost::ref(*it)), hf::isQuery() && hf::eid() == EP_DEVICE_DESCRIPTOR);
-		(*it)->onPacketReceived(boost::bind(&HexabusServer::eid32handler, this, _1, _2, boost::ref(*it)), hf::isQuery() && hf::eid() == EP_EXT_DEV_DESC_1);
-		(*it)->onPacketReceived(boost::bind(&HexabusServer::eid2handler, this, _1, _2, boost::ref(*it)), hf::isQuery() && hf::eid() == EP_POWER_METER);
-		(*it)->onPacketReceived(boost::bind(&HexabusServer::smcontrolhandler, this, _1, _2, boost::ref(*it)), (hf::isQuery() || hf::isWrite<uint8_t>()) && hf::eid() == EP_SM_CONTROL);
-		(*it)->onPacketReceived(boost::bind(&HexabusServer::smuploadhandler, this, _1, _2, boost::ref(*it)), hf::isWrite<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >() && hf::eid() == EP_SM_UP_RECEIVER);
-		(*it)->onPacketReceived(boost::bind(&HexabusServer::l1handler, this, _1, _2, boost::ref(*it)), hf::isQuery() && hf::eid() == EP_FLUKSO_L1);
-		(*it)->onPacketReceived(boost::bind(&HexabusServer::l2handler, this, _1, _2, boost::ref(*it)), hf::isQuery() && hf::eid() == EP_FLUKSO_L2);
-		(*it)->onPacketReceived(boost::bind(&HexabusServer::l3handler, this, _1, _2, boost::ref(*it)), hf::isQuery() && hf::eid() == EP_FLUKSO_L3);
-		(*it)->onPacketReceived(boost::bind(&HexabusServer::s01handler, this, _1, _2, boost::ref(*it)), hf::isQuery() && hf::eid() == EP_FLUKSO_S01);
-		(*it)->onPacketReceived(boost::bind(&HexabusServer::s02handler, this, _1, _2, boost::ref(*it)), hf::isQuery() && hf::eid() == EP_FLUKSO_S02);
+		(*it)->onPacketReceived(boost::bind(&HexabusServer::epqueryhandler, this, _1, _2,
+			boost::ref(*it)), hf::isEndpointQuery());
+		(*it)->onPacketReceived(boost::bind(&HexabusServer::eid0handler, this, _1, _2,
+			boost::ref(*it)), hf::isQuery() && hf::eid() == EP_DEVICE_DESCRIPTOR);
+		(*it)->onPacketReceived(boost::bind(&HexabusServer::eid32handler, this, _1, _2,
+			boost::ref(*it)), hf::isQuery() && hf::eid() == EP_EXT_DEV_DESC_1);
+		(*it)->onPacketReceived(boost::bind(&HexabusServer::eid2handler, this, _1, _2,
+			boost::ref(*it)), hf::isQuery() && hf::eid() == EP_POWER_METER);
+		(*it)->onPacketReceived(boost::bind(&HexabusServer::smcontrolhandler, this, _1, _2,
+			boost::ref(*it)), (hf::isQuery() || hf::isWrite<uint8_t>()) && hf::eid() == EP_SM_CONTROL);
+		(*it)->onPacketReceived(boost::bind(&HexabusServer::smuploadhandler, this, _1, _2,
+			boost::ref(*it)), hf::isWrite<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >()
+				&& hf::eid() == EP_SM_UP_RECEIVER);
+		(*it)->onPacketReceived(boost::bind(&HexabusServer::value_handler, this, _1, _2,
+			boost::ref(*it), 1), hf::isQuery() && hf::eid() == EP_FLUKSO_L1);
+		(*it)->onPacketReceived(boost::bind(&HexabusServer::value_handler, this, _1, _2,
+			boost::ref(*it), 2), hf::isQuery() && hf::eid() == EP_FLUKSO_L2);
+		(*it)->onPacketReceived(boost::bind(&HexabusServer::value_handler, this, _1, _2,
+			boost::ref(*it), 3), hf::isQuery() && hf::eid() == EP_FLUKSO_L3);
+		(*it)->onPacketReceived(boost::bind(&HexabusServer::value_handler, this, _1, _2,
+			boost::ref(*it), 4), hf::isQuery() && hf::eid() == EP_FLUKSO_S01);
+		(*it)->onPacketReceived(boost::bind(&HexabusServer::value_handler, this, _1, _2,
+			boost::ref(*it), 5), hf::isQuery() && hf::eid() == EP_FLUKSO_S02);
 
 		(*it)->onAsyncError(boost::bind(&HexabusServer::errorhandler, this, _1));
 	}
 	broadcast_handler(boost::system::error_code());
 }
 
-void HexabusServer::epqueryhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket)
+void HexabusServer::epqueryhandler(const hexabus::Packet& p,
+	const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket)
 {
 	const hexabus::EndpointQueryPacket* packet = dynamic_cast<const hexabus::EndpointQueryPacket*>(&p);
 	try {
 		switch (packet->eid()) {
 			case EP_DEVICE_DESCRIPTOR:
-				socket->send(hexabus::EndpointInfoPacket(EP_DEVICE_DESCRIPTOR, HXB_DTYPE_UINT32, _device_name, HXB_FLAG_NONE), from);
+				socket->send(hexabus::EndpointInfoPacket(EP_DEVICE_DESCRIPTOR, HXB_DTYPE_UINT32, _device_name), from);
 				break;
 			case EP_POWER_METER:
-				socket->send(hexabus::EndpointInfoPacket(EP_POWER_METER, HXB_DTYPE_UINT32, "HexabusPlug+ Power meter (W)", HXB_FLAG_NONE), from);
+				socket->send(hexabus::EndpointInfoPacket(EP_POWER_METER, HXB_DTYPE_UINT32, "HexabusPlug+ Power meter (W)"), from);
 				break;
 			case EP_SM_CONTROL:
-				socket->send(hexabus::EndpointInfoPacket(EP_SM_CONTROL, HXB_DTYPE_UINT8, "Statemachine control", HXB_FLAG_NONE), from);
+				socket->send(hexabus::EndpointInfoPacket(EP_SM_CONTROL, HXB_DTYPE_UINT8, "Statemachine control"), from);
 				break;
 			case EP_SM_UP_RECEIVER:
-				socket->send(hexabus::EndpointInfoPacket(EP_SM_UP_RECEIVER, HXB_DTYPE_66BYTES, "Statemachine upload receiver", HXB_FLAG_NONE), from);
+				socket->send(hexabus::EndpointInfoPacket(EP_SM_UP_RECEIVER, HXB_DTYPE_66BYTES, "Statemachine upload receiver"), from);
 				break;
 			case EP_FLUKSO_L1:
-				socket->send(hexabus::EndpointInfoPacket(EP_FLUKSO_L1, HXB_DTYPE_UINT32, "Flukso Phase 1", HXB_FLAG_NONE), from);
+				socket->send(hexabus::EndpointInfoPacket(EP_FLUKSO_L1, HXB_DTYPE_UINT32, "Flukso Phase 1"), from);
 				break;
 			case EP_FLUKSO_L2:
-				socket->send(hexabus::EndpointInfoPacket(EP_FLUKSO_L2, HXB_DTYPE_UINT32, "Flukso Phase 2", HXB_FLAG_NONE), from);
+				socket->send(hexabus::EndpointInfoPacket(EP_FLUKSO_L2, HXB_DTYPE_UINT32, "Flukso Phase 2"), from);
 				break;
 			case EP_FLUKSO_L3:
-				socket->send(hexabus::EndpointInfoPacket(EP_FLUKSO_L3, HXB_DTYPE_UINT32, "Flukso Phase 3", HXB_FLAG_NONE), from);
+				socket->send(hexabus::EndpointInfoPacket(EP_FLUKSO_L3, HXB_DTYPE_UINT32, "Flukso Phase 3"), from);
 				break;
 			case EP_FLUKSO_S01:
-				socket->send(hexabus::EndpointInfoPacket(EP_FLUKSO_S01, HXB_DTYPE_UINT32, "Flukso S0 1", HXB_FLAG_NONE), from);
+				socket->send(hexabus::EndpointInfoPacket(EP_FLUKSO_S01, HXB_DTYPE_UINT32, "Flukso S0 1"), from);
 				break;
 			case EP_FLUKSO_S02:
-				socket->send(hexabus::EndpointInfoPacket(EP_FLUKSO_S02, HXB_DTYPE_UINT32, "Flukso S0 2", HXB_FLAG_NONE), from);
+				socket->send(hexabus::EndpointInfoPacket(EP_FLUKSO_S02, HXB_DTYPE_UINT32, "Flukso S0 2"), from);
 				break;
 		}
 	} catch ( const hexabus::NetworkException& e ) {
@@ -196,75 +207,14 @@ void HexabusServer::smuploadhandler(const hexabus::Packet& p, const boost::asio:
 	}
 }
 
-void HexabusServer::l1handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket)
-{
-	_debug && std::cout << "Query for Phase 1 received" << std::endl;
-	updateFluksoValues();
-	_debug && std::cout << "Looking for _flukso_values[" << _sensor_mapping[1] << "]" << std::endl;
-	try {
-		int value = _flukso_values[_sensor_mapping[1]];
-		if ( value >= 0 )
-			socket->send(hexabus::InfoPacket<uint32_t>(EP_FLUKSO_L1, value), from);
-	} catch ( const hexabus::NetworkException& e ) {
-		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
-	}
-}
-
-void HexabusServer::l2handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket)
-{
-	_debug && std::cout << "Query for Phase 2 received" << std::endl;
-	updateFluksoValues();
-	_debug && std::cout << "Looking for _flukso_values[" << _sensor_mapping[2] << "]" << std::endl;
-	try {
-		int value = _flukso_values[_sensor_mapping[2]];
-		if ( value >= 0 )
-			socket->send(hexabus::InfoPacket<uint32_t>(EP_FLUKSO_L2, value), from);
-	} catch ( const hexabus::NetworkException& e ) {
-		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
-	}
-}
-
-void HexabusServer::l3handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket)
-{
-	_debug && std::cout << "Query for Phase 3 received" << std::endl;
-	updateFluksoValues();
-	_debug && std::cout << "Looking for _flukso_values[" << _sensor_mapping[3] << "]" << std::endl;
-	try {
-		int value = _flukso_values[_sensor_mapping[3]];
-		if ( value >= 0 )
-			socket->send(hexabus::InfoPacket<uint32_t>(EP_FLUKSO_L3, value), from);
-	} catch ( const hexabus::NetworkException& e ) {
-		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
-	}
-}
-
-void HexabusServer::s01handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket)
-{
-	_debug && std::cout << "Query for S0 1 received" << std::endl;
-	updateFluksoValues();
-	_debug && std::cout << "Looking for _flukso_values[" << _sensor_mapping[4] << "]" << std::endl;
-	try {
-		int value = _flukso_values[_sensor_mapping[4]];
-		if ( value >= 0 )
-			socket->send(hexabus::InfoPacket<uint32_t>(EP_FLUKSO_S01, value), from);
-	} catch ( const hexabus::NetworkException& e ) {
-		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
-	}
-}
-
-void HexabusServer::s02handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket)
-{
-	_debug && std::cout << "Query for S0 2 received" << std::endl;
-	updateFluksoValues();
-	_debug && std::cout << "Looking for _flukso_values[" << _sensor_mapping[5] << "]" << std::endl;
-	try {
-		int value = _flukso_values[_sensor_mapping[5]];
-		if ( value >= 0 )
-			socket->send(hexabus::InfoPacket<uint32_t>(EP_FLUKSO_S02, value), from);
-	} catch ( const hexabus::NetworkException& e ) {
-		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
-	}
-}
+static const char* entry_names[6] = {
+	0,
+	"Phase 1",
+	"Phase 2",
+	"Phase 3",
+	"S0 1",
+	"S0 2",
+};
 
 unsigned long endpoints[6] = {
 	0, // Dummy value as there is no sensor 0
@@ -272,8 +222,23 @@ unsigned long endpoints[6] = {
 	EP_FLUKSO_L2,
 	EP_FLUKSO_L3,
 	EP_FLUKSO_S01,
-	EP_FLUKSO_S02
+	EP_FLUKSO_S02,
 };
+
+void HexabusServer::value_handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from,
+		hexabus::Socket* socket, int map_idx)
+{
+	_debug && std::cout << "Query for " << entry_names[map_idx] << " received" << std::endl;
+	updateFluksoValues();
+	_debug && std::cout << "Looking for _flukso_values[" << _sensor_mapping[map_idx] << "]" << std::endl;
+	try {
+		int value = _flukso_values[_sensor_mapping[map_idx]];
+		if ( value >= 0 )
+			socket->send(hexabus::InfoPacket<uint32_t>(endpoints[map_idx], value), from);
+	} catch ( const hexabus::NetworkException& e ) {
+		std::cerr << "Could not send packet to " << from << ": " << e.code().message() << std::endl;
+	}
+}
 
 
 void HexabusServer::broadcast_handler(const boost::system::error_code& error)

@@ -21,11 +21,9 @@ namespace hexadaemon {
 			void eid2handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket);
 			void smcontrolhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket);
 			void smuploadhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket);
-			void l1handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket);
-			void l2handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket);
-			void l3handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket);
-			void s01handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket);
-			void s02handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket);
+
+			void value_handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from,
+				hexabus::Socket* socket, int map_idx);
 
 			void broadcast_handler(const boost::system::error_code& error);
 
@@ -39,7 +37,7 @@ namespace hexadaemon {
 			void _init();
 
 		private:
-			std::vector<hexabus::Listener*> _listener;
+			hexabus::Listener _listener;
 			std::vector<hexabus::Socket*> _sockets;
 			boost::asio::deadline_timer _timer;
 			int _interval;
