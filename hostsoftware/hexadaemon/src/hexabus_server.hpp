@@ -12,18 +12,17 @@ namespace hexadaemon {
 	class HexabusServer {
 		public:
 			typedef boost::shared_ptr<HexabusServer> Ptr;
-			HexabusServer(boost::asio::io_service& io, const std::vector<std::string> interfaces, const std::vector<std::string> addresses, int interval = 60, bool debug = false);
+			HexabusServer(boost::asio::io_service& io, const std::string& interface, const std::string& address, int interval = 60, bool debug = false);
 			virtual ~HexabusServer() {};
 
-			void epqueryhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket);
-			void eid0handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket);
-			void eid32handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket);
-			void eid2handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket);
-			void smcontrolhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket);
-			void smuploadhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, hexabus::Socket* socket);
+			void epqueryhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void eid0handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void eid32handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void eid2handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void smcontrolhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void smuploadhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 
-			void value_handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from,
-				hexabus::Socket* socket, int map_idx);
+			void value_handler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from, int map_idx);
 
 			void broadcast_handler(const boost::system::error_code& error);
 
@@ -38,7 +37,7 @@ namespace hexadaemon {
 
 		private:
 			hexabus::Listener _listener;
-			std::vector<hexabus::Socket*> _sockets;
+			hexabus::Socket _socket;
 			boost::asio::deadline_timer _timer;
 			int _interval;
 			bool _debug;
