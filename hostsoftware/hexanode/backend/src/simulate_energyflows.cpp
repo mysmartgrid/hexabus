@@ -100,24 +100,25 @@ int main (int argc, char const* argv[]) {
   boost::asio::io_service listen_io;
   boost::asio::io_service send_io;
   boost::asio::io_service send_io2;
-  hexabus::Socket* listen_network;
+  hexabus::Listener* listen_network;
   hexabus::Socket* send_network;
   hexabus::Socket* send_network2;
   if (vm.count("interface") != 1) {
-    listen_network=new hexabus::Socket(listen_io);
+    listen_network=new hexabus::Listener(listen_io);
     send_network=new hexabus::Socket(send_io);
     send_network2=new hexabus::Socket(send_io2);
     std::cout << "Using all interfaces." << std::endl;
   } else {
     std::string interface(vm["interface"].as<std::string>());
     std::cout << "Using interface " << interface << std::endl;
-    listen_network=new hexabus::Socket(listen_io, interface);
-    send_network=new hexabus::Socket(send_io, interface);
+    listen_network=new hexabus::Listener(listen_io);
+		listen_network->listen(interface);
+    send_network=new hexabus::Socket(send_io);
+		send_network->mcast_from(interface);
     send_network2=new hexabus::Socket(send_io2);
   }
   boost::asio::ip::address_v6 listen_addr(boost::asio::ip::address_v6::any());
   std::cout << "Listening to " << listen_addr << std::endl;
-  listen_network->listen(listen_addr);
   std::cout << "Sending updates via " << send_ipv6 << std::endl;
   send_network->bind(send_ipv6);
   send_network2->bind(send_ipv6);

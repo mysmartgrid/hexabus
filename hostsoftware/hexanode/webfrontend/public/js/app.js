@@ -340,6 +340,7 @@ angular.module('dashboard', [
 					$scope.registering = false;
 					$scope.registered = true;
 					$scope.activationCode = progress.code;
+					$scope.gotoPage = window.location.origin + '/wizard/success';
 					break;
 			}
 		}
@@ -429,6 +430,7 @@ angular.module('dashboard', [
 		Socket.emit('devices_add');
 		$scope.error = false;
 		$scope.found = false;
+		$scope.rename = false;
 		$scope.searching = true;
 	};
 
@@ -446,11 +448,45 @@ angular.module('dashboard', [
 			}
 			msg.device.endpoints = eids;
 			$scope.device = msg.device;
+			$scope.new_name = msg.device.name;
 			$scope.found = true;
 		}
 	}
 
+	var on_ep_metadata = function(ep) {
+		if($scope.renaming && ep.ip == $scope.device.ip) {
+			if($scope.new_name == ep.name) {
+				$scope.device.name = ep.name;
+				$scope.renaming = false;
+				$scope.rename = false;
+				$scope.rename_error_class = "";
+				$scope.rename_error = false;
+			}
+		}
+	}
+
+	var on_device_rename_error = function(msg) {
+		if($scope.renaming) {
+			$scope.renaming = false;
+			$scope.rename_error_msg = msg.error.code || msg.error;
+			$scope.rename_error_class = "error";
+			$scope.rename_error = true;
+		}
+	}
+
+	$scope.show_rename = function() {
+		$scope.rename = true;
+	}
+
+	$scope.rename_device = function(ip) {
+		$scope.renaming = true;
+		var name = $scope.new_name;
+		Socket.emit('device_rename', {device: ip, name: name})
+	}
+
 	Socket.on('device_found', on_device_found);
+	Socket.on('ep_metadata', on_ep_metadata);
+	Socket.on('device_rename_error', on_device_rename_error);
 }])
 .controller('healthController', ['$scope', 'Socket', function($scope, Socket) {
 	$scope.errorState = false;

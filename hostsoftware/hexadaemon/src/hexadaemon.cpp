@@ -35,6 +35,7 @@ int main(int argc, char** argv)
     ("debug,d", "enable debug mode")
     ("logfile,l", po::value<std::string>(), "set the logfile to use")
     ("interval,i", po::value<int>(), "set the broadcast interval")
+    ("interface,I", po::value<std::string>(), "the interface to use for outgoing messages")
     ;
   po::variables_map vm;
 
@@ -51,6 +52,7 @@ int main(int argc, char** argv)
   bool debug = false;
   std::string logfile = "/tmp/hexadaemon.log";
   int interval = 2;
+	boost::optional<std::string> interface;
 
   if (vm.count("help")) {
     std::cout << desc << std::endl;
@@ -69,6 +71,10 @@ int main(int argc, char** argv)
     interval = vm["interval"].as<int>();
   }
 
+	if (vm.count("interface")) {
+		interface = vm["interface"].as<std::string>();
+	}
+
   try
   {
 
@@ -76,7 +82,12 @@ int main(int argc, char** argv)
     // started from a shell, this means any errors will be reported back to the
     // user.
     //udp_daytime_server server(io_service);
-    hexadaemon::HexabusServer server(io_service, interval, debug);
+    hexadaemon::HexabusServer *server;
+    if(interface) {
+      server = new hexadaemon::HexabusServer(io_service, *interface, interval, debug);
+    } else {
+      server = new hexadaemon::HexabusServer(io_service, interval, debug);
+    }
 
     // Register signal handlers so that the daemon may be shut down. You may
     // also want to register for other signals, such as SIGHUP to trigger a

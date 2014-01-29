@@ -310,6 +310,14 @@ eid 45 {
 	function sensor
 }
 
+eid 46 {
+	type UINT8
+	description "Hexasense button state"
+	unit "_hsbs"
+	access R
+	function sensor
+}
+
 eid 47 {
 	type UINT32
 	description "Flukso Phase 1"

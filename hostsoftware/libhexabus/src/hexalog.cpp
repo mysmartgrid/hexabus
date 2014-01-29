@@ -221,7 +221,9 @@ int main(int argc, char** argv)
 			sensor_timezone=vm["timezone"].as<std::string>();
 		}
 
-		hexabus::Socket network(io, interface);
+		hexabus::Listener listener(io);
+
+		hexabus::Socket network(io);
 		std::cout << "opened store: " << store->str() << std::endl;
 		klio::SensorFactory sensor_factory;
 		klio::TimeConverter tc;
@@ -230,12 +232,9 @@ int main(int argc, char** argv)
 
 		Logger logger(storefile, store, tc, sensor_factory, sensor_timezone, di, reg);
 
-		if (vm.count("bind")) {
-			network.bind(boost::asio::ip::udp::endpoint(addr, HXB_PORT));
-		} else {
-			network.listen();
-		}
-		network.onPacketReceived(boost::ref(logger));
+		network.bind(addr);
+		listener.listen(interface);
+		listener.onPacketReceived(boost::ref(logger));
 
 		boost::asio::signal_set rotate_handler(io, SIGHUP);
 

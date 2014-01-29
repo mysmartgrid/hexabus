@@ -5,5 +5,6 @@ while ! (ip -o -6 address show usb0 | grep -v "inet6 fe80::") >/dev/null 2>&1
 do
 	sleep 1
 done
+sleep 10
 
-exec setuidgid hexanode hexabus_webbackend -u 127.0.0.1 -i eth0 2>&1
+exec setuidgid hexanode hexabus_webbackend -u 127.0.0.1 -i eth0 -i usb0 2>&1

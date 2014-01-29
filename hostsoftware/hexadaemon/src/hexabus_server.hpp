@@ -13,6 +13,7 @@ namespace hexadaemon {
 		public:
 			typedef boost::shared_ptr<HexabusServer> Ptr;
 			HexabusServer(boost::asio::io_service& io, int interval = 60, bool debug = false);
+			HexabusServer(boost::asio::io_service& io, const std::string &interface, int interval = 60, bool debug = false);
 			virtual ~HexabusServer() {};
 
 			void epqueryhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
@@ -34,6 +35,9 @@ namespace hexadaemon {
 			void loadSensorMapping();
 			std::string loadDeviceName();
 			void saveDeviceName(std::string name);
+
+		private:
+			void _init();
 
 		private:
 			hexabus::Socket _socket;

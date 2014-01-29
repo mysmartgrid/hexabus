@@ -12,70 +12,110 @@
 #include "filtering.hpp"
 
 namespace hexabus {
-  class Socket {
-    public:
+	class SocketBase {
+		public:
 			typedef boost::function<bool (const Packet& packet, const boost::asio::ip::udp::endpoint& from)> filter_t;
 			typedef boost::function<void (const Packet& packet, const boost::asio::ip::udp::endpoint& from)> on_packet_received_slot_t;
 
 			typedef boost::signals2::signal<void (const GenericException& error)> on_async_error_t;
 			typedef on_async_error_t::slot_type on_async_error_slot_t;
 
-    public:
 			static const boost::asio::ip::address_v6 GroupAddress;
 
-      Socket(boost::asio::io_service& io);
-      Socket(boost::asio::io_service& io, const std::string& interface);
-      ~Socket();
+		private:
+			void openSocket();
 
-			boost::signals2::connection onPacketReceived(const on_packet_received_slot_t& callback, const filter_t& filter = filtering::any());
+		protected:
+			boost::asio::io_service& io;
+			boost::asio::ip::udp::socket socket;
+			boost::asio::ip::udp::endpoint remoteEndpoint;
+			boost::signals2::signal<void (const Packet::Ptr&, const boost::asio::ip::udp::endpoint&)> packetReceived;
+			on_async_error_t asyncError;
+			std::vector<char> data;
+
+			int iface_idx(const std::string& iface);
+
+			void beginReceive();
+			void packetReceivedHandler(const boost::system::error_code& error, size_t size);
+
+		public:
+			SocketBase(boost::asio::io_service& io);
+
+			virtual ~SocketBase();
+
+			boost::asio::ip::udp::endpoint localEndpoint() const
+			{
+				return socket.local_endpoint();
+			}
+
+			boost::asio::io_service& ioService()
+			{
+				return io;
+			}
+
+			boost::signals2::connection onPacketReceived(
+					const on_packet_received_slot_t& callback,
+					const filter_t& filter = filtering::any());
 			boost::signals2::connection onAsyncError(const on_async_error_slot_t& callback);
-      
-			void listen();
-			void bind(const boost::asio::ip::udp::endpoint& ep);
-			void bind(const boost::asio::ip::address_v6& addr) { bind(boost::asio::ip::udp::endpoint(addr, 0)); }
 
-			boost::asio::ip::udp::endpoint localEndpoint() const { return socket_u.local_endpoint(); }
-
-			uint16_t send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest);
-			std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> receive(const filter_t& filter = filtering::any(),
+			std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> receive(
+					const filter_t& filter = filtering::any(),
 					boost::posix_time::time_duration timeout = boost::date_time::pos_infin);
+	};
 
-			uint16_t send(const Packet& packet) { return send(packet, GroupAddress); }
-			uint16_t send(const Packet& packet, const boost::asio::ip::address_v6& dest) { return send(packet, boost::asio::ip::udp::endpoint(dest, HXB_PORT)); }
+	class Listener : public SocketBase {
+		private:
+			void configureSocket();
 
-			boost::asio::io_service& ioService() { return io_service; }
+		public:
+			Listener(boost::asio::io_service& io)
+				: SocketBase(io)
+			{
+				configureSocket();
+			}
 
-    private:
+			void listen(const std::string& dev = "");
+			void ignore(const std::string& dev = "");
+	};
+
+	class Socket : public SocketBase {
+		private:
+			void configureSocket();
+
 			struct Association {
 				boost::posix_time::ptime lastUpdate;
 				uint16_t seqNum;
 			};
 
-			boost::asio::io_service& io_service;
-			boost::asio::ip::udp::socket socket_m, socket_u;
-			boost::asio::ip::udp::endpoint remote_m, remote_u;
-			boost::signals2::signal<void (const Packet::Ptr&,
-					const boost::asio::ip::udp::endpoint&)> packetReceived;
-			on_async_error_t asyncError;
-			int if_index;
-			std::vector<char> data_m, data_u;
-
 			std::map<boost::asio::ip::udp::endpoint, Association> _associations;
 			boost::asio::deadline_timer _association_gc_timer;
-
-			void openSocket(const std::string* interface);
-
-			void beginReceivePacket();
-			void packetReceivedHandler(const boost::system::error_code& error, const std::vector<char>& buffer, const boost::asio::ip::udp::endpoint& remote, size_t size);
-
-			void syncPacketReceiveCallback(const Packet::Ptr& packet, const boost::asio::ip::udp::endpoint& from,
-					std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint>& result, const filter_t& filter);
 
 			void associationGCTimeout(const boost::system::error_code& error);
 			void scheduleAssociationGC();
 
 			uint16_t generateSequenceNumber(const boost::asio::ip::udp::endpoint& target);
-  };
-};
+
+		public:
+			Socket(boost::asio::io_service& io)
+				: SocketBase(io), _association_gc_timer(io)
+			{
+				configureSocket();
+			}
+
+			void mcast_from(const std::string& dev);
+
+			void bind(const boost::asio::ip::address_v6& addr)
+			{
+				bind(boost::asio::ip::udp::endpoint(addr, 0));
+			}
+			void bind(const boost::asio::ip::udp::endpoint& ep);
+
+			uint16_t send(const Packet& packet, const boost::asio::ip::address_v6& dest = GroupAddress)
+			{
+				return send(packet, boost::asio::ip::udp::endpoint(dest, HXB_PORT));
+			}
+			uint16_t send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest);
+	};
+}
 
 #endif
