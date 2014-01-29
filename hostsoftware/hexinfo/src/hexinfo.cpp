@@ -49,39 +49,39 @@ struct ReceiveCallback { // callback for device discovery
 	}
 };
 
-struct InfoCallback { // callback for populating data structures
+struct ReportCallback { // callback for populating data structures
 	device_descriptor* device;
 	std::set<endpoint_descriptor>* endpoints;
 	bool* received;
 	void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep)
 	{
-		const hexabus::EndpointInfoPacket* endpointInfo = dynamic_cast<const hexabus::EndpointInfoPacket*>(&packet);
-		const hexabus::InfoPacket<uint32_t>* info = dynamic_cast<const hexabus::InfoPacket<uint32_t>*>(&packet);
-		if(endpointInfo != NULL)
+		const hexabus::EndpointReportPacket* endpointReport = dynamic_cast<const hexabus::EndpointReportPacket*>(&packet);
+		const hexabus::ReportPacket<uint32_t>* report = dynamic_cast<const hexabus::ReportPacket<uint32_t>*>(&packet);
+		if(endpointReport != NULL)
 		{
-			if(endpointInfo->eid() == EP_DEVICE_DESCRIPTOR) // If it's endpoint 0 (device descriptor), it contains the device name.
+			if(endpointReport->eid() == EP_DEVICE_DESCRIPTOR) // If it's endpoint 0 (device descriptor), it contains the device name.
 			{
-				device->name = endpointInfo->value();
+				device->name = endpointReport->value();
 			} else { // otherwise it contains information about an endpoint, so build an endpoint_descriptor and add it to the list
 				endpoint_descriptor ep;
-				ep.eid = endpointInfo->eid();
-				ep.datatype = endpointInfo->datatype();
-				ep.name = endpointInfo->value();
+				ep.eid = endpointReport->eid();
+				ep.datatype = endpointReport->datatype();
+				ep.name = endpointReport->value();
 
 				endpoints->insert(ep);
 			}
 			*received = true;
 		}
 
-		if(info != NULL)
+		if(report != NULL)
 		{
-			if ((info->eid() % 32) == 0) // we only care for the device descriptors
+			if ((report->eid() % 32) == 0) // we only care for the device descriptors
 			{
-				uint32_t val = info->value() >> 1; // skip device descriptor
+				uint32_t val = report->value() >> 1; // skip device descriptor
 				for(int i = 1; i < 32; ++i)
 				{
 					if(val & 1) // find out whether LSB is set
-						device->endpoint_ids.insert(info->eid() + i); // if it's set, store the EID (the bit's position in the device descriptor).
+						device->endpoint_ids.insert(report->eid() + i); // if it's set, store the EID (the bit's position in the device descriptor).
 
 					val >>= 1; // right-shift in order to have the next EID in the LSB
 				}
@@ -456,7 +456,7 @@ int main(int argc, char** argv)
 
 		// use connections so that callback handlers get deleted (.disconnect())
 		boost::signals2::connection c1 = network->onAsyncError(errorCallback);
-		boost::signals2::connection c2 = network->onPacketReceived(receiveCallback, hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR));
+		boost::signals2::connection c2 = network->onPacketReceived(receiveCallback, hexabus::filtering::isReport<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR));
 
 		// timer that cancels receiving after n seconds
 		boost::asio::deadline_timer timer(network->ioService());
@@ -502,12 +502,12 @@ int main(int argc, char** argv)
 
 		// callback handler for incoming (ep)info packets
 		bool received = false;
-		InfoCallback infoCallback = { &device, &endpoints, &received };
+		ReportCallback reportCallback = { &device, &endpoints, &received };
 		ErrorCallback errorCallback;
 		boost::signals2::connection c1 = network->onAsyncError(errorCallback);
-		boost::signals2::connection c2 = network->onPacketReceived(infoCallback,
-			(hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() % 32 == 0))
-			|| hexabus::filtering::isEndpointInfo());
+		boost::signals2::connection c2 = network->onPacketReceived(reportCallback,
+			(hexabus::filtering::isReport<uint32_t>() && (hexabus::filtering::eid() % 32 == 0))
+			|| hexabus::filtering::isEndpointReport());
 
 		unsigned int retries = 0;
 
