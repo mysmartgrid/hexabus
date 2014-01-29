@@ -58,6 +58,7 @@
 static struct uip_udp_conn *udpconn;
 static struct etimer udp_unreachable_timer;
 static udp_handler_event_t state;
+uip_ipaddr_t udp_master_addr;
 
 static void reset_unreachable_timer()
 {
@@ -248,7 +249,7 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 			break;
 
 		case HXB_PTYPE_PINFO:
-		//TODO
+		//TODO should not be sent from device
 		default:
 			return 0;
 	}
@@ -656,7 +657,6 @@ static enum hxb_error_code handle_info(union hxb_packet_any* packet)
 
 void udp_handler_handle_incoming(struct hxb_queue_packet* R) {
 
-	uip_ipaddr_t addr;
 	enum hxb_error_code err;
 	union hxb_packet_any* packet = &(R->packet);
 
@@ -694,8 +694,7 @@ void udp_handler_handle_incoming(struct hxb_queue_packet* R) {
 			err = handle_info(packet);
 			break;
 		case HXB_PTYPE_PINFO:
-			uip_ip6addr(&addr, 0,0,0,0,0,0,0,0); //TODO
-			if(uip_ipaddr_cmp(&(R->ip), &addr)) {
+			if(uip_ipaddr_cmp(&(R->ip), &udp_master_addr)) {
 				err = handle_info(packet);
 			} else {
 				err = HXB_ERR_UNEXPECTED_PACKET;
@@ -825,6 +824,17 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
 	syslog(LOG_INFO, "Created connection with remote peer " LOG_6ADDR_FMT ", local/remote port %u/%u", LOG_6ADDR_VAL(udpconn->ripaddr), uip_htons(udpconn->lport),uip_htons(udpconn->rport));
 
   print_local_addresses();
+
+  //find master address
+  	uip_ip6addr(&udp_master_addr, 0xfe80,0,0,0,0,0,0,1);
+	for (int i = 0; i < UIP_DS6_ADDR_NB; i++) {
+		if (uip_ds6_if.addr_list[i].isused && uip_ds6_if.addr_list[i].ipaddr.u16[0]!=0xfe80) {
+				udp_master_addr.u16[0] = uip_ds6_if.addr_list[i].ipaddr.u16[0];
+				udp_master_addr.u16[1] = uip_ds6_if.addr_list[i].ipaddr.u16[1];
+				break;
+		}
+	}
+	syslog(LOG_INFO, "Setting master address to " LOG_6ADDR_FMT, LOG_6ADDR_VAL(udp_master_addr));
 
 	reset_unreachable_timer();
 	state = UDP_HANDLER_UP;

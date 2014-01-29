@@ -9,6 +9,7 @@
 #include "sequence_numbers.h"
 #include "udp_handler.h"
 #include "state_machine.h"
+#include "syslog.h"
 
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
@@ -108,8 +109,6 @@ bool is_ack_for(union hxb_packet_any* packet, uint16_t seq_num) {
 }
 
 static void run_send_state_machine(uint8_t rs) {
-	//TODO: proper error handling
-
 	switch(rstates[rs].send_state) {
 		case SINIT:
 			rstates[rs].want_ack_for = 0;
@@ -129,7 +128,7 @@ static void run_send_state_machine(uint8_t rs) {
 						rstates[rs].send_state = SWAIT_ACK;
 						etimer_set(&(rstates[rs].timeout_timer), RETRANS_TIMEOUT);
 					} else {
-						//TODO something went wrong
+						syslog(LOG_ERR, "Could not send reliable packet.")
 					}
 				}
 			}
@@ -147,12 +146,14 @@ static void run_send_state_machine(uint8_t rs) {
 				} else {
 					fail = 1;
 					rstates[rs].send_state = SFAILED;
+					syslog(LOG_WARN, "Reached maximum retransmissions, attempting recovery...");
 				}
 			}
 			break;
 		case SFAILED:
 			if(fail == 2) {
-				//process_post(PROCESS_BROADCAST, udp_handler_ready, NULL); //TODO do reset here
+				syslog(LOG_WARN, "Resetting...");
+				process_post(PROCESS_BROADCAST, udp_handler_event, UDP_HANDLER_UP);
 				sm_restart();
 			}
 			break;
@@ -160,8 +161,6 @@ static void run_send_state_machine(uint8_t rs) {
 }
 
 static void run_recv_state_machine(uint8_t rs) {
-	uip_ipaddr_t addr;
-
 	switch(rstates[rs].recv_state) {
 		case RINIT:
 			rstates[rs].rseq_num = 0;
@@ -195,8 +194,7 @@ static void run_recv_state_machine(uint8_t rs) {
 			}
 			break;
 		case RFAILED:
-			uip_ip6addr(&addr, 0,0,0,0,0,0,0,0);
-			if(uip_ipaddr_cmp(&(R->ip), &addr)) {
+			if(uip_ipaddr_cmp(&(R->ip), &udp_master_addr)) {
 				fail = 2;
 				rstates[rs].recv_state = RREADY;
 			}
