@@ -12,13 +12,12 @@ var application_root = __dirname
 	, fs = require("fs")
   , nconf=require('nconf');
 
-nconf.env().argv();
+nconf.env().argv().file({file: 'config.json'});
 // Setting default values
 nconf.defaults({
   'port': '3000',
 	'config': '.'
 });
-
 server.listen(nconf.get('port'));
 
 // drop root if we ever had it, our arguments say so.
@@ -221,28 +220,24 @@ app.post('/api/device/rename/:ip', function(req, res) {
 });
 
 app.get('/', function(req, res) {
-	if (!fs.existsSync('/etc/radvd.conf')) {
-		res.redirect('/wizard/new');
-	} else if (!fs.existsSync('/etc/hexabus_msg_bridge.conf') && !nconf.get('debug-wizard')) {
-		res.redirect('/wizard/activation');
-	} else {
-		res.render('index.ejs', {
-			active_nav: 'dashboard',
-			views: devicetree.views
-		});
-	}
+		if (nconf.get('wizard_step')=='0') {
+			res.render('index.ejs', {
+				active_nav: 'dashboard',
+				views: devicetree.views
+			});
+		} else {
+			res.redirect('/wizard/new');
+		}
 });
 app.get('/about', function(req, res) {
 	res.render('about.ejs', { active_nav: 'about' });
 });
 app.get('/wizard', function(req, res) {
-	fs.exists('/etc/radvd.conf', function(exists) {
-		if (exists) {
+		if (nconf.get('wizard_step')=='0') {
 			res.redirect('/wizard/current');
 		} else {
 			res.redirect('/wizard/new');
 		}
-	});
 });
 app.get('/wizard/current', function(req, res) {
 	var config = hexabus.read_current_config();
@@ -292,6 +287,8 @@ app.post('/wizard/reset', function(req, res) {
 });
 app.get('/wizard/resetdone', function(req, res) {
 	res.render('wizard/resetdone.ejs', { active_nav: 'configuration' });
+	nconf.set('wizard_step', undefined);
+	nconf.save();
 	var wizard = new Wizard();
 	wizard.complete_reset();
 });
@@ -317,6 +314,88 @@ app.get('/wizard/devices/add', function(req, res) {
 	res.render('wizard/add_device.ejs', { active_nav: 'configuration' });
 });
 app.get('/wizard/:step', function(req, res) {
+	// steps 1-... and 0 if completed, undefined if not started
+	var wizard_step = nconf.get('wizard_step');
+	var error = false;
+	var getCurrentStep = function(wizard_step) {
+		switch(wizard_step) {
+			case undefined: return 'new';
+			case '0': return 'reset';
+			case '1': return 'connection';
+			case '2': return 'activation';
+			case '3': return 'msg';
+			default: return 'reset';
+		}
+	}
+	switch(req.params.step) {
+		case "new":
+			if(wizard_step!=undefined) {
+				var current_step = getCurrentStep(wizard_step);
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'gt_error' });
+			} else {
+				nconf.set('wizard_step', '1');
+				nconf.save();
+				res.render('wizard/new.ejs', { active_nav: 'configuration' });
+			}
+			return;
+		case "connection":
+			var current_step = getCurrentStep(wizard_step);
+			if(wizard_step==undefined) {
+				nconf.set('wizard_step', '1');
+				nconf.save();
+				res.render('wizard/new.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step>'1' || wizard_step=='0') {
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'gt_error' });
+			} else {
+				
+				res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
+			}
+			return;
+		case "activation":
+			var current_step = getCurrentStep(wizard_step);
+			if(wizard_step==undefined) {
+				nconf.set('wizard_step', '1');
+				nconf.save();
+				res.render('wizard/new.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step<'2') {
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step>'2' || wizard_step=='0') {
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'gt_error' });
+			} else {
+				res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
+			}
+			return;
+		case "msg":
+			var current_step = getCurrentStep(wizard_step);
+			if(wizard_step==undefined) {
+				nconf.set('wizard_step', '1');
+				nconf.save();
+				res.render('wizard/new.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step<'3') {
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step>'3' || wizard_step=='0') {
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'gt_error' });
+			} else {
+				res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
+			}
+			return;
+		case "success":
+			var current_step = getCurrentStep(wizard_step);
+			if(wizard_step==undefined) {
+				nconf.set('wizard_step', '1');
+				nconf.save();
+				res.render('wizard/new.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step<'3') {
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step>'3' || wizard_step=='0') { // reset or display success page?
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'gt_error' });
+			} else {
+				nconf.set('wizard_step', '0');
+				nconf.save();
+				res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
+			}
+			return;
+	}
 	res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
 });
 
@@ -416,7 +495,8 @@ io.sockets.on('connection', function (socket) {
 	var send_health_update = function() {
 		setTimeout(send_health_update, 60 * 1000);
 		hexabus.get_heartbeat_state(function(err, state) {
-			emit('health_update', !err && state.code != 0);
+			var wizard_step = nconf.get('wizard_step');
+			emit('health_update', ((err || state.code != 0) && wizard_step == '0'));
 		});
 	};
 
@@ -528,6 +608,14 @@ io.sockets.on('connection', function (socket) {
 
 		wizard.registerMSG(function(progress) {
 			emit('wizard_register_step', progress);
+		});
+	});
+
+	on('get_activation_code', function() {
+		var wizard = new Wizard();
+
+		wizard.getActivationCode(function(data) {
+			emit('activation_code', data);
 		});
 	});
 

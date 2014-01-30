@@ -4,7 +4,7 @@ var DeviceTree = require("../devicetree")
 var v6 = require('ipv6').v6;
 
 var Wizard = function() {
-	var networkAutoconf = function(cb) {
+	var networkAutoconf = function(cb,steps) {
 		var command = nconf.get('debug-wizard')
 			? 'sleep 2'
 			: 'sudo hxb-net-autoconf init';
@@ -12,24 +12,38 @@ var Wizard = function() {
 			if (error) {
 				cb({ step: 'autoconf', error: error });
 			} else {
+				steps.nA=true
+				check_configure_state(steps)
 				cb({ step: 'autoconf', error: undefined });
 			}
 		});
 	};
 
-	var checkMSG = function(cb) {
+	var checkMSG = function(cb,steps) {
 		exec('ping -c4 mysmartgrid.de', function(error, stdout, stderr) {
 			if (error) {
 				cb({ step: 'check_msg', error: error });
 			} else {
+				steps.cM=true
+				check_configure_state(steps)
 				cb({ step: 'check_msg', error: undefined });
 			}
 		});
 	};
 
+	check_configure_state = function(steps) {
+		if(steps.nA && steps.cM) {
+			nconf.set('wizard_step', '2');
+			nconf.save()
+		}
+	}
+
 	this.configure_network = function(cb) {
-		networkAutoconf(cb);
-		checkMSG(cb);
+		var steps = new Object();
+		steps.nA = false;
+		steps.cM = false;
+		networkAutoconf(cb, steps);
+		checkMSG(cb, steps);
 	};
 
 	this.deconfigure_network = function(cb) {
@@ -63,6 +77,8 @@ var Wizard = function() {
 					if (error) {
 						cb({ step: 'register_code', error: error });
 					} else {
+						nconf.set('wizard_step', '3');
+						nconf.save()
 						cb({ step: 'register_code', error: undefined, code: stdout });
 					}
 				});
@@ -75,6 +91,20 @@ var Wizard = function() {
 			? 'rm -f bridge.conf'
 			: 'sudo rm -f /etc/hexabus_msg_bridge.conf; sudo svc -k /etc/service/hexabus_msg_bridge';
 		exec(script, cb);
+	};
+
+	this.getActivationCode = function(cb) {
+		var program = nconf.get('debug-wizard')
+			? '../backend/build/src/hexabus_msg_bridge --config bridge.conf'
+			: 'sudo hexabus_msg_bridge';
+		var retrieve_command = program + ' --activationcode';
+		exec(retrieve_command, function(error, stdout, stderr) {
+			if (error) {
+				cb({ error: error });
+			} else {
+				cb({ error: undefined, code: stdout });
+			}
+		});
 	};
 
 	this.addDevice = function(devicetree, cb) {

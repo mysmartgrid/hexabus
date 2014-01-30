@@ -283,6 +283,9 @@ angular.module('dashboard', [
 		$("#device-order").attr("value", JSON.stringify(view_content));
 	};
 }])
+.controller('alertController', ['$scope', 'Socket', function($scope, Socket) {
+	$scope.error = window.error;
+}])
 .controller('wizardConnection', ['$scope', 'Socket', function($scope, Socket) {
 	$scope.configure = function() {
 		Socket.emit('wizard_configure');
@@ -325,6 +328,7 @@ angular.module('dashboard', [
 	});
 }])
 .controller('wizardActivation', ['$scope', 'Socket', function($scope, Socket) {
+	$scope.error = window.error;
 	$scope.register = function() {
 		Socket.emit('wizard_register');
 		$scope.registering = true;
@@ -343,6 +347,23 @@ angular.module('dashboard', [
 					$scope.gotoPage = window.location.origin + '/wizard/success';
 					break;
 			}
+		}
+	});
+}])
+.controller('wizardMSG', ['$scope', 'Socket', function($scope, Socket) {
+	$scope.error = window.error;
+	Socket.emit('get_activation_code');
+	$scope.working = true;
+
+	Socket.on('activation_code', function(data) {
+		if (data.error) {
+			$scope.failed = true;
+			$scope.working = false;
+		} else {
+			$scope.working = false;
+			$scope.registered = true;
+			$scope.activationCode = data.code;
+			$scope.gotoPage = window.location.origin + '/wizard/success';
 		}
 	});
 }])
@@ -369,6 +390,17 @@ angular.module('dashboard', [
 
 		ep.last_update = Math.round((+new Date(ep.last_update)) / 1000);
 		device.name = ep.name;
+		if(device.renaming && ep.ip == device.ip) {
+			if(device.new_name == ep.name) {
+				device.renaming = false;
+				device.rename = false;
+				device.rename_error_class = "";
+				device.rename_error = false;
+			}
+		} else {
+			device.new_name = ep.name;
+		}
+
 		if (!device.last_update || device.last_update < ep.last_update) {
 			device.last_update = ep.last_update;
 		}
@@ -393,6 +425,28 @@ angular.module('dashboard', [
 			});
 		}
 	};
+
+	var on_device_rename_error = function(msg) {
+		var device = $scope.devices[msg.device];
+		if(device.renaming) {
+			device.renaming = false;
+			device.rename_error_msg = msg.error.code || msg.error;
+			device.rename_error_class = "error";
+			device.rename_error = true;
+		}
+	}
+
+	$scope.show_rename = function(device) {
+		device.rename = true;
+	}
+
+	$scope.rename_device = function(device) {
+		device.renaming = true;
+		var name = device.new_name;
+		Socket.emit('device_rename', {device: device.ip, name: name})
+	}
+
+	Socket.on('device_rename_error', on_device_rename_error);
 
 
 	Socket.on('ep_new', on_ep_metadata);
@@ -494,4 +548,16 @@ angular.module('dashboard', [
 	Socket.on('health_update', function(state) {
 		$scope.errorState = state;
 	});
+}])
+.directive('focusIf', [function () {
+    return function focusIf(scope, element, attr) {
+        scope.$watch(attr.focusIf, function (newVal) {
+            if (newVal) {
+                scope.$evalAsync(function() {
+                    element.focus();
+			element.select();
+                });
+            }
+        });
+    }
 }]);

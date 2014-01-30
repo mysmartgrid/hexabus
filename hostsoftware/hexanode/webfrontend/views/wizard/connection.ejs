@@ -1,5 +1,23 @@
 <% include ../header %>
 
+<script>
+	<% if(typeof error != "undefined") { %>
+		error = <%- JSON.stringify(error) %>;
+	<% } %>
+</script>
+
+<div class="container" data-ng-controller="alertController">
+	<% if(typeof error != "undefined") { %>
+	<div class="alert alert-danger" data-ng-show="error">
+		{{undefined | localize:'alert.errors':error}}
+		<div data-ng-show="error=='gt_error'">
+			<a href="/wizard/reset" class="btn btn-danger" data-localize="navbar.reset-device" >Reset device</a>
+		</div>
+	</div>
+	<% } %>
+
+</div>
+
 <div id="connection"  class="page text-center wizard-step" data-ng-controller="wizardConnection">
 	<p class="lead" data-localize="wizard.connection.about-connect">We will now try to create a suitable configuration for your network and check whether mysmartgrid.de is reachable or not.</p>
 	<div data-ng-hide="active() || configured || connected">
