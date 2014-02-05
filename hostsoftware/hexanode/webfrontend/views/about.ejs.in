@@ -1,7 +1,11 @@
 <% include header %>
 
-<div class="container">
-	Version: @HXB_VERSION@
+<div class="container" data-ng-controller="currentController">
+	<p>Version: @HXB_VERSION@</p>
+		<button class="btn btn-success" data-ng-hide="upgrading" data-ng-click="upgrade()">Upgrade</button>
+	<p data-ng-show="upgrading" class="lead"><img src="/img/spinner-small.gif" alt="" /><span >Upgrading the system...</span></p>
+	<p data-ng-show="upgraded" class="lead"><span >Upgraded successfully</span></p>
+	<p data-ng-show="upgrade_error" class="lead"><textarea rows="15" cols="100" data-ng-model="upgrade_error_msg" style="font-size: 12pt;" readonly></textarea></p>
 </div> 
 
 <% include footer %>

@@ -597,6 +597,14 @@ io.sockets.on('connection', function (socket) {
 		});
 	});
 
+	on('upgrade', function() {
+		var wizard = new Wizard();
+
+		wizard.upgrade(function(error) {
+			emit('upgrade_completed', { msg: error });
+		});
+	});
+
 	on('wizard_configure', function() {
 		var wizard = new Wizard();
 

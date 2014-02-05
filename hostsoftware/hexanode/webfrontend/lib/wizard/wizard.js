@@ -49,6 +49,19 @@ var Wizard = function() {
 		return finished;	
 	};
 
+	this.upgrade = function(cb) {
+		var command = nconf.get('debug-wizard')
+			? 'apt-get -s upgrade'
+			: 'sudo apt-get update && sudo apt-get -s upgrade && sudo apt-get -y upgrade';
+		exec(command, function(error, stdout, stderr) {
+			if(error) {
+				cb( stderr );
+			} else {
+				cb( undefined );
+			}
+		});
+	};
+
 	this.configure_network = function(cb) {
 		var steps = new Object();
 		steps.nA = false;
