@@ -216,16 +216,36 @@ enum hxb_error_code receive_packet(struct hxb_queue_packet* packet) {
 	return HXB_ERR_SUCCESS;
 }
 
+void init_reliability_layer() {
+	for (int i=0; i<16; ++i) {
+		rstates[i].recv_state = RINIT;
+		rstates[i].send_state = SINIT;
+	}
+	packetqueue_init(&send_queue);
+	fail = 0;
+}
+
+void reset_reliability_layer() {
+	while(packetqueue_len(&send_queue) > 0) {
+		free(packetqueue_first(&send_queue));
+		packetqueue_dequeue(&send_queue);
+	}
+	init_reliability_layer();
+}
+
 PROCESS_THREAD(reliability_send_process, ev, data)
 {
 	PROCESS_EXITHANDLER(goto exit);
 
 	PROCESS_BEGIN();
 
-	packetqueue_init(&send_queue);
-	fail = 0;
+	init_reliability_layer();
 
 	while (1) {
+		if (ev == udp_handler_event && *(udp_handler_event_t*) data == UDP_HANDLER_UP) {
+			reset_reliability_layer();
+		}
+
 		for (int i=0; i<16; ++i)
 		{
 			run_send_state_machine(i);

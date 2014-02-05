@@ -14,5 +14,6 @@ PROCESS_NAME(reliability_send_process);
 
 enum hxb_error_code enqueue_packet(struct hxb_queue_packet* packet);
 enum hxb_error_code receive_packet(struct hxb_queue_packet* packet);
+void reset_reliability_layer();
 
 #endif
