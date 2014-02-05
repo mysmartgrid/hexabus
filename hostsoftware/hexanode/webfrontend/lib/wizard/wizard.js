@@ -2,6 +2,7 @@ var nconf = require('nconf');
 var exec = require('child_process').exec;
 var DeviceTree = require("../devicetree")
 var v6 = require('ipv6').v6;
+var fs = require("fs");
 
 var Wizard = function() {
 	var networkAutoconf = function(cb,steps) {
@@ -37,6 +38,16 @@ var Wizard = function() {
 			nconf.save()
 		}
 	}
+
+	this.is_finished = function() {
+		var finished = nconf.get('wizard_step')=='0';
+		if(!finished && fs.existsSync('/etc/hexabus_msg_bridge.conf')) {
+			nconf.set('wizard_step', '0');
+			nconf.save();
+			return true;
+		}
+		return finished;	
+	};
 
 	this.configure_network = function(cb) {
 		var steps = new Object();
