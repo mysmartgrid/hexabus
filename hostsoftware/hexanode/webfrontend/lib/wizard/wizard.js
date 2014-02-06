@@ -40,13 +40,13 @@ var Wizard = function() {
 	}
 
 	this.is_finished = function() {
-		var finished = nconf.get('wizard_step')=='0';
-		if(!finished && fs.existsSync('/etc/hexabus_msg_bridge.conf')) {
+		var step = nconf.get('wizard_step');
+		if((step == undefined) && fs.existsSync('/etc/hexabus_msg_bridge.conf')) {
 			nconf.set('wizard_step', '0');
 			nconf.save();
 			return true;
 		}
-		return finished;	
+		return (step == '0');	
 	};
 
 	this.upgrade = function(cb) {
