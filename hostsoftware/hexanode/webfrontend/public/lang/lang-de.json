@@ -129,6 +129,12 @@
 			"scanning": "Suche nach Geräten im Netzwerk"
 		}
 	},
+	"upgrade": {
+		"upgrade": "Aktualisieren",
+		"upgrading": "System wird aktualisiert...",
+		"success": "Aktualisierung erfolgreich",
+		"error": "Aktualisierung nicht erfolgreich. Fehlermeldung:"
+	},
 
 	"endpoint-registry": {
 		"descriptions": {
