@@ -1,7 +1,7 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <boost/program_options/positional_options.hpp>
-#include <boost/asio/io_serivce.hpp>
+#include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <libhexabus/common.hpp>
 #include <libhexabus/packet.hpp>
@@ -28,11 +28,17 @@ enum ErrorCode {
 	ERR_OTHER = 127
 };
 
-void sendTime(const boost::system::error_code& e, boost::asio::deadline_timer* t) {
+void sendTime(const boost::system::error_code& e, ba::deadline_timer& t, unsigned int delay, hexabus::Socket& network, ba::ip::address_v6& hxb_broadcast_address) {
 	pt::ptime currentTime(pt::second_clock::local_time());
-	send_packet(network, hxb_broadcast_address, hexabus::InfoPacket(0, currentTime));
-	t->expires_at(t->expires_at() + boost::posix_time::seconds(1));
-	t->async_wait(boost::bind(sendTime, boost::asio::placeholders::error, t));
+
+	try {
+		network.send(hexabus::InfoPacket<pt::ptime>(0, currentTime), hxb_broadcast_address);
+	} catch (const hexabus::NetworkException& e) {
+		std::cerr << "Could not send packet to " << hxb_broadcast_address << ": " << e.code().message() << std::endl;
+	}
+
+	t.expires_at(t.expires_at() + pt::seconds(delay));
+	t.async_wait(boost::bind(sendTime, ba::placeholders::error, boost::ref(t), delay, boost::ref(network), boost::ref(hxb_broadcast_address)));
 
 	if(verbose) {
 		std::cout << "Updated time to: " << pt::to_simple_string(currentTime) << std::endl;
@@ -48,7 +54,8 @@ int main(int argc, char** argv)
 	desc.add_options()
 		("help,h", "produce help message")
 		("version", "print version and exit")
-		("interface,I", po::value<std::vector<std::string> >(), "outgoing interface")
+		("interface,I", po::value<std::string>(), "outgoing interface")
+		("delay,d", po::value<unsigned int>(), "delay between updates in seconds (default 60)")
 		("verbose,V", "print more status information")
 		;
 
@@ -78,31 +85,36 @@ int main(int argc, char** argv)
 
 	if(!vm.count("interface"))
 	{
-		std::cerr << "You must specify an interface to send mulitcasts from."
+		std::cerr << "You must specify an interface to send mulitcasts from.";
 		return ERR_PARAMETER_MISSING;
 	}
+
+	unsigned int delay = 60;
+	if(vm.count("delay"))
+		delay = vm["delay"].as<unsigned int>();
 
 	if(vm.count("verbose"))
 		verbose = true;
 
 	//Setup interface
-	ba::io_serivce io;
-	boost::asio::ip::address_v6 hxb_broadcast_address = boost::asio::ip::address_v6::from_string(HXB_GROUP);
+	ba::io_service io;
+	ba::ip::address_v6 hxb_broadcast_address = ba::ip::address_v6::from_string(HXB_GROUP);
+	
+	hexabus::Socket network(io);
 	try {
-		hexabus::Socket* network = new hexabus::Socket(io, vm["interface"].as<std::string>());
+		network.mcast_from(vm["interface"].as<std::string>());
 	} catch(const hexabus::NetworkException& e) {
-		std::cerr << "Colud not open socket: " << e.what().message() << std::endl;
+		std::cerr << "Could not open interface "<< vm["interface"].as<std::string>() << ": " << e.code().message() << std::endl;
 		return ERR_NETWORK;
 	}
 
-	boost::asio::deadline_timer periodicTimer(io, boost::posix_time::seconds(1));
-	periodicTimer.async_wait(boost::bind(sendTime, boost::asio::placeholders::error, &periodicTimer));
+	if(verbose)
+		std::cout << "Initialized network." << std::endl;
 
-	boost::asio::signal_set signals(io_service, SIGINT, SIGTERM);
-	signals.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
+	ba::deadline_timer periodicTimer(io, pt::seconds(delay));
+	periodicTimer.async_wait(boost::bind(sendTime, ba::placeholders::error, boost::ref(periodicTimer), delay, boost::ref(network), boost::ref(hxb_broadcast_address)));
 
 	io.run();
-
 
 	if(verbose)
 		std::cout << "Closing..." << std::endl;
