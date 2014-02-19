@@ -1,0 +1,7 @@
+<% include header %>
+
+<div class="container">
+	Version: @HXB_VERSION@
+</div> 
+
+<% include footer %>

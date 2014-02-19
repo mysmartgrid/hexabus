@@ -3,126 +3,109 @@
 
 #include <libhexanode/common.hpp>
 #include <libhexanode/error.hpp>
-#include <libhexanode/sensor_collection.hpp>
-#include <libhexanode/info_query.hpp>
+#include <libhexanode/sensor.hpp>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/socket.hpp>
+#include <libhexabus/device_interrogator.hpp>
+#include <libhexabus/endpoint_registry.hpp>
 #include <boost/network/protocol/http/client.hpp>
 #include <boost/network/uri.hpp>
 #include <sstream>
+#include <map>
+#include <set>
 
 namespace hexanode {
 
   class PacketPusher : public hexabus::PacketVisitor {
     public:
       PacketPusher(hexabus::Socket* socket,
-          const boost::asio::ip::udp::endpoint& endpoint,
-          hexanode::SensorStore::Ptr sensors,
           boost::network::http::client client,
           const boost::network::uri::uri& api_uri,
           std::ostream& target)
-        : _info(new hexanode::InfoQuery(socket))
-        , _endpoint(endpoint)
-        , _sensors(sensors)
+        : _info(*socket)
         , _client(client)
         , _api_uri(api_uri)
         , target(target) {}
       virtual ~PacketPusher() {}
 
+			void push(const boost::asio::ip::udp::endpoint& endpoint, const hexabus::Packet& packet)
+			{
+				_endpoint = endpoint;
+				visitPacket(packet);
+			}
 
     private:
-      hexanode::InfoQuery::Ptr _info;
+			hexabus::DeviceInterrogator _info;
+			hexabus::EndpointRegistry _ep_registry;
       hexabus::Socket* _socket;
       boost::asio::ip::udp::endpoint _endpoint;
-      hexanode::SensorStore::Ptr _sensors;
+			std::map<std::string, hexanode::Sensor> _sensors;
       boost::network::http::client _client;
       boost::network::uri::uri _api_uri;
       std::ostream& target;
+			std::map<boost::asio::ip::address_v6, std::map<uint32_t, std::string> > _unidentified_devices;
 
-      void printValueHeader(uint32_t eid, const char* datatypeStr);
+			void deviceInfoReceived(const boost::asio::ip::address_v6& device, const hexabus::Packet& info);
+			void deviceInfoError(const boost::asio::ip::address_v6& device, const hexabus::GenericException& error);
 
-      template<typename T> 
-      std::string numeric2string(T value) {
-        std::ostringstream oss;
-        oss << std::fixed << std::setprecision(1) << value;
-        return oss.str();
-      }
+			static std::string sensorID(const boost::asio::ip::address_v6& addr, uint32_t eid)
+			{
+				std::ostringstream oss;
+				oss << addr << "(" << eid << ")";
+				return oss.str();
+			}
+
+			void defineSensor(const std::string& sensor_id, uint32_t eid, const std::string& value);
 
       void push_value(uint32_t eid, const std::string& value);
 
-      template<typename T>
-        void printValuePacket(const hexabus::ValuePacket<T>& packet, const char* datatypeStr)
-        {
-          printValueHeader(packet.eid(), datatypeStr);
-          target << " Value:\t" << packet.value() << std::endl;
-        }
+			template<typename T>
+			void pushFromPacket(const hexabus::ValuePacket<T>& packet)
+			{
+				std::ostringstream oss;
+				oss << std::fixed << std::setprecision(1) << float(packet.value());
 
-      void printValuePacket (const hexabus::ValuePacket<uint32_t>& packet, const char* datatypeStr)
-      {
-        printValueHeader(packet.eid(), datatypeStr);
-        target << " Value:\t" << packet.value() << std::endl;
-        push_value(packet.eid(), numeric2string(packet.value()));
-      }
+				push_value(packet.eid(), oss.str());
+			}
 
-      void printValuePacket (const hexabus::InfoPacket<float>& packet, const char* datatypeStr)
-      {
-        printValueHeader(packet.eid(), datatypeStr);
-        target << " Value:\t" << packet.value() << std::endl;
-        push_value(packet.eid(), numeric2string(packet.value()));
-      }
-
-      void printValuePacket(const hexabus::ValuePacket<uint8_t>& packet, const char* datatypeStr);
-
-      template<size_t L>
-        void printValuePacket(const hexabus::ValuePacket<boost::array<char, L> >& packet, const char* datatypeStr)
-        {
-          printValueHeader(packet.eid(), datatypeStr);
-
-          std::stringstream hexstream;
-
-          hexstream << std::hex << std::setfill('0');
-
-          for (size_t i = 0; i < L; ++i)
-          {
-            hexstream << std::setw(2) << (0xFF & packet.value()[i]) << " ";
-          }
-
-          std::cout << std::endl << std::endl;
-
-          target << "Value:\t" << hexstream.str() << std::endl; 
-          target << std::endl;
-        }
+			void rejectPacket()
+			{
+				target << "Unexpected packet received" << std::endl;
+			}
 
 
     public:
-      /**
-       * defined in cpp
-       */
-      virtual void visit(const hexabus::ErrorPacket& error);
-      virtual void visit(const hexabus::QueryPacket& query);
-      virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery);
-      virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo);
-      virtual void visit(const hexabus::InfoPacket<bool>& info) { printValuePacket(info, "Bool"); }
-      virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { printValuePacket(info, "UInt8"); }
-      virtual void visit(const hexabus::InfoPacket<uint32_t>& info) { printValuePacket(info, "UInt32"); }
-      virtual void visit(const hexabus::InfoPacket<float>& info) { printValuePacket(info, "Float"); }
-      virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) { printValuePacket(info, "Datetime"); }
-      virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info) { printValuePacket(info, "Timestamp"); }
-      virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "String"); }
-      virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (16 bytes)"); }
-      virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (66 bytes)"); }
-      /** 
-       * not needed.
-       */
-      virtual void visit(const hexabus::WritePacket<bool>& write) {}
-      virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
-      virtual void visit(const hexabus::WritePacket<uint32_t>& write) {}
-      virtual void visit(const hexabus::WritePacket<float>& write) {}
-      virtual void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) {}
-      virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) {}
-      virtual void visit(const hexabus::WritePacket<std::string>& write) {}
-      virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
-      virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
+			/**
+			 * Packets we are interested in
+			 */
+			virtual void visit(const hexabus::InfoPacket<bool>& info) { pushFromPacket(info); }
+			virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { pushFromPacket(info); }
+			virtual void visit(const hexabus::InfoPacket<uint32_t>& info) { pushFromPacket(info); }
+			virtual void visit(const hexabus::InfoPacket<float>& info) { pushFromPacket(info); }
+			/**
+			 * Ignored
+			 */
+			virtual void visit(const hexabus::ErrorPacket& error) { rejectPacket(); }
+			virtual void visit(const hexabus::QueryPacket& query) { rejectPacket(); }
+			virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery) { rejectPacket(); }
+			virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo) { rejectPacket(); }
+			virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) { rejectPacket(); }
+			virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info) { rejectPacket(); }
+			virtual void visit(const hexabus::InfoPacket<std::string>& info) { rejectPacket(); }
+			virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { rejectPacket(); }
+			virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { rejectPacket(); }
+			/** 
+			 * not needed.
+			 */
+			virtual void visit(const hexabus::WritePacket<bool>& write) { rejectPacket(); }
+			virtual void visit(const hexabus::WritePacket<uint8_t>& write) { rejectPacket(); }
+			virtual void visit(const hexabus::WritePacket<uint32_t>& write) { rejectPacket(); }
+			virtual void visit(const hexabus::WritePacket<float>& write) { rejectPacket(); }
+			virtual void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) { rejectPacket(); }
+			virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) { rejectPacket(); }
+			virtual void visit(const hexabus::WritePacket<std::string>& write) { rejectPacket(); }
+			virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) { rejectPacket(); }
+			virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) { rejectPacket(); }
   };
 
 }

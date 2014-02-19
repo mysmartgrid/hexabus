@@ -1,0 +1,36 @@
+<% include ../header %>
+
+<script>
+	known_hexabus_devices = <%- JSON.stringify(devices) %>;
+</script>
+
+
+<div class="container" data-ng-controller="devicesList">
+	<table class="table table-hover">
+		<tr>
+			<th />
+			<td />
+			<td>
+				<a href="/wizard/devices/add" class="btn btn-success" data-localize="wizard.devices.add">Add device</a>
+			</td>
+		</tr>
+		<tr data-ng-repeat="device in devices">
+			<th>
+				<p>{{device.name}}</p>
+				<p>{{device.ip}}</p>
+			</th>
+			<td>
+				<p data-ng-repeat="eid in device.eids">{{eid.description | localize:'endpoint-registry.descriptions':eid.eid }} ({{eid.unit | displayUnit | localize:'endpoint-registry.units'}})</p>
+				<p><span data-localize="last-update.label">Last update:</span> {{ Lang.localizeLastUpdate(device.last_update) }}</p>
+			</td>
+			<td>
+				<a href="#" data-ng-click="remove(device)" class="btn btn-danger" data-localize="wizard.device-list.forget-device">Forget device</a>
+			</td>
+		</tr>
+	</table>
+	<div data-ng-show="!scanDone" class="text-center">
+		<img src="/img/spinner-small.gif" alt="Searching" /> <span data-localize="wizard.device-list.scanning">Searching for devices</span>
+	</div>
+</div>
+
+<% include ../footer %>

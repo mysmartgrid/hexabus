@@ -1,0 +1,14 @@
+<% include ../header %>
+
+<div class="container">
+	<div class="alert alert-success" data-localize="wizard.reset-device.reboot">
+		Your base station will now reboot. Please wait a few minutes before you access your base station again.
+	</div>
+	<script>
+		window.setTimeout(function() {
+			window.location = '/';
+		}, 60 * 1000);
+	</script>
+</div>
+
+<% include ../footer %>

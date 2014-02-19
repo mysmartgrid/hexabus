@@ -1,0 +1,163 @@
+{
+	"title": "HexaBus-Basisstation",
+
+	"navbar": {
+		"console": "HexaBus-Basisstation",
+		"main": "Übersicht",
+		"configuration": "Einrichten",
+		"about": "Über Hexabus",
+		"network-status": "Netzwerkstatus",
+		"reset-device": "Basisstation zurücksetzen",
+		"device-list": "Geräteliste"
+	},
+
+	"last-update": {
+		"label": "Letztes Update:",
+		"now": "jetzt",
+		"seconds-ago": "vor {ago} Sekunden",
+		"minutes-ago": "vor {ago} Minuten"
+	},
+
+	"dashboard": {
+		"all-sensors": "Alle Sensoren",
+		"all-actors": "Alle Aktoren"
+	},
+
+	"rename-error": {
+		"template": "Konnte Gerät nicht umbenennen: {reason}",
+		"timeout": "Kommunikation mit dem Gerät nicht möglich"
+	},
+
+	"wizard": {
+		"new": {
+			"welcome": "Willkommen auf Ihrer neuen HexaBus-Basisstation",
+			"unconfigured": "Diese Basisstation ist noch nicht eingerichtet.",
+			"start-configuration": "Jetzt einrichten"
+		},
+
+		"connection": {
+			"about-connect": "In diesem Schritt richten wir das Netzwerk ein. Außerdem überprüfen wir, ob mySmartGrid.de erreichbar ist.",
+			"configure": "Netzwerk einrichten",
+			"configuring": "Netzwerk wird eingerichtet ...",
+			"connecting": "Verbindung zu mySmartGrid.de wird überprüft ...",
+			"configured": "&#10003; Netzwerk ist eingerichtet.",
+			"connected": "&#10003; mySmartGrid.de ist erreichbar.",
+			"can-activate": "Sie können jetzt Ihr Gerät aktivieren.",
+			"activate": "Gerät aktivieren",
+			"autoconf-failure": "Fehler beim Einrichten des Netzwerks",
+			"msg-failure": "mysmartgrid.de ist nicht erreichbar"
+		},
+
+		"activation": {
+			"about-activate": "In diesem Schritt verknüpfen wir diese Basisstation mit Ihrem mySmartGrid-Account.",
+			"no-account": "Falls Sie noch nicht bei mySmartGrid angemeldet sind, melden Sie sich bitte zuerst an:",
+			"create-account": "Anmelden",
+			"link-msg": "Basisstation mit mySmartGrid verknüpfen",
+			"linking": "Basisstation wird mit mySmartGrid verknüpft",
+			"please-link": "Verbinden Sie dieses Gerät nun mit ihrem mySmartGrid-Account:",
+			"link": "Zu mySmartGrid",
+			"error": "Fehler beim Verknüpfen mit mySmartGrid"
+		},
+
+		"success": {
+			"grats": "&#10003; Einrichtung erfolgreich abgeschlossen",
+			"linked": "Gerät ist mit mySmartGrid verknüpft",
+			"to-dashboard": "Weiter zur Übersicht"
+		},
+
+		"devices": {
+			"add": "Gerät hinzufügen",
+			"enable-pairing": "Bitte halten Sie das neue Gerät bereit.",
+			"searching": "Suche nach neuem Gerät",
+			"not_found": "Kein Gerät gefunden",
+			"not_found_msg": "Es konnte kein Gerät gefunden werden: {{errormsg}}",
+			"retry": "Erneut versuchen",
+			"click_rename": "Bitte klicken Sie auf den Namen des Gerätes, wenn Sie es umbenennen wollen.",
+			"rename": "Umbenennen",
+			"hexaupload-errors": {
+				"1": "ERR_UNKNOWN_PARAMETER",
+				"2": "ERR_PARAMETER_MISSING",
+				"3": "ERR_PARAMETER_FORMAT",
+				"4": "Name ungültig. Max. 30 Zeichen",
+				"5": "Netzwerkfehler",
+				"6": "ERR_INVALID_BINARY",
+				"7": "ERR_SM_OP_FAILED",
+				"8": "Gerät nicht erreichbar",
+				"9": "ERR_READ_FAILED",
+				"10": "ERR_PARAMETER_INVALID",
+				"127": "ERR_OTHER"
+			},
+			"push-button": "Bitte drücken Sie den Verbindungsknopf an ihrem Gerät bis die LED rot blinkt.",
+			"found": "Neues Gerät gefunden",
+			"ready": "Ihr Gerät ist jetzt einsatzbereit.",
+			"add_additional": "Weiteres Gerät hinzufügen",
+			"goto_devices": "Zur Geräteliste"
+		},
+
+		"current": {
+			"lan-addrs": "Adressen im lokalen Netz",
+			"hxb-addrs": "Adressen im Hexabus-Netz",
+			"msg-connection-ok": "mySmartGrid ist erreichbar",
+			"msg-connection-fail": "mySmartGrid ist nicht erreichbar",
+			"request-support": "Support anfordern",
+			"msg-error-code": "Fehlercode:"
+		},
+
+		"reset-device": {
+			"consequences": "Wenn Sie fortfahren, wird Ihr Gerät auf Werkseinstellungen zurückgesetzt. Sämtliche Sensordaten und Sensoreinstellungen werden gelöscht, die Verknüpfung dieses Gerätes zu mySmartGrid wird aufgehoben und Sie werden den Zugriff auf Ihr Hexabus-Netzwerk verlieren.",
+			"continue": "Gerät trotzdem zurücksetzen",
+			"abort": "Zurück zur Übersicht",
+			"reboot": "Ihre Basisstation wird jetzt neu starten. Bitte warten Sie einige Minuten, bevor Sie wieder auf ihre Basisstation zugreifen."
+		},
+
+		"device-list": {
+			"forget-device": "Gerät entfernen",
+			"forget-dialog": "Möchten Sie das Gerät {device} wirklich entfernen?",
+			"scanning": "Suche nach Geräten im Netzwerk"
+		}
+	},
+
+	"endpoint-registry": {
+		"descriptions": {
+			"1": "HexabusPlug Relais",
+			"2": "HexabusPlug+ gemessene Leistung",
+			"3": "Raumtemperatursensor",
+			"4": "Interner Button",
+			"5": "Raumfeuchtesensor",
+			"6": "Drucksensor",
+			"7": "HexabusPlug+ gemessener Gesamtverbrauch",
+			"8": "HexabusPlug+ gemessener Gesamtverbrauch (zurücksetzbar)",
+			"9": "Statemachine control",
+			"10": "Statemachine upload receiver",
+			"11": "Statemachine upload ack/nack",
+			"12": "Statemachine emergency reset ID",
+			"20": "LED / Hexagl0w",
+			"21": "Flukso",
+			"22": "Analogwerte",
+			"23": "Rollladensteuerung",
+			"24": "Hexapush gedrückte buttons",
+			"25": "Hexapush geclickte buttons",
+			"26": "Bewegungsmelder",
+			"27": "Hexonoff outputs setzen",
+			"28": "Hexonoff outputs umschalten",
+			"29": "Lichtsensor",
+			"30": "IR-Empfänger",
+			"31": "Node liveness",
+			"33": "Drehknopf #0",
+			"34": "Drehknopf #1",
+			"35": "Drehknopf #2",
+			"36": "Drehknopf #3",
+			"37": "Drehknopf #4",
+			"38": "Drehknopf #5",
+			"39": "Drehknopf #6",
+			"40": "Drehknopf #7",
+			"41": "PV Produktionsmessung",
+			"42": "Netzbezug (Produktion - Verbrauch)",
+			"43": "Batterieleistung (Ladeleistung - Entladeleistung)"
+		},
+
+		"units": {
+			"%r.h.": "rF"
+		}
+	}
+}

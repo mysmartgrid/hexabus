@@ -81,7 +81,9 @@ void BinarySerializer::append_u16(uint16_t value)
 	union {
 		uint16_t u16;
 		char raw[sizeof(value)];
-	} c = { htons(value) };
+	} c;
+
+	c.u16 = htons(value);
 
 	_target.insert(_target.end(), c.raw, c.raw + sizeof(c.raw));
 }

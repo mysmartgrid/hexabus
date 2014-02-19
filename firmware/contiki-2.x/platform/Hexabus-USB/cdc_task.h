@@ -67,6 +67,11 @@ void rawmode_disable(void);
 
 PROCESS_NAME(cdc_process);
 
+#define P_ON_STR "HXB_P_ON"
+#define P_OFF_STR "HXB_P_OFF"
+#define P_SUC_STR "\n$HXB_P_SUCCESS&\n"
+#define P_FAL_STR "\n$HXB_P_FAILED&\n"
+
 /** @} */
 
 #endif /* _CDC_TASK_H_ */

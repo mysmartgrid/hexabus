@@ -1,0 +1,53 @@
+<% include ../header %>
+
+<div class="page">
+	<div class="span3"></div>
+	<div class="span9">
+		<h3 data-localize="wizard.current.msg-connection">mySmartGrid connection</h3>
+		<% if (heartbeat_ok) { %>
+		<div class="alert alert-succes" data-localize="wizard.current.msg-connection-ok">Connection to mySmartGrid is OK</div>
+		<% } else { %>
+		<div class="alert alert-error">
+			<div data-localize="wizard.current.msg-connection-fail">Connection to mySmartGrid is broken</div>
+			<% for (var key in heartbeat_messages) { %>
+			<p><%= heartbeat_messages[key] %></p>
+			<% } %>
+			<p><span data-localize="wizard.current.msg-error-code">Exit code:</span> <%= heartbeat_code %></p>
+		</div>
+		<a href="mailto:support@mysmartgrid.de?Subject=Support&Body=<%= encodeURIComponent(JSON.stringify(heartbeat_state)) %>" data-localize="wizard.current.request-support">Request support</a>
+		<% } %>
+		<h3 data-localize="wizard.current.lan-addrs">LAN connection</h3>
+		<table class="table">
+			<tr>
+				<th class="span2">IPv4</th>
+				<td class="span4">
+					<% for (var addr in addrs.lan.v4) { %>
+					<div><%= addrs.lan.v4[addr] %></div>
+					<% } %>
+				</td>
+			</tr>
+			<tr>
+				<th class="span2">IPv6</th>
+				<td class="span4">
+					<% for (var addr in addrs.lan.v6) { %>
+					<div><%= addrs.lan.v6[addr] %></div>
+					<% } %>
+				</td>
+			</tr>
+		</table>
+
+		<h3 data-localize="wizard.current.hxb-addrs">Hexabus network</h3>
+		<table class="table">
+			<tr>
+				<th class="span2">IPv6</th>
+				<td class="span4">
+					<% for (var addr in addrs.hxb.v6) { %>
+					<div><%= addrs.hxb.v6[addr] %></div>
+					<% } %>
+				</td>
+			</tr>
+		</table>
+	</div>
+</div>
+
+<% include ../footer %>

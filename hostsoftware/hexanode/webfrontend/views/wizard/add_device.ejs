@@ -1,0 +1,45 @@
+<% include ../header %>
+
+<div id="add_device"  class="container" data-ng-controller="devicesAdd">
+	<div data-ng-hide="searching || found || error">
+		<h3 data-localize="wizard.devices.add">Add device</h3>
+		<p class="lead" data-localize="wizard.devices.enable-pairing">Please keep the new device ready.</p>
+		<button class="btn btn-success" data-ng-click="search()" data-localize="wizard.devices.add">Add device</button>
+	</div>
+	<div data-ng-show="searching">
+		<h3 data-localize="wizard.devices.searching">Searching for new device</h3>
+		<p class="lead" data-localize="wizard.devices.push-button">Please push the pairing button on your device until the LED flashes red.</p>
+		<img src="/img/spinner-large.gif" alt="" />
+	</div>
+	<div data-ng-show="error">
+		<h3 class="text-error" data-localize="wizard.devices.not_found">No device found</h3>
+		<p class="lead" data-localize="wizard.devices.not_found_msg">Could not find any device: {{errormsg}}</p>
+		<button class="btn btn-danger" data-ng-click="search()" data-localize="wizard.devices.retry">Retry</button>
+	</div>
+	<div data-ng-show="found">
+		<h3 data-localize="wizard.devices.found">New device found</h3>
+		<p class="lead" data-localize="wizard.devices.ready">Your device is now ready to be used.</p>
+		<p class="lead" data-localize="wizard.devices.click_rename">Please click on the name of the device, if you want rename it.</p>
+		<table class="table">
+			<tr >
+				<th>
+					<p data-ng-hide="rename" data-ng-click="show_rename($event)">{{device.name}}</p>
+					<form data-ng-show="rename" ng-submit="rename_device(device.ip)" class="input-append control-group {{rename_error_class}}">
+						<input id="renameField" data-ng-disabled="renaming" class="span2" type="text" data-ng-model="new_name">
+						<button data-ng-disabled="renaming" data-ng-click="rename_device(device.ip)" class="btn" type="button" data-localize="wizard.devices.rename">Rename</button>
+						<img data-ng-show="renaming" src="/img/spinner-small.gif" alt="" />
+						<label for="renameField" class="control-label" data-ng-show="rename_error">{{undefined | localize:'wizard.devices.hexaupload-errors':rename_error_msg}}</label>
+					</form>
+					<p>{{device.ip}}</p>
+				</th>
+				<td>
+					<p data-ng-repeat="eid in device.endpoints">{{eid.description | localize:'endpoint-registry.descriptions':eid.eid }} ({{eid.unit | displayUnit | localize:'endpoint-registry.units'}})</p>
+				</td>
+			</tr>
+		</table>
+		<button class="btn btn-success" data-ng-click="search()" data-localize="wizard.devices.add_additional">Add additional device</button>
+		<a href="/wizard/devices" class="btn btn-success" data-localize="wizard.devices.goto_devices">Go to devicelist</a>
+	</div>
+</div>
+
+<% include ../footer %>

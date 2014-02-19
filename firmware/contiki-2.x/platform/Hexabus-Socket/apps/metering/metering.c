@@ -75,6 +75,9 @@ static clock_time_t last_broadcast;
 #if METERING_ENERGY
 static uint32_t metering_pulses_total;
 static uint32_t metering_pulses;
+float metering_get_energy_total(void);
+float metering_get_energy(void);
+void metering_reset_energy(void);
 #endif
 
 /*calculates the consumed energy on the basis of the counted pulses (num_pulses) in i given period (integration_time)
@@ -130,7 +133,7 @@ static enum hxb_error_code read_energy(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code write_energy(const struct hxb_value* value)
+static enum hxb_error_code write_energy(const struct hxb_envelope* value)
 {
 	metering_reset_energy();
 	return HXB_ERR_SUCCESS;
@@ -173,7 +176,9 @@ metering_init(void)
 
   metering_start();
 
+#if METERING_POWER
 	ENDPOINT_REGISTER(endpoint_power);
+#endif
 #if METERING_ENERGY
 	ENDPOINT_REGISTER(endpoint_energy_total);
 	ENDPOINT_REGISTER(endpoint_energy);

@@ -1,19 +1,20 @@
 {
-  "name": "application-name",
+  "name": "hexanode-webfrontend",
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "node app"
+    "start": "exec js app"
   },
   "dependencies": {
     "express": "*",
-    "connect": "*",
+    "connect": "2.7.9",
     "ejs": "*",
-    "redis": "*",
-    "hiredis": "*",
     "socket.io": "0.9.13",
     "CBuffer": "*",
     "request": "*",
-    "nconf": "*"
+    "nconf": "*",
+    "cookie-signature": "*",
+    "buffer-crc32": "*",
+		"ipv6": "*"
   }
 }

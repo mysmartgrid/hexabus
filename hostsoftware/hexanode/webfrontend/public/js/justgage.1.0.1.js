@@ -11,8 +11,10 @@
 
 JustGage = function(config) { 
   
-  if (!config.id) {alert("Missing id parameter for gauge!"); return false;} 
-  if (!document.getElementById(config.id)) {alert("No element with id: \""+config.id+"\" found!"); return false;} 
+  if (!config.id)
+		throw "Missing id parameter for gauge!";
+  if (!document.getElementById(config.id))
+		throw "No element with given id found";
   
   // configurable parameters
   this.config = 
@@ -103,7 +105,23 @@ JustGage = function(config) {
     
     // refreshAnimationType : string
     // type of refresh animation (linear, >, <,  <>, bounce) 
-    refreshAnimationType : (config.refreshAnimationType) ? config.refreshAnimationType : ">"
+    refreshAnimationType : (config.refreshAnimationType) ? config.refreshAnimationType : ">",
+
+		// titleClick : function
+		// invoked when the title text is clicked
+		titleClick : config.titleClick,
+
+		// minClick : function
+		// invoked when the min text is clicked
+		minClick : config.minClick,
+
+		// maxClick : function
+		// invoked when the max text is clicked
+		maxClick : config.maxClick,
+
+		// valueClick : function
+		// invoked when the value text is clicked
+		valueClick : config.valueClick
   };
   
   // overflow values
@@ -235,6 +253,7 @@ JustGage = function(config) {
     "fill":this.config.titleFontColor,
     "fill-opacity":"1"         
   });
+	this.txtTitle.click(this.config.titleClick);
   this.txtTitle.id = this.config.id+"-txttitle";
   
   // value
@@ -246,6 +265,7 @@ JustGage = function(config) {
     "fill":this.config.valueFontColor,
     "fill-opacity":"0"          
   });
+	this.txtValue.click(this.config.valueClick);
   this.txtValue.id = this.config.id+"-txtvalue";
   
   // label
@@ -268,6 +288,7 @@ JustGage = function(config) {
     "fill":this.config.labelFontColor,   
     "fill-opacity": (this.config.showMinMax == true)? "1" : "0"
   });
+	this.txtMin.click(this.config.minClick);
   this.txtMin.id = this.config.id+"-txtmin";
   
   // max
@@ -279,6 +300,7 @@ JustGage = function(config) {
     "fill":this.config.labelFontColor,   
     "fill-opacity": (this.config.showMinMax == true)? "1" : "0"
   });
+	this.txtMax.click(this.config.maxClick);
   this.txtMax.id = this.config.id+"-txtmax";
   
   var defs = this.canvas.canvas.childNodes[1];

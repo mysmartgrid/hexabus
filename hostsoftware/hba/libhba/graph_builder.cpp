@@ -49,18 +49,14 @@ struct second_pass : boost::static_visitor<> {
     bool ok;
     try {
       vertex_id_t from_state = find_vertex(_g, from_state_name);
-      bool true_cond = false; // marks if the condition is "true" or a "proper" condition
-      vertex_id_t condition;
-      if(clause.name != "true")
-        condition = find_vertex(_g, clause.name);
-      else
-        true_cond = true;
+      bool true_cond = clause.name == "true"; // marks if the condition is "true" or a "proper" condition
       vertex_id_t good_state = find_vertex(_g, clause.goodstate);
       vertex_id_t bad_state = find_vertex(_g, clause.badstate);
 
       if(!true_cond)
       {
         edge_id_t edge;
+        vertex_id_t condition = find_vertex(_g, clause.name);
         boost::tie(edge, ok) = boost::add_edge(from_state, condition, (*_g));
         if (ok) {
           (*_g)[edge].type = FROM_STATE;

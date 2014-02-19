@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# export https_proxy=http://squid.itwm.fhg.de:3128/
+
+export LANG=en_US.UTF-8
+export CTEST="/usr/bin/ctest"
+
+echo "Running ctest"
+
+dir=${HOME}/hexabus/Dashboards
+TEST_SCRIPT="${dir}/do_test.cmake,TESTING_MODEL=Continuous"
+TOOLCHAIN_rasp3="/home/projects/msgrid/x-tools/gcc-linaro-arm-linux-gnueabihf-raspbian/Toolchain-RaspberryPi.cmake"
+TOOLCHAIN_AVR="/usr/local/OpenWrt-SDK-ar71xx-for-Linux-x86_64-gcc-4.3.3+cs_uClibc-0.9.30.1/staging_dir/host/Modules/Toolchain-OpenWRT.cmake"
+
+${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,GIT_BRANCH=development,BOOST_VERSION=1.49
+if [ -f ${TOOLCHAIN_rasp3} ]; then
+    ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=development,BOOST_VERSION=1.49,CTEST_PUSH_PACKAGES=1,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp3}
+fi
+exit 0
+     
+# compiliere alle xx-dev branches
+allBranches=`git branch -a | grep remotes | sed -e 's%remotes/origin/%%' | grep '.*[-_]dev$' `
+for branch in ${allBranches}
+do
+  ${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,GIT_BRANCH=${branch}
+
+  for toolchain in `find ${HOME}/x-tools/ -name Toolchain-RaspberryPi.cmake`
+  do
+     echo "Compiling with toolchain ${toolchain}"
+     ${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,GIT_BRANCH=${branch},BOOST_VERSION=1.49,CMAKE_TOOLCHAIN_FILE=${toolchain}
+     ${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,GIT_BRANCH=${branch},BOOST_VERSION=1.53,CMAKE_TOOLCHAIN_FILE=${toolchain}
+  done
+done
