@@ -433,6 +433,7 @@ extern char rf212_interrupt_flag, rf212processflag; // this is still not impleme
 int
 main(void)
 {
+//				encryption_enabled = 0;
 	initialize();
 
 	while(1) {

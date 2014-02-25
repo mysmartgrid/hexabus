@@ -53,8 +53,9 @@
 #include "net/netstack.h"
 #include "lib/random.h"
 #include "radio/rf212bb/rf212bb.h"
+#include "net/uip.h"
 
-#define DEBUG 0
+#define DEBUG 1
 
 #if DEBUG
 #include <stdio.h>
@@ -110,92 +111,134 @@ is_broadcast_addr(uint8_t mode, uint8_t *addr)
   return 1;
 }
 
+static int
+compute_mac(frame802154_t *pf, const char *data, uint16_t len, void *mac)
+{
+	nonce_802154_t nonce;
+	nonce.flags = 9;
+	rimeaddr_copy((rimeaddr_t *)&nonce.mac_addr, (rimeaddr_t *)&pf->src_addr);
+	nonce.frame_cnt = uip_htonl(pf->aux_hdr.frame_counter);
+	nonce.sec_level = 5;
+	nonce.block_cnt = uip_htons(len);
+
+	uint8_t b[16], x[16];
+	memcpy(b, &nonce, 16);
+	memset(x, 0, 16);
+
+	uint8_t i, j, blocks = (len + 15) / 16;
+
+	for (i = 0; i <= blocks; i++) {
+		for (j = 0; j < 16; j++)
+			x[j] ^= b[j];
+		rf212_cipher(x);
+
+		if (len < 16) {
+			memset(b, 0, 16);
+			memcpy(b, data, len);
+		} else {
+			memcpy(b, data, 16);
+		}
+		data += 16;
+		len -= 16;
+	}
+
+	memcpy(mac, x, 4);
+	return 0;
+}
+
+static int
+transform_block(nonce_802154_t *nonce, uint16_t block, uint8_t *data, uint16_t len)
+{
+	uint8_t k[16], i;
+
+	nonce->block_cnt = uip_htons(block);
+	memcpy(k, nonce, 16);
+	rf212_cipher(k);
+
+	for (i = 0; i < len; i++)
+		data[i] ^= k[i];
+
+	return 0;
+}
+
 /*---------------------------------------------------------------------------*/
 int
 encrypt_payload(frame802154_t *pf)
 {
-
 	nonce_802154_t nonce;
-	/* init to zeros */
-	memset(&nonce, 0, sizeof(nonce_802154_t));
-	nonce.flags = (pf->aux_hdr.security_control.security_level & 7) | ((pf->aux_hdr.security_control.key_id_mode & 3) << 3) | ((pf->aux_hdr.security_control.reserved & 7) << 5);
+	uint8_t len_left, i, block;
+	uint8_t mac[4];
+
+	nonce.flags = 1;
 	rimeaddr_copy((rimeaddr_t *)&nonce.mac_addr, (rimeaddr_t *)&pf->src_addr);
-	nonce.frame_cnt = pf->aux_hdr.frame_counter;
-	nonce.key_cnt = pf->aux_hdr.key[0];
-	nonce.block_cnt = 0L;
-	uint8_t	i,j, blockCount;
-	blockCount = ceil(packetbuf_datalen()/16.0);
-	uint8_t cipher[16];
-	PRINTF("encrypt NONCE: %02x ", nonce.flags);
-	PRINTADDR(nonce.mac_addr);
-	PRINTF("%08"PRIx32" %02x %04x\n", nonce.frame_cnt, nonce.key_cnt, nonce.block_cnt);
-	 for (j=0; j<blockCount; j++) {
-		 memcpy(cipher, &nonce, 16);
-		 if (rf212_cipher(cipher)) //check for errors
-			 return 1; //error
-		 //in case the packet consists of integer number of 16 byte blocks
-		 if((packetbuf_datalen()%16 == 0) || (j < blockCount - 1)) {
-			 for (i=0; i<16; i++) {  // -- xor plaintext with ciphered nonce byte-by-byte
-				 ((uint8_t*)packetbuf_dataptr())[16*j+i] = cipher[i] ^ ((uint8_t*)packetbuf_dataptr())[16*j+i];
+	nonce.frame_cnt = uip_htonl(pf->aux_hdr.frame_counter);
+	nonce.sec_level = 5;
+	nonce.block_cnt = 0;
 
-			 }
-		 } else if (j == blockCount - 1)
-		 {
-			 for (i=0; i<packetbuf_datalen()%16; i++) { // -- xor plaintext with ciphered nonce byte-by-byte
-				 ((uint8_t*)packetbuf_dataptr())[16*j+i] = cipher[i] ^ ((uint8_t*)packetbuf_dataptr())[16*j+i];
-			 }
-			 for (i=packetbuf_datalen()%16; i < 15; i++) { // pad plain text with zeros
-				 ((uint8_t*)packetbuf_dataptr())[16*j+i] = cipher[i];
-			 }
-			 ((uint8_t*)packetbuf_dataptr())[16*j+15] = cipher[15] ^ (16 - packetbuf_datalen()%16);
-		 }
-		 nonce.block_cnt++;
-	 }
+	PRINTF("encrypt nonce:");
+	for (i = 0; i < 16; i++)
+		PRINTF(" %02x", ((uint8_t*) &nonce)[i]);
+	PRINTF("\n");
 
-	 packetbuf_set_datalen(blockCount*16); //update payload length
+	for (i = 0; i < packetbuf_datalen(); i++)
+		PRINTF(" %02x", ((uint8_t*) packetbuf_dataptr())[i]);
+	PRINTF("\n");
+
+	len_left = packetbuf_datalen();
+	block = 0;
+	while (len_left > 0) {
+		i = len_left > 16 ? 16 : len_left;
+		transform_block(&nonce, block + 1, (uint8_t*) packetbuf_dataptr() + 16 * block, i);
+		len_left -= i;
+		block++;
+	}
+
+	compute_mac(pf, packetbuf_dataptr(), packetbuf_datalen(), mac);
+	transform_block(&nonce, 0, mac, 4);
+	memcpy((char*) packetbuf_dataptr() + packetbuf_datalen(), mac, 4);
+	packetbuf_set_datalen(packetbuf_datalen() + 4);
+
 	return 0;
 }
-
 
 /*---------------------------------------------------------------------------*/
 int
 decrypt_payload(frame802154_t *pf)
 {
 	nonce_802154_t nonce;
-	/* init to zeros */
-	memset(&nonce, 0, sizeof(nonce_802154_t));
-	nonce.flags = (pf->aux_hdr.security_control.security_level & 7) | ((pf->aux_hdr.security_control.key_id_mode & 3) << 3) | ((pf->aux_hdr.security_control.reserved & 7) << 5);
-	rimeaddr_copy((rimeaddr_t *)&nonce.mac_addr, (rimeaddr_t *)&pf->src_addr);
-	nonce.frame_cnt = pf->aux_hdr.frame_counter;
-	nonce.key_cnt = pf->aux_hdr.key[0];
-	nonce.block_cnt = 0L;
-	uint8_t	i,j, blockCount;
-	blockCount = ceil(packetbuf_datalen()/16.0);
-	uint8_t cipher[16];
-	PRINTF("decrypt NONCE: %02x ", nonce.flags);
-	PRINTADDR(nonce.mac_addr);
+	uint8_t len_left, i, block;
+	uint8_t mac[4];
 
-	PRINTF("%08"PRIx32" %02x %04x\n", nonce.frame_cnt, nonce.key_cnt, nonce.block_cnt);
-	 for (j=0; j<blockCount; j++) {
-		 memcpy(cipher, &nonce, 16);
-		 if (rf212_cipher(cipher)) //check for errors
-			 return 1;
-		 for (i=0; i<16; i++) {  // -- xor plaintext with ciphered nonce byte-by-byte
-			 ((uint8_t*)packetbuf_dataptr())[16*j+i] = cipher[i] ^ ((uint8_t*)packetbuf_dataptr())[16*j+i];
-		 }
-		 nonce.block_cnt++;
-	 }
-	 uint8_t pad_len;
-	 pad_len = ((uint8_t*)packetbuf_dataptr())[packetbuf_datalen()-1]; //get last value which indicates the number of padded bytes
-	 i = pad_len;
-	 while (i > 1 && i < 16) {
-		 if (((uint8_t*)packetbuf_dataptr())[packetbuf_datalen() - i ] != 0) //check if padded values are 0
-		 	 break;
-		 i--;
-	 }
-	 if (i == 1)
-		 packetbuf_set_datalen(packetbuf_datalen()- pad_len); //update payload length
-	return 0;
+	nonce.flags = 1;
+	rimeaddr_copy((rimeaddr_t *)&nonce.mac_addr, (rimeaddr_t *)&pf->src_addr);
+	nonce.frame_cnt = uip_htonl(pf->aux_hdr.frame_counter);
+	nonce.sec_level = 5;
+	nonce.block_cnt = 0;
+
+	PRINTF("decrypt nonce:");
+	for (i = 0; i < 16; i++)
+		PRINTF(" %02x", ((uint8_t*) &nonce)[i]);
+	PRINTF("\n");
+
+	len_left = packetbuf_datalen() - 4;
+	block = 0;
+	while (len_left > 0) {
+		i = len_left > 16 ? 16 : len_left;
+		transform_block(&nonce, block + 1, (uint8_t*) packetbuf_dataptr() + 16 * block, i);
+		len_left -= i;
+		block++;
+	}
+
+	compute_mac(pf, packetbuf_dataptr(), packetbuf_datalen() - 4, mac);
+	transform_block(&nonce, 0, mac, 4);
+	packetbuf_set_datalen(packetbuf_datalen() - 4);
+
+	if (memcmp(mac, (const char*) packetbuf_dataptr() + packetbuf_datalen(), 4)) {
+		PRINTF("mac mismatch\n");
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 /*---------------------------------------------------------------------------*/
@@ -215,8 +258,8 @@ send_packet(mac_callback_t sent, void *ptr)
 	  params.fcf.security_enabled = 1;
 	  // auxiliary security header length = 6
   	  params.aux_hdr.security_control.key_id_mode = 1;
-  	  // Encryption only mode
-  	  params.aux_hdr.security_control.security_level = 4;
+  	  // Encryption with mic32
+  	  params.aux_hdr.security_control.security_level = 5;
   	  //set frame counter
   	  params.aux_hdr.frame_counter = mac_framecnt++;
   	  //increment if frame_counter ever reaches maximum value
@@ -281,9 +324,9 @@ send_packet(mac_callback_t sent, void *ptr)
     int ret;
     frame802154_create(&params, packetbuf_hdrptr(), len);
 
-    PRINTF("6MAC-UT: %2X", params.fcf.frame_type);
-    PRINTADDR(params.dest_addr.u8);
-    PRINTF("%u %u (%u)\n", len, packetbuf_datalen(), packetbuf_totlen());
+//    PRINTF("6MAC-UT: %2X", params.fcf.frame_type);
+//    PRINTADDR(params.dest_addr.u8);
+//    PRINTF("%u %u (%u)\n", len, packetbuf_datalen(), packetbuf_totlen());
 
     ret = NETSTACK_RADIO.send(packetbuf_hdrptr(), packetbuf_totlen());
     if(sent) {
@@ -337,8 +380,8 @@ input_packet(void)
         }
       }
     }
-    if (frame.fcf.security_enabled && !promiscuous_mode)
-    	decrypt_payload(&frame);
+    if (frame.fcf.security_enabled && !promiscuous_mode && decrypt_payload(&frame))
+      return;
 
     packetbuf_set_addr(PACKETBUF_ADDR_SENDER, (rimeaddr_t *)&frame.src_addr);
 
@@ -372,8 +415,12 @@ static void
 init(void)
 {
   extern void get_aes128key_from_eeprom(uint8_t*);
-  uint8_t aes_key[16];
+  uint8_t aes_key[16], x;
   get_aes128key_from_eeprom(aes_key);
+  PRINTF("key: ");
+  for (int x = 0; x < 16; x++)
+	PRINTF(" %02x", aes_key[x]);
+  PRINTF("\n");
   rf212_key_setup(aes_key);
   mac_dsn = random_rand() % 256;
 

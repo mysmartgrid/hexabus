@@ -54,7 +54,7 @@ typedef struct {
   uint8_t  flags;
   uint8_t  mac_addr[8];
   uint32_t  frame_cnt;
-  uint8_t	key_cnt;
+  uint8_t	sec_level;
   uint16_t	block_cnt;
 } nonce_802154_t;
 
