@@ -78,7 +78,8 @@ struct ReadingLogger : public hexabus::Logger {
 		klio::Sensor::Ptr lookup_sensor(const std::string& id)
 		{
 			try {
-				klio::Sensor::Ptr ptr = store->get_sensor_by_external_id(id);
+#warning "To be fixed here"
+				klio::Sensor::Ptr ptr = store->get_sensors_by_external_id(id)[0];
 
 				if (ptr) {
 					std::string addr_str = id.substr(0, id.find_first_of('-'));
