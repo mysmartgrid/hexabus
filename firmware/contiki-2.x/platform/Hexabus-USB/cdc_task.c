@@ -221,6 +221,7 @@ void cdc_set_pan_id(void)
 void menu_print(void)
 {
 		PRINTF_P(PSTR("\n\r*********** Jackdaw Menu **********\n\r"));
+		PRINTF_P(PSTR("        "CONTIKI_VERSION_STRING"        \n\r"));
 		PRINTF_P(PSTR("        [Built "__DATE__"]         \n\r"));
 //		PRINTF_P(PSTR("*                                 *\n\r"));
 		PRINTF_P(PSTR("*  m        Print current mode    *\n\r"));

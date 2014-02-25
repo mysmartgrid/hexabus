@@ -63,13 +63,11 @@ tr.device-list-helper-row td {
 
 
 .vis-bool-switch {
-	padding: 1.4em;
 	position: relative;
 }
 .vis-bool-switch .title {
 	color: #999;
 	font-size: 1.4em;
-	padding-bottom: 0.4em;
 }
 .vis-bool-switch .switch-container {
 	position: absolute;

@@ -1,13 +1,12 @@
 <% include ../header %>
 
 <div class="page">
-	<div class="span3"></div>
-	<div class="span9">
+	<div class="col-md-6 col-md-offset-3">
 		<h3 data-localize="wizard.current.msg-connection">mySmartGrid connection</h3>
 		<% if (heartbeat_ok) { %>
 		<div class="alert alert-succes" data-localize="wizard.current.msg-connection-ok">Connection to mySmartGrid is OK</div>
 		<% } else { %>
-		<div class="alert alert-error">
+		<div class="alert alert-danger">
 			<div data-localize="wizard.current.msg-connection-fail">Connection to mySmartGrid is broken</div>
 			<% for (var key in heartbeat_messages) { %>
 			<p><%= heartbeat_messages[key] %></p>
@@ -15,6 +14,11 @@
 			<p><span data-localize="wizard.current.msg-error-code">Exit code:</span> <%= heartbeat_code %></p>
 		</div>
 		<a href="mailto:support@mysmartgrid.de?Subject=Support&Body=<%= encodeURIComponent(JSON.stringify(heartbeat_state)) %>" data-localize="wizard.current.request-support">Request support</a>
+		<% } %>
+		<% if (activation_code) { %>
+		<div class="alert alert-info">
+			<span data-localize="wizard.current.activation-code">Activation code</span>: <%= activation_code %>
+		</div>
 		<% } %>
 		<h3 data-localize="wizard.current.lan-addrs">LAN connection</h3>
 		<table class="table">

@@ -75,13 +75,13 @@ struct InfoCallback { // callback for populating data structures
 
 		if(info != NULL)
 		{
-			if(info->eid() == EP_DEVICE_DESCRIPTOR) // we only care for the device descriptor
+			if ((info->eid() % 32) == 0) // we only care for the device descriptors
 			{
-				uint32_t val = info->value();
-				for(int i = 0; i < 32; ++i)
+				uint32_t val = info->value() >> 1; // skip device descriptor
+				for(int i = 1; i < 32; ++i)
 				{
-					if(val % 2) // find out whether LSB is set
-						device->endpoint_ids.insert(i); // if it's set, store the EID (the bit's position in the device descriptor).
+					if(val & 1) // find out whether LSB is set
+						device->endpoint_ids.insert(info->eid() + i); // if it's set, store the EID (the bit's position in the device descriptor).
 
 					val >>= 1; // right-shift in order to have the next EID in the LSB
 				}
@@ -415,14 +415,12 @@ int main(int argc, char** argv)
 	std::set<boost::asio::ip::address_v6> addresses; // Holds the list of addresses to scan -- either filled with everything we "discover" or with just one "ip"
 	// init the network interface
 	boost::asio::io_service io;
-	hexabus::Socket* network;
+	hexabus::Socket* network = new hexabus::Socket(io);
 	try {
 		if(vm.count("interface")) {
 			if(verbose)
 				std::cout << "Using network interface " << vm["interface"].as<std::string>() << "." << std::endl;
-			network = new hexabus::Socket(io, vm["interface"].as<std::string>());
-		} else {
-			network = new hexabus::Socket(io);
+			network->mcast_from(vm["interface"].as<std::string>());
 		}
 	} catch(const hexabus::NetworkException& e) {
 		std::cerr << "Could not open socket: " << e.code().message() << std::endl;
@@ -508,7 +506,7 @@ int main(int argc, char** argv)
 		ErrorCallback errorCallback;
 		boost::signals2::connection c1 = network->onAsyncError(errorCallback);
 		boost::signals2::connection c2 = network->onPacketReceived(infoCallback,
-			(hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR))
+			(hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() % 32 == 0))
 			|| hexabus::filtering::isEndpointInfo());
 
 		unsigned int retries = 0;
@@ -534,29 +532,30 @@ int main(int argc, char** argv)
 		if(!received && verbose)
 			std::cout << "No reply on device descriptor EPQuery from " << target_ip.to_string() << std::endl;
 
-		received = false;
-		retries = 0;
+		for (uint32_t ep_desc = 0; ep_desc < 256; ep_desc += 32) {
+			received = false;
+			retries = 0;
 
-		// query the dev.descriptor, to build a list of endpoints
-		while(!received && retries < NUM_RETRIES)
-		{
-			if(verbose)
-				std::cout << "Sending Query." << std::endl;
-			// send the device descriptor (endpoint list) query packet and listen for the reply
-			send_packet(network, target_ip, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR));
+			// query the dev.descriptor, to build a list of endpoints
+			while (!received && retries < NUM_RETRIES) {
+				if (verbose)
+					std::cout << "Sending descriptor query for " << ep_desc << "." << std::endl;
+				// send the device descriptor (endpoint list) query packet and listen for the reply
+				send_packet(network, target_ip, hexabus::QueryPacket(ep_desc));
 
-			boost::asio::deadline_timer timer(network->ioService()); // wait for a second
-			timer.expires_from_now(boost::posix_time::milliseconds(350));
-			timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
+				boost::asio::deadline_timer timer(network->ioService()); // wait for a second
+				timer.expires_from_now(boost::posix_time::milliseconds(350));
+				timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
 
-			network->ioService().reset();
-			network->ioService().run();
+				network->ioService().reset();
+				network->ioService().run();
 
-			retries++;
+				retries++;
+			}
+
+			if(!received && verbose)
+				std::cout << "No reply on device descriptor Query from " << target_ip.to_string() << std::endl;
 		}
-
-		if(!received && verbose)
-			std::cout << "No reply on device descriptor Query from " << target_ip.to_string() << std::endl;
 
 		// step 1: Make a set of endpoints to query.
 		std::multiset<uint32_t> eps_to_query;

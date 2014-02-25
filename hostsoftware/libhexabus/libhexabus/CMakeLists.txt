@@ -22,7 +22,9 @@ include_directories(
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}
-  ${Boost_INCLUDE_DIRS}
+)
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 set(hexabus_src ${all_hexabus_src} ${logger_src})

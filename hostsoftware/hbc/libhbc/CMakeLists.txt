@@ -7,7 +7,9 @@ configure_file(config.h.in ${CMAKE_BINARY_DIR}/config.h)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
-  ${Boost_INCLUDE_DIRS}
+)
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+include_directories(
   ${CMAKE_BINARY_DIR}
 )
 file(GLOB all_hbc_src *.cpp *.hpp hashlib2plue/*.h hashlib2plus/*.cpp)

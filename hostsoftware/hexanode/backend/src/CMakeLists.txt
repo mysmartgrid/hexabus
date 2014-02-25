@@ -14,7 +14,9 @@ include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR} 
   ${CMAKE_BINARY_DIR}/libhexanode
-  ${Boost_INCLUDE_DIRS}
+)
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+include_directories(
   ${RTMIDI_INCLUDE_DIR}
   ${CPPNETLIB_INCLUDE_DIR}
   ${HXB_INCLUDE_DIR}

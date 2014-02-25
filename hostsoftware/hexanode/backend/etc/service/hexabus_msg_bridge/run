@@ -1,6 +1,5 @@
 #!/bin/sh
 
-IFACE=usb0
 CONFIG=/etc/hexabus_msg_bridge.conf
 
 # wait until we have a routable address on usb0
@@ -11,7 +10,7 @@ done
 
 if [ -f $CONFIG ]
 then
-	exec setuidgid hexabus hexabus_msg_bridge -c $CONFIG -L $IFACE 2>&1
+	exec setuidgid hexabus hexabus_msg_bridge -c $CONFIG -L usb0 -L eth0 2>&1
 else
 	# wait for it to come into existence
 	until [ -f $CONFIG ]

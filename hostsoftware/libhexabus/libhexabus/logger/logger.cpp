@@ -77,15 +77,20 @@ void Logger::on_sensor_error(const std::string& sensor_id, const hexabus::Generi
 	new_sensor_backlog.erase(sensor_id);
 }
 
+std::string Logger::get_sensor_id(const boost::asio::ip::address_v6& source, uint32_t eid)
+{
+	std::ostringstream oss;
+	oss << source.to_string() << "-" << eid;
+	return oss.str();
+}
+
 void Logger::accept_packet(double value, uint32_t eid)
 {
 	/**
 	 * 1. Create unique ID for each info message and sensor,
 	 * <ip>-<endpoint>
 	 */
-	std::ostringstream oss;
-	oss << source.to_string() << "-" << eid;
-	std::string sensor_id(oss.str());
+	std::string sensor_id(get_sensor_id(source, eid));
 
 	/**
 	 * 2. Ask for a sensor instance. If none is known for this
