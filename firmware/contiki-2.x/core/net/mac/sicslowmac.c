@@ -55,7 +55,7 @@
 #include "radio/rf212bb/rf212bb.h"
 #include "net/uip.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
 #include <stdio.h>
@@ -115,35 +115,44 @@ static int
 compute_mac(frame802154_t *pf, const char *data, uint16_t len, void *mac)
 {
 	nonce_802154_t nonce;
-	nonce.flags = 9;
+	uint8_t b[16], x[16];
+	uint8_t i, alen;
+
+	switch (pf->aux_hdr.security_control.security_level & 3) {
+	case 1: alen = 4; break;
+	case 2: alen = 8; break;
+	case 3: alen = 16; break;
+	default: return 0;
+	}
+
+	nonce.flags = 1 | ((alen - 2) / 2) << 3;
 	rimeaddr_copy((rimeaddr_t *)&nonce.mac_addr, (rimeaddr_t *)&pf->src_addr);
 	nonce.frame_cnt = uip_htonl(pf->aux_hdr.frame_counter);
-	nonce.sec_level = 5;
+	nonce.sec_level = pf->aux_hdr.security_control.security_level;
 	nonce.block_cnt = uip_htons(len);
 
-	uint8_t b[16], x[16];
-	memcpy(b, &nonce, 16);
-	memset(x, 0, 16);
+	memcpy(x, &nonce, 16);
+	rf212_cipher(x);
 
-	uint8_t i, j, blocks = (len + 15) / 16;
+	while (len >= 16) {
+		for (i = 0; i < 16; i++)
+			x[i] ^= data[i];
 
-	for (i = 0; i <= blocks; i++) {
-		for (j = 0; j < 16; j++)
-			x[j] ^= b[j];
 		rf212_cipher(x);
 
-		if (len < 16) {
-			memset(b, 0, 16);
-			memcpy(b, data, len);
-		} else {
-			memcpy(b, data, 16);
-		}
 		data += 16;
 		len -= 16;
 	}
 
-	memcpy(mac, x, 4);
-	return 0;
+	if (len) {
+		for (i = 0; i < len; i++)
+			x[i] ^= data[i];
+
+		rf212_cipher(x);
+	}
+
+	memcpy(mac, x, 16);
+	return alen;
 }
 
 static int
@@ -166,13 +175,13 @@ int
 encrypt_payload(frame802154_t *pf)
 {
 	nonce_802154_t nonce;
-	uint8_t len_left, i, block;
-	uint8_t mac[4];
+	uint8_t len_left, i, block, alen;
+	uint8_t mac[16];
 
 	nonce.flags = 1;
 	rimeaddr_copy((rimeaddr_t *)&nonce.mac_addr, (rimeaddr_t *)&pf->src_addr);
 	nonce.frame_cnt = uip_htonl(pf->aux_hdr.frame_counter);
-	nonce.sec_level = 5;
+	nonce.sec_level = pf->aux_hdr.security_control.security_level;
 	nonce.block_cnt = 0;
 
 	PRINTF("encrypt nonce:");
@@ -184,6 +193,9 @@ encrypt_payload(frame802154_t *pf)
 		PRINTF(" %02x", ((uint8_t*) packetbuf_dataptr())[i]);
 	PRINTF("\n");
 
+	alen = compute_mac(pf, packetbuf_dataptr(), packetbuf_datalen(), mac);
+	transform_block(&nonce, 0, mac, 16);
+
 	len_left = packetbuf_datalen();
 	block = 0;
 	while (len_left > 0) {
@@ -193,10 +205,8 @@ encrypt_payload(frame802154_t *pf)
 		block++;
 	}
 
-	compute_mac(pf, packetbuf_dataptr(), packetbuf_datalen(), mac);
-	transform_block(&nonce, 0, mac, 4);
-	memcpy((char*) packetbuf_dataptr() + packetbuf_datalen(), mac, 4);
-	packetbuf_set_datalen(packetbuf_datalen() + 4);
+	memcpy((char*) packetbuf_dataptr() + packetbuf_datalen(), mac, alen);
+	packetbuf_set_datalen(packetbuf_datalen() + alen);
 
 	return 0;
 }
@@ -206,13 +216,13 @@ int
 decrypt_payload(frame802154_t *pf)
 {
 	nonce_802154_t nonce;
-	uint8_t len_left, i, block;
-	uint8_t mac[4];
+	uint8_t len_left, i, block, alen;
+	uint8_t mac[16];
 
 	nonce.flags = 1;
 	rimeaddr_copy((rimeaddr_t *)&nonce.mac_addr, (rimeaddr_t *)&pf->src_addr);
 	nonce.frame_cnt = uip_htonl(pf->aux_hdr.frame_counter);
-	nonce.sec_level = 5;
+	nonce.sec_level = pf->aux_hdr.security_control.security_level;
 	nonce.block_cnt = 0;
 
 	PRINTF("decrypt nonce:");
@@ -220,7 +230,14 @@ decrypt_payload(frame802154_t *pf)
 		PRINTF(" %02x", ((uint8_t*) &nonce)[i]);
 	PRINTF("\n");
 
-	len_left = packetbuf_datalen() - 4;
+	switch (nonce.sec_level & 3) {
+	case 1: alen = 4; break;
+	case 2: alen = 8; break;
+	case 3: alen = 16; break;
+	default: alen = 0; break;
+	}
+
+	len_left = packetbuf_datalen() - alen;
 	block = 0;
 	while (len_left > 0) {
 		i = len_left > 16 ? 16 : len_left;
@@ -229,16 +246,17 @@ decrypt_payload(frame802154_t *pf)
 		block++;
 	}
 
-	compute_mac(pf, packetbuf_dataptr(), packetbuf_datalen() - 4, mac);
-	transform_block(&nonce, 0, mac, 4);
-	packetbuf_set_datalen(packetbuf_datalen() - 4);
+	compute_mac(pf, packetbuf_dataptr(), packetbuf_datalen() - alen, mac);
+	transform_block(&nonce, 0, mac, alen);
+	packetbuf_set_datalen(packetbuf_datalen() - alen);
 
-	if (memcmp(mac, (const char*) packetbuf_dataptr() + packetbuf_datalen(), 4)) {
-		PRINTF("mac mismatch\n");
+	if (memcmp(mac, (const char*) packetbuf_dataptr() + packetbuf_datalen(), alen)) {
+		PRINTF("mac mismatch %02x %02x %02x %02x\n", mac[0], mac[1], mac[2], mac[3]);
+		const uint8_t *macc = (const uint8_t*) packetbuf_dataptr() + packetbuf_datalen();
+		PRINTF("mac input is %02x %02x %02x %02x\n", macc[0], macc[1], macc[2], macc[3]);
 		return 1;
-	} else {
-		return 0;
 	}
+	return 0;
 }
 
 /*---------------------------------------------------------------------------*/
