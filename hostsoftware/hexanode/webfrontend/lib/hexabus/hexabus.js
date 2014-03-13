@@ -131,6 +131,19 @@ var hexabus = function() {
 			cb(error);
 		});
 	};
+
+	this.master_slave_sm = function(msg, cb) {
+		// Create hbc files
+			//cp master, master_slave
+			//replace masterip
+			//foreach slave
+				//cp slave to x
+				//replace slave by x, slaveip
+				//add include x to front, instance x to back of master_slave
+		// Compile
+		// upload
+		// cb
+	};
 };
 
 module.exports = hexabus;

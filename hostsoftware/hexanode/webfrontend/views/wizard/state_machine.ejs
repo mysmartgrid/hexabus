@@ -1,0 +1,30 @@
+<% include ../header %>
+<script>
+	known_hexabus_devices = <%- JSON.stringify(devices) %>;
+</script>
+
+<div class="container" data-ng-controller="stateMachine">
+	<div >
+		<h3 data-localize="wizard.state-machine.new">New state machine</h3>
+		<p class="lead" data-localize="wizard.state-machine.choose">Choose a ... from below.</p>
+		<select ng-model="machineProp">
+			<option value="master_slave">Master/Slave</option>
+		</select>
+	</div>
+	<div data-ng-show="machineProp=='master_slave'">
+		<p data-localize="wizard.state-machine.choose-master">Choose master</p>
+			<select ng-model="masterProp" ng-options="value.ip as value.name for (key,value) in devices">
+		</select>
+		<p>
+			<input ng-model="thresholdProp">
+			<span data-localize="wizard.state-machine.choose-threshold"></span>
+		</p>
+		<p data-localize="wizard.state-machine.add-slave">Add slave</p>
+		<select ng-model="slaveProp" ng-options="value.ip as value.name for (key,value) in devices">
+		</select>
+		<button class="btn btn-success">Add Slave</button>
+		<button class="btn btn-success" ng-click="send_master_slave()">Upload</button>
+	</div>
+</div>
+
+<% include ../footer %>

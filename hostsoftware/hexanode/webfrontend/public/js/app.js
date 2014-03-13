@@ -567,6 +567,26 @@ angular.module('dashboard', [
 		$scope.errorState = state;
 	});
 }])
+.controller('stateMachine', ['$scope', 'Socket', function($scope, Socket) {
+	$scope.devices = window.known_hexabus_devices;
+	$scope.send_master_slave = function() {
+		var master, slaves = {};
+		for(device in $scope.devices) {
+			if($scope.devices[device].ip == $scope.masterProp) {
+				master = $scope.devices[device];
+			} else if($scope.devices[device].ip == $scope.slaveProp) {
+				slaves[device] = $scope.devices[device];
+			}
+		}
+		var threshold = $scope.thresholdProp;
+		console.log(master, slaves, threshold);
+		
+		Socket.emit('master_slave_sm', {master: master, slaves: slaves, threshold: threshold});
+	}
+	var on_sm_uploaded = function(data) {
+	}
+	Socket.on('sm_uploaded', on_sm_uploaded);
+}])
 .directive('focusIf', [function () {
     return function focusIf(scope, element, attr) {
         scope.$watch(attr.focusIf, function (newVal) {

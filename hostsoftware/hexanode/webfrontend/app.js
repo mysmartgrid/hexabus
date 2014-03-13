@@ -312,6 +312,24 @@ app.get('/wizard/devices', function(req, res) {
 
 	res.render('wizard/devices.ejs', { active_nav: 'configuration', devices: devices });
 });
+app.get('/wizard/state_machine', function(req, res) {
+	var devices = {};
+
+	devicetree.forEach(function(device) {
+		var entry = devices[device.ip] = { name: device.name, ip: device.ip, eids: [] };
+
+		device.forEachEndpoint(function(ep) {
+			if (ep.function != "infrastructure") {
+				entry.eids.push(ep);
+			}
+		});
+		entry.eids.sort(function(a, b) {
+			return b.eid - a.eid;
+		});
+	});
+
+	res.render('wizard/state_machine.ejs', { active_nav: 'configuration', devices: devices });
+});
 app.get('/wizard/devices/add', function(req, res) {
 	res.render('wizard/add_device.ejs', { active_nav: 'configuration' });
 });
@@ -650,6 +668,13 @@ io.sockets.on('connection', function (socket) {
 	on('devices_enumerate', function() {
 		enumerate_network(function() {
 			emit('devices_enumerate_done');
+		});
+	});
+
+	on('master_slave_sm', function(msg) {
+		console.log(msg.master.ip);
+		hexabus.master_slave_sm(msg, function(success, error) {
+			emit('sm_uploaded', {success: success, error: error});
 		});
 	});
 
