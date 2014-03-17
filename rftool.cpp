@@ -7,6 +7,7 @@
 #include "ieee802154.h"
 #include "nl802154.h"
 #include "netlink.hpp"
+#include "types.hpp"
 
 #include <stdexcept>
 #include <vector>
@@ -29,13 +30,6 @@ struct key {
 	uint8_t source[8];
 	int source_len;
 	uint8_t key[16];
-};
-
-struct device {
-	std::string iface;
-	uint16_t pan_id, short_addr;
-	uint8_t hwaddr[8];
-	uint32_t frame_ctr;
 };
 
 struct seclevel {
@@ -369,10 +363,10 @@ class list_keys : public parser {
 
 class list_devs : public parser {
 	private:
-		std::vector<device>& _devs;
+		std::vector<Device>& _devs;
 
 	public:
-		list_devs(std::vector<device>& devs)
+		list_devs(std::vector<Device>& devs)
 			: _devs(devs)
 		{
 			has_valid();
@@ -380,15 +374,13 @@ class list_devs : public parser {
 
 		virtual int valid(const nlattrs& attrs)
 		{
-			device dev;
+			std::string iface = attrs.str(IEEE802154_ATTR_DEV_NAME);
+			uint16_t pan_id = attrs.u16(IEEE802154_ATTR_PAN_ID);
+			uint16_t short_addr = attrs.u16(IEEE802154_ATTR_SHORT_ADDR);
+			uint64_t hwaddr = attrs.u64(IEEE802154_ATTR_HW_ADDR);
+			uint32_t frame_ctr = attrs.u32(IEEE802154_ATTR_LLSEC_FRAME_COUNTER);
 
-			dev.iface = attrs.str(IEEE802154_ATTR_DEV_NAME);
-			dev.pan_id = attrs.u16(IEEE802154_ATTR_PAN_ID);
-			dev.short_addr = attrs.u16(IEEE802154_ATTR_SHORT_ADDR);
-			memcpy(dev.hwaddr, attrs.raw(IEEE802154_ATTR_HW_ADDR), 8);
-			dev.frame_ctr = attrs.u32(IEEE802154_ATTR_LLSEC_FRAME_COUNTER);
-
-			_devs.push_back(dev);
+			_devs.push_back(Device(iface, pan_id, short_addr, hwaddr, frame_ctr));
 
 			return NL_OK;
 		}
@@ -611,10 +603,10 @@ class nlsock {
 			recv(p);
 		}
 
-		std::vector<device> list_devs(const std::string& iface = "")
+		std::vector<Device> list_devs(const std::string& iface = "")
 		{
 			msgs::list_devs cmd(family, iface);
-			std::vector<device> result;
+			std::vector<Device> result;
 			parsers::list_devs p(result);
 
 			send(cmd);
@@ -677,22 +669,12 @@ int main(int argc, const char* argv[])
 				std::cout << std::endl;
 			}
 		} else if (argv[1] == std::string("devs")) {
-			std::vector<device> devs = sock.list_devs();
+			std::vector<Device> devs = sock.list_devs();
 
 			for (size_t i = 0; i < devs.size(); i++) {
-				device& dev = devs[i];
+				Device& dev = devs[i];
 
-				std::cout << "device " << i << " on " << dev.iface << std::endl
-					<< "	pan " << std::hex << std::setw(4)
-						<< std::setfill('0') << dev.pan_id << std::endl
-					<< "	saddr " << dev.short_addr << std::endl
-					<< "	hwaddr ";
-				for (int j = 0; j < 8; j++) {
-					if (j) std::cout << ":";
-					std::cout << std::setw(2) << int(dev.hwaddr[j]);
-				}
-				std::cout << std::endl
-					<< "	frame ctr " << std::dec << dev.frame_ctr << std::endl;
+				std::cout << dev << std::endl;
 			}
 		}
 

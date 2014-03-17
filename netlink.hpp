@@ -107,6 +107,9 @@ class nlattrs {
 		uint32_t u32(size_t attr) const
 		{ return check_fixed<uint32_t>(attr); }
 
+		uint64_t u64(size_t attr) const
+		{ return check_fixed<uint64_t>(attr); }
+
 		int32_t s32(size_t attr) const
 		{ return check_fixed<int32_t>(attr); }
 
