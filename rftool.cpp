@@ -3,15 +3,21 @@
 #include <netlink/netlink.h>
 #include <netlink/genl/genl.h>
 #include <netlink/genl/ctrl.h>
+#include <poll.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include "ieee802154.h"
 #include "nl802154.h"
+
 #include "netlink.hpp"
 #include "types.hpp"
 
 #include <stdexcept>
 #include <vector>
 #include <string>
+#include <sstream>
 #include <iostream>
 #include <iomanip>
 
@@ -235,6 +241,29 @@ struct del_seclevel : modify_seclevel {
 	del_seclevel(int family, const std::string& iface)
 		: modify_seclevel(family, IEEE802154_LLSEC_DEL_SECLEVEL, iface)
 	{}
+};
+
+struct llsec_setparams : nlmsg {
+	llsec_setparams(int family, const std::string& iface)
+		: nlmsg(family, 0, NLM_F_REQUEST, IEEE802154_LLSEC_SETPARAMS)
+	{
+		put(IEEE802154_ATTR_DEV_NAME, iface);
+	}
+
+	void enabled(bool on)
+	{ put(IEEE802154_ATTR_LLSEC_ENABLED, on); }
+
+	void out_level(uint8_t level)
+	{ put(IEEE802154_ATTR_LLSEC_SECLEVEL, level); }
+
+	void key_id(uint8_t id)
+	{ put(IEEE802154_ATTR_LLSEC_KEY_ID, id); }
+
+	void key_mode(uint8_t mode)
+	{ put(IEEE802154_ATTR_LLSEC_KEY_MODE, mode); }
+
+	void key_source_hw(uint64_t hw)
+	{ put(IEEE802154_ATTR_HW_ADDR, hw); }
 };
 
 }
@@ -560,7 +589,7 @@ class nlsock {
 			msgs::start start(family, dev);
 			parsers::parser p;
 
-			start.short_addr(0x1234);
+			start.short_addr(0xfffe);
 			start.pan_id(0x0900);
 			start.channel(0);
 			start.page(0);
@@ -626,18 +655,58 @@ class nlsock {
 			send(msg);
 			recv(p);
 		}
+
+		void set_secen()
+		{
+			msgs::llsec_setparams msg(family, "wpan8");
+			parsers::parser p;
+
+			msg.enabled(true);
+			msg.out_level(5);
+			msg.key_id(0);
+			msg.key_mode(1);
+			msg.key_source_hw(0xffffffffffffffffULL);
+
+			send(msg);
+			recv(p);
+		}
 };
 
 void hexdump(const void *data, int len)
 {
-	const uint8_t *p = reinterpret_cast<const uint8_t*>(data);
+	using namespace std;
 
-	int i = 0;
-	while (len-- > 0) {
-		if (i++) std::cout << " ";
-		std::cout << "0x" << std::hex << std::setfill('0')
-			<< std::setw(2) << int(*p++);
+	const uint8_t *p = reinterpret_cast<const uint8_t*>(data);
+	int offset = 0;
+	stringstream ss;
+
+	ss << hex << setfill('0');
+
+	while (len > 0) {
+		int i;
+
+		ss << setw(8) << offset;
+
+		for (i = 0; i < 16 && len - i > 0; i++)
+			ss << " " << setw(2) << int(p[offset + i]);
+		while (i++ < 16)
+			ss << "   ";
+
+		ss << " ";
+
+		for (i = 0; i < 16 && len - i > 0; i++)
+			if (isprint(p[offset + i]))
+				ss << p[offset + i];
+			else
+				ss << ".";
+
+		ss << std::endl;
+
+		len -= 16;
+		offset += 16;
 	}
+
+	cout << ss.str();
 }
 
 int main(int argc, const char* argv[])
@@ -676,6 +745,43 @@ int main(int argc, const char* argv[])
 
 				std::cout << dev << std::endl;
 			}
+		} else if (argv[1] == std::string("pair")) {
+			int sock = socket(AF_IEEE802154, SOCK_DGRAM, 0);
+			uint8_t buffer[256];
+			int len, count = 0;
+			char prov_hdr[] = "!HXB-PAIR";
+			char prov_recon[] = "!HXB-CONN";
+			char reply[] = {
+				'!', 'H', 'X', 'B', '-', 'P', 'A', 'I', 'R',
+				0x00, 0x09,
+				0x00, 0x4f, 0x30, 0x92, 0xdf, 0x53, 0xd4, 0x70,
+				0x17, 0x29, 0xde, 0x1d, 0x31, 0xbb, 0x55, 0x45 };
+			char reply_con[] = {
+				'!', 'H', 'X', 'B', '-', 'C', 'O', 'N', 'N',
+				0x00, 0x00, 0x01, 0x00};
+			struct sockaddr_ieee802154 peer;
+			socklen_t peerlen = sizeof(peer);
+
+			// crypto off
+			int val = 1;
+			setsockopt(sock, SOL_IEEE802154, 1, &val, sizeof(int));
+
+			std::cout << "Listening" << std::endl;
+			while ((len = recvfrom(sock, buffer, sizeof(buffer), 0, (sockaddr*) &peer, &peerlen)) > 0) {
+				std::cout << "Packet " << ++count << " (" << peerlen << "):" << std::endl;
+				hexdump(buffer, len);
+				std::cout << std::endl;
+				if (len == strlen(prov_hdr) &&
+					!memcmp(buffer, prov_hdr, len)) {
+					std::cout << "Got request" << std::endl;
+					hexdump(&peer, sizeof(peer));
+					sendto(sock, reply, sizeof(reply), 0, (sockaddr*) &peer, sizeof(peer));
+				} else if (len == strlen(prov_recon) &&
+					!memcmp(buffer, prov_recon, len)) {
+					std::cout << "Got resync" << std::endl;
+					sendto(sock, reply_con, sizeof(reply_con), 0, (sockaddr*) &peer, sizeof(peer));
+				}
+			}
 		}
 
 		return 0;
@@ -693,6 +799,7 @@ int main(int argc, const char* argv[])
 	sock.add_def_key();
 	sock.add_dev_801c("wpan8");
 	sock.add_def_seclevel();
+	sock.set_secen();
 
 	std::vector<phy> phys = sock.list_phy();
 	for (size_t i = 0; i < phys.size(); i++) {
