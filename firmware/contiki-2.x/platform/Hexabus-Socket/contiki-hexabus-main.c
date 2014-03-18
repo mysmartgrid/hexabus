@@ -111,6 +111,7 @@
 #include "udp_handler.h"
 #include "state_machine.h"
 #include "hexabus_app_bootstrap.h"
+#include "provisioning.h"
 
 // optional HEXABUS apps
 #if VALUE_BROADCAST_ENABLE
@@ -274,6 +275,8 @@ void initialize(void)
   NETSTACK_RDC.init();
   NETSTACK_MAC.init();
   NETSTACK_NETWORK.init();
+
+  provisioning_reconnect();
 
 #if ANNOUNCE_BOOT
  #if RF230BB

@@ -164,7 +164,7 @@ void uip_log(char *msg);
 
 
 /** \brief Size of the 802.15.4 payload (127byte - 25 for MAC header - 6 for Security header - 4 for MAC) */
-#define MAC_MAX_PAYLOAD 88
+#define MAC_MAX_PAYLOAD 80
 
 
 /** \brief Some MAC layers need a minimum payload, which is

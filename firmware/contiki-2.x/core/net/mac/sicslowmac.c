@@ -189,10 +189,6 @@ encrypt_payload(frame802154_t *pf)
 		PRINTF(" %02x", ((uint8_t*) &nonce)[i]);
 	PRINTF("\n");
 
-	for (i = 0; i < packetbuf_datalen(); i++)
-		PRINTF(" %02x", ((uint8_t*) packetbuf_dataptr())[i]);
-	PRINTF("\n");
-
 	alen = compute_mac(pf, packetbuf_dataptr(), packetbuf_datalen(), mac);
 	transform_block(&nonce, 0, mac, 16);
 
