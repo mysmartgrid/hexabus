@@ -7,24 +7,19 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <iostream>
 
-namespace msgs {
+namespace nl {
 
-class nlmsg {
+class msg {
 	private:
-		nlmsg& operator=(const nlmsg&);
-		nlmsg(const nlmsg&);
+		msg& operator=(const msg&);
+		msg(const msg&);
 
 	protected:
-		struct nl_msg* msg;
+		struct nl_msg* _msg;
 
-		void put_raw(int type, const void* data, size_t len)
-		{
-			int err = nla_put(msg, type, len, data);
-
-			if (err)
-				throw std::runtime_error(nl_geterror(err));
-		}
+		void put_raw(int type, const void* data, size_t len);
 
 		void put(int type, const std::string& str)
 		{ put_raw(type, str.c_str(), str.size() + 1); }
@@ -34,39 +29,16 @@ class nlmsg {
 		{ put_raw(type, &i, sizeof(i)); }
 
 	public:
-		nlmsg(int family, int hdrlen, int flags, int cmd)
-			: msg(nlmsg_alloc())
-		{
-			if (!msg)
-				throw std::bad_alloc();
+		msg(int family, int hdrlen, int flags, int cmd);
 
-			if (!genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, family,
-				hdrlen, flags, cmd, 1))
-				throw std::runtime_error("nlmsg() genlmsg_put");
-		}
+		virtual ~msg();
 
-		virtual ~nlmsg()
-		{
-			nlmsg_free(msg);
-		}
-
-		 struct nl_msg* raw() { return msg; }
+		 struct nl_msg* raw() { return _msg; }
 };
 
-}
-
-namespace parsers {
-
-class nlattrs {
-	friend class parser;
-
+class attrs {
 	private:
-		std::vector<struct nlattr*>& data;
-
-		nlattrs(std::vector<struct nlattr*>& data)
-			: data(data)
-		{
-		}
+		const std::vector<struct nlattr*>& data;
 
 		template<typename T>
 		T check_fixed(size_t attr) const
@@ -85,6 +57,10 @@ class nlattrs {
 		}
 
 	public:
+		attrs(const std::vector<struct nlattr*>& data)
+			: data(data)
+		{}
+
 		bool operator[](size_t attr) const
 		{
 			return attr > 0
@@ -120,7 +96,7 @@ class nlattrs {
 		{ return nla_data(data[attr]); }
 };
 
-template<typename>
+template<typename Result, int MaxAttr>
 class parser {
 	protected:
 		struct nl_cb *cb;
@@ -131,18 +107,18 @@ class parser {
 		static int cb_valid(struct nl_msg* msg, void* arg)
 		{
 			struct nlmsghdr* nlh = nlmsg_hdr(msg);
-			std::vector<struct nlattr*> attrs(IEEE802154_ATTR_MAX + 1);
+			std::vector<struct nlattr*> nlattrs(MaxAttr + 1);
 
-			genlmsg_parse(nlh, 0, &attrs[0], IEEE802154_ATTR_MAX, 0);
+			genlmsg_parse(nlh, 0, &nlattrs[0], MaxAttr, 0);
 
-			nlattrs nlattrs(attrs);
+			attrs attrs(nlattrs);
 
-			return static_cast<parser*>(arg)->valid(attrs);
-		}
-
-		void has_valid()
-		{
-			nl_cb_set(cb, NL_CB_VALID, NL_CB_CUSTOM, &cb_valid, this);
+			try {
+				return static_cast<parser*>(arg)->valid(attrs);
+			} catch (...) {
+				std::cerr << "nl::parser::valid() threw" << std::endl;
+				return NL_STOP;
+			}
 		}
 
 	public:
@@ -151,6 +127,8 @@ class parser {
 		{
 			if (!cb)
 				throw std::bad_alloc();
+
+			nl_cb_set(cb, NL_CB_VALID, NL_CB_CUSTOM, &cb_valid, this);
 		}
 
 		virtual ~parser()
@@ -160,9 +138,39 @@ class parser {
 
 		struct nl_cb* raw() { return cb; }
 
-		virtual int valid(const nlattrs& attrs)
+		virtual int valid(const attrs& attrs)
 		{ return NL_OK; }
+
+		virtual Result complete() = 0;
 };
+
+class socket {
+	private:
+		struct nl_sock* nl;
+
+		socket& operator=(const socket&);
+		socket(const socket&);
+
+	public:
+		socket(int family);
+
+		virtual ~socket();
+
+		int send(msg& msg);
+
+		template<typename Result, int MaxAttr>
+		Result recv(nl::parser<Result, MaxAttr>& parser)
+		{
+			int res = nl_recvmsgs(nl, parser.raw());
+			if (res < 0) {
+				throw std::runtime_error(nl_geterror(res));
+			}
+
+			return parser.complete();
+		}
+};
+
+int get_family(const char* family_name);
 
 }
 

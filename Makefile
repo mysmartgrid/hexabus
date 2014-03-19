@@ -11,7 +11,7 @@ else
 CCFLAGS += -g
 endif
 
-CCFLAGS += -Wall -Werror -pedantic
+CCFLAGS += -Wall -pipe
 CFLAGS += $(CCFLAGS)
 CXXFLAGS += $(CCFLAGS)
 
@@ -58,26 +58,26 @@ endif
 
 # result: cleaned name of particle
 # argument 1: makefile name or directory name of particle root
-define submk_name =
+define submk_name
 $(subst /,_,$(subst _,__,$(1:/dir.mk=)))
 endef
 
 # result: particles library filename
 # argument 1: makefile name or directory name of particle root
-define sublib_name =
+define sublib_name
 lib$(call submk_name,$1).a
 endef
 
 # result: shell code to check for existence of a certain system header. generates a return code.
 # argument 1: name of a header file required by the program
-define require_header =
+define require_header
 (echo '#include <$1>' | $(CPP) - >/dev/null 2>&1)
 endef
 
 # result: shell code to check for existence of a certain symbol. generates a return code.
 # argument 1: name of a header file containing the symbol
 # argument 2: name of the symbol
-define require_symbol_definition =
+define require_symbol_definition
 ((echo '#include <$1>'; echo '#ifndef $2'; echo '#error'; echo '#endif') | $(CPP) - >/dev/null 2>&1)
 endef
 
@@ -172,14 +172,14 @@ html-doc:
 # argument 1: input source file
 # argument 2: output object file
 # argument 3: extra cpp flags
-define generate_depfile =
+define generate_depfile
 	$V$(CPP) -MM -MP -MT $2 $(CPPFLAGS) $3 $1 > $2.d \
 		&& $(SED) -e 's@^\(.*\)\.o:@\1.d \1.o:@' -i $2.d
 endef
 
 # result: shell commands to create a particle Makefile
 # argument 1: directory
-define generate_subdir_makefile =
+define generate_subdir_makefile
 	@echo 'DIRS += $$(OBJDIR)/$(1:/dir.mk=)' > $1 
 	@echo >> $1
 	@echo '$(call submk_name,$1)_SRC := $(foreach ext,$(CODE_EXTS),$$(wildcard $(dir $1)*.$(ext)))' >> $1
@@ -189,6 +189,6 @@ define generate_subdir_makefile =
 	@echo 'DEP_SRC += $$($(call submk_name,$1)_SRC)' >> $1
 	@echo >> $1
 	@echo '$$(OBJDIR)/$(call sublib_name,$1): $$($(call submk_name,$1)_OBJ)' >> $1
-	@echo '	@echo -e "[AR]\t" $$@' >> $1
+	@echo '	@echo "[AR]	" $$@' >> $1
 	@echo '	$$V$$(AR) -rcs $$@ $$^' >> $1
 endef
