@@ -1,5 +1,14 @@
-rftool:
-	g++ `pkg-config --libs libnl-genl-3.0` `pkg-config --cflags libnl-genl-3.0` -o../rftool rftool.cpp
+LIBS := libnl-genl-3.0
+
+CFLAGS := $(shell pkg-config --cflags $(LIBS))
+LDFLAGS := $(shell pkg-config --libs $(LIBS))
+
+rftool: rftool.o
+	g++ $(LDFLAGS) -o $@ $<
+	cp $@ ../$@
+
+%.o: %.cpp
+	g++ -c -o $@ $(CFLAGS) $<
 
 i2c:
 
