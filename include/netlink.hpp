@@ -120,6 +120,7 @@ class nlattrs {
 		{ return nla_data(data[attr]); }
 };
 
+template<typename>
 class parser {
 	protected:
 		struct nl_cb *cb;
