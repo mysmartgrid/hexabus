@@ -9,6 +9,7 @@
 #include <limits>
 #include <stdint.h>
 #include <endian.h>
+#include <fcntl.h>
 
 #include "ieee802154.h"
 #include "nl802154.h"
@@ -17,6 +18,7 @@
 #include "nlmessages.hpp"
 #include "nlparsers.hpp"
 #include "types.hpp"
+#include "controller.hpp"
 
 #include <stdexcept>
 #include <vector>
@@ -24,174 +26,6 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
-
-class nlsock : public nl::socket {
-	protected:
-		void recv_errno()
-		{
-			parsers::errno_parser p;
-
-			recv(p);
-		}
-
-	public:
-		nlsock()
-			: socket(msgs::msg802154::family())
-		{}
-
-		std::vector<Phy> list_phy()
-		{
-			msgs::list_phy cmd;
-			parsers::list_phy parser;
-
-			send(cmd);
-			return recv(parser);
-		}
-
-		std::vector<Key> list_keys(const std::string& dev = "")
-		{
-			msgs::list_keys cmd(dev);
-			parsers::list_keys parser;
-
-			send(cmd);
-			return recv(parser);
-		}
-
-		void set_lbt(const std::string& dev, bool lbt)
-		{
-			msgs::phy_setparams cmd(dev);
-
-			cmd.lbt(lbt);
-			send(cmd);
-			recv_errno();
-		}
-
-		void set_txpower(const std::string& dev, int txp)
-		{
-			msgs::phy_setparams cmd(dev);
-
-			cmd.txpower(txp);
-			send(cmd);
-			recv_errno();
-		}
-
-		void set_cca_mode(const std::string& dev, uint8_t mode)
-		{
-			msgs::phy_setparams cmd(dev);
-
-			cmd.cca_mode(mode);
-			send(cmd);
-			recv_errno();
-		}
-
-		void set_ed_level(const std::string& dev, int32_t level)
-		{
-			msgs::phy_setparams cmd(dev);
-
-			cmd.ed_level(level);
-			send(cmd);
-			recv_errno();
-		}
-
-		void set_frame_retries(const std::string& dev, int8_t retries)
-		{
-			msgs::phy_setparams cmd(dev);
-
-			cmd.frame_retries(retries);
-			send(cmd);
-			recv_errno();
-		}
-
-		void add_iface(const std::string& phy, const std::string& iface = "")
-		{
-			msgs::add_iface cmd(phy, iface);
-			parsers::add_iface pi;
-
-			cmd.hwaddr(htobe64(0xdeadbeefcafebabeULL));
-			send(cmd);
-			NetDevice dev = recv(pi);
-			recv_errno();
-
-			std::cout << "added " << dev.name() << " to " << dev.phy() << std::endl;
-		}
-
-		void start(const std::string& dev)
-		{
-			msgs::start start(dev);
-
-			start.short_addr(0xfffe);
-			start.pan_id(0x0900);
-			start.channel(0);
-			start.page(0);
-			start.page(2);
-
-			send(start);
-			recv_errno();
-		}
-
-		void add_def_key()
-		{
-			msgs::add_key akey("wpan8");
-			uint8_t keybytes[16] = { 0x01, 0x4f, 0x30, 0x92, 0xdf,
-				0x53, 0xd4, 0x70, 0x17, 0x29, 0xde, 0x1d, 0x31,
-				0xbb, 0x55, 0x45 };
-
-			akey.frames(1 << 1);
-			akey.id(0);
-			akey.mode(1);
-			akey.key(keybytes);
-
-			send(akey);
-			recv_errno();
-		}
-
-		void add_dev_801c(const std::string& iface)
-		{
-			msgs::add_dev cmd(iface);
-
-			cmd.pan_id(0x0900);
-			cmd.short_addr(0xfffe);
-			cmd.hwaddr(htobe64(0x0250c4fffe04810cULL));
-			cmd.frame_ctr(0);
-
-			send(cmd);
-			recv_errno();
-		}
-
-		std::vector<Device> list_devs(const std::string& iface = "")
-		{
-			msgs::list_devs cmd(iface);
-			parsers::list_devs p;
-
-			send(cmd);
-			return recv(p);
-		}
-
-		void add_def_seclevel()
-		{
-			msgs::add_seclevel msg("wpan8");
-
-			msg.frame(1);
-			msg.levels(0xff);
-
-			send(msg);
-			recv_errno();
-		}
-
-		void set_secen()
-		{
-			msgs::llsec_setparams msg("wpan8");
-
-			msg.enabled(true);
-			msg.out_level(5);
-			msg.key_id(0);
-			msg.key_mode(1);
-			msg.key_source_hw(std::numeric_limits<uint64_t>::max());
-
-			send(msg);
-			recv_errno();
-		}
-};
 
 void hexdump(const void *data, int len)
 {
@@ -230,84 +64,211 @@ void hexdump(const void *data, int len)
 	cout << ss.str();
 }
 
-int main(int argc, const char* argv[])
+void get_random(void* target, size_t len)
 {
-	nlsock sock;
-	std::string phyname;
+	int fd = open("/dev/urandom", O_RDONLY);
+	if (fd < 0)
+		throw std::runtime_error("open()");
 
-	if (argc != 1) {
-		if (argv[1] == std::string("keys")) {
-			std::vector<Key> keys = sock.list_keys("wpan8");
+	read(fd, target, len);
+	close(fd);
+}
 
-			for (size_t i = 0; i < keys.size(); i++) {
-				std::cout << keys[i] << std::endl;
-			}
-		} else if (argv[1] == std::string("devs")) {
-			std::vector<Device> devs = sock.list_devs();
+std::pair<std::string, PAN> setup_random_network()
+{
+	Controller ctrl;
+	Phy phy = ctrl.list_phys().at(0);
 
-			for (size_t i = 0; i < devs.size(); i++) {
-				Device& dev = devs[i];
+	uint8_t keybytes[16];
+	uint16_t pan_id;
 
-				std::cout << dev << std::endl;
-			}
-		} else if (argv[1] == std::string("pair")) {
-			int sock = socket(AF_IEEE802154, SOCK_DGRAM, 0);
-			uint8_t buffer[256];
-			int len, count = 0;
-			char prov_hdr[] = "!HXB-PAIR";
-			char prov_recon[] = "!HXB-CONN";
-			char reply[] = {
-				'!', 'H', 'X', 'B', '-', 'P', 'A', 'I', 'R',
-				0x00, 0x09,
-				0x01, 0x4f, 0x30, 0x92, 0xdf, 0x53, 0xd4, 0x70,
-				0x17, 0x29, 0xde, 0x1d, 0x31, 0xbb, 0x55, 0x45 };
-			char reply_con[] = {
-				'!', 'H', 'X', 'B', '-', 'C', 'O', 'N', 'N',
-				0x00, 0x00, 0x01, 0x00};
-			struct sockaddr_ieee802154 peer;
+	get_random(keybytes, 16);
+	get_random(&pan_id, sizeof(pan_id));
+
+	PAN pan(pan_id, 2, 0);
+
+	ctrl.setup_phy(phy.name());
+	NetDevice wpan = ctrl.add_netdev(phy, htobe64(0xdeadbeefcafebabeULL));
+	ctrl.start(wpan.name(), pan);
+	ctrl.add_key(Key::indexed(wpan.name(), 1 << 1, 0, keybytes, 0));
+	ctrl.enable_security(wpan.name());
+
+	std::string sys_cmd = "ip link add link " + wpan.name() + " name "
+		+ wpan.name() + ".lp0 type lowpan; ip link set " + wpan.name()
+		+ "up; ip link set " + wpan.name() + ".lp0 up";
+
+	std::cout << sys_cmd << std::endl;
+	system(sys_cmd.c_str());
+
+	return std::make_pair(phy.name(), pan);
+}
+
+#define HDR_PAIR "!HXB-PAIR"
+#define HDR_CONN "!HXB-CONN"
+
+class BootstrapResponder {
+	private:
+		int _fd;
+		std::string iface;
+		const PAN& pan;
+
+		std::vector<uint8_t> packet;
+		sockaddr_ieee802154 peer;
+
+		void receive_once()
+		{
+			packet.resize(256);
+
 			socklen_t peerlen = sizeof(peer);
+			int len = recvfrom(_fd, &packet[0], packet.size(), 0,
+					reinterpret_cast<sockaddr*>(&peer),
+					&peerlen);
+			if (len < 0)
+				throw std::runtime_error(strerror(errno));
+
+			packet.resize(len);
+		}
+
+		void respond_pair()
+		{
+			struct {
+				char header[9];
+				uint16_t pan_id;
+				uint8_t key[16];
+			} packet;
+
+			memcpy(packet.header, HDR_PAIR, strlen(HDR_PAIR));
+			packet.pan_id = htons(pan.pan_id());
+
+			Controller ctrl;
+			// TODO: more discriminate?
+			Key key = ctrl.list_keys(iface).at(0);
 
 			// crypto off
 			int val = 1;
-			setsockopt(sock, SOL_IEEE802154, 1, &val, sizeof(int));
+			setsockopt(_fd, SOL_IEEE802154, 1, &val, sizeof(val));
 
-			std::cout << "Listening" << std::endl;
-			while ((len = recvfrom(sock, buffer, sizeof(buffer), 0, (sockaddr*) &peer, &peerlen)) > 0) {
-				std::cout << "Packet " << ++count << " (" << peerlen << "):" << std::endl;
-				hexdump(buffer, len);
-				std::cout << std::endl;
-				if (len == (int) strlen(prov_hdr) &&
-					!memcmp(buffer, prov_hdr, len)) {
-					std::cout << "Got request" << std::endl;
-					hexdump(&peer, sizeof(peer));
-					sendto(sock, reply, sizeof(reply), 0, (sockaddr*) &peer, sizeof(peer));
-				} else if (len == (int) strlen(prov_recon) &&
-					!memcmp(buffer, prov_recon, len)) {
-					std::cout << "Got resync" << std::endl;
-					sendto(sock, reply_con, sizeof(reply_con), 0, (sockaddr*) &peer, sizeof(peer));
-				}
-			}
+			memcpy(packet.key, key.key(), 16);
+			if (sendto(_fd, &packet, sizeof(packet), 0,
+					reinterpret_cast<sockaddr*>(&peer),
+					sizeof(peer)) < 0)
+				throw std::runtime_error(strerror(errno));
 		}
 
-		return 0;
+		void respond_conn()
+		{
+			struct {
+				char header[9];
+				uint32_t ctr;
+			} packet;
+
+			memcpy(packet.header, HDR_CONN, strlen(HDR_CONN));
+
+			Controller ctrl;
+			uint64_t addr;
+
+			memcpy(&addr, peer.addr.hwaddr, 8);
+			Device dev = ctrl.list_devices(iface, addr).at(0);
+
+			// crypto default
+			int val = 0;
+			setsockopt(_fd, SOL_IEEE802154, 1, &val, sizeof(val));
+
+			packet.ctr = htonl(dev.frame_ctr());
+			if (sendto(_fd, &packet, sizeof(packet), 0,
+					reinterpret_cast<sockaddr*>(&peer),
+					sizeof(peer)) < 0)
+				throw std::runtime_error(strerror(errno));
+		}
+
+	public:
+		BootstrapResponder(const std::string& iface, const PAN& pan)
+			: _fd(socket(AF_IEEE802154, SOCK_DGRAM, 0)), iface(iface),
+			  pan(pan)
+		{
+			if (_fd < 0)
+				throw std::runtime_error(strerror(errno));
+		}
+
+		virtual ~BootstrapResponder()
+		{
+			close(_fd);
+		}
+
+		void once()
+		{
+			receive_once();
+
+			if (!memcmp(&packet[0], HDR_PAIR, strlen(HDR_PAIR))) {
+				respond_pair();
+			} else if (!memcmp(&packet[0], HDR_CONN, strlen(HDR_CONN))) {
+				respond_conn();
+			}
+		}
+};
+
+void run_network(const std::string& dev, const PAN& pan)
+{
+	BootstrapResponder resp(dev, pan);
+
+	while (true) {
+		try {
+			resp.once();
+		} catch (const std::exception& e) {
+			std::cerr << "Bootstrap error: " << e.what() << std::endl;
+		} catch (...) {
+			std::cerr << "Bootstrap error" << std::endl;
+		}
 	}
+}
 
-	phyname = sock.list_phy().at(0).name();
+void dump_phys()
+{
+	std::vector<Phy> phys = Controller().list_phys();
 
-	sock.set_lbt(phyname, true);
-	sock.add_iface(phyname, "wpan8");
-	sock.start("wpan8");
-	sock.set_cca_mode(phyname, 0);
-	sock.set_ed_level(phyname, -81);
-	sock.set_txpower(phyname, 3);
-	sock.set_frame_retries(phyname, 3);
-	sock.add_def_key();
-	sock.add_dev_801c("wpan8");
-	sock.add_def_seclevel();
-	sock.set_secen();
-
-	std::vector<Phy> phys = sock.list_phy();
 	for (size_t i = 0; i < phys.size(); i++) {
 		std::cout << phys[i] << std::endl;
 	}
+}
+
+void dump_keys(const std::string& iface = "")
+{
+	std::vector<Key> keys = Controller().list_keys(iface);
+
+	for (size_t i = 0; i < keys.size(); i++)
+		std::cout << keys[i] << std::endl;
+}
+
+void dump_devices(const std::string& iface = "")
+{
+	std::vector<Device> devs = Controller().list_devices(iface);
+
+	for (size_t i = 0; i < devs.size(); i++)
+		std::cout << devs[i] << std::endl;
+}
+
+int main(int argc, const char* argv[])
+{
+	if (argc == 1) {
+		std::cerr << "Need command" << std::endl;
+		return 1;
+	}
+
+	std::string cmd = argv[1];
+
+	if (cmd == "run") {
+		std::pair<std::string, PAN> net = setup_random_network();
+		run_network(net.first, net.second);
+	} else if (cmd == "list-keys") {
+		dump_keys(argc > 2 ? argv[2] : "");
+	} else if (cmd == "list-phys") {
+		dump_phys();
+	} else if (cmd == "list-devices") {
+		dump_devices(argc > 2 ? argv[2] : "");
+	} else {
+		std::cerr << "Unknown command" << std::endl;
+		return 1;
+	}
+
+	return 0;
 }

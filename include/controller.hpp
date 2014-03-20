@@ -1,0 +1,27 @@
+#ifndef COMMANDS_HPP_
+#define COMMANDS_HPP_
+
+#include <string>
+#include <vector>
+
+#include "netlink.hpp"
+#include "types.hpp"
+
+struct Controller : private nl::socket {
+	Controller();
+
+	std::vector<Phy> list_phys();
+	std::vector<Device> list_devices(const std::string& iface = "");
+	std::vector<Device> list_devices(const std::string& iface, uint64_t addr);
+	std::vector<Key> list_keys(const std::string& iface = "");
+
+	void setup_phy(const std::string& phy);
+	void start(const std::string& dev, const PAN& pan, uint16_t short_addr = 0xfffe);
+	NetDevice add_netdev(const Phy& phy, uint64_t addr, const std::string& name = "");
+
+	void enable_security(const std::string& dev);
+	void add_key(const Key& key);
+	void add_device(const Device& dev);
+};
+
+#endif

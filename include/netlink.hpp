@@ -114,12 +114,19 @@ class parser {
 			attrs attrs(nlattrs);
 
 			try {
-				return static_cast<parser*>(arg)->valid(attrs);
+				return static_cast<parser*>(arg)->valid(msg, attrs);
+			} catch (const std::exception& e) {
+				std::cerr << "nl::parser::valid() threw: "
+					<< e.what() << std::endl;
+				return NL_STOP;
 			} catch (...) {
-				std::cerr << "nl::parser::valid() threw" << std::endl;
+				std::cerr << "nl::parser::valid() threw:" << std::endl;
 				return NL_STOP;
 			}
 		}
+
+	public:
+		typedef Result result_type;
 
 	public:
 		parser()
@@ -138,10 +145,23 @@ class parser {
 
 		struct nl_cb* raw() { return cb; }
 
-		virtual int valid(const attrs& attrs)
+		virtual int valid(struct nl_msg* msg, const attrs& attrs)
 		{ return NL_OK; }
 
 		virtual Result complete() = 0;
+};
+
+class nl_error : public std::exception {
+	private:
+		int _error;
+
+	public:
+		nl_error(int error)
+			: _error(error)
+		{}
+
+		int error() const { return _error; }
+		const char* what() const throw() { return nl_geterror(_error); }
 };
 
 class socket {
@@ -151,22 +171,46 @@ class socket {
 		socket& operator=(const socket&);
 		socket(const socket&);
 
+		struct null_parser : parser<void, 0> {
+			void complete() {}
+		};
+
+		int sendmsg(msg& msg);
+
 	public:
 		socket(int family);
 
 		virtual ~socket();
-
-		int send(msg& msg);
 
 		template<typename Result, int MaxAttr>
 		Result recv(nl::parser<Result, MaxAttr>& parser)
 		{
 			int res = nl_recvmsgs(nl, parser.raw());
 			if (res < 0) {
-				throw std::runtime_error(nl_geterror(res));
+				throw nl_error(res);
 			}
 
 			return parser.complete();
+		}
+
+		void recv()
+		{
+			null_parser p;
+
+			recv(p);
+		}
+
+		template<typename Result, int MaxAttr>
+		Result send(msg& msg, nl::parser<Result, MaxAttr>& parser)
+		{
+			sendmsg(msg);
+			return recv(parser);
+		}
+
+		void send(msg& msg)
+		{
+			sendmsg(msg);
+			recv();
 		}
 };
 

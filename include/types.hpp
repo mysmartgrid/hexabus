@@ -88,14 +88,6 @@ class NetDevice {
 		const std::string& name() const { return _name; }
 };
 
-struct phy {
-	std::string name;
-	uint32_t page, channel;
-	std::vector<uint32_t> pages;
-	int txpower, cca_mode, ed_level;
-	bool lbt, aack, retransmit;
-};
-
 class Phy {
 	private:
 		std::string _name;
@@ -203,7 +195,7 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 	using boost::format;
 
 	os << format("Key on %1%") % key.iface() << std::endl
-		<< format("	Mode %%1") % int(key.mode()) << std::endl;
+		<< format("	Mode %1%") % int(key.mode()) << std::endl;
 
 	if (key.mode() != 0) {
 		if (key.mode() == 2) {
@@ -261,5 +253,21 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 
 	return os;
 }
+
+class PAN {
+	private:
+		uint16_t _pan_id;
+		int _page;
+		int _channel;
+
+	public:
+		PAN(uint16_t id, int page, int channel)
+			: _pan_id(id), _page(page), _channel(channel)
+		{}
+
+		uint16_t pan_id() const { return _pan_id; }
+		int page() const { return _page; }
+		int channel() const { return _channel; }
+};
 
 #endif
