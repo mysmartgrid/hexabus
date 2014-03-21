@@ -276,8 +276,6 @@ void initialize(void)
   NETSTACK_MAC.init();
   NETSTACK_NETWORK.init();
 
-  provisioning_reconnect();
-
 #if ANNOUNCE_BOOT
  #if RF230BB
   PRINTF("%s %s, channel %u",NETSTACK_MAC.name, NETSTACK_RDC.name, rf230_get_channel());
@@ -315,6 +313,8 @@ void initialize(void)
 
   //initialize random number generator with part of the MAC address
   random_init(eeprom_read_word((uint16_t*)(EE_MAC_ADDR + EE_MAC_ADDR_SIZE - 2)));
+
+  provisioning_reconnect();
 
 #if WEBSERVER
   process_start(&webserver_nogui_process, NULL);

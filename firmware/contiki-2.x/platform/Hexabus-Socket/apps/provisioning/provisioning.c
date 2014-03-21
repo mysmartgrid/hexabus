@@ -128,7 +128,7 @@ static int query_with_timeout(const void *data, uint16_t len, uint16_t want, uin
 		provisioning_leds();
 		if (rcv > 0) {
 			packetbuf_set_datalen(rcv);
-			NETSTACK_FRAMER.parse();
+			NETSTACK_RDC.input();
 			printf("got %i\n", packetbuf_datalen());
 			if (packetbuf_datalen() == want)
 				return 0;
@@ -155,20 +155,20 @@ int provisioning_slave(void)
 	const char *hdr = PROVISIONING_HEADER;
 	if (!query_with_timeout(hdr, strlen(hdr), sizeof(struct provisioning_m_t), PROV_TIMEOUT)) {
 		struct provisioning_m_t *packet = packetbuf_dataptr();
-		PRINTF("provisioning: new pan_id is: %x\n", packet->pan_id);
-		PRINTF("provisioning: new pan_id is: %x and new AES_KEY is: ", packet->pan_id);
+		PRINTF("provisioning: new pan_id is: %x and new AES_KEY is: ", uip_ntohs(packet->pan_id));
 		int i;
 		for (i = 0; i < 16; i++)
 			PRINTF("%x ", packet->aes_key[i]);
 		PRINTF("\n");
+		old_pan_id = uip_ntohs(packet->pan_id);
+
 		AVR_ENTER_CRITICAL_REGION();
-		eeprom_write_word((uint16_t *)EE_PAN_ID, packet->pan_id);
+		eeprom_write_word((uint16_t *)EE_PAN_ID, old_pan_id);
 		eeprom_write_block(packet->aes_key, (void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
 		AVR_LEAVE_CRITICAL_REGION();
 		provisioning_done_leds();
 		rf212_key_setup(packet->aes_key);
-		old_pan_id = packet->pan_id;
-		rf212_set_pan_addr(packet->pan_id, 0, NULL);
+		rf212_set_pan_addr(old_pan_id, 0, NULL);
 		rc = 0;
 	}
 
@@ -192,7 +192,7 @@ int provisioning_reconnect()
 	if (!query_with_timeout(hdr, strlen(hdr), sizeof(struct provisioning_r_t), 5)) {
 		struct provisioning_r_t *rcon = packetbuf_dataptr();
 
-		mac_framecnt = rcon->framectr;
+		mac_framecnt = uip_ntohl(rcon->framectr);
 		printf("frame %li\n", mac_framecnt);
 		rc = 0;
 	}
