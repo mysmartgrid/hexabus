@@ -161,7 +161,7 @@ class nl_error : public std::exception {
 		{}
 
 		int error() const { return _error; }
-		const char* what() const throw() { return nl_geterror(_error); }
+		const char* what() const throw() { return nl_geterror(-_error); }
 };
 
 class socket {
@@ -187,7 +187,7 @@ class socket {
 		{
 			int res = nl_recvmsgs(nl, parser.raw());
 			if (res < 0) {
-				throw nl_error(res);
+				throw nl_error(-res);
 			}
 
 			return parser.complete();

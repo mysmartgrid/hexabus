@@ -87,20 +87,22 @@ std::pair<std::string, PAN> setup_random_network()
 
 	PAN pan(pan_id, 2, 0);
 
-	ctrl.setup_phy(phy.name());
 	NetDevice wpan = ctrl.add_netdev(phy, htobe64(0xdeadbeefcafebabeULL));
+
 	ctrl.start(wpan.name(), pan);
+	ctrl.setup_phy(phy.name());
+
 	ctrl.add_key(Key::indexed(wpan.name(), 1 << 1, 0, keybytes, 0));
 	ctrl.enable_security(wpan.name());
 
 	std::string sys_cmd = "ip link add link " + wpan.name() + " name "
 		+ wpan.name() + ".lp0 type lowpan; ip link set " + wpan.name()
-		+ "up; ip link set " + wpan.name() + ".lp0 up";
+		+ " up; ip link set " + wpan.name() + ".lp0 up";
 
 	std::cout << sys_cmd << std::endl;
 	system(sys_cmd.c_str());
 
-	return std::make_pair(phy.name(), pan);
+	return std::make_pair(wpan.name(), pan);
 }
 
 #define HDR_PAIR "!HXB-PAIR"
@@ -135,7 +137,7 @@ class BootstrapResponder {
 				char header[9];
 				uint16_t pan_id;
 				uint8_t key[16];
-			} packet;
+			} __attribute__((packed)) packet;
 
 			memcpy(packet.header, HDR_PAIR, strlen(HDR_PAIR));
 			packet.pan_id = htons(pan.pan_id());
@@ -143,6 +145,15 @@ class BootstrapResponder {
 			Controller ctrl;
 			// TODO: more discriminate?
 			Key key = ctrl.list_keys(iface).at(0);
+
+			uint64_t addr;
+			memcpy(&addr, peer.addr.hwaddr, 8);
+			try {
+				ctrl.add_device(Device(iface, pan.pan_id(), 0xfffe, addr, 0));
+			} catch (const nl::nl_error& e) {
+				if (e.error() != NLE_EXIST)
+					throw;
+			}
 
 			// crypto off
 			int val = 1;
@@ -160,7 +171,7 @@ class BootstrapResponder {
 			struct {
 				char header[9];
 				uint32_t ctr;
-			} packet;
+			} __attribute__((packed)) packet;
 
 			memcpy(packet.header, HDR_CONN, strlen(HDR_CONN));
 

@@ -103,13 +103,9 @@ struct phy_setparams : msg802154 {
 };
 
 struct list_keys : msg802154 {
-	list_keys(const std::string& iface = "")
-		: msg802154(NLM_F_REQUEST | (iface.size() ? 0 : NLM_F_DUMP),
-			IEEE802154_LLSEC_LIST_KEY)
-	{
-		if (iface.size())
-			put(IEEE802154_ATTR_DEV_NAME, iface);
-	}
+	list_keys()
+		: msg802154(NLM_F_REQUEST | NLM_F_DUMP, IEEE802154_LLSEC_LIST_KEY)
+	{}
 };
 
 struct modify_key : msg802154 {
@@ -145,13 +141,9 @@ struct del_key : modify_key {
 };
 
 struct list_devs : msg802154 {
-	list_devs(const std::string& iface = "")
-		: msg802154(NLM_F_REQUEST | (iface.size() ? 0 : NLM_F_DUMP),
-			IEEE802154_LLSEC_LIST_DEV)
-	{
-		if (iface.size())
-			put(IEEE802154_ATTR_DEV_NAME, iface);
-	}
+	list_devs()
+		: msg802154(NLM_F_REQUEST | NLM_F_DUMP, IEEE802154_LLSEC_LIST_DEV)
+	{}
 };
 
 struct modify_dev : msg802154 {
@@ -187,13 +179,9 @@ struct del_dev : modify_dev {
 };
 
 struct list_seclevels : msg802154 {
-	list_seclevels(const std::string& iface = "")
-		: msg802154(NLM_F_REQUEST | (iface.size() ? 0 : NLM_F_DUMP),
-			IEEE802154_LLSEC_LIST_SECLEVEL)
-	{
-		if (iface.size())
-			put(IEEE802154_ATTR_DEV_NAME, iface);
-	}
+	list_seclevels()
+		: msg802154(NLM_F_REQUEST | NLM_F_DUMP, IEEE802154_LLSEC_LIST_SECLEVEL)
+	{}
 };
 
 struct modify_seclevel : msg802154 {

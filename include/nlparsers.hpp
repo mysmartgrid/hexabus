@@ -2,6 +2,7 @@
 #define NLPARSERS_HPP_
 
 #include <string>
+#include <boost/optional.hpp>
 
 #include "netlink.hpp"
 #include "nl802154.h"
@@ -26,28 +27,50 @@ struct list_phy : list_parser<Phy> {
 	int valid(struct nl_msg* msg, const nl::attrs& attrs);
 };
 
-struct list_devs : list_parser<Device> {
-	int valid(struct nl_msg* msg, const nl::attrs& attrs);
-};
-
 class add_iface : public base_parser<const NetDevice&> {
 	private:
-		NetDevice* result;
+		boost::optional<NetDevice> result;
 
 	public:
-		~add_iface();
-
 		int valid(struct nl_msg* msg, const nl::attrs& attrs);
 
 		const NetDevice& complete() { return *result; }
 };
 
-struct list_keys : list_parser<Key> {
-	int valid(struct nl_msg* msg, const nl::attrs& attrs);
+class list_devs : public list_parser<Device> {
+	private:
+		std::string iface;
+
+	public:
+		list_devs(const std::string& iface = "")
+			: iface(iface)
+		{}
+
+		int valid(struct nl_msg* msg, const nl::attrs& attrs);
 };
 
-struct list_seclevels : list_parser<Seclevel> {
-	int valid(struct nl_msg* msg, const nl::attrs& attrs);
+class list_keys : public list_parser<Key> {
+	private:
+		std::string iface;
+
+	public:
+		list_keys(const std::string& iface = "")
+			: iface(iface)
+		{}
+
+		int valid(struct nl_msg* msg, const nl::attrs& attrs);
+};
+
+class list_seclevels : public list_parser<Seclevel> {
+	private:
+		std::string iface;
+
+	public:
+		list_seclevels(const std::string& iface = "")
+			: iface(iface)
+		{}
+
+		int valid(struct nl_msg* msg, const nl::attrs& attrs);
 };
 
 }
