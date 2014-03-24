@@ -97,6 +97,15 @@ struct sockaddr_ieee802154 {
 #define SOL_IEEE802154	0
 #endif
 
+#define SO_802154_SECURITY		1
+#define SO_802154_SECURITY_LEVEL	2
+
+#define SO_802154_SECURITY_DEFAULT	0
+#define SO_802154_SECURITY_OFF		1
+#define SO_802154_SECURITY_ON		2
+
+#define SO_802154_SECURITY_LEVEL_DEFAULT	(-1)
+
 #ifndef WPAN_WANTACK
 #define WPAN_WANTACK	0
 #endif

@@ -19,6 +19,7 @@
 #include "nlparsers.hpp"
 #include "types.hpp"
 #include "controller.hpp"
+#include "bootstrap.hpp"
 
 #include <stdexcept>
 #include <vector>
@@ -105,126 +106,16 @@ std::pair<std::string, PAN> setup_random_network()
 	return std::make_pair(wpan.name(), pan);
 }
 
-#define HDR_PAIR "!HXB-PAIR"
-#define HDR_CONN "!HXB-CONN"
-
-class BootstrapResponder {
-	private:
-		int _fd;
-		std::string iface;
-		const PAN& pan;
-
-		std::vector<uint8_t> packet;
-		sockaddr_ieee802154 peer;
-
-		void receive_once()
-		{
-			packet.resize(256);
-
-			socklen_t peerlen = sizeof(peer);
-			int len = recvfrom(_fd, &packet[0], packet.size(), 0,
-					reinterpret_cast<sockaddr*>(&peer),
-					&peerlen);
-			if (len < 0)
-				throw std::runtime_error(strerror(errno));
-
-			packet.resize(len);
-		}
-
-		void respond_pair()
-		{
-			struct {
-				char header[9];
-				uint16_t pan_id;
-				uint8_t key[16];
-			} __attribute__((packed)) packet;
-
-			memcpy(packet.header, HDR_PAIR, strlen(HDR_PAIR));
-			packet.pan_id = htons(pan.pan_id());
-
-			Controller ctrl;
-			// TODO: more discriminate?
-			Key key = ctrl.list_keys(iface).at(0);
-
-			uint64_t addr;
-			memcpy(&addr, peer.addr.hwaddr, 8);
-			try {
-				ctrl.add_device(Device(iface, pan.pan_id(), 0xfffe, addr, 0));
-			} catch (const nl::nl_error& e) {
-				if (e.error() != NLE_EXIST)
-					throw;
-			}
-
-			// crypto off
-			int val = 1;
-			setsockopt(_fd, SOL_IEEE802154, 1, &val, sizeof(val));
-
-			memcpy(packet.key, key.key(), 16);
-			if (sendto(_fd, &packet, sizeof(packet), 0,
-					reinterpret_cast<sockaddr*>(&peer),
-					sizeof(peer)) < 0)
-				throw std::runtime_error(strerror(errno));
-		}
-
-		void respond_conn()
-		{
-			struct {
-				char header[9];
-				uint32_t ctr;
-			} __attribute__((packed)) packet;
-
-			memcpy(packet.header, HDR_CONN, strlen(HDR_CONN));
-
-			Controller ctrl;
-			uint64_t addr;
-
-			memcpy(&addr, peer.addr.hwaddr, 8);
-			Device dev = ctrl.list_devices(iface, addr).at(0);
-
-			// crypto default
-			int val = 0;
-			setsockopt(_fd, SOL_IEEE802154, 1, &val, sizeof(val));
-
-			packet.ctr = htonl(dev.frame_ctr());
-			if (sendto(_fd, &packet, sizeof(packet), 0,
-					reinterpret_cast<sockaddr*>(&peer),
-					sizeof(peer)) < 0)
-				throw std::runtime_error(strerror(errno));
-		}
-
-	public:
-		BootstrapResponder(const std::string& iface, const PAN& pan)
-			: _fd(socket(AF_IEEE802154, SOCK_DGRAM, 0)), iface(iface),
-			  pan(pan)
-		{
-			if (_fd < 0)
-				throw std::runtime_error(strerror(errno));
-		}
-
-		virtual ~BootstrapResponder()
-		{
-			close(_fd);
-		}
-
-		void once()
-		{
-			receive_once();
-
-			if (!memcmp(&packet[0], HDR_PAIR, strlen(HDR_PAIR))) {
-				respond_pair();
-			} else if (!memcmp(&packet[0], HDR_CONN, strlen(HDR_CONN))) {
-				respond_conn();
-			}
-		}
-};
-
 void run_network(const std::string& dev, const PAN& pan)
 {
-	BootstrapResponder resp(dev, pan);
+	PairingHandler handler(dev, pan.pan_id());
 
 	while (true) {
 		try {
-			resp.once();
+			handler.run_once();
+
+			ResyncHandler resync(dev);
+			resync.run_once();
 		} catch (const std::exception& e) {
 			std::cerr << "Bootstrap error: " << e.what() << std::endl;
 		} catch (...) {
