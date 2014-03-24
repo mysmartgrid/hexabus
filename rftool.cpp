@@ -108,9 +108,13 @@ std::pair<std::string, PAN> setup_random_network()
 	return std::make_pair(wpan.name(), pan);
 }
 
-void run_pairing(const std::string& dev, uint16_t pan)
+void run_pairing(const std::string& iface)
 {
-	PairingHandler handler(dev, pan);
+	Controller ctrl;
+
+	NetDevice dev = ctrl.list_netdevs(iface).at(0);
+
+	PairingHandler handler(iface, dev.pan_id());
 
 	try {
 		handler.run_once();
@@ -176,11 +180,11 @@ int main(int argc, const char* argv[])
 		std::cout << boost::format("Device: %1%") % net.first << std::endl
 			<< boost::format("PAN: %|04x|") % net.second.pan_id() << std::endl;
 	} else if (cmd == "pair") {
-		if (argc < 4) {
-			std::cerr << "required args: <iface> <pan-id>" << std::endl;
+		if (argc < 3) {
+			std::cerr << "required args: <iface>" << std::endl;
 			return 1;
 		}
-		run_pairing(argv[2], strtoul(argv[3], NULL, 16));
+		run_pairing(argv[2]);
 	} else if (cmd == "resyncd") {
 		if (argc < 3) {
 			std::cerr << "required args: <iface>" << std::endl;

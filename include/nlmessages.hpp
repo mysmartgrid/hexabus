@@ -54,6 +54,16 @@ struct add_iface : msg802154 {
 	{ put(IEEE802154_ATTR_HW_ADDR, addr); }
 };
 
+struct list_iface : msg802154 {
+	list_iface(const std::string& iface = "")
+		: msg802154(NLM_F_REQUEST | (iface.size() ? NLM_F_DUMP : 0),
+				IEEE802154_LIST_IFACE)
+	{
+		if (iface.size())
+			put(IEEE802154_ATTR_DEV_NAME, iface);
+	}
+};
+
 struct start : msg802154 {
 	start(const std::string& dev)
 		: msg802154(NLM_F_REQUEST, IEEE802154_START_REQ)

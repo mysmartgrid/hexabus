@@ -62,6 +62,22 @@ int add_iface::valid(struct nl_msg* msg, const nl::attrs& attrs)
 
 
 
+int list_iface::valid(struct nl_msg* msg, const nl::attrs& attrs)
+{
+	NetDevice dev(
+		attrs.str(IEEE802154_ATTR_PHY_NAME),
+		attrs.str(IEEE802154_ATTR_DEV_NAME),
+		attrs.u64(IEEE802154_ATTR_HW_ADDR),
+		attrs.u16(IEEE802154_ATTR_SHORT_ADDR),
+		attrs.u16(IEEE802154_ATTR_PAN_ID));
+
+	list.push_back(dev);
+
+	return NL_OK;
+}
+
+
+
 int list_devs::valid(struct nl_msg* msg, const nl::attrs& attrs)
 {
 	std::string iface = attrs.str(IEEE802154_ATTR_DEV_NAME);

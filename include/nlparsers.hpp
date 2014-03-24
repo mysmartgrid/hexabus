@@ -37,6 +37,10 @@ class add_iface : public base_parser<const NetDevice&> {
 		const NetDevice& complete() { return *result; }
 };
 
+struct list_iface : public list_parser<NetDevice> {
+	int valid(struct nl_msg* msg, const nl::attrs& attrs);
+};
+
 class list_devs : public list_parser<Device> {
 	private:
 		std::string iface;

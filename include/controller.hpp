@@ -11,6 +11,7 @@ struct Controller : private nl::socket {
 	Controller();
 
 	std::vector<Phy> list_phys();
+	std::vector<NetDevice> list_netdevs(const std::string& iface = "");
 	std::vector<Device> list_devices(const std::string& iface = "");
 	std::vector<Device> list_devices(const std::string& iface, uint64_t addr);
 	std::vector<Key> list_keys(const std::string& iface = "");

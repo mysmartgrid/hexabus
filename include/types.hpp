@@ -78,14 +78,26 @@ class NetDevice {
 	private:
 		std::string _phy;
 		std::string _name;
+		uint64_t _addr;
+		uint16_t _short_addr;
+		uint16_t _pan_id;
 
 	public:
 		NetDevice(const std::string& phy, const std::string& name)
 			: _phy(phy), _name(name)
 		{}
 
+		NetDevice(const std::string& phy, const std::string& name, uint64_t addr,
+				uint16_t short_addr, uint16_t pan_id)
+			: _phy(phy), _name(name), _addr(addr), _short_addr(short_addr),
+			  _pan_id(pan_id)
+		{}
+
 		const std::string& phy() const { return _phy; }
 		const std::string& name() const { return _name; }
+		uint64_t addr() const { return _addr; }
+		uint16_t short_addr() const { return _short_addr; }
+		uint16_t pan_id() const { return _pan_id; }
 };
 
 class Phy {
