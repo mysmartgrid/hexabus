@@ -100,6 +100,14 @@ NetDevice Controller::add_netdev(const Phy& phy, uint64_t addr, const std::strin
 	return dev;
 }
 
+void Controller::remove_netdev(const std::string& name)
+{
+	msgs::del_iface cmd(name);
+
+	send(cmd);
+	recv();
+}
+
 void Controller::add_key(const Key& key)
 {
 	msgs::add_key akey(key.iface());

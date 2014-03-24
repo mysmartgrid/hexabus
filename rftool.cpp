@@ -77,6 +77,25 @@ void get_random(void* target, size_t len)
 	close(fd);
 }
 
+void teardown_all()
+{
+	Controller ctrl;
+
+	std::vector<NetDevice> netdevs;
+	do {
+		netdevs = ctrl.list_netdevs();
+
+		for (size_t i = 0; i < netdevs.size(); i++) {
+			try {
+				ctrl.remove_netdev(netdevs[i].name());
+			} catch (const nl::nl_error& e) {
+				if (e.error() != NLE_NODEV)
+					throw;
+			}
+		}
+	} while (netdevs.size());
+}
+
 std::pair<std::string, PAN> setup_random_network()
 {
 	Controller ctrl;
@@ -98,12 +117,22 @@ std::pair<std::string, PAN> setup_random_network()
 	ctrl.add_key(Key::indexed(wpan.name(), 1 << 1, 0, keybytes, 0));
 	ctrl.enable_security(wpan.name());
 
-	std::string sys_cmd = "ip link add link " + wpan.name() + " name "
-		+ wpan.name() + ".lp0 type lowpan; ip link set " + wpan.name()
-		+ " up; ip link set " + wpan.name() + ".lp0 up";
+	if (system((boost::format("ip link set %1% up") % wpan.name()).str().c_str()))
+		throw std::runtime_error("can't create device");
 
-	std::cout << sys_cmd << std::endl;
-	system(sys_cmd.c_str());
+	std::string link_name;
+	for (int i = 0; ; i++) {
+		link_name = (boost::format("%1%.lp%2%") % wpan.name() % i).str();
+
+		std::string link_cmd = (boost::format("ip link add link %1% name %2% type lowpan")
+				% wpan.name() % link_name).str();
+		if (!system(link_cmd.c_str()))
+			break;
+	}
+
+	std::string up_cmd = (boost::format("ip link set %1% up") % link_name).str();
+	if (system(up_cmd.c_str()))
+		throw std::runtime_error("can't create device");
 
 	return std::make_pair(wpan.name(), pan);
 }
@@ -174,11 +203,12 @@ int main(int argc, const char* argv[])
 
 	std::string cmd = argv[1];
 
-	if (cmd == "setup-random") {
+	if (cmd == "teardown-all") {
+		teardown_all();
+	} else if (cmd == "setup-random") {
 		std::pair<std::string, PAN> net = setup_random_network();
 
-		std::cout << boost::format("Device: %1%") % net.first << std::endl
-			<< boost::format("PAN: %|04x|") % net.second.pan_id() << std::endl;
+		std::cout << boost::format("Device: %1%") % net.first << std::endl;
 	} else if (cmd == "pair") {
 		if (argc < 3) {
 			std::cerr << "required args: <iface>" << std::endl;

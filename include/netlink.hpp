@@ -186,9 +186,8 @@ class socket {
 		Result recv(nl::parser<Result, MaxAttr>& parser)
 		{
 			int res = nl_recvmsgs(nl, parser.raw());
-			if (res < 0) {
+			if (res < 0)
 				throw nl_error(-res);
-			}
 
 			return parser.complete();
 		}

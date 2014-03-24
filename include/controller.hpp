@@ -19,6 +19,7 @@ struct Controller : private nl::socket {
 	void setup_phy(const std::string& phy);
 	void start(const std::string& dev, const PAN& pan, uint16_t short_addr = 0xfffe);
 	NetDevice add_netdev(const Phy& phy, uint64_t addr, const std::string& name = "");
+	void remove_netdev(const std::string& name);
 
 	void enable_security(const std::string& dev);
 	void add_key(const Key& key);

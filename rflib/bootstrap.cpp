@@ -13,7 +13,7 @@
 #include <stdexcept>
 
 BootstrapSocket::BootstrapSocket(const std::string& iface, bool nosec)
-	: _fd(socket(AF_IEEE802154, SOCK_DGRAM, 0)),
+	: _fd(socket(AF_IEEE802154, SOCK_DGRAM | SOCK_CLOEXEC, 0)),
 	  _iface(iface)
 {
 	if (_fd < 0)

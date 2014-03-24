@@ -56,11 +56,19 @@ struct add_iface : msg802154 {
 
 struct list_iface : msg802154 {
 	list_iface(const std::string& iface = "")
-		: msg802154(NLM_F_REQUEST | (iface.size() ? NLM_F_DUMP : 0),
+		: msg802154(NLM_F_REQUEST | (iface.size() ? 0 : NLM_F_DUMP),
 				IEEE802154_LIST_IFACE)
 	{
 		if (iface.size())
 			put(IEEE802154_ATTR_DEV_NAME, iface);
+	}
+};
+
+struct del_iface : msg802154 {
+	del_iface(const std::string& iface)
+		: msg802154(NLM_F_REQUEST, IEEE802154_DEL_IFACE)
+	{
+		put(IEEE802154_ATTR_DEV_NAME, iface);
 	}
 };
 
