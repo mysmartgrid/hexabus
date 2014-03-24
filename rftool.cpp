@@ -21,6 +21,8 @@
 #include "controller.hpp"
 #include "bootstrap.hpp"
 
+#include <boost/lexical_cast.hpp>
+
 #include <stdexcept>
 #include <vector>
 #include <string>
@@ -106,15 +108,25 @@ std::pair<std::string, PAN> setup_random_network()
 	return std::make_pair(wpan.name(), pan);
 }
 
-void run_network(const std::string& dev, const PAN& pan)
+void run_pairing(const std::string& dev, uint16_t pan)
 {
-	PairingHandler handler(dev, pan.pan_id());
+	PairingHandler handler(dev, pan);
+
+	try {
+		handler.run_once();
+	} catch (const std::exception& e) {
+		std::cerr << "Bootstrap error: " << e.what() << std::endl;
+	} catch (...) {
+		std::cerr << "Bootstrap error" << std::endl;
+	}
+}
+
+void run_resync(const std::string& dev)
+{
+	ResyncHandler resync(dev);
 
 	while (true) {
 		try {
-			handler.run_once();
-
-			ResyncHandler resync(dev);
 			resync.run_once();
 		} catch (const std::exception& e) {
 			std::cerr << "Bootstrap error: " << e.what() << std::endl;
@@ -158,9 +170,23 @@ int main(int argc, const char* argv[])
 
 	std::string cmd = argv[1];
 
-	if (cmd == "run") {
+	if (cmd == "setup-random") {
 		std::pair<std::string, PAN> net = setup_random_network();
-		run_network(net.first, net.second);
+
+		std::cout << boost::format("Device: %1%") % net.first << std::endl
+			<< boost::format("PAN: %|04x|") % net.second.pan_id() << std::endl;
+	} else if (cmd == "pair") {
+		if (argc < 4) {
+			std::cerr << "required args: <iface> <pan-id>" << std::endl;
+			return 1;
+		}
+		run_pairing(argv[2], strtoul(argv[3], NULL, 16));
+	} else if (cmd == "resyncd") {
+		if (argc < 3) {
+			std::cerr << "required args: <iface>" << std::endl;
+			return 1;
+		}
+		run_resync(argv[2]);
 	} else if (cmd == "list-keys") {
 		dump_keys(argc > 2 ? argv[2] : "");
 	} else if (cmd == "list-phys") {
