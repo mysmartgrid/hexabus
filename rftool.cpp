@@ -122,7 +122,7 @@ std::pair<std::string, PAN> setup_random_network()
 
 	std::string link_name;
 	for (int i = 0; ; i++) {
-		link_name = (boost::format("%1%lp%2%") % wpan.name() % i).str();
+		link_name = (boost::format("usb%1%") % i).str();
 
 		std::string link_cmd = (boost::format("ip link add link %1% name %2% type lowpan")
 				% wpan.name() % link_name).str();
