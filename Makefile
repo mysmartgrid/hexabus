@@ -1,6 +1,6 @@
 # main targets and particle libraries
-TARGETS := rftool
-PARTICLES := rflib
+TARGETS := hxbnm
+PARTICLES := rflib eep
 
 # default compiler/linker flags
 override CPPFLAGS += -I include
@@ -37,7 +37,7 @@ BINDIR = bin
 override CODE_EXTS := cpp
 
 # external libraries used
-override LIBRARIES := libnl-genl-3.0
+override LIBRARIES := libnl-genl-3.0 libnl-3.0
 override LIBRARIES_WITHOUT_PKGCONFIG :=
 
 # library version requirements
@@ -118,11 +118,11 @@ PARTICLE_LIBRARY_NAMES := $(foreach lib,$(PARTICLES),$(call sublib_name,$(lib)))
 PARTICLE_LIBRARIES := $(foreach lib,$(PARTICLES),-l$(call submk_name,$(lib)))
 
 override LDFLAGS += -L $(OBJDIR)
+override LDFLAGS += -Wl,--start-group $(PARTICLE_LIBRARIES) -Wl,--end-group $(patsubst %,-l%,$(LIBRARIES_WITHOUT_PKGCONFIG))
 ifneq (,$(LIBRARIES))
 override CXXFLAGS += `pkg-config --cflags $(LIBRARIES)`
 override LDFLAGS += `pkg-config --libs $(LIBRARIES)`
 endif
-override LDFLAGS += $(patsubst %,-l%,$(LIBRARIES_WITHOUT_PKGCONFIG)) -Wl,--start-group $(PARTICLE_LIBRARIES) -Wl,--end-group
 
 
 

@@ -18,10 +18,13 @@
 #include "nlmessages.hpp"
 #include "nlparsers.hpp"
 #include "types.hpp"
+#include "types_io.hpp"
 #include "controller.hpp"
 #include "bootstrap.hpp"
+#include "network.hpp"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/format.hpp>
 
 #include <stdexcept>
 #include <vector>
@@ -29,53 +32,6 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
-
-void hexdump(const void *data, int len)
-{
-	using namespace std;
-
-	const uint8_t *p = reinterpret_cast<const uint8_t*>(data);
-	int offset = 0;
-	stringstream ss;
-
-	ss << hex << setfill('0');
-
-	while (len > 0) {
-		int i;
-
-		ss << setw(8) << offset;
-
-		for (i = 0; i < 16 && len - i > 0; i++)
-			ss << " " << setw(2) << int(p[offset + i]);
-		while (i++ < 16)
-			ss << "   ";
-
-		ss << " ";
-
-		for (i = 0; i < 16 && len - i > 0; i++)
-			if (isprint(p[offset + i]))
-				ss << p[offset + i];
-			else
-				ss << ".";
-
-		ss << std::endl;
-
-		len -= 16;
-		offset += 16;
-	}
-
-	cout << ss.str();
-}
-
-void get_random(void* target, size_t len)
-{
-	int fd = open("/dev/urandom", O_RDONLY);
-	if (fd < 0)
-		throw std::runtime_error("open()");
-
-	read(fd, target, len);
-	close(fd);
-}
 
 void teardown_all()
 {
@@ -96,26 +52,26 @@ void teardown_all()
 	} while (netdevs.size());
 }
 
-std::pair<std::string, PAN> setup_random_network()
+std::string setup_network(const Network& net)
 {
 	Controller ctrl;
 	Phy phy = ctrl.list_phys().at(0);
 
-	uint8_t keybytes[16];
-	uint16_t pan_id;
+	NetDevice wpan = ctrl.add_netdev(phy, net.hwaddr());
 
-	get_random(keybytes, 16);
-	get_random(&pan_id, sizeof(pan_id));
-
-	PAN pan(pan_id, 2, 0);
-
-	NetDevice wpan = ctrl.add_netdev(phy, htobe64(0xdeadbeefcafebabeULL));
-
-	ctrl.start(wpan.name(), pan);
+	ctrl.start(wpan.name(), net.pan());
 	ctrl.setup_phy(phy.name());
 
-	ctrl.add_key(Key::indexed(wpan.name(), 1 << 1, 0, keybytes, 0));
-	ctrl.enable_security(wpan.name());
+	typedef std::vector<Key>::const_iterator key_cit;
+	typedef std::map<Device, Key>::const_iterator dev_cit;
+
+	for (key_cit it = net.keys().begin(), end = net.keys().end(); it != end; it++) {
+		ctrl.add_key(wpan.name(), *it);
+	}
+	for (dev_cit it = net.devices().begin(), end = net.devices().end(); it != end; it++) {
+		ctrl.add_device(it->first);
+	}
+	ctrl.enable_security(wpan.name(), net.out_key());
 
 	if (system((boost::format("ip link set %1% up") % wpan.name()).str().c_str()))
 		throw std::runtime_error("can't create device");
@@ -134,7 +90,7 @@ std::pair<std::string, PAN> setup_random_network()
 	if (system(up_cmd.c_str()))
 		throw std::runtime_error("can't create device");
 
-	return std::make_pair(wpan.name(), pan);
+	return wpan.name();
 }
 
 void run_pairing(const std::string& iface)
@@ -206,9 +162,11 @@ int main(int argc, const char* argv[])
 	if (cmd == "teardown-all") {
 		teardown_all();
 	} else if (cmd == "setup-random") {
-		std::pair<std::string, PAN> net = setup_random_network();
+		Network net = Network::random();
 
-		std::cout << boost::format("Device: %1%") % net.first << std::endl;
+		std::string netdev = setup_network(net);
+
+		std::cout << boost::format("Device: %1%") % netdev << std::endl;
 	} else if (cmd == "pair") {
 		if (argc < 3) {
 			std::cerr << "required args: <iface>" << std::endl;

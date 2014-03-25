@@ -108,17 +108,34 @@ void Controller::remove_netdev(const std::string& name)
 	recv();
 }
 
-void Controller::add_key(const Key& key)
+Key Controller::get_out_key(const std::string& iface)
 {
-	msgs::add_key akey(key.iface());
+	msgs::llsec_getparams msg(iface);
+	parsers::get_keydesc p;
+
+	KeyLookupDescriptor desc = send(msg, p);
+
+	std::vector<Key> keys = list_keys(iface);
+	for (std::vector<Key>::const_iterator it = keys.begin(), end = keys.end();
+		it != end; it++) {
+		if (it->lookup_desc() == desc)
+			return *it;
+	}
+
+	throw std::runtime_error("key not found");
+}
+
+void Controller::add_key(const std::string& iface, const Key& key)
+{
+	msgs::add_key akey(iface);
 
 	akey.frames(key.frame_types());
 	akey.key(key.key());
-	akey.mode(key.mode());
+	akey.mode(key.lookup_desc().mode());
 
-	if (key.mode() != 0) {
-		akey.id(key.id());
-		if (key.mode() != 1) {
+	if (key.lookup_desc().mode() != 0) {
+		akey.id(key.lookup_desc().id());
+		if (key.lookup_desc().mode() != 1) {
 			// TODO: implement
 			throw std::runtime_error("not implemented");
 		}
@@ -127,16 +144,19 @@ void Controller::add_key(const Key& key)
 	send(akey);
 }
 
-void Controller::enable_security(const std::string& dev)
+void Controller::enable_security(const std::string& dev, const KeyLookupDescriptor& out_key)
 {
 	{
 		msgs::llsec_setparams msg(dev);
 
+		if (out_key.mode() != 1)
+			throw std::runtime_error("invalid key");
+
 		msg.enabled(true);
 		msg.out_level(5);
-		msg.key_id(0);
-		msg.key_mode(1);
-		msg.key_source_hw(std::numeric_limits<uint64_t>::max());
+		msg.key_id(out_key.id());
+		msg.key_mode(out_key.mode());
+		msg.key_source_hw(0xFFFFFFFFFFFFFFFFULL);
 
 		send(msg);
 	} {

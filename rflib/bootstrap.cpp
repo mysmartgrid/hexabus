@@ -60,6 +60,16 @@ PairingHandler::PairingHandler(const std::string& iface, uint16_t pan_id)
 {
 }
 
+bool key_invalid(const Key& key)
+{
+	return key.lookup_desc().mode() != 1;
+}
+
+int key_compare(const Key& a, const Key& b)
+{
+	return a.lookup_desc().id() - b.lookup_desc().id();
+}
+
 void PairingHandler::run_once()
 {
 	struct {
@@ -81,15 +91,14 @@ void PairingHandler::run_once()
 	packet.msg = HXB_B_PAIR_RESPONSE;
 	packet.pan_id = htons(_pan_id);
 
-	// TODO: key epochs
-	Key key = control().list_keys(iface()).at(0);
+	Key key = control().get_out_key(iface());
 	memcpy(packet.key, key.key(), 16);
 
 	uint64_t addr;
 	memcpy(&addr, peer.addr.hwaddr, 8);
 
 	try {
-		Device dev(iface(), _pan_id, 0xfffe, addr, 0);
+		Device dev(iface(), _pan_id, 0xfffe, addr, 0, key.lookup_desc());
 
 		control().add_device(dev);
 	} catch (const nl::nl_error& e) {

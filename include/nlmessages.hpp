@@ -251,6 +251,14 @@ struct llsec_setparams : msg802154 {
 	{ put(IEEE802154_ATTR_HW_ADDR, hw); }
 };
 
+struct llsec_getparams : msg802154 {
+	llsec_getparams(const std::string& iface)
+		: msg802154(NLM_F_REQUEST, IEEE802154_LLSEC_GETPARAMS)
+	{
+		put(IEEE802154_ATTR_DEV_NAME, iface);
+	}
+};
+
 }
 
 #endif

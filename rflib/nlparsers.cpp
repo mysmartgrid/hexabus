@@ -78,6 +78,32 @@ int list_iface::valid(struct nl_msg* msg, const nl::attrs& attrs)
 
 
 
+KeyLookupDescriptor parse_keydesc(const nl::attrs& attrs)
+{
+	uint8_t mode = attrs.u8(IEEE802154_ATTR_LLSEC_KEY_MODE);
+
+	if (mode != 0) {
+		uint8_t id = attrs.u8(IEEE802154_ATTR_LLSEC_KEY_ID);
+		
+		switch (mode) {
+		case 1:
+			return KeyLookupDescriptor(mode, id);
+
+		case 2:
+			return KeyLookupDescriptor(mode, id,
+				attrs.u32(IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT));
+
+		case 3:
+			return KeyLookupDescriptor(mode, id,
+				attrs.u64(IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED));
+		}
+	}
+
+	return KeyLookupDescriptor(0);
+}
+
+
+
 int list_devs::valid(struct nl_msg* msg, const nl::attrs& attrs)
 {
 	std::string iface = attrs.str(IEEE802154_ATTR_DEV_NAME);
@@ -89,8 +115,9 @@ int list_devs::valid(struct nl_msg* msg, const nl::attrs& attrs)
 	uint16_t short_addr = attrs.u16(IEEE802154_ATTR_SHORT_ADDR);
 	uint64_t hwaddr = attrs.u64(IEEE802154_ATTR_HW_ADDR);
 	uint32_t frame_ctr = attrs.u32(IEEE802154_ATTR_LLSEC_FRAME_COUNTER);
+	KeyLookupDescriptor ldesc = parse_keydesc(attrs);
 
-	list.push_back(Device(iface, pan_id, short_addr, hwaddr, frame_ctr));
+	list.push_back(Device(iface, pan_id, short_addr, hwaddr, frame_ctr, ldesc));
 
 	return NL_OK;
 }
@@ -142,6 +169,15 @@ int list_seclevels::valid(struct nl_msg* msg, const nl::attrs& attrs)
 		iface,
 		attrs.u8(IEEE802154_ATTR_LLSEC_FRAME_TYPE),
 		attrs.u8(IEEE802154_ATTR_LLSEC_SECLEVELS)));
+
+	return NL_OK;
+}
+
+
+
+int get_keydesc::valid(struct nl_msg* msg, const nl::attrs& attrs)
+{
+	result = parse_keydesc(attrs);
 
 	return NL_OK;
 }
