@@ -114,6 +114,7 @@ Key Controller::get_out_key(const std::string& iface)
 	parsers::get_keydesc p;
 
 	KeyLookupDescriptor desc = send(msg, p);
+	recv();
 
 	std::vector<Key> keys = list_keys(iface);
 	for (std::vector<Key>::const_iterator it = keys.begin(), end = keys.end();
