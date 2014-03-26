@@ -68,6 +68,18 @@ if( LIBKLIO_FOUND )
   FIND_PACKAGE(Gnutls REQUIRED)
   add_definitions ("-DBOOST_FILESYSTEM_VERSION=3")
 
+  # RocksDB
+  # check if the compiler version supports c++ 2011
+  if( ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "4.7")  
+    include(FindRocksDB)
+    if(ROCKSDB_FOUND)
+      include_directories(${ROCKSDB_INCLUDE_DIR})
+    else(ROCKSDB_FOUND)
+      set(ROCKSDB_INCLUDE_DIR "")
+      message(STATUS "RocksDB support is disabled because the library is not found. Install RocksDB or call cmake -DROCKSDB_HOME=path_to_rocksdb_install in order to enable it.")
+    endif(ROCKSDB_FOUND)
+  endif()
+
   # libjson
   include(FindJson)
   if( NOT JSON_FOUND)
@@ -136,6 +148,7 @@ if( LIBKLIO_FOUND )
   message(" libklio include: ${LIBKLIO_INCLUDE_DIRS}, lib: ${LIBKLIO_LIBRARY}")
   message(" curl    include: ${CURL_INCLUDE_DIR}, lib: ${CURL_LIBRARIES}")
   message(" gnutls  include: ${GNUTLS_INCLUDE_DIR}, lib: ${GNUTLS_LIBRARIES}")
+  message(" rocksdb include: ${ROCKSDB_INCLUDE_DIR}, lib: ${ROCKSDB_LIBRARY}")
 endif( LIBKLIO_FOUND )
 message("  extended logging: ${ENABLE_LOGGING}")
 

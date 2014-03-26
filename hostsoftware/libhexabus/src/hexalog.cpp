@@ -41,7 +41,8 @@ class Logger : public hexabus::Logger {
 		klio::Sensor::Ptr lookup_sensor(const std::string& id)
 		{
 			try {
-				return store->get_sensor_by_external_id(id);
+#warning "Must be fixed here"
+				return store->get_sensors_by_external_id(id)[0];
 			} catch (...) {
 				return klio::Sensor::Ptr();
 			}

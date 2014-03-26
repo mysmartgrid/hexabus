@@ -24,10 +24,17 @@ if(LIBKLIO_FOUND)
   include_directories(
     ${LIBKLIO_INCLUDE_DIRS}
     ${SQLITE3_INCLUDE_DIR}
+    ${ROCKSDB_INCLUDE_DIR}
   )
   link_directories(
   ${SQLITE3_STATIC_LIBRARY_DIRS}
   )
+  if(ROCKSDB_FOUND)
+    set_source_files_properties(${hexalog_src} COMPILE_FLAGS "-std=gnu++11")
+    #target_link_libraries(hexalog klio ${ROCKSDB_LIBRARY} snappy)
+    #target_link_libraries(klio-store klio ${ROCKSDB_LIBRARY} snappy)
+    #target_link_libraries(klio-export klio ${ROCKSDB_LIBRARY} snappy)
+  endif(ROCKSDB_FOUND)
 endif(LIBKLIO_FOUND)
 
 add_executable(hexaswitch ${hexaswitch_src})
@@ -74,6 +81,7 @@ if(LIBKLIO_FOUND)
     ${SQLITE3_LIBRARIES}
     ${GNUTLS_LIBRARIES}
     pthread
+    ${ROCKSDB_LIBRARY}
     ${OPENSSL_CRYPTO_LIBRARY}
 #    gcrypt
   )
