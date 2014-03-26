@@ -95,6 +95,35 @@ find_library(LIBKLIO_LIBRARY NAMES ${LIBKLIO_LIBRARY_NAMES}
     ${PC_LIBKLIO_LIBRARY_DIRS}
 )
 
+#
+message(STATUS "    Found ${_name}: ${LIBKLIO_INCLUDE_DIRS} ${LIBKLIO_LIBRARY}")
+get_filename_component (LIBKLIO_LIBRARY_DIR ${LIBKLIO_LIBRARY} PATH)
+#get_filename_component (LIBKLIO_LIBRARIES ${LIBKLIO_LIBRARY} NAME)
+#set(LIBKLIO_LIBRARY_DIR ${LIBKLIO_LIBRARY_DIR})
+#set(LIBKLIO_FOUND ${LIBKLIO_FOUND})
+
+message(STATUS "    LIBKLIO 2: '-I${LIBKLIO_INCLUDE_DIR}' '-L${LIBKLIO_LIBRARY_DIR}' ")
+message(STATUS "             '${LIBKLIO_LIBRARIES}' '${LIBKLIO_LIBRARY}'")
+message(STATUS "    search '${LIBKLIO_LIBRARY_DIR}/shared/${_name}Config.cmake'")
+
+#
+if( NOT libklio_IN_CACHE )
+  if(EXISTS ${LIBKLIO_LIBRARY_DIR}/shared/libklioConfig.cmake)
+    message(STATUS "    Include LIBKLIO dependencies.")
+    include(${LIBKLIO_LIBRARY_DIR}/shared/libklioConfig.cmake)
+    set(LIBKLIO_LIBRARY libklio )
+    set(LIBKLIO_INCLUDE_DIRS ${LIBKLIO_INCLUDE_DIRS} )
+  endif(EXISTS ${LIBKLIO_LIBRARY_DIR}/shared/libklioConfig.cmake)
+else( NOT libklio_IN_CACHE )
+  message(STATUS "    package ${NAME} was allready in loaded. Do not perform dependencies.")
+endif( NOT libklio_IN_CACHE )
+
+message(STATUS "    LIBKLIO 2: '${LIBKLIO_INCLUDE_DIRS}' '${LIBKLIO_LIBRARY_DIR}' ")
+message(STATUS "             '${LIBKLIO_LIBRARIES}' '${LIBKLIO_LIBRARY}'")
+message(STATUS "    search '${LIBKLIO_LIBRARY_DIR}/shared/libklioConfig.cmake'")
+message("  rocksdb: ${LIBKLIO_ENABLE_ROCKSDB}")
+message("  mysmartgrid: ${LIBKLIO_ENABLE_MSG}")
+
 
 include(FindPackageHandleStandardArgs)
 

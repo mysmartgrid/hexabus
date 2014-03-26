@@ -130,7 +130,7 @@ message("  hexabus include: ${HXB_INCLUDE_DIR}")
 message("  hexabus library: ${HXB_LIBRARIES}")
 message("  boost include: ${Boost_INCLUDE_DIRS}")
 message("  boost libraries: ${Boost_LIBRARIES}")
-message("  libklio include: ${LIBKLIO_INCLUDE_DIR}, lib: ${LIBKLIO_LIBRARY}")
+message("  libklio include: ${LIBKLIO_INCLUDE_DIRS}, lib: ${LIBKLIO_LIBRARY}")
 message("  sqlite3 include: ${SQLITE3_INCLUDE_DIR}, lib: ${SQLITE3_LIBRARIES}")
 message("  extended logging: ${ENABLE_LOGGING}")
 

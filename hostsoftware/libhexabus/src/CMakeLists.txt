@@ -22,7 +22,7 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 if(LIBKLIO_FOUND)
   include_directories(
-    ${LIBKLIO_INCLUDE_DIR}
+    ${LIBKLIO_INCLUDE_DIRS}
     ${SQLITE3_INCLUDE_DIR}
   )
   link_directories(

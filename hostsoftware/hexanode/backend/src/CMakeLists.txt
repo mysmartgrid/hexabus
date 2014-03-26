@@ -20,7 +20,7 @@ include_directories(
   ${RTMIDI_INCLUDE_DIR}
   ${CPPNETLIB_INCLUDE_DIR}
   ${HXB_INCLUDE_DIR}
-  ${LIBKLIO_INCLUDE_DIR}
+  ${LIBKLIO_INCLUDE_DIRS}
   ${SQLITE3_INCLUDE_DIR}
 )
 #link_directories(
