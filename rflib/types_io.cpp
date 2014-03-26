@@ -10,8 +10,8 @@ std::string format_mac(uint64_t addr)
 
 	memcpy(mac, &addr, 8);
 	return (boost::format("%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x")
-		% mac[0] % mac[1] % mac[2] % mac[3]
-		% mac[4] % mac[5] % mac[6] % mac[7]).str();
+		% int(mac[0]) % int(mac[1]) % int(mac[2]) % int(mac[3])
+		% int(mac[4]) % int(mac[5]) % int(mac[6]) % int(mac[7])).str();
 }
 
 std::string bitlist(uint32_t bits)
@@ -37,9 +37,11 @@ std::string print_tabular(const KeyLookupDescriptor& key, int indent)
 
 	std::string prefix(indent, '\t');
 
-	os << format(prefix + "Mode %1%") % int(key.mode()) << std::endl;
+	os << format(prefix + "Mode %1%") % int(key.mode());
 
 	if (key.mode() != 0) {
+		os << std::endl;
+
 		if (key.mode() == 2) {
 			uint32_t source = boost::get<uint32_t>(key.source());
 			uint16_t pan = source >> 16;
@@ -52,7 +54,7 @@ std::string print_tabular(const KeyLookupDescriptor& key, int indent)
 			os << format(prefix + "Source %1%") % format_mac(source) << std::endl;
 		}
 
-		os << format(prefix + "Index %1%") % int(key.id()) << std::endl;
+		os << format(prefix + "Index %1%") % int(key.id());
 	}
 
 	return os.str();

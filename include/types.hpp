@@ -28,7 +28,8 @@ inline bool operator==(const KeyLookupDescriptor& a, const KeyLookupDescriptor& 
 {
 	return a.mode() == b.mode() &&
 		(a.mode() == 0 ||
-			(a.id() == b.id() && a.source() == b.source()));
+			(a.id() == b.id() &&
+				(a.mode() == 1 || a.source() == b.source())));
 }
 
 inline bool operator!=(const KeyLookupDescriptor& a, const KeyLookupDescriptor& b)
