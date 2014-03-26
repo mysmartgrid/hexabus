@@ -102,10 +102,11 @@ Eeprom::versions_t Eeprom::read_valid_versions()
 	versions_t all_versions;
 
 	std::vector<eeprom_block>& blocks = read_all_blocks();
-	for (std::vector<eeprom_block>::const_iterator it = blocks.begin(),
-			end = blocks.end();
-		it != end; it++) {
-		const eeprom_block& block = *it;
+	uint32_t first_offset = 0;
+	uint16_t first_version = be16toh(blocks.front().version);
+
+	for (size_t i = 0; i < blocks.size(); i++) {
+		const eeprom_block& block = blocks[i];
 
 		if (!crc_block(&block, BLOCK_SIZE)) {
 			uint16_t v = be16toh(block.version);
@@ -113,11 +114,21 @@ Eeprom::versions_t Eeprom::read_valid_versions()
 
 			if (!s.data.size()) {
 				s.version = v;
-				s.first_block = it - blocks.begin();
+				s.first_block = i;
 			}
-			s.last_block = it - blocks.begin();
 
-			s.data.insert(s.data.end(), block.data, block.data + sizeof(block.data));
+			if (s.version == first_version && i + 1 < s.last_block) {
+				if (first_offset == 0) {
+					s.first_block = i;
+				}
+				s.data.insert(s.data.begin() + first_offset,
+					block.data,
+					block.data + sizeof(block.data));
+				first_offset += BLOCK_DATA_SIZE;
+			} else {
+				s.last_block = i;
+				s.data.insert(s.data.end(), block.data, block.data + sizeof(block.data));
+			}
 		}
 	}
 
