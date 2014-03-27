@@ -139,3 +139,23 @@ void ResyncHandler::run_once()
 
 	send(&packet, sizeof(packet), peer);
 }
+
+void ResyncHandler::force(int attempts, int interval)
+{
+	attempts = std::max(0, attempts);
+
+	sockaddr_ieee802154 all;
+	all.family = AF_IEEE802154;
+	all.addr.addr_type = IEEE802154_ADDR_SHORT;
+	all.addr.pan_id = 0xffff;
+	all.addr.short_addr = 0xffff;
+
+	while (attempts-- > 0) {
+		uint8_t msg = HXB_B_RESYNC_EXTERN;
+		send(&msg, sizeof(msg), all);
+
+		int rest = interval;
+		while (rest > 0)
+			rest = sleep(rest);
+	}
+}

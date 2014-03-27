@@ -41,6 +41,7 @@ class BootstrapSocket {
 			HXB_B_PAIR_RESPONSE = 1,
 			HXB_B_RESYNC_REQUEST = 2,
 			HXB_B_RESYNC_RESPONSE = 3,
+			HXB_B_RESYNC_EXTERN = 4,
 		} bootstrap_messages;
 
 	protected:
@@ -71,6 +72,7 @@ class ResyncHandler : public BootstrapSocket {
 		{}
 
 		void run_once();
+		void force(int attempts = 10, int interval = 1);
 };
 
 #endif

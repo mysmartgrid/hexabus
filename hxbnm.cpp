@@ -143,6 +143,21 @@ void run_resync(const std::string& dev)
 {
 	ResyncHandler resync(dev);
 
+	uint32_t ctr = 0;
+	{
+		Controller ctrl;
+
+		SecurityParameters p = ctrl.getparams(dev);
+		ctr = p.frame_counter();
+		BOOST_FOREACH(const Device& d, ctrl.list_devices(dev)) {
+			ctr = std::max(d.frame_ctr(), ctr);
+		}
+		SecurityParameters np(p.enabled(), p.out_level(), p.out_key(),
+				ctr + 10000000);
+		ctrl.setparams(dev, np);
+	}
+
+	resync.force();
 	while (true) {
 		try {
 			resync.run_once();
