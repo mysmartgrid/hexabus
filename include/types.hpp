@@ -45,6 +45,7 @@ class Key {
 		uint32_t _cmd_frame_ids;
 		uint8_t _key[16];
 
+	public:
 		Key(const std::string& iface, const KeyLookupDescriptor lookup_desc,
 			uint8_t frame_types, uint32_t cmd_frame_ids,
 			const uint8_t* key)
@@ -54,7 +55,6 @@ class Key {
 			memcpy(_key, key, 16);
 		}
 
-	public:
 		static Key implicit(const std::string& iface, uint8_t frames,
 			uint8_t cmd_frames, const uint8_t* key);
 
@@ -199,6 +199,26 @@ class PAN {
 		uint16_t pan_id() const { return _pan_id; }
 		int page() const { return _page; }
 		int channel() const { return _channel; }
+};
+
+class SecurityParameters {
+	private:
+		bool _enabled;
+		uint8_t _out_level;
+		KeyLookupDescriptor _out_key;
+		uint32_t _frame_counter;
+
+	public:
+		SecurityParameters(bool enabled, uint8_t out_level,
+			const KeyLookupDescriptor& out_key, uint32_t frame_counter)
+			: _enabled(enabled), _out_level(out_level),
+			  _out_key(out_key), _frame_counter(frame_counter)
+		{}
+
+		bool enabled() const { return _enabled; }
+		uint8_t out_level() const { return _out_level; }
+		const KeyLookupDescriptor& out_key() const { return _out_key; }
+		uint32_t frame_counter() const { return _frame_counter; }
 };
 
 #endif

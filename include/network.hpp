@@ -7,27 +7,50 @@
 #include <stdint.h>
 
 #include "types.hpp"
+#include "eeprom.hpp"
 
 class Network {
 	private:
+		enum {
+			VERSION_0 = 0,
+
+			MAX_KEYS = 16,
+			MAX_DEVICES = 256,
+		};
+
 		PAN _pan;
 		uint16_t _short_addr;
 		uint64_t _hwaddr;
 		std::vector<Key> _keys;
-		std::map<Device, Key> _devices;
+		std::vector<Device> _devices;
 		KeyLookupDescriptor _out_key;
+		uint32_t _frame_counter;
 
-		Network(const PAN& pan, uint16_t short_addr, uint64_t hwaddr,
-			const KeyLookupDescriptor& out_key);
 	public:
+		Network(const PAN& pan, uint16_t short_addr, uint64_t hwaddr,
+			const KeyLookupDescriptor& out_key,
+			uint32_t frame_counter = 0);
+
 		static Network random(uint64_t hwaddr = 0xFFFFFFFFFFFFFFFFULL);
+
+		void save(Eeprom& target);
+
+		static Network load(Eeprom& source);
 
 		PAN pan() const { return _pan; }
 		uint16_t short_addr() const { return _short_addr; }
 		uint64_t hwaddr() const { return _hwaddr; }
+
 		const std::vector<Key>& keys() const { return _keys; }
-		const std::map<Device, Key>& devices() const { return _devices; }
+		void add_key(const Key& key);
+
+		const std::vector<Device>& devices() const { return _devices; }
+		void add_device(const Device& dev);
+
 		const KeyLookupDescriptor& out_key() const { return _out_key; }
+
+		uint32_t frame_counter() const { return _frame_counter; }
+		void frame_counter(uint32_t val) { _frame_counter = val; }
 };
 
 #endif

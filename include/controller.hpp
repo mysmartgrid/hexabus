@@ -22,7 +22,10 @@ struct Controller : private nl::socket {
 	void remove_netdev(const std::string& name);
 	Key get_out_key(const std::string& iface);
 
-	void enable_security(const std::string& dev, const KeyLookupDescriptor& out_key);
+	void setparams(const std::string& dev, const SecurityParameters& params);
+	SecurityParameters getparams(const std::string& dev);
+
+	void add_seclevel(const std::string& dev, const Seclevel& sl);
 	void add_key(const std::string& iface, const Key& key);
 	void add_device(const Device& dev);
 };

@@ -247,8 +247,14 @@ struct llsec_setparams : msg802154 {
 	void key_mode(uint8_t mode)
 	{ put(IEEE802154_ATTR_LLSEC_KEY_MODE, mode); }
 
+	void key_source_short(uint32_t id)
+	{ put(IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT, id); }
+
 	void key_source_hw(uint64_t hw)
-	{ put(IEEE802154_ATTR_HW_ADDR, hw); }
+	{ put(IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED, hw); }
+
+	void frame_counter(uint32_t fc)
+	{ put(IEEE802154_ATTR_LLSEC_FRAME_COUNTER, fc); }
 };
 
 struct llsec_getparams : msg802154 {

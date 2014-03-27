@@ -108,24 +108,6 @@ void Controller::remove_netdev(const std::string& name)
 	recv();
 }
 
-Key Controller::get_out_key(const std::string& iface)
-{
-	msgs::llsec_getparams msg(iface);
-	parsers::get_keydesc p;
-
-	KeyLookupDescriptor desc = send(msg, p);
-	recv();
-
-	std::vector<Key> keys = list_keys(iface);
-	for (std::vector<Key>::const_iterator it = keys.begin(), end = keys.end();
-		it != end; it++) {
-		if (it->lookup_desc() == desc)
-			return *it;
-	}
-
-	throw std::runtime_error("key not found");
-}
-
 void Controller::add_key(const std::string& iface, const Key& key)
 {
 	msgs::add_key akey(iface);
@@ -145,29 +127,64 @@ void Controller::add_key(const std::string& iface, const Key& key)
 	send(akey);
 }
 
-void Controller::enable_security(const std::string& dev, const KeyLookupDescriptor& out_key)
+void Controller::setparams(const std::string& dev, const SecurityParameters& params)
 {
-	{
-		msgs::llsec_setparams msg(dev);
+	msgs::llsec_setparams msg(dev);
 
-		if (out_key.mode() != 1)
-			throw std::runtime_error("invalid key");
+	if (params.out_key().mode() != 1)
+		throw std::runtime_error("invalid key");
 
-		msg.enabled(true);
-		msg.out_level(5);
-		msg.key_id(out_key.id());
-		msg.key_mode(out_key.mode());
-		msg.key_source_hw(0xFFFFFFFFFFFFFFFFULL);
+	msg.enabled(params.enabled());
+	msg.out_level(params.out_level());
+	msg.key_id(params.out_key().id());
+	msg.key_mode(params.out_key().mode());
+	switch (params.out_key().mode()) {
+	case 2:
+		msg.key_source_short(boost::get<uint32_t>(params.out_key().source()));
+		break;
 
-		send(msg);
-	} {
-		msgs::add_seclevel msg(dev);
-
-		msg.frame(1);
-		msg.levels(0xff);
-
-		send(msg);
+	case 3:
+		msg.key_source_hw(boost::get<uint64_t>(params.out_key().source()));
+		break;
 	}
+	msg.frame_counter(params.frame_counter());
+
+	send(msg);
+}
+
+SecurityParameters Controller::getparams(const std::string& dev)
+{
+	msgs::llsec_getparams msg(dev);
+	parsers::get_secparams p;
+
+	SecurityParameters params = send(msg, p);
+	recv();
+
+	return params;
+}
+
+Key Controller::get_out_key(const std::string& iface)
+{
+	KeyLookupDescriptor desc = getparams(iface).out_key();
+
+	std::vector<Key> keys = list_keys(iface);
+	for (std::vector<Key>::const_iterator it = keys.begin(), end = keys.end();
+		it != end; it++) {
+		if (it->lookup_desc() == desc)
+			return *it;
+	}
+
+	throw std::runtime_error("key not found");
+}
+
+void Controller::add_seclevel(const std::string& dev, const Seclevel& sl)
+{
+	msgs::add_seclevel msg(dev);
+
+	msg.frame(sl.frame_type());
+	msg.levels(sl.levels());
+
+	send(msg);
 }
 
 void Controller::add_device(const Device& dev)

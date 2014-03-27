@@ -22,9 +22,11 @@
 #include "controller.hpp"
 #include "bootstrap.hpp"
 #include "network.hpp"
+#include "eeprom.hpp"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
+#include <boost/foreach.hpp>
 
 #include <stdexcept>
 #include <vector>
@@ -32,6 +34,9 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+
+static const int DEFAULT_PAN_PAGE = 2;
+static const int DEFAULT_PAN_CHANNEL = 0;
 
 void teardown_all()
 {
@@ -63,15 +68,18 @@ std::string setup_network(const Network& net)
 	ctrl.setup_phy(phy.name());
 
 	typedef std::vector<Key>::const_iterator key_cit;
-	typedef std::map<Device, Key>::const_iterator dev_cit;
+	typedef std::vector<Device>::const_iterator dev_cit;
 
 	for (key_cit it = net.keys().begin(), end = net.keys().end(); it != end; it++) {
 		ctrl.add_key(wpan.name(), *it);
 	}
 	for (dev_cit it = net.devices().begin(), end = net.devices().end(); it != end; it++) {
-		ctrl.add_device(it->first);
+		ctrl.add_device(*it);
 	}
-	ctrl.enable_security(wpan.name(), net.out_key());
+	ctrl.setparams(
+		wpan.name(),
+		SecurityParameters(true, 5, net.out_key(), net.frame_counter()));
+	ctrl.add_seclevel(wpan.name(), Seclevel(wpan.name(), 1, 0xff));
 
 	if (system((boost::format("ip link set %1% up") % wpan.name()).str().c_str()))
 		throw std::runtime_error("can't create device");
@@ -91,6 +99,30 @@ std::string setup_network(const Network& net)
 		throw std::runtime_error("can't create device");
 
 	return wpan.name();
+}
+
+Network extract_network(const std::string& iface)
+{
+	Controller ctrl;
+
+	NetDevice netdev = ctrl.list_netdevs(iface).at(0);
+	SecurityParameters sp = ctrl.getparams(iface);
+
+	Network result(PAN(netdev.pan_id(), DEFAULT_PAN_PAGE, DEFAULT_PAN_CHANNEL),
+			netdev.short_addr(), netdev.addr(), sp.out_key(),
+			sp.frame_counter());
+
+	std::vector<Key> keys = ctrl.list_keys(iface);
+	BOOST_FOREACH(const Key& key, keys) {
+		result.add_key(key);
+	}
+
+	std::vector<Device> devices = ctrl.list_devices(iface);
+	BOOST_FOREACH(const Device& dev, devices) {
+		result.add_device(dev);
+	}
+
+	return result;
 }
 
 void run_pairing(const std::string& iface)
@@ -185,6 +217,16 @@ int main(int argc, const char* argv[])
 		dump_phys();
 	} else if (cmd == "list-devices") {
 		dump_devices(argc > 2 ? argv[2] : "");
+	} else if (cmd == "eep") {
+		Eeprom eep("/dev/i2c-1");
+
+		eep.dump_contents();
+
+		std::vector<uint8_t> s;
+		for (int i = 0; i < 64; i++)
+			s.push_back(i);
+
+		eep.write_stream(s);
 	} else {
 		std::cerr << "Unknown command" << std::endl;
 		return 1;

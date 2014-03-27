@@ -77,14 +77,14 @@ class list_seclevels : public list_parser<Seclevel> {
 		int valid(struct nl_msg* msg, const nl::attrs& attrs);
 };
 
-class get_keydesc : public base_parser<const KeyLookupDescriptor&> {
+class get_secparams : public base_parser<const SecurityParameters&> {
 	private:
-		boost::optional<KeyLookupDescriptor> result;
+		boost::optional<SecurityParameters> result;
 
 	public:
 		int valid(struct nl_msg* msg, const nl::attrs& attrs);
 
-		const KeyLookupDescriptor& complete() { return *result; }
+		const SecurityParameters& complete() { return *result; }
 };
 
 }

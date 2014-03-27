@@ -175,9 +175,19 @@ int list_seclevels::valid(struct nl_msg* msg, const nl::attrs& attrs)
 
 
 
-int get_keydesc::valid(struct nl_msg* msg, const nl::attrs& attrs)
+int get_secparams::valid(struct nl_msg* msg, const nl::attrs& attrs)
 {
-	result = parse_keydesc(attrs);
+	bool enabled = attrs.u8(IEEE802154_ATTR_LLSEC_ENABLED);
+
+	if (enabled) {
+		uint8_t out_level = attrs.u8(IEEE802154_ATTR_LLSEC_SECLEVEL);
+		KeyLookupDescriptor key = parse_keydesc(attrs);
+		uint32_t frame_counter = 0;
+
+		result = SecurityParameters(enabled, out_level, key, frame_counter);
+	} else {
+		result = SecurityParameters(enabled, 0, KeyLookupDescriptor(0), 0);
+	}
 
 	return NL_OK;
 }
