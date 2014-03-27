@@ -20,7 +20,7 @@ include_directories(
   ${RTMIDI_INCLUDE_DIR}
   ${CPPNETLIB_INCLUDE_DIR}
   ${HXB_INCLUDE_DIR}
-  ${LIBKLIO_INCLUDE_DIR}
+  ${LIBKLIO_INCLUDE_DIRS}
   ${SQLITE3_INCLUDE_DIR}
 )
 #link_directories(
@@ -31,6 +31,10 @@ add_executable(midi2hexabus ${midi2hexabus_src})
 add_executable(hexabus_webbackend ${hexabus_webbackend_src})
 add_executable(hexabus_msg_bridge ${hexabus_msg_bridge_src})
 add_executable(simulate_energyflows ${simulate_energyflows_src})
+
+if(LIBKLIO_ENABLE_ROCKSDB)
+    set_source_files_properties(${hexabus_msg_bridge_src} COMPILE_FLAGS "-std=gnu++11")
+endif()
 
 # Link the executables
 target_link_libraries(midi2hexabus 
@@ -61,9 +65,9 @@ target_link_libraries(hexabus_msg_bridge
   ${SQLITE3_LIBRARIES}
   ${GNUTLS_LIBRARIES}
   ${OPENSSL_CRYPTO_LIBRARY}
-  ${LIBKLIO_LIBRARY}
   pthread
 )
+target_link_libraries(hexabus_msg_bridge ${ROCKSDB_LIBRARY})
 
 target_link_libraries(simulate_energyflows
   hexanode

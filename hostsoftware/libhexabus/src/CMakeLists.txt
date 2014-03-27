@@ -22,12 +22,16 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 if(LIBKLIO_FOUND)
   include_directories(
-    ${LIBKLIO_INCLUDE_DIR}
+    ${LIBKLIO_INCLUDE_DIRS}
     ${SQLITE3_INCLUDE_DIR}
+    ${ROCKSDB_INCLUDE_DIR}
   )
   link_directories(
   ${SQLITE3_STATIC_LIBRARY_DIRS}
   )
+  if(LIBKLIO_ENABLE_ROCKSDB)
+    set_source_files_properties(${hexalog_src} COMPILE_FLAGS "-std=gnu++11")
+  endif()
 endif(LIBKLIO_FOUND)
 
 add_executable(hexaswitch ${hexaswitch_src})
@@ -74,6 +78,7 @@ if(LIBKLIO_FOUND)
     ${SQLITE3_LIBRARIES}
     ${GNUTLS_LIBRARIES}
     pthread
+    ${ROCKSDB_LIBRARY}
     ${OPENSSL_CRYPTO_LIBRARY}
 #    gcrypt
   )

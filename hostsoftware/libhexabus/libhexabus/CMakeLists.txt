@@ -7,7 +7,7 @@ file(GLOB all_hexabus_src *.cpp)
 if(LIBKLIO_FOUND)
   file(GLOB logger_hdrs logger/*.h logger/*.hpp)
   file(GLOB logger_src  logger/*.cpp logger/*.hpp)
-  include_directories( ${LIBKLIO_INCLUDE_DIR} )
+  include_directories( ${LIBKLIO_INCLUDE_DIRS} )
 endif()
 
 install(FILES ${hdrs}        DESTINATION include/libhexabus)
