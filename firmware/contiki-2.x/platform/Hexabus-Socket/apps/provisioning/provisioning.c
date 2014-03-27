@@ -47,6 +47,7 @@
 #include "eeprom_variables.h"
 #include "provisioning.h"
 #include "relay.h"
+#include "uip.h"
 
 
 #define DEBUG 1
@@ -60,21 +61,38 @@
 
 extern uint8_t encryption_enabled;
 extern uint32_t mac_framecnt;
+extern uint16_t mac_dst_pan_id;
+extern uint16_t mac_src_pan_id;
 
-#define PROVISIONING_HEADER "!HXB-PAIR"
-#define PROVISIONING_REINIT "!HXB-CONN"
+enum {
+	HXB_B_PAIR_REQUEST = 0,
+	HXB_B_PAIR_RESPONSE = 1,
+	HXB_B_RESYNC_REQUEST = 2,
+	HXB_B_RESYNC_RESPONSE = 3
+} hxb_bootstrap_msg;
+
 #define PROV_TIMEOUT 30
 
-/** \internal The provisioning message structure. */
-struct provisioning_m_t {
-  char header[sizeof(PROVISIONING_HEADER)-1];
-  uint16_t pan_id;
-  uint8_t aes_key[16];
-};
+struct bootstrap_request {
+	char msg;
+} __attribute__((packed));
 
-struct provisioning_r_t {
-	char header[sizeof(PROVISIONING_REINIT)-1];
-	uint32_t framectr;
+struct pair_response {
+	char msg;
+	uint16_t pan_id;
+	uint8_t key[16];
+} __attribute__((packed));
+
+struct resync_response {
+	char msg;
+	uint32_t frame_counter;
+} __attribute__((packed));
+
+static const uint8_t msg_lengths[] = {
+	[HXB_B_PAIR_REQUEST] = sizeof(struct bootstrap_request),
+	[HXB_B_PAIR_RESPONSE] = sizeof(struct pair_response),
+	[HXB_B_RESYNC_REQUEST] = sizeof(struct bootstrap_request),
+	[HXB_B_RESYNC_RESPONSE] = sizeof(struct resync_response),
 };
 
 //indicates ongoing provisioning
@@ -110,27 +128,31 @@ void provisioning_done_leds(void)
 	}
 }
 
-static int query_with_timeout(const void *data, uint16_t len, uint16_t want, uint16_t timeout)
+static int query_with_timeout(uint8_t msg, uint8_t resp, uint16_t timeout)
 {
 	unsigned long start;
-	uint16_t rcv;
+	uint16_t rcv, i;
 
 	start = clock_seconds();
 	do {
 		provisioning_leds();
-		packetbuf_copyfrom(data, len);
-		packetbuf_set_datalen(len);
+		packetbuf_copyfrom(&msg, sizeof(msg));
+		packetbuf_set_datalen(sizeof(msg));
 		NETSTACK_RDC.send(NULL, NULL);
 		packetbuf_clear();
 		packetbuf_set_datalen(0);
-		_delay_ms(500);
-		rcv = rf212_read(packetbuf_dataptr(), PACKETBUF_SIZE);
+		rcv = 0;
+		for (i = 0; i < 100 && rcv == 0; i++) {
+			_delay_ms(5);
+			rcv = rf212_read(packetbuf_dataptr(), PACKETBUF_SIZE);
+		}
 		provisioning_leds();
 		if (rcv > 0) {
 			packetbuf_set_datalen(rcv);
 			NETSTACK_RDC.input();
 			printf("got %i\n", packetbuf_datalen());
-			if (packetbuf_datalen() == want)
+			struct bootstrap_request* packet = packetbuf_dataptr();
+			if (packet->msg == resp && packetbuf_datalen() == msg_lengths[resp])
 				return 0;
 		}
 	} while (clock_seconds() - start < timeout);
@@ -143,8 +165,6 @@ int provisioning_slave(void)
 	leds_off(LEDS_GREEN);
 	PRINTF("provisioning: started as slave\n");
 
-	extern uint16_t mac_dst_pan_id;
-	extern uint16_t mac_src_pan_id;
 	uint16_t old_pan_id = mac_src_pan_id;
 	mac_dst_pan_id = 0xffff;
 	mac_src_pan_id = 0xffff;
@@ -152,22 +172,21 @@ int provisioning_slave(void)
 	encryption_enabled = 0;
 	int rc = -1;
 
-	const char *hdr = PROVISIONING_HEADER;
-	if (!query_with_timeout(hdr, strlen(hdr), sizeof(struct provisioning_m_t), PROV_TIMEOUT)) {
-		struct provisioning_m_t *packet = packetbuf_dataptr();
-		PRINTF("provisioning: new pan_id is: %x and new AES_KEY is: ", uip_ntohs(packet->pan_id));
+	if (!query_with_timeout(HXB_B_PAIR_REQUEST, HXB_B_PAIR_RESPONSE, PROV_TIMEOUT)) {
+		struct pair_response* resp = packetbuf_dataptr();
+		PRINTF("provisioning: new pan_id is: %x and new AES_KEY is: ", uip_ntohs(resp->pan_id));
 		int i;
 		for (i = 0; i < 16; i++)
-			PRINTF("%x ", packet->aes_key[i]);
+			PRINTF("%x ", resp->key[i]);
 		PRINTF("\n");
-		old_pan_id = uip_ntohs(packet->pan_id);
+		old_pan_id = uip_ntohs(resp->pan_id);
 
 		AVR_ENTER_CRITICAL_REGION();
 		eeprom_write_word((uint16_t *)EE_PAN_ID, old_pan_id);
-		eeprom_write_block(packet->aes_key, (void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
+		eeprom_write_block(resp->key, (void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
 		AVR_LEAVE_CRITICAL_REGION();
 		provisioning_done_leds();
-		rf212_key_setup(packet->aes_key);
+		rf212_key_setup(resp->key);
 		rf212_set_pan_addr(old_pan_id, 0, NULL);
 		rc = 0;
 	}
@@ -188,19 +207,17 @@ int provisioning_reconnect()
 
 	encryption_enabled = 0;
 
-	const char *hdr = PROVISIONING_REINIT;
-	if (!query_with_timeout(hdr, strlen(hdr), sizeof(struct provisioning_r_t), 5)) {
-		struct provisioning_r_t *rcon = packetbuf_dataptr();
+	if (!query_with_timeout(HXB_B_RESYNC_REQUEST, HXB_B_RESYNC_RESPONSE, 5)) {
+		struct resync_response* resp = packetbuf_dataptr();
 
-		mac_framecnt = uip_ntohl(rcon->framectr);
-		printf("frame %li\n", mac_framecnt);
+		mac_framecnt = uip_ntohl(resp->frame_counter);
 		rc = 0;
 	}
 
 	relay_leds();
 	encryption_enabled = 1;
 
-	PRINTF("sync: %i\n", rc);
+	PRINTF("sync: %i %lu\n", rc, mac_framecnt);
 
 	return rc;
 }

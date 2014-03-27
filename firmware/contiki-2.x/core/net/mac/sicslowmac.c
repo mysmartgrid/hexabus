@@ -252,6 +252,8 @@ decrypt_payload(frame802154_t *pf)
 		PRINTF("mac input is %02x %02x %02x %02x\n", macc[0], macc[1], macc[2], macc[3]);
 		return 1;
 	}
+
+	mac_framecnt = pf->aux_hdr.frame_counter;
 	return 0;
 }
 
@@ -276,9 +278,7 @@ send_packet(mac_callback_t sent, void *ptr)
   	  params.aux_hdr.security_control.security_level = 5;
   	  //set frame counter
   	  params.aux_hdr.frame_counter = mac_framecnt++;
-  	  //increment if frame_counter ever reaches maximum value
-  	  if (mac_framecnt==0)
-  		  mac_keycnt++;
+	  // TODO: key rollover
 	  params.aux_hdr.key[0] = mac_keycnt;
   } else
 	  params.fcf.security_enabled = 0;
