@@ -42,7 +42,7 @@ Network Network::random(uint64_t hwaddr)
 	uint8_t key_bytes[16];
 
 	get_random(key_bytes, 16);
-	Key key = Key::indexed("", 1 << 1, 0, key_bytes, 0);
+	Key key = Key::indexed(1 << 1, 0, key_bytes, 0);
 
 	Network result(PAN(pan_id, 2, 0), 0xfffe, hwaddr, key.lookup_desc());
 
@@ -116,7 +116,7 @@ Key load_key(BinaryFormatter& fmt)
 
 	fmt.get_raw(key, 16);
 
-	return Key("", ldesc, frame_types, cmd_frame_ids, key);
+	return Key(ldesc, frame_types, cmd_frame_ids, key);
 }
 
 
@@ -138,7 +138,7 @@ Device load_device(BinaryFormatter& fmt)
 	uint32_t frame_ctr = fmt.get_u32();
 	KeyLookupDescriptor ldesc = load_kld(fmt);
 
-	return Device("", pan_id, short_addr, hwaddr, frame_ctr, ldesc);
+	return Device(pan_id, short_addr, hwaddr, frame_ctr, ldesc);
 }
 
 }

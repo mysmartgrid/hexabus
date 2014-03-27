@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include <boost/foreach.hpp>
+
 #include "nlparsers.hpp"
 #include "nlmessages.hpp"
 
@@ -27,14 +29,28 @@ std::vector<NetDevice> Controller::list_netdevs(const std::string& iface)
 	return send(cmd, p);
 }
 
+Controller::dev_list_t Controller::list_devices()
+{
+	msgs::list_devs cmd;
+	parsers::list_devs p;
+
+	return send(cmd, p);
+}
+
 std::vector<Device> Controller::list_devices(const std::string& iface)
 {
 	msgs::list_devs cmd;
 	parsers::list_devs p(iface);
 
-	std::vector<Device> devs = send(cmd, p);
+	dev_list_t devs = send(cmd, p);
 
-	return devs;
+	std::vector<Device> result;
+	result.reserve(devs.size());
+	BOOST_FOREACH(const dev_list_t::value_type& p, devs) {
+		result.push_back(p.first);
+	}
+
+	return result;
 }
 
 struct dev_addr_filter {
@@ -53,12 +69,28 @@ std::vector<Device> Controller::list_devices(const std::string& iface, uint64_t 
 	return devs;
 }
 
+Controller::key_list_t Controller::list_keys()
+{
+	msgs::list_keys cmd;
+	parsers::list_keys p;
+
+	return send(cmd, p);
+}
+
 std::vector<Key> Controller::list_keys(const std::string& iface)
 {
 	msgs::list_keys cmd;
 	parsers::list_keys p(iface);
 
-	return send(cmd, p);
+	key_list_t keys = send(cmd, p);
+
+	std::vector<Key> result;
+	result.reserve(keys.size());
+	BOOST_FOREACH(const key_list_t::value_type& p, keys) {
+		result.push_back(p.first);
+	}
+
+	return result;
 }
 
 void Controller::setup_phy(const std::string& phy)
@@ -187,9 +219,9 @@ void Controller::add_seclevel(const std::string& dev, const Seclevel& sl)
 	send(msg);
 }
 
-void Controller::add_device(const Device& dev)
+void Controller::add_device(const std::string& iface, const Device& dev)
 {
-	msgs::add_dev cmd(dev.iface());
+	msgs::add_dev cmd(iface);
 
 	cmd.pan_id(dev.pan_id());
 	cmd.short_addr(dev.short_addr());

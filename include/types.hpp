@@ -39,37 +39,34 @@ inline bool operator!=(const KeyLookupDescriptor& a, const KeyLookupDescriptor& 
 
 class Key {
 	private:
-		std::string _iface;
 		KeyLookupDescriptor _lookup_desc;
 		uint8_t _frame_types;
 		uint32_t _cmd_frame_ids;
 		uint8_t _key[16];
 
 	public:
-		Key(const std::string& iface, const KeyLookupDescriptor lookup_desc,
-			uint8_t frame_types, uint32_t cmd_frame_ids,
-			const uint8_t* key)
-			: _iface(iface), _lookup_desc(lookup_desc),
-			  _frame_types(frame_types), _cmd_frame_ids(cmd_frame_ids)
+		Key(const KeyLookupDescriptor lookup_desc, uint8_t frame_types,
+			uint32_t cmd_frame_ids, const uint8_t* key)
+			: _lookup_desc(lookup_desc), _frame_types(frame_types),
+			  _cmd_frame_ids(cmd_frame_ids)
 		{
 			memcpy(_key, key, 16);
 		}
 
-		static Key implicit(const std::string& iface, uint8_t frames,
-			uint8_t cmd_frames, const uint8_t* key);
+		static Key implicit(uint8_t frames, uint8_t cmd_frames,
+				const uint8_t* key);
 
-		static Key indexed(const std::string& iface, uint8_t frames,
-			uint8_t cmd_frames, const uint8_t* key, uint8_t id);
+		static Key indexed(uint8_t frames, uint8_t cmd_frames,
+				const uint8_t* key, uint8_t id);
 
-		static Key indexed(const std::string& iface, uint8_t frames,
-			uint8_t cmd_frames, const uint8_t* key, uint8_t id,
-			uint32_t source);
+		static Key indexed(uint8_t frames, uint8_t cmd_frames,
+				const uint8_t* key, uint8_t id,
+				uint32_t source);
 
-		static Key indexed(const std::string& iface, uint8_t frames,
-			uint8_t cmd_frames, const uint8_t* key, uint8_t id,
-			uint64_t source);
+		static Key indexed(uint8_t frames, uint8_t cmd_frames,
+				const uint8_t* key, uint8_t id,
+				uint64_t source);
 
-		const std::string& iface() const { return _iface; }
 		const KeyLookupDescriptor& lookup_desc() const { return _lookup_desc; }
 		uint8_t frame_types() const { return _frame_types; }
 		uint32_t cmd_frame_ids() const { return _cmd_frame_ids; }
@@ -78,7 +75,6 @@ class Key {
 
 class Device {
 	private:
-		std::string _iface;
 		uint16_t _pan_id;
 		uint16_t _short_addr;
 		uint64_t _hwaddr;
@@ -86,19 +82,17 @@ class Device {
 		KeyLookupDescriptor _key;
 
 	public:
-		Device(const std::string& iface, uint64_t hwaddr, uint32_t frame_ctr,
-			const KeyLookupDescriptor& key)
-			: _iface(iface), _pan_id(0), _short_addr(0xfffe), _hwaddr(hwaddr),
+		Device(uint64_t hwaddr, uint32_t frame_ctr, const KeyLookupDescriptor& key)
+			: _pan_id(0), _short_addr(0xfffe), _hwaddr(hwaddr),
 			  _frame_ctr(frame_ctr), _key(key)
 		{}
 
-		Device(const std::string& iface, uint16_t pan_id, uint16_t short_addr,
-			uint64_t hwaddr, uint32_t frame_ctr, const KeyLookupDescriptor& key)
-			: _iface(iface), _pan_id(pan_id), _short_addr(short_addr),
+		Device(uint16_t pan_id, uint16_t short_addr, uint64_t hwaddr,
+				uint32_t frame_ctr, const KeyLookupDescriptor& key)
+			: _pan_id(pan_id), _short_addr(short_addr),
 			  _hwaddr(hwaddr), _frame_ctr(frame_ctr), _key(key)
 		{}
 
-		const std::string& iface() const { return _iface; }
 		uint16_t pan_id() const { return _pan_id; }
 		uint16_t short_addr() const { return _short_addr; }
 		uint64_t hwaddr() const { return _hwaddr; }
@@ -171,16 +165,14 @@ class Phy {
 
 class Seclevel {
 	private:
-		std::string _iface;
 		uint8_t _frame_type;
 		uint8_t _levels;
 
 	public:
-		Seclevel(const std::string& iface, uint8_t frame_type, uint8_t levels)
-			: _iface(iface), _frame_type(frame_type), _levels(levels)
+		Seclevel(uint8_t frame_type, uint8_t levels)
+			: _frame_type(frame_type), _levels(levels)
 		{}
 
-		const std::string& iface() const { return _iface; }
 		uint8_t frame_type() const { return _frame_type; }
 		uint8_t levels() const { return _levels; }
 };

@@ -41,7 +41,7 @@ struct list_iface : public list_parser<NetDevice> {
 	int valid(struct nl_msg* msg, const nl::attrs& attrs);
 };
 
-class list_devs : public list_parser<Device> {
+class list_devs : public list_parser<std::pair<Device, std::string> > {
 	private:
 		std::string iface;
 
@@ -53,7 +53,7 @@ class list_devs : public list_parser<Device> {
 		int valid(struct nl_msg* msg, const nl::attrs& attrs);
 };
 
-class list_keys : public list_parser<Key> {
+class list_keys : public list_parser<std::pair<Key, std::string> > {
 	private:
 		std::string iface;
 
@@ -65,7 +65,7 @@ class list_keys : public list_parser<Key> {
 		int valid(struct nl_msg* msg, const nl::attrs& attrs);
 };
 
-class list_seclevels : public list_parser<Seclevel> {
+class list_seclevels : public list_parser<std::pair<Seclevel, std::string> > {
 	private:
 		std::string iface;
 

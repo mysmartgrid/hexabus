@@ -65,7 +65,7 @@ std::string print_tabular(const Key& key)
 	using boost::format;
 	std::stringstream os;
 
-	os << format("Key on %1%") % key.iface() << std::endl
+	os << "Key" << std::endl
 		<< print_tabular(key.lookup_desc(), 1) << std::endl;
 
 	os << format("	Frame types %1%") % bitlist(key.frame_types()) << std::endl;
@@ -86,7 +86,7 @@ std::string print_tabular(const Device& dev)
 	using boost::format;
 	std::stringstream os;
 
-	os << format("Device on %1%") % dev.iface() << std::endl
+	os << "Device" << std::endl
 		<< format("	PAN ID %|04x|") % dev.pan_id() << std::endl
 		<< format("	Short address %|04x|") % dev.short_addr() << std::endl
 		<< format("	Extended address %1%") % format_mac(dev.hwaddr()) << std::endl
@@ -130,7 +130,7 @@ std::string print_tabular(const Seclevel& sl)
 	using boost::format;
 	std::stringstream os;
 
-	os << format("Security lveel on %1%") % sl.iface() << std::endl
+	os << "Security level" << std::endl
 		<< format("	Frame type %|i|") % sl.frame_type() << std::endl
 		<< format("	Levels %1%") % bitlist(sl.levels()) << std::endl;
 

@@ -117,7 +117,10 @@ int list_devs::valid(struct nl_msg* msg, const nl::attrs& attrs)
 	uint32_t frame_ctr = attrs.u32(IEEE802154_ATTR_LLSEC_FRAME_COUNTER);
 	KeyLookupDescriptor ldesc = parse_keydesc(attrs);
 
-	list.push_back(Device(iface, pan_id, short_addr, hwaddr, frame_ctr, ldesc));
+	list.push_back(
+		std::make_pair(
+			Device(pan_id, short_addr, hwaddr, frame_ctr, ldesc),
+			iface));
 
 	return NL_OK;
 }
@@ -138,18 +141,30 @@ int list_keys::valid(struct nl_msg* msg, const nl::attrs& attrs)
 	memcpy(key, attrs.raw(IEEE802154_ATTR_LLSEC_KEY_BYTES), 16);
 
 	if (mode == 0) {
-		list.push_back(Key::implicit(iface, frames, 0, key));
+		list.push_back(
+			std::make_pair(
+				Key::implicit(frames, 0, key),
+				iface));
 	} else {
 		uint8_t id = attrs.u8(IEEE802154_ATTR_LLSEC_KEY_ID);
 
 		if (mode == 1) {
-			list.push_back(Key::indexed(iface, frames, 0, key, id));
+			list.push_back(
+				std::make_pair(
+					Key::indexed(frames, 0, key, id),
+					iface));
 		} else if (mode == 2) {
-			list.push_back(Key::indexed(iface, frames, 0, key, id,
-				attrs.u32(IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT)));
+			list.push_back(
+				std::make_pair(
+					Key::indexed(frames, 0, key, id,
+						attrs.u32(IEEE802154_ATTR_LLSEC_KEY_SOURCE_SHORT)),
+					iface));
 		} else {
-			list.push_back(Key::indexed(iface, frames, 0, key, id,
-				attrs.u64(IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED)));
+			list.push_back(
+				std::make_pair(
+					Key::indexed(frames, 0, key, id,
+						attrs.u64(IEEE802154_ATTR_LLSEC_KEY_SOURCE_EXTENDED)),
+					iface));
 		}
 	}
 
@@ -165,10 +180,12 @@ int list_seclevels::valid(struct nl_msg* msg, const nl::attrs& attrs)
 	if (this->iface.size() && iface != this->iface)
 		return NL_OK;
 
-	list.push_back(Seclevel(
-		iface,
-		attrs.u8(IEEE802154_ATTR_LLSEC_FRAME_TYPE),
-		attrs.u8(IEEE802154_ATTR_LLSEC_SECLEVELS)));
+	list.push_back(
+		std::make_pair(
+			Seclevel(
+				attrs.u8(IEEE802154_ATTR_LLSEC_FRAME_TYPE),
+				attrs.u8(IEEE802154_ATTR_LLSEC_SECLEVELS)),
+			iface));
 
 	return NL_OK;
 }

@@ -46,9 +46,9 @@ void teardown_all()
 	do {
 		netdevs = ctrl.list_netdevs();
 
-		for (size_t i = 0; i < netdevs.size(); i++) {
+		BOOST_FOREACH(const NetDevice& dev, netdevs) {
 			try {
-				ctrl.remove_netdev(netdevs[i].name());
+				ctrl.remove_netdev(dev.name());
 			} catch (const nl::nl_error& e) {
 				if (e.error() != NLE_NODEV)
 					throw;
@@ -67,19 +67,16 @@ std::string setup_network(const Network& net)
 	ctrl.start(wpan.name(), net.pan());
 	ctrl.setup_phy(phy.name());
 
-	typedef std::vector<Key>::const_iterator key_cit;
-	typedef std::vector<Device>::const_iterator dev_cit;
-
-	for (key_cit it = net.keys().begin(), end = net.keys().end(); it != end; it++) {
-		ctrl.add_key(wpan.name(), *it);
+	BOOST_FOREACH(const Key& key, net.keys()) {
+		ctrl.add_key(wpan.name(), key);
 	}
-	for (dev_cit it = net.devices().begin(), end = net.devices().end(); it != end; it++) {
-		ctrl.add_device(*it);
+	BOOST_FOREACH(const Device& dev, net.devices()) {
+		ctrl.add_device(wpan.name(), dev);
 	}
 	ctrl.setparams(
 		wpan.name(),
 		SecurityParameters(true, 5, net.out_key(), net.frame_counter()));
-	ctrl.add_seclevel(wpan.name(), Seclevel(wpan.name(), 1, 0xff));
+	ctrl.add_seclevel(wpan.name(), Seclevel(1, 0xff));
 
 	if (system((boost::format("ip link set %1% up") % wpan.name()).str().c_str()))
 		throw std::runtime_error("can't create device");

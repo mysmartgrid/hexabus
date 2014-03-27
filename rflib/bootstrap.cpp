@@ -98,9 +98,9 @@ void PairingHandler::run_once()
 	memcpy(&addr, peer.addr.hwaddr, 8);
 
 	try {
-		Device dev(iface(), _pan_id, 0xfffe, addr, 0, key.lookup_desc());
+		Device dev(_pan_id, 0xfffe, addr, 0, key.lookup_desc());
 
-		control().add_device(dev);
+		control().add_device(iface(), dev);
 	} catch (const nl::nl_error& e) {
 		if (e.error() != NLE_EXIST)
 			throw;
