@@ -77,27 +77,22 @@ struct ReadingLogger : public hexabus::Logger {
 
 		klio::Sensor::Ptr lookup_sensor(const std::string& id)
 		{
-			try {
-				klio::Sensor::Ptr ptr = store->get_sensor_by_external_id(id);
+			std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_external_id(id);
+			
+			if (!sensors.size())
+				return klio::Sensor::Ptr();
+			
+			klio::Sensor::Ptr ptr = sensors[0];
 
-				if (ptr) {
-					std::string addr_str = id.substr(0, id.find_first_of('-'));
+			std::string addr_str = id.substr(0, id.find_first_of('-'));
 
-					SensorInfo info = {
-						boost::posix_time::second_clock::local_time(),
-						boost::posix_time::second_clock::local_time(),
-						boost::asio::ip::address_v6::from_string(addr_str)
-					};
-					sensor_infos.insert(std::make_pair(ptr, info));
-				}
-				return ptr;
-			} catch (const klio::StoreException& e) {
-				if (e.what() == "Sensor " + id + " could not be found.") {
-					return klio::Sensor::Ptr();
-				} else {
-					throw;
-				}
-			}
+			SensorInfo info = {
+				boost::posix_time::second_clock::local_time(),
+				boost::posix_time::second_clock::local_time(),
+				boost::asio::ip::address_v6::from_string(addr_str)
+			};
+			sensor_infos.insert(std::make_pair(ptr, info));
+			return ptr;
 		}
 
 		void new_sensor_found(klio::Sensor::Ptr sensor, const boost::asio::ip::address_v6& address)
