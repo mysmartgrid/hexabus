@@ -117,7 +117,7 @@ Eeprom::versions_t Eeprom::read_valid_versions()
 				s.first_block = i;
 			}
 
-			if (s.version == first_version && i + 1 < s.last_block) {
+			if (s.version == first_version && i > 0 && i - 1 > s.last_block) {
 				if (first_offset == 0) {
 					s.first_block = i;
 				}
