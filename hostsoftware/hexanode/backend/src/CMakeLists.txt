@@ -32,9 +32,9 @@ add_executable(hexabus_webbackend ${hexabus_webbackend_src})
 add_executable(hexabus_msg_bridge ${hexabus_msg_bridge_src})
 add_executable(simulate_energyflows ${simulate_energyflows_src})
 
-if(ROCKSDB_FOUND)
+if(LIBKLIO_ENABLE_ROCKSDB)
     set_source_files_properties(${hexabus_msg_bridge_src} COMPILE_FLAGS "-std=gnu++11")
-endif(ROCKSDB_FOUND)
+endif()
 
 # Link the executables
 target_link_libraries(midi2hexabus 
@@ -65,7 +65,6 @@ target_link_libraries(hexabus_msg_bridge
   ${SQLITE3_LIBRARIES}
   ${GNUTLS_LIBRARIES}
   ${OPENSSL_CRYPTO_LIBRARY}
-  ${LIBKLIO_LIBRARY}
   pthread
 )
 target_link_libraries(hexabus_msg_bridge ${ROCKSDB_LIBRARY})
