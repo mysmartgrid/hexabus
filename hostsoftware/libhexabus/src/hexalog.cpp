@@ -40,12 +40,11 @@ class Logger : public hexabus::Logger {
 
 		klio::Sensor::Ptr lookup_sensor(const std::string& id)
 		{
-			try {
-#warning "Must be fixed here"
-				return store->get_sensors_by_external_id(id)[0];
-			} catch (...) {
+			std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_external_id(id);
+			
+			if (!sensors.size())
 				return klio::Sensor::Ptr();
-			}
+      return sensors[0];
 		}
 
 		void new_sensor_found(klio::Sensor::Ptr sensor, const boost::asio::ip::address_v6&)
