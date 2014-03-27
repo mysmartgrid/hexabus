@@ -7,7 +7,7 @@
 
 void BinaryFormatter::get_raw(void* dest, std::size_t len)
 {
-	if (head + len >= data.size())
+	if (head + len > data.size())
 		throw std::runtime_error("missing data");
 
 	memcpy(dest, &data[head], len);
@@ -17,7 +17,7 @@ void BinaryFormatter::get_raw(void* dest, std::size_t len)
 void BinaryFormatter::put_raw(const void* src, std::size_t len)
 {
 	data.resize(data.size() + len);
-	memcpy(&data[data.size() - len - 1], src, len);
+	memcpy(&data[data.size() - len], src, len);
 }
 
 uint8_t BinaryFormatter::get_u8()

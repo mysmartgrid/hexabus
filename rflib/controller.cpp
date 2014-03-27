@@ -26,7 +26,11 @@ std::vector<NetDevice> Controller::list_netdevs(const std::string& iface)
 	msgs::list_iface cmd(iface);
 	parsers::list_iface p;
 
-	return send(cmd, p);
+	std::vector<NetDevice> result = send(cmd, p);
+	if (iface.size())
+		recv();
+
+	return result;
 }
 
 Controller::dev_list_t Controller::list_devices()

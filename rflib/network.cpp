@@ -159,7 +159,7 @@ void Network::save(Eeprom& target)
 	fmt.put_u8(_pan.channel());
 	fmt.put_u16(_short_addr);
 	fmt.put_u64(_hwaddr);
-	fmt.put_u64(_frame_counter);
+	fmt.put_u32(_frame_counter);
 	::save(fmt, _out_key);
 
 	fmt.put_u8(_keys.size());
@@ -187,7 +187,7 @@ Network Network::load(Eeprom& source)
 
 	uint16_t short_addr = fmt.get_u16();
 	uint64_t hwaddr = fmt.get_u64();
-	uint64_t frame_counter = fmt.get_u64();
+	uint64_t frame_counter = fmt.get_u32();
 	KeyLookupDescriptor out_key = load_kld(fmt);
 
 	Network result(PAN(pan_id, page, channel), short_addr, hwaddr, out_key,

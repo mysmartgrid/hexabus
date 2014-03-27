@@ -91,7 +91,6 @@ int save_eeprom(const std::string& file, const std::string& iface)
 	Network net = extract_network(iface);
 
 	net.save(eep);
-	eep.dump_contents();
 	return 0;
 }
 
@@ -145,9 +144,17 @@ int setup_network(const Network& net)
 
 int setup(const std::string& file)
 {
-	Network old = load_eeprom(file);
+	Network net = load_eeprom(file);
 
-	return setup_network(old);
+	BOOST_FOREACH(const Device& dev, net.devices()) {
+		net.frame_counter(std::max(dev.frame_ctr(), net.frame_counter()));
+	}
+
+	// on the assumption that 10kk is an upper limit on packet transmissions
+	// in the interim
+	net.frame_counter(net.frame_counter() + 10000000);
+
+	return setup_network(net);
 }
 
 int setup_random(const std::string& file)
@@ -189,25 +196,6 @@ int run_pairing(const std::string& iface)
 int run_resync(const std::string& dev)
 {
 	ResyncHandler resync(dev);
-
-	try {
-		uint32_t ctr = 0;
-		Controller ctrl;
-
-		SecurityParameters p = ctrl.getparams(dev);
-		ctr = p.frame_counter();
-		BOOST_FOREACH(const Device& d, ctrl.list_devices(dev)) {
-			ctr = std::max(d.frame_ctr(), ctr);
-		}
-		SecurityParameters np(p.enabled(), p.out_level(), p.out_key(),
-				ctr + 10000000);
-		ctrl.setparams(dev, np);
-
-		resync.force();
-	} catch (const std::exception& e) {
-		std::cerr << "resynd: " << e.what() << std::endl;
-		return 1;
-	}
 
 	while (true) {
 		try {

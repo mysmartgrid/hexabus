@@ -12,7 +12,7 @@ class BinaryFormatter {
 
 	public:
 		BinaryFormatter(std::vector<uint8_t>& data)
-			: data(data)
+			: data(data), head(0)
 		{}
 
 		void get_raw(void* dest, std::size_t len);
