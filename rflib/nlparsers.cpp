@@ -199,7 +199,7 @@ int get_secparams::valid(struct nl_msg* msg, const nl::attrs& attrs)
 	if (enabled) {
 		uint8_t out_level = attrs.u8(IEEE802154_ATTR_LLSEC_SECLEVEL);
 		KeyLookupDescriptor key = parse_keydesc(attrs);
-		uint32_t frame_counter = 0;
+		uint32_t frame_counter = attrs.u32(IEEE802154_ATTR_LLSEC_FRAME_COUNTER);
 
 		result = SecurityParameters(enabled, out_level, key, frame_counter);
 	} else {

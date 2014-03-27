@@ -143,8 +143,8 @@ void run_resync(const std::string& dev)
 {
 	ResyncHandler resync(dev);
 
-	uint32_t ctr = 0;
 	{
+		uint32_t ctr = 0;
 		Controller ctrl;
 
 		SecurityParameters p = ctrl.getparams(dev);
@@ -194,6 +194,13 @@ void dump_devices(const std::string& iface = "")
 		std::cout << devs[i] << std::endl;
 }
 
+void dump_params(const std::string& iface)
+{
+	SecurityParameters params = Controller().getparams(iface);
+
+	std::cout << params << std::endl;
+}
+
 int main(int argc, const char* argv[])
 {
 	if (argc == 1) {
@@ -229,6 +236,16 @@ int main(int argc, const char* argv[])
 		dump_phys();
 	} else if (cmd == "list-devices") {
 		dump_devices(argc > 2 ? argv[2] : "");
+	} else if (cmd == "list-params") {
+		dump_params(argc > 2 ? argv[2] : "");
+	} else if (cmd == "list") {
+		if (argc < 3) {
+			std::cerr << "required args: <iface>" << std::endl;
+			return 1;
+		}
+		dump_keys(argv[2]);
+		dump_devices(argv[2]);
+		dump_params(argv[2]);
 	} else if (cmd == "eep") {
 		Eeprom eep("/dev/i2c-1");
 

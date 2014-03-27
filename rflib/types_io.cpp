@@ -4,12 +4,14 @@
 
 #include <boost/format.hpp>
 
+using boost::format;
+
 std::string format_mac(uint64_t addr)
 {
 	uint8_t mac[8];
 
 	memcpy(mac, &addr, 8);
-	return (boost::format("%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x")
+	return (format("%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x")
 		% int(mac[0]) % int(mac[1]) % int(mac[2]) % int(mac[3])
 		% int(mac[4]) % int(mac[5]) % int(mac[6]) % int(mac[7])).str();
 }
@@ -19,7 +21,7 @@ std::string bitlist(uint32_t bits)
 	std::stringstream ss;
 
 	for (int i = 0; bits != 0; i++, bits >>= 1) {
-		if (i)
+		if (ss.str().size())
 			ss << " ";
 		if (bits & 1)
 			ss << i;
@@ -32,7 +34,6 @@ std::string bitlist(uint32_t bits)
 
 std::string print_tabular(const KeyLookupDescriptor& key, int indent)
 {
-	using boost::format;
 	std::stringstream os;
 
 	std::string prefix(indent, '\t');
@@ -62,7 +63,6 @@ std::string print_tabular(const KeyLookupDescriptor& key, int indent)
 
 std::string print_tabular(const Key& key)
 {
-	using boost::format;
 	std::stringstream os;
 
 	os << "Key" << std::endl
@@ -83,7 +83,6 @@ std::string print_tabular(const Key& key)
 
 std::string print_tabular(const Device& dev)
 {
-	using boost::format;
 	std::stringstream os;
 
 	os << "Device" << std::endl
@@ -91,7 +90,7 @@ std::string print_tabular(const Device& dev)
 		<< format("	Short address %|04x|") % dev.short_addr() << std::endl
 		<< format("	Extended address %1%") % format_mac(dev.hwaddr()) << std::endl
 		<< format("	Frame counter %1%") % dev.frame_ctr() << std::endl
-		<< "	Key:" << std::endl
+		<< "	Last ingress key" << std::endl
 		<< print_tabular(dev.key(), 2) << std::endl;
 
 	return os.str();
@@ -99,10 +98,9 @@ std::string print_tabular(const Device& dev)
 
 std::string print_tabular(const Phy& phy)
 {
-	using boost::format;
 	std::stringstream os;
 
-	os << format("PHY %1%") % phy.name() << std::endl
+	os << format("Phy %1%") % phy.name() << std::endl
 		<< format("	Channel %1%") % phy.channel() << std::endl
 		<< format("	Page %1%") % phy.page() << std::endl
 		<< format("	Transmit power %1%") % phy.txpower() << std::endl
@@ -127,12 +125,28 @@ std::string print_tabular(const Phy& phy)
 
 std::string print_tabular(const Seclevel& sl)
 {
-	using boost::format;
 	std::stringstream os;
 
 	os << "Security level" << std::endl
 		<< format("	Frame type %|i|") % sl.frame_type() << std::endl
 		<< format("	Levels %1%") % bitlist(sl.levels()) << std::endl;
+
+	return os.str();
+}
+
+std::string print_tabular(const SecurityParameters& params)
+{
+	std::stringstream os;
+
+	os << "Security parameters" << std::endl;
+	if (params.enabled()) {
+		os << format("	Outgoing level %1%") % int(params.out_level()) << std::endl
+			<< format("	Outgoing key") << std::endl
+			<< print_tabular(params.out_key(), 2) << std::endl
+			<< format("	Frame counter %1%") % params.frame_counter() << std::endl;
+	} else {
+		os << "	Disabled" << std::endl;
+	}
 
 	return os.str();
 }
