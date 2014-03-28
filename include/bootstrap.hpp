@@ -51,6 +51,7 @@ class BootstrapSocket {
 		const std::string& iface() const { return _iface; }
 		Controller& control() { return _control; }
 
+		bool receive_wait(int timeout = -1);
 		std::pair<std::vector<uint8_t>, sockaddr_ieee802154> receive();
 		void send(const void* msg, size_t len, const sockaddr_ieee802154& peer);
 };
@@ -62,7 +63,7 @@ class PairingHandler : public BootstrapSocket {
 	public:
 		PairingHandler(const std::string& iface, uint16_t pan_id);
 
-		void run_once();
+		void run_once(int timeout_secs = 300);
 };
 
 class ResyncHandler : public BootstrapSocket {

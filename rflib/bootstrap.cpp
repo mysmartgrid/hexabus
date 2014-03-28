@@ -9,8 +9,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <poll.h>
+#include <time.h>
 
 #include <stdexcept>
+#include <limits>
 
 BootstrapSocket::BootstrapSocket(const std::string& iface, bool nosec)
 	: _fd(socket(AF_IEEE802154, SOCK_DGRAM | SOCK_CLOEXEC, 0)),
@@ -26,6 +29,21 @@ BootstrapSocket::BootstrapSocket(const std::string& iface, bool nosec)
 		if (rc < 0)
 			throw std::runtime_error(strerror(errno));
 	}
+}
+
+bool BootstrapSocket::receive_wait(int timeout)
+{
+	pollfd pfd;
+
+	pfd.fd = _fd;
+	pfd.events = POLLIN;
+
+	int rc = poll(&pfd, 1, timeout);
+
+	if (rc < 0)
+		throw std::runtime_error(strerror(errno));
+
+	return rc > 0;
 }
 
 std::pair<std::vector<uint8_t>, sockaddr_ieee802154> BootstrapSocket::receive()
@@ -70,7 +88,7 @@ int key_compare(const Key& a, const Key& b)
 	return a.lookup_desc().id() - b.lookup_desc().id();
 }
 
-void PairingHandler::run_once()
+void PairingHandler::run_once(int timeout_secs)
 {
 	struct {
 		uint8_t msg;
@@ -80,10 +98,33 @@ void PairingHandler::run_once()
 
 	std::vector<uint8_t> recv_data;
 	sockaddr_ieee802154 peer;
+	int timeout;
 
-	boost::tie(recv_data, peer) = receive();
-	if (!recv_data.size() || recv_data[0] != HXB_B_PAIR_REQUEST)
-		return;
+	if (timeout_secs > std::numeric_limits<int>::max() / 1000)
+		timeout = std::numeric_limits<int>::max() / 1000;
+	else
+		timeout = timeout_secs * 1000;
+
+	timespec ts, ts2;
+
+	if (clock_gettime(CLOCK_MONOTONIC, &ts))
+		throw std::runtime_error(strerror(errno));
+
+	for (;;) {
+		if (clock_gettime(CLOCK_MONOTONIC, &ts2))
+			throw std::runtime_error(strerror(errno));
+
+		timeout -= (ts2.tv_sec - ts.tv_sec) * 1000;
+		timeout -= ts2.tv_nsec / 1000000 - ts.tv_nsec / 1000000;
+
+		ts = ts2;
+		if (!receive_wait(timeout))
+			throw std::runtime_error("timeout");
+
+		boost::tie(recv_data, peer) = receive();
+		if (recv_data.size() && recv_data[0] == HXB_B_PAIR_REQUEST)
+			break;
+	}
 
 	if (recv_data.size() != 1)
 		throw std::runtime_error("invalid PAIR_REQUEST");
@@ -107,6 +148,8 @@ void PairingHandler::run_once()
 	}
 
 	send(&packet, sizeof(packet), peer);
+
+	return true;
 }
 
 

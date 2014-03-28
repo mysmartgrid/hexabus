@@ -38,7 +38,7 @@ override CODE_EXTS := cpp
 
 # external libraries used
 override LIBRARIES := libnl-genl-3.0 libnl-3.0
-override LIBRARIES_WITHOUT_PKGCONFIG :=
+override LIBRARIES_WITHOUT_PKGCONFIG := rt
 
 # library version requirements
 define LIBRARY_VERSION_CHECK =
