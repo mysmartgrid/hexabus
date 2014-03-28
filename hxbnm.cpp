@@ -423,6 +423,9 @@ int main(int argc, const char* argv[])
 
 		case C_SAVE_EEPROM:
 			return save_eeprom("/dev/i2c-1", next());
+
+		default:
+			throw no_arg();
 		}
 	} catch (const no_arg& e) {
 		std::cerr << "Command line invalid" << std::endl;
