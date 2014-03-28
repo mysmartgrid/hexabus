@@ -148,8 +148,6 @@ void PairingHandler::run_once(int timeout_secs)
 	}
 
 	send(&packet, sizeof(packet), peer);
-
-	return true;
 }
 
 

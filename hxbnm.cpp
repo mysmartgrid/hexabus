@@ -172,7 +172,7 @@ int setup_random_full()
 	return setup_network(next);
 }
 
-int run_pairing(const std::string& iface)
+int run_pairing(const std::string& iface, int timeout)
 {
 	Controller ctrl;
 
@@ -181,7 +181,7 @@ int run_pairing(const std::string& iface)
 	PairingHandler handler(iface, dev.pan_id());
 
 	try {
-		handler.run_once();
+		handler.run_once(timeout);
 	} catch (const std::exception& e) {
 		std::cerr << "pair: " << e.what() << std::endl;
 		return 1;
@@ -254,6 +254,8 @@ enum {
 	C_HELP,
 	C_TEARDOWN_ALL,
 	C_SETUP,
+	C_SETUP_RANDOM,
+	C_SETUP_RANDOM_FULL,
 	C_PAIR,
 	C_RESYNCD,
 	C_LIST_KEYS,
@@ -270,6 +272,8 @@ static const char* commands[] = {
 	"help",
 	"teardown-all",
 	"setup",
+	"setup-random",
+	"setup-random-full",
 	"pair",
 	"resyncd",
 	"list-keys",
@@ -294,21 +298,23 @@ int parse_command(const std::string& cmd)
 void help(std::ostream& os)
 {
 	os << "Usage: <command> [args]" << std::endl
-		<< "help                    show this help" << std::endl
-		<< "teardown-all            tear down all WPANs and associated devices" << std::endl
-		<< "setup                   set up a WPAN and cryptographic state from EEPROM" << std::endl
-		<< "  random                generate random network, use MAC from EEPROM" << std::endl
-		<< "  random-full           same, but don't reuse MAC address from last network" << std::endl
-		<< "pair <iface>            pair one device to <iface>" << std::endl
-		<< "resyncd <iface>         run resync process on <iface>" << std::endl
-		<< "list-keys               list WPAN keys on the system" << std::endl
-		<< "  [iface]               show only keys on iface" << std::endl
-		<< "list-devices            list paired devices on the system" << std::endl
-		<< "  [iface]               show only devices on iface" << std::endl
-		<< "list-params <iface>     show security parameters of iface" << std::endl
-		<< "list <iface>            list key, devices and security parameters" << std::endl
-		<< "list-phys               list WPAN phys on the system" << std::endl
-		<< "save-eeprom <iface>     save network on iface to EEPROM" << std::endl;
+		<< std::endl
+		<< "  help                      show this help" << std::endl
+		<< "  teardown-all              tear down all WPANs and associated devices" << std::endl
+		<< "  setup                     set up a WPAN and cryptographic state from EEPROM" << std::endl
+		<< "  setup-random              set up a new WPAN, reusing only the MAC address from EEPROM" << std::endl
+		<< "  setup-random-full         set up a new WPAN, reusing nothing from EEPROM" << std::endl
+		<< "  pair <iface>              pair one device to <iface>" << std::endl
+		<< "    timeout <s>             sets timeout to s seconds" << std::endl
+		<< "  resyncd <iface>           run resync process on <iface>" << std::endl
+		<< "  list-keys                 list WPAN keys on the system" << std::endl
+		<< "    [iface]                 show only keys on iface" << std::endl
+		<< "  list-devices              list paired devices on the system" << std::endl
+		<< "    [iface]                 show only devices on iface" << std::endl
+		<< "  list-params <iface>       show security parameters of iface" << std::endl
+		<< "  list <iface>              list key, devices and security parameters" << std::endl
+		<< "  list-phys                 list WPAN phys on the system" << std::endl
+		<< "  save-eeprom <iface>       save network on iface to EEPROM" << std::endl;
 }
 
 class no_arg {};
@@ -375,26 +381,24 @@ int main(int argc, const char* argv[])
 		case C_TEARDOWN_ALL:
 			return teardown_all();
 
-		case C_SETUP: {
-			boost::optional<std::string> random = next.maybe();
-			if (random) {
-				if (next.more())
-					throw no_arg();
+		case C_SETUP:
+			return setup(EEP_FILE);
 
-				if (*random == "random") {
-					return setup_random(EEP_FILE);
-				} else if (*random == "random-full") {
-					return setup_random_full();
-				} else {
-					throw no_arg();
-				}
-			} else {
-				return setup(EEP_FILE);
+		case C_SETUP_RANDOM:
+			return setup_random(EEP_FILE);
+
+		case C_SETUP_RANDOM_FULL:
+			return setup_random_full();
+
+		case C_PAIR: {
+			std::string iface = next();
+			int timeout = 300;
+			if (next.more() && next() == "timeout") {
+				timeout = boost::lexical_cast<int>(next());
 			}
-		}
 
-		case C_PAIR:
-			return run_pairing(next());
+			return run_pairing(iface, timeout);
+		}
 
 		case C_RESYNCD:
 			return run_resync(next());
