@@ -97,11 +97,11 @@ struct start : msg802154 {
 	{ put(IEEE802154_ATTR_PAGE, page); }
 };
 
-struct phy_setparams : msg802154 {
-	phy_setparams(const std::string& phy)
+struct mac_setparams : msg802154 {
+	mac_setparams(const std::string& dev)
 		: msg802154(NLM_F_REQUEST, IEEE802154_SET_PHYPARAMS)
 	{
-		put(IEEE802154_ATTR_PHY_NAME, phy);
+		put(IEEE802154_ATTR_DEV_NAME, dev);
 	}
 
 	void txpower(int32_t txp)

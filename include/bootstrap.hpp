@@ -63,7 +63,7 @@ class PairingHandler : public BootstrapSocket {
 	public:
 		PairingHandler(const std::string& iface, uint16_t pan_id);
 
-		void run_once(int timeout_secs = 300);
+		void run_once(int timeout_secs);
 };
 
 class ResyncHandler : public BootstrapSocket {

@@ -107,6 +107,10 @@ class NetDevice {
 		boost::optional<uint64_t> _addr;
 		boost::optional<uint16_t> _short_addr;
 		boost::optional<uint16_t> _pan_id;
+		boost::optional<int> _txpower;
+		boost::optional<uint8_t> _cca_mode;
+		boost::optional<int> _ed_level;
+		boost::optional<bool> _lbt;
 
 	public:
 		NetDevice(const std::string& phy, const std::string& name)
@@ -119,11 +123,27 @@ class NetDevice {
 			  _pan_id(pan_id)
 		{}
 
+		NetDevice(const std::string& phy, const std::string& name, uint64_t addr,
+				uint16_t short_addr, uint16_t pan_id,
+				int txpower, uint8_t cca_mode, int ed_level, bool lbt)
+			: _phy(phy), _name(name), _addr(addr), _short_addr(short_addr),
+			  _pan_id(pan_id), _txpower(txpower), _cca_mode(cca_mode),
+			  _ed_level(ed_level), _lbt(lbt)
+		{}
+
 		const std::string& phy() const { return _phy; }
 		const std::string& name() const { return _name; }
+
+		bool has_addrs() const { return _addr;}
 		uint64_t addr() const { return *_addr; }
 		uint16_t short_addr() const { return *_short_addr; }
 		uint16_t pan_id() const { return *_pan_id; }
+
+		bool has_macparams() const { return _txpower; }
+		int txpower() const { return *_txpower; }
+		uint8_t cca_mode() const { return *_cca_mode; }
+		int ed_level() const { return *_ed_level; }
+		bool lbt() const { return *_lbt; }
 };
 
 class Phy {
@@ -132,10 +152,6 @@ class Phy {
 		uint32_t _page;
 		uint32_t _channel;
 		std::vector<uint32_t> _supported_pages;
-		int _txpower;
-		uint8_t _cca_mode;
-		int _ed_level;
-		bool _lbt;
 
 	public:
 		Phy(const std::string& name, uint32_t page, uint32_t channel,
@@ -144,23 +160,10 @@ class Phy {
 			  _supported_pages(supported_pages)
 		{}
 
-		Phy(const std::string& name, uint32_t page, uint32_t channel,
-			const std::vector<uint32_t>& supported_pages,
-			int txpower, uint8_t cca_mode, int ed_level, bool lbt)
-			: _name(name), _page(page), _channel(channel),
-			  _supported_pages(supported_pages),
-			  _txpower(txpower), _cca_mode(cca_mode),
-			  _ed_level(ed_level), _lbt(lbt)
-		{}
-
 		const std::string& name() const { return _name; }
 		uint32_t page() const { return _page; }
 		uint32_t channel() const { return _channel; }
 		const std::vector<uint32_t>& supported_pages() const { return _supported_pages; }
-		int txpower() const { return _txpower; }
-		uint8_t cca_mode() const { return _cca_mode; }
-		int ed_level() const { return _ed_level; }
-		bool lbt() const { return _lbt; }
 };
 
 class Seclevel {

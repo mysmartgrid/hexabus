@@ -81,6 +81,29 @@ std::string print_tabular(const Key& key)
 	return os.str();
 }
 
+std::string print_tabular(const NetDevice& dev)
+{
+	std::stringstream os;
+
+	os << format("Interface %1%") % dev.name() << std::endl
+		<< format("	Phy %1%") % dev.phy() << std::endl;
+
+	if (dev.has_addrs()) {
+		os << format("	PAN ID %|04x|") % dev.pan_id() << std::endl
+			<< format("	Short address %|04x|") % dev.short_addr() << std::endl
+			<< format("	Extended address %1%") % format_mac(dev.addr()) << std::endl;
+	}
+
+	if (dev.has_macparams()) {
+		os << format("	Transmit power %1%dBm") % dev.txpower() << std::endl
+			<< format("	LBT %1%") % (dev.lbt() ? "on" : "off") << std::endl
+			<< format("	CCA mode %|i|") % int(dev.cca_mode()) << std::endl
+			<< format("	CCA ED level %1%dBm") % dev.ed_level() << std::endl;
+	}
+
+	return os.str();
+}
+
 std::string print_tabular(const Device& dev)
 {
 	std::stringstream os;
@@ -102,11 +125,7 @@ std::string print_tabular(const Phy& phy)
 
 	os << format("Phy %1%") % phy.name() << std::endl
 		<< format("	Channel %1%") % phy.channel() << std::endl
-		<< format("	Page %1%") % phy.page() << std::endl
-		<< format("	Transmit power %1%") % phy.txpower() << std::endl
-		<< format("	LBT %1%") % (phy.lbt() ? "on" : "off") << std::endl
-		<< format("	CCA mode %|i|") % phy.cca_mode() << std::endl
-		<< format("	CCA ED level %1%") % phy.ed_level() << std::endl;
+		<< format("	Page %1%") % phy.page() << std::endl;
 
 	typedef std::vector<uint32_t>::const_iterator iter;
 	int i = 0;

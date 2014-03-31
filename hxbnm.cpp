@@ -109,7 +109,7 @@ int setup_network(const Network& net)
 	NetDevice wpan = ctrl.add_netdev(phy, net.hwaddr());
 
 	ctrl.start(wpan.name(), net.pan());
-	ctrl.setup_phy(phy.name());
+	ctrl.setup_dev(wpan.name());
 
 	BOOST_FOREACH(const Key& key, net.keys()) {
 		ctrl.add_key(wpan.name(), key);
@@ -231,6 +231,16 @@ int dump_keys(const std::string& iface = "")
 	return 0;
 }
 
+int dump_netdevs(const std::string& iface = "")
+{
+	std::vector<NetDevice> devs = Controller().list_netdevs(iface);
+
+	for (size_t i = 0; i < devs.size(); i++)
+		std::cout << devs[i] << std::endl;
+
+	return 0;
+}
+
 int dump_devices(const std::string& iface = "")
 {
 	std::vector<Device> devs = Controller().list_devices(iface);
@@ -261,6 +271,7 @@ enum {
 	C_LIST_KEYS,
 	C_LIST_DEVICES,
 	C_LIST_PARAMS,
+	C_LIST_NETDEVS,
 	C_LIST,
 	C_LIST_PHYS,
 	C_SAVE_EEPROM,
@@ -279,6 +290,7 @@ static const char* commands[] = {
 	"list-keys",
 	"list-devices",
 	"list-params",
+	"list-netdevs",
 	"list",
 	"list-phys",
 	"save-eeprom",
@@ -311,8 +323,10 @@ void help(std::ostream& os)
 		<< "    [iface]                 show only keys on iface" << std::endl
 		<< "  list-devices              list paired devices on the system" << std::endl
 		<< "    [iface]                 show only devices on iface" << std::endl
+		<< "  list-netdevs              show WPAN network device info" << std::endl
+		<< "    [iface]                 show only iface" << std::endl
 		<< "  list-params <iface>       show security parameters of iface" << std::endl
-		<< "  list <iface>              list key, devices and security parameters" << std::endl
+		<< "  list <iface>              list key, devices, security parameters and netdevs" << std::endl
 		<< "  list-phys                 list WPAN phys on the system" << std::endl
 		<< "  save-eeprom <iface>       save network on iface to EEPROM" << std::endl;
 }
@@ -409,13 +423,16 @@ int main(int argc, const char* argv[])
 		case C_LIST_DEVICES:
 			return dump_devices(next(""));
 
+		case C_LIST_NETDEVS:
+			return dump_devices(next(""));
+
 		case C_LIST_PARAMS:
 			return dump_params(next());
 
 		case C_LIST: {
 			std::string iface = next();
 			return dump_keys(iface) || dump_devices(iface) ||
-				dump_params(iface);
+				dump_params(iface) || dump_netdevs(iface);
 		}
 
 		case C_LIST_PHYS:

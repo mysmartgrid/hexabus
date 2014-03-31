@@ -97,9 +97,9 @@ std::vector<Key> Controller::list_keys(const std::string& iface)
 	return result;
 }
 
-void Controller::setup_phy(const std::string& phy)
+void Controller::setup_dev(const std::string& dev)
 {
-	msgs::phy_setparams cmd(phy);
+	msgs::mac_setparams cmd(dev);
 
 	cmd.lbt(true);
 	cmd.cca_mode(0);

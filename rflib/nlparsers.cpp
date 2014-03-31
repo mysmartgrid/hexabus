@@ -33,17 +33,7 @@ int list_phy::valid(struct nl_msg* msg, const nl::attrs& attrs)
 		}
 	}
 
-	if (attrs[IEEE802154_ATTR_TXPOWER]) {
-		int txpower = attrs.s8(IEEE802154_ATTR_TXPOWER);
-		bool lbt = attrs.u8(IEEE802154_ATTR_LBT_ENABLED);
-		uint8_t cca_mode = attrs.u8(IEEE802154_ATTR_CCA_MODE);
-		int ed_level = attrs.s32(IEEE802154_ATTR_CCA_ED_LEVEL);
-
-		list.push_back(Phy(name, page, channel, pages, txpower,
-			cca_mode, ed_level, lbt));
-	} else {
-		list.push_back(Phy(name, page, channel, pages));
-	}
+	list.push_back(Phy(name, page, channel, pages));
 
 	return NL_OK;
 }
@@ -64,14 +54,26 @@ int add_iface::valid(struct nl_msg* msg, const nl::attrs& attrs)
 
 int list_iface::valid(struct nl_msg* msg, const nl::attrs& attrs)
 {
-	NetDevice dev(
-		attrs.str(IEEE802154_ATTR_PHY_NAME),
-		attrs.str(IEEE802154_ATTR_DEV_NAME),
-		attrs.u64(IEEE802154_ATTR_HW_ADDR),
-		attrs.u16(IEEE802154_ATTR_SHORT_ADDR),
-		attrs.u16(IEEE802154_ATTR_PAN_ID));
+	if (attrs[IEEE802154_ATTR_TXPOWER]) {
 
-	list.push_back(dev);
+		list.push_back(NetDevice(
+			attrs.str(IEEE802154_ATTR_PHY_NAME),
+			attrs.str(IEEE802154_ATTR_DEV_NAME),
+			attrs.u64(IEEE802154_ATTR_HW_ADDR),
+			attrs.u16(IEEE802154_ATTR_SHORT_ADDR),
+			attrs.u16(IEEE802154_ATTR_PAN_ID),
+			attrs.s8(IEEE802154_ATTR_TXPOWER),
+			attrs.u8(IEEE802154_ATTR_CCA_MODE),
+			attrs.s32(IEEE802154_ATTR_CCA_ED_LEVEL),
+			attrs.u8(IEEE802154_ATTR_LBT_ENABLED)));
+	} else {
+		list.push_back(NetDevice(
+			attrs.str(IEEE802154_ATTR_PHY_NAME),
+			attrs.str(IEEE802154_ATTR_DEV_NAME),
+			attrs.u64(IEEE802154_ATTR_HW_ADDR),
+			attrs.u16(IEEE802154_ATTR_SHORT_ADDR),
+			attrs.u16(IEEE802154_ATTR_PAN_ID)));
+	}
 
 	return NL_OK;
 }
