@@ -9,7 +9,9 @@ include_directories(
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
-  ${Boost_INCLUDE_DIRS}
+)
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+include_directories(
   ${HXB_INCLUDE_DIR}
   ${UCI_INCLUDE_DIR}
   "../../../shared"

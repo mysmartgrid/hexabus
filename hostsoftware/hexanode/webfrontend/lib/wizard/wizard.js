@@ -2,6 +2,7 @@ var nconf = require('nconf');
 var exec = require('child_process').exec;
 var DeviceTree = require("../devicetree")
 var v6 = require('ipv6').v6;
+var fs = require("fs");
 
 var Wizard = function() {
 	var networkAutoconf = function(cb,steps) {
@@ -37,6 +38,29 @@ var Wizard = function() {
 			nconf.save()
 		}
 	}
+
+	this.is_finished = function() {
+		var step = nconf.get('wizard_step');
+		if((step == undefined) && fs.existsSync('/etc/hexabus_msg_bridge.conf')) {
+			nconf.set('wizard_step', '0');
+			nconf.save();
+			return true;
+		}
+		return (step == '0');	
+	};
+
+	this.upgrade = function(cb) {
+		var command = nconf.get('debug-wizard')
+			? 'apt-get -s upgrade'
+			: 'sudo apt-get update && sudo apt-get -s upgrade && sudo apt-get -y upgrade';
+		exec(command, function(error, stdout, stderr) {
+			if(error) {
+				cb( stderr );
+			} else {
+				cb( undefined );
+			}
+		});
+	};
 
 	this.configure_network = function(cb) {
 		var steps = new Object();

@@ -286,6 +286,24 @@ angular.module('dashboard', [
 .controller('alertController', ['$scope', 'Socket', function($scope, Socket) {
 	$scope.error = window.error;
 }])
+.controller('currentController', ['$scope', 'Socket', function($scope, Socket) {
+	$scope.upgrade = function() {
+		$scope.upgraded = false;
+		$scope.upgrade_error = false;
+		$scope.upgrading = true;
+		Socket.emit('upgrade');
+	}
+
+	Socket.on('upgrade_completed', function(error) {
+		$scope.upgrading = false;
+		if(error.msg) {
+			$scope.upgrade_error = true;
+			$scope.upgrade_error_msg = error.msg;	
+		} else {
+			$scope.upgraded = true;
+		}
+	});
+}])
 .controller('wizardConnection', ['$scope', 'Socket', function($scope, Socket) {
 	$scope.configure = function() {
 		Socket.emit('wizard_configure');

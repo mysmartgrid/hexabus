@@ -37,6 +37,7 @@ calinit:
 	(echo -n "Plug"; dd if=sock.eep bs=1 skip=7 count=2 status=noxfer | hexdump -e '/1 "%.2x"') \
 		| dd of=sock.eep seek=33 bs=1 status=noxfer conv=notrunc
 	dd if=/dev/zero of=sock.eep bs=1 seek=41 count=2 conv=notrunc status=noxfer
+# the next lines set the reference-value for calibration: e.g. 0x2a = 42W
 	/bin/echo -en '\x00\x00\x1c\x00\xff' | dd of=sock.eep bs=1 seek=63 count=5 conv=notrunc status=noxfer
 	sleep 5
 	avrdude -p atmega1284p -P usb -c jtag2 -F -e -U eeprom:w:sock.eep:r -U hfuse:w:0x90:m

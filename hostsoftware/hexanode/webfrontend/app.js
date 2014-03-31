@@ -220,7 +220,8 @@ app.post('/api/device/rename/:ip', function(req, res) {
 });
 
 app.get('/', function(req, res) {
-		if (nconf.get('wizard_step')=='0') {
+		var wizard = new Wizard();
+		if (wizard.is_finished()) {
 			res.render('index.ejs', {
 				active_nav: 'dashboard',
 				views: devicetree.views
@@ -233,7 +234,8 @@ app.get('/about', function(req, res) {
 	res.render('about.ejs', { active_nav: 'about' });
 });
 app.get('/wizard', function(req, res) {
-		if (nconf.get('wizard_step')=='0') {
+		var wizard = new Wizard();
+		if (wizard.is_finished()) {
 			res.redirect('/wizard/current');
 		} else {
 			res.redirect('/wizard/new');
@@ -494,9 +496,9 @@ io.sockets.on('connection', function (socket) {
 	var health_update_timeout;
 	var send_health_update = function() {
 		setTimeout(send_health_update, 60 * 1000);
+		var wizard = new Wizard();
 		hexabus.get_heartbeat_state(function(err, state) {
-			var wizard_step = nconf.get('wizard_step');
-			emit('health_update', ((err || state.code != 0) && wizard_step == '0'));
+			emit('health_update', ((err || state.code != 0) && wizard.is_finished()));
 		});
 	};
 
@@ -592,6 +594,14 @@ io.sockets.on('connection', function (socket) {
 					console.log("Endpoint not found");
 				}
 			}
+		});
+	});
+
+	on('upgrade', function() {
+		var wizard = new Wizard();
+
+		wizard.upgrade(function(error) {
+			emit('upgrade_completed', { msg: error });
 		});
 	});
 
