@@ -38,13 +38,14 @@
 static const int DEFAULT_PAN_PAGE = 2;
 static const int DEFAULT_PAN_CHANNEL = 0;
 
-int teardown_all()
+int teardown(const std::string& iface = "")
 {
 	Controller ctrl;
+	int loops = 10;
 
 	std::vector<NetDevice> netdevs;
 	do {
-		netdevs = ctrl.list_netdevs();
+		netdevs = ctrl.list_netdevs(iface);
 
 		BOOST_FOREACH(const NetDevice& dev, netdevs) {
 			try {
@@ -56,9 +57,9 @@ int teardown_all()
 				}
 			}
 		}
-	} while (netdevs.size());
+	} while (netdevs.size() && --loops);
 
-	return 0;
+	return !!netdevs.size();
 }
 
 Network extract_network(const std::string& iface)
@@ -101,12 +102,13 @@ Network load_eeprom(const std::string& file)
 	return Network::load(eep);
 }
 
-int setup_network(const Network& net)
+int setup_network(const Network& net, const std::string& wpan_name = "",
+		const std::string& lowpan = "")
 {
 	Controller ctrl;
 	Phy phy = ctrl.list_phys().at(0);
 
-	NetDevice wpan = ctrl.add_netdev(phy, net.hwaddr());
+	NetDevice wpan = ctrl.add_netdev(phy, net.hwaddr(), wpan_name);
 
 	ctrl.start(wpan.name(), net.pan());
 	ctrl.setup_dev(wpan.name());
@@ -122,27 +124,13 @@ int setup_network(const Network& net)
 		SecurityParameters(true, 5, net.out_key(), net.frame_counter()));
 	ctrl.add_seclevel(wpan.name(), Seclevel(1, 0xff));
 
-	if (system((boost::format("ip link set %1% up") % wpan.name()).str().c_str()))
-		throw std::runtime_error("can't create device");
-
-	std::string link_name;
-	for (int i = 0; ; i++) {
-		link_name = (boost::format("usb%1%") % i).str();
-
-		std::string link_cmd = (boost::format("ip link add link %1% name %2% type lowpan")
-				% wpan.name() % link_name).str();
-		if (!system(link_cmd.c_str()))
-			break;
-	}
-
-	std::string up_cmd = (boost::format("ip link set %1% up") % link_name).str();
-	if (system(up_cmd.c_str()))
-		throw std::runtime_error("can't create device");
+	std::string link_name = lowpan.size() ? lowpan : "hxb%d";
+	create_lowpan_device(wpan.name(), link_name);
 
 	return 0;
 }
 
-int setup(const std::string& file)
+int setup(const std::string& file, const std::string& wpan, const std::string& lowpan)
 {
 	Network net = load_eeprom(file);
 
@@ -154,7 +142,7 @@ int setup(const std::string& file)
 	// in the interim
 	net.frame_counter(net.frame_counter() + 10000000);
 
-	return setup_network(net);
+	return setup_network(net, wpan, lowpan);
 }
 
 int setup_random(const std::string& file)
@@ -263,6 +251,7 @@ int dump_params(const std::string& iface)
 enum {
 	C_HELP,
 	C_TEARDOWN_ALL,
+	C_TEARDOWN,
 	C_SETUP,
 	C_SETUP_RANDOM,
 	C_SETUP_RANDOM_FULL,
@@ -282,6 +271,7 @@ enum {
 static const char* commands[] = {
 	"help",
 	"teardown-all",
+	"teardown",
 	"setup",
 	"setup-random",
 	"setup-random-full",
@@ -313,22 +303,25 @@ void help(std::ostream& os)
 		<< std::endl
 		<< "  help                      show this help" << std::endl
 		<< "  teardown-all              tear down all WPANs and associated devices" << std::endl
+		<< "  teardown <iface>          tear down <iface> and associated devices" << std::endl
 		<< "  setup                     set up a WPAN and cryptographic state from EEPROM" << std::endl
-		<< "  setup-random              set up a new WPAN, reusing only the MAC address from EEPROM" << std::endl
+		<< "    [wpan]                  name the wpan device <wpan>" << std::endl
+		<< "    [lowpan]                name the lowpan device <lowpan>" << std::endl
+		<< "  setup-random              set up a new WPAN, reusing only the MAC from EEPROM" << std::endl
 		<< "  setup-random-full         set up a new WPAN, reusing nothing from EEPROM" << std::endl
 		<< "  pair <iface>              pair one device to <iface>" << std::endl
-		<< "    timeout <s>             sets timeout to s seconds" << std::endl
+		<< "    timeout <s>             sets timeout to <s> seconds" << std::endl
 		<< "  resyncd <iface>           run resync process on <iface>" << std::endl
 		<< "  list-keys                 list WPAN keys on the system" << std::endl
-		<< "    [iface]                 show only keys on iface" << std::endl
+		<< "    [iface]                 show only keys on <iface>" << std::endl
 		<< "  list-devices              list paired devices on the system" << std::endl
-		<< "    [iface]                 show only devices on iface" << std::endl
+		<< "    [iface]                 show only devices on <iface>" << std::endl
 		<< "  list-netdevs              show WPAN network device info" << std::endl
-		<< "    [iface]                 show only iface" << std::endl
-		<< "  list-params <iface>       show security parameters of iface" << std::endl
+		<< "    [iface]                 show only <iface>" << std::endl
+		<< "  list-params <iface>       show security parameters of <iface>" << std::endl
 		<< "  list <iface>              list key, devices, security parameters and netdevs" << std::endl
 		<< "  list-phys                 list WPAN phys on the system" << std::endl
-		<< "  save-eeprom <iface>       save network on iface to EEPROM" << std::endl;
+		<< "  save-eeprom <iface>       save network on <iface> to EEPROM" << std::endl;
 }
 
 class no_arg {};
@@ -393,10 +386,13 @@ int main(int argc, const char* argv[])
 			return 0;
 
 		case C_TEARDOWN_ALL:
-			return teardown_all();
+			return teardown();
+
+		case C_TEARDOWN:
+			return teardown(next());
 
 		case C_SETUP:
-			return setup(EEP_FILE);
+			return setup(EEP_FILE, next(""), next(""));
 
 		case C_SETUP_RANDOM:
 			return setup_random(EEP_FILE);

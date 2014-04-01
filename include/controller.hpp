@@ -35,4 +35,6 @@ struct Controller : private nl::socket {
 	void add_device(const std::string& iface, const Device& dev);
 };
 
+void create_lowpan_device(const std::string& master, const std::string& lowpan);
+
 #endif

@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include <netlink/route/rtnl.h>
+#include <netlink/route/link.h>
+
 #include <boost/foreach.hpp>
 
 #include "nlparsers.hpp"
@@ -233,4 +236,60 @@ void Controller::add_device(const std::string& iface, const Device& dev)
 	cmd.frame_ctr(dev.frame_ctr());
 
 	send(cmd);
+}
+
+struct rtnl_sock {
+	nl_sock* sock;
+
+	rtnl_sock()
+		: sock(nl_socket_alloc())
+	{
+		if (!sock)
+			throw std::runtime_error("can't alloce rtnl socket");
+		nl_connect(sock, NETLINK_ROUTE);
+	}
+
+	~rtnl_sock()
+	{
+		nl_socket_free(sock);
+	}
+};
+
+struct rtnl_link {
+	rtnl_link* link;
+
+	rtnl_link()
+		: link(rtnl_link_alloc())
+	{
+		if (!link)
+			throw std::runtime_error("can't alloc rtnl link");
+	}
+
+	~rtnl_link()
+	{
+		rtnl_link_put(link);
+	}
+};
+
+// this is easier than making sense of the include error mess
+extern "C" unsigned int if_nametoindex(const char*);
+
+void create_lowpan_device(const std::string& master, const std::string& lowpan)
+{
+	rtnl_sock sock;
+	rtnl_link link;
+	int rc;
+	int master_index;
+
+	master_index = if_nametoindex(master.c_str());
+	if (!master_index)
+		throw std::runtime_error(master + " not found");
+
+	rtnl_link_set_name(link.link, lowpan.c_str());
+	rtnl_link_set_type(link.link, "lowpan");
+	rtnl_link_set_link(link.link, master_index);
+
+	rc = rtnl_link_add(sock.sock, link.link, NLM_F_EXCL | NLM_F_CREATE);
+	if (rc < 0)
+		throw std::runtime_error(nl_geterror(rc));
 }
