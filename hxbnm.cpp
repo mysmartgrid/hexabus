@@ -45,7 +45,12 @@ int teardown(const std::string& iface = "")
 
 	std::vector<NetDevice> netdevs;
 	do {
-		netdevs = ctrl.list_netdevs(iface);
+		try {
+			netdevs = ctrl.list_netdevs(iface);
+		} catch (const nl::nl_error& e) {
+			if (e.error() == NLE_NODEV && !iface.size())
+				return 0;
+		}
 
 		BOOST_FOREACH(const NetDevice& dev, netdevs) {
 			try {
