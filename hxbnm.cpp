@@ -23,6 +23,7 @@
 #include "bootstrap.hpp"
 #include "network.hpp"
 #include "eeprom.hpp"
+#include "resyncd.hpp"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
@@ -253,6 +254,14 @@ int dump_params(const std::string& iface)
 	return 0;
 }
 
+int add_monitor(const std::string& phy, const std::string& name)
+{
+	NetDevice dev = Controller().add_monitor(phy, name);
+
+	std::cout << dev.name() << std::endl;
+	return 0;
+}
+
 enum {
 	C_HELP,
 	C_TEARDOWN_ALL,
@@ -269,6 +278,7 @@ enum {
 	C_LIST,
 	C_LIST_PHYS,
 	C_SAVE_EEPROM,
+	C_MONITOR,
 
 	C_MAX_COMMAND__,
 };
@@ -289,6 +299,7 @@ static const char* commands[] = {
 	"list",
 	"list-phys",
 	"save-eeprom",
+	"monitor",
 };
 
 int parse_command(const std::string& cmd)
@@ -316,7 +327,11 @@ void help(std::ostream& os)
 		<< "  setup-random-full         set up a new WPAN, reusing nothing from EEPROM" << std::endl
 		<< "  pair <iface>              pair one device to <iface>" << std::endl
 		<< "    timeout <s>             sets timeout to <s> seconds" << std::endl
-		<< "  resyncd <iface>           run resync process on <iface>" << std::endl
+		<< "  resyncd <iface>           control resync process on <iface>" << std::endl
+		<< "    run | run-fg | stop" << std::endl
+		<< "      run                   run resync process and daemonize" << std::endl
+		<< "      run-fg                run resync process in the foreground" << std::endl
+		<< "      stop                  stop a running resync daemon" << std::endl
 		<< "  list-keys                 list WPAN keys on the system" << std::endl
 		<< "    [iface]                 show only keys on <iface>" << std::endl
 		<< "  list-devices              list paired devices on the system" << std::endl
@@ -415,8 +430,21 @@ int main(int argc, const char* argv[])
 			return run_pairing(iface, timeout);
 		}
 
-		case C_RESYNCD:
-			return run_resync(next());
+		case C_RESYNCD: {
+			std::string iface = next();
+			std::string cmd = next();
+			if (cmd == "run") {
+				run_resyncd(iface);
+			} else if (cmd == "run-fg") {
+				run_resyncd_sync(iface);
+			} else if (cmd == "stop") {
+				kill_resyncd(iface);
+			} else {
+				throw no_arg();
+			}
+			return 0;
+//			return run_resync(next());
+		}
 
 		case C_LIST_KEYS:
 			return dump_keys(next(""));
@@ -441,6 +469,9 @@ int main(int argc, const char* argv[])
 
 		case C_SAVE_EEPROM:
 			return save_eeprom("/dev/i2c-1", next());
+
+		case C_MONITOR:
+			return add_monitor(next(), next(""));
 
 		default:
 			throw no_arg();

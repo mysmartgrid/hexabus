@@ -139,6 +139,19 @@ NetDevice Controller::add_netdev(const Phy& phy, uint64_t addr, const std::strin
 	return dev;
 }
 
+NetDevice Controller::add_monitor(const std::string& phy, const std::string& name)
+{
+	std::string pattern = name.size() ? name : "wpanmon%d";
+
+	msgs::add_monitor cmd(phy, pattern);
+	parsers::add_iface pi;
+
+	NetDevice dev = send(cmd, pi);
+	recv();
+
+	return dev;
+}
+
 void Controller::remove_netdev(const std::string& name)
 {
 	msgs::del_iface cmd(name);

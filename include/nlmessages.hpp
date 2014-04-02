@@ -54,6 +54,18 @@ struct add_iface : msg802154 {
 	{ put(IEEE802154_ATTR_HW_ADDR, addr); }
 };
 
+struct add_monitor : msg802154 {
+	add_monitor(const std::string& phy, const std::string& iface = "")
+		: msg802154(NLM_F_REQUEST, IEEE802154_ADD_IFACE)
+	{
+		put(IEEE802154_ATTR_PHY_NAME, phy);
+		if (iface.size())
+			put(IEEE802154_ATTR_DEV_NAME, iface);
+
+		put<uint8_t>(IEEE802154_ATTR_DEV_TYPE, IEEE802154_DEV_MONITOR);
+	}
+};
+
 struct list_iface : msg802154 {
 	list_iface(const std::string& iface = "")
 		: msg802154(NLM_F_REQUEST | (iface.size() ? 0 : NLM_F_DUMP),

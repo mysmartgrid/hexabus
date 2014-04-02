@@ -53,7 +53,10 @@ std::pair<std::vector<uint8_t>, sockaddr_ieee802154> BootstrapSocket::receive()
 	socklen_t peerlen = sizeof(peer);
 	sockaddr* addr = reinterpret_cast<sockaddr*>(&peer);
 
-	int len = recvfrom(_fd, &packet[0], packet.size(), 0, addr, &peerlen);
+	int len = 0;
+	do {
+		len = recvfrom(_fd, &packet[0], packet.size(), 0, addr, &peerlen);
+	} while (len == -EINTR);
 	if (len < 0)
 		throw std::runtime_error(strerror(errno));
 
@@ -66,7 +69,10 @@ void BootstrapSocket::send(const void* msg, size_t len, const sockaddr_ieee80215
 	socklen_t peerlen = sizeof(peer);
 	const sockaddr* addr = reinterpret_cast<const sockaddr*>(&peer);
 
-	ssize_t sent = sendto(_fd, msg, len, 0, addr, peerlen);
+	ssize_t sent = 0;
+	do {
+		sent = sendto(_fd, msg, len, 0, addr, peerlen);
+	} while (sent == -EINTR);
 	if (sent < 0)
 		throw std::runtime_error(strerror(errno));
 }

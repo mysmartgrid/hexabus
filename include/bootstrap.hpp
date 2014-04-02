@@ -54,6 +54,8 @@ class BootstrapSocket {
 		bool receive_wait(int timeout = -1);
 		std::pair<std::vector<uint8_t>, sockaddr_ieee802154> receive();
 		void send(const void* msg, size_t len, const sockaddr_ieee802154& peer);
+
+		int fd() const { return _fd; }
 };
 
 class PairingHandler : public BootstrapSocket {
@@ -74,6 +76,8 @@ class ResyncHandler : public BootstrapSocket {
 
 		void run_once();
 		void force(int attempts = 10, int interval = 1);
+
+		using BootstrapSocket::fd;
 };
 
 #endif

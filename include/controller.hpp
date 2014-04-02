@@ -24,6 +24,7 @@ struct Controller : private nl::socket {
 	void setup_dev(const std::string& dev);
 	void start(const std::string& dev, const PAN& pan, uint16_t short_addr = 0xfffe);
 	NetDevice add_netdev(const Phy& phy, uint64_t addr, const std::string& name = "");
+	NetDevice add_monitor(const std::string& phy, const std::string& name = "");
 	void remove_netdev(const std::string& name);
 	Key get_out_key(const std::string& iface);
 
