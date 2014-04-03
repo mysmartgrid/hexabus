@@ -56,7 +56,7 @@ std::pair<std::vector<uint8_t>, sockaddr_ieee802154> BootstrapSocket::receive()
 	int len = 0;
 	do {
 		len = recvfrom(_fd, &packet[0], packet.size(), 0, addr, &peerlen);
-	} while (len == -EINTR);
+	} while (len < 0 && errno == EINTR);
 	if (len < 0)
 		throw std::runtime_error(strerror(errno));
 
@@ -72,7 +72,7 @@ void BootstrapSocket::send(const void* msg, size_t len, const sockaddr_ieee80215
 	ssize_t sent = 0;
 	do {
 		sent = sendto(_fd, msg, len, 0, addr, peerlen);
-	} while (sent == -EINTR);
+	} while (sent < 0 && errno == EINTR);
 	if (sent < 0)
 		throw std::runtime_error(strerror(errno));
 }
@@ -169,11 +169,8 @@ void ResyncHandler::run_once()
 	sockaddr_ieee802154 peer;
 
 	boost::tie(recv_data, peer) = receive();
-	if (!recv_data.size() || recv_data[0] != HXB_B_RESYNC_REQUEST)
+	if (recv_data.size() != 1 || recv_data[0] != HXB_B_RESYNC_REQUEST)
 		return;
-
-	if (recv_data.size() != 1)
-		throw std::runtime_error("invalid RESYNC_REQUEST");
 
 	packet.msg = HXB_B_RESYNC_RESPONSE;
 

@@ -59,6 +59,8 @@ void log_std(int level, const std::string& str)
 
 
 
+struct poll_err {};
+
 void resyncd_child(const std::string& iface, bool daemonize)
 {
 	void (*die)(const std::string& str, bool iserr, int code);
@@ -84,48 +86,53 @@ void resyncd_child(const std::string& iface, bool daemonize)
 
 	fds[0].fd = sigfd;
 	fds[0].events = POLLIN;
-	try {
-		ResyncHandler rh(iface);
 
-		fds[1].fd = rh.fd();
-		fds[1].events = POLLIN;
+	for (;;) {
+		try {
+			ResyncHandler rh(iface);
 
-		while (true) {
-			int rc = poll(fds, 2, -1);
+			fds[1].fd = rh.fd();
+			fds[1].events = POLLIN;
 
-			if (rc < 0 && errno == EINTR) {
-				continue;
-			} else if (rc < 0) {
-				log(LOG_ERR, "poll failed");
-				poll(0, 0, 10000);
-			}
+			while (true) {
+				int rc = poll(fds, 2, -1);
 
-			if (fds[0].revents & POLLIN) {
-				int sig = daemon_signal_next();
+				if (rc < 0 && errno == EINTR) {
+					continue;
+				} else if (rc < 0) {
+					throw poll_err();
+				}
 
-				if (sig < 0)
-					die("signal processing failed", true, -1);
+				if (fds[0].revents & POLLIN) {
+					int sig = daemon_signal_next();
 
-				switch (sig) {
-				case SIGINT:
-				case SIGTERM:
-				case SIGQUIT:
-					log(LOG_INFO, "shutting down");
-					return;
+					if (sig < 0)
+						die("signal processing failed", true, -1);
 
-				default:
-					die("unknown signal received", false, -1);
-					return;
+					switch (sig) {
+					case SIGINT:
+					case SIGTERM:
+					case SIGQUIT:
+						log(LOG_INFO, "shutting down");
+						return;
+
+					default:
+						die("unknown signal received", false, -1);
+						return;
+					}
+				}
+				if (fds[1].revents & POLLIN) {
+					rh.run_once();
 				}
 			}
-			if (fds[1].revents & POLLIN) {
-				rh.run_once();
-			}
+		} catch (const poll_err& e) {
+			log(LOG_ERR, std::string("poll failed: ") + strerror(errno));
+		} catch (const std::exception& e) {
+			log(LOG_ERR, std::string("error: ") + e.what());
+		} catch (...) {
+			log(LOG_ERR, "failed: unknown error");
 		}
-	} catch (const std::exception& e) {
-		die(std::string("failed: ") + e.what(), false, 4);
-	} catch (...) {
-		die("failed: unknown error", false, 4);
+		poll(0, 0, 10000);
 	}
 }
 

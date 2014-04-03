@@ -443,7 +443,6 @@ int main(int argc, const char* argv[])
 				throw no_arg();
 			}
 			return 0;
-//			return run_resync(next());
 		}
 
 		case C_LIST_KEYS:
