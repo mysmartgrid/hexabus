@@ -1,0 +1,5 @@
+device slave {
+  #ip 2323::50:c4ff:fe04:81d6;
+  ip slaveip;
+  eids { 1 }
+}

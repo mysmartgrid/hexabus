@@ -1,0 +1,5 @@
+device master {
+  #ip 2323::50:c4ff:fe04:8341;
+  ip masterip;
+  eids { 1, 2, 4 }
+}
