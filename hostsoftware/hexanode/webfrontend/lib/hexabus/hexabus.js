@@ -133,17 +133,58 @@ var hexabus = function() {
 	};
 
 	this.master_slave_sm = function(msg, cb) {
-		// Create hbc files
-			//cp master, master_slave
-			//replace masterip
-			//foreach slave
-				//cp slave to x
-				//replace slave by x, slaveip
-				//add include x to front, instance x to back of master_slave
-		// Compile
+		var sm_folder = 'state_machines/';
+		var sm_build = sm_folder+'build/';
+		
+		exec('cp '+sm_folder+'master.hbh '+sm_folder+'master_slave.hbc '+sm_build, function(error, stdout, stderr) {
+			if(!error) {
+				var data=fs.readFileSync(sm_build+'master.hbh', { encoding: 'utf8' });
+				data = data.replace('masterip', msg.master.ip);
+				fs.writeFileSync(sm_build+'master.hbh', data, { encoding: 'utf8' });
+				
+				var ms_data = fs.readFileSync(sm_build+'master_slave.hbc', { encoding: 'utf8' });
+				ms_data = ms_data.replace(/threshold/g, msg.threshold);
+console.log(ms_data)
+		var cmd = 'cp '+sm_folder+'slave.hbh '+sm_build+'slave0.hbh';
+		for(var i=1; i<Object.keys(msg.slaves).length; i++) {
+			cmd = cmd+' && cp '+sm_folder+'slave.hbh '+sm_build+'slave'+counter+'.hbh'
+		}
+			exec(cmd, function(error, stdout, stderr) {
+				if(!error) {
+					var counter = 0;
+					for(var slave in msg.slaves) {
+						data = fs.readFileSync(sm_build+'slave'+counter+'.hbh', { encoding: 'utf8' });
+						data = data.replace('device slave', 'device slave'+counter);
+						data = data.replace('slaveip', msg.slaves[slave].ip);
+						fs.writeFileSync(sm_build+'slave'+counter+'.hbh', data, { encoding: 'utf8' });
+
+						ms_data = 'include slave'+counter+'.hbh;\n' + ms_data;
+						ms_data = ms_data + 'instance slave_instance'+counter+' : slave_module (master, slave'+counter+', 0);\n';
+						counter++;
+					}
+					fs.writeFileSync(sm_build+'master_slave.hbc', ms_data, { encoding: 'utf8' });
+					exec('hbcomp '+sm_build+'master_slave.hbc -o '+sm_build+'tmp -d '+sm_folder+'datatypes.hb', function(error, stdout, stderr) {
+						console.log('bla')
+						console.log(stdout)
+						if(!error) {
+							exec('hbasm '+sm_build+'tmpmaster.hba -d '+sm_folder+'datatypes.hb -o '+sm_build+'master', function(error, stdout, stderr) {
+								if(!error) {
+									for(var i=0; i<Object.keys(msg.slaves).length; i++) {
+										exec('hbasm '+sm_build+'tmpslave'+i+'.hba -d '+sm_folder+'datatypes.hb -o '+sm_build+'slave'+i, function(error, stdout, stderr) {
+										});
+									}
+								}
+							});
+						}
+					});
+				}
+			});
+
+			}
 		// upload
 		// cb
-	};
-};
+		});
+		};
+}
 
 module.exports = hexabus;

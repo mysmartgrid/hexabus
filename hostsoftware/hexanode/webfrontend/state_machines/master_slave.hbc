@@ -1,0 +1,51 @@
+include master.hbh;
+#include slave.hbh;
+include std_eid.hbh;
+
+module slave_module ($MASTER, $SLAVE, $DEFAULT) {
+  states {
+	init, on, off
+  }
+  in(init) {
+    always {
+      write $SLAVE.On := $DEFAULT;
+      goto off;
+    }
+  }
+  in(on) {
+    if(ep $MASTER.PowerMeter < threshold) {
+      write $SLAVE.On := 0;
+      goto off;
+    }
+  }
+  in(off) {
+    if(ep $MASTER.PowerMeter >= threshold) {
+      write $SLAVE.On := 1;
+      goto on;
+    }
+  }
+}
+
+#instance slave_instance : slave_module (master, slave, 0);
+
+machine master_machine {
+  states { init, on, off }
+  in(init) {
+    always {
+      write master.On := 1;
+      goto on;
+    }
+  }
+  in(on) {
+    if (ep master.Button == 1) {
+      write master.On := 0;
+      goto off;
+    }
+  }
+  in(off) {
+    if (ep master.Button == 1) {
+      write master.On := 1;
+      goto on;
+    }
+  }
+}
