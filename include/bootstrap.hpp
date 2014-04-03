@@ -56,6 +56,9 @@ class BootstrapSocket {
 		void send(const void* msg, size_t len, const sockaddr_ieee802154& peer);
 
 		int fd() const { return _fd; }
+
+	public:
+		void bind(const ieee802154_addr& addr);
 };
 
 class PairingHandler : public BootstrapSocket {

@@ -13,6 +13,8 @@
 
 #include <libdaemon/daemon.h>
 
+#include "controller.hpp"
+
 namespace {
 
 void die(const std::string& str, bool err = false, int code = 0)
@@ -61,6 +63,13 @@ void log_std(int level, const std::string& str)
 
 struct poll_err {};
 
+void bind_to_iface(BootstrapSocket& sock, const std::string& iface)
+{
+	Controller ctrl;
+
+	sock.bind(ctrl.list_netdevs(iface).at(0).addr_raw());
+}
+
 void resyncd_child(const std::string& iface, bool daemonize)
 {
 	void (*die)(const std::string& str, bool iserr, int code);
@@ -90,6 +99,8 @@ void resyncd_child(const std::string& iface, bool daemonize)
 	for (;;) {
 		try {
 			ResyncHandler rh(iface);
+
+			bind_to_iface(rh, iface);
 
 			fds[1].fd = rh.fd();
 			fds[1].events = POLLIN;

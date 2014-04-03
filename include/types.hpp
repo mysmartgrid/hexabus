@@ -7,6 +7,8 @@
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
 
+#include "ieee802154.h"
+
 class KeyLookupDescriptor {
 	private:
 		uint8_t _mode;
@@ -138,6 +140,8 @@ class NetDevice {
 		uint64_t addr() const { return *_addr; }
 		uint16_t short_addr() const { return *_short_addr; }
 		uint16_t pan_id() const { return *_pan_id; }
+
+		ieee802154_addr addr_raw() const;
 
 		bool has_macparams() const { return _txpower; }
 		int txpower() const { return *_txpower; }

@@ -21,3 +21,17 @@ Key Key::indexed(uint8_t frames, uint8_t cmd_frames, const uint8_t* key, uint8_t
 {
 	return Key(KeyLookupDescriptor(3, id, source), frames, cmd_frames, key);
 }
+
+
+
+ieee802154_addr NetDevice::addr_raw() const
+{
+	ieee802154_addr result;
+	uint64_t hwaddr = addr();
+
+	result.addr_type = IEEE802154_ADDR_LONG;
+	result.pan_id = pan_id();
+	memcpy(result.hwaddr, &hwaddr, sizeof(hwaddr));
+
+	return result;
+}

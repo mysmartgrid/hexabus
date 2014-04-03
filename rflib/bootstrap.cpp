@@ -46,6 +46,18 @@ bool BootstrapSocket::receive_wait(int timeout)
 	return rc > 0;
 }
 
+void BootstrapSocket::bind(const ieee802154_addr& addr)
+{
+	sockaddr_ieee802154 saddr;
+	sockaddr* ap = reinterpret_cast<sockaddr*>(&saddr);
+
+	saddr.family = AF_IEEE802154;
+	saddr.addr = addr;
+
+	if (::bind(_fd, ap, sizeof(saddr)) < 0)
+		throw std::runtime_error(strerror(errno));
+}
+
 std::pair<std::vector<uint8_t>, sockaddr_ieee802154> BootstrapSocket::receive()
 {
 	std::vector<uint8_t> packet(128, 0);

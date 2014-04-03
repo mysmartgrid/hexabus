@@ -175,6 +175,7 @@ int run_pairing(const std::string& iface, int timeout)
 	PairingHandler handler(iface, dev.pan_id());
 
 	try {
+		handler.bind(dev.addr_raw());
 		handler.run_once(timeout);
 	} catch (const std::exception& e) {
 		std::cerr << "pair: " << e.what() << std::endl;
@@ -185,23 +186,6 @@ int run_pairing(const std::string& iface, int timeout)
 	}
 
 	return 0;
-}
-
-int run_resync(const std::string& dev)
-{
-	ResyncHandler resync(dev);
-
-	while (true) {
-		try {
-			resync.run_once();
-		} catch (const std::exception& e) {
-			std::cerr << "resyncd: " << e.what() << std::endl;
-			return 1;
-		} catch (...) {
-			std::cerr << "resyncd failed" << std::endl;
-			return 1;
-		}
-	}
 }
 
 int dump_phys()
