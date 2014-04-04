@@ -337,8 +337,7 @@ void help(std::ostream& os)
 		<< "  setup                     set up a WPAN and cryptographic state from EEPROM" << std::endl
 		<< "    [wpan]                  name the wpan device <wpan>" << std::endl
 		<< "    [lowpan]                name the lowpan device <lowpan>" << std::endl
-		<< "  setup-random              set up a new WPAN, reusing only the MAC from EEPROM" << std::endl
-		<< "  setup-random-full         set up a new WPAN, reusing nothing from EEPROM" << std::endl
+		<< "  setup-random              set up a new WPAN with MAC address from EEPROM" << std::endl
 		<< "  pair <iface>              pair one device to <iface>" << std::endl
 		<< "    timeout <s>             sets timeout to <s> seconds" << std::endl
 		<< "  resyncd <iface>           control resync process on <iface>" << std::endl
