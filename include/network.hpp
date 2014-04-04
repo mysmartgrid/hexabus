@@ -12,7 +12,8 @@
 class Network {
 	private:
 		enum {
-			VERSION_0 = 0,
+			VERSION_FACTORY_NEW = 0,
+			VERSION_1 = 1,
 
 			MAX_KEYS = 16,
 			MAX_DEVICES = 256,
@@ -34,6 +35,8 @@ class Network {
 		static Network random(uint64_t hwaddr = 0xFFFFFFFFFFFFFFFFULL);
 
 		void save(Eeprom& target);
+
+		static void init_eeprom(Eeprom& target, uint64_t addr);
 
 		static Network load(Eeprom& source);
 

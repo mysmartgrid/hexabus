@@ -153,7 +153,7 @@ void Network::save(Eeprom& target)
 	std::vector<uint8_t> stream;
 	BinaryFormatter fmt(stream);
 
-	fmt.put_u8(VERSION_0);
+	fmt.put_u8(VERSION_1);
 	fmt.put_u16(_pan.pan_id());
 	fmt.put_u8(_pan.page());
 	fmt.put_u8(_pan.channel());
@@ -178,28 +178,48 @@ Network Network::load(Eeprom& source)
 	std::vector<uint8_t> stream = *source.read_stream();
 	BinaryFormatter fmt(stream);
 
-	if (fmt.get_u8() != VERSION_0)
-		throw std::runtime_error("can't load");
+	uint8_t version = fmt.get_u8();
 
-	uint16_t pan_id = fmt.get_u16();
-	uint16_t page = fmt.get_u8();
-	uint16_t channel = fmt.get_u8();
+	if (version == VERSION_FACTORY_NEW) {
+		uint64_t hwaddr = fmt.get_u64();
 
-	uint16_t short_addr = fmt.get_u16();
-	uint64_t hwaddr = fmt.get_u64();
-	uint64_t frame_counter = fmt.get_u32();
-	KeyLookupDescriptor out_key = load_kld(fmt);
+		return random(hwaddr);
+	}
 
-	Network result(PAN(pan_id, page, channel), short_addr, hwaddr, out_key,
-			frame_counter);
+	if (version == VERSION_1) {
+		uint16_t pan_id = fmt.get_u16();
+		uint16_t page = fmt.get_u8();
+		uint16_t channel = fmt.get_u8();
 
-	uint8_t keys = fmt.get_u8();
-	while (keys-- > 0)
-		result._keys.push_back(load_key(fmt));
+		uint16_t short_addr = fmt.get_u16();
+		uint64_t hwaddr = fmt.get_u64();
+		uint64_t frame_counter = fmt.get_u32();
+		KeyLookupDescriptor out_key = load_kld(fmt);
 
-	uint8_t devices = fmt.get_u8();
-	while (devices-- > 0)
-		result._devices.push_back(load_device(fmt));
+		Network result(PAN(pan_id, page, channel), short_addr,
+				hwaddr, out_key, frame_counter);
 
-	return result;
+		uint8_t keys = fmt.get_u8();
+		while (keys-- > 0)
+			result._keys.push_back(load_key(fmt));
+
+		uint8_t devices = fmt.get_u8();
+		while (devices-- > 0)
+			result._devices.push_back(load_device(fmt));
+
+		return result;
+	}
+
+	throw std::runtime_error("can't load");
+}
+
+void Network::init_eeprom(Eeprom& target, uint64_t addr)
+{
+	std::vector<uint8_t> stream;
+	BinaryFormatter fmt(stream);
+
+	fmt.put_u8(VERSION_FACTORY_NEW);
+	fmt.put_u64(addr);
+
+	target.write_stream(stream);
 }

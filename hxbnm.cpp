@@ -58,8 +58,7 @@ int teardown(const std::string& iface = "")
 				ctrl.remove_netdev(dev.name());
 			} catch (const nl::nl_error& e) {
 				if (e.error() != NLE_NODEV) {
-					std::cerr << "teardown: " << e.what() << std::endl;
-					return 1;
+					throw;
 				}
 			}
 		}
@@ -146,7 +145,9 @@ int setup(const std::string& file, const std::string& wpan, const std::string& l
 
 	// on the assumption that 10kk is an upper limit on packet transmissions
 	// in the interim
-	net.frame_counter(net.frame_counter() + 10000000);
+	if (net.frame_counter() != 0) {
+		net.frame_counter(net.frame_counter() + 10000000);
+	}
 
 	return setup_network(net, wpan, lowpan);
 }
@@ -174,16 +175,8 @@ int run_pairing(const std::string& iface, int timeout)
 
 	PairingHandler handler(iface, dev.pan_id());
 
-	try {
-		handler.bind(dev.addr_raw());
-		handler.run_once(timeout);
-	} catch (const std::exception& e) {
-		std::cerr << "pair: " << e.what() << std::endl;
-		return 1;
-	} catch (...) {
-		std::cerr << "pair" << std::endl;
-		return 1;
-	}
+	handler.bind(dev.addr_raw());
+	handler.run_once(timeout);
 
 	return 0;
 }
@@ -246,6 +239,41 @@ int add_monitor(const std::string& phy, const std::string& name)
 	return 0;
 }
 
+int init_eeprom(const std::string& file, const std::string& mac)
+{
+	std::vector<std::string> parts;
+
+	parts.push_back("");
+	BOOST_FOREACH(char c, mac) {
+		if (isxdigit(c)) {
+			parts.back() += c;
+		} else if (c == ':') {
+			parts.push_back("");
+		} else {
+			throw std::runtime_error("incorrect MAC");
+		}
+	}
+
+	if (parts.size() != 8) {
+		throw std::runtime_error("incorrect MAC");
+	}
+
+	uint64_t addr = 0;
+	BOOST_FOREACH(const std::string& part, parts) {
+		if (part.size() > 2) {
+			throw std::runtime_error("incorrect MAC");
+		}
+		addr <<= 8;
+		addr |= strtoul(part.c_str(), NULL, 16);
+	}
+
+	Eeprom eep(file);
+
+	Network::init_eeprom(eep, htobe64(addr));
+
+	return 0;
+}
+
 enum {
 	C_HELP,
 	C_TEARDOWN_ALL,
@@ -263,6 +291,7 @@ enum {
 	C_LIST_PHYS,
 	C_SAVE_EEPROM,
 	C_MONITOR,
+	C_INIT_EEPROM,
 
 	C_MAX_COMMAND__,
 };
@@ -284,6 +313,7 @@ static const char* commands[] = {
 	"list-phys",
 	"save-eeprom",
 	"monitor",
+	"init-eeprom",
 };
 
 int parse_command(const std::string& cmd)
@@ -451,10 +481,13 @@ int main(int argc, const char* argv[])
 			return dump_phys();
 
 		case C_SAVE_EEPROM:
-			return save_eeprom("/dev/i2c-1", next());
+			return save_eeprom(EEP_FILE, next());
 
 		case C_MONITOR:
 			return add_monitor(next(), next(""));
+
+		case C_INIT_EEPROM:
+			return init_eeprom(EEP_FILE, next());
 
 		default:
 			throw no_arg();
