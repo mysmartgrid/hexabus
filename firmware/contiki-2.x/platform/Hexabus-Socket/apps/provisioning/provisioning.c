@@ -150,7 +150,6 @@ static int query_with_timeout(uint8_t msg, uint8_t resp, uint16_t timeout)
 		if (rcv > 0) {
 			packetbuf_set_datalen(rcv);
 			NETSTACK_RDC.input();
-			printf("got %i\n", packetbuf_datalen());
 			struct bootstrap_request* packet = packetbuf_dataptr();
 			if (packet->msg == resp && packetbuf_datalen() == msg_lengths[resp])
 				return 0;
