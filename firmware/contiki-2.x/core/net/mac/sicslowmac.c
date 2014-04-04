@@ -253,7 +253,8 @@ decrypt_payload(frame802154_t *pf)
 		return 1;
 	}
 
-	mac_framecnt = pf->aux_hdr.frame_counter;
+	if (pf->aux_hdr.frame_counter > mac_framecnt)
+		mac_framecnt = pf->aux_hdr.frame_counter;
 	return 0;
 }
 
