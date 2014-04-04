@@ -111,7 +111,7 @@ struct start : msg802154 {
 
 struct mac_setparams : msg802154 {
 	mac_setparams(const std::string& dev)
-		: msg802154(NLM_F_REQUEST, IEEE802154_SET_PHYPARAMS)
+		: msg802154(NLM_F_REQUEST, IEEE802154_SET_MACPARAMS)
 	{
 		put(IEEE802154_ATTR_DEV_NAME, dev);
 	}
