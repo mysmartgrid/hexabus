@@ -126,6 +126,7 @@ def generate_interfaces_fragment(iftype, prefix, interface, assume_usb = False):
 		result = "auto {0}\n" + result
 		if not assume_usb:
 			result += ("	pre-up hxbnm setup wpan0 {0} && ip link set wpan0 up\n" +
+				"	post-up hxbnm save-eeprom wpan0\n" +
 				"	post-down (hxbnm save-eeprom wpan0; hxbnm teardown wpan0)\n")
 		result = result.format(interface)
 	else:
