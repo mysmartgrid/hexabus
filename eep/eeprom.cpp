@@ -45,10 +45,25 @@ Eeprom::Eeprom(const std::string& file)
 		close(fd);
 		throw std::runtime_error(strerror(errno));
 	}
+
+	flock lock;
+	memset(&lock, 0, sizeof(lock));
+	lock.l_type = F_WRLCK;
+	lock.l_whence = SEEK_SET;
+	if (fcntl(fd, F_SETLKW, &lock) < 0) {
+		close(fd);
+		throw std::runtime_error(strerror(errno));
+	}
 }
 
 Eeprom::~Eeprom()
 {
+	flock lock;
+	memset(&lock, 0, sizeof(lock));
+	lock.l_type = F_UNLCK;
+	lock.l_whence = SEEK_SET;
+	fcntl(fd, F_SETLK, &lock);
+
 	close(fd);
 }
 
