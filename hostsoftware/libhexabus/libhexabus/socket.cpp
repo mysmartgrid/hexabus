@@ -13,6 +13,7 @@
 #include <cstring>
 
 #include <boost/bind.hpp>
+#include <boost/scope_exit.hpp>
 
 
 using namespace hexabus;
@@ -82,7 +83,11 @@ void SocketBase::packetReceivedHandler(const boost::system::error_code& error, s
 	} else {
 		Packet::Ptr packet;
 
-		beginReceive();
+		SocketBase* _this = this;
+		BOOST_SCOPE_EXIT((_this)) {
+			_this->beginReceive();
+		} BOOST_SCOPE_EXIT_END
+
 		try {
 			packet = deserialize(&data[0], std::min(size, data.size()));
 		} catch (const GenericException& ge) {
