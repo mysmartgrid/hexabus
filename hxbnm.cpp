@@ -465,7 +465,7 @@ int main(int argc, const char* argv[])
 			return dump_devices(next(""));
 
 		case C_LIST_NETDEVS:
-			return dump_devices(next(""));
+			return dump_netdevs(next(""));
 
 		case C_LIST_PARAMS:
 			return dump_params(next());
