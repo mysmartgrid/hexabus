@@ -55,6 +55,11 @@ void DeviceInterrogator::timeout(const boost::system::error_code& err)
 		std::pop_heap(running_queries.begin(), running_queries.end());
 		base_query& back = running_queries.back();
 
+		DeviceInterrogator* _this = this;
+		BOOST_SCOPE_EXIT((_this)) {
+			_this->reschedule_timer();
+		} BOOST_SCOPE_EXIT_END
+
 		if (back.retries++ == back.max_retries) {
 			BOOST_SCOPE_EXIT((&running_queries)) {
 				running_queries.pop_back();
@@ -63,12 +68,20 @@ void DeviceInterrogator::timeout(const boost::system::error_code& err)
 			back.failure(NetworkException("Device not responding",
 						boost::system::error_code(boost::system::errc::timed_out, boost::system::generic_category())));
 		} else {
+			try {
+				socket.send(*back.packet, back.device);
+			} catch (const GenericException& e) {
+				back.failure(e);
+				running_queries.pop_back();
+				return;
+			} catch (...) {
+				running_queries.pop_back();
+				throw;
+			}
+
 			back.deadline += boost::posix_time::seconds(1);
 			std::push_heap(running_queries.begin(), running_queries.end());
-			socket.send(*back.packet, back.device);
 		}
-
-		reschedule_timer();
 	}
 }
 
@@ -88,18 +101,25 @@ void DeviceInterrogator::queue_query(
 		const boost::function<void (const GenericException&)>& failure_cb,
 		int max_tries)
 {
-	base_query query = { 0 };
+	base_query query;
+	query.retries = 0;
 	query.max_retries = max_tries - 1;
 	query.device = device;
+	query.deadline = boost::asio::deadline_timer::traits_type::now() + boost::posix_time::seconds(1);
 	query.filter = filter;
 	query.packet = packet;
 	query.response = response_cb;
 	query.failure = failure_cb;
-	query.deadline = boost::asio::deadline_timer::traits_type::now() + boost::posix_time::seconds(1);
+
+	try {
+		socket.send(*query.packet, query.device);
+	} catch (const GenericException& e) {
+		failure_cb(e);
+		return;
+	}
 
 	running_queries.push_back(query);
 	std::push_heap(running_queries.begin(), running_queries.end());
-	socket.send(*query.packet, query.device);
 
 	if (running_queries.size() == 1) {
 		reschedule_timer();
