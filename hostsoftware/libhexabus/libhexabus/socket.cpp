@@ -127,18 +127,23 @@ static void receive_handler(
 		const boost::asio::ip::udp::endpoint& remote,
 		std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint>& target,
 		const SocketBase::filter_t& filter,
-		boost::asio::io_service& io)
+		boost::asio::io_service& io,
+		boost::signals2::scoped_connection& sc)
 {
 	if (filter(*packet, remote)) {
 		target = std::make_pair(packet, remote);
 		io.stop();
+		sc.disconnect();
 	}
 }
 
-static void timeout_handler(const boost::system::error_code& error, boost::asio::io_service& io)
+static void timeout_handler(const boost::system::error_code& error,
+		boost::asio::io_service& io,
+		boost::signals2::scoped_connection& sc)
 {
 	if (!error) {
 		io.stop();
+		sc.disconnect();
 	}
 }
 
@@ -153,19 +158,30 @@ std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> SocketBase::receive(
 {
 	std::pair<Packet::Ptr, boost::asio::ip::udp::endpoint> result;
 
+	boost::signals2::scoped_connection rc(
+		packetReceived.connect(
+			boost::bind(
+				receive_handler,
+				_1,
+				_2,
+				boost::ref(result),
+				boost::cref(filter),
+				boost::ref(io),
+				boost::ref(rc))));
+	boost::signals2::scoped_connection ec(
+		asyncError.connect(
+			boost::bind(error_handler, _1)));
+
 	boost::asio::deadline_timer timer(io);
 	if (!timeout.is_pos_infinity()) {
 		timer.expires_from_now(timeout);
 		timer.async_wait(
-				boost::bind(timeout_handler, boost::asio::placeholders::error, boost::ref(io)));
+			boost::bind(
+				timeout_handler,
+				boost::asio::placeholders::error,
+				boost::ref(io),
+				boost::ref(rc)));
 	}
-
-	boost::signals2::scoped_connection rc(
-		packetReceived.connect(
-			boost::bind(receive_handler, _1, _2, boost::ref(result), boost::cref(filter), boost::ref(io))));
-	boost::signals2::scoped_connection ec(
-		asyncError.connect(
-			boost::bind(error_handler, _1)));
 
 	beginReceive();
 
