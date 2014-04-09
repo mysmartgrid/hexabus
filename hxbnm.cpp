@@ -255,8 +255,17 @@ int remove_device(const std::string& iface, uint64_t hwaddr)
 	return 0;
 }
 
+int dump_eeprom(const std::string& file)
+{
+	Eeprom eep(file);
+
+	eep.dump_contents();
+	return 0;
+}
+
 enum {
 	C_HELP,
+	C_HELP_ALL,
 	C_TEARDOWN_ALL,
 	C_TEARDOWN,
 	C_SETUP,
@@ -274,12 +283,14 @@ enum {
 	C_MONITOR,
 	C_INIT_EEPROM,
 	C_REMOVE_DEV,
+	C_DUMP_EEPROM,
 
 	C_MAX_COMMAND__,
 };
 
 static const char* commands[] = {
 	"help",
+	"help-all",
 	"teardown-all",
 	"teardown",
 	"setup",
@@ -297,6 +308,7 @@ static const char* commands[] = {
 	"monitor",
 	"init-eeprom",
 	"remove-device",
+	"dump-eeprom",
 };
 
 int parse_command(const std::string& cmd)
@@ -310,12 +322,11 @@ int parse_command(const std::string& cmd)
 	return -1;
 }
 
-void help(std::ostream& os)
+void help(std::ostream& os, bool all = false)
 {
 	os << "Usage: <command> [args]" << std::endl
 		<< std::endl
 		<< "  help                      show this help" << std::endl
-		<< "  teardown-all              tear down all WPANs and associated devices" << std::endl
 		<< "  teardown <iface>          tear down <iface> and associated devices" << std::endl
 		<< "  setup                     set up a WPAN and cryptographic state from EEPROM" << std::endl
 		<< "    [wpan]                  name the wpan device <wpan>" << std::endl
@@ -341,6 +352,19 @@ void help(std::ostream& os)
 		<< "  list <iface>              list key, devices, security parameters and netdevs" << std::endl
 		<< "  list-phys                 list WPAN phys on the system" << std::endl
 		<< "  save-eeprom <iface>       save network on <iface> to EEPROM" << std::endl;
+
+	if (!all)
+		return;
+
+	os
+		<< std::endl
+		<< std::endl
+		<< "  help-all                  show hidden commands" << std::endl
+		<< "  teardown-all              tear down all WPANs and associated devices" << std::endl
+		<< "  setup-random-full         like setup-random, but with random MAC" << std::endl
+		<< "  monitor <phy> [name]      add a monitor device to phy" << std::endl
+		<< "  init-eeprom <MAC>         factory-initialize EEPROM with MAC address" << std::endl
+		<< "  dump-eeprom               dump EEPROM contents to console" << std::endl;
 }
 
 class no_arg {};
@@ -428,6 +452,10 @@ int main(int argc, const char* argv[])
 			help(std::cout);
 			return 0;
 
+		case C_HELP_ALL:
+			help(std::cout, true);
+			return 0;
+
 		case C_TEARDOWN_ALL:
 			return teardown();
 
@@ -504,6 +532,9 @@ int main(int argc, const char* argv[])
 
 			return remove_device(iface, hwaddr);
 		}
+
+		case C_DUMP_EEPROM:
+			return dump_eeprom(EEP_FILE);
 
 		default:
 			throw no_arg();
