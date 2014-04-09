@@ -239,37 +239,18 @@ int add_monitor(const std::string& phy, const std::string& name)
 	return 0;
 }
 
-int init_eeprom(const std::string& file, const std::string& mac)
+int init_eeprom(const std::string& file, uint64_t hwaddr)
 {
-	std::vector<std::string> parts;
-
-	parts.push_back("");
-	BOOST_FOREACH(char c, mac) {
-		if (isxdigit(c)) {
-			parts.back() += c;
-		} else if (c == ':') {
-			parts.push_back("");
-		} else {
-			throw std::runtime_error("incorrect MAC");
-		}
-	}
-
-	if (parts.size() != 8) {
-		throw std::runtime_error("incorrect MAC");
-	}
-
-	uint64_t addr = 0;
-	BOOST_FOREACH(const std::string& part, parts) {
-		if (part.size() > 2) {
-			throw std::runtime_error("incorrect MAC");
-		}
-		addr <<= 8;
-		addr |= strtoul(part.c_str(), NULL, 16);
-	}
-
 	Eeprom eep(file);
 
-	Network::init_eeprom(eep, htobe64(addr));
+	Network::init_eeprom(eep, hwaddr);
+
+	return 0;
+}
+
+int remove_device(const std::string& iface, uint64_t hwaddr)
+{
+	Controller().remove_device(iface, hwaddr);
 
 	return 0;
 }
@@ -292,6 +273,7 @@ enum {
 	C_SAVE_EEPROM,
 	C_MONITOR,
 	C_INIT_EEPROM,
+	C_REMOVE_DEV,
 
 	C_MAX_COMMAND__,
 };
@@ -314,6 +296,7 @@ static const char* commands[] = {
 	"save-eeprom",
 	"monitor",
 	"init-eeprom",
+	"remove-device",
 };
 
 int parse_command(const std::string& cmd)
@@ -340,6 +323,9 @@ void help(std::ostream& os)
 		<< "  setup-random              set up a new WPAN with MAC address from EEPROM" << std::endl
 		<< "  pair <iface>              pair one device to <iface>" << std::endl
 		<< "    timeout <s>             sets timeout to <s> seconds" << std::endl
+		<< "  remove-device             removes a device from the network state" << std::endl
+		<< "    <iface>                 interface the device is registered to" << std::endl
+		<< "    <mac-addr>              MAC address of the device" << std::endl
 		<< "  resyncd <iface>           control resync process on <iface>" << std::endl
 		<< "    run | run-fg | stop" << std::endl
 		<< "      run                   run resync process and daemonize" << std::endl
@@ -399,6 +385,30 @@ class ArgParser {
 			return v ? *v : def;
 		}
 };
+
+uint64_t parse_mac(const std::string& str)
+{
+	const char* cstr = str.c_str();
+	uint64_t result = 0;
+	int groups = 0;
+
+	while (*cstr) {
+		char* end;
+
+		result <<= 8;
+		result |= strtoul(cstr, &end, 16);
+		groups++;
+
+		if ((groups <= 7 && *end != ':') || (groups == 8 && *end) ||
+			!(1 <= end - cstr && end - cstr <= 2)) {
+			throw std::invalid_argument("MAC format invalid");
+		}
+
+		cstr = *end ? end + 1 : end;
+	}
+
+	return htobe64(result);
+}
 
 int main(int argc, const char* argv[])
 {
@@ -486,7 +496,14 @@ int main(int argc, const char* argv[])
 			return add_monitor(next(), next(""));
 
 		case C_INIT_EEPROM:
-			return init_eeprom(EEP_FILE, next());
+			return init_eeprom(EEP_FILE, parse_mac(next()));
+
+		case C_REMOVE_DEV: {
+			std::string iface = next();
+			uint64_t hwaddr = parse_mac(next());
+
+			return remove_device(iface, hwaddr);
+		}
 
 		default:
 			throw no_arg();

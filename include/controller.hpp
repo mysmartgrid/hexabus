@@ -34,6 +34,8 @@ struct Controller : private nl::socket {
 	void add_seclevel(const std::string& dev, const Seclevel& sl);
 	void add_key(const std::string& iface, const Key& key);
 	void add_device(const std::string& iface, const Device& dev);
+
+	void remove_device(const std::string& iface, uint64_t hwaddr);
 };
 
 void create_lowpan_device(const std::string& master, const std::string& lowpan);

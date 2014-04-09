@@ -251,6 +251,17 @@ void Controller::add_device(const std::string& iface, const Device& dev)
 	send(cmd);
 }
 
+void Controller::remove_device(const std::string& iface, uint64_t hwaddr)
+{
+	msgs::del_dev cmd(iface);
+
+	cmd.hwaddr(hwaddr);
+
+	send(cmd);
+}
+
+
+
 struct rtnl_sock {
 	nl_sock* sock;
 
