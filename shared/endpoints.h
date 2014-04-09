@@ -44,4 +44,18 @@
 #define EP_FLUKSO_S01              50UL
 #define EP_FLUKSO_S02              51UL
 
+// endpoints for Goerlitz SmartMeter
+#define EP_GL_IMPORT_L1            52L
+#define EP_GL_IMPORT_L2            53L
+#define EP_GL_IMPORT_L3            54L
+#define EP_GL_EXPORT_POWER         55L
+#define EP_GL_EXPORT_L1            56L
+#define EP_GL_EXPORT_L2            57L
+#define EP_GL_EXPORT_L3            58L
+#define EP_GL_IMPORT_ENERGY        59L
+#define EP_GL_EXPORT_ENERGY        60L
+#define EP_GL_FIRMWARE             61L
+
+
+
 #endif // ENDPOINTS_H_

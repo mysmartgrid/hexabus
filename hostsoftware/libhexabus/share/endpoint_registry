@@ -345,3 +345,72 @@ eid 51 {
 	access R
 	function sensor
 }
+eid 52 {
+        type UINT32
+        description "Import L1"
+	unit "W"
+        access R
+        function sensor
+}
+eid 53 {
+        type UINT32
+        description "Import L2"
+	unit "W"
+        access R
+        function sensor
+}
+eid 54 {
+        type UINT32
+        description "Import L3"
+	unit "W"
+        access R
+        function sensor
+}
+eid 55 {
+        type UINT32
+        description "Export Power"
+	unit "W"
+        access R
+        function sensor
+}
+eid 56 {
+        type UINT32
+        description "Export L1"
+	unit "W"
+        access R
+        function sensor
+}
+eid 57 {
+        type UINT32
+        description "Export L2"
+	unit "W"
+        access R
+        function sensor
+}
+eid 58 {
+        type UINT32
+        description "Export L3"
+	unit "W"
+        access R
+        function sensor
+}
+eid 59 {
+        type UINT32
+        description "Import Energy"
+	unit "kWh"
+        access R
+        function sensor
+}
+eid 60 {
+        type UINT32
+        description "Export Energy"
+	unit "kWh"
+        access R
+        function sensor
+}
+eid 61 {
+        type 128STRING
+        description "Firmware"
+        access R
+        function infrastructure
+}
