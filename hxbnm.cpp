@@ -38,6 +38,7 @@
 
 static const int DEFAULT_PAN_PAGE = 2;
 static const int DEFAULT_PAN_CHANNEL = 0;
+static const char* EEP_FILE = "/dev/i2c-1";
 
 int teardown(const std::string& iface = "")
 {
@@ -167,6 +168,13 @@ int setup_random_full()
 	return setup_network(next);
 }
 
+template<typename T>
+void dump(const std::vector<T>& vec)
+{
+	BOOST_FOREACH(const T& t, vec)
+		std::cout << t << std::endl;
+}
+
 int run_pairing(const std::string& iface, int timeout)
 {
 	Controller ctrl;
@@ -183,42 +191,25 @@ int run_pairing(const std::string& iface, int timeout)
 
 int dump_phys()
 {
-	std::vector<Phy> phys = Controller().list_phys();
-
-	for (size_t i = 0; i < phys.size(); i++) {
-		std::cout << phys[i] << std::endl;
-	}
-
+	dump(Controller().list_phys());
 	return 0;
 }
 
 int dump_keys(const std::string& iface = "")
 {
-	std::vector<Key> keys = Controller().list_keys(iface);
-
-	for (size_t i = 0; i < keys.size(); i++)
-		std::cout << keys[i] << std::endl;
-
+	dump(Controller().list_keys(iface));
 	return 0;
 }
 
 int dump_netdevs(const std::string& iface = "")
 {
-	std::vector<NetDevice> devs = Controller().list_netdevs(iface);
-
-	for (size_t i = 0; i < devs.size(); i++)
-		std::cout << devs[i] << std::endl;
-
+	dump(Controller().list_netdevs(iface));
 	return 0;
 }
 
 int dump_devices(const std::string& iface = "")
 {
-	std::vector<Device> devs = Controller().list_devices(iface);
-
-	for (size_t i = 0; i < devs.size(); i++)
-		std::cout << devs[i] << std::endl;
-
+	dump(Controller().list_devices(iface));
 	return 0;
 }
 
@@ -227,7 +218,6 @@ int dump_params(const std::string& iface)
 	SecurityParameters params = Controller().getparams(iface);
 
 	std::cout << params << std::endl;
-
 	return 0;
 }
 
@@ -244,14 +234,12 @@ int init_eeprom(const std::string& file, uint64_t hwaddr)
 	Eeprom eep(file);
 
 	Network::init_eeprom(eep, hwaddr);
-
 	return 0;
 }
 
 int remove_device(const std::string& iface, uint64_t hwaddr)
 {
 	Controller().remove_device(iface, hwaddr);
-
 	return 0;
 }
 
@@ -284,45 +272,48 @@ enum {
 	C_INIT_EEPROM,
 	C_REMOVE_DEV,
 	C_DUMP_EEPROM,
-
-	C_MAX_COMMAND__,
 };
 
-static const char* commands[] = {
-	"help",
-	"help-all",
-	"teardown-all",
-	"teardown",
-	"setup",
-	"setup-random",
-	"setup-random-full",
-	"pair",
-	"resyncd",
-	"list-keys",
-	"list-devices",
-	"list-params",
-	"list-netdevs",
-	"list",
-	"list-phys",
-	"save-eeprom",
-	"monitor",
-	"init-eeprom",
-	"remove-device",
-	"dump-eeprom",
+static const struct {
+	const char* name;
+	int cmd;
+} commands[] = {
+	{ "help",		C_HELP, },
+	{ "help-all",		C_HELP_ALL, },
+	{ "teardown-all",	C_TEARDOWN_ALL, },
+	{ "teardown",		C_TEARDOWN, },
+	{ "setup",		C_SETUP, },
+	{ "setup-random",	C_SETUP_RANDOM, },
+	{ "setup-random-full",	C_SETUP_RANDOM_FULL, },
+	{ "pair",		C_PAIR, },
+	{ "resyncd",		C_RESYNCD, },
+	{ "list-keys",		C_LIST_KEYS, },
+	{ "list-devices",	C_LIST_DEVICES, },
+	{ "list-params",	C_LIST_PARAMS, },
+	{ "list-netdevs",	C_LIST_NETDEVS, },
+	{ "list",		C_LIST, },
+	{ "list-phys",		C_LIST_PHYS, },
+	{ "save-eeprom",	C_SAVE_EEPROM, },
+	{ "monitor",		C_MONITOR, },
+	{ "init-eeprom",	C_INIT_EEPROM, },
+	{ "remove-device",	C_REMOVE_DEV, },
+	{ "dump-eeprom",	C_DUMP_EEPROM, },
+
+	{ 0, -1 },
 };
 
 int parse_command(const std::string& cmd)
 {
-	for (int i = 0; i < C_MAX_COMMAND__; i++) {
-		if (cmd == commands[i]) {
-			return i;
+	for (int i = 0; commands[i].name; i++) {
+		if (cmd == commands[i].name) {
+			return commands[i].cmd;
 		}
 	}
 
 	return -1;
 }
 
-void help(std::ostream& os, bool all = false)
+int help(std::ostream& os, bool all = false)
 {
 	os << "Usage: <command> [args]" << std::endl
 		<< std::endl
@@ -354,7 +345,7 @@ void help(std::ostream& os, bool all = false)
 		<< "  save-eeprom <iface>       save network on <iface> to EEPROM" << std::endl;
 
 	if (!all)
-		return;
+		return 0;
 
 	os
 		<< std::endl
@@ -365,6 +356,8 @@ void help(std::ostream& os, bool all = false)
 		<< "  monitor <phy> [name]      add a monitor device to phy" << std::endl
 		<< "  init-eeprom <MAC>         factory-initialize EEPROM with MAC address" << std::endl
 		<< "  dump-eeprom               dump EEPROM contents to console" << std::endl;
+
+	return 0;
 }
 
 class no_arg {};
@@ -436,8 +429,6 @@ uint64_t parse_mac(const std::string& str)
 
 int main(int argc, const char* argv[])
 {
-	static const char* EEP_FILE = "/dev/i2c-1";
-
 	if (argc == 1) {
 		help(std::cerr);
 		return 1;
@@ -449,12 +440,10 @@ int main(int argc, const char* argv[])
 	try {
 		switch (command) {
 		case C_HELP:
-			help(std::cout);
-			return 0;
+			return help(std::cout);
 
 		case C_HELP_ALL:
-			help(std::cout, true);
-			return 0;
+			return help(std::cout, true);
 
 		case C_TEARDOWN_ALL:
 			return teardown();
@@ -462,8 +451,11 @@ int main(int argc, const char* argv[])
 		case C_TEARDOWN:
 			return teardown(next());
 
-		case C_SETUP:
-			return setup(EEP_FILE, next(""), next(""));
+		case C_SETUP: {
+			std::string wpan = next("");
+			std::string lowpan = next("");
+			return setup(EEP_FILE, wpan, lowpan);
+		}
 
 		case C_SETUP_RANDOM:
 			return setup_random(EEP_FILE);
@@ -520,8 +512,11 @@ int main(int argc, const char* argv[])
 		case C_SAVE_EEPROM:
 			return save_eeprom(EEP_FILE, next());
 
-		case C_MONITOR:
-			return add_monitor(next(), next(""));
+		case C_MONITOR: {
+			std::string phy = next();
+			std::string name = next("");
+			return add_monitor(phy, name);
+		}
 
 		case C_INIT_EEPROM:
 			return init_eeprom(EEP_FILE, parse_mac(next()));
@@ -529,7 +524,6 @@ int main(int argc, const char* argv[])
 		case C_REMOVE_DEV: {
 			std::string iface = next();
 			uint64_t hwaddr = parse_mac(next());
-
 			return remove_device(iface, hwaddr);
 		}
 
