@@ -63,6 +63,8 @@ struct ReadingLogger : public hexabus::Logger {
 
 			if (unit == "kWh")
 				return "kWh";
+			else if (unit == "Wh")
+				return "Wh";
 			else if (unit == "degC")
 				return "degC";
 			else if (unit == "%r.h.")
