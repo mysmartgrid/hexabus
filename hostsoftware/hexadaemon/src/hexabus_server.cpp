@@ -64,7 +64,7 @@ void HexabusServer::_init() {
 	_socket.onPacketReceived(boost::bind(&HexabusServer::smcontrolhandler, this, _1, _2),
 		(hf::isQuery() || hf::isWrite<uint8_t>()) && hf::eid() == EP_SM_CONTROL);
 	_socket.onPacketReceived(boost::bind(&HexabusServer::smuploadhandler, this, _1, _2),
-		hf::isWrite<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >()
+		hf::isWrite<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >()
 			&& hf::eid() == EP_SM_UP_RECEIVER);
 	_socket.onPacketReceived(boost::bind(&HexabusServer::value_handler, this, _1, _2, 1),
 		hf::isQuery() && hf::eid() == EP_FLUKSO_L1);
@@ -97,7 +97,7 @@ void HexabusServer::epqueryhandler(const hexabus::Packet& p,
 				_socket.send(hexabus::EndpointInfoPacket(EP_SM_CONTROL, HXB_DTYPE_UINT8, "Statemachine control"), from);
 				break;
 			case EP_SM_UP_RECEIVER:
-				_socket.send(hexabus::EndpointInfoPacket(EP_SM_UP_RECEIVER, HXB_DTYPE_66BYTES, "Statemachine upload receiver"), from);
+				_socket.send(hexabus::EndpointInfoPacket(EP_SM_UP_RECEIVER, HXB_DTYPE_65BYTES, "Statemachine upload receiver"), from);
 				break;
 			case EP_FLUKSO_L1:
 				_socket.send(hexabus::EndpointInfoPacket(EP_FLUKSO_L1, HXB_DTYPE_UINT32, "Flukso Phase 1"), from);
@@ -175,7 +175,7 @@ void HexabusServer::smcontrolhandler(const hexabus::Packet& p, const boost::asio
 void HexabusServer::smuploadhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
 	_debug && std::cout << "State machine upload chunk received" << std::endl;
-	const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >* w = dynamic_cast<const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >*>(&p);
+	const hexabus::WritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >* w = dynamic_cast<const hexabus::WritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >*>(&p);
 	if ( w != NULL )
 	{
 		_debug && std::cout << "bytes received" << std::endl;
@@ -295,7 +295,7 @@ void HexabusServer::updateFluksoValues()
 			_debug && std::cout << "Parsing file: " << filename << std::endl;
 
 			//convert hash from hex to binary
-			boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> data;
+			boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> data;
 			unsigned short hash;
 			for ( unsigned int pos = 0; pos < 16; pos++ )
 			{
@@ -333,7 +333,7 @@ void HexabusServer::updateFluksoValues()
 			}
 
 			//pad array with zeros
-			for ( unsigned int pos = 16 + sizeof(value); pos < HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH; pos++ )
+			for ( unsigned int pos = 16 + sizeof(value); pos < HXB_65BYTES_PACKET_BUFFER_LENGTH; pos++ )
 				data[pos] = 0;
 		}
 	}

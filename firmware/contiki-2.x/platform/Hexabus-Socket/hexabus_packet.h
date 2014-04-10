@@ -76,19 +76,19 @@ struct hxb_packet_float {
 
 struct hxb_packet_128string {
 	HXB_VALUEPACKET_HEADER
-	char value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1];
+	char value[HXB_STRING_PACKET_BUFFER_LENGTH + 1];
 	HXB_PACKET_FOOTER
 } __attribute__((packed));
 
-struct hxb_packet_66bytes {
+struct hxb_packet_65bytes {
 	HXB_VALUEPACKET_HEADER
-	char value[HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH];
+	char value[HXB_65BYTES_PACKET_BUFFER_LENGTH];
 	HXB_PACKET_FOOTER
 } __attribute__((packed));
 
 struct hxb_packet_16bytes {
 	HXB_VALUEPACKET_HEADER
-	char value[HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH];
+	char value[HXB_16BYTES_PACKET_BUFFER_LENGTH];
 	HXB_PACKET_FOOTER
 } __attribute__((packed));
 
@@ -106,7 +106,7 @@ union hxb_packet_any {
 	struct hxb_packet_datetime p_datetime;
 	struct hxb_packet_float p_float;
 	struct hxb_packet_128string p_128string;
-	struct hxb_packet_66bytes p_66bytes;
+	struct hxb_packet_65bytes p_65bytes;
 	struct hxb_packet_16bytes p_16bytes;
 };
 

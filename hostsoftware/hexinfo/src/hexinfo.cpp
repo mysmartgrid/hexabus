@@ -134,8 +134,8 @@ void print_ep_info(const endpoint_descriptor& ep)
 			std::cout << "String"; break;
 		case HXB_DTYPE_16BYTES:
 			std::cout << "Binary (16bytes)"; break;
-		case HXB_DTYPE_66BYTES:
-			std::cout << "Binary (66bytes)"; break;
+		case HXB_DTYPE_65BYTES:
+			std::cout << "Binary (65bytes)"; break;
 		default:
 			std::cout << "(unknown)"; break;
 	}

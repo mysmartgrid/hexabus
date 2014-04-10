@@ -32,8 +32,8 @@ class BinarySerializer : public PacketVisitor {
 		void appendValue(const ValuePacket<boost::posix_time::ptime>& value);
 		void appendValue(const ValuePacket<boost::posix_time::time_duration>& value);
 		void appendValue(const ValuePacket<std::string>& value);
-		void appendValue(const ValuePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& value);
-		void appendValue(const ValuePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& value);
+		void appendValue(const ValuePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& value);
+		void appendValue(const ValuePacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& value);
 
 		void appendCRC();
 
@@ -52,8 +52,8 @@ class BinarySerializer : public PacketVisitor {
 		virtual void visit(const InfoPacket<boost::posix_time::ptime>& info);
 		virtual void visit(const InfoPacket<boost::posix_time::time_duration>& info);
 		virtual void visit(const InfoPacket<std::string>& info);
-		virtual void visit(const InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info);
-		virtual void visit(const InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info);
+		virtual void visit(const InfoPacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& info);
+		virtual void visit(const InfoPacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& info);
 
 		virtual void visit(const WritePacket<bool>& write);
 		virtual void visit(const WritePacket<uint8_t>& write);
@@ -62,8 +62,8 @@ class BinarySerializer : public PacketVisitor {
 		virtual void visit(const WritePacket<boost::posix_time::ptime>& write);
 		virtual void visit(const WritePacket<boost::posix_time::time_duration>& write);
 		virtual void visit(const WritePacket<std::string>& write);
-		virtual void visit(const WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write);
-		virtual void visit(const WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write);
+		virtual void visit(const WritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& write);
+		virtual void visit(const WritePacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& write);
 };
 
 BinarySerializer::BinarySerializer(std::vector<char>& target)
@@ -222,12 +222,12 @@ void BinarySerializer::appendValue(const ValuePacket<std::string>& value)
 	appendValueHeader(value);
 
 	_target.insert(_target.end(), value.value().begin(), value.value().end());
-	_target.insert(_target.end(), HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1 - value.value().size(), '\0');
+	_target.insert(_target.end(), HXB_STRING_PACKET_BUFFER_LENGTH + 1 - value.value().size(), '\0');
 
 	appendCRC();
 }
 
-void BinarySerializer::appendValue(const ValuePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& value)
+void BinarySerializer::appendValue(const ValuePacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& value)
 {
 	appendValueHeader(value);
 
@@ -236,7 +236,7 @@ void BinarySerializer::appendValue(const ValuePacket<boost::array<char, HXB_16BY
 	appendCRC();
 }
 
-void BinarySerializer::appendValue(const ValuePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& value)
+void BinarySerializer::appendValue(const ValuePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& value)
 {
 	appendValueHeader(value);
 
@@ -255,8 +255,8 @@ void BinarySerializer::visit(const InfoPacket<float>& info) { appendValue(info);
 void BinarySerializer::visit(const InfoPacket<boost::posix_time::ptime>& info) { appendValue(info); }
 void BinarySerializer::visit(const InfoPacket<boost::posix_time::time_duration>& info) { appendValue(info); }
 void BinarySerializer::visit(const InfoPacket<std::string>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { appendValue(info); }
+void BinarySerializer::visit(const InfoPacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& info) { appendValue(info); }
+void BinarySerializer::visit(const InfoPacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& info) { appendValue(info); }
 
 void BinarySerializer::visit(const WritePacket<bool>& write) { appendValue(write); }
 void BinarySerializer::visit(const WritePacket<uint8_t>& write) { appendValue(write); }
@@ -265,8 +265,8 @@ void BinarySerializer::visit(const WritePacket<float>& write) { appendValue(writ
 void BinarySerializer::visit(const WritePacket<boost::posix_time::ptime>& write) { appendValue(write); }
 void BinarySerializer::visit(const WritePacket<boost::posix_time::time_duration>& write) { appendValue(write); }
 void BinarySerializer::visit(const WritePacket<std::string>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) { appendValue(write); }
+void BinarySerializer::visit(const WritePacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& write) { appendValue(write); }
+void BinarySerializer::visit(const WritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& write) { appendValue(write); }
 
 // }}}
 
@@ -392,13 +392,13 @@ boost::array<char, L> BinaryDeserializer::read_bytes()
 
 std::string BinaryDeserializer::read_string()
 {
-	checkLength(HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
+	checkLength(HXB_STRING_PACKET_BUFFER_LENGTH);
 
-	if (!std::find(_packet + _offset, _packet + _offset + HXB_STRING_PACKET_MAX_BUFFER_LENGTH, '\0'))
+	if (!std::find(_packet + _offset, _packet + _offset + HXB_STRING_PACKET_BUFFER_LENGTH, '\0'))
 		throw BadPacketException("Unterminated string");
 
 	std::string result(_packet + _offset);
-	_offset += HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1;
+	_offset += HXB_STRING_PACKET_BUFFER_LENGTH + 1;
 
 	return result;
 }
@@ -487,10 +487,10 @@ Packet::Ptr BinaryDeserializer::deserialize()
 						return checkInfo<std::string>(info, eid, read_string(), flags);
 
 					case HXB_DTYPE_16BYTES:
-						return checkInfo<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >(info, eid, read_bytes<HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags);
+						return checkInfo<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >(info, eid, read_bytes<HXB_16BYTES_PACKET_BUFFER_LENGTH>(), flags);
 
-					case HXB_DTYPE_66BYTES:
-						return checkInfo<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(info, eid, read_bytes<HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags);
+					case HXB_DTYPE_65BYTES:
+						return checkInfo<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >(info, eid, read_bytes<HXB_65BYTES_PACKET_BUFFER_LENGTH>(), flags);
 
 					default:
 						throw BadPacketException("Invalid datatype");

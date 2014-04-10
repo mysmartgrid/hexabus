@@ -26,7 +26,7 @@
 ;     * FLOAT
 ;     * 128STRING
 ;     * TIMESTAMP
-;     * 66BYTES
+;     * 65BYTES
 ;     * 16BYTES
 ;  * <function> is one of
 ;     * sensor: may periodically broadcast measurement values, when present
@@ -105,7 +105,7 @@ eid 9 {
 }
 
 eid 10 {
-	type 66BYTES
+	type 65BYTES
 	description "Statemachine upload receiver"
 	access W
 	function infrastructure
@@ -133,7 +133,7 @@ eid 20 {
 }
 
 eid 21 {
-	type 66BYTES
+	type 65BYTES
 	description "Power meter [Flukso]"
 	unit "W"
 	access R

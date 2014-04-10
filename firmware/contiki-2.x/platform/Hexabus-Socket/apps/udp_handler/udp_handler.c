@@ -142,9 +142,9 @@ static size_t prepare_for_send(union hxb_packet_any* packet)
 					packet->p_128string.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 					break;
 
-				case HXB_DTYPE_66BYTES:
-					len = sizeof(packet->p_66bytes);
-					packet->p_66bytes.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
+				case HXB_DTYPE_65BYTES:
+					len = sizeof(packet->p_65bytes);
+					packet->p_65bytes.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 					break;
 
 				case HXB_DTYPE_16BYTES:
@@ -280,9 +280,9 @@ static enum hxb_error_code check_crc(const union hxb_packet_any* packet)
 					crc = packet->p_datetime.crc;
 					break;
 
-				case HXB_DTYPE_66BYTES:
-					data_len = sizeof(packet->p_66bytes);
-					crc = packet->p_66bytes.crc;
+				case HXB_DTYPE_65BYTES:
+					data_len = sizeof(packet->p_65bytes);
+					crc = packet->p_65bytes.crc;
 					break;
 
 				case HXB_DTYPE_16BYTES:
@@ -348,8 +348,8 @@ static enum hxb_error_code extract_value(union hxb_packet_any* packet, struct hx
 			value->v_string = packet->p_128string.value;
 			break;
 
-		case HXB_DTYPE_66BYTES:
-			value->v_binary = packet->p_66bytes.value;
+		case HXB_DTYPE_65BYTES:
+			value->v_binary = packet->p_65bytes.value;
 			break;
 
 		case HXB_DTYPE_16BYTES:
@@ -432,10 +432,10 @@ static enum hxb_error_code generate_query_response(union hxb_packet_any* buffer,
 		// these just work, because we pointed v_string and v_binary at the appropriate field in the
 		// packet union.
 		case HXB_DTYPE_128STRING:
-			buffer->p_128string.value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH] = 0;
+			buffer->p_128string.value[HXB_STRING_PACKET_BUFFER_LENGTH] = 0;
 			break;
 
-		case HXB_DTYPE_66BYTES:
+		case HXB_DTYPE_65BYTES:
 		case HXB_DTYPE_16BYTES:
 			break;
 
@@ -458,8 +458,8 @@ static enum hxb_error_code generate_epquery_response(union hxb_packet_any* buffe
 
 	enum hxb_error_code err;
 
-	err = endpoint_get_name(buffer->p_128string.eid, buffer->p_128string.value, HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
-	buffer->p_128string.value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH] = '\0';
+	err = endpoint_get_name(buffer->p_128string.eid, buffer->p_128string.value, HXB_STRING_PACKET_BUFFER_LENGTH);
+	buffer->p_128string.value[HXB_STRING_PACKET_BUFFER_LENGTH] = '\0';
 	if (err) {
 		return err;
 	}

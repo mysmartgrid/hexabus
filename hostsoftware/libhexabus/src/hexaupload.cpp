@@ -233,12 +233,12 @@ class ChunkSender : protected RetryingPacketSender {
 
 		ErrorCode sendChunk(uint8_t chunkId, const boost::array<char, UploadChunkSize>& chunk)
 		{
-			boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> packet_data;
+			boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> packet_data;
 
 			packet_data[0] = chunkId;
 			std::copy(chunk.begin(), chunk.end(), packet_data.begin() + 1);
 
-			return send(hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, packet_data));
+			return send(hexabus::WritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, packet_data));
 		}
 };
 
