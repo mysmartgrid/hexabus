@@ -1,0 +1,5 @@
+device standbykiller {
+  ip 2323::50:c4ff:fe04:8341;
+  eids { 1, 2, 4 }
+}
+   

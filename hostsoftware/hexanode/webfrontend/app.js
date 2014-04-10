@@ -672,9 +672,17 @@ io.sockets.on('connection', function (socket) {
 	});
 
 	on('master_slave_sm', function(msg) {
+		console.log(msg);
 		hexabus.master_slave_sm(msg, function(success, error) {
 			emit('sm_uploaded', {success: success, error: error});
 		});
+	});
+
+	on('standbykiller_sm', function(msg) {
+		console.log(msg);
+		//hexabus.standbykiller_sm(msg, function(success, error) {
+		//	emit('sm_uploaded', {success: success, error: error});
+		//});
 	});
 
 	emit('clear_state');

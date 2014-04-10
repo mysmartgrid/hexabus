@@ -1,0 +1,36 @@
+include standbykiller.hbh;
+include std_eid.hbh;
+
+machine standbykiller_machine {
+  states { init, on, standby, off }
+  in(init) {
+    always {
+      write standbykiller.On := 1;
+      goto on;
+    }
+  }
+  in(on) {
+    if (ep standbykiller.PowerMeter < $THRESHOLD) {
+      goto standby;
+    }
+    if (ep standbykiller.Button == 0) {
+      write standbykiller.On := 0;
+      goto off;
+    }
+  }
+  in(standby) {
+    if (ep standbykiller.PowerMeter >= $THRESHOLD) {
+      goto on;
+    }
+    if (timeout i$TIMEOUT) {
+      write standbykiller.On := 0;
+      goto off;
+    }
+  }
+  in(off) {
+    if (ep standbykiller.Button == 1) {
+      write standbykiller.On := 1;
+      goto on;
+    }
+  }
+}

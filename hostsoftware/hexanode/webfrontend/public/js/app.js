@@ -569,22 +569,20 @@ angular.module('dashboard', [
 }])
 .controller('stateMachine', ['$scope', 'Socket', function($scope, Socket) {
 	$scope.devices = window.known_hexabus_devices;
+	$scope.slaves = {};
+	$scope.addSlave = function() {
+		console.log($scope.slaves)
+		console.log(Object.keys($scope.slaves).length)
+		$scope.slaves['slave'+Object.keys($scope.slaves).length] = {ip: ''}
+	};
 	$scope.send_master_slave = function() {
-		var master, slaves = {};
-		for(device in $scope.devices) {
-			if($scope.devices[device].ip == $scope.masterProp) {
-				master = $scope.devices[device];
-			} else if($scope.devices[device].ip == $scope.slaveProp) {
-				slaves[device] = $scope.devices[device];
-			}
-		}
-		var threshold = $scope.thresholdProp;
-		console.log(master, slaves, threshold);
-		
-		Socket.emit('master_slave_sm', {master: master, slaves: slaves, threshold: threshold});
-	}
+		Socket.emit('master_slave_sm', {master: {ip: $scope.masterProp}, slaves: $scope.slaves, threshold: $scope.thresholdProp});
+	};
+	$scope.send_standykiller = function() {
+		Socket.emit('standbykiller_sm', {device: {ip: $scope.deviceProp}, threshold: $scope.thresholdProp, timeout: $scope.timeoutProp});
+	};
 	var on_sm_uploaded = function(data) {
-	}
+	};
 	Socket.on('sm_uploaded', on_sm_uploaded);
 }])
 .directive('focusIf', [function () {
