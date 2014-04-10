@@ -5,6 +5,13 @@
 # which are defined in the Hexabus spec.                                       #
 ################################################################################
 
+endpoint dd {
+  eid 0;
+  datatype UINT32;
+  access { write }
+}
+
+
 endpoint On {
   eid 1;
   datatype BOOL;

@@ -6,6 +6,7 @@ var os = require('os');
 var fs = require('fs');
 var nconf = require('nconf');
 var async = require('async');
+var ejs = require('ejs');
 
 var hexabus = function() {
 	this.rename_device = function(addr, newName, cb) {
@@ -132,82 +133,128 @@ var hexabus = function() {
 			cb(error);
 		});
 	};
+	
+	
+  var StatemachineBuilder = function() {
+    this.ipToID = function(ip) {
+      return ip.replace(/:/g,'_');
+    }
+
+    this.sm_folder = 'state_machines/';
+	  this.sm_build = this.sm_folder+'build/'; 
+    this.targetFileList = [];
+    this.fileContents = {};
+    this.compileTarget = '';
+    this.deviceList = [];
+ 
+    this.addTargetFile = function(src, target, context) {
+      this.targetFileList.push({'src': src, 'target' : target, 'context' : context});
+    }
+  
+    this.setCompileTarget = function(file) {
+      this.compileTarget = file;
+    }
+  
+    this.addDevice = function(devicename) {
+      this.deviceList.push(devicename);
+    }
+  
+    this.readFiles = function(callback) {
+      console.log('Reading template files');
+      var readFile = function(file,callback) {
+        if(!(file.src in this.fileContents)) {
+          console.log('Reading File: ' + file.src);
+          fs.readFile(this.sm_folder + file.src,  { encoding: 'utf8' }, function(err, data) {
+            if(err) {
+              callback(err);
+            }
+            else {
+              this.fileContents[file.src] = data;
+              callback();
+            }}.bind(this));
+        }
+        else {
+          console.log('File ' + file.src + ' is read already.');
+          callback();
+        }
+      }
+      
+      async.eachSeries(this.targetFileList,readFile.bind(this),callback);
+    }
+
+
+    this.renderTemplates = function(callback) {
+      var renderTemplate = function(file, callback) {
+        console.log('Rendering template ' + file.src + ' to ' + file.target);
+        var renderedTemplate = ejs.render(this.fileContents[file.src], file.context);
+        fs.writeFile(this.sm_build + file.target, renderedTemplate, { encoding: 'utf8' }, callback);
+      }
+      
+      async.each(this.targetFileList,renderTemplate.bind(this),callback);
+    }
+
+    this.compileStatmachines = function(callback) {
+      console.log('Compling statemachine');
+      exec('hbcomp ' + this.sm_build +  this.compileTarget + ' -o ' + this.sm_build + ' -d ' + this.sm_folder + 'datatypes.hb',callback);
+    }
+
+    this.assembleStatemachines = function(callback) {
+      var assembleStatemachine = function(device, callback) {
+        console.log('Assembling statemachine ' + device);
+        exec('hbasm ' + this.sm_build + device + '.hba' + ' -d ' + this.sm_folder + 'datatypes.hb -o ' + this.sm_build + device + '.hbs', callback);
+      }
+    
+      async.each(this.deviceList, assembleStatemachine.bind(this), callback);
+    }
+  
+  
+    this.uploadStatemachines = function(callback) {
+      var uploadStatemachine = function(device, callback) { 
+        console.log("Uploading " + device);
+        exec("hexaupload -k -p " + this.sm_build + device + '.hbs', callback);
+      } 
+    
+      async.eachSeries(this.deviceList, uploadStatemachine.bind(this), callback);
+    }
+
+    this.buildStatemachine = function(callback) {
+      async.series([this.readFiles.bind(this), 
+                    this.renderTemplates.bind(this), 
+                    this.compileStatmachines.bind(this),
+                    this.assembleStatemachines.bind(this),
+                    this.uploadStatemachines.bind(this)],callback);
+    }
+    
+  
+  }
+
 
 	this.master_slave_sm = function(msg, cb) {
-		var sm_folder = 'state_machines/';
-		var sm_build = sm_folder+'build/';
-		
-		exec('cp '+sm_folder+'master.hbh '+sm_folder+'master_slave.hbc '+sm_build, function(error, stdout, stderr) {
-			if(!error) {
-				var data=fs.readFileSync(sm_build+'master.hbh', { encoding: 'utf8' });
-				data = data.replace('masterip', msg.master.ip);
-				fs.writeFileSync(sm_build+'master.hbh', data, { encoding: 'utf8' });
-				
-				var ms_data = fs.readFileSync(sm_build+'master_slave.hbc', { encoding: 'utf8' });
-				ms_data = ms_data.replace(/threshold/g, msg.threshold);
-				var cmd = 'cp '+sm_folder+'slave.hbh '+sm_build+'slave0.hbh';
-				for(var i=1; i<Object.keys(msg.slaves).length; i++) {
-					cmd = cmd+' && cp '+sm_folder+'slave.hbh '+sm_build+'slave'+i+'.hbh';
-				}
-				exec(cmd, function(error, stdout, stderr) {
-					if(!error) {
-						var counter = 0;
-						for(var slave in msg.slaves) {
-							data = fs.readFileSync(sm_build+'slave'+counter+'.hbh', { encoding: 'utf8' });
-							data = data.replace('device slave', 'device slave'+counter);
-							data = data.replace('slaveip', msg.slaves[slave].ip);
-							fs.writeFileSync(sm_build+'slave'+counter+'.hbh', data, { encoding: 'utf8' });
+	  var smb = new StatemachineBuilder();
+	  
+    smb.addTargetFile('master.hbh', 'master.hbh', { 'masterip' : msg.master.ip});
+    smb.addDevice('master');
 
-							ms_data = 'include slave'+counter+'.hbh;\n' + ms_data;
-							ms_data = ms_data + 'instance slave_instance'+counter+' : slave_module (master, slave'+counter+', 0);\n';
-							counter++;
-						}
-						fs.writeFileSync(sm_build+'master_slave.hbc', ms_data, { encoding: 'utf8' });
-						exec('hbcomp '+sm_build+'master_slave.hbc -o '+sm_build+'tmp -d '+sm_folder+'datatypes.hb', function(error, stdout, stderr) {
-							if(!error) {
-								var asmfuns = [];
-								asmfuns.push(function(callback) {
-									exec('hbasm '+sm_build+'tmpmaster.hba -d '+sm_folder+'datatypes.hb -o '+sm_build+'master', function(error, stdout, stderr) {
-									});
-									callback();
-								});
-								var uplfuns = [];
-								uplfuns.push(function(callback) {
-									exec('hexaupload -p '+sm_build+'master', function(error, stdout, stderr) {
-									});
-									callback();
-								});
-								var pushFuns = function(i) {
-									asmfuns.push(function(callback) {
-										exec('hbasm '+sm_build+'tmpslave'+i+'.hba -d '+sm_folder+'datatypes.hb -o '+sm_build+'slave'+i, function(error, stdout, stderr) {
-										});
-										callback();
-									});
-									uplfuns.push(function(callback) {
-										exec('hexaupload -p '+sm_build+'slave'+i, function(error, stdout, stderr) {
-										});
-										callback();
-									});
-								};
-								for(var i=0; i<Object.keys(msg.slaves).length; i++) {
-									pushFuns(i);
-								}
-								async.parallel(asmfuns, function(err) {
-									if(!err) {
-										async.series(uplfuns, function(err) {
-											cb(true);
-										});
-									} else {
-										cb(false, err);
-									}
-								});
-							}
-						});
-					}
-				});
-			}
-		});
+    var slavelist = []
+    for(var slave in msg.slaves) {
+      var name = 'slave' + smb.ipToID(msg.slaves[slave].ip);
+      console.log(name);
+      smb.addTargetFile('slave.hbh', name + '.hbh', {'slavename' : name, 'slaveip' : msg.slaves[slave].ip});
+      smb.addDevice(name);
+      slavelist.push(name);
+    }
+    
 
+    smb.addTargetFile('master_slave.hbc', 'master_slave.hbc', {'threshold' : msg.threshold, 'slaves' : slavelist});
+    smb.setCompileTarget('master_slave.hbc');
+
+	  smb.buildStatemachine(function(err) {
+		  console.log(err);
+		  if(!err) {
+			 cb(true);
+	    } else {
+			  cb(false, err);
+		  }});
 	}
 }
 
