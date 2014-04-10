@@ -147,7 +147,7 @@ var hexabus = function() {
 				ms_data = ms_data.replace(/threshold/g, msg.threshold);
 				var cmd = 'cp '+sm_folder+'slave.hbh '+sm_build+'slave0.hbh';
 				for(var i=1; i<Object.keys(msg.slaves).length; i++) {
-					cmd = cmd+' && cp '+sm_folder+'slave.hbh '+sm_build+'slave'+counter+'.hbh';
+					cmd = cmd+' && cp '+sm_folder+'slave.hbh '+sm_build+'slave'+i+'.hbh';
 				}
 				exec(cmd, function(error, stdout, stderr) {
 					if(!error) {
