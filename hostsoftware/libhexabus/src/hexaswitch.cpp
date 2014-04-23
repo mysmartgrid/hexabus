@@ -35,6 +35,23 @@ enum ErrorCode {
 
 static bool oneline = false;
 
+struct err_callback {
+	boost::asio::io_service* io;
+	ErrorCode err;
+	void operator()(const hexabus::NetworkException& e)
+	{
+		std::cerr << "Error receiving packet: " << e.code().message() << std::endl;
+		err = ERR_NETWORK;
+		io->stop();
+	}
+	void operator()(const hexabus::GenericException& e)
+	{
+		std::cerr << "Error receiving packet: " << e.what() << std::endl;
+		err = ERR_NETWORK;
+		io->stop();
+	}
+};
+
 struct PacketPrinter : public hexabus::PacketVisitor {
 	private:
 		std::ostream& target;
@@ -330,6 +347,15 @@ ErrorCode send_packet(hexabus::Socket& net, const boost::asio::ip::address_v6& a
 	return ERR_NONE;
 }
 
+struct send_packet_wait_rcv_callback {
+	boost::asio::io_service* io;
+	void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep)
+	{
+		print_packet(packet);
+		io->stop();
+	}
+};
+
 template<typename Filter>
 ErrorCode send_packet_wait(hexabus::Socket& net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet, const Filter& filter)
 {
@@ -339,20 +365,19 @@ ErrorCode send_packet_wait(hexabus::Socket& net, const boost::asio::ip::address_
 		return err;
 	}
 
-	try {
-		namespace hf = hexabus::filtering;
-		std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> p = net.receive((filter || hf::isError()) && hf::sourceIP() == addr);
-		
-		print_packet(*p.first);
-	} catch (const hexabus::NetworkException& e) {
-		std::cerr << "Error receiving packet: " << e.code().message() << std::endl;
-		return ERR_NETWORK;
-	} catch (const hexabus::GenericException& e) {
-		std::cerr << "Error receiving packet: " << e.what() << std::endl;
-		return ERR_NETWORK;
-	}
-	
-	return ERR_NONE;
+	send_packet_wait_rcv_callback rcb = {&net.ioService()};
+	err_callback ecb = {&net.ioService(), ERR_NONE};
+
+	namespace hf = hexabus::filtering;
+	boost::signals2::connection rec_con = net.onPacketReceived(rcb, (filter || hf::isError()) && hf::sourceIP() == addr);
+	boost::signals2::connection err_con = net.onAsyncError(ecb);
+
+	net.ioService().run();
+
+	rec_con.disconnect();
+	err_con.disconnect();
+
+	return ecb.err;
 }
 
 template<template<typename TValue> class ValuePacket>
@@ -415,6 +440,20 @@ enum Command {
 	C_STATUS,
 	C_POWER,
 	C_DEVINFO
+};
+
+struct listener_rcv_callback {
+	boost::asio::io_service* io;
+	void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep)
+	{
+		if (oneline) {
+			std::cout << "From " << asio_ep << ";";
+		} else {
+			std::cout << "Received packet from " << asio_ep << std::endl;
+		}
+		print_packet(packet);
+		io->stop();
+	}
 };
 
 int main(int argc, char** argv) {
@@ -560,23 +599,19 @@ int main(int argc, char** argv) {
 		std::cout << std::endl;
 
 		while (true) {
-			std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
-			try {
-				pair = listener.receive();
-			} catch (const hexabus::NetworkException& e) {
-				std::cerr << "Error receiving packet: " << e.code().message() << std::endl;
-				return ERR_NETWORK;
-			} catch (const hexabus::GenericException& e) {
-				std::cerr << "Error receiving packet: " << e.what() << std::endl;
-				return ERR_NETWORK;
-			}
+			listener_rcv_callback rcb = {&listener.ioService()};
+			err_callback ecb = {&listener.ioService(), ERR_NONE};
 
-			if (oneline) {
-				std::cout << "From " << pair.second << ";";
-			} else {
-				std::cout << "Received packet from " << pair.second << std::endl;
-			}
-			print_packet(*pair.first);
+			boost::signals2::connection rec_con = listener.onPacketReceived(rcb);
+			boost::signals2::connection err_con = listener.onAsyncError(ecb);
+
+			listener.ioService().run();
+
+			rec_con.disconnect();
+			err_con.disconnect();
+
+			if(ecb.err)
+				return ecb.err;
 		}
 	}
 
