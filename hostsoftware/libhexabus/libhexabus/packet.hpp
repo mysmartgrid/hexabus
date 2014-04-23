@@ -135,7 +135,7 @@ namespace hexabus {
 
 		protected:
 			CausedPacket(uint16_t cause) : _cause(cause) {}
-			~CausedPacket() {}
+			virtual ~CausedPacket() {}
 
 		public:
 			uint16_t cause() const { return _cause; }

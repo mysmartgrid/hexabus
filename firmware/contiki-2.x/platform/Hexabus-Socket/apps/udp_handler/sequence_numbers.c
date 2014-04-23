@@ -14,13 +14,16 @@ uint8_t hash_ip(const uip_ipaddr_t* toaddr) {
 
 uint16_t next_sequence_number(const uip_ipaddr_t* toaddr) {
 
-	return seqnum_table[hash_ip(toaddr)]++;
+	return seqnum_table[hash_ip(toaddr)]++==0?
+		seqnum_table[hash_ip(toaddr)]++:seqnum_table[hash_ip(toaddr)];
 }
 
 void sequence_number_init() {
 	int i;
 	for (i = 0; i < SEQNUM_TABLE_LENGTH; i++)
 	{
-		seqnum_table[i] = random_rand();
+		do {
+			seqnum_table[i] = random_rand();
+		} while(seqnum_table[i]==0);
 	}
 }

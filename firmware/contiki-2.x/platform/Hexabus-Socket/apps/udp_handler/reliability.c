@@ -11,7 +11,7 @@
 #include "state_machine.h"
 #include "syslog.h"
 
-#define MAX(a,b) (((a)>(b))?(a):(b))
+#define MAX(a,b) (seqnumIsLessEqual((a),(b))?(b):(a))
 
 enum hxb_send_state_t {
 	SINIT		= 0,
@@ -48,6 +48,11 @@ struct reliability_state rstates[16];
 
 static uint8_t fail;
 static struct hxb_queue_packet* R;
+
+bool seqnumIsLessEqual(uint16_t first, uint16_t second) {
+	int16_t distance = (int16_t)(first - second);
+	return distance <= 0;
+}
 
 enum hxb_error_code packet_generator(union hxb_packet_any* buffer, void* data) {
 	
@@ -175,7 +180,7 @@ static void run_recv_state_machine(uint8_t rs) {
 				if((R->packet.header.flags & HXB_FLAG_WANT_ACK) && !allows_implicit_ack(&(R->packet))) { //TODO only use flag?
 					udp_handler_send_ack(&(R->ip), R->port, R->packet.header.sequence_number);
 
-					if(R->packet.header.sequence_number <= rstates[rs].rseq_num) {
+					if(seqnumIsLessEqual(R->packet.header.sequence_number, rstates[rs].rseq_num)) {
 						//TODO handle reordering here
 						rstates[rs].recv_state = RREADY;
 						break;
