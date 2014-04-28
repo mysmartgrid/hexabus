@@ -1,0 +1,170 @@
+/**
+ * This file is part of libhexabus.
+ *
+ * (c) Fraunhofer ITWM - Stephan Platz <platz@itwm.fhg.de>, 2014
+ *
+ * libhexabus is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * libhexabus is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with libhexabus. If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+#ifndef LIBHEXABUS_DEVICE_HPP
+#define LIBHEXABUS_DEVICE_HPP 1
+
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/deadline_timer.hpp>
+
+#include <libhexabus/packet.hpp>
+#include <libhexabus/socket.hpp>
+
+namespace hexabus {
+	class EndpointDescriptor {
+		public:
+			typedef std::tr1::shared_ptr<EndpointDescriptor> Ptr;
+			uint32_t eid() const { return _eid; }
+			std::string name() const { return _name; }
+			uint8_t datatype() const { return _datatype; }
+
+			virtual hexabus::Packet::Ptr handle_query() const = 0;
+			virtual uint8_t handle_write(const hexabus::Packet& p) const = 0;
+
+		protected:
+			EndpointDescriptor(uint32_t eid, std::string name, uint8_t datatype)
+				: _eid(eid)
+				, _name(name)
+				, _datatype(datatype)
+			{}
+
+		private:
+			uint32_t _eid;
+			std::string _name;
+			uint8_t _datatype;
+	};
+
+	template<typename TValue>
+	class TypedEndpointDescriptor : public EndpointDescriptor {
+		public:
+			typedef std::tr1::shared_ptr<TypedEndpointDescriptor<TValue> > Ptr;
+			typedef boost::function<TValue ()> endpoint_read_fn_t;
+			typedef boost::function<bool (TValue& value)> endpoint_write_fn_t;
+			TypedEndpointDescriptor(uint32_t eid, std::string name)
+				: EndpointDescriptor(eid, name, calculateDatatype())
+			{}
+
+			boost::signals2::connection onRead(
+					const endpoint_read_fn_t& callback) {
+				boost::signals2::connection result = _read.connect(callback);
+
+				return result;
+			}
+			boost::signals2::connection onWrite(
+					const endpoint_write_fn_t& callback) {
+				boost::signals2::connection result = _write.connect(callback);
+
+				return result;
+			}
+
+			virtual hexabus::Packet::Ptr handle_query() const {
+				if ( _read.num_slots() < 1 )
+					return Packet::Ptr(new ErrorPacket(HXB_ERR_UNKNOWNEID));
+
+				boost::optional<TValue> value = _read();
+				if ( value ) {
+					return Packet::Ptr(new InfoPacket<TValue>(eid(), *value));
+				} else {
+					std::cerr << "error reading" << std::endl;
+				}
+			}
+			virtual uint8_t handle_write(const hexabus::Packet& p) const {
+				const WritePacket<TValue>* write = dynamic_cast<const WritePacket<TValue>*>(&p);
+				if ( write != NULL ) {
+					if ( _write.num_slots() < 1 ) {
+						return HXB_ERR_WRITEREADONLY;
+					}
+
+					TValue value = write->value();
+					if ( _write(value) ) {
+						return HXB_ERR_SUCCESS;
+					}
+				}
+
+				return HXB_ERR_INTERNAL;
+			}
+
+		private:
+			boost::signals2::signal<TValue ()> _read;
+			boost::signals2::signal<bool (TValue&)> _write;
+
+			BOOST_STATIC_ASSERT_MSG((
+				boost::is_same<TValue, bool>::value
+					|| boost::is_same<TValue, uint8_t>::value
+					|| boost::is_same<TValue, uint32_t>::value
+					|| boost::is_same<TValue, float>::value
+					|| boost::is_same<TValue, boost::posix_time::ptime>::value
+					|| boost::is_same<TValue, boost::posix_time::time_duration>::value
+					|| boost::is_same<TValue, boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >::value
+					|| boost::is_same<TValue, boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >::value),
+				"I don't know how to handle that type");
+
+			static uint8_t calculateDatatype()
+			{
+				return boost::is_same<TValue, bool>::value ? HXB_DTYPE_BOOL :
+					boost::is_same<TValue, uint8_t>::value ? HXB_DTYPE_UINT8 :
+					boost::is_same<TValue, uint32_t>::value ? HXB_DTYPE_UINT32 :
+					boost::is_same<TValue, float>::value ? HXB_DTYPE_FLOAT :
+					boost::is_same<TValue, boost::posix_time::ptime>::value ? HXB_DTYPE_DATETIME :
+					boost::is_same<TValue, boost::posix_time::time_duration>::value ? HXB_DTYPE_TIMESTAMP :
+					boost::is_same<TValue, boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >::value
+						? HXB_DTYPE_16BYTES :
+					boost::is_same<TValue, boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >::value
+						? HXB_DTYPE_65BYTES :
+					(throw "BUG: Unknown datatype!", HXB_DTYPE_UNDEFINED);
+			}
+	};
+
+	class Device {
+		public:
+			typedef boost::function<std::string ()> read_name_fn_t;
+			typedef boost::function<void (std::string& name)> write_name_fn_t;
+			Device(boost::asio::io_service& io, const std::string& interface, const std::string& address, int interval = 60);
+			void addEndpoint(const EndpointDescriptor::Ptr ep);
+
+			boost::signals2::connection onReadName(
+					const read_name_fn_t& callback);
+			boost::signals2::connection onWriteName(
+					const write_name_fn_t& callback);
+		protected:
+			void _handle_query(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void _handle_write(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void _handle_epquery(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void _handle_descquery(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void _handle_descepquery(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			uint8_t _handle_smcontrolquery();
+			bool _handle_smcontrolwrite(uint8_t);
+			void _handle_smupload(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+		private:
+			void _handle_broadcasts(const boost::system::error_code& error);
+			void _handle_errors(const hexabus::GenericException& error);
+
+			boost::signals2::signal<std::string ()> _read;
+			boost::signals2::signal<void (std::string&)> _write;
+
+			hexabus::Listener _listener;
+			hexabus::Socket _socket;
+			boost::asio::deadline_timer _timer;
+			int _interval;
+			std::map<uint32_t, const EndpointDescriptor::Ptr> _endpoints;
+			uint8_t _sm_state;
+	};
+}
+
+#endif // LIBHEXABUS_DEVICE_HPP
