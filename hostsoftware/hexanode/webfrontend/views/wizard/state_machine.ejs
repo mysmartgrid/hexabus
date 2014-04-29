@@ -3,44 +3,76 @@
 	known_hexabus_devices = <%- JSON.stringify(devices) %>;
 </script>
 
+
+
 <div class="container" data-ng-controller="stateMachine">
+
+        <div class="alert alert-info" data-ng-show="progressAlert.show">
+		<div class="progress progress-striped active" data-ng-show="progressAlert.percent > 0">
+			<div class="progress-bar" style="width: {{progressAlert.percent}}%"></div>
+		</div>
+		{{progressAlert.text}}
+	</div>
+
+	<div class="alert alert-danger" data-ng-show="errorAlert.show">
+		{{errorAlert.text}}
+	</div>
+
+	<div class="alert alert-success" data-ng-show="successAlert.show">
+		Upload sucessful !
+	</div>
+
+
 	<div >
 		<h3 data-localize="wizard.state-machine.new">New state machine</h3>
 		<p class="lead" data-ng-hide="machineProp" data-localize="wizard.state-machine.choose">Choose a ... from below.</p>
-		<select data-ng-model="machineProp">
+		<select data-ng-model="machineProp" data-ng-change="resetForms()">
 			<option value="master_slave">Master/Slave</option>
-			<option value="standykiller">Standby killer</option>
+			<option value="standbykiller">Standby killer</option>
 		</select>
 	</div>
+
 	<div data-ng-show="machineProp=='master_slave'">
-		<p data-localize="wizard.state-machine.choose-master">Choose master</p>
-			<select data-ng-model="masterProp" data-ng-options="value.ip as value.name for (key,value) in devices">
-		</select>
-		<p>
-			<input data-ng-model="thresholdProp">
-			<span data-localize="wizard.state-machine.choose-threshold">Choose threshold</span>
-		</p>
-		<p data-localize="wizard.state-machine.add-slaves">Add slaves</p>
-		<div data-ng-repeat="slave in slaves" >
-			<select data-ng-model="slave.ip" data-ng-options="value.ip as value.name for (key,value) in devices">
+		<form name="masterSlaveForm" ng-init="resetMasterSlaveForm()">
+			<p data-localize="wizard.state-machine.choose-master">Choose master</p>
+				<select name="masterProp" data-ng-model="masterProp" data-ng-options="value.ip as value.name for (key,value) in devices" 
+				data-ng-required="true" data-ng-init="masterProp = devices[0].name">
 			</select>
-		</div>
-		<button class="btn btn-success" data-localize="wizard.state-machine.add-slave" data-ng-click="addSlave()">Add Slave</button>
-		<button class="btn btn-success" data-localize="wizard.state-machine.upload" data-ng-click="send_master_slave()">Upload</button>
+			<p>
+				<input type="number" name="thresholdProp" data-ng-model="thresholdProp" data-ng-required="true">
+				<span data-localize="wizard.state-machine.choose-threshold">Choose threshold</span>
+				<span data-ng-hide="masterSlaveForm.thresholdProp.$valid">Not a valid number.</span>
+			</p>
+			<p data-localize="wizard.state-machine.add-slaves">Add slaves</p>
+			<div data-ng-repeat="slave in slaves" >
+				<select data-ng-model="slave.ip" data-ng-options="value.ip as value.name for (key,value) in devices"  data-ng-required="true">
+				</select>
+			</div>
+			<br/>
+			<button class="btn btn-success" data-localize="wizard.state-machine.add-slave" data-ng-click="addSlave()">Add Slave</button>
+			<button data-ng-disabled="masterSlaveForm.$invalid || slaves.length == 0" class="btn btn-success" data-localize="wizard.state-machine.upload" data-ng-click="send_master_slave()">Upload</button>
+		</form>
 	</div>
-	<div data-ng-show="machineProp=='standykiller'">
-		<p data-localize="wizard.state-machine.choose-device">Choose device</p>
-			<select data-ng-model="deviceProp" data-ng-options="value.ip as value.name for (key,value) in devices">
-		</select>
-		<p>
-			<input data-ng-model="thresholdProp">
-			<span data-localize="wizard.state-machine.choose-threshold">Choose threshold</span>
-		</p>
-		<p>
-			<input data-ng-model="timeoutProp">
-			<span data-localize="wizard.state-machine.choose-timeout">Choose timeout</span>
-		</p>
-		<button class="btn btn-success" data-localize="wizard.state-machine.upload" data-ng-click="send_standykiller()">Upload</button>
+
+	<div data-ng-show="machineProp=='standbykiller'">
+		<form name="standbykillerForm">
+			<p>
+				<p data-localize="wizard.state-machine.choose-device">Choose device</p>
+				<select data-ng-model="deviceProp" data-ng-options="value.ip as value.name for (key,value) in devices" data-ng-required="true">
+			</select>
+			<p>
+				<input type="number" name="thresholdProp" data-ng-model="thresholdProp" data-ng-min="0" data-ng-required="true">
+				<span data-localize="wizard.state-machine.choose-threshold">Choose threshold.</span>
+				<span data-ng-hide="standbykillerForm.thresholdProp.$valid">Not a valid number.</span>
+			</p>
+			<p>
+				<input type="number" name="timeoutProp" data-ng-model="timeoutProp" data-ng-min="0" data-ng-required="true">
+				<span data-localize="wizard.state-machine.choose-timeout">Choose timeout.</span>
+				<span data-ng-hide="standbykillerForm.timeoutProp.$valid">Not a valid number.</span>
+			</p>
+			<button data-ng-disabled="standbykillerForm.$invalid" class="btn btn-success" data-localize="wizard.state-machine.upload" data-ng-click="send_standbykiller()">Upload</button>
+		</form>
+
 	</div>
 </div>
 

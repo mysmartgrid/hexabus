@@ -569,21 +569,59 @@ angular.module('dashboard', [
 }])
 .controller('stateMachine', ['$scope', 'Socket', function($scope, Socket) {
 	$scope.devices = window.known_hexabus_devices;
-	$scope.slaves = {};
+	$scope.slaves = [];
+	$scope.progressAlert = {show : false, text : '', percent : 0};
+	$scope.errorAlert = {show: false, text : ''};
+	$scope.successAlert = {show: false };
+
+	var hideAlerts = function() {
+		$scope.progressAlert.show = false;
+		$scope.errorAlert.show = false;
+		$scope.successAlert.show = false;
+	}
+
+	$scope.resetForms = function() {
+		$scope.masterProp = $scope.devices[Object.keys($scope.devices)[0]].ip;
+		$scope.deviceProp = $scope.devices[Object.keys($scope.devices)[0]].ip;
+		$scope.thresholdProp = 25;
+		$scope.timeoutProp = 25;
+		$scope.slaves = [];
+		hideAlerts();
+	}
+
 	$scope.addSlave = function() {
 		console.log($scope.slaves)
 		console.log(Object.keys($scope.slaves).length)
-		$scope.slaves['slave'+Object.keys($scope.slaves).length] = {ip: ''}
+		$scope.slaves.push({ip: $scope.devices[Object.keys($scope.devices)[0]].ip});
 	};
 	$scope.send_master_slave = function() {
+		hideAlerts();
 		Socket.emit('master_slave_sm', {master: {ip: $scope.masterProp}, slaves: $scope.slaves, threshold: $scope.thresholdProp});
 	};
-	$scope.send_standykiller = function() {
+	$scope.send_standbykiller = function() {
+		hideAlerts();
 		Socket.emit('standbykiller_sm', {device: {ip: $scope.deviceProp}, threshold: $scope.thresholdProp, timeout: $scope.timeoutProp});
 	};
+
 	var on_sm_uploaded = function(data) {
+		hideAlerts();
+		if(data.success) {
+			$scope.successAlert.show = true;
+		}
+		else {
+			$scope.errorAlert.show = true;
+			$scope.errorAlert.text = "Upload failed: " + data.error;
+		}
 	};
 	Socket.on('sm_uploaded', on_sm_uploaded);
+
+	var on_sm_progress = function(data) {
+		hideAlerts();
+		$scope.progressAlert.show = true;
+		$scope.progressAlert.text = data.msg;
+		$scope.progressAlert.percent = data.done / data.count * 100.0;
+	};
+	Socket.on('sm_progress', on_sm_progress);
 }])
 .directive('focusIf', [function () {
     return function focusIf(scope, element, attr) {

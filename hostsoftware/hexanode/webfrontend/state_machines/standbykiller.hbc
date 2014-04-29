@@ -10,7 +10,7 @@ machine standbykiller_machine {
     }
   }
   in(on) {
-    if (ep standbykiller.PowerMeter < $THRESHOLD) {
+    if (ep standbykiller.PowerMeter < <%= threshold %>) {
       goto standby;
     }
     if (ep standbykiller.Button == 0) {
@@ -19,10 +19,10 @@ machine standbykiller_machine {
     }
   }
   in(standby) {
-    if (ep standbykiller.PowerMeter >= $THRESHOLD) {
+    if (ep standbykiller.PowerMeter >= <%= threshold %>) {
       goto on;
     }
-    if (timeout i$TIMEOUT) {
+    if (timeout i<%= timeout %>) {
       write standbykiller.On := 0;
       goto off;
     }
