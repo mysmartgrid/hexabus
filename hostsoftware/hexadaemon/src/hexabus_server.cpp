@@ -253,7 +253,7 @@ std::string HexabusServer::loadDeviceName()
 	return name;
 }
 
-void HexabusServer::saveDeviceName(std::string name)
+void HexabusServer::saveDeviceName(const std::string& name)
 {
 	_debug && std::cout << "saving device name \"" << name << "\"" << std::endl;
 	if ( name.size() > 30 )

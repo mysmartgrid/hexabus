@@ -33,7 +33,7 @@ bool isWrite(const Packet& packet, const boost::asio::ip::udp::endpoint& from)
 	return packet.type() == HXB_PTYPE_WRITE;
 }
 
-bool dummy_write_handler(boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH>)
+bool dummy_write_handler(const boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH>& value)
 {
 	return true;
 }

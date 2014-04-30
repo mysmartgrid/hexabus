@@ -38,7 +38,7 @@ namespace hexabus {
 			virtual uint8_t handle_write(const hexabus::Packet& p) const = 0;
 
 		protected:
-			EndpointDescriptor(uint32_t eid, std::string name, uint8_t datatype)
+			EndpointDescriptor(uint32_t eid, const std::string& name, uint8_t datatype)
 				: _eid(eid)
 				, _name(name)
 				, _datatype(datatype)
@@ -55,8 +55,8 @@ namespace hexabus {
 		public:
 			typedef std::tr1::shared_ptr<TypedEndpointDescriptor<TValue> > Ptr;
 			typedef boost::function<TValue ()> endpoint_read_fn_t;
-			typedef boost::function<bool (TValue& value)> endpoint_write_fn_t;
-			TypedEndpointDescriptor(uint32_t eid, std::string name)
+			typedef boost::function<bool (const TValue& value)> endpoint_write_fn_t;
+			TypedEndpointDescriptor(uint32_t eid, const std::string& name)
 				: EndpointDescriptor(eid, name, calculateDatatype())
 			{}
 
@@ -102,7 +102,7 @@ namespace hexabus {
 
 		private:
 			boost::signals2::signal<TValue ()> _read;
-			boost::signals2::signal<bool (TValue&)> _write;
+			boost::signals2::signal<bool (const TValue&)> _write;
 
 			BOOST_STATIC_ASSERT_MSG((
 				boost::is_same<TValue, bool>::value
@@ -134,7 +134,7 @@ namespace hexabus {
 	class Device {
 		public:
 			typedef boost::function<std::string ()> read_name_fn_t;
-			typedef boost::function<void (std::string& name)> write_name_fn_t;
+			typedef boost::function<void (const std::string& name)> write_name_fn_t;
 			Device(boost::asio::io_service& io, const std::string& interface, const std::string& address, int interval = 60);
 			void addEndpoint(const EndpointDescriptor::Ptr ep);
 
@@ -156,7 +156,7 @@ namespace hexabus {
 			void _handle_errors(const hexabus::GenericException& error);
 
 			boost::signals2::signal<std::string ()> _read;
-			boost::signals2::signal<void (std::string&)> _write;
+			boost::signals2::signal<void (const std::string&)> _write;
 
 			hexabus::Listener _listener;
 			hexabus::Socket _socket;

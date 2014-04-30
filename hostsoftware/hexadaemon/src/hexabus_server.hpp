@@ -27,7 +27,7 @@ namespace hexadaemon {
 
 			void loadSensorMapping();
 			std::string loadDeviceName();
-			void saveDeviceName(std::string name);
+			void saveDeviceName(const std::string& name);
 
 		private:
 			void _init();
