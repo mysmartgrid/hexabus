@@ -690,7 +690,6 @@ io.sockets.on('connection', function (socket) {
 			emit('sm_progress', msg);
 		}
 		,function(success, error) {
-			console.log(error);
 			emit('sm_uploaded', {success: success, error: error});
 		});
 	});

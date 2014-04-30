@@ -163,10 +163,14 @@ var hexabus = function() {
       this.progressCallback = callback;
     }
 
-    this.setProgress = function(msg, done, count) {
-      count = count || 0;
-      done = done || 0;
-      this.progressCallback({ 'msg' : msg, 'done' : done, 'count' : count});
+    this.setProgress = function(msg, localization, done, count) {
+		count = count || 0;
+		done = done || 0;
+		localization = localization || {};
+		if(typeof localization == 'string') {
+			localization = {'key' : localization};
+		}
+		this.progressCallback({ 'msg' : msg, 'localization' : localization, 'done' : done, 'count' : count});
     }
 
     this.readFiles = function(callback) {
@@ -175,7 +179,8 @@ var hexabus = function() {
           console.log('Reading File: ' + file.src);
           fs.readFile(this.sm_folder + file.src,  { encoding: 'utf8' }, function(err, data) {
             if(err) {
-              callback(err);
+				console.log(err);
+				callback('opening-template-failed');
             }
             else {
               this.fileContents[file.src] = data;
@@ -189,7 +194,7 @@ var hexabus = function() {
       }
 
       console.log('Reading template files');
-      this.setProgress('Reading files');
+      this.setProgress('Reading files', 'reading');
       async.eachSeries(this.targetFileList,readFile.bind(this),callback);
     }
 
@@ -198,26 +203,50 @@ var hexabus = function() {
       var renderTemplate = function(file, callback) {
         console.log('Rendering template ' + file.src + ' to ' + file.target);
         var renderedTemplate = ejs.render(this.fileContents[file.src], file.context);
-        fs.writeFile(this.sm_build + file.target, renderedTemplate, { encoding: 'utf8' }, callback);
+        fs.writeFile(this.sm_build + file.target, renderedTemplate, { encoding: 'utf8' }, function(err) {
+			if(err) {
+				console.log(err);
+				callback('writing-file-failed');
+			}
+			else {
+				callback();
+			}
+		});
       }
 
-      this.setProgress('Rendering templates');
+      this.setProgress('Rendering templates', 'rendering');
       async.each(this.targetFileList,renderTemplate.bind(this),callback);
     }
 
-    this.compileStatmachines = function(callback) {
-      console.log('Compiling statemachine');
-      this.setProgress('Compiling statemachine');
-      exec('hbcomp ' + this.sm_build +  this.compileTarget + ' -o ' + this.sm_build + ' -d ' + this.sm_folder + 'datatypes.hb',callback);
+	this.compileStatmachines = function(callback) {
+		console.log('Compiling statemachine');
+		this.setProgress('Compiling statemachine', 'compiling');
+		exec('hbcomp ' + this.sm_build +  this.compileTarget + ' -o ' + this.sm_build + ' -d ' + this.sm_folder + 'datatypes.hb', function(err, stdout, stderr) {
+			if(err) {
+				console.log(err);
+				callback('compiling-failed');
+			}
+			else {
+				callback();
+			}
+		});
     }
 
     this.assembleStatemachines = function(callback) {
       var assembleStatemachine = function(device, callback) {
         console.log('Assembling statemachine ' + device);
-        exec('hbasm ' + this.sm_build + device + '.hba' + ' -d ' + this.sm_folder + 'datatypes.hb -o ' + this.sm_build + device + '.hbs', callback);
+        exec('hbasm ' + this.sm_build + device + '.hba' + ' -d ' + this.sm_folder + 'datatypes.hb -o ' + this.sm_build + device + '.hbs', function(err, stdout, stderr) {
+			if(err) {
+				console.log(err);
+				callback('assembling-failed');
+			}
+			else {
+				callback();
+			}
+		});
       }
 
-      this.setProgress('Assembling statemachines');
+      this.setProgress('Assembling statemachines', 'assembling');
       async.each(this.deviceList, assembleStatemachine.bind(this), callback);
     }
 
@@ -228,17 +257,33 @@ var hexabus = function() {
       var uploadStatemachine = function(device, callback) {
         console.log('Uploading to ' + device);
         deviceCounter += 1;
-        this.setProgress('Uploading statemachine ' + device, deviceCounter, this.deviceList.length);
-        exec('hexaupload -r 10 -k -p ' + this.sm_build + device + '.hbs', callback);
+        this.setProgress('Uploading statemachine ' + device, {'key' : 'uploading', 'device' : device}, deviceCounter, this.deviceList.length);
+        exec('hexaupload -r 10 -k -p ' + this.sm_build + device + '.hbs', function(err, stdout, stderr) {
+			if(err) {
+				console.log(err);
+				callback('uploading-failed');
+			}
+			else {
+				callback();
+			}
+		});
       }
 
       async.eachSeries(this.deviceList, uploadStatemachine.bind(this), callback);
     }
 
-this.cleanUp = function(callback) {
+	this.cleanUp = function(callback) {
       var deleteFile = function(file, callback) {
         console.log('Deleting temporary file: ' + file);
-        fs.unlink(this.sm_build + file, callback);
+        fs.unlink(this.sm_build + file, function(err) {
+			if(err) {
+				console.log(err);
+				callback('deleting-temporary-files-failed');
+			}
+			else {
+				callback();
+			}
+		});
       }
 
       var fileList = [];
@@ -250,7 +295,7 @@ this.cleanUp = function(callback) {
         fileList.push(this.deviceList[device] + '.hbs');
       }
 
-      this.setProgress('Deleting temporary files');
+      this.setProgress('Deleting temporary files', 'deleting-temporary-files');
       async.each(fileList, deleteFile.bind(this), callback);
     }
 
@@ -291,7 +336,6 @@ this.cleanUp = function(callback) {
     if(!err) {
       callback(true);
     } else {
-      console.log(err);
       callback(false, err.toString());
     }});
   }

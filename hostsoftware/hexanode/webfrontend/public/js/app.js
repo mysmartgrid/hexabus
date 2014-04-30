@@ -567,10 +567,15 @@ angular.module('dashboard', [
 		$scope.errorState = state;
 	});
 }])
-.controller('stateMachine', ['$scope', 'Socket', function($scope, Socket) {
+.controller('stateMachine', ['$scope', 'Socket', 'Lang', function($scope, Socket, Lang) {
 	$scope.devices = window.known_hexabus_devices;
-	$scope.slaves = [];
-	$scope.progressAlert = {show : false, text : '', percent : 0};
+  
+	$scope.masterSlave = {};
+	$scope.masterSlave.slaves = [];
+
+	$scope.standbyKiller = {};
+
+  $scope.progressAlert = {show : false, text : '', percent : 0};
 	$scope.errorAlert = {show: false, text : ''};
 	$scope.successAlert = {show: false };
 
@@ -581,26 +586,30 @@ angular.module('dashboard', [
 	}
 
 	$scope.resetForms = function() {
-		$scope.masterProp = $scope.devices[Object.keys($scope.devices)[0]].ip;
-		$scope.deviceProp = $scope.devices[Object.keys($scope.devices)[0]].ip;
-		$scope.thresholdProp = 25;
-		$scope.timeoutProp = 25;
-		$scope.slaves = [];
+		$scope.masterSlave.master = $scope.devices[Object.keys($scope.devices)[0]].ip;
+		$scope.masterSlave.threshold = 10;
+		$scope.masterSlave.slaves = [];
+
+		$scope.standbyKiller.device = $scope.devices[Object.keys($scope.devices)[0]].ip;
+    $scope.standbyKiller.threshold = 10;
+    $scope.standbyKiller.timeout = 25;
+
 		hideAlerts();
 	}
 
 	$scope.addSlave = function() {
-		console.log($scope.slaves)
-		console.log(Object.keys($scope.slaves).length)
-		$scope.slaves.push({ip: $scope.devices[Object.keys($scope.devices)[0]].ip});
+		console.log($scope.masterSlave.slaves)
+		$scope.masterSlave.slaves.push({ip: $scope.devices[Object.keys($scope.devices)[0]].ip});
 	};
+
 	$scope.send_master_slave = function() {
 		hideAlerts();
-		Socket.emit('master_slave_sm', {master: {ip: $scope.masterProp}, slaves: $scope.slaves, threshold: $scope.thresholdProp});
+		Socket.emit('master_slave_sm', {master: {ip: $scope.masterSlave.master}, slaves: $scope.masterSlave.slaves, threshold: $scope.masterSlave.threshold});
 	};
+
 	$scope.send_standbykiller = function() {
 		hideAlerts();
-		Socket.emit('standbykiller_sm', {device: {ip: $scope.deviceProp}, threshold: $scope.thresholdProp, timeout: $scope.timeoutProp});
+		Socket.emit('standbykiller_sm', {device: {ip: $scope.standbyKiller.device}, threshold: $scope.standbyKiller.threshold, timeout: $scope.standbyKiller.timeout});
 	};
 
 	var on_sm_uploaded = function(data) {
@@ -610,15 +619,30 @@ angular.module('dashboard', [
 		}
 		else {
 			$scope.errorAlert.show = true;
-			$scope.errorAlert.text = "Upload failed: " + data.error;
+			$scope.errorAlert.text = Lang.pack["wizard"]["state-machine"]["errors"][data.error] || data.error;  
 		}
 	};
 	Socket.on('sm_uploaded', on_sm_uploaded);
 
+	var localizeProgressMessage = function(msg) {
+		localizedMessages = Lang.pack["wizard"]["state-machine"]["progress"];
+		if(msg.key in localizedMessages) {
+			message = localizedMessages[msg.key];
+			for(name in msg) {
+				if(name != 'key') {
+					console.log(name + ' replace with ' + msg[name]);
+					message = message.replace('{' + name + '}', msg[name]);
+				}
+			}
+			return message; 
+		}
+		return '';
+	}
+
 	var on_sm_progress = function(data) {
 		hideAlerts();
 		$scope.progressAlert.show = true;
-		$scope.progressAlert.text = data.msg;
+		$scope.progressAlert.text = localizeProgressMessage(data.localization) || data.msg;
 		$scope.progressAlert.percent = data.done / data.count * 100.0;
 	};
 	Socket.on('sm_progress', on_sm_progress);
