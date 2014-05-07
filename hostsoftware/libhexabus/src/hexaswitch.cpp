@@ -372,6 +372,7 @@ ErrorCode send_packet_wait(hexabus::Socket& net, const boost::asio::ip::address_
 	boost::signals2::connection rec_con = net.onPacketReceived(rcb, (filter || hf::isError()) && hf::sourceIP() == addr);
 	boost::signals2::connection err_con = net.onAsyncError(ecb);
 
+	net.ioService().reset();
 	net.ioService().run();
 
 	rec_con.disconnect();
@@ -452,7 +453,6 @@ struct listener_rcv_callback {
 			std::cout << "Received packet from " << asio_ep << std::endl;
 		}
 		print_packet(packet);
-		io->stop();
 	}
 };
 
