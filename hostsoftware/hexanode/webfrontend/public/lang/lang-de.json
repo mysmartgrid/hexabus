@@ -137,16 +137,16 @@
 				"rendering" : "Fülle Vorlage aus.",
 				"compiling" : "Kompliere Statemachine.",
 				"assembling" : "Erzeuge Binärdaten.", 
-				"uploading": "Hochladen der Statemachine: {device}.",
+				"uploading": "Hochladen der Statemachine {done} von {count} : {device}.",
 				"deleting" : "Lösche temporäre Dateien."
 			},
 			"errors": {
 				"no-valid-number": "Eingabe ist keine Zahl.",
-				"opening-template-failed": "Die Vorlage konnte nicht geöffnet werden.",
+				"opening-template-failed": "Die Vorlage {file} konnte nicht geöffnet werden.",
 				"writing-file-failed": "Eine Datei konnte nicht geschrieben werden.",
 				"compiling-failed": "Die Statemachine konnte nicht kompiliert werden.",
 				"assembling-failed": "Das Erzeugen der Binärdaten schlug fehl.",
-				"uploading-failed": "Das Hochladen der Statemachine auf ein Gerät ist fehlgeschlage.",
+				"uploading-failed": "Das Hochladen der Statemachine auf ein Gerät ist fehlgeschlagen.",
 				"deleting-temporary-files-failed": "Eine temporäre Datei konnte nicht gelöscht werden."
 			},
 			"choose": "Bitte wählen Sie eine Vorlage aus.",

@@ -25,8 +25,8 @@
 
 	<div >
 		<h3 data-localize="wizard.state-machine.new">New state machine</h3>
-		<p class="lead" data-ng-hide="machineProp" data-localize="wizard.state-machine.choose">Choose a ... from below.</p>
-		<select data-ng-model="machineProp" data-ng-change="resetForms()">
+		<p class="lead" data-localize="wizard.state-machine.choose">Choose a ... from below.</p>
+		<select data-ng-model="machineProp" data-ng-readonly="busy" data-ng-change="resetForms()">
 			<option value="master_slave">Master/Slave</option>
 			<option value="standbykiller">Standby killer</option>
 		</select>
@@ -49,8 +49,8 @@
 			</select>
 		</div>
 		<br/>
-		<button class="btn btn-success" data-localize="wizard.state-machine.add-slave" data-ng-click="addSlave()">Add Slave</button>
-		<button data-ng-disabled="masterSlaveForm.$invalid || masterSlave.slaves.length == 0" class="btn btn-success" 
+		<button data-ng-disabled="busy" class="btn btn-success" data-localize="wizard.state-machine.add-slave" data-ng-click="addSlave()">Add Slave</button>
+		<button data-ng-disabled="masterSlaveForm.$invalid || busy || masterSlave.slaves.length == 0" class="btn btn-success" 
 		data-localize="wizard.state-machine.upload" data-ng-click="send_master_slave()">Upload</button>
 	</form>
 </div>
@@ -71,7 +71,7 @@
 				<span data-localize="wizard.state-machine.choose-timeout">Choose timeout.</span>
 				<span data-ng-hide="standbykillerForm.timeout.$valid" data-localize="wizard.state-machine.errors.no-valid-number">Not a valid number.</span>
 			</p>
-			<button data-ng-disabled="standbykillerForm.$invalid" class="btn btn-success" data-localize="wizard.state-machine.upload" 
+			<button data-ng-disabled="standbykillerForm.$invalid || busy" class="btn btn-success" data-localize="wizard.state-machine.upload" 
 			data-ng-click="send_standbykiller()">Upload</button>
 		</form>
 	</div>

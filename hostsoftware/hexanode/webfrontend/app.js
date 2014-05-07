@@ -671,27 +671,35 @@ io.sockets.on('connection', function (socket) {
 		});
 	});
 
+	var busy = false;
 	on('master_slave_sm', function(msg) {
 		console.log(msg);
-		hexabus.master_slave_sm(msg,
-		function(msg) {
-			emit('sm_progress', msg);
+		if(!busy) {
+			busy = true;
+			hexabus.master_slave_sm(msg,
+			function(msg) {
+				emit('sm_progress', msg);
+			}
+			,function(success, error) {
+				console.log(error);
+				busy = false;
+				emit('sm_uploaded', {success: success, error: error});
+			});
 		}
-		,function(success, error) {
-			console.log(error);
-			emit('sm_uploaded', {success: success, error: error});
-		});
 	});
 
 	on('standbykiller_sm', function(msg) {
 		console.log(msg);
-		hexabus.standbykiller_sm(msg,
-		function(msg) {
-			emit('sm_progress', msg);
+		if(!busy) {
+			hexabus.standbykiller_sm(msg,
+				function(msg) {
+				emit('sm_progress', msg);
+			}
+			,function(success, error) {
+				busy = false;
+				emit('sm_uploaded', {success: success, error: error});
+			});
 		}
-		,function(success, error) {
-			emit('sm_uploaded', {success: success, error: error});
-		});
 	});
 
 	emit('clear_state');

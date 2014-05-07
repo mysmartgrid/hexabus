@@ -163,15 +163,28 @@ var hexabus = function() {
       this.progressCallback = callback;
     }
 
-    this.setProgress = function(msg, localization, done, count) {
-		count = count || 0;
-		done = done || 0;
-		localization = localization || {};
-		if(typeof localization == 'string') {
-			localization = {'key' : localization};
-		}
-		this.progressCallback({ 'msg' : msg, 'localization' : localization, 'done' : done, 'count' : count});
+    this.setProgress = function(msg, localization, extras) {
+		extras = extras || {};
+		this.progressCallback({ 'msg' : msg, 'localization' : localization, 'extras' : extras});
     }
+
+	this.localizeError = function(localization, error, extras) {
+		extras = extras || {};
+		return {'msg': error.toString(), 'localization': localization, 'extras' : extras};
+	}
+
+	this.localizeErrorCallback = function (localization, extras, callback) {
+		var localizedErrorCallback = function(err) {
+			if(err) {
+				callback(this.localizeError(localization, err, extras));
+			}
+			else {
+				callback();
+			}
+		}
+		return localizedErrorCallback.bind(this);
+	}
+
 
     this.readFiles = function(callback) {
       var readFile = function(file,callback) {
@@ -180,7 +193,7 @@ var hexabus = function() {
           fs.readFile(this.sm_folder + file.src,  { encoding: 'utf8' }, function(err, data) {
             if(err) {
 				console.log(err);
-				callback('opening-template-failed');
+				callback(this.localizeError('opening-template-failed',err,{'file': file.src}));
             }
             else {
               this.fileContents[file.src] = data;
@@ -257,7 +270,7 @@ var hexabus = function() {
       var uploadStatemachine = function(device, callback) {
         console.log('Uploading to ' + device);
         deviceCounter += 1;
-        this.setProgress('Uploading statemachine ' + device, {'key' : 'uploading', 'device' : device}, deviceCounter, this.deviceList.length);
+        this.setProgress('Uploading statemachine ' + device, 'uploading', { 'device' : device, 'done' : deviceCounter, 'count' : this.deviceList.length});
         exec('hexaupload -r 10 -k -p ' + this.sm_build + device + '.hbs', function(err, stdout, stderr) {
 			if(err) {
 				console.log(err);
@@ -336,7 +349,7 @@ var hexabus = function() {
     if(!err) {
       callback(true);
     } else {
-      callback(false, err.toString());
+      callback(false, err);
     }});
   }
 

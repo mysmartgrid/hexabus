@@ -575,7 +575,9 @@ angular.module('dashboard', [
 
 	$scope.standbyKiller = {};
 
-  $scope.progressAlert = {show : false, text : '', percent : 0};
+	$scope.buys = false;
+
+	$scope.progressAlert = {show : false, text : '', percent : 0};
 	$scope.errorAlert = {show: false, text : ''};
 	$scope.successAlert = {show: false };
 
@@ -591,8 +593,8 @@ angular.module('dashboard', [
 		$scope.masterSlave.slaves = [];
 
 		$scope.standbyKiller.device = $scope.devices[Object.keys($scope.devices)[0]].ip;
-    $scope.standbyKiller.threshold = 10;
-    $scope.standbyKiller.timeout = 25;
+		$scope.standbyKiller.threshold = 10;
+		$scope.standbyKiller.timeout = 25;
 
 		hideAlerts();
 	}
@@ -604,46 +606,56 @@ angular.module('dashboard', [
 
 	$scope.send_master_slave = function() {
 		hideAlerts();
+		$scope.busy = true;
 		Socket.emit('master_slave_sm', {master: {ip: $scope.masterSlave.master}, slaves: $scope.masterSlave.slaves, threshold: $scope.masterSlave.threshold});
 	};
 
 	$scope.send_standbykiller = function() {
 		hideAlerts();
+		$scope.busy = true;
 		Socket.emit('standbykiller_sm', {device: {ip: $scope.standbyKiller.device}, threshold: $scope.standbyKiller.threshold, timeout: $scope.standbyKiller.timeout});
 	};
 
+	var localizeMessage = function(data,type) {
+		localizedMessages = Lang.pack["wizard"]["state-machine"][type] || {};
+		console.log(type);
+		console.log(data);
+		if(data.localization in localizedMessages) {
+			message = localizedMessages[data.localization];
+			for(name in data.extras) {
+				console.log(name + ' replace with ' + data.extras[name]);
+				message = message.replace('{' + name + '}', data.extras[name]);
+			}
+			return message; 
+		}
+		return data.msg;
+	}
+
 	var on_sm_uploaded = function(data) {
 		hideAlerts();
+		$scope.busy = false;
+
 		if(data.success) {
 			$scope.successAlert.show = true;
 		}
 		else {
 			$scope.errorAlert.show = true;
-			$scope.errorAlert.text = Lang.pack["wizard"]["state-machine"]["errors"][data.error] || data.error;  
+			$scope.errorAlert.text = localizeMessage(data.error,'errors');  
 		}
 	};
 	Socket.on('sm_uploaded', on_sm_uploaded);
 
-	var localizeProgressMessage = function(msg) {
-		localizedMessages = Lang.pack["wizard"]["state-machine"]["progress"];
-		if(msg.key in localizedMessages) {
-			message = localizedMessages[msg.key];
-			for(name in msg) {
-				if(name != 'key') {
-					console.log(name + ' replace with ' + msg[name]);
-					message = message.replace('{' + name + '}', msg[name]);
-				}
-			}
-			return message; 
-		}
-		return '';
-	}
-
 	var on_sm_progress = function(data) {
 		hideAlerts();
 		$scope.progressAlert.show = true;
-		$scope.progressAlert.text = localizeProgressMessage(data.localization) || data.msg;
-		$scope.progressAlert.percent = data.done / data.count * 100.0;
+		$scope.progressAlert.text = localizeMessage(data, 'progress');
+		console.log(data.extra);
+		if('done' in data.extras && 'count' in data.extras) {
+			$scope.progressAlert.percent = data.extras.done / data.extras.count * 100.0;
+		}
+		else  {
+			$scope.progressAlert.percent = 0;
+		}
 	};
 	Socket.on('sm_progress', on_sm_progress);
 }])
