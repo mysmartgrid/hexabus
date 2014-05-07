@@ -117,11 +117,12 @@ int list_devs::valid(struct nl_msg* msg, const nl::attrs& attrs)
 	uint16_t short_addr = attrs.u16(IEEE802154_ATTR_SHORT_ADDR);
 	uint64_t hwaddr = attrs.u64(IEEE802154_ATTR_HW_ADDR);
 	uint32_t frame_ctr = attrs.u32(IEEE802154_ATTR_LLSEC_FRAME_COUNTER);
-	KeyLookupDescriptor ldesc = parse_keydesc(attrs);
+	bool sovr = attrs.u8(IEEE802154_ATTR_LLSEC_DEV_OVERRIDE);
+	uint8_t key_mode = attrs.u8(IEEE802154_ATTR_LLSEC_DEV_KEY_MODE);
 
 	list.push_back(
 		std::make_pair(
-			Device(pan_id, short_addr, hwaddr, frame_ctr, ldesc),
+			Device(pan_id, short_addr, hwaddr, frame_ctr, sovr, key_mode),
 			iface));
 
 	return NL_OK;

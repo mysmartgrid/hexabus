@@ -43,15 +43,20 @@ class attrs {
 		template<typename T>
 		T check_fixed(size_t attr) const
 		{
-			if (nla_len(data.at(attr)) != sizeof(T))
+			if (!data.at(attr))
+				throw std::logic_error("attribute not found");
+			if (nla_len(data[attr]) != sizeof(T))
 				throw std::logic_error("type mistmatch");
-			return *static_cast<const T*>(nla_data(data.at(attr)));
+			return *static_cast<const T*>(nla_data(data[attr]));
 		}
 
 		std::string check_string(size_t attr) const
 		{
-			const char* p = static_cast<const char*>(nla_data(data.at(attr)));
-			if (p[nla_len(data.at(attr)) - 1] != 0)
+			if (!data.at(attr))
+				throw std::logic_error("attribute not found");
+
+			const char* p = static_cast<const char*>(nla_data(data[attr]));
+			if (p[nla_len(data[attr]) - 1] != 0)
 				throw std::logic_error("type mismatch");
 			return p;
 		}
@@ -90,10 +95,10 @@ class attrs {
 		{ return check_fixed<int32_t>(attr); }
 
 		size_t length(size_t attr) const
-		{ return nla_len(data[attr]); }
+		{ return nla_len(data.at(attr)); }
 
 		const void* raw(size_t attr) const
-		{ return nla_data(data[attr]); }
+		{ return nla_data(data.at(attr)); }
 };
 
 template<typename Result, int MaxAttr>

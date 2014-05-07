@@ -127,7 +127,8 @@ void save(BinaryFormatter& fmt, const Device& dev)
 	fmt.put_u16(dev.short_addr());
 	fmt.put_u64(dev.hwaddr());
 	fmt.put_u32(dev.frame_ctr());
-	save(fmt, dev.key());
+	fmt.put_u8(dev.sec_override());
+	fmt.put_u8(dev.key_mode());
 }
 
 Device load_device(BinaryFormatter& fmt)
@@ -136,9 +137,10 @@ Device load_device(BinaryFormatter& fmt)
 	uint16_t short_addr = fmt.get_u16();
 	uint64_t hwaddr = fmt.get_u64();
 	uint32_t frame_ctr = fmt.get_u32();
-	KeyLookupDescriptor ldesc = load_kld(fmt);
+	bool sec_ovr = fmt.get_u8();
+	uint8_t key_mode = fmt.get_u8();
 
-	return Device(pan_id, short_addr, hwaddr, frame_ctr, ldesc);
+	return Device(pan_id, short_addr, hwaddr, frame_ctr, sec_ovr, key_mode);
 }
 
 }

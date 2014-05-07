@@ -81,25 +81,31 @@ class Device {
 		uint16_t _short_addr;
 		uint64_t _hwaddr;
 		uint32_t _frame_ctr;
-		KeyLookupDescriptor _key;
+		bool _sec_override;
+		uint8_t _key_mode;
 
 	public:
-		Device(uint64_t hwaddr, uint32_t frame_ctr, const KeyLookupDescriptor& key)
+		Device(uint64_t hwaddr, uint32_t frame_ctr, bool sec_override,
+				uint8_t key_mode)
 			: _pan_id(0), _short_addr(0xfffe), _hwaddr(hwaddr),
-			  _frame_ctr(frame_ctr), _key(key)
+			  _frame_ctr(frame_ctr), _sec_override(sec_override),
+			  _key_mode(key_mode)
 		{}
 
 		Device(uint16_t pan_id, uint16_t short_addr, uint64_t hwaddr,
-				uint32_t frame_ctr, const KeyLookupDescriptor& key)
+				uint32_t frame_ctr, bool sec_override,
+				uint8_t key_mode)
 			: _pan_id(pan_id), _short_addr(short_addr),
-			  _hwaddr(hwaddr), _frame_ctr(frame_ctr), _key(key)
+			  _hwaddr(hwaddr), _frame_ctr(frame_ctr),
+			  _sec_override(sec_override), _key_mode(key_mode)
 		{}
 
 		uint16_t pan_id() const { return _pan_id; }
 		uint16_t short_addr() const { return _short_addr; }
 		uint64_t hwaddr() const { return _hwaddr; }
 		uint32_t frame_ctr() const { return _frame_ctr; }
-		const KeyLookupDescriptor& key() const { return _key; }
+		bool sec_override() const { return _sec_override; }
+		uint8_t key_mode() const { return _key_mode; }
 };
 
 class NetDevice {

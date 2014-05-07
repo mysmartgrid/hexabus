@@ -235,6 +235,7 @@ void Controller::add_seclevel(const std::string& dev, const Seclevel& sl)
 
 	msg.frame(sl.frame_type());
 	msg.levels(sl.levels());
+	msg.dev_override(false);
 
 	send(msg);
 }
@@ -247,6 +248,8 @@ void Controller::add_device(const std::string& iface, const Device& dev)
 	cmd.short_addr(dev.short_addr());
 	cmd.hwaddr(dev.hwaddr());
 	cmd.frame_ctr(dev.frame_ctr());
+	cmd.sec_override(dev.sec_override());
+	cmd.key_mode(dev.key_mode());
 
 	send(cmd);
 }

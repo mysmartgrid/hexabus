@@ -113,8 +113,8 @@ std::string print_tabular(const Device& dev)
 		<< format("	Short address %|04x|") % dev.short_addr() << std::endl
 		<< format("	Extended address %1%") % format_mac(dev.hwaddr()) << std::endl
 		<< format("	Frame counter %1%") % dev.frame_ctr() << std::endl
-		<< "	Last ingress key" << std::endl
-		<< print_tabular(dev.key(), 2) << std::endl;
+		<< format("	Security override %1%") % (dev.sec_override() ? "on" : "off") << std::endl
+		<< format("	Keying mode %1%") % int(dev.key_mode()) << std::endl;
 
 	return os.str();
 }

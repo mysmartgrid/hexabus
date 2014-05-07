@@ -194,6 +194,12 @@ struct modify_dev : msg802154 {
 
 	void frame_ctr(uint32_t ctr)
 	{ put(IEEE802154_ATTR_LLSEC_FRAME_COUNTER, ctr); }
+
+	void sec_override(bool ovr)
+	{ put(IEEE802154_ATTR_LLSEC_DEV_OVERRIDE, ovr); }
+
+	void key_mode(uint8_t mode)
+	{ put(IEEE802154_ATTR_LLSEC_DEV_KEY_MODE, mode); }
 };
 
 struct add_dev : modify_dev {
@@ -226,6 +232,9 @@ struct modify_seclevel : msg802154 {
 
 	void levels(uint8_t levels)
 	{ put(IEEE802154_ATTR_LLSEC_SECLEVELS, levels); }
+
+	void dev_override(bool ovr)
+	{ put(IEEE802154_ATTR_LLSEC_DEV_OVERRIDE, ovr); }
 };
 
 struct add_seclevel : modify_seclevel {
