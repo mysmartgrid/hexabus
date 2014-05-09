@@ -53,6 +53,25 @@ class list_devs : public list_parser<std::pair<Device, std::string> > {
 		int valid(struct nl_msg* msg, const nl::attrs& attrs);
 };
 
+struct devkey {
+	std::string iface;
+	uint64_t dev_addr;
+	uint32_t frame_ctr;
+	KeyLookupDescriptor key;
+};
+
+class list_devkeys : public list_parser<devkey> {
+	private:
+		std::string iface;
+
+	public:
+		list_devkeys(const std::string& iface = "")
+			: iface(iface)
+		{}
+
+		int valid(struct nl_msg* msg, const nl::attrs& attrs);
+};
+
 class list_keys : public list_parser<std::pair<Key, std::string> > {
 	private:
 		std::string iface;

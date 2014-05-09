@@ -157,7 +157,7 @@ void PairingHandler::run_once(int timeout_secs)
 	memcpy(&addr, peer.addr.hwaddr, 8);
 
 	try {
-		Device dev(_pan_id, 0xfffe, addr, 0, false, 0);
+		Device dev(_pan_id, 0xfffe, addr, 0, false, IEEE802154_LLSEC_DEVKEY_IGNORE);
 
 		control().add_device(iface(), dev);
 	} catch (const nl::nl_error& e) {

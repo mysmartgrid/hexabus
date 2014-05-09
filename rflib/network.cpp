@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include <boost/foreach.hpp>
+
 #include "binary-formatter.hpp"
 
 void get_random(void* target, size_t len)
@@ -127,7 +129,6 @@ void save(BinaryFormatter& fmt, const Device& dev)
 	fmt.put_u16(dev.short_addr());
 	fmt.put_u64(dev.hwaddr());
 	fmt.put_u32(dev.frame_ctr());
-	fmt.put_u8(dev.sec_override());
 	fmt.put_u8(dev.key_mode());
 }
 
@@ -137,10 +138,9 @@ Device load_device(BinaryFormatter& fmt)
 	uint16_t short_addr = fmt.get_u16();
 	uint64_t hwaddr = fmt.get_u64();
 	uint32_t frame_ctr = fmt.get_u32();
-	bool sec_ovr = fmt.get_u8();
 	uint8_t key_mode = fmt.get_u8();
 
-	return Device(pan_id, short_addr, hwaddr, frame_ctr, sec_ovr, key_mode);
+	return Device(pan_id, short_addr, hwaddr, frame_ctr, false, key_mode);
 }
 
 }
@@ -165,12 +165,24 @@ void Network::save(Eeprom& target)
 	::save(fmt, _out_key);
 
 	fmt.put_u8(_keys.size());
-	for (size_t i = 0; i < _keys.size(); i++)
-		::save(fmt, _keys[i]);
+	std::map<KeyLookupDescriptor, uint8_t> key_idx;
+	BOOST_FOREACH(const Key& key, _keys) {
+		::save(fmt, key);
+
+		key_idx.insert(std::make_pair(key.lookup_desc(), key_idx.size()));
+	}
 
 	fmt.put_u8(_devices.size());
-	for (size_t i = 0; i < _devices.size(); i++)
-		::save(fmt, _devices[i]);
+	BOOST_FOREACH(const Device& dev, _devices) {
+		::save(fmt, dev);
+
+		fmt.put_u8(dev.keys().size());
+		typedef std::pair<KeyLookupDescriptor, uint32_t> p_t;
+		BOOST_FOREACH(const p_t& devkey, dev.keys()) {
+			fmt.put_u8(key_idx[devkey.first]);
+			fmt.put_u32(devkey.second);
+		}
+	}
 
 	target.write_stream(stream);
 }
@@ -206,8 +218,22 @@ Network Network::load(Eeprom& source)
 			result._keys.push_back(load_key(fmt));
 
 		uint8_t devices = fmt.get_u8();
-		while (devices-- > 0)
-			result._devices.push_back(load_device(fmt));
+		while (devices-- > 0) {
+			Device dev(load_device(fmt));
+
+			uint8_t devkeys = fmt.get_u8();
+			while (devkeys-- > 0) {
+				uint8_t idx = fmt.get_u8();
+				uint32_t ctr = fmt.get_u32();
+
+				dev.keys().insert(
+					std::make_pair(
+						result._keys[idx].lookup_desc(),
+						ctr));
+			}
+
+			result._devices.push_back(dev);
+		}
 
 		return result;
 	}

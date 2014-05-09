@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include <string.h>
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
@@ -37,6 +38,13 @@ inline bool operator==(const KeyLookupDescriptor& a, const KeyLookupDescriptor& 
 inline bool operator!=(const KeyLookupDescriptor& a, const KeyLookupDescriptor& b)
 {
 	return !(a == b);
+}
+
+inline bool operator<(const KeyLookupDescriptor& a, const KeyLookupDescriptor& b)
+{
+	return a.mode() < b.mode() || (a.mode() == b.mode() &&
+		(a.id() < b.id() || (a.id() == b.id() &&
+			a.source() < b.source())));
 }
 
 class Key {
@@ -83,18 +91,11 @@ class Device {
 		uint32_t _frame_ctr;
 		bool _sec_override;
 		uint8_t _key_mode;
+		std::map<KeyLookupDescriptor, uint32_t> _keys;
 
 	public:
-		Device(uint64_t hwaddr, uint32_t frame_ctr, bool sec_override,
-				uint8_t key_mode)
-			: _pan_id(0), _short_addr(0xfffe), _hwaddr(hwaddr),
-			  _frame_ctr(frame_ctr), _sec_override(sec_override),
-			  _key_mode(key_mode)
-		{}
-
 		Device(uint16_t pan_id, uint16_t short_addr, uint64_t hwaddr,
-				uint32_t frame_ctr, bool sec_override,
-				uint8_t key_mode)
+				uint32_t frame_ctr, bool sec_override, uint8_t key_mode)
 			: _pan_id(pan_id), _short_addr(short_addr),
 			  _hwaddr(hwaddr), _frame_ctr(frame_ctr),
 			  _sec_override(sec_override), _key_mode(key_mode)
@@ -106,6 +107,9 @@ class Device {
 		uint32_t frame_ctr() const { return _frame_ctr; }
 		bool sec_override() const { return _sec_override; }
 		uint8_t key_mode() const { return _key_mode; }
+		const std::map<KeyLookupDescriptor, uint32_t>& keys() const { return _keys; }
+
+		std::map<KeyLookupDescriptor, uint32_t>& keys() { return _keys; }
 };
 
 class NetDevice {

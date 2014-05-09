@@ -116,6 +116,19 @@ std::string print_tabular(const Device& dev)
 		<< format("	Security override %1%") % (dev.sec_override() ? "on" : "off") << std::endl
 		<< format("	Keying mode %1%") % int(dev.key_mode()) << std::endl;
 
+	if (dev.key_mode() != IEEE802154_LLSEC_DEVKEY_IGNORE || dev.keys().size()) {
+		os << "	Device keys" << std::endl;
+
+		std::map<KeyLookupDescriptor, uint32_t>::const_iterator it, end;
+		for (it = dev.keys().begin(), end = dev.keys().end(); it != end; ) {
+			os << print_tabular(it->first, 2) << std::endl
+				<< format("		Frame counter %1%") % it->second << std::endl;
+
+			if (++it != end)
+				os << std::endl;
+		}
+	}
+
 	return os.str();
 }
 

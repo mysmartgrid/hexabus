@@ -130,6 +130,26 @@ int list_devs::valid(struct nl_msg* msg, const nl::attrs& attrs)
 
 
 
+int list_devkeys::valid(struct nl_msg* msg, const nl::attrs& attrs)
+{
+	std::string iface = attrs.str(IEEE802154_ATTR_DEV_NAME);
+
+	if (this->iface.size() && iface != this->iface)
+		return NL_OK;
+
+	uint64_t device = attrs.u64(IEEE802154_ATTR_HW_ADDR);
+	uint32_t frame_ctr = attrs.u32(IEEE802154_ATTR_LLSEC_FRAME_COUNTER);
+	KeyLookupDescriptor kld = parse_keydesc(attrs);
+
+	devkey key = { iface, device, frame_ctr, kld };
+
+	list.push_back(key);
+
+	return NL_OK;
+}
+
+
+
 int list_keys::valid(struct nl_msg* msg, const nl::attrs& attrs)
 {
 	std::string iface = attrs.str(IEEE802154_ATTR_DEV_NAME);

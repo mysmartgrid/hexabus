@@ -41,20 +41,38 @@ Controller::dev_list_t Controller::list_devices()
 	msgs::list_devs cmd;
 	parsers::list_devs p;
 
-	return send(cmd, p);
+	dev_list_t devs(send(cmd, p));
+
+	std::map<std::pair<uint64_t, std::string>, Device*> devs_by_addr;
+	BOOST_FOREACH(dev_list_t::value_type& dev, devs) {
+		devs_by_addr[std::make_pair(dev.first.hwaddr(), dev.second)] = &dev.first;
+	}
+
+	msgs::list_devkeys cmd2;
+	parsers::list_devkeys p2;
+
+	std::vector<parsers::devkey> keys(send(cmd2, p2));
+
+	BOOST_FOREACH(const parsers::devkey& key, keys) {
+		std::pair<uint64_t, std::string> idx(key.dev_addr, key.iface);
+
+		if (!devs_by_addr.count(idx))
+			continue;
+
+		devs_by_addr[idx]->keys().insert(std::make_pair(key.key, key.frame_ctr));
+	}
+
+	return devs;
 }
 
 std::vector<Device> Controller::list_devices(const std::string& iface)
 {
-	msgs::list_devs cmd;
-	parsers::list_devs p(iface);
-
-	dev_list_t devs = send(cmd, p);
+	dev_list_t devs = list_devices();
 
 	std::vector<Device> result;
-	result.reserve(devs.size());
 	BOOST_FOREACH(const dev_list_t::value_type& p, devs) {
-		result.push_back(p.first);
+		if (p.second == iface)
+			result.push_back(p.first);
 	}
 
 	return result;
@@ -276,6 +294,18 @@ void Controller::add_device(const std::string& iface, const Device& dev)
 	cmd.key_mode(dev.key_mode());
 
 	send(cmd);
+
+	typedef std::map<KeyLookupDescriptor, uint32_t>::const_iterator cit;
+	for (cit it = dev.keys().begin(), end = dev.keys().end(); it != end; ++it) {
+		msgs::add_devkey cmd(iface);
+
+		cmd.device(dev.hwaddr());
+		cmd.frame_counter(it->second);
+		cmd.key_mode(it->first.mode());
+		cmd.key_id(it->first.id());
+
+		send(cmd);
+	}
 }
 
 void Controller::remove_device(const std::string& iface, uint64_t hwaddr)

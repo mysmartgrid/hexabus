@@ -214,6 +214,44 @@ struct del_dev : modify_dev {
 	{}
 };
 
+struct list_devkeys : msg802154 {
+	list_devkeys()
+		: msg802154(NLM_F_REQUEST | NLM_F_DUMP, IEEE802154_LLSEC_LIST_DEVKEY)
+	{}
+};
+
+struct modify_devkey : msg802154 {
+	modify_devkey(int msg, const std::string& iface)
+		: msg802154(NLM_F_REQUEST, msg)
+	{
+		put(IEEE802154_ATTR_DEV_NAME, iface);
+	}
+
+	void device(uint64_t addr)
+	{ put(IEEE802154_ATTR_HW_ADDR, addr); }
+
+	void frame_counter(uint32_t ctr)
+	{ put(IEEE802154_ATTR_LLSEC_FRAME_COUNTER, ctr); }
+
+	void key_id(uint8_t id)
+	{ put(IEEE802154_ATTR_LLSEC_KEY_ID, id); }
+
+	void key_mode(uint8_t mode)
+	{ put(IEEE802154_ATTR_LLSEC_KEY_MODE, mode); }
+};
+
+struct add_devkey : modify_devkey {
+	add_devkey(const std::string& iface)
+		: modify_devkey(IEEE802154_LLSEC_ADD_DEVKEY, iface)
+	{}
+};
+
+struct del_devkey : modify_devkey {
+	del_devkey(const std::string& iface)
+		: modify_devkey(IEEE802154_LLSEC_DEL_DEVKEY, iface)
+	{}
+};
+
 struct list_seclevels : msg802154 {
 	list_seclevels()
 		: msg802154(NLM_F_REQUEST | NLM_F_DUMP, IEEE802154_LLSEC_LIST_SECLEVEL)
