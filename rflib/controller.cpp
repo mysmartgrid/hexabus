@@ -76,6 +76,30 @@ std::vector<Device> Controller::list_devices(const std::string& iface, uint64_t 
 	return devs;
 }
 
+Controller::sl_list_t Controller::list_seclevels()
+{
+	msgs::list_seclevels cmd;
+	parsers::list_seclevels p;
+
+	return send(cmd, p);
+}
+
+std::vector<Seclevel> Controller::list_seclevels(const std::string& iface)
+{
+	msgs::list_seclevels cmd;
+	parsers::list_seclevels p(iface);
+
+	sl_list_t levels = send(cmd, p);
+
+	std::vector<Seclevel> result;
+	result.reserve(levels.size());
+	BOOST_FOREACH(const sl_list_t::value_type& p, levels) {
+		result.push_back(p.first);
+	}
+
+	return result;
+}
+
 Controller::key_list_t Controller::list_keys()
 {
 	msgs::list_keys cmd;

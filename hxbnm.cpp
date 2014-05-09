@@ -213,6 +213,12 @@ int dump_devices(const std::string& iface = "")
 	return 0;
 }
 
+int dump_seclevels(const std::string& iface = "")
+{
+	dump(Controller().list_seclevels(iface));
+	return 0;
+}
+
 int dump_params(const std::string& iface)
 {
 	SecurityParameters params = Controller().getparams(iface);
@@ -263,6 +269,7 @@ enum {
 	C_RESYNCD,
 	C_LIST_KEYS,
 	C_LIST_DEVICES,
+	C_LIST_SECLEVELS,
 	C_LIST_PARAMS,
 	C_LIST_NETDEVS,
 	C_LIST,
@@ -289,6 +296,7 @@ static const struct {
 	{ "resyncd",		C_RESYNCD, },
 	{ "list-keys",		C_LIST_KEYS, },
 	{ "list-devices",	C_LIST_DEVICES, },
+	{ "list-seclevels",	C_LIST_SECLEVELS, },
 	{ "list-params",	C_LIST_PARAMS, },
 	{ "list-netdevs",	C_LIST_NETDEVS, },
 	{ "list",		C_LIST, },
@@ -337,6 +345,8 @@ int help(std::ostream& os, bool all = false)
 		<< "    [iface]                 show only keys on <iface>" << std::endl
 		<< "  list-devices              list paired devices on the system" << std::endl
 		<< "    [iface]                 show only devices on <iface>" << std::endl
+		<< "  list-seclevels            list security levels of the system" << std::endl
+		<< "    [iface]                 show only security levels for <iface>" << std::endl
 		<< "  list-netdevs              show WPAN network device info" << std::endl
 		<< "    [iface]                 show only <iface>" << std::endl
 		<< "  list-params <iface>       show security parameters of <iface>" << std::endl
@@ -494,6 +504,9 @@ int main(int argc, const char* argv[])
 		case C_LIST_DEVICES:
 			return dump_devices(next(""));
 
+		case C_LIST_SECLEVELS:
+			return dump_seclevels(next(""));
+
 		case C_LIST_NETDEVS:
 			return dump_netdevs(next(""));
 
@@ -503,7 +516,8 @@ int main(int argc, const char* argv[])
 		case C_LIST: {
 			std::string iface = next();
 			return dump_keys(iface) || dump_devices(iface) ||
-				dump_params(iface) || dump_netdevs(iface);
+				dump_seclevels(iface) || dump_params(iface) ||
+				dump_netdevs(iface);
 		}
 
 		case C_LIST_PHYS:

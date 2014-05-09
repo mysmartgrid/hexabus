@@ -147,7 +147,7 @@ std::string print_tabular(const Seclevel& sl)
 	std::stringstream os;
 
 	os << "Security level" << std::endl
-		<< format("	Frame type %|i|") % sl.frame_type() << std::endl
+		<< format("	Frame type %|i|") % int(sl.frame_type()) << std::endl
 		<< format("	Levels %1%") % bitlist(sl.levels()) << std::endl;
 
 	return os.str();
