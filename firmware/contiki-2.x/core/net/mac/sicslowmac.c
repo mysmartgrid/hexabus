@@ -111,51 +111,104 @@ is_broadcast_addr(uint8_t mode, uint8_t *addr)
   return 1;
 }
 
-static int
-compute_mac(frame802154_t *pf, const char *data, uint16_t len, void *mac)
+static uint8_t authtag_size(uint8_t sl)
 {
-	nonce_802154_t nonce;
-	uint8_t b[16], x[16];
-	uint8_t i, alen;
-
-	switch (pf->aux_hdr.security_control.security_level & 3) {
-	case 1: alen = 4; break;
-	case 2: alen = 8; break;
-	case 3: alen = 16; break;
+	switch (sl & 3) {
+	case 1: return 4;
+	case 2: return 8;
+	case 3: return 16;
 	default: return 0;
 	}
+}
 
-	nonce.flags = 1 | ((alen - 2) / 2) << 3;
-	rimeaddr_copy((rimeaddr_t *)&nonce.mac_addr, (rimeaddr_t *)&pf->src_addr);
-	nonce.frame_cnt = uip_htonl(pf->aux_hdr.frame_counter);
-	nonce.sec_level = pf->aux_hdr.security_control.security_level;
-	nonce.block_cnt = uip_htons(len);
-
-	memcpy(x, &nonce, 16);
-	rf212_cipher(x);
+static void
+update_mac(void *mac, const void *data, uint16_t len)
+{
+	uint8_t *umac = mac;
+	const uint8_t *udata = data;
+	uint8_t i;
 
 	while (len >= 16) {
 		for (i = 0; i < 16; i++)
-			x[i] ^= data[i];
+			umac[i] ^= udata[i];
 
-		rf212_cipher(x);
+		rf212_cipher(umac);
 
-		data += 16;
+		udata += 16;
 		len -= 16;
 	}
 
 	if (len) {
 		for (i = 0; i < len; i++)
-			x[i] ^= data[i];
+			umac[i] ^= udata[i];
 
-		rf212_cipher(x);
+		rf212_cipher(umac);
 	}
-
-	memcpy(mac, x, 16);
-	return alen;
 }
 
-static int
+static void
+calc_mac_assoc(void *mac, const void *assoc, uint16_t len)
+{
+	uint8_t *umac = mac;
+	const uint8_t *uassoc = assoc;
+	uint8_t plen;
+	uint8_t buf[16];
+
+	memset(buf, 0, sizeof(buf));
+
+	if (len == 0) {
+		return;
+	} else if (len < 65280) {
+		buf[0] = len >> 8;
+		buf[1] = len & 0xFF;
+		plen = 2;
+	} else {
+		buf[0] = 0xff;
+		buf[1] = 0xfe;
+		buf[4] = len >> 8;
+		buf[5] = len & 0xFF;
+		plen = 6;
+	}
+
+	if (len >= sizeof(buf) - plen) {
+		memcpy(buf + plen, uassoc, sizeof(buf) - plen);
+		len -= sizeof(buf) - plen;
+		uassoc += sizeof(buf) - plen;
+	} else {
+		memcpy(buf + plen, uassoc, len);
+		len = 0;
+	}
+
+	update_mac(mac, buf, sizeof(buf));
+	if (len)
+		update_mac(mac, uassoc, len);
+}
+
+static void
+compute_mac(frame802154_t *pf, void *mac, const void *adata, uint16_t alen,
+		const void *data, uint16_t len)
+{
+	nonce_802154_t nonce;
+
+	rimeaddr_copy((rimeaddr_t *)&nonce.mac_addr, (rimeaddr_t *)&pf->src_addr);
+	nonce.frame_cnt = uip_htonl(pf->aux_hdr.frame_counter);
+	nonce.sec_level = pf->aux_hdr.security_control.security_level;
+	nonce.block_cnt = uip_htons(len);
+
+	nonce.flags = 1;
+	nonce.flags |= ((authtag_size(nonce.sec_level) - 2) / 2) << 3;
+	if (alen) {
+		nonce.flags |= 1 << 6;
+	}
+
+	memcpy(mac, &nonce, 16);
+	rf212_cipher(mac);
+
+	calc_mac_assoc(mac, adata, alen);
+	update_mac(mac, data, len);
+}
+
+static void
 transform_block(nonce_802154_t *nonce, uint16_t block, uint8_t *data, uint16_t len)
 {
 	uint8_t k[16], i;
@@ -166,8 +219,6 @@ transform_block(nonce_802154_t *nonce, uint16_t block, uint8_t *data, uint16_t l
 
 	for (i = 0; i < len; i++)
 		data[i] ^= k[i];
-
-	return 0;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -175,8 +226,11 @@ int
 encrypt_payload(frame802154_t *pf)
 {
 	nonce_802154_t nonce;
-	uint8_t len_left, i, block, alen;
+	uint8_t i, alen;
 	uint8_t mac[16];
+
+	if (pf->aux_hdr.security_control.security_level == 0)
+		return 0;
 
 	nonce.flags = 1;
 	rimeaddr_copy((rimeaddr_t *)&nonce.mac_addr, (rimeaddr_t *)&pf->src_addr);
@@ -189,18 +243,26 @@ encrypt_payload(frame802154_t *pf)
 		PRINTF(" %02x", ((uint8_t*) &nonce)[i]);
 	PRINTF("\n");
 
-	alen = compute_mac(pf, packetbuf_dataptr(), packetbuf_datalen(), mac);
+	if (nonce.sec_level < 4) {
+		compute_mac(pf, mac, packetbuf_hdrptr(), packetbuf_totlen(), 0, 0);
+	} else if (nonce.sec_level > 4) {
+		compute_mac(pf, mac, packetbuf_hdrptr(), packetbuf_hdrlen(),
+				packetbuf_dataptr(), packetbuf_datalen());
+	}
 	transform_block(&nonce, 0, mac, 16);
 
-	len_left = packetbuf_datalen();
-	block = 0;
-	while (len_left > 0) {
-		i = len_left > 16 ? 16 : len_left;
-		transform_block(&nonce, block + 1, (uint8_t*) packetbuf_dataptr() + 16 * block, i);
-		len_left -= i;
-		block++;
+	if (nonce.sec_level > 4) {
+		uint8_t len_left = packetbuf_datalen();
+		uint8_t block = 0;
+		while (len_left > 0) {
+			i = len_left > 16 ? 16 : len_left;
+			transform_block(&nonce, block + 1, (uint8_t*) packetbuf_dataptr() + 16 * block, i);
+			len_left -= i;
+			block++;
+		}
 	}
 
+	alen = authtag_size(nonce.sec_level);
 	memcpy((char*) packetbuf_dataptr() + packetbuf_datalen(), mac, alen);
 	packetbuf_set_datalen(packetbuf_datalen() + alen);
 
@@ -209,11 +271,14 @@ encrypt_payload(frame802154_t *pf)
 
 /*---------------------------------------------------------------------------*/
 int
-decrypt_payload(frame802154_t *pf)
+decrypt_payload(frame802154_t *pf, uint8_t hlen)
 {
 	nonce_802154_t nonce;
-	uint8_t len_left, i, block, alen;
+	uint8_t i, alen;
 	uint8_t mac[16];
+
+	if (pf->aux_hdr.security_control.security_level == 0)
+		return 0;
 
 	nonce.flags = 1;
 	rimeaddr_copy((rimeaddr_t *)&nonce.mac_addr, (rimeaddr_t *)&pf->src_addr);
@@ -226,30 +291,37 @@ decrypt_payload(frame802154_t *pf)
 		PRINTF(" %02x", ((uint8_t*) &nonce)[i]);
 	PRINTF("\n");
 
-	switch (nonce.sec_level & 3) {
-	case 1: alen = 4; break;
-	case 2: alen = 8; break;
-	case 3: alen = 16; break;
-	default: alen = 0; break;
+	alen = authtag_size(nonce.sec_level);
+
+	if (nonce.sec_level > 4) {
+		uint8_t len_left = packetbuf_datalen() - alen;
+		uint8_t block = 0;
+		while (len_left > 0) {
+			i = len_left > 16 ? 16 : len_left;
+			transform_block(&nonce, block + 1, (uint8_t*) packetbuf_dataptr() + 16 * block, i);
+			len_left -= i;
+			block++;
+		}
 	}
 
-	len_left = packetbuf_datalen() - alen;
-	block = 0;
-	while (len_left > 0) {
-		i = len_left > 16 ? 16 : len_left;
-		transform_block(&nonce, block + 1, (uint8_t*) packetbuf_dataptr() + 16 * block, i);
-		len_left -= i;
-		block++;
+	if (nonce.sec_level < 4) {
+		compute_mac(pf, mac, (const char*) packetbuf_dataptr() - hlen,
+				packetbuf_datalen() + hlen - alen, 0, 0);
+	} else if (nonce.sec_level > 4) {
+		compute_mac(pf, mac, (const char*) packetbuf_dataptr() - hlen,
+				hlen, packetbuf_dataptr(), packetbuf_datalen() - alen);
 	}
-
-	compute_mac(pf, packetbuf_dataptr(), packetbuf_datalen() - alen, mac);
-	transform_block(&nonce, 0, mac, alen);
 	packetbuf_set_datalen(packetbuf_datalen() - alen);
+	transform_block(&nonce, 0, (uint8_t*) packetbuf_dataptr() + packetbuf_datalen(), alen);
 
 	if (memcmp(mac, (const char*) packetbuf_dataptr() + packetbuf_datalen(), alen)) {
-		PRINTF("mac mismatch %02x %02x %02x %02x\n", mac[0], mac[1], mac[2], mac[3]);
+		PRINTF("mac mismatch");
+		for (i = 0; i < alen; i++) PRINTF(" %02x", mac[i]);
+		PRINTF("\n");
 		const uint8_t *macc = (const uint8_t*) packetbuf_dataptr() + packetbuf_datalen();
-		PRINTF("mac input is %02x %02x %02x %02x\n", macc[0], macc[1], macc[2], macc[3]);
+		PRINTF("mac input is");
+		for (i = 0; i < alen; i++) PRINTF(" %02x", macc[i]);
+		PRINTF("\n");
 		return 1;
 	}
 
@@ -328,9 +400,6 @@ send_packet(mac_callback_t sent, void *ptr)
    */
   rimeaddr_copy((rimeaddr_t *)&params.src_addr, &rimeaddr_node_addr);
 
-  if (encryption_enabled)
-	  encrypt_payload(&params);
-
   params.payload = packetbuf_dataptr();
   params.payload_len = packetbuf_datalen();
   len = frame802154_hdrlen(&params);
@@ -338,6 +407,9 @@ send_packet(mac_callback_t sent, void *ptr)
   if(packetbuf_hdralloc(len)) {
     int ret;
     frame802154_create(&params, packetbuf_hdrptr(), len);
+
+    if (encryption_enabled)
+      encrypt_payload(&params);
 
 //    PRINTF("6MAC-UT: %2X", params.fcf.frame_type);
 //    PRINTADDR(params.dest_addr.u8);
@@ -395,7 +467,7 @@ input_packet(void)
         }
       }
     }
-    if (frame.fcf.security_enabled && !promiscuous_mode && decrypt_payload(&frame))
+    if (frame.fcf.security_enabled && !promiscuous_mode && decrypt_payload(&frame, len - frame.payload_len))
       return;
 
     packetbuf_set_addr(PACKETBUF_ADDR_SENDER, (rimeaddr_t *)&frame.src_addr);
