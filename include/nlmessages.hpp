@@ -139,8 +139,8 @@ struct list_keys : msg802154 {
 };
 
 struct modify_key : msg802154 {
-	modify_key(int msg, const std::string iface)
-		: msg802154(NLM_F_REQUEST, msg)
+	modify_key(int msg, const std::string iface, int flags = 0)
+		: msg802154(NLM_F_REQUEST | flags, msg)
 	{
 		put(IEEE802154_ATTR_DEV_NAME, iface);
 	}
@@ -157,7 +157,7 @@ struct modify_key : msg802154 {
 
 struct add_key : modify_key {
 	add_key(const std::string iface)
-		: modify_key(IEEE802154_LLSEC_ADD_KEY, iface)
+		: modify_key(IEEE802154_LLSEC_ADD_KEY, iface, NLM_F_CREATE | NLM_F_EXCL)
 	{}
 
 	void key(const void *key)
@@ -177,8 +177,8 @@ struct list_devs : msg802154 {
 };
 
 struct modify_dev : msg802154 {
-	modify_dev(int msg, const std::string& iface)
-		: msg802154(NLM_F_REQUEST, msg)
+	modify_dev(int msg, const std::string& iface, int flags = 0)
+		: msg802154(NLM_F_REQUEST | flags, msg)
 	{
 		put(IEEE802154_ATTR_DEV_NAME, iface);
 	}
@@ -204,7 +204,7 @@ struct modify_dev : msg802154 {
 
 struct add_dev : modify_dev {
 	add_dev(const std::string& iface)
-		: modify_dev(IEEE802154_LLSEC_ADD_DEV, iface)
+		: modify_dev(IEEE802154_LLSEC_ADD_DEV, iface, NLM_F_CREATE | NLM_F_EXCL)
 	{}
 };
 
@@ -221,8 +221,8 @@ struct list_devkeys : msg802154 {
 };
 
 struct modify_devkey : msg802154 {
-	modify_devkey(int msg, const std::string& iface)
-		: msg802154(NLM_F_REQUEST, msg)
+	modify_devkey(int msg, const std::string& iface, int flags = 0)
+		: msg802154(NLM_F_REQUEST | flags, msg)
 	{
 		put(IEEE802154_ATTR_DEV_NAME, iface);
 	}
@@ -242,7 +242,7 @@ struct modify_devkey : msg802154 {
 
 struct add_devkey : modify_devkey {
 	add_devkey(const std::string& iface)
-		: modify_devkey(IEEE802154_LLSEC_ADD_DEVKEY, iface)
+		: modify_devkey(IEEE802154_LLSEC_ADD_DEVKEY, iface, NLM_F_CREATE | NLM_F_EXCL)
 	{}
 };
 
@@ -259,8 +259,8 @@ struct list_seclevels : msg802154 {
 };
 
 struct modify_seclevel : msg802154 {
-	modify_seclevel(int msg, const std::string& iface)
-		: msg802154(NLM_F_REQUEST, msg)
+	modify_seclevel(int msg, const std::string& iface, int flags = 0)
+		: msg802154(NLM_F_REQUEST | flags, msg)
 	{
 		put(IEEE802154_ATTR_DEV_NAME, iface);
 	}
@@ -277,7 +277,7 @@ struct modify_seclevel : msg802154 {
 
 struct add_seclevel : modify_seclevel {
 	add_seclevel(const std::string& iface)
-		: modify_seclevel(IEEE802154_LLSEC_ADD_SECLEVEL, iface)
+		: modify_seclevel(IEEE802154_LLSEC_ADD_SECLEVEL, iface, NLM_F_CREATE | NLM_F_EXCL)
 	{}
 };
 
