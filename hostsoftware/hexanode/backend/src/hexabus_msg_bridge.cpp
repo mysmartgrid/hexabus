@@ -73,6 +73,10 @@ struct ReadingLogger : public hexabus::Logger {
 				return "hPa";
 			else if (unit == "_hsbs")
 				return "_hsbs";
+			else if (unit == "V")
+				return "V";
+			else if (unit == "A")
+				return "A";
 			else
 				return UNKNOWN_UNIT;
 		}

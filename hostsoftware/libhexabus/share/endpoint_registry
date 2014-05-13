@@ -414,3 +414,45 @@ eid 61 {
         access R
         function infrastructure
 }
+eid 62 {
+        type UINT32
+        description "Current L1"
+        unit "A"
+        access R
+        function sensor
+}
+eid 63 {
+        type UINT32
+        description "Current L2"
+        unit "A"
+        access R
+        function sensor
+}
+eid 64 {
+        type UINT32
+        description "Current L3"
+        unit "A"
+        access R
+        function sensor
+}
+eid 65 {
+        type UINT32
+        description "Voltage L1"
+        unit "V"
+        access R
+        function sensor
+}
+eid 66 {
+        type UINT32
+        description "Voltage L2"
+        unit "V"
+        access R
+        function sensor
+}
+eid 67 {
+        type UINT32
+        description "Voltage L3"
+        unit "V"
+        access R
+        function sensor
+}
