@@ -109,6 +109,7 @@ namespace hexabus {
 					|| boost::is_same<TValue, uint8_t>::value
 					|| boost::is_same<TValue, uint32_t>::value
 					|| boost::is_same<TValue, float>::value
+					|| boost::is_same<TValue, std::string>::value
 					|| boost::is_same<TValue, boost::posix_time::ptime>::value
 					|| boost::is_same<TValue, boost::posix_time::time_duration>::value
 					|| boost::is_same<TValue, boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >::value
@@ -121,6 +122,7 @@ namespace hexabus {
 					boost::is_same<TValue, uint8_t>::value ? HXB_DTYPE_UINT8 :
 					boost::is_same<TValue, uint32_t>::value ? HXB_DTYPE_UINT32 :
 					boost::is_same<TValue, float>::value ? HXB_DTYPE_FLOAT :
+					boost::is_same<TValue, std::string>::value ? HXB_DTYPE_128STRING :
 					boost::is_same<TValue, boost::posix_time::ptime>::value ? HXB_DTYPE_DATETIME :
 					boost::is_same<TValue, boost::posix_time::time_duration>::value ? HXB_DTYPE_TIMESTAMP :
 					boost::is_same<TValue, boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >::value
