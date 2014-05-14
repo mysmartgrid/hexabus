@@ -569,9 +569,11 @@ angular.module('dashboard', [
 }])
 .controller('stateMachine', ['$scope', 'Socket', 'Lang', function($scope, Socket, Lang) {
 	$scope.devices = window.known_hexabus_devices;
-  
+
 	$scope.masterSlave = {};
 	$scope.masterSlave.slaves = [];
+	$scope.masterSlave.maxSlaveCount = Object.keys($scope.devices).length - 1;
+
 
 	$scope.standbyKiller = {};
 
@@ -599,10 +601,30 @@ angular.module('dashboard', [
 		hideAlerts();
 	}
 
-	$scope.addSlave = function() {
-		console.log($scope.masterSlave.slaves)
+	$scope.masterSlave.validateForm = function() {
+		var usedIPs = [];
+		$scope.masterSlaveForm.$setValidity('disjointDevices',true);
+		usedIPs.push($scope.masterSlave.master);
+		for(slave in $scope.masterSlave.slaves) {
+			if(usedIPs.indexOf($scope.masterSlave.slaves[slave].ip) > -1) {
+				$scope.masterSlaveForm.$setValidity('disjointDevices',false);
+			}
+			usedIPs.push($scope.masterSlave.slaves[slave].ip);
+		}
+	}
+
+	$scope.masterSlave.addSlave = function() {
 		$scope.masterSlave.slaves.push({ip: $scope.devices[Object.keys($scope.devices)[0]].ip});
+		$scope.masterSlave.validateForm();
 	};
+
+	$scope.masterSlave.removeSlave = function(slave) {
+		var i = $scope.masterSlave.slaves.indexOf(slave);
+		if(i > -1) {
+			$scope.masterSlave.slaves.splice(i,1);
+		}
+		$scope.masterSlave.validateForm();
+	}
 
 	$scope.send_master_slave = function() {
 		hideAlerts();

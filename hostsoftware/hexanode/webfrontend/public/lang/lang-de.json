@@ -141,7 +141,11 @@
 				"deleting" : "Lösche temporäre Dateien."
 			},
 			"errors": {
-				"no-valid-number": "Eingabe ist keine Zahl.",
+				"no-valid-number": "Eingabe ist keine gültige Zahl.",
+				"number-min-u32": "Der Wert muss größer als 0 sein.",
+				"number-max-u32": "Der Wert muss kleiner als 4294967295 sein.",
+				"disjoint-devices" : "Jedes Gerät kann nur in einer Funktion verwenden werden.",
+				"no-slaves": "Es muss mindestens ein Gerät als slave ausgewählt werden.",
 				"opening-template-failed": "Die Vorlage {file} konnte nicht geöffnet werden.",
 				"writing-file-failed": "Eine Datei konnte nicht geschrieben werden.",
 				"compiling-failed": "Die Statemachine konnte nicht kompiliert werden.",

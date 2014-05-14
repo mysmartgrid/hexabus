@@ -26,52 +26,98 @@
 	<div >
 		<h3 data-localize="wizard.state-machine.new">New state machine</h3>
 		<p class="lead" data-localize="wizard.state-machine.choose">Choose a ... from below.</p>
-		<select data-ng-model="machineProp" data-ng-readonly="busy" data-ng-change="resetForms()">
+		<select data-ng-model="machineProp" data-ng-disabled="busy" data-ng-change="resetForms()">
 			<option value="master_slave">Master/Slave</option>
-			<option value="standbykiller">Standby killer</option>
+			<option value="standbykiller">Standbykiller</option>
 		</select>
 	</div>
 
 	<div data-ng-show="machineProp=='master_slave'">
-		<form name="masterSlaveForm" ng-init="resetMasterSlaveForm()">
+		<form name="masterSlaveForm" novalidate>
 			<p data-localize="wizard.state-machine.choose-master">Choose master</p>
 			<select name="master" data-ng-model="masterSlave.master" data-ng-options="value.ip as value.name for (key,value) in devices" 
-			data-ng-required="true" data-ng-init="masterSlaveForm.master = devices[0].name">
+			data-ng-required="true" data-ng-init="masterSlaveForm.master = devices[0].name" data-ng-change="masterSlave.validateForm()">
 		</select>
 		<p>
-			<input type="number" name="threshold" data-ng-model="masterSlave.threshold" data-ng-required="true">
+			<input type="number" data-ng-pattern="/^-?\d+$/" name="threshold" min="1" max="4294967295" data-ng-model="masterSlave.threshold" data-ng-required="true">
 			<span data-localize="wizard.state-machine.choose-threshold">Choose threshold</span>
-			<span data-ng-hide="masterSlaveForm.threshold.$valid" data-localize="wizard.state-machine.errors.no-valid-number">Not a valid number.</span>
+			<span data-ng-show="masterSlaveForm.threshold.$error.number || masterSlaveForm.threshold.$error.required || masterSlaveForm.threshold.$error.pattern "
+				data-localize="wizard.state-machine.errors.no-valid-number">
+					Not a valid number.
+			</span>
+			<span data-ng-show="masterSlaveForm.threshold.$error.min"
+				data-localize="wizard.state-machine.errors.number-min-u32">
+					The value has to be greater then 0.
+			</span>
+			<span data-ng-show="masterSlaveForm.threshold.$error.max"
+				data-localize="wizard.state-machine.errors.number-max-u32">
+					The value has to be smaller then 4294967296.
+			</span>
 		</p>
 		<p data-localize="wizard.state-machine.add-slaves">Add slaves</p>
 		<div data-ng-repeat="slave in masterSlave.slaves" >
-			<select data-ng-model="slave.ip" data-ng-options="value.ip as value.name for (key,value) in devices"  data-ng-required="true">
+			<select data-ng-model="slave.ip" data-ng-options="value.ip as value.name for (key,value) in devices"  data-ng-required="true"
+				data-ng-change="masterSlave.validateForm()">
 			</select>
+			<button type="button" class="btn btn-danger btn-xs" data-ng-click="masterSlave.removeSlave(slave)" data-ng-disabled="busy">
+				<span class="glyphicon glyphicon-remove"></i>
+			</button>
 		</div>
 		<br/>
-		<button data-ng-disabled="busy" class="btn btn-success" data-localize="wizard.state-machine.add-slave" data-ng-click="addSlave()">Add Slave</button>
-		<button data-ng-disabled="masterSlaveForm.$invalid || busy || masterSlave.slaves.length == 0" class="btn btn-success" 
-		data-localize="wizard.state-machine.upload" data-ng-click="send_master_slave()">Upload</button>
+		<span data-ng-show="masterSlaveForm.$error.disjointDevices" data-localize="wizard.state-machine.errors.disjoint-devices">
+				Use each device only once.
+		</span>
+		<span data-ng-show="masterSlave.slaves.length == 0" data-localize="wizard.state-machine.errors.no-slaves">
+				Select at least on slave device.
+		</span>
+		</br>
+		<button data-ng-disabled="busy || (masterSlave.slaves.length >= masterSlave.maxSlaveCount)" class="btn btn-success"
+			data-localize="wizard.state-machine.add-slave" data-ng-click="masterSlave.addSlave()">Add Slave</button>
+		<button data-ng-disabled="masterSlaveForm.$invalid || busy || (masterSlave.slaves.length == 0)" class="btn btn-success"
+			data-localize="wizard.state-machine.upload" data-ng-click="send_master_slave()">Upload</button>
 	</form>
 </div>
 
 <div data-ng-show="machineProp=='standbykiller'">
-	<form name="standbykillerForm">
+	<form name="standbykillerForm" novalidate>
 		<p>
 			<p data-localize="wizard.state-machine.choose-device">Choose device</p>
 			<select data-ng-model="standbyKiller.device" data-ng-options="value.ip as value.name for (key,value) in devices" data-ng-required="true">
 			</select>
 			<p>
-				<input type="number" name="threshold" data-ng-model="standbyKiller.threshold" data-ng-min="0" data-ng-required="true">
+				<input type="number" name="threshold" min="1" max="4294967295" data-ng-model="standbyKiller.threshold"
+					data-ng-pattern="/^-?\d+$/" data-ng-required="true">
 				<span data-localize="wizard.state-machine.choose-threshold">Choose threshold.</span>
-				<span data-ng-hide="standbykillerForm.threshold.$valid" data-localize="wizard.state-machine.errors.no-valid-number">Not a valid number.</span>
+				<span data-ng-show="standbykillerForm.threshold.$error.number || standbykillerForm.threshold.$error.required || standbykillerForm.threshold.$error.pattern "
+					data-localize="wizard.state-machine.errors.no-valid-number">
+						Not a valid number.
+				</span>
+				<span data-ng-show="standbykillerForm.threshold.$error.min"
+					data-localize="wizard.state-machine.errors.number-min-u32">
+						The value has to be greater then 0.
+				</span>
+				<span data-ng-show="standbykillerForm.threshold.$error.max"
+					data-localize="wizard.state-machine.errors.number-max-u32">
+						The value has to be smaller then 4294967296.
+				</span>
 			</p>
 			<p>
-				<input type="number" name="timeout" data-ng-model="standbyKiller.timeout" data-ng-min="0" data-ng-required="true">
+				<input type="number" name="timeout" min="1" max="4294967295" data-ng-model="standbyKiller.timeout" data-ng-min="0" data-ng-required="true">
 				<span data-localize="wizard.state-machine.choose-timeout">Choose timeout.</span>
-				<span data-ng-hide="standbykillerForm.timeout.$valid" data-localize="wizard.state-machine.errors.no-valid-number">Not a valid number.</span>
+				<span data-ng-show="standbykillerForm.timeout.$error.number || standbykillerForm.timeout.$error.required || standbykillerForm.timeout.$error.pattern "
+					data-localize="wizard.state-machine.errors.no-valid-number">
+						Not a valid number.
+				</span>
+				<span data-ng-show="standbykillerForm.timeout.$error.min"
+					data-localize="wizard.state-machine.errors.number-min-u32">
+						The value has to be greater then 0.
+				</span>
+				<span data-ng-show="standbykillerForm.timeout.$error.max"
+					data-localize="wizard.state-machine.errors.number-max-u32">
+						The value has to be smaller then 4294967296.
+				</span>
 			</p>
-			<button data-ng-disabled="standbykillerForm.$invalid || busy" class="btn btn-success" data-localize="wizard.state-machine.upload" 
+			<button data-ng-disabled="standbykillerForm.$invalid || busy" class="btn btn-success" data-localize="wizard.state-machine.upload"
 			data-ng-click="send_standbykiller()">Upload</button>
 		</form>
 	</div>
