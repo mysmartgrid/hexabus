@@ -593,6 +593,7 @@ angular.module('dashboard', [
 		$scope.masterSlave.master = $scope.devices[Object.keys($scope.devices)[0]].ip;
 		$scope.masterSlave.threshold = 10;
 		$scope.masterSlave.slaves = [];
+		$scope.masterSlave.validateForm();
 
 		$scope.standbyKiller.device = $scope.devices[Object.keys($scope.devices)[0]].ip;
 		$scope.standbyKiller.threshold = 10;
