@@ -173,13 +173,22 @@
 			"41": "PV Produktionsmessung",
 			"42": "Netzbezug (Produktion - Verbrauch)",
 			"43": "Batterieleistung (Ladeleistung - Entladeleistung)",
+			"52": "Verbrauch L1",
+			"53": "Verbrauch L2",
+			"54": "Verbrauch L3",
+			"55": "Einspeisung",
+			"56": "Einspeisung L1",
+			"57": "Einspeisung L2",
+			"58": "Einspeisung L3",
+			"59": "Energieverbrauch",
+			"60": "Eingespeiste Energie",
 			"61": "Smartmeter firmware",
-			"62": "Current L1",
-			"63": "Current L2",
-			"65": "Current L3",
-			"66": "Voltage L1",
-			"67": "Voltage L2",
-			"68": "Voltage L3",
+			"62": "Strom L1",
+			"63": "Strom L2",
+			"65": "Strom L3",
+			"66": "Spannung L1",
+			"67": "Spannung L2",
+			"68": "Spannung L3",
 			"69": "Factor L1",
 			"70": "Factor L2",
 			"71": "Factor L3",
@@ -187,6 +196,8 @@
 
 		"units": {
 			"%r.h.": "rF"
+			"A": "A"
+			"V": "V"
 		}
 	}
 }
