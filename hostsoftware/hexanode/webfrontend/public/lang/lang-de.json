@@ -191,12 +191,12 @@
 			"68": "Spannung L3",
 			"69": "Factor L1",
 			"70": "Factor L2",
-			"71": "Factor L3",
+			"71": "Factor L3"
 		},
 
 		"units": {
-			"%r.h.": "rF"
-			"A": "A"
+			"%r.h.": "rF",
+			"A": "A",
 			"V": "V"
 		}
 	}
