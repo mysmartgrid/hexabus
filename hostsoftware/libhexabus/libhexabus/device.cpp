@@ -25,6 +25,7 @@
 #include <libhexabus/filtering.hpp>
 
 #include "../../../shared/endpoints.h"
+#include "../../../shared/hexabus_types.h"
 
 using namespace hexabus;
 
@@ -70,12 +71,12 @@ Device::Device(boost::asio::io_service& io, const std::string& interface, const 
 
 	_handle_broadcasts(boost::system::error_code());
 
-	TypedEndpointDescriptor<uint8_t>::Ptr smcontrolEP(new TypedEndpointDescriptor<uint8_t>(EP_SM_CONTROL, "Statemachine control"));
+	TypedEndpointFunctions<uint8_t>::Ptr smcontrolEP(new TypedEndpointFunctions<uint8_t>(EP_SM_CONTROL, "Statemachine control"));
 	smcontrolEP->onRead(boost::bind(&Device::_handle_smcontrolquery, this));
 	smcontrolEP->onWrite(boost::bind(&Device::_handle_smcontrolwrite, this, _1));
 	addEndpoint(smcontrolEP);
 	//dummy endpoint to let _handle_descquery knows we can handle statemachine upload
-	TypedEndpointDescriptor<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >::Ptr smupreceiverEP(new TypedEndpointDescriptor<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, "Statemachine upload receiver"));
+	TypedEndpointFunctions<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >::Ptr smupreceiverEP(new TypedEndpointFunctions<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, "Statemachine upload receiver"));
 	smupreceiverEP->onWrite(&dummy_write_handler);
 	addEndpoint(smupreceiverEP);
 }
@@ -94,9 +95,9 @@ boost::signals2::connection Device::onWriteName(const write_name_fn_t& callback)
 	return result;
 }
 
-void Device::addEndpoint(const EndpointDescriptor::Ptr ep)
+void Device::addEndpoint(const EndpointFunctions::Ptr ep)
 {
-	_endpoints.insert(std::pair<uint32_t, const EndpointDescriptor::Ptr>(ep->eid(), ep));
+	_endpoints.insert(std::pair<uint32_t, const EndpointFunctions::Ptr>(ep->eid(), ep));
 }
 
 void Device::_handle_query(const Packet& p, const boost::asio::ip::udp::endpoint& from)
@@ -106,7 +107,7 @@ void Device::_handle_query(const Packet& p, const boost::asio::ip::udp::endpoint
 		//TODO: What to do?
 		return;
 	}
-	std::map<uint32_t, const EndpointDescriptor::Ptr>::iterator it = _endpoints.find(query->eid());
+	std::map<uint32_t, const EndpointFunctions::Ptr>::iterator it = _endpoints.find(query->eid());
 	try {
 		if ( it != _endpoints.end() ) {
 			_socket.send(*(it->second->handle_query()), from);
@@ -126,7 +127,7 @@ void Device::_handle_write(const Packet& p, const boost::asio::ip::udp::endpoint
 		//TODO: What to do?
 		return;
 	}
-	std::map<uint32_t, const EndpointDescriptor::Ptr>::iterator it = _endpoints.find(write->eid());
+	std::map<uint32_t, const EndpointFunctions::Ptr>::iterator it = _endpoints.find(write->eid());
 	try {
 		if ( it != _endpoints.end() ) {
 			uint8_t res = it->second->handle_write(p);
@@ -150,7 +151,7 @@ void Device::_handle_epquery(const Packet& p, const boost::asio::ip::udp::endpoi
 		//TODO: What to do?
 		return;
 	}
-	std::map<uint32_t, const EndpointDescriptor::Ptr>::iterator it = _endpoints.find(query->eid());
+	std::map<uint32_t, const EndpointFunctions::Ptr>::iterator it = _endpoints.find(query->eid());
 	try {
 		if ( it != _endpoints.end() ) {
 			//TODO: determine datatype
@@ -174,7 +175,7 @@ void Device::_handle_descquery(const Packet& p, const boost::asio::ip::udp::endp
 	}
 
 	uint32_t group = 1;
-	std::map<uint32_t, const EndpointDescriptor::Ptr>::iterator it = _endpoints.begin();
+	std::map<uint32_t, const EndpointFunctions::Ptr>::iterator it = _endpoints.begin();
 	while ( it->first < query->eid() && it != _endpoints.end() ) { it++; }
 	while ( it->first < ( query->eid() + 32 ) && it != _endpoints.end() )
 	{
@@ -255,7 +256,7 @@ void Device::_handle_broadcasts(const boost::system::error_code& error)
 {
 	if ( !error )
 	{
-		for ( std::map<uint32_t, const EndpointDescriptor::Ptr>::iterator it = _endpoints.begin(), end = _endpoints.end(); it != end; ++it )
+		for ( std::map<uint32_t, const EndpointFunctions::Ptr>::iterator it = _endpoints.begin(), end = _endpoints.end(); it != end; ++it )
 		{
 			Packet::Ptr p = it->second->handle_query();
 			if ( p && p->type() != HXB_PTYPE_ERROR )

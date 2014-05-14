@@ -9,6 +9,7 @@
 #include <boost/ref.hpp>
 
 #include <libhexabus/device.hpp>
+#include <libhexabus/endpoint_registry.hpp>
 
 #include "endpoints.h"
 
@@ -33,22 +34,48 @@ void HexabusServer::_init() {
 	_device.onReadName(boost::bind(&HexabusServer::loadDeviceName, this));
 	_device.onWriteName(boost::bind(&HexabusServer::saveDeviceName, this, _1));
 
-	hexabus::TypedEndpointDescriptor<uint32_t>::Ptr powerEP(new hexabus::TypedEndpointDescriptor<uint32_t>(EP_POWER_METER, "HexabusPlug+ Power meter (W)"));
+	hexabus::EndpointRegistry ep_registry;
+	hexabus::EndpointRegistry::const_iterator ep_it;
+
+	ep_it = ep_registry.find(EP_POWER_METER);
+	hexabus::TypedEndpointFunctions<uint32_t>::Ptr powerEP = ep_it != ep_registry.end()
+		? hexabus::TypedEndpointFunctions<uint32_t>::fromEndpointDescriptor(ep_it->second)
+		: hexabus::TypedEndpointFunctions<uint32_t>::Ptr(new hexabus::TypedEndpointFunctions<uint32_t>(EP_POWER_METER, "HexabusPlug+ Power meter (W)"));
 	powerEP->onRead(boost::bind(&HexabusServer::get_sum, this));
 	_device.addEndpoint(powerEP);
-	hexabus::TypedEndpointDescriptor<uint32_t>::Ptr l1EP(new hexabus::TypedEndpointDescriptor<uint32_t>(EP_FLUKSO_L1, "Flukso Phase 1"));
+
+	ep_it = ep_registry.find(EP_FLUKSO_L1);
+	hexabus::TypedEndpointFunctions<uint32_t>::Ptr l1EP = ep_it != ep_registry.end()
+		? hexabus::TypedEndpointFunctions<uint32_t>::fromEndpointDescriptor(ep_it->second)
+		: hexabus::TypedEndpointFunctions<uint32_t>::Ptr(new hexabus::TypedEndpointFunctions<uint32_t>(EP_FLUKSO_L1, "Flukso Phase 1"));
 	l1EP->onRead(boost::bind(&HexabusServer::get_sensor, this, 1));
 	_device.addEndpoint(l1EP);
-	hexabus::TypedEndpointDescriptor<uint32_t>::Ptr l2EP(new hexabus::TypedEndpointDescriptor<uint32_t>(EP_FLUKSO_L2, "Flukso Phase 2"));
+
+	ep_it = ep_registry.find(EP_FLUKSO_L2);
+	hexabus::TypedEndpointFunctions<uint32_t>::Ptr l2EP = ep_it != ep_registry.end()
+		? hexabus::TypedEndpointFunctions<uint32_t>::fromEndpointDescriptor(ep_it->second)
+		: hexabus::TypedEndpointFunctions<uint32_t>::Ptr(new hexabus::TypedEndpointFunctions<uint32_t>(EP_FLUKSO_L2, "Flukso Phase 2"));
 	l2EP->onRead(boost::bind(&HexabusServer::get_sensor, this, 2));
 	_device.addEndpoint(l2EP);
-	hexabus::TypedEndpointDescriptor<uint32_t>::Ptr l3EP(new hexabus::TypedEndpointDescriptor<uint32_t>(EP_FLUKSO_L3, "Flukso Phase 3"));
+
+	ep_it = ep_registry.find(EP_FLUKSO_L3);
+	hexabus::TypedEndpointFunctions<uint32_t>::Ptr l3EP = ep_it != ep_registry.end()
+		? hexabus::TypedEndpointFunctions<uint32_t>::fromEndpointDescriptor(ep_it->second)
+		: hexabus::TypedEndpointFunctions<uint32_t>::Ptr(new hexabus::TypedEndpointFunctions<uint32_t>(EP_FLUKSO_L3, "Flukso Phase 3"));
 	l3EP->onRead(boost::bind(&HexabusServer::get_sensor, this, 3));
 	_device.addEndpoint(l3EP);
-	hexabus::TypedEndpointDescriptor<uint32_t>::Ptr l4EP(new hexabus::TypedEndpointDescriptor<uint32_t>(EP_FLUKSO_S01, "Flukso S0 1"));
+
+	ep_it = ep_registry.find(EP_FLUKSO_S01);
+	hexabus::TypedEndpointFunctions<uint32_t>::Ptr l4EP = ep_it != ep_registry.end()
+		? hexabus::TypedEndpointFunctions<uint32_t>::fromEndpointDescriptor(ep_it->second)
+		: hexabus::TypedEndpointFunctions<uint32_t>::Ptr(new hexabus::TypedEndpointFunctions<uint32_t>(EP_FLUKSO_S01, "Flukso S0 1"));
 	l4EP->onRead(boost::bind(&HexabusServer::get_sensor, this, 4));
 	_device.addEndpoint(l4EP);
-	hexabus::TypedEndpointDescriptor<uint32_t>::Ptr l5EP(new hexabus::TypedEndpointDescriptor<uint32_t>(EP_FLUKSO_S02, "Flukso S0 2"));
+
+	ep_it = ep_registry.find(EP_FLUKSO_S02);
+	hexabus::TypedEndpointFunctions<uint32_t>::Ptr l5EP = ep_it != ep_registry.end()
+		? hexabus::TypedEndpointFunctions<uint32_t>::fromEndpointDescriptor(ep_it->second)
+		: hexabus::TypedEndpointFunctions<uint32_t>::Ptr(new hexabus::TypedEndpointFunctions<uint32_t>(EP_FLUKSO_S02, "Flukso S0 2"));
 	l5EP->onRead(boost::bind(&HexabusServer::get_sensor, this, 5));
 	_device.addEndpoint(l5EP);
 }

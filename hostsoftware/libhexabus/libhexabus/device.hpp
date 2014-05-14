@@ -23,13 +23,14 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/deadline_timer.hpp>
 
+#include <libhexabus/endpoint_registry.hpp>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/socket.hpp>
 
 namespace hexabus {
-	class EndpointDescriptor {
+	class EndpointFunctions {
 		public:
-			typedef std::tr1::shared_ptr<EndpointDescriptor> Ptr;
+			typedef std::tr1::shared_ptr<EndpointFunctions> Ptr;
 			uint32_t eid() const { return _eid; }
 			std::string name() const { return _name; }
 			uint8_t datatype() const { return _datatype; }
@@ -38,7 +39,7 @@ namespace hexabus {
 			virtual uint8_t handle_write(const hexabus::Packet& p) const = 0;
 
 		protected:
-			EndpointDescriptor(uint32_t eid, const std::string& name, uint8_t datatype)
+			EndpointFunctions(uint32_t eid, const std::string& name, uint8_t datatype)
 				: _eid(eid)
 				, _name(name)
 				, _datatype(datatype)
@@ -51,13 +52,13 @@ namespace hexabus {
 	};
 
 	template<typename TValue>
-	class TypedEndpointDescriptor : public EndpointDescriptor {
+	class TypedEndpointFunctions : public EndpointFunctions {
 		public:
-			typedef std::tr1::shared_ptr<TypedEndpointDescriptor<TValue> > Ptr;
+			typedef std::tr1::shared_ptr<TypedEndpointFunctions<TValue> > Ptr;
 			typedef boost::function<TValue ()> endpoint_read_fn_t;
 			typedef boost::function<bool (const TValue& value)> endpoint_write_fn_t;
-			TypedEndpointDescriptor(uint32_t eid, const std::string& name)
-				: EndpointDescriptor(eid, name, calculateDatatype())
+			TypedEndpointFunctions(uint32_t eid, const std::string& name)
+				: EndpointFunctions(eid, name, calculateDatatype())
 			{}
 
 			boost::signals2::connection onRead(
@@ -100,6 +101,15 @@ namespace hexabus {
 				return HXB_ERR_INTERNAL;
 			}
 
+			static TypedEndpointFunctions<TValue>::Ptr fromEndpointDescriptor(const EndpointDescriptor& ep) {
+				TypedEndpointFunctions<TValue>::Ptr result(new TypedEndpointFunctions<TValue>(ep.eid(), ep.description()));
+
+				if (ep.type() != result->datatype())
+					throw hexabus::GenericException("Datatype mismatch while creating endpoint functions.");
+
+				return result;
+			}
+
 		private:
 			boost::signals2::signal<TValue ()> _read;
 			boost::signals2::signal<bool (const TValue&)> _write;
@@ -138,7 +148,7 @@ namespace hexabus {
 			typedef boost::function<std::string ()> read_name_fn_t;
 			typedef boost::function<void (const std::string& name)> write_name_fn_t;
 			Device(boost::asio::io_service& io, const std::string& interface, const std::string& address, int interval = 60);
-			void addEndpoint(const EndpointDescriptor::Ptr ep);
+			void addEndpoint(const EndpointFunctions::Ptr ep);
 
 			boost::signals2::connection onReadName(
 					const read_name_fn_t& callback);
@@ -164,7 +174,7 @@ namespace hexabus {
 			hexabus::Socket _socket;
 			boost::asio::deadline_timer _timer;
 			int _interval;
-			std::map<uint32_t, const EndpointDescriptor::Ptr> _endpoints;
+			std::map<uint32_t, const EndpointFunctions::Ptr> _endpoints;
 			uint8_t _sm_state;
 	};
 }
