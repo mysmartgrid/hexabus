@@ -397,14 +397,14 @@ eid 58 {
 eid 59 {
         type UINT32
         description "Import Energy"
-	unit "kWh"
+	unit "Wh"
         access R
         function sensor
 }
 eid 60 {
         type UINT32
         description "Export Energy"
-	unit "kWh"
+	unit "Wh"
         access R
         function sensor
 }
