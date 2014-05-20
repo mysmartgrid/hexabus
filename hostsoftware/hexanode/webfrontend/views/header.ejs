@@ -57,9 +57,9 @@
 				</ul>
 				<ul class="nav navbar-nav pull-right">
 					<li data-ng-controller="healthController">
-						<span class="btn-danger btn" data-ng-show="errorState">
-							<a class="glyphicon glyphicon-warning-sign" href="/wizard/current"></a>
-						</span>
+						<a class="btn-danger btn" data-ng-show="errorState" href="/wizard/current" role="button">
+							<span class="glyphicon glyphicon-warning-sign"><span>
+						</a>
 					</li>
 					<li class="<%= active_nav == 'about' ? 'active' : '' %>">
 						<a class="pull-right" href="/about" data-localize="navbar.about">About</a>

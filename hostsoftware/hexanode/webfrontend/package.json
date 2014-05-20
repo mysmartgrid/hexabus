@@ -15,7 +15,8 @@
     "nconf": "*",
     "cookie-signature": "*",
     "buffer-crc32": "*",
-		"ipv6": "*",
-		"async": "*"
+	"ipv6": "*",
+	"async": "*",
+	"validator" : "*"
   }
 }

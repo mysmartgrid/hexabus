@@ -1,0 +1,48 @@
+<form role="form" name="standbykillerForm" novalidate>
+	<div class="control-group has-success">
+		<label for="device" class="control-label" data-localize="wizard.state-machine.choose-device">Choose device</label>
+		<select class="form-control" name="device" data-ng-model="standbyKiller.device"
+			data-ng-options="value.ip as value.name for (key,value) in devices" data-ng-required="true">
+		</select>
+	</div>
+	<div class="control-group" data-ng-class="{'has-error': standbykillerForm.threshold.$invalid, 'has-success': standbykillerForm.threshold.$valid}">
+		<label for="threshold" class="control-label" data-localize="wizard.state-machine.choose-threshold">Choose threshold.</label>
+		<input class="form-control" type="number" name="threshold" min="1" max="4294967295" data-ng-model="standbyKiller.threshold"
+			data-ng-pattern="/^-?\d+$/" data-ng-required="true">
+		<p class="help-block"
+			data-ng-show="standbykillerForm.threshold.$error.number || standbykillerForm.threshold.$error.required || standbykillerForm.threshold.$error.pattern"
+			data-localize="wizard.state-machine.errors.no-valid-number">
+				Not a valid number.
+		</p>
+		<p class="help-block" data-ng-show="standbykillerForm.threshold.$error.min"
+			data-localize="wizard.state-machine.errors.number-min-u32">
+				The value has to be greater then 0.
+		</p>
+		<p class="help-block" data-ng-show="standbykillerForm.threshold.$error.max"
+			data-localize="wizard.state-machine.errors.number-max-u32">
+				The value has to be smaller then 4294967296.
+		</p>
+	</div>
+	<div class="control-group" data-ng-class="{'has-error': standbykillerForm.timeout.$invalid, 'has-success': standbykillerForm.timeout.$valid}">
+		<label class="control-label" for="timeout" data-localize="wizard.state-machine.choose-timeout">Choose timeout.</label>
+		<input class="form-control" type="number" name="timeout" min="1" max="4294967295" data-ng-model="standbyKiller.timeout"
+			data-ng-pattern="/^-?\d+$/"  data-ng-required="true">
+		<p class="help-block"
+			data-ng-show="standbykillerForm.timeout.$error.number || standbykillerForm.timeout.$error.required || standbykillerForm.timeout.$error.pattern"
+			data-localize="wizard.state-machine.errors.no-valid-number">
+				Not a valid number.
+		</p>
+		<p class="help-block" data-ng-show="standbykillerForm.timeout.$error.min"
+			data-localize="wizard.state-machine.errors.number-min-u32">
+				The value has to be greater then 0.
+		</p>
+		<p class="help-block" data-ng-show="standbykillerForm.timeout.$error.max"
+			data-localize="wizard.state-machine.errors.number-max-u32">
+				The value has to be smaller then 4294967296.
+		</p>
+	</div>
+	<br/>
+	<button data-ng-disabled="standbykillerForm.$invalid || busy" class="btn btn-success" data-localize="wizard.state-machine.upload"
+	data-ng-click="send_standbykiller()">Upload</button>
+</form>
+

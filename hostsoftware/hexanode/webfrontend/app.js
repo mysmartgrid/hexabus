@@ -10,6 +10,7 @@ var application_root = __dirname
 	, Hexabus = require("./lib/hexabus")
 	, hexabus = new Hexabus()
 	, Wizard = require("./lib/wizard")
+	, statemachines = require("./lib/statemachines")
 	, fs = require("fs")
   , nconf=require('nconf');
 
@@ -674,53 +675,23 @@ io.sockets.on('connection', function (socket) {
 
 	var busy = false;
 
-	var validationError = function(localization, error, extras) {
-		extras = extras || {};
-		var error = {msg: error.toString(), localization: localization, extras: extras};
-		emit('sm_uploaded', {success: false, error: error});
+	var sendError = function(error) {
+		emit('sm_uploaded', {sucess: false, error: error});
 	}
 
-
-	on('master_slave_sm', function(msg) {
+	var buildStatemachine = function(msg, statemachineModule) {
 		console.log(msg);
 		if(!busy) {
-			var usedDevices = [];
-
-			if(!('master' in msg) || !('ip' in msg.master) || !validator.isIP(msg.master.ip,6)) {
-				validationError('master-ip-not-valid', 'The IPv6 address of master device is invalid.');
+			
+			var error = statemachineModule.validateInput(msg);
+			console.log(error);
+			if(error) {
+				sendError(error);
 				return;
-			}
-			usedDevices.push(msg.master.ip);
-
-			if(!('threshold' in msg) || !validator.isInt(msg.threshold)) {
-				validationError('threshold-invalid', 'The value for threshold is not a valid integer.');
-				return;
-			}
-
-			if(msg.threshold < 1 || msg.threshold > 4294967295) {
-				validationError('threshold-out-of-range', 'The value for threshold should be at least 1 and at most 4294967295.');
-				return;
-			}
-
-			if(!('slaves' in msg) || msg.slaves.length < 1) {
-				validationError('no-slaves', 'At least one slave has to be specified');
-				return;
-			}
-
-			for(slave in msg.slaves) {
-				if(!('ip' in msg.slaves[slave]) || !validator.isIP(msg.slaves[slave].ip,6)) {
-					validationError('slave-ip-not-valid', 'IPv6 address of slave device is invalid.');
-					return;
-				}
-				if(usedDevices.indexOf(msg.slaves[slave].ip) > -1) {
-					validationError('disjoint-devices', 'One of the specified slave devices has already been in used as slave or master.');
-					return;
-				}
-				usedDevices.push(msg.slaves[slave].ip);
 			}
 
 			busy = true;
-			hexabus.master_slave_sm(msg,
+			statemachineModule.buildMachine(msg,
 				function(msg) {
 					emit('sm_progress', msg);
 				},
@@ -730,48 +701,14 @@ io.sockets.on('connection', function (socket) {
 					emit('sm_uploaded', {success: success, error: error});
 			});
 		}
+	}
+
+	on('master_slave_sm', function(msg) {
+		buildStatemachine(msg,statemachines.masterSlave);
 	});
 
 	on('standbykiller_sm', function(msg) {
-		console.log(msg);
-		if(!busy) {
-
-			if(!('threshold' in msg) || !validator.isInt(msg.threshold)) {
-				validationError('threshold-invalid', 'The value for threshold is not a valid integer.');
-				return;
-			}
-
-			if(msg.threshold < 1 || msg.threshold > 4294967295) {
-				validationError('threshold-out-of-range', 'The value for threshold should be at least 1 and at most 4294967295.');
-				return;
-			}
-
-			if(!('timeout' in msg) || !validator.isInt(msg.timeout)) {
-				validationError('timeout-invalid', 'The value for timeout is not a valid integer.');
-				return;
-			}
-
-			if(msg.timeout < 1 || msg.timeout > 4294967295) {
-				validationError('timeout-out-of-range', 'The value for timeout should be at least 1 and at most 4294967295.');
-				return;
-			}
-
-			if(!('device' in msg) || !('ip' in msg.device) || !validator.isIP(msg.device.ip,6)) {
-				validationError('device-ip-not-valid', 'The IPv6 address of device is invalid.');
-				return;
-			}
-
-
-			busy = true;
-			hexabus.standbykiller_sm(msg,
-				function(msg) {
-				emit('sm_progress', msg);
-			},
-			function(success, error) {
-				busy = false;
-				emit('sm_uploaded', {success: success, error: error});
-			});
-		}
+		buildStatemachine(msg,statemachines.standbyKiller);
 	});
 
 	emit('clear_state');
