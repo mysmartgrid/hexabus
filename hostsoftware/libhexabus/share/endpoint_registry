@@ -346,21 +346,21 @@ eid 51 {
 	function sensor
 }
 eid 52 {
-        type UINT32
+        type FLOAT
         description "Import L1"
 	unit "W"
         access R
         function sensor
 }
 eid 53 {
-        type UINT32
+        type FLOAT
         description "Import L2"
 	unit "W"
         access R
         function sensor
 }
 eid 54 {
-        type UINT32
+        type FLOAT
         description "Import L3"
 	unit "W"
         access R
@@ -374,21 +374,21 @@ eid 55 {
         function sensor
 }
 eid 56 {
-        type UINT32
+        type FLOAT
         description "Export L1"
 	unit "W"
         access R
         function sensor
 }
 eid 57 {
-        type UINT32
+        type FLOAT
         description "Export L2"
 	unit "W"
         access R
         function sensor
 }
 eid 58 {
-        type UINT32
+        type FLOAT
         description "Export L3"
 	unit "W"
         access R
@@ -397,14 +397,14 @@ eid 58 {
 eid 59 {
         type UINT32
         description "Import Energy"
-	unit "kWh"
+	unit "Wh"
         access R
         function sensor
 }
 eid 60 {
         type UINT32
         description "Export Energy"
-	unit "kWh"
+	unit "Wh"
         access R
         function sensor
 }
@@ -413,4 +413,64 @@ eid 61 {
         description "Firmware"
         access R
         function infrastructure
+}
+eid 62 {
+        type FLOAT
+        description "Current L1"
+        unit "A"
+        access R
+        function sensor
+}
+eid 63 {
+        type FLOAT
+        description "Current L2"
+        unit "A"
+        access R
+        function sensor
+}
+eid 65 {
+        type FLOAT
+        description "Current L3"
+        unit "A"
+        access R
+        function sensor
+}
+eid 66 {
+        type FLOAT
+        description "Voltage L1"
+        unit "V"
+        access R
+        function sensor
+}
+eid 67 {
+        type FLOAT
+        description "Voltage L2"
+        unit "V"
+        access R
+        function sensor
+}
+eid 68 {
+        type FLOAT
+        description "Voltage L3"
+        unit "V"
+        access R
+        function sensor
+}
+eid 69 {
+        type FLOAT
+        description "Factor L1"
+        access R
+        function sensor
+}
+eid 70 {
+        type FLOAT
+        description "Factor L2"
+        access R
+        function sensor
+}
+eid 71 {
+        type FLOAT
+        description "Factor L3"
+        access R
+        function sensor
 }

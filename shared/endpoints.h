@@ -55,6 +55,15 @@
 #define EP_GL_IMPORT_ENERGY        59L
 #define EP_GL_EXPORT_ENERGY        60L
 #define EP_GL_FIRMWARE             61L
+#define EP_GL_CURRENT_L1           62L
+#define EP_GL_CURRENT_L2           63L
+#define EP_GL_CURRENT_L3           65L
+#define EP_GL_VOLTAGE_L1           66L
+#define EP_GL_VOLTAGE_L2           67L
+#define EP_GL_VOLTAGE_L3           68L
+#define EP_GL_POWER_FACTOR_L1      69L
+#define EP_GL_POWER_FACTOR_L2      70L
+#define EP_GL_POWER_FACTOR_L3      71L
 
 
 
