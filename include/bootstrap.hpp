@@ -4,6 +4,7 @@
 #include "ieee802154.h"
 #include "netlink.hpp"
 #include "controller.hpp"
+#include "fd.hpp"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -13,24 +14,6 @@
 
 class BootstrapSocket {
 	private:
-		class FD {
-			private:
-				int _fd;
-
-			public:
-				FD(int fd)
-					: _fd(fd)
-				{}
-				
-				~FD()
-				{
-					if (_fd >= 0)
-						close(_fd);
-				}
-
-				operator int() const { return _fd; }
-		};
-
 		FD _fd;
 		std::string _iface;
 		Controller _control;
