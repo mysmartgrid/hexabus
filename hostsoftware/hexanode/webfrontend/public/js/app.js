@@ -570,19 +570,6 @@ angular.module('dashboard', [
 .controller('stateMachine', ['$scope', 'Socket', 'Lang', function($scope, Socket, Lang) {
 	$scope.devices = window.known_hexabus_devices;
 
-	$scope.masterSlave = {};
-	$scope.masterSlave.slaves = [];
-	$scope.masterSlave.maxSlaveCount = Object.keys($scope.devices).length - 1;
-
-
-	$scope.standbyKiller = {};
-
-	$scope.buys = false;
-
-	$scope.progressAlert = {show : false, text : '', percent : 0};
-	$scope.errorAlert = {show: false, text : ''};
-	$scope.successAlert = {show: false };
-
 	var hideAlerts = function() {
 		$scope.progressAlert.show = false;
 		$scope.errorAlert.show = false;
@@ -590,54 +577,11 @@ angular.module('dashboard', [
 	}
 
 	$scope.resetForms = function() {
-		$scope.masterSlave.master = $scope.devices[Object.keys($scope.devices)[0]].ip;
-		$scope.masterSlave.threshold = 10;
-		$scope.masterSlave.slaves = [];
-		$scope.masterSlave.validateForm();
-
-		$scope.standbyKiller.device = $scope.devices[Object.keys($scope.devices)[0]].ip;
-		$scope.standbyKiller.threshold = 10;
-		$scope.standbyKiller.timeout = 25;
+		$scope.masterSlave.resetForm();
+		$scope.standbyKiller.resetForm();
 
 		hideAlerts();
 	}
-
-	$scope.masterSlave.validateForm = function() {
-		var usedIPs = [];
-		$scope.masterSlaveForm.$setValidity('disjointDevices',true);
-		usedIPs.push($scope.masterSlave.master);
-		for(slave in $scope.masterSlave.slaves) {
-			if(usedIPs.indexOf($scope.masterSlave.slaves[slave].ip) > -1) {
-				$scope.masterSlaveForm.$setValidity('disjointDevices',false);
-			}
-			usedIPs.push($scope.masterSlave.slaves[slave].ip);
-		}
-	}
-
-	$scope.masterSlave.addSlave = function() {
-		$scope.masterSlave.slaves.push({ip: $scope.devices[Object.keys($scope.devices)[0]].ip});
-		$scope.masterSlave.validateForm();
-	};
-
-	$scope.masterSlave.removeSlave = function(slave) {
-		var i = $scope.masterSlave.slaves.indexOf(slave);
-		if(i > -1) {
-			$scope.masterSlave.slaves.splice(i,1);
-		}
-		$scope.masterSlave.validateForm();
-	}
-
-	$scope.send_master_slave = function() {
-		hideAlerts();
-		$scope.busy = true;
-		Socket.emit('master_slave_sm', {master: {ip: $scope.masterSlave.master}, slaves: $scope.masterSlave.slaves, threshold: $scope.masterSlave.threshold});
-	};
-
-	$scope.send_standbykiller = function() {
-		hideAlerts();
-		$scope.busy = true;
-		Socket.emit('standbykiller_sm', {device: {ip: $scope.standbyKiller.device}, threshold: $scope.standbyKiller.threshold, timeout: $scope.standbyKiller.timeout});
-	};
 
 	var localizeMessage = function(data,type) {
 		localizedMessages = Lang.pack["wizard"]["state-machine"][type] || {};
@@ -663,7 +607,7 @@ angular.module('dashboard', [
 		}
 		else {
 			$scope.errorAlert.show = true;
-			$scope.errorAlert.text = localizeMessage(data.error,'errors');  
+			$scope.errorAlert.text = localizeMessage(data.error,'errors');
 		}
 	};
 	Socket.on('sm_uploaded', on_sm_uploaded);
@@ -681,6 +625,79 @@ angular.module('dashboard', [
 		}
 	};
 	Socket.on('sm_progress', on_sm_progress);
+
+
+	$scope.progressAlert = {show : false, text : '', percent : 0};
+	$scope.errorAlert = {show: false, text : ''};
+	$scope.successAlert = {show: false };
+
+	$scope.buys = false;
+
+
+/*
+ * Master slave statemachine
+ */
+	$scope.masterSlave = {};
+	$scope.masterSlave.slaves = [];
+	$scope.masterSlave.maxSlaveCount = Object.keys($scope.devices).length - 1;
+
+	$scope.masterSlave.validateForm = function() {
+		var usedIPs = [];
+		$scope.masterSlaveForm.$setValidity('disjointDevices',true);
+		usedIPs.push($scope.masterSlave.master);
+		for(slave in $scope.masterSlave.slaves) {
+			if(usedIPs.indexOf($scope.masterSlave.slaves[slave].ip) > -1) {
+				$scope.masterSlaveForm.$setValidity('disjointDevices',false);
+			}
+			usedIPs.push($scope.masterSlave.slaves[slave].ip);
+		}
+	}
+
+	$scope.masterSlave.resetForm = function() {
+		$scope.masterSlave.master = $scope.devices[Object.keys($scope.devices)[0]].ip;
+		$scope.masterSlave.threshold = 10;
+		$scope.masterSlave.slaves = [];
+		$scope.masterSlave.validateForm();
+}
+
+	$scope.masterSlave.addSlave = function() {
+		$scope.masterSlave.slaves.push({ip: $scope.devices[Object.keys($scope.devices)[0]].ip});
+		$scope.masterSlave.validateForm();
+	};
+
+	$scope.masterSlave.removeSlave = function(slave) {
+		var i = $scope.masterSlave.slaves.indexOf(slave);
+		if(i > -1) {
+			$scope.masterSlave.slaves.splice(i,1);
+		}
+		$scope.masterSlave.validateForm();
+	}
+
+	$scope.send_master_slave = function() {
+		hideAlerts();
+		$scope.busy = true;
+		Socket.emit('master_slave_sm', {master: {ip: $scope.masterSlave.master}, slaves: $scope.masterSlave.slaves, threshold: $scope.masterSlave.threshold});
+	};
+
+
+/*
+ * Stanbykiller statemachine
+ */
+	$scope.standbyKiller = {};
+
+	$scope.send_standbykiller = function() {
+		hideAlerts();
+		$scope.busy = true;
+		Socket.emit('standbykiller_sm', {device: {ip: $scope.standbyKiller.device}, threshold: $scope.standbyKiller.threshold, timeout: $scope.standbyKiller.timeout});
+	};
+
+	$scope.standbyKiller.resetForm = function() {
+		$scope.standbyKiller.device = $scope.devices[Object.keys($scope.devices)[0]].ip;
+		$scope.standbyKiller.threshold = 10;
+		$scope.standbyKiller.timeout = 25;
+	};
+
+
 }])
 .directive('focusIf', [function () {
     return function focusIf(scope, element, attr) {
