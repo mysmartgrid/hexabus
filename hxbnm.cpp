@@ -23,7 +23,6 @@
 #include "bootstrap.hpp"
 #include "network.hpp"
 #include "eeprom.hpp"
-#include "resyncd.hpp"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
@@ -266,7 +265,6 @@ enum {
 	C_SETUP_RANDOM,
 	C_SETUP_RANDOM_FULL,
 	C_PAIR,
-	C_RESYNCD,
 	C_LIST_KEYS,
 	C_LIST_DEVICES,
 	C_LIST_SECLEVELS,
@@ -293,7 +291,6 @@ static const struct {
 	{ "setup-random",	C_SETUP_RANDOM, },
 	{ "setup-random-full",	C_SETUP_RANDOM_FULL, },
 	{ "pair",		C_PAIR, },
-	{ "resyncd",		C_RESYNCD, },
 	{ "list-keys",		C_LIST_KEYS, },
 	{ "list-devices",	C_LIST_DEVICES, },
 	{ "list-seclevels",	C_LIST_SECLEVELS, },
@@ -336,11 +333,6 @@ int help(std::ostream& os, bool all = false)
 		<< "  remove-device             removes a device from the network state" << std::endl
 		<< "    <iface>                 interface the device is registered to" << std::endl
 		<< "    <mac-addr>              MAC address of the device" << std::endl
-		<< "  resyncd <iface>           control resync process on <iface>" << std::endl
-		<< "    run | run-fg | stop" << std::endl
-		<< "      run                   run resync process and daemonize" << std::endl
-		<< "      run-fg                run resync process in the foreground" << std::endl
-		<< "      stop                  stop a running resync daemon" << std::endl
 		<< "  list-keys                 list WPAN keys on the system" << std::endl
 		<< "    [iface]                 show only keys on <iface>" << std::endl
 		<< "  list-devices              list paired devices on the system" << std::endl
@@ -481,21 +473,6 @@ int main(int argc, const char* argv[])
 			}
 
 			return run_pairing(iface, timeout);
-		}
-
-		case C_RESYNCD: {
-			std::string iface = next();
-			std::string cmd = next();
-			if (cmd == "run") {
-				run_resyncd(iface);
-			} else if (cmd == "run-fg") {
-				run_resyncd_sync(iface);
-			} else if (cmd == "stop") {
-				kill_resyncd(iface);
-			} else {
-				throw no_arg();
-			}
-			return 0;
 		}
 
 		case C_LIST_KEYS:

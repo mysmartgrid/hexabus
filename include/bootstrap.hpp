@@ -39,9 +39,6 @@ class BootstrapSocket {
 		enum {
 			HXB_B_PAIR_REQUEST = 0,
 			HXB_B_PAIR_RESPONSE = 1,
-			HXB_B_RESYNC_REQUEST = 2,
-			HXB_B_RESYNC_RESPONSE = 3,
-			HXB_B_RESYNC_EXTERN = 4,
 		} bootstrap_messages;
 
 	protected:
@@ -69,18 +66,6 @@ class PairingHandler : public BootstrapSocket {
 		PairingHandler(const std::string& iface, uint16_t pan_id);
 
 		void run_once(int timeout_secs);
-};
-
-class ResyncHandler : public BootstrapSocket {
-	public:
-		ResyncHandler(const std::string& iface)
-			: BootstrapSocket(iface)
-		{}
-
-		void run_once();
-		void force(int attempts = 10, int interval = 1);
-
-		using BootstrapSocket::fd;
 };
 
 #endif

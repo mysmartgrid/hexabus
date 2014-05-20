@@ -37,7 +37,7 @@ BINDIR = bin
 override CODE_EXTS := cpp
 
 # external libraries used
-override LIBRARIES := libnl-genl-3.0 libnl-route-3.0 libnl-3.0 libdaemon
+override LIBRARIES := libnl-genl-3.0 libnl-route-3.0 libnl-3.0
 override LIBRARIES_WITHOUT_PKGCONFIG := rt
 
 # library version requirements
