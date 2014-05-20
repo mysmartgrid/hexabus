@@ -73,6 +73,17 @@ exports.StatemachineBuilder = function() {
 	}
 
 
+	this.setupBuildDir = function(callback) {
+		fs.mkdir(this.sm_build,function(err) {
+			if(err && err.code != 'EEXIST') {
+				callback(this.localizeError('creatin-builddir-failed',err));
+			}
+			else {
+				callback();
+			}
+		});
+	}
+
 	this.readFiles = function(callback) {
 	  var readFile = function(file,callback) {
 		if(!(file.src in this.fileContents)) {
@@ -205,7 +216,8 @@ exports.StatemachineBuilder = function() {
 
 	this.buildStatemachine = function(callback) {
 		console.log('Building statemachine');
-		async.series([this.readFiles.bind(this),
+		async.series([this.setupBuildDir.bind(this),
+					this.readFiles.bind(this),
 					this.renderTemplates.bind(this),
 					this.compileStatmachines.bind(this),
 					this.assembleStatemachines.bind(this),

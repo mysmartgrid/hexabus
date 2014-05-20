@@ -593,7 +593,7 @@ angular.module('dashboard', [
 				console.log(name + ' replace with ' + data.extras[name]);
 				message = message.replace('{' + name + '}', data.extras[name]);
 			}
-			return message; 
+			return message;
 		}
 		return data.msg;
 	}

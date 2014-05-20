@@ -45,20 +45,20 @@ module.exports.buildMachine = function(msg, progressCallback, callback) {
 		var smb = new StatemachineBuilder();
 
 		smb.onProgress(progressCallback);
-		smb.addTargetFile('master.hbh', 'master.hbh', { 'masterip' : msg.master.ip});
+		smb.addTargetFile('masterslave/master.hbh', 'master.hbh', { 'masterip' : msg.master.ip});
 		smb.addDevice('master');
 
 		var slavelist = []
 		for(var slave in msg.slaves) {
 			var name = 'slave_' + smb.ipToID(msg.slaves[slave].ip);
 			console.log(name);
-			smb.addTargetFile('slave.hbh', name + '.hbh', {'slavename' : name, 'slaveip' : msg.slaves[slave].ip});
+			smb.addTargetFile('masterslave/slave.hbh', name + '.hbh', {'slavename' : name, 'slaveip' : msg.slaves[slave].ip});
 			smb.addDevice(name);
 			slavelist.push(name);
 		}
 
 
-		smb.addTargetFile('master_slave.hbc', 'master_slave.hbc', {'threshold' : msg.threshold, 'slaves' : slavelist});
+		smb.addTargetFile('masterslave/master_slave.hbc', 'master_slave.hbc', {'threshold' : msg.threshold, 'slaves' : slavelist});
 		smb.setCompileTarget('master_slave.hbc');
 
 		smb.buildStatemachine(function(err) {
