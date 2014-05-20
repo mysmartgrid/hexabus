@@ -41,6 +41,5 @@
 void provisioning_leds(void);
 
 int provisioning_slave(void);
-int provisioning_reconnect(void);
 
 #endif /* PROVISIONING_H_ */

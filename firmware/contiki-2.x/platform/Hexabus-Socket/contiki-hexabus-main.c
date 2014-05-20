@@ -314,8 +314,6 @@ void initialize(void)
   //initialize random number generator with part of the MAC address
   random_init(eeprom_read_word((uint16_t*)(EE_MAC_ADDR + EE_MAC_ADDR_SIZE - 2)));
 
-  provisioning_reconnect();
-
 #if WEBSERVER
   process_start(&webserver_nogui_process, NULL);
 #endif

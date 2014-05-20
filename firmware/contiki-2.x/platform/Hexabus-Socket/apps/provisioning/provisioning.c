@@ -67,8 +67,6 @@ extern uint16_t mac_src_pan_id;
 enum {
 	HXB_B_PAIR_REQUEST = 0,
 	HXB_B_PAIR_RESPONSE = 1,
-	HXB_B_RESYNC_REQUEST = 2,
-	HXB_B_RESYNC_RESPONSE = 3
 } hxb_bootstrap_msg;
 
 #define PROV_TIMEOUT 30
@@ -83,16 +81,9 @@ struct pair_response {
 	uint8_t key[16];
 } __attribute__((packed));
 
-struct resync_response {
-	char msg;
-	uint32_t frame_counter;
-} __attribute__((packed));
-
 static const uint8_t msg_lengths[] = {
 	[HXB_B_PAIR_REQUEST] = sizeof(struct bootstrap_request),
 	[HXB_B_PAIR_RESPONSE] = sizeof(struct pair_response),
-	[HXB_B_RESYNC_REQUEST] = sizeof(struct bootstrap_request),
-	[HXB_B_RESYNC_RESPONSE] = sizeof(struct resync_response),
 };
 
 //indicates ongoing provisioning
@@ -194,29 +185,6 @@ int provisioning_slave(void)
 	mac_src_pan_id = old_pan_id;
 	encryption_enabled = tmp_enc;
 	relay_leds();
-
-	return rc ? rc : provisioning_reconnect();
-}
-
-int provisioning_reconnect()
-{
-	int rc = -1;
-
-	PRINTF("resyncing framectr\n");
-
-	encryption_enabled = 0;
-
-	if (!query_with_timeout(HXB_B_RESYNC_REQUEST, HXB_B_RESYNC_RESPONSE, 5)) {
-		struct resync_response* resp = packetbuf_dataptr();
-
-		mac_framecnt = uip_ntohl(resp->frame_counter);
-		rc = 0;
-	}
-
-	relay_leds();
-	encryption_enabled = 1;
-
-	PRINTF("sync: %i %lu\n", rc, mac_framecnt);
 
 	return rc;
 }
