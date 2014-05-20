@@ -57,6 +57,7 @@ namespace hexabus {
 			uint16_t sequenceNumber() const { return _sequenceNumber; }
 
 			virtual void accept(PacketVisitor& visitor) const = 0;
+			virtual Packet* clone() const = 0;
 	};
 
 	class ErrorPacket;
@@ -156,6 +157,10 @@ namespace hexabus {
 			{
 				visitor.visit(*this);
 			}
+
+			Packet* clone() const {
+				return new ErrorPacket(*this);
+			}
 	};
 
 	class EIDPacket : public Packet {
@@ -180,6 +185,10 @@ namespace hexabus {
 			{
 				visitor.visit(*this);
 			}
+
+			Packet* clone() const {
+				return new QueryPacket(*this);
+			}
 	};
 
 	class EndpointQueryPacket : public EIDPacket {
@@ -191,6 +200,10 @@ namespace hexabus {
 			virtual void accept(PacketVisitor& visitor) const
 			{
 				visitor.visit(*this);
+			}
+
+			Packet* clone() const {
+				return new EndpointQueryPacket(*this);
 			}
 	};
 
@@ -281,6 +294,10 @@ namespace hexabus {
 			{
 				visitor.visit(*this);
 			}
+
+			Packet* clone() const {
+				return new InfoPacket(*this);
+			}
 	};
 
 	template<typename TValue>
@@ -293,6 +310,10 @@ namespace hexabus {
 			virtual void accept(PacketVisitor& visitor) const
 			{
 				visitor.visit(*this);
+			}
+
+			Packet* clone() const {
+				return new ReportPacket(*this);
 			}
 	};
 
@@ -319,6 +340,10 @@ namespace hexabus {
 			{
 				visitor.visit(*this);
 			}
+
+			Packet* clone() const {
+				return new ProxyInfoPacket(*this);
+			}
 	};
 
 	template<typename TValue>
@@ -332,6 +357,10 @@ namespace hexabus {
 			{
 				visitor.visit(*this);
 			}
+
+			Packet* clone() const {
+				return new WritePacket(*this);
+			}
 	};
 
 	class EndpointInfoPacket : public ValuePacket<std::string> {
@@ -343,6 +372,10 @@ namespace hexabus {
 			virtual void accept(PacketVisitor& visitor) const
 			{
 				visitor.visit(*this);
+			}
+
+			Packet* clone() const {
+				return new EndpointInfoPacket(*this);
 			}
 	};
 
@@ -356,6 +389,10 @@ namespace hexabus {
 			{
 				visitor.visit(*this);
 			}
+
+			Packet* clone() const {
+				return new EndpointReportPacket(*this);
+			}
 	};
 
 	class AckPacket : public Packet, public CausedPacket {
@@ -367,6 +404,10 @@ namespace hexabus {
 			virtual void accept(PacketVisitor& visitor) const
 			{
 				visitor.visit(*this);
+			}
+
+			Packet* clone() const {
+				return new AckPacket(*this);
 			}
 	};
 };

@@ -128,7 +128,7 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 			if (oneline) {
 				target << "Value " << hexstream.str();
 			} else {
-				target << "Value:\t" << hexstream.str() << std::endl; 
+				target << "Value:\t" << hexstream.str() << std::endl;
 			}
 			target << std::endl;
 		}
@@ -335,16 +335,30 @@ void print_packet(const hexabus::Packet& packet)
 	pp.visitPacket(packet);
 }
 
+struct send_packet_trn_callback {
+	boost::asio::io_service* io;
+	ErrorCode err;
+
+	void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep, bool failed)
+	{
+		io->stop();
+		if(failed) {
+			std::cout<<"Ack timeout!"<<std::endl;
+			err = ERR_NETWORK;
+		}
+	}
+};
+
 ErrorCode send_packet(hexabus::Socket& net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet)
 {
-	try {
-		net.send(packet, addr);
-	} catch (const hexabus::NetworkException& e) {
-		std::cerr << "Could not send packet to " << addr << ": " << e.code().message() << std::endl;
-		return ERR_NETWORK;
-	}
+	send_packet_trn_callback tcb = {&net.ioService(), ERR_NONE};
 
-	return ERR_NONE;
+	net.onPacketTransmitted(boost::ref(tcb), packet, boost::asio::ip::udp::endpoint(addr, HXB_PORT));
+
+	net.ioService().reset();
+	net.ioService().run();
+
+	return tcb.err;
 }
 
 struct send_packet_wait_rcv_callback {
@@ -356,21 +370,33 @@ struct send_packet_wait_rcv_callback {
 	}
 };
 
+struct send_packet_wait_trn_callback {
+	boost::asio::io_service* io;
+	ErrorCode err;
+
+	void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep, bool failed)
+	{
+		if(failed) {
+			std::cerr<<"Ack timeout!"<<std::endl;
+			err = ERR_NETWORK;
+			io->stop();
+		}
+	}
+};
+
 template<typename Filter>
 ErrorCode send_packet_wait(hexabus::Socket& net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet, const Filter& filter)
 {
-	ErrorCode err;
-	
-	if ((err = send_packet(net, addr, packet))) {
-		return err;
-	}
+	send_packet_wait_trn_callback tcb = {&net.ioService(), ERR_NONE};
+
+	net.onPacketTransmitted(boost::ref(tcb), packet, boost::asio::ip::udp::endpoint(addr, HXB_PORT));
 
 	send_packet_wait_rcv_callback rcb = {&net.ioService()};
 	err_callback ecb = {&net.ioService(), ERR_NONE};
 
 	namespace hf = hexabus::filtering;
 	boost::signals2::connection rec_con = net.onPacketReceived(rcb, (filter || hf::isError()) && hf::sourceIP() == addr);
-	boost::signals2::connection err_con = net.onAsyncError(ecb);
+	boost::signals2::connection err_con = net.onAsyncError(boost::ref(ecb));
 
 	net.ioService().reset();
 	net.ioService().run();
@@ -378,7 +404,7 @@ ErrorCode send_packet_wait(hexabus::Socket& net, const boost::asio::ip::address_
 	rec_con.disconnect();
 	err_con.disconnect();
 
-	return ecb.err;
+	return tcb.err?tcb.err:ecb.err;
 }
 
 template<template<typename TValue> class ValuePacket>
@@ -390,34 +416,34 @@ ErrorCode send_value_packet(hexabus::Socket& net, const boost::asio::ip::address
 				{
 					bool b = boost::lexical_cast<unsigned int>(value);
 					std::cout << "Sending value " << b << std::endl;
-					return send_packet(net, ip, ValuePacket<bool>(eid, b));
+					return send_packet(net, ip, ValuePacket<bool>(eid, b, hexabus::Packet::want_ack));
 				}
 
 			case HXB_DTYPE_UINT8:
 				{
 					uint8_t u8 = boost::lexical_cast<unsigned int>(value);
 					std::cout << "Sending value " << (unsigned int) u8 << std::endl;
-					return send_packet(net, ip, ValuePacket<uint8_t>(eid, u8));
+					return send_packet(net, ip, ValuePacket<uint8_t>(eid, u8, hexabus::Packet::want_ack));
 				}
 
 			case HXB_DTYPE_UINT32:
 				{
 					uint32_t u32 = boost::lexical_cast<uint32_t>(value);
 					std::cout << "Sending value " << u32 << std::endl;
-					return send_packet(net, ip, ValuePacket<uint32_t>(eid, u32));
+					return send_packet(net, ip, ValuePacket<uint32_t>(eid, u32, hexabus::Packet::want_ack));
 				}
 
 			case HXB_DTYPE_FLOAT:
 				{
 					float f = boost::lexical_cast<float>(value);
 					std::cout << "Sending value " << f << std::endl;
-					return send_packet(net, ip, ValuePacket<float>(eid, f));
+					return send_packet(net, ip, ValuePacket<float>(eid, f, hexabus::Packet::want_ack));
 				}
 
 			case HXB_DTYPE_128STRING:
 				{
 					std::cout << "Sending value " << value << std::endl;
-					return send_packet(net, ip, ValuePacket<std::string>(eid, value));
+					return send_packet(net, ip, ValuePacket<std::string>(eid, value, hexabus::Packet::want_ack));
 				}
 
 			default:
@@ -603,7 +629,7 @@ int main(int argc, char** argv) {
 			err_callback ecb = {&listener.ioService(), ERR_NONE};
 
 			boost::signals2::connection rec_con = listener.onPacketReceived(rcb);
-			boost::signals2::connection err_con = listener.onAsyncError(ecb);
+			boost::signals2::connection err_con = listener.onAsyncError(boost::ref(ecb));
 
 			listener.ioService().run();
 
@@ -656,10 +682,10 @@ int main(int argc, char** argv) {
 			return send_packet(socket, *ip, hexabus::WritePacket<bool>(EP_POWER_SWITCH, command == C_ON));
 
 		case C_STATUS:
-			return send_packet_wait(socket, *ip, hexabus::QueryPacket(EP_POWER_SWITCH), hf::eid() == EP_POWER_SWITCH && hf::sourceIP() == *ip);
+			return send_packet_wait(socket, *ip, hexabus::QueryPacket(EP_POWER_SWITCH, hexabus::Packet::want_ack), hf::eid() == EP_POWER_SWITCH && hf::sourceIP() == *ip);
 
 		case C_POWER:
-			return send_packet_wait(socket, *ip, hexabus::QueryPacket(EP_POWER_METER), hf::eid() == EP_POWER_METER && hf::sourceIP() == *ip);
+			return send_packet_wait(socket, *ip, hexabus::QueryPacket(EP_POWER_METER, hexabus::Packet::want_ack), hf::eid() == EP_POWER_METER && hf::sourceIP() == *ip);
 
 		case C_SET:
 		case C_SEND:
@@ -703,14 +729,14 @@ int main(int argc, char** argv) {
 				uint32_t eid = vm["eid"].as<uint32_t>();
 
 				if (command == C_GET) {
-					return send_packet_wait(socket, *ip, hexabus::QueryPacket(eid), hf::eid() == eid && hf::sourceIP() == *ip);
+					return send_packet_wait(socket, *ip, hexabus::QueryPacket(eid, hexabus::Packet::want_ack), hf::eid() == eid && hf::sourceIP() == *ip);
 				} else {
-					return send_packet_wait(socket, *ip, hexabus::EndpointQueryPacket(eid), hf::eid() == eid && hf::sourceIP() == *ip);
+					return send_packet_wait(socket, *ip, hexabus::EndpointQueryPacket(eid, hexabus::Packet::want_ack), hf::eid() == eid && hf::sourceIP() == *ip);
 				}
 			}
 
 		case C_DEVINFO:
-			return send_packet_wait(socket, *ip, hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR), hf::eid() == EP_DEVICE_DESCRIPTOR && hf::sourceIP() == *ip);
+			return send_packet_wait(socket, *ip, hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR, hexabus::Packet::want_ack), hf::eid() == EP_DEVICE_DESCRIPTOR && hf::sourceIP() == *ip);
 
 		default:
 			std::cerr << "BUG: Unknown command" << std::endl;
@@ -719,4 +745,3 @@ int main(int argc, char** argv) {
 
 	return ERR_NONE;
 }
-

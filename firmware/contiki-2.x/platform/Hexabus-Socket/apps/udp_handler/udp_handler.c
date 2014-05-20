@@ -244,12 +244,12 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 
 		case HXB_PTYPE_ACK:
 			len = sizeof(packet->p_ack);
-			packet->p_error.cause_sequence_number = uip_htons(packet->p_error.cause_sequence_number);
+			packet->p_ack.cause_sequence_number = uip_htons(packet->p_ack.cause_sequence_number);
 			packet->p_ack.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 			break;
 
 		case HXB_PTYPE_PINFO:
-		//TODO should not be sent from device
+		//should not be sent from device
 		default:
 			return 0;
 	}
@@ -320,6 +320,7 @@ enum hxb_error_code udp_handler_send_error(const uip_ipaddr_t* toaddr, uint16_t 
 
 enum hxb_error_code udp_handler_send_ack(const uip_ipaddr_t* toaddr, uint16_t toport, uint16_t cause_sequence_number)
 {
+	syslog(LOG_INFO, "Sent explicit ACK %u", cause_sequence_number);
 	struct hxb_packet_ack ack = {
 		.type = HXB_PTYPE_ACK,
 		.cause_sequence_number = cause_sequence_number
@@ -769,7 +770,9 @@ udphandler(process_event_t ev, process_data_t data)
 					return;
 				}
 
-				receive_packet(&R);
+				//ignore INFO packets
+				if(!is_broadcast)
+					receive_packet(&R);
 
 
       }

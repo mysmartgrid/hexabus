@@ -100,6 +100,7 @@ namespace hexabus {
 				uint16_t want_ack_for;
 				boost::asio::deadline_timer timeout_timer;
 				std::pair<boost::shared_ptr<const Packet>, on_packet_transmitted_callback_t> currentPacket;
+				uint16_t currentSeqNum;
 			};
 
 			on_packet_transmitted_callback_t transmittedPacket;
@@ -121,7 +122,10 @@ namespace hexabus {
 			Socket(boost::asio::io_service& io)
 				: SocketBase(io), _association_gc_timer(io)
 			{
+				static on_packet_received_slot_t nullCallback;
+
 				configureSocket();
+				onPacketReceived(nullCallback, filtering::any());
 				filterAckReplys();
 			}
 
@@ -142,7 +146,7 @@ namespace hexabus {
 			{
 				return send(packet, dest, generateSequenceNumber(dest));
 			}
-			
+
 			void onPacketTransmitted(
 					const on_packet_transmitted_callback_t& callback, const Packet& packet,
 					const boost::asio::ip::udp::endpoint& dest);

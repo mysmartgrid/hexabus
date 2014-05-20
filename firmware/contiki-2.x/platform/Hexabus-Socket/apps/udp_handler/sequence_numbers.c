@@ -14,7 +14,7 @@ uint8_t hash_ip(const uip_ipaddr_t* toaddr) {
 
 uint16_t next_sequence_number(const uip_ipaddr_t* toaddr) {
 
-	return seqnum_table[hash_ip(toaddr)]++==0?
+	return ++seqnum_table[hash_ip(toaddr)]==0?
 		seqnum_table[hash_ip(toaddr)]++:seqnum_table[hash_ip(toaddr)];
 }
 

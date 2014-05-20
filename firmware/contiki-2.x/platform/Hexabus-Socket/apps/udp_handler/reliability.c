@@ -9,6 +9,8 @@
 #include "sequence_numbers.h"
 #include "udp_handler.h"
 #include "state_machine.h"
+
+#define LOG_LEVEL UDP_HANDLER_DEBUG
 #include "syslog.h"
 
 #define MAX(a,b) (seqnumIsLessEqual((a),(b))?(b):(a))
@@ -94,6 +96,7 @@ bool allows_implicit_ack(union hxb_packet_any* packet) {
 		case HXB_PTYPE_QUERY:
 		case HXB_PTYPE_EPQUERY:
 		case HXB_PTYPE_WRITE:
+		case HXB_PTYPE_ACK:
 			return true;
 			break;
 		default:
@@ -133,7 +136,7 @@ static void run_send_state_machine(uint8_t rs) {
 						rstates[rs].send_state = SWAIT_ACK;
 						etimer_set(&(rstates[rs].timeout_timer), RETRANS_TIMEOUT);
 					} else {
-						syslog(LOG_ERR, "Could not send reliable packet.")
+						syslog(LOG_ERR, "Could not send reliable packet.");
 					}
 				}
 			}
@@ -177,17 +180,18 @@ static void run_recv_state_machine(uint8_t rs) {
 			if(fail) {
 				rstates[rs].recv_state = RFAILED;
 			} else if(rstates[rs].recved_packet){
-				if((R->packet.header.flags & HXB_FLAG_WANT_ACK) && !allows_implicit_ack(&(R->packet))) { //TODO only use flag?
-					udp_handler_send_ack(&(R->ip), R->port, R->packet.header.sequence_number);
+				syslog(LOG_INFO, "Processing packet.");
+				if((R->packet.header.flags & HXB_FLAG_WANT_ACK) && !allows_implicit_ack(&(R->packet))) {
+					udp_handler_send_ack(&(R->ip), R->port, uip_ntohs(R->packet.header.sequence_number));
 
-					if(seqnumIsLessEqual(R->packet.header.sequence_number, rstates[rs].rseq_num)) {
+					if(seqnumIsLessEqual(uip_ntohs(R->packet.header.sequence_number), rstates[rs].rseq_num)) {
 						//TODO handle reordering here
 						rstates[rs].recv_state = RREADY;
 						break;
 					}
 				}
 
-				rstates[rs].rseq_num = MAX(rstates[rs].rseq_num, R->packet.header.sequence_number);
+				rstates[rs].rseq_num = MAX(rstates[rs].rseq_num, uip_ntohs(R->packet.header.sequence_number));
 
 				if(rstates[rs].want_ack_for != 0 && is_ack_for(&(R->packet), rstates[rs].want_ack_for)) {
 					rstates[rs].ack = true;
