@@ -209,20 +209,20 @@ namespace hexabus {
 			ValuePacket(uint8_t type, uint32_t eid, const std::string& value, uint8_t flags = 0)
 				: TypedPacket(type, eid, HXB_DTYPE_128STRING, flags), _value(value)
 			{
-				if (value.size() > length)
+				if (value.size() > max_length)
 					throw std::out_of_range("value");
 			}
 
 			ValuePacket(uint8_t type, uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0)
 				: TypedPacket(type, eid, datatype, flags), _value(value)
 			{
-				if (value.size() > length)
+				if (value.size() > max_length)
 					throw std::out_of_range("value");
 			}
 
 		public:
 			const std::string& value() const { return _value; }
-			static const int length = 128;
+			static const int max_length = 127;
 	};
 
 	template<typename TValue>

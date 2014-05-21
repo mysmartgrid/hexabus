@@ -224,7 +224,7 @@ void BinarySerializer::appendValue(const ValuePacket<std::string>& value)
 	appendValueHeader(value);
 
 	_target.insert(_target.end(), value.value().begin(), value.value().end());
-	_target.insert(_target.end(), ValuePacket<std::string>::length + 1 - value.value().size(), '\0');
+	_target.insert(_target.end(), ValuePacket<std::string>::max_length + 1 - value.value().size(), '\0');
 
 	appendCRC();
 }
@@ -394,13 +394,13 @@ boost::array<char, L> BinaryDeserializer::read_bytes()
 
 std::string BinaryDeserializer::read_string()
 {
-	checkLength(ValuePacket<std::string>::length);
+	checkLength(ValuePacket<std::string>::max_length);
 
-	if (!std::find(_packet + _offset, _packet + _offset + ValuePacket<std::string>::length, '\0'))
+	if (!std::find(_packet + _offset, _packet + _offset + ValuePacket<std::string>::max_length, '\0'))
 		throw BadPacketException("Unterminated string");
 
 	std::string result(_packet + _offset);
-	_offset += ValuePacket<std::string>::length + 1;
+	_offset += ValuePacket<std::string>::max_length + 1;
 
 	return result;
 }
