@@ -155,8 +155,7 @@ void Device::_handle_epquery(const Packet& p, const boost::asio::ip::udp::endpoi
 	std::map<uint32_t, const EndpointFunctions::Ptr>::iterator it = _endpoints.find(query->eid());
 	try {
 		if ( it != _endpoints.end() ) {
-			//TODO: determine datatype
-			_socket.send(EndpointInfoPacket(query->eid(), HXB_DTYPE_UINT32, it->second->name()), from);
+			_socket.send(EndpointInfoPacket(query->eid(), it->second->datatype(), it->second->name()), from);
 		} else {
 			std::cout << "unknown EID" << std::endl;
 			_socket.send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
