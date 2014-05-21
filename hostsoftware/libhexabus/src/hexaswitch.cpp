@@ -17,9 +17,12 @@
 namespace po = boost::program_options;
 
 #include "../../../shared/endpoints.h"
+#include "../../../shared/hexabus_definitions.h"
 #include "resolv.hpp"
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
+
+using namespace hexabus;
 
 enum ErrorCode {
 	ERR_NONE = 0,

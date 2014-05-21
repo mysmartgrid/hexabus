@@ -122,8 +122,8 @@ namespace hexabus {
 					|| boost::is_same<TValue, std::string>::value
 					|| boost::is_same<TValue, boost::posix_time::ptime>::value
 					|| boost::is_same<TValue, boost::posix_time::time_duration>::value
-					|| boost::is_same<TValue, boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >::value
-					|| boost::is_same<TValue, boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >::value),
+					|| boost::is_same<TValue, boost::array<char, 16> >::value
+					|| boost::is_same<TValue, boost::array<char, 65> >::value),
 				"I don't know how to handle that type");
 
 			static uint8_t calculateDatatype()
@@ -135,9 +135,9 @@ namespace hexabus {
 					boost::is_same<TValue, std::string>::value ? HXB_DTYPE_128STRING :
 					boost::is_same<TValue, boost::posix_time::ptime>::value ? HXB_DTYPE_DATETIME :
 					boost::is_same<TValue, boost::posix_time::time_duration>::value ? HXB_DTYPE_TIMESTAMP :
-					boost::is_same<TValue, boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >::value
+					boost::is_same<TValue, boost::array<char, 16> >::value
 						? HXB_DTYPE_16BYTES :
-					boost::is_same<TValue, boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >::value
+					boost::is_same<TValue, boost::array<char, 65> >::value
 						? HXB_DTYPE_65BYTES :
 					(throw "BUG: Unknown datatype!", HXB_DTYPE_UNDEFINED);
 			}

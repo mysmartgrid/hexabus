@@ -23,6 +23,8 @@ namespace po = boost::program_options;
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
+using namespace hexabus;
+
 enum ErrorCode {
 	ERR_NONE = 0,
 

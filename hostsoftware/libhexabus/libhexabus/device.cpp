@@ -26,6 +26,7 @@
 
 #include "../../../shared/endpoints.h"
 #include "../../../shared/hexabus_types.h"
+#include "../../../shared/hexabus_definitions.h"
 
 using namespace hexabus;
 

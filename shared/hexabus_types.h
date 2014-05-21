@@ -1,6 +1,9 @@
 #ifndef HEXABUS_TYPES_H_
 #define HEXABUS_TYPES_H_
 
+#ifdef __cplusplus
+namespace hexabus {
+#endif
 // Boolean values
 enum hxb_bool {
 	HXB_FALSE = 0,
@@ -94,5 +97,9 @@ struct hxb_value {
 		char*               v_binary;
 	};
 } __attribute__((packed));
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
