@@ -21,12 +21,12 @@
 	</ul>
 	<div class="tab-content">
 		<h2 class="text-center" data-localize="dashboard.all-sensors" id="view-name">All sensors</h2>
-		<div class="row-fluid">
-			<div class="span3">
+		<div class="row">
+			<div class="col-md-3">
 				<p><span data-localize="last-update.label">Last update:</span> <span id="last-update-when"></span></p>
 			</div>
-			<div class="span9">
-				<ul class="inline">
+			<div class="col-md-9">
+				<ul class="list-inline">
 					<li data-ng-repeat="ep in current_view.endpoints"
 							data-ng-hide="ep.hide || !ep.ep_desc.unit && hide_unitless">
 						<div data-vis-endpoint=""

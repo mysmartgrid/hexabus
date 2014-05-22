@@ -32,6 +32,15 @@ init-jtag2:
 		while [ $$i -lt 63 ]; do echo write eeprom $$i 0; i=$$(($$i + 1)); done; \
 	) | avrdude -p atmega1284p -P usb -c jtag2 -F -t
 
+calinit:
+	avrdude -p atmega1284p -P usb -c jtag2 -F -U eeprom:r:sock.eep:r -U hfuse:w:0x98:m
+	(echo -n "Plug"; dd if=sock.eep bs=1 skip=7 count=2 status=noxfer | hexdump -e '/1 "%.2x"') \
+		| dd of=sock.eep seek=33 bs=1 status=noxfer conv=notrunc
+	dd if=/dev/zero of=sock.eep bs=1 seek=41 count=2 conv=notrunc status=noxfer
+	/bin/echo -en '\x00\x00\x1c\x00\xff' | dd of=sock.eep bs=1 seek=63 count=5 conv=notrunc status=noxfer
+	sleep 5
+	avrdude -p atmega1284p -P usb -c jtag2 -F -e -U eeprom:w:sock.eep:r -U hfuse:w:0x90:m
+
 flash-jtag2: 
 	avrdude -c jtag2 -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F 
 

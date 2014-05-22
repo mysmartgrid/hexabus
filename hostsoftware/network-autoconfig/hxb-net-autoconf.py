@@ -150,7 +150,11 @@ interface {0} {{
 """.format(interface, adv_interval, 3 * adv_interval if include_default else 0)
 	prefix_fragment = ""
 	if prefix is not None:
-		prefix_fragment = "\tprefix {0} {{ }};\n".format(prefix)
+		prefix_fragment = """	prefix {0} {{
+		AdvPreferredLifetime {1};
+		AdvValidLifetime {2};
+	}};
+""".format(prefix, adv_interval, 3 * adv_interval)
 	footer = "};\n"
 	routes_fragment = ""
 	for route in routes:

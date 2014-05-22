@@ -1,4 +1,4 @@
 CONFIG=/etc/hexabus_msg_bridge.conf
-PATH=/usr/bin
+PATH=/usr/bin:/usr/sbin
 
-*/10 * * * * root (hexabus_msg_bridge -c $CONFIG -H; echo $?) >/var/run/hexabus_msg_heartbeat.state 2>&1
+*/10 * * * * root ([ ! -f $CONFIG ] && echo "0" || (hexabus_msg_bridge -c $CONFIG -H; echo $?)) >/var/run/hexabus_msg_heartbeat.state 2>&1

@@ -148,6 +148,7 @@ list(APPEND CTEST_PROJECT_SUBPROJECTS "hexinfo")
 list(APPEND CTEST_PROJECT_SUBPROJECTS "network-autoconfig")
 list(APPEND CTEST_PROJECT_SUBPROJECTS "hexanode")
 list(APPEND CTEST_PROJECT_SUBPROJECTS "hexanode-webfrontend")
+list(APPEND CTEST_PROJECT_SUBPROJECTS "hexadaemon")
 
 # create project.xml
 set(projectFile "${CTEST_BINARY_DIRECTORY}/Project.xml")

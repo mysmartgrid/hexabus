@@ -1,8 +1,12 @@
-    
     <!--- enable navigation, see
     http://twitter.github.com/bootstrap/javascript.html#tabs -->
     <script>
-      $(".nav-collapse").collapse('hide');
+console.log(1)
+			jQuery(document).ready(function($) {
+console.log(2)
+				$('#jsActivated').show();
+			});
+      $("#main-navbar-collapsible").collapse('hide');
 
 			(function() {
 				var localizeBySelector = function(selector) {
@@ -71,16 +75,15 @@
 						};
 					});
 			})();
-
-			// fix bootstrap dropdowns not working on mobile devices
-			// taken from http://stackoverflow.com/a/18107103
-			jQuery(document).ready(function($) {
-				$("li.dropdown a").click(function(e){
-					$(this).next('ul.dropdown-menu').css("display", "block");
-					e.stopPropagation();
-				});
-			});
     </script>
+
+    </div> <!--- jsActivated -->
+    <noscript>
+      <div class="page text-center">
+	<p class="lead">Javascript is needed for this site to work.</p>
+	<p class="lead">Für diese Seite wird Javascript benötigt.</p>
+      </div>
+    </noscript>
 
   </body>
 </html>

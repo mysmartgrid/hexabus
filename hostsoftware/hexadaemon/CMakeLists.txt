@@ -49,9 +49,11 @@ include(CMakeBackwardCompatibilityCXX)
 #endif( NOT LIBKLIO_FOUND)
 
 #FIND_PACKAGE(Sqlite)
-FIND_PACKAGE(LibHexabus)
+find_package(LibHexabus)
 #FIND_PACKAGE(LibHbc)
 #FIND_PACKAGE(RtMidi)
+find_package(UCI)
+
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
 SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
@@ -97,8 +99,8 @@ message("***** Build configuration *****")
 message("  install prefix: ${CMAKE_INSTALL_PREFIX}")
 message("  hexabus include: ${HXB_INCLUDE_DIR}")
 message("  hexabus library: ${HXB_LIBRARIES}")
-message("  hbc include: ${HBC_INCLUDE_DIR}")
-message("  hbc library: ${HBC_LIBRARIES}")
+message("  uci include: ${UCI_INCLUDE_DIR}")
+message("  uci library: ${UCI_LIBRARY}")
 message("  boost include: ${Boost_INCLUDE_DIRS}")
 message("  boost libraries: ${Boost_LIBRARIES}")
 message("  extended logging: ${ENABLE_LOGGING}")

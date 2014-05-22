@@ -10,6 +10,7 @@ set(hexalog_src "hexalog.cpp" ${common_lib})
 set(hexaupload_src "hexaupload.cpp" ${common_lib})
 set(hexapost_src "hexapost.cpp" ${common_lib})
 set(hexapair_src "hexapair.cpp" ${common_lib})
+set(hexatimed_src "hexatimed.cpp" ${common_lib})
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
@@ -52,6 +53,14 @@ target_link_libraries(hexapair
   ${Boost_LIBRARIES}
 )
 
+add_executable(hexatimed ${hexatimed_src})
+# Link the executables
+target_link_libraries(hexatimed
+  hexabus
+  pthread
+  ${Boost_LIBRARIES}
+)
+
 if(LIBKLIO_FOUND)
   add_executable(hexalog ${hexalog_src})
   target_link_libraries(hexalog
@@ -75,6 +84,7 @@ INSTALL(PROGRAMS
   ${CMAKE_CURRENT_BINARY_DIR}/hexaswitch
   ${CMAKE_CURRENT_BINARY_DIR}/hexaupload
   ${CMAKE_CURRENT_BINARY_DIR}/hexapair
+  ${CMAKE_CURRENT_BINARY_DIR}/hexatimed
   DESTINATION bin)
 
 if(LIBKLIO_FOUND)

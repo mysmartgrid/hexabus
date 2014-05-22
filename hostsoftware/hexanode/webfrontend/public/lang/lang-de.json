@@ -28,6 +28,12 @@
 		"timeout": "Kommunikation mit dem Gerät nicht möglich"
 	},
 
+	"alert": {
+		"errors": {
+			"lt_error":"Dieser Einrichtungsschritt ist noch nicht verfügbar. Bitte führen Sie erst die vorherigen Schritte durch. Sie wurden daher auf den aktuellen Schritt umgeleitet.",
+			"gt_error":"Dieser Einrichtungsschritt wurde bereits durchgeführt. Sie wurden daher auf den aktuellen Schritt umgeleitet. Falls Sie den Einrichtungsprozess von vorne beginnen wollen, setzen Sie bitte die Basisstation zurück."
+		}
+	},
 	"wizard": {
 		"new": {
 			"welcome": "Willkommen auf Ihrer neuen HexaBus-Basisstation",
@@ -57,6 +63,11 @@
 			"please-link": "Verbinden Sie dieses Gerät nun mit ihrem mySmartGrid-Account:",
 			"link": "Zu mySmartGrid",
 			"error": "Fehler beim Verknüpfen mit mySmartGrid"
+		},
+
+		"msg": {
+			"activate": "Um die Einrichtung zu beenden, muss dieses Gerät mit ihrem mySmartGrid-Account verbunden werden.",
+			"retrieving": "Aktivierungscode wird abgerufen"
 		},
 
 		"success": {
@@ -97,10 +108,12 @@
 		"current": {
 			"lan-addrs": "Adressen im lokalen Netz",
 			"hxb-addrs": "Adressen im Hexabus-Netz",
+			"msg-connection": "Verbindung zu mySmartGrid",
 			"msg-connection-ok": "mySmartGrid ist erreichbar",
 			"msg-connection-fail": "mySmartGrid ist nicht erreichbar",
 			"request-support": "Support anfordern",
-			"msg-error-code": "Fehlercode:"
+			"msg-error-code": "Fehlercode:",
+			"activation-code": "Aktivierungscode"
 		},
 
 		"reset-device": {

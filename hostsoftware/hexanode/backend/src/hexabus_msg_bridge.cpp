@@ -124,7 +124,6 @@ struct ReadingLogger : public hexabus::Logger {
 
 			try {
 				store->add_reading(sensor, ts, value);
-				std::cout << "Added reading " << value << " to sensor " << sensor->name() << std::endl;
 			} catch (std::exception const& ex) {
 				std::cout << "Failed to record reading: " << ex.what() << std::endl;
 				throw;
