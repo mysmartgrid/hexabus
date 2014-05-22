@@ -35,8 +35,6 @@
 #include <iostream>
 #include <iomanip>
 
-static const int DEFAULT_PAN_PAGE = 2;
-static const int DEFAULT_PAN_CHANNEL = 0;
 static const char* EEP_FILE = "/dev/i2c-1";
 
 int teardown(const std::string& iface = "")
@@ -72,9 +70,10 @@ Network extract_network(const std::string& iface)
 	Controller ctrl;
 
 	NetDevice netdev = ctrl.list_netdevs(iface).at(0);
+	Phy phy = ctrl.list_phys(netdev.phy()).at(0);
 	SecurityParameters sp = ctrl.getparams(iface);
 
-	Network result(PAN(netdev.pan_id(), DEFAULT_PAN_PAGE, DEFAULT_PAN_CHANNEL),
+	Network result(PAN(netdev.pan_id(), phy.page(), phy.channel()),
 			netdev.short_addr(), netdev.addr(), sp);
 
 	std::vector<Key> keys = ctrl.list_keys(iface);

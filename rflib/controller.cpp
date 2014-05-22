@@ -16,9 +16,9 @@ Controller::Controller()
 {
 }
 
-std::vector<Phy> Controller::list_phys()
+std::vector<Phy> Controller::list_phys(const std::string& name)
 {
-	msgs::list_phy cmd;
+	msgs::list_phy cmd(name);
 	parsers::list_phy p;
 
 	return send(cmd, p);

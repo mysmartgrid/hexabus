@@ -14,7 +14,7 @@ struct Controller : private nl::socket {
 	typedef std::vector<std::pair<Key, std::string> > key_list_t;
 	typedef std::vector<std::pair<Seclevel, std::string> > sl_list_t;
 
-	std::vector<Phy> list_phys();
+	std::vector<Phy> list_phys(const std::string& name = "");
 	std::vector<NetDevice> list_netdevs(const std::string& iface = "");
 	dev_list_t list_devices();
 	std::vector<Device> list_devices(const std::string& iface);
