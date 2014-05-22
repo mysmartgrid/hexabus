@@ -17,8 +17,9 @@ include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/libhexabus
-  ${Boost_INCLUDE_DIRS}
 )
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+
 if(LIBKLIO_FOUND)
   include_directories(
     ${LIBKLIO_INCLUDE_DIR}
