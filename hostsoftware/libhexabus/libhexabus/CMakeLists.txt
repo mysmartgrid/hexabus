@@ -7,7 +7,7 @@ file(GLOB all_hexabus_src *.cpp)
 if(LIBKLIO_FOUND)
   file(GLOB logger_hdrs logger/*.h logger/*.hpp)
   file(GLOB logger_src  logger/*.cpp logger/*.hpp)
-  include_directories( ${LIBKLIO_INCLUDE_DIR} )
+  include_directories( ${LIBKLIO_INCLUDE_DIRS} )
 endif()
 
 install(FILES ${hdrs}        DESTINATION include/libhexabus)
@@ -22,7 +22,9 @@ include_directories(
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}
-  ${Boost_INCLUDE_DIRS}
+)
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 set(hexabus_src ${all_hexabus_src} ${logger_src})

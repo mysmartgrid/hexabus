@@ -303,6 +303,14 @@ eid 45 {
 	function sensor
 }
 
+eid 46 {
+	type UINT8
+	description "Hexasense button state"
+	unit "_hsbs"
+	access R
+	function sensor
+}
+
 eid 47 {
 	type UINT32
 	description "Flukso Phase 1"
@@ -336,4 +344,133 @@ eid 51 {
 	description "Flukso S0 2"
 	access R
 	function sensor
+}
+eid 52 {
+        type FLOAT
+        description "Import L1"
+	unit "W"
+        access R
+        function sensor
+}
+eid 53 {
+        type FLOAT
+        description "Import L2"
+	unit "W"
+        access R
+        function sensor
+}
+eid 54 {
+        type FLOAT
+        description "Import L3"
+	unit "W"
+        access R
+        function sensor
+}
+eid 55 {
+        type UINT32
+        description "Export Power"
+	unit "W"
+        access R
+        function sensor
+}
+eid 56 {
+        type FLOAT
+        description "Export L1"
+	unit "W"
+        access R
+        function sensor
+}
+eid 57 {
+        type FLOAT
+        description "Export L2"
+	unit "W"
+        access R
+        function sensor
+}
+eid 58 {
+        type FLOAT
+        description "Export L3"
+	unit "W"
+        access R
+        function sensor
+}
+eid 59 {
+        type UINT32
+        description "Import Energy"
+	unit "Wh"
+        access R
+        function sensor
+}
+eid 60 {
+        type UINT32
+        description "Export Energy"
+	unit "Wh"
+        access R
+        function sensor
+}
+eid 61 {
+        type 128STRING
+        description "Firmware"
+        access R
+        function infrastructure
+}
+eid 62 {
+        type FLOAT
+        description "Current L1"
+        unit "A"
+        access R
+        function sensor
+}
+eid 63 {
+        type FLOAT
+        description "Current L2"
+        unit "A"
+        access R
+        function sensor
+}
+eid 65 {
+        type FLOAT
+        description "Current L3"
+        unit "A"
+        access R
+        function sensor
+}
+eid 66 {
+        type FLOAT
+        description "Voltage L1"
+        unit "V"
+        access R
+        function sensor
+}
+eid 67 {
+        type FLOAT
+        description "Voltage L2"
+        unit "V"
+        access R
+        function sensor
+}
+eid 68 {
+        type FLOAT
+        description "Voltage L3"
+        unit "V"
+        access R
+        function sensor
+}
+eid 69 {
+        type FLOAT
+        description "Factor L1"
+        access R
+        function sensor
+}
+eid 70 {
+        type FLOAT
+        description "Factor L2"
+        access R
+        function sensor
+}
+eid 71 {
+        type FLOAT
+        description "Factor L3"
+        access R
+        function sensor
 }

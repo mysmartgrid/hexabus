@@ -252,6 +252,7 @@ int main(int argc, char** argv) {
 		("ip,i", po::value<std::string>(), "the hostname to connect to. If this option is not set, the target IP address from the program file will be used.")
 		("program,p", po::value<std::string>(), "the state machine program to be uploaded")
 		("retry,r", po::value<int>(), "number of retries for failed/timed out uploads")
+    ("keep-name,k", "do not change the device name (for programming only)")
 		("clear,c", "delete the device's state machine")
 		("rename,R", po::value<std::string>(), "rename a device only, don't touch the state machine")
 		;
@@ -305,6 +306,11 @@ int main(int argc, char** argv) {
 		std::cout << "Cannot proceed without IP of the target device (-i <IP>)" << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
+	
+  if (vm.count("keep-name") && !vm.count("program")) {
+		std::cout << "The keep-name argument is only valid when programming" << std::endl;
+		return ERR_PARAMETER_INVALID;
+	}
 
 	boost::asio::io_service io;
 
@@ -334,12 +340,10 @@ int main(int argc, char** argv) {
 		size_t size = in.tellg();
 		in.seekg(0, std::ios::beg);
 
-		// first, read target IP
-		if (vm.count("program")) {
-			boost::asio::ip::address_v6::bytes_type ipBuffer;
-			in.read(reinterpret_cast<char*>(ipBuffer.c_array()), ipBuffer.size());
-			target = boost::asio::ip::address_v6(ipBuffer);
-		}
+		boost::asio::ip::address_v6::bytes_type ipBuffer;
+		in.read(reinterpret_cast<char*>(ipBuffer.c_array()), ipBuffer.size());
+		target = boost::asio::ip::address_v6(ipBuffer);
+		
 
 		while (in && !in.eof()) {
 			boost::array<char, UploadChunkSize> chunk;
@@ -353,6 +357,12 @@ int main(int argc, char** argv) {
 				return ERR_READ_FAILED;
 			}
 		}
+  
+    //Remove device name inside the first 30 bytes inside the first chunk 
+    if (vm.count("keep-name")) {
+      chunks[0].assign(0); 
+    }
+
 	} else {
 		boost::array<char, UploadChunkSize> chunk;
 

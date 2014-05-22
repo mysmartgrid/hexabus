@@ -16,7 +16,13 @@
 		</tr>
 		<tr data-ng-repeat="device in devices">
 			<th>
-				<p>{{device.name}}</p>
+					<p data-ng-hide="device.rename" data-ng-click="show_rename(device)">{{device.name}}</p>
+					<form data-ng-show="device.rename" ng-submit="rename_device(device)" class="input-append control-group {{device.rename_error_class}}">
+						<input id="renameField" focus-if="device.rename" data-ng-disabled="device.renaming" class="span2" type="text" data-ng-model="device.new_name">
+						<button data-ng-disabled="device.renaming" data-ng-click="rename_device(device)" class="btn" type="button" data-localize="wizard.devices.rename">Rename</button>
+						<img data-ng-show="device.renaming" src="/img/spinner-small.gif" alt="" />
+						<label for="renameField" class="control-label" data-ng-show="device.rename_error">{{undefined | localize:'wizard.devices.hexaupload-errors':device.rename_error_msg}}</label>
+					</form>
 				<p>{{device.ip}}</p>
 			</th>
 			<td>

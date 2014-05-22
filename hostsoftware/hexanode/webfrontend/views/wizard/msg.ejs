@@ -19,14 +19,10 @@
 
 </div>
 
-<div class="page text-center wizard-step" data-ng-controller="wizardActivation">
-	<p class="lead" data-localize="wizard.activation.about-activate">We will now link this device with your account on mySmartGrid.</p>
-	<div data-ng-hide="registering || registered || failed" class="lead page">
-		<button class="btn btn-success" data-ng-click="register()" data-localize="wizard.activation.link-msg">Link your device with mySmartGrid</button>
-	</div>
-	<p data-ng-show="registering" class="lead"><img src="/img/spinner-small.gif" alt="" /><span data-localize="wizard.activation.linking">Registering device with mySmartGrid</span></p>
-	<div data-ng-show="registered" class="page">
-		<p class="lead" data-localize="wizard.activation.please-link">Now, please connect this device to with your mySmartGrid account.</p>
+<div class="page text-center" data-ng-controller="wizardMSG">
+	<p class="lead" data-localize="wizard.msg.activate">To finish the setup, you need to link this device with your account on mySmartGrid.</p>
+	<p data-ng-show="working" class="lead"><img src="/img/spinner-small.gif" alt="" /><span data-localize="wizard.activation.retrieving">Retrieving activation code</span></p>
+	<div class="page" data-ng-show="registered">
 		<p class="lead"><a class="btn btn-success" href="https://www.mysmartgrid.de/device/assign?code={{activationCode}}&callback={{gotoPage}}" data-localize="wizard.activation.link">Go to mySmartGrid</a></p>
 	</div>
 	<p data-ng-show="failed" class="lead text-error" data-localize="wizard.activation.error">An error occured</p>

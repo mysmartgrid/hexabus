@@ -32,40 +32,39 @@
 		<script src="/js/controls.js"></script>
 		<script src="/js/app.js"></script>
 	</head>
-  <body>
-     <div class="navbar navbar-inverse navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container">
-          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="brand" href="/#" data-localize="navbar.console">Hexabus Console</a>
-          <div class="nav-collapse collapse">
-            <ul class="nav" id="main_nav">
-							<li class="<%= active_nav == 'dashboard' ? 'active' : '' %>"><a href="/#dashboard" data-localize="navbar.main">Main</a></li>
-							<li class="dropdown <%= active_nav == 'configuration' ? 'active' : '' %>">
-								<a class="dropdown-toggle" data-toggle="dropdown" data-localize="navbar.configuration">Configuration<b class="caret"></b></a>
-								<ul class="dropdown-menu">
-									<li><a href="/wizard/current" data-localize="navbar.network-status">Network status</a></li>
-									<li><a href="/wizard/devices" data-localize="navbar.device-list">Devices</a></li>
-									<li class="divider"></li>
-									<li><a href="/wizard/reset" class="btn btn-danger" data-localize="navbar.reset-device">Reset device</a></li>
-								</ul>
-							</li>
+	<body>
+		<div class="navbar navbar-inverse navbar-fixed-top">
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar-collapsible">
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand" href="/" data-localize="navbar.console">Hexabus Console</a>
+			</div>
+			<div class="collapse navbar-collapse" id="main-navbar-collapsible">
+				<ul class="nav navbar-nav">
+					<li class="<%= active_nav == 'dashboard' ? 'active' : '' %>"><a href="/" data-localize="navbar.main">Main</a></li>
+					<li class="dropdown <%= active_nav == 'configuration' ? 'active' : '' %>">
+						<a class="dropdown-toggle" data-toggle="dropdown" data-localize="navbar.configuration">Configuration<b class="caret"></b></a>
+						<ul class="dropdown-menu">
+							<li><a href="/wizard/current" data-localize="navbar.network-status">Network status</a></li>
+							<li><a href="/wizard/devices" data-localize="navbar.device-list">Devices</a></li>
+							<li class="divider"></li>
+							<li><a href="/wizard/reset" class="btn btn-danger" data-localize="navbar.reset-device">Reset device</a></li>
 						</ul>
-						<ul class="nav pull-right">
-							<li data-ng-controller="healthController">
-								<span class="btn-danger btn" data-ng-show="errorState">
-									<a class="icon-warning-sign icon-white" href="/wizard/current"></a>
-								</span>
-							</li>
-							<li class="<%= active_nav == 'about' ? 'active' : '' %>">
-								<a class="pull-right" href="/about" data-localize="navbar.about">About</a>
-							</li>
-            </ul>
-          </div><!--/.nav-collapse -->
-        </div>
-      </div>
-    </div>
+					</li>
+				</ul>
+				<ul class="nav navbar-nav pull-right">
+					<li data-ng-controller="healthController">
+						<span class="btn-danger btn" data-ng-show="errorState">
+							<a class="glyphicon glyphicon-warning-sign" href="/wizard/current"></a>
+						</span>
+					</li>
+					<li class="<%= active_nav == 'about' ? 'active' : '' %>">
+						<a class="pull-right" href="/about" data-localize="navbar.about">About</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+		<div id="jsActivated" style="display:none">

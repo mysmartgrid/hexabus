@@ -12,13 +12,12 @@ var application_root = __dirname
 	, fs = require("fs")
   , nconf=require('nconf');
 
-nconf.env().argv();
+nconf.env().argv().file({file: 'config.json'});
 // Setting default values
 nconf.defaults({
   'port': '3000',
 	'config': '.'
 });
-
 server.listen(nconf.get('port'));
 
 // drop root if we ever had it, our arguments say so.
@@ -53,6 +52,42 @@ var save_devicetree = function(cb) {
 	devicetree.save(devicetree_file, cb || Object);
 };
 
+var add_endpoint = function(ip, eid, params) {
+	// FIXME: ugly hack for min/maxvalues, move this to $somewhere_useful
+	switch (params.eid) {
+		case 2: // power meter
+			params.minvalue = 0;
+			params.maxvalue = 3600;
+			break;
+
+		case 3: // temperature
+			params.minvalue = 10;
+			params.maxvalue = 35;
+			break;
+
+		case 5: // humidity sensor
+			params.minvalue = 0;
+			params.maxvalue = 100;
+			break;
+
+		case 44: // pt100 sensors for heater inflow/outflow
+		case 45:
+			params.minvalue = 0;
+			params.maxvalue = 100;
+			break;
+
+		default:
+			params.minvalue = 0;
+			params.maxvalue = 100;
+			break;
+	}
+	return devicetree.add_endpoint(ip, eid, params);
+};
+
+var ignore_endpoint = function(ip, eid) {
+	return eid == 7 || eid == 8;
+};
+
 var enumerate_network = function(cb) {
 	cb = cb || Object;
 	hexabus.enumerate_network(function(dev) {
@@ -69,9 +104,10 @@ var enumerate_network = function(cb) {
 					ep.minvalue = 0;
 					ep.maxvalue = 100;
 				}
-				if (!devicetree.devices[dev.ip]
-					|| !devicetree.devices[dev.ip].endpoints[ep.eid]) {
-					devicetree.add_endpoint(dev.ip, ep.eid, ep);
+				if ((!devicetree.devices[dev.ip]
+							|| !devicetree.devices[dev.ip].endpoints[ep.eid])
+						&& !ignore_endpoint(dev.ip, ep.eid)) {
+					add_endpoint(dev.ip, ep.eid, ep);
 				}
 			}
 		}
@@ -119,37 +155,17 @@ app.get('/api', function(req, res) {
   res.send("API is running.");
 });
 
-//app.get('/api/sensor', function(req, res) {
-//	res.send(JSON.stringify(sensor_registry.get_sensors()));
-//});
-//
-//app.get('/api/sensor/:ip/:eid/latest', function(req, res) {
-//	var sensor = sensor_registry.get_sensor(req.params.ip, req.params.eid);
-//	if (!sensor) {
-//		res.send("Sensor not found", 404);
-//	} else if (sensor_cache.get_current_value(sensor) == undefined) {
-//		res.send("No value yet", 404);
-//	} else {
-//		res.send(JSON.stringify(sensor_cache.get_current_value(sensor.id)));
-//	}
-//});
-//
-//app.get('/api/sensor/:ip/:eid/info', function(req, res) {
-//	var sensor = sensor_registry.get_sensor(req.params.ip, req.params.eid);
-//	if (sensor) {
-//		res.send(JSON.stringify(sensor));
-//	} else {
-//		res.send("Sensor not found", 404);
-//	}
-//});
-
 app.put('/api/sensor/:ip/:eid', function(req, res) {
+	if (ignore_endpoint(req.params.ip, req.params.eid)) {
+		res.send("Ignored", 200);
+		return;
+	}
 	var device = devicetree.devices[req.params.ip];
 	if (device && device.endpoints[req.params.eid]) {
 		res.send("Sensor exists", 200);
 	} else {
 		try {
-			var endpoint = devicetree.add_endpoint(req.params.ip, req.params.eid, req.body);
+			var endpoint = add_endpoint(req.params.ip, req.params.eid, req.body);
 			endpoint.last_value = {
 				unix_ts: Math.round(Date.now() / 1000),
 				value: parseFloat(req.body.value)
@@ -164,6 +180,10 @@ app.put('/api/sensor/:ip/:eid', function(req, res) {
 });
 
 app.post('/api/sensor/:ip/:eid', function(req, res) {
+	if (ignore_endpoint(req.params.ip, req.params.eid)) {
+		res.send("Ignored", 200);
+		return;
+	}
 	var device = devicetree.devices[req.params.ip];
 	if (!device || !device.endpoints[req.params.eid]) {
 		res.send("Not found", 404);
@@ -200,8 +220,8 @@ app.post('/api/device/rename/:ip', function(req, res) {
 });
 
 app.get('/', function(req, res) {
-	fs.exists('/etc/radvd.conf', function(exists) {
-		if (exists) {
+		var wizard = new Wizard();
+		if (wizard.is_finished()) {
 			res.render('index.ejs', {
 				active_nav: 'dashboard',
 				views: devicetree.views
@@ -209,38 +229,40 @@ app.get('/', function(req, res) {
 		} else {
 			res.redirect('/wizard/new');
 		}
-	});
 });
 app.get('/about', function(req, res) {
 	res.render('about.ejs', { active_nav: 'about' });
 });
 app.get('/wizard', function(req, res) {
-	fs.exists('/etc/radvd.conf', function(exists) {
-		if (exists) {
+		var wizard = new Wizard();
+		if (wizard.is_finished()) {
 			res.redirect('/wizard/current');
 		} else {
 			res.redirect('/wizard/new');
 		}
-	});
 });
 app.get('/wizard/current', function(req, res) {
 	var config = hexabus.read_current_config();
-	hexabus.get_heartbeat_state(function(err, state) {
-		config.active_nav = 'configuration';
+	hexabus.get_activation_code(function(err, activation_code) {
+		config.activation_code = activation_code;
 
-		if (err) {
-			config.heartbeat_ok = false;
-			config.heartbeat_code = 0;
-			config.heartbeat_messages = [err];
-			config.heartbeat_state = "";
-		} else {
-			config.heartbeat_ok = state.code == 0;
-			config.heartbeat_code = state.code;
-			config.heartbeat_messages = state.messages;
-			config.heartbeat_state = state;
-		}
+		hexabus.get_heartbeat_state(function(err, state) {
+			config.active_nav = 'configuration';
 
-		res.render('wizard/current.ejs', config);
+			if (err) {
+				config.heartbeat_ok = false;
+				config.heartbeat_code = 0;
+				config.heartbeat_messages = [err];
+				config.heartbeat_state = "";
+			} else {
+				config.heartbeat_ok = state.code == 0;
+				config.heartbeat_code = state.code;
+				config.heartbeat_messages = state.messages;
+				config.heartbeat_state = state;
+			}
+
+			res.render('wizard/current.ejs', config);
+		});
 	});
 });
 app.post('/wizard/reset', function(req, res) {
@@ -267,6 +289,8 @@ app.post('/wizard/reset', function(req, res) {
 });
 app.get('/wizard/resetdone', function(req, res) {
 	res.render('wizard/resetdone.ejs', { active_nav: 'configuration' });
+	nconf.set('wizard_step', undefined);
+	nconf.save();
 	var wizard = new Wizard();
 	wizard.complete_reset();
 });
@@ -292,6 +316,88 @@ app.get('/wizard/devices/add', function(req, res) {
 	res.render('wizard/add_device.ejs', { active_nav: 'configuration' });
 });
 app.get('/wizard/:step', function(req, res) {
+	// steps 1-... and 0 if completed, undefined if not started
+	var wizard_step = nconf.get('wizard_step');
+	var error = false;
+	var getCurrentStep = function(wizard_step) {
+		switch(wizard_step) {
+			case undefined: return 'new';
+			case '0': return 'reset';
+			case '1': return 'connection';
+			case '2': return 'activation';
+			case '3': return 'msg';
+			default: return 'reset';
+		}
+	}
+	switch(req.params.step) {
+		case "new":
+			if(wizard_step!=undefined) {
+				var current_step = getCurrentStep(wizard_step);
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'gt_error' });
+			} else {
+				nconf.set('wizard_step', '1');
+				nconf.save();
+				res.render('wizard/new.ejs', { active_nav: 'configuration' });
+			}
+			return;
+		case "connection":
+			var current_step = getCurrentStep(wizard_step);
+			if(wizard_step==undefined) {
+				nconf.set('wizard_step', '1');
+				nconf.save();
+				res.render('wizard/new.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step>'1' || wizard_step=='0') {
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'gt_error' });
+			} else {
+				
+				res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
+			}
+			return;
+		case "activation":
+			var current_step = getCurrentStep(wizard_step);
+			if(wizard_step==undefined) {
+				nconf.set('wizard_step', '1');
+				nconf.save();
+				res.render('wizard/new.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step<'2') {
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step>'2' || wizard_step=='0') {
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'gt_error' });
+			} else {
+				res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
+			}
+			return;
+		case "msg":
+			var current_step = getCurrentStep(wizard_step);
+			if(wizard_step==undefined) {
+				nconf.set('wizard_step', '1');
+				nconf.save();
+				res.render('wizard/new.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step<'3') {
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step>'3' || wizard_step=='0') {
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'gt_error' });
+			} else {
+				res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
+			}
+			return;
+		case "success":
+			var current_step = getCurrentStep(wizard_step);
+			if(wizard_step==undefined) {
+				nconf.set('wizard_step', '1');
+				nconf.save();
+				res.render('wizard/new.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step<'3') {
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'lt_error' });
+			} else if(wizard_step>'3' || wizard_step=='0') { // reset or display success page?
+				res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'gt_error' });
+			} else {
+				nconf.set('wizard_step', '0');
+				nconf.save();
+				res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
+			}
+			return;
+	}
 	res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
 });
 
@@ -390,8 +496,9 @@ io.sockets.on('connection', function (socket) {
 	var health_update_timeout;
 	var send_health_update = function() {
 		setTimeout(send_health_update, 60 * 1000);
+		var wizard = new Wizard();
 		hexabus.get_heartbeat_state(function(err, state) {
-			emit('health_update', !err && state.code != 0);
+			emit('health_update', ((err || state.code != 0) && wizard.is_finished()));
 		});
 	};
 
@@ -490,6 +597,14 @@ io.sockets.on('connection', function (socket) {
 		});
 	});
 
+	on('upgrade', function() {
+		var wizard = new Wizard();
+
+		wizard.upgrade(function(error) {
+			emit('upgrade_completed', { msg: error });
+		});
+	});
+
 	on('wizard_configure', function() {
 		var wizard = new Wizard();
 
@@ -503,6 +618,14 @@ io.sockets.on('connection', function (socket) {
 
 		wizard.registerMSG(function(progress) {
 			emit('wizard_register_step', progress);
+		});
+	});
+
+	on('get_activation_code', function() {
+		var wizard = new Wizard();
+
+		wizard.getActivationCode(function(data) {
+			emit('activation_code', data);
 		});
 	});
 

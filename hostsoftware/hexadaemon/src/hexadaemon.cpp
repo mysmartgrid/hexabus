@@ -35,7 +35,8 @@ int main(int argc, char** argv)
     ("debug,d", "enable debug mode")
     ("logfile,l", po::value<std::string>(), "set the logfile to use")
     ("interval,i", po::value<int>(), "set the broadcast interval")
-    ("interface,I", po::value<std::string>(), "the interface to use for outgoing messages")
+    ("interface,I", po::value<std::string>(), "interface to use for multicast")
+    ("address,a", po::value<std::string>(), "address to listen on")
     ;
   po::variables_map vm;
 
@@ -52,7 +53,8 @@ int main(int argc, char** argv)
   bool debug = false;
   std::string logfile = "/tmp/hexadaemon.log";
   int interval = 2;
-	boost::optional<std::string> interface;
+  std::string interface;
+  std::string address;
 
   if (vm.count("help")) {
     std::cout << desc << std::endl;
@@ -71,9 +73,20 @@ int main(int argc, char** argv)
     interval = vm["interval"].as<int>();
   }
 
-	if (vm.count("interface")) {
-		interface = vm["interface"].as<std::string>();
-	}
+  if (vm.count("interface")) {
+    interface = vm["interface"].as<std::string>();
+  } else {
+    std::cerr << "You have to specify at least one interface." << std::endl;
+    return 1;
+  }
+
+
+  if (vm.count("address")) {
+    address = vm["address"].as<std::string>();
+  } else {
+    std::cerr << "You have to specify at least one address." << std::endl;
+    return 1;
+  }
 
   try
   {
@@ -83,11 +96,7 @@ int main(int argc, char** argv)
     // user.
     //udp_daytime_server server(io_service);
     hexadaemon::HexabusServer *server;
-    if(interface) {
-      server = new hexadaemon::HexabusServer(io_service, *interface, interval, debug);
-    } else {
-      server = new hexadaemon::HexabusServer(io_service, interval, debug);
-    }
+    server = new hexadaemon::HexabusServer(io_service, interface, address, interval, debug);
 
     // Register signal handlers so that the daemon may be shut down. You may
     // also want to register for other signals, such as SIGHUP to trigger a

@@ -34,7 +34,6 @@ struct ReadingLogger : public hexabus::Logger {
 			boost::asio::ip::address_v6 address;
 		};
 
-		hexabus::Socket& socket;
 		klio::MSGStore::Ptr store;
 		std::map<klio::Sensor::Ptr, SensorInfo> sensor_infos;
 		boost::asio::deadline_timer info_timer;
@@ -64,39 +63,42 @@ struct ReadingLogger : public hexabus::Logger {
 
 			if (unit == "kWh")
 				return "kWh";
+			else if (unit == "Wh")
+				return "Wh";
 			else if (unit == "degC")
 				return "degC";
 			else if (unit == "%r.h.")
 				return "rh";
 			else if (unit == "hPa")
 				return "hPa";
+			else if (unit == "_hsbs")
+				return "_hsbs";
+			else if (unit == "V")
+				return "V";
+			else if (unit == "A")
+				return "A";
 			else
 				return UNKNOWN_UNIT;
 		}
 
 		klio::Sensor::Ptr lookup_sensor(const std::string& id)
 		{
-			try {
-				klio::Sensor::Ptr ptr = store->get_sensor_by_external_id(id);
+			std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_external_id(id);
+			
+			if (!sensors.size())
+				return klio::Sensor::Ptr();
+			
+			klio::Sensor::Ptr ptr = sensors[0];
 
-				if (ptr) {
-					std::string addr_str = id.substr(0, id.find_first_of('-'));
+			std::string addr_str = id.substr(0, id.find_first_of('-'));
 
-					SensorInfo info = {
-						boost::posix_time::second_clock::local_time(),
-						boost::posix_time::second_clock::local_time(),
-						boost::asio::ip::address_v6::from_string(addr_str)
-					};
-					sensor_infos.insert(std::make_pair(ptr, info));
-				}
-				return ptr;
-			} catch (const klio::StoreException& e) {
-				if (e.what() == "Sensor " + id + " could not be found.") {
-					return klio::Sensor::Ptr();
-				} else {
-					throw;
-				}
-			}
+			SensorInfo info = {
+				boost::posix_time::second_clock::local_time(),
+				boost::posix_time::second_clock::local_time(),
+				boost::asio::ip::address_v6::from_string(addr_str)
+			};
+			sensor_infos.insert(std::make_pair(ptr, info));
+			return ptr;
 		}
 
 		void new_sensor_found(klio::Sensor::Ptr sensor, const boost::asio::ip::address_v6& address)
@@ -123,7 +125,6 @@ struct ReadingLogger : public hexabus::Logger {
 
 			try {
 				store->add_reading(sensor, ts, value);
-				std::cout << "Added reading " << value << " to sensor " << sensor->name() << std::endl;
 			} catch (std::exception const& ex) {
 				std::cout << "Failed to record reading: " << ex.what() << std::endl;
 				throw;
@@ -195,15 +196,15 @@ struct ReadingLogger : public hexabus::Logger {
 		}
 
 	public:
-		ReadingLogger(hexabus::Socket& socket,
+		ReadingLogger(boost::asio::io_service& io,
 			klio::TimeConverter& tc,
 			klio::SensorFactory& sensor_factory,
 			const std::string& sensor_timezone,
 			hexabus::DeviceInterrogator& interrogator,
 			hexabus::EndpointRegistry& registry,
 			klio::MSGStore::Ptr store)
-			: Logger(tc, sensor_factory, sensor_timezone, interrogator, registry), socket(socket), store(store),
-			  info_timer(socket.ioService()), flush_timer(socket.ioService())
+			: Logger(tc, sensor_factory, sensor_timezone, interrogator, registry), store(store),
+			  info_timer(io), flush_timer(io)
 		{
 			schedule_info_update();
 			schedule_flush();
@@ -322,7 +323,7 @@ int main(int argc, char** argv)
 		("version,v", "print version info and exit")
 		("config,c", po::value<std::string>()->default_value("/etc/hexabus_msg_bridge.conf"), "path to bridge configuration file (will be created if not present)")
 		("timezone,t", po::value<std::string>(), "the timezone to use for new sensors")
-		("listen,L", po::value<std::string>(), "listen on interface and post measurements to mySmartGrid")
+		("listen,L", po::value<std::vector<std::string> >(), "listen on this interface and post measurements to mySmartGrid")
 		("create,C", po::value<std::string>()->implicit_value(""), "create a configuration and register the device to mySmartGrid")
 		("activationcode,A", "print activation code for the mySmartGrid store")
 		("heartbeat,H", "perform heartbeat and possibly firmware upgrade");
@@ -409,8 +410,15 @@ int main(int argc, char** argv)
 
 			try {
 				boost::asio::io_service io;
-				hexabus::Socket socket(io, vm["listen"].as<std::string>());
-				socket.listen(boost::asio::ip::address_v6::any());
+				hexabus::Listener listener(io);
+				hexabus::Socket socket(io);
+
+				const std::vector<std::string>& ifaces = vm["listen"].as<std::vector<std::string> >();
+				for (std::vector<std::string>::const_iterator it = ifaces.begin(), end = ifaces.end();
+						it != end;
+						it++) {
+					listener.listen(*it);
+				}
 
 				store->initialize();
 
@@ -419,9 +427,9 @@ int main(int argc, char** argv)
 
 				hexabus::DeviceInterrogator interrogator(socket);
 				hexabus::EndpointRegistry registry;
-				ReadingLogger logger(socket, *tc, *sensor_factory, timezone, interrogator, registry, store);
+				ReadingLogger logger(io, *tc, *sensor_factory, timezone, interrogator, registry, store);
 
-				socket.onPacketReceived(boost::ref(logger));
+				listener.onPacketReceived(boost::ref(logger));
 
 				io.run();
 			} catch (const hexabus::NetworkException& e) {
