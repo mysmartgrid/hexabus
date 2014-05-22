@@ -34,7 +34,7 @@ class Network {
 	public:
 		Network(const PAN& pan, uint16_t short_addr, uint64_t hwaddr,
 			const KeyLookupDescriptor& out_key,
-			uint32_t frame_counter = 0, uint64_t key_id = 0);
+			uint32_t frame_counter = 0);
 
 		static Network random(uint64_t hwaddr = 0xFFFFFFFFFFFFFFFFULL);
 

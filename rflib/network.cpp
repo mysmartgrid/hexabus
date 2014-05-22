@@ -26,10 +26,9 @@ void get_random(void* target, size_t len)
 }
 
 Network::Network(const PAN& pan, uint16_t short_addr, uint64_t hwaddr,
-	const KeyLookupDescriptor& out_key, uint32_t frame_counter,
-	uint64_t key_id)
-	: _pan(pan), _short_addr(short_addr), _hwaddr(hwaddr), _out_key(out_key),
-	  _frame_counter(frame_counter), _key_id(key_id)
+	const KeyLookupDescriptor& out_key, uint32_t frame_counter)
+	: _pan(pan), _short_addr(short_addr), _hwaddr(hwaddr),
+	  _out_key(out_key), _frame_counter(frame_counter), _key_id(0)
 {
 }
 
@@ -327,7 +326,9 @@ Network Network::load(Eeprom& source)
 		KeyLookupDescriptor out_key = load_kld(fmt);
 
 		Network result(PAN(pan_id, page, channel), short_addr,
-				hwaddr, out_key, frame_counter, key_id);
+				hwaddr, out_key, frame_counter);
+
+		result._key_id = key_id;
 
 		uint8_t keys = fmt.get_u8();
 		while (keys-- > 0)
