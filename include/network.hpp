@@ -16,6 +16,10 @@ class Network {
 			VERSION_FACTORY_NEW = 0,
 			VERSION_1 = 1,
 
+			DEFAULT_PAGE = 2,
+			DEFAULT_CHANNEL = 0,
+			DEFAULT_SECLEVEL = 5,
+
 			MAX_KEYS = 16,
 			MAX_DEVICES = 256,
 		};
@@ -25,16 +29,14 @@ class Network {
 		uint64_t _hwaddr;
 		std::vector<Key> _keys;
 		std::vector<Device> _devices;
-		KeyLookupDescriptor _out_key;
-		uint32_t _frame_counter;
+		SecurityParameters _sec_params;
 		uint64_t _key_id;
 
 		std::vector<Key>::iterator find_key(const KeyLookupDescriptor& desc);
 
 	public:
 		Network(const PAN& pan, uint16_t short_addr, uint64_t hwaddr,
-			const KeyLookupDescriptor& out_key,
-			uint32_t frame_counter = 0);
+			const SecurityParameters& sec_params);
 
 		static Network random(uint64_t hwaddr = 0xFFFFFFFFFFFFFFFFULL);
 
@@ -55,11 +57,8 @@ class Network {
 		const std::vector<Device>& devices() const { return _devices; }
 		void add_device(const Device& dev);
 
-		const KeyLookupDescriptor& out_key() const { return _out_key; }
-		void out_key(const KeyLookupDescriptor& key);
-
-		uint32_t frame_counter() const { return _frame_counter; }
-		void frame_counter(uint32_t val) { _frame_counter = val; }
+		const SecurityParameters& sec_params() const { return _sec_params; }
+		void sec_params(const SecurityParameters& params);
 
 		uint64_t key_id() const { return _key_id; }
 		void key_id(uint64_t key_id) { _key_id = key_id; }

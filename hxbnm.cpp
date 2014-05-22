@@ -75,8 +75,7 @@ Network extract_network(const std::string& iface)
 	SecurityParameters sp = ctrl.getparams(iface);
 
 	Network result(PAN(netdev.pan_id(), DEFAULT_PAN_PAGE, DEFAULT_PAN_CHANNEL),
-			netdev.short_addr(), netdev.addr(), sp.out_key(),
-			sp.frame_counter());
+			netdev.short_addr(), netdev.addr(), sp);
 
 	std::vector<Key> keys = ctrl.list_keys(iface);
 	BOOST_FOREACH(const Key& key, keys) {
@@ -124,9 +123,7 @@ int setup_network(const Network& net, const std::string& wpan_name = "",
 	BOOST_FOREACH(const Device& dev, net.devices()) {
 		ctrl.add_device(wpan.name(), dev);
 	}
-	ctrl.setparams(
-		wpan.name(),
-		SecurityParameters(true, 5, net.out_key(), net.frame_counter()));
+	ctrl.setparams(wpan.name(), net.sec_params());
 	ctrl.add_seclevel(wpan.name(), Seclevel(1, 0xff));
 
 	std::string link_name = lowpan.size() ? lowpan : "hxb%d";
@@ -139,15 +136,21 @@ int setup(const std::string& file, const std::string& wpan, const std::string& l
 {
 	Network net = load_eeprom(file);
 
+	const SecurityParameters& sp = net.sec_params();
+	uint32_t fct = sp.frame_counter();
+
 	BOOST_FOREACH(const Device& dev, net.devices()) {
-		net.frame_counter(std::max(dev.frame_ctr(), net.frame_counter()));
+		fct = std::max(dev.frame_ctr(), fct);
 	}
 
 	// on the assumption that 10kk is an upper limit on packet transmissions
 	// in the interim
-	if (net.frame_counter() != 0) {
-		net.frame_counter(net.frame_counter() + 10000000);
-	}
+	if (fct != 0)
+		fct += 10000000;
+
+	net.sec_params(
+		SecurityParameters(
+			sp.enabled(), sp.out_level(), sp.out_key(), fct));
 
 	return setup_network(net, wpan, lowpan);
 }

@@ -25,10 +25,12 @@ void get_random(void* target, size_t len)
 	close(fd);
 }
 
+
+
 Network::Network(const PAN& pan, uint16_t short_addr, uint64_t hwaddr,
-	const KeyLookupDescriptor& out_key, uint32_t frame_counter)
+	const SecurityParameters& sec_params)
 	: _pan(pan), _short_addr(short_addr), _hwaddr(hwaddr),
-	  _out_key(out_key), _frame_counter(frame_counter), _key_id(0)
+	  _sec_params(sec_params)
 {
 }
 
@@ -51,7 +53,9 @@ Network Network::random(uint64_t hwaddr)
 	get_random(key_bytes, 16);
 	Key key = Key::indexed(1 << 1, 0, key_bytes, 0);
 
-	Network result(PAN(pan_id, 2, 0), 0xfffe, hwaddr, key.lookup_desc());
+	Network result(PAN(pan_id, DEFAULT_PAGE, DEFAULT_CHANNEL), 0xfffe,
+			hwaddr, SecurityParameters(true, DEFAULT_SECLEVEL,
+				key.lookup_desc(), 0));
 
 	result._keys.push_back(key);
 	return result;
@@ -71,6 +75,14 @@ std::vector<Key>::iterator Network::find_key(const KeyLookupDescriptor& desc)
 {
 	KeyByDesc pred = { desc };
 	return std::find_if(_keys.begin(), _keys.end(), pred);
+}
+
+void Network::sec_params(const SecurityParameters& params)
+{
+	if (find_key(params.out_key()) == _keys.end())
+		throw std::runtime_error("invalid out_key");
+
+	_sec_params = params;
 }
 
 void Network::add_key(const Key& key)
@@ -94,14 +106,6 @@ void Network::remove_key(const Key& key)
 		throw std::runtime_error("no such key");
 
 	_keys.erase(it);
-}
-
-void Network::out_key(const KeyLookupDescriptor& key)
-{
-	if (find_key(key) == _keys.end())
-		throw std::runtime_error("no such key");
-
-	_out_key = key;
 }
 
 void Network::add_device(const Device& dev)
@@ -214,6 +218,26 @@ KeyLookupDescriptor load_kld(BinaryFormatter& fmt)
 
 
 
+void save(BinaryFormatter& fmt, const SecurityParameters& params)
+{
+	fmt.put_u8(params.enabled());
+	fmt.put_u8(params.out_level());
+	save(fmt, params.out_key());
+	fmt.put_u32(params.frame_counter());
+}
+
+SecurityParameters load_secparams(BinaryFormatter& fmt)
+{
+	bool enabled = fmt.get_u8();
+	uint8_t out_level = fmt.get_u8();
+	KeyLookupDescriptor out_key = load_kld(fmt);
+	uint32_t frame_counter = fmt.get_u32();
+
+	return SecurityParameters(enabled, out_level, out_key, frame_counter);
+}
+
+
+
 void save(BinaryFormatter& fmt, const Key& key)
 {
 	save(fmt, key.lookup_desc());
@@ -274,9 +298,8 @@ void Network::save(Eeprom& target)
 	fmt.put_u8(_pan.channel());
 	fmt.put_u16(_short_addr);
 	fmt.put_u64(_hwaddr);
-	fmt.put_u32(_frame_counter);
 	fmt.put_u64(_key_id);
-	::save(fmt, _out_key);
+	::save(fmt, _sec_params);
 
 	fmt.put_u8(_keys.size());
 	std::map<KeyLookupDescriptor, uint8_t> key_idx;
@@ -321,12 +344,11 @@ Network Network::load(Eeprom& source)
 
 		uint16_t short_addr = fmt.get_u16();
 		uint64_t hwaddr = fmt.get_u64();
-		uint64_t frame_counter = fmt.get_u32();
 		uint64_t key_id = fmt.get_u64();
-		KeyLookupDescriptor out_key = load_kld(fmt);
+		SecurityParameters params = load_secparams(fmt);
 
 		Network result(PAN(pan_id, page, channel), short_addr,
-				hwaddr, out_key, frame_counter);
+				hwaddr, params);
 
 		result._key_id = key_id;
 
