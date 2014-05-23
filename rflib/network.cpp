@@ -30,7 +30,7 @@ void get_random(void* target, size_t len)
 Network::Network(const PAN& pan, uint16_t short_addr, uint64_t hwaddr,
 	const SecurityParameters& sec_params)
 	: _pan(pan), _short_addr(short_addr), _hwaddr(hwaddr),
-	  _sec_params(sec_params)
+	  _sec_params(sec_params), _key_epoch(0)
 {
 }
 

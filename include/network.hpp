@@ -30,7 +30,7 @@ class Network {
 		std::vector<Key> _keys;
 		std::vector<Device> _devices;
 		SecurityParameters _sec_params;
-		uint64_t _key_id;
+		uint64_t _key_epoch;
 
 		std::vector<Key>::iterator find_key(const KeyLookupDescriptor& desc);
 
@@ -60,8 +60,7 @@ class Network {
 		const SecurityParameters& sec_params() const { return _sec_params; }
 		void sec_params(const SecurityParameters& params);
 
-		uint64_t key_id() const { return _key_id; }
-		void key_id(uint64_t key_id) { _key_id = key_id; }
+		uint64_t key_epoch() const { return _key_epoch; }
 
 		boost::array<uint8_t, 16> derive_key(uint64_t id) const;
 };
