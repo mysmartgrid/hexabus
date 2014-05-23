@@ -151,7 +151,7 @@ void PairingHandler::run_once(int timeout_secs)
 	packet.pan_id = htons(_pan_id);
 
 	Key key = control().get_out_key(iface());
-	memcpy(packet.key, key.key(), 16);
+	memcpy(packet.key, key.key().c_array(), key.key().size());
 
 	uint64_t addr;
 	memcpy(&addr, peer.addr.hwaddr, 8);

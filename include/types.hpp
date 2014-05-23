@@ -7,6 +7,7 @@
 #include <string.h>
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
+#include <boost/array.hpp>
 
 #include "ieee802154.h"
 
@@ -52,35 +53,33 @@ class Key {
 		KeyLookupDescriptor _lookup_desc;
 		uint8_t _frame_types;
 		uint32_t _cmd_frame_ids;
-		uint8_t _key[16];
+		boost::array<uint8_t, 16> _key;
 
 	public:
 		Key(const KeyLookupDescriptor lookup_desc, uint8_t frame_types,
-			uint32_t cmd_frame_ids, const uint8_t* key)
+			uint32_t cmd_frame_ids, const boost::array<uint8_t, 16>& key)
 			: _lookup_desc(lookup_desc), _frame_types(frame_types),
-			  _cmd_frame_ids(cmd_frame_ids)
-		{
-			memcpy(_key, key, 16);
-		}
+			  _cmd_frame_ids(cmd_frame_ids), _key(key)
+		{}
 
 		static Key implicit(uint8_t frames, uint8_t cmd_frames,
-				const uint8_t* key);
+				const boost::array<uint8_t, 16>& key);
 
 		static Key indexed(uint8_t frames, uint8_t cmd_frames,
-				const uint8_t* key, uint8_t id);
+				const boost::array<uint8_t, 16>& key, uint8_t id);
 
 		static Key indexed(uint8_t frames, uint8_t cmd_frames,
-				const uint8_t* key, uint8_t id,
+				const boost::array<uint8_t, 16>& key, uint8_t id,
 				uint32_t source);
 
 		static Key indexed(uint8_t frames, uint8_t cmd_frames,
-				const uint8_t* key, uint8_t id,
+				const boost::array<uint8_t, 16>& key, uint8_t id,
 				uint64_t source);
 
 		const KeyLookupDescriptor& lookup_desc() const { return _lookup_desc; }
 		uint8_t frame_types() const { return _frame_types; }
 		uint32_t cmd_frame_ids() const { return _cmd_frame_ids; }
-		const uint8_t* key() const { return _key; }
+		boost::array<uint8_t, 16> key() const { return _key; }
 };
 
 class Device {

@@ -48,9 +48,9 @@ Network Network::random(uint64_t hwaddr)
 	uint16_t pan_id;
 	get_random(&pan_id, sizeof(pan_id));
 
-	uint8_t key_bytes[16];
+	boost::array<uint8_t, 16> key_bytes;
 
-	get_random(key_bytes, 16);
+	get_random(key_bytes.c_array(), 16);
 	Key key = Key::indexed(1 << 1, 0, key_bytes, 0);
 
 	Network result(PAN(pan_id, DEFAULT_PAGE, DEFAULT_CHANNEL), 0xfffe,
@@ -243,7 +243,7 @@ void save(BinaryFormatter& fmt, const Key& key)
 	save(fmt, key.lookup_desc());
 	fmt.put_u8(key.frame_types());
 	fmt.put_u32(key.cmd_frame_ids());
-	fmt.put_raw(key.key(), 16);
+	fmt.put_raw(key.key().c_array(), 16);
 }
 
 Key load_key(BinaryFormatter& fmt)
@@ -251,9 +251,9 @@ Key load_key(BinaryFormatter& fmt)
 	KeyLookupDescriptor ldesc = load_kld(fmt);
 	uint8_t frame_types = fmt.get_u8();
 	uint32_t cmd_frame_ids = fmt.get_u32();
-	uint8_t key[16];
+	boost::array<uint8_t, 16> key;
 
-	fmt.get_raw(key, 16);
+	fmt.get_raw(key.c_array(), 16);
 
 	return Key(ldesc, frame_types, cmd_frame_ids, key);
 }
@@ -298,7 +298,7 @@ void Network::save(Eeprom& target)
 	fmt.put_u8(_pan.channel());
 	fmt.put_u16(_short_addr);
 	fmt.put_u64(_hwaddr);
-	fmt.put_u64(_key_id);
+	fmt.put_u64(_key_epoch);
 	::save(fmt, _sec_params);
 
 	fmt.put_u8(_keys.size());
@@ -344,13 +344,13 @@ Network Network::load(Eeprom& source)
 
 		uint16_t short_addr = fmt.get_u16();
 		uint64_t hwaddr = fmt.get_u64();
-		uint64_t key_id = fmt.get_u64();
+		uint64_t key_epoch = fmt.get_u64();
 		SecurityParameters params = load_secparams(fmt);
 
 		Network result(PAN(pan_id, page, channel), short_addr,
 				hwaddr, params);
 
-		result._key_id = key_id;
+		result._key_epoch = key_epoch;
 
 		uint8_t keys = fmt.get_u8();
 		while (keys-- > 0)

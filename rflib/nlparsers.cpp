@@ -159,9 +159,9 @@ int list_keys::valid(struct nl_msg* msg, const nl::attrs& attrs)
 
 	uint8_t mode = attrs.u8(IEEE802154_ATTR_LLSEC_KEY_MODE);
 	uint8_t frames = attrs.u8(IEEE802154_ATTR_LLSEC_KEY_USAGE_FRAME_TYPES);
-	uint8_t key[16];
+	boost::array<uint8_t, 16> key;
 
-	memcpy(key, attrs.raw(IEEE802154_ATTR_LLSEC_KEY_BYTES), 16);
+	memcpy(key.c_array(), attrs.raw(IEEE802154_ATTR_LLSEC_KEY_BYTES), 16);
 
 	if (mode == 0) {
 		list.push_back(

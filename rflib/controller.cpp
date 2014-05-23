@@ -207,7 +207,7 @@ void Controller::add_key(const std::string& iface, const Key& key)
 	msgs::add_key akey(iface);
 
 	akey.frames(key.frame_types());
-	akey.key(key.key());
+	akey.key(key.key().c_array());
 	akey.mode(key.lookup_desc().mode());
 
 	if (key.lookup_desc().mode() != 0) {
