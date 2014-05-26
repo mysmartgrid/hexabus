@@ -36,11 +36,6 @@ inline bool operator==(const KeyLookupDescriptor& a, const KeyLookupDescriptor& 
 				(a.mode() == 1 || a.source() == b.source())));
 }
 
-inline bool operator!=(const KeyLookupDescriptor& a, const KeyLookupDescriptor& b)
-{
-	return !(a == b);
-}
-
 inline bool operator<(const KeyLookupDescriptor& a, const KeyLookupDescriptor& b)
 {
 	return a.mode() < b.mode() || (a.mode() == b.mode() &&
@@ -82,6 +77,14 @@ class Key {
 		boost::array<uint8_t, 16> key() const { return _key; }
 };
 
+inline bool operator==(const Key& a, const Key& b)
+{
+	return a.lookup_desc() == b.lookup_desc() &&
+		a.frame_types() == b.frame_types() &&
+		a.cmd_frame_ids() == b.cmd_frame_ids() &&
+		a.key() == b.key();
+}
+
 class Device {
 	private:
 		uint16_t _pan_id;
@@ -110,6 +113,11 @@ class Device {
 
 		std::map<KeyLookupDescriptor, uint32_t>& keys() { return _keys; }
 };
+
+inline bool operator==(const Device& a, const Device& b)
+{
+	return a.hwaddr() == b.hwaddr();
+}
 
 class NetDevice {
 	private:

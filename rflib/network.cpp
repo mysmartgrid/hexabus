@@ -116,6 +116,15 @@ void Network::add_device(const Device& dev)
 	_devices.push_back(dev);
 }
 
+void Network::remove_device(const Device& dev)
+{
+	std::vector<Device>::iterator it = std::find(_devices.begin(), _devices.end(), dev);
+	if (it == _devices.end())
+		throw std::runtime_error("no such device");
+
+	_devices.erase(it);
+}
+
 namespace {
 boost::array<uint8_t, 16> convert_key_id(uint64_t id)
 {

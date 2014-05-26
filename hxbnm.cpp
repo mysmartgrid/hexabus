@@ -65,34 +65,20 @@ int teardown(const std::string& iface = "")
 	return !!netdevs.size();
 }
 
-Network extract_network(const std::string& iface)
-{
-	Controller ctrl;
-
-	NetDevice netdev = ctrl.list_netdevs(iface).at(0);
-	Phy phy = ctrl.list_phys(netdev.phy()).at(0);
-	SecurityParameters sp = ctrl.getparams(iface);
-
-	Network result(PAN(netdev.pan_id(), phy.page(), phy.channel()),
-			netdev.short_addr(), netdev.addr(), sp);
-
-	std::vector<Key> keys = ctrl.list_keys(iface);
-	BOOST_FOREACH(const Key& key, keys) {
-		result.add_key(key);
-	}
-
-	std::vector<Device> devices = ctrl.list_devices(iface);
-	BOOST_FOREACH(const Device& dev, devices) {
-		result.add_device(dev);
-	}
-
-	return result;
-}
-
 int save_eeprom(const std::string& file, const std::string& iface)
 {
+	Controller ctrl;
 	Eeprom eep(file);
-	Network net = extract_network(iface);
+
+	Network net = Network::load(eep);
+
+	SecurityParameters sp = ctrl.getparams(iface);
+	std::vector<Key> keys = ctrl.list_keys(iface);
+	std::vector<Device> devs = ctrl.list_devices(iface);
+
+	net.sec_params(sp);
+	net.replace_keys(keys.begin(), keys.end());
+	net.replace_devices(devs.begin(), devs.end());
 
 	net.save(eep);
 	return 0;

@@ -54,8 +54,25 @@ class Network {
 		void add_key(const Key& key);
 		void remove_key(const Key& key);
 
+		template<typename It>
+		void replace_keys(const It& begin, const It& end)
+		{
+			_keys.clear();
+			for (It it = begin; it != end; ++it)
+				add_key(*it);
+		}
+
 		const std::vector<Device>& devices() const { return _devices; }
 		void add_device(const Device& dev);
+		void remove_device(const Device& dev);
+
+		template<typename It>
+		void replace_devices(const It& begin, const It& end)
+		{
+			_devices.clear();
+			for (It it = begin; it != end; ++it)
+				add_device(*it);
+		}
 
 		const SecurityParameters& sec_params() const { return _sec_params; }
 		void sec_params(const SecurityParameters& params);
