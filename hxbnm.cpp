@@ -73,11 +73,9 @@ int save_eeprom(const std::string& file, const std::string& iface)
 	Network net = Network::load(eep);
 
 	SecurityParameters sp = ctrl.getparams(iface);
-	std::vector<Key> keys = ctrl.list_keys(iface);
 	std::vector<Device> devs = ctrl.list_devices(iface);
 
 	net.sec_params(sp);
-	net.replace_keys(keys.begin(), keys.end());
 	net.replace_devices(devs.begin(), devs.end());
 
 	net.save(eep);

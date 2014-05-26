@@ -20,7 +20,10 @@ class Network {
 			DEFAULT_CHANNEL = 0,
 			DEFAULT_SECLEVEL = 5,
 
-			MAX_KEYS = 16,
+			// only allow data frames
+			KEY_FRAME_TYPES = 1 << 1,
+			KEY_CMD_FRAME_IDS = 0,
+
 			MAX_DEVICES = 256,
 		};
 
@@ -30,13 +33,21 @@ class Network {
 		std::vector<Key> _keys;
 		std::vector<Device> _devices;
 		SecurityParameters _sec_params;
+		boost::array<uint8_t, 16> _master_key;
 		uint64_t _key_epoch;
 
+		static KeyLookupDescriptor kld(uint8_t id)
+		{
+			return KeyLookupDescriptor(1, id);
+		}
+
 		std::vector<Key>::iterator find_key(const KeyLookupDescriptor& desc);
+		boost::array<uint8_t, 16> derive_key(uint64_t id) const;
 
 	public:
 		Network(const PAN& pan, uint16_t short_addr, uint64_t hwaddr,
-			const SecurityParameters& sec_params);
+			const SecurityParameters& sec_params,
+			const boost::array<uint8_t, 16>& master_key);
 
 		static Network random(uint64_t hwaddr = 0xFFFFFFFFFFFFFFFFULL);
 
@@ -51,16 +62,6 @@ class Network {
 		uint64_t hwaddr() const { return _hwaddr; }
 
 		const std::vector<Key>& keys() const { return _keys; }
-		void add_key(const Key& key);
-		void remove_key(const Key& key);
-
-		template<typename It>
-		void replace_keys(const It& begin, const It& end)
-		{
-			_keys.clear();
-			for (It it = begin; it != end; ++it)
-				add_key(*it);
-		}
 
 		const std::vector<Device>& devices() const { return _devices; }
 		void add_device(const Device& dev);
@@ -77,9 +78,11 @@ class Network {
 		const SecurityParameters& sec_params() const { return _sec_params; }
 		void sec_params(const SecurityParameters& params);
 
-		uint64_t key_epoch() const { return _key_epoch; }
+		const boost::array<uint8_t, 16>& master_key() const { return _master_key; }
 
-		boost::array<uint8_t, 16> derive_key(uint64_t id) const;
+		uint64_t key_epoch() const { return _key_epoch; }
+		void advance_key_epoch(uint64_t to_epoch);
+		void add_keys_until(uint64_t to_epoch);
 };
 
 #endif

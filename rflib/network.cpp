@@ -28,9 +28,10 @@ void get_random(void* target, size_t len)
 
 
 Network::Network(const PAN& pan, uint16_t short_addr, uint64_t hwaddr,
-	const SecurityParameters& sec_params)
+	const SecurityParameters& sec_params,
+	const boost::array<uint8_t, 16>& master_key)
 	: _pan(pan), _short_addr(short_addr), _hwaddr(hwaddr),
-	  _sec_params(sec_params), _key_epoch(0)
+	  _sec_params(sec_params), _master_key(master_key), _key_epoch(0)
 {
 }
 
@@ -49,15 +50,15 @@ Network Network::random(uint64_t hwaddr)
 	get_random(&pan_id, sizeof(pan_id));
 
 	boost::array<uint8_t, 16> key_bytes;
-
 	get_random(key_bytes.c_array(), 16);
-	Key key = Key::indexed(1 << 1, 0, key_bytes, 0);
 
 	Network result(PAN(pan_id, DEFAULT_PAGE, DEFAULT_CHANNEL), 0xfffe,
-			hwaddr, SecurityParameters(true, DEFAULT_SECLEVEL,
-				key.lookup_desc(), 0));
+			hwaddr,
+			SecurityParameters(true, DEFAULT_SECLEVEL, kld(0), 0),
+			key_bytes);
 
-	result._keys.push_back(key);
+	result.add_keys_until(0);
+
 	return result;
 }
 
@@ -85,29 +86,6 @@ void Network::sec_params(const SecurityParameters& params)
 	_sec_params = params;
 }
 
-void Network::add_key(const Key& key)
-{
-	if (_keys.size() + 1 > MAX_KEYS)
-		throw std::runtime_error("key limit reached");
-
-	if (key.lookup_desc().mode() != 1)
-		throw std::runtime_error("invalid key mode");
-
-	if (find_key(key.lookup_desc()) != _keys.end())
-		throw std::runtime_error("key exists");
-
-	_keys.push_back(key);
-}
-
-void Network::remove_key(const Key& key)
-{
-	std::vector<Key>::iterator it = find_key(key.lookup_desc());
-	if (it == _keys.end())
-		throw std::runtime_error("no such key");
-
-	_keys.erase(it);
-}
-
 void Network::add_device(const Device& dev)
 {
 	if (_devices.size() + 1 > MAX_DEVICES)
@@ -123,6 +101,60 @@ void Network::remove_device(const Device& dev)
 		throw std::runtime_error("no such device");
 
 	_devices.erase(it);
+}
+
+void Network::advance_key_epoch(uint64_t to_epoch)
+{
+	if (to_epoch - _key_epoch >= 255)
+		throw std::runtime_error("epoch step too large");
+
+	uint8_t skipped = to_epoch - _key_epoch;
+	uint8_t epoch_start = _key_epoch & 0xFF;
+
+	typedef std::vector<Key>::iterator kit_t;
+	typedef std::vector<Device>::iterator dit_t;
+	for (kit_t it = _keys.begin(); it != _keys.end(); ++it) {
+		int id_diff = it->lookup_desc().id() - epoch_start;
+
+		if (id_diff < 0)
+			id_diff += 256;
+		if (id_diff >= skipped)
+			continue;
+
+		for (dit_t jt = _devices.begin(); jt != _devices.end(); ++jt) {
+			jt->keys().erase(it->lookup_desc());
+			if (jt->keys().size() == 0)
+				_devices.erase(jt);
+		}
+
+		_keys.erase(it);
+	}
+
+	_key_epoch = to_epoch;
+}
+
+void Network::add_keys_until(uint64_t to_epoch)
+{
+	if (to_epoch - _key_epoch >= 256)
+		throw std::runtime_error("maximum number of keys exceeded");
+
+	uint8_t epoch_start = _key_epoch & 0xFF;
+	for (unsigned id_off = 0; id_off < to_epoch - _key_epoch; id_off++) {
+		if (find_key(kld(epoch_start + id_off)) != _keys.end())
+			continue;
+
+		boost::array<uint8_t, 16> key = derive_key(_key_epoch + id_off);
+		_keys.push_back(
+			Key::indexed(
+				KEY_FRAME_TYPES,
+				KEY_CMD_FRAME_IDS,
+				key,
+				epoch_start + id_off));
+
+		BOOST_FOREACH(Device& dev, _devices) {
+			dev.keys()[_keys.back().lookup_desc()] = 0;
+		}
+	}
 }
 
 namespace {
@@ -154,18 +186,16 @@ boost::array<uint8_t, 16> Network::derive_key(uint64_t id) const
 	if (bind(sock, reinterpret_cast<const sockaddr*>(&algdesc), sizeof(algdesc)) < 0)
 		throw std::runtime_error(std::string("bind: ") + strerror(errno));
 
+	const int SOL_ALG = 279;
+
+	if (setsockopt(sock, SOL_ALG, ALG_SET_KEY, &_master_key[0], _master_key.size()) < 0)
+		throw std::runtime_error(std::string("setsockopt: ") + strerror(errno));
+
 	FD tfm(accept(sock, NULL, 0));
 	if (tfm < 0)
 		throw std::runtime_error(std::string("accept: ") + strerror(errno));
 
 	boost::array<uint8_t, 16> buf = convert_key_id(id);
-
-	const uint8_t key[16] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2,
-		0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
-	const int SOL_ALG = 279;
-
-	if (setsockopt(sock, SOL_ALG, ALG_SET_KEY, key, sizeof(key)) < 0)
-		throw std::runtime_error(std::string("setsockopt: ") + strerror(errno));
 
 	msghdr msg_out;
 	char out_cbuf[CMSG_SPACE(sizeof(int))];
@@ -247,28 +277,6 @@ SecurityParameters load_secparams(BinaryFormatter& fmt)
 
 
 
-void save(BinaryFormatter& fmt, const Key& key)
-{
-	save(fmt, key.lookup_desc());
-	fmt.put_u8(key.frame_types());
-	fmt.put_u32(key.cmd_frame_ids());
-	fmt.put_raw(key.key().c_array(), 16);
-}
-
-Key load_key(BinaryFormatter& fmt)
-{
-	KeyLookupDescriptor ldesc = load_kld(fmt);
-	uint8_t frame_types = fmt.get_u8();
-	uint32_t cmd_frame_ids = fmt.get_u32();
-	boost::array<uint8_t, 16> key;
-
-	fmt.get_raw(key.c_array(), 16);
-
-	return Key(ldesc, frame_types, cmd_frame_ids, key);
-}
-
-
-
 void save(BinaryFormatter& fmt, const Device& dev)
 {
 	fmt.put_u16(dev.pan_id());
@@ -293,11 +301,6 @@ Device load_device(BinaryFormatter& fmt)
 
 void Network::save(Eeprom& target)
 {
-	if (_keys.size() > MAX_KEYS)
-		throw std::runtime_error("too many keys");
-	if (_devices.size() > MAX_DEVICES)
-		throw std::runtime_error("too many devices");
-
 	std::vector<uint8_t> stream;
 	BinaryFormatter fmt(stream);
 
@@ -309,24 +312,27 @@ void Network::save(Eeprom& target)
 	fmt.put_u64(_hwaddr);
 	fmt.put_u64(_key_epoch);
 	::save(fmt, _sec_params);
+	fmt.put_raw(_master_key.c_array(), 16);
 
 	fmt.put_u8(_keys.size());
-	std::map<KeyLookupDescriptor, uint8_t> key_idx;
-	BOOST_FOREACH(const Key& key, _keys) {
-		::save(fmt, key);
-
-		key_idx.insert(std::make_pair(key.lookup_desc(), key_idx.size()));
-	}
 
 	fmt.put_u8(_devices.size());
 	BOOST_FOREACH(const Device& dev, _devices) {
 		::save(fmt, dev);
 
-		fmt.put_u8(dev.keys().size());
 		typedef std::pair<KeyLookupDescriptor, uint32_t> p_t;
+		uint8_t key_count = 0;
 		BOOST_FOREACH(const p_t& devkey, dev.keys()) {
-			fmt.put_u8(key_idx[devkey.first]);
-			fmt.put_u32(devkey.second);
+			if (devkey.second)
+				key_count++;
+		}
+
+		fmt.put_u8(key_count);
+		BOOST_FOREACH(const p_t& devkey, dev.keys()) {
+			if (devkey.second) {
+				fmt.put_u8(devkey.first.id());
+				fmt.put_u32(devkey.second);
+			}
 		}
 	}
 
@@ -355,15 +361,16 @@ Network Network::load(Eeprom& source)
 		uint64_t hwaddr = fmt.get_u64();
 		uint64_t key_epoch = fmt.get_u64();
 		SecurityParameters params = load_secparams(fmt);
+		boost::array<uint8_t, 16> master_key;
+
+		fmt.get_raw(master_key.c_array(), 16);
 
 		Network result(PAN(pan_id, page, channel), short_addr,
-				hwaddr, params);
+				hwaddr, params, master_key);
 
 		result._key_epoch = key_epoch;
 
 		uint8_t keys = fmt.get_u8();
-		while (keys-- > 0)
-			result._keys.push_back(load_key(fmt));
 
 		uint8_t devices = fmt.get_u8();
 		while (devices-- > 0) {
@@ -374,14 +381,13 @@ Network Network::load(Eeprom& source)
 				uint8_t idx = fmt.get_u8();
 				uint32_t ctr = fmt.get_u32();
 
-				dev.keys().insert(
-					std::make_pair(
-						result._keys[idx].lookup_desc(),
-						ctr));
+				dev.keys().insert(std::make_pair(kld(idx), ctr));
 			}
 
 			result._devices.push_back(dev);
 		}
+
+		result.add_keys_until(result.key_epoch() + keys);
 
 		return result;
 	}
