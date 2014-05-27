@@ -63,16 +63,11 @@
 
 #include "contiki.h"
 
-//#if defined(__AVR__)
 #include <avr/io.h>
 #include <util/delay_basic.h>
 #define delay_us( us )   ( _delay_loop_2(1+(us*F_CPU)/4000000UL) )
 
-//#include <util/delay.h>
 #include <avr/pgmspace.h>
-//#elif defined(__MSP430__)
-//#include <io.h>
-//#endif
 
 #include "dev/leds.h"
 #include "dev/spi.h"
@@ -85,9 +80,6 @@
 #include "net/packetbuf.h"
 #include "net/rime/rimestats.h"
 #include "net/netstack.h"
-
-//#include "net/rime/packetbuf.h"
-//#include "net/rime/rimestats.h"
 
 #include "sys/timetable.h"
 
@@ -108,12 +100,7 @@ extern volatile int bootloader_mode;
 /* Show if we are in bootloader mode */
 uint8_t promiscuous_mode;
 
-#if RF212_CONF_TIMESTAMPS
-#include "net/rime/timesynch.h"
-#define TIMESTAMP_LEN 3
-#else /* RF212_CONF_TIMESTAMPS */
 #define TIMESTAMP_LEN 0
-#endif /* RF212_CONF_TIMESTAMPS */
 #define FOOTER_LEN 0
 //#define FOOTER_LEN 0
 
@@ -121,16 +108,7 @@ uint8_t promiscuous_mode;
 #define RF212_CONF_AUTORETRIES 2
 #endif /* RF230_CONF_AUTOACK */
 
-#ifndef RF212_CONF_CHECKSUM
-#define RF212_CONF_CHECKSUM 0
-#endif /* RF212_CONF_CHECKSUM */
-
-#if RF212_CONF_CHECKSUM
-#include "lib/crc16.h"
 #define CHECKSUM_LEN 2
-#else
-#define CHECKSUM_LEN 2
-#endif /* RF212_CONF_CHECKSUM */
 
 #define AUX_LEN (CHECKSUM_LEN + TIMESTAMP_LEN + FOOTER_LEN)
 
@@ -155,12 +133,6 @@ rtimer_clock_t rf212_time_of_arrival, rf212_time_of_departure;
 
 int rf212_authority_level_of_sender;
 
-#if RF212_CONF_TIMESTAMPS
-static rtimer_clock_t setup_time_for_transmission;
-static unsigned long total_time_for_transmission, total_transmission_len;
-static int num_transmissions;
-#endif /* RF212_CONF_TIMESTAMPS */
-
 #if DEBUGFLOWSIZE
 uint8_t debugflowsize,debugflow[DEBUGFLOWSIZE];
 #define DEBUGFLOW(c) if (debugflowsize<(DEBUGFLOWSIZE-1)) debugflow[debugflowsize++]=c
@@ -184,12 +156,11 @@ typedef enum
 	TIME_NOCLK_TO_WAKE = 6, /**<  Transition time from *_NOCLK to being awake. TODO gh: not in manual*/
 	TIME_CMD_FORCE_TRX_OFF = 1, /**<  Time it takes to execute the FORCE_TRX_OFF command. */
 	TIME_TRX_OFF_TO_PLL_ACTIVE = 200, /**<  Transition time from TRX_OFF to: RX_ON, PLL_ON, TX_ARET_ON and RX_AACK_ON. */
-	TIME_STATE_TRANSITION_PLL_ACTIVE = 1,
-/**<  Transition time from PLL active state to another. */
+	TIME_STATE_TRANSITION_PLL_ACTIVE = 1, /**<  Transition time from PLL active state to another. */
 } radio_trx_timing_t;
 
-/*---------------------------------------------------------------------------*/PROCESS(rf212_process, "RF212 receiver")
-;
+/*---------------------------------------------------------------------------*/
+PROCESS(rf212_process, "RF212 receiver");
 /*---------------------------------------------------------------------------*/
 
 static int rf212_prepare(const void *data, unsigned short len);
@@ -277,7 +248,8 @@ uint8_t radio_get_trx_state(void)
  *  \retval     true    The radio transceiver is in SLEEP or one of the *_NOCLK
  *                      states.
  *  \retval     false   The radio transceiver is not sleeping.
- */bool radio_is_sleeping(void)
+ */
+bool radio_is_sleeping(void)
 {
 	bool sleeping = false;
 
@@ -464,7 +436,8 @@ static void off(void)
 	/* Force the device into TRX_OFF. */
 	radio_reset_state_machine();
 
-	/* Sleep Radio */hal_set_slptr_high();
+	/* Sleep Radio */
+	hal_set_slptr_high();
 
 	ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
 }
@@ -492,9 +465,9 @@ static int rf212_cca(void)
 	int radio_was_off = 0;
 
 	/* If the radio is locked by an underlying thread (because we are
-	 being invoked through an interrupt), we preted that the coast is
-	 clear (i.e., no packet is currently being transmitted by a
-	 neighbor). */
+	   being invoked through an interrupt), we preted that the coast is
+	   clear (i.e., no packet is currently being transmitted by a
+	   neighbor). */
 	if (locked)
 	{
 		return 1;
@@ -515,16 +488,16 @@ static int rf212_cca(void)
 	hal_subregister_write(SR_CCA_REQUEST, 1);
 	delay_us(TIME_CCA);
 	//while ((hal_register_read(RG_TRX_STATUS) & 0x80) == 0 ) {continue;}
-			while (!hal_subregister_read(SR_CCA_DONE))
-			{	continue;}
-			cca=hal_subregister_read(SR_CCA_STATUS);
+	while (!hal_subregister_read(SR_CCA_DONE)) {
+	}
+	cca=hal_subregister_read(SR_CCA_STATUS);
 
-			if(radio_was_off)
-			{
-				rf212_off();
-			}
-			return cca;
-		}
+	if(radio_was_off)
+	{
+		rf212_off();
+	}
+	return cca;
+}
 
 	/*---------------------------------------------------------------------------*/
 int rf212_receiving_packet(void)
@@ -592,7 +565,6 @@ int rf212_on(void)
 int rf212_get_channel(void)
 {
 	return hal_subregister_read(SR_CHANNEL);
-	//	return channel;
 }
 /*---------------------------------------------------------------------------*/
 void rf212_set_channel(int c)
@@ -663,65 +635,56 @@ PROCESS_THREAD(rf212_process, ev, data)
 {
 	int len;
 	PROCESS_BEGIN();
-		RF212PROCESSFLAG(99);
+	RF212PROCESSFLAG(99);
 
-		while(1)
-		{
-			PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
-			RF212PROCESSFLAG(42);
+	while(1)
+	{
+		PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
+		RF212PROCESSFLAG(42);
 #if RF212_TIMETABLE_PROFILING
-			TIMETABLE_TIMESTAMP(rf212_timetable, "poll");
+		TIMETABLE_TIMESTAMP(rf212_timetable, "poll");
 #endif /* RF230_TIMETABLE_PROFILING */
 
-			pending = 0;
+		pending = 0;
 
-			packetbuf_clear();
-			len = rf212_read(packetbuf_dataptr(), PACKETBUF_SIZE);
-			RF212PROCESSFLAG(1);
-			if(len > 0)
-			{
-				packetbuf_set_datalen(len);
-				RF212PROCESSFLAG(2);
-				NETSTACK_RDC.input();
+		packetbuf_clear();
+		len = rf212_read(packetbuf_dataptr(), PACKETBUF_SIZE);
+		RF212PROCESSFLAG(1);
+		if(len > 0)
+		{
+			packetbuf_set_datalen(len);
+			RF212PROCESSFLAG(2);
+			NETSTACK_RDC.input();
 #if RF212_TIMETABLE_PROFILING
-				TIMETABLE_TIMESTAMP(rf212_timetable, "end");
-				timetable_aggregate_compute_detailed(&aggregate_time,
-						&rf212_timetable);
-				timetable_clear(&rf212_timetable);
+			TIMETABLE_TIMESTAMP(rf212_timetable, "end");
+			timetable_aggregate_compute_detailed(&aggregate_time,
+					&rf212_timetable);
+			timetable_clear(&rf212_timetable);
 #endif /* RF212_TIMETABLE_PROFILING */
-			}
-			else
-			{
-#if RADIOSTATS
-				RF212_receivefail++;
-#endif
-			}
 		}
-
-		PROCESS_END();
+		else
+		{
+#if RADIOSTATS
+			RF212_receivefail++;
+#endif
+		}
 	}
 
-	/*---------------------------------------------------------------------------*/
-	/*
-	 * This routine is called by the radio receive interrupt in hal.c
-	 * It just sets the poll flag for the rf212 process.
-	 */
-#if RF212_CONF_TIMESTAMPS
-	static volatile rtimer_clock_t interrupt_time;
-	static volatile int interrupt_time_set;
-#endif /* RF212_CONF_TIMESTAMPS */
+	PROCESS_END();
+}
+
+/*---------------------------------------------------------------------------*/
+/*
+ * This routine is called by the radio receive interrupt in hal.c
+ * It just sets the poll flag for the rf212 process.
+ */
 #if RF212_TIMETABLE_PROFILING
 #define rf212_timetable_size 16
-	TIMETABLE(rf212_timetable);
-	TIMETABLE_AGGREGATE(aggregate_time, 10);
+TIMETABLE(rf212_timetable);
+TIMETABLE_AGGREGATE(aggregate_time, 10);
 #endif /* RF212_TIMETABLE_PROFILING */
 void rf212_interrupt(void)
 {
-#if RF212_CONF_TIMESTAMPS
-	interrupt_time = timesynch_time();
-	interrupt_time_set = 1;
-#endif /* RF212_CONF_TIMESTAMPS */
-
 	process_poll(&rf212_process);
 
 #if RF212_TIMETABLE_PROFILING
@@ -740,12 +703,6 @@ int rf212_read(void *buf, unsigned short bufsize)
 	uint8_t *framep;
 	// uint8_t footer[2];
 	uint8_t len;
-#if RF212_CONF_CHECKSUM
-	uint16_t checksum;
-#endif /* RF212_CONF_CHECKSUM */
-#if RF212_CONF_TIMESTAMPS
-	struct timestamp t;
-#endif /* RF212_CONF_TIMESTAMPS */
 
 	PRINTF("rf212_read: %u bytes lqi %u crc %u ed %u \n",rxframe.length,rxframe.lqi,rxframe.crc,rxframe.ed);
 #if DEBUG>1
@@ -756,19 +713,6 @@ int rf212_read(void *buf, unsigned short bufsize)
 		return 0;
 	}
 
-#if RF212_CONF_TIMESTAMPS
-	bomb
-	if(interrupt_time_set)
-	{
-		rf212_time_of_arrival = interrupt_time;
-		interrupt_time_set = 0;
-	}
-	else
-	{
-		rf212_time_of_arrival = 0;
-	}
-	rf212_time_of_departure = 0;
-#endif /* RF212_CONF_TIMESTAMPS */
 	GET_LOCK();
 	//  if(rxframe.length > RF212_MAX_PACKET_LEN) {
 	//    // Oops, we must be out of sync.
@@ -807,34 +751,8 @@ int rf212_read(void *buf, unsigned short bufsize)
 	RF212_receivepackets++;
 #endif
 
-#if RF212_CONF_CHECKSUM
-	bomb
-	memcpy(&checksum,framep,CHECKSUM_LEN);
-	framep+=CHECKSUM_LEN;
-#endif /* RF212_CONF_CHECKSUM */
-#if RF212_CONF_TIMESTAMPS
-	bomb
-	memcpy(&t,framep,TIMESTAMP_LEN);
-	framep+=TIMESTAMP_LEN;
-#endif /* RF212_CONF_TIMESTAMPS */
-	//  memcpy(&footer,framep,FOOTER_LEN);
-
-#if RF212_CONF_CHECKSUM
-	bomb
-	if(checksum != crc16_data(buf, len - AUX_LEN, 0))
-	{
-		PRINTF("rf212: checksum failed 0x%04x != 0x%04x\n",
-				checksum, crc16_data(buf, len - AUX_LEN, 0));
-	}
-
-	if(footer[1] & FOOTER1_CRC_OK &&
-			checksum == crc16_data(buf, len - AUX_LEN, 0))
-	{
-#else
 	if (rxframe.crc)
 	{
-#endif /* RF212_CONF_CHECKSUM */
-
 		/*
 		 packetbuf_copyfrom(parsed_frame->payload, parsed_frame->payload_length);
 		 packetbuf_set_datalen(parsed_frame->payload_length);
@@ -857,18 +775,6 @@ int rf212_read(void *buf, unsigned short bufsize)
 		packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, rxframe.lqi);
 
 		RIMESTATS_ADD(llrx);
-#if RF212_CONF_TIMESTAMPS
-		bomb
-		rf212_time_of_departure =
-		t.time +
-		setup_time_for_transmission +
-		(total_time_for_transmission * (len - 2)) / total_transmission_len;
-
-		rf212_authority_level_of_sender = t.authority_level;
-
-		packetbuf_set_attr(PACKETBUF_ATTR_TIMESTAMP, t.time);
-#endif /* RF212_CONF_TIMESTAMPS */
-
 	}
 	else
 	{
@@ -966,23 +872,23 @@ uint8_t rf212_generate_random_byte(void)
 	uint8_t rnd = 0;
 
 	AVR_ENTER_CRITICAL_REGION();
-		uint8_t old_trx_state = radio_get_trx_state();
-		uint8_t old_rx_pdt_dis = hal_subregister_read(SR_RX_PDT_DIS);
-		radio_set_trx_state(RX_ON); // Random Number generator works only in basic TRX states
-		hal_subregister_write(SR_RX_PDT_DIS, 0); //also the preamble detector hast to be enabled
+	uint8_t old_trx_state = radio_get_trx_state();
+	uint8_t old_rx_pdt_dis = hal_subregister_read(SR_RX_PDT_DIS);
+	radio_set_trx_state(RX_ON); // Random Number generator works only in basic TRX states
+	hal_subregister_write(SR_RX_PDT_DIS, 0); //also the preamble detector hast to be enabled
 
-				for (i = 0; i < 4; i++) //Register RND_VALUE contains a 2-bit random value
+	for (i = 0; i < 4; i++) //Register RND_VALUE contains a 2-bit random value
 
-				{
-					rnd |= hal_subregister_read(SR_RND_VALUE)<<(2*i);
-				}
+	{
+		rnd |= hal_subregister_read(SR_RND_VALUE)<<(2*i);
+	}
 
-				hal_subregister_write(SR_RX_PDT_DIS, old_rx_pdt_dis);
-				radio_set_trx_state(old_trx_state);
-				AVR_LEAVE_CRITICAL_REGION();
-				return rnd;
-			}
-		/*---------------------------------------------------------------------------*/
+	hal_subregister_write(SR_RX_PDT_DIS, old_rx_pdt_dis);
+	radio_set_trx_state(old_trx_state);
+	AVR_LEAVE_CRITICAL_REGION();
+	return rnd;
+}
+	/*---------------------------------------------------------------------------*/
 void rf212_key_setup(uint8_t *key)
 {
 	uint8_t aes_mode = 0x10; //see 9.1.3 in rf212 manual
@@ -1018,12 +924,6 @@ int rf212_send(const void *payload, unsigned short payload_len)
 {
 	//  int i;
 	uint8_t total_len, buffer[RF212_MAX_TX_FRAME_LENGTH], *pbuf;
-#if RF212_CONF_TIMESTAMPS
-	struct timestamp timestamp;
-#endif /* RF212_CONF_TIMESTAMPS */
-#if RF212_CONF_CHECKSUM
-	uint16_t checksum;
-#endif /* RF212_CONF_CHECKSUM */
 
 #if RADIOSTATS
 	RF212_sendpackets++;
@@ -1040,9 +940,6 @@ int rf212_send(const void *payload, unsigned short payload_len)
 
 	RIMESTATS_ADD(lltx);
 
-#if RF212_CONF_CHECKSUM
-	checksum = crc16_data(payload, payload_len, 0);
-#endif /* RF212_CONF_CHECKSUM */
 	total_len = payload_len + AUX_LEN;
 	/*Check function parameters and current state.*/
 	if (total_len > RF212_MAX_TX_FRAME_LENGTH)
@@ -1055,18 +952,6 @@ int rf212_send(const void *payload, unsigned short payload_len)
 	pbuf = &buffer[0];
 	memcpy(pbuf, payload, payload_len);
 	pbuf += payload_len;
-
-#if RF212_CONF_CHECKSUM
-	memcpy(pbuf,&checksum,CHECKSUM_LEN);
-	pbuf+=CHECKSUM_LEN;
-#endif /* RF212_CONF_CHECKSUM */
-
-#if RF212_CONF_TIMESTAMPS
-	timestamp.authority_level = timesynch_authority_level();
-	timestamp.time = timesynch_time();
-	memcpy(pbuf,&timestamp,TIMESTAMP_LEN);
-	pbuf+=TIMESTAMP_LEN;
-#endif /* RF212_CONF_TIMESTAMPS */
 
 #ifdef RF212BB_HOOK_TX_PACKET
 	RF212BB_HOOK_TX_PACKET(buffer, total_len);
@@ -1096,10 +981,6 @@ int rf212_send(const void *payload, unsigned short payload_len)
 	hal_set_slptr_low();
 	if (1)
 	{
-#if RF212_CONF_TIMESTAMPS
-		rtimer_clock_t txtime = timesynch_time();
-#endif /* RF212_CONF_TIMESTAMPS */
-
 		if (RF212_radio_on)
 		{
 			ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
@@ -1109,17 +990,6 @@ int rf212_send(const void *payload, unsigned short payload_len)
 		/* We wait until transmission has ended so that we get an
 		 accurate measurement of the transmission time.*/
 		rf212_waitidle();
-
-#if RF212_CONF_TIMESTAMPS
-		setup_time_for_transmission = txtime - timestamp.time;
-
-		if(num_transmissions < 10000)
-		{
-			total_time_for_transmission += timesynch_time() - txtime;
-			total_transmission_len += total_len;
-			num_transmissions++;
-		}
-#endif /* RF212_CONF_TIMESTAMPS */
 
 #ifdef ENERGEST_CONF_LEVELDEVICE_LEVELS
 		ENERGEST_OFF_LEVEL(ENERGEST_TYPE_TRANSMIT,rf212_get_txpower());
@@ -1145,13 +1015,15 @@ int rf212_send(const void *payload, unsigned short payload_len)
 #endif     
 	RELEASE_LOCK();
 	return -3; /* Transmission never started! */
-}/*---------------------------------------------------------------------------*/
+}
+/*---------------------------------------------------------------------------*/
 static void rf212_calibrate()
 {
 	hal_subregister_write(SR_FTN_START, 1);
 	// recalibration takes at max. 25µs
-			delay_us(25);
-		}/*---------------------------------------------------------------------------*/
+	delay_us(25);
+}
+/*---------------------------------------------------------------------------*/
 void rf212_set_promiscuous_mode(uint8_t onoff, uint8_t * mac_address)
 {
 	if (onoff > 0)
@@ -1159,29 +1031,29 @@ void rf212_set_promiscuous_mode(uint8_t onoff, uint8_t * mac_address)
 		//enable promiscuous mode
 		hal_subregister_write(SR_AACK_PROM_MODE, 1);
 		hal_subregister_write(SR_AACK_DIS_ACK, 1); //disable acknowledgment generation
-				hal_subregister_write(SR_RX_SAFE_MODE, 1);
-				hal_subregister_write(SR_I_AM_COORD, 0);
-				hal_subregister_write(SR_SLOTTED_OPERATON, 0);
-				//		hal_subregister_write(SR_FVN_MODE, 3); // acknowledge all frames
-				hal_subregister_write(SR_AACK_UPLD_RES_FT, 0); // disable reserved frames
-				hal_subregister_write(SR_AACK_FLTR_RES_FT, 0); //no frame filter
-				uint8_t prom_mode_mac_address[8] =
-				{	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-				rf212_set_pan_addr(0x0000, 0x0000, prom_mode_mac_address);
-				promiscuous_mode = 1;
-				radio_set_trx_state(RX_ON);
-			}
-			else
-			{
-				//disable promiscuous mode
-				hal_subregister_write(SR_AACK_PROM_MODE, 0);
-				hal_subregister_write(SR_AACK_DIS_ACK, 0);
-				hal_subregister_write(SR_RX_SAFE_MODE, 0);
-				rf212_set_pan_addr(IEEE802154_PANID, 0x0000, mac_address);
-				promiscuous_mode = 0;
-			}
-		}/*---------------------------------------------------------------------------*/
-
+		hal_subregister_write(SR_RX_SAFE_MODE, 1);
+		hal_subregister_write(SR_I_AM_COORD, 0);
+		hal_subregister_write(SR_SLOTTED_OPERATON, 0);
+		//		hal_subregister_write(SR_FVN_MODE, 3); // acknowledge all frames
+		hal_subregister_write(SR_AACK_UPLD_RES_FT, 0); // disable reserved frames
+		hal_subregister_write(SR_AACK_FLTR_RES_FT, 0); //no frame filter
+		uint8_t prom_mode_mac_address[8] =
+		{	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+		rf212_set_pan_addr(0x0000, 0x0000, prom_mode_mac_address);
+		promiscuous_mode = 1;
+		radio_set_trx_state(RX_ON);
+	}
+	else
+	{
+		//disable promiscuous mode
+		hal_subregister_write(SR_AACK_PROM_MODE, 0);
+		hal_subregister_write(SR_AACK_DIS_ACK, 0);
+		hal_subregister_write(SR_RX_SAFE_MODE, 0);
+		rf212_set_pan_addr(IEEE802154_PANID, 0x0000, mac_address);
+		promiscuous_mode = 0;
+	}
+}
+/*---------------------------------------------------------------------------*/
 bool rf212_is_ready_to_send()
 {
 	switch (radio_get_trx_state())
@@ -1192,11 +1064,12 @@ bool rf212_is_ready_to_send()
 	}
 
 	return true;
-}/*---------------------------------------------------------------------------*/
-
+}
+/*---------------------------------------------------------------------------*/
 int rf212_init(void)
 {
-	/* Wait in case VCC just applied */delay_us(TIME_TO_ENTER_P_ON);
+	/* Wait in case VCC just applied */
+	delay_us(TIME_TO_ENTER_P_ON);
 
 	/* Calibrate oscillator */
 	// calibrate_rc_osc_32k();
@@ -1206,11 +1079,11 @@ int rf212_init(void)
 
 	/* Do full rf212 Reset */
 	/* GH: 06.04.2011 changed to recommended programming sequence see page 166
-	 hal_set_rst_low();
-	 hal_set_slptr_low();
-	 delay_us(TIME_RESET);
-	 hal_set_rst_high();
-	 */
+	   hal_set_rst_low();
+	   hal_set_slptr_low();
+	   delay_us(TIME_RESET);
+	   hal_set_rst_high();
+	   */
 	//set input pins to the default operating values
 	hal_set_slptr_low();
 	hal_set_rst_high();
@@ -1252,7 +1125,7 @@ int rf212_init(void)
 	// set OQSPK modulation with 100KB/s (802.15.4 regulation Europe)
 	hal_register_write(RG_TRX_CTRL_2, TRX_CTRL2_OQPSK_100KB);
 	/*set frequency to band 0 and use channel 0
-	 (802.15.4 regulation Europe, 868 MHz) */
+	  (802.15.4 regulation Europe, 868 MHz) */
 	hal_register_write(RG_CC_CTRL_1, CC_BAND);
 	hal_subregister_write(SR_CHANNEL, CC_CHANNEL);
 
@@ -1279,51 +1152,51 @@ int rf212_init(void)
 	hal_subregister_write(SR_I_AM_COORD, 0);
 	hal_subregister_write(SR_SLOTTED_OPERATON, 0);
 	hal_subregister_write(SR_FVN_MODE, 1); // acknowledge version 1 and version 2
-			hal_subregister_write(SR_AACK_UPLD_RES_FT, 0); // block reserved frames
-			hal_subregister_write(SR_AACK_FLTR_RES_FT, 0); //no frame filter for reserved frames
+	hal_subregister_write(SR_AACK_UPLD_RES_FT, 0); // block reserved frames
+	hal_subregister_write(SR_AACK_FLTR_RES_FT, 0); //no frame filter for reserved frames
 
 
-			/*set transmit power
-			 * see AT86RF212 Manual Page 107 (EU2, Boost mode enabled (higher energy
-			 * consumption, but also higher output power), 5dBm),
-			 * maximum power that the transceiver can provide without inferring with
-			 * the regulations on the 868 MHz band in Europe
-			 */
-			//hal_register_write(RG_PHY_TX_PWR, RF212_TX_PWR_5DBM_BOOST_MODE|RF212_ENABLE_PA_BOOST);
-			//GH: 09.05.2011 in EMC-test used TX_PWR values
-			hal_register_write(RG_PHY_TX_PWR, 0x62);
+	/*set transmit power
+	 * see AT86RF212 Manual Page 107 (EU2, Boost mode enabled (higher energy
+	 * consumption, but also higher output power), 5dBm),
+	 * maximum power that the transceiver can provide without inferring with
+	 * the regulations on the 868 MHz band in Europe
+	 */
+	//hal_register_write(RG_PHY_TX_PWR, RF212_TX_PWR_5DBM_BOOST_MODE|RF212_ENABLE_PA_BOOST);
+	//GH: 09.05.2011 in EMC-test used TX_PWR values
+	hal_register_write(RG_PHY_TX_PWR, 0x62);
 
-			/* set sensitivity of the transceiver, '0' means maximum sensitivity.
-			 * If too many "false" receive interrupts are generated, the sensitivity can
-			 * be reduced and this setting can be adjusted.
-			 */
-			hal_register_write(RG_RX_SYN, 0x0);
+	/* set sensitivity of the transceiver, '0' means maximum sensitivity.
+	 * If too many "false" receive interrupts are generated, the sensitivity can
+	 * be reduced and this setting can be adjusted.
+	 */
+	hal_register_write(RG_RX_SYN, 0x0);
 
-			// configure the interrupt generation of the radio
-			hal_register_write(RG_IRQ_MASK, RF212_SUPPORTED_INTERRUPT_MASK);
+	// configure the interrupt generation of the radio
+	hal_register_write(RG_IRQ_MASK, RF212_SUPPORTED_INTERRUPT_MASK);
 
-			/* Set up number of automatic retries */
-			hal_subregister_write(SR_MAX_FRAME_RETRIES, RF212_CONF_AUTORETRIES );
+	/* Set up number of automatic retries */
+	hal_subregister_write(SR_MAX_FRAME_RETRIES, RF212_CONF_AUTORETRIES );
 
-			/* Set up the radio for auto mode operation. Automatic CRC is used and
-			 * the radio is set in auto-receive mode. Before a transmission is
-			 * started, the radio will be set to TX_ARET mode (automatic retransmission
-			 * mode)
-			 */
+	/* Set up the radio for auto mode operation. Automatic CRC is used and
+	 * the radio is set in auto-receive mode. Before a transmission is
+	 * started, the radio will be set to TX_ARET mode (automatic retransmission
+	 * mode)
+	 */
 
-			hal_subregister_write(SR_TX_AUTO_CRC_ON, 1);
-			radio_set_trx_state(RX_AACK_ON);
+	hal_subregister_write(SR_TX_AUTO_CRC_ON, 1);
+	radio_set_trx_state(RX_AACK_ON);
 
-			/* Change default values as recomended in the data sheet, */
-			/* correlation threshold = 20, RX bandpass filter = 1.3uA. */
-			//  setreg(RF212_MDMCTRL1, CORR_THR(20));
-			//  reg = getreg(RF212_RXCTRL1);
-			//  reg |= RXBPF_LOCUR;
-			//  setreg(RF212_RXCTRL1, reg);
+	/* Change default values as recomended in the data sheet, */
+	/* correlation threshold = 20, RX bandpass filter = 1.3uA. */
+	//  setreg(RF212_MDMCTRL1, CORR_THR(20));
+	//  reg = getreg(RF212_RXCTRL1);
+	//  reg |= RXBPF_LOCUR;
+	//  setreg(RF212_RXCTRL1, reg);
 
 
-			/* Start the packet receive process */
-			process_start(&rf212_process, NULL);
-			return 1;
-		}
+	/* Start the packet receive process */
+	process_start(&rf212_process, NULL);
+	return 1;
+}
 
