@@ -982,30 +982,6 @@ uint8_t rf212_generate_random_byte(void)
 				AVR_LEAVE_CRITICAL_REGION();
 				return rnd;
 			}
-
-void rf212_generate_key(uint8_t* key)
-{
-	uint8_t i, j;
-
-	AVR_ENTER_CRITICAL_REGION();
-		uint8_t old_trx_state = radio_get_trx_state();
-		uint8_t old_rx_pdt_dis = hal_subregister_read(SR_RX_PDT_DIS);
-		radio_set_trx_state(RX_ON); // Random Number generator works only in basic TRX states
-		hal_subregister_write(SR_RX_PDT_DIS, 0); //also the preamble detector hast to be enabled
-
-				for (i = 0; i < 16; i++)
-				{
-					key[i] = 0;
-					for (j = 0; j < 4; j++) //Register RND_VALUE contains a 2-bit random value
-
-				{
-					key[i] |= hal_subregister_read(SR_RND_VALUE)<<(2*j);
-				}
-			}
-			hal_subregister_write(SR_RX_PDT_DIS, old_rx_pdt_dis);
-			radio_set_trx_state(old_trx_state);
-			AVR_LEAVE_CRITICAL_REGION();
-		}
 		/*---------------------------------------------------------------------------*/
 void rf212_key_setup(uint8_t *key)
 {

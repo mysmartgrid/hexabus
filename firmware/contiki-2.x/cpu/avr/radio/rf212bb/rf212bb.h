@@ -192,8 +192,6 @@ void rf212_set_pan_addr(uint16_t pan,uint16_t addr,uint8_t *ieee_addr);
 void rf212_set_txpower(uint8_t power);
 /* This function returns a true random byte */
 uint8_t rf212_generate_random_byte(void);
-/* This function stores a true random 128bit AES key in pointer key */
-void rf212_generate_key(uint8_t* key);
 /* This function copies the given key to the rf212 transceivers SRAM */
 void rf212_key_setup(uint8_t *key);
 /* AES ciphering function. Input parameter: payload to be ciphered. Output: the same variable is encrypted and overwritten. */

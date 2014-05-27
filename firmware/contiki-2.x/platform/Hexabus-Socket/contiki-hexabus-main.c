@@ -194,16 +194,6 @@ uint16_t get_panaddr_from_eeprom(void)
 	return eeprom_read_word(eep_addr(pan_addr));
 }
 
-uint8_t get_relay_default_from_eeprom(void)
-{
-	return eeprom_read_byte(eep_addr(relay_default));
-}
-
-void get_aes128key_from_eeprom(uint8_t keyptr[16])
-{
-	eeprom_read_block(keyptr, eep_addr(encryption_key), 16);
-}
-
 #include <util/delay.h>
 
 /*-------------------------Low level initialization------------------------*/

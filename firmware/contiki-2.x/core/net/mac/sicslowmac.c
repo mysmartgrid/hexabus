@@ -55,6 +55,9 @@
 #include "radio/rf212bb/rf212bb.h"
 #include "net/uip.h"
 
+#include "eeprom_variables.h"
+#include <avr/eeprom.h>
+
 #define DEBUG 0
 
 #if DEBUG
@@ -501,9 +504,8 @@ off(int keep_radio_on)
 static void
 init(void)
 {
-  extern void get_aes128key_from_eeprom(uint8_t*);
   uint8_t aes_key[16], x;
-  get_aes128key_from_eeprom(aes_key);
+  eeprom_read_block(aes_key, eep_addr(encryption_key), 16);
   PRINTF("key: ");
   for (int x = 0; x < 16; x++)
 	PRINTF(" %02x", aes_key[x]);
