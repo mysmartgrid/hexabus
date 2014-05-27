@@ -149,11 +149,11 @@ enum hxb_error_code endpoint_read(uint32_t eid, struct hxb_value* value)
 enum hxb_error_code endpoint_get_name(uint32_t eid, char* buffer, size_t len)
 {
 	if (eid % 32 == 0) {
-		if (len >= EE_DOMAIN_NAME_SIZE) {
-			len = EE_DOMAIN_NAME_SIZE - 1;
+		if (len >= eep_size(domain_name)) {
+			len = eep_size(domain_name) - 1;
 		}
-		eeprom_read_block(buffer, (void*)(EE_DOMAIN_NAME), len);
-		buffer[EE_DOMAIN_NAME_SIZE] = '\0';
+		eeprom_read_block(buffer, eep_addr(domain_name), len);
+		buffer[eep_size(domain_name)] = '\0';
 		return HXB_ERR_SUCCESS;
 	} else {
 		struct endpoint_descriptor ep;

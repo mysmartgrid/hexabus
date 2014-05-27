@@ -37,71 +37,67 @@
 
 #include <avr/eeprom.h>
 
-#define EESIZE   4096      // Maximum size of EEPROM
-#define EE_DUMMY   		0x000  	                                                	// Dummy element (Address 0 should not be used)
-#define EE_MAC_ADDR 		0x001			  										// EUI-64 MAC-Address of the device  (8 Byte)
-#define EE_MAC_ADDR_SIZE 		8
+enum {
+	EEP_SIZE = 4096
+};
 
-#define EE_PAN_ADDR  		( EE_MAC_ADDR + EE_MAC_ADDR_SIZE )	 	        		// 802.15.4 short address (2 Byte)
-#define EE_PAN_ADDR_SIZE		2
+struct hxb_sm_eeprom_layout {
+	/* state machine substructure
+	 *
+	 * these must always be contiguous in memory, since statemachine upload
+	 * writes binary chunks of data without obvious substructure, starting
+	 * at statemachine_id[0], and expects that to work. crazy. */
+	uint8_t id[16];
 
-#define EE_PAN_ID  		( EE_PAN_ADDR + EE_PAN_ADDR_SIZE )	                		// 802.15.4 PAN-ID (2 Byte)
-#define EE_PAN_ID_SIZE			2
+	uint8_t n_conditions;
+	uint8_t conditions[511];
 
-#define EE_BOOTLOADER_FLAG      ( EE_PAN_ID + EE_PAN_ID_SIZE )                      // Bootloader Flag for reset
-#define EE_BOOTLOADER_FLAG_SIZE         1
+	uint8_t n_dt_transitions;
+	uint8_t dt_transitions[511];
 
-#define EE_BOOTLOADER_CRC		( EE_BOOTLOADER_FLAG + EE_BOOTLOADER_FLAG_SIZE )	// CRC over image, is checked at startup
-#define EE_BOOTLOADER_CRC_SIZE 	2
+	uint8_t n_transitions;
+	uint8_t transitions[495];
+} __attribute__((packed));
 
-#define EE_FIRST_RUN_FLAG		( EE_BOOTLOADER_CRC + EE_BOOTLOADER_CRC_SIZE )		//flag which indicates the first startup, it is used for indicate the necessity of provisioning
-#define EE_FIRST_RUN_FLAG_SIZE 	1
+struct hxb_eeprom_layout {
+	uint8_t dummy;
 
-#define EE_ENCRYPTION_KEY		( EE_FIRST_RUN_FLAG + EE_FIRST_RUN_FLAG_SIZE )		//128bit AES key for encryption
-#define EE_ENCRYPTION_KEY_SIZE 16
+	/* network configuration */
+	uint8_t mac_addr[8];
+	uint16_t pan_addr;
+	uint16_t pan_id;
 
-#define EE_DOMAIN_NAME		( EE_ENCRYPTION_KEY + EE_ENCRYPTION_KEY_SIZE )			// Domain name of Webserver (30 Byte)
-#define EE_DOMAIN_NAME_SIZE		30
+	uint8_t bootloader_flag;
+	uint16_t bootloader_crc;
+	uint8_t first_run;
 
-#define EE_METERING_REF  	( EE_DOMAIN_NAME + EE_DOMAIN_NAME_SIZE )          		// Reference value for power measurement (2 Byte)
-#define EE_METERING_REF_SIZE	        2
+	uint8_t encryption_key[16];
 
-#define EE_METERING_CAL_LOAD    ( EE_METERING_REF + EE_METERING_REF_SIZE ) 	        // Load power for calibration (2 Byte)
-#define EE_METERING_CAL_LOAD_SIZE       2
+	char domain_name[30];
 
-#define EE_METERING_CAL_FLAG    ( EE_METERING_CAL_LOAD + EE_METERING_CAL_LOAD_SIZE )// Flag which enables/disables calibration via long button click
-#define EE_METERING_CAL_FLAG_SIZE       1
+	uint16_t metering_ref;
+	uint16_t metering_cal_load;
+	uint8_t metering_cal_flag;
 
-#define EE_RELAY_DEFAULT        ( EE_METERING_CAL_FLAG + EE_METERING_CAL_FLAG_SIZE )// Default state of the relay switch
-#define EE_RELAY_DEFAULT_SIZE           1
+	uint8_t relay_default;
 
-#define EE_FORWARDING        ( EE_RELAY_DEFAULT + EE_RELAY_DEFAULT_SIZE )   		// Flag for enabling forwarding of incoming traffic
-#define EE_FORWARDING_SIZE           1
+	uint8_t forwarding;
 
-// Data structures for state machine / rule based switching
-#define EE_STATEMACHINE_ID                ( EE_FORWARDING + EE_FORWARDING_SIZE )
-#define EE_STATEMACHINE_ID_SIZE 16
-#define EE_STATEMACHINE_N_CONDITIONS			( EE_STATEMACHINE_ID + EE_STATEMACHINE_ID_SIZE )
-#define EE_STATEMACHINE_N_CONDITIONS_SIZE	1
-#define EE_STATEMACHINE_CONDITIONS      	( EE_STATEMACHINE_N_CONDITIONS + EE_STATEMACHINE_N_CONDITIONS_SIZE )
-#define EE_STATEMACHINE_CONDITIONS_SIZE 	511
+	struct hxb_sm_eeprom_layout sm;
 
-#define EE_STATEMACHINE_N_DT_TRANSITIONS					( EE_STATEMACHINE_CONDITIONS + EE_STATEMACHINE_CONDITIONS_SIZE )
-#define EE_STATEMACHINE_N_DT_TRANSITIONS_SIZE			1
-#define EE_STATEMACHINE_DATETIME_TRANSITIONS 			( EE_STATEMACHINE_N_DT_TRANSITIONS + EE_STATEMACHINE_N_DT_TRANSITIONS_SIZE )
-#define EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE 511
+	/* pad by SIZE - trailer - leader to fill EEP_SIZE exactly */
+	uint8_t __padding[EEP_SIZE - 8 - (70 + sizeof(struct hxb_sm_eeprom_layout))];
 
-#define EE_STATEMACHINE_N_TRANSITIONS				( EE_STATEMACHINE_DATETIME_TRANSITIONS + EE_STATEMACHINE_DATETIME_TRANSITIONS_SIZE)
-#define EE_STATEMACHINE_N_TRANSITIONS_SIZE	1
-#define EE_STATEMACHINE_TRANSITIONS     		( EE_STATEMACHINE_N_TRANSITIONS + EE_STATEMACHINE_N_TRANSITIONS_SIZE )
-#define EE_STATEMACHINE_TRANSITIONS_SIZE 		495
-// =======
+	uint32_t energy_metering_pulses;
+	uint32_t energy_metering_pulses_total;
+} __attribute__((packed));
 
-#define EE_ENERGY_METERING_PULSES     ( EE_STATEMACHINE_TRANSITIONS + EE_STATEMACHINE_TRANSITIONS_SIZE )
-#define EE_ENERGY_METERING_PULSES_SIZE 4
+static inline void eeprom_layout_size_static_assert(void)
+{
+	char bug_on[1 - 2 * !(sizeof(struct hxb_eeprom_layout) == EEP_SIZE)];
+}
 
-#define EE_ENERGY_METERING_PULSES_TOTAL     ( EE_ENERGY_METERING_PULSES + EE_ENERGY_METERING_PULSES_SIZE )
-#define EE_ENERGY_METERING_PULSES_TOTAL_SIZE 4
+#define eep_addr(field) ((void*) offsetof(struct hxb_eeprom_layout, field))
+#define eep_size(field) (sizeof(((const struct hxb_eeprom_layout*) 0)->field))
 
 #endif /* EEPROM_VAR_H_ */
-

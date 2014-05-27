@@ -143,7 +143,7 @@ FUSES = {.low = 0xE2, .high = 0x90, .extended = 0xFF,};
 /*----------------------Configuration of EEPROM---------------------------*/
 /* Use existing EEPROM if it passes the integrity test, else reinitialize with build values */
 
-volatile uint8_t ee_mem[EESIZE] EEMEM =
+volatile uint8_t ee_mem[EEP_SIZE] EEMEM =
 {
 	0x00, // ee_dummy
 	0x02, 0x11, 0x22, 0xff, 0xfe, 0x33, 0x44, 0x11, // ee_mac_addr
@@ -163,25 +163,29 @@ volatile uint8_t ee_mem[EESIZE] EEMEM =
 
 
 
-bool get_mac_from_eeprom(uint8_t* macptr) {
-	eeprom_read_block ((void *)macptr, (const void *)EE_MAC_ADDR, EE_MAC_ADDR_SIZE);
-	return true;
+void get_mac_from_eeprom(uint8_t* macptr)
+{
+	eeprom_read_block(macptr, eep_addr(mac_addr), eep_size(mac_addr));
 }
 
-uint16_t get_panid_from_eeprom(void) {
-	return eeprom_read_word ((const void *)EE_PAN_ID);
+uint16_t get_panid_from_eeprom(void)
+{
+	return eeprom_read_word(eep_addr(pan_id));
 }
 
-uint16_t get_panaddr_from_eeprom(void) {
-	return eeprom_read_word ((const void *)EE_PAN_ADDR);
+uint16_t get_panaddr_from_eeprom(void)
+{
+	return eeprom_read_word(eep_addr(pan_addr));
 }
 
-uint8_t get_relay_default_from_eeprom(void) {
-	return eeprom_read_byte ((const void *)EE_RELAY_DEFAULT);
+uint8_t get_relay_default_from_eeprom(void)
+{
+	return eeprom_read_byte(eep_addr(relay_default));
 }
 
-void get_aes128key_from_eeprom(uint8_t keyptr[16]) {
-	eeprom_read_block ((void *)keyptr, (const void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
+void get_aes128key_from_eeprom(uint8_t keyptr[16])
+{
+	eeprom_read_block(keyptr, eep_addr(encryption_key), 16);
 }
 
 #include <util/delay.h>
@@ -274,7 +278,7 @@ void initialize(void)
   process_start(&tcpip_process, NULL);
 
   //initialize random number generator with part of the MAC address
-  random_init(eeprom_read_word((uint16_t*)(EE_MAC_ADDR + EE_MAC_ADDR_SIZE - 2)));
+  random_init(eeprom_read_word(eep_addr(mac_addr[eep_size(mac_addr) - sizeof(uint16_t)])));
 
 #if WEBSERVER
   process_start(&webserver_nogui_process, NULL);
@@ -355,8 +359,8 @@ void initialize(void)
        PRINTF("IPv6 Address: %s\n",buf);
 	}
   }
-	eeprom_read_block(buf, (const void*) EE_DOMAIN_NAME, EE_DOMAIN_NAME_SIZE);
-	buf[EE_DOMAIN_NAME_SIZE] = 0;
+	eeprom_read_block(buf, eep_addr(domain_name), eep_size(domain_name));
+	buf[eep_size(domain_name)] = 0;
 	size=httpd_fs_get_size();
 #ifndef COFFEE_FILES
    PRINTF(".%s online with fixed %u byte web content\n",buf,size);
