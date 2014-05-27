@@ -153,8 +153,8 @@ void
 metering_init(void)
 {
   /* Load reference values from EEPROM */
-  metering_reference_value = eeprom_read_word((void*) EE_METERING_REF );
-  metering_calibration_power = eeprom_read_word((void*)EE_METERING_CAL_LOAD);
+  metering_reference_value = eeprom_read_word(eep_addr(metering_ref));
+  metering_calibration_power = eeprom_read_word(eep_addr(metering_cal_load));
 
 #if METERING_ENERGY
   // reset energy metering value
@@ -167,8 +167,8 @@ metering_init(void)
   ENABLE_POWERDOWN_INTERRUPT();
   sei(); // global interrupt enable
 
-  eeprom_read((uint8_t*)EE_ENERGY_METERING_PULSES_TOTAL, (uint8_t*)&metering_pulses_total, sizeof(metering_pulses));
-  eeprom_read((uint8_t*)EE_ENERGY_METERING_PULSES, (uint8_t*)&metering_pulses, sizeof(metering_pulses));
+  metering_pulses_total = eeprom_read_dword(eep_addr(energy_metering_pulses_total));
+  metering_pulses = eeprom_read_dword(eep_addr(energy_metering_pulses));
 #endif // METERING_ENERGY_PERSISTENT
 #endif // METERING_ENERGY
 
@@ -265,7 +265,7 @@ metering_get_power(void)
 void
 metering_set_s0_calibration(uint16_t value) {
     metering_stop();
-    eeprom_write_word((uint16_t*) EE_METERING_REF, ((3600000*CLOCK_SECOND)/(value*10))); 
+    eeprom_write_word(eep_addr(metering_ref), ((3600000*CLOCK_SECOND)/(value*10))); 
     metering_init();
     metering_start();
 }
@@ -274,7 +274,7 @@ metering_set_s0_calibration(uint16_t value) {
 bool
 metering_calibrate(void)
 {
-  unsigned char cal_flag = eeprom_read_byte((void*)EE_METERING_CAL_FLAG);
+  unsigned char cal_flag = eeprom_read_byte(eep_addr(metering_cal_flag));
   if (cal_flag == 0xFF && !metering_calibration) {
     metering_calibration = true;
 		metering_calibration_state = 0;
@@ -291,10 +291,10 @@ void
 metering_calibration_stop(void)
 {
   //store calibration in EEPROM
-  eeprom_write_word((uint16_t*) EE_METERING_REF, 0);
+  eeprom_write_word(eep_addr(metering_ref), 0);
 
   //lock calibration by setting flag in eeprom
-  eeprom_write_byte((uint8_t*) EE_METERING_CAL_FLAG, 0x00);
+  eeprom_write_byte(eep_addr(metering_cal_flag), 0x00);
 
   metering_calibration_state = 0;
   metering_calibration = false;
@@ -333,10 +333,10 @@ ISR(METERING_VECT)
        metering_reference_value = metering_pulse_period * metering_calibration_power;
 
        //store calibration in EEPROM
-       eeprom_write_word((uint16_t*) EE_METERING_REF, metering_reference_value);
+       eeprom_write_word(eep_addr(metering_ref), metering_reference_value);
 
        //lock calibration by setting flag in eeprom
-       eeprom_write_byte((uint8_t*) EE_METERING_CAL_FLAG, 0x00);
+       eeprom_write_byte(eep_addr(metering_cal_flag), 0x00);
 
        metering_calibration_state = 0;
        metering_calibration = false;
@@ -395,8 +395,8 @@ ISR(ANALOG_COMP_vect)
 {
   if(metering_calibration == false && clock_time() > CLOCK_SECOND) // Don't do anything if calibration is enabled; don't do anything within one second after bootup. TODO: can the clock overflow?
   {
-    eeprom_write((uint8_t*)EE_ENERGY_METERING_PULSES, (uint8_t*)&metering_pulses, sizeof(metering_pulses)); // write number of pulses to eeprom
-    eeprom_write((uint8_t*)EE_ENERGY_METERING_PULSES_TOTAL, (uint8_t*)&metering_pulses_total, sizeof(metering_pulses_total));
+    eeprom_write_dword(eep_addr(energy_metering_pulses), metering_pulses);
+    eeprom_write_dword(eep_addr(energy_metering_pulses_total), metering_pulses_total);
     while(1); // wait until power fails completely or watchdog timer resets us if power comes back
   }
 }

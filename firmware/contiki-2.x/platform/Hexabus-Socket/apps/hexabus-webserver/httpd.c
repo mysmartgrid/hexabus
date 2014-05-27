@@ -532,10 +532,10 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			//check for domain_name
 			PSOCK_READTO(&s->sin, ISO_amper);
 			if(s->inputbuf[0] != ISO_amper) {
-				char tmp[EE_DOMAIN_NAME_SIZE];
-				memset(tmp, 0, EE_DOMAIN_NAME_SIZE);
+				char tmp[eep_size(domain_name)];
+				memset(tmp, 0, sizeof (tmp));
 				memcpy(tmp, s->inputbuf, PSOCK_DATALEN(&s->sin) - 1);
-				eeprom_write_block(tmp, (void*) EE_DOMAIN_NAME, EE_DOMAIN_NAME_SIZE);
+				eeprom_write_block(tmp, eep_addr(domain_name), sizeof(tmp));
 			}
 
 			PSOCK_READTO(&s->sin, ISO_equal);

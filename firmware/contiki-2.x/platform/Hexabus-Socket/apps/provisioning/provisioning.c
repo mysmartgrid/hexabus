@@ -172,8 +172,8 @@ int provisioning_slave(void)
 		old_pan_id = uip_ntohs(resp->pan_id);
 
 		AVR_ENTER_CRITICAL_REGION();
-		eeprom_write_word((uint16_t *)EE_PAN_ID, old_pan_id);
-		eeprom_write_block(resp->key, (void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
+		eeprom_write_word(eep_addr(pan_id), old_pan_id);
+		eeprom_write_block(resp->key, eep_addr(encryption_key), eep_size(encryption_key));
 		AVR_LEAVE_CRITICAL_REGION();
 		provisioning_done_leds();
 		rf212_key_setup(resp->key);
