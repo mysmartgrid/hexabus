@@ -24,6 +24,8 @@ class Network {
 			KEY_FRAME_TYPES = 1 << 1,
 			KEY_CMD_FRAME_IDS = 0,
 
+			DEVICE_KEY_MODE = IEEE802154_LLSEC_DEVKEY_RESTRICT,
+
 			MAX_DEVICES = 256,
 		};
 
@@ -35,11 +37,6 @@ class Network {
 		SecurityParameters _sec_params;
 		boost::array<uint8_t, 16> _master_key;
 		uint64_t _key_epoch;
-
-		static KeyLookupDescriptor kld(uint8_t id)
-		{
-			return KeyLookupDescriptor(1, id);
-		}
 
 		std::vector<Key>::iterator find_key(const KeyLookupDescriptor& desc);
 		boost::array<uint8_t, 16> derive_key(uint64_t id) const;

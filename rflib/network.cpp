@@ -15,6 +15,8 @@
 #include "binary-formatter.hpp"
 #include "fd.hpp"
 
+namespace {
+
 void get_random(void* target, size_t len)
 {
 	int fd = open("/dev/urandom", O_RDONLY);
@@ -23,6 +25,13 @@ void get_random(void* target, size_t len)
 
 	read(fd, target, len);
 	close(fd);
+}
+
+KeyLookupDescriptor kld(uint8_t id)
+{
+	return KeyLookupDescriptor(1, id);
+}
+
 }
 
 
@@ -57,7 +66,7 @@ Network Network::random(uint64_t hwaddr)
 			SecurityParameters(true, DEFAULT_SECLEVEL, kld(0), 0),
 			key_bytes);
 
-	result.add_keys_until(0);
+	result.add_keys_until(1);
 
 	return result;
 }
@@ -170,9 +179,9 @@ boost::array<uint8_t, 16> convert_key_id(uint64_t id)
 
 boost::array<uint8_t, 16> Network::derive_key(uint64_t id) const
 {
-	FD sock(socket(AF_ALG, SOCK_SEQPACKET, 0));
+	FD tfm(socket(AF_ALG, SOCK_SEQPACKET, 0));
 
-	if (sock < 0)
+	if (tfm < 0)
 		throw std::runtime_error("could not open crypto socket");
 
 	struct sockaddr_alg algdesc = {
@@ -183,16 +192,16 @@ boost::array<uint8_t, 16> Network::derive_key(uint64_t id) const
 		"ecb(aes)"
 	};
 
-	if (bind(sock, reinterpret_cast<const sockaddr*>(&algdesc), sizeof(algdesc)) < 0)
+	if (bind(tfm, reinterpret_cast<const sockaddr*>(&algdesc), sizeof(algdesc)) < 0)
 		throw std::runtime_error(std::string("bind: ") + strerror(errno));
 
 	const int SOL_ALG = 279;
 
-	if (setsockopt(sock, SOL_ALG, ALG_SET_KEY, &_master_key[0], _master_key.size()) < 0)
+	if (setsockopt(tfm, SOL_ALG, ALG_SET_KEY, &_master_key[0], _master_key.size()) < 0)
 		throw std::runtime_error(std::string("setsockopt: ") + strerror(errno));
 
-	FD tfm(accept(sock, NULL, 0));
-	if (tfm < 0)
+	FD req(accept(tfm, NULL, 0));
+	if (req < 0)
 		throw std::runtime_error(std::string("accept: ") + strerror(errno));
 
 	boost::array<uint8_t, 16> buf = convert_key_id(id);
@@ -212,13 +221,13 @@ boost::array<uint8_t, 16> Network::derive_key(uint64_t id) const
 
 	msg_out.msg_iov = &iov;
 	msg_out.msg_iovlen = 1;
-	iov.iov_base = buf.begin();
+	iov.iov_base = &buf[0];
 	iov.iov_len = buf.size();
 
-	if (sendmsg(tfm, &msg_out, 0) < 0)
+	if (sendmsg(req, &msg_out, 0) < 0)
 		throw std::runtime_error(std::string("sendmsg: ") + strerror(errno));
 
-	if (read(tfm, buf.begin(), buf.size()) < 0)
+	if (read(req, buf.begin(), buf.size()) < 0)
 		throw std::runtime_error(std::string("read: ") + strerror(errno));
 
 	return buf;
@@ -231,28 +240,15 @@ namespace {
 void save(BinaryFormatter& fmt, const KeyLookupDescriptor& desc)
 {
 	fmt.put_u8(desc.mode());
-	if (desc.mode() != 0) {
-		fmt.put_u8(desc.id());
-		switch (desc.mode()) {
-		case 2: fmt.put_u32(boost::get<uint32_t>(desc.source())); break;
-		case 3: fmt.put_u64(boost::get<uint64_t>(desc.source())); break;
-		}
-	}
+	fmt.put_u8(desc.id());
 }
 
 KeyLookupDescriptor load_kld(BinaryFormatter& fmt)
 {
 	uint8_t mode = fmt.get_u8();
-	if (mode != 0) {
-		uint8_t id = fmt.get_u8();
-		switch (mode) {
-		case 1: return KeyLookupDescriptor(mode, id);
-		case 2: return KeyLookupDescriptor(mode, id, fmt.get_u32());
-		case 3: return KeyLookupDescriptor(mode, id, fmt.get_u64());
-		}
-	}
+	uint8_t id = fmt.get_u8();
 
-	return KeyLookupDescriptor(mode);
+	return KeyLookupDescriptor(mode, id);
 }
 
 
@@ -279,22 +275,41 @@ SecurityParameters load_secparams(BinaryFormatter& fmt)
 
 void save(BinaryFormatter& fmt, const Device& dev)
 {
-	fmt.put_u16(dev.pan_id());
 	fmt.put_u16(dev.short_addr());
 	fmt.put_u64(dev.hwaddr());
-	fmt.put_u32(dev.frame_ctr());
-	fmt.put_u8(dev.key_mode());
+
+	typedef std::pair<KeyLookupDescriptor, uint32_t> p_t;
+	uint8_t key_count = 0;
+	BOOST_FOREACH(const p_t& devkey, dev.keys()) {
+		if (devkey.second)
+			key_count++;
+	}
+
+	fmt.put_u8(key_count);
+	BOOST_FOREACH(const p_t& devkey, dev.keys()) {
+		if (devkey.second) {
+			fmt.put_u8(devkey.first.id());
+			fmt.put_u32(devkey.second);
+		}
+	}
 }
 
-Device load_device(BinaryFormatter& fmt)
+Device load_device(BinaryFormatter& fmt, uint16_t pan_id, uint8_t devkey_mode)
 {
-	uint16_t pan_id = fmt.get_u16();
 	uint16_t short_addr = fmt.get_u16();
 	uint64_t hwaddr = fmt.get_u64();
-	uint32_t frame_ctr = fmt.get_u32();
-	uint8_t key_mode = fmt.get_u8();
 
-	return Device(pan_id, short_addr, hwaddr, frame_ctr, false, key_mode);
+	Device result(pan_id, short_addr, hwaddr, 0, false, devkey_mode);
+
+	uint8_t devkeys = fmt.get_u8();
+	while (devkeys-- > 0) {
+		uint8_t idx = fmt.get_u8();
+		uint32_t ctr = fmt.get_u32();
+
+		result.keys().insert(std::make_pair(kld(idx), ctr));
+	}
+
+	return result;
 }
 
 }
@@ -305,6 +320,7 @@ void Network::save(Eeprom& target)
 	BinaryFormatter fmt(stream);
 
 	fmt.put_u8(VERSION_1);
+
 	fmt.put_u16(_pan.pan_id());
 	fmt.put_u8(_pan.page());
 	fmt.put_u8(_pan.channel());
@@ -319,21 +335,6 @@ void Network::save(Eeprom& target)
 	fmt.put_u8(_devices.size());
 	BOOST_FOREACH(const Device& dev, _devices) {
 		::save(fmt, dev);
-
-		typedef std::pair<KeyLookupDescriptor, uint32_t> p_t;
-		uint8_t key_count = 0;
-		BOOST_FOREACH(const p_t& devkey, dev.keys()) {
-			if (devkey.second)
-				key_count++;
-		}
-
-		fmt.put_u8(key_count);
-		BOOST_FOREACH(const p_t& devkey, dev.keys()) {
-			if (devkey.second) {
-				fmt.put_u8(devkey.first.id());
-				fmt.put_u32(devkey.second);
-			}
-		}
 	}
 
 	target.write_stream(stream);
@@ -374,20 +375,12 @@ Network Network::load(Eeprom& source)
 
 		uint8_t devices = fmt.get_u8();
 		while (devices-- > 0) {
-			Device dev(load_device(fmt));
-
-			uint8_t devkeys = fmt.get_u8();
-			while (devkeys-- > 0) {
-				uint8_t idx = fmt.get_u8();
-				uint32_t ctr = fmt.get_u32();
-
-				dev.keys().insert(std::make_pair(kld(idx), ctr));
-			}
+			Device dev(load_device(fmt, pan_id, DEVICE_KEY_MODE));
 
 			result._devices.push_back(dev);
 		}
 
-		result.add_keys_until(result.key_epoch() + keys);
+		result.add_keys_until(result.key_epoch() + keys - 1);
 
 		return result;
 	}
