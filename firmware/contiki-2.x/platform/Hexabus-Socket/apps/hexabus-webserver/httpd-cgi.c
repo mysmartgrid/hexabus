@@ -467,18 +467,18 @@ generate_config(void *arg)
 
     char* checked = "checked";
 	numprinted=0;
-	char tmp[EE_DOMAIN_NAME_SIZE];
-	eeprom_read_block(tmp,(const void*) EE_DOMAIN_NAME, EE_DOMAIN_NAME_SIZE);
+	char tmp[eep_size(domain_name)];
+	eeprom_read_block(tmp, eep_addr(domain_name), sizeof(tmp));
 	numprinted =httpd_snprintf((char *)uip_appdata, uip_mss(), httpd_cgi_config_line1, tmp);
 
-	if (!eeprom_read_byte((void*) EE_RELAY_DEFAULT))
+	if (!eeprom_read_byte(eep_addr(relay_default)))
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line2, checked, "");
 	else
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line2, "", checked);
 
 #if S0_ENABLE
     char s0val[5];
-    uint32_t refval= (eeprom_read_word((void*) EE_METERING_REF));
+    uint32_t refval= (eeprom_read_word(eep_addr(metering_ref)));
     refval = ((3600000*CLOCK_SECOND)/(refval*10));            // 1h*1000(for kilowatts) / refval*10(to fit into 16bits)
 
     ltoa(refval, s0val, 10);
