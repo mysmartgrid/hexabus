@@ -285,8 +285,8 @@ int provisioning_slave(void) {
 		}
 		PRINTF("\n");
 		AVR_ENTER_CRITICAL_REGION();
-		eeprom_write_word((uint16_t *)EE_PAN_ID, packet->pan_id);
-		eeprom_write_block(packet->aes_key, (void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
+		eeprom_write_word(eep_addr(pan_id), packet->pan_id);
+		eeprom_write_block(packet->aes_key, eep_addr(encryption_key), eep_size(encryption_key));
 		AVR_LEAVE_CRITICAL_REGION();
 		provisioning_done_leds();
 		mac_dst_pan_id = packet->pan_id;

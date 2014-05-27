@@ -31,7 +31,7 @@ struct endpoint_property_descriptor {
 
 struct endpoint_property_value_descriptor {
 	struct endpoint_property_descriptor desc;
-	eeprom_addr_t value;
+	void* value;
 };
 
 #define ENDPOINT_PROPERTY_DESCRIPTOR const struct endpoint_property_descriptor PROGMEM
@@ -43,7 +43,7 @@ struct endpoint_registry_entry {
 
 struct endpoint_property_registry_entry {
 	const struct endpoint_property_descriptor* descriptor;
-	eeprom_addr_t value;
+	void* value;
 	struct endpoint_property_registry_entry* next;
 };
 

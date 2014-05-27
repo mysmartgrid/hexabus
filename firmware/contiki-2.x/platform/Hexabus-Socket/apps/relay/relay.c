@@ -143,7 +143,7 @@ set_relay_default(bool d_value)
 {
   if (relay_default_state != d_value)
     {
-      eeprom_write_byte((uint8_t *) EE_RELAY_DEFAULT, (unsigned char)d_value);
+      eeprom_write_byte(eep_addr(relay_default), d_value);
       relay_default_state = d_value;
     }
 }
@@ -206,7 +206,7 @@ relay_init(void)
 #if RELAY_ENABLE
 #if ! METERING_ENERGY_PERSISTENT
   /* Load reference values from EEPROM */
-  relay_default_state = (bool) eeprom_read_byte((void*) EE_RELAY_DEFAULT);
+  relay_default_state = eeprom_read_byte(eep_addr(relay_default));
 
   /*PWM Specific Initialization.*/
 #if RELAY_POWER_SAVING

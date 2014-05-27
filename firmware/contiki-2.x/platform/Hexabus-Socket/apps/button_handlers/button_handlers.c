@@ -93,7 +93,7 @@ static void button_pressed(uint8_t button, uint8_t released, uint16_t ticks)
 	}
 
 	if (ticks > CLOCK_SECOND * BUTTON_LONG_CLICK_MS / 1000) {
-		eeprom_write_byte((uint8_t *)EE_BOOTLOADER_FLAG, 0x01);
+		eeprom_write_byte(eep_addr(bootloader_flag), 0x01);
 		watchdog_reboot();
 	}
 }
