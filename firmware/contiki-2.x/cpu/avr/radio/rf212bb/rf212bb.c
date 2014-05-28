@@ -977,7 +977,8 @@ int rf212_send(const void *payload, unsigned short payload_len)
 #endif
 
 	hal_frame_write(buffer, total_len);
-	/* Toggle the SLP_TR pin to initiate the frame transmission. */hal_set_slptr_high();
+	/* Toggle the SLP_TR pin to initiate the frame transmission. */
+	hal_set_slptr_high();
 	hal_set_slptr_low();
 	if (1)
 	{
