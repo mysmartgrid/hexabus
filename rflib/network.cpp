@@ -95,12 +95,20 @@ void Network::sec_params(const SecurityParameters& params)
 	_sec_params = params;
 }
 
-void Network::add_device(const Device& dev)
+const Device& Network::add_device(uint64_t dev_addr)
 {
 	if (_devices.size() + 1 > MAX_DEVICES)
 		throw std::runtime_error("device limit reached");
 
-	_devices.push_back(dev);
+	Device next(_pan.pan_id(), 0xfffe, dev_addr, 0, false, DEVICE_KEY_MODE);
+
+	BOOST_FOREACH(const Key& key, _keys) {
+		next.keys().insert(std::make_pair(key.lookup_desc(), 0));
+	}
+
+	_devices.push_back(next);
+
+	return _devices.back();
 }
 
 void Network::remove_device(const Device& dev)

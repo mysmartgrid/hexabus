@@ -31,14 +31,14 @@ BootstrapSocket::BootstrapSocket(const std::string& iface, bool nosec)
 	}
 }
 
-bool BootstrapSocket::receive_wait(int timeout)
+bool BootstrapSocket::receive_wait(const timespec* timeout)
 {
 	pollfd pfd;
 
 	pfd.fd = _fd;
 	pfd.events = POLLIN;
 
-	int rc = poll(&pfd, 1, timeout);
+	int rc = ppoll(&pfd, 1, timeout, NULL);
 
 	if (rc < 0)
 		throw std::runtime_error(strerror(errno));
@@ -91,73 +91,75 @@ void BootstrapSocket::send(const void* msg, size_t len, const sockaddr_ieee80215
 
 
 
-PairingHandler::PairingHandler(const std::string& iface, uint16_t pan_id)
-	: BootstrapSocket(iface, true), _pan_id(pan_id)
+PairingHandler::PairingHandler(const std::string& iface, Network& net)
+	: BootstrapSocket(iface, true), _net(net)
 {
-}
-
-bool key_invalid(const Key& key)
-{
-	return key.lookup_desc().mode() != 1;
-}
-
-int key_compare(const Key& a, const Key& b)
-{
-	return a.lookup_desc().id() - b.lookup_desc().id();
 }
 
 void PairingHandler::run_once(int timeout_secs)
 {
 	struct {
-		uint8_t msg;
+		uint8_t tag;
+		uint8_t type;
+	} __attribute__((packed)) query;
+
+	struct {
+		uint8_t tag;
+		uint8_t type;
 		uint16_t pan_id;
 		uint8_t key[16];
-	} __attribute__((packed)) packet;
+		uint64_t key_epoch;
+	} __attribute__((packed)) response;
 
 	std::vector<uint8_t> recv_data;
 	sockaddr_ieee802154 peer;
-	int timeout;
+	timespec started, timeout;
 
-	if (timeout_secs > std::numeric_limits<int>::max() / 1000)
-		timeout = std::numeric_limits<int>::max() / 1000;
-	else
-		timeout = timeout_secs * 1000;
+	timeout.tv_sec = timeout_secs;
+	timeout.tv_nsec = 0;
 
-	timespec ts, ts2;
-
-	if (clock_gettime(CLOCK_MONOTONIC, &ts))
+	if (clock_gettime(CLOCK_MONOTONIC, &started))
 		throw std::runtime_error(strerror(errno));
 
 	for (;;) {
-		if (clock_gettime(CLOCK_MONOTONIC, &ts2))
-			throw std::runtime_error(strerror(errno));
-
-		timeout -= (ts2.tv_sec - ts.tv_sec) * 1000;
-		timeout -= ts2.tv_nsec / 1000000 - ts.tv_nsec / 1000000;
-
-		ts = ts2;
-		if (!receive_wait(timeout))
+		if (!receive_wait(timeout_secs < 0 ? NULL : &timeout))
 			throw std::runtime_error("timeout");
 
 		boost::tie(recv_data, peer) = receive();
-		if (recv_data.size() && recv_data[0] == HXB_B_PAIR_REQUEST)
-			break;
+		if (recv_data.size() == sizeof(query)) {
+			memcpy(&query, &recv_data[0], sizeof(query));
+			if (query.tag == HXB_B_TAG && query.type == HXB_B_PAIR_REQUEST)
+				break;
+		}
+
+		timespec now;
+		if (clock_gettime(CLOCK_MONOTONIC, &now))
+			throw std::runtime_error(strerror(errno));
+
+		timeout.tv_nsec -= (now.tv_nsec - started.tv_nsec);
+		if (timeout.tv_nsec < 0) {
+			timeout.tv_nsec += 1000 * 1000 * 1000;
+			timeout.tv_sec--;
+		}
+		timeout.tv_sec -= (now.tv_sec - started.tv_sec);
+
+		if (timeout.tv_sec < 0)
+			throw std::runtime_error("timeout");
+
+		started = now;
 	}
 
-	if (recv_data.size() != 1)
-		throw std::runtime_error("invalid PAIR_REQUEST");
-
-	packet.msg = HXB_B_PAIR_RESPONSE;
-	packet.pan_id = htons(_pan_id);
-
-	Key key = control().get_out_key(iface());
-	memcpy(packet.key, key.key().c_array(), key.key().size());
+	response.tag = HXB_B_TAG;
+	response.type = HXB_B_PAIR_RESPONSE;
+	response.pan_id = htobe16(_net.pan().pan_id());
+	memcpy(response.key, &_net.master_key()[0], 16);
+	response.key_epoch = htobe64(_net.key_epoch());
 
 	uint64_t addr;
 	memcpy(&addr, peer.addr.hwaddr, 8);
 
 	try {
-		Device dev(_pan_id, 0xfffe, addr, 0, false, IEEE802154_LLSEC_DEVKEY_IGNORE);
+		const Device& dev = _net.add_device(addr);
 
 		control().add_device(iface(), dev);
 	} catch (const nl::nl_error& e) {
@@ -165,5 +167,5 @@ void PairingHandler::run_once(int timeout_secs)
 			throw;
 	}
 
-	send(&packet, sizeof(packet), peer);
+	send(&response, sizeof(response), peer);
 }

@@ -160,13 +160,14 @@ void dump(const std::vector<T>& vec)
 		std::cout << t << std::endl;
 }
 
-int run_pairing(const std::string& iface, int timeout)
+int run_pairing(const std::string& iface, const std::string& file, int timeout)
 {
 	Controller ctrl;
+	Network net = load_eeprom(file);
 
 	NetDevice dev = ctrl.list_netdevs(iface).at(0);
 
-	PairingHandler handler(iface, dev.pan_id());
+	PairingHandler handler(iface, net);
 
 	handler.bind(dev.addr_raw());
 	handler.run_once(timeout);
@@ -458,7 +459,7 @@ int main(int argc, const char* argv[])
 				timeout = boost::lexical_cast<int>(next());
 			}
 
-			return run_pairing(iface, timeout);
+			return run_pairing(iface, EEP_FILE, timeout);
 		}
 
 		case C_LIST_KEYS:

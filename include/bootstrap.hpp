@@ -5,6 +5,7 @@
 #include "netlink.hpp"
 #include "controller.hpp"
 #include "fd.hpp"
+#include "network.hpp"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -22,6 +23,8 @@ class BootstrapSocket {
 		enum {
 			HXB_B_PAIR_REQUEST = 0,
 			HXB_B_PAIR_RESPONSE = 1,
+
+			HXB_B_TAG = 1,
 		} bootstrap_messages;
 
 	protected:
@@ -31,7 +34,7 @@ class BootstrapSocket {
 		const std::string& iface() const { return _iface; }
 		Controller& control() { return _control; }
 
-		bool receive_wait(int timeout = -1);
+		bool receive_wait(const timespec* timeout = NULL);
 		std::pair<std::vector<uint8_t>, sockaddr_ieee802154> receive();
 		void send(const void* msg, size_t len, const sockaddr_ieee802154& peer);
 
@@ -43,10 +46,10 @@ class BootstrapSocket {
 
 class PairingHandler : public BootstrapSocket {
 	private:
-		uint16_t _pan_id;
+		Network& _net;
 
 	public:
-		PairingHandler(const std::string& iface, uint16_t pan_id);
+		PairingHandler(const std::string& iface, Network& net);
 
 		void run_once(int timeout_secs);
 };

@@ -61,7 +61,7 @@ class Network {
 		const std::vector<Key>& keys() const { return _keys; }
 
 		const std::vector<Device>& devices() const { return _devices; }
-		void add_device(const Device& dev);
+		const Device& add_device(uint64_t dev_addr);
 		void remove_device(const Device& dev);
 
 		template<typename It>
@@ -69,7 +69,7 @@ class Network {
 		{
 			_devices.clear();
 			for (It it = begin; it != end; ++it)
-				add_device(*it);
+				add_device(it->hwaddr());
 		}
 
 		const SecurityParameters& sec_params() const { return _sec_params; }
