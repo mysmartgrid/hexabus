@@ -87,7 +87,9 @@ struct hxb_eeprom_layout {
 	struct hxb_sm_eeprom_layout sm;
 
 	/* pad by SIZE - trailer - leader to fill EEP_SIZE exactly */
-	uint8_t __padding[EEP_SIZE - 8 - (70 + sizeof(struct hxb_sm_eeprom_layout))];
+	uint8_t __padding[EEP_SIZE - 12 - (70 + sizeof(struct hxb_sm_eeprom_layout))];
+
+	uint32_t llsec_frame_counter;
 
 	uint32_t energy_metering_pulses;
 	uint32_t energy_metering_pulses_total;

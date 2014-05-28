@@ -60,7 +60,6 @@
 
 
 extern uint8_t encryption_enabled;
-extern uint32_t mac_framecnt;
 extern uint16_t mac_dst_pan_id;
 extern uint16_t mac_src_pan_id;
 

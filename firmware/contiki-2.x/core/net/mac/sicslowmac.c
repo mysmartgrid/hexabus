@@ -78,7 +78,7 @@ static uint8_t mac_dsn;
 /**  \brief The frame counter (0x00000000 - 0xffffffff) added to the auxiliary security
  * header and is part of the nonce.
  */
-uint32_t mac_framecnt;
+static uint32_t mac_framecnt;
 
 /**  \brief The key counter (0x00 - 0xff) added to the auxiliary security
  * header and is part of the nonce.
@@ -98,6 +98,37 @@ uint16_t mac_dst_pan_id = IEEE802154_PANID;
 uint16_t mac_src_pan_id = IEEE802154_PANID;
 
 extern uint8_t encryption_enabled; //global variable for AES encryption
+
+enum {
+	/* write frame counter to EEPROM every so many frames, advance
+	 * frame counter this far on boot. 10M should cover more than a day,
+	 * even on the most active network */
+	EEP_SYNC_LIMIT = 10000000,
+
+	LLSEC_ENC_MIC32_MODE = 5
+};
+
+static void load_frame_counter()
+{
+	AVR_ENTER_CRITICAL_REGION();
+	mac_framecnt = eeprom_read_dword(eep_addr(llsec_frame_counter)) + EEP_SYNC_LIMIT;
+	eeprom_write_dword(eep_addr(llsec_frame_counter), mac_framecnt);
+	AVR_LEAVE_CRITICAL_REGION();
+}
+
+static uint32_t next_framecnt()
+{
+	uint32_t limit, ret;
+
+	AVR_ENTER_CRITICAL_REGION();
+	ret = mac_framecnt++;
+	limit = eeprom_read_dword(eep_addr(llsec_frame_counter)) + EEP_SYNC_LIMIT;
+	if (mac_framecnt >= limit)
+		eeprom_write_dword(eep_addr(llsec_frame_counter), mac_framecnt);
+	AVR_LEAVE_CRITICAL_REGION();
+
+	return ret;
+}
 
 
 /*---------------------------------------------------------------------------*/
@@ -327,8 +358,6 @@ decrypt_payload(frame802154_t *pf, uint8_t hlen)
 		return 1;
 	}
 
-	if (pf->aux_hdr.frame_counter > mac_framecnt)
-		mac_framecnt = pf->aux_hdr.frame_counter;
 	return 0;
 }
 
@@ -346,17 +375,14 @@ send_packet(mac_callback_t sent, void *ptr)
   params.fcf.frame_type = FRAME802154_DATAFRAME;
   //TODO
   if (encryption_enabled) {
-	  params.fcf.security_enabled = 1;
-	  // auxiliary security header length = 6
-  	  params.aux_hdr.security_control.key_id_mode = 1;
-  	  // Encryption with mic32
-  	  params.aux_hdr.security_control.security_level = 5;
-  	  //set frame counter
-  	  params.aux_hdr.frame_counter = mac_framecnt++;
-	  // TODO: key rollover
-	  params.aux_hdr.key[0] = mac_keycnt;
+    params.fcf.security_enabled = 1;
+    params.aux_hdr.security_control.key_id_mode = 1;
+    params.aux_hdr.security_control.security_level = LLSEC_ENC_MIC32_MODE;
+    params.aux_hdr.frame_counter = next_framecnt();
+    // TODO: key rollover
+    params.aux_hdr.key[0] = mac_keycnt;
   } else
-	  params.fcf.security_enabled = 0;
+    params.fcf.security_enabled = 0;
   params.fcf.frame_pending = 0;
   params.fcf.ack_required = packetbuf_attr(PACKETBUF_ATTR_RELIABLE);
   params.fcf.panid_compression = 0;
@@ -511,6 +537,8 @@ init(void)
   PRINTF("\n");
   rf212_key_setup(aes_key);
   mac_dsn = random_rand() % 256;
+
+  load_frame_counter();
 
   NETSTACK_RADIO.on();
 }
