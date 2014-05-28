@@ -3,7 +3,6 @@
 #include <iostream>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/private/serialization.hpp>
-#include <libhexabus/crc.hpp>
 #include "testconfig.h"
 
 // {{{ Default values for typed packets
@@ -54,28 +53,6 @@ struct value_default<float> {
 float value_default<float>::value = 23.42f;
 const char* value_default<float>::name = "float";
 boost::array<char, 4> value_default<float>::bytes = {{ 0x41, 0xbb, 0x5c, 0x29 }};
-
-template<>
-struct value_default<boost::posix_time::ptime> {
-	static boost::posix_time::ptime value;
-	static boost::array<char, 8> bytes;
-	static const char* name;
-	enum { datatype = HXB_DTYPE_DATETIME };
-};
-boost::posix_time::ptime value_default<boost::posix_time::ptime>::value = boost::posix_time::from_iso_string("20131122T133021");
-const char* value_default<boost::posix_time::ptime>::name = "boost::posix_time::ptime";
-boost::array<char, 8> value_default<boost::posix_time::ptime>::bytes = {{ 13, 30, 21, 22, 11, 0x07, 0xdd, 5 }};
-
-template<>
-struct value_default<boost::posix_time::time_duration> {
-	static boost::posix_time::time_duration value;
-	static boost::array<char, 4> bytes;
-	static const char* name;
-	enum { datatype = HXB_DTYPE_TIMESTAMP };
-};
-boost::posix_time::time_duration value_default<boost::posix_time::time_duration>::value = boost::posix_time::seconds(0x01020304);
-const char* value_default<boost::posix_time::time_duration>::name = "boost::posix_time::time_duration";
-boost::array<char, 4> value_default<boost::posix_time::time_duration>::bytes = {{ 1, 2, 3, 4 }};
 
 template<>
 struct value_default<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> > {
@@ -132,13 +109,6 @@ void generate_header(std::vector<char>& target, uint8_t type, uint8_t flags, uin
 	target.push_back((seqNum >> 0) & 0xFF);
 }
 
-void generate_footer(std::vector<char>& target)
-{
-	uint16_t crc = hexabus::crc(&target[0], target.size());
-	target.push_back((crc >> 8) & 0xFF);
-	target.push_back((crc >> 0) & 0xFF);
-}
-
 void generate_error(std::vector<char>& vect, hexabus::ErrorPacket& packet)
 {
 	vect.clear();
@@ -147,7 +117,6 @@ void generate_error(std::vector<char>& vect, hexabus::ErrorPacket& packet)
 	vect.push_back(0x23);
 	vect.push_back(0x02);
 	vect.push_back(0x01);
-	generate_footer(vect);
 }
 
 void generate_ack(std::vector<char>& vect, hexabus::AckPacket& packet)
@@ -157,7 +126,6 @@ void generate_ack(std::vector<char>& vect, hexabus::AckPacket& packet)
 	generate_header(vect, HXB_PTYPE_ACK, 0xAA, 0xBB98);
 	vect.push_back(0xAA);
 	vect.push_back(0x54);
-	generate_footer(vect);
 }
 
 template<typename T>
@@ -178,7 +146,6 @@ void generate_info(std::vector<char>& vect, hexabus::InfoPacket<T>& packet)
 	packet = hexabus::InfoPacket<T>(0x14131210, value_default<T>::value, 0xAA, 0xBB98);
 	generate_header(vect, HXB_PTYPE_INFO, 0xAA, 0xBB98);
 	generate_info_part<T>(vect, 0x14131210);
-	generate_footer(vect);
 }
 
 void generate_epinfo(std::vector<char>& vect, hexabus::EndpointInfoPacket& packet)
@@ -187,7 +154,6 @@ void generate_epinfo(std::vector<char>& vect, hexabus::EndpointInfoPacket& packe
 	packet = hexabus::EndpointInfoPacket(0x14131210, HXB_DTYPE_128STRING, value_default<std::string>::value, 0xAA, 0xBB98);
 	generate_header(vect, HXB_PTYPE_EPINFO, 0xAA, 0xBB98);
 	generate_info_part<std::string>(vect, 0x14131210);
-	generate_footer(vect);
 }
 
 template<typename T>
@@ -201,7 +167,6 @@ void generate_pinfo(std::vector<char>& vect, hexabus::ProxyInfoPacket<T>& packet
 	generate_header(vect, HXB_PTYPE_PINFO, 0xAA, 0xBB98);
 	generate_info_part<T>(vect, 0x14131210);
 	vect.insert(vect.end(), bytes.begin(), bytes.end());
-	generate_footer(vect);
 }
 
 template<typename T>
@@ -211,7 +176,6 @@ void generate_write(std::vector<char>& vect, hexabus::WritePacket<T>& packet)
 	packet = hexabus::WritePacket<T>(0x14131210, value_default<T>::value, 0xAA, 0xBB98);
 	generate_header(vect, HXB_PTYPE_WRITE, 0xAA, 0xBB98);
 	generate_info_part<T>(vect, 0x14131210);
-	generate_footer(vect);
 }
 
 template<typename T>
@@ -223,7 +187,6 @@ void generate_report(std::vector<char>& vect, hexabus::ReportPacket<T>& packet)
 	generate_info_part<T>(vect, 0x14131210);
 	vect.push_back(0x98);
 	vect.push_back(0x76);
-	generate_footer(vect);
 }
 
 void generate_epreport(std::vector<char>& vect, hexabus::EndpointReportPacket& packet)
@@ -234,7 +197,6 @@ void generate_epreport(std::vector<char>& vect, hexabus::EndpointReportPacket& p
 	generate_info_part<std::string>(vect, 0x14131210);
 	vect.push_back(0x98);
 	vect.push_back(0x76);
-	generate_footer(vect);
 }
 
 void generate_query(std::vector<char>& vect, hexabus::QueryPacket& packet)
@@ -246,7 +208,6 @@ void generate_query(std::vector<char>& vect, hexabus::QueryPacket& packet)
 	vect.push_back(0x13);
 	vect.push_back(0x12);
 	vect.push_back(0x10);
-	generate_footer(vect);
 }
 
 void generate_epquery(std::vector<char>& vect, hexabus::EndpointQueryPacket& packet)
@@ -258,7 +219,6 @@ void generate_epquery(std::vector<char>& vect, hexabus::EndpointQueryPacket& pac
 	vect.push_back(0x13);
 	vect.push_back(0x12);
 	vect.push_back(0x10);
-	generate_footer(vect);
 }
 
 void match_vectors(const std::vector<char>& expected, const std::vector<char>& generated)
@@ -329,8 +289,6 @@ typedef boost::mpl::list<
 	uint8_t,
 	uint32_t,
 	float,
-	boost::posix_time::ptime,
-	boost::posix_time::time_duration,
 	boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH>,
 	boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH>,
 	std::string> value_types;

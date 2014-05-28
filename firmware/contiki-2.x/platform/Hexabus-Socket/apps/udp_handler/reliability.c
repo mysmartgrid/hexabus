@@ -193,6 +193,7 @@ static void run_recv_state_machine(uint8_t rs) {
 
 				rstates[rs].rseq_num = MAX(rstates[rs].rseq_num, uip_ntohs(R->packet.header.sequence_number));
 
+				//FIXME reports are not processed
 				if(rstates[rs].want_ack_for != 0 && is_ack_for(&(R->packet), rstates[rs].want_ack_for)) {
 					rstates[rs].ack = true;
 					rstates[rs].recv_state = RREADY;

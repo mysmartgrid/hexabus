@@ -14,12 +14,9 @@
 	uint8_t  flags;          /* e.g. for requesting ACKs   */\
 	uint16_t sequence_number; /* for reliable transmission  */
 
-#define HXB_PACKET_FOOTER \
-	uint16_t crc;                        /* CRC16-Kermit / Contiki's crc16_data() */
-
 #define HXB_CAUSE_FOOTER \
 	uint16_t cause_sequence_number; \
-	HXB_PACKET_FOOTER
+	
 
 struct hxb_packet_header {
 	HXB_PACKET_HEADER
@@ -44,10 +41,16 @@ struct hxb_packet_error {
 	HXB_CAUSE_FOOTER
 } __attribute__((packed));
 
+struct hxb_packet_timeinfo {
+	HXB_PACKET_HEADER
+	struct hxb_datetime value;
+
+} __attribute__((packed));
+
 // used for QUERY and EPQUERY
 struct hxb_packet_query {
 	HXB_EIDPACKET_HEADER
-	HXB_PACKET_FOOTER
+	
 } __attribute__((packed));
 
 /* INFO, EPINFO */
@@ -64,44 +67,44 @@ struct hxb_valuepacket_header {
 struct hxb_packet_u8 {
 	HXB_VALUEPACKET_HEADER
 	uint8_t value;
-	HXB_PACKET_FOOTER
+	
 } __attribute__((packed));
 
 // used for UINT32 and TIMESTAMP
 struct hxb_packet_u32 {
 	HXB_VALUEPACKET_HEADER
 	uint32_t value;
-	HXB_PACKET_FOOTER
+	
 } __attribute__((packed));
 
 struct hxb_packet_datetime {
 	HXB_VALUEPACKET_HEADER
 	struct hxb_datetime value;
-	HXB_PACKET_FOOTER
+	
 } __attribute__((packed));
 
 struct hxb_packet_float {
 	HXB_VALUEPACKET_HEADER
 	float value;
-	HXB_PACKET_FOOTER
+	
 } __attribute__((packed));
 
 struct hxb_packet_128string {
 	HXB_VALUEPACKET_HEADER
 	char value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1];
-	HXB_PACKET_FOOTER
+	
 } __attribute__((packed));
 
 struct hxb_packet_66bytes {
 	HXB_VALUEPACKET_HEADER
 	char value[HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH];
-	HXB_PACKET_FOOTER
+	
 } __attribute__((packed));
 
 struct hxb_packet_16bytes {
 	HXB_VALUEPACKET_HEADER
 	char value[HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH];
-	HXB_PACKET_FOOTER
+	
 } __attribute__((packed));
 
 
@@ -157,6 +160,7 @@ union hxb_packet_any {
 	struct hxb_eidpacket_header eid_header;
 	struct hxb_valuepacket_header value_header;
 
+	struct hxb_packet_timeinfo p_timeinfo;
 	struct hxb_packet_error p_error;
 	struct hxb_packet_query p_query;
 	struct hxb_packet_ack p_ack;
@@ -181,7 +185,7 @@ union hxb_packet_any {
 
 // ======================================================================
 // Structs for passing Hexabus data around between processes
-// Since there the IP information is lost, we need a field for the IP address of the sender/receiver. But we can drop the CRC here.
+// Since there the IP information is lost, we need a field for the IP address of the sender/receiver.
 
 struct hxb_envelope {
 	uip_ipaddr_t      src_ip;
@@ -197,7 +201,6 @@ struct hxb_queue_packet {
 };
 
 #undef HXB_PACKET_HEADER
-#undef HXB_PACKET_FOOTER
 #undef HXB_EIDPACKET_HEADER
 #undef HXB_CAUSE_FOOTER
 #undef HXB_VALUEPACKET_HEADER

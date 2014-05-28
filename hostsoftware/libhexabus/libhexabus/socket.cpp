@@ -2,7 +2,6 @@
 
 #include "common.hpp"
 #include "packet.hpp"
-#include "crc.hpp"
 #include "error.hpp"
 #include "private/serialization.hpp"
 

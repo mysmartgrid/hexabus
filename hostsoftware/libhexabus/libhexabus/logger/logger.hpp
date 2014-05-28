@@ -15,7 +15,7 @@ namespace hexabus {
 
 class Logger :
 		private PacketVisitor,
-		virtual hexabus::TypedPacketVisitor<hexabus::ReportPacket>::Empty, 
+		virtual hexabus::TypedPacketVisitor<hexabus::ReportPacket>::Empty,
 		virtual hexabus::TypedPacketVisitor<hexabus::ProxyInfoPacket>::Empty {
 	protected:
 		klio::TimeConverter& tc;
@@ -44,13 +44,11 @@ class Logger :
 		virtual void visit(const hexabus::InfoPacket<uint8_t>& info);
 		virtual void visit(const hexabus::InfoPacket<uint32_t>& info);
 		virtual void visit(const hexabus::InfoPacket<float>& info);
-		virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info);
 
 		// FIXME: handle these properly, we should not drop valid info packets
 		// REPORT and PINFO packets are also dropped, as indicated by the ::Empty subvisitors
-		virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) {} 
-		virtual void visit(const hexabus::InfoPacket<std::string>& info) {} 
-		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) {} 
+		virtual void visit(const hexabus::InfoPacket<std::string>& info) {}
+		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) {}
 		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) {}
 
 		virtual void visit(const hexabus::ErrorPacket& error) {}
@@ -59,13 +57,12 @@ class Logger :
 		virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo) {}
 		virtual void visit(const hexabus::EndpointReportPacket& endpointInfo) {}
 		virtual void visit(const hexabus::AckPacket& ack) {}
+		virtual void visit(const hexabus::TimeInfoPacket& timeinfo) {}
 
 		virtual void visit(const hexabus::WritePacket<bool>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint32_t>& write) {}
 		virtual void visit(const hexabus::WritePacket<float>& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) {}
 		virtual void visit(const hexabus::WritePacket<std::string>& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}

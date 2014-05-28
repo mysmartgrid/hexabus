@@ -196,6 +196,16 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 			}
 		}
 
+		void printTimeInfo(const hexabus::TimeInfoPacket& timeinfo)
+		{
+			if(oneline) {
+				target << "Time Info; "<< timeinfo.datetime() << "; ";
+			} else {
+				target << "Time Info\n"
+					<< "Time:\t" << timeinfo.datetime();
+			}
+		}
+
 		template<typename Packet>
 		void printEndpointInfo(const Packet& endpointInfo)
 		{
@@ -211,14 +221,8 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 					case HXB_DTYPE_UINT32:
 						target << "UInt32";
 						break;
-					case HXB_DTYPE_DATETIME:
-						target << "Datetime";
-						break;
 					case HXB_DTYPE_FLOAT:
 						target << "Float";
-						break;
-					case HXB_DTYPE_TIMESTAMP:
-						target << "Timestamp";
 						break;
 					case HXB_DTYPE_128STRING:
 						target << "String";
@@ -287,12 +291,12 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 
 		virtual void visit(const hexabus::AckPacket& ack) {}
 
+		virtual void visit(const hexabus::TimeInfoPacket& timeinfo) { printTimeInfo(timeinfo); }
+
 		virtual void visit(const hexabus::InfoPacket<bool>& info) { printValuePacket(info, "Bool"); }
 		virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { printValuePacket(info, "UInt8"); }
 		virtual void visit(const hexabus::InfoPacket<uint32_t>& info) { printValuePacket(info, "UInt32"); }
 		virtual void visit(const hexabus::InfoPacket<float>& info) { printValuePacket(info, "Float"); }
-		virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) { printValuePacket(info, "Datetime"); }
-		virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info) { printValuePacket(info, "Timestamp"); }
 		virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "String"); }
 		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (16 bytes)"); }
 		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (66 bytes)"); }
@@ -301,8 +305,6 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::ReportPacket<uint8_t>& report) { printReportPacket(report, "UInt8"); }
 		virtual void visit(const hexabus::ReportPacket<uint32_t>& report) { printReportPacket(report, "UInt32"); }
 		virtual void visit(const hexabus::ReportPacket<float>& report) { printReportPacket(report, "Float"); }
-		virtual void visit(const hexabus::ReportPacket<boost::posix_time::ptime>& report) { printReportPacket(report, "Datetime"); }
-		virtual void visit(const hexabus::ReportPacket<boost::posix_time::time_duration>& report) { printReportPacket(report, "Timestamp"); }
 		virtual void visit(const hexabus::ReportPacket<std::string>& report) { printReportPacket(report, "String"); }
 		virtual void visit(const hexabus::ReportPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& report) { printReportPacket(report, "Binary (16 bytes)"); }
 		virtual void visit(const hexabus::ReportPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& report) { printReportPacket(report, "Binary (66 bytes)"); }
@@ -311,8 +313,6 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::ProxyInfoPacket<uint8_t>& proxyInfo) { printProxyInfoPacket(proxyInfo, "UInt8"); }
 		virtual void visit(const hexabus::ProxyInfoPacket<uint32_t>& proxyInfo) { printProxyInfoPacket(proxyInfo, "UInt32"); }
 		virtual void visit(const hexabus::ProxyInfoPacket<float>& proxyInfo) { printProxyInfoPacket(proxyInfo, "Float"); }
-		virtual void visit(const hexabus::ProxyInfoPacket<boost::posix_time::ptime>& proxyInfo) { printProxyInfoPacket(proxyInfo, "Datetime"); }
-		virtual void visit(const hexabus::ProxyInfoPacket<boost::posix_time::time_duration>& proxyInfo) { printProxyInfoPacket(proxyInfo, "Timestamp"); }
 		virtual void visit(const hexabus::ProxyInfoPacket<std::string>& proxyInfo) { printProxyInfoPacket(proxyInfo, "String"); }
 		virtual void visit(const hexabus::ProxyInfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& proxyInfo) { printProxyInfoPacket(proxyInfo, "Binary (16 bytes)"); }
 		virtual void visit(const hexabus::ProxyInfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& proxyInfo) { printProxyInfoPacket(proxyInfo, "Binary (66 bytes)"); }
@@ -321,8 +321,6 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint32_t>& write) {}
 		virtual void visit(const hexabus::WritePacket<float>& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) {}
 		virtual void visit(const hexabus::WritePacket<std::string>& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
@@ -495,7 +493,7 @@ int main(int argc, char** argv) {
     ("bind,b", po::value<std::string>(), "local IP address to use")
     ("interface,I", po::value<std::vector<std::string> >(), "for listen: interface to listen on. otherwise: outgoing interface for multicasts")
     ("eid,e", po::value<uint32_t>(), "Endpoint ID (EID)")
-    ("datatype,d", po::value<unsigned int>(), "{1: Bool | 2: UInt8 | 3: UInt32 | 4: HexaTime | 5: Float | 6: String}")
+    ("datatype,d", po::value<unsigned int>(), "{1: Bool | 2: UInt8 | 3: UInt32 | 5: Float | 6: String}")
     ("value,v", po::value<std::string>(), "Value")
     ("reliable,r", po::bool_switch(), "Reliable initialization of network access (adds delay, only needed for broadcasts)")
     ("oneline", po::bool_switch(), "Print each receive packet on one line")

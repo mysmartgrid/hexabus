@@ -20,10 +20,10 @@ static uint32_t timestamp; // seconds since datetime-service was started.
 static int valid_counter;
 static struct etimer update_timer;
 
-void updateDatetime(struct hxb_envelope* envelope) {
+void updateDatetime(struct hxb_datetime dt) {
 	syslog(LOG_DEBUG, "Time: Got update.");
 
-	current_dt = envelope->value.v_datetime;
+	current_dt = dt;
 	time_valid = true;
 	valid_counter = 0;
 
@@ -67,7 +67,7 @@ PROCESS_THREAD(datetime_service_process, ev, data) {
         PROCESS_WAIT_EVENT();
 
         if(ev == PROCESS_EVENT_TIMER) {
-            syslog(LOG_INFO, "Time: %d:%d:%d\t%d.%d.%d Day: %d Valid: %d", current_dt.hour, current_dt.minute, current_dt.second, current_dt.day, current_dt.month, current_dt.year, current_dt.weekday, time_valid);
+            syslog(LOG_INFO, "Time: %u:%u:%u\t%u.%u.%u Day: %u Valid: %u", current_dt.hour, current_dt.minute, current_dt.second, current_dt.day, current_dt.month, current_dt.year, current_dt.weekday, time_valid);
 
             if(etimer_expired(&update_timer)){
                 etimer_reset(&update_timer);

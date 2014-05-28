@@ -9,7 +9,7 @@
 #define VALID_TIME 300 //Valid for 5Minutes
 
 
-void updateDatetime(struct hxb_envelope* envelope);
+void updateDatetime(struct hxb_datetime dt);
 int getDatetime(struct hxb_datetime* dt);
 uint32_t getTimestamp();
 

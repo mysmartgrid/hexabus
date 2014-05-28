@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <arpa/inet.h>
 
-#include "crc.hpp"
 #include "error.hpp"
 
 using namespace hexabus;
@@ -27,13 +26,9 @@ class SerializerBuffer {
 		void appendValue(const ValuePacket<uint8_t>& value);
 		void appendValue(const ValuePacket<uint32_t>& value);
 		void appendValue(const ValuePacket<float>& value);
-		void appendValue(const ValuePacket<boost::posix_time::ptime>& value);
-		void appendValue(const ValuePacket<boost::posix_time::time_duration>& value);
 		void appendValue(const ValuePacket<std::string>& value);
 		void appendValue(const ValuePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& value);
 		void appendValue(const ValuePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& value);
-
-		void append_crc();
 
 		std::vector<char>& buffer() { return _target; }
 };
@@ -84,22 +79,6 @@ void SerializerBuffer::appendValue(const ValuePacket<float>& value)
 	append_float(value.value());
 }
 
-void SerializerBuffer::appendValue(const ValuePacket<boost::posix_time::ptime>& value)
-{
-	append_u8(value.value().time_of_day().hours());
-	append_u8(value.value().time_of_day().minutes());
-	append_u8(value.value().time_of_day().seconds());
-	append_u8(value.value().date().day());
-	append_u8(value.value().date().month());
-	append_u16(value.value().date().year());
-	append_u8(value.value().date().day_of_week());
-}
-
-void SerializerBuffer::appendValue(const ValuePacket<boost::posix_time::time_duration>& value)
-{
-	append_u32(value.value().total_seconds());
-}
-
 void SerializerBuffer::appendValue(const ValuePacket<std::string>& value)
 {
 	_target.insert(_target.end(), value.value().begin(), value.value().end());
@@ -114,13 +93,6 @@ void SerializerBuffer::appendValue(const ValuePacket<boost::array<char, HXB_16BY
 void SerializerBuffer::appendValue(const ValuePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& value)
 {
 	_target.insert(_target.end(), value.value().begin(), value.value().end());
-}
-
-void SerializerBuffer::append_crc()
-{
-	uint16_t crc = hexabus::crc(&_target[0], _target.size());
-
-	append_u16(crc);
 }
 
 // }}}
@@ -140,8 +112,6 @@ class TypedPacketSerializer: public virtual SerializerBuffer, public virtual Typ
 		virtual void visit(const TPacket<uint8_t>& packet) { append(packet); }
 		virtual void visit(const TPacket<uint32_t>& packet) { append(packet); }
 		virtual void visit(const TPacket<float>& packet) { append(packet); }
-		virtual void visit(const TPacket<boost::posix_time::ptime>& packet) { append(packet); }
-		virtual void visit(const TPacket<boost::posix_time::time_duration>& packet) { append(packet); }
 		virtual void visit(const TPacket<std::string>& packet) { append(packet); }
 		virtual void visit(const TPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
 		virtual void visit(const TPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
@@ -162,8 +132,6 @@ class ReportPacketSerializer: public virtual SerializerBuffer, public virtual Ty
 		virtual void visit(const ReportPacket<uint8_t>& packet) { append(packet); }
 		virtual void visit(const ReportPacket<uint32_t>& packet) { append(packet); }
 		virtual void visit(const ReportPacket<float>& packet) { append(packet); }
-		virtual void visit(const ReportPacket<boost::posix_time::ptime>& packet) { append(packet); }
-		virtual void visit(const ReportPacket<boost::posix_time::time_duration>& packet) { append(packet); }
 		virtual void visit(const ReportPacket<std::string>& packet) { append(packet); }
 		virtual void visit(const ReportPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
 		virtual void visit(const ReportPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
@@ -186,8 +154,6 @@ class ProxyInfoPacketSerializer : public virtual SerializerBuffer, public virtua
 		virtual void visit(const ProxyInfoPacket<uint8_t>& packet) { append(packet); }
 		virtual void visit(const ProxyInfoPacket<uint32_t>& packet) { append(packet); }
 		virtual void visit(const ProxyInfoPacket<float>& packet) { append(packet); }
-		virtual void visit(const ProxyInfoPacket<boost::posix_time::ptime>& packet) { append(packet); }
-		virtual void visit(const ProxyInfoPacket<boost::posix_time::time_duration>& packet) { append(packet); }
 		virtual void visit(const ProxyInfoPacket<std::string>& packet) { append(packet); }
 		virtual void visit(const ProxyInfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
 		virtual void visit(const ProxyInfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
@@ -210,6 +176,7 @@ class BinarySerializer :
 		virtual void visit(const EndpointInfoPacket& endpointInfo);
 		virtual void visit(const EndpointReportPacket& endpointReport);
 		virtual void visit(const AckPacket& ack);
+		virtual void visit(const TimeInfoPacket& timeinfo);
 };
 
 std::vector<char> BinarySerializer::serialize(const Packet& packet, uint16_t seqNum)
@@ -221,7 +188,6 @@ std::vector<char> BinarySerializer::serialize(const Packet& packet, uint16_t seq
 	append_u8(packet.flags());
 	append_u16(seqNum);
 	packet.accept(*this);
-	append_crc();
 
 	return _target;
 }
@@ -260,6 +226,17 @@ void BinarySerializer::visit(const EndpointReportPacket& endpointReport)
 void BinarySerializer::visit(const AckPacket& ack)
 {
 	append_u16(ack.cause());
+}
+
+void BinarySerializer::visit(const TimeInfoPacket& timeinfo)
+{
+	append_u8(timeinfo.datetime().time_of_day().hours());
+	append_u8(timeinfo.datetime().time_of_day().minutes());
+	append_u8(timeinfo.datetime().time_of_day().seconds());
+	append_u8(timeinfo.datetime().date().day());
+	append_u8(timeinfo.datetime().date().month());
+	append_u16(timeinfo.datetime().date().year());
+	append_u8(timeinfo.datetime().date().day_of_week());
 }
 
 // }}}
@@ -357,7 +334,7 @@ float BinaryDeserializer::read_float()
 {
 	uint32_t bits = read_u32();
 	float result;
-	
+
 	memcpy(&result, &bits, sizeof(bits));
 	return result;
 }
@@ -421,11 +398,6 @@ Packet::Ptr BinaryDeserializer::completeAndCheck(uint8_t packetType, uint32_t ei
 template<typename T>
 Packet::Ptr BinaryDeserializer::check(const T& packet)
 {
-	uint16_t crc = hexabus::crc(_packet, _offset);
-	if (crc != read_u16()) {
-		throw BadPacketException("Bad checksum");
-	}
-
 	return Packet::Ptr(new T(packet));
 }
 
@@ -465,31 +437,6 @@ Packet::Ptr BinaryDeserializer::deserialize()
 
 					case HXB_DTYPE_FLOAT:
 						return completeAndCheck<float>(type, eid, read_float(), flags, seqNum);
-
-					case HXB_DTYPE_DATETIME:
-						{
-							uint8_t hour = read_u8();
-							uint8_t minute = read_u8();
-							uint8_t second = read_u8();
-							uint8_t day = read_u8();
-							uint8_t month = read_u8();
-							uint16_t year = read_u16();
-							uint8_t weekday = read_u8();
-
-							boost::posix_time::ptime dt(
-								boost::gregorian::date(year, month, day),
-								boost::posix_time::hours(hour)
-									+ boost::posix_time::minutes(minute)
-									+ boost::posix_time::seconds(second));
-
-							if (dt.date().day_of_week() != weekday)
-								throw BadPacketException("Invalid datetime format");
-
-							return completeAndCheck<boost::posix_time::ptime>(type, eid, dt, flags, seqNum);
-						}
-
-					case HXB_DTYPE_TIMESTAMP:
-						return completeAndCheck<boost::posix_time::time_duration>(type, eid, boost::posix_time::seconds(read_u32()), flags, seqNum);
 
 					case HXB_DTYPE_128STRING:
 						return completeAndCheck<std::string>(type, eid, read_string(), flags, seqNum);
@@ -536,6 +483,27 @@ Packet::Ptr BinaryDeserializer::deserialize()
 		case HXB_PTYPE_ACK:
 			{
 				return check(AckPacket(read_u16(), flags, seqNum));
+			}
+		case HXB_PTYPE_TIMEINFO:
+			{
+				uint8_t hour = read_u8();
+				uint8_t minute = read_u8();
+				uint8_t second = read_u8();
+				uint8_t day = read_u8();
+				uint8_t month = read_u8();
+				uint16_t year = read_u8();
+				uint8_t weekday = read_u8();
+
+				boost::posix_time::ptime dt(
+					boost::gregorian::date(year, month, day),
+					boost::posix_time::hours(hour)
+					+ boost::posix_time::minutes(minute)
+					+ boost::posix_time::seconds(second));
+
+				if (dt.date().day_of_week() != weekday)
+					throw BadPacketException("Invalid datetime format");
+
+				return check(TimeInfoPacket(dt, flags, seqNum));
 			}
 
 		default:

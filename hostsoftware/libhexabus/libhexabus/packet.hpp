@@ -74,6 +74,7 @@ namespace hexabus {
 	class AckPacket;
 	template<typename TValue>
 	class ProxyInfoPacket;
+	class TimeInfoPacket;
 
 	template<template<typename TValue> class TPacket>
 	class TypedPacketVisitor {
@@ -84,8 +85,6 @@ namespace hexabus {
 			virtual void visit(const TPacket<uint8_t>& info) = 0;
 			virtual void visit(const TPacket<uint32_t>& info) = 0;
 			virtual void visit(const TPacket<float>& info) = 0;
-			virtual void visit(const TPacket<boost::posix_time::ptime>& info) = 0;
-			virtual void visit(const TPacket<boost::posix_time::time_duration>& info) = 0;
 			virtual void visit(const TPacket<std::string>& info) = 0;
 			virtual void visit(const TPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) = 0;
 			virtual void visit(const TPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) = 0;
@@ -96,8 +95,6 @@ namespace hexabus {
 					virtual void visit(const TPacket<uint8_t>& info) {}
 					virtual void visit(const TPacket<uint32_t>& info) {}
 					virtual void visit(const TPacket<float>& info) {}
-					virtual void visit(const TPacket<boost::posix_time::ptime>& info) {}
-					virtual void visit(const TPacket<boost::posix_time::time_duration>& info) {}
 					virtual void visit(const TPacket<std::string>& info) {}
 					virtual void visit(const TPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) {}
 					virtual void visit(const TPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) {}
@@ -123,6 +120,7 @@ namespace hexabus {
 			virtual void visit(const EndpointInfoPacket& endpointInfo) = 0;
 			virtual void visit(const EndpointReportPacket& endpointReport) = 0;
 			virtual void visit(const AckPacket& ack) = 0;
+			virtual void visit(const TimeInfoPacket& timeinfo) = 0;
 
 			virtual void visitPacket(const Packet& packet)
 			{
@@ -227,8 +225,6 @@ namespace hexabus {
 					|| boost::is_same<TValue, uint8_t>::value
 					|| boost::is_same<TValue, uint32_t>::value
 					|| boost::is_same<TValue, float>::value
-					|| boost::is_same<TValue, boost::posix_time::ptime>::value
-					|| boost::is_same<TValue, boost::posix_time::time_duration>::value
 					|| boost::is_same<TValue, boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >::value
 					|| boost::is_same<TValue, boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >::value),
 				"I don't know how to handle that type");
@@ -239,8 +235,6 @@ namespace hexabus {
 					boost::is_same<TValue, uint8_t>::value ? HXB_DTYPE_UINT8 :
 					boost::is_same<TValue, uint32_t>::value ? HXB_DTYPE_UINT32 :
 					boost::is_same<TValue, float>::value ? HXB_DTYPE_FLOAT :
-					boost::is_same<TValue, boost::posix_time::ptime>::value ? HXB_DTYPE_DATETIME :
-					boost::is_same<TValue, boost::posix_time::time_duration>::value ? HXB_DTYPE_TIMESTAMP :
 					boost::is_same<TValue, boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >::value
 						? HXB_DTYPE_16BYTES :
 					boost::is_same<TValue, boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >::value
@@ -410,6 +404,27 @@ namespace hexabus {
 				return new AckPacket(*this);
 			}
 	};
+
+	class TimeInfoPacket: public Packet {
+		private:
+			boost::posix_time::ptime _datetime;
+
+		public:
+			TimeInfoPacket(boost::posix_time::ptime datetime, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: Packet(HXB_PTYPE_TIMEINFO, flags, sequenceNumber), _datetime(datetime)
+				{}
+
+			boost::posix_time::ptime datetime() const { return _datetime; }
+
+			virtual void accept(PacketVisitor& visitor) const
+			{
+				visitor.visit(*this);
+			}
+
+			Packet* clone() const {
+				return new TimeInfoPacket(*this);
+			}
+		};
 };
 
 #endif

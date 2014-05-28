@@ -22,6 +22,7 @@ enum hxb_packet_type {
 	HXB_PTYPE_EPREPORT = 0x0B, // Endpoint metadata with seqence number of the causing EPQUERY
 	HXB_PTYPE_ACK      = 0x10, // Acknowledgement for INFO, EPINFO and PINFO packets
 	HXB_PTYPE_PINFO    = 0x11, // Endpoint provides information with IP address of causing node
+	HXB_PTYPE_TIMEINFO = 0x12, // Current date and time to update the internal device clock
 
 };
 
@@ -31,10 +32,10 @@ enum hxb_datatype {
 	HXB_DTYPE_BOOL      = 0x01, // Boolean. Value still represented by 8 bits, but may only be HXB_TRUE or HXB_FALSE
 	HXB_DTYPE_UINT8     = 0x02, // Unsigned 8 bit integer
 	HXB_DTYPE_UINT32    = 0x03, // Unsigned 32 bit integer
-	HXB_DTYPE_DATETIME  = 0x04, // Date and time
+	HXB_DTYPE_DATETIME	= 0x04, // TODO: remove
 	HXB_DTYPE_FLOAT     = 0x05, // 32bit floating point
 	HXB_DTYPE_128STRING = 0x06, // 128char fixed length string
-	HXB_DTYPE_TIMESTAMP = 0x07, // timestamp - used for measuring durations, time differences and so on - uint32; seconds
+	HXB_DTYPE_TIMESTAMP = 0x07, // TODO: remove. timestamp - used for measuring durations, time differences and so on - uint32; seconds
 	HXB_DTYPE_66BYTES   = 0x08, // raw 66 byte array, e.g. state machine data.
 	HXB_DTYPE_16BYTES   = 0x09, // raw 16 byte array, e.g. state machine ID.
 };
