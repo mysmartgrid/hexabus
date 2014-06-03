@@ -140,17 +140,33 @@ int setup(const std::string& file, const std::string& wpan, const std::string& l
 
 int setup_random(const std::string& file)
 {
-	Network old = load_eeprom(file);
+	Eeprom eep(file);
+
+	Network old = Network::load(eep);
 	Network next = Network::random(old.hwaddr());
 
-	return setup_network(next);
+	int rc = setup_network(next);
+	if (rc)
+		return rc;
+
+	next.save(eep);
+	return 0;
 }
 
-int setup_random_full()
+int setup_random_full(const std::string& file)
 {
+	Eeprom eep(file);
+
 	Network next = Network::random();
 
-	return setup_network(next);
+	 setup_network(next);
+
+	int rc = setup_network(next);
+	if (rc)
+		return rc;
+
+	next.save(eep);
+	return 0;
 }
 
 template<typename T>
@@ -163,7 +179,9 @@ void dump(const std::vector<T>& vec)
 int run_pairing(const std::string& iface, const std::string& file, int timeout)
 {
 	Controller ctrl;
-	Network net = load_eeprom(file);
+	Eeprom eep(file);
+
+	Network net = Network::load(eep);
 
 	NetDevice dev = ctrl.list_netdevs(iface).at(0);
 
@@ -171,6 +189,8 @@ int run_pairing(const std::string& iface, const std::string& file, int timeout)
 
 	handler.bind(dev.addr_raw());
 	handler.run_once(timeout);
+
+	net.save(eep);
 
 	return 0;
 }
@@ -450,7 +470,7 @@ int main(int argc, const char* argv[])
 			return setup_random(EEP_FILE);
 
 		case C_SETUP_RANDOM_FULL:
-			return setup_random_full();
+			return setup_random_full(EEP_FILE);
 
 		case C_PAIR: {
 			std::string iface = next();

@@ -156,7 +156,7 @@ void Network::add_keys_until(uint64_t to_epoch)
 		throw std::runtime_error("maximum number of keys exceeded");
 
 	uint8_t epoch_start = _key_epoch & 0xFF;
-	for (unsigned id_off = 0; id_off < to_epoch - _key_epoch; id_off++) {
+	for (unsigned id_off = 0; id_off <= to_epoch - _key_epoch; id_off++) {
 		if (find_key(kld(epoch_start + id_off)) != _keys.end())
 			continue;
 
@@ -180,6 +180,7 @@ boost::array<uint8_t, 16> convert_key_id(uint64_t id)
 	boost::array<uint8_t, 16> result;
 	uint64_t id_bytes = htobe64(id);
 
+	result.fill(0);
 	memcpy(result.begin() + 8, &id_bytes, 8);
 	return result;
 }
