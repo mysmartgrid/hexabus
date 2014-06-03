@@ -173,6 +173,7 @@ typedef unsigned long off_t;
 /* AUTOACK receive mode gives better rssi measurements, even if ACK is never requested */
 #define RF230_CONF_AUTOACK        1
 #define RF212_CONF_AUTOACK        1
+#define RF212BB_HOOK_RX_PACKET    provisioning_rx_hook
 /* Request 802.15.4 ACK on all packets sent (else autoretry). This is primarily for testing. */
 #define SICSLOWPAN_CONF_ACK_ALL   1
 /* Number of auto retry attempts 0-15 (0 implies don't use extended TX_ARET_ON mode with CCA) */

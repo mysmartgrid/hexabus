@@ -46,6 +46,7 @@
 #include "packetbuf.h"
 #include "eeprom_variables.h"
 #include "provisioning.h"
+#include <net/mac/sicslowmac.h>
 #include "relay.h"
 #include "uip.h"
 
@@ -66,24 +67,25 @@ extern uint16_t mac_src_pan_id;
 enum {
 	HXB_B_PAIR_REQUEST = 0,
 	HXB_B_PAIR_RESPONSE = 1,
-} hxb_bootstrap_msg;
+
+	/* for coexistence with 6lowpan, keep all message tags below 64 */
+	HXB_B_TAG = 1,
+};
 
 #define PROV_TIMEOUT 30
 
-struct bootstrap_request {
-	char msg;
+struct pair_request {
+	uint8_t tag;
+	uint8_t type;
 } __attribute__((packed));
 
 struct pair_response {
-	char msg;
+	uint8_t tag;
+	uint8_t type;
 	uint16_t pan_id;
 	uint8_t key[16];
+	uint64_t key_epoch;
 } __attribute__((packed));
-
-static const uint8_t msg_lengths[] = {
-	[HXB_B_PAIR_REQUEST] = sizeof(struct bootstrap_request),
-	[HXB_B_PAIR_RESPONSE] = sizeof(struct pair_response),
-};
 
 //indicates ongoing provisioning
 void provisioning_leds(void)
@@ -118,31 +120,49 @@ void provisioning_done_leds(void)
 	}
 }
 
-static int query_with_timeout(uint8_t msg, uint8_t resp, uint16_t timeout)
+int provisioning_rx_hook(void* buf, unsigned short len)
+{
+	if (mac_dst_pan_id == 0xffff) {
+		/* drop crc at the end */
+		packetbuf_set_datalen(len - 2);
+		return 1;
+	}
+
+	return 0;
+}
+
+static int32_t query_for_params(uint16_t timeout, struct pair_response** resp)
 {
 	unsigned long start;
-	uint16_t rcv, i;
 
 	start = clock_seconds();
 	do {
 		provisioning_leds();
-		packetbuf_copyfrom(&msg, sizeof(msg));
-		packetbuf_set_datalen(sizeof(msg));
+
+		struct pair_request req = {
+			HXB_B_TAG,
+			HXB_B_PAIR_REQUEST,
+		};
+
+		packetbuf_copyfrom(&req, sizeof(req));
+		packetbuf_set_datalen(sizeof(req));
 		NETSTACK_RDC.send(NULL, NULL);
+
 		packetbuf_clear();
-		packetbuf_set_datalen(0);
-		rcv = 0;
-		for (i = 0; i < 100 && rcv == 0; i++) {
-			_delay_ms(5);
-			rcv = rf212_read(packetbuf_dataptr(), PACKETBUF_SIZE);
+
+		for (uint8_t i = 0; i < 100 && !packetbuf_datalen(); i++) {
+			_delay_ms(10);
+			provisioning_leds();
+			while (process_run()) {
+			}
 		}
-		provisioning_leds();
-		if (rcv > 0) {
-			packetbuf_set_datalen(rcv);
+
+		if (packetbuf_datalen() > 0) {
 			NETSTACK_RDC.input();
-			struct bootstrap_request* packet = packetbuf_dataptr();
-			if (packet->msg == resp && packetbuf_datalen() == msg_lengths[resp])
-				return 0;
+			if (packetbuf_datalen() == sizeof(struct pair_response)) {
+				*resp = packetbuf_dataptr();
+				return timeout - (clock_seconds() - start);
+			}
 		}
 	} while (clock_seconds() - start < timeout);
 
@@ -154,36 +174,61 @@ int provisioning_slave(void)
 	leds_off(LEDS_GREEN);
 	PRINTF("provisioning: started as slave\n");
 
-	uint16_t old_pan_id = mac_src_pan_id;
+	uint16_t pan_id = mac_src_pan_id;
 	mac_dst_pan_id = 0xffff;
 	mac_src_pan_id = 0xffff;
 	uint8_t tmp_enc = encryption_enabled;
 	encryption_enabled = 0;
 	int rc = -1;
 
-	if (!query_with_timeout(HXB_B_PAIR_REQUEST, HXB_B_PAIR_RESPONSE, PROV_TIMEOUT)) {
-		struct pair_response* resp = packetbuf_dataptr();
-		PRINTF("provisioning: new pan_id is: %x and new AES_KEY is: ", uip_ntohs(resp->pan_id));
-		int i;
-		for (i = 0; i < 16; i++)
-			PRINTF("%x ", resp->key[i]);
-		PRINTF("\n");
-		old_pan_id = uip_ntohs(resp->pan_id);
+	int timeout = PROV_TIMEOUT;
+	struct pair_response* resp = 0;
+
+	while (timeout > 0 && rc) {
+		timeout = query_for_params(timeout, &resp);
+
+		if (resp->tag != HXB_B_TAG || resp->type != HXB_B_PAIR_RESPONSE)
+			continue;
+
+		if (timeout < 0)
+			break;
+
+		pan_id = uip_ntohs(resp->pan_id);
+		uint64_t key_epoch = resp->key_epoch;
+
+		uint8_t old_key[16];
+		uint64_t old_epoch;
 
 		AVR_ENTER_CRITICAL_REGION();
-		eeprom_write_word(eep_addr(pan_id), old_pan_id);
-		eeprom_write_block(resp->key, eep_addr(encryption_key), eep_size(encryption_key));
+		eeprom_write_word(eep_addr(pan_id), pan_id);
+
+		eeprom_read_block(old_key, eep_addr(encryption_key), 16);
+		eeprom_read_block(&old_epoch, eep_addr(llsec_key_epoch), 8);
+
+		eeprom_write_block(resp->key, eep_addr(encryption_key), 16);
+		eeprom_write_block(&key_epoch, eep_addr(llsec_key_epoch), 8);
+
+		if (old_epoch != key_epoch || memcmp(resp->key, old_key, 16)) {
+			eeprom_write_dword(eep_addr(llsec_frame_counter), 0);
+		}
 		AVR_LEAVE_CRITICAL_REGION();
+
+		PRINTF("provisioning: joined %04x, key", pan_id);
+		for (int i = 0; i < 16; i++)
+			PRINTF(" %02x", resp->key[i]);
+		PRINTF("\n");
+
 		provisioning_done_leds();
-		rf212_key_setup(resp->key);
-		rf212_set_pan_addr(old_pan_id, 0, NULL);
 		rc = 0;
 	}
 
-	mac_dst_pan_id = old_pan_id;
-	mac_src_pan_id = old_pan_id;
+	mac_dst_pan_id = pan_id;
+	mac_src_pan_id = pan_id;
+	rf212_set_pan_addr(pan_id, 0, NULL);
 	encryption_enabled = tmp_enc;
-	relay_leds();
+
+	if (!rc)
+		watchdog_reboot();
 
 	return rc;
 }

@@ -799,6 +799,7 @@ int rf212_read(void *buf, unsigned short bufsize)
 		return 0;
 	}
 #ifdef RF212BB_HOOK_RX_PACKET
+	extern int RF212BB_HOOK_RX_PACKET(void*, unsigned short);
 	if (RF212BB_HOOK_RX_PACKET(buf,len)) //don't process pakets in raw-mode
 		return 0;
 #endif

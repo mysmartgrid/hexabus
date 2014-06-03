@@ -254,6 +254,45 @@ transform_block(nonce_802154_t *nonce, uint16_t block, uint8_t *data, uint16_t l
 		data[i] ^= k[i];
 }
 
+static void be64_add(uint8_t *be64, int8_t a)
+{
+	for (int8_t i = 7, carry = a; i >= 0; i--) {
+		int part = be64[i] + carry;
+		be64[i] += carry;
+		if (part < 0) {
+			part += 256;
+			carry = -1;
+		} else if (part > 255) {
+			part -= 256;
+			carry = 1;
+		} else {
+			break;
+		}
+	}
+}
+
+static void
+set_key(int8_t epoch_offset)
+{
+	uint8_t key[16];
+	uint8_t key_by_epoch[16];
+
+	memset(key_by_epoch, 0, 16);
+
+	AVR_ENTER_CRITICAL_REGION();
+
+	eeprom_read_block(key, eep_addr(encryption_key), 16);
+
+	eeprom_read_block(key_by_epoch + 8, eep_addr(llsec_key_epoch), 8);
+	be64_add(key_by_epoch + 8, epoch_offset);
+
+	rf212_key_setup(key);
+	rf212_cipher(key_by_epoch);
+	rf212_key_setup(key_by_epoch);
+
+	AVR_LEAVE_CRITICAL_REGION();
+}
+
 /*---------------------------------------------------------------------------*/
 int
 encrypt_payload(frame802154_t *pf)
@@ -539,6 +578,7 @@ init(void)
   mac_dsn = random_rand() % 256;
 
   load_frame_counter();
+  set_key(0);
 
   NETSTACK_RADIO.on();
 }
