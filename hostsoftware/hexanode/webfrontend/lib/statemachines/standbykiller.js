@@ -5,7 +5,7 @@ var StatemachineBuilder = common.StatemachineBuilder;
 
 
 exports.validateInput = function(msg) {
-	if(!('threshold' in msg) || !validator.isInt(msg.threshold)) {
+	if(!msg.hasOwnProperty('threshold') || !validator.isInt(msg.threshold)) {
 		return new validationError('threshold-invalid', 'The value for threshold is not a valid integer.');
 	}
 
@@ -13,7 +13,7 @@ exports.validateInput = function(msg) {
 		return new validationError('threshold-nut-of-range', 'The value for threshold should be at least 1 and at most 4294967295.');
 	}
 
-	if(!('timeout' in msg) || !validator.isInt(msg.timeout)) {
+	if(!msg.hasOwnProperty('timeout') || !validator.isInt(msg.timeout)) {
 		return new validationError('timeout-invalid', 'The value for timeout is not a valid integer.');
 	}
 
@@ -21,7 +21,7 @@ exports.validateInput = function(msg) {
 		return new validationError('timeout-out-of-range', 'The value for timeout should be at least 1 and at most 4294967295.');
 	}
 
-	if(!('device' in msg) || !('ip' in msg.device) || !validator.isIP(msg.device.ip,6)) {
+	if(!msg.hasOwnProperty('device') || !msg.device.hasOwnProperty('ip') || !validator.isIP(msg.device.ip,6)) {
 		return new validationError('device-ip-not-valid', 'The IPv6 address of device is invalid.');
 	}
 }

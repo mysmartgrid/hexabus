@@ -8,12 +8,12 @@ var StatemachineBuilder = common.StatemachineBuilder;
 module.exports.validateInput = function(msg) {
 	var usedDevices = [];
 	
-	if(!('master' in msg) || !('ip' in msg.master) || !validator.isIP(msg.master.ip,6)) {
+	if(!msg.hasOwnProperty('master') || !msg.hasOwnProperty('ip') || !validator.isIP(msg.master.ip,6)) {
 		return new validationError('master-ip-not-valid', 'The IPv6 address of master device is invalid.');
 	}
 	usedDevices.push(msg.master.ip);
 
-	if(!('threshold' in msg) || !validator.isInt(msg.threshold)) {
+	if(!msg.hasOwnProperty('threshold') || !validator.isInt(msg.threshold)) {
 		return new validationError('threshold-invalid', 'The value for threshold is not a valid integer.');
 	}
 
@@ -21,14 +21,14 @@ module.exports.validateInput = function(msg) {
 		return new validationError('threshold-out-of-range', 'The value for threshold should be at least 1 and at most 4294967295.');
 	}
 
-	if(!('slaves' in msg) || msg.slaves.length < 1) {
+	if(!msg.hasOwnProperty('slaves') || msg.slaves.length < 1) {
 		return new validationError('no-slaves', 'At least one slave has to be specified');
 	}
 
 	console.log(msg.slaves);
 	for(var slave in msg.slaves) {
 		console.log('Slave ' + slave);
-		if(!('ip' in msg.slaves[slave]) || !validator.isIP(msg.slaves[slave].ip,6)) {
+		if(!msg.slaves[slave].hasOwnProperty('ip') || !validator.isIP(msg.slaves[slave].ip,6)) {
 			return new validationError('slave-ip-not-valid', 'IPv6 address of slave device is invalid.');
 		}
 		if(usedDevices.indexOf(msg.slaves[slave].ip) > -1) {
