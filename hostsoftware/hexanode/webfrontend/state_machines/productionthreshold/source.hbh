@@ -1,0 +1,4 @@
+device source {
+  ip <%= source_ip %>;
+  eids { 2 }
+}
