@@ -1,0 +1,5 @@
+device fridge {
+  ip <%= ip %>;
+  eids { 1, 2, 4 }
+}
+   
