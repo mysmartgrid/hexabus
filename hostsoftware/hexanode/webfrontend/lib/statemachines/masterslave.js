@@ -8,7 +8,7 @@ var StatemachineBuilder = common.StatemachineBuilder;
 module.exports.validateInput = function(msg) {
 	var usedDevices = [];
 	
-	if(!msg.hasOwnProperty('master') || !msg.hasOwnProperty('ip') || !validator.isIP(msg.master.ip,6)) {
+	if(!msg.hasOwnProperty('master') || !msg.master.hasOwnProperty('ip') || !validator.isIP(msg.master.ip,6)) {
 		return new validationError('master-ip-not-valid', 'The IPv6 address of master device is invalid.');
 	}
 	usedDevices.push(msg.master.ip);
@@ -46,14 +46,14 @@ module.exports.buildMachine = function(msg, progressCallback, callback) {
 
 		smb.onProgress(progressCallback);
 		smb.addTargetFile('masterslave/master.hbh', 'master.hbh', { 'masterip' : msg.master.ip});
-		smb.addDevice('master');
+		smb.addDevice('master',true);
 
 		var slavelist = []
 		for(var slave in msg.slaves) {
 			var name = 'slave_' + smb.ipToID(msg.slaves[slave].ip);
 			console.log(name);
 			smb.addTargetFile('masterslave/slave.hbh', name + '.hbh', {'slavename' : name, 'slaveip' : msg.slaves[slave].ip});
-			smb.addDevice(name);
+			smb.addDevice(name,true);
 			slavelist.push(name);
 		}
 

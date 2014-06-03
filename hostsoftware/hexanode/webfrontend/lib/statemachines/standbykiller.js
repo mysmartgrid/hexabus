@@ -36,7 +36,7 @@ exports.buildMachine = function(msg, progressCallback, callback) {
 
 	smb.addTargetFile('standbykiller/standbykiller.hbh', 'standbykiller.hbh', { 'ip' : msg.device.ip});
 	smb.addTargetFile('standbykiller/standbykiller.hbc', 'standbykiller.hbc', {'threshold' : msg.threshold, 'timeout' : msg.timeout});
-	smb.addDevice('standbykiller');
+	smb.addDevice('standbykiller',true);
 
 	smb.setCompileTarget('standbykiller.hbc');
 
@@ -45,6 +45,6 @@ exports.buildMachine = function(msg, progressCallback, callback) {
 			callback(true);
 		} else {
 			console.log(err);
-			callback(false, err.toString());
+			callback(false, err);
 	}});
 }

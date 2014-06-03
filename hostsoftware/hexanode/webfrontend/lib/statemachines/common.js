@@ -38,8 +38,8 @@ exports.StatemachineBuilder = function() {
 	}
 
 
-	this.addDevice = function(devicename) {
-		this.deviceList.push(devicename);
+	this.addDevice = function(devicename,upload) {
+		this.deviceList.push({'name': devicename, 'upload': upload});
 	}
 
 
@@ -59,20 +59,6 @@ exports.StatemachineBuilder = function() {
 		return {'msg': error.toString(), 'localization': localization, 'extras' : extras};
 	}
 
-
-	this.localizeErrorCallback = function (localization, extras, callback) {
-		var localizedErrorCallback = function(err) {
-			if(err) {
-				callback(this.localizeError(localization, err, extras));
-			}
-			else {
-				callback();
-			}
-		}
-		return localizedErrorCallback.bind(this);
-	}
-
-
 	this.setupBuildDir = function(callback) {
 		fs.mkdir(this.sm_build,function(err) {
 			if(err && err.code != 'EEXIST') {
@@ -81,7 +67,7 @@ exports.StatemachineBuilder = function() {
 			else {
 				callback();
 			}
-		});
+		}.bind(this));
 	}
 
 	this.readFiles = function(callback) {
@@ -117,12 +103,12 @@ exports.StatemachineBuilder = function() {
 			fs.writeFile(this.sm_build + file.target, renderedTemplate, { encoding: 'utf8' }, function(err) {
 				if(err) {
 					console.log(err);
-					callback('writing-file-failed');
+					callback(this.localizeError('writing-file-failed',err,{'file': file.target}));
 				}
 				else {
 					callback();
 				}
-			});
+			}.bind(this));
 		}
 
 		this.setProgress('Rendering templates', 'rendering');
@@ -136,27 +122,33 @@ exports.StatemachineBuilder = function() {
 		exec('hbcomp ' + this.sm_build +  this.compileTarget + ' -o ' + this.sm_build + ' -d ' + this.sm_folder + 'datatypes.hb', function(err, stdout, stderr) {
 			if(err) {
 				console.log(err);
-				callback('compiling-failed');
+				callback(this.localizeError('compiling-failed',err));
 			}
 			else {
 				callback();
 			}
-		});
+		}.bind(this));
 	}
 
 
 	this.assembleStatemachines = function(callback) {
 		var assembleStatemachine = function(device, callback) {
-			console.log('Assembling statemachine ' + device);
-			exec('hbasm ' + this.sm_build + device + '.hba' + ' -d ' + this.sm_folder + 'datatypes.hb -o ' + this.sm_build + device + '.hbs', function(err, stdout, stderr) {
-				if(err) {
-					console.log(err);
-					callback('assembling-failed');
-				}
-				else {
-					callback();
-				}
-			});
+			if(device.upload) {
+				console.log('Assembling statemachine ' + device.name);
+				exec('hbasm ' + this.sm_build + device.name + '.hba' + ' -d ' + this.sm_folder + 'datatypes.hb -o ' + this.sm_build + device.name + '.hbs', 
+				function(err, stdout, stderr) {
+					if(err) {
+						console.log(err);
+						callback(this.localizeError('assembling-failed',err,{'device': device.name}));
+					}
+					else {
+						callback();
+					}
+				});
+			}
+			else {
+				callback();
+			}
 		}
 
 		this.setProgress('Assembling statemachines', 'assembling');
@@ -168,18 +160,23 @@ exports.StatemachineBuilder = function() {
 		var deviceCounter = 0;
 
 		var uploadStatemachine = function(device, callback) {
-			console.log('Uploading to ' + device);
-			deviceCounter += 1;
-			this.setProgress('Uploading statemachine ' + device, 'uploading', { 'device' : device, 'done' : deviceCounter, 'count' : this.deviceList.length});
-			exec('hexaupload -r 10 -k -p ' + this.sm_build + device + '.hbs', function(err, stdout, stderr) {
-				if(err) {
-					console.log(err);
-					callback('uploading-failed');
-				}
-				else {
-					callback();
-				}
-			});
+			if(device.upload) {
+				console.log('Uploading to ' + device.name);
+				deviceCounter += 1;
+				this.setProgress('Uploading statemachine ' + device.name, 'uploading', { 'device' : device.name, 'done' : deviceCounter, 'count' : this.deviceList.length});
+				exec('hexaupload -r 10 -k -p ' + this.sm_build + device.name + '.hbs', function(err, stdout, stderr) {
+					if(err) {
+						console.log(err);
+						callback(this.localizeError('uploading-failed',err,{'device': device.name}));
+					}
+					else {
+						callback();
+					}
+				}.bind(this));
+			}
+			else {
+				callback();
+			}
 		}
 
 		async.eachSeries(this.deviceList, uploadStatemachine.bind(this), callback);
@@ -192,12 +189,12 @@ exports.StatemachineBuilder = function() {
 			fs.unlink(this.sm_build + file, function(err) {
 				if(err) {
 					console.log(err);
-					callback('deleting-temporary-files-failed');
+					callback(this.localizeError('deleting-temporary-files-failed',err,{'file': file}));
 				}
 				else {
 					callback();
 				}
-			});
+			}.bind(this));
 		}
 
 		var fileList = [];
@@ -205,8 +202,10 @@ exports.StatemachineBuilder = function() {
 			fileList.push(this.targetFileList[file].target);
 		}
 		for(var device in this.deviceList) {
-			fileList.push(this.deviceList[device] + '.hba');
-			fileList.push(this.deviceList[device] + '.hbs');
+			fileList.push(this.deviceList[device].name + '.hba');
+			if(this.deviceList[device].upload) {
+				fileList.push(this.deviceList[device].name + '.hbs');
+			}
 		}
 
 		this.setProgress('Deleting temporary files', 'deleting-temporary-files');
