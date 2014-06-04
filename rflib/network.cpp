@@ -95,7 +95,7 @@ void Network::sec_params(const SecurityParameters& params)
 	_sec_params = params;
 }
 
-const Device& Network::add_device(uint64_t dev_addr)
+Device& Network::add_device(uint64_t dev_addr)
 {
 	if (_devices.size() + 1 > MAX_DEVICES)
 		throw std::runtime_error("device limit reached");
@@ -168,8 +168,9 @@ void Network::add_keys_until(uint64_t to_epoch)
 				key,
 				epoch_start + id_off));
 
+		const KeyLookupDescriptor& ldesc = _keys.back().lookup_desc();
 		BOOST_FOREACH(Device& dev, _devices) {
-			dev.keys()[_keys.back().lookup_desc()] = 0;
+			dev.keys().insert(std::make_pair(ldesc, 0));
 		}
 	}
 }
