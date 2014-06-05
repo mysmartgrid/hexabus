@@ -144,7 +144,7 @@ exports.StatemachineBuilder = function() {
 					else {
 						callback();
 					}
-				});
+				}.bind(this));
 			}
 			else {
 				callback();
