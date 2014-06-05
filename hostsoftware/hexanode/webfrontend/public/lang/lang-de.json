@@ -147,11 +147,11 @@
 				"disjoint-devices" : "Jedes Gerät kann nur in einer Funktion verwenden werden.",
 				"no-slaves": "Es muss mindestens ein Gerät als slave ausgewählt werden.",
 				"opening-template-failed": "Die Vorlage {file} konnte nicht geöffnet werden.",
-				"writing-file-failed": "Eine Datei konnte nicht geschrieben werden.",
+				"writing-file-failed": "Die Datei {file} konnte nicht geschrieben werden.",
 				"compiling-failed": "Die Statemachine konnte nicht kompiliert werden.",
-				"assembling-failed": "Das Erzeugen der Binärdaten schlug fehl.",
-				"uploading-failed": "Das Hochladen der Statemachine auf ein Gerät ist fehlgeschlagen.",
-				"deleting-temporary-files-failed": "Eine temporäre Datei konnte nicht gelöscht werden."
+				"assembling-failed": "Das Erzeugen der Binärdaten für {device} schlug fehl.",
+				"uploading-failed": "Das Hochladen der Statemachine auf {device} ist fehlgeschlagen.",
+				"deleting-temporary-files-failed": "Die temporäre Datei {file} konnte nicht gelöscht werden."
 			},
 			"choose": "Bitte wählen Sie eine Vorlage aus.",
 			"choose-master": "Bitte wählen Sie das Master-Gerät aus.",
@@ -159,7 +159,14 @@
 			"add-slaves": "Bitte wählen Sie die Slave-Geräte aus.",
 			"add-slave": "Slave-Gerät hinzufügen",
 			"choose-device": "Bitte wählen Sie ein Gerät aus.",
-			"choose-timeout": "Bitte wählen Sie eine Zeitbeschränkung aus."
+			"choose-timeout": "Bitte wählen Sie eine Zeitbeschränkung aus.",
+			"choose-source": "Bitte das Produktions-Messgerät auswählen.",
+			"choose-production-threshold": "Bitte den Produktionsschwellwert auswählen.",
+			"choose-off-timeout": "Bitte die maximale Zeitspanne die das Gerät ausgeschaltet sein soll eingeben.",
+			"choose-usage-threshold": "Bitte den Verbrauchschwellwert auswählen.",
+			"choose-on-timeout": "Bitte die maximale Zeitspanne die das Gerät angeschaltet sein soll eingeben.",
+			"choose-switch": "Bitte das zu schaltende Gerät auswählen"
+
 		}
 	},
 	"upgrade": {
