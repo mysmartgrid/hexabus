@@ -3,6 +3,8 @@
 #include <libhbc/error.hpp>
 #include <iomanip>
 #include <libhbc/hashlib2plus/hashlibpp.h>
+#include <ctime>
+#include <boost/lexical_cast.hpp>
 
 using namespace hexabus;
 
@@ -43,7 +45,7 @@ void HBAOutput::operator()(std::ostream& ostr) {
 
         // Generate Machine ID
         md5wrapper md5;
-        ostr << "machine " << md5.getHashFromString(_machines[init_m_id].name) << ";" << std::endl << std::endl;
+        ostr << "machine " << md5.getHashFromString(_machines[init_m_id].name+boost::lexical_cast<std::string>(time(NULL))) << ";" << std::endl << std::endl;
         ostr << "startstate state_" << init_m_id << "_" << init_v_id << ";" << std::endl << std::endl;
       }
     }
