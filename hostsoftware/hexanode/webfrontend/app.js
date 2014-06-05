@@ -683,12 +683,18 @@ io.sockets.on('connection', function (socket) {
 		console.log(msg);
 		if(!busy) {
 			
+			console.log("Validating data");
+
 			var error = statemachineModule.validateInput(msg);
 			console.log(error);
 			if(error) {
+				console.log("Validation failed");
+				console.log(error);
 				sendError(error);
 				return;
 			}
+
+			console.log("Data passed validation");
 
 			busy = true;
 			statemachineModule.buildMachine(msg,
@@ -709,6 +715,10 @@ io.sockets.on('connection', function (socket) {
 
 	on('standbykiller_sm', function(msg) {
 		buildStatemachine(msg,statemachines.standbyKiller);
+	});
+
+	on('productionthreshold_sm', function(msg) {
+		buildStatemachine(msg,statemachines.productionThreshold);
 	});
 
 	emit('clear_state');

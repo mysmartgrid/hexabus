@@ -1,4 +1,4 @@
 device source {
-  ip <%= source_ip %>;
+  ip <%= source %>;
   eids { 2 }
 }

@@ -1,5 +1,5 @@
 device fridge {
-  ip <%= ip %>;
+  ip <%= switchDevice %>;
   eids { 1, 2, 4 }
 }
    

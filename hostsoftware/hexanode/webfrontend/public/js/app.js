@@ -579,6 +579,7 @@ angular.module('dashboard', [
 	$scope.resetForms = function() {
 		$scope.masterSlave.resetForm();
 		$scope.standbyKiller.resetForm();
+		$scope.productionThreshold.resetForm();
 
 		hideAlerts();
 	}
@@ -645,7 +646,7 @@ angular.module('dashboard', [
 		var usedIPs = [];
 		$scope.masterSlaveForm.$setValidity('disjointDevices',true);
 		usedIPs.push($scope.masterSlave.master);
-		for(slave in $scope.masterSlave.slaves) {
+		for(var slave in $scope.masterSlave.slaves) {
 			if(usedIPs.indexOf($scope.masterSlave.slaves[slave].ip) > -1) {
 				$scope.masterSlaveForm.$setValidity('disjointDevices',false);
 			}
@@ -673,7 +674,7 @@ angular.module('dashboard', [
 		$scope.masterSlave.validateForm();
 	}
 
-	$scope.send_master_slave = function() {
+	$scope.masterSlave.upload = function() {
 		hideAlerts();
 		$scope.busy = true;
 		Socket.emit('master_slave_sm', {master: {ip: $scope.masterSlave.master}, slaves: $scope.masterSlave.slaves, threshold: $scope.masterSlave.threshold});
@@ -685,7 +686,7 @@ angular.module('dashboard', [
  */
 	$scope.standbyKiller = {};
 
-	$scope.send_standbykiller = function() {
+	$scope.standbyKiller.upload = function() {
 		hideAlerts();
 		$scope.busy = true;
 		Socket.emit('standbykiller_sm', {device: {ip: $scope.standbyKiller.device}, threshold: $scope.standbyKiller.threshold, timeout: $scope.standbyKiller.timeout});
@@ -697,6 +698,52 @@ angular.module('dashboard', [
 		$scope.standbyKiller.timeout = 25;
 	};
 
+/*
+ * Production threshold statemachine
+ */
+	$scope.productionThreshold = {};
+	$scope.productionThreshold.source_devices = {};
+	$scope.productionThreshold.switch_devices = {};
+
+	var hasEId = function(device,eid) {
+		for(var index in device.eids) {
+			if(device.eids[index].eid == eid) {
+				return true;
+			}
+		}
+		return false;
+	};
+
+	for(var ip in $scope.devices) {
+		if(hasEId($scope.devices[ip],2)) {
+			$scope.productionThreshold.source_devices[ip] = $scope.devices[ip];
+		}
+		if(hasEId($scope.devices[ip],1)) {
+			$scope.productionThreshold.switch_devices[ip] = $scope.devices[ip];
+		}
+	}
+	
+	$scope.productionThreshold.resetForm = function() {
+		$scope.productionThreshold.source = $scope.productionThreshold.source_devices[Object.keys($scope.productionThreshold.source_devices)[0]].ip;
+		$scope.productionThreshold.productionThreshold = 10;
+		$scope.productionThreshold.offTimeout = 3600;
+		$scope.productionThreshold.usageThreshold = 10;
+		$scope.productionThreshold.onTimeout = 3600;
+		$scope.productionThreshold.switch = $scope.productionThreshold.switch_devices[Object.keys($scope.productionThreshold.switch_devices)[0]].ip;
+	};
+
+	$scope.productionThreshold.upload = function() {
+		hideAlerts();
+		$scope.busy = true;
+		message = {source: $scope.productionThreshold.source,
+					productionThreshold: $scope.productionThreshold.productionThreshold,
+					offTimeout: $scope.productionThreshold.offTimeout, 
+					usageThreshold: $scope.productionThreshold.usageThreshold,
+					onTimeout: $scope.productionThreshold.onTimeout,
+					switchDevice: $scope.productionThreshold.switch};
+
+		Socket.emit('productionthreshold_sm', message);
+	};
 
 }])
 .directive('focusIf', [function () {

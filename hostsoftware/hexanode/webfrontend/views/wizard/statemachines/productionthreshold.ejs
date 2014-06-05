@@ -1,0 +1,106 @@
+<form role="form" name="productionThresholdForm" novalidate>
+	<div class="form-group" data-ng-class="{'has-error': productionThresholdForm.source.$invalid, 'has-success': productionThresholdForm.source.$valid}">
+		<label for="source" class="control-label" data-localize="wizard.state-machine.choose-source">Choose source:</label>
+		<select class="form-control" name="source" data-ng-model="productionThreshold.source" 
+			data-ng-options="value.ip as value.name for (key,value) in productionThreshold.source_devices" data-ng-required="true" >
+		</select>
+	</div>
+
+	<div class="control-group" 
+		data-ng-class="{'has-error': productionThresholdForm.productionThreshold.$invalid, 'has-success': productionThresholdForm.productionThreshold.$valid}">
+		<label for="productionThreshold" class="control-label" data-localize="wizard.state-machine.choose-production-threshold">Choose production threshold:</label>
+		<input class="form-control" type="number" name="productionThreshold" min="1" max="4294967295" data-ng-model="productionThreshold.productionThreshold"
+			data-ng-pattern="/^-?\d+$/" data-ng-required="true">
+		<p class="help-block"
+			data-ng-show="productionThresholdForm.productionThreshold.$error.number
+			|| productionThresholdForm.productionThreshold.$error.required
+			|| productionThresholdForm.productionThreshold.$error.pattern"
+			data-localize="wizard.state-machine.errors.no-valid-number">
+				Not a valid number.
+		</p>
+		<p class="help-block" data-ng-show="productionThresholdForm.productionThreshold.$error.min"
+			data-localize="wizard.state-machine.errors.number-min-u32">
+				The value has to be greater then 0.
+		</p>
+		<p class="help-block" data-ng-show="productionThresholdForm.productionThreshold.$error.max"
+			data-localize="wizard.state-machine.errors.number-max-u32">
+				The value has to be smaller then 4294967296.
+		</p>
+	</div>
+
+	<div class="control-group" data-ng-class="{'has-error': productionThresholdForm.offTimeout.$invalid, 'has-success': productionThresholdForm.offTimeout.$valid}">
+		<label class="control-label" for="offTimeout" data-localize="wizard.state-machine.choose-off-timeout">Choose maximum offline time:</label>
+		<input class="form-control" type="number" name="offTimeout" min="1" max="4294967295" data-ng-model="productionThreshold.offTimeout"
+			data-ng-pattern="/^-?\d+$/"  data-ng-required="true">
+		<p class="help-block"
+			data-ng-show="productionThresholdForm.offTimeout.$error.number 
+			|| productionThresholdForm.offTimeout.$error.required 
+			|| productionThresholdForm.offTimeout.$error.pattern"
+			data-localize="wizard.state-machine.errors.no-valid-number">
+				Not a valid number.
+		</p>
+		<p class="help-block" data-ng-show="productionThresholdForm.offTimeout.$error.min"
+			data-localize="wizard.state-machine.errors.number-min-u32">
+				The value has to be greater then 0.
+		</p>
+		<p class="help-block" data-ng-show="productionThresholdForm.offTimeout.$error.max"
+			data-localize="wizard.state-machine.errors.number-max-u32">
+				The value has to be smaller then 4294967296.
+		</p>
+	</div>
+
+	<div class="control-group" 
+		data-ng-class="{'has-error': productionThresholdForm.usageThreshold.$invalid, 'has-success': productionThresholdForm.usageThreshold.$valid}">
+		<label for="productionThreshold" class="control-label" data-localize="wizard.state-machine.choose-usage-threshold">Choose usage threshold:</label>
+		<input class="form-control" type="number" name="usageThreshold" min="1" max="4294967295" data-ng-model="productionThreshold.usageThreshold"
+			data-ng-pattern="/^-?\d+$/" data-ng-required="true">
+		<p class="help-block"
+			data-ng-show="productionThresholdForm.usageThreshold.$error.number
+			|| productionThresholdForm.usageThreshold.$error.required
+			|| productionThresholdForm.usageThreshold.$error.pattern"
+			data-localize="wizard.state-machine.errors.no-valid-number">
+				Not a valid number.
+		</p>
+		<p class="help-block" data-ng-show="productionThresholdForm.usageThreshold.$error.min"
+			data-localize="wizard.state-machine.errors.number-min-u32">
+				The value has to be greater then 0.
+		</p>
+		<p class="help-block" data-ng-show="productionThresholdForm.usageThreshold.$error.max"
+			data-localize="wizard.state-machine.errors.number-max-u32">
+				The value has to be smaller then 4294967296.
+		</p>
+	</div>
+
+	<div class="control-group" data-ng-class="{'has-error': productionThresholdForm.onTimeout.$invalid, 'has-success': productionThresholdForm.onTimeout.$valid}">
+		<label class="control-label" for="onTimeout" data-localize="wizard.state-machine.choose-on-timeout">Choose maximum online time:</label>
+		<input class="form-control" type="number" name="onTimeout" min="1" max="4294967295" data-ng-model="productionThreshold.onTimeout"
+			data-ng-pattern="/^-?\d+$/"  data-ng-required="true">
+		<p class="help-block"
+			data-ng-show="productionThresholdForm.onTimeout.$error.number 
+			|| productionThresholdForm.onTimeout.$error.required 
+			|| productionThresholdForm.onTimeout.$error.pattern"
+			data-localize="wizard.state-machine.errors.no-valid-number">
+				Not a valid number.
+		</p>
+		<p class="help-block" data-ng-show="productionThresholdForm.onTimeout.$error.min"
+			data-localize="wizard.state-machine.errors.number-min-u32">
+				The value has to be greater then 0.
+		</p>
+		<p class="help-block" data-ng-show="productionThresholdForm.onTimeout.$error.max"
+			data-localize="wizard.state-machine.errors.number-max-u32">
+				The value has to be smaller then 4294967296.
+		</p>
+	</div>
+
+	<div class="form-group" data-ng-class="{'has-error': productionThresholdForm.switch.$invalid, 'has-success': productionThresholdForm.switch.$valid}">
+		<label for="source" class="control-label" data-localize="wizard.state-machine.choose-switch">Choose switch device:</label>
+		<select class="form-control" name="switch" data-ng-model="productionThreshold.switch" 
+			data-ng-options="value.ip as value.name for (key,value) in productionThreshold.switch_devices" data-ng-required="true" >
+		</select>
+	</div>
+
+
+	<button class="btn btn-success" data-ng-disabled="productionThresholdForm.$invalid || busy" 
+		data-localize="wizard.state-machine.upload" data-ng-click="productionThreshold.upload()">Upload</button>
+
+</form>
