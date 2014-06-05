@@ -77,6 +77,8 @@ struct ReadingLogger : public hexabus::Logger {
 				return "V";
 			else if (unit == "A")
 				return "A";
+			else if (unit == "cosPhi")
+				return "cosPhi";
 			else
 				return UNKNOWN_UNIT;
 		}
