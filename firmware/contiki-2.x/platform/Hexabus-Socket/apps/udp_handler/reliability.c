@@ -56,32 +56,27 @@ bool seqnumIsLessEqual(uint16_t first, uint16_t second) {
 	return distance <= 0;
 }
 
-enum hxb_error_code packet_generator(union hxb_packet_any* buffer, void* data) {
-	
-	uint8_t hash = hash_ip(&((struct hxb_queue_packet*)data)->ip);
+void send_packet(struct hxb_queue_packet* data) {
+	uint8_t hash = hash_ip(&(data->ip));
 
-	if(rstates[hash].want_ack_for == 0) {
-		rstates[hash].want_ack_for = next_sequence_number(&((struct hxb_queue_packet*)data)->ip);
+	if(data->packet.header.sequence_number == 0) {
+		rstates[hash].want_ack_for = data->packet.header.sequence_number = next_sequence_number(&(data->ip));
 	}
 
-	memcpy(buffer, &((struct hxb_queue_packet*)data)->packet, sizeof(union hxb_packet_any));
-	buffer->header.sequence_number = rstates[hash].want_ack_for;
-
-	return HXB_ERR_SUCCESS;
+	do_udp_send(&(data->ip), data->port, &(data->packet));
 }
 
-enum hxb_error_code send_packet(struct hxb_queue_packet* data) {
-	return udp_handler_send_generated(&((struct hxb_queue_packet*)data)->ip, ((struct hxb_queue_packet*)data)->port, &packet_generator, (void*)data);
-}
-
-enum hxb_error_code enqueue_packet(struct hxb_queue_packet* packet) {
+enum hxb_error_code enqueue_packet(const uip_ipaddr_t* toaddr, uint16_t toport, union hxb_packet_any* packet) {
 
 	struct hxb_queue_packet* queue_entry = malloc(sizeof(struct hxb_queue_packet));
 
-	if(packet != NULL) {
-		memcpy(queue_entry, packet, sizeof(struct hxb_queue_packet));
+	queue_entry->port = toport;
+	memcpy(&(queue_entry->ip), toaddr, sizeof(uip_ipaddr_t));
 
-		if(packetqueue_enqueue_packetbuf(&send_queue, 0, (void*) queue_entry)) {
+	if(packet != NULL) {
+		memcpy(&(queue_entry->packet), packet, sizeof(union hxb_packet_any));
+
+		if(!packetqueue_enqueue_packetbuf(&send_queue, 0, (void*) queue_entry)) {
 			return HXB_ERR_OUT_OF_MEMORY;
 		}
 	} else {
@@ -107,9 +102,46 @@ bool allows_implicit_ack(union hxb_packet_any* packet) {
 bool is_ack_for(union hxb_packet_any* packet, uint16_t seq_num) {
 	switch(packet->header.type) {
 		case HXB_PTYPE_REPORT:
+			switch ((enum hxb_datatype) packet->value_header.datatype) {
+				case HXB_DTYPE_BOOL:
+				case HXB_DTYPE_UINT8:
+					return packet->p_u8_re.cause_sequence_number == seq_num;
+					break;
+
+				case HXB_DTYPE_UINT32:
+					return packet->p_u32_re.cause_sequence_number == seq_num;
+					break;
+
+				case HXB_DTYPE_FLOAT:
+					return packet->p_float_re.cause_sequence_number == seq_num;
+					break;
+
+				case HXB_DTYPE_128STRING:
+					return packet->p_128string_re.cause_sequence_number == seq_num;
+					break;
+
+				case HXB_DTYPE_66BYTES:
+					return packet->p_66bytes_re.cause_sequence_number == seq_num;
+					break;
+
+				case HXB_DTYPE_16BYTES:
+					return packet->p_16bytes_re.cause_sequence_number == seq_num;
+					break;
+
+				case HXB_DTYPE_DATETIME:
+				case HXB_DTYPE_TIMESTAMP:
+					//TODO should not be used anymore
+				case HXB_DTYPE_UNDEFINED:
+				default:
+					syslog(LOG_ERR, "Packet of unknown datatype.");
+					return false;
+			}
+			break;
 		case HXB_PTYPE_EPREPORT:
+			return (seq_num == packet->p_u32_re.cause_sequence_number);
+			break;
 		case HXB_PTYPE_ACK:
-			return (seq_num == packet->header.sequence_number);
+			return (seq_num == packet->p_ack.cause_sequence_number);
 			break;
 		default:
 			return false;
@@ -126,18 +158,16 @@ static void run_send_state_machine(uint8_t rs) {
 			break;
 		case SREADY:
 			if (packetqueue_len(&send_queue) > 0) {
-				if(hash_ip(&((struct hxb_queue_packet *)packetqueue_first(&send_queue))->ip) == rs) {
-					rstates[rs].P = (struct hxb_queue_packet *)packetqueue_first(&send_queue);
+				if(hash_ip(&((struct hxb_queue_packet *)(packetqueue_first(&send_queue))->ptr)->ip) == rs) {
+					rstates[rs].P = (struct hxb_queue_packet *)(packetqueue_first(&send_queue)->ptr);
 					packetqueue_dequeue(&send_queue);
-	
-					if(!send_packet((struct hxb_queue_packet *)rstates[rs].P)) {
-						rstates[rs].retrans = 0;
-						rstates[rs].ack = false;
-						rstates[rs].send_state = SWAIT_ACK;
-						etimer_set(&(rstates[rs].timeout_timer), RETRANS_TIMEOUT);
-					} else {
-						syslog(LOG_ERR, "Could not send reliable packet.");
-					}
+
+					syslog(LOG_DEBUG, "Sending reliable packet.");
+					send_packet((struct hxb_queue_packet *)rstates[rs].P);
+					rstates[rs].retrans = 0;
+					rstates[rs].ack = false;
+					rstates[rs].send_state = SWAIT_ACK;
+					etimer_set(&(rstates[rs].timeout_timer), RETRANS_TIMEOUT);
 				}
 			}
 			break;
@@ -148,7 +178,8 @@ static void run_send_state_machine(uint8_t rs) {
 				rstates[rs].P = NULL;
 				rstates[rs].send_state = SREADY;
 			} else if(etimer_expired(&(rstates[rs].timeout_timer))) {
-				if((rstates[rs].retrans)++ < RETRANS_LIMIT) {
+				if((rstates[rs].retrans)++ <= RETRANS_LIMIT) {
+					syslog(LOG_INFO, "Retransmit %u", rstates[rs].retrans-1);
 					send_packet((struct hxb_queue_packet *)rstates[rs].P);
 					etimer_set(&(rstates[rs].timeout_timer), RETRANS_TIMEOUT);
 				} else {
@@ -163,6 +194,9 @@ static void run_send_state_machine(uint8_t rs) {
 				syslog(LOG_WARN, "Resetting...");
 				process_post(PROCESS_BROADCAST, udp_handler_event, UDP_HANDLER_UP);
 				sm_restart();
+				fail = 0;
+				reset_reliability_layer();
+				rstates[rs].send_state = SINIT;
 			}
 			break;
 	}
@@ -180,21 +214,21 @@ static void run_recv_state_machine(uint8_t rs) {
 			if(fail) {
 				rstates[rs].recv_state = RFAILED;
 			} else if(rstates[rs].recved_packet){
-				syslog(LOG_INFO, "Processing packet.");
+				syslog(LOG_DEBUG, "Processing packet.");
 				if((R->packet.header.flags & HXB_FLAG_WANT_ACK) && !allows_implicit_ack(&(R->packet))) {
 					udp_handler_send_ack(&(R->ip), R->port, uip_ntohs(R->packet.header.sequence_number));
+				}
 
-					if(seqnumIsLessEqual(uip_ntohs(R->packet.header.sequence_number), rstates[rs].rseq_num)) {
-						//TODO handle reordering here
-						rstates[rs].recv_state = RREADY;
-						break;
-					}
+				if((seqnumIsLessEqual(uip_ntohs(R->packet.header.sequence_number), rstates[rs].rseq_num))&&(rstates[rs].rseq_num!=0)) {
+					syslog(LOG_INFO, "Dropped duplicate.");
+					rstates[rs].recv_state = RREADY;
+					break;
 				}
 
 				rstates[rs].rseq_num = MAX(rstates[rs].rseq_num, uip_ntohs(R->packet.header.sequence_number));
 
-				//FIXME reports are not processed
 				if(rstates[rs].want_ack_for != 0 && is_ack_for(&(R->packet), rstates[rs].want_ack_for)) {
+					syslog(LOG_DEBUG, "Received ACK");
 					rstates[rs].ack = true;
 					rstates[rs].recv_state = RREADY;
 				} else {
@@ -206,7 +240,7 @@ static void run_recv_state_machine(uint8_t rs) {
 		case RFAILED:
 			if(uip_ipaddr_cmp(&(R->ip), &udp_master_addr)) {
 				fail = 2;
-				rstates[rs].recv_state = RREADY;
+				rstates[rs].recv_state = RINIT;
 			}
 			break;
 	}
@@ -218,7 +252,7 @@ enum hxb_error_code receive_packet(struct hxb_queue_packet* packet) {
 
 	R = packet;
 	rstates[hash].recved_packet = true;
-	run_recv_state_machine(hash); 
+	run_recv_state_machine(hash);
 	rstates[hash].recved_packet = false;
 
 	if(fail)
@@ -227,7 +261,7 @@ enum hxb_error_code receive_packet(struct hxb_queue_packet* packet) {
 }
 
 void init_reliability_layer() {
-	for (int i=0; i<16; ++i) {
+	for (uint8_t i=0; i<16; ++i) {
 		rstates[i].recv_state = RINIT;
 		rstates[i].send_state = SINIT;
 	}
@@ -237,7 +271,7 @@ void init_reliability_layer() {
 
 void reset_reliability_layer() {
 	while(packetqueue_len(&send_queue) > 0) {
-		free(packetqueue_first(&send_queue));
+		free(packetqueue_first(&send_queue)->ptr);
 		packetqueue_dequeue(&send_queue);
 	}
 	init_reliability_layer();
@@ -256,7 +290,7 @@ PROCESS_THREAD(reliability_send_process, ev, data)
 			reset_reliability_layer();
 		}
 
-		for (int i=0; i<16; ++i)
+		for (uint8_t i=0; i<16; ++i)
 		{
 			run_send_state_machine(i);
 			run_recv_state_machine(i);

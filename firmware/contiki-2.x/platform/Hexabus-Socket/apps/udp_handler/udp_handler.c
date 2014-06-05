@@ -105,8 +105,9 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 	size_t len;
 
 	strncpy(packet->header.magic, HXB_HEADER, strlen(HXB_HEADER));
-	if((packet->header.sequence_number) == 0) 
+	if((packet->header.sequence_number) == 0) {
 		packet->header.sequence_number = uip_htons(next_sequence_number(toaddr));
+	}
 
 	switch ((enum hxb_packet_type) packet->header.type) {
 		case HXB_PTYPE_INFO:
@@ -229,7 +230,7 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 	return len;
 }
 
-static void do_udp_send(const uip_ipaddr_t* toaddr, uint16_t toport, union hxb_packet_any* packet)
+void do_udp_send(const uip_ipaddr_t* toaddr, uint16_t toport, union hxb_packet_any* packet)
 {
 	size_t len = prepare_for_send(packet, toaddr);
 
@@ -273,6 +274,30 @@ enum hxb_error_code udp_handler_send_generated(const uip_ipaddr_t* toaddr, uint1
 	}
 
 	do_udp_send(toaddr, toport, &send_buffer);
+
+	return HXB_ERR_SUCCESS;
+}
+
+enum hxb_error_code udp_handler_send_generated_reliable(const uip_ipaddr_t* toaddr, uint16_t toport, enum hxb_error_code (*packet_gen_fn)(union hxb_packet_any* buffer, void* data), void* data)
+
+{
+	enum hxb_error_code err;
+	union hxb_packet_any send_buffer;
+
+	send_buffer.header.sequence_number = 0;
+	send_buffer.header.flags = HXB_FLAG_WANT_ACK;
+
+	if (!packet_gen_fn) {
+		syslog(LOG_ERR, "Attempted to generate packet by NULL packet_gen_fn");
+		return HXB_ERR_INTERNAL;
+	}
+
+	err = packet_gen_fn(&send_buffer, data);
+	if (err) {
+		return err;
+	}
+
+	enqueue_packet(toaddr, toport, &send_buffer);
 
 	return HXB_ERR_SUCCESS;
 }
@@ -355,7 +380,7 @@ static enum hxb_error_code handle_write(union hxb_packet_any* packet)
 	env.eid = uip_ntohl(packet->value_header.eid);
 
 	enum hxb_error_code err;
-	
+
 	err = extract_value(packet, &env.value);
 	if (err) {
 		return err;
@@ -501,7 +526,9 @@ void udp_handler_handle_incoming(struct hxb_queue_packet* R) {
 					.eid = uip_ntohl(packet->p_query.eid),
 					.cause_sequence_number = uip_ntohs(packet->p_query.sequence_number),
 				};
-				err = udp_handler_send_generated(&(R->ip), R->port, generate_query_response, &ec);
+				//TODO testing
+				//err = udp_handler_send_generated(&(R->ip), R->port, generate_query_response, &ec);
+				err = udp_handler_send_generated_reliable(&(R->ip), R->port, generate_query_response, &ec);
 				break;
 			}
 

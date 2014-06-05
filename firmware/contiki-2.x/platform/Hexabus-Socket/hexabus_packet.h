@@ -16,7 +16,7 @@
 
 #define HXB_CAUSE_FOOTER \
 	uint16_t cause_sequence_number; \
-	
+
 
 struct hxb_packet_header {
 	HXB_PACKET_HEADER
@@ -50,7 +50,7 @@ struct hxb_packet_timeinfo {
 // used for QUERY and EPQUERY
 struct hxb_packet_query {
 	HXB_EIDPACKET_HEADER
-	
+
 } __attribute__((packed));
 
 /* INFO, EPINFO */
@@ -67,44 +67,44 @@ struct hxb_valuepacket_header {
 struct hxb_packet_u8 {
 	HXB_VALUEPACKET_HEADER
 	uint8_t value;
-	
+
 } __attribute__((packed));
 
 // used for UINT32 and TIMESTAMP
 struct hxb_packet_u32 {
 	HXB_VALUEPACKET_HEADER
 	uint32_t value;
-	
+
 } __attribute__((packed));
 
 struct hxb_packet_datetime {
 	HXB_VALUEPACKET_HEADER
 	struct hxb_datetime value;
-	
+
 } __attribute__((packed));
 
 struct hxb_packet_float {
 	HXB_VALUEPACKET_HEADER
 	float value;
-	
+
 } __attribute__((packed));
 
 struct hxb_packet_128string {
 	HXB_VALUEPACKET_HEADER
 	char value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH + 1];
-	
+
 } __attribute__((packed));
 
 struct hxb_packet_66bytes {
 	HXB_VALUEPACKET_HEADER
 	char value[HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH];
-	
+
 } __attribute__((packed));
 
 struct hxb_packet_16bytes {
 	HXB_VALUEPACKET_HEADER
 	char value[HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH];
-	
+
 } __attribute__((packed));
 
 

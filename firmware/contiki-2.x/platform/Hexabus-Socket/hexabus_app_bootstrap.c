@@ -3,6 +3,7 @@
 
 #include "hexabus_app_bootstrap.h"
 
+#include "reliability.h"
 #include "button.h"
 #include "relay.h"
 #include "metering.h"
@@ -104,6 +105,8 @@ void hexabus_bootstrap_init_apps() {
 void hexabus_bootstrap_start_processes() {
 
     PRINTF("Starting processes...\n");
+
+    process_start(&reliability_send_process, NULL);
 
     process_start(&button_pressed_process, NULL);
 
