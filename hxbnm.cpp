@@ -30,12 +30,17 @@
 
 #include <stdexcept>
 #include <vector>
+#include <set>
+#include <algorithm>
 #include <string>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
 
+namespace {
+
 static const char* EEP_FILE = "/dev/i2c-1";
+static const uint32_t KEY_ROLLOVER_THRESH = 1UL << 31;
 
 int teardown(const std::string& iface = "")
 {
@@ -65,6 +70,73 @@ int teardown(const std::string& iface = "")
 	return !!netdevs.size();
 }
 
+void sync_kernel_to_net(Controller& ctrl, const std::string& iface, Network& net)
+{
+	std::vector<Device> devs = ctrl.list_devices(iface);
+
+	BOOST_FOREACH(const Device& dev, devs) {
+		BOOST_FOREACH(Device& ndev, net.devices()) {
+			if (ndev.hwaddr() != dev.hwaddr())
+				continue;
+
+			ndev.keys() = dev.keys();
+			break;
+		}
+	}
+
+	net.sec_params(ctrl.getparams(iface));
+}
+
+void sync_net_to_kernel(const Network& net, const std::string& iface, Controller& ctrl)
+{
+	std::vector<Device> devs = ctrl.list_devices(iface);
+	std::vector<Key> keys = ctrl.list_keys(iface);
+
+	BOOST_FOREACH(const Device& ndev, net.devices()) {
+		if (!std::count(devs.begin(), devs.end(), ndev)) {
+			ctrl.add_device(iface, ndev);
+			continue;
+		}
+
+		Device& dev = *std::find(devs.begin(), devs.end(), ndev);
+
+		typedef std::pair<KeyLookupDescriptor, uint32_t> p_t;
+
+		BOOST_FOREACH(const p_t& p, dev.keys()) {
+			if (!ndev.keys().count(p.first))
+				ctrl.remove_device_key(iface, dev.hwaddr(), p.first);
+		}
+
+		BOOST_FOREACH(const p_t& p, ndev.keys()) {
+			if (!dev.keys().count(p.first)) {
+				ctrl.add_device_key(iface, dev.hwaddr(), p);
+			} else if (dev.keys()[p.first] < p.second) {
+				ctrl.remove_device_key(iface, dev.hwaddr(), p.first);
+				ctrl.add_device_key(iface, dev.hwaddr(), p);
+			}
+		}
+	}
+
+	BOOST_FOREACH(const Device& dev, devs) {
+		if (!count(net.devices().begin(), net.devices().end(), dev))
+			ctrl.remove_device(iface, dev.hwaddr());
+	}
+
+	BOOST_FOREACH(const Key& key, net.keys()) {
+		if (!count(keys.begin(), keys.end(), key)) {
+			ctrl.add_key(iface, key);
+		}
+	}
+
+	BOOST_FOREACH(const Key& key, keys) {
+		if (!count(net.keys().begin(), net.keys().end(), key)) {
+			ctrl.remove_key(iface, key);
+		}
+	}
+
+	ctrl.setparams(iface, net.sec_params());
+}
+
 int save_eeprom(const std::string& file, const std::string& iface)
 {
 	Controller ctrl;
@@ -72,11 +144,7 @@ int save_eeprom(const std::string& file, const std::string& iface)
 
 	Network net = Network::load(eep);
 
-	SecurityParameters sp = ctrl.getparams(iface);
-	std::vector<Device> devs = ctrl.list_devices(iface);
-
-	net.sec_params(sp);
-	net.replace_devices(devs.begin(), devs.end());
+	sync_kernel_to_net(ctrl, iface, net);
 
 	net.save(eep);
 	return 0;
@@ -100,13 +168,7 @@ int setup_network(const Network& net, const std::string& wpan_name = "",
 	ctrl.start(wpan.name(), net.pan());
 	ctrl.setup_dev(wpan.name());
 
-	BOOST_FOREACH(const Key& key, net.keys()) {
-		ctrl.add_key(wpan.name(), key);
-	}
-	BOOST_FOREACH(const Device& dev, net.devices()) {
-		ctrl.add_device(wpan.name(), dev);
-	}
-	ctrl.setparams(wpan.name(), net.sec_params());
+	sync_net_to_kernel(net, wpan.name(), ctrl);
 	ctrl.add_seclevel(wpan.name(), Seclevel(1, 0xff));
 
 	std::string link_name = lowpan.size() ? lowpan : "hxb%d";
@@ -159,13 +221,29 @@ int setup_random_full(const std::string& file)
 
 	Network next = Network::random();
 
-	 setup_network(next);
-
 	int rc = setup_network(next);
 	if (rc)
 		return rc;
 
 	next.save(eep);
+	return 0;
+}
+
+int rollover(const std::string& iface, const std::string& file)
+{
+	Controller ctrl;
+	Eeprom eep(file);
+	Network net = Network::load(eep);
+
+	sync_kernel_to_net(ctrl, iface, net);
+
+	if (!net.rollover(KEY_ROLLOVER_THRESH))
+		return 0;
+
+	sync_net_to_kernel(net, iface, ctrl);
+
+	net.save(eep);
+
 	return 0;
 }
 
@@ -271,6 +349,7 @@ enum {
 	C_SETUP,
 	C_SETUP_RANDOM,
 	C_SETUP_RANDOM_FULL,
+	C_ROLLOVER,
 	C_PAIR,
 	C_LIST_KEYS,
 	C_LIST_DEVICES,
@@ -297,6 +376,7 @@ static const struct {
 	{ "setup",		C_SETUP, },
 	{ "setup-random",	C_SETUP_RANDOM, },
 	{ "setup-random-full",	C_SETUP_RANDOM_FULL, },
+	{ "rollover",		C_ROLLOVER, },
 	{ "pair",		C_PAIR, },
 	{ "list-keys",		C_LIST_KEYS, },
 	{ "list-devices",	C_LIST_DEVICES, },
@@ -436,6 +516,8 @@ uint64_t parse_mac(const std::string& str)
 	return htobe64(result);
 }
 
+}
+
 int main(int argc, const char* argv[])
 {
 	if (argc == 1) {
@@ -471,6 +553,9 @@ int main(int argc, const char* argv[])
 
 		case C_SETUP_RANDOM_FULL:
 			return setup_random_full(EEP_FILE);
+
+		case C_ROLLOVER:
+			return rollover(next(), EEP_FILE);
 
 		case C_PAIR: {
 			std::string iface = next();

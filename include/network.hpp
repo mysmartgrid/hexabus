@@ -27,6 +27,8 @@ class Network {
 			DEVICE_KEY_MODE = IEEE802154_LLSEC_DEVKEY_RESTRICT,
 
 			MAX_DEVICES = 256,
+			KEY_LIMIT = 128,
+			KEY_RESERVE = 2,
 		};
 
 		PAN _pan;
@@ -40,6 +42,10 @@ class Network {
 
 		std::vector<Key>::iterator find_key(const KeyLookupDescriptor& desc);
 		boost::array<uint8_t, 16> derive_key(uint64_t id) const;
+		void add_keys_during_rollover(unsigned count = 1);
+		void advance_key_epoch(uint64_t to_epoch);
+		void add_keys_until(uint64_t to_epoch);
+		std::map<KeyLookupDescriptor, uint64_t> key_epoch_map();
 
 	public:
 		Network(const PAN& pan, uint16_t short_addr, uint64_t hwaddr,
@@ -60,17 +66,10 @@ class Network {
 
 		const std::vector<Key>& keys() const { return _keys; }
 
+		std::vector<Device>& devices() { return _devices; }
 		const std::vector<Device>& devices() const { return _devices; }
 		Device& add_device(uint64_t dev_addr);
 		void remove_device(const Device& dev);
-
-		template<typename It>
-		void replace_devices(const It& begin, const It& end)
-		{
-			_devices.clear();
-			for (It it = begin; it != end; ++it)
-				add_device(it->hwaddr()).keys() = it->keys();
-		}
 
 		const SecurityParameters& sec_params() const { return _sec_params; }
 		void sec_params(const SecurityParameters& params);
@@ -78,8 +77,8 @@ class Network {
 		const boost::array<uint8_t, 16>& master_key() const { return _master_key; }
 
 		uint64_t key_epoch() const { return _key_epoch; }
-		void advance_key_epoch(uint64_t to_epoch);
-		void add_keys_until(uint64_t to_epoch);
+
+		bool rollover(uint32_t counter_limit);
 };
 
 #endif

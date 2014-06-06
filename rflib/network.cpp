@@ -66,7 +66,7 @@ Network Network::random(uint64_t hwaddr)
 			SecurityParameters(true, DEFAULT_SECLEVEL, kld(0), 0),
 			key_bytes);
 
-	result.add_keys_until(1);
+	result.add_keys_until(KEY_RESERVE);
 
 	return result;
 }
@@ -91,6 +91,8 @@ void Network::sec_params(const SecurityParameters& params)
 {
 	if (find_key(params.out_key()) == _keys.end())
 		throw std::runtime_error("invalid out_key");
+	if (!params.enabled())
+		throw std::runtime_error("can't disabled security");
 
 	_sec_params = params;
 }
@@ -102,8 +104,10 @@ Device& Network::add_device(uint64_t dev_addr)
 
 	Device next(_pan.pan_id(), 0xfffe, dev_addr, 0, false, DEVICE_KEY_MODE);
 
+	int fc = 1;
 	BOOST_FOREACH(const Key& key, _keys) {
-		next.keys().insert(std::make_pair(key.lookup_desc(), 0));
+		next.keys().insert(std::make_pair(key.lookup_desc(), fc));
+		fc = 0;
 	}
 
 	_devices.push_back(next);
@@ -120,9 +124,20 @@ void Network::remove_device(const Device& dev)
 	_devices.erase(it);
 }
 
+static bool keyless_device(const Device& dev)
+{
+	typedef std::pair<KeyLookupDescriptor, uint32_t> p_t;
+	BOOST_FOREACH(const p_t& p, dev.keys()) {
+		if (p.second)
+			return false;
+	}
+
+	return true;
+}
+
 void Network::advance_key_epoch(uint64_t to_epoch)
 {
-	if (to_epoch - _key_epoch >= 255)
+	if (to_epoch - _key_epoch >= _keys.size())
 		throw std::runtime_error("epoch step too large");
 
 	uint8_t skipped = to_epoch - _key_epoch;
@@ -138,21 +153,136 @@ void Network::advance_key_epoch(uint64_t to_epoch)
 		if (id_diff >= skipped)
 			continue;
 
-		for (dit_t jt = _devices.begin(); jt != _devices.end(); ++jt) {
+		for (dit_t jt = _devices.begin(); jt != _devices.end(); ++jt)
 			jt->keys().erase(it->lookup_desc());
-			if (jt->keys().size() == 0)
-				_devices.erase(jt);
-		}
 
 		_keys.erase(it);
+		--it;
 	}
 
 	_key_epoch = to_epoch;
+	_devices.erase(
+		std::remove_if(_devices.begin(), _devices.end(), keyless_device),
+		_devices.end());
+	add_keys_until(_key_epoch + KEY_RESERVE);
+}
+
+std::map<KeyLookupDescriptor, uint64_t> Network::key_epoch_map()
+{
+	std::map<KeyLookupDescriptor, uint64_t> indexes;
+	int offset = 0;
+
+	BOOST_FOREACH(const Key& key, _keys) {
+		indexes[key.lookup_desc()] = _key_epoch + offset;
+		offset++;
+	}
+
+	return indexes;
+}
+
+uint32_t inactive_key_count(const std::vector<Device>& devs,
+		const std::map<KeyLookupDescriptor, uint64_t>& indexes)
+{
+	uint32_t result = ~uint32_t(0);
+
+	BOOST_FOREACH(const Device& dev, devs) {
+		uint64_t min_key = ~uint64_t(0);
+		uint64_t max_key = 0;
+
+		typedef std::pair<KeyLookupDescriptor, uint32_t> p_t;
+		BOOST_FOREACH(const p_t& p, dev.keys()) {
+			if (p.second) {
+				max_key = std::max(max_key, indexes.find(p.first)->second);
+				min_key = std::min(min_key, indexes.find(p.first)->second);
+			}
+		}
+
+		result = std::min<uint32_t>(result, max_key - min_key);
+	}
+
+	return result;
+}
+
+uint64_t latest_device_key(const std::vector<Device>& devs,
+		const std::map<KeyLookupDescriptor, uint64_t>& indexes)
+{
+	uint64_t latest = 0;
+
+	BOOST_FOREACH(const Device& dev, devs) {
+		typedef std::pair<KeyLookupDescriptor, uint32_t> p_t;
+		BOOST_FOREACH(const p_t& p, dev.keys()) {
+			if (p.second)
+				latest = std::max(latest, indexes.find(p.first)->second);
+		}
+	}
+
+	return latest;
+}
+
+bool Network::rollover(uint32_t counter_limit)
+{
+	bool result = false;
+
+	if (_sec_params.frame_counter() >= counter_limit) {
+		add_keys_during_rollover();
+		_sec_params = SecurityParameters(
+			true,
+			DEFAULT_SECLEVEL,
+			kld((_sec_params.out_key().id() + 1) & 0xFF),
+			0);
+		result = true;
+	}
+
+	std::map<KeyLookupDescriptor, uint64_t> key_names = key_epoch_map();
+
+	uint32_t superseded_keys = inactive_key_count(_devices, key_names);
+	if (superseded_keys) {
+		uint64_t first_valid = _key_epoch + superseded_keys;
+
+		advance_key_epoch(_key_epoch + superseded_keys);
+		if (key_names[_sec_params.out_key()] < first_valid) {
+			_sec_params = SecurityParameters(
+				true,
+				DEFAULT_SECLEVEL,
+				kld(_key_epoch & 0xFF),
+				0);
+		}
+
+		key_names = key_epoch_map();
+		result = true;
+	}
+
+	uint64_t latest_key = latest_device_key(_devices, key_names);
+	uint64_t out_key = key_names[_sec_params.out_key()];
+	if (out_key < latest_key) {
+		unsigned reserve = (_key_epoch + _keys.size() - 1) - latest_key;
+
+		if (reserve < KEY_RESERVE) {
+			add_keys_during_rollover(KEY_RESERVE - reserve);
+		}
+		_sec_params = SecurityParameters(
+			true,
+			DEFAULT_SECLEVEL,
+			kld(latest_key & 0xFF),
+			0);
+
+		result = true;
+	}
+
+	return result;
+}
+
+void Network::add_keys_during_rollover(unsigned count)
+{
+	if (_keys.size() == KEY_LIMIT) {
+		advance_key_epoch(_key_epoch + count);
+	}
+	add_keys_until(_key_epoch + _keys.size() + (count - 1));
 }
 
 void Network::add_keys_until(uint64_t to_epoch)
 {
-	if (to_epoch - _key_epoch >= 256)
+	if (to_epoch - _key_epoch >= KEY_LIMIT)
 		throw std::runtime_error("maximum number of keys exceeded");
 
 	uint8_t epoch_start = _key_epoch & 0xFF;

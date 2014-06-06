@@ -297,15 +297,21 @@ void Controller::add_device(const std::string& iface, const Device& dev)
 
 	typedef std::map<KeyLookupDescriptor, uint32_t>::const_iterator cit;
 	for (cit it = dev.keys().begin(), end = dev.keys().end(); it != end; ++it) {
-		msgs::add_devkey cmd(iface);
-
-		cmd.device(dev.hwaddr());
-		cmd.frame_counter(it->second);
-		cmd.key_mode(it->first.mode());
-		cmd.key_id(it->first.id());
-
-		send(cmd);
+		add_device_key(iface, dev.hwaddr(), *it);
 	}
+}
+
+void Controller::add_device_key(const std::string& iface, uint64_t hwaddr,
+		const std::pair<KeyLookupDescriptor, uint32_t>& key)
+{
+	msgs::add_devkey cmd(iface);
+
+	cmd.device(hwaddr);
+	cmd.frame_counter(key.second);
+	cmd.key_mode(key.first.mode());
+	cmd.key_id(key.first.id());
+
+	send(cmd);
 }
 
 void Controller::remove_device(const std::string& iface, uint64_t hwaddr)
@@ -313,6 +319,29 @@ void Controller::remove_device(const std::string& iface, uint64_t hwaddr)
 	msgs::del_dev cmd(iface);
 
 	cmd.hwaddr(hwaddr);
+
+	send(cmd);
+}
+
+void Controller::remove_device_key(const std::string& iface, uint64_t hwaddr,
+		const KeyLookupDescriptor& key)
+{
+	msgs::del_devkey cmd(iface);
+
+	cmd.device(hwaddr);
+	cmd.key_mode(key.mode());
+	cmd.key_id(key.id());
+
+	send(cmd);
+}
+
+void Controller::remove_key(const std::string& iface, const Key& key)
+{
+	msgs::del_key cmd(iface);
+
+	cmd.frames(key.frame_types());
+	cmd.id(key.lookup_desc().id());
+	cmd.mode(key.lookup_desc().mode());
 
 	send(cmd);
 }
