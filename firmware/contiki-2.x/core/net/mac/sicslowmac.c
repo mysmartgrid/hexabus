@@ -103,7 +103,9 @@ enum {
 	/* write frame counter to EEPROM every so many frames, advance
 	 * frame counter this far on boot. 10M should cover more than a day,
 	 * even on the most active network */
-	EEP_SYNC_LIMIT = 10000000,
+	EEP_SYNC_LIMIT = 10000000ULL,
+
+	FRAMECNT_LIMIT = 1ULL << 31,
 
 	LLSEC_ENC_MIC32_MODE = 5
 };
@@ -271,26 +273,81 @@ static void be64_add(uint8_t *be64, int8_t a)
 	}
 }
 
-static void
-set_key(int8_t epoch_offset)
+static void set_key(int8_t epoch_offset, bool force)
 {
+	static int8_t current_epoch_offset;
+
 	uint8_t key[16];
 	uint8_t key_by_epoch[16];
 
-	memset(key_by_epoch, 0, 16);
+	if (epoch_offset == current_epoch_offset && !force)
+		return;
+
+	memset(key_by_epoch, 0, 8);
 
 	AVR_ENTER_CRITICAL_REGION();
 
+	eeprom_read_block(key_by_epoch + 8, eep_addr(llsec_key_epoch), 8);
 	eeprom_read_block(key, eep_addr(encryption_key), 16);
 
-	eeprom_read_block(key_by_epoch + 8, eep_addr(llsec_key_epoch), 8);
+	AVR_LEAVE_CRITICAL_REGION();
+
 	be64_add(key_by_epoch + 8, epoch_offset);
 
 	rf212_key_setup(key);
 	rf212_cipher(key_by_epoch);
 	rf212_key_setup(key_by_epoch);
 
+	current_epoch_offset = epoch_offset;
+}
+
+static void set_key_by_index(uint8_t index)
+{
+	if (index <= mac_keycnt) {
+		uint8_t diff = index - mac_keycnt;
+		set_key(diff <= 127 ? diff : diff - 256, false);
+	} else {
+		uint8_t diff = index - mac_keycnt;
+		set_key(diff <= 127 ? diff : diff - 256, false);
+	}
+}
+
+static void advance_epoch(uint8_t index)
+{
+	uint8_t skip = 0;
+
+	if (index <= mac_keycnt) {
+		uint8_t diff = index - mac_keycnt;
+		skip = diff <= 127 ? diff : 0;
+	} else {
+		uint8_t diff = index - mac_keycnt;
+		skip = diff <= 127 ? diff : 0;
+	}
+
+	if (!skip)
+		return;
+
+	uint8_t epoch[8];
+
+	AVR_ENTER_CRITICAL_REGION();
+
+	eeprom_read_block(epoch, eep_addr(llsec_key_epoch), 8);
+	be64_add(epoch, skip);
+	eeprom_write_block(epoch, eep_addr(llsec_key_epoch), 8);
+	mac_framecnt = 0;
+	eeprom_write_dword(eep_addr(llsec_frame_counter), mac_framecnt);
+
 	AVR_LEAVE_CRITICAL_REGION();
+
+	mac_keycnt = epoch[7];
+	set_key(0, true);
+}
+
+static void init_crypto()
+{
+	load_frame_counter();
+	mac_keycnt = eeprom_read_byte(eep_addr(llsec_key_epoch[7]));
+	set_key(0, true);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -303,6 +360,11 @@ encrypt_payload(frame802154_t *pf)
 
 	if (pf->aux_hdr.security_control.security_level == 0)
 		return 0;
+
+	if (mac_framecnt >= FRAMECNT_LIMIT)
+		advance_epoch(mac_keycnt + 1);
+
+	set_key(0, false);
 
 	nonce.flags = 1;
 	rimeaddr_copy((rimeaddr_t *)&nonce.mac_addr, (rimeaddr_t *)&pf->src_addr);
@@ -349,8 +411,11 @@ decrypt_payload(frame802154_t *pf, uint8_t hlen)
 	uint8_t i, alen;
 	uint8_t mac[16];
 
-	if (pf->aux_hdr.security_control.security_level == 0)
+	if (pf->aux_hdr.security_control.security_level == 0 ||
+	    pf->aux_hdr.security_control.key_id_mode != 1)
 		return 0;
+
+	set_key_by_index(pf->aux_hdr.key[0]);
 
 	nonce.flags = 1;
 	rimeaddr_copy((rimeaddr_t *)&nonce.mac_addr, (rimeaddr_t *)&pf->src_addr);
@@ -396,6 +461,8 @@ decrypt_payload(frame802154_t *pf, uint8_t hlen)
 		PRINTF("\n");
 		return 1;
 	}
+
+	advance_epoch(pf->aux_hdr.key[0]);
 
 	return 0;
 }
@@ -577,8 +644,7 @@ init(void)
   rf212_key_setup(aes_key);
   mac_dsn = random_rand() % 256;
 
-  load_frame_counter();
-  set_key(0);
+  init_crypto();
 
   NETSTACK_RADIO.on();
 }

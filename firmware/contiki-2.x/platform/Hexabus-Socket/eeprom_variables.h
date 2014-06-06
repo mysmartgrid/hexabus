@@ -90,7 +90,7 @@ struct hxb_eeprom_layout {
 	uint8_t __padding[EEP_SIZE - 20 - (70 + sizeof(struct hxb_sm_eeprom_layout))];
 
 	uint32_t llsec_frame_counter;
-	uint64_t llsec_key_epoch; /* big endian! */
+	uint8_t llsec_key_epoch[8]; /* big endian epoch counter */
 
 	uint32_t energy_metering_pulses;
 	uint32_t energy_metering_pulses_total;
