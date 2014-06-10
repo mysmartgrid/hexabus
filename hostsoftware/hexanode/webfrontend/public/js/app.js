@@ -726,9 +726,9 @@ angular.module('dashboard', [
 	$scope.productionThreshold.resetForm = function() {
 		$scope.productionThreshold.source = $scope.productionThreshold.source_devices[Object.keys($scope.productionThreshold.source_devices)[0]].ip;
 		$scope.productionThreshold.productionThreshold = 10;
-		$scope.productionThreshold.offTimeout = 3600;
+		$scope.productionThreshold.offTimeout = 30;
 		$scope.productionThreshold.usageThreshold = 10;
-		$scope.productionThreshold.onTimeout = 3600;
+		$scope.productionThreshold.onTimeout = 30;
 		$scope.productionThreshold.switch = $scope.productionThreshold.switch_devices[Object.keys($scope.productionThreshold.switch_devices)[0]].ip;
 	};
 

@@ -144,6 +144,7 @@
 				"no-valid-number": "Eingabe ist keine gültige Zahl.",
 				"number-min-u32": "Der Wert muss größer als 0 sein.",
 				"number-max-u32": "Der Wert muss kleiner als 4294967295 sein.",
+				"number-max-u32-minutes": "Der Wert muss kleiner als 71582788 sein.",
 				"disjoint-devices" : "Jedes Gerät kann nur in einer Funktion verwenden werden.",
 				"no-slaves": "Es muss mindestens ein Gerät als slave ausgewählt werden.",
 				"opening-template-failed": "Die Vorlage {file} konnte nicht geöffnet werden.",
@@ -162,9 +163,9 @@
 			"choose-timeout": "Bitte wählen Sie eine Zeitbeschränkung aus.",
 			"choose-source": "Bitte das Produktions-Messgerät auswählen.",
 			"choose-production-threshold": "Bitte den Produktionsschwellwert auswählen.",
-			"choose-off-timeout": "Bitte die maximale Zeitspanne die das Gerät ausgeschaltet sein soll eingeben.",
+			"choose-off-timeout": "Bitte die maximale Zeitspanne in Minuten die das Gerät ausgeschaltet sein soll eingeben.",
 			"choose-usage-threshold": "Bitte den Verbrauchschwellwert auswählen.",
-			"choose-on-timeout": "Bitte die maximale Zeitspanne die das Gerät angeschaltet sein soll eingeben.",
+			"choose-on-timeout": "Bitte die maximale Zeitspanne in Minuten die das Gerät angeschaltet sein soll eingeben.",
 			"choose-switch": "Bitte das zu schaltende Gerät auswählen"
 
 		}

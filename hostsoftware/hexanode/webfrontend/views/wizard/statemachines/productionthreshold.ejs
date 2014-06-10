@@ -29,8 +29,8 @@
 	</div>
 
 	<div class="control-group" data-ng-class="{'has-error': productionThresholdForm.offTimeout.$invalid, 'has-success': productionThresholdForm.offTimeout.$valid}">
-		<label class="control-label" for="offTimeout" data-localize="wizard.state-machine.choose-off-timeout">Choose maximum offline time:</label>
-		<input class="form-control" type="number" name="offTimeout" min="1" max="4294967295" data-ng-model="productionThreshold.offTimeout"
+		<label class="control-label" for="offTimeout" data-localize="wizard.state-machine.choose-off-timeout">Choose maximum offline time in minutes:</label>
+		<input class="form-control" type="number" name="offTimeout" min="1" max="71582788" data-ng-model="productionThreshold.offTimeout"
 			data-ng-pattern="/^-?\d+$/"  data-ng-required="true">
 		<p class="help-block"
 			data-ng-show="productionThresholdForm.offTimeout.$error.number 
@@ -44,8 +44,8 @@
 				The value has to be greater then 0.
 		</p>
 		<p class="help-block" data-ng-show="productionThresholdForm.offTimeout.$error.max"
-			data-localize="wizard.state-machine.errors.number-max-u32">
-				The value has to be smaller then 4294967296.
+			data-localize="wizard.state-machine.errors.number-max-u32-minutes">
+				The value has to be smaller then 71582788.
 		</p>
 	</div>
 
@@ -72,8 +72,8 @@
 	</div>
 
 	<div class="control-group" data-ng-class="{'has-error': productionThresholdForm.onTimeout.$invalid, 'has-success': productionThresholdForm.onTimeout.$valid}">
-		<label class="control-label" for="onTimeout" data-localize="wizard.state-machine.choose-on-timeout">Choose maximum online time:</label>
-		<input class="form-control" type="number" name="onTimeout" min="1" max="4294967295" data-ng-model="productionThreshold.onTimeout"
+		<label class="control-label" for="onTimeout" data-localize="wizard.state-machine.choose-on-timeout">Choose maximum online time in minutes:</label>
+		<input class="form-control" type="number" name="onTimeout" min="1" max="71582788" data-ng-model="productionThreshold.onTimeout"
 			data-ng-pattern="/^-?\d+$/"  data-ng-required="true">
 		<p class="help-block"
 			data-ng-show="productionThresholdForm.onTimeout.$error.number 
@@ -87,8 +87,8 @@
 				The value has to be greater then 0.
 		</p>
 		<p class="help-block" data-ng-show="productionThresholdForm.onTimeout.$error.max"
-			data-localize="wizard.state-machine.errors.number-max-u32">
-				The value has to be smaller then 4294967296.
+			data-localize="wizard.state-machine.errors.number-max-u32-minutes">
+				The value has to be smaller then 71582788.
 		</p>
 	</div>
 

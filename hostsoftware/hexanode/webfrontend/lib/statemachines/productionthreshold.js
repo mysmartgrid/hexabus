@@ -23,10 +23,10 @@ exports.validateInput = function(msg) {
 		return new validationError('off-timeout-invalid', 'The value for off timeout is not a valid integer.');
 	}
 
-	if(msg.offTimeout < 1 || msg.offTimeout > 4294967295) {
-		return new validationError('off-timeout-out-of-range', 'The value for off timeout should be at least 1 and at most 4294967295.');
+	// Max Timeout is 71582788 minutes or 2^32 - 1 seconds
+	if(msg.offTimeout < 1 || msg.offTimeout > 71582788) {
+		return new validationError('off-timeout-out-of-range', 'The value for off timeout should be at least 1 and at most 71582788.');
 	}
-
 
 	if(!msg.hasOwnProperty('usageThreshold') || !validator.isInt(msg.usageThreshold)) {
 		return new validationError('usage-threshold-invalid', 'The value for usage threshold is not a valid integer.');
@@ -41,8 +41,9 @@ exports.validateInput = function(msg) {
 		return new validationError('on-timeout-invalid', 'The value for on timeout is not a valid integer.');
 	}
 
-	if(msg.onTimeout < 1 || msg.onTimeout > 4294967295) {
-		return new validationError('on-timeout-out-of-range', 'The value for on timeout should be at least 1 and at most 4294967295.');
+	// Max Timeout is 71582788 minutes or 2^32 - 1 seconds
+	if(msg.onTimeout < 1 || msg.onTimeout > 71582788) {
+		return new validationError('on-timeout-out-of-range', 'The value for on timeout should be at least 1 and at most 71582788.');
 	}
 	
 	if(!msg.hasOwnProperty('switchDevice') || !validator.isIP(msg.switchDevice,6)) {
@@ -57,6 +58,9 @@ exports.buildMachine = function(msg, progressCallback, callback) {
 	console.log('Building productionthreshold');
 
 	smb.onProgress(progressCallback);
+
+	msg.onTimeout = msg.onTimeout * 60;
+	msg.offTimeout = msg.offTimeout * 60;
 
 	smb.addTargetFile('productionthreshold/source.hbh', 'source.hbh', msg);
 	smb.addTargetFile('productionthreshold/fridge.hbh', 'fridge.hbh', msg);

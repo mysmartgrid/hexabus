@@ -45,7 +45,7 @@ machine fridge_machine {
 		}
 		if (ep fridge.Button == 1) {
 			write fridge.On := 1;
-			goto off;
+			goto wait_on;
 		}
 	}
 }
