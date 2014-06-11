@@ -314,6 +314,7 @@ eid 46 {
 eid 47 {
 	type UINT32
 	description "Flukso Phase 1"
+	unit "W"
 	access R
 	function sensor
 }
@@ -321,6 +322,7 @@ eid 47 {
 eid 48 {
 	type UINT32
 	description "Flukso Phase 2"
+	unit "W"
 	access R
 	function sensor
 }
@@ -328,6 +330,7 @@ eid 48 {
 eid 49 {
 	type UINT32
 	description "Flukso Phase 3"
+	unit "W"
 	access R
 	function sensor
 }
@@ -335,6 +338,7 @@ eid 49 {
 eid 50 {
 	type UINT32
 	description "Flukso S0 1"
+	unit "W"
 	access R
 	function sensor
 }
@@ -342,6 +346,7 @@ eid 50 {
 eid 51 {
 	type UINT32
 	description "Flukso S0 2"
+	unit "W"
 	access R
 	function sensor
 }
@@ -459,18 +464,21 @@ eid 68 {
 eid 69 {
         type FLOAT
         description "Factor L1"
+	unit "cosPhi"
         access R
         function sensor
 }
 eid 70 {
         type FLOAT
         description "Factor L2"
+	unit "cosPhi"
         access R
         function sensor
 }
 eid 71 {
         type FLOAT
         description "Factor L3"
+	unit "cosPhi"
         access R
         function sensor
 }
