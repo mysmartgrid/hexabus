@@ -415,6 +415,7 @@ int help(std::ostream& os, bool all = false)
 		<< "    [wpan]                  name the wpan device <wpan>" << std::endl
 		<< "    [lowpan]                name the lowpan device <lowpan>" << std::endl
 		<< "  setup-random              set up a new WPAN with MAC address from EEPROM" << std::endl
+		<< "  rollover <iface>          attempt key rollover on <iface>" << std::endl
 		<< "  pair <iface>              pair one device to <iface>" << std::endl
 		<< "    timeout <s>             sets timeout to <s> seconds" << std::endl
 		<< "  remove-device             removes a device from the network state" << std::endl
