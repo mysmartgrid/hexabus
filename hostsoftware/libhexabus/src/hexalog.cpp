@@ -55,13 +55,36 @@ class Logger : public hexabus::Logger {
 
 		void record_reading(klio::Sensor::Ptr sensor, klio::timestamp_t ts, double value)
 		{
+      double msecs1;
+      double msecs2;
+      double mdiff;
+      
+      struct timeval tv1;
+      struct timeval tv2;
 			try {
+
+        gettimeofday(&tv1, NULL) ;
+        msecs1=(double)tv1.tv_sec + ((double)tv1.tv_usec/1000000);
+				std::cout << "Call Record-Reading at " <<  tv1.tv_sec << "." << tv1.tv_usec << std::endl;
+
 				store->add_reading(sensor, ts, value);
-				std::cout << "Added reading " << value << " to sensor " << sensor->name() << std::endl;
+        gettimeofday(&tv2, NULL) ;
+        msecs2=(double)tv2.tv_sec + ((double)tv2.tv_usec/1000000);
+        mdiff = msecs2 - msecs1;
+        
+				std::cout << "Added reading " << value << " to sensor " << sensor->name() << " ("<<sensor->external_id()<< ")" << "t="<< ts << " diff=" <<mdiff << std::endl;
 			} catch (klio::StoreException const& ex) {
-				std::cout << "Failed to record reading: " << ex.what() << std::endl;
+        gettimeofday(&tv2, NULL) ;
+        msecs2=(double)tv2.tv_sec + ((double)tv2.tv_usec/1000000);
+        mdiff = msecs2 - msecs1;
+
+				std::cout << "Failed to record reading to sensor " << sensor->name()<< " ("<<sensor->external_id()<< ")"<< "t="<< ts << " diff=" << mdiff<< " : " << ex.what() << std::endl;
 			} catch (std::exception const& ex) {
-				std::cout << "Failed to record reading: " << ex.what() << std::endl;
+        gettimeofday(&tv2, NULL) ;
+        msecs2=(double)tv2.tv_sec + ((double)tv2.tv_usec/1000000);
+        mdiff = msecs2 - msecs1;
+
+				std::cout << "Failed to record reading to sensor " << sensor->name()<< " ("<<sensor->external_id()<< ")"<< "t="<< ts << " diff=" << mdiff<< " : " << ex.what() << std::endl;
 			}
 		}
 
@@ -95,8 +118,6 @@ class Logger : public hexabus::Logger {
 			std::cout << "Reopening store" << std::endl;
 			store->close();
 			store = klio::StoreFactory().create_sqlite3_store(store_file);
-			store->open();
-			store->initialize();
 
 			{
 				std::cout << "Adding sensors..." << std::endl;
