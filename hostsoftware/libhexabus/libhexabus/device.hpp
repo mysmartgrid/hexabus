@@ -147,7 +147,7 @@ namespace hexabus {
 		public:
 			typedef boost::function<std::string ()> read_name_fn_t;
 			typedef boost::function<void (const std::string& name)> write_name_fn_t;
-			Device(boost::asio::io_service& io, const std::string& interface, const std::vector<std::string>& addresses, int interval = 60);
+			Device(boost::asio::io_service& io, const std::vector<std::string>& interfaces, const std::vector<std::string>& addresses, int interval = 60);
 			void addEndpoint(const EndpointFunctions::Ptr ep);
 
 			boost::signals2::connection onReadName(

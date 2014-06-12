@@ -40,7 +40,7 @@ bool dummy_write_handler(const boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENG
 	return true;
 }
 
-Device::Device(boost::asio::io_service& io, const std::string& interface, const std::vector<std::string>& addresses, int interval)
+Device::Device(boost::asio::io_service& io, const std::vector<std::string>& interfaces, const std::vector<std::string>& addresses, int interval)
 	: _listener(io)
 	, _sockets()
 	, _timer(io)
@@ -48,11 +48,12 @@ Device::Device(boost::asio::io_service& io, const std::string& interface, const 
 	, _sm_state(0)
 {
 	try {
-		_listener.listen(interface);
+		for (std::vector<std::string>::const_iterator it = interfaces.begin(), end = interfaces.end(); it != end; ++it) {
+			_listener.listen(*it);
+		}
 		for (std::vector<std::string>::const_iterator it = addresses.begin(), end = addresses.end(); it != end; ++it) {
 			hexabus::Socket *socket = new hexabus::Socket(io);
 			socket->bind(boost::asio::ip::udp::endpoint(boost::asio::ip::address_v6::from_string(*it), 61616));
-			socket->mcast_from(interface);
 			socket->onPacketReceived(boost::bind(&Device::_handle_query, this, socket, _1, _2), filtering::isQuery() && (filtering::eid() % 32 > 0));
 			socket->onPacketReceived(boost::bind(&Device::_handle_write, this, socket, _1, _2), isWrite && (filtering::eid() % 32 > 0));
 

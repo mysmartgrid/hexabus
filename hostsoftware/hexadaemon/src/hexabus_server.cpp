@@ -28,8 +28,8 @@ namespace bf = boost::filesystem;
 	std::string _device_name = "Hexadaemon";
 #endif /* UCI_FOUND */
 
-HexabusServer::HexabusServer(boost::asio::io_service& io, const std::string& interface, const std::vector<std::string>& addresses, int interval, bool debug)
-	: _device(io, interface, addresses, interval)
+HexabusServer::HexabusServer(boost::asio::io_service& io, const std::vector<std::string>& interfaces, const std::vector<std::string>& addresses, int interval, bool debug)
+	: _device(io, interfaces, addresses, interval)
 	, _debug(debug)
 {
 	_init();
