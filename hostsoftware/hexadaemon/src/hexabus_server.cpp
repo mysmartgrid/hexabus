@@ -13,13 +13,19 @@
 
 #include "endpoints.h"
 
+#ifdef UCI_FOUND
 extern "C" {
 #include <uci.h>
 }
+#endif
 
 using namespace hexadaemon;
 
 namespace bf = boost::filesystem;
+
+#ifndef UCI_FOUND
+	std::string _device_name = "Hexadaemon";
+#endif /* UCI_FOUND */
 
 HexabusServer::HexabusServer(boost::asio::io_service& io, const std::string& interface, const std::string& address, int interval, bool debug)
 	: _device(io, interface, address, interval)
@@ -186,6 +192,7 @@ void HexabusServer::updateFluksoValues()
 void HexabusServer::loadSensorMapping()
 {
 	_debug && std::cout << "loading sensor mapping" << std::endl;
+#ifdef UCI_FOUND
 	uci_context *ctx = uci_alloc_context();
 	uci_package *flukso;
 	uci_load(ctx, "flukso", &flukso);
@@ -242,6 +249,7 @@ void HexabusServer::loadSensorMapping()
 		_sensor_mapping[port] = id;
 	}
 	uci_free_context(ctx);
+#endif /* UCI_FOUND */
 	_debug && std::cout << "sensor mapping loaded" << std::endl;
 }
 
@@ -249,6 +257,7 @@ std::string HexabusServer::loadDeviceName()
 {
 	_debug && std::cout << "loading device name" << std::endl;
 	std::string name;
+#ifdef UCI_FOUND
 	uci_context *ctx = uci_alloc_context();
 	uci_package *flukso;
 	uci_load(ctx, "flukso", &flukso);
@@ -276,6 +285,9 @@ std::string HexabusServer::loadDeviceName()
 
 	uci_free_context(ctx);
 	_debug && std::cout << "device name \"" << name << "\" loaded" << std::endl;
+#else /* UCI_FOUND */
+	name = _device_name;
+#endif /* UCI_FOUND */
 
 	return name;
 }
@@ -289,6 +301,7 @@ void HexabusServer::saveDeviceName(const std::string& name)
 		return;
 	}
 
+#ifdef UCI_FOUND
 	uci_context *ctx = uci_alloc_context();
 	uci_package *flukso;
 	uci_load(ctx, "flukso", &flukso);
@@ -318,4 +331,7 @@ void HexabusServer::saveDeviceName(const std::string& name)
 	}
 
 	uci_free_context(ctx);
+#else /* UCI_FOUND */
+	_device_name = name;
+#endif /* UCI_FOUND */
 }
