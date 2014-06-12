@@ -147,7 +147,7 @@ namespace hexabus {
 		public:
 			typedef boost::function<std::string ()> read_name_fn_t;
 			typedef boost::function<void (const std::string& name)> write_name_fn_t;
-			Device(boost::asio::io_service& io, const std::string& interface, const std::string& address, int interval = 60);
+			Device(boost::asio::io_service& io, const std::string& interface, const std::vector<std::string>& addresses, int interval = 60);
 			void addEndpoint(const EndpointFunctions::Ptr ep);
 
 			boost::signals2::connection onReadName(
@@ -155,14 +155,17 @@ namespace hexabus {
 			boost::signals2::connection onWriteName(
 					const write_name_fn_t& callback);
 		protected:
-			void _handle_query(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
-			void _handle_write(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void _handle_query(hexabus::Socket* socket, const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void _handle_write(hexabus::Socket* socket, const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void _handle_epquery(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void _handle_descquery(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void _handle_descepquery(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void _handle_epquery(hexabus::Socket* socket, const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void _handle_descquery(hexabus::Socket* socket, const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void _handle_descepquery(hexabus::Socket* socket, const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			uint8_t _handle_smcontrolquery();
 			bool _handle_smcontrolwrite(uint8_t);
-			void _handle_smupload(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
+			void _handle_smupload(hexabus::Socket* socket, const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 		private:
 			void _handle_broadcasts(const boost::system::error_code& error);
 			void _handle_errors(const hexabus::GenericException& error);
@@ -171,7 +174,7 @@ namespace hexabus {
 			boost::signals2::signal<void (const std::string&)> _write;
 
 			hexabus::Listener _listener;
-			hexabus::Socket _socket;
+			std::vector<hexabus::Socket*> _sockets;
 			boost::asio::deadline_timer _timer;
 			int _interval;
 			std::map<uint32_t, const EndpointFunctions::Ptr> _endpoints;

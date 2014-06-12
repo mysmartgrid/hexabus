@@ -9,7 +9,7 @@ namespace hexadaemon {
 	class HexabusServer {
 		public:
 			typedef boost::shared_ptr<HexabusServer> Ptr;
-			HexabusServer(boost::asio::io_service& io, const std::string& interface, const std::string& address, int interval = 60, bool debug = false);
+			HexabusServer(boost::asio::io_service& io, const std::string& interface, const std::vector<std::string>& addresses, int interval = 60, bool debug = false);
 			virtual ~HexabusServer() {};
 
 			uint32_t get_sensor(int map_idx);

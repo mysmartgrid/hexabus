@@ -10,6 +10,7 @@
 
 #include <libhexabus/device.hpp>
 #include <libhexabus/endpoint_registry.hpp>
+#include "../../../shared/hexabus_definitions.h"
 
 #include "endpoints.h"
 
@@ -27,8 +28,8 @@ namespace bf = boost::filesystem;
 	std::string _device_name = "Hexadaemon";
 #endif /* UCI_FOUND */
 
-HexabusServer::HexabusServer(boost::asio::io_service& io, const std::string& interface, const std::string& address, int interval, bool debug)
-	: _device(io, interface, address, interval)
+HexabusServer::HexabusServer(boost::asio::io_service& io, const std::string& interface, const std::vector<std::string>& addresses, int interval, bool debug)
+	: _device(io, interface, addresses, interval)
 	, _debug(debug)
 {
 	_init();

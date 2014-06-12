@@ -40,31 +40,35 @@ bool dummy_write_handler(const boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENG
 	return true;
 }
 
-Device::Device(boost::asio::io_service& io, const std::string& interface, const std::string& address, int interval)
+Device::Device(boost::asio::io_service& io, const std::string& interface, const std::vector<std::string>& addresses, int interval)
 	: _listener(io)
-	, _socket(io)
+	, _sockets()
 	, _timer(io)
 	, _interval(interval)
 	, _sm_state(0)
 {
-	_listener.listen(interface);
 	try {
-		_socket.bind(boost::asio::ip::udp::endpoint(boost::asio::ip::address_v6::from_string(address), 61616));
-		_socket.mcast_from(interface);
-		_socket.onPacketReceived(boost::bind(&Device::_handle_query, this, _1, _2), filtering::isQuery() && (filtering::eid() % 32 > 0));
-		_socket.onPacketReceived(boost::bind(&Device::_handle_write, this, _1, _2), isWrite && (filtering::eid() % 32 > 0));
+		_listener.listen(interface);
+		for (std::vector<std::string>::const_iterator it = addresses.begin(), end = addresses.end(); it != end; ++it) {
+			hexabus::Socket *socket = new hexabus::Socket(io);
+			socket->bind(boost::asio::ip::udp::endpoint(boost::asio::ip::address_v6::from_string(*it), 61616));
+			socket->mcast_from(interface);
+			socket->onPacketReceived(boost::bind(&Device::_handle_query, this, socket, _1, _2), filtering::isQuery() && (filtering::eid() % 32 > 0));
+			socket->onPacketReceived(boost::bind(&Device::_handle_write, this, socket, _1, _2), isWrite && (filtering::eid() % 32 > 0));
 
-		_socket.onPacketReceived(boost::bind(&Device::_handle_epquery, this, _1, _2), filtering::isEndpointQuery() && (filtering::eid() % 32 > 0));
+			socket->onPacketReceived(boost::bind(&Device::_handle_epquery, this, socket, _1, _2), filtering::isEndpointQuery() && (filtering::eid() % 32 > 0));
+
+			socket->onPacketReceived(boost::bind(&Device::_handle_descquery, this, socket, _1, _2), filtering::isQuery() && (filtering::eid() % 32 == 0));
+			socket->onPacketReceived(boost::bind(&Device::_handle_descepquery, this, socket, _1, _2), filtering::isEndpointQuery() && (filtering::eid() % 32 == 0));
+
+			socket->onPacketReceived(boost::bind(&Device::_handle_smupload, this, socket, _1, _2), isWrite && filtering::eid() == EP_SM_UP_RECEIVER);
+
+			socket->onAsyncError(boost::bind(&Device::_handle_errors, this, _1));
+			_sockets.push_back(socket);
+		}
 		_listener.onPacketReceived(boost::bind(&Device::_handle_epquery, this, _1, _2), filtering::isEndpointQuery() && (filtering::eid() % 32 > 0));
-
-		_socket.onPacketReceived(boost::bind(&Device::_handle_descquery, this, _1, _2), filtering::isQuery() && (filtering::eid() % 32 == 0));
-		_socket.onPacketReceived(boost::bind(&Device::_handle_descepquery, this, _1, _2), filtering::isEndpointQuery() && (filtering::eid() % 32 == 0));
 		_listener.onPacketReceived(boost::bind(&Device::_handle_descquery, this, _1, _2), filtering::isQuery() && (filtering::eid() % 32 == 0));
 		_listener.onPacketReceived(boost::bind(&Device::_handle_descepquery, this, _1, _2), filtering::isEndpointQuery() && (filtering::eid() % 32 == 0));
-
-		_socket.onPacketReceived(boost::bind(&Device::_handle_smupload, this, _1, _2), isWrite && filtering::eid() == EP_SM_UP_RECEIVER);
-
-		_socket.onAsyncError(boost::bind(&Device::_handle_errors, this, _1));
 	} catch ( const NetworkException& error ) {
 		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
 		exit(1);
@@ -101,7 +105,7 @@ void Device::addEndpoint(const EndpointFunctions::Ptr ep)
 	_endpoints.insert(std::pair<uint32_t, const EndpointFunctions::Ptr>(ep->eid(), ep));
 }
 
-void Device::_handle_query(const Packet& p, const boost::asio::ip::udp::endpoint& from)
+void Device::_handle_query(hexabus::Socket* socket, const Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
 	const QueryPacket* query = dynamic_cast<const QueryPacket*>(&p);
 	if ( !query ) {
@@ -111,17 +115,17 @@ void Device::_handle_query(const Packet& p, const boost::asio::ip::udp::endpoint
 	std::map<uint32_t, const EndpointFunctions::Ptr>::iterator it = _endpoints.find(query->eid());
 	try {
 		if ( it != _endpoints.end() ) {
-			_socket.send(*(it->second->handle_query()), from);
+			socket->send(*(it->second->handle_query()), from);
 		} else {
 			std::cout << "unknown EID" << std::endl;
-			_socket.send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
+			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
 		}
 	} catch ( const NetworkException& error ) {
 		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
 	}
 }
 
-void Device::_handle_write(const Packet& p, const boost::asio::ip::udp::endpoint& from)
+void Device::_handle_write(hexabus::Socket* socket, const Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
 	const EIDPacket* write = dynamic_cast<const EIDPacket*>(&p);
 	if ( !write ) {
@@ -134,11 +138,11 @@ void Device::_handle_write(const Packet& p, const boost::asio::ip::udp::endpoint
 			uint8_t res = it->second->handle_write(p);
 			if ( res != HXB_ERR_SUCCESS && res < HXB_ERR_INTERNAL ) {
 				std::cerr << "Error while writing " << write->eid() << std::endl;
-				_socket.send(ErrorPacket(res), from);
+				socket->send(ErrorPacket(res), from);
 			}
 		} else {
 			std::cout << "unknown EID" << std::endl;
-			_socket.send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
+			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
 		}
 	} catch ( const NetworkException& error ) {
 		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
@@ -146,6 +150,14 @@ void Device::_handle_write(const Packet& p, const boost::asio::ip::udp::endpoint
 }
 
 void Device::_handle_epquery(const Packet& p, const boost::asio::ip::udp::endpoint& from)
+{
+	for ( std::vector<hexabus::Socket*>::iterator it = _sockets.begin(), end = _sockets.end(); it != end; ++it )
+	{
+		_handle_epquery(*it, p, from);
+	}
+}
+
+void Device::_handle_epquery(hexabus::Socket* socket, const Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
 	const EIDPacket* query = dynamic_cast<const EIDPacket*>(&p);
 	if ( !query ) {
@@ -155,10 +167,10 @@ void Device::_handle_epquery(const Packet& p, const boost::asio::ip::udp::endpoi
 	std::map<uint32_t, const EndpointFunctions::Ptr>::iterator it = _endpoints.find(query->eid());
 	try {
 		if ( it != _endpoints.end() ) {
-			_socket.send(EndpointInfoPacket(query->eid(), it->second->datatype(), it->second->name()), from);
+			socket->send(EndpointInfoPacket(query->eid(), it->second->datatype(), it->second->name()), from);
 		} else {
 			std::cout << "unknown EID" << std::endl;
-			_socket.send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
+			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
 		}
 	} catch ( const NetworkException& error ) {
 		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
@@ -167,7 +179,14 @@ void Device::_handle_epquery(const Packet& p, const boost::asio::ip::udp::endpoi
 
 void Device::_handle_descquery(const Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
-	std::cout << "blubb" << std::endl;
+	for ( std::vector<hexabus::Socket*>::iterator it = _sockets.begin(), end = _sockets.end(); it != end; ++it )
+	{
+		_handle_descquery(*it, p, from);
+	}
+}
+
+void Device::_handle_descquery(hexabus::Socket* socket, const Packet& p, const boost::asio::ip::udp::endpoint& from)
+{
 	const EIDPacket* query = dynamic_cast<const EIDPacket*>(&p);
 	if ( !query ) {
 		//TODO: What to do?
@@ -184,13 +203,21 @@ void Device::_handle_descquery(const Packet& p, const boost::asio::ip::udp::endp
 	}
 
 	try {
-		_socket.send(InfoPacket<uint32_t>(query->eid(), group), from);
+		socket->send(InfoPacket<uint32_t>(query->eid(), group), from);
 	} catch ( const NetworkException& error ) {
 		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
 	}
 }
 
 void Device::_handle_descepquery(const Packet& p, const boost::asio::ip::udp::endpoint& from)
+{
+	for ( std::vector<hexabus::Socket*>::iterator it = _sockets.begin(), end = _sockets.end(); it != end; ++it )
+	{
+		_handle_descepquery(*it, p, from);
+	}
+}
+
+void Device::_handle_descepquery(hexabus::Socket* socket, const Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
 	const EIDPacket* query = dynamic_cast<const EIDPacket*>(&p);
 	if ( !query ) {
@@ -203,7 +230,7 @@ void Device::_handle_descepquery(const Packet& p, const boost::asio::ip::udp::en
 		device_name = *_read();
 
 	try {
-		_socket.send(EndpointInfoPacket(query->eid(), HXB_DTYPE_UINT32, device_name), from);
+		socket->send(EndpointInfoPacket(query->eid(), HXB_DTYPE_UINT32, device_name), from);
 	} catch ( const NetworkException& error ) {
 		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
 	}
@@ -220,12 +247,12 @@ bool Device::_handle_smcontrolwrite(uint8_t value)
 	return true;
 }
 
-void Device::_handle_smupload(const Packet& p, const boost::asio::ip::udp::endpoint& from)
+void Device::_handle_smupload(hexabus::Socket* socket, const Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
 	const WritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >* write = dynamic_cast<const WritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >*>(&p);
 	if ( !write ) {
 		try {
-			_socket.send(InfoPacket<bool>(EP_SM_UP_ACKNAK, false), from);
+			socket->send(InfoPacket<bool>(EP_SM_UP_ACKNAK, false), from);
 		} catch ( const NetworkException& error ) {
 			std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
 		}
@@ -246,7 +273,7 @@ void Device::_handle_smupload(const Packet& p, const boost::asio::ip::udp::endpo
 		}
 	}
 	try {
-		_socket.send(InfoPacket<bool>(EP_SM_UP_ACKNAK, true), from);
+		socket->send(InfoPacket<bool>(EP_SM_UP_ACKNAK, true), from);
 	} catch ( const NetworkException& error ) {
 		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
 	}
@@ -261,10 +288,13 @@ void Device::_handle_broadcasts(const boost::system::error_code& error)
 			Packet::Ptr p = it->second->handle_query();
 			if ( p && p->type() != HXB_PTYPE_ERROR )
 			{
-				try {
-					_socket.send(*p);
-				} catch ( const NetworkException& error ) {
-					std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
+				for ( std::vector<hexabus::Socket*>::const_iterator it = _sockets.begin(), end = _sockets.end(); it != end; ++it )
+				{
+					try {
+						(*it)->send(*p);
+					} catch ( const NetworkException& error ) {
+						std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
+					}
 				}
 			}
 		}
