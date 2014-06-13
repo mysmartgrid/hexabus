@@ -19,7 +19,7 @@ class KeyLookupDescriptor {
 
 	public:
 		KeyLookupDescriptor(uint8_t mode, uint8_t id = 0,
-			boost::variant<uint32_t, uint64_t> source = boost::variant<uint32_t, uint64_t>())
+			boost::variant<uint32_t, uint64_t> source = uint32_t(0))
 			: _mode(mode), _id(id), _source(source)
 		{}
 
