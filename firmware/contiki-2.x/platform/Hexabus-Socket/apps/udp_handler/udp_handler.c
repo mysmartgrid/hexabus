@@ -319,6 +319,7 @@ enum hxb_error_code udp_handler_send_ack(const uip_ipaddr_t* toaddr, uint16_t to
 {
 	syslog(LOG_INFO, "Sent explicit ACK %u", cause_sequence_number);
 	struct hxb_packet_ack ack = {
+		.sequence_number = 0,
 		.type = HXB_PTYPE_ACK,
 		.cause_sequence_number = cause_sequence_number
 	};
@@ -518,6 +519,8 @@ void udp_handler_handle_incoming(struct hxb_queue_packet* R) {
 	switch ((enum hxb_packet_type) packet->header.type) {
 		case HXB_PTYPE_WRITE:
 			err = handle_write(packet);
+			if(!err && (packet->header.flags & HXB_FLAG_WANT_ACK))
+				udp_handler_send_ack(&(R->ip), R->port, uip_ntohs(packet->header.sequence_number));
 			break;
 
 		case HXB_PTYPE_QUERY:
@@ -526,9 +529,7 @@ void udp_handler_handle_incoming(struct hxb_queue_packet* R) {
 					.eid = uip_ntohl(packet->p_query.eid),
 					.cause_sequence_number = uip_ntohs(packet->p_query.sequence_number),
 				};
-				//TODO testing
-				//err = udp_handler_send_generated(&(R->ip), R->port, generate_query_response, &ec);
-				err = udp_handler_send_generated_reliable(&(R->ip), R->port, generate_query_response, &ec);
+				err = udp_handler_send_generated(&(R->ip), R->port, generate_query_response, &ec);
 				break;
 			}
 

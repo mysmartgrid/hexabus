@@ -13,9 +13,6 @@
 #include "packet.hpp"
 #include "filtering.hpp"
 
-#define RETRANS_TIMEOUT 1
-#define RETRANS_LIMIT 3
-
 namespace hexabus {
 	class SocketBase {
 		public:
@@ -100,10 +97,10 @@ namespace hexabus {
 				uint16_t want_ack_for;
 				boost::asio::deadline_timer timeout_timer;
 				std::pair<boost::shared_ptr<const Packet>, on_packet_transmitted_callback_t> currentPacket;
-				uint16_t currentSeqNum;
 			};
 
 			on_packet_transmitted_callback_t transmittedPacket;
+			uint16_t retrans_limit;
 			std::map<boost::asio::ip::udp::endpoint, boost::shared_ptr<Association> > _associations;
 			boost::asio::deadline_timer _association_gc_timer;
 			boost::signals2::connection ack_reply;
@@ -113,14 +110,14 @@ namespace hexabus {
 			void scheduleAssociationGC();
 
 			void beginSend(const boost::asio::ip::udp::endpoint& to);
-			void onSendTimeout(const boost::asio::ip::udp::endpoint& to);
+			void onSendTimeout(const boost::system::error_code& error, const boost::asio::ip::udp::endpoint& to);
 
 			uint16_t send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest, uint16_t seqNum);
 			bool packetPrereceive(const Packet::Ptr& packet, const boost::asio::ip::udp::endpoint& from);
 
 		public:
-			Socket(boost::asio::io_service& io)
-				: SocketBase(io), _association_gc_timer(io)
+			Socket(boost::asio::io_service& io, uint16_t retrans_limit = 2)
+				: SocketBase(io), retrans_limit(retrans_limit), _association_gc_timer(io)
 			{
 				static on_packet_received_slot_t nullCallback;
 

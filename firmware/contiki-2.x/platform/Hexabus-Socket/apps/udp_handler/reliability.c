@@ -219,8 +219,10 @@ static void run_recv_state_machine(uint8_t rs) {
 					udp_handler_send_ack(&(R->ip), R->port, uip_ntohs(R->packet.header.sequence_number));
 				}
 
-				if((seqnumIsLessEqual(uip_ntohs(R->packet.header.sequence_number), rstates[rs].rseq_num))&&(rstates[rs].rseq_num!=0)) {
-					syslog(LOG_INFO, "Dropped duplicate.");
+				if((seqnumIsLessEqual(uip_ntohs(R->packet.header.sequence_number), rstates[rs].rseq_num))&&
+						(rstates[rs].rseq_num!=0)&&
+						!allows_implicit_ack(&(R->packet))) {
+					syslog(LOG_INFO, "Dropped duplicate (Got: %u, Current: %u).", uip_ntohs(R->packet.header.sequence_number), rstates[rs].rseq_num);
 					rstates[rs].recv_state = RREADY;
 					break;
 				}

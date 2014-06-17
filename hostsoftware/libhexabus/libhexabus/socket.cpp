@@ -220,10 +220,12 @@ bool Socket::packetPrereceive(const Packet::Ptr& packet, const boost::asio::ip::
 	Association& assoc = getAssociation(from);
 
 	if((packet->flags()&Packet::want_ack) && !allows_implicit_ack(*packet)) {
+		std::cout << "Sending ACK" << std::endl;
 		send(AckPacket(packet->sequenceNumber()), from);
 	}
 
-	if(seqnumIsLessEqual(packet->sequenceNumber(), assoc.rSeqNum)) {
+	if(seqnumIsLessEqual(packet->sequenceNumber(), assoc.rSeqNum) && assoc.rSeqNum!=0 && !allows_implicit_ack(*packet)) {
+		std::cout << "Dropping Duplicate (Got: " << packet->sequenceNumber() << "@ " << assoc.rSeqNum << std::endl;
 		return false;
 	} else {
 
@@ -234,9 +236,10 @@ bool Socket::packetPrereceive(const Packet::Ptr& packet, const boost::asio::ip::
 
 			if(cpacket->cause() == assoc.want_ack_for) {
 				assoc.want_ack_for = 0;
-				assoc.currentPacket.second(*packet, from, false);
+				assoc.retrans_count = 0;
 				assoc.currentPacket.first.reset();
 				assoc.timeout_timer.cancel();
+				assoc.currentPacket.second(*packet, from, false);
 				beginSend(from);
 			}
 		}
@@ -250,20 +253,22 @@ void Socket::filterAckReplys(const filter_t& filter)
 	ackfilter = filter;
 }
 
-void Socket::onSendTimeout(const boost::asio::ip::udp::endpoint& to)
+void Socket::onSendTimeout(const boost::system::error_code& error, const boost::asio::ip::udp::endpoint& to)
 {
-	Association& assoc = getAssociation(to);
+	if(!error) {
+		Association& assoc = getAssociation(to);
 
-	if(assoc.retrans_count >= RETRANS_LIMIT) {
-		assoc.currentPacket.second(*assoc.currentPacket.first, to, true);
-		assoc.currentPacket.first.reset();
-		beginSend(to);
-	} else if(assoc.currentPacket.first.use_count()) {
-		printf("Resend number %d\n", assoc.retrans_count);
-		assoc.retrans_count++;
-		send(*assoc.currentPacket.first, to, assoc.want_ack_for);
-		assoc.timeout_timer.expires_from_now(boost::posix_time::seconds(RETRANS_TIMEOUT));
-		assoc.timeout_timer.async_wait(boost::bind(&Socket::onSendTimeout, this, to));
+		if(assoc.retrans_count >= retrans_limit) {
+			assoc.currentPacket.second(*assoc.currentPacket.first, to, true);
+			assoc.currentPacket.first.reset();
+			beginSend(to);
+		} else if(assoc.currentPacket.first.use_count()) {
+			printf("Resend number %d\n", assoc.retrans_count);
+			assoc.retrans_count++;
+			send(*assoc.currentPacket.first, to, assoc.want_ack_for);
+			assoc.timeout_timer.expires_from_now(boost::posix_time::seconds(1));
+			assoc.timeout_timer.async_wait(boost::bind(&Socket::onSendTimeout, this, _1, to));
+		}
 	}
 }
 
@@ -278,8 +283,8 @@ void Socket::beginSend(const boost::asio::ip::udp::endpoint& to)
 			assoc.want_ack_for = generateSequenceNumber(to);
 			assoc.sendQueue.pop();
 			send(*assoc.currentPacket.first, to, assoc.want_ack_for);
-			assoc.timeout_timer.expires_from_now(boost::posix_time::seconds(RETRANS_TIMEOUT));
-			assoc.timeout_timer.async_wait(boost::bind(&Socket::onSendTimeout, this, to));
+			assoc.timeout_timer.expires_from_now(boost::posix_time::seconds(1));
+			assoc.timeout_timer.async_wait(boost::bind(&Socket::onSendTimeout, this, _1, to));
 			beginReceive();
 		}
 	}
@@ -338,6 +343,7 @@ Socket::Association& Socket::getAssociation(const boost::asio::ip::udp::endpoint
 		assoc->seqNum = assoc->lastUpdate.time_of_day().total_microseconds() % std::numeric_limits<uint16_t>::max();
 		assoc->retrans_count = 0;
 		assoc->want_ack_for = 0;
+		assoc->rSeqNum = 0;
 
 		boost::asio::ip::address_v6::bytes_type bytes = target.address().to_v6().to_bytes();
 		for (uint32_t i = 0; i < 16; i += 2) {
@@ -357,5 +363,5 @@ uint16_t Socket::generateSequenceNumber(const boost::asio::ip::udp::endpoint& ta
 	Association& assoc = getAssociation(target);
 	assoc.lastUpdate = boost::posix_time::second_clock::universal_time();
 
-	return (assoc.seqNum)==0 ? assoc.seqNum++ : assoc.seqNum;
+	return (++assoc.seqNum)==0 ? assoc.seqNum++ : assoc.seqNum;
 }
