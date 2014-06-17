@@ -111,7 +111,8 @@ class Logger : public hexabus::Logger {
 				for (it = uuids.begin(), end = uuids.end(); it != end; ++it) {
 					klio::Sensor::Ptr sensor = store->get_sensor(*it);
 
-					sensor_cache[sensor->name()] = sensor;
+					//sensor_cache[sensor->name()] = sensor;
+					sensor_cache[sensor->external_id()] = sensor;
 				}
 			}
 
