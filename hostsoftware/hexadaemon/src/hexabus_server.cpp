@@ -9,6 +9,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <boost/lexical_cast.hpp>
+#define DEBUG 0
 
 #include "endpoints.h"
 
@@ -240,25 +241,50 @@ void HexabusServer::value_handler(const hexabus::Packet& p, const boost::asio::i
 void HexabusServer::broadcast_handler(const boost::system::error_code& error)
 {
 	_debug && std::cout << "Broadcasting current values." << std::endl;
-	if ( !error )
-	{
-		int value = getFluksoValue();
-		if (value >= 0) {
-			_socket.send(hexabus::InfoPacket<uint32_t>(EP_POWER_METER, value));
-		}
+	try {
+    if ( !error )
+    {
+#if DEBUG
+      struct timeval tv1;
+      gettimeofday(&tv1, NULL) ;
+      struct tm *tm1 = localtime(&tv1.tv_sec);
+#endif
+      int value = getFluksoValue();
+      if (value >= 0) {
+#if DEBUG
+        printf("%04d-%02d-%02d %02d:%02d:%02d.%d Send EID %d Values=%d\n",
+               tm1->tm_year+1900, tm1->tm_mon, tm1->tm_mday,
+               tm1->tm_hour, tm1->tm_min, tm1->tm_sec, tv1.tv_usec,
+               2, value);
+        
+#endif
+        _socket.send(hexabus::InfoPacket<uint32_t>(EP_POWER_METER, value));
+      }
 
-		for ( unsigned int i = 1; i < 6; i++ )
-		{
-			int value = _flukso_values[_sensor_mapping[i]];
-			if ( value >= 0 ) {
-				_socket.send(hexabus::InfoPacket<uint32_t>(endpoints[i], value));
-			}
-		}
+      for ( unsigned int i = 1; i < 6; i++ )
+      {
+        int value = _flukso_values[_sensor_mapping[i]];
+        if ( value >= 0 ) {
+#if DEBUG
+          printf("%04d-%02d-%02d %02d:%02d:%02d.%d Send EID %d Values=%d\n",
+                 tm1->tm_year+1900, tm1->tm_mon, tm1->tm_mday,
+                 tm1->tm_hour, tm1->tm_min, tm1->tm_sec, tv1.tv_usec,
+                 endpoints[i], value);
+        
+#endif
+          _socket.send(hexabus::InfoPacket<uint32_t>(endpoints[i], value));
+        }
+      }
 
-		_timer.expires_from_now(boost::posix_time::seconds(_interval+(rand()%_interval)));
-		_timer.async_wait(boost::bind(&HexabusServer::broadcast_handler, this, _1));
-	} else {
-		std::cerr << "Error occured in deadline_timer: " << error.message() << "(" << error.value() << ")." << std::endl;
+      _timer.expires_from_now(boost::posix_time::seconds(_interval+(rand()%_interval)));
+      _timer.async_wait(boost::bind(&HexabusServer::broadcast_handler, this, _1));
+    } else {
+      std::cerr << "Error occured in deadline_timer: " << error.message() << "(" << error.value() << ")." << std::endl;
+    }
+	} catch ( const hexabus::NetworkException& e ) {
+		std::cerr << "Could not broadcast packets: " << e.code().message() << std::endl;
+    _timer.expires_from_now(boost::posix_time::seconds(_interval+(rand()%_interval)));
+    _timer.async_wait(boost::bind(&HexabusServer::broadcast_handler, this, _1));
 	}
 }
 
