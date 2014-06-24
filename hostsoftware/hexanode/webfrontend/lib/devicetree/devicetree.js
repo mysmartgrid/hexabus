@@ -193,6 +193,37 @@ var Endpoint = function(device, eid, params, emitter) {
 		return json;
 	};
 
+	var set_minmax_values = function() {
+		//FIXME: Load min max values from config file
+		switch (params.eid) {
+		case 2: // power meter
+			params.minvalue = 0;
+			params.maxvalue = 3600;
+			break;
+
+		case 3: // temperature
+			params.minvalue = 10;
+			params.maxvalue = 35;
+			break;
+
+		case 5: // humidity sensor
+			params.minvalue = 0;
+			params.maxvalue = 100;
+			break;
+
+		case 44: // pt100 sensors for heater inflow/outflow
+		case 45:
+			params.minvalue = 0;
+			params.maxvalue = 100;
+			break;
+
+		default:
+			params.minvalue = 0;
+			params.maxvalue = 100;
+			break;
+		}
+	}
+
 	if (arguments.length == 1) {
 		var obj = device;
 
@@ -212,6 +243,8 @@ var Endpoint = function(device, eid, params, emitter) {
 	eid = parseInt(eid);
 	if (isNaN(eid))
 		throw "Invalid: eid. Expected: int";
+
+	set_minmax_values();
 
 	add_function_keys(this);
 };
