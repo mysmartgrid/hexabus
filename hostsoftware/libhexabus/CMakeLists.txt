@@ -40,6 +40,7 @@ if(CMAKE_TOOLCHAIN_FILE)
   list(APPEND CMAKE_FIND_ROOT_PATH ${LIBKLIO_HOME})
 endif()
 
+include ( ProjectInfo )
 include ( CompilerFlags )
 include (UseCodeCoverage)
 
