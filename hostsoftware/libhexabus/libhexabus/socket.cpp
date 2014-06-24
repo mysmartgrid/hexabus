@@ -220,12 +220,10 @@ bool Socket::packetPrereceive(const Packet::Ptr& packet, const boost::asio::ip::
 	Association& assoc = getAssociation(from);
 
 	if((packet->flags()&Packet::want_ack) && !allows_implicit_ack(*packet)) {
-		std::cout << "Sending ACK" << std::endl;
 		send(AckPacket(packet->sequenceNumber()), from);
 	}
 
 	if(seqnumIsLessEqual(packet->sequenceNumber(), assoc.rSeqNum) && assoc.rSeqNum!=0 && !allows_implicit_ack(*packet)) {
-		std::cout << "Dropping Duplicate (Got: " << packet->sequenceNumber() << "@ " << assoc.rSeqNum << std::endl;
 		return false;
 	} else {
 
@@ -263,10 +261,9 @@ void Socket::onSendTimeout(const boost::system::error_code& error, const boost::
 			assoc.currentPacket.first.reset();
 			beginSend(to);
 		} else if(assoc.currentPacket.first.use_count()) {
-			printf("Resend number %d\n", assoc.retrans_count);
 			assoc.retrans_count++;
 			send(*assoc.currentPacket.first, to, assoc.want_ack_for);
-			assoc.timeout_timer.expires_from_now(boost::posix_time::seconds(1));
+			assoc.timeout_timer.expires_from_now(boost::posix_time::milliseconds(500*assoc.retrans_count));
 			assoc.timeout_timer.async_wait(boost::bind(&Socket::onSendTimeout, this, _1, to));
 		}
 	}

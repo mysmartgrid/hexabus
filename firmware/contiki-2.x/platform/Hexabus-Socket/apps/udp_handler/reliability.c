@@ -181,7 +181,7 @@ static void run_send_state_machine(uint8_t rs) {
 				if((rstates[rs].retrans)++ <= RETRANS_LIMIT) {
 					syslog(LOG_INFO, "Retransmit %u", rstates[rs].retrans-1);
 					send_packet((struct hxb_queue_packet *)rstates[rs].P);
-					etimer_set(&(rstates[rs].timeout_timer), RETRANS_TIMEOUT);
+					etimer_set(&(rstates[rs].timeout_timer), RETRANS_TIMEOUT*rstates[rs].retrans);
 				} else {
 					fail = 1;
 					rstates[rs].send_state = SFAILED;
