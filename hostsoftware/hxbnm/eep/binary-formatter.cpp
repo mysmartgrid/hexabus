@@ -5,10 +5,12 @@
 
 #include <stdexcept>
 
+#include "exception.hpp"
+
 void BinaryFormatter::get_raw(void* dest, std::size_t len)
 {
 	if (head + len > data.size())
-		throw std::runtime_error("missing data");
+		HXBNM_THROW(stream, "stream too short");
 
 	memcpy(dest, &data[head], len);
 	head += len;

@@ -11,7 +11,7 @@ msg::msg(int family, int hdrlen, int flags, int cmd)
 		throw std::bad_alloc();
 
 	if (!genlmsg_put(_msg, NL_AUTO_PORT, NL_AUTO_SEQ, family, hdrlen, flags, cmd, 1))
-		throw std::runtime_error("nl::msg() genlmsg_put");
+		HXBNM_THROW(nl_message, "genlmsg_put failed");
 }
 
 msg::~msg()
@@ -24,7 +24,7 @@ void msg::put_raw(int type, const void* data, size_t len)
 	int err = nla_put(_msg, type, len, data);
 
 	if (err)
-		throw std::runtime_error(nl_geterror(err));
+		HXBNM_THROW(nl_message, nl_geterror(err));
 }
 
 
@@ -38,7 +38,7 @@ socket::socket(int family)
 
 	int err = genl_connect(nl);
 	if (err < 0)
-		throw std::runtime_error(nl_geterror(err));
+		HXBNM_THROW(nl_message, nl_geterror(err));
 }
 
 socket::~socket()
@@ -50,7 +50,7 @@ int socket::sendmsg(msg& msg)
 {
 	int res = nl_send_auto(nl, msg.raw());
 	if (res < 0)
-		throw std::runtime_error(nl_geterror(res));
+		HXBNM_THROW(nl_message, nl_geterror(res));
 
 	return res;
 }
@@ -67,14 +67,14 @@ int get_family(const char* family_name)
 	int err = genl_connect(nl);
 	if (err < 0) {
 		nl_socket_free(nl);
-		throw std::runtime_error(nl_geterror(err));
+		HXBNM_THROW(nl_message, nl_geterror(err));
 	}
 
 	int family = genl_ctrl_resolve(nl, family_name);
 	nl_socket_free(nl);
 
 	if (family < 0)
-		throw std::runtime_error(nl_geterror(family));
+		HXBNM_THROW(nl_message, nl_geterror(err));
 	return family;
 }
 

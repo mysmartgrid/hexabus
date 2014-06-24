@@ -8,6 +8,7 @@
 
 #include <boost/foreach.hpp>
 
+#include "exception.hpp"
 #include "nlparsers.hpp"
 #include "nlmessages.hpp"
 
@@ -214,7 +215,7 @@ void Controller::add_key(const std::string& iface, const Key& key)
 		akey.id(key.lookup_desc().id());
 		if (key.lookup_desc().mode() != 1) {
 			// TODO: implement
-			throw std::runtime_error("not implemented");
+			throw std::runtime_error("Controller::add_key: not implemented");
 		}
 	}
 
@@ -226,7 +227,7 @@ void Controller::setparams(const std::string& dev, const SecurityParameters& par
 	msgs::llsec_setparams msg(dev);
 
 	if (params.out_key().mode() != 1)
-		throw std::runtime_error("invalid key");
+		throw std::runtime_error("Controller::setparams: invalid key");
 
 	msg.enabled(params.enabled());
 	msg.out_level(params.out_level());
@@ -268,7 +269,7 @@ Key Controller::get_out_key(const std::string& iface)
 			return *it;
 	}
 
-	throw std::runtime_error("key not found");
+	throw std::runtime_error("Controller::get_out_key; key not found");
 }
 
 void Controller::add_seclevel(const std::string& dev, const Seclevel& sl)
@@ -355,7 +356,7 @@ struct rtnl_sock {
 		: sock(nl_socket_alloc())
 	{
 		if (!sock)
-			throw std::runtime_error("can't alloce rtnl socket");
+			throw std::runtime_error("can't alloc rtnl socket");
 		nl_connect(sock, NETLINK_ROUTE);
 	}
 
@@ -401,5 +402,5 @@ void create_lowpan_device(const std::string& master, const std::string& lowpan)
 
 	rc = rtnl_link_add(sock.sock, link.link, NLM_F_EXCL | NLM_F_CREATE);
 	if (rc < 0)
-		throw std::runtime_error(nl_geterror(rc));
+		HXBNM_THROW(system, "rtnl_link_add");
 }

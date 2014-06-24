@@ -51,7 +51,7 @@ class PairingHandler : public BootstrapSocket {
 	public:
 		PairingHandler(const std::string& iface, Network& net);
 
-		void run_once(int timeout_secs);
+		bool run_once(int timeout_secs);
 };
 
 #endif

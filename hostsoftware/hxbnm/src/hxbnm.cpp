@@ -51,7 +51,7 @@ int teardown(const std::string& iface = "")
 	do {
 		try {
 			netdevs = ctrl.list_netdevs(iface);
-		} catch (const nl::nl_error& e) {
+		} catch (const hxbnm::nl_sock_error& e) {
 			if (e.error() == NLE_NODEV && !iface.size())
 				return 0;
 		}
@@ -59,7 +59,7 @@ int teardown(const std::string& iface = "")
 		BOOST_FOREACH(const NetDevice& dev, netdevs) {
 			try {
 				ctrl.remove_netdev(dev.name());
-			} catch (const nl::nl_error& e) {
+			} catch (const hxbnm::nl_sock_error& e) {
 				if (e.error() != NLE_NODEV) {
 					throw;
 				}
@@ -266,7 +266,11 @@ int run_pairing(const std::string& iface, const std::string& file, int timeout)
 	PairingHandler handler(iface, net);
 
 	handler.bind(dev.addr_raw());
-	handler.run_once(timeout);
+
+	if (!handler.run_once(timeout)) {
+		std::cerr << "Pairing failed: timeout" << std::endl;
+		return 1;
+	}
 
 	net.save(eep);
 

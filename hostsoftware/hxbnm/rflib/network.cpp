@@ -13,6 +13,7 @@
 #include <boost/format.hpp>
 
 #include "binary-formatter.hpp"
+#include "exception.hpp"
 #include "fd.hpp"
 
 namespace {
@@ -21,7 +22,7 @@ void get_random(void* target, size_t len)
 {
 	int fd = open("/dev/urandom", O_RDONLY);
 	if (fd < 0)
-		throw std::runtime_error("open()");
+		HXBNM_THROW(system, "open(/dev/urandom)");
 
 	read(fd, target, len);
 	close(fd);
@@ -322,6 +323,7 @@ boost::array<uint8_t, 16> Network::derive_key(uint64_t id) const
 	FD tfm(socket(AF_ALG, SOCK_SEQPACKET, 0));
 
 	if (tfm < 0)
+		HXBNM_THROW(system, "socket(AF_ALG)");
 		throw std::runtime_error("could not open crypto socket");
 
 	struct sockaddr_alg algdesc = {
@@ -333,16 +335,16 @@ boost::array<uint8_t, 16> Network::derive_key(uint64_t id) const
 	};
 
 	if (bind(tfm, reinterpret_cast<const sockaddr*>(&algdesc), sizeof(algdesc)) < 0)
-		throw std::runtime_error(std::string("bind: ") + strerror(errno));
+		HXBNM_THROW(system, "bind()");
 
 	const int SOL_ALG = 279;
 
 	if (setsockopt(tfm, SOL_ALG, ALG_SET_KEY, &_master_key[0], _master_key.size()) < 0)
-		throw std::runtime_error(std::string("setsockopt: ") + strerror(errno));
+		HXBNM_THROW(system, "setsockopt()");
 
 	FD req(accept(tfm, NULL, 0));
 	if (req < 0)
-		throw std::runtime_error(std::string("accept: ") + strerror(errno));
+		HXBNM_THROW(system, "accept()");
 
 	boost::array<uint8_t, 16> buf = convert_key_id(id);
 
@@ -365,10 +367,10 @@ boost::array<uint8_t, 16> Network::derive_key(uint64_t id) const
 	iov.iov_len = buf.size();
 
 	if (sendmsg(req, &msg_out, 0) < 0)
-		throw std::runtime_error(std::string("sendmsg: ") + strerror(errno));
+		HXBNM_THROW(system, "sendmsg()");
 
 	if (read(req, buf.begin(), buf.size()) < 0)
-		throw std::runtime_error(std::string("read: ") + strerror(errno));
+		HXBNM_THROW(system, "read()");
 
 	return buf;
 }
@@ -525,7 +527,7 @@ Network Network::load(Eeprom& source)
 		return result;
 	}
 
-	throw std::runtime_error("can't load");
+	throw std::runtime_error("invalid version number on saved network");
 }
 
 void Network::init_eeprom(Eeprom& target, uint64_t addr)

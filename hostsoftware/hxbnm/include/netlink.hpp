@@ -9,6 +9,49 @@
 #include <stdexcept>
 #include <iostream>
 
+#include "exception.hpp"
+
+namespace hxbnm {
+
+class nl_error : public std::runtime_error {
+	public:
+		nl_error(const std::string& from, const std::string& what)
+			: runtime_error(from + ": " + what)
+		{
+		}
+};
+
+class nl_attr_error : public nl_error {
+	public:
+		nl_attr_error(const std::string& from, const std::string& what)
+			: nl_error(from, what)
+		{
+		}
+};
+
+class nl_sock_error : public nl_error {
+	private:
+		int _error;
+
+	public:
+		nl_sock_error(const std::string& from, int error)
+			: nl_error(from, nl_geterror(-error)), _error(error)
+		{
+		}
+
+		int error() const { return _error; }
+};
+
+class nl_message_error : public nl_error {
+	public:
+		nl_message_error(const std::string& from, const std::string& what)
+			: nl_error(from, what)
+		{
+		}
+};
+
+}
+
 namespace nl {
 
 class msg {
@@ -44,20 +87,20 @@ class attrs {
 		T check_fixed(size_t attr) const
 		{
 			if (!data.at(attr))
-				throw std::logic_error("attribute not found");
+				HXBNM_THROW(nl_attr, "attribute not found");
 			if (nla_len(data[attr]) != sizeof(T))
-				throw std::logic_error("type mistmatch");
+				HXBNM_THROW(nl_attr, "attribute type mismatch");
 			return *static_cast<const T*>(nla_data(data[attr]));
 		}
 
 		std::string check_string(size_t attr) const
 		{
 			if (!data.at(attr))
-				throw std::logic_error("attribute not found");
+				HXBNM_THROW(nl_attr, "attribute not found");
 
 			const char* p = static_cast<const char*>(nla_data(data[attr]));
 			if (p[nla_len(data[attr]) - 1] != 0)
-				throw std::logic_error("type mismatch");
+				HXBNM_THROW(nl_attr, "attribute type mismatch");
 			return p;
 		}
 
@@ -156,19 +199,6 @@ class parser {
 		virtual Result complete() = 0;
 };
 
-class nl_error : public std::exception {
-	private:
-		int _error;
-
-	public:
-		nl_error(int error)
-			: _error(error)
-		{}
-
-		int error() const { return _error; }
-		const char* what() const throw() { return nl_geterror(-_error); }
-};
-
 class socket {
 	private:
 		struct nl_sock* nl;
@@ -192,7 +222,7 @@ class socket {
 		{
 			int res = nl_recvmsgs(nl, parser.raw());
 			if (res < 0)
-				throw nl_error(-res);
+				HXBNM_THROW(nl_sock, -res);
 
 			return parser.complete();
 		}

@@ -20,14 +20,14 @@ BootstrapSocket::BootstrapSocket(const std::string& iface, bool nosec)
 	  _iface(iface)
 {
 	if (_fd < 0)
-		throw std::runtime_error(strerror(errno));
+		HXBNM_THROW(system, "socket()");
 
 	if (nosec) {
 		int val = SO_802154_SECURITY_OFF;
 
 		int rc = setsockopt(_fd, SOL_IEEE802154, SO_802154_SECURITY, &val, sizeof(val));
 		if (rc < 0)
-			throw std::runtime_error(strerror(errno));
+			HXBNM_THROW(system, "setsockopt()");
 	}
 }
 
@@ -41,7 +41,7 @@ bool BootstrapSocket::receive_wait(const timespec* timeout)
 	int rc = ppoll(&pfd, 1, timeout, NULL);
 
 	if (rc < 0)
-		throw std::runtime_error(strerror(errno));
+		HXBNM_THROW(system, "ppoll()");
 
 	return rc > 0;
 }
@@ -55,7 +55,7 @@ void BootstrapSocket::bind(const ieee802154_addr& addr)
 	saddr.addr = addr;
 
 	if (::bind(_fd, ap, sizeof(saddr)) < 0)
-		throw std::runtime_error(strerror(errno));
+		HXBNM_THROW(system, "bind()");
 }
 
 std::pair<std::vector<uint8_t>, sockaddr_ieee802154> BootstrapSocket::receive()
@@ -70,7 +70,7 @@ std::pair<std::vector<uint8_t>, sockaddr_ieee802154> BootstrapSocket::receive()
 		len = recvfrom(_fd, &packet[0], packet.size(), 0, addr, &peerlen);
 	} while (len < 0 && errno == EINTR);
 	if (len < 0)
-		throw std::runtime_error(strerror(errno));
+		HXBNM_THROW(system, "recvfrom()");
 
 	packet.resize(len);
 	return std::make_pair(packet, peer);
@@ -86,7 +86,7 @@ void BootstrapSocket::send(const void* msg, size_t len, const sockaddr_ieee80215
 		sent = sendto(_fd, msg, len, 0, addr, peerlen);
 	} while (sent < 0 && errno == EINTR);
 	if (sent < 0)
-		throw std::runtime_error(strerror(errno));
+		HXBNM_THROW(system, "sendto()");
 }
 
 
@@ -96,7 +96,7 @@ PairingHandler::PairingHandler(const std::string& iface, Network& net)
 {
 }
 
-void PairingHandler::run_once(int timeout_secs)
+bool PairingHandler::run_once(int timeout_secs)
 {
 	struct {
 		uint8_t tag;
@@ -119,11 +119,11 @@ void PairingHandler::run_once(int timeout_secs)
 	timeout.tv_nsec = 0;
 
 	if (clock_gettime(CLOCK_MONOTONIC, &started))
-		throw std::runtime_error(strerror(errno));
+		HXBNM_THROW(system, "clock_gettime()");
 
 	for (;;) {
 		if (!receive_wait(timeout_secs < 0 ? NULL : &timeout))
-			throw std::runtime_error("timeout");
+			return false;
 
 		boost::tie(recv_data, peer) = receive();
 		if (recv_data.size() == sizeof(query)) {
@@ -134,7 +134,7 @@ void PairingHandler::run_once(int timeout_secs)
 
 		timespec now;
 		if (clock_gettime(CLOCK_MONOTONIC, &now))
-			throw std::runtime_error(strerror(errno));
+			HXBNM_THROW(system, "clock_gettime()");
 
 		timeout.tv_nsec -= (now.tv_nsec - started.tv_nsec);
 		if (timeout.tv_nsec < 0) {
@@ -144,7 +144,7 @@ void PairingHandler::run_once(int timeout_secs)
 		timeout.tv_sec -= (now.tv_sec - started.tv_sec);
 
 		if (timeout.tv_sec < 0)
-			throw std::runtime_error("timeout");
+			return false;
 
 		started = now;
 	}
@@ -162,10 +162,11 @@ void PairingHandler::run_once(int timeout_secs)
 		const Device& dev = _net.add_device(addr);
 
 		control().add_device(iface(), dev);
-	} catch (const nl::nl_error& e) {
+	} catch (const hxbnm::nl_sock_error& e) {
 		if (e.error() != NLE_EXIST)
 			throw;
 	}
 
 	send(&response, sizeof(response), peer);
+	return true;
 }

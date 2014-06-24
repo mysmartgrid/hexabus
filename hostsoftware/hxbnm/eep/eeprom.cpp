@@ -2,13 +2,11 @@
 
 #include <map>
 #include <algorithm>
-#include <stdexcept>
 
 #include <boost/crc.hpp>
 
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
-
 #include <sys/ioctl.h>
 
 #include <unistd.h>
@@ -18,6 +16,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <endian.h>
+
+#include "exception.hpp"
 
 uint32_t crc_stream(const void* p, size_t len)
 {
@@ -39,11 +39,11 @@ Eeprom::Eeprom(const std::string& file)
 	: fd(open(file.c_str(), O_RDWR))
 {
 	if (fd < 0)
-		throw std::runtime_error(strerror(errno));
+		HXBNM_THROW(system, "open(" + file + ")");
 
 	if (ioctl(fd, I2C_SLAVE, SLAVE_ADDR) < 0) {
 		close(fd);
-		throw std::runtime_error(strerror(errno));
+		HXBNM_THROW(system, "ioctl()");
 	}
 
 	flock lock;
@@ -52,7 +52,7 @@ Eeprom::Eeprom(const std::string& file)
 	lock.l_whence = SEEK_SET;
 	if (fcntl(fd, F_SETLKW, &lock) < 0) {
 		close(fd);
-		throw std::runtime_error(strerror(errno));
+		HXBNM_THROW(system, "fcntl()");
 	}
 }
 
@@ -72,10 +72,10 @@ void Eeprom::read_block(uint16_t block, eeprom_block& dest)
 	uint8_t addr[2] = { (block * BLOCK_SIZE) >> 8, (block * BLOCK_SIZE) & 0xFF };
 
 	if (write(fd, addr, sizeof(addr)) < int(sizeof(addr)))
-		throw std::runtime_error(strerror(errno));
+		HXBNM_THROW(system, "write()");
 
 	if (read(fd, &dest, BLOCK_SIZE) < BLOCK_SIZE)
-		throw std::runtime_error(strerror(errno));
+		HXBNM_THROW(system, "read()");
 }
 
 void Eeprom::write_block(uint16_t block, const eeprom_block& src)
@@ -90,7 +90,7 @@ void Eeprom::write_block(uint16_t block, const eeprom_block& src)
 
 	int err = write(fd, &buffer[0], buffer.size());
 	if (err < 0)
-		throw std::runtime_error(strerror(errno));
+		HXBNM_THROW(system, "write()");
 
 	while (write(fd, &buffer[0], 0) < 0 && errno == EIO)
 		usleep(1000);
@@ -280,7 +280,7 @@ void Eeprom::write_stream(const std::vector<uint8_t>& data)
 	}
 
 	if (blocks.size() > BLOCK_COUNT / 2)
-		throw std::runtime_error("stream too large");
+		HXBNM_THROW(stream, "stream too long");
 
 	for (size_t idx = 0; idx < blocks.size(); idx++) {
 		uint16_t block_idx = (first_block + idx) % BLOCK_COUNT;
