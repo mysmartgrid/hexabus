@@ -189,7 +189,7 @@ public:
       klio::StoreFactory store_factory; 
       klio::Store::Ptr store_new;
       std::cout << "create new store: "<<std::endl;
-      store_new = store_factory.create_sqlite3_store(store_file);//, true, false);
+      store_new = store_factory.create_sqlite3_store(store_file, true, true,  false, 30, "NORMAL");
       std::cout << "synchronise sensors "<<std::endl;
       store_new->sync_sensors(store);
       std::cout << "close old store "<<std::endl;
@@ -320,7 +320,7 @@ int main(int argc, char** argv)
 		store = store_factory.open_sqlite3_store(db, false, true, 30);
     store->start_transaction();
 #else
-		store = store_factory.open_sqlite3_store(db);//, true, true, 30, "NORMAL");
+		store = store_factory.open_sqlite3_store(db, true, false, 30, "NORMAL");
 #endif
 
 		std::string sensor_timezone("Europe/Berlin"); 
@@ -334,7 +334,7 @@ int main(int argc, char** argv)
 		hexabus::Listener listener(io);
 
 		hexabus::Socket network(io);
-		std::cout << "opened store: " << store->str() << std::endl;
+		std::cout << "6 opened store: " << store->str() << std::endl;
 		klio::SensorFactory sensor_factory;
 		klio::TimeConverter tc;
 		hexabus::DeviceInterrogator di(network);
