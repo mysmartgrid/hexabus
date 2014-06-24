@@ -324,7 +324,6 @@ boost::array<uint8_t, 16> Network::derive_key(uint64_t id) const
 
 	if (tfm < 0)
 		HXBNM_THROW(system, "socket(AF_ALG)");
-		throw std::runtime_error("could not open crypto socket");
 
 	struct sockaddr_alg algdesc = {
 		PF_ALG,
