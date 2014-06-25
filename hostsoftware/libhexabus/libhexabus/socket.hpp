@@ -99,7 +99,7 @@ namespace hexabus {
 
 			void send(const Packet& packet, const boost::asio::ip::address_v6& dest = GroupAddress)
 			{
-				send(packet, boost::asio::ip::udp::endpoint(dest, HXB_PORT));
+				send(packet, boost::asio::ip::udp::endpoint(dest, 61616));
 			}
 			void send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest);
 	};

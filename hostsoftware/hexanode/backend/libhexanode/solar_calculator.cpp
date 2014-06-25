@@ -138,8 +138,8 @@ void SolarCalculator::visit(const hexabus::EndpointInfoPacket& endpointInfo)
       case HXB_DTYPE_16BYTES:
         std::cout << "Binary (16bytes)";
         break;
-      case HXB_DTYPE_66BYTES:
-        std::cout << "Binary (66bytes)";
+      case HXB_DTYPE_65BYTES:
+        std::cout << "Binary (65bytes)";
         break;
       default:
         std::cout << "(unknown)";

@@ -171,7 +171,7 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
 
 		case HXB_DTYPE_128STRING:
 		case HXB_DTYPE_16BYTES:
-		case HXB_DTYPE_66BYTES:
+		case HXB_DTYPE_65BYTES:
 		case HXB_DTYPE_UNDEFINED:
     default:
 			syslog(LOG_DEBUG, "Datatype not implemented in state machine (yet).");
