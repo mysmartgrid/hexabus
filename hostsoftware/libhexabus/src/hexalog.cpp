@@ -133,7 +133,7 @@ public:
 			std::cout << "Rotating store call flush" << store_file << "..." << std::endl;
       fflush(stdout);
 			try {
-        store->flush();
+        store->flush(true);
 			} catch (klio::StoreException const& ex) {
 				std::cout << "Failed to flush the buffers : " << ex.what() << std::endl;
       }
@@ -161,7 +161,7 @@ public:
 #endif
 
 			try {
-        store->flush();
+        store->flush(true);
 			} catch (klio::StoreException const& ex) {
 				std::cout << "Failed to flush the buffers : " << ex.what() << std::endl;
       }
@@ -170,8 +170,8 @@ public:
 
       std::string s;
       s= str( format("%04d%02d%02d-%02d%02d")        % now.date().year_month_day().year
-              % now.date().year_month_day().day.as_number()
               % now.date().year_month_day().month.as_number()
+              % now.date().year_month_day().day.as_number()
               % now.time_of_day().hours()
               % now.time_of_day().minutes());
 
@@ -189,7 +189,9 @@ public:
       klio::StoreFactory store_factory; 
       klio::Store::Ptr store_new;
       std::cout << "create new store: "<<std::endl;
+      // (file, prepare, auto_commit, auto_flush, flush_timeout, synchronous)
       store_new = store_factory.create_sqlite3_store(store_file, true, true,  false, 30, "NORMAL");
+
       std::cout << "synchronise sensors "<<std::endl;
       store_new->sync_sensors(store);
       std::cout << "close old store "<<std::endl;
