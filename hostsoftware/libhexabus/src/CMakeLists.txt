@@ -66,6 +66,9 @@ target_link_libraries(hexatimed
   ${Boost_LIBRARIES}
 )
 
+add_executable(hexasm "hexasm.cpp")
+target_link_libraries(hexasm hexabus pthread ${Boost_LIBRARIES})
+
 if(LIBKLIO_FOUND)
   add_executable(hexalog ${hexalog_src})
   target_link_libraries(hexalog
