@@ -78,19 +78,19 @@ void SolarCalculator::visit(const hexabus::ErrorPacket& error)
   std::cout << "Received error packet, " << std::endl
     << "Error code:\t";
   switch (error.code()) {
-    case HXB_ERR_UNKNOWNEID:
+    case hexabus::HXB_ERR_UNKNOWNEID:
       std::cout << "Unknown EID";
       break;
-    case HXB_ERR_WRITEREADONLY:
+    case hexabus::HXB_ERR_WRITEREADONLY:
       std::cout << "Write on readonly endpoint";
       break;
-    case HXB_ERR_CRCFAILED:
+    case hexabus::HXB_ERR_CRCFAILED:
       std::cout << "CRC failed";
       break;
-    case HXB_ERR_DATATYPE:
+    case hexabus::HXB_ERR_DATATYPE:
       std::cout << "Datatype mismatch";
       break;
-    case HXB_ERR_INVALID_VALUE:
+    case hexabus::HXB_ERR_INVALID_VALUE:
       std::cout << "Invalid value";
       break;
     default:
@@ -114,31 +114,31 @@ void SolarCalculator::visit(const hexabus::EndpointInfoPacket& endpointInfo)
       << "Endpoint ID:\t" << endpointInfo.eid() << std::endl
       << "EP Datatype:\t";
     switch(endpointInfo.datatype()) {
-      case HXB_DTYPE_BOOL:
+      case hexabus::HXB_DTYPE_BOOL:
         std::cout << "Bool";
         break;
-      case HXB_DTYPE_UINT8:
+      case hexabus::HXB_DTYPE_UINT8:
         std::cout << "UInt8";
         break;
-      case HXB_DTYPE_UINT32:
+      case hexabus::HXB_DTYPE_UINT32:
         std::cout << "UInt32";
         break;
-      case HXB_DTYPE_DATETIME:
+      case hexabus::HXB_DTYPE_DATETIME:
         std::cout << "Datetime";
         break;
-      case HXB_DTYPE_FLOAT:
+      case hexabus::HXB_DTYPE_FLOAT:
         std::cout << "Float";
         break;
-      case HXB_DTYPE_TIMESTAMP:
+      case hexabus::HXB_DTYPE_TIMESTAMP:
         std::cout << "Timestamp";
         break;
-      case HXB_DTYPE_128STRING:
+      case hexabus::HXB_DTYPE_128STRING:
         std::cout << "String";
         break;
-      case HXB_DTYPE_16BYTES:
+      case hexabus::HXB_DTYPE_16BYTES:
         std::cout << "Binary (16bytes)";
         break;
-      case HXB_DTYPE_65BYTES:
+      case hexabus::HXB_DTYPE_65BYTES:
         std::cout << "Binary (65bytes)";
         break;
       default:
