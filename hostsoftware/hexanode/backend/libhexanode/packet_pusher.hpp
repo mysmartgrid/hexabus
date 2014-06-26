@@ -91,8 +91,8 @@ namespace hexanode {
 			virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) { rejectPacket(); }
 			virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info) { rejectPacket(); }
 			virtual void visit(const hexabus::InfoPacket<std::string>& info) { rejectPacket(); }
-			virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& info) { rejectPacket(); }
-			virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& info) { rejectPacket(); }
+			virtual void visit(const hexabus::InfoPacket<boost::array<char, 16> >& info) { rejectPacket(); }
+			virtual void visit(const hexabus::InfoPacket<boost::array<char, 65> >& info) { rejectPacket(); }
 			/** 
 			 * not needed.
 			 */
@@ -103,8 +103,8 @@ namespace hexanode {
 			virtual void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) { rejectPacket(); }
 			virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) { rejectPacket(); }
 			virtual void visit(const hexabus::WritePacket<std::string>& write) { rejectPacket(); }
-			virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& write) { rejectPacket(); }
-			virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& write) { rejectPacket(); }
+			virtual void visit(const hexabus::WritePacket<boost::array<char, 16> >& write) { rejectPacket(); }
+			virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& write) { rejectPacket(); }
   };
 
 }
