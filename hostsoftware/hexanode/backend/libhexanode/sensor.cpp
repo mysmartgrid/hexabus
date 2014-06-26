@@ -58,7 +58,7 @@ void Sensor::put(
 	jstring(writer, "value", reading);
 	jint(writer, "minvalue", _min_value);
 	jint(writer, "maxvalue", _max_value);
-	jstring(writer, "type", _type);
+	jint(writer, "type", _type);
   writer.EndObject();
   std::string json_body(b.GetString());
 

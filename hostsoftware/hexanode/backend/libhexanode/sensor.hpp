@@ -17,7 +17,7 @@ namespace hexanode {
           const std::string& sensor_name,
           const int32_t min_value,
           const int32_t max_value,
-          const std::string& type)
+          const uint8_t type)
         : _sensor_ip(sensor_ip)
 					, _ep_info(ep_info)
           , _sensor_name(sensor_name)
@@ -40,7 +40,7 @@ namespace hexanode {
       std::string _sensor_name;
       int32_t _min_value;
       int32_t _max_value;
-      std::string _type;
+      uint8_t _type;
   };
 };
 

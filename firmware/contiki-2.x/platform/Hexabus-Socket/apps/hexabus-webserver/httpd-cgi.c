@@ -563,7 +563,7 @@ void hxbtos(char *dest, char *data, uint8_t datatype)
 			dest[i] = ',';
 			break;
 		case HXB_DTYPE_128STRING:
-		case HXB_DTYPE_66BYTES:
+		case HXB_DTYPE_65BYTES:
 		case HXB_DTYPE_16BYTES:
 		default:
 			break;

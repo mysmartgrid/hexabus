@@ -163,8 +163,14 @@ var Endpoint = function(device, eid, params, emitter) {
 			writable = false;
 		}
 
-		if (params[key] == undefined)
+		if(key == "type" && typeof params[key] != "number") {
+			console.trace("Field type is:" + params[key]);
+			throw "Field type is supposed to be a number.";
+		}
+
+		if (params[key] == undefined) {
 			throw "Required field: " + key;
+		}
 
 		Object.defineProperty(to, key, {
 			enumerable: true,

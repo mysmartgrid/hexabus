@@ -34,12 +34,12 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 		hexabus::EndpointRegistry::const_iterator ep_it = _ep_registry.find(it->first);
 		const hexabus::EndpointDescriptor& desc = ep_it != _ep_registry.end()
 			? ep_it->second
-			: hexabus::EndpointDescriptor(it->first, "", boost::none, HXB_DTYPE_FLOAT, hexabus::EndpointDescriptor::read, hexabus::EndpointDescriptor::sensor);
+			: hexabus::EndpointDescriptor(it->first, "", boost::none, hexabus::HXB_DTYPE_FLOAT, hexabus::EndpointDescriptor::read, hexabus::EndpointDescriptor::sensor);
 		hexanode::Sensor new_sensor(device,
 				desc,
 				static_cast<const hexabus::EndpointInfoPacket&>(info).value(),
 				min_value, max_value,
-				std::string("sensor"));
+				desc.type());
 		_sensors.insert(std::make_pair(sensor_id, new_sensor));
 		try {
 			new_sensor.put(_client, _api_uri, it->second); 
@@ -90,10 +90,10 @@ void PacketPusher::defineSensor(const std::string& sensor_id, uint32_t eid, cons
 						break;
 				}
 				hexanode::Sensor new_sensor(_endpoint.address().to_v6(),
-						hexabus::EndpointDescriptor(eid, name, unit, HXB_DTYPE_FLOAT, hexabus::EndpointDescriptor::read, hexabus::EndpointDescriptor::sensor),
+						hexabus::EndpointDescriptor(eid, name, unit, hexabus::HXB_DTYPE_FLOAT, hexabus::EndpointDescriptor::read, hexabus::EndpointDescriptor::sensor),
 						name,
 						min_value, max_value,
-						std::string("dashboard")
+						hexabus::HXB_DTYPE_FLOAT
 						);
 				_sensors.insert(std::make_pair(sensor_id, new_sensor));
 				new_sensor.put(_client, _api_uri, value);
