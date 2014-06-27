@@ -707,11 +707,9 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 
 			uint8_t offset = insn.immed.v_uint;
 
-			if (top < offset)
-				goto fail;
-
-			top++;
-			TOP = TOP_N(offset + 1);
+			CHECK_POP(offset + 1);
+			hxb_sm_value_t val = TOP_N(offset);
+			PUSH_V(val);
 			break;
 		}
 
@@ -719,15 +717,10 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 		case HSO_OP_ROT_I: {
 			uint8_t offset = insn.immed.v_uint;
 
-			if (top < offset)
-				goto fail;
-
-			while (offset) {
-				hxb_sm_value_t tmp = TOP_N(offset);
-				TOP_N(offset) = TOP_N(offset - 1);
-				TOP_N(offset - 1) = tmp;
-				offset--;
-			}
+			CHECK_POP(offset + 1);
+			hxb_sm_value_t val = TOP_N(offset);
+			memmove(stack + top - offset, stack + top - offset + 1, offset * sizeof(stack[0]));
+			TOP = val;
 			break;
 		}
 
@@ -848,6 +841,8 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 
 			if (is_zero == jz)
 				jump_skip = insn.jump_skip;
+
+			top--;
 			break;
 		}
 
