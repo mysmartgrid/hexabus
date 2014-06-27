@@ -207,7 +207,7 @@ int Machine::sm_get_instruction(uint16_t at, struct hxb_sm_instruction* op)
 		if (op->block.first > op->block.last)
 			return -1;
 		tmp = op->block.last - op->block.first + 1;
-		if (sm_get_block(at, tmp, op->block.data) < 0)
+		if (sm_get_block(at + offset, tmp, op->block.data) < 0)
 			return -1;
 		offset += tmp;
 		break;
@@ -766,14 +766,14 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 			if (!is_int(&TOP))
 				goto fail;
 
-			uint16_t offset = 1;
+			uint16_t offset = insn_length;
 
 			if (insn.opcode == HSO_OP_SWITCH_8) {
-				insn_length = insn.immed.v_uint * (1 + 2);
+				insn_length += insn.immed.v_uint * (1 + 2);
 			} else if (insn.opcode == HSO_OP_SWITCH_16) {
-				insn_length = insn.immed.v_uint * (2 + 2);
+				insn_length += insn.immed.v_uint * (2 + 2);
 			} else {
-				insn_length = insn.immed.v_uint * (4 + 2);
+				insn_length += insn.immed.v_uint * (4 + 2);
 			}
 
 			for (uint16_t i = 0; i < insn.immed.v_uint; i++) {
@@ -801,6 +801,7 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 					break;
 				}
 			}
+			top--;
 
 			break;
 		}
