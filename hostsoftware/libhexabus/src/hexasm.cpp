@@ -13,6 +13,8 @@ class Assembler {
 	private:
 		struct Fixup {
 			uint16_t addr;
+			uint16_t offset_from;
+			bool offset_set;
 			const Label* label;
 			bool is_short, is_absolute;
 		};
@@ -28,7 +30,17 @@ class Assembler {
 		}
 
 		Assembler& operator()(enum hexabus::sm::hxb_sm_opcode op)
-		{ return (*this)((uint8_t) op); }
+		{
+			for (size_t i = 0; i < _fixups.size(); i++) {
+				if (_fixups[i].offset_set)
+					continue;
+
+				_fixups[i].offset_from = _program.size();
+				_fixups[i].offset_set = true;
+			}
+
+			return (*this)((uint8_t) op);
+		}
 
 		Assembler& operator()(uint16_t val)
 		{ return (*this)((uint8_t) (val >> 8))((uint8_t) (val & 0xFF)); }
@@ -45,7 +57,7 @@ class Assembler {
 
 		Assembler& operator()(const Label& label, bool is_short, bool is_absolute = false)
 		{
-			Fixup f = { _program.size(), &label, is_short, is_absolute };
+			Fixup f = { _program.size(), 0, false, &label, is_short, is_absolute };
 			_fixups.push_back(f);
 			return is_short
 				? (*this)((uint8_t) 0)
@@ -60,7 +72,7 @@ class Assembler {
 
 				uint16_t diff = _fixups[i].is_absolute
 					? _program.size()
-					: _program.size() - _fixups[i].addr - 1;
+					: _program.size() - _fixups[i].offset_from;
 
 				if (_fixups[i].is_short) {
 					_program[_fixups[i].addr] = diff;
@@ -154,10 +166,8 @@ int main()
 	.mark(my_packet)
 		(HSO_LD_CURSTATE)
 		(HSO_OP_SWITCH_8)((u8) 2)
-//			((u8) 0)(in_state_off, false)
-			((u8) 0)((u16) 1)
-//			((u8) 1)(in_state_on, false)
-			((u8) 1)((u16) (1 + 13))
+			((u8) 0)(in_state_off, false)
+			((u8) 1)(in_state_on, false)
 		(HSO_RET_STAY)
 	.mark(in_state_off)
 		(HSO_LD_SOURCE_VAL)
