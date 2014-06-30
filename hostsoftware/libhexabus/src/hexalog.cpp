@@ -16,7 +16,7 @@
 #include <libklio/store-factory.hpp>
 #include <libklio/sensor.hpp>
 #include <libklio/sensor-factory.hpp>
-//#include <libklio/sqlite3/sqlite3-store.hpp>
+#include <libklio/sqlite3/sqlite3-store.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/lambda/lambda.hpp>
@@ -47,8 +47,7 @@ using boost::io::group;
 class Logger : public hexabus::Logger {
 private:
   bfs::path store_file;
-  klio::Store::Ptr store;
-  //klio::SQLite3Storee::Ptr store;
+  klio::SQLite3Store::Ptr store;
   unsigned int _packet_counter;
   unsigned int _packet_counter_max;
 
@@ -117,7 +116,7 @@ private:
 
 public:
   Logger(const bfs::path& store_file,
-         klio::Store::Ptr& store,
+         klio::SQLite3Store::Ptr& store,
          klio::TimeConverter& tc,
          klio::SensorFactory& sensor_factory,
          const std::string& sensor_timezone,
@@ -161,7 +160,8 @@ public:
       bfs::path dbname(name);
       std::cout << "===> renaming to: "<< name<<std::endl;
       fflush(stdout);
-      boost::static_pointer_cast<klio::SQLite3Store>(store)->rotate(dbname);
+      //boost::static_pointer_cast<klio::SQLite3Store>(store)->rotate(dbname);
+      store->rotate(dbname);
       
 
 #if KLIO_AUTOCOMMIT
@@ -255,7 +255,7 @@ int main(int argc, char** argv)
 
 	try {
 		klio::StoreFactory store_factory; 
-		klio::Store::Ptr store;
+    klio::SQLite3Store::Ptr store;
 
 		std::string storefile(vm["storefile"].as<std::string>());
 		bfs::path db(storefile);
