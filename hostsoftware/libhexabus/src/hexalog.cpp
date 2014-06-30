@@ -16,6 +16,7 @@
 #include <libklio/store-factory.hpp>
 #include <libklio/sensor.hpp>
 #include <libklio/sensor-factory.hpp>
+//#include <libklio/sqlite3/sqlite3-store.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/lambda/lambda.hpp>
@@ -47,6 +48,7 @@ class Logger : public hexabus::Logger {
 private:
   bfs::path store_file;
   klio::Store::Ptr store;
+  //klio::SQLite3Storee::Ptr store;
   unsigned int _packet_counter;
   unsigned int _packet_counter_max;
 
@@ -140,31 +142,7 @@ public:
       std::cout << "Rotating store flushed" << store_file << "..." << std::endl;
       fflush(stdout);
 
-#if 0
-			{
-				std::cout << "Loading sensor schema" << std::endl;
-				std::vector<klio::Sensor::uuid_t> uuids = store->get_sensor_uuids();
-				std::vector<klio::Sensor::uuid_t>::const_iterator it, end;
-				for (it = uuids.begin(), end = uuids.end(); it != end; ++it) {
-					klio::Sensor::Ptr sensor = store->get_sensor(*it);
-
-					//sensor_cache[sensor->name()] = sensor;
-					sensor_cache[sensor->external_id()] = sensor;
-				}
-			}
-#endif
-
 			std::cout << "Reopening store" << std::endl;
-
-#if KLIO_AUTOCOMMIT
-      store->commit_transaction();
-#endif
-
-			try {
-        store->flush(true);
-			} catch (klio::StoreException const& ex) {
-				std::cout << "Failed to flush the buffers : " << ex.what() << std::endl;
-      }
 
       const boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
 
@@ -183,43 +161,11 @@ public:
       bfs::path dbname(name);
       std::cout << "===> renaming to: "<< name<<std::endl;
       fflush(stdout);
+      boost::static_pointer_cast<klio::SQLite3Store>(store)->rotate(dbname);
       
-      boost::filesystem::rename(store_file, dbname);
-
-      klio::StoreFactory store_factory; 
-      klio::Store::Ptr store_new;
-      std::cout << "create new store: "<<std::endl;
-      // (file, prepare, auto_commit, auto_flush, flush_timeout, synchronous)
-      store_new = store_factory.create_sqlite3_store(store_file, true, true,  false, 30, "NORMAL");
-
-      std::cout << "synchronise sensors "<<std::endl;
-      store_new->sync_sensors(store);
-      std::cout << "close old store "<<std::endl;
-			store->close();
-      std::cout << "copy pointer "<<std::endl;
-
-      store = store_new;
 
 #if KLIO_AUTOCOMMIT
       store->start_transaction();
-#endif
-#if 0
-			{
-				std::cout << "Adding sensors..." << std::endl;
-				std::set<klio::Sensor::uuid_t> new_sensors;
-				{
-					std::vector<klio::Sensor::uuid_t> uuids = store->get_sensor_uuids();
-					new_sensors.insert(uuids.begin(), uuids.end());
-				}
-
-				std::map<std::string, klio::Sensor::Ptr>::const_iterator it, end;
-				for (it = sensor_cache.begin(), end = sensor_cache.end(); it != end; ++it) {
-					if (!new_sensors.count(it->second->uuid())) {
-						store->add_sensor(it->second);
-						std::cout << it->second->name() << std::endl;
-					}
-				}
-			}
 #endif
 
 			std::cout << "Rotation done" << std::endl;
@@ -336,7 +282,7 @@ int main(int argc, char** argv)
 		hexabus::Listener listener(io);
 
 		hexabus::Socket network(io);
-		std::cout << "6 opened store: " << store->str() << std::endl;
+		std::cout << "opened store: " << store->str() << std::endl;
 		klio::SensorFactory sensor_factory;
 		klio::TimeConverter tc;
 		hexabus::DeviceInterrogator di(network);
