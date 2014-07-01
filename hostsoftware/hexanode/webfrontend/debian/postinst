@@ -7,6 +7,6 @@ then
 	useradd -r -m hexanode
 fi
 
-su -c 'cd ~; npm install /usr/share/hexanode_webfrontend' hexanode
+su -c 'cd ~; npm install /usr/share/hexanode_webfrontend/hexanode-webfrontend-0.0.1.tgz' hexanode
 svc -d /etc/service/hexanode-webfrontend
 svc -u /etc/service/hexanode-webfrontend

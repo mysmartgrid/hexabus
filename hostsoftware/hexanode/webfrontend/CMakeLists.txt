@@ -67,15 +67,32 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 
-# add some files to the installation target
-configure_file(views/about.ejs.in ${CMAKE_BINARY_DIR}/views/about.ejs)
-install(FILES app.js DESTINATION share/hexanode_webfrontend/)
-install(FILES package.json DESTINATION share/hexanode_webfrontend/)
-install(DIRECTORY lib DESTINATION share/hexanode_webfrontend/)
-install(DIRECTORY public DESTINATION share/hexanode_webfrontend/)
-install(DIRECTORY tools DESTINATION share/hexanode_webfrontend/)
-install(DIRECTORY views DESTINATION share/hexanode_webfrontend/)
-install(DIRECTORY ${CMAKE_BINARY_DIR}/views DESTINATION share/hexanode_webfrontend/)
+add_custom_target (pack_dir
+   	COMMAND mkdir -p  ${CMAKE_BINARY_DIR}/pack
+	COMMAND cp -r *.js *.json lib public views ${CMAKE_BINARY_DIR}/pack/ 
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} )
+
+add_custom_target (node_package ALL
+	COMMAND rm -f hexanode-webfrontend-0.0.1.tgz
+	COMMAND npm install
+	COMMAND npm dedup
+    COMMAND npm pack
+    DEPENDS pack_dir
+	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/pack )
+
+configure_file(views/about.ejs.in ${CMAKE_BINARY_DIR}/pack/views/about.ejs)
+
+install(FILES ${CMAKE_BINARY_DIR}/pack/hexanode-webfrontend-0.0.1.tgz DESTINATION share/hexanode_webfrontend/)
+
+#configure_file(views/about.ejs.in ${CMAKE_BINARY_DIR}/views/about.ejs)
+#install(FILES app.js DESTINATION share/hexanode_webfrontend/)
+#install(FILES package.json DESTINATION share/hexanode_webfrontend/)
+#install(FILES npm-shrinkwrap.json DESTINATION share/hexanode_webfrontend/)
+#install(DIRECTORY lib DESTINATION share/hexanode_webfrontend/)
+#install(DIRECTORY public DESTINATION share/hexanode_webfrontend/)
+#install(DIRECTORY tools DESTINATION share/hexanode_webfrontend/)
+#install(DIRECTORY views DESTINATION share/hexanode_webfrontend/)
+#install(DIRECTORY ${CMAKE_BINARY_DIR}/views DESTINATION share/hexanode_webfrontend/)
 
 INSTALL(PROGRAMS etc/service/hexanode-webfrontend/run DESTINATION /etc/service/hexanode-webfrontend)
 INSTALL(PROGRAMS etc/service/hexanode-webfrontend/log/run DESTINATION /etc/service/hexanode-webfrontend/log)
