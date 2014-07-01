@@ -131,14 +131,14 @@ public:
   void rotate_stores()
 		{
 			std::cout << "Rotating store " << store_file << "..." << std::endl;
-			std::cout << "Rotating store call flush" << store_file << "..." << std::endl;
+			std::cout << "Rotating store call flush " << store_file << "..." << std::endl;
       fflush(stdout);
 			try {
         store->flush(true);
 			} catch (klio::StoreException const& ex) {
 				std::cout << "Failed to flush the buffers : " << ex.what() << std::endl;
       }
-      std::cout << "Rotating store flushed" << store_file << "..." << std::endl;
+      std::cout << "Rotating store flushed " << store_file << "..." << std::endl;
       fflush(stdout);
 
 			std::cout << "Reopening store" << std::endl;
@@ -156,12 +156,14 @@ public:
       name+=".";
       name+=s;
       
-      //bfs::path dbname = store_file . std::string(".") . f.str();
       bfs::path dbname(name);
       std::cout << "===> renaming to: "<< name<<std::endl;
       fflush(stdout);
-      //boost::static_pointer_cast<klio::SQLite3Store>(store)->rotate(dbname);
-      store->rotate(dbname);
+			try {
+        store->rotate(dbname);
+			} catch (klio::StoreException const& ex) {
+				std::cout << "Failed to rotate the klio-databse : " << ex.what() << std::endl;
+      }
       
 
 #if KLIO_AUTOCOMMIT
@@ -268,7 +270,7 @@ int main(int argc, char** argv)
 		store = store_factory.open_sqlite3_store(db, false, true, 30);
     store->start_transaction();
 #else
-		store = store_factory.open_sqlite3_store(db, true, false, 30, "NORMAL");
+		store = store_factory.open_sqlite3_store(db, true, true, 30, klio::SQLite3Store::OS_SYNC_OFF);
 #endif
 
 		std::string sensor_timezone("Europe/Berlin"); 
