@@ -297,13 +297,18 @@ int main(int argc, char** argv)
 		listener.onPacketReceived(boost::ref(logger));
 
 		boost::asio::signal_set rotate_handler(io, SIGHUP);
+		boost::asio::signal_set terminate_handler(io, SIGTERM);
 
-		while (true) {
+    bool term_received = false;
+		while (!term_received) {
 			bool hup_received = false;
 
 			using namespace boost::lambda;
 			rotate_handler.async_wait(
         (var(hup_received) = true,
+         boost::lambda::bind(&boost::asio::io_service::stop, &io)));
+			terminate_handler.async_wait(
+        (var(term_received) = true,
          boost::lambda::bind(&boost::asio::io_service::stop, &io)));
 
 			io.reset();
@@ -315,6 +320,11 @@ int main(int argc, char** argv)
 				break;
 			}
 		}
+    std::cout << "Terminating hexalog."<< std::endl;
+    store->flush(true);
+    store->close();
+    fflush(stdout);
+    
 	} catch (const hexabus::NetworkException& e) {
 		std::cerr << "Network error: " << e.code().message() << std::endl;
 		return ERR_NETWORK;
