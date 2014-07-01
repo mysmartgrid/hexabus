@@ -97,7 +97,6 @@ int Machine::sm_get_instruction(uint16_t at, struct hxb_sm_instruction* op)
 	case HSO_OP_SHL:
 	case HSO_OP_SHR:
 	case HSO_OP_GETTYPE:
-	case HSO_CMP_IP_UNDEF:
 	case HSO_CMP_IP_LO:
 	case HSO_CMP_LT:
 	case HSO_CMP_LE:
@@ -467,18 +466,16 @@ static bool sm_cmp_block(hxb_sm_value_t* val, int op,
 		return true;
 	}
 
-	bool nonzero = false;
-	for (uint8_t i = 0; i < 15; i++)
-		nonzero |= val->v_binary[i] != 0;
+	if (op == HSO_CMP_IP_LO) {
+		bool zero = true;
+		for (uint8_t i = 0; i < 15; i++)
+			zero &= val->v_binary[i] == 0;
 
-	switch (op) {
-	case HSO_CMP_IP_UNDEF: val->v_uint = !nonzero && val->v_binary[15] == 0; break;
-	case HSO_CMP_IP_LO:    val->v_uint = !nonzero && val->v_binary[15] == 1; break;
-
-	default: return false;
+		val->v_uint = zero && val->v_binary[15] == 1;
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 static bool sm_convert(hxb_sm_value_t* val, uint8_t to_type)
@@ -643,6 +640,8 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 			if (insn.immed.v_uint >= SM_REG_COUNT)
 				goto fail;
 			CHECK_POP(1);
+			if (!is_arithmetic(&TOP) && TOP.type != HXB_DTYPE_DATETIME)
+				goto fail;
 			sm_registers[insn.immed.v_uint] = TOP;
 			top--;
 			break;
@@ -807,7 +806,6 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 		}
 
 		case HSO_CMP_BLOCK:
-		case HSO_CMP_IP_UNDEF:
 		case HSO_CMP_IP_LO:
 			CHECK_POP(1);
 			if (!sm_cmp_block(&TOP, insn.opcode, insn.block.first,

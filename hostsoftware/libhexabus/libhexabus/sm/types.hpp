@@ -99,7 +99,6 @@ enum hxb_sm_opcode {
 	HSO_OP_SWITCH_32,
 
 	HSO_CMP_BLOCK,
-	HSO_CMP_IP_UNDEF,
 	HSO_CMP_IP_LO,
 	HSO_CMP_LT,
 	HSO_CMP_LE,
