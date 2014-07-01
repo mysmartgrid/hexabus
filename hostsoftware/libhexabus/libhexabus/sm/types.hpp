@@ -56,7 +56,7 @@ typedef struct {
 
 
 
-#include "../../shared/sm/types.h"
+#include "sm/sm_types.h"
 
 }
 }

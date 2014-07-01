@@ -117,7 +117,7 @@ void Machine::sm_diag_msg(int code, const char* file, int line)
 
 #define SM_EXPORT(name) Machine::name
 
-#include "../../shared/sm/machine.c"
+#include "../../shared/sm_machine.c"
 
 }
 }
