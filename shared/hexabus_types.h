@@ -52,7 +52,8 @@ enum hxb_error_code {
 
 	HXB_ERR_MALFORMED_PACKET  = 0x80,
 	HXB_ERR_UNEXPECTED_PACKET = 0x81,
-	HXB_ERR_NO_VALUE          = 0x82
+	HXB_ERR_NO_VALUE          = 0x82,
+	HXB_ERR_INVALID_WRITE     = 0x83
 };
 
 // Operators for comparison in state machine

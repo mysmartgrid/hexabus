@@ -73,7 +73,7 @@ uint8_t Machine::sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val)
 	case HXB_DTYPE_UINT8:  value = (uint8_t) val->v_uint; break;
 	case HXB_DTYPE_UINT32: value = (uint32_t) val->v_uint; break;
 	case HXB_DTYPE_FLOAT:  value = (float) val->v_float; break;
-	default: return 1;
+	default: return HXB_ERR_INVALID_WRITE;
 	}
 
 	return _on_write(eid, value).get_value_or(0);
@@ -93,7 +93,7 @@ void Machine::sm_diag_msg(int code, const char* file, int line)
 {
 	static const char* msgs[] = {
 		"success",
-		"onvalid read in opcode stream",
+		"invalid read in opcode stream",
 		"invalid opcode",
 		"invalid types",
 		"division by zero",
