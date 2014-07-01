@@ -64,7 +64,62 @@ int Machine::sm_get_float(uint16_t at, float* f)
 	return 4;
 }
 
-int Machine::sm_get_instruction(uint16_t at, struct hxb_sm_instruction* op)
+uint8_t Machine::sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val)
+{
+	boost::variant<bool, uint8_t, uint32_t, float> value;
+
+	switch (val->type) {
+	case HXB_DTYPE_BOOL:   value = (bool) val->v_uint; break;
+	case HXB_DTYPE_UINT8:  value = (uint8_t) val->v_uint; break;
+	case HXB_DTYPE_UINT32: value = (uint32_t) val->v_uint; break;
+	case HXB_DTYPE_FLOAT:  value = (float) val->v_float; break;
+	default: return 1;
+	}
+
+	return _on_write(eid, value).get_value_or(0);
+}
+
+uint32_t Machine::sm_get_timestamp()
+{
+	return (sm_get_systime() - _created_at).total_seconds();
+}
+
+hxb_datetime_t Machine::sm_get_systime()
+{
+	return boost::posix_time::second_clock::local_time();
+}
+
+void Machine::sm_diag_msg(int code, const char* file, int line)
+{
+	static const char* msgs[] = {
+		"success",
+		"onvalid read in opcode stream",
+		"invalid opcode",
+		"invalid types",
+		"division by zero",
+		"invalid machine code header",
+		"invalid operation",
+		"stack error",
+	};
+
+	std::cerr << "(" << file << ":" << line << "): ";
+
+	if (code < 0 || code >= sizeof(msgs) / sizeof(*msgs)) {
+		std::cerr << "unknown error " << code;
+	} else {
+		std::cerr << msgs[code];
+	}
+
+	std::cerr << std::endl;
+}
+
+
+
+#define SM_EXPORT(name) Machine::name
+
+
+
+int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 {
 	uint32_t offset = 0;
 
@@ -230,33 +285,6 @@ int Machine::sm_get_instruction(uint16_t at, struct hxb_sm_instruction* op)
 
 	return offset;
 }
-
-uint8_t Machine::sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val)
-{
-	boost::variant<bool, uint8_t, uint32_t, float> value;
-
-	switch (val->type) {
-	case HXB_DTYPE_BOOL:   value = (bool) val->v_uint; break;
-	case HXB_DTYPE_UINT8:  value = (uint8_t) val->v_uint; break;
-	case HXB_DTYPE_UINT32: value = (uint32_t) val->v_uint; break;
-	case HXB_DTYPE_FLOAT:  value = (float) val->v_float; break;
-	default: return 1;
-	}
-
-	return _on_write(eid, value).get_value_or(0);
-}
-
-uint32_t Machine::sm_get_timestamp()
-{
-	return (sm_get_systime() - _created_at).total_seconds();
-}
-
-hxb_datetime_t Machine::sm_get_systime()
-{
-	return boost::posix_time::second_clock::local_time();
-}
-
-
 
 static bool is_int(const hxb_sm_value_t* v)
 {
@@ -518,7 +546,7 @@ static int sm_convert(hxb_sm_value_t* val, uint8_t to_type)
 	return 0;
 }
 
-int Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val)
+int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val)
 {
 	uint16_t addr = 0;
 	int8_t top = -1;
@@ -526,30 +554,29 @@ int Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val)
 	struct hxb_sm_instruction insn;
 	int ret = 0;
 
-#define DIAG(code) \
-	do { \
-		std::cerr \
-			<< "sm error " << code \
-			<< " at " << __FILE__ << ":" << __LINE__ << std::endl; \
-	} while (0)
-
 #define FAIL_WITH(code) \
 	do { \
 		ret = code; \
-		goto end_program; \
+		sm_diag_msg(ret, __PRETTY_FUNCTION__, __LINE__); \
+		goto fail; \
 	} while (0)
 #define FAIL_AS(...) \
 	do { \
 		ret = __VA_ARGS__; \
-		if (ret < 0) { \
-			ret = -ret; \
-			DIAG(ret); \
-			goto end_program; \
-		} \
+		if (ret < 0) \
+			FAIL_WITH(-ret); \
 	} while (0)
 
-#define CHECK_PUSH() do { if (top >= SM_STACK_SIZE) FAIL_WITH(HSE_STACK_ERROR); } while (0)
-#define CHECK_POP(n) do { if (top + 1 < n) FAIL_WITH(HSE_STACK_ERROR); } while (0)
+#define CHECK_PUSH() \
+	do { \
+		if (top >= SM_STACK_SIZE) \
+			FAIL_WITH(HSE_STACK_ERROR); \
+	} while (0)
+#define CHECK_POP(n) \
+	do { \
+		if (top + 1 < n) \
+			FAIL_WITH(HSE_STACK_ERROR); \
+	} while (0)
 #define PUSH(dtype, member, value) \
 	do { \
 		CHECK_PUSH(); \
@@ -904,6 +931,8 @@ int Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val)
 	}
 
 end_program:
+	ret = 0;
+fail:
 	return ret;
 }
 
