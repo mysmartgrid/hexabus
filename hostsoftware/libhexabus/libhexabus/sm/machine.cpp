@@ -13,7 +13,7 @@ namespace sm {
 int Machine::sm_get_block(uint16_t at, uint8_t size, void* block)
 {
 	if (at + size > _program.size())
-		return -1;
+		return -HSE_OOB_READ;
 
 	memcpy(block, &_program[at], size);
 
@@ -25,7 +25,7 @@ int Machine::sm_get_u8(uint16_t at, uint32_t* u)
 	uint8_t buf;
 
 	if (sm_get_block(at, 1, &buf) < 0)
-		return -1;
+		return -HSE_OOB_READ;
 
 	*u = buf;
 	return 1;
@@ -36,7 +36,7 @@ int Machine::sm_get_u16(uint16_t at, uint32_t* u)
 	uint16_t buf;
 
 	if (sm_get_block(at, 2, &buf) < 0)
-		return -1;
+		return -HSE_OOB_READ;
 
 	*u = be16toh(buf);
 	return 2;
@@ -47,7 +47,7 @@ int Machine::sm_get_u32(uint16_t at, uint32_t* u)
 	uint32_t buf;
 
 	if (sm_get_block(at, 4, &buf) < 0)
-		return -1;
+		return -HSE_OOB_READ;
 
 	*u = be32toh(buf);
 	return 4;
@@ -58,7 +58,7 @@ int Machine::sm_get_float(uint16_t at, float* f)
 	uint32_t u;
 
 	if (sm_get_u32(at, &u) < 0)
-		return -1;
+		return -HSE_OOB_READ;
 
 	memcpy(f, &u, 4);
 	return 4;
@@ -71,7 +71,7 @@ int Machine::sm_get_instruction(uint16_t at, struct hxb_sm_instruction* op)
 #define LOAD(type) ({ \
 	uint32_t tmp; \
 	int rc = sm_get_##type(at + offset, &tmp); \
-	if (rc < 0) return -1; \
+	if (rc < 0) return -HSE_INVALID_OPCODE; \
 	offset += rc; \
 	tmp; })
 
@@ -204,10 +204,10 @@ int Machine::sm_get_instruction(uint16_t at, struct hxb_sm_instruction* op)
 		op->block.first = tmp >> 4;
 		op->block.last = tmp & 0xF;
 		if (op->block.first > op->block.last)
-			return -1;
+			return -HSE_INVALID_OPCODE;
 		tmp = op->block.last - op->block.first + 1;
 		if (sm_get_block(at + offset, tmp, op->block.data) < 0)
-			return -1;
+			return -HSE_INVALID_OPCODE;
 		offset += tmp;
 		break;
 	}
@@ -223,6 +223,9 @@ int Machine::sm_get_instruction(uint16_t at, struct hxb_sm_instruction* op)
 	case HSO_JUMP_S:
 		op->jump_skip = LOAD(u8);
 		break;
+
+	default:
+		return -HSE_INVALID_OPCODE;
 	}
 
 	return offset;
@@ -305,10 +308,10 @@ static void datetime_span(const hxb_datetime_t* dt, uint32_t* days, uint32_t* se
 		+ 3600 * hxbdt_hour(dt);
 }
 
-static bool sm_dt_op(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op, uint8_t mask)
+static int sm_dt_op(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op, uint8_t mask)
 {
 	if (v1->type != HXB_DTYPE_DATETIME || v2->type != HXB_DTYPE_DATETIME)
-		return false;
+		return -HSE_INVALID_TYPES;
 
 	switch (op) {
 	case HSO_OP_DT_DIFF: {
@@ -343,16 +346,16 @@ static bool sm_dt_op(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op, uint8
 	}
 
 	default:
-		return false;
+		return -HSE_INVALID_OPCODE;
 	}
 
-	return true;
+	return 0;
 }
 
-static bool sm_arith_op2(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op)
+static int sm_arith_op2(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op)
 {
 	if (!is_arithmetic(v1) || !is_arithmetic(v2))
-		return false;
+		return -HSE_INVALID_TYPES;
 
 	/* widen v1 if v2 is of greater rank than v1, this covers integer
 	 * conversion ranks and int<float for all ints */
@@ -394,13 +397,13 @@ static bool sm_arith_op2(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op)
 	case HSO_OP_MUL: ONE_OP(*)
 	case HSO_OP_DIV:
 		if (!is_float && val2.u == 0)
-			return false;
+			return -HSE_DIV_BY_ZERO;
 		ONE_OP(/)
 	case HSO_OP_MOD:
 		if (is_float)
 			v1->v_float = 0.f;
 		else if (v2->v_uint == 0)
-			return false;
+			return -HSE_DIV_BY_ZERO;
 		else
 			v1->v_uint = val1.u % val2.u;
 		break;
@@ -424,16 +427,16 @@ static bool sm_arith_op2(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op)
 
 #undef ONE_OP
 
-	default: return false;
+	default: return -HSE_INVALID_OPCODE;
 	}
 
-	return true;
+	return 0;
 }
 
-static bool sm_int_op2(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op)
+static int sm_int_op2(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op)
 {
 	if (!is_int(v1) || !is_int(v2))
-		return false;
+		return -HSE_INVALID_TYPES;
 
 	/* widen v1 to if v2 is of greater rank than v1 */
 	if (v1->type < v2->type) {
@@ -447,23 +450,23 @@ static bool sm_int_op2(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op)
 	case HSO_OP_SHL: v1->v_uint <<= v2->v_uint; break;
 	case HSO_OP_SHR: v1->v_uint >>= v2->v_uint; break;
 
-	default: return false;
+	default: return -HSE_INVALID_OPCODE;
 	}
 
-	return true;
+	return 0;
 }
 
-static bool sm_cmp_block(hxb_sm_value_t* val, int op,
+static int sm_cmp_block(hxb_sm_value_t* val, int op,
 	uint8_t first, uint8_t last, const char* cmp)
 {
 	if (val->type != HXB_DTYPE_16BYTES)
-		return false;
+		return -HSE_INVALID_TYPES;
 
 	val->type = HXB_DTYPE_BOOL;
 
 	if (op == HSO_CMP_BLOCK) {
 		val->v_uint = memcmp(val->v_binary + first, cmp, last - first + 1) == 0;
-		return true;
+		return 0;
 	}
 
 	if (op == HSO_CMP_IP_LO) {
@@ -472,22 +475,22 @@ static bool sm_cmp_block(hxb_sm_value_t* val, int op,
 			zero &= val->v_binary[i] == 0;
 
 		val->v_uint = zero && val->v_binary[15] == 1;
-		return true;
+		return 0;
 	}
 
-	return false;
+	return -HSE_INVALID_OPCODE;
 }
 
-static bool sm_convert(hxb_sm_value_t* val, uint8_t to_type)
+static int sm_convert(hxb_sm_value_t* val, uint8_t to_type)
 {
 	if (to_type != HXB_DTYPE_BOOL &&
 		to_type != HXB_DTYPE_UINT8 &&
 		to_type != HXB_DTYPE_UINT32 &&
 		to_type != HXB_DTYPE_FLOAT)
-		return false;
+		return -HSE_INVALID_TYPES;
 
 	if (val->type == to_type)
-		return true;
+		return 0;
 
 	switch (val->type) {
 	case HXB_DTYPE_BOOL:
@@ -532,21 +535,44 @@ static bool sm_convert(hxb_sm_value_t* val, uint8_t to_type)
 		val->type = to_type;
 		break;
 
-	default: return false;
+	default: return -HSE_INVALID_OPCODE;
 	}
 
-	return true;
+	return 0;
 }
 
-void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val)
+int Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val)
 {
 	uint16_t addr = 0;
 	int8_t top = -1;
 	hxb_sm_value_t stack[SM_STACK_SIZE];
 	struct hxb_sm_instruction insn;
+	int ret = 0;
 
-#define CHECK_PUSH() do { if (top >= SM_STACK_SIZE) goto fail; } while (0)
-#define CHECK_POP(n) do { if (top + 1 < n) goto fail; } while (0)
+#define DIAG(code) \
+	do { \
+		std::cerr \
+			<< "sm error " << code \
+			<< " at " << __FILE__ << ":" << __LINE__ << std::endl; \
+	} while (0)
+
+#define FAIL_WITH(code) \
+	do { \
+		ret = code; \
+		goto end_program; \
+	} while (0)
+#define FAIL_AS(...) \
+	do { \
+		ret = __VA_ARGS__; \
+		if (ret < 0) { \
+			ret = -ret; \
+			DIAG(ret); \
+			goto end_program; \
+		} \
+	} while (0)
+
+#define CHECK_PUSH() do { if (top >= SM_STACK_SIZE) FAIL_WITH(HSE_STACK_ERROR); } while (0)
+#define CHECK_POP(n) do { if (top + 1 < n) FAIL_WITH(HSE_STACK_ERROR); } while (0)
 #define PUSH(dtype, member, value) \
 	do { \
 		CHECK_PUSH(); \
@@ -567,16 +593,16 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 		uint32_t val;
 		int rc;
 
-		if (sm_get_u8(0, &val) < 0 || val != 0)
-			goto fail;
+		FAIL_AS(sm_get_u8(0, &val));
+		if (val != 0)
+			FAIL_WITH(HSE_INVALID_HEADER);
 
 		if (src_ip)
 			rc = sm_get_u16(1 + 0x0000, &val);
 		else
 			rc = sm_get_u16(1 + 0x0002, &val);
 
-		if (rc < 0)
-			goto fail;
+		FAIL_AS(rc);
 
 		addr = val;
 	}
@@ -585,25 +611,24 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 		int insn_length = sm_get_instruction(addr, &insn);
 		uint16_t jump_skip = 0;
 
-		if (insn_length < 0)
-			goto fail;
+		FAIL_AS(insn_length);
 
 		switch (insn.opcode) {
 		case HSO_LD_SOURCE_IP:
-			if (!src_ip)
-				goto fail;
+			if (!src_ip || !val)
+				FAIL_WITH(HSE_INVALID_OPERATION);
 			PUSH(HXB_DTYPE_16BYTES, v_binary, src_ip);
 			break;
 
 		case HSO_LD_SOURCE_EID:
-			if (!src_ip)
-				goto fail;
+			if (!src_ip || !val)
+				FAIL_WITH(HSE_INVALID_OPERATION);
 			PUSH(HXB_DTYPE_UINT32, v_uint, eid);
 			break;
 
 		case HSO_LD_SOURCE_VAL:
-			if (!src_ip)
-				goto fail;
+			if (!src_ip || !val)
+				FAIL_WITH(HSE_INVALID_OPERATION);
 			PUSH_V(*val);
 			break;
 
@@ -632,16 +657,16 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 
 		case HSO_LD_REG:
 			if (insn.immed.v_uint >= SM_REG_COUNT)
-				goto fail;
+				FAIL_WITH(HSE_INVALID_OPERATION);
 			PUSH_V(sm_registers[insn.immed.v_uint]);
 			break;
 
 		case HSO_ST_REG:
 			if (insn.immed.v_uint >= SM_REG_COUNT)
-				goto fail;
+				FAIL_WITH(HSE_INVALID_OPERATION);
 			CHECK_POP(1);
 			if (!is_arithmetic(&TOP) && TOP.type != HXB_DTYPE_DATETIME)
-				goto fail;
+				FAIL_WITH(HSE_INVALID_TYPES);
 			sm_registers[insn.immed.v_uint] = TOP;
 			top--;
 			break;
@@ -658,8 +683,7 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 		case HSO_CMP_EQ:
 		case HSO_CMP_NEQ:
 			CHECK_POP(2);
-			if (!sm_arith_op2(&TOP_N(1), &TOP_N(0), insn.opcode))
-				goto fail;
+			FAIL_AS(sm_arith_op2(&TOP_N(1), &TOP_N(0), insn.opcode));
 			top--;
 			break;
 
@@ -667,8 +691,7 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 		case HSO_CMP_DT_LT:
 		case HSO_CMP_DT_GE:
 			CHECK_POP(2);
-			if (!sm_dt_op(&TOP_N(1), &TOP_N(0), insn.opcode, insn.dt_mask))
-				goto fail;
+			FAIL_AS(sm_dt_op(&TOP_N(1), &TOP_N(0), insn.opcode, insn.dt_mask));
 			top--;
 			break;
 
@@ -678,8 +701,7 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 		case HSO_OP_SHL:
 		case HSO_OP_SHR:
 			CHECK_POP(2);
-			if (!sm_int_op2(&TOP_N(1), &TOP_N(0), insn.opcode))
-				goto fail;
+			FAIL_AS(sm_int_op2(&TOP_N(1), &TOP_N(0), insn.opcode));
 			top--;
 			break;
 
@@ -696,7 +718,7 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 				TOP.v_uint = ~TOP.v_uint;
 				break;
 			default:
-				goto fail;
+				FAIL_WITH(HSE_INVALID_TYPES);
 			}
 			break;
 
@@ -727,7 +749,7 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 			CHECK_POP(1);
 
 			if (TOP.type != HXB_DTYPE_DATETIME)
-				goto fail;
+				FAIL_WITH(HSE_INVALID_TYPES);
 
 			const hxb_datetime_t* dt = &TOP.v_datetime;
 
@@ -763,7 +785,7 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 			CHECK_POP(1);
 
 			if (!is_int(&TOP))
-				goto fail;
+				FAIL_WITH(HSE_INVALID_TYPES);
 
 			uint16_t offset = insn_length;
 
@@ -787,12 +809,12 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 					rc = sm_get_u32(addr + offset, &val);
 				}
 				if (rc < 0)
-					goto fail;
+					FAIL_WITH(HSE_INVALID_OPCODE);
 				offset += rc;
 
 				rc = sm_get_u16(addr + offset, &jump_val);
 				if (rc < 0)
-					goto fail;
+					FAIL_WITH(HSE_INVALID_OPCODE);
 				offset += rc;
 
 				if (TOP.v_uint == val) {
@@ -808,9 +830,8 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 		case HSO_CMP_BLOCK:
 		case HSO_CMP_IP_LO:
 			CHECK_POP(1);
-			if (!sm_cmp_block(&TOP, insn.opcode, insn.block.first,
-					insn.block.last, insn.block.data))
-				goto fail;
+			FAIL_AS(sm_cmp_block(&TOP, insn.opcode, insn.block.first,
+					insn.block.last, insn.block.data));
 			break;
 
 		case HSO_JNZ:
@@ -833,7 +854,7 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 				break;
 
 			default:
-				goto fail;
+				FAIL_WITH(HSE_INVALID_TYPES);
 			}
 
 			uint16_t jz = insn.opcode == HSO_JZ || insn.opcode == HSO_JZ_S;
@@ -854,7 +875,7 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 			CHECK_POP(2);
 
 			if (!is_int(&TOP_N(1)))
-				goto fail;
+				FAIL_WITH(HSE_INVALID_TYPES);
 
 			hxb_sm_value_t write_val = TOP_N(0);
 			uint32_t write_eid = TOP_N(1).v_uint;
@@ -877,10 +898,9 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 			case HSO_CONV_U8: to = HXB_DTYPE_UINT8; break;
 			case HSO_CONV_U32: to = HXB_DTYPE_UINT32; break;
 			case HSO_CONV_F: to = HXB_DTYPE_FLOAT; break;
-			default: goto fail;
+			default: FAIL_WITH(HSE_INVALID_TYPES);
 			}
-			if (!sm_convert(&TOP, to))
-				goto fail;
+			FAIL_AS(sm_convert(&TOP, to));
 			break;
 		}
 
@@ -892,7 +912,7 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 		case HSO_RET_CHANGE:
 			CHECK_POP(1);
 			if (!is_int(&TOP))
-				goto fail;
+				FAIL_WITH(HSE_INVALID_TYPES);
 			sm_curstate = TOP.v_uint;
 			sm_in_state_since = sm_get_timestamp();
 			goto end_program;
@@ -902,15 +922,12 @@ void Machine::run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val
 		}
 
 		if (addr + insn_length + jump_skip < addr)
-			goto fail;
+			FAIL_WITH(HSE_INVALID_OPERATION);
 		addr += insn_length + jump_skip;
 	}
 
 end_program:
-	std::cout << "sm_run done, in state " << sm_curstate << " since " << sm_in_state_since << std::endl;
-	return;
-fail:
-	std::cerr << "invalid state machine program" << std::endl;
+	return ret;
 }
 
 }

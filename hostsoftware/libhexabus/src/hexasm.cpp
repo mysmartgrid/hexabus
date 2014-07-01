@@ -126,14 +126,17 @@ static void on_packet(hexabus::sm::Machine& machine,
 		return;
 	}
 
-	std::cout << "Running state machine for packet: ";
-	machine.run_sm((const char*) &addr[0], eid, &value);
+	std::cout << "Running state machine for packet: "
+		<< machine.run_sm((const char*) &addr[0], eid, &value)
+		<< ", in state " << machine.state() << std::endl;
 }
 
 static void on_periodic(hexabus::sm::Machine& machine, boost::asio::deadline_timer& timer)
 {
-	std::cout << "Running state machine for periodic check: ";
-	machine.run_sm(NULL, 0, NULL);
+	std::cout << "Running state machine for periodic check: "
+		<< machine.run_sm(NULL, 0, NULL)
+		<< ", in state " << machine.state() << std::endl;
+	timer.expires_from_now(boost::posix_time::seconds(1));
 	timer.async_wait(boost::bind(on_periodic, boost::ref(machine), boost::ref(timer)));
 }
 
@@ -152,8 +155,6 @@ int main()
 		((uint8_t) 0)
 		(on_packet, false, true)
 		(on_periodic, false, true)
-	.mark(on_periodic)
-		(HSO_RET_STAY)
 	.mark(on_packet)
 		(HSO_LD_SOURCE_IP)
 		(HSO_CMP_BLOCK)((u8) 0x0f)((u32) 0xfdac814e)((u32) 0x24567334)((u32) 0x69ef7d2f)((u32) 0xcd3df75f)
@@ -161,8 +162,8 @@ int main()
 		(HSO_LD_U8)((u8) 20)
 		(HSO_CMP_EQ)
 		(HSO_OP_AND)
-		(HSO_JNZ_S)(my_packet, true)
-		(HSO_RET_STAY)
+		(HSO_JNZ)(my_packet, false)
+		(HSO_JUMP_S)(end_program, true)
 	.mark(my_packet)
 		(HSO_LD_CURSTATE)
 		(HSO_OP_SWITCH_8)((u8) 2)
@@ -192,6 +193,7 @@ int main()
 		(HSO_LD_FALSE)
 		(HSO_RET_CHANGE)
 	.mark(end_program)
+	.mark(on_periodic)
 		(HSO_RET_STAY)
 	;
 

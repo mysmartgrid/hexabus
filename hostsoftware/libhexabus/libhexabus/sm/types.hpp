@@ -153,6 +153,18 @@ struct hxb_sm_instruction {
 	} block;
 };
 
+enum hxb_sm_error {
+	HSE_SUCCESS = 0,
+
+	HSE_OOB_READ,
+	HSE_INVALID_OPCODE,
+	HSE_INVALID_TYPES,
+	HSE_DIV_BY_ZERO,
+	HSE_INVALID_HEADER,
+	HSE_INVALID_OPERATION,
+	HSE_STACK_ERROR,
+};
+
 }
 }
 

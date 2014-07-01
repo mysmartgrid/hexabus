@@ -42,7 +42,9 @@ class Machine {
 			memset(sm_registers, 0, sizeof(sm_registers));
 		}
 
-		void run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val);
+		int run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val);
+
+		uint32_t state() const { return sm_curstate; }
 };
 
 }
