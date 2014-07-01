@@ -140,6 +140,26 @@ static void on_periodic(hexabus::sm::Machine& machine, boost::asio::deadline_tim
 	timer.async_wait(boost::bind(on_periodic, boost::ref(machine), boost::ref(timer)));
 }
 
+static uint8_t on_write(uint32_t eid, hexabus::sm::Machine::write_value_t value)
+{
+	const char* type;
+
+	switch (value.which()) {
+	case 0: type = "bool"; break;
+	case 1: type = "uint8"; break;
+	case 2: type = "uint32"; break;
+	case 3: type = "float"; break;
+	default: return 1;
+	}
+
+	std::cout << "WRITE\n"
+		<< "	EP " << eid << "\n"
+		<< "	Type " << type << "\n"
+		<< "	Value " << value << std::endl;
+
+	return 0;
+}
+
 int main()
 {
 	using namespace hexabus::sm;
@@ -198,6 +218,7 @@ int main()
 	;
 
 	Machine machine(as.finish());
+	machine.onWrite(on_write);
 
 	boost::asio::io_service io;
 	hexabus::Listener listener(io);

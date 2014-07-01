@@ -3,16 +3,22 @@
 
 #include <vector>
 
+#include <boost/signals2.hpp>
+
 #include "libhexabus/sm/types.hpp"
 
 namespace hexabus {
 namespace sm {
 
 class Machine {
+	public:
+		typedef boost::variant<bool, uint8_t, uint32_t, float> write_value_t;
+		typedef boost::signals2::signal<uint8_t (uint32_t, write_value_t)> write_signal_t;
+
 	private:
 		enum {
 			SM_REG_COUNT = 16,
-			SM_STACK_SIZE = 16,
+			SM_STACK_SIZE = 32,
 		};
 
 		hxb_sm_value_t sm_registers[SM_REG_COUNT];
@@ -20,6 +26,7 @@ class Machine {
 
 		std::vector<uint8_t> _program;
 		boost::posix_time::ptime _created_at;
+		write_signal_t _on_write;
 
 		int sm_get_block(uint16_t at, uint8_t size, void* block);
 		int sm_get_u8(uint16_t at, uint32_t* u);
@@ -45,6 +52,11 @@ class Machine {
 		int run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val);
 
 		uint32_t state() const { return sm_curstate; }
+
+		boost::signals2::connection onWrite(write_signal_t::slot_type slot)
+		{
+			return _on_write.connect(slot);
+		}
 };
 
 }

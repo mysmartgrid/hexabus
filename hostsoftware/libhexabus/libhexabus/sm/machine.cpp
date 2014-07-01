@@ -234,39 +234,16 @@ int Machine::sm_get_instruction(uint16_t at, struct hxb_sm_instruction* op)
 uint8_t Machine::sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val)
 {
 	boost::variant<bool, uint8_t, uint32_t, float> value;
-	const char* type;
 
 	switch (val->type) {
-	case HXB_DTYPE_BOOL:
-		value = (bool) val->v_uint;
-		type = "bool";
-		break;
-
-	case HXB_DTYPE_UINT8:
-		value = val->v_uint;
-		type = "uint8";
-		break;
-
-	case HXB_DTYPE_UINT32:
-		value = val->v_uint;
-		type = "uint32";
-		break;
-
-	case HXB_DTYPE_FLOAT:
-		value = val->v_float;
-		type = "float";
-		break;
-
-	default:
-		return 1;
+	case HXB_DTYPE_BOOL:   value = (bool) val->v_uint; break;
+	case HXB_DTYPE_UINT8:  value = (uint8_t) val->v_uint; break;
+	case HXB_DTYPE_UINT32: value = (uint32_t) val->v_uint; break;
+	case HXB_DTYPE_FLOAT:  value = (float) val->v_float; break;
+	default: return 1;
 	}
 
-	std::cout << "WRITE\n"
-		<< "	EP " << eid << "\n"
-		<< "	Type " << type << "\n"
-		<< "	Value " << value << std::endl;
-
-	return 0;
+	return _on_write(eid, value).get_value_or(0);
 }
 
 uint32_t Machine::sm_get_timestamp()
