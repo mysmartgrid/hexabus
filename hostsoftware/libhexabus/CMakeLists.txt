@@ -87,6 +87,11 @@ if( LIBKLIO_FOUND )
   endif(WIN32)
 endif( LIBKLIO_FOUND )
 
+configure_file("../../shared/hexabus_types.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" @COPY_ONLY)
+configure_file("../../shared/hexabus_statemachine_structs.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" @COPY_ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" DESTINATION include/libhexabus)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" DESTINATION include/libhexabus)
+
 # Reflect the package structure
 add_subdirectory(libhexabus)
 add_subdirectory(src)

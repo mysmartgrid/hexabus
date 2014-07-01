@@ -56,7 +56,7 @@ void _endpoint_register(const struct endpoint_descriptor* ep, struct endpoint_re
 		case HXB_DTYPE_FLOAT:
 		case HXB_DTYPE_128STRING:
 		case HXB_DTYPE_TIMESTAMP:
-		case HXB_DTYPE_66BYTES:
+		case HXB_DTYPE_65BYTES:
 		case HXB_DTYPE_16BYTES:
 			break;
 

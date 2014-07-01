@@ -54,6 +54,8 @@ find_package(LibHexabus)
 #FIND_PACKAGE(RtMidi)
 find_package(UCI)
 
+configure_file(${CMAKE_SOURCE_DIR}/configure.h.in ${CMAKE_BINARY_DIR}/configure.h)
+
 # We depend on boost >= 1.46.1 because of the updated filesystem
 # library.
 SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"

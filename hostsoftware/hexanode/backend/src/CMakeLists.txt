@@ -22,6 +22,7 @@ include_directories(
   ${HXB_INCLUDE_DIR}
   ${LIBKLIO_INCLUDE_DIRS}
   ${SQLITE3_INCLUDE_DIR}
+  ${CURL_INCLUDE_DIR}
 )
 #link_directories(
 #  #  ${SQLITE3_STATIC_LIBRARY_DIRS}

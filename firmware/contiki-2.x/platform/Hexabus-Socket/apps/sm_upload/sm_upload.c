@@ -82,7 +82,7 @@ static enum hxb_error_code write_receiver(const struct hxb_envelope* env)
 
 static const char ep_receiver_name[] PROGMEM = "Statemachine Upload Receiver";
 ENDPOINT_DESCRIPTOR endpoint_sm_upload_receiver = {
-	.datatype = HXB_DTYPE_66BYTES,
+	.datatype = HXB_DTYPE_65BYTES,
 	.eid = EP_SM_UP_RECEIVER,
 	.name = ep_receiver_name,
 	.read = read_receiver,

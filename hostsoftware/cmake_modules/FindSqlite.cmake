@@ -17,15 +17,6 @@ if ( SQLITE3_INCLUDE_DIR AND SQLITE3_LIBRARIES )
 endif ( SQLITE3_INCLUDE_DIR AND SQLITE3_LIBRARIES )
 
 message(STATUS "FindSqlite3 check")
-IF (NOT WIN32)
-  include(FindPkgConfig)
-  if ( PKG_CONFIG_FOUND )
-
-     pkg_check_modules (PC_SQLITE3 sqlite3>=0.9)
-
-     set(SQLITE3_DEFINITIONS ${PC_SQLITE3_CFLAGS_OTHER})
-  endif(PKG_CONFIG_FOUND)
-endif (NOT WIN32)
 
 #
 # set defaults
@@ -71,11 +62,38 @@ IF( NOT $ENV{SQLITE3_LIBRARYDIR} STREQUAL "" )
   SET(_sqlite3_LIBRARIES_SEARCH_DIRS $ENV{SQLITE3_LIBRARYDIR} ${_sqlite3_LIBRARIES_SEARCH_DIRS})
 ENDIF( NOT $ENV{SQLITE3_LIBRARYDIR} STREQUAL "" )
 
+if( NOT $ENV{PKG_CONFIG_PATH} STREQUAL "" )
+  set(_pkgconfigPath $ENV{PKG_CONFIG_PATH})
+else()
+  set(_pkgconfigPath "PKG_CONFIG_PATH-NOTFOUND")
+endif()
+
 IF( SQLITE3_HOME )
   SET(_sqlite3_INCLUDE_SEARCH_DIRS ${SQLITE3_HOME}/include ${_sqlite3_INCLUDE_SEARCH_DIRS})
   SET(_sqlite3_LIBRARIES_SEARCH_DIRS ${SQLITE3_HOME}/lib ${_sqlite3_LIBRARIES_SEARCH_DIRS})
   SET(_sqlite3_HOME ${SQLITE3_HOME})
+  set(_sqlite3_pkgconfig ${SQLITE3_HOME}/lib/pkgconfig)
+  if( ${_pkgconfigPath} STREQUAL "PKG_CONFIG_PATH-NOTFOUND" )
+    set(ENV{PKG_CONFIG_PATH} "${_sqlite3_pkgconfig}")
+  else()
+    set(ENV{PKG_CONFIG_PATH} "${_sqlite3_pkgconfig}:${_pkgconfigPath}")
+  endif()
 ENDIF( SQLITE3_HOME )
+
+
+IF (NOT WIN32)
+  include(FindPkgConfig)
+  if ( PKG_CONFIG_FOUND )
+
+     pkg_check_modules (PC_SQLITE3 sqlite3>=3.7)
+
+     set(SQLITE3_DEFINITIONS ${PC_SQLITE3_CFLAGS_OTHER})
+  endif(PKG_CONFIG_FOUND)
+endif (NOT WIN32)
+if( NOT ${_pkgconfigPath} STREQUAL "PKG_CONFIG_PATH-NOTFOUND" )
+  set(ENV{PKG_CONFIG_PATH} "${_pkgconfigPath}")
+endif()
+
 
 message("Sqlite3 search: '${_sqlite3_INCLUDE_SEARCH_DIRS}' ${CMAKE_INCLUDE_PATH}")
 # find the include files
@@ -93,12 +111,18 @@ IF(WIN32)
 ELSE(WIN32)
   SET(SQLITE3_LIBRARY_NAMES ${SQLITE3_LIBRARY_NAMES} libsqlite3.a)
 ENDIF(WIN32)
-FIND_LIBRARY(SQLITE3_LIBRARIES NAMES ${SQLITE3_LIBRARY_NAMES}
+FIND_LIBRARY(SQLITE3_LIBRARY NAMES ${SQLITE3_LIBRARY_NAMES}
   HINTS
     ${_sqlite3_LIBRARIES_SEARCH_DIRS}
     ${PC_SQLITE3_LIBDIR}
     ${PC_SQLITE3_LIBRARY_DIRS}
 )
+
+#set(SQLITE3_LIBRARIES ${SQLITE3_LIBRARY})
+#if( NOT ${PC_SQLITE3_STATIC_LIBRARIES} STREQUAL "")
+#  list(APPEND SQLITE3_LIBRARIES ${PC_SQLITE3_STATIC_LIBRARIES})
+#endif()
+set(SQLITE3_LIBRARIES ${PC_SQLITE3_STATIC_LDFLAGS})
 
 # if the include and the program are found then we have it
 IF(SQLITE3_INCLUDE_DIR AND SQLITE3_LIBRARIES)

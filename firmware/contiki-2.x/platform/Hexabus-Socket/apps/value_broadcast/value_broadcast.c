@@ -129,7 +129,7 @@ static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, voi
 		// these just work because value.$blob points to the buffer anyway
 		case HXB_DTYPE_16BYTES:
 		case HXB_DTYPE_128STRING:
-		case HXB_DTYPE_66BYTES:
+		case HXB_DTYPE_65BYTES:
 			break;
 
 		case HXB_DTYPE_DATETIME:
