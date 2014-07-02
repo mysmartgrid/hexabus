@@ -15,7 +15,7 @@ CONTIKI=../contiki-2.x
 #CONTIKI=../contiki-2.4
 include $(CONTIKI)/Makefile.include
 
-CFLAGS += -Wall -Werror -Wno-unused -Wswitch-enum
+CFLAGS += -Wall -Werror -Wno-unused -Wswitch
 
 CFLAGS += -D"__SHORT_FILE__=\"`basename $<`\""
 
