@@ -152,12 +152,6 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 		op->jump_skip = LOAD(u16);
 		break;
 
-	case HSO_JNZ_S:
-	case HSO_JZ_S:
-	case HSO_JUMP_S:
-		op->jump_skip = LOAD(u8);
-		break;
-
 	default:
 		return -HSE_INVALID_OPCODE;
 	}
@@ -718,9 +712,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 			break;
 
 		case HSO_JNZ:
-		case HSO_JZ:
-		case HSO_JNZ_S:
-		case HSO_JZ_S: {
+		case HSO_JZ: {
 			CHECK_POP(1);
 
 			bool is_zero = false;
@@ -740,7 +732,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 				FAIL_WITH(HSE_INVALID_TYPES);
 			}
 
-			uint16_t jz = insn.opcode == HSO_JZ || insn.opcode == HSO_JZ_S;
+			bool jz = insn.opcode == HSO_JZ;
 
 			if (is_zero == jz)
 				jump_skip = insn.jump_skip;
@@ -750,7 +742,6 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		}
 
 		case HSO_JUMP:
-		case HSO_JUMP_S:
 			jump_skip = insn.jump_skip;
 			break;
 

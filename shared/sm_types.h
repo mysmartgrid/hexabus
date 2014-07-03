@@ -58,10 +58,6 @@ enum hxb_sm_opcode {
 	HSO_JZ,
 	HSO_JUMP,
 
-	HSO_JNZ_S,
-	HSO_JZ_S,
-	HSO_JUMP_S,
-
 	HSO_WRITE,
 
 	HSO_POP,

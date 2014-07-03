@@ -16,7 +16,7 @@ class Assembler {
 			uint16_t offset_from;
 			bool offset_set;
 			const Label* label;
-			bool is_short, is_absolute;
+			bool is_absolute;
 		};
 
 		std::vector<uint8_t> _program;
@@ -55,13 +55,11 @@ class Assembler {
 			return (*this)(u);
 		}
 
-		Assembler& operator()(const Label& label, bool is_short, bool is_absolute = false)
+		Assembler& operator()(const Label& label, bool is_absolute = false)
 		{
-			Fixup f = { _program.size(), 0, false, &label, is_short, is_absolute };
+			Fixup f = { _program.size(), 0, false, &label, is_absolute };
 			_fixups.push_back(f);
-			return is_short
-				? (*this)((uint8_t) 0)
-				: (*this)((uint16_t) 0);
+			return (*this)((uint16_t) 0);
 		}
 
 		Assembler& mark(const Label& label)
@@ -74,12 +72,8 @@ class Assembler {
 					? _program.size()
 					: _program.size() - _fixups[i].offset_from;
 
-				if (_fixups[i].is_short) {
-					_program[_fixups[i].addr] = diff;
-				} else {
-					_program[_fixups[i].addr + 0] = diff >> 8;
-					_program[_fixups[i].addr + 1] = diff & 0xFF;
-				}
+				_program[_fixups[i].addr + 0] = diff >> 8;
+				_program[_fixups[i].addr + 1] = diff & 0xFF;
 			}
 
 			return *this;
@@ -172,8 +166,8 @@ int main()
 
 	as
 		((uint8_t) 0)
-		(on_packet, false, true)
-		(on_periodic, false, true)
+		(on_packet, true)
+		(on_periodic, true)
 	.mark(on_packet)
 		(HSO_LD_SOURCE_IP)
 		(HSO_CMP_BLOCK)((u8) 0x0f)((u32) 0xfdac814e)((u32) 0x24567334)((u32) 0x69ef7d2f)((u32) 0xcd3df75f)
@@ -181,19 +175,19 @@ int main()
 		(HSO_LD_U8)((u8) 20)
 		(HSO_CMP_EQ)
 		(HSO_OP_AND)
-		(HSO_JNZ)(my_packet, false)
-		(HSO_JUMP_S)(end_program, true)
+		(HSO_JNZ)(my_packet)
+		(HSO_JUMP)(end_program)
 	.mark(my_packet)
 		(HSO_LD_CURSTATE)
 		(HSO_OP_SWITCH_8)((u8) 2)
-			((u8) 0)(in_state_off, false)
-			((u8) 1)(in_state_on, false)
+			((u8) 0)(in_state_off)
+			((u8) 1)(in_state_on)
 		(HSO_RET_STAY)
 	.mark(in_state_off)
 		(HSO_LD_SOURCE_VAL)
 		(HSO_LD_U8)((u8) 11)
 		(HSO_CMP_EQ)
-		(HSO_JZ_S)(end_program, true)
+		(HSO_JZ)(end_program)
 			(HSO_LD_U8)((u8) 2)
 			(HSO_LD_TRUE)
 			(HSO_WRITE)
@@ -204,7 +198,7 @@ int main()
 		(HSO_LD_SOURCE_VAL)
 		(HSO_LD_U8)((u8) 12)
 		(HSO_CMP_EQ)
-		(HSO_JZ_S)(end_program, true)
+		(HSO_JZ)(end_program)
 			(HSO_LD_U8)((u8) 2)
 			(HSO_LD_FALSE)
 			(HSO_WRITE)
