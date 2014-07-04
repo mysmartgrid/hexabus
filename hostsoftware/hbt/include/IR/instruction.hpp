@@ -3,10 +3,9 @@
 
 #include <array>
 #include <exception>
+#include <tuple>
 #include <type_traits>
 #include <vector>
-
-#include <boost/date_time/posix_time/ptime.hpp>
 
 namespace hbt {
 namespace ir {
@@ -111,8 +110,45 @@ inline DTMask operator|=(DTMask& a, DTMask b)
 
 
 
-struct Label {
-	unsigned id;
+class DateTime {
+	private:
+		uint8_t _second;
+		uint8_t _minute;
+		uint8_t _hour;
+		uint8_t _day;
+		uint8_t _month;
+		uint16_t _year;
+		uint8_t _weekday;
+
+	public:
+		DateTime(uint8_t second, uint8_t minute, uint8_t hour,
+				uint8_t day, uint8_t month, uint16_t year,
+				uint8_t weekday)
+			: _second(second), _minute(minute), _hour(hour), _day(day),
+			  _month(month), _year(year), _weekday(weekday)
+		{}
+
+		uint8_t second() const { return _second; }
+		uint8_t minute() const { return _minute; }
+		uint8_t hour() const { return _hour; }
+		uint8_t day() const { return _day; }
+		uint8_t month() const { return _month; }
+		uint16_t year() const { return _year; }
+		uint8_t weekday() const { return _weekday; }
+};
+
+
+
+class Label {
+	private:
+		size_t _id;
+
+	public:
+		explicit Label(size_t id)
+			: _id(id)
+		{}
+
+		size_t id() const { return _id; }
 };
 
 
@@ -194,8 +230,10 @@ class ImmediateInstruction : public Instruction {
 		std::is_same<Immed, uint32_t>::value ||
 		std::is_same<Immed, float>::value ||
 		std::is_same<Immed, DTMask>::value ||
-		std::is_same<Immed, const Label*>::value ||
-		std::is_same<Immed, boost::posix_time::ptime>::value
+		std::is_same<Immed, Label>::value ||
+		std::is_same<Immed, DateTime>::value ||
+		std::is_same<Immed,
+			std::tuple<DTMask, DateTime>>::value
 		, "");
 	private:
 		Immed _immed;
