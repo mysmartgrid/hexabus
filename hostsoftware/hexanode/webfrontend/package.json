@@ -16,20 +16,5 @@
     "cookie-signature": "1.0.1",
     "buffer-crc32": "0.2.1",
     "ipv6": "3.1.1"
-  },
-  "bundledDependencies": [
-	"express",
-    "connect",
-    "ejs",
-    "socket.io",
-    "CBuffer",
-    "request",
-    "nconf",
-    "cookie-signature",
-    "buffer-crc32",
-    "ipv6",
-  	"debug",
-	"range-parser",
-	"pause"
-  ]
+  }
 }
