@@ -27,6 +27,13 @@
 #include <libhexabus/packet.hpp>
 #include <libhexabus/socket.hpp>
 
+// GCC 4.3.3 doesn't like using ::Ptr in the declaration of fromEndpointDescriptor
+#if __GNUC__ == 4 && __GNUC_MINOR__ == 3 && __GNUC_PATCHLEVEL__ == 3
+#  define TYPEDENDPOINTFUNCTIONS_PTR std::tr1::shared_ptr<TypedEndpointFunctions<TValue> >
+#else
+#  define TYPEDENDPOINTFUNCTIONS_PTR TypedEndpointFunctions<TValue>::Ptr
+#endif
+
 namespace hexabus {
 	class EndpointFunctions {
 		public:
@@ -101,8 +108,8 @@ namespace hexabus {
 				return HXB_ERR_INTERNAL;
 			}
 
-			static TypedEndpointFunctions<TValue>::Ptr fromEndpointDescriptor(const EndpointDescriptor& ep) {
-				TypedEndpointFunctions<TValue>::Ptr result(new TypedEndpointFunctions<TValue>(ep.eid(), ep.description()));
+			static TYPEDENDPOINTFUNCTIONS_PTR fromEndpointDescriptor(const EndpointDescriptor& ep) {
+				TYPEDENDPOINTFUNCTIONS_PTR result(new TypedEndpointFunctions<TValue>(ep.eid(), ep.description()));
 
 				if (ep.type() != result->datatype())
 					throw hexabus::GenericException("Datatype mismatch while creating endpoint functions.");
