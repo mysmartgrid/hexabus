@@ -125,21 +125,6 @@ uint32_t HexabusServer::get_sum()
 	return result;
 }
 
-int HexabusServer::getFluksoValue()
-{
-	updateFluksoValues();
-	int result = 0;
-
-  result += _flukso_values[_sensor_mapping[1]];
-  result += _flukso_values[_sensor_mapping[2]];
-  result += _flukso_values[_sensor_mapping[3]];
-  
-	//for ( std::map<std::string, uint32_t>::iterator it = _flukso_values.begin(); it != _flukso_values.end(); it++ )
-  //		result += it->second;
-
-	return result;
-}
-
 void HexabusServer::updateFluksoValues()
 {
 	bf::path p("/var/run/fluksod/sensor/");
@@ -150,16 +135,6 @@ void HexabusServer::updateFluksoValues()
 		{
 			std::string filename = (*sensors).path().filename().string();
 			_debug && std::cout << "Parsing file: " << filename << std::endl;
-
-			//convert hash from hex to binary
-			boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> data;
-			unsigned short hash;
-			for ( unsigned int pos = 0; pos < 16; pos++ )
-			{
-				std::stringstream ss(filename.substr(2*pos, 2));
-				ss >> std::hex >> hash;
-				data[pos] = hash;
-			}
 
 			std::ifstream file;
 			file.open((*sensors).path().string().c_str());
@@ -173,25 +148,17 @@ void HexabusServer::updateFluksoValues()
 			boost::regex r("^\\[(?:\\[[[:digit:]]*,[[:digit:]]*\\],)*\\[[[:digit:]]*,([[:digit:]]*)\\](?:,\\[[[:digit:]]*,\"nan\"\\])*\\]$");
 			boost::match_results<std::string::const_iterator> what;
 
-			uint32_t value = 0;
-			if ( boost::regex_search(flukso_data, what, r))
-				value = boost::lexical_cast<uint32_t>(std::string(what[1].first, what[1].second));
-
-			_flukso_values[filename] = value;
-			_debug && std::cout << "Updating _flukso_values[" << filename << "] = " << value << std::endl;
-
-			union {
-				uint32_t u32;
-				char raw[sizeof(value)];
-			} c = { htonl(value) };
-			for ( unsigned int pos = 0; pos < sizeof(value); pos++ )
-			{
-				data[16+pos] = c.raw[pos];
+			if ( boost::regex_search(flukso_data, what, r) ) {
+				try {
+					uint32_t value = boost::lexical_cast<uint32_t>(std::string(what[1].first, what[1].second));
+					_flukso_values[filename] = value;
+					_debug && std::cout << "Updating _flukso_values[" << filename << "] = " << value << std::endl;
+				} catch ( const boost::bad_lexical_cast & ) {
+					std::cerr << "Error parsing value " << std::string(what[1].first, what[1].second) << std::endl;
+				}
+			} else {
+				std::cerr << "Error parsing " << filename << std::endl;
 			}
-
-			//pad array with zeros
-			for ( unsigned int pos = 16 + sizeof(value); pos < HXB_65BYTES_PACKET_BUFFER_LENGTH; pos++ )
-				data[pos] = 0;
 		}
 	}
 }
