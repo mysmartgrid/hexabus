@@ -171,7 +171,10 @@ class SwitchTable {
 		template<typename Iter>
 		SwitchTable(Iter begin, Iter end)
 			: _entries(begin, end)
-		{}
+		{
+			if (end - begin > 255)
+				throw std::invalid_argument("end");
+		}
 
 		size_t size() const { return _entries.size(); }
 
