@@ -25,7 +25,7 @@ Label Builder::useLabel(Label l)
 	return l;
 }
 
-void Builder::appendInstruction(Label* l, Opcode op, const immed_t* immed)
+void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed_t* immed)
 {
 	using boost::get;
 

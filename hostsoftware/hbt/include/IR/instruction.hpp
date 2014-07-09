@@ -7,6 +7,8 @@
 #include <type_traits>
 #include <vector>
 
+#include <boost/optional.hpp>
+
 namespace hbt {
 namespace ir {
 
@@ -155,7 +157,7 @@ class Label {
 
 struct SwitchEntry {
 	uint32_t label;
-	const Label* target;
+	Label target;
 };
 
 class SwitchTable {
@@ -207,17 +209,17 @@ class BlockPart {
 class Instruction {
 	private:
 		Opcode _opcode;
-		const Label* _label;
+		boost::optional<Label> _label;
 
 	public:
-		Instruction(Opcode opcode, const Label* label = nullptr)
+		Instruction(Opcode opcode, boost::optional<Label> label = boost::none_t())
 			: _opcode(opcode), _label(label)
 		{}
 
 		virtual ~Instruction();
 
 		Opcode opcode() const { return _opcode; }
-		const Label* label() const { return _label; }
+		const Label* label() const { return _label.get_ptr(); }
 };
 
 template<typename Immed>
@@ -238,7 +240,7 @@ class ImmediateInstruction : public Instruction {
 
 	public:
 		ImmediateInstruction(Opcode opcode, const Immed& immed,
-				const Label* label = nullptr)
+				boost::optional<Label> label = boost::none_t())
 			: Instruction(opcode, label), _immed(immed)
 		{}
 

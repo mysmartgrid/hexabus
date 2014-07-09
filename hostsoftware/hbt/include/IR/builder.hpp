@@ -40,7 +40,7 @@ class Builder {
 				std::tuple<DTMask, DateTime>
 			> immed_t;
 
-		void appendInstruction(Label* l, Opcode op, const immed_t* immed);
+		void appendInstruction(boost::optional<Label> l, Opcode op, const immed_t* immed);
 		Label useLabel(Label l);
 
 	public:
@@ -50,22 +50,22 @@ class Builder {
 
 		void append(Label l, Opcode op)
 		{
-			appendInstruction(&l, op, nullptr);
+			appendInstruction(l, op, nullptr);
 		}
 
 		void append(Opcode op)
 		{
-			appendInstruction(nullptr, op, nullptr);
+			appendInstruction(boost::none_t(), op, nullptr);
 		}
 
 		void append(Label l, Opcode op, immed_t&& immed)
 		{
-			appendInstruction(&l, op, &immed);
+			appendInstruction(l, op, &immed);
 		}
 
 		void append(Opcode op, immed_t&& immed)
 		{
-			appendInstruction(nullptr, op, &immed);
+			appendInstruction(boost::none_t(), op, &immed);
 		}
 
 		Label createLabel()
