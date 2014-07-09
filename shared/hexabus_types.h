@@ -12,18 +12,20 @@ enum hxb_bool {
 
 // Packet types
 enum hxb_packet_type {
-	HXB_PTYPE_ERROR    = 0x00, // An error occured -- check the error code field for more information
-	HXB_PTYPE_INFO     = 0x01, // Endpoint provides information
-	HXB_PTYPE_QUERY    = 0x02, // Endpoint is requested to provide information
-	HXB_PTYPE_REPORT   = 0x03, // Endpoint provides information with seqence number of the causing QUERY
-	HXB_PTYPE_WRITE    = 0x04, // Endpoint is requested to set its value
-	HXB_PTYPE_EPINFO   = 0x09, // Endpoint metadata
-	HXB_PTYPE_EPQUERY  = 0x0A, // Request endpoint metadata
-	HXB_PTYPE_EPREPORT = 0x0B, // Endpoint metadata with seqence number of the causing EPQUERY
-	HXB_PTYPE_ACK      = 0x10, // Acknowledgement for INFO, EPINFO and PINFO packets
-	HXB_PTYPE_PINFO    = 0x11, // Endpoint provides information with IP address of causing node
-	HXB_PTYPE_TIMEINFO = 0x12, // Current date and time to update the internal device clock
-
+	HXB_PTYPE_ERROR          = 0x00, // An error occured -- check the error code field for more information
+	HXB_PTYPE_INFO           = 0x01, // Endpoint provides information
+	HXB_PTYPE_QUERY          = 0x02, // Endpoint is requested to provide information
+	HXB_PTYPE_REPORT         = 0x03, // Endpoint provides information with seqence number of the causing QUERY
+	HXB_PTYPE_WRITE          = 0x04, // Endpoint is requested to set its value
+	HXB_PTYPE_EPINFO         = 0x09, // Endpoint metadata
+	HXB_PTYPE_EPQUERY        = 0x0A, // Request endpoint metadata
+	HXB_PTYPE_EPREPORT       = 0x0B, // Endpoint metadata with seqence number of the causing EPQUERY
+	HXB_PTYPE_ACK            = 0x10, // Acknowledgement for INFO, EPINFO and PINFO packets
+	HXB_PTYPE_PINFO          = 0x11, // Endpoint provides information with IP address of causing node
+	HXB_PTYPE_TIMEINFO       = 0x12, // Current date and time to update the internal device clock
+	HXB_PTYPE_EP_PROP_QUERY  = 0x13, // Endpoint is requested to provide information about its properties
+	HXB_PTYPE_EP_PROP_REPORT = 0x14, // Endpoint provides property with seqence number of the causing QUERY
+	HXB_PTYPE_EP_PROP_WRITE  = 0x15, // Endpoint is requested to write a property
 };
 
 // Data types

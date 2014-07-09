@@ -45,4 +45,5 @@
 #define EP_FLUKSO_S01              50UL
 #define EP_FLUKSO_S02              51UL
 
+#define EP_PROP_NAME               1UL
 #endif // ENDPOINTS_H_

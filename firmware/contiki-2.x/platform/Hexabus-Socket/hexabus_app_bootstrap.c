@@ -7,6 +7,8 @@
 #include "button.h"
 #include "relay.h"
 #include "metering.h"
+#include "endpoint_registry.h"
+#include "endpoints.h"
 
 #if SHUTTER_ENABLE
 #include "shutter.h"
@@ -51,6 +53,12 @@
 #else
 #define PRINTF(...)
 #endif
+
+ENDPOINT_PROPERTY_DESCRIPTOR prop_device_name = {
+    .datatype = HXB_DTYPE_UINT8,
+    .eid = EP_DEVICE_DESCRIPTOR,
+    .propid = EP_PROP_NAME,
+};
 
 void hexabus_bootstrap_init_apps() {
 
@@ -99,6 +107,8 @@ void hexabus_bootstrap_init_apps() {
 #if PT100_ENABLE
 	pt100_init();
 #endif
+
+ENDPOINT_PROPERTY_REGISTER(prop_device_name);
 
 }
 
