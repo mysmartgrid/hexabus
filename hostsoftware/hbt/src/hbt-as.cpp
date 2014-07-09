@@ -21,5 +21,7 @@ int main()
 			<< pe.line() << ":" << pe.column() << std::endl;
 		if (pe.detail().size())
 			std::cout << " ==> " << pe.detail() << std::endl;
+	} catch (const hbt::ir::InvalidProgram& ip) {
+		std::cout << ip.what() << std::endl;
 	}
 }

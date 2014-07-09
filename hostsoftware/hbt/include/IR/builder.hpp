@@ -20,14 +20,7 @@ class InvalidJump : public std::logic_error {
 };
 
 class Builder {
-	private:
-		std::set<size_t> _marked, _unmarked, _unmarked_used;
-		std::list<Instruction*> _instructions;
-
-		uint8_t _version;
-		std::array<uint8_t, 16> _machine_id;
-		boost::optional<Label> _on_packet, _on_periodic;
-
+	public:
 		typedef boost::variant<
 				uint8_t,
 				uint16_t,
@@ -38,17 +31,25 @@ class Builder {
 				DTMask,
 				Label,
 				std::tuple<DTMask, DateTime>
-			> immed_t;
+			> immediate_t;
 
-		void appendInstruction(boost::optional<Label> l, Opcode op, const immed_t* immed);
-		Label useLabel(Label l);
+	private:
+		std::set<size_t> _marked, _unmarked, _unmarked_used;
+		std::list<Instruction*> _instructions;
+
+		uint8_t _version;
+		std::array<uint8_t, 16> _machine_id;
+		boost::optional<Label> _on_packet, _on_periodic;
+
+		void appendInstruction(boost::optional<Label> l, Opcode op, const immediate_t* immed);
+		Label useLabel(Label l, bool forceForward = true);
 
 	public:
 		Builder(uint8_t version, const std::array<uint8_t, 16>& machine_id);
 
 		~Builder();
 
-		void append(Label l, Opcode op)
+		void append(boost::optional<Label> l, Opcode op)
 		{
 			appendInstruction(l, op, nullptr);
 		}
@@ -58,12 +59,12 @@ class Builder {
 			appendInstruction(boost::none_t(), op, nullptr);
 		}
 
-		void append(Label l, Opcode op, immed_t&& immed)
+		void append(boost::optional<Label> l, Opcode op, immediate_t&& immed)
 		{
 			appendInstruction(l, op, &immed);
 		}
 
-		void append(Opcode op, immed_t&& immed)
+		void append(Opcode op, immediate_t&& immed)
 		{
 			appendInstruction(boost::none_t(), op, &immed);
 		}
@@ -77,12 +78,12 @@ class Builder {
 
 		void onPacket(Label l)
 		{
-			_on_packet = useLabel(l);
+			_on_packet = useLabel(l, false);
 		}
 
 		void onPeriodic(Label l)
 		{
-			_on_periodic = useLabel(l);
+			_on_periodic = useLabel(l, false);
 		}
 
 		std::unique_ptr<Program> finish();

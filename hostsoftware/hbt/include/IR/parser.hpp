@@ -1,6 +1,7 @@
 #ifndef INCLUDE_IR_PARSER_HPP_E6C996D913035D86
 #define INCLUDE_IR_PARSER_HPP_E6C996D913035D86
 
+#include <memory>
 #include <string>
 
 #include "IR/program.hpp"
@@ -26,7 +27,7 @@ class ParseError : public std::runtime_error {
 		const std::string& detail() const { return _detail; }
 };
 
-Program parse(const std::string& text);
+std::unique_ptr<Program> parse(const std::string& text);
 
 }
 }

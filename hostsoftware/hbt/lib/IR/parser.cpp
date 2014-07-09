@@ -10,11 +10,9 @@
 #include <boost/tuple/tuple.hpp>
 
 #include <algorithm>
+#include <iterator>
 #include <map>
 #include <tuple>
-
-#include <iostream>
-#include <boost/format.hpp>
 
 namespace {
 
@@ -286,14 +284,14 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		dup_instruction =
 			lit("dup")
 			> (
-				uint_[_val = bind(make_insn_t<hbt::ir::Opcode::DUP_I>, _1)]
+				stack_slot[_val = bind(make_insn_t<hbt::ir::Opcode::DUP_I>, _1)]
 				| eps[_val = val(ir_instruction{ hbt::ir::Opcode::DUP, boost::none_t() })]
 			);
 
 		rot_instruction =
 			lit("rot")
 			> (
-				uint_[_val = bind(make_insn_t<hbt::ir::Opcode::ROT_I>, _1)]
+				stack_slot[_val = bind(make_insn_t<hbt::ir::Opcode::ROT_I>, _1)]
 				| eps[_val = val(ir_instruction{ hbt::ir::Opcode::ROT, boost::none_t() })]
 			);
 #pragma GCC diagnostic pop
@@ -324,6 +322,9 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 		register_index.name("register index (0..15)");
 		register_index %= uint_[_pass = _1 < 16];
+
+		stack_slot.name("stack slot (0..31)");
+		stack_slot %= uint_[_pass = _1 < 32];
 
 		u8_immed.name("u8 immediate");
 		u8_immed %= uint_[_pass = _1 <= std::numeric_limits<uint8_t>::max()];
@@ -488,7 +489,8 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed_0_6;
 	qi::rule<It, uint16_t(), asm_ws<It>> u16_immed;
 
-	qi::rule<It, unsigned(), asm_ws<It>> register_index;
+	qi::rule<It, uint8_t(), asm_ws<It>> register_index;
+	qi::rule<It, uint8_t(), asm_ws<It>> stack_slot;
 
 	qi::rule<It, hbt::ir::DTMask(), asm_ws<It>> dt_mask;
 	qi::rule<It, datetime_immediate(), asm_ws<It>> dt_immed;
@@ -509,13 +511,195 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 };
 
 template<typename Iterator>
-bool parseToList(Iterator first, Iterator last)
+bool parseToList(Iterator first, Iterator last, ir_program& program)
 {
 	as_grammar<Iterator> g;
 
-	bool result = qi::phrase_parse(first, last, g, asm_ws<Iterator>());
+	bool result = qi::phrase_parse(first, last, g, asm_ws<Iterator>(), program);
 
 	return result && first == last;
+}
+
+void ensureUniqueLabelsIn(const ir_program& program)
+{
+	std::set<std::string> defined;
+	std::string duplicates;
+
+	for (const auto& line : program.lines) {
+		if (line.which() != 0)
+			continue;
+
+		const auto& label = boost::get<std::string>(line);
+
+		if (!defined.insert(label).second) {
+			if (duplicates.size())
+				duplicates += ", ";
+			duplicates += label;
+		}
+	}
+
+	if (duplicates.size())
+		throw hbt::ir::InvalidProgram("duplicate labels: " + duplicates);
+}
+
+std::array<uint8_t, 16> toMachineID(const std::vector<uint8_t>& vec)
+{
+	std::array<uint8_t, 16> result;
+
+	result.fill(0);
+	std::copy(vec.begin(), vec.end(), result.begin() + 16 - vec.size());
+	return result;
+}
+
+std::map<std::string, hbt::ir::Label> makeLabelMap(const ir_program& program, hbt::ir::Builder& builder)
+{
+	std::map<std::string, hbt::ir::Label> result;
+
+	auto it = program.lines.begin();
+	auto end = program.lines.end();
+
+	while (it != end) {
+		if (it->which() == 0) {
+			hbt::ir::Label current = builder.createLabel();
+
+			while (it->which() == 0) {
+				result.insert({ boost::get<std::string>(*it), current });
+				++it;
+			}
+		} else {
+			++it;
+		}
+	}
+
+	return result;
+}
+
+std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
+{
+	using namespace hbt::ir;
+
+	Builder builder(0, toMachineID(program.header.machine_id));
+
+	std::map<std::string, Label> labels = makeLabelMap(program, builder);
+	std::set<std::string> marked;
+
+	auto useLabel = [&labels, &marked, &builder] (const std::string& l) -> Label& {
+		if (marked.count(l))
+			throw InvalidProgram("backward jump to " + l + " not allowed");
+		return labels.at(l);
+	};
+
+	Label* nextLabel = nullptr;
+	for (const auto& line : program.lines) {
+		if (line.which() == 0) {
+			const std::string& l = boost::get<std::string>(line);
+			labels.insert({ l, builder.createLabel() });
+			marked.insert(l);
+			nextLabel = &labels.at(l);
+			continue;
+		}
+
+		boost::optional<Label> thisLabel;
+		if (nextLabel)
+			thisLabel = *nextLabel;
+		nextLabel = nullptr;
+
+		const ir_instruction& insn = boost::get<ir_instruction>(line);
+		if (!insn.immediate) {
+			builder.append(thisLabel, insn.opcode);
+			continue;
+		}
+
+		switch (insn.immediate->which()) {
+		case 0:
+			builder.append(thisLabel, insn.opcode, boost::get<uint8_t>(*insn.immediate));
+			break;
+
+		case 1:
+			builder.append(thisLabel, insn.opcode, boost::get<uint32_t>(*insn.immediate));
+			break;
+
+		case 2:
+			builder.append(thisLabel, insn.opcode, boost::get<float>(*insn.immediate));
+			break;
+
+		case 3: {
+			const auto& operand = boost::get<std::vector<switch_entry>>(*insn.immediate);
+			std::vector<SwitchEntry> entries;
+
+			entries.reserve(operand.size());
+			std::transform(operand.begin(), operand.end(), std::back_inserter(entries),
+				[&useLabel](const switch_entry& e) {
+					return SwitchEntry{ e.label, useLabel(e.target) };
+				});
+
+			SwitchTable table(entries.begin(), entries.end());
+
+			builder.append(thisLabel, insn.opcode, std::move(table));
+
+			break;
+		}
+
+		case 4: {
+			const auto& operand = boost::get<block_immediate>(*insn.immediate);
+
+			std::array<uint8_t, 16> data;
+
+			data.fill(0);
+			std::copy(operand.block.begin(), operand.block.end(), data.begin());
+
+			BlockPart block(operand.start, operand.block.size(), data);
+
+			builder.append(thisLabel, insn.opcode, block);
+
+			break;
+		}
+
+		case 5:
+			builder.append(thisLabel, insn.opcode, boost::get<DTMask>(*insn.immediate));
+			break;
+
+		case 6:
+			builder.append(thisLabel, insn.opcode, useLabel(boost::get<std::string>(*insn.immediate)));
+			break;
+
+		case 7: {
+			const auto& operand = boost::get<datetime_immediate>(*insn.immediate);
+
+			unsigned s, m, h, D, M, Y, W;
+			DTMask mask = DTMask(0);
+
+			auto checkFlag = [&] (DTMask flag, unsigned& t, boost::optional<unsigned> val) {
+				t = val.get_value_or(0);
+				if (val)
+					mask |= flag;
+			};
+
+			checkFlag(DTMask::second, s, operand.second);
+			checkFlag(DTMask::minute, m, operand.minute);
+			checkFlag(DTMask::hour, h, operand.hour);
+			checkFlag(DTMask::day, D, operand.day);
+			checkFlag(DTMask::month, M, operand.month);
+			checkFlag(DTMask::year, Y, operand.year);
+			checkFlag(DTMask::weekday, W, operand.weekday);
+
+			DateTime dt(s, m, h, D, M, Y, W);
+
+			builder.append(thisLabel, insn.opcode, std::make_tuple(mask, dt));
+			break;
+		}
+
+		default:
+			throw std::runtime_error("internal error: invalid assembler program?");
+		}
+	}
+
+	if (labels.count(program.header.on_packet))
+		builder.onPacket(labels.at(program.header.on_packet));
+	if (labels.count(program.header.on_periodic))
+		builder.onPeriodic(labels.at(program.header.on_periodic));
+
+	return builder.finish();
 }
 
 }
@@ -523,16 +707,18 @@ bool parseToList(Iterator first, Iterator last)
 namespace hbt {
 namespace ir {
 
-Program parse(const std::string& text)
+std::unique_ptr<Program> parse(const std::string& text)
 {
 	typedef boost::spirit::line_pos_iterator<const char*> lpi;
 
 	const char* ctext = text.c_str();
 
+	ir_program parsed;
+
 	try {
-		parseToList(lpi(ctext), lpi(ctext + text.size()));
+		if (!parseToList(lpi(ctext), lpi(ctext + text.size()), parsed))
+			throw ParseError(0, 0, "...not this anyway...", "parsing aborted (internal error)");
 	} catch (const qi::expectation_failure<lpi>& ef) {
-			std::cout << std::string(ef.first, ef.last) << std::endl;
 			std::string rule_name = ef.what_.tag;
 
 			std::string expected, detail;
@@ -554,7 +740,8 @@ Program parse(const std::string& text)
 					detail);
 	}
 
-	throw ParseError(0,0,"","");
+	ensureUniqueLabelsIn(parsed);
+	return makeProgram(parsed);
 }
 
 }

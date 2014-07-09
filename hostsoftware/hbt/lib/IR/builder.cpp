@@ -17,15 +17,15 @@ Builder::~Builder()
 		delete i;
 }
 
-Label Builder::useLabel(Label l)
+Label Builder::useLabel(Label l, bool forceForward)
 {
-	if (!_marked.count(l.id()))
-		_unmarked_used.insert(l.id());
+	if (forceForward && _marked.count(l.id()))
+		throw InvalidJump("backward jumps are forbidden");
 
 	return l;
 }
 
-void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed_t* immed)
+void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immediate_t* immed)
 {
 	using boost::get;
 
@@ -52,6 +52,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 	case Opcode::MOD:
 	case Opcode::ADD:
 	case Opcode::SUB:
+	case Opcode::DT_DIFF:
 	case Opcode::AND:
 	case Opcode::OR:
 	case Opcode::XOR:
@@ -127,7 +128,6 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 			new ImmediateInstruction<ld_dt_immed>(op, get<ld_dt_immed>(*immed), l));
 		return;
 
-	case Opcode::DT_DIFF:
 	case Opcode::DT_DECOMPOSE:
 	case Opcode::CMP_DT_LT:
 	case Opcode::CMP_DT_GE:
@@ -143,6 +143,9 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 	case Opcode::SWITCH_32:
 		if (!get<SwitchTable>(immed))
 			throw std::invalid_argument("immed");
+
+		for (const auto& e : get<SwitchTable>(*immed))
+			useLabel(e.target);
 
 		_instructions.push_back(
 			new ImmediateInstruction<SwitchTable>(op, std::move(get<SwitchTable>(*immed)), l));
@@ -162,9 +165,6 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		const Label* target = get<Label>(immed);
 		if (!target)
 			throw std::invalid_argument("immed");
-
-		if (_marked.count(target->id()))
-			throw InvalidJump("backward jumps are forbidden");
 
 		_instructions.push_back(
 			new ImmediateInstruction<Label>(op, useLabel(*target), l));
