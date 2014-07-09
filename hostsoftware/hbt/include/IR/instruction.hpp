@@ -231,9 +231,7 @@ class ImmediateInstruction : public Instruction {
 		std::is_same<Immed, float>::value ||
 		std::is_same<Immed, DTMask>::value ||
 		std::is_same<Immed, Label>::value ||
-		std::is_same<Immed, DateTime>::value ||
-		std::is_same<Immed,
-			std::tuple<DTMask, DateTime>>::value
+		std::is_same<Immed, std::tuple<DTMask, DateTime>>::value
 		, "");
 	private:
 		Immed _immed;

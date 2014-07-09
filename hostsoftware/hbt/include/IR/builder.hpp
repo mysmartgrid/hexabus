@@ -37,7 +37,6 @@ class Builder {
 				BlockPart,
 				DTMask,
 				Label,
-				DateTime,
 				std::tuple<DTMask, DateTime>
 			> immed_t;
 

@@ -19,14 +19,9 @@
 namespace {
 
 struct datetime_immediate {
-	unsigned second, minute, hour;
-	unsigned day, month, year;
-	unsigned weekday;
-
-	operator hbt::ir::DateTime() const
-	{
-		return hbt::ir::DateTime(second, minute, hour, day, month, year, weekday);
-	}
+	boost::optional<unsigned> second, minute, hour;
+	boost::optional<unsigned> day, month, year;
+	boost::optional<unsigned> weekday;
 };
 
 struct switch_entry {
@@ -48,8 +43,7 @@ struct ir_instruction {
 			block_immediate,
 			hbt::ir::DTMask,
 			std::string,
-			datetime_immediate,
-			std::tuple<hbt::ir::DTMask, datetime_immediate>
+			datetime_immediate
 		> param_t;
 
 	typedef boost::optional<param_t> immed_t;
@@ -75,13 +69,13 @@ struct ir_program {
 
 BOOST_FUSION_ADAPT_STRUCT(
 	datetime_immediate,
-	(unsigned, second)
-	(unsigned, minute)
-	(unsigned, hour)
-	(unsigned, day)
-	(unsigned, month)
-	(unsigned, year)
-	(unsigned, weekday)
+	(boost::optional<unsigned>, second)
+	(boost::optional<unsigned>, minute)
+	(boost::optional<unsigned>, hour)
+	(boost::optional<unsigned>, day)
+	(boost::optional<unsigned>, month)
+	(boost::optional<unsigned>, year)
+	(boost::optional<unsigned>, weekday)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -257,13 +251,13 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			lit("st")
 			> ld_st_operand_register(hbt::ir::Opcode::ST_REG);
 
-		dt_masked_instruction =
-			(lit("dt.decomp") > dt_operand_mask(hbt::ir::Opcode::DT_DECOMPOSE))
-			| (lit("cmp.dt.lt") > dt_operand_mask(hbt::ir::Opcode::CMP_DT_LT))
-			| (lit("cmp.dt.ge") > dt_operand_mask(hbt::ir::Opcode::CMP_DT_GE));
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunsequenced"
+		dt_masked_instruction =
+			(lit("dt.decomp") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::DT_DECOMPOSE>, _1)])
+			| (lit("cmp.dt.lt") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::CMP_DT_LT>, _1)])
+			| (lit("cmp.dt.ge") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::CMP_DT_GE>, _1)]);
+
 		ld_operand_immediate.name("immediate operand");
 		ld_operand_immediate =
 			(
@@ -330,8 +324,6 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 		register_index.name("register index (0..15)");
 		register_index %= uint_[_pass = _1 < 16];
-
-		dt_operand_mask = dt_mask[_val = bind(make_insn, _r1, _1)];
 
 		u8_immed.name("u8 immediate");
 		u8_immed %= uint_[_pass = _1 <= std::numeric_limits<uint8_t>::max()];
@@ -484,13 +476,11 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, ir_instruction(), asm_ws<It>> block_instruction;
 
 	qi::rule<It, ir_instruction(hbt::ir::Opcode), asm_ws<It>> ld_st_operand_register;
-	qi::rule<It, ir_instruction(hbt::ir::Opcode), asm_ws<It>> dt_operand_mask;
 
 	qi::rule<It, std::string(), asm_ws<It>> identifier;
 	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed;
 	qi::rule<It, uint32_t(), asm_ws<It>> u32_immed;
 	qi::rule<It, float(), asm_ws<It>> float_immed;
-	qi::rule<It, datetime_immediate(), asm_ws<It>> dt_immed;
 	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed_0_59;
 	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed_0_31;
 	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed_0_23;
@@ -501,6 +491,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, unsigned(), asm_ws<It>> register_index;
 
 	qi::rule<It, hbt::ir::DTMask(), asm_ws<It>> dt_mask;
+	qi::rule<It, datetime_immediate(), asm_ws<It>> dt_immed;
 
 	qi::rule<It, switch_entry(), asm_ws<It>> switch_entry;
 
