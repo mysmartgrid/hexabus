@@ -133,7 +133,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 	case Opcode::JNZ: out << "jnz"; break;
 	case Opcode::JZ: out << "jz"; break;
 	case Opcode::JUMP: out << "jump"; break;
-	defalt:
+	default:
 		throw std::runtime_error("invalid program printed");
 	}
 	return out;
