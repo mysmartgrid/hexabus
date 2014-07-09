@@ -13,6 +13,7 @@
 #include "../../../shared/hexabus_definitions.h"
 
 #include "endpoints.h"
+#include "configure.h"
 
 #ifdef UCI_FOUND
 extern "C" {
@@ -117,8 +118,9 @@ uint32_t HexabusServer::get_sum()
 	updateFluksoValues();
 	int result = 0;
 
-	for ( std::map<std::string, uint32_t>::iterator it = _flukso_values.begin(); it != _flukso_values.end(); it++ )
-		result += it->second;
+	result += _flukso_values[_sensor_mapping[1]];
+	result += _flukso_values[_sensor_mapping[2]];
+	result += _flukso_values[_sensor_mapping[3]];
 
 	return result;
 }
@@ -254,6 +256,8 @@ void HexabusServer::loadSensorMapping()
 		_sensor_mapping[port] = id;
 	}
 	uci_free_context(ctx);
+#else /* UCI_FOUND */
+	_debug && std::cout << "UCI disabled. NO sensors loaded!" << std::endl;
 #endif /* UCI_FOUND */
 	_debug && std::cout << "sensor mapping loaded" << std::endl;
 }
