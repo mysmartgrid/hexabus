@@ -1,6 +1,7 @@
 #include "IR/builder.hpp"
 #include "IR/instruction.hpp"
 #include "IR/parser.hpp"
+#include "IR/program_printer.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -15,7 +16,8 @@ int main()
 			std::istreambuf_iterator<char>());
 
 	try {
-		hbt::ir::parse(input);
+		auto p = hbt::ir::parse(input);
+		std::cout << hbt::ir::prettyPrint(*p);
 	} catch (const hbt::ir::ParseError& pe) {
 		std::cout << "expected " << pe.expected() << " at "
 			<< pe.line() << ":" << pe.column() << std::endl;

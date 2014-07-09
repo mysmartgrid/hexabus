@@ -2,6 +2,7 @@
 #define INCLUDE_IR_PROGRAM_HPP_345A0781A78039CE
 
 #include "IR/instruction.hpp"
+#include "Util/range.hpp"
 
 #include <vector>
 
@@ -20,7 +21,7 @@ class Program {
 		std::vector<Instruction*> _instructions;
 
 	public:
-		typedef decltype(_instructions.cbegin()) iterator_t;
+		typedef decltype(_instructions.cbegin()) iterator;
 
 	public:
 		template<typename It>
@@ -36,6 +37,8 @@ class Program {
 		const std::array<uint8_t, 16>& machine_id() const { return _machine_id; }
 		Label onPacket() const { return _on_packet; }
 		Label onPeriodic() const { return _on_periodic; }
+
+		util::range<iterator> instructions() const { return util::make_range(_instructions); }
 };
 
 }
