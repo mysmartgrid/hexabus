@@ -67,15 +67,28 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 
-# add some files to the installation target
+add_custom_target (pack_dir 
+   	COMMAND mkdir -p  ${CMAKE_BINARY_DIR}/pack
+	COMMAND cp -r *.js *.json lib public views ${CMAKE_BINARY_DIR}/pack/ 
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} )
+
+add_custom_target (node_modules ALL 
+	COMMAND npm install
+	COMMAND npm dedup
+    DEPENDS pack_dir
+	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/pack )
+
+install(DIRECTORY ${CMAKE_BINARY_DIR}/pack/node_modules DESTINATION /home/hexanode/)
+
 configure_file(views/about.ejs.in ${CMAKE_BINARY_DIR}/views/about.ejs)
-install(FILES app.js DESTINATION share/hexanode_webfrontend/)
-install(FILES package.json DESTINATION share/hexanode_webfrontend/)
-install(DIRECTORY lib DESTINATION share/hexanode_webfrontend/)
-install(DIRECTORY public DESTINATION share/hexanode_webfrontend/)
-install(DIRECTORY tools DESTINATION share/hexanode_webfrontend/)
-install(DIRECTORY views DESTINATION share/hexanode_webfrontend/)
-install(DIRECTORY ${CMAKE_BINARY_DIR}/views DESTINATION share/hexanode_webfrontend/)
+install(FILES app.js DESTINATION /home/hexanode/)
+install(FILES package.json DESTINATION /home/hexanode/)
+install(FILES npm-shrinkwrap.json DESTINATION /home/hexanode/)
+install(DIRECTORY lib DESTINATION /home/hexanode/)
+install(DIRECTORY public DESTINATION /home/hexanode/)
+install(DIRECTORY tools DESTINATION /home/hexanode/)
+install(DIRECTORY views DESTINATION /home/hexanode/)
+install(DIRECTORY ${CMAKE_BINARY_DIR}/views DESTINATION /home/hexanode/)
 
 INSTALL(PROGRAMS etc/service/hexanode-webfrontend/run DESTINATION /etc/service/hexanode-webfrontend)
 INSTALL(PROGRAMS etc/service/hexanode-webfrontend/log/run DESTINATION /etc/service/hexanode-webfrontend/log)
@@ -94,7 +107,7 @@ set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "nodejs (>= 0.10), npm (>= 1.2)")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
-set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/preinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/prerm;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
 
 set(CPACK_PACKAGE_EXECUTABLES "hexanode webfrontend" "A virtual hexabus display device.")
 set(CPACK_SOURCE_STRIP_FILES "")

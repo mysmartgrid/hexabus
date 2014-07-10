@@ -6,7 +6,7 @@
     "start": "exec js app"
   },
   "dependencies": {
-    "express": "http://packages.mysmartgrid.de/nodejs/express-3.4.8.tgz",
+    "express": "3.4.8",
     "connect": "2.7.9",
     "ejs": "0.8.5",
     "socket.io": "0.9.13",
@@ -15,6 +15,6 @@
     "nconf": "0.6.9",
     "cookie-signature": "1.0.1",
     "buffer-crc32": "0.2.1",
-    "ipv6": "http://packages.mysmartgrid.de/nodejs/ipv6-3.1.1.tgz"
+    "ipv6": "3.1.1"
   }
 }
