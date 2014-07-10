@@ -203,7 +203,7 @@ void _property_register(const struct endpoint_property_descriptor* epp, struct e
 			next_eeprom_addr+=sizeof(float);
 			break;
 		case HXB_DTYPE_128STRING:
-			next_eeprom_addr+=sizeof(HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
+			next_eeprom_addr+=sizeof(HXB_PROPERTY_STRING_LENGTH+1);
 			break;
 		case HXB_DTYPE_TIMESTAMP:
 			next_eeprom_addr+=sizeof(uint32_t);
@@ -266,7 +266,8 @@ enum hxb_error_code endpoint_property_write(uint32_t eid, uint32_t propid, const
 						eeprom_write_block((unsigned char*) &(value->v_float), epp.value, sizeof(float));
 						break;
 					case HXB_DTYPE_128STRING:
-						eeprom_write_block((unsigned char*) value->v_string, epp.value, HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
+						value->v_string[HXB_PROPERTY_STRING_LENGTH-1] =  '\0';
+						eeprom_write_block((unsigned char*) value->v_string, epp.value, HXB_PROPERTY_STRING_LENGTH);
 						break;
 					case HXB_DTYPE_TIMESTAMP:
 						eeprom_write_block((unsigned char*) &(value->v_timestamp), epp.value, sizeof(uint32_t));
@@ -344,7 +345,7 @@ enum hxb_error_code endpoint_property_read(uint32_t eid, uint32_t propid, struct
 					eeprom_read_block((unsigned char*) &(value->v_float), epp.value, sizeof(float));
 					break;
 				case HXB_DTYPE_128STRING:
-					eeprom_read_block((unsigned char*) value->v_string, epp.value, HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
+					eeprom_read_block((unsigned char*) value->v_string, epp.value, HXB_PROPERTY_STRING_LENGTH);
 					break;
 				case HXB_DTYPE_TIMESTAMP:
 					eeprom_read_block((unsigned char*) &(value->v_timestamp), epp.value, sizeof(uint32_t));
