@@ -149,7 +149,7 @@ std::vector<uint8_t> assemble(const ir::Program& program)
 					case Opcode::SWITCH_8: append_u8(entry.label); break;
 					case Opcode::SWITCH_16: append_u16(entry.label); break;
 					case Opcode::SWITCH_32: append_u32(entry.label); break;
-					default: assert(0 && "opcode missing");
+					default: throw std::runtime_error("opcode missing");
 					}
 					append_label(entry.target);
 				}

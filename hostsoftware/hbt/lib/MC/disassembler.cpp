@@ -247,7 +247,7 @@ RawProgram parseRaw(const std::vector<uint8_t>& program)
 				case Opcode::SWITCH_8: return read_u8();
 				case Opcode::SWITCH_16: return read_u16();
 				case Opcode::SWITCH_32: return read_u32();
-				default: assert(0 && "opcode missing");
+				default: throw std::runtime_error("opcode missing");
 				}
 			};
 
@@ -256,7 +256,7 @@ RawProgram parseRaw(const std::vector<uint8_t>& program)
 			case Opcode::SWITCH_8: itemSize = 1 + 2; break;
 			case Opcode::SWITCH_16: itemSize = 2 + 2; break;
 			case Opcode::SWITCH_32: itemSize = 4 + 2; break;
-			default: assert(0 && "opcode missing");
+			default: throw std::runtime_error("opcode missing");
 			}
 
 			if (!canRead(itemSize * labels))
@@ -529,7 +529,7 @@ std::unique_ptr<ir::Program> disassemble(const std::vector<uint8_t>& program, bo
 		}
 
 		default:
-			assert(0 && "opcode missing");
+			throw std::runtime_error("opcode missing");
 		}
 	}
 
