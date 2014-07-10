@@ -32,6 +32,10 @@ std::vector<uint8_t> assemble(const ir::Program& program)
 
 	std::copy(program.machine_id().begin(), program.machine_id().end(), std::back_inserter(result));
 
+	const size_t programBegin = result.size();
+
+	result.push_back(program.version());
+
 	auto append_u8 = [&result] (uint8_t u8) {
 		result.push_back(u8);
 	};
@@ -55,8 +59,9 @@ std::vector<uint8_t> assemble(const ir::Program& program)
 		append_u32(u);
 	};
 
-	auto append_label = [&fixups, &result] (ir::Label target) {
+	auto append_label = [&fixups, &result, &append_u16] (ir::Label target) {
 		fixups.push_back({ result.size(), -1, target });
+		append_u16(0);
 	};
 
 	fixups.push_back({ result.size(), 0, program.onPacket() });
@@ -66,11 +71,11 @@ std::vector<uint8_t> assemble(const ir::Program& program)
 
 	for (auto* insn : program.instructions()) {
 		if (insn->label())
-			labelPositions.insert({ insn->label()->id(), result.size() });
+			labelPositions.insert({ insn->label()->id(), result.size() - programBegin });
 
 		for (auto it = fixups.rbegin(), end = fixups.rend(); it != end; ++it) {
 			if (it->offsetFrom < 0)
-				it->offsetFrom = result.size();
+				it->offsetFrom = result.size() - programBegin;
 			else
 				break;
 		}
@@ -144,7 +149,7 @@ std::vector<uint8_t> assemble(const ir::Program& program)
 					case Opcode::SWITCH_8: append_u8(entry.label); break;
 					case Opcode::SWITCH_16: append_u16(entry.label); break;
 					case Opcode::SWITCH_32: append_u32(entry.label); break;
-					default: throw std::runtime_error("invalid program assembled");
+					default: assert(0 && "opcode missing");
 					}
 					append_label(entry.target);
 				}

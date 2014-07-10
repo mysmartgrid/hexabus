@@ -69,6 +69,11 @@ class Builder {
 			appendInstruction(boost::none_t(), op, &immed);
 		}
 
+		void appendInvalid(Opcode op, const std::string& comment)
+		{
+			_instructions.push_back(new InvalidInstruction(op, comment));
+		}
+
 		Label createLabel()
 		{
 			Label l(_marked.size() + _unmarked.size());

@@ -250,6 +250,17 @@ class ImmediateInstruction : public Instruction {
 		const Immed& immed() const { return _immed; }
 };
 
+class InvalidInstruction : public Instruction {
+	private:
+		std::string _comment;
+	public:
+		InvalidInstruction(Opcode opcode, const std::string& comment)
+			: Instruction(opcode), _comment(comment)
+		{}
+
+		const std::string& comment() const { return _comment; }
+};
+
 }
 }
 

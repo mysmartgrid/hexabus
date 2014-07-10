@@ -62,40 +62,39 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 	return out;
 }
 
-template<typename Char, typename Traits>
-std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& out, hbt::ir::Opcode op)
+const char* opcodeName(hbt::ir::Opcode op)
 {
 	using hbt::ir::Opcode;
 
 	switch (op) {
-	case Opcode::MUL: out << "mul"; break;
-	case Opcode::DIV: out << "div"; break;
-	case Opcode::MOD: out << "mod"; break;
-	case Opcode::ADD: out << "add"; break;
-	case Opcode::SUB: out << "sub"; break;
-	case Opcode::AND: out << "and"; break;
-	case Opcode::OR: out << "or"; break;
-	case Opcode::XOR: out << "xor"; break;
-	case Opcode::NOT: out << "not"; break;
-	case Opcode::SHL: out << "shl"; break;
-	case Opcode::SHR: out << "shr"; break;
-	case Opcode::GETTYPE: out << "gettype"; break;
-	case Opcode::DT_DIFF: out << "dt.diff"; break;
-	case Opcode::CMP_IP_LO: out << "cmp.localhost"; break;
-	case Opcode::CMP_LT: out << "cmp.lt"; break;
-	case Opcode::CMP_LE: out << "cmp.le"; break;
-	case Opcode::CMP_GT: out << "cmp.gt"; break;
-	case Opcode::CMP_GE: out << "cmp.ge"; break;
-	case Opcode::CMP_EQ: out << "cmp.eq"; break;
-	case Opcode::CMP_NEQ: out << "cmp.neq"; break;
-	case Opcode::CONV_B: out << "conv.b"; break;
-	case Opcode::CONV_U8: out << "conv.u8"; break;
-	case Opcode::CONV_U32: out << "conv.u32"; break;
-	case Opcode::CONV_F: out << "conv.f"; break;
-	case Opcode::WRITE: out << "write"; break;
-	case Opcode::POP: out << "pop"; break;
-	case Opcode::RET_CHANGE: out << "ret.change"; break;
-	case Opcode::RET_STAY: out << "ret.stay"; break;
+	case Opcode::MUL: return "mul";
+	case Opcode::DIV: return "div";
+	case Opcode::MOD: return "mod";
+	case Opcode::ADD: return "add";
+	case Opcode::SUB: return "sub";
+	case Opcode::AND: return "and";
+	case Opcode::OR: return "or";
+	case Opcode::XOR: return "xor";
+	case Opcode::NOT: return "not";
+	case Opcode::SHL: return "shl";
+	case Opcode::SHR: return "shr";
+	case Opcode::GETTYPE: return "gettype";
+	case Opcode::DT_DIFF: return "dt.diff";
+	case Opcode::CMP_IP_LO: return "cmp.localhost";
+	case Opcode::CMP_LT: return "cmp.lt";
+	case Opcode::CMP_LE: return "cmp.le";
+	case Opcode::CMP_GT: return "cmp.gt";
+	case Opcode::CMP_GE: return "cmp.ge";
+	case Opcode::CMP_EQ: return "cmp.eq";
+	case Opcode::CMP_NEQ: return "cmp.neq";
+	case Opcode::CONV_B: return "conv.b";
+	case Opcode::CONV_U8: return "conv.u8";
+	case Opcode::CONV_U32: return "conv.u32";
+	case Opcode::CONV_F: return "conv.f";
+	case Opcode::WRITE: return "write";
+	case Opcode::POP: return "pop";
+	case Opcode::RET_CHANGE: return "ret.change";
+	case Opcode::RET_STAY: return "ret.stay";
 	case Opcode::LD_SOURCE_IP:
 	case Opcode::LD_SOURCE_EID:
 	case Opcode::LD_SOURCE_VAL:
@@ -110,33 +109,37 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 	case Opcode::LD_FLOAT:
 	case Opcode::LD_DT:
 	case Opcode::LD_REG:
-		out << "ld";
-		break;
-	case Opcode::ST_REG: out << "st"; break;
+		return "ld";
+	case Opcode::ST_REG: return "st";
 	case Opcode::DUP:
 	case Opcode::DUP_I:
-		out << "dup";
-		break;
+		return "dup";
 	case Opcode::ROT:
 	case Opcode::ROT_I:
-		out << "rot";
-		break;
+		return "rot";
 	case Opcode::SWITCH_8:
 	case Opcode::SWITCH_16:
 	case Opcode::SWITCH_32:
-		out << "switch";
-		break;
-	case Opcode::DT_DECOMPOSE: out << "dt.decomp"; break;
-	case Opcode::CMP_DT_LT: out << "cmp.dt.lt"; break;
-	case Opcode::CMP_DT_GE: out << "cmp.dt.ge"; break;
-	case Opcode::CMP_BLOCK: out << "cmp.block"; break;
-	case Opcode::JNZ: out << "jnz"; break;
-	case Opcode::JZ: out << "jz"; break;
-	case Opcode::JUMP: out << "jump"; break;
-	default:
-		throw std::runtime_error("invalid program printed");
+		return "switch";
+	case Opcode::DT_DECOMPOSE: return "dt.decomp";
+	case Opcode::CMP_DT_LT: return "cmp.dt.lt";
+	case Opcode::CMP_DT_GE: return "cmp.dt.ge";
+	case Opcode::CMP_BLOCK: return "cmp.block";
+	case Opcode::JNZ: return "jnz";
+	case Opcode::JZ: return "jz";
+	case Opcode::JUMP: return "jump";
+	default: return nullptr;
 	}
-	return out;
+}
+
+template<typename Char, typename Traits>
+std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& out, hbt::ir::Opcode op)
+{
+	const char* name = opcodeName(op);
+	if (name)
+		return out << name;
+
+	throw std::runtime_error("invalid program printed");
 }
 
 }
@@ -158,6 +161,15 @@ std::string prettyPrint(const Program& program)
 
 	for (auto* insn : program.instructions()) {
 		out << "\n";
+
+		if (auto* i = dynamic_cast<InvalidInstruction*>(insn)) {
+			out << "\t; invalid instruction " << unsigned(i->opcode());
+			if (auto* name = opcodeName(i->opcode()))
+				out << " (" << name << ")";
+			if (i->comment().size())
+				out << ":" << i->comment();
+			continue;
+		}
 
 		if (insn->label())
 			out << *insn->label() << ":\n";
