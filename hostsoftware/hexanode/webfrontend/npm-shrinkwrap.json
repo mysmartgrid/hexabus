@@ -248,7 +248,7 @@
               "from": "winston@0.6.x",
               "dependencies": {
                 "async": {
-                  "version": "0.1.22",
+                  "version": "0.1.21",
                   "from": "async@0.1.x"
                 },
                 "cycle": {
