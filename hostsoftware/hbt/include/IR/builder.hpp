@@ -47,6 +47,16 @@ class Builder {
 	public:
 		Builder(uint8_t version, const std::array<uint8_t, 16>& machine_id);
 
+		Builder(const Builder&) = delete;
+		Builder& operator=(const Builder&) = delete;
+
+		Builder(Builder&& b)
+		{
+			*this = std::forward<Builder>(b);
+		}
+
+		Builder& operator=(Builder&&) = default;
+
 		~Builder();
 
 		void append(boost::optional<Label> l, Opcode op)

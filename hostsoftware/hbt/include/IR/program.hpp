@@ -31,6 +31,17 @@ class Program {
 			  _on_periodic(on_periodic), _instructions(begin, end)
 		{}
 
+		Program(const Program&) = delete;
+		Program& operator=(const Program&) = delete;
+
+		Program(Program&& p)
+			: _on_packet(0), _on_periodic(0)
+		{
+			*this = std::forward<Program>(p);
+		}
+
+		Program& operator=(Program&&) = default;
+
 		~Program();
 
 		uint8_t version() const { return _version; }
