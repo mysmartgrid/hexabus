@@ -134,6 +134,13 @@ void HexabusServer::updateFluksoValues()
 		for ( bf::directory_iterator sensors(p); sensors != bf::directory_iterator(); sensors++ )
 		{
 			std::string filename = (*sensors).path().filename().string();
+			boost::regex hex32("^[0-9a-f]{32}$");
+			boost::match_results<std::string::const_iterator> what;
+			if ( !boost::regex_match(filename, what, hex32) ) {
+				_debug && std::cout << "Ignoring file: " << filename << std::endl;
+				continue;
+			}
+
 			_debug && std::cout << "Parsing file: " << filename << std::endl;
 
 			std::ifstream file;
@@ -146,7 +153,6 @@ void HexabusServer::updateFluksoValues()
 			file.close();
 			//extract last value != "nan" from the json array
 			boost::regex r("^\\[(?:\\[[[:digit:]]*,[[:digit:]]*\\],)*\\[[[:digit:]]*,([[:digit:]]*)\\](?:,\\[[[:digit:]]*,\"nan\"\\])*\\]$");
-			boost::match_results<std::string::const_iterator> what;
 
 			if ( boost::regex_search(flukso_data, what, r) ) {
 				try {
@@ -158,6 +164,7 @@ void HexabusServer::updateFluksoValues()
 				}
 			} else {
 				std::cerr << "Error parsing " << filename << std::endl;
+				_debug && std::cout << "Content of " << filename << ": \'" << flukso_data << "\'" << std::endl;
 			}
 		}
 	}
