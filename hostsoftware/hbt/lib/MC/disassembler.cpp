@@ -194,7 +194,7 @@ RawProgram parseRaw(const std::vector<uint8_t>& program)
 			unsigned weekday = 0;
 			unsigned dtLength = 0;
 
-			insn.dtMaskInvalid = unsigned(mask) & 128;
+			insn.dtMaskInvalid = invalid(mask);
 
 			if (DTMask::second == (mask & DTMask::second)) dtLength++;
 			if (DTMask::minute == (mask & DTMask::minute)) dtLength++;
@@ -228,7 +228,7 @@ RawProgram parseRaw(const std::vector<uint8_t>& program)
 
 			DTMask mask = DTMask(read_u8());
 
-			insn.dtMaskInvalid = unsigned(mask) & 128;
+			insn.dtMaskInvalid = invalid(mask);
 			insn.isValid = !insn.dtMaskInvalid;
 			insn.immed = mask;
 			break;

@@ -121,7 +121,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 
 	case Opcode::LD_DT:
 		typedef std::tuple<DTMask, DateTime> ld_dt_immed;
-		if (!get<ld_dt_immed>(immed) || unsigned(std::get<0>(get<ld_dt_immed>(*immed))) & 128)
+		if (!get<ld_dt_immed>(immed) || invalid(std::get<0>(get<ld_dt_immed>(*immed))))
 			throw std::invalid_argument("immed");
 
 		_instructions.push_back(
@@ -131,7 +131,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 	case Opcode::DT_DECOMPOSE:
 	case Opcode::CMP_DT_LT:
 	case Opcode::CMP_DT_GE:
-		if (!get<DTMask>(immed) || unsigned(get<DTMask>(*immed)) & 128)
+		if (!get<DTMask>(immed) || invalid(get<DTMask>(*immed)))
 			throw std::invalid_argument("immed");
 
 		_instructions.push_back(

@@ -110,6 +110,9 @@ inline DTMask operator&=(DTMask& a, DTMask b)
 inline DTMask operator|=(DTMask& a, DTMask b)
 { a = a | b; return a; }
 
+inline bool invalid(DTMask m)
+{ return m != ~~m; }
+
 
 
 class DateTime {
