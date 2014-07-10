@@ -185,8 +185,7 @@ std::unique_ptr<Program> Builder::finish()
 
 	Program* p = new Program(
 			_version, _machine_id, *_on_packet, *_on_periodic,
-			std::make_move_iterator(_instructions.begin()),
-			std::make_move_iterator(_instructions.end()));
+			_instructions.begin(), _instructions.end());
 
 	_instructions.clear();
 	return std::unique_ptr<Program>(p);
