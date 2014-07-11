@@ -179,7 +179,7 @@ struct ld_simple_operands : qi::symbols<char, ir_instruction> {
 
 template<typename It>
 struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
-	as_grammar()
+	as_grammar(std::string& badToken)
 		: as_grammar::base_type(start, "HBT IR program")
 	{
 		using namespace qi;
@@ -398,11 +398,20 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 		// error names
 
+		auto storeBadToken =
+			-(
+				(+(char_ - ';' - ascii::space))
+					[([&badToken] (const std::vector<char>& s, qi::unused_type, qi::unused_type) {
+						badToken = "got ";
+						badToken.append(s.begin(), s.end());
+					})]
+			);
+
 		errors.binary_block_too_long.name("~binary immediate operand~block too long");
 		errors.binary_block_too_long = !eps;
 
 		errors.label_or_instruction.name("label or instruction");
-		errors.label_or_instruction = !eps;
+		errors.label_or_instruction = storeBadToken >> !eps;
 
 		errors.end_of_switch.name("~end of switch block~block exceeds 255 entries");
 		errors.end_of_switch = !eps;
@@ -502,18 +511,18 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, std::vector<uint8_t>(), asm_ws<It>> block_immed_binary_operand;
 
 	struct {
-		qi::rule<It> binary_block_too_long;
-		qi::rule<It> label_or_instruction;
-		qi::rule<It> end_of_switch;
-		qi::rule<It> machine_id_too_long;
-		qi::rule<It> ld_operand;
+		qi::rule<It, asm_ws<It>> binary_block_too_long;
+		qi::rule<It, asm_ws<It>> label_or_instruction;
+		qi::rule<It, asm_ws<It>> end_of_switch;
+		qi::rule<It, asm_ws<It>> machine_id_too_long;
+		qi::rule<It, asm_ws<It>> ld_operand;
 	} errors;
 };
 
 template<typename Iterator>
-bool parseToList(Iterator first, Iterator last, ir_program& program)
+bool parseToList(Iterator first, Iterator last, ir_program& program, std::string& badToken)
 {
-	as_grammar<Iterator> g;
+	as_grammar<Iterator> g(badToken);
 
 	bool result = qi::phrase_parse(first, last, g, asm_ws<Iterator>(), program);
 
@@ -712,11 +721,12 @@ std::unique_ptr<Program> parse(const std::string& text)
 	typedef boost::spirit::line_pos_iterator<const char*> lpi;
 
 	const char* ctext = text.c_str();
+	std::string badToken;
 
 	ir_program parsed;
 
 	try {
-		if (!parseToList(lpi(ctext), lpi(ctext + text.size()), parsed))
+		if (!parseToList(lpi(ctext), lpi(ctext + text.size()), parsed, badToken))
 			throw ParseError(0, 0, "...not this anyway...", "parsing aborted (internal error)");
 	} catch (const qi::expectation_failure<lpi>& ef) {
 			std::string rule_name = ef.what_.tag;
@@ -731,6 +741,8 @@ std::unique_ptr<Program> parse(const std::string& text)
 				expected = boost::get<std::string>(ef.what_.value);
 			} else {
 				expected = rule_name;
+				if (badToken.size())
+					detail = badToken;
 			}
 
 			throw hbt::ir::ParseError(
