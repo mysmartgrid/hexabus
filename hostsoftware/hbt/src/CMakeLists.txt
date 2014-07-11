@@ -9,6 +9,7 @@ add_executable(hbt-as ${hbt_as_src})
 target_link_libraries(hbt-as
 	lib_IR
 	lib_MC
+	${Boost_LIBRARIES}
 )
 
 # add programs to the install target
