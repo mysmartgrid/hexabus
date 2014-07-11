@@ -196,7 +196,7 @@ std::string prettyPrint(const Program& program)
 
 		case Opcode::LD_U16:
 			if (auto* i = dynamic_cast<const ImmediateInstruction<uint16_t>*>(insn)) {
-				out << format(" u16(%1%)") % i->immed();
+				out << format(" u32(%1%)") % i->immed();
 				break;
 			}
 			throw std::runtime_error("invalid program printed");
