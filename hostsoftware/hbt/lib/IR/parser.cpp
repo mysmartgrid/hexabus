@@ -118,7 +118,7 @@ struct asm_ws : qi::grammar<It> {
 		using namespace qi;
 
 		start =
-			(ascii::space - eol)
+			(standard::space - eol)
 			| (lit(";") >> *(char_ - eol));
 	}
 
@@ -400,7 +400,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 		auto storeBadToken =
 			-(
-				(+(char_ - ';' - ascii::space))
+				(+(standard::print - ';' - standard::space))
 					[([&badToken] (const std::vector<char>& s, qi::unused_type, qi::unused_type) {
 						badToken = "got ";
 						badToken.append(s.begin(), s.end());
