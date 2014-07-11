@@ -45,7 +45,7 @@ bool sm_write_chunk(uint8_t chunk_id, char* data) {
 		chunk_id -= 1;
 
 		cli();
-		eeprom_update_block(data, eep_addr(sm.code) + chunk_id * EE_STATEMACHINE_CHUNK_SIZE, EE_STATEMACHINE_CHUNK_SIZE);
+		eeprom_update_block(data, eep_addr(sm) + chunk_id * EE_STATEMACHINE_CHUNK_SIZE, EE_STATEMACHINE_CHUNK_SIZE);
 		eeprom_busy_wait();
 		sei();
 
@@ -55,10 +55,10 @@ bool sm_write_chunk(uint8_t chunk_id, char* data) {
 
 int sm_get_block(uint16_t at, uint8_t size, void* block)
 {
-	if (at + size > eep_size(sm.code))
+	if (at + size > eep_size(sm))
 		return -HSE_OOB_READ;
 
-	eeprom_read_block(block, eep_addr(sm.code) + at, size);
+	eeprom_read_block(block, eep_addr(sm) + at, size);
 
 	return size;
 }
