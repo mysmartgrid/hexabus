@@ -190,7 +190,8 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			machine_header
 			> *(
 				(label > eol)
-				| (instruction || eol)
+				| (instruction > (eol | !!eoi))
+				| eol
 				| (!eoi > errors.label_or_instruction)
 			)
 			> eoi;
@@ -225,8 +226,10 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		label.name("label");
 		label %= identifier >> lit(":");
 
+#define TOKEN(p) (lexeme[p >> token_end])
+
 		instruction %=
-			simple_instruction
+			TOKEN(simple_instruction)
 			| ld_instruction
 			| st_instruction
 			| dt_masked_instruction
@@ -237,7 +240,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			| block_instruction;
 
 		ld_instruction %=
-			lit("ld")
+			TOKEN("ld")
 			> (
 				ld_operand_simple
 				| ld_operand_immediate
@@ -246,15 +249,15 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			);
 
 		st_instruction %=
-			lit("st")
+			TOKEN("st")
 			> ld_st_operand_register(hbt::ir::Opcode::ST_REG);
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunsequenced"
 		dt_masked_instruction =
-			(lit("dt.decomp") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::DT_DECOMPOSE>, _1)])
-			| (lit("cmp.dt.lt") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::CMP_DT_LT>, _1)])
-			| (lit("cmp.dt.ge") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::CMP_DT_GE>, _1)]);
+			(TOKEN("dt.decomp") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::DT_DECOMPOSE>, _1)])
+			| (TOKEN("cmp.dt.lt") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::CMP_DT_LT>, _1)])
+			| (TOKEN("cmp.dt.ge") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::CMP_DT_GE>, _1)]);
 
 		ld_operand_immediate.name("immediate operand");
 		ld_operand_immediate =
@@ -277,19 +280,19 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			);
 
 		jump_instruction =
-			(lit("jnz") > identifier)[_val = bind(make_insn_t<hbt::ir::Opcode::JNZ>, _1)]
-			| (lit("jz") > identifier)[_val = bind(make_insn_t<hbt::ir::Opcode::JZ>, _1)]
-			| (lit("jump") > identifier)[_val = bind(make_insn_t<hbt::ir::Opcode::JUMP>, _1)];
+			(TOKEN("jnz") > identifier)[_val = bind(make_insn_t<hbt::ir::Opcode::JNZ>, _1)]
+			| (TOKEN("jz") > identifier)[_val = bind(make_insn_t<hbt::ir::Opcode::JZ>, _1)]
+			| (TOKEN("jump") > identifier)[_val = bind(make_insn_t<hbt::ir::Opcode::JUMP>, _1)];
 
 		dup_instruction =
-			lit("dup")
+			TOKEN("dup")
 			> (
 				stack_slot[_val = bind(make_insn_t<hbt::ir::Opcode::DUP_I>, _1)]
 				| eps[_val = val(ir_instruction{ hbt::ir::Opcode::DUP, boost::none_t() })]
 			);
 
 		rot_instruction =
-			lit("rot")
+			TOKEN("rot")
 			> (
 				stack_slot[_val = bind(make_insn_t<hbt::ir::Opcode::ROT_I>, _1)]
 				| eps[_val = val(ir_instruction{ hbt::ir::Opcode::ROT, boost::none_t() })]
@@ -396,11 +399,15 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		block_start.name("block start position (0..15)");
 		block_start %= uint_[_pass = _1 <= 15];
 
+#undef TOKEN
+
+		token_end = no_skip[!!(space | eol | eoi)];
+
 		// error names
 
 		auto storeBadToken =
 			-(
-				(+(standard::print - ';' - standard::space))
+				lexeme[+(standard::print - ';' - standard::space)]
 					[([&badToken] (const std::vector<char>& s, qi::unused_type, qi::unused_type) {
 						badToken = "got ";
 						badToken.append(s.begin(), s.end());
@@ -509,6 +516,9 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, unsigned(), asm_ws<It>> block_start;
 	qi::rule<It, block_immediate(), asm_ws<It>> block_immed;
 	qi::rule<It, std::vector<uint8_t>(), asm_ws<It>> block_immed_binary_operand;
+
+	asm_ws<It> space;
+	qi::rule<It> token_end;
 
 	struct {
 		qi::rule<It, asm_ws<It>> binary_block_too_long;
