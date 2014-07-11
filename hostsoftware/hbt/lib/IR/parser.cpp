@@ -401,7 +401,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 #undef TOKEN
 
-		token_end = no_skip[!!(space | eol | eoi)];
+		token_end = no_skip[!!(space | eol | eoi | standard::punct)];
 
 		// error names
 
