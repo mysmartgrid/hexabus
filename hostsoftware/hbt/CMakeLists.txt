@@ -50,6 +50,7 @@ FIND_PACKAGE(Boost 1.54 REQUIRED COMPONENTS test_exec_monitor program_options fi
 include_directories(${CMAKE_SOURCE_DIR}/include)
 add_subdirectory(lib)
 add_subdirectory(src)
+add_subdirectory(tests)
 
 # enable unit testing
 include(CTest)
