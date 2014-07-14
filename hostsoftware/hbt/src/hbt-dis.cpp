@@ -2,7 +2,8 @@
 #include "IR/instruction.hpp"
 #include "IR/parser.hpp"
 #include "IR/program.hpp"
-#include "MC/assembler.hpp"
+#include "IR/program_printer.hpp"
+#include "MC/disassembler.hpp"
 #include "Util/memorybuffer.hpp"
 
 #include <iostream>
@@ -19,7 +20,7 @@ int main(int argc, char* argv[])
 	std::string input, output;
 
 	po::options_description visibleOpts(
-			"Usage: hbt-as [options] <inputs>\n"
+			"Usage: hbt-dis [options] <inputs>\n"
 			"\n"
 			"Options");
 	visibleOpts.add_options()
@@ -45,40 +46,29 @@ int main(int argc, char* argv[])
 			vm);
 		vm.notify();
 	} catch (const std::exception& e) {
-		std::cerr << "hbt-as: error: " << e.what() << "\n";
+		std::cerr << "hbt-dis: error: " << e.what() << "\n";
 		return 1;
 	}
 
 	if (!vm.count("input-file")) {
-		std::cerr << "hbt-as: error: no input file specified\n";
+		std::cerr << "hbt-dis: error: no input file specified\n";
 		return 1;
 	}
 
 	if (!vm.count("output-file")) {
-		output = "out.hbo";
+		output = "out.hbs";
 	}
 
 	try {
 		auto buffer = hbt::util::MemoryBuffer::loadFile(input);
 
-		std::unique_ptr<hbt::ir::Program> program;
+		auto program = hbt::mc::disassemble(buffer);
 
-		try {
-			program = hbt::ir::parse(buffer);
-		} catch (const hbt::ir::ParseError& e) {
-			std::cout << "hbt-as: error in input\n"
-				<< "expected " << e.expected() << " at " << e.line() << ":" << e.column();
-			if (e.detail().size())
-				std::cout << " (" << e.detail() << ")";
-			std::cout << "\n";
-			return 1;
-		}
+		std::string disassembly = hbt::ir::prettyPrint(*program);
 
-		hbt::util::MemoryBuffer assembly = hbt::mc::assemble(*program);
-
-		assembly.writeFile(output);
+		hbt::util::MemoryBuffer(disassembly).writeFile(output);
 	} catch (const std::exception& e) {
-		std::cerr << "hbt-as: error: " << e.what() << "\n";
+		std::cerr << "hbt-dis: error: " << e.what() << "\n";
 		return 1;
 	}
 

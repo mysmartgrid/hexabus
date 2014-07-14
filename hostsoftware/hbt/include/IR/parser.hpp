@@ -4,10 +4,15 @@
 #include <memory>
 #include <string>
 
-#include "IR/program.hpp"
-
 namespace hbt {
+
+namespace util {
+class MemoryBuffer;
+}
+
 namespace ir {
+
+class Program;
 
 class ParseError : public std::runtime_error {
 	private:
@@ -27,7 +32,7 @@ class ParseError : public std::runtime_error {
 		const std::string& detail() const { return _detail; }
 };
 
-std::unique_ptr<Program> parse(const std::string& text);
+std::unique_ptr<Program> parse(const hbt::util::MemoryBuffer& input);
 
 }
 }

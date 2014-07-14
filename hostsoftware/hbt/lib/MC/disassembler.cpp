@@ -2,6 +2,7 @@
 
 #include "IR/builder.hpp"
 #include "IR/program.hpp"
+#include "Util/memorybuffer.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -34,15 +35,16 @@ struct RawProgram {
 	std::vector<RawInstruction> instructions;
 };
 
-RawProgram parseRaw(const std::vector<uint8_t>& program)
+RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 {
 	using namespace hbt::ir;
 
 	if (program.size() < 16 + 1 + 2 + 2)
 		throw InvalidProgram("program too short");
 
-	auto pit = program.begin();
-	const auto pend = program.end();
+	auto pit = program.crange<uint8_t>().begin();
+	const auto pbegin = program.crange<uint8_t>().begin();
+	const auto pend = program.crange<uint8_t>().end();
 
 	auto read_u8 = [&] () -> uint8_t {
 		auto r = *pit;
@@ -74,7 +76,7 @@ RawProgram parseRaw(const std::vector<uint8_t>& program)
 	};
 
 	auto canRead = [&] (size_t count) {
-		size_t pos = pit - program.begin();
+		size_t pos = pit - pbegin;
 		return pos + count <= program.size();
 	};
 
@@ -357,7 +359,7 @@ std::map<size_t, hbt::ir::Label> resolveLabels(const RawProgram& program, hbt::i
 namespace hbt {
 namespace mc {
 
-std::unique_ptr<ir::Program> disassemble(const std::vector<uint8_t>& program, bool ignoreInvalid)
+std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program, bool ignoreInvalid)
 {
 	using namespace hbt::ir;
 

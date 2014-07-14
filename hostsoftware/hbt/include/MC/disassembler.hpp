@@ -11,9 +11,13 @@ namespace ir {
 class Program;
 }
 
+namespace util {
+class MemoryBuffer;
+}
+
 namespace mc {
 
-std::unique_ptr<ir::Program> disassemble(const std::vector<uint8_t>& program, bool ignoreInvalid = false);
+std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program, bool ignoreInvalid = false);
 
 }
 }

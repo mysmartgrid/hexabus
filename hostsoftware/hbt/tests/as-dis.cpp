@@ -7,9 +7,11 @@
 #include <vector>
 
 #include "IR/parser.hpp"
+#include "IR/program.hpp"
 #include "IR/program_printer.hpp"
 #include "MC/assembler.hpp"
 #include "MC/disassembler.hpp"
+#include "Util/memorybuffer.hpp"
 
 namespace {
 
@@ -130,11 +132,11 @@ BOOST_AUTO_TEST_CASE(assembler)
 		std::copy(line.binary.begin(), line.binary.end(), std::back_inserter(binary));
 	}
 
-	auto parsed = hbt::ir::parse(text);
+	auto parsed = hbt::ir::parse(hbt::util::MemoryBuffer(text));
 	auto assembled = hbt::mc::assemble(*parsed);
 
-	auto asIt = assembled.begin();
-	auto asEnd = assembled.end();
+	auto asIt = assembled.crange<uint8_t>().begin();
+	auto asEnd = assembled.crange<uint8_t>().end();
 
 	for (const auto& line : program) {
 		auto asIt2 = asIt;
@@ -171,7 +173,7 @@ BOOST_AUTO_TEST_CASE(disassembler)
 		std::copy(line.binary.begin(), line.binary.end(), std::back_inserter(binary));
 	}
 
-	auto disassembled = hbt::mc::disassemble(binary);
+	auto disassembled = hbt::mc::disassemble(hbt::util::MemoryBuffer(binary));
 	auto printed = hbt::ir::prettyPrint(*disassembled);
 
 	BOOST_CHECK(text == printed);

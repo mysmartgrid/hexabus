@@ -1,6 +1,8 @@
 #include "IR/parser.hpp"
 
 #include "IR/builder.hpp"
+#include "IR/program.hpp"
+#include "Util/memorybuffer.hpp"
 
 #include <boost/fusion/adapted/struct/adapt_struct.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
@@ -726,17 +728,17 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 namespace hbt {
 namespace ir {
 
-std::unique_ptr<Program> parse(const std::string& text)
+std::unique_ptr<Program> parse(const hbt::util::MemoryBuffer& input)
 {
 	typedef boost::spirit::line_pos_iterator<const char*> lpi;
 
-	const char* ctext = text.c_str();
+	auto ctext = input.range<char>();
 	std::string badToken;
 
 	ir_program parsed;
 
 	try {
-		if (!parseToList(lpi(ctext), lpi(ctext + text.size()), parsed, badToken))
+		if (!parseToList(lpi(ctext.begin()), lpi(ctext.end()), parsed, badToken))
 			throw ParseError(0, 0, "...not this anyway...", "parsing aborted (internal error)");
 	} catch (const qi::expectation_failure<lpi>& ef) {
 			std::string rule_name = ef.what_.tag;
@@ -757,7 +759,7 @@ std::unique_ptr<Program> parse(const std::string& text)
 
 			throw hbt::ir::ParseError(
 					ef.first.position(),
-					get_column(lpi(ctext), ef.first),
+					get_column(lpi(ctext.begin()), ef.first),
 					expected,
 					detail);
 	}

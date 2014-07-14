@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <vector>
 
+#include "Util/memorybuffer.hpp"
+
 namespace hbt {
 
 namespace ir {
@@ -12,7 +14,7 @@ class Program;
 
 namespace mc {
 
-std::vector<uint8_t> assemble(const ir::Program& program);
+hbt::util::MemoryBuffer assemble(const ir::Program& program);
 
 }
 }

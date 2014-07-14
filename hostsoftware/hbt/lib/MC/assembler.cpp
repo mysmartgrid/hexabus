@@ -21,35 +21,33 @@ struct Fixup {
 namespace hbt {
 namespace mc {
 
-std::vector<uint8_t> assemble(const ir::Program& program)
+hbt::util::MemoryBuffer assemble(const ir::Program& program)
 {
 	using namespace hbt::ir;
 
-	std::vector<uint8_t> result;
+	hbt::util::MemoryBuffer result;
 
 	std::map<size_t, size_t> labelPositions;
 	std::vector<Fixup> fixups;
 
-	std::copy(program.machine_id().begin(), program.machine_id().end(), std::back_inserter(result));
+	result.append(program.machine_id().begin(), program.machine_id().size());
 
 	const size_t programBegin = result.size();
 
-	result.push_back(program.version());
-
 	auto append_u8 = [&result] (uint8_t u8) {
-		result.push_back(u8);
+		result.append(&u8, 1);
 	};
 
-	auto append_u16 = [&result] (uint16_t u16) {
-		result.push_back((u16 >> 8) & 0xFF);
-		result.push_back((u16 >> 0) & 0xFF);
+	auto append_u16 = [&append_u8] (uint16_t u16) {
+		append_u8((u16 >> 8) & 0xFF);
+		append_u8((u16 >> 0) & 0xFF);
 	};
 
-	auto append_u32 = [&result] (uint32_t u32) {
-		result.push_back((u32 >> 24) & 0xFF);
-		result.push_back((u32 >> 16) & 0xFF);
-		result.push_back((u32 >>  8) & 0xFF);
-		result.push_back((u32 >>  0) & 0xFF);
+	auto append_u32 = [&append_u8] (uint32_t u32) {
+		append_u8((u32 >> 24) & 0xFF);
+		append_u8((u32 >> 16) & 0xFF);
+		append_u8((u32 >>  8) & 0xFF);
+		append_u8((u32 >>  0) & 0xFF);
 	};
 
 	auto append_f = [&append_u32] (float f) {
@@ -63,6 +61,8 @@ std::vector<uint8_t> assemble(const ir::Program& program)
 		fixups.push_back({ result.size(), -1, target });
 		append_u16(0);
 	};
+
+	append_u8(program.version());
 
 	fixups.push_back({ result.size(), 0, program.onPacket() });
 	append_u16(0);
@@ -171,9 +171,8 @@ std::vector<uint8_t> assemble(const ir::Program& program)
 				uint8_t start = i->immed().start();
 				uint8_t end = start + i->immed().length() - 1;
 				append_u8((start << 4) | end);
-				auto& block = i->immed().block();
 
-				std::copy(block.begin(), block.begin() + i->immed().length(), std::back_inserter(result));
+				result.append(i->immed().block().data(), i->immed().length());
 				break;
 			}
 			throw std::runtime_error("invalid program assembled");
@@ -233,10 +232,9 @@ std::vector<uint8_t> assemble(const ir::Program& program)
 		size_t pos = f.position;
 		size_t to = labelPositions[f.target.id()];
 
-		size_t fixupVal = to - f.offsetFrom;
+		uint16_t fixupVal = htobe16(to - f.offsetFrom);
 
-		result[pos]   = (fixupVal >> 8) & 0xFF;
-		result[pos+1] = (fixupVal >> 0) & 0xFF;
+		result.replace(result.begin() + pos, &fixupVal, sizeof(fixupVal));
 	}
 
 	return result;
