@@ -37,6 +37,7 @@ struct block_immediate {
 struct ir_instruction {
 	typedef boost::variant<
 			uint8_t,
+			uint16_t,
 			uint32_t,
 			float,
 			std::vector<switch_entry>,
@@ -269,7 +270,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 				> lit(")")
 			) | (
 				lit("u32") > lit("(")
-				> u32_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_U32>, _1)]
+				> u32_immed[_val = bind(make_load_u32, _1)]
 				> lit(")")
 			) | (
 				lit("f") > lit("(")
@@ -445,7 +446,28 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 	static ir_instruction make_switch(const std::vector<switch_entry>& entries)
 	{
-		return { hbt::ir::Opcode::SWITCH_32, ir_instruction::immed_t(entries) };
+		uint32_t maxLabel = 0;
+
+		std::for_each(entries.begin(), entries.end(),
+				[&maxLabel] (const struct switch_entry& e) {
+					return maxLabel = std::max(maxLabel, e.label);
+				});
+
+		hbt::ir::Opcode op = hbt::ir::Opcode::SWITCH_32;
+		if (maxLabel <= 255)
+			op = hbt::ir::Opcode::SWITCH_8;
+		else if (maxLabel <= 65535)
+			op = hbt::ir::Opcode::SWITCH_16;
+
+		return { op, ir_instruction::immed_t(entries) };
+	}
+
+	static ir_instruction make_load_u32(uint32_t value)
+	{
+		if (value <= 65535)
+			return { hbt::ir::Opcode::LD_U16, ir_instruction::immed_t(uint16_t(value)) };
+		else
+			return { hbt::ir::Opcode::LD_U32, ir_instruction::immed_t(value) };
 	}
 
 	static bool check_block(const block_immediate& imm)
@@ -637,14 +659,18 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 			break;
 
 		case 1:
-			builder.append(thisLabel, insn.opcode, boost::get<uint32_t>(*insn.immediate));
+			builder.append(thisLabel, insn.opcode, boost::get<uint16_t>(*insn.immediate));
 			break;
 
 		case 2:
+			builder.append(thisLabel, insn.opcode, boost::get<uint32_t>(*insn.immediate));
+			break;
+
+		case 3:
 			builder.append(thisLabel, insn.opcode, boost::get<float>(*insn.immediate));
 			break;
 
-		case 3: {
+		case 4: {
 			const auto& operand = boost::get<std::vector<switch_entry>>(*insn.immediate);
 			std::vector<SwitchEntry> entries;
 
@@ -661,7 +687,7 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 			break;
 		}
 
-		case 4: {
+		case 5: {
 			const auto& operand = boost::get<block_immediate>(*insn.immediate);
 
 			std::array<uint8_t, 16> data;
@@ -676,15 +702,15 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 			break;
 		}
 
-		case 5:
+		case 6:
 			builder.append(thisLabel, insn.opcode, boost::get<DTMask>(*insn.immediate));
 			break;
 
-		case 6:
+		case 7:
 			builder.append(thisLabel, insn.opcode, useLabel(boost::get<std::string>(*insn.immediate)));
 			break;
 
-		case 7: {
+		case 8: {
 			const auto& operand = boost::get<datetime_immediate>(*insn.immediate);
 
 			unsigned s, m, h, D, M, Y, W;
