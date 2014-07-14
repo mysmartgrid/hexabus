@@ -198,7 +198,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 		machine_header.name("machine header");
 		machine_header %=
-			(lit(".version") > lit("0") > eol)
+			(lit(".version") > lit("0") > +eol)
 			> machine_id
 			> on_packet_vector
 			> on_periodic_vector;
@@ -211,14 +211,14 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 					lit("0x")
 					> repeat(1, 32)[uint_parser<uint8_t, 16, 1, 1>()]
 				]
-				> (eol | (eps > errors.machine_id_too_long))
+				> (+eol | (eps > errors.machine_id_too_long))
 			)[_val = bind(make_block, _1)];
 
 		on_packet_vector.name("packet vector");
-		on_packet_vector %= lit(".on_packet") > identifier > eol;
+		on_packet_vector %= lit(".on_packet") > identifier > +eol;
 
 		on_periodic_vector.name("periodic vector");
-		on_periodic_vector %= lit(".on_periodic") > identifier > eol;
+		on_periodic_vector %= lit(".on_periodic") > identifier > +eol;
 
 		identifier.name("identifier");
 		identifier %= lexeme[char_("_a-zA-Z") > *char_("_0-9a-zA-Z")];
@@ -581,7 +581,7 @@ std::map<std::string, hbt::ir::Label> makeLabelMap(const ir_program& program, hb
 		if (it->which() == 0) {
 			hbt::ir::Label current = builder.createLabel();
 
-			while (it->which() == 0) {
+			while (it != end && it->which() == 0) {
 				result.insert({ boost::get<std::string>(*it), current });
 				++it;
 			}
