@@ -256,8 +256,8 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			TOKEN("st")
 			> ld_st_operand_register(hbt::ir::Opcode::ST_REG);
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunsequenced"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunsequenced"
 		dt_masked_instruction =
 			(TOKEN("dt.decomp") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::DT_DECOMPOSE>, _1)])
 			| (TOKEN("cmp.dt.lt") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::CMP_DT_LT>, _1)])
@@ -301,13 +301,13 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 				stack_slot[_val = bind(make_insn_t<hbt::ir::Opcode::ROT_I>, _1)]
 				| eps[_val = val(ir_instruction{ hbt::ir::Opcode::ROT, boost::none_t() })]
 			);
-#pragma GCC diagnostic pop
+#pragma clang diagnostic pop
 
 		switch_instruction =
 			lit("switch")
 			> lit("{")
 			> eol
-			> repeat(0, 255)[switch_entry]
+			> repeat(0, 255)[switch_table_entry]
 				[_val = bind(make_switch, _1)]
 			> (
 				lit("}")
@@ -382,8 +382,8 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 				^ char_('W')[_val |= hbt::ir::DTMask::weekday]
 			];
 
-		switch_entry.name("switch table entry");
-		switch_entry %= uint_ > lit(":") > identifier > eol;
+		switch_table_entry.name("switch table entry");
+		switch_table_entry %= uint_ > lit(":") > identifier > eol;
 
 		block_immed.name("immediate binary operand");
 		block_immed %=
@@ -536,7 +536,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, hbt::ir::DTMask(), asm_ws<It>> dt_mask;
 	qi::rule<It, datetime_immediate(), asm_ws<It>> dt_immed;
 
-	qi::rule<It, switch_entry(), asm_ws<It>> switch_entry;
+	qi::rule<It, switch_entry(), asm_ws<It>> switch_table_entry;
 
 	qi::rule<It, unsigned(), asm_ws<It>> block_start;
 	qi::rule<It, block_immediate(), asm_ws<It>> block_immed;

@@ -26,6 +26,8 @@ struct RawInstruction {
 	hbt::ir::Builder::immediate_t immed;
 };
 
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+
 struct RawProgram {
 	uint8_t version;
 	std::array<uint8_t, 16> machineID;

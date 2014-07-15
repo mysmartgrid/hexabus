@@ -17,8 +17,6 @@ class MemoryBuffer {
 		template<typename T>
 		static void checkIteratorValidity()
 		{
-			typedef typename std::remove_cv<T>::type iterator;
-
 			static_assert(std::is_same<T, char>::value || std::is_same<T, uint8_t>::value,
 					"only char types allowed");
 		}

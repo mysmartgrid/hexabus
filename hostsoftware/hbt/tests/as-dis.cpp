@@ -21,6 +21,8 @@ struct AssemblerLine {
 	bool ignoreTextOnDisassembly;
 };
 
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+
 static AssemblerLine program[] = {
 	{ ".version 0" },
 	{ ".machine 0x1234567890abcdeffedcba0987654321" },
