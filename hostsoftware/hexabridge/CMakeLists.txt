@@ -20,8 +20,7 @@ enable_testing()
 # add a path where some libraries might be stored
 set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where many locally installed libraries can be found")
 
-################################################################
-  ###################################
+###################################################################################################
 # No user settings below
 ###################################################################################################
 
