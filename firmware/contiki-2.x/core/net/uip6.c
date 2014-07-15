@@ -1417,6 +1417,7 @@ uip_process(uint8_t flag)
       UIP_STAT(++uip_stat.icmp.recv);
       uip_len = 0;
       break;
+#if UIP_CONF_MLD
     case ICMP6_ML_QUERY:
       uip_icmp6_ml_query_input();
       uip_len = 0;
@@ -1428,6 +1429,7 @@ uip_process(uint8_t flag)
     case ICMP6_ML_DONE:
       uip_len = 0;
       break;
+#endif
     default:
       PRINTF("Unknown icmp6 message type %d\n", UIP_ICMP_BUF->type);
       UIP_STAT(++uip_stat.icmp.drop);

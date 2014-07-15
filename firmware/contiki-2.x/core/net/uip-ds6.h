@@ -233,8 +233,11 @@ typedef struct uip_ds6_aaddr {
 /** \brief A multicast address */
 typedef struct uip_ds6_maddr {
   uint8_t isused:1;
-  uint8_t isreported:1;
+  uint8_t report_count:3;
   uip_ipaddr_t ipaddr;
+#if UIP_CONF_MLD
+  struct stimer report_timeout;
+#endif
 } uip_ds6_maddr_t;
 
 /** \brief define some additional RPL related route state and

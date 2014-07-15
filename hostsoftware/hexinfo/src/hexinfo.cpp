@@ -188,11 +188,11 @@ struct json_string_writer {
 	{
 		for (std::string::const_iterator it = jsw.str.begin(), end = jsw.str.end(); it != end; it++) {
 			switch (*it) {
-				case '"': target << "\""; break;
-				case '\n': target << "\n"; break;
-				case '\r': target << "\r"; break;
-				case '\t': target << "\t"; break;
-				case '\v': target << "\v"; break;
+				case '"': target << "\\\""; break;
+				case '\n': target << "\\n"; break;
+				case '\r': target << "\\r"; break;
+				case '\t': target << "\\t"; break;
+				case '\v': target << "\\v"; break;
 				default: target << *it;
 			}
 		}

@@ -129,6 +129,7 @@ var hexabus = function() {
 		}	else {
 			command = command + value;
 		}
+
 		exec(command, function(error, stdout, stderr) {
 			cb(error);
 		});

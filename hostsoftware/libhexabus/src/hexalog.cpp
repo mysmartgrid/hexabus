@@ -33,35 +33,75 @@ namespace po = boost::program_options;
 
 #include "resolv.hpp"
 
+#define KLIO_AUTOCOMMIT 0
+
 class Logger : public hexabus::Logger {
 	private:
 		bfs::path store_file;
 		klio::Store::Ptr store;
+    unsigned int _packet_counter;
+    unsigned int _packet_counter_max;
 
 		klio::Sensor::Ptr lookup_sensor(const std::string& id)
 		{
-			try {
-				return store->get_sensor_by_external_id(id);
-			} catch (...) {
+			std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_external_id(id);
+			
+			if (!sensors.size())
 				return klio::Sensor::Ptr();
-			}
+      return sensors[0];
 		}
 
 		void new_sensor_found(klio::Sensor::Ptr sensor, const boost::asio::ip::address_v6&)
 		{
 			store->add_sensor(sensor);
 			std::cout << "Created new sensor: " << sensor->str() << std::endl;
+#if KLIO_AUTOCOMMIT
+      store->commit_transaction();
+      store->start_transaction();
+#endif
 		}
 
 		void record_reading(klio::Sensor::Ptr sensor, klio::timestamp_t ts, double value)
 		{
+      double msecs1;
+      double msecs2;
+      double mdiff;
+      
+      struct timeval tv1;
+      struct timeval tv2;
+#if KLIO_AUTOCOMMIT
+      if( _packet_counter > _packet_counter_max ) {
+        _packet_counter = 0;
+        std::cout<<"need to commit fitst"<< std::endl;
+        store->commit_transaction();
+        store->start_transaction();
+      }
+#endif
 			try {
+
+        gettimeofday(&tv1, NULL) ;
+        msecs1=(double)tv1.tv_sec + ((double)tv1.tv_usec/1000000);
+				std::cout << "Call Record-Reading at " <<  tv1.tv_sec << "." << tv1.tv_usec << std::endl;
+
 				store->add_reading(sensor, ts, value);
-				std::cout << "Added reading " << value << " to sensor " << sensor->name() << std::endl;
+        _packet_counter++;
+        gettimeofday(&tv2, NULL) ;
+        msecs2=(double)tv2.tv_sec + ((double)tv2.tv_usec/1000000);
+        mdiff = msecs2 - msecs1;
+        
+				std::cout << "Added reading " << value << " to sensor " << sensor->name() << " ("<<sensor->external_id()<< ")" << "t="<< ts << " diff=" <<mdiff << std::endl;
 			} catch (klio::StoreException const& ex) {
-				std::cout << "Failed to record reading: " << ex.what() << std::endl;
+        gettimeofday(&tv2, NULL) ;
+        msecs2=(double)tv2.tv_sec + ((double)tv2.tv_usec/1000000);
+        mdiff = msecs2 - msecs1;
+
+				std::cout << "Failed to record reading to sensor " << sensor->name()<< " ("<<sensor->external_id()<< ")"<< "t="<< ts << " diff=" << mdiff<< " : " << ex.what() << std::endl;
 			} catch (std::exception const& ex) {
-				std::cout << "Failed to record reading: " << ex.what() << std::endl;
+        gettimeofday(&tv2, NULL) ;
+        msecs2=(double)tv2.tv_sec + ((double)tv2.tv_usec/1000000);
+        mdiff = msecs2 - msecs1;
+
+				std::cout << "Failed to record reading to sensor " << sensor->name()<< " ("<<sensor->external_id()<< ")"<< "t="<< ts << " diff=" << mdiff<< " : " << ex.what() << std::endl;
 			}
 		}
 
@@ -74,6 +114,8 @@ class Logger : public hexabus::Logger {
 			hexabus::DeviceInterrogator& interrogator,
 			hexabus::EndpointRegistry& reg)
 			: hexabus::Logger(tc, sensor_factory, sensor_timezone, interrogator, reg), store_file(store_file), store(store)
+      , _packet_counter(0)
+      , _packet_counter_max(10)
 		{
 		}
 
@@ -88,16 +130,27 @@ class Logger : public hexabus::Logger {
 				for (it = uuids.begin(), end = uuids.end(); it != end; ++it) {
 					klio::Sensor::Ptr sensor = store->get_sensor(*it);
 
-					sensor_cache[sensor->name()] = sensor;
+					//sensor_cache[sensor->name()] = sensor;
+					sensor_cache[sensor->external_id()] = sensor;
 				}
 			}
 
 			std::cout << "Reopening store" << std::endl;
-			store->close();
-			store = klio::StoreFactory().create_sqlite3_store(store_file);
-			store->open();
-			store->initialize();
 
+#if KLIO_AUTOCOMMIT
+      store->commit_transaction();
+#endif
+      klio::StoreFactory store_factory; 
+      klio::Store::Ptr store_new;
+      store_new = store_factory.create_sqlite3_store(store_file);//, true, false);
+      store_new->sync_sensors(store);
+			store->close();
+			//store = klio::StoreFactory().create_sqlite3_store(store_file, true, false);
+      store = store_new;
+
+#if KLIO_AUTOCOMMIT
+      store->start_transaction();
+#endif
 			{
 				std::cout << "Adding sensors..." << std::endl;
 				std::set<klio::Sensor::uuid_t> new_sensors;
@@ -211,7 +264,12 @@ int main(int argc, char** argv)
 			std::cerr << "Hint: you can create a database using klio-store create <dbfile>" << std::endl;
 			return ERR_PARAMETER_VALUE_INVALID;
 		}
-		store = store_factory.open_sqlite3_store(db);
+#if KLIO_AUTOCOMMIT
+		store = store_factory.open_sqlite3_store(db, false, true, 30);
+    store->start_transaction();
+#else
+		store = store_factory.open_sqlite3_store(db, true, true, 30);
+#endif
 
 		std::string sensor_timezone("Europe/Berlin"); 
 		if (! vm.count("timezone")) {

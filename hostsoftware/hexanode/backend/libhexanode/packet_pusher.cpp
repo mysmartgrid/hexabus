@@ -39,7 +39,7 @@ void PacketPusher::deviceInfoReceived(const boost::asio::ip::address_v6& device,
 				desc,
 				static_cast<const hexabus::EndpointInfoPacket&>(info).value(),
 				min_value, max_value,
-				std::string("sensor"));
+				desc.type());
 		_sensors.insert(std::make_pair(sensor_id, new_sensor));
 		try {
 			new_sensor.put(_client, _api_uri, it->second); 
@@ -93,7 +93,7 @@ void PacketPusher::defineSensor(const std::string& sensor_id, uint32_t eid, cons
 						hexabus::EndpointDescriptor(eid, name, unit, HXB_DTYPE_FLOAT, hexabus::EndpointDescriptor::read, hexabus::EndpointDescriptor::sensor),
 						name,
 						min_value, max_value,
-						std::string("dashboard")
+						HXB_DTYPE_FLOAT
 						);
 				_sensors.insert(std::make_pair(sensor_id, new_sensor));
 				new_sensor.put(_client, _api_uri, value);

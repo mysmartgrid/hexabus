@@ -11,4 +11,4 @@ uid=hexanode
 export server=`dirname $addr`
 export port
 export uid
-exec js node_modules/hexanode-webfrontend/app.js 2>&1
+exec js app.js 2>&1
