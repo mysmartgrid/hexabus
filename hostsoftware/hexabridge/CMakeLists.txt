@@ -58,6 +58,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-non-virtual-dtor")
 #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-unused-but-set-variable")
 #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-unused-result")
 #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-sign-compare")
 #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-uninitialized")
 #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wno-attributes")
@@ -97,6 +98,35 @@ include(CMakeBackwardCompatibilityCXX)
 
 # Reflect the package structure
 add_subdirectory(src)
+
+#CPack Packaging
+INSTALL(FILES 
+  LICENSE_1_0.txt LICENSE 
+  DESTINATION share/doc/hexanbridge)
+
+INSTALL(PROGRAMS ${CMAKE_BINARY_DIR}/src/hexabridge DESTINATION bin)
+
+include(InstallRequiredSystemLibraries)
+set(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
+set(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
+set(CPACK_PACKAGE_CONTACT "Fraunhofer ITWM <support@mysmartgrid.de>")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Bridge that pushes values from msg to hexabus.")
+#set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
+
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13), libsqlite3-0 (>= 3.7), libgnutls26 (>= 2.12), libssl1.0.0, libcurl3, libhexabus (>= 0.6.0.200), ca-certificates")
+#set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/debian/preinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
+
+set(CPACK_PACKAGE_EXECUTABLES "hexanode" "Bridge that pushes values from msg to hexabus.")
+set(CPACK_SOURCE_STRIP_FILES "")
+set(CPACK_STRIP_FILES "bin/hexabridge")
+set(CPACK_SECTION "net")
+include(CPackTools)
+
+
 
 ### print some output for the user
 message("")
