@@ -409,7 +409,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 		// error names
 
-		auto storeBadToken =
+		store_bad_token =
 			-(
 				lexeme[+(standard::print - ';' - standard::space)]
 					[([&badToken] (const std::vector<char>& s, qi::unused_type, qi::unused_type) {
@@ -422,7 +422,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		errors.binary_block_too_long = !eps;
 
 		errors.label_or_instruction.name("label or instruction");
-		errors.label_or_instruction = storeBadToken >> !eps;
+		errors.label_or_instruction = store_bad_token >> !eps;
 
 		errors.end_of_switch.name("~end of switch block~block exceeds 255 entries");
 		errors.end_of_switch = !eps;
@@ -544,6 +544,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 	asm_ws<It> space;
 	qi::rule<It> token_end;
+	qi::rule<It> store_bad_token;
 
 	struct {
 		qi::rule<It, asm_ws<It>> binary_block_too_long;
