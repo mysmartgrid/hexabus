@@ -201,7 +201,8 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 		machine_header.name("machine header");
 		machine_header %=
-			(lit(".version") > lit("0") > +eol)
+			*eol
+			> (lit(".version") > lit("0") > +eol)
 			> machine_id
 			> on_packet_vector
 			> on_periodic_vector;
