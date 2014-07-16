@@ -122,7 +122,7 @@ void Device::_handle_query(hexabus::Socket* socket, const Packet& p, const boost
 			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
 		}
 	} catch ( const NetworkException& error ) {
-		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
+		std::cerr << "An error occured at handle_query during " << error.reason() << ": " << error.code().message() << std::endl;
 	}
 }
 
@@ -146,7 +146,7 @@ void Device::_handle_write(hexabus::Socket* socket, const Packet& p, const boost
 			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
 		}
 	} catch ( const NetworkException& error ) {
-		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
+		std::cerr << "An error occured at handle_write during " << error.reason() << ": " << error.code().message() << std::endl;
 	}
 }
 
@@ -174,7 +174,7 @@ void Device::_handle_epquery(hexabus::Socket* socket, const Packet& p, const boo
 			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
 		}
 	} catch ( const NetworkException& error ) {
-		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
+		std::cerr << "An error occured at handle_epquery during " << error.reason() << ": " << error.code().message() << std::endl;
 	}
 }
 
@@ -206,7 +206,7 @@ void Device::_handle_descquery(hexabus::Socket* socket, const Packet& p, const b
 	try {
 		socket->send(InfoPacket<uint32_t>(query->eid(), group), from);
 	} catch ( const NetworkException& error ) {
-		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
+		std::cerr << "An error occured at handle descquery during " << error.reason() << ": " << error.code().message() << std::endl;
 	}
 }
 
@@ -233,7 +233,8 @@ void Device::_handle_descepquery(hexabus::Socket* socket, const Packet& p, const
 	try {
 		socket->send(EndpointInfoPacket(query->eid(), HXB_DTYPE_UINT32, device_name), from);
 	} catch ( const NetworkException& error ) {
-		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
+		std::cerr << "An error occured at handle_descepquery during " << error.reason() << ": " << error.code().message() << std::endl;
+    std::cerr << "reply to: "<< from << std::endl;
 	}
 }
 
@@ -255,7 +256,7 @@ void Device::_handle_smupload(hexabus::Socket* socket, const Packet& p, const bo
 		try {
 			socket->send(InfoPacket<bool>(EP_SM_UP_ACKNAK, false), from);
 		} catch ( const NetworkException& error ) {
-			std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
+			std::cerr << "An error occured at handle_smupload during " << error.reason() << ": " << error.code().message() << std::endl;
 		}
 		return;
 	}
@@ -276,7 +277,7 @@ void Device::_handle_smupload(hexabus::Socket* socket, const Packet& p, const bo
 	try {
 		socket->send(InfoPacket<bool>(EP_SM_UP_ACKNAK, true), from);
 	} catch ( const NetworkException& error ) {
-		std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
+		std::cerr << "An error occured at handle_smupload during " << error.reason() << ": " << error.code().message() << std::endl;
 	}
 }
 
@@ -294,7 +295,9 @@ void Device::_handle_broadcasts(const boost::system::error_code& error)
 					try {
 						(*it)->send(*p);
 					} catch ( const NetworkException& error ) {
-						std::cerr << "An error occured during " << error.reason() << ": " << error.code().message() << std::endl;
+						std::cerr << "An error occured at handle_broadcast during " << error.reason() << ": " << error.code().message() << std::endl;
+					} catch ( ... ) {
+						std::cerr << "send in handle_broadcast failed for some other reason."  << std::endl;
 					}
 				}
 			}
