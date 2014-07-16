@@ -1,11 +1,13 @@
 #include "IR/builder.hpp"
 #include "IR/program.hpp"
 
+#include <boost/format.hpp>
+
 namespace hbt {
 namespace ir {
 
 Builder::Builder(uint8_t version, const std::array<uint8_t, 16>& machine_id)
-	: _version(version), _machine_id(machine_id)
+	: _labelMax(0), _version(version), _machine_id(machine_id)
 {
 	if (version != 0)
 		throw std::invalid_argument("version");
@@ -17,26 +19,20 @@ Builder::~Builder()
 		delete i;
 }
 
-Label Builder::useLabel(Label l, bool forceForward)
-{
-	if (forceForward && _marked.count(l.id()))
-		throw InvalidJump("backward jumps are forbidden");
-
-	return l;
-}
-
-void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immediate_t* immed)
+void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immediate_t* immed, unsigned line)
 {
 	using boost::get;
 
-	if (l && _marked.count(l->id()))
-		throw std::invalid_argument("l");
-
-	if (l) {
-		_marked.insert(l->id());
-		_unmarked.erase(l->id());
-		_unmarked_used.erase(l->id());
+	if (l && _marked.count(l->id())) {
+		auto&& extra = (
+			boost::format("label %1% defined in lines %2% and %3%")
+				% l->id() % _marked[l->id()] % line
+			).str();
+		throw InvalidProgram("label defined multpiple times", extra);
 	}
+
+	if (l)
+		_marked.insert({ l->id(), line });
 
 	switch (op) {
 	case Opcode::LD_SOURCE_IP:
@@ -80,7 +76,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		if (immed)
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(new Instruction(op, l));
+		_instructions.push_back(new Instruction(op, l, line));
 		return;
 
 	case Opcode::LD_U8:
@@ -92,7 +88,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 			throw std::invalid_argument("immed");
 
 		_instructions.push_back(
-			new ImmediateInstruction<uint8_t>(op, get<uint8_t>(*immed), l));
+			new ImmediateInstruction<uint8_t>(op, get<uint8_t>(*immed), l, line));
 		return;
 
 	case Opcode::LD_U16:
@@ -100,7 +96,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 			throw std::invalid_argument("immed");
 
 		_instructions.push_back(
-			new ImmediateInstruction<uint16_t>(op, get<uint16_t>(*immed), l));
+			new ImmediateInstruction<uint16_t>(op, get<uint16_t>(*immed), l, line));
 		return;
 
 	case Opcode::LD_U32:
@@ -108,7 +104,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 			throw std::invalid_argument("immed");
 
 		_instructions.push_back(
-			new ImmediateInstruction<uint32_t>(op, get<uint32_t>(*immed), l));
+			new ImmediateInstruction<uint32_t>(op, get<uint32_t>(*immed), l, line));
 		return;
 
 	case Opcode::LD_FLOAT:
@@ -116,7 +112,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 			throw std::invalid_argument("immed");
 
 		_instructions.push_back(
-			new ImmediateInstruction<float>(op, get<float>(*immed), l));
+			new ImmediateInstruction<float>(op, get<float>(*immed), l, line));
 		return;
 
 	case Opcode::LD_DT:
@@ -125,7 +121,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 			throw std::invalid_argument("immed");
 
 		_instructions.push_back(
-			new ImmediateInstruction<ld_dt_immed>(op, get<ld_dt_immed>(*immed), l));
+			new ImmediateInstruction<ld_dt_immed>(op, get<ld_dt_immed>(*immed), l, line));
 		return;
 
 	case Opcode::DT_DECOMPOSE:
@@ -135,7 +131,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 			throw std::invalid_argument("immed");
 
 		_instructions.push_back(
-			new ImmediateInstruction<DTMask>(op, get<DTMask>(*immed), l));
+			new ImmediateInstruction<DTMask>(op, get<DTMask>(*immed), l, line));
 		return;
 
 	case Opcode::SWITCH_8:
@@ -144,11 +140,8 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		if (!get<SwitchTable>(immed))
 			throw std::invalid_argument("immed");
 
-		for (const auto& e : get<SwitchTable>(*immed))
-			useLabel(e.target);
-
 		_instructions.push_back(
-			new ImmediateInstruction<SwitchTable>(op, std::move(get<SwitchTable>(*immed)), l));
+			new ImmediateInstruction<SwitchTable>(op, std::move(get<SwitchTable>(*immed)), l, line));
 		return;
 
 	case Opcode::CMP_BLOCK:
@@ -156,7 +149,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 			throw std::invalid_argument("immed");
 
 		_instructions.push_back(
-			new ImmediateInstruction<BlockPart>(op, get<BlockPart>(*immed), l));
+			new ImmediateInstruction<BlockPart>(op, get<BlockPart>(*immed), l, line));
 		return;
 
 	case Opcode::JNZ:
@@ -167,7 +160,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 			throw std::invalid_argument("immed");
 
 		_instructions.push_back(
-			new ImmediateInstruction<Label>(op, useLabel(*target), l));
+			new ImmediateInstruction<Label>(op, *target, l, line));
 		return;
 	}
 	}
@@ -177,11 +170,54 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 
 std::unique_ptr<Program> Builder::finish()
 {
-	if (_unmarked_used.size())
-		throw InvalidProgram("some labels are used, but not defined");
+	std::map<size_t, unsigned> markedLabels;
+	std::multimap<size_t, std::pair<Label, unsigned>> labelUses;
 
-	if (!_on_packet || !_on_periodic)
-		throw InvalidProgram("vector table incomplete");
+	auto useJumpLabel = [&] (Label to, const Instruction* insn) {
+		if (markedLabels.count(to.id())) {
+			auto&& extra = (
+				boost::format("jump in line %1% to %2% in line %3%")
+					% insn->line() % to.id() % markedLabels[to.id()]
+				).str();
+			throw InvalidProgram("backward jump not allowed", extra);
+		}
+		labelUses.insert({ to.id(), { to, insn->line() } });
+	};
+
+	for (const auto* insn : _instructions) {
+		if (insn->label()) {
+			markedLabels.insert({ insn->label()->id(), insn->line() });
+			labelUses.erase(insn->label()->id());
+		}
+
+		if (auto* switchInsn = dynamic_cast<const ImmediateInstruction<SwitchTable>*>(insn)) {
+			for (const SwitchEntry& e : switchInsn->immed())
+				useJumpLabel(e.target, insn);
+
+			continue;
+		}
+
+		if (auto* jumpInsn = dynamic_cast<const ImmediateInstruction<Label>*>(insn)) {
+			useJumpLabel(jumpInsn->immed(), insn);
+
+			continue;
+		}
+	}
+
+	if (labelUses.size()) {
+		std::string extra = "";
+		for (const auto& use : labelUses) {
+			if (extra.size())
+				extra += ", ";
+			extra += (boost::format("%1% (in line %2%)") % use.second.first.name() % use.second.second).str();
+		}
+		throw InvalidProgram("jump to undefined label", extra);
+	}
+
+	if (!_on_packet)
+		throw InvalidProgram("vector table incomplete", "on_packet missing");
+	if (!_on_periodic)
+		throw InvalidProgram("vector table incomplete", "on_periodic missing");
 
 	Program* p = new Program(
 			_version, _machine_id, *_on_packet, *_on_periodic,

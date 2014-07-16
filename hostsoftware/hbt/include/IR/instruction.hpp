@@ -147,13 +147,15 @@ class DateTime {
 class Label {
 	private:
 		size_t _id;
+		std::string _name;
 
 	public:
-		explicit Label(size_t id)
-			: _id(id)
+		explicit Label(size_t id, const std::string& name = "")
+			: _id(id), _name(name)
 		{}
 
 		size_t id() const { return _id; }
+		const std::string& name() const { return _name; }
 };
 
 
@@ -216,16 +218,18 @@ class Instruction {
 	private:
 		Opcode _opcode;
 		boost::optional<Label> _label;
+		unsigned _line;
 
 	public:
-		Instruction(Opcode opcode, boost::optional<Label> label = boost::none_t())
-			: _opcode(opcode), _label(label)
+		Instruction(Opcode opcode, boost::optional<Label> label = {}, unsigned line = 0)
+			: _opcode(opcode), _label(label), _line(line)
 		{}
 
 		virtual ~Instruction();
 
 		Opcode opcode() const { return _opcode; }
 		const Label* label() const { return _label.get_ptr(); }
+		unsigned line() const { return _line; }
 };
 
 template<typename Immed>
@@ -246,8 +250,8 @@ class ImmediateInstruction : public Instruction {
 
 	public:
 		ImmediateInstruction(Opcode opcode, const Immed& immed,
-				boost::optional<Label> label = boost::none_t())
-			: Instruction(opcode, label), _immed(immed)
+				boost::optional<Label> label = {}, unsigned line = 0)
+			: Instruction(opcode, label, line), _immed(immed)
 		{}
 
 		const Immed& immed() const { return _immed; }
@@ -257,8 +261,8 @@ class InvalidInstruction : public Instruction {
 	private:
 		std::string _comment;
 	public:
-		InvalidInstruction(Opcode opcode, const std::string& comment)
-			: Instruction(opcode), _comment(comment)
+		InvalidInstruction(Opcode opcode, const std::string& comment, unsigned line)
+			: Instruction(opcode, {}, line), _comment(comment)
 		{}
 
 		const std::string& comment() const { return _comment; }

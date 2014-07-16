@@ -61,22 +61,26 @@ int main(int argc, char* argv[])
 	try {
 		auto buffer = hbt::util::MemoryBuffer::loadFile(input);
 
-		std::unique_ptr<hbt::ir::Program> program;
+		std::unique_ptr<hbt::ir::Program> program = hbt::ir::parse(buffer);
 
-		try {
-			program = hbt::ir::parse(buffer);
-		} catch (const hbt::ir::ParseError& e) {
-			std::cout << "hbt-as: error in input\n"
-				<< "expected " << e.expected() << " at " << e.line() << ":" << e.column();
-			if (e.detail().size())
-				std::cout << " (" << e.detail() << ")";
-			std::cout << "\n";
-			return 1;
-		}
+		hbt::util::MemoryBuffer assembly;
 
-		hbt::util::MemoryBuffer assembly = hbt::mc::assemble(*program);
+		assembly = std::move(hbt::mc::assemble(*program));
 
 		assembly.writeFile(output);
+	} catch (const hbt::ir::ParseError& e) {
+		std::cout << "hbt-as: error in input\n"
+			<< "expected " << e.expected() << " at " << e.line() << ":" << e.column();
+		if (e.detail().size())
+			std::cout << " (" << e.detail() << ")";
+		std::cout << "\n";
+		return 1;
+	} catch (const hbt::ir::InvalidProgram& e) {
+		std::cout << "hbt-as: invalid program\n"
+			<< e.what() << "\n";
+		if (e.extra().size())
+			std::cout << e.extra() << "\n";
+		return 1;
 	} catch (const std::exception& e) {
 		std::cerr << "hbt-as: error: " << e.what() << "\n";
 		return 1;

@@ -171,8 +171,12 @@ std::string prettyPrint(const Program& program)
 			continue;
 		}
 
-		if (insn->label())
-			out << *insn->label() << ":\n";
+		if (insn->label()) {
+			out << *insn->label() << ":";
+			if (insn->label()->name().size())
+				out << "\t;" << insn->label()->name();
+			out << "\n";
+		}
 		out << "\t";
 
 		out << insn->opcode();

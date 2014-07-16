@@ -10,7 +10,15 @@ namespace hbt {
 namespace ir {
 
 class InvalidProgram : public std::logic_error {
-	using logic_error::logic_error;
+	private:
+		std::string _extra;
+
+	public:
+		InvalidProgram(const std::string& what, const std::string& extra)
+			: logic_error(what), _extra(extra)
+		{}
+
+		const std::string& extra() const { return _extra; }
 };
 
 class Program {

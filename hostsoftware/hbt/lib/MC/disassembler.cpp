@@ -42,7 +42,7 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 	using namespace hbt::ir;
 
 	if (program.size() < 16 + 1 + 2 + 2)
-		throw InvalidProgram("program too short");
+		throw InvalidProgram("program too short", "");
 
 	auto pit = program.crange<uint8_t>().begin();
 	const auto pbegin = program.crange<uint8_t>().begin();
@@ -90,8 +90,10 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 	const auto programBegin = pit;
 
 	result.version = read_u8();
-	if (result.version != 0)
-		throw InvalidProgram("unknown program version");
+	if (result.version != 0) {
+		auto&& extra = (boost::format("got version %1%") % result.version).str();
+		throw InvalidProgram("unknown program version", extra);
+	}
 
 	result.onPacketPos = read_u16();
 	result.onPeriodicPos = read_u16();
@@ -372,16 +374,16 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 	std::map<size_t, Label> labelAbsPositions = resolveLabels(raw, builder);
 
 	if (!labelAbsPositions.count(raw.onPacketPos))
-		throw InvalidProgram("invalid on_packet vector");
+		throw InvalidProgram("invalid on_packet vector", "");
 	builder.onPacket(labelAbsPositions.at(raw.onPacketPos));
 
 	if (!labelAbsPositions.count(raw.onPeriodicPos))
-		throw InvalidProgram("invalid on_periodic vector");
+		throw InvalidProgram("invalid on_periodic vector", "");
 	builder.onPeriodic(labelAbsPositions.at(raw.onPeriodicPos));
 
 	for (const auto& insn : raw.instructions) {
 		if (!insn.isValid && !ignoreInvalid)
-			throw InvalidProgram((boost::format("invalid instruction at %1%") % insn.pos).str());
+			throw InvalidProgram("invalid instruction", (boost::format("at %1%") % insn.pos).str());
 
 		if (!insn.isValid) {
 			std::string comment;
@@ -399,7 +401,7 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 			if (insn.blockCmpMaskInvalid)
 				append("block compare mask invalid");
 
-			builder.appendInvalid(insn.op, comment);
+			builder.appendInvalid(insn.op, comment, 0);
 
 			continue;
 		}
@@ -448,7 +450,7 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 		case Opcode::RET_CHANGE:
 		case Opcode::RET_STAY:
 		case Opcode::CMP_IP_LO:
-			builder.append(thisLabel, insn.op);
+			builder.append(thisLabel, insn.op, 0);
 			break;
 
 		case Opcode::LD_U8:
@@ -456,33 +458,33 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 		case Opcode::ST_REG:
 		case Opcode::DUP_I:
 		case Opcode::ROT_I:
-			builder.append(thisLabel, insn.op, boost::get<uint8_t>(insn.immed));
+			builder.append(thisLabel, insn.op, boost::get<uint8_t>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_U16:
-			builder.append(thisLabel, insn.op, boost::get<uint16_t>(insn.immed));
+			builder.append(thisLabel, insn.op, boost::get<uint16_t>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_U32:
-			builder.append(thisLabel, insn.op, boost::get<uint32_t>(insn.immed));
+			builder.append(thisLabel, insn.op, boost::get<uint32_t>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_FLOAT:
-			builder.append(thisLabel, insn.op, boost::get<float>(insn.immed));
+			builder.append(thisLabel, insn.op, boost::get<float>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_DT:
-			builder.append(thisLabel, insn.op, boost::get<std::tuple<DTMask, DateTime>>(insn.immed));
+			builder.append(thisLabel, insn.op, boost::get<std::tuple<DTMask, DateTime>>(insn.immed), 0);
 			break;
 
 		case Opcode::DT_DECOMPOSE:
 		case Opcode::CMP_DT_LT:
 		case Opcode::CMP_DT_GE:
-			builder.append(thisLabel, insn.op, boost::get<DTMask>(insn.immed));
+			builder.append(thisLabel, insn.op, boost::get<DTMask>(insn.immed), 0);
 			break;
 
 		case Opcode::CMP_BLOCK:
-			builder.append(thisLabel, insn.op, boost::get<BlockPart>(insn.immed));
+			builder.append(thisLabel, insn.op, boost::get<BlockPart>(insn.immed), 0);
 			break;
 
 		case Opcode::SWITCH_8:
@@ -496,11 +498,11 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 			for (auto& e : immed) {
 				if (!labelAbsPositions.count(e.target.id() + insn.nextPos)) {
 					if (!ignoreInvalid)
-						throw InvalidProgram((boost::format("invalid instruction at %1%") % insn.pos).str());
+						throw InvalidProgram("invalid instruction", (boost::format("at %1%") % insn.pos).str());
 
 					builder.appendInvalid(
 						insn.op,
-						(boost::format("invalid entry (%1%, %2%)") % e.label % e.target.id()).str());
+						(boost::format("invalid entry (%1%, %2%)") % e.label % e.target.id()).str(), 0);
 
 					continue;
 				}
@@ -508,7 +510,7 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 				entries.push_back({ e.label, labelAbsPositions.at(e.target.id() + insn.nextPos) });
 			}
 
-			builder.append(thisLabel, insn.op, SwitchTable(entries.begin(), entries.end()));
+			builder.append(thisLabel, insn.op, SwitchTable(entries.begin(), entries.end()), 0);
 			break;
 		}
 
@@ -519,16 +521,16 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 
 			if (!labelAbsPositions.count(addr)) {
 				if (!ignoreInvalid)
-					throw InvalidProgram((boost::format("invalid instruction at %1%") % insn.pos).str());
+					throw InvalidProgram("invalid instruction", (boost::format("at %1%") % insn.pos).str());
 
 				builder.appendInvalid(
 					insn.op,
-					(boost::format("invalid jump offset %1%") % (addr - insn.nextPos)).str());
+					(boost::format("invalid jump offset %1%") % (addr - insn.nextPos)).str(), 0);
 
 				continue;
 			}
 
-			builder.append(thisLabel, insn.op, labelAbsPositions.at(addr));
+			builder.append(thisLabel, insn.op, labelAbsPositions.at(addr), 0);
 			break;
 		}
 

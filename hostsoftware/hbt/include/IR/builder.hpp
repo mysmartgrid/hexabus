@@ -4,8 +4,8 @@
 #include "IR/instruction.hpp"
 
 #include <list>
+#include <map>
 #include <memory>
-#include <set>
 
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
@@ -14,10 +14,6 @@ namespace hbt {
 namespace ir {
 
 class Program;
-
-class InvalidJump : public std::logic_error {
-	using logic_error::logic_error;
-};
 
 class Builder {
 	public:
@@ -34,15 +30,16 @@ class Builder {
 			> immediate_t;
 
 	private:
-		std::set<size_t> _marked, _unmarked, _unmarked_used;
+		size_t _labelMax;
+		std::map<size_t, unsigned> _marked;
 		std::list<Instruction*> _instructions;
 
 		uint8_t _version;
 		std::array<uint8_t, 16> _machine_id;
 		boost::optional<Label> _on_packet, _on_periodic;
 
-		void appendInstruction(boost::optional<Label> l, Opcode op, const immediate_t* immed);
-		Label useLabel(Label l, bool forceForward = true);
+		void appendInstruction(boost::optional<Label> l, Opcode op, const immediate_t* immed,
+				unsigned line);
 
 	public:
 		Builder(uint8_t version, const std::array<uint8_t, 16>& machine_id);
@@ -59,46 +56,44 @@ class Builder {
 
 		~Builder();
 
-		void append(boost::optional<Label> l, Opcode op)
+		void append(boost::optional<Label> l, Opcode op, unsigned line)
 		{
-			appendInstruction(l, op, nullptr);
+			appendInstruction(l, op, nullptr, line);
 		}
 
-		void append(Opcode op)
+		void append(Opcode op, unsigned line)
 		{
-			appendInstruction(boost::none_t(), op, nullptr);
+			appendInstruction(boost::none_t(), op, nullptr, line);
 		}
 
-		void append(boost::optional<Label> l, Opcode op, immediate_t&& immed)
+		void append(boost::optional<Label> l, Opcode op, immediate_t&& immed, unsigned line)
 		{
-			appendInstruction(l, op, &immed);
+			appendInstruction(l, op, &immed, line);
 		}
 
-		void append(Opcode op, immediate_t&& immed)
+		void append(Opcode op, immediate_t&& immed, unsigned line)
 		{
-			appendInstruction(boost::none_t(), op, &immed);
+			appendInstruction(boost::none_t(), op, &immed, line);
 		}
 
-		void appendInvalid(Opcode op, const std::string& comment)
+		void appendInvalid(Opcode op, const std::string& comment, unsigned line)
 		{
-			_instructions.push_back(new InvalidInstruction(op, comment));
+			_instructions.push_back(new InvalidInstruction(op, comment, line));
 		}
 
-		Label createLabel()
+		Label createLabel(const std::string& name = "")
 		{
-			Label l(_marked.size() + _unmarked.size());
-			_unmarked.insert(l.id());
-			return l;
+			return Label(_labelMax++, name);
 		}
 
 		void onPacket(Label l)
 		{
-			_on_packet = useLabel(l, false);
+			_on_packet = l;
 		}
 
 		void onPeriodic(Label l)
 		{
-			_on_periodic = useLabel(l, false);
+			_on_periodic = l;
 		}
 
 		std::unique_ptr<Program> finish();

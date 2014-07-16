@@ -53,7 +53,10 @@ struct ir_instruction {
 	immed_t immediate;
 };
 
-typedef boost::variant<std::string, ir_instruction> ir_line;
+struct ir_line {
+	unsigned line;
+	boost::variant<std::string, ir_instruction> content;
+};
 
 struct ir_program_header {
 	std::vector<uint8_t> machine_id;
@@ -95,6 +98,12 @@ BOOST_FUSION_ADAPT_STRUCT(
 	ir_instruction,
 	(hbt::ir::Opcode, opcode)
 	(ir_instruction::immed_t, immediate)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+	ir_line,
+	(unsigned, line)
+	(decltype(std::declval<ir_line>().content), content)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -228,20 +237,23 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		identifier %= lexeme[char_("_a-zA-Z") > *char_("_0-9a-zA-Z")];
 
 		label.name("label");
-		label %= identifier >> lit(":");
+		label %= currentLine >> identifier >> lit(":");
 
 #define TOKEN(p) (lexeme[p >> token_end])
 
 		instruction %=
-			TOKEN(simple_instruction)
-			| ld_instruction
-			| st_instruction
-			| dt_masked_instruction
-			| jump_instruction
-			| dup_instruction
-			| rot_instruction
-			| switch_instruction
-			| block_instruction;
+			currentLine
+			>> (
+				TOKEN(simple_instruction)
+				| ld_instruction
+				| st_instruction
+				| dt_masked_instruction
+				| jump_instruction
+				| dup_instruction
+				| rot_instruction
+				| switch_instruction
+				| block_instruction
+			);
 
 		ld_instruction %=
 			TOKEN("ld")
@@ -403,6 +415,8 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		block_start.name("block start position (0..15)");
 		block_start %= uint_[_pass = _1 <= 15];
 
+		currentLine = raw[eps][_val = bind(getLineNumber, _1)];
+
 #undef TOKEN
 
 		token_end = no_skip[!!(space | eol | eoi | standard::punct)];
@@ -432,6 +446,11 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 		errors.ld_operand.name("~ld operand~immediate | src.(ip | eid | val) | sys.(state | statetime | time)");
 		errors.ld_operand = !eps;
+	}
+
+	static unsigned getLineNumber(const boost::iterator_range<It>& range)
+	{
+		return get_line(range.begin());
 	}
 
 	template<hbt::ir::Opcode Opcode>
@@ -542,6 +561,8 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, block_immediate(), asm_ws<It>> block_immed;
 	qi::rule<It, std::vector<uint8_t>(), asm_ws<It>> block_immed_binary_operand;
 
+	qi::rule<It, unsigned()> currentLine;
+
 	asm_ws<It> space;
 	qi::rule<It> token_end;
 	qi::rule<It> store_bad_token;
@@ -565,28 +586,6 @@ bool parseToList(Iterator first, Iterator last, ir_program& program, std::string
 	return result && first == last;
 }
 
-void ensureUniqueLabelsIn(const ir_program& program)
-{
-	std::set<std::string> defined;
-	std::string duplicates;
-
-	for (const auto& line : program.lines) {
-		if (line.which() != 0)
-			continue;
-
-		const auto& label = boost::get<std::string>(line);
-
-		if (!defined.insert(label).second) {
-			if (duplicates.size())
-				duplicates += ", ";
-			duplicates += label;
-		}
-	}
-
-	if (duplicates.size())
-		throw hbt::ir::InvalidProgram("duplicate labels: " + duplicates);
-}
-
 std::array<uint8_t, 16> toMachineID(const std::vector<uint8_t>& vec)
 {
 	std::array<uint8_t, 16> result;
@@ -604,11 +603,11 @@ std::map<std::string, hbt::ir::Label> makeLabelMap(const ir_program& program, hb
 	auto end = program.lines.end();
 
 	while (it != end) {
-		if (it->which() == 0) {
+		if (it->content.which() == 0) {
 			hbt::ir::Label current = builder.createLabel();
 
-			while (it != end && it->which() == 0) {
-				result.insert({ boost::get<std::string>(*it), current });
+			while (it != end && it->content.which() == 0) {
+				result.insert({ boost::get<std::string>(it->content), current });
 				++it;
 			}
 		} else {
@@ -625,22 +624,19 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 
 	Builder builder(0, toMachineID(program.header.machine_id));
 
-	std::map<std::string, Label> labels = makeLabelMap(program, builder);
-	std::set<std::string> marked;
+	std::map<std::string, Label> labels;
 
-	auto useLabel = [&labels, &marked, &builder] (const std::string& l) -> Label& {
-		if (marked.count(l))
-			throw InvalidProgram("backward jump to " + l + " not allowed");
-		return labels.at(l);
+	auto getLabelFor = [&labels, &builder] (const std::string& id) -> Label& {
+		if (!labels.count(id))
+			labels.insert({ id, builder.createLabel(id) });
+		return labels.at(id);
 	};
 
 	Label* nextLabel = nullptr;
 	for (const auto& line : program.lines) {
-		if (line.which() == 0) {
-			const std::string& l = boost::get<std::string>(line);
-			labels.insert({ l, builder.createLabel() });
-			marked.insert(l);
-			nextLabel = &labels.at(l);
+		if (line.content.which() == 0) {
+			auto&& l = boost::get<std::string>(line.content);
+			nextLabel = &getLabelFor(l);
 			continue;
 		}
 
@@ -649,27 +645,27 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 			thisLabel = *nextLabel;
 		nextLabel = nullptr;
 
-		const ir_instruction& insn = boost::get<ir_instruction>(line);
+		const ir_instruction& insn = boost::get<ir_instruction>(line.content);
 		if (!insn.immediate) {
-			builder.append(thisLabel, insn.opcode);
+			builder.append(thisLabel, insn.opcode, line.line);
 			continue;
 		}
 
 		switch (insn.immediate->which()) {
 		case 0:
-			builder.append(thisLabel, insn.opcode, boost::get<uint8_t>(*insn.immediate));
+			builder.append(thisLabel, insn.opcode, boost::get<uint8_t>(*insn.immediate), line.line);
 			break;
 
 		case 1:
-			builder.append(thisLabel, insn.opcode, boost::get<uint16_t>(*insn.immediate));
+			builder.append(thisLabel, insn.opcode, boost::get<uint16_t>(*insn.immediate), line.line);
 			break;
 
 		case 2:
-			builder.append(thisLabel, insn.opcode, boost::get<uint32_t>(*insn.immediate));
+			builder.append(thisLabel, insn.opcode, boost::get<uint32_t>(*insn.immediate), line.line);
 			break;
 
 		case 3:
-			builder.append(thisLabel, insn.opcode, boost::get<float>(*insn.immediate));
+			builder.append(thisLabel, insn.opcode, boost::get<float>(*insn.immediate), line.line);
 			break;
 
 		case 4: {
@@ -678,13 +674,13 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 
 			entries.reserve(operand.size());
 			std::transform(operand.begin(), operand.end(), std::back_inserter(entries),
-				[&useLabel](const switch_entry& e) {
-					return SwitchEntry{ e.label, useLabel(e.target) };
+				[&getLabelFor](const switch_entry& e) {
+					return SwitchEntry{ e.label, getLabelFor(e.target) };
 				});
 
 			SwitchTable table(entries.begin(), entries.end());
 
-			builder.append(thisLabel, insn.opcode, std::move(table));
+			builder.append(thisLabel, insn.opcode, std::move(table), line.line);
 
 			break;
 		}
@@ -699,17 +695,18 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 
 			BlockPart block(operand.start, operand.block.size(), data);
 
-			builder.append(thisLabel, insn.opcode, block);
+			builder.append(thisLabel, insn.opcode, block, line.line);
 
 			break;
 		}
 
 		case 6:
-			builder.append(thisLabel, insn.opcode, boost::get<DTMask>(*insn.immediate));
+			builder.append(thisLabel, insn.opcode, boost::get<DTMask>(*insn.immediate), line.line);
 			break;
 
 		case 7:
-			builder.append(thisLabel, insn.opcode, useLabel(boost::get<std::string>(*insn.immediate)));
+			builder.append(thisLabel, insn.opcode,
+					getLabelFor(boost::get<std::string>(*insn.immediate)), line.line);
 			break;
 
 		case 8: {
@@ -734,7 +731,7 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 
 			DateTime dt(s, m, h, D, M, Y, W);
 
-			builder.append(thisLabel, insn.opcode, std::make_tuple(mask, dt));
+			builder.append(thisLabel, insn.opcode, std::make_tuple(mask, dt), line.line);
 			break;
 		}
 
@@ -743,10 +740,8 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 		}
 	}
 
-	if (labels.count(program.header.on_packet))
-		builder.onPacket(labels.at(program.header.on_packet));
-	if (labels.count(program.header.on_periodic))
-		builder.onPeriodic(labels.at(program.header.on_periodic));
+	builder.onPacket(getLabelFor(program.header.on_packet));
+	builder.onPeriodic(getLabelFor(program.header.on_periodic));
 
 	return builder.finish();
 }
@@ -792,7 +787,6 @@ std::unique_ptr<Program> parse(const hbt::util::MemoryBuffer& input)
 					detail);
 	}
 
-	ensureUniqueLabelsIn(parsed);
 	return makeProgram(parsed);
 }
 

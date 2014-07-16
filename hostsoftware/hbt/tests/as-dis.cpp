@@ -178,5 +178,9 @@ BOOST_AUTO_TEST_CASE(disassembler)
 	auto disassembled = hbt::mc::disassemble(hbt::util::MemoryBuffer(binary));
 	auto printed = hbt::ir::prettyPrint(*disassembled);
 
+	if (text != printed) {
+		std::cout << "text\n" << text << "\n//--------\n";
+		std::cout << "printed\n" << printed << "\n";
+	}
 	BOOST_CHECK(text == printed);
 }
