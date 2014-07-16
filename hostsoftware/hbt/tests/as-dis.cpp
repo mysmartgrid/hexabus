@@ -3,6 +3,7 @@
 #include <boost/format.hpp>
 
 #include <algorithm>
+#include <initializer_list>
 #include <iterator>
 #include <vector>
 
@@ -21,9 +22,29 @@ struct AssemblerLine {
 	bool ignoreTextOnDisassembly;
 };
 
+struct Testcase {
+	std::vector<AssemblerLine> lines;
+
+	Testcase(std::initializer_list<AssemblerLine> lines)
+		: lines(lines)
+	{}
+
+	Testcase(std::initializer_list<const char*> lines)
+	{
+		this->lines.reserve(lines.size());
+		for (auto line : lines)
+			this->lines.push_back({ line });
+	}
+
+	operator const std::vector<AssemblerLine>&() const
+	{
+		return lines;
+	}
+};
+
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
-static std::vector<AssemblerLine> programAllFeatures = {
+static Testcase allFeatures = {
 	{ ".version 0" },
 	{ ".machine 0x1234567890abcdeffedcba0987654321" },
 	{ "; machine id",
@@ -108,7 +129,7 @@ static std::vector<AssemblerLine> programAllFeatures = {
 	{ "	ret.stay", { 0x38 } },
 };
 
-static std::vector<AssemblerLine> programNoInit = {
+static Testcase noInit = {
 	{ ".version 0" },
 	{ ".machine 0x00000000000000000000000000000000" },
 	{ "; machine id", { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, true },
@@ -121,22 +142,33 @@ static std::vector<AssemblerLine> programNoInit = {
 	{ "	ret.stay", { 0x38 } },
 };
 
-static std::vector<AssemblerLine> programMultiLabel = {
-	{ ".version 0" },
-	{ ".machine 0x0" },
-	{ "; machine id" },
-	{ "; version number" },
-	{ "; no on_init" },
-	{ ".on_packet L0" },
-	{ ".on_periodic L0" },
-	{ "" },
-	{ "L0:" },
-	{ "	ret.stay" },
-	{ "	jump L1" },
-	{ "	jump L2" },
-	{ "L1:" },
-	{ "L2:" },
-	{ "	ret.stay" }
+static Testcase multiLabel = {
+	".version 0",
+	".machine 0x0",
+	".on_packet L0",
+	".on_periodic L0",
+
+	"L0:",
+	"	ret.stay",
+	"	jump L1",
+	"	jump L2",
+	"L1:",
+	"L2:",
+	"	ret.stay"
+};
+
+static Testcase labelsWithComments = {
+	".version 0",
+	".machine 0x0",
+	".on_packet packet",
+	".on_periodic periodic",
+
+	"packet:",
+	"periodic:",
+	";",
+	"	ret.stay",
+	";",
+	"	ret.stay"
 };
 
 template<typename It1, typename It2>
@@ -198,17 +230,22 @@ void checkAssembler(const std::vector<AssemblerLine> program)
 
 BOOST_AUTO_TEST_CASE(assemblerFull)
 {
-	checkAssembler(programAllFeatures);
+	checkAssembler(allFeatures);
 }
 
 BOOST_AUTO_TEST_CASE(assemblerNoInit)
 {
-	checkAssembler(programNoInit);
+	checkAssembler(noInit);
 }
 
 BOOST_AUTO_TEST_CASE(assemblerMultiLabel)
 {
-	checkAssembler(programMultiLabel);
+	checkAssembler(multiLabel);
+}
+
+BOOST_AUTO_TEST_CASE(assemblerLabelsWithComments)
+{
+	checkAssembler(labelsWithComments);
 }
 
 
@@ -239,10 +276,10 @@ void checkDisssembler(const std::vector<AssemblerLine> program)
 
 BOOST_AUTO_TEST_CASE(disassemblerFull)
 {
-	checkDisssembler(programAllFeatures);
+	checkDisssembler(allFeatures);
 }
 
 BOOST_AUTO_TEST_CASE(disassemblerNoInit)
 {
-	checkDisssembler(programNoInit);
+	checkDisssembler(noInit);
 }

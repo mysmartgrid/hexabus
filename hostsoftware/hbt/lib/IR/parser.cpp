@@ -202,9 +202,8 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		start %=
 			machine_header
 			> *(
-				(label > eol)
-				| (instruction > (eol | !!eoi))
-				| eol
+				(label > +eol)
+				| (instruction > (+eol | !!eoi))
 				| (!eoi > errors.label_or_instruction)
 			)
 			> eoi;
