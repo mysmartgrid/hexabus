@@ -612,10 +612,11 @@ std::map<std::string, hbt::ir::Label> makeLabelMap(const ir_program& program, hb
 
 	while (it != end) {
 		if (it->content.which() == 0) {
-			hbt::ir::Label current = builder.createLabel();
+			hbt::ir::Label current = builder.createLabel(boost::get<std::string>(it->content));
 
 			while (it != end && it->content.which() == 0) {
-				result.insert({ boost::get<std::string>(it->content), current });
+				auto&& next = builder.createLabel(current, boost::get<std::string>(it->content));
+				result.insert({ next.name(), next });
 				++it;
 			}
 		} else {
@@ -632,7 +633,7 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 
 	Builder builder(0, toMachineID(program.header.machine_id));
 
-	std::map<std::string, Label> labels;
+	std::map<std::string, Label> labels = makeLabelMap(program, builder);
 
 	auto getLabelFor = [&labels, &builder] (const std::string& id) -> Label& {
 		if (!labels.count(id))

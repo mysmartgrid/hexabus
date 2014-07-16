@@ -121,6 +121,24 @@ static std::vector<AssemblerLine> programNoInit = {
 	{ "	ret.stay", { 0x38 } },
 };
 
+static std::vector<AssemblerLine> programMultiLabel = {
+	{ ".version 0" },
+	{ ".machine 0x0" },
+	{ "; machine id" },
+	{ "; version number" },
+	{ "; no on_init" },
+	{ ".on_packet L0" },
+	{ ".on_periodic L0" },
+	{ "" },
+	{ "L0:" },
+	{ "	ret.stay" },
+	{ "	jump L1" },
+	{ "	jump L2" },
+	{ "L1:" },
+	{ "L2:" },
+	{ "	ret.stay" }
+};
+
 template<typename It1, typename It2>
 bool matches(It1& begin1, It1 end1, It2 begin2, It2 end2)
 {
@@ -150,6 +168,9 @@ void checkAssembler(const std::vector<AssemblerLine> program)
 
 	auto parsed = hbt::ir::parse(hbt::util::MemoryBuffer(text));
 	auto assembled = hbt::mc::assemble(*parsed);
+
+	if (!binary.size())
+		return;
 
 	auto asIt = assembled.crange<uint8_t>().begin();
 	auto asEnd = assembled.crange<uint8_t>().end();
@@ -183,6 +204,11 @@ BOOST_AUTO_TEST_CASE(assemblerFull)
 BOOST_AUTO_TEST_CASE(assemblerNoInit)
 {
 	checkAssembler(programNoInit);
+}
+
+BOOST_AUTO_TEST_CASE(assemblerMultiLabel)
+{
+	checkAssembler(programMultiLabel);
 }
 
 

@@ -86,17 +86,22 @@ class Builder {
 			return Label(_labelMax++, name);
 		}
 
-		void onPacket(Label l)
+		Label createLabel(const Label& old, const std::string& name = "")
+		{
+			return Label(old.id(), name);
+		}
+
+		void onPacket(const Label& l)
 		{
 			_on_packet = l;
 		}
 
-		void onPeriodic(Label l)
+		void onPeriodic(const Label& l)
 		{
 			_on_periodic = l;
 		}
 
-		void onInit(Label l)
+		void onInit(const Label& l)
 		{
 			_on_init = l;
 		}
