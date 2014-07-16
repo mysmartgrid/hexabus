@@ -32,6 +32,7 @@ enum {
 
 hxb_sm_value_t sm_registers[SM_REG_COUNT];
 uint32_t sm_curstate, sm_in_state_since;
+bool sm_first_run;
 
 static uint32_t sm_get_timestamp();
 
@@ -52,6 +53,7 @@ void sm_start()
 		syslog(LOG_DEBUG, "Starting state machine process.");
 		sm_curstate = 0;  // always start in state 0
 		sm_in_state_since = sm_get_timestamp();
+		sm_first_run = true;
 		memset(sm_registers, 0, sizeof(sm_registers));
 		process_start(&state_machine_process, NULL);
 	}

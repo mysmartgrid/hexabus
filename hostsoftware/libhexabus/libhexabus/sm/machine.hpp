@@ -22,7 +22,7 @@ class Machine {
 		};
 
 		hxb_sm_value_t sm_registers[SM_REG_COUNT];
-		uint32_t sm_curstate, sm_in_state_since;
+		uint32_t sm_curstate, sm_in_state_since, sm_first_run;
 
 		std::vector<uint8_t> _program;
 		boost::posix_time::ptime _created_at;
@@ -42,7 +42,7 @@ class Machine {
 
 	public:
 		Machine(const std::vector<uint8_t>& program)
-			: sm_curstate(0), sm_in_state_since(0),
+			: sm_curstate(0), sm_in_state_since(0), sm_first_run(true),
 			  _program(program),
 			  _created_at(boost::posix_time::second_clock::local_time())
 		{

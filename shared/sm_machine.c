@@ -474,10 +474,18 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		if (val != 0)
 			FAIL_WITH(HSE_INVALID_HEADER);
 
-		if (src_ip)
+		if (sm_first_run) {
+			sm_first_run = false;
 			rc = sm_get_u16(1 + 0x0000, &val);
-		else
-			rc = sm_get_u16(1 + 0x0002, &val);
+
+			if (rc > 0 && val == 0xFFFF)
+				return 0;
+		} else {
+			if (src_ip)
+				rc = sm_get_u16(1 + 0x0002, &val);
+			else
+				rc = sm_get_u16(1 + 0x0004, &val);
+		}
 
 		FAIL_AS(rc);
 
