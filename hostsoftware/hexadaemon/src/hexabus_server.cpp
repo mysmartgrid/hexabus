@@ -109,7 +109,7 @@ unsigned long endpoints[6] = {
 uint32_t HexabusServer::get_sensor(int map_idx)
 {
 	updateFluksoValues();
-	std::cout << "Reading value for " << entry_names[map_idx] << std::endl;
+	_debug && std::cout << "Reading value for " << entry_names[map_idx] << std::endl;
 	return _flukso_values[_sensor_mapping[map_idx]];
 }
 
@@ -163,8 +163,14 @@ void HexabusServer::updateFluksoValues()
 					std::cerr << "Error parsing value " << std::string(what[1].first, what[1].second) << std::endl;
 				}
 			} else {
-				std::cerr << "Error parsing " << filename << std::endl;
-				_debug && std::cout << "Content of " << filename << ": \'" << flukso_data << "\'" << std::endl;
+        boost::regex r0("^\\[(?:\\[[[:digit:]]*,\"nan\"\\],)*\\[[[:digit:]]*,\"nan\"\\]\\]$");
+        if ( boost::regex_search(flukso_data, what, r0) ) {
+          _debug && std::cerr << "No Values " << filename << std::endl;
+					_flukso_values[filename] = 0;
+				} else {
+          std::cerr << "Error parsing " << filename << std::endl;
+          _debug && std::cout << "Content of " << filename << ": \'" << flukso_data << "\'" << std::endl;
+        }
 			}
 		}
 	}
