@@ -103,8 +103,13 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		if (!get<uint32_t>(immed))
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(
-			new ImmediateInstruction<uint32_t>(op, get<uint32_t>(*immed), l, line));
+		if (get<uint32_t>(*immed) <= 65535) {
+			_instructions.push_back(
+				new ImmediateInstruction<uint16_t>(Opcode::LD_U16, get<uint32_t>(*immed), l, line));
+		} else {
+			_instructions.push_back(
+				new ImmediateInstruction<uint32_t>(op, get<uint32_t>(*immed), l, line));
+		}
 		return;
 
 	case Opcode::LD_FLOAT:
@@ -136,13 +141,24 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 
 	case Opcode::SWITCH_8:
 	case Opcode::SWITCH_16:
-	case Opcode::SWITCH_32:
+	case Opcode::SWITCH_32: {
 		if (!get<SwitchTable>(immed))
 			throw std::invalid_argument("immed");
 
+		uint32_t maxLabel = 0;
+		for (const auto& e : get<SwitchTable>(*immed))
+			maxLabel = std::max(maxLabel, e.label);
+
+		auto shortOp = maxLabel <= 255
+			? Opcode::SWITCH_8
+			: maxLabel <= 65535
+				? Opcode::SWITCH_16
+				: Opcode::SWITCH_32;
+
 		_instructions.push_back(
-			new ImmediateInstruction<SwitchTable>(op, std::move(get<SwitchTable>(*immed)), l, line));
+			new ImmediateInstruction<SwitchTable>(shortOp, std::move(get<SwitchTable>(*immed)), l, line));
 		return;
+	}
 
 	case Opcode::CMP_BLOCK:
 		if (!get<BlockPart>(immed))

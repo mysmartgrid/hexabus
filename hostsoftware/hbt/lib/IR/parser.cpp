@@ -289,7 +289,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 				> lit(")")
 			) | (
 				lit("u32") > lit("(")
-				> u32_immed[_val = bind(make_load_u32, _1)]
+				> u32_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_U32>, _1)]
 				> lit(")")
 			) | (
 				lit("f") > lit("(")
@@ -472,28 +472,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 	static ir_instruction make_switch(const std::vector<switch_entry>& entries)
 	{
-		uint32_t maxLabel = 0;
-
-		std::for_each(entries.begin(), entries.end(),
-				[&maxLabel] (const struct switch_entry& e) {
-					return maxLabel = std::max(maxLabel, e.label);
-				});
-
-		hbt::ir::Opcode op = hbt::ir::Opcode::SWITCH_32;
-		if (maxLabel <= 255)
-			op = hbt::ir::Opcode::SWITCH_8;
-		else if (maxLabel <= 65535)
-			op = hbt::ir::Opcode::SWITCH_16;
-
-		return { op, ir_instruction::immed_t(entries) };
-	}
-
-	static ir_instruction make_load_u32(uint32_t value)
-	{
-		if (value <= 65535)
-			return { hbt::ir::Opcode::LD_U16, ir_instruction::immed_t(uint16_t(value)) };
-		else
-			return { hbt::ir::Opcode::LD_U32, ir_instruction::immed_t(value) };
+		return { hbt::ir::Opcode::SWITCH_32, ir_instruction::immed_t(entries) };
 	}
 
 	static bool check_block(const block_immediate& imm)
