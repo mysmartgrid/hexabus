@@ -23,15 +23,16 @@ struct AssemblerLine {
 
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
-static AssemblerLine program[] = {
+static std::vector<AssemblerLine> programAllFeatures = {
 	{ ".version 0" },
 	{ ".machine 0x1234567890abcdeffedcba0987654321" },
 	{ "; machine id",
 		{ 0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x09, 0x87, 0x65, 0x43, 0x21 },
 		true },
 	{ "; version number", { 0x0 }, true },
-	{ ".on_packet L1", { 0x00, 0x06 } },
-	{ ".on_periodic L0", { 0x00, 0x05 } },
+	{ ".on_init L0", { 0x00, 0x07 } },
+	{ ".on_packet L1", { 0x00, 0x08 } },
+	{ ".on_periodic L0", { 0x00, 0x07 } },
 	{ "" },
 	{ "L0:" },
 	{ "	ret.stay", { 0x38 } },
@@ -107,6 +108,19 @@ static AssemblerLine program[] = {
 	{ "	ret.stay", { 0x38 } },
 };
 
+static std::vector<AssemblerLine> programNoInit = {
+	{ ".version 0" },
+	{ ".machine 0x00000000000000000000000000000000" },
+	{ "; machine id", { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, true },
+	{ "; version number", { 0x0 }, true },
+	{ "; no on_init", { 0xff, 0xff }, true },
+	{ ".on_packet L0", { 0x00, 0x07 } },
+	{ ".on_periodic L0", { 0x00, 0x07 } },
+	{ "" },
+	{ "L0:" },
+	{ "	ret.stay", { 0x38 } },
+};
+
 template<typename It1, typename It2>
 bool matches(It1& begin1, It1 end1, It2 begin2, It2 end2)
 {
@@ -123,7 +137,7 @@ bool matches(It1& begin1, It1 end1, It2 begin2, It2 end2)
 
 }
 
-BOOST_AUTO_TEST_CASE(assembler)
+void checkAssembler(const std::vector<AssemblerLine> program)
 {
 	std::string text = "";
 	std::vector<uint8_t> binary;
@@ -161,7 +175,19 @@ BOOST_AUTO_TEST_CASE(assembler)
 	}
 }
 
-BOOST_AUTO_TEST_CASE(disassembler)
+BOOST_AUTO_TEST_CASE(assemblerFull)
+{
+	checkAssembler(programAllFeatures);
+}
+
+BOOST_AUTO_TEST_CASE(assemblerNoInit)
+{
+	checkAssembler(programNoInit);
+}
+
+
+
+void checkDisssembler(const std::vector<AssemblerLine> program)
 {
 	std::string text = "";
 	std::vector<uint8_t> binary;
@@ -183,4 +209,14 @@ BOOST_AUTO_TEST_CASE(disassembler)
 		std::cout << "printed\n" << printed << "\n";
 	}
 	BOOST_CHECK(text == printed);
+}
+
+BOOST_AUTO_TEST_CASE(disassemblerFull)
+{
+	checkDisssembler(programAllFeatures);
+}
+
+BOOST_AUTO_TEST_CASE(disassemblerNoInit)
+{
+	checkDisssembler(programNoInit);
 }

@@ -60,7 +60,7 @@ struct ir_line {
 
 struct ir_program_header {
 	std::vector<uint8_t> machine_id;
-	std::string on_packet, on_periodic;
+	std::string on_packet, on_periodic, on_init;
 };
 
 struct ir_program {
@@ -109,6 +109,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
 	ir_program_header,
 	(std::vector<uint8_t>, machine_id)
+	(std::string, on_init)
 	(std::string, on_packet)
 	(std::string, on_periodic)
 )
@@ -213,6 +214,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			*eol
 			> (lit(".version") > lit("0") > +eol)
 			> machine_id
+			> on_init_vector
 			> on_packet_vector
 			> on_periodic_vector;
 
@@ -232,6 +234,11 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 		on_periodic_vector.name("periodic vector");
 		on_periodic_vector %= lit(".on_periodic") > identifier > +eol;
+
+		on_init_vector.name("init vector");
+		on_init_vector %=
+			(lit(".on_init") > identifier > +eol)
+			| string("");
 
 		identifier.name("identifier");
 		identifier %= lexeme[char_("_a-zA-Z") > *char_("_0-9a-zA-Z")];
@@ -519,6 +526,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, std::vector<uint8_t>(), asm_ws<It>> machine_id;
 	qi::rule<It, std::string(), asm_ws<It>> on_packet_vector;
 	qi::rule<It, std::string(), asm_ws<It>> on_periodic_vector;
+	qi::rule<It, std::string(), asm_ws<It>> on_init_vector;
 
 	qi::rule<It, ir_line(), asm_ws<It>> label;
 
@@ -742,6 +750,9 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 
 	builder.onPacket(getLabelFor(program.header.on_packet));
 	builder.onPeriodic(getLabelFor(program.header.on_periodic));
+	if (program.header.on_init.size()) {
+		builder.onInit(getLabelFor(program.header.on_init));
+	}
 
 	return builder.finish();
 }

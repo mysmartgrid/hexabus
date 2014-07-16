@@ -64,6 +64,9 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 
 	append_u8(program.version());
 
+	if (program.onInit())
+		fixups.push_back({ result.size(), 0, *program.onInit() });
+	append_u16(0xffff);
 	fixups.push_back({ result.size(), 0, program.onPacket() });
 	append_u16(0);
 	fixups.push_back({ result.size(), 0, program.onPeriodic() });

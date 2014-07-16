@@ -220,7 +220,7 @@ std::unique_ptr<Program> Builder::finish()
 		throw InvalidProgram("vector table incomplete", "on_periodic missing");
 
 	Program* p = new Program(
-			_version, _machine_id, *_on_packet, *_on_periodic,
+			_version, _machine_id, *_on_packet, *_on_periodic, _on_init,
 			_instructions.begin(), _instructions.end());
 
 	_instructions.clear();

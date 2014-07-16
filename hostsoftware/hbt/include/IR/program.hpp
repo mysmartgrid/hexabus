@@ -26,6 +26,7 @@ class Program {
 		uint8_t _version;
 		std::array<uint8_t, 16> _machine_id;
 		Label _on_packet, _on_periodic;
+		boost::optional<Label> _on_init;
 		std::vector<Instruction*> _instructions;
 
 	public:
@@ -34,9 +35,9 @@ class Program {
 	public:
 		template<typename It>
 		Program(uint8_t version, const std::array<uint8_t, 16>& machine_id,
-				Label on_packet, Label on_periodic, It begin, It end)
+				Label on_packet, Label on_periodic, boost::optional<Label> on_init, It begin, It end)
 			: _version(version), _machine_id(machine_id), _on_packet(on_packet),
-			  _on_periodic(on_periodic), _instructions(begin, end)
+			  _on_periodic(on_periodic), _on_init(on_init), _instructions(begin, end)
 		{}
 
 		Program(const Program&) = delete;
@@ -56,6 +57,7 @@ class Program {
 		const std::array<uint8_t, 16>& machine_id() const { return _machine_id; }
 		Label onPacket() const { return _on_packet; }
 		Label onPeriodic() const { return _on_periodic; }
+		const Label* onInit() const { return _on_init.get_ptr(); }
 
 		util::range<iterator> instructions() const { return util::make_range(_instructions); }
 };

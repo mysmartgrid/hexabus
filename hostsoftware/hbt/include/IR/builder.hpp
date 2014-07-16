@@ -36,7 +36,7 @@ class Builder {
 
 		uint8_t _version;
 		std::array<uint8_t, 16> _machine_id;
-		boost::optional<Label> _on_packet, _on_periodic;
+		boost::optional<Label> _on_packet, _on_periodic, _on_init;
 
 		void appendInstruction(boost::optional<Label> l, Opcode op, const immediate_t* immed,
 				unsigned line);
@@ -94,6 +94,11 @@ class Builder {
 		void onPeriodic(Label l)
 		{
 			_on_periodic = l;
+		}
+
+		void onInit(Label l)
+		{
+			_on_init = l;
 		}
 
 		std::unique_ptr<Program> finish();

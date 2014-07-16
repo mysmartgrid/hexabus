@@ -32,7 +32,7 @@ struct RawProgram {
 	uint8_t version;
 	std::array<uint8_t, 16> machineID;
 
-	size_t onPacketPos, onPeriodicPos;
+	size_t onPacketPos, onPeriodicPos, onInit;
 
 	std::vector<RawInstruction> instructions;
 };
@@ -95,6 +95,7 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 		throw InvalidProgram("unknown program version", extra);
 	}
 
+	result.onInit = read_u16();
 	result.onPacketPos = read_u16();
 	result.onPeriodicPos = read_u16();
 
@@ -372,6 +373,12 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 	Builder builder(raw.version, raw.machineID);
 
 	std::map<size_t, Label> labelAbsPositions = resolveLabels(raw, builder);
+
+	if (raw.onInit != 0xffff) {
+		if (!labelAbsPositions.count(raw.onInit))
+			throw InvalidProgram("invalid on_init vector", "");
+		builder.onInit(labelAbsPositions.at(raw.onInit));
+	}
 
 	if (!labelAbsPositions.count(raw.onPacketPos))
 		throw InvalidProgram("invalid on_packet vector", "");

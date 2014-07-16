@@ -155,7 +155,12 @@ std::string prettyPrint(const Program& program)
 
 	out
 		<< format(".version %1%\n") % unsigned(program.version())
-		<< ".machine " << hexBlock(program.machine_id()) << "\n"
+		<< ".machine " << hexBlock(program.machine_id()) << "\n";
+
+	if (program.onInit())
+		out << ".on_init " << *program.onInit() << "\n";
+
+	out
 		<< ".on_packet " << program.onPacket() << "\n"
 		<< ".on_periodic " << program.onPeriodic() << "\n";
 
