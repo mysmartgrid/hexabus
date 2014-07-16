@@ -171,6 +171,22 @@ static Testcase labelsWithComments = {
 	"	ret.stay"
 };
 
+static Testcase switchTableComments = {
+	".version 0",
+	".machine 0x0",
+	".on_packet L0",
+	".on_periodic L0",
+
+	"L0:",
+	"	switch {",
+	"		; comment",
+	"		0: L1",
+	"	}",
+
+	"L1:",
+	"	ret.stay"
+};
+
 template<typename It1, typename It2>
 bool matches(It1& begin1, It1 end1, It2 begin2, It2 end2)
 {
@@ -246,6 +262,11 @@ BOOST_AUTO_TEST_CASE(assemblerMultiLabel)
 BOOST_AUTO_TEST_CASE(assemblerLabelsWithComments)
 {
 	checkAssembler(labelsWithComments);
+}
+
+BOOST_AUTO_TEST_CASE(assemblerSwitchTableComments)
+{
+	checkAssembler(switchTableComments);
 }
 
 

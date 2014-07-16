@@ -324,7 +324,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		switch_instruction =
 			lit("switch")
 			> lit("{")
-			> eol
+			> +eol
 			> repeat(0, 255)[switch_table_entry]
 				[_val = bind(make_switch, _1)]
 			> (
@@ -401,7 +401,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			];
 
 		switch_table_entry.name("switch table entry");
-		switch_table_entry %= uint_ > lit(":") > identifier > eol;
+		switch_table_entry %= uint_ > lit(":") > identifier > +eol;
 
 		block_immed.name("immediate binary operand");
 		block_immed %=
