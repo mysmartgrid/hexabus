@@ -100,3 +100,9 @@ enum hxb_sm_error {
 	HSE_INVALID_OPERATION,
 	HSE_STACK_ERROR,
 };
+
+enum hxb_sm_vector_offsets {
+	HSVO_INIT     = 0x0000,
+	HSVO_PACKET   = 0x0002,
+	HSVO_PERIODIC = 0x0004,
+};

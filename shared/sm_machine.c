@@ -468,29 +468,23 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 
 	{
 		uint32_t val;
-		int rc;
 
 		FAIL_AS(sm_get_u8(0, &val));
 		if (val != 0)
 			FAIL_WITH(HSE_INVALID_HEADER);
 
-		if (sm_first_run) {
-			sm_first_run = false;
-			rc = sm_get_u16(1 + 0x0000, &val);
-
-			if (rc > 0 && val == 0xFFFF)
-				return 0;
-		} else {
-			if (src_ip)
-				rc = sm_get_u16(1 + 0x0002, &val);
-			else
-				rc = sm_get_u16(1 + 0x0004, &val);
-		}
-
-		FAIL_AS(rc);
+		if (sm_first_run)
+			FAIL_AS(sm_get_u16(1 + HSVO_INIT, &val));
+		else if (src_ip)
+			FAIL_AS(sm_get_u16(1 + HSVO_PACKET, &val));
+		else
+			FAIL_AS(sm_get_u16(1 + HSVO_PERIODIC, &val));
 
 		addr = val;
 	}
+
+	if (addr == 0xFFFF)
+		goto end_program;
 
 	for (;;) {
 		int insn_length = sm_get_instruction(addr, &insn);
@@ -811,5 +805,6 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 end_program:
 	ret = 0;
 fail:
+	sm_first_run = false;
 	return ret;
 }
