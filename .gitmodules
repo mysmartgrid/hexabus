@@ -1,0 +1,4 @@
+[submodule "firmware/contiki"]
+	path = firmware/contiki
+	url = git@github.com:mysmartgrid/contiki-hxb.git
+	branch = hxb

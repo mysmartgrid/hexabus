@@ -11,11 +11,13 @@ APPS +=presence_detector hexonoff analogread i2c humidity pressure
 APPS +=ir_receiver  memory_debugger sm_upload epaper pt100 hexasense
 UIP_CONF_IPV6=1
 
-CONTIKI=../contiki-2.x
-#CONTIKI=../contiki-2.4
+CONTIKI = ../contiki
+TARGETDIRS = ../platform
+APPDIRS += ${addprefix ../apps/, $(APPS)}
+
 include $(CONTIKI)/Makefile.include
 
-CFLAGS += -Wall -Werror -Wno-unused -Wswitch-enum
+CFLAGS += -Wall -Werror -Wno-unused -Wswitch-enum -std=gnu99 -I../../shared
 
 CFLAGS += -D"__SHORT_FILE__=\"`basename $<`\""
 
