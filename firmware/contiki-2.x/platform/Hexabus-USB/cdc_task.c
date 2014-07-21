@@ -78,6 +78,7 @@
 #include "dev/leds.h"
 #include "bootloader_send.h"
 #include "eeprom_variables.h"
+#include "provisioning.h"
 
 #if JACKDAW_CONF_USE_SETTINGS
 #include "settings.h"
@@ -116,6 +117,10 @@ static uint8_t timer = 0;
 static struct etimer et;
 
 static uint8_t menu_active = 0;
+
+static uint8_t pairing_pos = 0;
+static bool is_parsing = false;
+static char parsed_str[20];
 
 PROCESS(cdc_process, "CDC serial process");
 
@@ -216,6 +221,7 @@ void cdc_set_pan_id(void)
 void menu_print(void)
 {
 		PRINTF_P(PSTR("\n\r*********** Jackdaw Menu **********\n\r"));
+		PRINTF_P(PSTR("        "CONTIKI_VERSION_STRING"        \n\r"));
 		PRINTF_P(PSTR("        [Built "__DATE__"]         \n\r"));
 //		PRINTF_P(PSTR("*                                 *\n\r"));
 		PRINTF_P(PSTR("*  m        Print current mode    *\n\r"));
@@ -261,6 +267,42 @@ void menu_activate() {
 	menu_print();
 }
 
+int process_pairing_command(char c) {
+
+	//printf("%c", c);
+
+	if(c=='&' && is_parsing) {
+		is_parsing = false;
+		parsed_str[pairing_pos] = '\0';
+		pairing_pos = 0;
+
+		if(!strcmp_P(parsed_str, PSTR(P_ON_STR))) {
+			PRINTF_P(PSTR(P_SUC_STR));
+			provisioning_master();
+		} else if(!strcmp_P(parsed_str, PSTR(P_OFF_STR))) {
+			PRINTF_P(PSTR(P_SUC_STR));
+			process_exit(&provisioning_process);
+		}
+		return 1;
+
+	} else if(!is_parsing && c=='$') {
+		is_parsing = true;
+		pairing_pos = 0;
+		return 1;
+	} else if(is_parsing) {
+		parsed_str[pairing_pos] = c;
+		pairing_pos++;
+
+		if(pairing_pos >= 20) {
+			is_parsing = false;
+			pairing_pos = 0;
+		}
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 /**
  \brief Process incomming char on debug port
  */
@@ -269,14 +311,16 @@ void menu_process(char c)
 
 		uint8_t i;
 
-        /* Any attempt to read an RF230 register in sneeze mode (e.g. rssi) will hang the MCU */
-        /* So convert any command into a sneeze off */
-
-        if (usbstick_mode.sneeze) c='S';
+		if(process_pairing_command(c)) return;
 
         /* Only parse input if menu has been activated to prevent accidental reboots */
 
         if (!menu_active) return;
+
+        /* Any attempt to read an RF230 register in sneeze mode (e.g. rssi) will hang the MCU */
+        /* So convert any command into a sneeze off */
+
+        if (usbstick_mode.sneeze) c='S';
 
 		switch(c) {
 			case '\r':

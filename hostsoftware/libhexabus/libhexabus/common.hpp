@@ -33,10 +33,13 @@
 #endif
 
 //#define ENABLE_LOGGING 0
-#include <config.h>
+#include <libhexabus/config.h>
 
 #ifdef ENABLE_LOGGING
 #include <iostream>
+#ifdef LOG
+# undef LOG
+#endif
 #define LOG(msg) std::cout << msg << std::endl;
 #else
 #define LOG(msg)

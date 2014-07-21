@@ -314,13 +314,11 @@ namespace filtering {
 
 	namespace ast {
 
-		template<typename Left, typename Right, template<typename T> class OpClass>
+		template<typename Left, typename Right, bool IsAnd>
 		struct BooleanShortcutExpression {
 			private:
 				Left _left;
 				Right _right;
-
-				typedef OpClass<typename boost::common_type<typename Left::value_type, typename Right::value_type>::type> Op;
 
 			public:
 				typedef bool value_type;
@@ -333,16 +331,25 @@ namespace filtering {
 				result_type value(const Packet& packet, const boost::asio::ip::udp::endpoint& from) const
 				{
 					typename Left::result_type l = _left.value(packet, from);
-					bool operatorShortcutResult = Op()(true, false);
 
-					if (l && (bool(*l) == operatorShortcutResult)) {
-						return operatorShortcutResult;
+					if (l) {
+						if (IsAnd && l && !*l)
+							return false;
+						else if (!IsAnd && l && *l)
+							return true;
 					}
 
 					typename Right::result_type r = _right.value(packet, from);
 
+					if (r) {
+						if (IsAnd && r && !*r)
+							return false;
+						else if (!IsAnd && r && *r)
+							return true;
+					}
+
 					return l && r
-						? result_type(Op()(*l, *r))
+						? result_type(IsAnd ? *l && *r : *l || *r)
 						: result_type();
 				}
 
@@ -355,8 +362,8 @@ namespace filtering {
 
 	}
 
-	template<typename Left, typename Right, template<typename T> class Op>
-	struct is_filter<ast::BooleanShortcutExpression<Left, Right, Op> > : boost::mpl::true_ {};
+	template<typename Left, typename Right, bool IsAnd>
+	struct is_filter<ast::BooleanShortcutExpression<Left, Right, IsAnd> > : boost::mpl::true_ {};
 
 	template<typename Exp>
 	ast::HasExpression<Exp> has(const Exp& exp, typename boost::enable_if<is_filter<Exp> >::type* = 0)
@@ -397,8 +404,8 @@ namespace filtering {
 	BINARY_OP(&, std::bit_and, ast::BinaryExpression)
 	BINARY_OP(|, std::bit_or, ast::BinaryExpression)
 	BINARY_OP(^, std::bit_xor, ast::BinaryExpression)
-	BINARY_OP(&&, std::logical_and, ast::BooleanShortcutExpression)
-	BINARY_OP(||, std::logical_or, ast::BooleanShortcutExpression)
+	BINARY_OP(&&, true, ast::BooleanShortcutExpression)
+	BINARY_OP(||, false, ast::BooleanShortcutExpression)
 
 #undef BINARY_OP
 

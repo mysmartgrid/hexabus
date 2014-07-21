@@ -75,6 +75,9 @@ static clock_time_t last_broadcast;
 #if METERING_ENERGY
 static uint32_t metering_pulses_total;
 static uint32_t metering_pulses;
+float metering_get_energy_total(void);
+float metering_get_energy(void);
+void metering_reset_energy(void);
 #endif
 
 /*calculates the consumed energy on the basis of the counted pulses (num_pulses) in i given period (integration_time)
@@ -130,7 +133,7 @@ static enum hxb_error_code read_energy(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code write_energy(const struct hxb_value* value)
+static enum hxb_error_code write_energy(const struct hxb_envelope* value)
 {
 	metering_reset_energy();
 	return HXB_ERR_SUCCESS;
@@ -173,7 +176,9 @@ metering_init(void)
 
   metering_start();
 
+#if METERING_POWER
 	ENDPOINT_REGISTER(endpoint_power);
+#endif
 #if METERING_ENERGY
 	ENDPOINT_REGISTER(endpoint_energy_total);
 	ENDPOINT_REGISTER(endpoint_energy);
@@ -206,6 +211,10 @@ void
 metering_reset(void)
 {
   metering_power = 0;
+	broadcast_value(EP_POWER_METER);
+#if METERING_ENERGY
+	broadcast_value(EP_ENERGY_METER_TOTAL);
+#endif
 }
 
 #if METERING_ENERGY
@@ -266,15 +275,15 @@ bool
 metering_calibrate(void)
 {
   unsigned char cal_flag = eeprom_read_byte((void*)EE_METERING_CAL_FLAG);
-  if (cal_flag == 0xFF) {
+  if (cal_flag == 0xFF && !metering_calibration) {
     metering_calibration = true;
+		metering_calibration_state = 0;
+		relay_off();
     leds_on(LEDS_ALL);
     //stop calibration if there was no pulse in 60 seconds
     ctimer_set(&metering_stop_timer, CLOCK_SECOND*60,(void *)(void *) metering_calibration_stop,NULL);
-    return true;
   }
-  else
-    return false;
+	return metering_calibration;
 }
 
 /* if socket is not equipped with metering then calibration should stop automatically after some time */
@@ -331,6 +340,7 @@ ISR(METERING_VECT)
 
        metering_calibration_state = 0;
        metering_calibration = false;
+			 relay_on();
        relay_leds();
      }
    }
@@ -364,7 +374,12 @@ ISR(METERING_VECT)
         // the last argument is a void* that can be used for anything. We use it to tell value_broadcast our EID.
         // process_post(&value_broadcast_process, immediate_broadcast_event, (void*)2);
         last_broadcast = clock_time();
-				broadcast_value(EP_POWER_METER);
+
+				static uint32_t last_power = 0xffffffff;
+				if (last_power != metering_power) {
+					broadcast_value(EP_POWER_METER);
+					last_power = metering_power;
+				}
       }
     }
 #endif // METERING_IMMEDIATE_BROADCAST

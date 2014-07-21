@@ -11,6 +11,22 @@ using namespace rapidjson;
 
 using namespace hexanode;
 
+namespace {
+
+void jstring(PrettyWriter<StringBuffer>& target, const char* key, const std::string& value)
+{
+	target.String(key);
+	target.String(value.c_str(), value.size());
+}
+
+void jint(PrettyWriter<StringBuffer>& target, const char* key, int value)
+{
+	target.String(key);
+	target.Int(value);
+}
+
+}
+
 void Sensor::put(
     http::client client,
     const uri::uri& api_uri, 
@@ -20,23 +36,38 @@ void Sensor::put(
     StringBuffer b;
   PrettyWriter<StringBuffer> writer(b);
   writer.StartObject();
-  writer.String("name");
-  writer.String(_sensor_name.c_str(), (SizeType) _sensor_name.length());
-  writer.String("value");
-  writer.String(reading.c_str(), (SizeType) reading.length());
-  writer.String("minvalue");
-  writer.Int(_min_value);
-  //writer.String(_min_value.c_str(), (SizeType) _min_value.length());
-  writer.String("maxvalue");
-  writer.Int(_max_value);
-  //writer.String(_max_value.c_str(), (SizeType) _max_value.length());
+	jstring(writer, "name", _sensor_name);
+	jstring(writer, "unit", _ep_info.unit().get_value_or(""));
+	jstring(writer, "description", _ep_info.description());
+	switch (_ep_info.function()) {
+		case hexabus::EndpointDescriptor::sensor:
+			jstring(writer, "function", "sensor");
+			break;
+
+		case hexabus::EndpointDescriptor::actor:
+			jstring(writer, "function", "actor");
+			break;
+
+		case hexabus::EndpointDescriptor::infrastructure:
+			jstring(writer, "function", "infrastructure");
+			break;
+
+		default:
+			throw hexanode::GenericException("unknown function");
+	}
+	jstring(writer, "value", reading);
+	jint(writer, "minvalue", _min_value);
+	jint(writer, "maxvalue", _max_value);
+	jint(writer, "type", _type);
   writer.EndObject();
   std::string json_body(b.GetString());
 
   uri::uri create;
   create << api_uri 
     << uri::path("/sensor/") 
-    << uri::path(uri::encoded(_sensor_id));
+		<< uri::path(uri::encoded(_sensor_ip.to_string()))
+		<< uri::path("/")
+		<< uri::path(uri::encoded(boost::lexical_cast<std::string>(_ep_info.eid())));
   http::client::request request(create);
   request << header("Content-Type", "application/json");
   std::ostringstream converter;
@@ -64,15 +95,16 @@ void Sensor::post_value(
   StringBuffer b;
   PrettyWriter<StringBuffer> writer(b);
   writer.StartObject();
-  writer.String("value");
-  writer.String(reading.c_str(), (SizeType) reading.length());
+	jstring(writer, "value", reading);
   writer.EndObject();
   std::string json_body(b.GetString());
 
   uri::uri create;
   create << api_uri 
     << uri::path("/sensor/") 
-    << uri::path(uri::encoded(_sensor_id));
+		<< uri::path(uri::encoded(_sensor_ip.to_string()))
+		<< uri::path("/")
+		<< uri::path(uri::encoded(boost::lexical_cast<std::string>(_ep_info.eid())));
   http::client::request request(create);
   request << header("Content-Type", "application/json");
   std::ostringstream converter;

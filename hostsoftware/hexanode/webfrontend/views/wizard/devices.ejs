@@ -1,0 +1,42 @@
+<% include ../header %>
+
+<script>
+	known_hexabus_devices = <%- JSON.stringify(devices) %>;
+</script>
+
+
+<div class="container" data-ng-controller="devicesList">
+	<table class="table table-hover">
+		<tr>
+			<th />
+			<td />
+			<td>
+				<a href="/wizard/devices/add" class="btn btn-success" data-localize="wizard.devices.add">Add device</a>
+			</td>
+		</tr>
+		<tr data-ng-repeat="device in devices">
+			<th>
+					<p data-ng-hide="device.rename" data-ng-click="show_rename(device)">{{device.name}}</p>
+					<form data-ng-show="device.rename" ng-submit="rename_device(device)" class="input-append control-group {{device.rename_error_class}}">
+						<input id="renameField" focus-if="device.rename" data-ng-disabled="device.renaming" class="span2" type="text" data-ng-model="device.new_name">
+						<button data-ng-disabled="device.renaming" data-ng-click="rename_device(device)" class="btn" type="button" data-localize="wizard.devices.rename">Rename</button>
+						<img data-ng-show="device.renaming" src="/img/spinner-small.gif" alt="" />
+						<label for="renameField" class="control-label" data-ng-show="device.rename_error">{{undefined | localize:'wizard.devices.hexaupload-errors':device.rename_error_msg}}</label>
+					</form>
+				<p>{{device.ip}}</p>
+			</th>
+			<td>
+				<p data-ng-repeat="eid in device.eids">{{eid.description | localize:'endpoint-registry.descriptions':eid.eid }} ({{eid.unit | displayUnit | localize:'endpoint-registry.units'}})</p>
+				<p><span data-localize="last-update.label">Last update:</span> {{ Lang.localizeLastUpdate(device.last_update) }}</p>
+			</td>
+			<td>
+				<a href="#" data-ng-click="remove(device)" class="btn btn-danger" data-localize="wizard.device-list.forget-device">Forget device</a>
+			</td>
+		</tr>
+	</table>
+	<div data-ng-show="!scanDone" class="text-center">
+		<img src="/img/spinner-small.gif" alt="Searching" /> <span data-localize="wizard.device-list.scanning">Searching for devices</span>
+	</div>
+</div>
+
+<% include ../footer %>

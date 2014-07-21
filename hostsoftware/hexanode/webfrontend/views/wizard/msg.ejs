@@ -1,0 +1,31 @@
+<% include ../header %>
+
+
+<script>
+	<% if(typeof error != "undefined") { %>
+		error = <%- JSON.stringify(error) %>;
+	<% } %>
+</script>
+
+<div class="container" data-ng-controller="alertController">
+	<% if(typeof error != "undefined") { %>
+	<div class="alert alert-danger" data-ng-show="error">
+		{{undefined | localize:'alert.errors':error}}
+		<div data-ng-show="error=='gt_error'">
+			<a href="/wizard/reset" class="btn btn-danger" data-localize="navbar.reset-device" >Reset device</a>
+		</div>
+	</div>
+	<% } %>
+
+</div>
+
+<div class="page text-center" data-ng-controller="wizardMSG">
+	<p class="lead" data-localize="wizard.msg.activate">To finish the setup, you need to link this device with your account on mySmartGrid.</p>
+	<p data-ng-show="working" class="lead"><img src="/img/spinner-small.gif" alt="" /><span data-localize="wizard.activation.retrieving">Retrieving activation code</span></p>
+	<div class="page" data-ng-show="registered">
+		<p class="lead"><a class="btn btn-success" href="https://www.mysmartgrid.de/device/assign?code={{activationCode}}&callback={{gotoPage}}" data-localize="wizard.activation.link">Go to mySmartGrid</a></p>
+	</div>
+	<p data-ng-show="failed" class="lead text-error" data-localize="wizard.activation.error">An error occured</p>
+</div>
+
+<% include ../footer %>

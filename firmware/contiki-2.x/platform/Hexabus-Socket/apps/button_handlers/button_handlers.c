@@ -81,17 +81,20 @@ static void button_clicked(uint8_t button)
 
 static void button_pressed(uint8_t button, uint8_t released, uint16_t ticks)
 {
+	if (metering_calibrate()) {
+		return;
+	}
+
 	if (released) {
 		provisioning_slave();
+		broadcast_value(0);
 	} else {
 		provisioning_leds();
 	}
 
 	if (ticks > CLOCK_SECOND * BUTTON_LONG_CLICK_MS / 1000) {
-		if (!metering_calibrate()) {
-			eeprom_write_byte((uint8_t *)EE_BOOTLOADER_FLAG, 0x01);
-			watchdog_reboot();
-		}
+		eeprom_write_byte((uint8_t *)EE_BOOTLOADER_FLAG, 0x01);
+		watchdog_reboot();
 	}
 }
 

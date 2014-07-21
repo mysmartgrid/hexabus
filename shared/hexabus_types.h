@@ -1,6 +1,9 @@
 #ifndef HEXABUS_TYPES_H_
 #define HEXABUS_TYPES_H_
 
+#ifdef __cplusplus
+namespace hexabus {
+#endif
 // Boolean values
 enum hxb_bool {
 	HXB_FALSE = 0,
@@ -27,8 +30,12 @@ enum hxb_datatype {
 	HXB_DTYPE_FLOAT     = 0x05, // 32bit floating point
 	HXB_DTYPE_128STRING = 0x06, // 128char fixed length string
 	HXB_DTYPE_TIMESTAMP = 0x07, // timestamp - used for measuring durations, time differences and so on - uint32; seconds
-	HXB_DTYPE_66BYTES   = 0x08, // raw 66 byte array, e.g. state machine data.
+	HXB_DTYPE_65BYTES   = 0x08, // raw 65 byte array, e.g. state machine data.
 	HXB_DTYPE_16BYTES   = 0x09, // raw 16 byte array, e.g. state machine ID.
+};
+
+enum hxb_flags {
+	HXB_FLAG_NONE = 0x00, // No flags set
 };
 
 // Error codes
@@ -41,10 +48,11 @@ enum hxb_error_code {
 	HXB_ERR_INVALID_VALUE = 0x05, // A value was encountered that cannot be interpreted
 
 	// internal error values
-	HXB_ERR_INTERNAL         = 0x80, // this is just a flag.
+	HXB_ERR_INTERNAL         = 0x80, // this is just a threshold. everything above is considered internal to a device and should never reach the network
 
-	HXB_ERR_MALFORMED_PACKET = 0x80,
-	HXB_ERR_UNEXPECTED_PACKET = 0x81
+	HXB_ERR_MALFORMED_PACKET  = 0x80,
+	HXB_ERR_UNEXPECTED_PACKET = 0x81,
+	HXB_ERR_NO_VALUE          = 0x82
 };
 
 // Operators for comparison in state machine
@@ -89,5 +97,9 @@ struct hxb_value {
 		char*               v_binary;
 	};
 } __attribute__((packed));
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

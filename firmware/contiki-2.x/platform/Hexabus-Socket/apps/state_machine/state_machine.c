@@ -171,7 +171,7 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
 
 		case HXB_DTYPE_128STRING:
 		case HXB_DTYPE_16BYTES:
-		case HXB_DTYPE_66BYTES:
+		case HXB_DTYPE_65BYTES:
 		case HXB_DTYPE_UNDEFINED:
     default:
 			syslog(LOG_DEBUG, "Datatype not implemented in state machine (yet).");
@@ -312,7 +312,7 @@ PROCESS_THREAD(state_machine_process, ev, data)
 		if (!sm_is_running())
 			break;
 
-		if (ev == udp_handler_ready) {
+		if (ev == udp_handler_event && *(udp_handler_event_t*) data == UDP_HANDLER_UP) {
 			// the udp handler has transitioned to "ready" for some reason, most likely a cold reboot
 			// since anything that can bring the udp handler down will also affect the state machine, reset it
 			// special case: ID 0 is reserved for state machines that should not be automatically reset

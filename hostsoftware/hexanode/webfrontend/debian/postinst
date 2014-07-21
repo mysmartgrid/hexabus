@@ -1,0 +1,7 @@
+#!/bin/sh
+
+set -e
+
+chown -R hexanode:hexanode /home/hexanode/*
+
+svc -u /etc/service/hexanode-webfrontend

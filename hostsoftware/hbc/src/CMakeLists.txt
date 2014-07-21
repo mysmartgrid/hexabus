@@ -9,13 +9,15 @@ include_directories(
   ${CMAKE_SOURCE_DIR} 
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR} 
-  ${Boost_INCLUDE_DIRS}
 )
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+
 add_executable(hbcomp ${hbcomp_src})
 # Link the executables
 target_link_libraries(hbcomp 
   hbc
   ${Boost_LIBRARIES}
+  pthread
 )
 
 # add programs to the install target 

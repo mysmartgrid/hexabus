@@ -42,6 +42,8 @@
 #include "state_machine.h"
 #include "endpoint_registry.h"
 #include "udp_handler.h"
+#include "epaper.h"
+#include "endpoints.h"
 
 #include "hexabus_packet.h"
 
@@ -78,6 +80,9 @@ void broadcast_to_self(struct hxb_value* val, uint32_t eid)
 	syslog(LOG_DEBUG, "Sending EID %ld to own state machine.", eid);
 	sm_handle_input(&envelope);
 #endif
+#if EPAPER_ENABLE
+	epaper_handle_input(val, eid);
+#endif
 }
 
 static void broadcast_value_ptr(void* data)
@@ -88,60 +93,52 @@ static void broadcast_value_ptr(void* data)
 static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, void* data)
 {
 	struct hxb_value val;
+	enum hxb_error_code err;
 
 	uint32_t eid = *((uint32_t*) data);
 
 	// link binary blobs and strings
 	val.v_string = buffer->p_128string.value;
-	if (endpoint_read(eid, &val)) {
-		return HXB_ERR_SUCCESS;
+	if ((err = endpoint_read(eid, &val))) {
+		return err;
 	}
 
 	buffer->value_header.type = HXB_PTYPE_INFO;
 	buffer->value_header.eid = eid;
 	buffer->value_header.datatype = val.datatype;
 
-	uint32_t localonly[] = { VALUE_BROADCAST_LOCAL_ONLY_EIDS };
 	broadcast_to_self(&val, eid);
 
-	bool skip_send = false;
+	syslog(LOG_DEBUG, "Broadcasting EID %ld, datatype %d", eid, val.datatype);
 
-	for (int i = 0; !skip_send && (i < VALUE_BROADCAST_NUMBER_OF_LOCAL_ONLY_EIDS); i++) {
-		skip_send |= eid == localonly[i];
-	}
+	switch ((enum hxb_datatype) val.datatype) {
+		case HXB_DTYPE_BOOL:
+		case HXB_DTYPE_UINT8:
+			buffer->p_u8.value = val.v_u8;
+			break;
 
-	if (!skip_send) {
-		syslog(LOG_DEBUG, "Broadcasting EID %ld, datatype %d", eid, val.datatype);
+		case HXB_DTYPE_UINT32:
+		case HXB_DTYPE_TIMESTAMP:
+			buffer->p_u32.value = val.v_u32;
+			break;
 
-		switch ((enum hxb_datatype) val.datatype) {
-			case HXB_DTYPE_BOOL:
-			case HXB_DTYPE_UINT8:
-				buffer->p_u8.value = val.v_u8;
-				break;
+		case HXB_DTYPE_FLOAT:
+			buffer->p_float.value = val.v_float;
+			break;
 
-			case HXB_DTYPE_UINT32:
-			case HXB_DTYPE_TIMESTAMP:
-				buffer->p_u32.value = val.v_u32;
-				break;
+		// these just work because value.$blob points to the buffer anyway
+		case HXB_DTYPE_16BYTES:
+		case HXB_DTYPE_128STRING:
+		case HXB_DTYPE_65BYTES:
+			break;
 
-			case HXB_DTYPE_FLOAT:
-				buffer->p_float.value = val.v_float;
-				break;
+		case HXB_DTYPE_DATETIME:
+			buffer->p_datetime.value = val.v_datetime;
+			break;
 
-			// these just work because value.$blob points to the buffer anyway
-			case HXB_DTYPE_16BYTES:
-			case HXB_DTYPE_128STRING:
-			case HXB_DTYPE_66BYTES:
-				break;
-
-			case HXB_DTYPE_DATETIME:
-				buffer->p_datetime.value = val.v_datetime;
-				break;
-
-			case HXB_DTYPE_UNDEFINED:
-			default:
-				syslog(LOG_ERR, "Datatype unknown.");
-		}
+		case HXB_DTYPE_UNDEFINED:
+		default:
+			syslog(LOG_ERR, "Datatype unknown.");
 	}
 
 	return HXB_ERR_SUCCESS;
@@ -189,36 +186,34 @@ void init_value_broadcast(void)
 
 PROCESS_THREAD(value_broadcast_process, ev, data)
 {
-  static struct etimer periodic;
-  static struct ctimer backoff_timer[VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS];
-  static uint32_t auto_eids[] = { VALUE_BROADCAST_AUTO_EIDS };
+	static struct etimer periodic;
+	static uint32_t auto_eids[] = { VALUE_BROADCAST_AUTO_EIDS };
+	static struct ctimer backoff_timer[sizeof(auto_eids) / sizeof(auto_eids[0])];
 
-  PROCESS_BEGIN();
+	PROCESS_BEGIN();
 
-  PROCESS_PAUSE();
+	PROCESS_PAUSE();
 
-  init_value_broadcast();
+	init_value_broadcast();
 
 	syslog(LOG_INFO, "UDP sender process started");
 
+	etimer_set(&periodic, SEND_INTERVAL);
+	while(1) {
+		PROCESS_YIELD();
 
-  etimer_set(&periodic, SEND_INTERVAL);
-  while(1) {
-    PROCESS_YIELD();
+		if (etimer_expired(&periodic)) {
+			etimer_reset(&periodic);
 
-    if(etimer_expired(&periodic))
-    {
-      etimer_reset(&periodic);
+			uint8_t i;
+			for (i = 0; i < sizeof(auto_eids) / sizeof(auto_eids[0]); i++) {
+				syslog(0, "send %li", auto_eids[i]);
+				ctimer_set(&backoff_timer[i], SEND_TIME, broadcast_value_ptr, &auto_eids[i]);
+			}
+		}
+	}
 
-      uint8_t i;
-      for(i = 0 ; i < VALUE_BROADCAST_NUMBER_OF_AUTO_EIDS; i++)
-      {
-        ctimer_set(&backoff_timer[i], SEND_TIME, broadcast_value_ptr, (void*)&auto_eids[i]);
-      }
-    }
-  }
-
-  PROCESS_END();
+	PROCESS_END();
 }
 #endif
 /*---------------------------------------------------------------------------*/

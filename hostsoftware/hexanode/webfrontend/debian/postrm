@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -e
+
+if [ "x$1" = "xpurge" ]
+then
+	rm -rf /etc/service/hexanode-webfrontend
+	rm -rf /home/hexanode/*.json
+	rm -rf /home/hexanode/.npm
+
+	# We should not run userdel since the backend uses the same user
+	#userdel hexanode
+fi

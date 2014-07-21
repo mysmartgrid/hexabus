@@ -51,10 +51,18 @@
 #define LOG_LEVEL UDP_HANDLER_DEBUG
 #include "syslog.h"
 
+#include "health.h"
+
 #define UDP_IP_BUF ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
 static struct uip_udp_conn *udpconn;
-static struct etimer udp_periodic_timer;
+static struct etimer udp_unreachable_timer;
+static udp_handler_event_t state;
+
+static void reset_unreachable_timer()
+{
+	etimer_set(&udp_unreachable_timer, 2 * CLOCK_CONF_SECOND);
+}
 
 static uip_ipaddr_t hxb_group;
 
@@ -134,9 +142,9 @@ static size_t prepare_for_send(union hxb_packet_any* packet)
 					packet->p_128string.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 					break;
 
-				case HXB_DTYPE_66BYTES:
-					len = sizeof(packet->p_66bytes);
-					packet->p_66bytes.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
+				case HXB_DTYPE_65BYTES:
+					len = sizeof(packet->p_65bytes);
+					packet->p_65bytes.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 					break;
 
 				case HXB_DTYPE_16BYTES:
@@ -272,9 +280,9 @@ static enum hxb_error_code check_crc(const union hxb_packet_any* packet)
 					crc = packet->p_datetime.crc;
 					break;
 
-				case HXB_DTYPE_66BYTES:
-					data_len = sizeof(packet->p_66bytes);
-					crc = packet->p_66bytes.crc;
+				case HXB_DTYPE_65BYTES:
+					data_len = sizeof(packet->p_65bytes);
+					crc = packet->p_65bytes.crc;
 					break;
 
 				case HXB_DTYPE_16BYTES:
@@ -340,8 +348,8 @@ static enum hxb_error_code extract_value(union hxb_packet_any* packet, struct hx
 			value->v_string = packet->p_128string.value;
 			break;
 
-		case HXB_DTYPE_66BYTES:
-			value->v_binary = packet->p_66bytes.value;
+		case HXB_DTYPE_65BYTES:
+			value->v_binary = packet->p_65bytes.value;
 			break;
 
 		case HXB_DTYPE_16BYTES:
@@ -424,10 +432,10 @@ static enum hxb_error_code generate_query_response(union hxb_packet_any* buffer,
 		// these just work, because we pointed v_string and v_binary at the appropriate field in the
 		// packet union.
 		case HXB_DTYPE_128STRING:
-			buffer->p_128string.value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH] = 0;
+			buffer->p_128string.value[HXB_STRING_PACKET_BUFFER_LENGTH] = 0;
 			break;
 
-		case HXB_DTYPE_66BYTES:
+		case HXB_DTYPE_65BYTES:
 		case HXB_DTYPE_16BYTES:
 			break;
 
@@ -450,8 +458,8 @@ static enum hxb_error_code generate_epquery_response(union hxb_packet_any* buffe
 
 	enum hxb_error_code err;
 
-	err = endpoint_get_name(buffer->p_128string.eid, buffer->p_128string.value, HXB_STRING_PACKET_MAX_BUFFER_LENGTH);
-	buffer->p_128string.value[HXB_STRING_PACKET_MAX_BUFFER_LENGTH] = '\0';
+	err = endpoint_get_name(buffer->p_128string.eid, buffer->p_128string.value, HXB_STRING_PACKET_BUFFER_LENGTH);
+	buffer->p_128string.value[HXB_STRING_PACKET_BUFFER_LENGTH] = '\0';
 	if (err) {
 		return err;
 	}
@@ -493,7 +501,23 @@ static enum hxb_error_code handle_info(union hxb_packet_any* packet)
 static void
 udphandler(process_event_t ev, process_data_t data)
 {
-  if (ev == tcpip_event) {
+	if (ev == PROCESS_EVENT_TIMER) {
+		if (etimer_expired(&udp_unreachable_timer)) {
+			reset_unreachable_timer();
+			uip_ds6_defrt_t* rtr = uip_ds6_defrt_lookup(uip_ds6_defrt_choose());
+			bool expired = stimer_expired(&rtr->lifetime);
+			bool route_valid = rtr && rtr->isused && (rtr->isinfinite || !expired);
+			if (!route_valid && state != UDP_HANDLER_DOWN) {
+				state = UDP_HANDLER_DOWN;
+				process_post(PROCESS_BROADCAST, udp_handler_event, &state);
+				health_update(HE_NO_CONNECTION, true);
+			} else if (route_valid && state == UDP_HANDLER_DOWN) {
+				state = UDP_HANDLER_UP;
+				process_post(PROCESS_BROADCAST, udp_handler_event, &state);
+				health_update(HE_NO_CONNECTION, false);
+			}
+		}
+	} else if (ev == tcpip_event) {
     if(uip_newdata()) {
 			syslog(LOG_DEBUG, "received '%d' bytes from " LOG_6ADDR_FMT, uip_datalen(), LOG_6ADDR_VAL(UDP_IP_BUF->srcipaddr));
 
@@ -575,7 +599,7 @@ static void print_local_addresses(void) {
 
 /*---------------------------------------------------------------------------*/
 
-process_event_t udp_handler_ready;
+process_event_t udp_handler_event;
 
 PROCESS_THREAD(udp_handler_process, ev, data) {
 //  static uip_ipaddr_t ipaddr;
@@ -586,10 +610,10 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   PROCESS_BEGIN();
 
 	syslog(LOG_INFO, "process startup.");
-	udp_handler_ready = process_alloc_event();
+	udp_handler_event = process_alloc_event();
 
   // wait 3 second, in order to have the IP addresses well configured
-  etimer_set(&udp_periodic_timer, CLOCK_CONF_SECOND*3);
+  etimer_set(&udp_unreachable_timer, CLOCK_CONF_SECOND*3);
   // wait until the timer has expired
   PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_TIMER);
 
@@ -609,9 +633,10 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
 	syslog(LOG_INFO, "Created connection with remote peer " LOG_6ADDR_FMT ", local/remote port %u/%u", LOG_6ADDR_VAL(udpconn->ripaddr), uip_htons(udpconn->lport),uip_htons(udpconn->rport));
 
   print_local_addresses();
-  etimer_set(&udp_periodic_timer, 60*CLOCK_SECOND);
 
-	process_post(PROCESS_BROADCAST, udp_handler_ready, NULL);
+	reset_unreachable_timer();
+	state = UDP_HANDLER_UP;
+	process_post(PROCESS_BROADCAST, udp_handler_event, &state);
 
   while(1) {
     //   tcpip_poll_udp(udpconn);

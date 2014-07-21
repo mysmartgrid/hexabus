@@ -15,9 +15,13 @@ install(FILES ${CMAKE_BINARY_DIR}/libhexanode/config.h DESTINATION
 include_directories(
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/thirdparty/rapidjson/include
-  ${Boost_INCLUDE_DIRS}
+)
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
+  ${CPPNETLIB_INCLUDE_DIR}
+  ${HXB_INCLUDE_DIR}
 )
 
 file(GLOB all_hexanode_src 

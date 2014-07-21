@@ -1,0 +1,57 @@
+#!/bin/sh -e
+
+help()
+{
+	cat <<EOF
+Usage: $0 { -h | --help | init | forget }
+
+	-h, --help	print this help screen
+
+	init		discover present IPv6 networks and generate a suitable
+			Hexabus network configuration. Copies
+			/etc/network/interface to a safe place, overwrite
+			/etc/network/interfaces and /etc/radvd.conf and restarts
+			networking, mrd6 and radvd. Will refuse to run if 'init'
+			has been run earlier and 'forget' hasn't been run since.
+
+	forget		Moves the saved copy created by 'init' back to
+			/etc/network/interfaces, deletes /etc/radvd.conf and
+			stops radvd and mrd6, restarts networking.
+EOF
+}
+
+case "$1" in
+	init)
+		if [ -e /etc/radvd.conf ]
+		then
+			echo "Networks already configured"
+			exit 1
+		fi
+
+		cp /etc/network/interfaces /etc/network/.interfaces-pre-autoconfig
+		python3 /usr/lib/hxb-net-autoconf/hxb-net-autoconf.py eth0 usb0 || exit 2
+
+		service networking restart || exit 3
+		service radvd restart || exit 4
+		service mrd6 restart || exit 5
+		;;
+
+	forget)
+		service radvd stop
+		service mrd6 stop
+		rm /etc/radvd.conf
+		cp /etc/network/.interfaces-pre-autoconfig /etc/network/interfaces
+		service networking restart
+		;;
+
+	*)
+		echo "No action given"
+		help
+		exit 1
+		;;
+
+	-h,--help)
+		help
+		exit 0
+		;;
+esac

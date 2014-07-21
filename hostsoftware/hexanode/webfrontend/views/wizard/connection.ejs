@@ -1,0 +1,38 @@
+<% include ../header %>
+
+<script>
+	<% if(typeof error != "undefined") { %>
+		error = <%- JSON.stringify(error) %>;
+	<% } %>
+</script>
+
+<div class="container" data-ng-controller="alertController">
+	<% if(typeof error != "undefined") { %>
+	<div class="alert alert-danger" data-ng-show="error">
+		{{undefined | localize:'alert.errors':error}}
+		<div data-ng-show="error=='gt_error'">
+			<a href="/wizard/reset" class="btn btn-danger" data-localize="navbar.reset-device" >Reset device</a>
+		</div>
+	</div>
+	<% } %>
+
+</div>
+
+<div id="connection"  class="page text-center wizard-step" data-ng-controller="wizardConnection">
+	<p class="lead" data-localize="wizard.connection.about-connect">We will now try to create a suitable configuration for your network and check whether mysmartgrid.de is reachable or not.</p>
+	<div data-ng-hide="active() || configured || connected">
+		<button class="btn btn-success" data-localize="wizard.connection.configure" data-ng-click="configure()">Configure network</button>
+	</div>
+	<p data-ng-show="active() && !configured && !failed()" class="lead"><img src="/img/spinner-small.gif" alt="" /><span data-localize="wizard.connection.configuring">Configuring network</span></p>
+	<p data-ng-show="active() && !connected && !failed()" class="lead"><img src="/img/spinner-small.gif" alt="" /><span data-localize="wizard.connection.connecting">Checking connection</span></p>
+	<p data-ng-show="configured" class="lead text-success" data-localize="wizard.connection.configured">&#10003; Network configured</p>
+	<p data-ng-show="connected" class="lead text-success" data-localize="wizard.connection.connected">&#10003; mysmartgrid.de is reachable</p>
+	<div data-ng-show="connected && configured">
+		<p class="lead" data-localize="wizard.connection.can-activate">You can now activate your device</p>
+		<a href="/wizard/activation" class="btn btn-success" data-localize="wizard.connection.activate">Activate device</a>
+	</div>
+	<p data-ng-show="autoconf_failed" class="lead text-error" data-localize="wizard.connection.autoconf-failure">Unable to configure network.</p>
+	<p data-ng-show="msg_failed" class="lead text-error" data-localize="wizard.connection.msg-failure">mysmartgrid.de is not reachable</p>
+</div>
+
+<% include ../footer %>

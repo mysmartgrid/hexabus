@@ -122,7 +122,14 @@
 #if MEMORY_DEBUGGER_ENABLE
 #include "memory_debugger.h"
 #endif
+#if EPAPER_ENABLE
+#include "epaper.h"
+#endif
+#if HEXASENSE_ENABLE
+#include "hexasense.h"
+#endif
 
+#include "health.h"
 
 uint8_t nSensors = 0; //number of found temperature sensors
 
@@ -192,6 +199,8 @@ void get_aes128key_from_eeprom(uint8_t keyptr[16]) {
 	eeprom_read_block ((void *)keyptr, (const void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
 }
 
+#include <util/delay.h>
+
 /*-------------------------Low level initialization------------------------*/
 /*------Done in a subroutine to keep main routine stack usage small--------*/
 void initialize(void)
@@ -208,6 +217,8 @@ void initialize(void)
 #if ANNOUNCE_BOOT
   PRINTF("\n*******Booting %s*******\n",CONTIKI_VERSION_STRING);
 #endif
+
+	health_event = process_alloc_event();
 
 /* rtimers needed for radio cycling */
   rtimer_init();
@@ -401,6 +412,13 @@ void initialize(void)
 #endif /* WEBSERVER */
 
 #endif /* ANNOUNCE_BOOT */
+#if EPAPER_ENABLE
+	epaper_init();
+	epaper_display_special(EP_SCREEN_BOOT);
+#endif
+#if HEXASENSE_ENABLE
+	hexasense_init();
+#endif
 }
 
 #if RF230BB
@@ -415,13 +433,12 @@ extern char rf212_interrupt_flag, rf212processflag; // this is still not impleme
 int
 main(void)
 {
-  initialize();
+	initialize();
 
-  while(1) {
-    process_run();
-    watchdog_periodic();
-
-}
+	while(1) {
+		process_run();
+		watchdog_periodic();
+	}
   return 0;
 }
 

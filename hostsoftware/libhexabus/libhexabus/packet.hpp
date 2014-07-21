@@ -9,8 +9,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/array.hpp>
-#include "../../../shared/hexabus_types.h"
-#include "../../../shared/hexabus_definitions.h"
+#include <libhexabus/hexabus_types.h>
 
 //#define ENABLE_LOGGING 0
 //#include "config.h"
@@ -77,8 +76,8 @@ namespace hexabus {
 			virtual void visit(const InfoPacket<boost::posix_time::ptime>& info) = 0;
 			virtual void visit(const InfoPacket<boost::posix_time::time_duration>& info) = 0;
 			virtual void visit(const InfoPacket<std::string>& info) = 0;
-			virtual void visit(const InfoPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) = 0;
-			virtual void visit(const InfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& info) = 0;
+			virtual void visit(const InfoPacket<boost::array<char, 16> >& info) = 0;
+			virtual void visit(const InfoPacket<boost::array<char, 65> >& info) = 0;
 
 			virtual void visit(const WritePacket<bool>& write) = 0;
 			virtual void visit(const WritePacket<uint8_t>& write) = 0;
@@ -87,8 +86,8 @@ namespace hexabus {
 			virtual void visit(const WritePacket<boost::posix_time::ptime>& write) = 0;
 			virtual void visit(const WritePacket<boost::posix_time::time_duration>& write) = 0;
 			virtual void visit(const WritePacket<std::string>& write) = 0;
-			virtual void visit(const WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) = 0;
-			virtual void visit(const WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) = 0;
+			virtual void visit(const WritePacket<boost::array<char, 16> >& write) = 0;
+			virtual void visit(const WritePacket<boost::array<char, 65> >& write) = 0;
 
 			virtual void visitPacket(const Packet& packet)
 			{
@@ -171,8 +170,8 @@ namespace hexabus {
 					|| boost::is_same<TValue, float>::value
 					|| boost::is_same<TValue, boost::posix_time::ptime>::value
 					|| boost::is_same<TValue, boost::posix_time::time_duration>::value
-					|| boost::is_same<TValue, boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >::value
-					|| boost::is_same<TValue, boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >::value),
+					|| boost::is_same<TValue, boost::array<char, 16> >::value
+					|| boost::is_same<TValue, boost::array<char, 65> >::value),
 				"I don't know how to handle that type");
 
 			static uint8_t calculateDatatype()
@@ -183,10 +182,10 @@ namespace hexabus {
 					boost::is_same<TValue, float>::value ? HXB_DTYPE_FLOAT :
 					boost::is_same<TValue, boost::posix_time::ptime>::value ? HXB_DTYPE_DATETIME :
 					boost::is_same<TValue, boost::posix_time::time_duration>::value ? HXB_DTYPE_TIMESTAMP :
-					boost::is_same<TValue, boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >::value
+					boost::is_same<TValue, boost::array<char, 16> >::value
 						? HXB_DTYPE_16BYTES :
-					boost::is_same<TValue, boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >::value
-						? HXB_DTYPE_66BYTES :
+					boost::is_same<TValue, boost::array<char, 65> >::value
+						? HXB_DTYPE_65BYTES :
 					(throw "BUG: Unknown datatype!", HXB_DTYPE_UNDEFINED);
 			}
 
@@ -210,19 +209,20 @@ namespace hexabus {
 			ValuePacket(uint8_t type, uint32_t eid, const std::string& value, uint8_t flags = 0)
 				: TypedPacket(type, eid, HXB_DTYPE_128STRING, flags), _value(value)
 			{
-				if (value.size() > HXB_STRING_PACKET_MAX_BUFFER_LENGTH)
+				if (value.size() > max_length)
 					throw std::out_of_range("value");
 			}
 
 			ValuePacket(uint8_t type, uint32_t eid, uint8_t datatype, const std::string& value, uint8_t flags = 0)
 				: TypedPacket(type, eid, datatype, flags), _value(value)
 			{
-				if (value.size() > HXB_STRING_PACKET_MAX_BUFFER_LENGTH)
+				if (value.size() > max_length)
 					throw std::out_of_range("value");
 			}
 
 		public:
 			const std::string& value() const { return _value; }
+			static const int max_length = 127;
 	};
 
 	template<typename TValue>

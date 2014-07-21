@@ -37,6 +37,15 @@ namespace hexabus {
 	  std::string _reason;
   };
 
+  class DatatypeNotFoundException : public GenericException{
+	public:
+	  typedef std::tr1::shared_ptr<DatatypeNotFoundException> Ptr;
+	  DatatypeNotFoundException (const std::string reason) :
+		hexabus::GenericException(reason) {};
+	  virtual ~DatatypeNotFoundException() throw() {};
+
+  };
+
   class EdgeLinkException : public GenericException{
 	public:
 	  typedef std::tr1::shared_ptr<EdgeLinkException> Ptr;
@@ -45,7 +54,7 @@ namespace hexabus {
 	  virtual ~EdgeLinkException() throw() {};
 
   };
-  
+
   class VertexNotFoundException : public GenericException{
 	public:
 	  typedef std::tr1::shared_ptr<VertexNotFoundException> Ptr;

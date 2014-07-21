@@ -19,7 +19,6 @@ namespace hexanode {
       // incoming events
       void on_event(uint8_t pressed_key);
 
-
     private:
       HexaPush (const HexaPush& original);
       HexaPush& operator= (const HexaPush& rhs);

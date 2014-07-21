@@ -7,12 +7,14 @@
 #include <libhexabus/packet.hpp>
 #include <libhexabus/error.hpp>
 #include <libhexabus/socket.hpp>
+#include <libhexabus/endpoint_registry.hpp>
 
 #include <libhbc/ast_datatypes.hpp>
 #include <libhbc/skipper.hpp>
 #include <libhbc/hbcomp_grammar.hpp>
 #include "../../../shared/endpoints.h"
 #include "../../../shared/hexabus_definitions.h"
+#include "../../../shared/hexabus_types.h"
 
 namespace po = boost::program_options;
 
@@ -48,7 +50,7 @@ struct ReceiveCallback { // callback for device discovery
 	}
 };
 
-struct InfoCallback { // calback for populating data structures
+struct InfoCallback { // callback for populating data structures
 	device_descriptor* device;
 	std::set<endpoint_descriptor>* endpoints;
 	bool* received;
@@ -74,13 +76,13 @@ struct InfoCallback { // calback for populating data structures
 
 		if(info != NULL)
 		{
-			if(info->eid() == EP_DEVICE_DESCRIPTOR) // we only care for the device descriptor
+			if ((info->eid() % 32) == 0) // we only care for the device descriptors
 			{
-				uint32_t val = info->value();
-				for(int i = 0; i < 32; ++i)
+				uint32_t val = info->value() >> 1; // skip device descriptor
+				for(int i = 1; i < 32; ++i)
 				{
-					if(val % 2) // find out whether LSB is set
-						device->endpoint_ids.insert(i); // if it's set, store the EID (the bit's position in the device descriptor).
+					if(val & 1) // find out whether LSB is set
+						device->endpoint_ids.insert(info->eid() + i); // if it's set, store the EID (the bit's position in the device descriptor).
 
 					val >>= 1; // right-shift in order to have the next EID in the LSB
 				}
@@ -117,24 +119,24 @@ void print_ep_info(const endpoint_descriptor& ep)
 	std::cout << "\tData type:\t";
 	switch(ep.datatype)
 	{
-		case HXB_DTYPE_BOOL:
+		case hexabus::HXB_DTYPE_BOOL:
 			std::cout << "Bool"; break;
-		case HXB_DTYPE_UINT8:
+		case hexabus::HXB_DTYPE_UINT8:
 			std::cout << "UInt8"; break;
-		case HXB_DTYPE_UINT32:
+		case hexabus::HXB_DTYPE_UINT32:
 			std::cout << "UInt32"; break;
-		case HXB_DTYPE_DATETIME:
+		case hexabus::HXB_DTYPE_DATETIME:
 			std::cout << "Datetime"; break;
-		case HXB_DTYPE_FLOAT:
+		case hexabus::HXB_DTYPE_FLOAT:
 			std::cout << "Float"; break;
-		case HXB_DTYPE_TIMESTAMP:
+		case hexabus::HXB_DTYPE_TIMESTAMP:
 			std::cout << "Timestamp"; break;
-		case HXB_DTYPE_128STRING:
+		case hexabus::HXB_DTYPE_128STRING:
 			std::cout << "String"; break;
-		case HXB_DTYPE_16BYTES:
+		case hexabus::HXB_DTYPE_16BYTES:
 			std::cout << "Binary (16bytes)"; break;
-		case HXB_DTYPE_66BYTES:
-			std::cout << "Binary (66bytes)"; break;
+		case hexabus::HXB_DTYPE_65BYTES:
+			std::cout << "Binary (65bytes)"; break;
 		default:
 			std::cout << "(unknown)"; break;
 	}
@@ -179,12 +181,96 @@ void write_dev_desc(const device_descriptor& dev, std::ostream& target)
 	target << "}" << std::endl << std::endl;
 }
 
+struct json_string_writer {
+	std::string str;
+	json_string_writer(const std::string& str) : str(str) {}
+
+	friend std::ostream& operator<<(std::ostream& target, const json_string_writer& jsw)
+	{
+		for (std::string::const_iterator it = jsw.str.begin(), end = jsw.str.end(); it != end; it++) {
+			switch (*it) {
+				case '"': target << "\\\""; break;
+				case '\n': target << "\\n"; break;
+				case '\r': target << "\\r"; break;
+				case '\t': target << "\\t"; break;
+				case '\v': target << "\\v"; break;
+				default: target << *it;
+			}
+		}
+		return target;
+	}
+};
+
+json_string_writer json(const std::string& str)
+{
+	return json_string_writer(str);
+}
+
+bool write_dev_desc_json(const device_descriptor& dev, std::ostream& target, bool emit_comma)
+{
+	static hexabus::EndpointRegistry ep_registry;
+
+	// if name == "", we might as well assume temporary communication problems
+	if (dev.name.length() != 0) {
+		if (emit_comma) {
+			target << "," << std::endl;
+		}
+		target
+			<< "{" << std::endl
+			<< "\t\"name\": \"" << json(dev.name) << "\"," << std::endl
+			<< "\t\"ip\": \"" << dev.ipv6_address << "\"," << std::endl
+			<< "\t\"endpoints\": [" << std::endl;
+		for (std::set<uint32_t>::const_iterator it = dev.endpoint_ids.begin(), end = dev.endpoint_ids.end(); it != end; ) {
+			// device descriptors are not interesting
+			if (*it % 32 == 0) {
+				it++;
+				continue;
+			}
+
+			target
+				<< "\t\t{" << std::endl
+				<< "\t\t\t\"eid\": " << *it << "," << std::endl;
+
+			hexabus::EndpointRegistry::const_iterator ep_it = ep_registry.find(*it);
+			if (ep_it != ep_registry.end()) {
+				target
+					<< "\t\t\t\"unit\": \"" << json(ep_it->second.unit().get_value_or("")) << "\"," << std::endl
+					<< "\t\t\t\"description\": \"" << json(ep_it->second.description()) << "\"," << std::endl
+					<< "\t\t\t\"function\": \"";
+				switch (ep_it->second.function()) {
+					case hexabus::EndpointDescriptor::sensor:         target << "sensor"; break;
+					case hexabus::EndpointDescriptor::actor:          target << "actor"; break;
+					case hexabus::EndpointDescriptor::infrastructure: target << "infrastructure"; break;
+				}
+				target << "\"," << std::endl
+					<< "\t\t\t\"type\": " << ep_it->second.type() << std::endl;
+			} else {
+			}
+
+			target << "\t\t}";
+
+			it++;
+			if (it != end) {
+				target << ",";
+			}
+			target << std::endl;
+		}
+		target
+			<< "\t]" << std::endl
+			<< "}" << std::endl;
+
+		return true;
+	} else {
+		return false;
+	}
+}
+
 void write_ep_desc(const endpoint_descriptor& ep, std::ostream& target)
 {
-	if(ep.datatype == HXB_DTYPE_BOOL     // only write output for datatypes the Hexabs Compiler can handle
-		|| ep.datatype == HXB_DTYPE_UINT8
-		|| ep.datatype == HXB_DTYPE_UINT32
-		|| ep.datatype == HXB_DTYPE_FLOAT)
+	if(ep.datatype == hexabus::HXB_DTYPE_BOOL     // only write output for datatypes the Hexabs Compiler can handle
+		|| ep.datatype == hexabus::HXB_DTYPE_UINT8
+		|| ep.datatype == hexabus::HXB_DTYPE_UINT32
+		|| ep.datatype == hexabus::HXB_DTYPE_FLOAT)
 	{
 		target << "# Auto-generated by hexinfo." << std::endl;
 		target << "endpoint " << remove_specialchars(ep.name) << " {" << std::endl;
@@ -192,13 +278,13 @@ void write_ep_desc(const endpoint_descriptor& ep, std::ostream& target)
 		target << "\tdatatype ";
 		switch(ep.datatype)
 		{
-			case HXB_DTYPE_BOOL:
+			case hexabus::HXB_DTYPE_BOOL:
 				target << "BOOL"; break;
-			case HXB_DTYPE_UINT8:
+			case hexabus::HXB_DTYPE_UINT8:
 				target << "UINT8"; break;
-			case HXB_DTYPE_UINT32:
+			case hexabus::HXB_DTYPE_UINT32:
 				target << "UINT32"; break;
-			case HXB_DTYPE_FLOAT:
+			case hexabus::HXB_DTYPE_FLOAT:
 				target << "FLOAT"; break;
 			default:
 				target << "(unknown)"; break;
@@ -285,12 +371,13 @@ int main(int argc, char** argv)
 	desc.add_options()
 		("help,h", "produce help message")
 		("version", "print version and exit")
-		("ip,i", po::value<std::string>(), "IP addres of device")
+		("ip,i", po::value<std::string>(), "IP address of device")
 		("interface,I", po::value<std::string>(), "Interface to send multicast from")
 		("discover,c", "automatically discover hexabus devices")
 		("print,p", "print device and endpoint info to the console")
 		("epfile,e", po::value<std::string>(), "name of Hexabus Compiler header file to write the endpoint list to")
 		("devfile,d", po::value<std::string>(), "name of Hexabus Compiler header file to write the device definition to")
+		("json,j", "use JSON as output format")
 		("verbose,V", "print more status information")
 		;
 
@@ -329,14 +416,12 @@ int main(int argc, char** argv)
 	std::set<boost::asio::ip::address_v6> addresses; // Holds the list of addresses to scan -- either filled with everything we "discover" or with just one "ip"
 	// init the network interface
 	boost::asio::io_service io;
-	hexabus::Socket* network;
+	hexabus::Socket* network = new hexabus::Socket(io);
 	try {
 		if(vm.count("interface")) {
 			if(verbose)
 				std::cout << "Using network interface " << vm["interface"].as<std::string>() << "." << std::endl;
-			network = new hexabus::Socket(io, vm["interface"].as<std::string>());
-		} else {
-			network = new hexabus::Socket(io);
+			network->mcast_from(vm["interface"].as<std::string>());
 		}
 	} catch(const hexabus::NetworkException& e) {
 		std::cerr << "Could not open socket: " << e.code().message() << std::endl;
@@ -422,7 +507,7 @@ int main(int argc, char** argv)
 		ErrorCallback errorCallback;
 		boost::signals2::connection c1 = network->onAsyncError(errorCallback);
 		boost::signals2::connection c2 = network->onPacketReceived(infoCallback,
-			(hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR))
+			(hexabus::filtering::isInfo<uint32_t>() && (hexabus::filtering::eid() % 32 == 0))
 			|| hexabus::filtering::isEndpointInfo());
 
 		unsigned int retries = 0;
@@ -448,29 +533,30 @@ int main(int argc, char** argv)
 		if(!received && verbose)
 			std::cout << "No reply on device descriptor EPQuery from " << target_ip.to_string() << std::endl;
 
-		received = false;
-		retries = 0;
+		for (uint32_t ep_desc = 0; ep_desc < 256; ep_desc += 32) {
+			received = false;
+			retries = 0;
 
-		// query the dev.descriptor, to build a list of endpoints
-		while(!received && retries < NUM_RETRIES)
-		{
-			if(verbose)
-				std::cout << "Sending Query." << std::endl;
-			// send the device descriptor (endpoint list) query packet and listen for the reply
-			send_packet(network, target_ip, hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR));
+			// query the dev.descriptor, to build a list of endpoints
+			while (!received && retries < NUM_RETRIES) {
+				if (verbose)
+					std::cout << "Sending descriptor query for " << ep_desc << "." << std::endl;
+				// send the device descriptor (endpoint list) query packet and listen for the reply
+				send_packet(network, target_ip, hexabus::QueryPacket(ep_desc));
 
-			boost::asio::deadline_timer timer(network->ioService()); // wait for a second
-			timer.expires_from_now(boost::posix_time::milliseconds(350));
-			timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
+				boost::asio::deadline_timer timer(network->ioService()); // wait for a second
+				timer.expires_from_now(boost::posix_time::milliseconds(350));
+				timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
 
-			network->ioService().reset();
-			network->ioService().run();
+				network->ioService().reset();
+				network->ioService().run();
 
-			retries++;
+				retries++;
+			}
+
+			if(!received && verbose)
+				std::cout << "No reply on device descriptor Query from " << target_ip.to_string() << std::endl;
 		}
-
-		if(!received && verbose)
-			std::cout << "No reply on device descriptor Query from " << target_ip.to_string() << std::endl;
 
 		// step 1: Make a set of endpoints to query.
 		std::multiset<uint32_t> eps_to_query;
@@ -516,7 +602,8 @@ int main(int argc, char** argv)
 			print_dev_info(device);
 			std::cout << std::endl;
 			for(std::set<endpoint_descriptor>::iterator it = endpoints.begin(); it != endpoints.end(); ++it)
-				print_ep_info(*it);
+				if (device.endpoint_ids.count(it->eid))
+					print_ep_info(*it);
 		}
 
 		devices.insert(device);
@@ -571,51 +658,83 @@ int main(int argc, char** argv)
 
 	if(vm.count("devfile"))
 	{
-		hexabus::hbc_doc hbc_input = read_file(vm["devfile"].as<std::string>(), verbose);
-
-		std::set<boost::asio::ip::address_v6> existing_dev_addresses;
-		// check all the device definitions, and store their ip addresses in the set.
-		BOOST_FOREACH(hexabus::hbc_block block, hbc_input.blocks)
+		if(vm.count("json"))
 		{
-			if(block.which() == 2) // alias_doc
+			std::ofstream ofs;
+
+			if(vm["devfile"].as<std::string>()=="-") {
+				// write to stdout instead of a file
+			} else {
+				// open file
+				ofs.open(vm["devfile"].as<std::string>().c_str(), std::fstream::out);
+			}
+
+			std::ostream& out(vm["devfile"].as<std::string>() == "-" ? std::cout : ofs);
+
+			if(!out)
 			{
-				BOOST_FOREACH(hexabus::alias_cmd_doc ac, boost::get<hexabus::alias_doc>(block).cmds)
+				std::cerr << "Error: Could not open output file: " << vm["devfile"].as<std::string>().c_str() << std::endl;
+				return 1;
+			}
+
+			out << "{\"devices\": [" << std::endl;
+
+			bool hasWritten = false;
+			for(std::set<device_descriptor>::iterator it = devices.begin(); it != devices.end(); ++it)
+			{
+				hasWritten |= write_dev_desc_json(*it, out, hasWritten && it != devices.begin());
+			}
+
+			out << "]}" << std::endl;
+
+		} else {
+			hexabus::hbc_doc hbc_input = read_file(vm["devfile"].as<std::string>(), verbose);
+
+			std::set<boost::asio::ip::address_v6> existing_dev_addresses;
+			// check all the device definitions, and store their ip addresses in the set.
+			BOOST_FOREACH(hexabus::hbc_block block, hbc_input.blocks)
+			{
+				if(block.which() == 2) // alias_doc
 				{
-					if(ac.which() == 0) // alias_ip_doc
+					BOOST_FOREACH(hexabus::alias_cmd_doc ac, boost::get<hexabus::alias_doc>(block).cmds)
 					{
-						existing_dev_addresses.insert(
-								boost::asio::ip::address_v6::from_string(
-									boost::get<hexabus::alias_ip_doc>(ac).ipv6_address));
+						if(ac.which() == 0) // alias_ip_doc
+						{
+							existing_dev_addresses.insert(
+									boost::asio::ip::address_v6::from_string(
+										boost::get<hexabus::alias_ip_doc>(ac).ipv6_address));
+						}
 					}
 				}
 			}
-		}
 
-		if(verbose)
-		{
-			std::cout << "Device IPs already present in file: " << std::endl;
-			for(std::set<boost::asio::ip::address_v6>::iterator it = existing_dev_addresses.begin();
-					it != existing_dev_addresses.end();
-					++it)
+			if(verbose)
 			{
-				std::cout << "\t" << it->to_string() << std::endl;
+				std::cout << "Device IPs already present in file: " << std::endl;
+				for(std::set<boost::asio::ip::address_v6>::iterator it = existing_dev_addresses.begin();
+						it != existing_dev_addresses.end();
+						++it)
+				{
+					std::cout << "\t" << it->to_string() << std::endl;
+				}
 			}
-		}
 
-		// open file
-		std::ofstream ofs;
-		ofs.open(vm["devfile"].as<std::string>().c_str(), std::fstream::app);
-		if(!ofs)
-		{
-			std::cerr << "Error: Could not open output file: " << vm["devfile"].as<std::string>().c_str() << std::endl;
-			return 1;
-		}
+			// open file
+			std::ofstream ofs;
+			ofs.open(vm["devfile"].as<std::string>().c_str(), std::fstream::app);
+			if(!ofs)
+			{
+				std::cerr << "Error: Could not open output file: " << vm["devfile"].as<std::string>().c_str() << std::endl;
+				return 1;
+			}
 
-		for(std::set<device_descriptor>::iterator it = devices.begin(); it != devices.end(); ++it)
-		{
-			// only insert our device descriptors if the IP is not already found.
-			if(!existing_dev_addresses.count(it->ipv6_address))
-				write_dev_desc(*it, ofs);
+			for(std::set<device_descriptor>::iterator it = devices.begin(); it != devices.end(); ++it)
+			{
+
+				// only insert our device descriptors if the IP is not already found.
+				if(!existing_dev_addresses.count(it->ipv6_address))
+					write_dev_desc(*it, ofs);
+			}
 		}
 	}
 }

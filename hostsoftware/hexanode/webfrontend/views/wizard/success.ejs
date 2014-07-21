@@ -1,0 +1,29 @@
+<% include ../header %>
+
+<script>
+	<% if(typeof error != "undefined") { %>
+		error = <%- JSON.stringify(error) %>;
+	<% } %>
+</script>
+
+<div class="container" data-ng-controller="alertController">
+	<% if(typeof error != "undefined") { %>
+	<div class="alert alert-danger" data-ng-show="error">
+		{{undefined | localize:'alert.errors':error}}
+		<div data-ng-show="error=='gt_error'">
+			<a href="/wizard/reset" class="btn btn-danger" data-localize="navbar.reset-device" >Reset device</a>
+		</div>
+	</div>
+	<% } %>
+
+</div>
+
+<div class="page text-center wizard-step">
+	<h3 class="text-success" data-localize="wizard.success.grats">Success!</h3>
+	<p class="lead" data-localize="wizard.success.linked">Your device is now connected to mySmartGrid.</p>
+	<!--- <p class="lead" data-localize="success-message2">Next step: Please link your Hexabus devices with the base station.</p>
+	<a id="link-devices" href="config#network" class="btn btn-success">Link devices</a> -->
+	<a href="/" class="btn btn-success" data-localize="wizard.success.to-dashboard">Continue to dashboard</a>
+</div>
+
+<% include ../footer %>

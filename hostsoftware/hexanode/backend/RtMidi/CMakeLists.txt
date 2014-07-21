@@ -2,9 +2,12 @@
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
-  ${Boost_INCLUDE_DIRS}
+)
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}
+  ${ALSA_INCLUDE_DIR}
 )
 
 file(GLOB all_rtmidi_src 
