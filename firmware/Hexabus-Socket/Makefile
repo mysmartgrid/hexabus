@@ -2,8 +2,6 @@ all: ipso
 	 mv ipso.Hexabus-Socket Hexabus-Socket.elf
 	 avr-objcopy -O ihex -R .signature -R .fuse -R .eeprom Hexabus-Socket.elf Hexabus-Socket.hex
 	 avr-size -C --mcu=atmega1284P Hexabus-Socket.elf
-#	 avr-size -C --mcu=atmega2561 Hexabus-Socket.elf
-#	 avr-size -C --mcu=atxmega256d3 Hexabus-Socket.elf
 APPS =hexabus-webserver udp_handler temperature button endpoint_registry
 APPS +=datetime_service shutter relay state_machine button_handlers hexapush 
 APPS +=metering shutter relay provisioning value_broadcast hxb_broadcast_handler

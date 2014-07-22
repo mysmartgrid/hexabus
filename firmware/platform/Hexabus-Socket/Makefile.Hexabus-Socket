@@ -1,16 +1,11 @@
-CONTIKI_TARGET_DIRS = . apps net loader
+CONTIKI_TARGET_DIRS = .
 
-CONTIKI_CORE=contiki-raven-main
-CONTIKI_TARGET_MAIN = ${CONTIKI_CORE}.o
 CONTIKI_TARGET_SOURCEFILES += contiki-hexabus-init-lowlevel.c contiki-hexabus-main.c 
 CONTIKI_TARGET_SOURCEFILES += mem-debug.c hexabus_app_bootstrap.c health.c
 #The avr cpu makefile will also add these files if COFFEE_FILES is specified.
 #CONTIKI_TARGET_SOURCEFILES += cfs-coffee.c cfs-coffee-arch.c
 #Needed for slip
 #CONTIKI_TARGET_SOURCEFILES += slip_uart0.c slip.c
-
-CONTIKIAVR=$(CONTIKI)/cpu/avr
-CONTIKIBOARD=.
 
 CONTIKI_PLAT_DEFS = -DF_CPU=8000000UL -DAUTO_CRC_PADDING=2
 
@@ -21,21 +16,5 @@ MCU=atmega1284p
 # use RF212 driver
 RF212BB=1
 
-AVRDUDE_PROGRAMMER=jtag2
-
-# For usb devices, you may either use PORT=usb, or (e.g. if you have more than one
-# programmer connected) you can use the following trick to find out the serial number:
-#
-# The example is for an JTAGICE mkII used to program an ATmega128:
-# avrdude -v -P usb:xxxx -c jtag2 -p atmega128
-#AVRDUDE_PORT=usb:00B000000D79
-AVRDUDE_PORT=usb
-
-
-# Additional avrdude options
-# Verify off
-#AVRDUDE_OPTIONS=-V
-AVRDUDE_OPTIONS=
-
-include $(CONTIKIAVR)/Makefile.avr
-include $(CONTIKIAVR)/radio/Makefile.radio
+include $(CONTIKI)/cpu/avr/Makefile.avr
+include $(CONTIKI)/cpu/avr/radio/Makefile.radio
