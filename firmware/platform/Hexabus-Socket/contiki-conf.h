@@ -65,7 +65,7 @@ typedef unsigned long off_t;
 #define INFINITE_TIME 0xffff
 
 /* Clock ticks per second */
-#define CLOCK_CONF_SECOND 125
+#define CLOCK_CONF_SECOND 126
 
 /* Maximum tick interval is 0xffff/125 = 524 seconds */
 #define RIME_CONF_BROADCAST_ANNOUNCEMENT_MAX_TIME CLOCK_CONF_SECOND * 524UL /* Default uses 600UL */
