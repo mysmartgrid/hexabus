@@ -283,7 +283,6 @@ void Device::_handle_smupload(hexabus::Socket* socket, const Packet& p, const bo
 
 void Device::_handle_broadcasts(const boost::system::error_code& error)
 {
-	_debug && std::cout << "activate handle_broadcast."  << std::endl;
 	if ( !error )
 	{
 		for ( std::map<uint32_t, const EndpointFunctions::Ptr>::iterator it = _endpoints.begin(), end = _endpoints.end(); it != end; ++it )
