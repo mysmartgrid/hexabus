@@ -2,7 +2,6 @@
 #include <string.h>
 #include <iomanip>
 #include <libhexabus/common.hpp>
-#include <libhexabus/crc.hpp>
 #include <libhexabus/liveness.hpp>
 #include <libhexabus/socket.hpp>
 #include <libhexabus/packet.hpp>
@@ -79,6 +78,19 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 			}
 		}
 
+		void printPropertyReportHeader(uint32_t nextid, uint32_t eid, const char* datatypeStr, uint16_t cause)
+		{
+			if (oneline) {
+				target << "Report;Cause " << cause << ";EID " << eid << ";NextPropID " << nextid << ";Datatype " << datatypeStr << ";";
+			} else {
+				target << "Report" << std::endl
+					<< "Cause:\t" << cause << std::endl
+					<< "Endpoint ID:\t" << eid << std::endl
+					<< "Next property:\t" << nextid << std::endl
+					<< "Datatype:\t" << datatypeStr << std::endl;
+			}
+		}
+
 		void printProxyInfoHeader(const boost::asio::ip::address_v6& source, uint32_t eid, const char* datatypeStr)
 		{
 			if (oneline) {
@@ -145,6 +157,13 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		{
 			printReportHeader(report.eid(), datatypeStr, report.cause());
 			printValue(report);
+		}
+
+		template<typename TInfo>
+		void printPropertyReportPacket(const hexabus::PropertyReportPacket<TInfo>& propreport, const char* datatypeStr)
+		{
+			printPropertyReportHeader(propreport.nextid(), propreport.eid(), datatypeStr, propreport.cause());
+			printValue(propreport);
 		}
 
 		template<typename TInfo>
@@ -293,6 +312,8 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 
 		virtual void visit(const hexabus::TimeInfoPacket& timeinfo) { printTimeInfo(timeinfo); }
 
+		virtual void visit(const hexabus::PropertyQueryPacket& propquery) {}
+
 		virtual void visit(const hexabus::InfoPacket<bool>& info) { printValuePacket(info, "Bool"); }
 		virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { printValuePacket(info, "UInt8"); }
 		virtual void visit(const hexabus::InfoPacket<uint32_t>& info) { printValuePacket(info, "UInt32"); }
@@ -324,6 +345,22 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::WritePacket<std::string>& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
+
+		virtual void visit(const hexabus::PropertyWritePacket<bool>& propwrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<uint8_t>& propwrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<uint32_t>& propwrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<float>& propwrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<std::string>& propwrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& propwrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& propwrite) {}
+
+		virtual void visit(const hexabus::PropertyReportPacket<bool>& propreport) { printPropertyReportPacket(propreport, "Bool"); }
+		virtual void visit(const hexabus::PropertyReportPacket<uint8_t>& propreport) { printPropertyReportPacket(propreport, "UInt8"); }
+		virtual void visit(const hexabus::PropertyReportPacket<uint32_t>& propreport) { printPropertyReportPacket(propreport, "UInt32"); }
+		virtual void visit(const hexabus::PropertyReportPacket<float>& propreport) { printPropertyReportPacket(propreport, "Float"); }
+		virtual void visit(const hexabus::PropertyReportPacket<std::string>& propreport) { printPropertyReportPacket(propreport, "String"); }
+		virtual void visit(const hexabus::PropertyReportPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& propreport) { printPropertyReportPacket(propreport, "Binary (16 bytes)"); }
+		virtual void visit(const hexabus::PropertyReportPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& propreport) { printPropertyReportPacket(propreport, "Binary (66 bytes)"); }
 };
 
 void print_packet(const hexabus::Packet& packet)
@@ -347,14 +384,28 @@ struct send_packet_trn_callback {
 	}
 };
 
+struct send_packet_err_callback {
+	boost::asio::io_service* io;
+	void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep)
+	{
+		print_packet(packet);
+		io->stop();
+	}
+};
+
 ErrorCode send_packet(hexabus::Socket& net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet)
 {
 	send_packet_trn_callback tcb = {&net.ioService(), ERR_NONE};
+	send_packet_err_callback ecb = {&net.ioService()};
 
+	namespace hf = hexabus::filtering;
+	boost::signals2::connection err_con = net.onPacketReceived(ecb, hf::isError() && hf::sourceIP() == addr);
 	net.onPacketTransmitted(boost::ref(tcb), packet, boost::asio::ip::udp::endpoint(addr, HXB_PORT));
 
 	net.ioService().reset();
 	net.ioService().run();
+
+	err_con.disconnect();
 
 	return tcb.err;
 }
@@ -454,6 +505,56 @@ ErrorCode send_value_packet(hexabus::Socket& net, const boost::asio::ip::address
 	}
 }
 
+
+template<template<typename TValue> class PropertyWritePacket>
+ErrorCode send_prop_write_packet(hexabus::Socket& net, const boost::asio::ip::address_v6& ip, uint32_t propid, uint32_t eid, uint8_t datatype, const std::string& value)
+{
+	try { // handle errors in value lexical_cast
+		switch (datatype) {
+			case HXB_DTYPE_BOOL:
+				{
+					bool b = boost::lexical_cast<unsigned int>(value);
+					std::cout << "Sending property write " << b << std::endl;
+					return send_packet(net, ip, PropertyWritePacket<bool>(propid, eid, b, hexabus::Packet::want_ack));
+				}
+
+			case HXB_DTYPE_UINT8:
+				{
+					uint8_t u8 = boost::lexical_cast<unsigned int>(value);
+					std::cout << "Sending property write " << (unsigned int) u8 << std::endl;
+					return send_packet(net, ip, PropertyWritePacket<uint8_t>(propid, eid, u8, hexabus::Packet::want_ack));
+				}
+
+			case HXB_DTYPE_UINT32:
+				{
+					uint32_t u32 = boost::lexical_cast<uint32_t>(value);
+					std::cout << "Sending property write " << u32 << std::endl;
+					return send_packet(net, ip, PropertyWritePacket<uint32_t>(propid, eid, u32, hexabus::Packet::want_ack));
+				}
+
+			case HXB_DTYPE_FLOAT:
+				{
+					float f = boost::lexical_cast<float>(value);
+					std::cout << "Sending property write " << f << std::endl;
+					return send_packet(net, ip, PropertyWritePacket<float>(propid, eid, f, hexabus::Packet::want_ack));
+				}
+
+			case HXB_DTYPE_128STRING:
+				{
+					std::cout << "Sending property write " << value << std::endl;
+					return send_packet(net, ip, PropertyWritePacket<std::string>(propid, eid, value, hexabus::Packet::want_ack));
+				}
+
+			default:
+				std::cout << "Unknown data type " << datatype << std::endl;
+				return ERR_PARAMETER_VALUE_INVALID;
+		}
+	} catch (boost::bad_lexical_cast& e) {
+		std::cerr << "Error while converting value: " << e.what() << std::endl;
+		return ERR_PARAMETER_VALUE_INVALID;
+	}
+}
+
 enum Command {
 	C_GET,
 	C_SET,
@@ -464,7 +565,9 @@ enum Command {
 	C_OFF,
 	C_STATUS,
 	C_POWER,
-	C_DEVINFO
+	C_DEVINFO,
+	C_PROPQUERY,
+	C_PROPWRITE
 };
 
 struct listener_rcv_callback {
@@ -488,11 +591,12 @@ int main(int argc, char** argv) {
   desc.add_options()
     ("help,h", "produce help message")
     ("version", "print libhexabus version and exit")
-    ("command,c", po::value<std::string>(), "{get|set|epquery|send|listen|on|off|status|power|devinfo}")
+    ("command,c", po::value<std::string>(), "{get|set|epquery|propquery|propwrite|send|listen|on|off|status|power|devinfo}")
     ("ip,i", po::value<std::string>(), "the hostname to connect to")
     ("bind,b", po::value<std::string>(), "local IP address to use")
     ("interface,I", po::value<std::vector<std::string> >(), "for listen: interface to listen on. otherwise: outgoing interface for multicasts")
     ("eid,e", po::value<uint32_t>(), "Endpoint ID (EID)")
+    ("propid,p", po::value<uint32_t>(), "Property ID")
     ("datatype,d", po::value<unsigned int>(), "{1: Bool | 2: UInt8 | 3: UInt32 | 5: Float | 6: String}")
     ("value,v", po::value<std::string>(), "Value")
     ("reliable,r", po::bool_switch(), "Reliable initialization of network access (adds delay, only needed for broadcasts)")
@@ -560,6 +664,10 @@ int main(int argc, char** argv) {
 			command = C_POWER;
 		} else if (boost::iequals(command_str, "DEVINFO")) {
 			command = C_DEVINFO;
+		} else if (boost::iequals(command_str, "PROPQUERY")) {
+			command = C_PROPQUERY;
+		} else if (boost::iequals(command_str, "PROPWRITE")) {
+			command = C_PROPWRITE;
 		} else {
 			std::cerr << "Unknown command \"" << command_str << "\"" << std::endl;
 			return ERR_PARAMETER_VALUE_INVALID;
@@ -669,7 +777,7 @@ int main(int argc, char** argv) {
 	namespace hf = hexabus::filtering;
 
 	if (ip->is_multicast() && (command == C_STATUS || command == C_POWER
-				|| command == C_GET || command == C_EPQUERY || command == C_DEVINFO)) {
+				|| command == C_GET || command == C_EPQUERY || command == C_DEVINFO || command == C_PROPQUERY)) {
 		std::cerr << "Cannot query all devices at once, query them individually." << std::endl;
 		return ERR_PARAMETER_VALUE_INVALID;
 	}
@@ -736,6 +844,53 @@ int main(int argc, char** argv) {
 		case C_DEVINFO:
 			return send_packet_wait(socket, *ip, hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR, hexabus::Packet::want_ack), hf::eid() == EP_DEVICE_DESCRIPTOR && hf::sourceIP() == *ip);
 
+		case C_PROPQUERY:
+			{
+				if (!vm.count("eid")) {
+					std::cerr << "Command needs an EID" << std::endl;
+					return ERR_PARAMETER_MISSING;
+				}
+				if (!vm.count("propid")) {
+					std::cerr << "Command needs a poperty ID" << std::endl;
+					return ERR_PARAMETER_MISSING;
+				}
+				uint32_t eid = vm["eid"].as<uint32_t>();
+				uint32_t propid = vm["propid"].as<uint32_t>();
+
+				return send_packet_wait(socket, *ip, hexabus::PropertyQueryPacket(propid, eid, hexabus::Packet::want_ack), hf::eid() == eid && hf::sourceIP() == *ip);
+			}
+		case C_PROPWRITE:
+			{
+				if (!vm.count("eid")) {
+					std::cerr << "Command needs an EID" << std::endl;
+					return ERR_PARAMETER_MISSING;
+				}
+				if (!vm.count("propid")) {
+					std::cerr << "Command needs a poperty ID" << std::endl;
+					return ERR_PARAMETER_MISSING;
+				}
+				if (!vm.count("datatype")) {
+					std::cerr << "Command needs a data type" << std::endl;
+					return ERR_PARAMETER_MISSING;
+				}
+				if (!vm.count("value")) {
+					std::cerr << "Command needs a value" << std::endl;
+					return ERR_PARAMETER_MISSING;
+				}
+
+				try {
+					uint32_t eid = vm["eid"].as<uint32_t>();
+					uint32_t propid = vm["propid"].as<uint32_t>();
+					unsigned int dtype = vm["datatype"].as<unsigned int>();
+					std::string value = vm["value"].as<std::string>();
+
+					return send_prop_write_packet<hexabus::PropertyWritePacket>(socket, *ip, propid, eid, dtype, value);
+
+				} catch (const std::exception& e) {
+					std::cerr << "Cannot process option: " << e.what() << std::endl;
+					return ERR_UNKNOWN_PARAMETER;
+				}
+			}
 		default:
 			std::cerr << "BUG: Unknown command" << std::endl;
 			return ERR_OTHER;

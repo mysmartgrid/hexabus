@@ -24,9 +24,9 @@ struct endpoint_descriptor {
 #define ENDPOINT_DESCRIPTOR const struct endpoint_descriptor PROGMEM
 
 struct endpoint_property_descriptor {
+	uint8_t datatype;
 	uint32_t eid;
 	uint32_t propid;
-	uint8_t datatype;
 };
 
 struct endpoint_property_value_descriptor {

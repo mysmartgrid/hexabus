@@ -55,9 +55,27 @@
 #endif
 
 ENDPOINT_PROPERTY_DESCRIPTOR prop_device_name = {
-    .datatype = HXB_DTYPE_UINT8,
+    .datatype = HXB_DTYPE_128STRING,
     .eid = EP_DEVICE_DESCRIPTOR,
     .propid = EP_PROP_NAME,
+};
+
+ENDPOINT_PROPERTY_DESCRIPTOR prop_switch_name = {
+    .datatype = HXB_DTYPE_128STRING,
+    .eid = EP_POWER_SWITCH,
+    .propid = EP_PROP_NAME,
+};
+
+ENDPOINT_PROPERTY_DESCRIPTOR prop_device_min = {
+    .datatype = HXB_DTYPE_UINT32,
+    .eid = EP_DEVICE_DESCRIPTOR,
+    .propid = EP_PROP_MIN,
+};
+
+ENDPOINT_PROPERTY_DESCRIPTOR prop_device_max = {
+    .datatype = HXB_DTYPE_UINT32,
+    .eid = EP_DEVICE_DESCRIPTOR,
+    .propid = EP_PROP_MAX,
 };
 
 void hexabus_bootstrap_init_apps() {
@@ -109,6 +127,9 @@ void hexabus_bootstrap_init_apps() {
 #endif
 
 ENDPOINT_PROPERTY_REGISTER(prop_device_name);
+ENDPOINT_PROPERTY_REGISTER(prop_device_min);
+ENDPOINT_PROPERTY_REGISTER(prop_device_max);
+ENDPOINT_PROPERTY_REGISTER(prop_switch_name);
 
 }
 

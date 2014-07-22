@@ -150,7 +150,6 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 			break;
 
 		case HXB_PTYPE_REPORT:
-		case HXB_PTYPE_EP_PROP_REPORT:
 			packet->eid_header.eid = uip_htonl(packet->eid_header.eid);
 			switch ((enum hxb_datatype) packet->value_header.datatype) {
 				case HXB_DTYPE_UINT32:
@@ -184,6 +183,51 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 				case HXB_DTYPE_16BYTES:
 					len = sizeof(packet->p_16bytes_re);
 					packet->p_16bytes_re.cause_sequence_number = uip_htons(packet->p_16bytes_re.cause_sequence_number);
+					break;
+
+				case HXB_DTYPE_DATETIME:
+				case HXB_DTYPE_TIMESTAMP:
+				case HXB_DTYPE_UNDEFINED:
+				default:
+					return 0;
+			}
+			break;
+
+		case HXB_PTYPE_EP_PROP_REPORT:
+			packet->eid_header.eid = uip_htonl(packet->eid_header.eid);
+			packet->propreport_header.next_id = uip_htonl(packet->propreport_header.next_id);
+			switch ((enum hxb_datatype) packet->value_header.datatype) {
+				case HXB_DTYPE_UINT32:
+					len = sizeof(packet->p_u32_prop_re);
+					packet->p_u32_prop_re.value = uip_htonl(packet->p_u32_prop_re.value);
+					packet->p_u32_prop_re.cause_sequence_number = uip_htons(packet->p_u32_prop_re.cause_sequence_number);
+					break;
+
+				case HXB_DTYPE_FLOAT:
+					len = sizeof(packet->p_float_prop_re);
+					packet->p_float_prop_re.value = htonf(packet->p_float_prop_re.value);
+					packet->p_float_prop_re.cause_sequence_number = uip_htons(packet->p_float_prop_re.cause_sequence_number);
+					break;
+
+				case HXB_DTYPE_BOOL:
+				case HXB_DTYPE_UINT8:
+					len = sizeof(packet->p_u8_prop_re);
+					packet->p_u8_prop_re.cause_sequence_number = uip_htons(packet->p_u8_prop_re.cause_sequence_number);
+					break;
+
+				case HXB_DTYPE_128STRING:
+					len = sizeof(packet->p_128string_prop_re);
+					packet->p_128string_prop_re.cause_sequence_number = uip_htons(packet->p_128string_prop_re.cause_sequence_number);
+					break;
+
+				case HXB_DTYPE_66BYTES:
+					len = sizeof(packet->p_66bytes_prop_re);
+					packet->p_66bytes_prop_re.cause_sequence_number = uip_htons(packet->p_66bytes_prop_re.cause_sequence_number);
+					break;
+
+				case HXB_DTYPE_16BYTES:
+					len = sizeof(packet->p_16bytes_prop_re);
+					packet->p_16bytes_prop_re.cause_sequence_number = uip_htons(packet->p_16bytes_prop_re.cause_sequence_number);
 					break;
 
 				case HXB_DTYPE_DATETIME:
@@ -496,12 +540,13 @@ static enum hxb_error_code generate_propquery_response(union hxb_packet_any* buf
 
 	buffer->propreport_header.type = HXB_PTYPE_EP_PROP_REPORT;
 	buffer->propreport_header.eid = eid;
+	buffer->propreport_header.next_id = get_next_property(eid, propid);
 
-	syslog(LOG_INFO, "Received prop query for %lu", eid);
+	syslog(LOG_INFO, "Received prop query for %lu, %lu", eid, propid);
 
 	// point v_binary and v_string to the appropriate buffer in the source packet.
 	// that way we avoid allocating another buffer and unneeded copies
-	value.v_string = buffer->p_128string.value;
+	value.v_string = buffer->p_128string_prop_re.value;
 
 	err = endpoint_property_read(eid, propid, &value);
 	if (err) {
@@ -602,8 +647,8 @@ static enum hxb_error_code handle_prop_write(union hxb_packet_any* packet)
 			return HXB_ERR_DATATYPE;
 	}
 
-	return endpoint_property_write(packet->property_header.eid,
-		packet->property_header.property_id, &value);
+	return endpoint_property_write(uip_ntohl(packet->property_header.eid),
+		uip_ntohl(packet->property_header.property_id), &value);
 }
 
 static enum hxb_error_code handle_info(union hxb_packet_any* packet)
@@ -697,7 +742,7 @@ void udp_handler_handle_incoming(struct hxb_queue_packet* R) {
 					.propid = uip_ntohl(packet->p_pquery.property_id),
 					.cause_sequence_number = uip_ntohs(packet->p_query.sequence_number),
 				};
-				err = udp_handler_send_generated(&(R->ip), R->port, generate_epquery_response, &pc);
+				err = udp_handler_send_generated(&(R->ip), R->port, generate_propquery_response, &pc);
 				break;
 			}
 

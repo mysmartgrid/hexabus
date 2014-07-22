@@ -1,5 +1,6 @@
 #ifndef ENDPOINTS_H_
 
+//Endpoint IDs
 #define EP_DEVICE_DESCRIPTOR       0UL
 #define EP_POWER_SWITCH            1UL
 #define EP_POWER_METER             2UL
@@ -45,5 +46,9 @@
 #define EP_FLUKSO_S01              50UL
 #define EP_FLUKSO_S02              51UL
 
+//Property IDs
 #define EP_PROP_NAME               1UL
+#define EP_PROP_MIN                2UL
+#define EP_PROP_MAX                3UL
+
 #endif // ENDPOINTS_H_

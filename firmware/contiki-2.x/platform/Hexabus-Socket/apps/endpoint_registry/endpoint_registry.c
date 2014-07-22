@@ -9,7 +9,8 @@
 #include "hexabus_config.h"
 #include "eeprom_variables.h"
 
-#define LOG_LEVEL ENDPOINT_REGISTRY_DEBUG
+//#define LOG_LEVEL ENDPOINT_REGISTRY_DEBUG
+#define LOG_LEVEL LOG_DEBUG
 #include "syslog.h"
 
 struct endpoint_registry_entry* _endpoint_chain = 0;
@@ -185,10 +186,13 @@ void _property_register(const struct endpoint_property_descriptor* epp, struct e
 #if ENDPOINT_REGISTRY_DEBUG
 	//TODO
 #endif
+	struct endpoint_property_descriptor epp_copy;
+	memcpy_P(&epp_copy, epp, sizeof(epp_copy));
+	syslog(LOG_DEBUG, "Registering %u %lu %lu\n", epp_copy.datatype, epp_copy.eid, epp_copy.propid);
 
 	chain_link->value = next_eeprom_addr;
 
-	switch(epp->datatype){
+	switch(epp_copy.datatype){
 		case HXB_DTYPE_BOOL:
 		case HXB_DTYPE_UINT8:
 			next_eeprom_addr+=sizeof(uint8_t);
@@ -203,7 +207,7 @@ void _property_register(const struct endpoint_property_descriptor* epp, struct e
 			next_eeprom_addr+=sizeof(float);
 			break;
 		case HXB_DTYPE_128STRING:
-			next_eeprom_addr+=sizeof(HXB_PROPERTY_STRING_LENGTH+1);
+			next_eeprom_addr+=HXB_PROPERTY_STRING_LENGTH+1;
 			break;
 		case HXB_DTYPE_TIMESTAMP:
 			next_eeprom_addr+=sizeof(uint32_t);
@@ -266,7 +270,7 @@ enum hxb_error_code endpoint_property_write(uint32_t eid, uint32_t propid, const
 						eeprom_write_block((unsigned char*) &(value->v_float), epp.value, sizeof(float));
 						break;
 					case HXB_DTYPE_128STRING:
-						value->v_string[HXB_PROPERTY_STRING_LENGTH-1] =  '\0';
+						value->v_string[HXB_PROPERTY_STRING_LENGTH] =  '\0';
 						eeprom_write_block((unsigned char*) value->v_string, epp.value, HXB_PROPERTY_STRING_LENGTH);
 						break;
 					case HXB_DTYPE_TIMESTAMP:

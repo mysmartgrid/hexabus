@@ -92,6 +92,8 @@ bool allows_implicit_ack(union hxb_packet_any* packet) {
 		case HXB_PTYPE_EPQUERY:
 		case HXB_PTYPE_WRITE:
 		case HXB_PTYPE_ACK:
+		case HXB_PTYPE_EP_PROP_QUERY:
+		case HXB_PTYPE_EP_PROP_WRITE:
 			return true;
 			break;
 		default:

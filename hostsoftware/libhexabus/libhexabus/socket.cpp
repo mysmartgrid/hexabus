@@ -209,6 +209,8 @@ static bool allows_implicit_ack(const Packet &packet) {
 		case HXB_PTYPE_QUERY:
 		case HXB_PTYPE_EPQUERY:
 		case HXB_PTYPE_WRITE:
+		case HXB_PTYPE_EP_PROP_WRITE:
+		case HXB_PTYPE_EP_PROP_QUERY:
 		case HXB_PTYPE_ACK:
 			return true;
 		default:

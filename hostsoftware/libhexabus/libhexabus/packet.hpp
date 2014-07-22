@@ -75,6 +75,11 @@ namespace hexabus {
 	template<typename TValue>
 	class ProxyInfoPacket;
 	class TimeInfoPacket;
+	class PropertyQueryPacket;
+	template<typename TValue>
+	class PropertyWritePacket;
+	template<typename TValue>
+	class PropertyReportPacket;
 
 	template<template<typename TValue> class TPacket>
 	class TypedPacketVisitor {
@@ -105,7 +110,9 @@ namespace hexabus {
 			public virtual TypedPacketVisitor<InfoPacket>,
 			public virtual TypedPacketVisitor<ReportPacket>,
 			public virtual TypedPacketVisitor<WritePacket>,
-			public virtual TypedPacketVisitor<ProxyInfoPacket> {
+			public virtual TypedPacketVisitor<ProxyInfoPacket>,
+			public virtual TypedPacketVisitor<PropertyWritePacket>,
+			public virtual TypedPacketVisitor<PropertyReportPacket> {
 		public:
 			virtual ~PacketVisitor() {}
 
@@ -113,6 +120,8 @@ namespace hexabus {
 			using TypedPacketVisitor<ReportPacket>::visit;
 			using TypedPacketVisitor<WritePacket>::visit;
 			using TypedPacketVisitor<ProxyInfoPacket>::visit;
+			using TypedPacketVisitor<PropertyWritePacket>::visit;
+			using TypedPacketVisitor<PropertyReportPacket>::visit;
 
 			virtual void visit(const ErrorPacket& error) = 0;
 			virtual void visit(const QueryPacket& query) = 0;
@@ -121,6 +130,7 @@ namespace hexabus {
 			virtual void visit(const EndpointReportPacket& endpointReport) = 0;
 			virtual void visit(const AckPacket& ack) = 0;
 			virtual void visit(const TimeInfoPacket& timeinfo) = 0;
+			virtual void visit(const PropertyQueryPacket& propertyQuery) = 0;
 
 			virtual void visitPacket(const Packet& packet)
 			{
@@ -425,6 +435,71 @@ namespace hexabus {
 				return new TimeInfoPacket(*this);
 			}
 		};
+
+	class PropertyQueryPacket : public EIDPacket {
+		private:
+			uint32_t _propid;
+
+		public:
+			PropertyQueryPacket(uint32_t propid, uint32_t eid, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: EIDPacket(HXB_PTYPE_EP_PROP_QUERY, eid, flags, sequenceNumber), _propid(propid)
+			{}
+
+			uint32_t propid() const { return _propid; }
+
+			virtual void accept(PacketVisitor& visitor) const
+			{
+				visitor.visit(*this);
+			}
+
+			Packet* clone() const {
+				return new PropertyQueryPacket(*this);
+			}
+	};
+
+	template<typename TValue>
+	class PropertyWritePacket : public ValuePacket<TValue> {
+		private:
+			uint32_t _propid;
+
+		public:
+			PropertyWritePacket(uint32_t propid, uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: ValuePacket<TValue>(HXB_PTYPE_EP_PROP_WRITE, eid, value, flags, sequenceNumber), _propid(propid)
+			{}
+
+			uint32_t propid() const { return _propid; }
+
+			virtual void accept(PacketVisitor& visitor) const
+			{
+				visitor.visit(*this);
+			}
+
+			Packet* clone() const {
+				return new PropertyWritePacket(*this);
+			}
+	};
+
+	template<typename TValue>
+	class PropertyReportPacket : public ValuePacket<TValue>, public CausedPacket {
+		private:
+			uint32_t _nextid;
+		public:
+			PropertyReportPacket(uint32_t nextid, int16_t cause, uint32_t eid, const TValue& value, uint8_t flags = 0, uint16_t sequenceNumber = 0)
+				: ValuePacket<TValue>(HXB_PTYPE_REPORT, eid, value, flags, sequenceNumber), CausedPacket(cause), _nextid(nextid)
+			{}
+
+			uint32_t nextid() const { return _nextid; }
+
+			virtual void accept(PacketVisitor& visitor) const
+			{
+				visitor.visit(*this);
+			}
+
+			Packet* clone() const {
+				return new PropertyReportPacket(*this);
+			}
+	};
+
 };
 
 #endif

@@ -159,12 +159,55 @@ class ProxyInfoPacketSerializer : public virtual SerializerBuffer, public virtua
 		virtual void visit(const ProxyInfoPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
 };
 
+class PropertyReportPacketSerializer: public virtual SerializerBuffer, public virtual TypedPacketVisitor<PropertyReportPacket> {
+	private:
+		template<typename TValue>
+		void append(const PropertyReportPacket<TValue>& packet)
+		{
+			append_u32(packet.eid());
+			append_u8(packet.datatype());
+			append_u32(packet.nextid());
+			appendValue(packet);
+			append_u16(packet.cause());
+		}
+
+		virtual void visit(const PropertyReportPacket<bool>& packet) { append(packet); }
+		virtual void visit(const PropertyReportPacket<uint8_t>& packet) { append(packet); }
+		virtual void visit(const PropertyReportPacket<uint32_t>& packet) { append(packet); }
+		virtual void visit(const PropertyReportPacket<float>& packet) { append(packet); }
+		virtual void visit(const PropertyReportPacket<std::string>& packet) { append(packet); }
+		virtual void visit(const PropertyReportPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
+		virtual void visit(const PropertyReportPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
+};
+
+class PropertyWritePacketSerializer: public virtual SerializerBuffer, public virtual TypedPacketVisitor<PropertyWritePacket> {
+	private:
+		template<typename TValue>
+		void append(const PropertyWritePacket<TValue>& packet)
+		{
+			append_u32(packet.eid());
+			append_u8(packet.datatype());
+			append_u32(packet.propid());
+			appendValue(packet);
+		}
+
+		virtual void visit(const PropertyWritePacket<bool>& packet) { append(packet); }
+		virtual void visit(const PropertyWritePacket<uint8_t>& packet) { append(packet); }
+		virtual void visit(const PropertyWritePacket<uint32_t>& packet) { append(packet); }
+		virtual void visit(const PropertyWritePacket<float>& packet) { append(packet); }
+		virtual void visit(const PropertyWritePacket<std::string>& packet) { append(packet); }
+		virtual void visit(const PropertyWritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
+		virtual void visit(const PropertyWritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& packet) { append(packet); }
+};
+
 class BinarySerializer :
 		private virtual SerializerBuffer,
 		private virtual TypedPacketSerializer<InfoPacket>,
 		private virtual ReportPacketSerializer,
 		private virtual TypedPacketSerializer<WritePacket>,
 		private virtual ProxyInfoPacketSerializer,
+		private virtual PropertyWritePacketSerializer,
+		private virtual PropertyReportPacketSerializer,
 		private virtual PacketVisitor {
 	public:
 		std::vector<char> serialize(const Packet& packet, uint16_t seqNum);
@@ -177,6 +220,7 @@ class BinarySerializer :
 		virtual void visit(const EndpointReportPacket& endpointReport);
 		virtual void visit(const AckPacket& ack);
 		virtual void visit(const TimeInfoPacket& timeinfo);
+		virtual void visit(const PropertyQueryPacket& propertyQuery);
 };
 
 std::vector<char> BinarySerializer::serialize(const Packet& packet, uint16_t seqNum)
@@ -239,6 +283,12 @@ void BinarySerializer::visit(const TimeInfoPacket& timeinfo)
 	append_u8(timeinfo.datetime().date().day_of_week());
 }
 
+void BinarySerializer::visit(const PropertyQueryPacket& propertyQuery)
+{
+	append_u32(propertyQuery.eid());
+	append_u32(propertyQuery.propid());
+}
+
 // }}}
 
 std::vector<char> hexabus::serialize(const Packet& packet, uint16_t seqNum)
@@ -270,6 +320,8 @@ class BinaryDeserializer {
 
 		template<typename T>
 		Packet::Ptr completeAndCheck(uint8_t packetType, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum);
+		template<typename T>
+		Packet::Ptr completeAndCheck(uint32_t propnextid, uint8_t packetType, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum);
 
 		template<typename T>
 		Packet::Ptr check(const T& packet);
@@ -396,6 +448,24 @@ Packet::Ptr BinaryDeserializer::completeAndCheck(uint8_t packetType, uint32_t ei
 }
 
 template<typename T>
+Packet::Ptr BinaryDeserializer::completeAndCheck(uint32_t propnextid, uint8_t packetType, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum)
+{
+	switch (packetType) {
+		case HXB_PTYPE_EP_PROP_WRITE:
+			return check(PropertyWritePacket<T>(propnextid, eid, value, flags, seqNum));
+
+		case HXB_PTYPE_EP_PROP_REPORT:
+			{
+				uint16_t cause = read_u16();
+				return check(PropertyReportPacket<T>(propnextid, cause, eid, value, flags, seqNum));
+			}
+
+		default:
+			throw BadPacketException("completeAndCheck assumptions violated");
+	}
+}
+
+template<typename T>
 Packet::Ptr BinaryDeserializer::check(const T& packet)
 {
 	return Packet::Ptr(new T(packet));
@@ -504,6 +574,47 @@ Packet::Ptr BinaryDeserializer::deserialize()
 					throw BadPacketException("Invalid datetime format");
 
 				return check(TimeInfoPacket(dt, flags, seqNum));
+			}
+
+		case HXB_PTYPE_EP_PROP_WRITE:
+		case HXB_PTYPE_EP_PROP_REPORT:
+			{
+				uint32_t eid = read_u32();
+				uint8_t datatype = read_u8();
+				uint16_t propnextid = read_u32();
+
+				switch (datatype) {
+					case HXB_DTYPE_BOOL:
+						return completeAndCheck<bool>(propnextid, type, eid, read_u8(), flags, seqNum);
+
+					case HXB_DTYPE_UINT8:
+						return completeAndCheck<uint8_t>(propnextid, type, eid, read_u8(), flags, seqNum);
+
+					case HXB_DTYPE_UINT32:
+						return completeAndCheck<uint32_t>(propnextid, type, eid, read_u32(), flags, seqNum);
+
+					case HXB_DTYPE_FLOAT:
+						return completeAndCheck<float>(propnextid, type, eid, read_float(), flags, seqNum);
+
+					case HXB_DTYPE_128STRING:
+						return completeAndCheck<std::string>(propnextid, type, eid, read_string(), flags, seqNum);
+
+					case HXB_DTYPE_16BYTES:
+						return completeAndCheck<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >(propnextid, type, eid, read_bytes<HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags, seqNum);
+
+					case HXB_DTYPE_66BYTES:
+						return completeAndCheck<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >(propnextid, type, eid, read_bytes<HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH>(), flags, seqNum);
+
+					default:
+						throw BadPacketException("Invalid datatype");
+					}
+			}
+
+		case HXB_PTYPE_EP_PROP_QUERY:
+			{
+				uint32_t eid = read_u32();
+				uint32_t propid = read_u32();
+				return check(PropertyQueryPacket(propid, eid, flags, seqNum));
 			}
 
 		default:

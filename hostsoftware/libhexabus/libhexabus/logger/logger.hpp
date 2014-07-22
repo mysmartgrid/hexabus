@@ -16,7 +16,9 @@ namespace hexabus {
 class Logger :
 		private PacketVisitor,
 		virtual hexabus::TypedPacketVisitor<hexabus::ReportPacket>::Empty,
-		virtual hexabus::TypedPacketVisitor<hexabus::ProxyInfoPacket>::Empty {
+		virtual hexabus::TypedPacketVisitor<hexabus::ProxyInfoPacket>::Empty,
+		virtual hexabus::TypedPacketVisitor<hexabus::PropertyReportPacket>::Empty,
+		virtual hexabus::TypedPacketVisitor<hexabus::PropertyWritePacket>::Empty {
 	protected:
 		klio::TimeConverter& tc;
 		klio::SensorFactory& sensor_factory;
@@ -58,6 +60,7 @@ class Logger :
 		virtual void visit(const hexabus::EndpointReportPacket& endpointInfo) {}
 		virtual void visit(const hexabus::AckPacket& ack) {}
 		virtual void visit(const hexabus::TimeInfoPacket& timeinfo) {}
+		virtual void visit(const hexabus::PropertyQueryPacket& propertyQuery) {}
 
 		virtual void visit(const hexabus::WritePacket<bool>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
@@ -66,6 +69,22 @@ class Logger :
 		virtual void visit(const hexabus::WritePacket<std::string>& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& write) {}
+
+		virtual void visit(const hexabus::PropertyWritePacket<bool>& propertyWrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<uint8_t>& propertyWrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<uint32_t>& propertyWrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<float>& propertyWrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<std::string>& propertyWrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& propertyWrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& propertyWrite) {}
+
+		virtual void visit(const hexabus::PropertyReportPacket<bool>& propertyReport) {}
+		virtual void visit(const hexabus::PropertyReportPacket<uint8_t>& propertyReport) {}
+		virtual void visit(const hexabus::PropertyReportPacket<uint32_t>& propertyReport) {}
+		virtual void visit(const hexabus::PropertyReportPacket<float>& propertyReport) {}
+		virtual void visit(const hexabus::PropertyReportPacket<std::string>& propertyReport) {}
+		virtual void visit(const hexabus::PropertyReportPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >& propertyReport) {}
+		virtual void visit(const hexabus::PropertyReportPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >& propertyReport) {}
 
 	protected:
 		virtual void record_reading(klio::Sensor::Ptr sensor, klio::timestamp_t ts, double value) = 0;

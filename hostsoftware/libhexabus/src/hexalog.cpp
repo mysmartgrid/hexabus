@@ -4,7 +4,6 @@
 #include <set>
 #include <string.h>
 #include <libhexabus/common.hpp>
-#include <libhexabus/crc.hpp>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/socket.hpp>
 #include <libhexabus/device_interrogator.hpp>
@@ -201,7 +200,7 @@ int main(int argc, char** argv)
 	}
 
 	try {
-		klio::StoreFactory store_factory; 
+		klio::StoreFactory store_factory;
 		klio::Store::Ptr store;
 
 		std::string storefile(vm["storefile"].as<std::string>());
@@ -213,9 +212,9 @@ int main(int argc, char** argv)
 		}
 		store = store_factory.open_sqlite3_store(db);
 
-		std::string sensor_timezone("Europe/Berlin"); 
+		std::string sensor_timezone("Europe/Berlin");
 		if (! vm.count("timezone")) {
-			std::cerr << "Using default timezone " << sensor_timezone 
+			std::cerr << "Using default timezone " << sensor_timezone
 			<< ", change with -t <NEW_TIMEZONE>" << std::endl;
 		} else {
 			sensor_timezone=vm["timezone"].as<std::string>();
