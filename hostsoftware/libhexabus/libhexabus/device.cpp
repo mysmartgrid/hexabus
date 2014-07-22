@@ -283,6 +283,7 @@ void Device::_handle_smupload(hexabus::Socket* socket, const Packet& p, const bo
 
 void Device::_handle_broadcasts(const boost::system::error_code& error)
 {
+	_debug && std::cout << "activate handle_broadcast."  << std::endl;
 	if ( !error )
 	{
 		for ( std::map<uint32_t, const EndpointFunctions::Ptr>::iterator it = _endpoints.begin(), end = _endpoints.end(); it != end; ++it )
@@ -296,15 +297,18 @@ void Device::_handle_broadcasts(const boost::system::error_code& error)
 						(*it)->send(*p);
 					} catch ( const NetworkException& error ) {
 						std::cerr << "An error occured at handle_broadcast during " << error.reason() << ": " << error.code().message() << std::endl;
-					} catch ( ... ) {
-						std::cerr << "send in handle_broadcast failed for some other reason."  << std::endl;
+						throw;
 					}
 				}
+			} else {
+				std::cerr << "handle_broadcast Packet type is HXB_PTYPE_ERROR for EID: "  << it->second->eid() << std::endl;
 			}
 		}
 
 		_timer.expires_from_now(boost::posix_time::seconds(_interval+(rand()%_interval)));
 		_timer.async_wait(boost::bind(&Device::_handle_broadcasts, this, _1));
+	} else {
+		std::cerr << "handle_broadcast boost-error was set."  << std::endl;
 	}
 }
 
