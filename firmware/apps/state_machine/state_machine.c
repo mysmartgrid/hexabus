@@ -165,7 +165,7 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
       {
 				syslog(LOG_DEBUG, "Checking in-state-since Condition! Have been in this state for %lu sec.", getTimestamp() - inStateSince);
 				syslog(LOG_DEBUG, "getTimestamp(): %lu - inStateSince: %lu >= cond.value.data: %lu", getTimestamp(), inStateSince, cond.value.v_u32);
-        return getTimestamp() - inStateSince >= cond.value.v_u32;
+        return clock_seconds() - inStateSince >= cond.value.v_u32;
       }
       break;
 
@@ -206,18 +206,18 @@ void check_datetime_transitions()
 				eid_env.value = t.value;
 				eid_env.eid = t.eid;
 				if (endpoint_write(t.eid, &eid_env) == 0) {
-					inStateSince = getTimestamp();
+					inStateSince = clock_seconds();
 					curState = t.goodState;
 					syslog(LOG_DEBUG, "Everything is fine");
 					break;
 				} else {
-					inStateSince = getTimestamp();
+					inStateSince = clock_seconds();
 					curState = t.badState;
 					syslog(LOG_DEBUG, "Something bad happened");
 					break;
 				}
 			} else {
-				inStateSince = getTimestamp();
+				inStateSince = clock_seconds();
 				curState = t.goodState;
 				syslog(LOG_DEBUG, "No action performed.");
 			}
@@ -245,18 +245,18 @@ void check_value_transitions(void* data)
 				eid_env.value = t.value;
 				syslog(LOG_DEBUG, "Writing to endpoint %ld", t.eid);
 				if (endpoint_write(t.eid, &eid_env) == 0) {
-					inStateSince = getTimestamp();
+					inStateSince = clock_seconds();
 					curState = t.goodState;
 					syslog(LOG_DEBUG, "Everything is fine");
 					break;
 				} else { // Something went wrong
-					inStateSince = getTimestamp();
+					inStateSince = clock_seconds();
 					curState = t.badState;
 					syslog(LOG_DEBUG, "Something bad happened");
 					break;
 				}
 			} else {
-				inStateSince = getTimestamp();
+				inStateSince = clock_seconds();
 				curState = t.goodState;
 				syslog(LOG_DEBUG, "No action performed");
 			}

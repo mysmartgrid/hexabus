@@ -16,7 +16,6 @@
 
 static struct hxb_datetime current_dt;
 static bool time_valid;
-static uint32_t timestamp; // seconds since datetime-service was started.
 
 static struct etimer update_timer;
 
@@ -41,10 +40,6 @@ int getDatetime(struct hxb_datetime *dt)
 	dt->weekday = current_dt.weekday;
 
 	return time_valid ? 0 : -1;
-}
-
-uint32_t getTimestamp() {
-    return timestamp;
 }
 
 PROCESS(datetime_service_process, "Keeps the Date and Time up-to-date\n");
@@ -97,7 +92,6 @@ PROCESS_THREAD(datetime_service_process, ev, data)
 {
 	PROCESS_BEGIN();
 
-	timestamp = 0;
 	time_valid = false;
 
 	etimer_set(&update_timer, CLOCK_SECOND);
@@ -114,8 +108,6 @@ PROCESS_THREAD(datetime_service_process, ev, data)
 				continue;
 
 			etimer_reset(&update_timer);
-
-			timestamp++;
 
 #if DTS_SKIP_EVERY_N
 			static unsigned skipCounter = 0;
