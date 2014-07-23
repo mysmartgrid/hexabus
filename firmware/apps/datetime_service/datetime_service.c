@@ -80,7 +80,6 @@ static void updateClock()
 		return;
 
 	current_dt.day = 1;
-	current_dt.month++;
 	if (++current_dt.month < 12)
 		return;
 
