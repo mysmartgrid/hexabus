@@ -42,7 +42,7 @@ Pusher::Pusher(boost::asio::io_service& io, const std::vector<std::string>& inte
 	klio::StoreFactory store_factory;
 
 	//TODO: url handling
-	_store = store_factory.create_msg_store();
+	_store = store_factory.create_msg_store(false);
 
 	klio::SensorFactory sensor_factory;
 	_sensor = sensor_factory.create_msg_sensor(
