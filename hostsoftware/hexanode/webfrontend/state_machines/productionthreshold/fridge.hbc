@@ -3,7 +3,7 @@ include source.hbh;
 include std_eid.hbh;
 
 machine fridge_machine {
-	states { init, wait_on, on, off }
+	states { init, wait_on, on, wait_off, off }
 	in(init) {
 		always {
 			write fridge.On := 1;
@@ -23,17 +23,28 @@ machine fridge_machine {
 	in(on) {
 		if (ep fridge.PowerMeter < <%= usageThreshold %>) {
 			write fridge.On := 0;
-			goto off;
+			goto wait_off;
 		}
 		if (timeout i<%= onTimeout %>) {
 			write fridge.On := 0;
-			goto on;
+			goto wait_off;
 		}
 		if (ep fridge.Button == 1) {
 			write fridge.On := 0;
 			goto off;
 		}
 	}
+	in(wait_off) {
+		if (timeout i60) {
+			goto off;
+		}
+
+		if (ep fridge.Button == 1) {
+			write fridge.On := 0;
+			goto wait_on;
+		}
+	}
+
 	in(off) {
 		if (ep source.PowerMeter >= <%= productionThreshold %>) {
 			write fridge.On := 1;
