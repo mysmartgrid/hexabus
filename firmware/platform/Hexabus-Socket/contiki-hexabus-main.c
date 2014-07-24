@@ -52,25 +52,10 @@
 #include "loader/symbols-def.h"
 #include "loader/symtab.h"
 
-#if RF230BB        //radio driver using contiki core mac
 #include "radio/rf230bb/rf230bb.h"
 #include "net/mac/frame802154.h"
 #include "net/mac/framer-802154.h"
 #include "net/sicslowpan.h"
-
-#elif RF212BB        //radio driver using contiki core mac
-#include "radio/rf212bb/rf212bb.h"
-#include "net/mac/frame802154.h"
-#include "net/mac/framer-802154.h"
-#include "net/sicslowpan.h"
-
-#else                 //radio driver using Atmel/Cisco 802.15.4'ish MAC
-#include <stdbool.h>
-#include "mac.h"
-#include "sicslowmac.h"
-#include "sicslowpan.h"
-#include "ieee-15-4-manager.h"
-#endif /*RF230BB*/
 
 #include "contiki.h"
 #include "contiki-net.h"
@@ -228,8 +213,6 @@ void initialize(void)
  /* etimers must be started before ctimer_init */
   process_start(&etimer_process, NULL);
 
-#if RF230BB || RF212BB
-
   ctimer_init();
   /* Start radio and radio receive process */
 
@@ -243,21 +226,12 @@ void initialize(void)
 #if UIP_CONF_IPV6 
   memcpy(&uip_lladdr.addr, &addr.u8, 8);
 #endif  
-#if RF230BB
   rf230_set_pan_addr(
 	get_panid_from_eeprom(),
 	get_panaddr_from_eeprom(),
 	(uint8_t *)&addr.u8
   );
-  rf230_set_channel(CHANNEL_802_15_4);
-
-#elif RF212BB
-  rf212_set_pan_addr(
-	get_panid_from_eeprom(),
- 	get_panaddr_from_eeprom(),
- 	(uint8_t *)&addr.u8
-   );
-#endif
+  rf230_set_channel(RF_CHANNEL);
 
 	extern uint16_t mac_dst_pan_id;
 	extern uint16_t mac_src_pan_id;
@@ -276,11 +250,7 @@ void initialize(void)
   NETSTACK_NETWORK.init();
 
 #if ANNOUNCE_BOOT
- #if RF230BB
   PRINTF("%s %s, channel %u",NETSTACK_MAC.name, NETSTACK_RDC.name, rf230_get_channel());
- #elif RF212BB
-  PRINTF("%s %s, channel %u",NETSTACK_MAC.name, NETSTACK_RDC.name, rf212_get_channel());
- #endif /* RF230BB */
   if (NETSTACK_RDC.channel_check_interval) {//function pointer is zero for sicslowmac
     unsigned short tmp;
     tmp=CLOCK_SECOND / (NETSTACK_RDC.channel_check_interval == 0 ? 1:\
@@ -302,13 +272,6 @@ void initialize(void)
 // uip_router_register(&rimeroute);
 
   process_start(&tcpip_process, NULL);
-
-#else
-/* Original RF230 combined mac/radio driver */
-/* mac process must be started before tcpip process! */
-  process_start(&mac_process, NULL);
-  process_start(&tcpip_process, NULL);
-#endif /*RF230BB || RF212BB*/
 
   //initialize random number generator with part of the MAC address
   random_init(eeprom_read_word((uint16_t*)(EE_MAC_ADDR + EE_MAC_ADDR_SIZE - 2)));
@@ -421,11 +384,7 @@ void initialize(void)
 #endif
 }
 
-#if RF230BB
 extern char rf230_interrupt_flag, rf230processflag;
-#elif RF212BB
-extern char rf212_interrupt_flag, rf212processflag; // this is still not implemented
-#endif
 
 /*-------------------------------------------------------------------------*/
 /*------------------------- Main Scheduler loop----------------------------*/

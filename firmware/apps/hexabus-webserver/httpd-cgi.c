@@ -67,8 +67,6 @@
 
 #if RF230BB
 #include "radio/rf230bb/rf230bb.h"
-#elif RF212BB
-#include "radio/rf212bb/rf212bb.h"
 #endif
 
 
@@ -80,14 +78,14 @@ extern char TCPBUF[512];
 #endif
 
 /* RADIOSTATS must also be set in clock.c and the radio driver */
-#if RF230BB || RF212BB
+#if RF230BB
 // TODO #define RADIOSTATS 1
 #endif
 
 /*
 #if RADIOSTATS
-uint8_t RF212_rsigsi, rf212_last_rssi;
-uint16_t RF212_sendpackets,RF212_receivepackets,RF212_sendfail,RF212_receivefail;
+uint8_t RF230_rsigsi, rf230_last_rssi;
+uint16_t RF230_sendpackets,RF230_receivepackets,RF230_sendfail,RF230_receivefail;
 #endif
 */
 
@@ -140,9 +138,6 @@ static const char *states[] = {
 #if RF230BB
   extern uint8_t RF230_radio_on, rf230_last_rssi;
   extern uint16_t RF230_sendpackets,RF230_receivepackets,RF230_sendfail,RF230_receivefail;
-#elif RF212BB
-  extern uint8_t RF212_radio_on, rf212_last_rssi;
-  extern uint16_t RF212_sendpackets, RF212_receivepackets, RF212_sendfail, RF212_receivefail;
 #endif
 #endif
 
@@ -519,10 +514,6 @@ generate_radio_stats(void *arg)
 #if RF230BB
   numprinted+=httpd_snprintf((char *)uip_appdata + numprinted, uip_mss() - numprinted, httpd_cgi_sensor11,\
     RF230_sendpackets,RF230_receivepackets,RF230_sendfail,RF230_receivefail,-92+rf230_last_rssi);
-
-#elif RF212BB
-  numprinted+=httpd_snprintf((char *)uip_appdata + numprinted, uip_mss() - numprinted, httpd_cgi_sensor11,\
-      RF212_sendpackets,RF212_receivepackets,RF212_sendfail,RF212_receivefail,-92+rf212_last_rssi);
 #else
   p1=0;
   radio_get_rssi_value(&p1);

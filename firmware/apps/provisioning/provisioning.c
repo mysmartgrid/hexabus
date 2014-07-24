@@ -39,8 +39,8 @@
 #include <util/delay.h>
 #include "sys/clock.h"
 #include "dev/leds.h"
-#include "radio/rf212bb/rf212bb.h"
-#include "radio/rf212bb/hal.h"
+#include "radio/rf230bb/rf230bb.h"
+#include "radio/rf230bb/hal.h"
 #include "dev/watchdog.h"
 #include "net/netstack.h"
 #include "packetbuf.h"
@@ -128,7 +128,7 @@ int provisioning_slave(void) {
 	uint8_t tmp_enc = encryption_enabled;
 	encryption_enabled = 0;
 
-	rf212_set_pan_addr(0x0001, 0, NULL);
+	rf230_set_pan_addr(0x0001, 0, NULL);
 	time = clock_time();
 	//Ask Master every 500ms and for max. PROV_TIMEOUT_SOCKETs to start provisioning
 		uint16_t length;
@@ -142,7 +142,7 @@ int provisioning_slave(void) {
 			packetbuf_clear();
 			packetbuf_set_datalen(0);
 			_delay_ms(500);
-			length = rf212_read(packetbuf_dataptr(), PACKETBUF_SIZE);
+			length = rf230_read(packetbuf_dataptr(), PACKETBUF_SIZE);
 			provisioning_leds();
 			//parse frame
 			if (length > 0) {
@@ -154,7 +154,7 @@ int provisioning_slave(void) {
 	if(clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT_SOCKET) {
 		mac_dst_pan_id = old_pan_id;
 		mac_src_pan_id = old_pan_id;
-		rf212_set_pan_addr(old_pan_id, 0, NULL);
+		rf230_set_pan_addr(old_pan_id, 0, NULL);
 		bootloader_mode = 0;
 		encryption_enabled = tmp_enc;
 		//indicate normal operation
@@ -172,15 +172,15 @@ int provisioning_slave(void) {
 			PRINTF("%x ", packet->aes_key[i]);
 		}
 		PRINTF("\n");
-		AVR_ENTER_CRITICAL_REGION();
+		HAL_ENTER_CRITICAL_REGION();
 		eeprom_write_word((uint16_t *)EE_PAN_ID, packet->pan_id);
 		eeprom_write_block(packet->aes_key, (void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
-		AVR_LEAVE_CRITICAL_REGION();
+		HAL_LEAVE_CRITICAL_REGION();
 		provisioning_done_leds();
 		mac_dst_pan_id = packet->pan_id;
 		mac_src_pan_id = packet->pan_id;
-		rf212_key_setup(packet->aes_key);
-		rf212_set_pan_addr(packet->pan_id, 0, NULL);
+		rf230_key_setup(packet->aes_key);
+		rf230_set_pan_addr(packet->pan_id, 0, NULL);
 		bootloader_mode = 0;
 		encryption_enabled = tmp_enc;
 		//indicate normal operation

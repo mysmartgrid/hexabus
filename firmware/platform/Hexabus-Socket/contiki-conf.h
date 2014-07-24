@@ -48,6 +48,7 @@
 #define PLATFORM       PLATFORM_AVR
 #define HEXABUS_SOCKET 1000
 #define RAVEN_REVISION HEXABUS_SOCKET
+#define PLATFORM_TYPE  HEXABUS_SOCKET
 #ifndef F_CPU
 #define F_CPU          8000000UL
 #endif
@@ -85,11 +86,11 @@ typedef unsigned long off_t;
 //#define EEPROMFS_ADDR_CODEPROP 0x8000
 
 /* Network setup. The new NETSTACK interface requires RF230BB (as does ip4) */
-#if RF230BB || RF212BB
+#if RF230BB
 #undef PACKETBUF_CONF_HDR_SIZE                  //Use the packetbuf default for header size
 #else
 #define PACKETBUF_CONF_HDR_SIZE    0            //RF230 combined driver/mac handles headers internally
-#endif /*RF230BB || RF212BB*/
+#endif /*RF230BB*/
 
 #define HEXABUS_FORWARDING 1
 
@@ -166,17 +167,17 @@ typedef unsigned long off_t;
 #define NETSTACK_CONF_MAC         nullmac_driver
 #define NETSTACK_CONF_RDC         sicslowmac_driver
 #define NETSTACK_CONF_FRAMER      framer_802154
-#define NETSTACK_CONF_RADIO       rf212_driver
+#define NETSTACK_CONF_RADIO       rf230_driver
 
 #define CHANNEL_802_15_4          0
 /* AUTOACK receive mode gives better rssi measurements, even if ACK is never requested */
 #define RF230_CONF_AUTOACK        1
-#define RF212_CONF_AUTOACK        1
 /* Request 802.15.4 ACK on all packets sent (else autoretry). This is primarily for testing. */
 #define SICSLOWPAN_CONF_ACK_ALL   1
 /* Number of auto retry attempts 0-15 (0 implies don't use extended TX_ARET_ON mode with CCA) */
 #define RF230_CONF_AUTORETRIES    2
-#define RF212_CONF_AUTORETRIES    2
+// CCA threshold for LBT is -82dBm, see rf212 datasheet page 89
+#define RF230_CONF_CCA_THRES      (-82)
 #define SICSLOWPAN_CONF_FRAG      1
 /* Most browsers reissue GETs after 3 seconds which stops fragment reassembly so a longer MAXAGE does no good */
 #define SICSLOWPAN_CONF_MAXAGE    3
