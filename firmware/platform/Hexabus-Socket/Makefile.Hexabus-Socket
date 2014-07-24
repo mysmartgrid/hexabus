@@ -1,0 +1,20 @@
+CONTIKI_TARGET_DIRS = .
+
+CONTIKI_TARGET_SOURCEFILES += contiki-hexabus-init-lowlevel.c contiki-hexabus-main.c 
+CONTIKI_TARGET_SOURCEFILES += mem-debug.c hexabus_app_bootstrap.c health.c
+#The avr cpu makefile will also add these files if COFFEE_FILES is specified.
+#CONTIKI_TARGET_SOURCEFILES += cfs-coffee.c cfs-coffee-arch.c
+#Needed for slip
+#CONTIKI_TARGET_SOURCEFILES += slip_uart0.c slip.c
+
+CONTIKI_PLAT_DEFS = -DF_CPU=8000000UL -DAUTO_CRC_PADDING=2
+
+BOOTLOADER_START=0x1E000
+
+MCU=atmega1284p
+
+# use RF212 driver
+RF212BB=1
+
+include $(CONTIKI)/cpu/avr/Makefile.avr
+include $(CONTIKI)/cpu/avr/radio/Makefile.radio
