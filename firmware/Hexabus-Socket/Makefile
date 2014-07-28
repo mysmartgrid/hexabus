@@ -11,7 +11,7 @@ UIP_CONF_IPV6=1
 
 CONTIKI = ../contiki
 TARGETDIRS = ../platform
-APPDIRS += ${addprefix ../apps/, $(APPS)}
+APPDIRS += ../apps/
 
 include $(CONTIKI)/Makefile.include
 

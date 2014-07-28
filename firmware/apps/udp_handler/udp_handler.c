@@ -506,7 +506,7 @@ udphandler(process_event_t ev, process_data_t data)
 			reset_unreachable_timer();
 			uip_ds6_defrt_t* rtr = uip_ds6_defrt_lookup(uip_ds6_defrt_choose());
 			bool expired = stimer_expired(&rtr->lifetime);
-			bool route_valid = rtr && rtr->isused && (rtr->isinfinite || !expired);
+			bool route_valid = rtr && (rtr->isinfinite || !expired);
 			if (!route_valid && state != UDP_HANDLER_DOWN) {
 				state = UDP_HANDLER_DOWN;
 				process_post(PROCESS_BROADCAST, udp_handler_event, &state);
