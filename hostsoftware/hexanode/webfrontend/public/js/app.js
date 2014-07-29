@@ -702,8 +702,8 @@ angular.module('dashboard', [
  * Production threshold statemachine
  */
 	$scope.productionThreshold = {};
-	$scope.productionThreshold.source_devices = {};
-	$scope.productionThreshold.switch_devices = {};
+	$scope.productionThreshold.producer_devices = {};
+	$scope.productionThreshold.consumer_devices = {};
 
 	var hasEId = function(device,eid) {
 		for(var index in device.eids) {
@@ -716,31 +716,31 @@ angular.module('dashboard', [
 
 	for(var ip in $scope.devices) {
 		if(hasEId($scope.devices[ip],2)) {
-			$scope.productionThreshold.source_devices[ip] = $scope.devices[ip];
+			$scope.productionThreshold.producer_devices[ip] = $scope.devices[ip];
 		}
 		if(hasEId($scope.devices[ip],1)) {
-			$scope.productionThreshold.switch_devices[ip] = $scope.devices[ip];
+			$scope.productionThreshold.consumer_devices[ip] = $scope.devices[ip];
 		}
 	}
 	
 	$scope.productionThreshold.resetForm = function() {
-		$scope.productionThreshold.source = $scope.productionThreshold.source_devices[Object.keys($scope.productionThreshold.source_devices)[0]].ip;
+		$scope.productionThreshold.producer = $scope.productionThreshold.producer_devices[Object.keys($scope.productionThreshold.producer_devices)[0]].ip;
 		$scope.productionThreshold.productionThreshold = 10;
 		$scope.productionThreshold.offTimeout = 30;
 		$scope.productionThreshold.usageThreshold = 10;
 		$scope.productionThreshold.onTimeout = 30;
-		$scope.productionThreshold.switch = $scope.productionThreshold.switch_devices[Object.keys($scope.productionThreshold.switch_devices)[0]].ip;
+		$scope.productionThreshold.consumer = $scope.productionThreshold.consumer_devices[Object.keys($scope.productionThreshold.consumer_devices)[0]].ip;
 	};
 
 	$scope.productionThreshold.upload = function() {
 		hideAlerts();
 		$scope.busy = true;
-		message = {source: $scope.productionThreshold.source,
+		message = {producer: $scope.productionThreshold.producer,
 					productionThreshold: $scope.productionThreshold.productionThreshold,
 					offTimeout: $scope.productionThreshold.offTimeout, 
 					usageThreshold: $scope.productionThreshold.usageThreshold,
 					onTimeout: $scope.productionThreshold.onTimeout,
-					switchDevice: $scope.productionThreshold.switch};
+					consumer: $scope.productionThreshold.consumer};
 
 		Socket.emit('productionthreshold_sm', message);
 	};

@@ -1,4 +1,0 @@
-device source {
-  ip <%= source %>;
-  eids { 2 }
-}

@@ -5,9 +5,9 @@ var StatemachineBuilder = common.StatemachineBuilder;
 
 
 exports.validateInput = function(msg) {
-	if(!msg.hasOwnProperty('source') || !validator.isIP(msg.source,6)) {
+	if(!msg.hasOwnProperty('producer') || !validator.isIP(msg.producer,6)) {
 		console.log("Errror !");
-		return new validationError('soruce-ip-not-valid', 'The IPv6 address for source is invalid.');
+		return new validationError('producer-ip-not-valid', 'The IPv6 address for producer is invalid.');
 	}
 
 	if(!msg.hasOwnProperty('productionThreshold') || !validator.isInt(msg.productionThreshold)) {
@@ -46,8 +46,8 @@ exports.validateInput = function(msg) {
 		return new validationError('on-timeout-out-of-range', 'The value for on timeout should be at least 1 and at most 71582788.');
 	}
 	
-	if(!msg.hasOwnProperty('switchDevice') || !validator.isIP(msg.switchDevice,6)) {
-		return new validationError('soruce-ip-not-valid', 'The IPv6 address for switch is invalid.');
+	if(!msg.hasOwnProperty('consumer') || !validator.isIP(msg.consumer,6)) {
+		return new validationError('consumer-ip-not-valid', 'The IPv6 address for consumer is invalid.');
 	}
 }
 
@@ -62,14 +62,14 @@ exports.buildMachine = function(msg, progressCallback, callback) {
 	msg.onTimeout = msg.onTimeout * 60;
 	msg.offTimeout = msg.offTimeout * 60;
 
-	smb.addTargetFile('productionthreshold/source.hbh', 'source.hbh', msg);
-	smb.addTargetFile('productionthreshold/fridge.hbh', 'fridge.hbh', msg);
-	smb.addTargetFile('productionthreshold/fridge.hbc', 'fridge.hbc', msg);
+	smb.addTargetFile('productionthreshold/producer.hbh', 'producer.hbh', msg);
+	smb.addTargetFile('productionthreshold/consumer.hbh', 'consumer.hbh', msg);
+	smb.addTargetFile('productionthreshold/consumer.hbc', 'consumer.hbc', msg);
 
-	smb.addDevice('fridge',true);
-	smb.addDevice('source',false);
+	smb.addDevice('consumer',true);
+	smb.addDevice('producer',false);
 
-	smb.setCompileTarget('fridge.hbc');
+	smb.setCompileTarget('consumer.hbc');
 
 	smb.buildStatemachine(function(err) {
 		if(!err) {

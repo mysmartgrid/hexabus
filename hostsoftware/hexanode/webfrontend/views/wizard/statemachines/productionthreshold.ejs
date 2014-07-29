@@ -1,8 +1,8 @@
 <form role="form" name="productionThresholdForm" novalidate>
-	<div class="form-group" data-ng-class="{'has-error': productionThresholdForm.source.$invalid, 'has-success': productionThresholdForm.source.$valid}">
-		<label for="source" class="control-label" data-localize="wizard.state-machine.choose-source">Choose source:</label>
-		<select class="form-control" name="source" data-ng-model="productionThreshold.source" 
-			data-ng-options="value.ip as value.name for (key,value) in productionThreshold.source_devices" data-ng-required="true" >
+	<div class="form-group" data-ng-class="{'has-error': productionThresholdForm.producer.$invalid, 'has-success': productionThresholdForm.producer.$valid}">
+		<label for="producer" class="control-label" data-localize="wizard.state-machine.choose-producer">Choose production device:</label>
+		<select class="form-control" name="producer" data-ng-model="productionThreshold.producer" 
+			data-ng-options="value.ip as value.name for (key,value) in productionThreshold.producer_devices" data-ng-required="true" >
 		</select>
 	</div>
 
@@ -92,10 +92,10 @@
 		</p>
 	</div>
 
-	<div class="form-group" data-ng-class="{'has-error': productionThresholdForm.switch.$invalid, 'has-success': productionThresholdForm.switch.$valid}">
-		<label for="source" class="control-label" data-localize="wizard.state-machine.choose-switch">Choose switch device:</label>
-		<select class="form-control" name="switch" data-ng-model="productionThreshold.switch" 
-			data-ng-options="value.ip as value.name for (key,value) in productionThreshold.switch_devices" data-ng-required="true" >
+	<div class="form-group" data-ng-class="{'has-error': productionThresholdForm.consumer.$invalid, 'has-success': productionThresholdForm.consumer.$valid}">
+		<label for="consumer" class="control-label" data-localize="wizard.state-machine.choose-consumer">Choose consumer device:</label>
+		<select class="form-control" name="consumer" data-ng-model="productionThreshold.consumer" 
+			data-ng-options="value.ip as value.name for (key,value) in productionThreshold.consumer_devices" data-ng-required="true" >
 		</select>
 	</div>
 
