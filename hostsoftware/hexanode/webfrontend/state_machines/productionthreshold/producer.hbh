@@ -1,0 +1,4 @@
+device producer {
+  ip <%= producer %>;
+  eids { 2 }
+}

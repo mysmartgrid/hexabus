@@ -1,0 +1,5 @@
+device consumer {
+  ip <%= consumer %>;
+  eids { 1, 2, 4 }
+}
+   
