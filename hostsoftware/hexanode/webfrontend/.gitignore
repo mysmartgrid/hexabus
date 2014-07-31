@@ -1,2 +1,4 @@
 node_modules
 views/about.ejs
+config.json
+devicetree.json

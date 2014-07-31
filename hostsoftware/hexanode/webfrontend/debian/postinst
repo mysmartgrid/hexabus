@@ -2,6 +2,7 @@
 
 set -e
 
+mkdir -p /home/hexanode/state_machines/build/
 chown -R hexanode:hexanode /home/hexanode/*
 
 svc -u /etc/service/hexanode-webfrontend
