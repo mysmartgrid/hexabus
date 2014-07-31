@@ -41,6 +41,7 @@ void HexabusServer::_init() {
 
 	_device.onReadName(boost::bind(&HexabusServer::loadDeviceName, this));
 	_device.onWriteName(boost::bind(&HexabusServer::saveDeviceName, this, _1));
+	_device.onAsyncError(boost::bind(&HexabusServer::handleAsyncError, this, _1));
 
 	hexabus::EndpointRegistry ep_registry;
 	hexabus::EndpointRegistry::const_iterator ep_it;
@@ -323,4 +324,9 @@ void HexabusServer::saveDeviceName(const std::string& name)
 #else /* UCI_FOUND */
 	_device_name = name;
 #endif /* UCI_FOUND */
+}
+
+void HexabusServer::handleAsyncError(const hexabus::GenericException& error)
+{
+	_debug && std::cerr << "Asynchronous error occured: " << error.reason() << std::endl;
 }

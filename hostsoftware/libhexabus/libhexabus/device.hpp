@@ -79,11 +79,12 @@ namespace hexabus {
 					return Packet::Ptr(new ErrorPacket(HXB_ERR_UNKNOWNEID));
 
 				boost::optional<TValue> value = _read();
-				if ( value ) {
-					return Packet::Ptr(new InfoPacket<TValue>(eid(), *value));
-				} else {
-					std::cerr << "error reading" << std::endl;
+				if ( !value ) {
+					std::stringstream oss;
+					oss << "Error reading endpoint " << name() << " (" << eid() << ")";
+					throw hexabus::GenericException(oss.str());
 				}
+				return Packet::Ptr(new InfoPacket<TValue>(eid(), *value));
 			}
 			virtual uint8_t handle_write(const hexabus::Packet& p) const {
 				const WritePacket<TValue>* write = dynamic_cast<const WritePacket<TValue>*>(&p);
@@ -147,13 +148,17 @@ namespace hexabus {
 		public:
 			typedef boost::function<std::string ()> read_name_fn_t;
 			typedef boost::function<void (const std::string& name)> write_name_fn_t;
+			typedef boost::function<void (const GenericException& error)> async_error_fn_t;
 			Device(boost::asio::io_service& io, const std::vector<std::string>& interfaces, const std::vector<std::string>& addresses, int interval = 60);
+			~Device();
 			void addEndpoint(const EndpointFunctions::Ptr ep);
 
 			boost::signals2::connection onReadName(
 					const read_name_fn_t& callback);
 			boost::signals2::connection onWriteName(
 					const write_name_fn_t& callback);
+			boost::signals2::connection onAsyncError(
+					const async_error_fn_t& callback);
 		protected:
 			void _handle_query(hexabus::Socket* socket, const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void _handle_write(hexabus::Socket* socket, const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
@@ -172,6 +177,7 @@ namespace hexabus {
 
 			boost::signals2::signal<std::string ()> _read;
 			boost::signals2::signal<void (const std::string&)> _write;
+			boost::signals2::signal<void (const GenericException& error)> _asyncError;
 
 			hexabus::Listener _listener;
 			std::vector<hexabus::Socket*> _sockets;

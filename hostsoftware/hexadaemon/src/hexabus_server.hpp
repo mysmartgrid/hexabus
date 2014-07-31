@@ -21,9 +21,7 @@ namespace hexadaemon {
 			void smcontrolhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void smuploadhandler(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 
-			void broadcast_handler(const boost::system::error_code& error);
-
-			void errorhandler(const hexabus::GenericException& error);
+			void handleAsyncError(const hexabus::GenericException& error);
 
 			void loadSensorMapping();
 			std::string loadDeviceName();
