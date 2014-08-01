@@ -28,6 +28,11 @@ ENDPOINT_DESCRIPTOR endpoint_hexasense_state = {
 	.write = 0
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_hexasense_state_name = {
+	.datatype = HXB_DTYPE_128STRING,
+	.eid = EP_HEXASENSE_BUTTON_STATE,
+	.propid = EP_PROP_NAME,
+};
 
 static void button1_pressed(uint8_t button, uint8_t released, uint16_t pressed_ticks)
 {
@@ -123,6 +128,7 @@ void hexasense_init()
 	BUTTON_REGISTER(buttons_hexasense2, 1);
 
 	ENDPOINT_REGISTER(endpoint_hexasense_state);
+	ENDPOINT_PROPERTY_REGISTER(prop_hexasense_state_name);
 
 	process_start(&hexasense_feedback_process, NULL);
 }

@@ -179,6 +179,12 @@ ENDPOINT_DESCRIPTOR endpoint_relay = {
 	.write = write
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_relay_name = {
+    .datatype = HXB_DTYPE_128STRING,
+    .eid = EP_POWER_SWITCH,
+    .propid = EP_PROP_NAME,
+};
+
 static enum hxb_error_code read_default(struct hxb_value* value)
 {
   value->v_bool = get_relay_default() == 0 ? HXB_TRUE : HXB_FALSE;
@@ -198,6 +204,12 @@ ENDPOINT_DESCRIPTOR endpoint_relay_config = {
   .name = ep_conf_name,
   .read = read_default,
   .write = write_default
+};
+
+ENDPOINT_PROPERTY_DESCRIPTOR prop_relay_config_name = {
+    .datatype = HXB_DTYPE_128STRING,
+    .eid = EP_POWER_DEFAULT_STATE,
+    .propid = EP_PROP_NAME,
 };
 
 void
@@ -223,6 +235,8 @@ relay_init(void)
   relay_default();
 #endif
   ENDPOINT_REGISTER(endpoint_relay);
+  ENDPOINT_PROPERTY_REGISTER(prop_relay_name);
   ENDPOINT_REGISTER(endpoint_relay_config);
+  ENDPOINT_PROPERTY_REGISTER(prop_relay_config_name);
 #endif
 }

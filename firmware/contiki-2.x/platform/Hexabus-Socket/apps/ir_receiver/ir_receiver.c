@@ -43,6 +43,12 @@ ENDPOINT_DESCRIPTOR endpoint_ir_receiver = {
 	.write = 0
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_ir_reciever_name = {
+    .datatype = HXB_DTYPE_128STRING,
+    .eid = EP_IR_RECEIVER,
+    .propid = EP_PROP_NAME,
+};
+
 void ir_receiver_init() {
 
     ir_time = 0;
@@ -73,6 +79,7 @@ void ir_receiver_init() {
     sei();
 
 	ENDPOINT_REGISTER(endpoint_ir_receiver);
+    ENDPOINT_PROPERTY_REGISTER(prop_ir_reciever_name);
 }
 
 void ir_receiver_reset() {

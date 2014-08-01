@@ -81,7 +81,14 @@ ENDPOINT_DESCRIPTOR endpoint_humidity = {
 	.write = 0
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_humidity_name = {
+	.datatype = HXB_DTYPE_128STRING,
+	.eid = EP_HUMIDITY,
+	.propid = EP_PROP_NAME,
+};
+
 void humidity_init(void)
 {
 	ENDPOINT_REGISTER(endpoint_humidity);
+	ENDPOINT_PROPERTY_REGISTER(prop_humidity_name);
 }

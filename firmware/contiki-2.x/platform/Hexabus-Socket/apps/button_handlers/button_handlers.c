@@ -65,6 +65,12 @@ ENDPOINT_DESCRIPTOR endpoint_sysbutton = {
 	.read = read,
 	.write = 0
 };
+
+ENDPOINT_PROPERTY_DESCRIPTOR prop_sysbutton_name = {
+	.datatype = HXB_DTYPE_128STRING,
+	.eid = EP_BUTTON,
+	.propid = EP_PROP_NAME,
+};
 #endif
 
 static void button_clicked(uint8_t button)
@@ -101,12 +107,12 @@ static void button_pressed(uint8_t button, uint8_t released, uint16_t ticks)
 BUTTON_DESCRIPTOR buttons_system = {
 	.port = &BUTTON_PIN,
 	.mask = 1 << BUTTON_BIT,
-	
+
 	.activeLevel = 0,
 
 	.click_ticks = CLOCK_SECOND * BUTTON_CLICK_MS / 1000,
 	.pressed_ticks = 1 + CLOCK_SECOND * BUTTON_CLICK_MS / 1000,
-	
+
 	.clicked = button_clicked,
 	.pressed = button_pressed
 };
@@ -116,5 +122,6 @@ void button_handlers_init()
 	BUTTON_REGISTER(buttons_system, 1);
 #if BUTTON_HAS_EID
 	ENDPOINT_REGISTER(endpoint_sysbutton);
+	ENDPOINT_PROPERTY_REGISTER(prop_sysbutton_name);
 #endif
 }

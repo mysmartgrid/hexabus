@@ -47,6 +47,12 @@ ENDPOINT_DESCRIPTOR endpoint_shutter = {
 	.write = write
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_shutter_name = {
+    .datatype = HXB_DTYPE_128STRING,
+    .eid = EP_SHUTTER,
+    .propid = EP_PROP_NAME,
+};
+
 
 
 void shutter_init(void) {
@@ -56,7 +62,7 @@ void shutter_init(void) {
     SHUTTER_PORT |= ( (1<<PA4) | (1<<PA5) ); //pull-ups for encoder inputs
 
     /* Enable pin interrupts for encoder ports */
-    PCMSK0 |= ( 1<<SHUTTER_ENC1 ); 
+    PCMSK0 |= ( 1<<SHUTTER_ENC1 );
     PCMSK0 |= ( 1<<SHUTTER_ENC2 );
     PCICR |= ( 1<<PCIE0 );
     sei();
@@ -69,6 +75,7 @@ void shutter_init(void) {
     shutter_upperbound = SHUTTER_MAX_BOUND;
 
 	ENDPOINT_REGISTER(endpoint_shutter);
+    ENDPOINT_PROPERTY_REGISTER(prop_shutter_name);
 }
 
 static void shutter_open(void) {

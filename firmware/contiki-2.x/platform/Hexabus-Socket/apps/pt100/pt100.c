@@ -12,7 +12,7 @@
 
 static uint16_t adc_get_single_sample(uint8_t channel);
 
-// Taken from 
+// Taken from
 // http://www.mikrocontroller.net/articles/AVR-GCC-Tutorial/Analoge_Ein-_und_Ausgabe
 static void adc_init(void)
 {
@@ -23,12 +23,12 @@ static void adc_init(void)
 	// Bit ADFR ("free running") in ADCSRA steht beim Einschalten
 	// schon auf 0, also single conversion
 
-	// ADC Prescaler Calculation: We run at 8 MHz, the ADC needs a frequency 
+	// ADC Prescaler Calculation: We run at 8 MHz, the ADC needs a frequency
 	// between 0.05 MHz and 0.2 MHz:
 	// 0.05 <= 8/x <= 0.2
 	// <=> 0.05*x <= 8 <= 0.2*x
 	// Satisfied for x=128. Set Prescaler accordingly:
-	ADCSRA =  (1 << ADPS2) | (1<<ADPS1) | (1<<ADPS0);     
+	ADCSRA =  (1 << ADPS2) | (1<<ADPS1) | (1<<ADPS0);
 	ADCSRA |= (1<<ADEN);                  // ADC aktivieren
 
 	/* ADCW muss einmal gelesen werden, sonst wird Ergebnis der nächsten
@@ -106,6 +106,12 @@ ENDPOINT_DESCRIPTOR endpoint_heater_hot = {
 	.write = 0
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_heater_hot_name = {
+    .datatype = HXB_DTYPE_128STRING,
+    .eid = EP_HEATER_HOT,
+    .propid = EP_PROP_NAME,
+};
+
 static const char ep_cold[] PROGMEM = "Heater outflow temperature";
 ENDPOINT_DESCRIPTOR endpoint_heater_cold = {
 	.datatype = HXB_DTYPE_FLOAT,
@@ -115,10 +121,18 @@ ENDPOINT_DESCRIPTOR endpoint_heater_cold = {
 	.write = 0
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_heater_cold_name = {
+    .datatype = HXB_DTYPE_128STRING,
+    .eid = EP_HEATER_COLD,
+    .propid = EP_PROP_NAME,
+};
+
 void pt100_init()
 {
 	ENDPOINT_REGISTER(endpoint_heater_hot);
+	ENDPOINT_PROPERTY_REGISTER(prop_heater_hot_name);
 	ENDPOINT_REGISTER(endpoint_heater_cold);
+	ENDPOINT_PROPERTY_REGISTER(prop_heater_cold_name);
 
 	adc_init();
 }
