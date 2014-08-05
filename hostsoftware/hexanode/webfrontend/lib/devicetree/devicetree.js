@@ -328,6 +328,14 @@ var DeviceTree = function(file) {
 		}
 	});
 
+	this.toJSON = function() {
+		var json = {
+			devices: devices,
+			views: views
+		};
+		return json;
+	}
+
 	this.save = function(file, cb) {
 		var json = {
 			devices: devices,

@@ -299,7 +299,7 @@ app.get('/wizard/state_machine', function(req, res) {
 		});
 	});
 
-	res.render('wizard/state_machine.ejs', { active_nav: 'configuration', devices: devices });
+	res.render('wizard/state_machine.ejs', { active_nav: 'statemachines', devices: devices });
 });
 app.get('/wizard/devices/add', function(req, res) {
 	res.render('wizard/add_device.ejs', { active_nav: 'configuration' });

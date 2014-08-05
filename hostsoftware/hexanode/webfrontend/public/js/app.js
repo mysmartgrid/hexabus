@@ -577,6 +577,7 @@ angular.module('dashboard', [
 	}
 
 	$scope.resetForms = function() {
+
 		$scope.masterSlave.resetForm();
 		$scope.standbyKiller.resetForm();
 		$scope.productionThreshold.resetForm();
@@ -659,12 +660,12 @@ angular.module('dashboard', [
 		$scope.masterSlave.threshold = 10;
 		$scope.masterSlave.slaves = [];
 		$scope.masterSlave.validateForm();
-}
+	}
 
 	$scope.masterSlave.addSlave = function() {
 		$scope.masterSlave.slaves.push({ip: $scope.devices[Object.keys($scope.devices)[0]].ip});
 		$scope.masterSlave.validateForm();
-	};
+	}
 
 	$scope.masterSlave.removeSlave = function(slave) {
 		var i = $scope.masterSlave.slaves.indexOf(slave);
@@ -713,7 +714,7 @@ angular.module('dashboard', [
 		}
 		return false;
 	};
-
+	
 	for(var ip in $scope.devices) {
 		if(hasEId($scope.devices[ip],2)) {
 			$scope.productionThreshold.producer_devices[ip] = $scope.devices[ip];
@@ -724,6 +725,7 @@ angular.module('dashboard', [
 	}
 	
 	$scope.productionThreshold.resetForm = function() {
+				
 		$scope.productionThreshold.producer = $scope.productionThreshold.producer_devices[Object.keys($scope.productionThreshold.producer_devices)[0]].ip;
 		$scope.productionThreshold.productionThreshold = 10;
 		$scope.productionThreshold.offTimeout = 30;

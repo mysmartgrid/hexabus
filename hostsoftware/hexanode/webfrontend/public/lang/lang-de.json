@@ -4,6 +4,7 @@
 	"navbar": {
 		"console": "HexaBus-Basisstation",
 		"main": "Übersicht",
+		"statemachines": "Schaltprogramme",
 		"configuration": "Einrichten",
 		"about": "Über Hexabus",
 		"network-status": "Netzwerkstatus",
@@ -129,15 +130,15 @@
 			"scanning": "Suche nach Geräten im Netzwerk"
 		},
 		"state-machine": {
-			"new": "Neue Statemachine",
+			"new": "Neues Schaltprogramm",
 			"upload": "Hochladen",
 			"upload-success": "Hochladen erfolgreich abgeschlossen.",
 			"progress": {
 				"reading": "Lade Vorlage.",
 				"rendering" : "Fülle Vorlage aus.",
-				"compiling" : "Kompliere Statemachine.",
+				"compiling" : "Kompliere Schaltprogramm.",
 				"assembling" : "Erzeuge Binärdaten.", 
-				"uploading": "Hochladen der Statemachine {done} von {count} : {device}.",
+				"uploading": "Hochladen des Schaltprogramms {done} von {count} : {device}.",
 				"deleting" : "Lösche temporäre Dateien."
 			},
 			"errors": {
@@ -151,7 +152,7 @@
 				"writing-file-failed": "Die Datei {file} konnte nicht geschrieben werden.",
 				"compiling-failed": "Die Statemachine konnte nicht kompiliert werden.",
 				"assembling-failed": "Das Erzeugen der Binärdaten für {device} schlug fehl.",
-				"uploading-failed": "Das Hochladen der Statemachine auf {device} ist fehlgeschlagen.",
+				"uploading-failed": "Das Hochladen des Schaltprogramms auf {device} ist fehlgeschlagen.",
 				"deleting-temporary-files-failed": "Die temporäre Datei {file} konnte nicht gelöscht werden."
 			},
 			"choose": "Bitte wählen Sie eine Vorlage aus.",
