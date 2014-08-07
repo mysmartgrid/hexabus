@@ -1,0 +1,6 @@
+device plug {
+  #ip <%= ip %>;
+  ip 2323:0000:0000:0000:0050:c4ff:fe04:81d6;
+  #ip fd01:efef::b5:5aff:fe0b:4f2;
+  eids { 1, 2, 4 }
+}

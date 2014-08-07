@@ -721,6 +721,10 @@ io.sockets.on('connection', function (socket) {
 		buildStatemachine(msg,statemachines.productionThreshold);
 	});
 
+	on('timetable_sm', function(msg) {
+		buildStatemachine(msg,statemachines.timeTable);
+	});
+
 	emit('clear_state');
 
 	devicetree.forEach(function(device) {

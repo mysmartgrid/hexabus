@@ -1,0 +1,49 @@
+<form role="form" name="timetableForm" novalidate>
+	<div class="control-group has-success">
+		<label for="device" class="control-label" data-localize="wizard.state-machine.choose-device">Choose device</label>
+		<select class="form-control" name="device" data-ng-model="timetable.device"
+			data-ng-options="value.ip as value.name for (key,value) in devices" data-ng-required="true">
+		</select>
+	</div>
+	<br/>
+
+<label class="control-label" data-localize="wizard.timetable.add-switching-times">Add switching times</label>
+<div data-ng-repeat="time in timetable.times">
+
+	<div class="row">
+		<div class="col-xs-1">
+			<!-- Just a placeholder -->
+		</div>
+		<div class="col-xs-5">
+			<div class="control-group">
+				<div class="form-group">
+					<div class='input-group date' id="datetime{{$index}}" tt-datetime-picker>
+						<input type='text' class="form-control"/>
+						<span class="input-group-addon">
+							<span class="glyphicon glyphicon-time"></span>
+						</span>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-xs-2">
+			<div class="make-switch switch-large" data-on="success" data-off="default" tt-bool-switch>
+				<input type="checkbox" id="check{{$index}}"/>
+			</div>
+		</div>
+		<div class="col-xs-1">
+			<button type="button" class="btn btn-danger" data-ng-click="timetable.removeTime($index)" data-ng-disabled="busy">
+				<span class="glyphicon glyphicon-remove"></span>
+			</button>
+		</div>
+	</div>
+
+</div>
+
+	<button data-ng-disabled="busy || (timetable.dates.length >= timetable.maxDateCount)" class="btn btn-success"
+		data-localize="wizard.state-machine.add-switching-time" data-ng-click="timetable.addTime()">Add Switching Time</button>
+	<button data-ng-disabled=" (timetable.times.length<=0) || busy" class="btn btn-success" data-localize="wizard.state-machine.upload"
+	data-ng-click="timetable.upload()">Upload</button>
+</form>
+

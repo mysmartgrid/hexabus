@@ -1,0 +1,58 @@
+include plug.hbh;
+include std_eid.hbh;
+
+machine timetable_machine {
+	states { init
+	<% for(var i=0; i<times.length; i++) { %>
+	, state<%= i %>h
+		<%for(var j=0; j<times[i].minutes.length;j++) {%>
+	, state<%= ""+i+j%>m
+		<%}%>
+	<% } %>
+	, statew
+	}
+	in(init) {
+		always {
+			goto state0h;
+		}
+		#TODO init
+	}
+
+	<%for(var i=0; i<times.length; i++) { %>
+	in(state<%=i%>h) {
+		<%if(i<times.length-1) {%>
+		if(time hour > i<%= times[i+1].hour %>) {
+			goto state<%=i+1%>h;
+		}
+		<%}%>
+		if(time hour > i<%= times[i].hour %>) {
+			goto state<%=i%>0m;
+		}
+	}
+		<%for(var j=0; j<times[i].minutes.length;j++) {%>
+	in(state<%=""+i+j%>m) {
+		<%if(j<times[i].minutes.length-1) {%>
+		if(time minute > i<%=times[i].minutes[j+1].minute%>) {
+			goto state<%=""+i+(j+1)%>m;
+		}
+		<%}%>
+		if(time minute > i<%=times[i].minutes[j].minute%>) {
+			write plug.On := <%= times[i].minutes[j].on %>;
+			<%if(j<times[i].minutes.length-1) {%>
+			goto state<%=""+i+(j+1)%>m;
+			<%} else if(i<times.length-1){%>
+			goto state<%=i+1%>h;
+			<%} else { %>
+			goto statew;
+			<%}%>
+		}
+	}
+	<%}%>
+	<%}%>
+	in(statew) {
+	#TODO hour ==0
+		if(time hour<i<%=times[times.length-1].hour%>){
+			goto state0h;
+		}
+	}
+}

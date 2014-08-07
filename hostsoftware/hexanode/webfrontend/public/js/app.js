@@ -579,6 +579,7 @@ angular.module('dashboard', [
 	$scope.resetForms = function() {
 		$scope.masterSlave.resetForm();
 		$scope.standbyKiller.resetForm();
+		$scope.timetable.resetForm();
 		$scope.productionThreshold.resetForm();
 
 		hideAlerts();
@@ -682,7 +683,7 @@ angular.module('dashboard', [
 
 
 /*
- * Stanbykiller statemachine
+ * Standbykiller statemachine
  */
 	$scope.standbyKiller = {};
 
@@ -696,6 +697,45 @@ angular.module('dashboard', [
 		$scope.standbyKiller.device = $scope.devices[Object.keys($scope.devices)[0]].ip;
 		$scope.standbyKiller.threshold = 10;
 		$scope.standbyKiller.timeout = 25;
+	};
+
+/*
+ * Timetable switch statemachine
+ */
+	$scope.timetable = {};
+
+	$scope.timetable.addTime = function() {
+		var time = moment().local();
+		$scope.timetable.times.push({hour:time.hour(),minute:time.minute(),second:time.second()});
+		//$scope.timetable.validateForm();
+	};
+
+	$scope.timetable.removeTime = function(index) {
+		$scope.timetable.times.splice(index,1);
+	};
+
+	$scope.timetable.addDatetimePicker = function(element,time) {
+            element.datetimepicker({
+                pickDate: false,
+                format: 'H:mm',
+                defaultDate: time.hour+':'+time.minute
+            });
+	};
+
+	$scope.timetable.upload = function() {;
+		hideAlerts();
+		$scope.busy = true;
+		for (var i in $scope.timetable.times) {
+			var time = $('#datetime'+i).data("DateTimePicker").getDate();
+			var on = ($('#check'+i).is(":checked")?1:0);
+			$scope.timetable.times[i] = {hour:time.hour(),minute:time.minute(),on:on};
+		}
+		Socket.emit('timetable_sm', {device: {ip: $scope.timetable.device}, times: $scope.timetable.times});
+	};
+
+	$scope.timetable.resetForm = function() {
+		$scope.timetable.device = $scope.devices[Object.keys($scope.devices)[0]].ip;
+		$scope.timetable.times = [];
 	};
 
 /*
@@ -757,4 +797,26 @@ angular.module('dashboard', [
             }
         });
     }
+}])
+.directive('ttBoolSwitch', [function() {
+	return {
+		compile: function(element, attrs, transclude) {
+			return {
+				post: function(scope, element, attrs, controller) {
+					var $elem = $(element);
+
+					$elem.bootstrapSwitch();
+				}
+			}
+		}
+	}
+}])
+.directive('ttDatetimePicker', [function() {
+	function link(scope, element, attrs) {
+		scope.timetable.addDatetimePicker(element,scope.timetable.times[scope.$index]);
+	}
+
+    return {
+      link: link
+    };
 }]);

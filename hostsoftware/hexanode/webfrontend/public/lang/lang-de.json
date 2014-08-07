@@ -166,7 +166,8 @@
 			"choose-off-timeout": "Bitte die maximale Zeitspanne in Minuten die das Gerät ausgeschaltet sein soll eingeben.",
 			"choose-usage-threshold": "Bitte den Verbrauchschwellwert auswählen.",
 			"choose-on-timeout": "Bitte die maximale Zeitspanne in Minuten die das Gerät angeschaltet sein soll eingeben.",
-			"choose-switch": "Bitte das zu schaltende Gerät auswählen"
+			"choose-switch": "Bitte das zu schaltende Gerät auswählen",
+			"add-switching-time": "Schaltzeit hinzufügen"
 
 		}
 	},

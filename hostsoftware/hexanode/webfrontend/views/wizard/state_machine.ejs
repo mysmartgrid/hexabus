@@ -30,6 +30,7 @@
 			<select class="form-control" data-ng-model="machineProp" data-ng-disabled="busy" data-ng-change="resetForms()">
 				<option value="master_slave">Master/Slave</option>
 				<option value="standbykiller">Standbykiller</option>
+				<option value="timetable">Timetable switch</option>
 				<option value="production_threshold">Production Treshold</option>
 			</select>
 		</div>
@@ -41,6 +42,10 @@
 
 	<div data-ng-show="machineProp=='standbykiller'" class="well">
 		<% include statemachines/standbykiller %>
+	</div>
+
+	<div data-ng-show="machineProp=='timetable'" class="well">
+		<% include statemachines/timetable %>
 	</div>
 
 	<div data-ng-show="machineProp=='production_threshold'" class="well">
