@@ -1,18 +1,19 @@
-var application_root = __dirname
-  , path=require('path')
-  , express=require('express')
-  , connect = require('connect')
-  , validator = require('validator')
-  , app = module.exports = express()
-  , server=require("http").createServer(app)
-  , io = require('socket.io').listen(server)
-	, DeviceTree = require("./lib/devicetree")
-	, Hexabus = require("./lib/hexabus")
-	, hexabus = new Hexabus()
-	, Wizard = require("./lib/wizard")
-	, statemachines = require("./lib/statemachines")
-	, fs = require("fs")
-  , nconf=require('nconf');
+var application_root = __dirname, 
+	path=require('path'),
+	express=require('express'),
+	connect = require('connect'),
+	validator = require('validator'),
+	app = module.exports = express(),
+	server=require("http").createServer(app),
+	io = require('socket.io').listen(server),
+	DeviceTree = require("./lib/devicetree"),
+	Hexabus = require("./lib/hexabus"),
+	hexabus = new Hexabus(),
+	Wizard = require("./lib/wizard"),
+	statemachines = require("./lib/statemachines"),
+	ApiController = require("./controllers/api.js"),
+	fs = require("fs"),
+	nconf=require('nconf');
 
 nconf.env().argv().file({file: 'config.json'});
 // Setting default values
@@ -50,15 +51,6 @@ function open_config() {
 }
 open_config();
 
-var save_devicetree = function(cb) {
-	devicetree.save(devicetree_file, cb || Object);
-};
-
-
-var ignore_endpoint = function(ip, eid) {
-	return eid == 7 || eid == 8;
-};
-
 var enumerate_network = function(cb) {
 	cb = cb || Object;
 	hexabus.enumerate_network(function(dev) {
@@ -77,7 +69,7 @@ var enumerate_network = function(cb) {
 				}
 				if ((!devicetree.devices[dev.ip]
 							|| !devicetree.devices[dev.ip].endpoints[ep.eid])
-						&& !ignore_endpoint(dev.ip, ep.eid)) {
+						&& !hexabus.is_ignored_endpoint(dev.ip, ep.eid)) {
 					devicetree.add_endpoint(dev.ip, ep.eid, ep);
 				}
 			}
@@ -87,11 +79,18 @@ var enumerate_network = function(cb) {
 
 enumerate_network();
 
-setInterval(save_devicetree, 10 * 60 * 1000);
 setInterval(enumerate_network, 60 * 60 * 1000);
+
+var save_devicetree = function(cb) {
+	devicetree.save(devicetree_file, cb);
+};
+
+setInterval(save_devicetree, 10 * 60 * 1000);
+
 process.on('SIGINT', function() {
 	save_devicetree(process.exit);
 });
+
 process.on('SIGTERM', function() {
 	save_devicetree(process.exit);
 });
@@ -121,74 +120,7 @@ app.configure(function () {
   app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 });
 
-
-app.get('/api', function(req, res) {
-  res.send("API is running.");
-});
-
-app.put('/api/sensor/:ip/:eid', function(req, res) {
-	if (ignore_endpoint(req.params.ip, req.params.eid)) {
-		res.send("Ignored", 200);
-		return;
-	}
-	var device = devicetree.devices[req.params.ip];
-	if (device && device.endpoints[req.params.eid]) {
-		res.send("Sensor exists", 200);
-	} else {
-		try {
-			var endpoint = devicetree.add_endpoint(req.params.ip, req.params.eid, req.body);
-			endpoint.last_value = {
-				unix_ts: Math.round(Date.now() / 1000),
-				value: parseFloat(req.body.value)
-			};
-			res.send("Sensor added", 200);
-		} catch(err) {
-			console.log(err);
-			console.log(err.stack);
-			res.send(JSON.stringify(err), 400);
-		}
-	}
-});
-
-app.post('/api/sensor/:ip/:eid', function(req, res) {
-	if (ignore_endpoint(req.params.ip, req.params.eid)) {
-		res.send("Ignored", 200);
-		return;
-	}
-	var device = devicetree.devices[req.params.ip];
-	if (!device || !device.endpoints[req.params.eid]) {
-		res.send("Not found", 404);
-	} else {
-		var value = parseFloat(req.body.value);
-		if (isNaN(value)) {
-			res.send("Bad value", 400);
-		} else {
-			device.endpoints[req.params.eid].last_value = {
-				unix_ts: Math.round(Date.now() / 1000),
-				value: value
-			};
-			res.send("Value added");
-		}
-	}
-});
-
-app.post('/api/device/rename/:ip', function(req, res) {
-	if (!req.body.name) {
-		res.send("No name given", 400);
-	} else {
-		hexabus.rename_device(req.params.ip, req.body.name, function(err) {
-			if (err) {
-				res.send(JSON.stringify(err), 500);
-			} else {
-				res.send("Success");
-				var device = devicetree.devices[req.params.ip];
-				if (device) {
-					device.name = req.body.name;
-				}
-			}
-		});
-	}
-});
+ApiController.expressSetup(app, nconf, hexabus, devicetree);
 
 app.get('/', function(req, res) {
 		var wizard = new Wizard();
@@ -201,9 +133,11 @@ app.get('/', function(req, res) {
 			res.redirect('/wizard/new');
 		}
 });
+
 app.get('/about', function(req, res) {
 	res.render('about.ejs', { active_nav: 'about' });
 });
+
 app.get('/wizard', function(req, res) {
 		var wizard = new Wizard();
 		if (wizard.is_finished()) {
@@ -212,6 +146,7 @@ app.get('/wizard', function(req, res) {
 			res.redirect('/wizard/new');
 		}
 });
+
 app.get('/wizard/current', function(req, res) {
 	var config = hexabus.read_current_config();
 	hexabus.get_activation_code(function(err, activation_code) {
@@ -236,6 +171,7 @@ app.get('/wizard/current', function(req, res) {
 		});
 	});
 });
+
 app.post('/wizard/reset', function(req, res) {
 	try {
 		fs.unlinkSync(devicetree_file);
@@ -258,6 +194,7 @@ app.post('/wizard/reset', function(req, res) {
 		});
 	});
 });
+
 app.get('/wizard/resetdone', function(req, res) {
 	res.render('wizard/resetdone.ejs', { active_nav: 'configuration' });
 	nconf.set('wizard_step', undefined);
@@ -265,6 +202,7 @@ app.get('/wizard/resetdone', function(req, res) {
 	var wizard = new Wizard();
 	wizard.complete_reset();
 });
+
 app.get('/wizard/devices', function(req, res) {
 	var devices = {};
 
@@ -283,6 +221,7 @@ app.get('/wizard/devices', function(req, res) {
 
 	res.render('wizard/devices.ejs', { active_nav: 'configuration', devices: devices });
 });
+
 app.get('/wizard/state_machine', function(req, res) {
 	var devices = {};
 
@@ -301,9 +240,11 @@ app.get('/wizard/state_machine', function(req, res) {
 
 	res.render('wizard/state_machine.ejs', { active_nav: 'statemachines', devices: devices });
 });
+
 app.get('/wizard/devices/add', function(req, res) {
 	res.render('wizard/add_device.ejs', { active_nav: 'configuration' });
 });
+
 app.get('/wizard/:step', function(req, res) {
 	// steps 1-... and 0 if completed, undefined if not started
 	var wizard_step = nconf.get('wizard_step');
@@ -401,6 +342,7 @@ app.get('/view/new', function(req, res) {
 
 	res.redirect('/view/edit/' + count);
 });
+
 app.get('/view/edit/:id', function(req, res) {
 	var view = devicetree.views[req.params.id];
 
@@ -449,7 +391,7 @@ app.post('/view/edit/:id', function(req, res) {
 });
 
 var sensor_is_old = function(ep) {
-	return ep.age >= 60 * 60 * 1000;
+	return ep.age >= 60 * 1000; //60 * 60 * 1000;
 };
 
 setInterval(function() {
@@ -463,7 +405,7 @@ setInterval(function() {
 }, 1000);
 
 io.sockets.on('connection', function (socket) {
-  console.log("Registering new client.");
+	console.log("Registering new client.");
 
 	var on = function(ev, cb) {
 		socket.on(ev, function(data) {

@@ -303,6 +303,7 @@ var DeviceTree = function(file) {
 
 	this.remove = function(ip) {
 		if (devices[ip]) {
+			this.emit('device_remove', devices[ip]);
 			delete devices[ip];
 		} else {
 			throw "No such device";

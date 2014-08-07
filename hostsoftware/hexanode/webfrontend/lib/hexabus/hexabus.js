@@ -119,6 +119,11 @@ var hexabus = function() {
 		});
 	};
 
+	this.is_ignored_endpoint = function(ip, eid) {
+		return eid == 7 || eid == 8;
+	};
+
+
 	this.read_endpoint = function(ip, eid, cb) {
 	};
 
