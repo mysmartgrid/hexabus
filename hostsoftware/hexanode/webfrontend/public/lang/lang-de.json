@@ -4,6 +4,7 @@
 	"navbar": {
 		"console": "HexaBus-Basisstation",
 		"main": "Übersicht",
+		"statemachines": "Schaltprogramme",
 		"configuration": "Einrichten",
 		"about": "Über Hexabus",
 		"network-status": "Netzwerkstatus",
@@ -129,15 +130,15 @@
 			"scanning": "Suche nach Geräten im Netzwerk"
 		},
 		"state-machine": {
-			"new": "Neue Statemachine",
+			"new": "Neues Schaltprogramm",
 			"upload": "Hochladen",
 			"upload-success": "Hochladen erfolgreich abgeschlossen.",
 			"progress": {
 				"reading": "Lade Vorlage.",
 				"rendering" : "Fülle Vorlage aus.",
-				"compiling" : "Kompliere Statemachine.",
+				"compiling" : "Kompliere Schaltprogramm.",
 				"assembling" : "Erzeuge Binärdaten.", 
-				"uploading": "Hochladen der Statemachine {done} von {count} : {device}.",
+				"uploading": "Hochladen des Schaltprogramms {done} von {count} : {device}.",
 				"deleting" : "Lösche temporäre Dateien."
 			},
 			"errors": {
@@ -151,7 +152,7 @@
 				"writing-file-failed": "Die Datei {file} konnte nicht geschrieben werden.",
 				"compiling-failed": "Die Statemachine konnte nicht kompiliert werden.",
 				"assembling-failed": "Das Erzeugen der Binärdaten für {device} schlug fehl.",
-				"uploading-failed": "Das Hochladen der Statemachine auf {device} ist fehlgeschlagen.",
+				"uploading-failed": "Das Hochladen des Schaltprogramms auf {device} ist fehlgeschlagen.",
 				"deleting-temporary-files-failed": "Die temporäre Datei {file} konnte nicht gelöscht werden."
 			},
 			"choose": "Bitte wählen Sie eine Vorlage aus.",
@@ -161,13 +162,14 @@
 			"add-slave": "Slave-Gerät hinzufügen",
 			"choose-device": "Bitte wählen Sie ein Gerät aus.",
 			"choose-timeout": "Bitte wählen Sie eine Zeitbeschränkung aus.",
-			"choose-source": "Bitte das Produktions-Messgerät auswählen.",
+			"choose-producer": "Bitte das Produktions-Messgerät auswählen.",
 			"choose-production-threshold": "Bitte den Produktionsschwellwert auswählen.",
 			"choose-off-timeout": "Bitte die maximale Zeitspanne in Minuten die das Gerät ausgeschaltet sein soll eingeben.",
 			"choose-usage-threshold": "Bitte den Verbrauchschwellwert auswählen.",
 			"choose-on-timeout": "Bitte die maximale Zeitspanne in Minuten die das Gerät angeschaltet sein soll eingeben.",
 			"choose-switch": "Bitte das zu schaltende Gerät auswählen",
-			"add-switching-time": "Schaltzeit hinzufügen"
+			"add-switching-time": "Schaltzeit hinzufügen",
+			"choose-consumer": "Bitte den zu schaltenden Vebraucher auswählen"
 
 		}
 	},
@@ -214,11 +216,32 @@
 			"40": "Drehknopf #7",
 			"41": "PV Produktionsmessung",
 			"42": "Netzbezug (Produktion - Verbrauch)",
-			"43": "Batterieleistung (Ladeleistung - Entladeleistung)"
+			"43": "Batterieleistung (Ladeleistung - Entladeleistung)",
+			"52": "Verbrauch L1",
+			"53": "Verbrauch L2",
+			"54": "Verbrauch L3",
+			"55": "Einspeisung",
+			"56": "Einspeisung L1",
+			"57": "Einspeisung L2",
+			"58": "Einspeisung L3",
+			"59": "Energieverbrauch",
+			"60": "Eingespeiste Energie",
+			"61": "Smartmeter firmware",
+			"62": "Strom L1",
+			"63": "Strom L2",
+			"65": "Strom L3",
+			"66": "Spannung L1",
+			"67": "Spannung L2",
+			"68": "Spannung L3",
+			"69": "Factor L1",
+			"70": "Factor L2",
+			"71": "Factor L3"
 		},
 
 		"units": {
-			"%r.h.": "rF"
+			"%r.h.": "rF",
+			"A": "A",
+			"V": "V"
 		}
 	}
 }

@@ -109,6 +109,7 @@ var hexabus = function() {
 					cb({ error: error });
 				} else {
 					var devices = JSON.parse(stdout).devices;
+					//console.log(devices);
 					devices.forEach(function(dev) {
 						cb({ device: dev });
 					});
@@ -129,6 +130,7 @@ var hexabus = function() {
 		}	else {
 			command = command + value;
 		}
+
 		exec(command, function(error, stdout, stderr) {
 			cb(error);
 		});

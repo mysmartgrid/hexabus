@@ -7,11 +7,10 @@
 
 configure_file(config.h.in ${CMAKE_BINARY_DIR}/config.h)
 
-include_directories(
-  ${CMAKE_SOURCE_DIR}
-  ${Boost_INCLUDE_DIRS}
-  ${CMAKE_BINARY_DIR}
-)
+include_directories(${CMAKE_SOURCE_DIR})
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+include_directories(${CMAKE_BINARY_DIR})
+
 file(GLOB all_hba_src *.cpp *.hpp)
 set(hba_src ${all_hba_src})
 ADD_LIBRARY(hba ${hba_src})

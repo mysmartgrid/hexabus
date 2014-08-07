@@ -1,6 +1,8 @@
 #include "logger.hpp"
 
 #include "../../../shared/endpoints.h"
+#define DEBUG 0
+
 
 using namespace hexabus;
 
@@ -49,6 +51,16 @@ const char* Logger::eid_to_unit(uint32_t eid)
 
 void Logger::on_sensor_name_received(const std::string& sensor_id, const boost::asio::ip::address_v6& address, const hexabus::Packet& ep_info)
 {
+  double msecs1;
+  double msecs2;
+  double mdiff;
+      
+  struct timeval tv1;
+  struct timeval tv2;
+
+  gettimeofday(&tv1, NULL) ;
+  msecs1=(double)tv1.tv_sec + ((double)tv1.tv_usec/1000000);
+
 	klio::Sensor::Ptr sensor = sensor_factory.createSensor(
 			sensor_id,
 			static_cast<const hexabus::EndpointInfoPacket&>(ep_info).value(),
@@ -65,6 +77,11 @@ void Logger::on_sensor_name_received(const std::string& sensor_id, const boost::
 	}
 
 	new_sensor_backlog.erase(sensor_id);
+
+  gettimeofday(&tv2, NULL) ;
+  msecs2=(double)tv2.tv_sec + ((double)tv2.tv_usec/1000000);
+  mdiff = msecs2 - msecs1;
+  std::cout << "Time in on_sensor_name_received " << mdiff << std::endl;
 }
 
 void Logger::on_sensor_error(const std::string& sensor_id, const hexabus::GenericException& err)
@@ -86,6 +103,16 @@ std::string Logger::get_sensor_id(const boost::asio::ip::address_v6& source, uin
 
 void Logger::accept_packet(double value, uint32_t eid)
 {
+  double msecs1;
+  double msecs2;
+  double mdiff;
+      
+  struct timeval tv1;
+  struct timeval tv2;
+
+  gettimeofday(&tv1, NULL) ;
+  msecs1=(double)tv1.tv_sec + ((double)tv1.tv_usec/1000000);
+
 	/**
 	 * 1. Create unique ID for each info message and sensor,
 	 * <ip>-<endpoint>
@@ -102,8 +129,20 @@ void Logger::accept_packet(double value, uint32_t eid)
 
 	if (sensor_cache.count(sensor_id)) {
 		sensor = sensor_cache[sensor_id];
+#if DEBUG
+    gettimeofday(&tv2, NULL) ;
+    msecs2=(double)tv2.tv_sec + ((double)tv2.tv_usec/1000000);
+    mdiff = msecs2 - msecs1;
+    std::cout << "Time in accept_packet (-cache 1)" << mdiff << std::endl;
+#endif // DEBUG
 	} else {
 		sensor = lookup_sensor(sensor_id);
+#if DEBUG
+    gettimeofday(&tv2, NULL) ;
+    msecs2=(double)tv2.tv_sec + ((double)tv2.tv_usec/1000000);
+    mdiff = msecs2 - msecs1;
+    std::cout << "Time in accept_packet (2)" << mdiff << std::endl;
+#endif // DEBUG
 	}
 
 	if (sensor) {
@@ -123,4 +162,8 @@ void Logger::accept_packet(double value, uint32_t eid)
 		}
 		new_sensor_backlog[sensor_id].second.insert(std::make_pair(now, value));
 	}
+  gettimeofday(&tv2, NULL) ;
+  msecs2=(double)tv2.tv_sec + ((double)tv2.tv_usec/1000000);
+  mdiff = msecs2 - msecs1;
+  std::cout << "Time in accept_packet " << mdiff << std::endl;
 }

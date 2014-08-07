@@ -1,0 +1,62 @@
+include consumer.hbh;
+include producer.hbh;
+include std_eid.hbh;
+
+machine consumer_machine {
+	states { init, wait_on, on, wait_off, off }
+	in(init) {
+		always {
+			write consumer.On := 1;
+			goto wait_on;
+		}
+	}
+	in(wait_on) {
+		if (timeout i60) {
+			goto on;
+		}
+
+		if (ep consumer.Button == 1) {
+			write consumer.On := 0;
+			goto off;
+		}
+	}
+	in(on) {
+		if (ep consumer.PowerMeter < <%= usageThreshold %>) {
+			write consumer.On := 0;
+			goto wait_off;
+		}
+		if (timeout i<%= onTimeout %>) {
+			write consumer.On := 0;
+			goto wait_off;
+		}
+		if (ep consumer.Button == 1) {
+			write consumer.On := 0;
+			goto off;
+		}
+	}
+	in(wait_off) {
+		if (timeout i60) {
+			goto off;
+		}
+
+		if (ep consumer.Button == 1) {
+			write consumer.On := 0;
+			goto wait_on;
+		}
+	}
+
+	in(off) {
+		if (ep producer.PowerMeter >= <%= productionThreshold %>) {
+			write consumer.On := 1;
+			goto wait_on;
+		}
+		if (timeout i<%= offTimeout %>) {
+			write consumer.On := 1;
+			goto wait_on;
+		}
+		if (ep consumer.Button == 1) {
+			write consumer.On := 1;
+			goto wait_on;
+		}
+	}
+}

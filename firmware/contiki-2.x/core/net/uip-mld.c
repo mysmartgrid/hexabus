@@ -26,6 +26,10 @@
  * along with Contiki-MLD. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "net/uip-mld.h"
+
+#if UIP_CONF_MLD
+
 #include "net/uip-ds6.h"
 #include "net/uip-icmp6.h"
 #include "net/tcpip.h"
@@ -47,18 +51,16 @@
 #define UIP_ICMP6_ERROR_BUF  ((struct uip_icmp6_error *)&uip_buf[uip_l2_l3_icmp_hdr_len])
 #define UIP_ICMP6_MLD_BUF  ((struct uip_icmp6_mld1 *)&uip_buf[uip_l2_l3_icmp_hdr_len])
 
-/* Elements 0..multicast_group_count-1 are groups we consider ourselves members of and that we
- * might still need to report */
-static uip_ds6_maddr_t *multicast_groups[UIP_DS6_MADDR_NB];
-static uint8_t multicast_group_count;
+struct etimer uip_mld_timer_periodic;
 
-/* Management structures for the MLD responder process */
-PROCESS(mld_handler_process, "MLD handler process");
-static struct etimer report_timer;
-
-#define MLD_REPORT_ONE_EVENT 0x42
-#define MLD_REPORT_ALL_EVENT 0x43
-
+static inline void mld_report_later(uip_ds6_maddr_t *addr, uint16_t timeout)
+{
+  int when = random_rand() % timeout;
+  PRINTF("Report in %is:", when);
+  PRINT6ADDR(&addr->ipaddr);
+  PRINTF("\n");
+  stimer_set(&addr->report_timeout, when);
+}
 
 /*---------------------------------------------------------------------------*/
 static void
@@ -126,6 +128,15 @@ send_mldv1_packet(uip_ip6addr_t *maddr, uint8_t mld_type)
 
 /*---------------------------------------------------------------------------*/
 void
+uip_icmp6_mldv1_schedule_report(uip_ds6_maddr_t *addr)
+{
+  addr->report_count = 3;
+  stimer_set(&addr->report_timeout, 0);
+  etimer_set(&uip_mld_timer_periodic, CLOCK_SECOND / 4);
+}
+
+/*---------------------------------------------------------------------------*/
+void
 uip_icmp6_mldv1_report(uip_ip6addr_t *addr)
 {
   if (uip_is_addr_linklocal_allnodes_mcast(addr)) {
@@ -160,6 +171,10 @@ uip_icmp6_mldv1_done(uip_ip6addr_t *addr)
 void
 uip_icmp6_ml_query_input(void)
 {
+  uip_ds6_maddr_t *addr;
+  uint8_t m;
+  uint16_t max_delay;
+
   /*
    * Send an MLDv1 report packet for every multicast address known to be ours.
    */
@@ -169,26 +184,36 @@ uip_icmp6_ml_query_input(void)
   PRINT6ADDR(&UIP_ICMP6_MLD_BUF->address);
   PRINTF("\n");
 
+  max_delay = uip_ntohs(UIP_ICMP6_MLD_BUF->maximum_delay);
+
   if (uip_ext_len == 0) {
     PRINTF("MLD packet without hop-by-hop header received\n");
+    return;
   } else {
     if (!uip_is_addr_linklocal_allnodes_mcast(&UIP_ICMP6_MLD_BUF->address)
         && uip_ds6_is_my_maddr(&UIP_ICMP6_MLD_BUF->address)) {
-      uip_ds6_maddr_lookup(&UIP_ICMP6_MLD_BUF->address)->isreported = 0;
-      process_post_synch(&mld_handler_process, MLD_REPORT_ONE_EVENT, NULL);
+      addr = uip_ds6_maddr_lookup(&UIP_ICMP6_MLD_BUF->address);
+      addr->report_count = 1;
+      mld_report_later(addr, max_delay / 1000);
     } else if (uip_is_addr_unspecified(&UIP_ICMP6_MLD_BUF->address)) {
-      process_post_synch(&mld_handler_process, MLD_REPORT_ALL_EVENT, NULL);
-    }
-    if (etimer_expiration_time(&report_timer) * CLOCK_SECOND > (uint32_t) UIP_ICMP6_MLD_BUF->maximum_delay / 1000) {
-      etimer_set(&report_timer, (uint32_t) (random_rand() % UIP_ICMP6_MLD_BUF->maximum_delay) * CLOCK_SECOND / 1000);
+      for (m = 0; m < UIP_DS6_MADDR_NB; m++) {
+        if (uip_ds6_if.maddr_list[m].isused) {
+          uip_ds6_if.maddr_list[m].report_count = 1;
+          mld_report_later(&uip_ds6_if.maddr_list[m], max_delay / 1000);
+        }
+      }
     }
   }
+
+  etimer_set(&uip_mld_timer_periodic, CLOCK_SECOND / 4);
 }
 
 /*---------------------------------------------------------------------------*/
 void
 uip_icmp6_ml_report_input(void)
 {
+  uip_ds6_maddr_t *addr;
+
   PRINTF("Received MLD report from");
   PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
   PRINTF("for");
@@ -198,78 +223,39 @@ uip_icmp6_ml_report_input(void)
   if (uip_ext_len == 0) {
     PRINTF("MLD packet without hop-by-hop header received\n");
   } else if (uip_ds6_is_my_maddr(&UIP_ICMP6_MLD_BUF->address)) {
-    uip_ds6_maddr_lookup(&UIP_ICMP6_MLD_BUF->address)->isreported = 1;
+    addr = uip_ds6_maddr_lookup(&UIP_ICMP6_MLD_BUF->address);
+    if (addr->report_count > 0)
+      addr->report_count--;
   }
 }
 
 /*---------------------------------------------------------------------------*/
 void
-mld_report_now(void)
-{
-  process_post(&mld_handler_process, MLD_REPORT_ONE_EVENT, NULL);
-}
-
-/*---------------------------------------------------------------------------*/
-static void
-mld_report_init(uint8_t clear_status)
+uip_mld_periodic(void)
 {
   uint8_t m;
+  uip_ds6_maddr_t *addr;
+  bool more = false;
 
-  multicast_group_count = 0;
   for (m = 0; m < UIP_DS6_MADDR_NB; m++) {
-    if (uip_ds6_if.maddr_list[m].isused) {
-      multicast_groups[multicast_group_count] = &uip_ds6_if.maddr_list[m];
-      if (clear_status) {
-        uip_ds6_if.maddr_list[m].isreported = 0;
+    addr = &uip_ds6_if.maddr_list[m];
+    if (addr->isused && addr->report_count) {
+      if (stimer_expired(&addr->report_timeout)) {
+        uip_icmp6_mldv1_report(&addr->ipaddr);
+        if (--addr->report_count) {
+          if (addr->report_timeout.interval == 0)
+            mld_report_later(addr, UIP_IP6_MLD_REPORT_INTERVAL);
+          stimer_restart(&addr->report_timeout);
+        }
       }
-      multicast_group_count++;
-    }
-  }
-}
-
-/*---------------------------------------------------------------------------*/
-static void
-mld_report_one(void)
-{
-  if (multicast_group_count == 0) {
-    etimer_stop(&report_timer);
-    return;
-  }
-
-  multicast_group_count--;
-
-  if (multicast_groups[multicast_group_count]->isused
-      && !multicast_groups[multicast_group_count]->isreported) {
-    uip_icmp6_mldv1_report(&multicast_groups[multicast_group_count]->ipaddr);
-  }
-
-  etimer_reset(&report_timer);
-}
-
-/*---------------------------------------------------------------------------*/
-void
-uip_mld_init(void)
-{
-  process_start(&mld_handler_process, NULL);
-}
-
-/*---------------------------------------------------------------------------*/
-PROCESS_THREAD(mld_handler_process, ev, data)
-{
-  PROCESS_BEGIN();
-
-  while (1) {
-    PROCESS_WAIT_EVENT();
-
-    if (ev == PROCESS_EVENT_TIMER) {
-      mld_report_one();
-    } else if (ev == MLD_REPORT_ONE_EVENT || ev == MLD_REPORT_ALL_EVENT) {
-      mld_report_init(ev == MLD_REPORT_ALL_EVENT);
-      etimer_set(&report_timer, 0);
+      more = true;
     }
   }
 
-  PROCESS_END();
+  if (more)
+    etimer_set(&uip_mld_timer_periodic, CLOCK_SECOND / 4);
 }
 
 /** @} */
+
+#endif

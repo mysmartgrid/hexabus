@@ -2,11 +2,7 @@
 
 set -e
 
-if ! id hexanode >/dev/null 2>&1
-then
-	useradd -r -m hexanode
-fi
+mkdir -p /home/hexanode/state_machines/build/
+chown -R hexanode:hexanode /home/hexanode/*
 
-su -c 'cd ~; npm install /usr/share/hexanode_webfrontend' hexanode
-svc -d /etc/service/hexanode-webfrontend
 svc -u /etc/service/hexanode-webfrontend

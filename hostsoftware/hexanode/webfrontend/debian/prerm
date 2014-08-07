@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -e
+
+svc -d /etc/service/hexanode-webfrontend

@@ -10,22 +10,28 @@ set(hexalog_src "hexalog.cpp" ${common_lib})
 set(hexaupload_src "hexaupload.cpp" ${common_lib})
 set(hexapost_src "hexapost.cpp" ${common_lib})
 set(hexapair_src "hexapair.cpp" ${common_lib})
+set(hexatimed_src "hexatimed.cpp" ${common_lib})
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/libhexabus
-  ${Boost_INCLUDE_DIRS}
 )
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+
 if(LIBKLIO_FOUND)
   include_directories(
-    ${LIBKLIO_INCLUDE_DIR}
+    ${LIBKLIO_INCLUDE_DIRS}
     ${SQLITE3_INCLUDE_DIR}
+    ${ROCKSDB_INCLUDE_DIR}
   )
   link_directories(
   ${SQLITE3_STATIC_LIBRARY_DIRS}
   )
+  if(LIBKLIO_ENABLE_ROCKSDB)
+    set_source_files_properties(${hexalog_src} COMPILE_FLAGS "-std=gnu++11")
+  endif()
 endif(LIBKLIO_FOUND)
 
 add_executable(hexaswitch ${hexaswitch_src})
@@ -52,6 +58,14 @@ target_link_libraries(hexapair
   ${Boost_LIBRARIES}
 )
 
+add_executable(hexatimed ${hexatimed_src})
+# Link the executables
+target_link_libraries(hexatimed
+  hexabus
+  pthread
+  ${Boost_LIBRARIES}
+)
+
 if(LIBKLIO_FOUND)
   add_executable(hexalog ${hexalog_src})
   target_link_libraries(hexalog
@@ -64,6 +78,7 @@ if(LIBKLIO_FOUND)
     ${SQLITE3_LIBRARIES}
     ${GNUTLS_LIBRARIES}
     pthread
+    ${ROCKSDB_LIBRARY}
     ${OPENSSL_CRYPTO_LIBRARY}
 #    gcrypt
   )
@@ -75,6 +90,7 @@ INSTALL(PROGRAMS
   ${CMAKE_CURRENT_BINARY_DIR}/hexaswitch
   ${CMAKE_CURRENT_BINARY_DIR}/hexaupload
   ${CMAKE_CURRENT_BINARY_DIR}/hexapair
+  ${CMAKE_CURRENT_BINARY_DIR}/hexatimed
   DESTINATION bin)
 
 if(LIBKLIO_FOUND)
