@@ -1,0 +1,16 @@
+CONTIKI_TARGET_DIRS = .
+
+CONTIKI_TARGET_SOURCEFILES += default-uart.c contiki-hexabus-lowlevel.c contiki-hexabus-main.c
+#The avr cpu makefile will also add these files if COFFEE_FILES is specified.
+#CONTIKI_TARGET_SOURCEFILES += cfs-coffee.c cfs-coffee-arch.c
+#Needed for slip
+#CONTIKI_TARGET_SOURCEFILES += slip_uart0.c slip.c
+
+MCK = 32000000UL
+CONTIKI_PLAT_DEFS = -DAUTO_CRC_PADDING=2
+
+# use RF212 driver
+RF212BB=1
+
+include $(CONTIKI)/cpu/arm/stm32l/Makefile.stm32l
+#include $(CONTIKI)/cpu/avr/radio/Makefile.radio
