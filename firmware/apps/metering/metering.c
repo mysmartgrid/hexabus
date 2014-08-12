@@ -39,13 +39,13 @@
 #include "contiki.h"
 #include "dev/leds.h"
 #include <avr/eeprom.h>
-#include "eeprom_variables.h"
 #include "dev/leds.h"
 #include "relay.h"
 #include "hexabus_config.h"
 #include "endpoints.h"
 #include "endpoint_registry.h"
 #include "value_broadcast.h"
+#include "nvm.h"
 
 /** \brief This is a file internal variable that contains the 16 MSB of the
  *         metering pulse period.
@@ -153,8 +153,8 @@ void
 metering_init(void)
 {
   /* Load reference values from EEPROM */
-  metering_reference_value = eeprom_read_word(eep_addr(metering_ref));
-  metering_calibration_power = eeprom_read_word(eep_addr(metering_cal_load));
+	metering_reference_value = nvm_read_u16(metering_ref);
+	metering_calibration_power = nvm_read_u16(metering_cal_load);
 
 #if METERING_ENERGY
   // reset energy metering value
@@ -262,44 +262,42 @@ metering_get_power(void)
 }
 
 /* sets calibration value for s0 meters */
-void
-metering_set_s0_calibration(uint16_t value) {
-    metering_stop();
-    eeprom_write_word(eep_addr(metering_ref), ((3600000*CLOCK_SECOND)/(value*10))); 
-    metering_init();
-    metering_start();
+void metering_set_s0_calibration(uint16_t value)
+{
+	metering_stop();
+	nvm_write_u16(metering_ref, ((3600000*CLOCK_SECOND)/(value*10)));
+	metering_init();
+	metering_start();
 }
 
 /* starts the metering calibration if the calibration flag is 0xFF else returns 0*/
-bool
-metering_calibrate(void)
+bool metering_calibrate(void)
 {
-  unsigned char cal_flag = eeprom_read_byte(eep_addr(metering_cal_flag));
-  if (cal_flag == 0xFF && !metering_calibration) {
-    metering_calibration = true;
+	unsigned char cal_flag = nvm_read_u8(metering_cal_flag);
+	if (cal_flag == 0xFF && !metering_calibration) {
+		metering_calibration = true;
 		metering_calibration_state = 0;
 		relay_off();
-    leds_on(LEDS_ALL);
-    //stop calibration if there was no pulse in 60 seconds
-    ctimer_set(&metering_stop_timer, CLOCK_SECOND*60,(void *)(void *) metering_calibration_stop,NULL);
-  }
+		leds_on(LEDS_ALL);
+		//stop calibration if there was no pulse in 60 seconds
+		ctimer_set(&metering_stop_timer, CLOCK_SECOND*60,(void *)(void *) metering_calibration_stop,NULL);
+	}
 	return metering_calibration;
 }
 
 /* if socket is not equipped with metering then calibration should stop automatically after some time */
-void
-metering_calibration_stop(void)
+void metering_calibration_stop(void)
 {
-  //store calibration in EEPROM
-  eeprom_write_word(eep_addr(metering_ref), 0);
+	//store calibration in EEPROM
+	nvm_write_u16(metering_ref, 0);
 
-  //lock calibration by setting flag in eeprom
-  eeprom_write_byte(eep_addr(metering_cal_flag), 0x00);
+	//lock calibration by setting flag in eeprom
+	nvm_write_u16(metering_cal_flag, 0x00);
 
-  metering_calibration_state = 0;
-  metering_calibration = false;
-  relay_leds();
-  ctimer_stop(&metering_stop_timer);
+	metering_calibration_state = 0;
+	metering_calibration = false;
+	relay_leds();
+	ctimer_stop(&metering_stop_timer);
 }
 
 //interrupt service routine for the metering interrupt
@@ -333,10 +331,10 @@ ISR(METERING_VECT)
        metering_reference_value = metering_pulse_period * metering_calibration_power;
 
        //store calibration in EEPROM
-       eeprom_write_word(eep_addr(metering_ref), metering_reference_value);
+       nvm_write_u16(metering_ref, metering_reference_value);
 
        //lock calibration by setting flag in eeprom
-       eeprom_write_byte(eep_addr(metering_cal_flag), 0x00);
+       nvm_write_u8(metering_cal_flag, 0x00);
 
        metering_calibration_state = 0;
        metering_calibration = false;

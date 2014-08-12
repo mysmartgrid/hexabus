@@ -61,9 +61,9 @@
 #include "metering.h"
 #include "temperature.h"
 #include "relay.h"
-#include "eeprom_variables.h"
 #include "datetime_service.h"
 #include "state_machine.h"
+#include "nvm.h"
 
 #if RF230BB
 #include "radio/rf230bb/rf230bb.h"
@@ -466,11 +466,11 @@ generate_config(void *arg)
 
     char* checked = "checked";
 	numprinted=0;
-	char tmp[eep_size(domain_name)];
-	eeprom_read_block(tmp, eep_addr(domain_name), sizeof(tmp));
+	char tmp[nvm_size(domain_name)];
+	nvm_read_block(domain_name, tmp, sizeof(tmp));
 	numprinted =httpd_snprintf((char *)uip_appdata, uip_mss(), httpd_cgi_config_line1, tmp);
 
-	if (!eeprom_read_byte(eep_addr(relay_default)))
+	if (!nvm_read_u8(relay_default))
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line2, checked, "");
 	else
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line2, "", checked);

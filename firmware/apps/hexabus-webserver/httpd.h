@@ -39,7 +39,6 @@
 #include "contiki-net.h"
 #include "httpd-fs.h"
 #include "lib/petsciiconv.h"
-#include "eeprom_variables.h"
 
 struct httpd_state {
   unsigned char timer;

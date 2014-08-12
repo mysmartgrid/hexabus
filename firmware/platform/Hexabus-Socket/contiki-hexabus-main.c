@@ -92,10 +92,10 @@
 #include "contiki-hexabus.h"
 #include "relay.h"
 #include "button.h"
-#include "eeprom_variables.h"
 #include "udp_handler.h"
 #include "state_machine.h"
 #include "hexabus_app_bootstrap.h"
+#include "nvm.h"
 
 // optional HEXABUS apps
 #if VALUE_BROADCAST_ENABLE
@@ -165,27 +165,27 @@ volatile uint8_t ee_mem[EEP_SIZE] EEMEM =
 
 void get_mac_from_eeprom(uint8_t* macptr)
 {
-	eeprom_read_block(macptr, eep_addr(mac_addr), eep_size(mac_addr));
+	nvm_read_block(mac_addr, macptr, nvm_size(mac_addr));
 }
 
 uint16_t get_panid_from_eeprom(void)
 {
-	return eeprom_read_word(eep_addr(pan_id));
+	return nvm_read_u16(pan_id);
 }
 
 uint16_t get_panaddr_from_eeprom(void)
 {
-	return eeprom_read_word(eep_addr(pan_addr));
+	return nvm_read_u16(pan_addr);
 }
 
 uint8_t get_relay_default_from_eeprom(void)
 {
-	return eeprom_read_byte(eep_addr(relay_default));
+	return nvm_read_u8(relay_default);
 }
 
 void get_aes128key_from_eeprom(uint8_t keyptr[16])
 {
-	eeprom_read_block(keyptr, eep_addr(encryption_key), 16);
+	nvm_read_block(encryption_key, keyptr, 16);
 }
 
 #include <util/delay.h>
@@ -278,7 +278,7 @@ void initialize(void)
   process_start(&tcpip_process, NULL);
 
   //initialize random number generator with part of the MAC address
-  random_init(eeprom_read_word(eep_addr(mac_addr[eep_size(mac_addr) - sizeof(uint16_t)])));
+  random_init(nvm_read_u16(mac_addr[nvm_size(mac_addr) - sizeof(uint16_t)]));
 
 #if WEBSERVER
   process_start(&webserver_nogui_process, NULL);
@@ -359,8 +359,8 @@ void initialize(void)
        PRINTF("IPv6 Address: %s\n",buf);
 	}
   }
-	eeprom_read_block(buf, eep_addr(domain_name), eep_size(domain_name));
-	buf[eep_size(domain_name)] = 0;
+	nvm_read_block(domain_name, buf, nvm_size(domain_name));
+	buf[nvm_size(domain_name)] = 0;
 	size=httpd_fs_get_size();
 #ifndef COFFEE_FILES
    PRINTF(".%s online with fixed %u byte web content\n",buf,size);

@@ -1,12 +1,11 @@
 #include "datetime_service.h"
 #include <util/delay.h>
 #include "sys/clock.h"
-#include "sys/etimer.h" //contiki event timer library
+#include "sys/etimer.h"
 #include "contiki.h"
 
 #include "hexabus_config.h"
-#include "eeprom_variables.h"
-#include <avr/eeprom.h>
+#include "nvm.h"
 
 #include <stdlib.h>
 #include <stdio.h>

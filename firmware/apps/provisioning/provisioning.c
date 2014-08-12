@@ -44,8 +44,8 @@
 #include "dev/watchdog.h"
 #include "net/netstack.h"
 #include "packetbuf.h"
-#include "eeprom_variables.h"
 #include "provisioning.h"
+#include "nvm.h"
 
 
 #define DEBUG 0
@@ -173,8 +173,8 @@ int provisioning_slave(void) {
 		}
 		PRINTF("\n");
 		HAL_ENTER_CRITICAL_REGION();
-		eeprom_write_word(eep_addr(pan_id), packet->pan_id);
-		eeprom_write_block(packet->aes_key, eep_addr(encryption_key), eep_size(encryption_key));
+		nvm_write_u16(pan_id, packet->pan_id);
+		nvm_write_block(encryption_key, packet->aes_key, nvm_size(encryption_key));
 		HAL_LEAVE_CRITICAL_REGION();
 		provisioning_done_leds();
 		mac_dst_pan_id = packet->pan_id;

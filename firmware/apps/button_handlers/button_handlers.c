@@ -34,7 +34,6 @@
 #include "contiki-conf.h"
 
 #include "hexabus_config.h"
-#include "eeprom_variables.h"
 #include "sys/clock.h"
 #include <avr/eeprom.h>
 #include <avr/wdt.h>
@@ -46,6 +45,7 @@
 #include "endpoints.h"
 #include "relay.h"
 #include "endpoint_registry.h"
+#include "nvm.h"
 
 #if BUTTON_HAS_EID
 int button_pushed = 0;
@@ -93,7 +93,7 @@ static void button_pressed(uint8_t button, uint8_t released, uint16_t ticks)
 	}
 
 	if (ticks > CLOCK_SECOND * BUTTON_LONG_CLICK_MS / 1000) {
-		eeprom_write_byte(eep_addr(bootloader_flag), 0x01);
+		nvm_write_u8(bootloader_flag, 0x01);
 		watchdog_reboot();
 	}
 }

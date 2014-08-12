@@ -4,9 +4,9 @@
 #include <stdbool.h>
 #include <avr/eeprom.h>
 
-#include "eeprom_variables.h"
 #include <stdio.h>
 #include "hexabus_config.h"
+#include "nvm.h"
 
 #define LOG_LEVEL ENDPOINT_REGISTRY_DEBUG
 #include "syslog.h"
@@ -149,11 +149,11 @@ enum hxb_error_code endpoint_read(uint32_t eid, struct hxb_value* value)
 enum hxb_error_code endpoint_get_name(uint32_t eid, char* buffer, size_t len)
 {
 	if (eid % 32 == 0) {
-		if (len >= eep_size(domain_name)) {
-			len = eep_size(domain_name) - 1;
+		if (len >= nvm_size(domain_name)) {
+			len = nvm_size(domain_name) - 1;
 		}
-		eeprom_read_block(buffer, eep_addr(domain_name), len);
-		buffer[eep_size(domain_name)] = '\0';
+		nvm_read_block(domain_name, buffer, len);
+		buffer[nvm_size(domain_name)] = '\0';
 		return HXB_ERR_SUCCESS;
 	} else {
 		struct endpoint_descriptor ep;
