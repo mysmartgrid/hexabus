@@ -14,7 +14,6 @@ void configure_system_clock(void)
 	RCC->CR = RCC_CR_HSION;
 	while (!(RCC->CR & RCC_CR_HSIRDY));
 
-#if 1
 	RCC->CFGR =
 		RCC_CFGR_PLLMUL4 |
 		RCC_CFGR_PLLDIV2 |
@@ -28,12 +27,6 @@ void configure_system_clock(void)
 
 	RCC->CFGR = RCC_CFGR_SW_PLL;
 	while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);
-#else
-	RCC->CFGR = RCC_CFGR_SW_HSI;
-	while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSI);
-#endif
-
-	__ISB();
 }
 
 void init_lowlevel(void)
