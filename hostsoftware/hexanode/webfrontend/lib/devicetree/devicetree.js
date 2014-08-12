@@ -149,7 +149,9 @@ var Endpoint = function(device, eid, params, emitter) {
 			},
 		},
 		"age": {
-			get: function() { return new Date() - this.last_update; }
+			get: function() {
+				return new Date() - this.last_update;
+			}
 		}
 	});
 

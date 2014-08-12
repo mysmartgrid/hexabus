@@ -171,7 +171,7 @@ var sensor_is_old = function(ep) {
 setInterval(function() {
 	devicetree.forEach(function(device) {
 		device.forEachEndpoint(function(ep) {
-			if (ep.function == "sensor" && sensor_is_old(ep)) {
+			if (ep.function == "sensor" && ep.eid != 4 && ep.eid != 1 && sensor_is_old(ep)) {
 				devicetree.emit('ep_timeout', { ep: ep });
 			}
 		});

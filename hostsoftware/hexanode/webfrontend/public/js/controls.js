@@ -143,7 +143,7 @@ angular.module('controls', [
 					'data-max="{{endpoint.ep_desc.maxvalue}}" ' +
 					'data-value="{{endpoint.ep_desc.value}}" ' +
 					'data-gauge="control.gauge" ' +
-					'data-disabled="!hasValue" ' +
+					'data-disabled="!hasValue || endpoint.disabled" ' +
 					'data-min-click="minClick()" ' +
 					'data-max-click="maxClick()" ' +
 					'data-title-click="titleClick()" ' +

@@ -44,7 +44,7 @@
 			<div class="col-md-9">
 				<ul class="list-inline">
 					<li data-ng-repeat="ep in current_view.endpoints"
-							data-ng-hide="ep.hide || !ep.ep_desc.unit && hide_unitless">
+							data-ng-hide="!ep.ep_desc.unit && hide_unitless">
 						<div data-vis-endpoint=""
 								 data-endpoint="ep"
 								 data-enable-edit="true"

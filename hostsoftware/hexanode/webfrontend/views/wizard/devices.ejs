@@ -15,7 +15,7 @@
 			</td>
 		</tr>
 		<tr data-ng-repeat="device in devices">
-			<th>
+			<th data-ng-class="{'danger' : device.timeout}">
 					<p data-ng-hide="device.rename" data-ng-click="show_rename(device)">{{device.name}}</p>
 					<form data-ng-show="device.rename" ng-submit="rename_device(device)" class="input-append control-group {{device.rename_error_class}}">
 						<input id="renameField" focus-if="device.rename" data-ng-disabled="device.renaming" class="span2" type="text" data-ng-model="device.new_name">

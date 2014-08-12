@@ -206,7 +206,7 @@ angular.module('dashboard', [
 		}
 
 		ep.ep_desc.value = data.value.value;
-		ep.hide = false;
+		ep.disabled = false;
 		ep.ep_desc.has_value = true;
 
 		updateDisplay();
@@ -214,7 +214,7 @@ angular.module('dashboard', [
 
 	Socket.on('ep_timeout', function(msg) {
 		if (msg.ep.function == "sensor" && $scope.sensorList[msg.ep.id]) {
-			$scope.sensorList[msg.ep.id].hide = true;
+			$scope.sensorList[msg.ep.id].disabled = true;
 		}
 	});
 
@@ -397,6 +397,7 @@ angular.module('dashboard', [
 	Socket.on('ep_update', function(data) {
 		if ($scope.devices[data.device]) {
 			$scope.devices[data.device].last_update = now();
+			$scope.devices[data.device].timeout = false;
 		}
 	});
 
@@ -407,6 +408,8 @@ angular.module('dashboard', [
 		var device = ($scope.devices[ep.ip] = $scope.devices[ep.ip] || { ip: ep.ip, eids: [] });
 
 		ep.last_update = Math.round((+new Date(ep.last_update)) / 1000);
+		device.timeout = false;
+
 		device.name = ep.name;
 		if(device.renaming && ep.ip == device.ip) {
 			if(device.new_name == ep.name) {
@@ -482,6 +485,12 @@ angular.module('dashboard', [
 
 	Socket.on('devices_enumerate_done', function() {
 		$scope.scanDone = true;
+	});
+
+	Socket.on('ep_timeout', function(msg) {
+		if($scope.devices[msg.ep.ip]) {
+			$scope.devices[msg.ep.ip].timeout = true;
+		}
 	});
 
 	$scope.remove = function(device) {
