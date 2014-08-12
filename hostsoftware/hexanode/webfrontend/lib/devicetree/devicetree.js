@@ -259,7 +259,7 @@ var Endpoint = function(device, eid, params, emitter) {
 
 var DeviceTree = function(file) {
 	var devices = {};
-	var views = [];
+	var views = {};
 
 	if (file) {
 		var data = fs.readFileSync(file);
@@ -271,7 +271,7 @@ var DeviceTree = function(file) {
 				dev: json.devices[key]
 			});
 		}
-		views = json.views;
+		views = json.views || {};
 	}
 
 	this.add_endpoint = function(ip, eid, params) {

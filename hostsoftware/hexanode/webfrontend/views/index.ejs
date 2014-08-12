@@ -20,9 +20,23 @@
 		<li data-ng-repeat="view in views">
 			<a href="#" data-ng-click="setView(view)" data-toggle="tab">{{view.name}}</a>
 		</li>
+		<li>
+			<a href="/view/new"><span class="glyphicon glyphicon-plus"></span></a>
+		</li>
 	</ul>
 	<div class="tab-content">
 		<h2 class="text-center" data-localize="dashboard.all-sensors" id="view-name">All sensors</h2>
+		<div class="row" data-ng-hide="current_view.view == 'sensors' || current_view.view == 'actors'">
+			<div class="col-md-10"></div>
+			<div class="col-md-2">
+				<a href="/view/edit/{{current_view.view.id}}" class="btn btn-primary btn-md" role="button">
+					<span class="glyphicon glyphicon-pencil"></span>
+				</a>
+				<a href="/view/delete/{{current_view.view.id}}" class="btn btn-danger btn-md" role="button">
+					<span class="glyphicon glyphicon-remove"></span>
+				</a>
+			</div>
+		</div>
 		<div class="row">
 			<div class="col-md-3">
 				<p><span data-localize="last-update.label">Last update:</span> <span id="last-update-when"></span></p>
