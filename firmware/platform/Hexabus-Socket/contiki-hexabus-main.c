@@ -49,21 +49,10 @@
 #include <string.h>
 #include <dev/watchdog.h>
 
-#include "loader/symbols-def.h"
-#include "loader/symtab.h"
-
 #include "radio/rf230bb/rf230bb.h"
-#include "net/mac/frame802154.h"
-#include "net/mac/framer-802154.h"
 #include "net/sicslowpan.h"
 
 #include "contiki.h"
-#include "contiki-net.h"
-#include "contiki-lib.h"
-
-#include "dev/rs232.h"
-#include "dev/serial-line.h"
-#include "dev/slip.h"
 
 #include "lib/random.h"
 
@@ -73,46 +62,15 @@
 #include "webserver-nogui.h"
 #endif
 
-#ifdef COFFEE_FILES
-#include "cfs/cfs.h"
-#include "cfs/cfs-coffee.h"
-#endif
-
-#if UIP_CONF_ROUTER&&0
-#include "net/routing/rimeroute.h"
-#include "net/rime/rime-udp.h"
-#endif
-
 #include "net/rime.h"
 
 
 //HEXABUS includes
-#include "metering.h"
 #include "button_handlers.h"
 #include "contiki-hexabus.h"
-#include "relay.h"
 #include "button.h"
-#include "udp_handler.h"
-#include "state_machine.h"
 #include "hexabus_app_bootstrap.h"
 #include "nvm.h"
-
-// optional HEXABUS apps
-#if VALUE_BROADCAST_ENABLE
-#include "value_broadcast.h"
-#endif
-#if DATETIME_SERVICE_ENABLE
-#include "datetime_service.h"
-#endif
-#if MEMORY_DEBUGGER_ENABLE
-#include "memory_debugger.h"
-#endif
-#if EPAPER_ENABLE
-#include "epaper.h"
-#endif
-#if HEXASENSE_ENABLE
-#include "hexasense.h"
-#endif
 
 #include "health.h"
 
@@ -121,20 +79,7 @@ uint8_t nSensors = 0; //number of found temperature sensors
 uint8_t encryption_enabled = 1; //global variable for AES encryption
 /*-------------------------------------------------------------------------*/
 /*----------------------Configuration of the .elf file---------------------*/
-#if 1
-/* The proper way to set the signature is */
 #include <avr/signature.h>
-#else
-/* Older avr-gcc's may not define the needed SIGNATURE bytes. Do it manually if you get an error */
-typedef struct {unsigned char B2;unsigned char B1;unsigned char B0;} __signature_t;
-#define SIGNATURE __signature_t __signature __attribute__((section (".signature")))
-SIGNATURE = {
-/* Older AVR-GCCs may not define the SIGNATURE_n bytes so use explicit 1284p values */
-		.B2 = 0x05,//SIGNATURE_2,
-		.B1 = 0x97,//SIGNATURE_1,
-		.B0 = 0x1E,//SIGNATURE_0,
-		};
-#endif
 
 FUSES = {.low = 0xE2, .high = 0x90, .extended = 0xFF,};
 
@@ -188,8 +133,6 @@ void get_aes128key_from_eeprom(uint8_t keyptr[16])
 	nvm_read_block(encryption_key, keyptr, 16);
 }
 
-#include <util/delay.h>
-
 /*-------------------------Low level initialization------------------------*/
 /*------Done in a subroutine to keep main routine stack usage small--------*/
 void initialize(void)
@@ -201,7 +144,6 @@ void initialize(void)
   init_lowlevel();
 
   clock_init();
-
 
 #if ANNOUNCE_BOOT
   PRINTF("\n*******Booting %s*******\n",CONTIKI_VERSION_STRING);
@@ -220,16 +162,17 @@ void initialize(void)
   ctimer_init();
   /* Start radio and radio receive process */
 
-    NETSTACK_RADIO.init();
+  /* Initialize stack protocols */
+  queuebuf_init();
+  netstack_init();
+
   /* Set addresses BEFORE starting tcpip process */
 
   rimeaddr_t addr;
   memset(&addr, 0, sizeof(rimeaddr_t));
   get_mac_from_eeprom(addr.u8);
- 
-#if UIP_CONF_IPV6 
+
   memcpy(&uip_lladdr.addr, &addr.u8, 8);
-#endif  
   rf230_set_pan_addr(
 	get_panid_from_eeprom(),
 	get_panaddr_from_eeprom(),
@@ -246,12 +189,6 @@ void initialize(void)
   rimeaddr_set_node_addr(&addr); 
 
   PRINTFD("MAC address %x:%x:%x:%x:%x:%x:%x:%x\n",addr.u8[0],addr.u8[1],addr.u8[2],addr.u8[3],addr.u8[4],addr.u8[5],addr.u8[6],addr.u8[7]);
-
-  /* Initialize stack protocols */
-  queuebuf_init();
-  NETSTACK_RDC.init();
-  NETSTACK_MAC.init();
-  NETSTACK_NETWORK.init();
 
 #if ANNOUNCE_BOOT
   PRINTF("%s %s, channel %u",NETSTACK_MAC.name, NETSTACK_RDC.name, rf230_get_channel());
@@ -272,78 +209,12 @@ void initialize(void)
 
 #endif /* ANNOUNCE_BOOT */
 
-// rime_init(rime_udp_init(NULL));
-// uip_router_register(&rimeroute);
-
   process_start(&tcpip_process, NULL);
 
-  //initialize random number generator with part of the MAC address
-  random_init(nvm_read_u16(mac_addr[nvm_size(mac_addr) - sizeof(uint16_t)]));
-
-#if WEBSERVER
-  process_start(&webserver_nogui_process, NULL);
-#endif
-
-#if MEMORY_DEBUGGER_ENABLE 
-  memory_debugger_init();
-  /* periodically print memory usage */
-  process_start(&memory_debugger_process, NULL);
-#endif
-
-  /* Handler for HEXABUS UDP Packets */
-  process_start(&udp_handler_process, NULL);
-
-  /* Process for periodic sending of HEXABUS data */
-#if VALUE_BROADCAST_ENABLE
-#if VALUE_BROADCAST_AUTO_INTERVAL
-  process_start(&value_broadcast_process, NULL);
-#else
-  init_value_broadcast();
-#endif
-#endif
-
-  /* process handling received HEXABUS broadcasts */
-#if STATE_MACHINE_ENABLE
-  sm_start();
-#endif
-
-  /* Datetime service*/
-#if DATETIME_SERVICE_ENABLE
-  process_start(&datetime_service_process, NULL);
-#endif
+  random_init((rf230_generate_random_byte() << 8) | rf230_generate_random_byte());
 
   hexabus_bootstrap_init_apps();
   hexabus_bootstrap_start_processes();
-
-  /* Autostart other processes */
-  autostart_start(autostart_processes);
-
-  /*---If using coffee file system create initial web content if necessary---*/
-#if COFFEE_FILES
-  int fa = cfs_open( "/index.html", CFS_READ);
-  if (fa<0) {     //Make some default web content
-    PRINTF("No index.html file found, creating upload.html!\n");
-    PRINTF("Formatting FLASH file system for coffee...");
-    cfs_coffee_format();
-    PRINTF("Done!\n");
-    fa = cfs_open( "/index.html", CFS_WRITE);
-    int r = cfs_write(fa, &"It works!", 9);
-    if (r<0) PRINTF("Can''t create /index.html!\n");
-    cfs_close(fa);
-//  fa = cfs_open("upload.html"), CFW_WRITE);
-// <html><body><form action="upload.html" enctype="multipart/form-data" method="post"><input name="userfile" type="file" size="50" /><input value="Upload" type="submit" /></form></body></html>
-  }
-#endif /* COFFEE_FILES */
-
-/* Add addresses for testing */
-#if 0
-{  
-  uip_ip6addr_t ipaddr;
-  uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
-  uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
-//  uip_ds6_prefix_add(&ipaddr,64,0);
-}
-#endif
 
 /*--------------------------Announce the configuration---------------------*/
 #if ANNOUNCE_BOOT
@@ -362,33 +233,13 @@ void initialize(void)
 	nvm_read_block(domain_name, buf, nvm_size(domain_name));
 	buf[nvm_size(domain_name)] = 0;
 	size=httpd_fs_get_size();
-#ifndef COFFEE_FILES
-   PRINTF(".%s online with fixed %u byte web content\n",buf,size);
-#elif COFFEE_FILES==1
-   PRINTF(".%s online with static %u byte EEPROM file system\n",buf,size);
-#elif COFFEE_FILES==2
-   PRINTF(".%s online with dynamic %u KB EEPROM file system\n",buf,size>>10);
-#elif COFFEE_FILES==3
-   PRINTF(".%s online with static %u byte program memory file system\n",buf,size);
-#elif COFFEE_FILES==4
-   PRINTF(".%s online with dynamic %u KB program memory file system\n",buf,size>>10);
-#endif /* COFFEE_FILES */
-
+	PRINTF("%s online with fixed %u byte web content\n",buf,size);
 #else
    PRINTF("Online\n");
 #endif /* WEBSERVER */
 
 #endif /* ANNOUNCE_BOOT */
-#if EPAPER_ENABLE
-	epaper_init();
-	epaper_display_special(EP_SCREEN_BOOT);
-#endif
-#if HEXASENSE_ENABLE
-	hexasense_init();
-#endif
 }
-
-extern char rf230_interrupt_flag, rf230processflag;
 
 /*-------------------------------------------------------------------------*/
 /*------------------------- Main Scheduler loop----------------------------*/

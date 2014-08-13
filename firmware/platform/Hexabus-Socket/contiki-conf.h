@@ -191,7 +191,6 @@ typedef unsigned long off_t;
 /* ************************************************************************** */
 //#pragma mark RPL Settings
 /* ************************************************************************** */
-#if UIP_CONF_IPV6_RPL
 
 /* Define MAX_*X_POWER to reduce tx power and ignore weak rx packets for testing a miniature multihop network.
  * Leave undefined for full power and sensitivity.
@@ -211,16 +210,10 @@ typedef unsigned long off_t;
 #define UIP_CONF_ND6_REACHABLE_TIME     600000
 #define UIP_CONF_ND6_RETRANS_TIMER      10000
 
-#undef UIP_CONF_UDP_CONNS
-#define UIP_CONF_UDP_CONNS       12
-#undef UIP_CONF_FWCACHE_SIZE
-#define UIP_CONF_FWCACHE_SIZE    30
 #define UIP_CONF_BROADCAST       1
 #define UIP_ARCH_IPCHKSUM        1
 #define UIP_CONF_PINGADDRCONF    0
 #define UIP_CONF_LOGGING         0
-
-#endif /* RPL */
 
 
 
