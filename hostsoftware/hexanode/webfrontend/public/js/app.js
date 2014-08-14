@@ -396,8 +396,10 @@ angular.module('dashboard', [
 
 	Socket.on('ep_update', function(data) {
 		if ($scope.devices[data.device]) {
-			$scope.devices[data.device].last_update = now();
-			$scope.devices[data.device].timeout = false;
+			if(data.last_value.unix_ts > $scope.devices[data.device].last_update) {
+				$scope.devices[data.device].last_update = data.last_value.unix_ts;
+				$scope.devices[data.device].timeout = false;
+			};	
 		}
 	});
 
@@ -408,7 +410,6 @@ angular.module('dashboard', [
 		var device = ($scope.devices[ep.ip] = $scope.devices[ep.ip] || { ip: ep.ip, eids: [] });
 
 		ep.last_update = Math.round((+new Date(ep.last_update)) / 1000);
-		device.timeout = false;
 
 		device.name = ep.name;
 		if(device.renaming && ep.ip == device.ip) {

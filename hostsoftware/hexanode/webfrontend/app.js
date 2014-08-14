@@ -14,6 +14,7 @@ var application_root = __dirname,
 	ApiController = require("./controllers/api"),
 	WizardController = require("./controllers/wizard"),
 	ViewsController = require("./controllers/views"),
+	StatemachineController = require("./controllers/statemachine"),
 	fs = require("fs"),
 	nconf=require('nconf');
 
@@ -125,6 +126,7 @@ app.configure(function () {
 ApiController.expressSetup(app, nconf, hexabus, devicetree);
 WizardController.expressSetup(app, nconf, hexabus, devicetree);
 ViewsController.expressSetup(app, nconf, hexabus, devicetree);
+StatemachineController.expressSetup(app, nconf, hexabus, devicetree);
 
 app.get('/', function(req, res) {
 		var wizard = new Wizard();
@@ -143,24 +145,6 @@ app.get('/about', function(req, res) {
 });
 
 
-app.get('/statemachine', function(req, res) {
-	var devices = {};
-
-	devicetree.forEach(function(device) {
-		var entry = devices[device.ip] = { name: device.name, ip: device.ip, eids: [] };
-
-		device.forEachEndpoint(function(ep) {
-			if (ep.function != "infrastructure") {
-				entry.eids.push(ep);
-			}
-		});
-		entry.eids.sort(function(a, b) {
-			return b.eid - a.eid;
-		});
-	});
-
-	res.render('wizard/state_machine.ejs', { active_nav: 'statemachines', devices: devices });
-});
 
 
 
@@ -197,10 +181,9 @@ io.sockets.on('connection', function (socket) {
 	};
 
 	var emit = socket.emit.bind(socket);
-
 	var health_update_timeout;
 	var send_health_update = function() {
-		setTimeout(send_health_update, 60 * 1000);
+		health_update_timeout = setTimeout(send_health_update, 60 * 1000);
 		var wizard = new Wizard();
 		hexabus.get_heartbeat_state(function(err, state) {
 			emit('health_update', ((err || state.code != 0) && wizard.is_finished()));
@@ -249,9 +232,9 @@ io.sockets.on('connection', function (socket) {
 		var ep = devicetree.endpoint_by_id(id);
 		if (ep) {
 			emit('ep_metadata', ep);
-			if (ep.last_value != undefined) {
+			/*if (ep.last_value != undefined) {
 				send_ep_update(ep);
-			}
+			}*/
 		}
 	});
 	on('device_rename', function(msg) {
