@@ -3,9 +3,8 @@
 
 ///* MCU and clock rate */
 //#define PLATFORM       PLATFORM_AVR
-//#define HEXABUS_SOCKET 1000
-//#define RAVEN_REVISION HEXABUS_SOCKET
-//#define PLATFORM_TYPE  HEXABUS_SOCKET
+#define HEXABUS_STM    1001
+#define PLATFORM_TYPE  HEXABUS_STM
 //#ifndef F_CPU
 //#define F_CPU          8000000UL
 //#endif
@@ -49,23 +48,23 @@ typedef uint16_t uip_stats_t;
 //#endif /*RF230BB*/
 //
 //#define HEXABUS_FORWARDING 1
-//
-//#define UIP_CONF_IPV6 1
-//
-//#if UIP_CONF_IPV6
-//#define RIMEADDR_CONF_SIZE        8
-//#define UIP_CONF_ICMP6            1
-//#define UIP_CONF_UDP              1
-//#define UIP_CONF_TCP              1
-//#define UIP_CONF_MLD              1
-//#define NETSTACK_CONF_NETWORK       sicslowpan_driver
-//#define SICSLOWPAN_CONF_COMPRESSION SICSLOWPAN_COMPRESSION_HC06
-//#else
-///* ip4 should build but is largely untested */
-//#define RIMEADDR_CONF_SIZE        2
-//#define NETSTACK_CONF_NETWORK     rime_driver
-//#endif /* UIP_CONF_IPV6 */
-//
+
+#define UIP_CONF_IPV6 1
+
+#if UIP_CONF_IPV6
+#define RIMEADDR_CONF_SIZE        8
+#define UIP_CONF_ICMP6            1
+#define UIP_CONF_UDP              1
+#define UIP_CONF_TCP              1
+#define UIP_CONF_MLD              1
+#define NETSTACK_CONF_NETWORK       sicslowpan_driver
+#define SICSLOWPAN_CONF_COMPRESSION SICSLOWPAN_COMPRESSION_HC06
+#else
+/* ip4 should build but is largely untested */
+#define RIMEADDR_CONF_SIZE        2
+#define NETSTACK_CONF_NETWORK     rime_driver
+#endif /* UIP_CONF_IPV6 */
+
 ///* See uip-ds6.h */
 //#define UIP_CONF_DS6_NBR_NBU      20
 //#define UIP_CONF_DS6_DEFRT_NBU    2
@@ -120,10 +119,10 @@ typedef uint16_t uip_stats_t;
 //
 //
 //
-//#define NETSTACK_CONF_MAC         nullmac_driver
-//#define NETSTACK_CONF_RDC         sicslowmac_driver
-//#define NETSTACK_CONF_FRAMER      framer_802154
-//#define NETSTACK_CONF_RADIO       rf230_driver
+#define NETSTACK_CONF_MAC         nullmac_driver
+#define NETSTACK_CONF_RDC         sicslowmac_driver
+#define NETSTACK_CONF_FRAMER      framer_802154
+#define NETSTACK_CONF_RADIO       rf230_driver
 //
 //#define CHANNEL_802_15_4          0
 ///* AUTOACK receive mode gives better rssi measurements, even if ACK is never requested */

@@ -6,6 +6,15 @@
 
 #include "sys/clock.h"
 #include "dev/watchdog.h"
+#include "rf230bb.h"
+
+#include "nvm.h"
+
+uint8_t encryption_enabled = 1;
+
+void get_aes128key_from_eeprom(char* foo)
+{
+}
 
 int _write(int fd, const void* data, size_t len)
 {
@@ -26,9 +35,9 @@ int main(void)
 	setvbuf(stdout, 0, _IONBF, 0);
 	printf("\r\nreboot %u\r\n", (unsigned) ++RTC->BKP0R);
 
+	rf230_init();
+
 	for (unsigned i = 0;; i++) {
-		for (int i = 0; i < 1000000; i++) asm("nop");
-		printf("\r%u %i", (unsigned) clock_seconds(), i);
 		watchdog_periodic();
 	}
 

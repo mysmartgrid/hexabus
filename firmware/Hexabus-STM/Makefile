@@ -6,11 +6,14 @@ all: main.bin
 #APPS +=metering shutter relay provisioning value_broadcast hxb_broadcast_handler
 #APPS +=presence_detector hexonoff analogread i2c humidity pressure 
 #APPS +=ir_receiver  memory_debugger sm_upload epaper pt100 hexasense
-#UIP_CONF_IPV6=1
+UIP_CONF_IPV6=1
+APPS = nvm
 
 CONTIKI = ../contiki
 TARGETDIRS = ../platform
-APPDIRS += ${addprefix ../apps/, $(APPS)}
+APPDIRS += ../apps/
+
+HEXABUS_TARGET = STM
 
 include $(CONTIKI)/Makefile.include
 

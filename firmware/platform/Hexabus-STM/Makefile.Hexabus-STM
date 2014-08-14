@@ -13,4 +13,6 @@ CONTIKI_PLAT_DEFS = -DAUTO_CRC_PADDING=2
 RF212BB=1
 
 include $(CONTIKI)/cpu/arm/stm32l/Makefile.stm32l
-#include $(CONTIKI)/cpu/avr/radio/Makefile.radio
+include $(CONTIKI)/cpu/avr/radio/Makefile.radio
+
+CONTIKI_CPU_DIRS += ../../avr/radio/rf230bb
