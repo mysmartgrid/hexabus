@@ -3,6 +3,7 @@
 #include "contiki.h"
 #include "default-uart.h"
 #include "stm32l1xx.h"
+#include "dev/leds.h"
 #include "dev/watchdog.h"
 
 void configure_system_clock(void)
@@ -31,6 +32,7 @@ void configure_system_clock(void)
 
 void init_lowlevel(void)
 {
+	leds_init();
 	uart_init();
 	clock_init();
 	watchdog_init();
