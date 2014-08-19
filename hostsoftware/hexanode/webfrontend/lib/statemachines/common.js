@@ -10,13 +10,13 @@ exports.validationError = function(localization, error, extras) {
 	this.msg = error.toString();
 	this.localization = localization;
 	this.extras = extras || {};
-}
+};
 
 
 exports.StatemachineBuilder = function() {
 	this.ipToID = function(ip) {
 		return ip.replace(/:/g,'_');
-	}
+	};
 
 
 	this.sm_folder = 'state_machines/';
@@ -30,34 +30,34 @@ exports.StatemachineBuilder = function() {
 
 	this.addTargetFile = function(src, target, context) {
 		this.targetFileList.push({'src': src, 'target' : target, 'context' : context});
-	}
+	};
 
 
 	this.setCompileTarget = function(file) {
 		this.compileTarget = file;
-	}
+	};
 
 
 	this.addDevice = function(devicename,upload) {
 		this.deviceList.push({'name': devicename, 'upload': upload});
-	}
+	};
 
 
 	this.onProgress = function(callback) {
 		this.progressCallback = callback;
-	}
+	};
 
 
 	this.setProgress = function(msg, localization, extras) {
 		extras = extras || {};
 		this.progressCallback({ 'msg' : msg, 'localization' : localization, 'extras' : extras});
-	}
+	};
 
 
 	this.localizeError = function(localization, error, extras) {
 		extras = extras || {};
 		return {'msg': error.toString(), 'localization': localization, 'extras' : extras};
-	}
+	};
 
 	this.setupBuildDir = function(callback) {
 		fs.mkdir(this.sm_build,function(err) {
@@ -68,7 +68,7 @@ exports.StatemachineBuilder = function() {
 				callback();
 			}
 		}.bind(this));
-	}
+	};
 
 	this.readFiles = function(callback) {
 	  var readFile = function(file,callback) {
@@ -88,12 +88,12 @@ exports.StatemachineBuilder = function() {
 			console.log('File ' + file.src + ' is read already.');
 			callback();
 		}
-	  }
+	  };
 
 		console.log('Reading template files');
 		this.setProgress('Reading files', 'reading');
 		async.eachSeries(this.targetFileList,readFile.bind(this),callback);
-	}
+	};
 
 
 	this.renderTemplates = function(callback) {
@@ -109,11 +109,11 @@ exports.StatemachineBuilder = function() {
 					callback();
 				}
 			}.bind(this));
-		}
+		};
 
 		this.setProgress('Rendering templates', 'rendering');
 		async.each(this.targetFileList,renderTemplate.bind(this),callback);
-	}
+	};
 
 
 	this.compileStatmachines = function(callback) {
@@ -128,7 +128,7 @@ exports.StatemachineBuilder = function() {
 				callback();
 			}
 		}.bind(this));
-	}
+	};
 
 
 	this.assembleStatemachines = function(callback) {
@@ -149,11 +149,11 @@ exports.StatemachineBuilder = function() {
 			else {
 				callback();
 			}
-		}
+		};
 
 		this.setProgress('Assembling statemachines', 'assembling');
 		async.each(this.deviceList, assembleStatemachine.bind(this), callback);
-	}
+	};
 
 
 	this.uploadStatemachines = function(callback) {
@@ -177,10 +177,10 @@ exports.StatemachineBuilder = function() {
 			else {
 				callback();
 			}
-		}
+		};
 
 		async.eachSeries(this.deviceList, uploadStatemachine.bind(this), callback);
-	}
+	};
 
 
 	this.cleanUp = function(callback) {
@@ -195,7 +195,7 @@ exports.StatemachineBuilder = function() {
 					callback();
 				}
 			}.bind(this));
-		}
+		};
 
 		var fileList = [];
 		for(var file in this.targetFileList) {
@@ -210,7 +210,7 @@ exports.StatemachineBuilder = function() {
 
 		this.setProgress('Deleting temporary files', 'deleting-temporary-files');
 		async.each(fileList, deleteFile.bind(this), callback);
-	}
+	};
 
 
 	this.buildStatemachine = function(callback) {
@@ -222,5 +222,5 @@ exports.StatemachineBuilder = function() {
 					this.assembleStatemachines.bind(this),
 					this.uploadStatemachines.bind(this),
 					this.cleanUp.bind(this)],callback);
-	}
-}
+	};
+};

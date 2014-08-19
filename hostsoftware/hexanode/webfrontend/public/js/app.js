@@ -1,3 +1,4 @@
+
 angular.module('dashboard', [
 	'ng-socket',
 	'gauges',
@@ -13,7 +14,7 @@ angular.module('dashboard', [
 
 	$scope.sensorList = {};
 	$scope.actorList = {};
-	$scope.views = all_views;
+	$scope.views = window.all_views;
 
 	$scope.current_view = {};
 	$scope.hide_unitless = true;
@@ -79,13 +80,13 @@ angular.module('dashboard', [
 
 	var sensorEditDone = function(endpoint, data) {
 		var entry = $scope.sensorList[endpoint.id];
-		if (data.minvalue != undefined) {
+		if (data.minvalue !== undefined) {
 			entry.control.cover();
 			Socket.emit('ep_change_metadata', { id: endpoint.id, data: { minvalue: data.minvalue } });
-		} else if (data.maxvalue != undefined) {
+		} else if (data.maxvalue !== undefined) {
 			entry.control.cover();
 			Socket.emit('ep_change_metadata', { id: endpoint.id, data: { maxvalue: data.maxvalue } });
-		} else if (data.name != undefined) {
+		} else if (data.name !== undefined) {
 			entry.control.coverClass();
 			Socket.emit('device_rename', { device: endpoint.ip, name: data.name });
 		}
@@ -100,6 +101,7 @@ angular.module('dashboard', [
 			type: endpoint.type,
 			value: data.value
 		});
+		console.log(endpoint);
 	};
 
 	$scope.editDone = function(endpoint, data) {
@@ -158,14 +160,14 @@ angular.module('dashboard', [
 					}
 				}
 			};
-			for (var key in $scope.sensorList) {
-				if (key.substr(0, 1) != "$") {
-					associate($scope.sensorList[key]);
+			for (var sensorKey in $scope.sensorList) {
+				if (sensorKey.substr(0, 1) != "$") {
+					associate($scope.sensorList[sensorKey]);
 				}
 			}
-			for (var key in $scope.actorList) {
-				if (key.substr(0, 1) != "$") {
-					associate($scope.actorList[key]);
+			for (var actorKey in $scope.actorList) {
+				if (actorKey.substr(0, 1) != "$") {
+					associate($scope.actorList[actorKey]);
 				}
 			}
 		}
@@ -197,15 +199,15 @@ angular.module('dashboard', [
 		var epId = data.ep;
 		var ep;
 		if (epId in $scope.sensorList) {
-			var ep = $scope.sensorList[epId];
+			ep = $scope.sensorList[epId];
 		} else if (epId in $scope.actorList) {
-			var ep = $scope.actorList[epId];
+			ep = $scope.actorList[epId];
 		} else {
 			Socket.emit('ep_request_metadata', epId);
 			return;
 		}
 
-		ep.ep_desc.value = data.value.value;
+		ep.ep_desc.value = data.value;
 		ep.disabled = false;
 		ep.ep_desc.has_value = true;
 
@@ -240,30 +242,24 @@ angular.module('dashboard', [
 	};
 }])
 .controller('viewConfig', ['$scope', function($scope) {
+	var known_hexabus_devices = window.known_hexabus_devices;
+	var used_hexabus_devices =  window.used_hexabus_devices;
+	
 	$scope.usedEndpoints = [];
 	$scope.unusedEndpoints = [];
-
-	var used_hash = {};
-	used_hexabus_devices.forEach(function(id) {
-		used_hash[id] = true;
-	});
-
+	
 	for (var dev in known_hexabus_devices) {
 		known_hexabus_devices[dev].eids.forEach(function(ep) {
 			if (ep.function != "infrastructure" &&
 				(ep.function == "actor" || ep.unit)) {
-				if (used_hash[ep.id]) {
-					used_hash[ep.id] = ep;
+				if ($.inArray(ep.id, used_hexabus_devices) != -1) {
+					$scope.usedEndpoints.push(ep);
 				} else {
 					$scope.unusedEndpoints.push(ep);
 				}
 			}
 		});
 	}
-
-	used_hexabus_devices.forEach(function(id) {
-		$scope.usedEndpoints.push(used_hash[id]);
-	});
 
 	$(".device-list > tbody").sortable({
 		cursorAt: {
@@ -292,7 +288,7 @@ angular.module('dashboard', [
 		$scope.upgrade_error = false;
 		$scope.upgrading = true;
 		Socket.emit('upgrade');
-	}
+	};
 
 	Socket.on('upgrade_completed', function(error) {
 		$scope.upgrading = false;
@@ -396,10 +392,10 @@ angular.module('dashboard', [
 
 	Socket.on('ep_update', function(data) {
 		if ($scope.devices[data.device]) {
-			if(data.last_value.unix_ts > $scope.devices[data.device].last_update) {
-				$scope.devices[data.device].last_update = data.last_value.unix_ts;
+			if(!$scope.devices[data.device].last_update || data.last_update > $scope.devices[data.device].last_update) {
+				$scope.devices[data.device].last_update = data.last_update;
 				$scope.devices[data.device].timeout = false;
-			};	
+			}	
 		}
 	});
 
@@ -409,7 +405,9 @@ angular.module('dashboard', [
 		}
 		var device = ($scope.devices[ep.ip] = $scope.devices[ep.ip] || { ip: ep.ip, eids: [] });
 
-		ep.last_update = Math.round((+new Date(ep.last_update)) / 1000);
+		console.log(ep.last_update);
+
+		//ep.last_update = Math.round((+new Date(ep.last_update)) / 1000);
 
 		device.name = ep.name;
 		if(device.renaming && ep.ip == device.ip) {
@@ -456,17 +454,17 @@ angular.module('dashboard', [
 			device.rename_error_class = "error";
 			device.rename_error = true;
 		}
-	}
+	};
 
 	$scope.show_rename = function(device) {
 		device.rename = true;
-	}
+	};
 
 	$scope.rename_device = function(device) {
 		device.renaming = true;
 		var name = device.new_name;
-		Socket.emit('device_rename', {device: device.ip, name: name})
-	}
+		Socket.emit('device_rename', {device: device.ip, name: name});
+	};
 
 	Socket.on('device_rename_error', on_device_rename_error);
 
@@ -522,8 +520,8 @@ angular.module('dashboard', [
 			$scope.error = true;
 			$scope.errormsg = msg.error;
 		} else {
-			var eids = {}
-			for(key in msg.device.endpoints) {
+			var eids = {};
+			for(var key in msg.device.endpoints) {
 				if(msg.device.endpoints[key].function != "infrastructure") {
 					eids[key]=msg.device.endpoints[key];
 				}
@@ -533,7 +531,7 @@ angular.module('dashboard', [
 			$scope.new_name = msg.device.name;
 			$scope.found = true;
 		}
-	}
+	};
 
 	var on_ep_metadata = function(ep) {
 		if($scope.renaming && ep.ip == $scope.device.ip) {
@@ -545,7 +543,7 @@ angular.module('dashboard', [
 				$scope.rename_error = false;
 			}
 		}
-	}
+	};
 
 	var on_device_rename_error = function(msg) {
 		if($scope.renaming) {
@@ -554,17 +552,17 @@ angular.module('dashboard', [
 			$scope.rename_error_class = "error";
 			$scope.rename_error = true;
 		}
-	}
+	};
 
 	$scope.show_rename = function() {
 		$scope.rename = true;
-	}
+	};
 
 	$scope.rename_device = function(ip) {
 		$scope.renaming = true;
 		var name = $scope.new_name;
-		Socket.emit('device_rename', {device: ip, name: name})
-	}
+		Socket.emit('device_rename', {device: ip, name: name});
+	};
 
 	Socket.on('device_found', on_device_found);
 	Socket.on('ep_metadata', on_ep_metadata);
@@ -584,7 +582,7 @@ angular.module('dashboard', [
 		$scope.progressAlert.show = false;
 		$scope.errorAlert.show = false;
 		$scope.successAlert.show = false;
-	}
+	};
 
 	$scope.resetForms = function() {
 
@@ -593,22 +591,22 @@ angular.module('dashboard', [
 		$scope.productionThreshold.resetForm();
 
 		hideAlerts();
-	}
+	};
 
 	var localizeMessage = function(data,type) {
-		localizedMessages = Lang.pack["wizard"]["state-machine"][type] || {};
+		var localizedMessages = Lang.pack["wizard"]["state-machine"][type] || {};
 		console.log(type);
 		console.log(data);
 		if(data.localization in localizedMessages) {
-			message = localizedMessages[data.localization];
-			for(name in data.extras) {
+			var message = localizedMessages[data.localization];
+			for(var name in data.extras) {
 				console.log(name + ' replace with ' + data.extras[name]);
 				message = message.replace('{' + name + '}', data.extras[name]);
 			}
 			return message;
 		}
 		return data.msg;
-	}
+	};
 
 	var on_sm_uploaded = function(data) {
 		hideAlerts();
@@ -663,19 +661,19 @@ angular.module('dashboard', [
 			}
 			usedIPs.push($scope.masterSlave.slaves[slave].ip);
 		}
-	}
+	};
 
 	$scope.masterSlave.resetForm = function() {
 		$scope.masterSlave.master = $scope.devices[Object.keys($scope.devices)[0]].ip;
 		$scope.masterSlave.threshold = 10;
 		$scope.masterSlave.slaves = [];
 		$scope.masterSlave.validateForm();
-	}
+	};
 
 	$scope.masterSlave.addSlave = function() {
 		$scope.masterSlave.slaves.push({ip: $scope.devices[Object.keys($scope.devices)[0]].ip});
 		$scope.masterSlave.validateForm();
-	}
+	};
 
 	$scope.masterSlave.removeSlave = function(slave) {
 		var i = $scope.masterSlave.slaves.indexOf(slave);
@@ -683,7 +681,7 @@ angular.module('dashboard', [
 			$scope.masterSlave.slaves.splice(i,1);
 		}
 		$scope.masterSlave.validateForm();
-	}
+	};
 
 	$scope.masterSlave.upload = function() {
 		hideAlerts();
@@ -747,7 +745,7 @@ angular.module('dashboard', [
 	$scope.productionThreshold.upload = function() {
 		hideAlerts();
 		$scope.busy = true;
-		message = {producer: $scope.productionThreshold.producer,
+		var message = {producer: $scope.productionThreshold.producer,
 					productionThreshold: $scope.productionThreshold.productionThreshold,
 					offTimeout: $scope.productionThreshold.offTimeout, 
 					usageThreshold: $scope.productionThreshold.usageThreshold,
@@ -768,5 +766,5 @@ angular.module('dashboard', [
                 });
             }
         });
-    }
+    };
 }]);

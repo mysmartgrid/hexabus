@@ -16,10 +16,7 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 		} else {
 			try {
 				var endpoint = devicetree.add_endpoint(req.params.ip, req.params.eid, req.body);
-				endpoint.last_value = {
-					unix_ts: Math.round(Date.now() / 1000),
-					value: parseFloat(req.body.value)
-				};
+				endpoint.last_value = parseFloat(req.body.value);
 				res.send("Sensor added", 200);
 			} catch(err) {
 				console.log(err);
@@ -43,10 +40,7 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 			if (isNaN(value)) {
 				res.send("Bad value", 400);
 			} else {
-				device.endpoints[req.params.eid].last_value = {
-					unix_ts: Math.round(Date.now() / 1000),
-					value: value
-				};
+				device.endpoints[req.params.eid].last_value = value;
 				res.send("Value added");
 			}
 		}
@@ -70,4 +64,4 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 			});
 		}
 	});
-}
+};

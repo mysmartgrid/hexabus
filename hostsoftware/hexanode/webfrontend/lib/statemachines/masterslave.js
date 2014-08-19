@@ -39,7 +39,7 @@ module.exports.validateInput = function(msg) {
 	}
 
 	return;
-}
+};
 
 module.exports.buildMachine = function(msg, progressCallback, callback) {
 		var smb = new StatemachineBuilder();
@@ -48,7 +48,7 @@ module.exports.buildMachine = function(msg, progressCallback, callback) {
 		smb.addTargetFile('masterslave/master.hbh', 'master.hbh', { 'masterip' : msg.master.ip});
 		smb.addDevice('master',true);
 
-		var slavelist = []
+		var slavelist = [];
 		for(var slave in msg.slaves) {
 			var name = 'slave_' + smb.ipToID(msg.slaves[slave].ip);
 			console.log(name);
@@ -67,7 +67,7 @@ module.exports.buildMachine = function(msg, progressCallback, callback) {
 			} else {
 				callback(false, err);
 		}});
-	}
+	};
 
 
 

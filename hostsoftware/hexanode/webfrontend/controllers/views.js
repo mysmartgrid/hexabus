@@ -1,20 +1,14 @@
 'use strict';
-
+var View = require('../lib/devicetree').View;
 
 module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 
 	app.get('/view/new', function(req, res) {
 		var count = Object.keys(devicetree.views).length; 
 
-		var id = Math.round(Date.now() / 1000) + "." + count;
+		var view = devicetree.addView("Unnamed View", {});
 
-		devicetree.views[id] = {
-			id: id,
-			name: "Unnamed View",
-			devices: []
-		};
-
-		res.redirect('/view/edit/' + id);
+		res.redirect('/view/edit/' + view.id);
 	});
 
 	app.get('/view/edit/:id', function(req, res) {
@@ -50,22 +44,6 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 		});
 	});
 
-	app.get('/view/delete/:id', function(req, res) {
-
-		if (!devicetree.views[req.params.id]) {
-			res.send("view " + req.params.id + " not found", 404);
-			return;
-		}
-		
-		delete devicetree.views[req.params.id];
-		
-		var devicetree_file = nconf.get('config') + '/devicetree.json';
-		devicetree.save(devicetree_file);
-
-		res.redirect('/');
-	});
-
-
 	app.post('/view/edit/:id', function(req, res) {
 		var view = devicetree.views[req.params.id];
 
@@ -83,4 +61,19 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 		res.redirect('/');
 	});
 
-}
+
+	app.get('/view/delete/:id', function(req, res) {
+
+		if (!devicetree.views[req.params.id]) {
+			res.send("view " + req.params.id + " not found", 404);
+			return;
+		}
+		
+		devicetree.removeView(req.params.id);
+		
+		var devicetree_file = nconf.get('config') + '/devicetree.json';
+		devicetree.save(devicetree_file);
+
+		res.redirect('/');
+	});
+};

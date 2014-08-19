@@ -70,10 +70,11 @@ var enumerate_network = function(cb) {
 					ep.minvalue = 0;
 					ep.maxvalue = 100;
 				}
-				if ((!devicetree.devices[dev.ip]
-							|| !devicetree.devices[dev.ip].endpoints[ep.eid])
-						&& !hexabus.is_ignored_endpoint(dev.ip, ep.eid)) {
+				if ((!devicetree.devices[dev.ip] || !devicetree.devices[dev.ip].endpoints[ep.eid]) && !hexabus.is_ignored_endpoint(dev.ip, ep.eid)) {
 					devicetree.add_endpoint(dev.ip, ep.eid, ep);
+				}
+				else if(devicetree.devices[dev.ip] && devicetree.devices[dev.ip].endpoints[ep.eid] && !hexabus.is_ignored_endpoint(dev.ip, ep.eid)) {
+					devicetree.devices[dev.ip].endpoints[ep.eid].update();
 				}
 			}
 		}
@@ -149,7 +150,8 @@ app.get('/about', function(req, res) {
 
 
 var sensor_is_old = function(ep) {
-	return ep.age >= 60 * 1000; //60 * 60 * 1000;
+	//console.log("Age for " + ep.name + " : " + ep.age);
+	return ep.age >= 60; //60 * 60 * 1000;
 };
 
 setInterval(function() {
@@ -186,7 +188,7 @@ io.sockets.on('connection', function (socket) {
 		health_update_timeout = setTimeout(send_health_update, 60 * 1000);
 		var wizard = new Wizard();
 		hexabus.get_heartbeat_state(function(err, state) {
-			emit('health_update', ((err || state.code != 0) && wizard.is_finished()));
+			emit('health_update', ((err || state.code !== 0) && wizard.is_finished()));
 		});
 	};
 
@@ -196,7 +198,7 @@ io.sockets.on('connection', function (socket) {
 		broadcast('ep_metadata', ep);
 	};
 	var send_ep_update = function(ep) {
-		emit('ep_update', { ep: ep.id, device: ep.device.ip, value: ep.last_value });
+		emit('ep_update', { ep: ep.id, device: ep.device.ip, value: ep.last_value, last_update: ep.last_update });
 	};
 
 	var devicetree_events = {
@@ -260,7 +262,7 @@ io.sockets.on('connection', function (socket) {
 		var ep = devicetree.endpoint_by_id(msg.id);
 		if (ep) {
 			["minvalue", "maxvalue"].forEach(function(key) {
-				ep[key] = (msg.data[key] != undefined) ? msg.data[key] : ep[key];
+				ep[key] = (msg.data[key] !== undefined) ? msg.data[key] : ep[key];
 			});
 			save_devicetree();
 			broadcast_ep(ep);
@@ -274,10 +276,7 @@ io.sockets.on('connection', function (socket) {
 			} else {
 				var ep = devicetree.endpoint_by_id(msg.id);
 				if (ep) {
-					ep.last_value = {
-						unix_ts: Math.round(Date.now() / 1000),
-						value: msg.value
-					};
+					ep.last_value = msg.value;
 				} else {
 					console.log("Endpoint not found");
 				}
@@ -345,7 +344,7 @@ io.sockets.on('connection', function (socket) {
 
 	var sendError = function(error) {
 		emit('sm_uploaded', {sucess: false, error: error});
-	}
+	};
 
 	var buildStatemachine = function(msg, statemachineModule) {
 		console.log(msg);
@@ -375,7 +374,7 @@ io.sockets.on('connection', function (socket) {
 					emit('sm_uploaded', {success: success, error: error});
 			});
 		}
-	}
+	};
 
 	on('master_slave_sm', function(msg) {
 		buildStatemachine(msg,statemachines.masterSlave);

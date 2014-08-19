@@ -49,7 +49,7 @@ exports.validateInput = function(msg) {
 	if(!msg.hasOwnProperty('consumer') || !validator.isIP(msg.consumer,6)) {
 		return new validationError('consumer-ip-not-valid', 'The IPv6 address for consumer is invalid.');
 	}
-}
+};
 
 
 exports.buildMachine = function(msg, progressCallback, callback) {
@@ -78,4 +78,4 @@ exports.buildMachine = function(msg, progressCallback, callback) {
 			console.log(err);
 			callback(false, err);
 	}});
-}
+};

@@ -24,7 +24,7 @@ exports.validateInput = function(msg) {
 	if(!msg.hasOwnProperty('device') || !msg.device.hasOwnProperty('ip') || !validator.isIP(msg.device.ip,6)) {
 		return new validationError('device-ip-not-valid', 'The IPv6 address of device is invalid.');
 	}
-}
+};
 
 
 exports.buildMachine = function(msg, progressCallback, callback) {
@@ -47,4 +47,4 @@ exports.buildMachine = function(msg, progressCallback, callback) {
 			console.log(err);
 			callback(false, err);
 	}});
-}
+};
