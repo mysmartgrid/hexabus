@@ -108,21 +108,6 @@ volatile uint8_t ee_mem[EEP_SIZE] EEMEM =
 
 
 
-void get_mac_from_eeprom(uint8_t* macptr)
-{
-	nvm_read_block(mac_addr, macptr, nvm_size(mac_addr));
-}
-
-uint16_t get_panid_from_eeprom(void)
-{
-	return nvm_read_u16(pan_id);
-}
-
-uint16_t get_panaddr_from_eeprom(void)
-{
-	return nvm_read_u16(pan_addr);
-}
-
 uint8_t get_relay_default_from_eeprom(void)
 {
 	return nvm_read_u8(relay_default);
@@ -170,23 +155,23 @@ void initialize(void)
 
   rimeaddr_t addr;
   memset(&addr, 0, sizeof(rimeaddr_t));
-  get_mac_from_eeprom(addr.u8);
+  nvm_read_block(mac_addr, addr.u8, nvm_size(mac_addr));
 
-  memcpy(&uip_lladdr.addr, &addr.u8, 8);
+  memcpy(&uip_lladdr.addr, addr.u8, 8);
   rf230_set_pan_addr(
-	get_panid_from_eeprom(),
-	get_panaddr_from_eeprom(),
-	(uint8_t *)&addr.u8
+	nvm_read_u16(pan_id),
+	nvm_read_u16(pan_addr),
+	addr.u8
   );
   rf230_set_channel(RF_CHANNEL);
 
 	extern uint16_t mac_dst_pan_id;
 	extern uint16_t mac_src_pan_id;
 	//set pan_id for frame creation
-	mac_dst_pan_id = get_panid_from_eeprom();
+	mac_dst_pan_id = nvm_read_u16(pan_id);
 	mac_src_pan_id = mac_dst_pan_id;
 
-  rimeaddr_set_node_addr(&addr); 
+  rimeaddr_set_node_addr(&addr);
 
   PRINTFD("MAC address %x:%x:%x:%x:%x:%x:%x:%x\n",addr.u8[0],addr.u8[1],addr.u8[2],addr.u8[3],addr.u8[4],addr.u8[5],addr.u8[6],addr.u8[7]);
 

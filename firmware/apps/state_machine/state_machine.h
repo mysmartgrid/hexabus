@@ -1,7 +1,3 @@
-/*
- * state_machine.h
- */
-
 #ifndef STATE_MACHINE_H_
 #define STATE_MACHINE_H_
 

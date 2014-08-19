@@ -1,5 +1,4 @@
 #include "datetime_service.h"
-#include <util/delay.h>
 #include "sys/clock.h"
 #include "sys/etimer.h"
 #include "contiki.h"

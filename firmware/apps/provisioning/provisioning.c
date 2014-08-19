@@ -35,18 +35,24 @@
 #include <stdio.h>
 #include <string.h>
 #include "contiki.h"
-#include <avr/io.h>
-#include <util/delay.h>
 #include "sys/clock.h"
 #include "dev/leds.h"
-#include "radio/rf230bb/rf230bb.h"
-#include "radio/rf230bb/hal.h"
+#include "rf230bb.h"
+#include "hal.h"
 #include "dev/watchdog.h"
 #include "net/netstack.h"
 #include "packetbuf.h"
 #include "provisioning.h"
 #include "nvm.h"
 
+
+#if PLATFORM_TYPE == HEXABUS_SOCKET
+#include "relay.h"
+#else
+static void relay_leds(void)
+{
+}
+#endif
 
 #define DEBUG 0
 #if DEBUG
@@ -59,8 +65,6 @@
 
 extern volatile int bootloader_mode;
 extern volatile int bootloader_pkt;
-extern uint16_t get_panid_from_eeprom(void);
-extern void get_aes128key_from_eeprom(uint8_t*);
 extern uint8_t encryption_enabled;
 
 #define PROVISIONING_HEADER "PROVISIONING"
@@ -72,7 +76,7 @@ struct provisioning_m_t {
   char header[sizeof(PROVISIONING_HEADER)];
   uint16_t pan_id;
   uint8_t aes_key[16];
-};
+} __attribute__((packed));
 
 //indicates ongoing provisioning
 void provisioning_leds(void)
@@ -97,17 +101,16 @@ void provisioning_done_leds(void)
 	leds_off(LEDS_ALL);
 	uint8_t i;
 	for(i=0;i<5;i++){
-		if (i & 1) {
+		if (i & ~1) {
 			leds_on(LEDS_GREEN);
 		} else {
 			leds_off(LEDS_GREEN);
 		}
 		watchdog_periodic();
-		_delay_ms(500);
+		clock_wait(CLOCK_SECOND / 2);
 	}
 }
 
-#include "relay.h"
 /*
  * the slave asks the master for its PAN ID
  */
@@ -141,7 +144,7 @@ int provisioning_slave(void) {
 			NETSTACK_RDC.send(NULL,NULL);
 			packetbuf_clear();
 			packetbuf_set_datalen(0);
-			_delay_ms(500);
+			clock_wait(CLOCK_SECOND / 2);
 			length = rf230_read(packetbuf_dataptr(), PACKETBUF_SIZE);
 			provisioning_leds();
 			//parse frame

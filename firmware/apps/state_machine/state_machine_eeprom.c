@@ -1,6 +1,4 @@
 #include "state_machine_eeprom.h"
-#include <util/delay.h>
-#include <avr/interrupt.h>
 #include "nvm.h"
 
 void sm_get_id(char* b) {

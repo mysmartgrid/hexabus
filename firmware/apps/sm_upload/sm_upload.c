@@ -39,7 +39,7 @@ static enum hxb_error_code write_control(const struct hxb_envelope* env)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_control_name[] PROGMEM = "Statemachine Control";
+static const char ep_control_name[] RODATA = "Statemachine Control";
 ENDPOINT_DESCRIPTOR endpoint_sm_upload_control = {
 	.datatype = HXB_DTYPE_UINT8,
 	.eid = EP_SM_CONTROL,
@@ -80,7 +80,7 @@ static enum hxb_error_code write_receiver(const struct hxb_envelope* env)
 		: HXB_ERR_INVALID_VALUE;
 }
 
-static const char ep_receiver_name[] PROGMEM = "Statemachine Upload Receiver";
+static const char ep_receiver_name[] RODATA = "Statemachine Upload Receiver";
 ENDPOINT_DESCRIPTOR endpoint_sm_upload_receiver = {
 	.datatype = HXB_DTYPE_65BYTES,
 	.eid = EP_SM_UP_RECEIVER,
@@ -95,7 +95,7 @@ static enum hxb_error_code read_acknack(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_acknack_name[] PROGMEM = "Statemachine Upload ACK/NAK";
+static const char ep_acknack_name[] RODATA = "Statemachine Upload ACK/NAK";
 ENDPOINT_DESCRIPTOR endpoint_sm_upload_acknack = {
 	.datatype = HXB_DTYPE_BOOL,
 	.eid = EP_SM_UP_ACKNAK,
@@ -111,7 +111,7 @@ static enum hxb_error_code read_reset(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_reset_name[] PROGMEM = "Statemachine emergency-reset endpoint.";
+static const char ep_reset_name[] RODATA = "Statemachine emergency-reset endpoint.";
 ENDPOINT_DESCRIPTOR endpoint_sm_reset = {
 	.datatype = HXB_DTYPE_16BYTES,
 	.eid = EP_SM_RESET_ID,

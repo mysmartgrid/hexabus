@@ -28,7 +28,7 @@ void nvm_write_block_at(uintptr_t addr, const void* block, size_t size)
 
 		size -= bytes;
 		data += bytes;
-		block_base += bytes;
+		block_base += sizeof(uint32_t);
 	}
 	FLASH->PECR |= FLASH_PECR_PELOCK;
 }
