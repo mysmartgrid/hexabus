@@ -4,26 +4,11 @@
 #include "hexabus_app_bootstrap.h"
 
 #include "button.h"
-#include "relay.h"
-#include "metering.h"
 
-#include "shutter.h"
-#include "hexapush.h"
-#include "presence_detector.h"
-#include "temperature.h"
-#include "i2cmaster.h"
-#include "hexonoff.h"
-#include "humidity.h"
-#include "analogread.h"
-#include "pressure.h"
-#include "ir_receiver.h"
 #include "sm_upload.h"
-#include "pt100.h"
 #include "value_broadcast.h"
 #include "datetime_service.h"
-#include "memory_debugger.h"
-#include "epaper.h"
-#include "hexasense.h"
+#include "health.h"
 #include "udp_handler.h"
 #include "state_machine.h"
 
@@ -40,23 +25,26 @@
 #define PRINTF(...)
 #endif
 
-void hexabus_bootstrap_init_apps()
+#ifdef CONTIKI_TARGET_HEXABUS_SOCKET
+#include "analogread.h"
+#include "epaper.h"
+#include "hexapush.h"
+#include "hexasense.h"
+#include "hexonoff.h"
+#include "humidity.h"
+#include "i2cmaster.h"
+#include "ir_receiver.h"
+#include "memory_debugger.h"
+#include "metering.h"
+#include "presence_detector.h"
+#include "pressure.h"
+#include "pt100.h"
+#include "relay.h"
+#include "shutter.h"
+#include "temperature.h"
+
+static void init_socket_apps(void)
 {
-	PRINTF("Initializing all EIDs and apps...\n");
-
-#if MEMORY_DEBUGGER_ENABLE
-	memory_debugger_init();
-#endif
-
-  /* Process for periodic sending of HEXABUS data */
-#if VALUE_BROADCAST_ENABLE && !VALUE_BROADCAST_AUTO_INTERVAL
-	init_value_broadcast();
-#endif
-
-#if STATE_MACHINE_ENABLE
-	sm_start();
-#endif
-
 	relay_init();
 
 	metering_stop();
@@ -95,9 +83,6 @@ void hexabus_bootstrap_init_apps()
 #if IR_RECEIVER_ENABLE
 	ir_receiver_init();
 #endif
-#if SM_UPLOAD_ENABLE
-	sm_upload_init();
-#endif
 #if PT100_ENABLE
 	pt100_init();
 #endif
@@ -110,13 +95,59 @@ void hexabus_bootstrap_init_apps()
 #endif
 }
 
-void hexabus_bootstrap_start_processes()
+static void start_socket_processes(void)
 {
-	PRINTF("Starting processes...\n");
-
 #if MEMORY_DEBUGGER_ENABLE
 	process_start(&memory_debugger_process, NULL);
 #endif
+#if SHUTTER_ENABLE
+	process_start(&shutter_process, NULL);
+#endif
+#if PRESSURE_ENABLE
+	process_start(&pressure_process, NULL);
+#endif
+#if IR_RECEIVER_ENABLE
+	process_start(&ir_receiver_process, NULL);
+#endif
+}
+#else
+static void init_socket_apps(void)
+{
+}
+
+static void start_socket_processes(void)
+{
+}
+#endif
+
+static void hexabus_bootstrap_init_apps()
+{
+	PRINTF("Initializing all EIDs and apps...\n");
+
+	health_event = process_alloc_event();
+
+#if MEMORY_DEBUGGER_ENABLE
+	memory_debugger_init();
+#endif
+
+  /* Process for periodic sending of HEXABUS data */
+#if VALUE_BROADCAST_ENABLE && !VALUE_BROADCAST_AUTO_INTERVAL
+	init_value_broadcast();
+#endif
+
+#if STATE_MACHINE_ENABLE
+	sm_start();
+#endif
+#if SM_UPLOAD_ENABLE
+	sm_upload_init();
+#endif
+
+	init_socket_apps();
+}
+
+static void hexabus_bootstrap_start_processes()
+{
+	PRINTF("Starting processes...\n");
 
 	process_start(&udp_handler_process, NULL);
 
@@ -131,16 +162,15 @@ void hexabus_bootstrap_start_processes()
 
 	process_start(&button_pressed_process, NULL);
 
-#if SHUTTER_ENABLE
-	process_start(&shutter_process, NULL);
-#endif
-#if PRESSURE_ENABLE
-	process_start(&pressure_process, NULL);
-#endif
-#if IR_RECEIVER_ENABLE
-	process_start(&ir_receiver_process, NULL);
-#endif
 #if WEBSERVER
 	process_start(&webserver_nogui_process, NULL);
 #endif
+
+	start_socket_processes();
+}
+
+void hexabus_app_bootstrap()
+{
+	hexabus_bootstrap_init_apps();
+	hexabus_bootstrap_start_processes();
 }

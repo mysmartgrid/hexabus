@@ -2,6 +2,9 @@
 #include "stm32l1xx.h"
 #include "stm32l1xx_gpio.h"
 
+#include <stddef.h>
+#include <errno.h>
+
 void uart_init(void)
 {
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
@@ -31,5 +34,40 @@ void uart_transmit(const void* data, unsigned length)
 	while (ubuf != end) {
 		while (!(USART1->SR & USART_SR_TXE));
 		USART1->DR = *ubuf++;
+	}
+}
+
+void uart_receive(void* data, unsigned length)
+{
+	uint8_t* ubuf = data;
+	const uint8_t* end = ubuf + length;
+
+	while (ubuf != end) {
+		while (!(USART1->SR & USART_SR_RXNE));
+		*ubuf++ = USART1->DR;
+	}
+}
+
+
+
+int _write(int fd, const void* data, size_t len)
+{
+	if (fd == 1 || fd == 2) {
+		uart_transmit(data, len);
+		return len;
+	} else {
+		errno = EBADF;
+		return -1;
+	}
+}
+
+int _read(int fd, void* data, size_t len)
+{
+	if (fd == 0) {
+		uart_receive(data, len);
+		return len;
+	} else {
+		errno = EBADF;
+		return -1;
 	}
 }

@@ -3,5 +3,6 @@
 
 void uart_init(void);
 void uart_transmit(const void* data, unsigned length);
+void uart_receive(void* data, unsigned length);
 
 #endif

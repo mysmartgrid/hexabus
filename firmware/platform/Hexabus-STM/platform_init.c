@@ -1,4 +1,6 @@
-#include "contiki-hexabus-lowlevel.h"
+#include "platform_init.h"
+
+#include <stdio.h>
 
 #include "contiki.h"
 #include "default-uart.h"
@@ -30,11 +32,12 @@ void configure_system_clock(void)
 	while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);
 }
 
-void init_lowlevel(void)
+void platform_init()
 {
 	leds_init();
 	uart_init();
-	clock_init();
-	watchdog_init();
-	watchdog_start();
+
+	setvbuf(stdout, 0, _IONBF, 0);
+
+	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
 }

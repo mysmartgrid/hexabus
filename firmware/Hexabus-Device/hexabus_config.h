@@ -13,6 +13,7 @@ _DEBUG options should be set to:
 #define HEXABUS_CONFIG_H
 
 #include "contiki-conf.h"
+#include <stdbool.h>
 
 // options common to all incarnations of Hexabus devices
 
@@ -32,12 +33,9 @@ _DEBUG options should be set to:
 #define BUTTON_HAS_EID 1 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
 #define BUTTON_TOGGLES_RELAY 0 // set to 1 to have the button toggle the relay directly
 
-#define BUTTON_DEBOUNCE_TICKS  1
-#define BUTTON_PIN             GPIOA->IDR
-#define BUTTON_BIT             0
-#define BUTTON_ACTIVE_LEVEL    1
-#define BUTTON_CLICK_MS        2000UL
-#define BUTTON_LONG_CLICK_MS   7000UL
+#define BUTTON_DEBOUNCE_TICKS 1
+#define BUTTON_CLICK_MS       2000UL
+#define BUTTON_LONG_CLICK_MS  7000UL
 
 // datetime_service
 #define DATETIME_SERVICE_ENABLE 1
@@ -65,10 +63,10 @@ _DEBUG options should be set to:
 #define HAVE(x) (HXB_DEVICE_PROFILE == HXB_PROFILE_ ## x)
 
 
-// // temperature
-// #define TEMPERATURE_ENABLE (HAVE(EMOS) || HAVE(TEMPSENSOR) || HAVE(HUMIDITYSENSOR))
-// #define TEMPERATURE_DEBUG 0
-// #define TEMPERATURE_SENSOR (HAVE(EMOS) || HAVE(HUMIDITYSENSOR) ? 1 : 0) // 0 - ds80x20, 1 - HYT321, 2 - BMP085
+// temperature
+#define TEMPERATURE_ENABLE (HAVE(EMOS) || HAVE(TEMPSENSOR) || HAVE(HUMIDITYSENSOR))
+#define TEMPERATURE_DEBUG 0
+#define TEMPERATURE_SENSOR (HAVE(EMOS) || HAVE(HUMIDITYSENSOR) ? 1 : 0) // 0 - ds80x20, 1 - HYT321, 2 - BMP085
 
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
@@ -178,29 +176,6 @@ _DEBUG options should be set to:
 
 
 
-
-#if PLATFORM_TYPE == HEXABUS_SOCKET
-typedef uint8_t button_pin_t;
-# include <avr/pgmspace.h>
-# include <avr/io.h>
-# define RODATA                    PROGMEM
-# define ROSTR(x)                  PSTR(x)
-# define ROSTR_FMT                 "S"
-# define MAX_BUTTON_BIT            (0x80)
-# define memcpy_from_rodata(...)   memcpy_P(__VA_ARGS__)
-# define strncpy_from_rodata(...)  strncpy_P(__VA_ARGS__)
-# define printf_rofmt(...)         printf_P(__VA_ARGS__)
-#else
-typedef uint16_t button_pin_t;
-# include <stm32l1xx.h>
-# include <string.h>
-# define RODATA
-# define ROSTR(x)                  (x)
-# define ROSTR_FMT                 "s"
-# define MAX_BUTTON_BIT            (0x8000)
-# define memcpy_from_rodata(...)   memcpy
-# define strncpy_from_rodata(...)  strncpy
-# define printf_rofmt(...)         printf(__VA_ARGS__)
-#endif
+#include "hexabus_platform_config.h"
 
 #endif // HEXBAUS_CONFIG_H

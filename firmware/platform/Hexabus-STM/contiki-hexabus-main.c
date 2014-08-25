@@ -25,17 +25,6 @@ void get_aes128key_from_eeprom(char* foo)
 	nvm_read_block(encryption_key, foo, nvm_size(encryption_key));
 }
 
-int _write(int fd, const void* data, size_t len)
-{
-	uart_transmit(data, len);
-	return len;
-}
-
-int _read(int fd, void* data, size_t len)
-{
-	return 0;
-}
-
 int main(void)
 {
 	init_lowlevel();

@@ -1,0 +1,4 @@
+HEXABUS_TARGET = STM
+
+all: hexabus-main.$(TARGET) hexabus-main.bin
+	arm-none-eabi-size hexabus-main.$(TARGET)
