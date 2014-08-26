@@ -23,7 +23,7 @@ void uart_init(void)
 
 	// set for 115200 at 32MHz peripheral clock, BRR = 8.6875
 	USART1->BRR = (17 << 4) | (6 << 0);
-	USART1->CR1 = USART_CR1_UE | USART_CR1_TE;
+	USART1->CR1 = USART_CR1_UE | USART_CR1_TE | USART_CR1_RE;
 }
 
 void uart_transmit(const void* data, unsigned length)
