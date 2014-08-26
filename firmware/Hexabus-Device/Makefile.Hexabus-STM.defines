@@ -9,11 +9,10 @@ define free_ram_script
 	} \
 } \
 END { \
-	print strtonum(stack) - strtonum(ebss); \
+	print "Free RAM: " (strtonum(stack) - strtonum(ebss)) " Bytes"; \
 }
 endef
 
 all: hexabus-main.$(TARGET) hexabus-main.bin
 	arm-none-eabi-size hexabus-main.$(TARGET)
-	@echo -n "Free RAM: "
 	@arm-none-eabi-nm hexabus-main.Hexabus-STM | awk '$(free_ram_script)'
