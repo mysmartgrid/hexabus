@@ -40,5 +40,5 @@ void platform_init()
 	setvbuf(stdin, 0, _IONBF, 0);
 	setvbuf(stdout, 0, _IONBF, 0);
 
-	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 }

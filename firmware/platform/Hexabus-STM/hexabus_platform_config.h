@@ -15,8 +15,8 @@ typedef uint16_t button_pin_t;
 #define strncpy_from_rodata(...)  strncpy(__VA_ARGS__)
 #define printf_rofmt(...)         printf(__VA_ARGS__)
 
-#define BUTTON_PIN          GPIOA->IDR
-#define BUTTON_BIT          0
-#define BUTTON_ACTIVE_LEVEL 1
+#define BUTTON_PIN          GPIOB->IDR
+#define BUTTON_BIT          11
+#define BUTTON_ACTIVE_LEVEL 0
 
 #endif

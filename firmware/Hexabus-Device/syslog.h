@@ -21,13 +21,12 @@
 #if defined(LOG_LEVEL) && LOG_LEVEL != LOG_NONE
 
 #include <stdio.h>
-#include <avr/pgmspace.h>
 
 #ifndef __SHORT_FILE__
 #define __SHORT_FILE__ __FILE__
 #endif
 
-#define SYSLOG_PRINT2(line, fmt, ...) printf_P(PSTR("%-30S" fmt "\n"), PSTR("(" __SHORT_FILE__ ":" #line ")"), ##__VA_ARGS__)
+#define SYSLOG_PRINT2(line, fmt, ...) printf_rofmt(ROSTR("%-30" ROSTR_FMT fmt "\n"), ROSTR("(" __SHORT_FILE__ ":" #line ")"), ##__VA_ARGS__)
 #define SYSLOG_PRINT(line, fmt, ...) SYSLOG_PRINT2(line, fmt, ##__VA_ARGS__)
 
 #define syslog(level, fmt, ...) \
