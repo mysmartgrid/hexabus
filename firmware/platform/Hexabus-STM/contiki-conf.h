@@ -1,25 +1,22 @@
 #ifndef __CONTIKI_CONF_H__
 #define __CONTIKI_CONF_H__
 
-///* MCU and clock rate */
-//#define PLATFORM       PLATFORM_AVR
+#ifndef MCK
+# error MCK not defined
+#endif
+
+#if !RF230BB
+# error unsupported radio
+#endif
+
 #define HEXABUS_STM    1001
 #define PLATFORM_TYPE  HEXABUS_STM
-//#ifndef F_CPU
-//#define F_CPU          8000000UL
-//#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 
-//typedef int32_t s32_t;
-typedef uint8_t u8_t;
-typedef uint16_t u16_t;
-//typedef uint32_t u32_t;
 typedef uint32_t clock_time_t;
 typedef uint16_t uip_stats_t;
-//typedef unsigned long off_t;
-//
-//#define INFINITE_TIME 0xffff
 
 #define CLOCK_CONF_SECOND (125UL)
 
@@ -27,32 +24,8 @@ typedef uint16_t uip_stats_t;
 #define RIME_CONF_BROADCAST_ANNOUNCEMENT_MAX_TIME CLOCK_CONF_SECOND * 524UL /* Default uses 600UL */
 #define COLLECT_CONF_BROADCAST_ANNOUNCEMENT_MAX_TIME CLOCK_CONF_SECOND * 524UL /* Default uses 600UL */
 
-///* The 1284p can use TIMER2 with the external 32768Hz crystal to keep time. Else TIMER0 is used. */
-///* The sleep timer in raven-lcd.c also uses the crystal and adds a TIMER2 interrupt routine if not already define by clock.c */
-//#define AVR_CONF_USE32KCRYSTAL 0
-//
-///* COM port to be used for SLIP connection. Not tested on Raven */
-//#define SLIP_PORT RS232_PORT_0
-//
-///* Pre-allocated memory for loadable modules heap space (in bytes)*/
-///* Default is 4096. Currently used only when elfloader is present. Not tested on Raven */
-////#define MMEM_CONF_SIZE 256
-//
-///* Starting address for code received via the codeprop facility. Not tested on Raven */
-////#define EEPROMFS_ADDR_CODEPROP 0x8000
-
-/* Network setup. The new NETSTACK interface requires RF230BB (as does ip4) */
-#if RF230BB
-#undef PACKETBUF_CONF_HDR_SIZE                  //Use the packetbuf default for header size
-#else
-#define PACKETBUF_CONF_HDR_SIZE    0            //RF230 combined driver/mac handles headers internally
-#endif /*RF230BB*/
-
-//#define HEXABUS_FORWARDING 1
-
 #define UIP_CONF_IPV6 1
 
-#if UIP_CONF_IPV6
 #define RIMEADDR_CONF_SIZE        8
 #define UIP_CONF_ICMP6            1
 #define UIP_CONF_UDP              1
@@ -60,20 +33,11 @@ typedef uint16_t uip_stats_t;
 #define UIP_CONF_MLD              1
 #define NETSTACK_CONF_NETWORK       sicslowpan_driver
 #define SICSLOWPAN_CONF_COMPRESSION SICSLOWPAN_COMPRESSION_HC06
-#else
-/* ip4 should build but is largely untested */
-#define RIMEADDR_CONF_SIZE        2
-#define NETSTACK_CONF_NETWORK     rime_driver
-#endif /* UIP_CONF_IPV6 */
 
 /* See uip-ds6.h */
-#define UIP_CONF_DS6_NBR_NBU      20
-#define UIP_CONF_DS6_DEFRT_NBU    2
 #define UIP_CONF_DS6_PREFIX_NBU   3
 #define UIP_CONF_DS6_ROUTE_NBU    20
-#define UIP_CONF_DS6_ADDR_NBU     3
-#define UIP_CONF_DS6_MADDR_NBU    0
-#define UIP_CONF_DS6_AADDR_NBU    0
+#define UIP_CONF_DS6_MADDR_NBU    1
 
 #define UIP_CONF_LL_802154       1
 #define UIP_CONF_LLH_LEN         0
@@ -81,7 +45,7 @@ typedef uint16_t uip_stats_t;
 /* 10 bytes per stateful address context - see sicslowpan.c */
 /* Default is 1 context with prefix aaaa::/64 */
 /* These must agree with all the other nodes or there will be a failure to communicate! */
-#define SICSLOWPAN_CONF_MAX_ADDR_CONTEXTS 1
+#define SICSLOWPAN_CONF_MAX_ADDR_CONTEXTS 0
 #define SICSLOWPAN_CONF_ADDR_CONTEXT_0 {addr_contexts[0].prefix[0]=0xaa;addr_contexts[0].prefix[1]=0xaa;}
 #define SICSLOWPAN_CONF_ADDR_CONTEXT_1 {addr_contexts[1].prefix[0]=0xbb;addr_contexts[1].prefix[1]=0xbb;}
 #define SICSLOWPAN_CONF_ADDR_CONTEXT_2 {addr_contexts[2].prefix[0]=0x20;addr_contexts[2].prefix[1]=0x01;addr_contexts[2].prefix[2]=0x49;addr_contexts[2].prefix[3]=0x78,addr_contexts[2].prefix[4]=0x1d;addr_contexts[2].prefix[5]=0xb1;}
@@ -161,14 +125,10 @@ typedef uint16_t uip_stats_t;
  */
 
 #define UIP_CONF_ROUTER                 0
-#define UIP_CONF_ND6_SEND_RA		    0
+#define UIP_CONF_ND6_SEND_RA            0
 #define UIP_CONF_ND6_REACHABLE_TIME     600000
 #define UIP_CONF_ND6_RETRANS_TIMER      10000
 
-#undef UIP_CONF_UDP_CONNS
-#define UIP_CONF_UDP_CONNS       12
-#undef UIP_CONF_FWCACHE_SIZE
-#define UIP_CONF_FWCACHE_SIZE    30
 #define UIP_CONF_BROADCAST       1
 #define UIP_ARCH_IPCHKSUM        1
 #define UIP_CONF_PINGADDRCONF    0

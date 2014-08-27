@@ -44,24 +44,21 @@
 #ifndef __CONTIKI_CONF_H__
 #define __CONTIKI_CONF_H__
 
-/* MCU and clock rate */
-#define PLATFORM       PLATFORM_AVR
+#ifndef F_CPU
+# error F_CPU not defined
+#endif
+
+#if !RF230BB
+# error unsupported radio
+#endif
+
 #define HEXABUS_SOCKET 1000
 #define PLATFORM_TYPE  HEXABUS_SOCKET
-#ifndef F_CPU
-#define F_CPU          8000000UL
-#endif
+
 #include <stdint.h>
 
-typedef int32_t s32_t;
-typedef unsigned char u8_t;
-typedef unsigned short u16_t;
-typedef unsigned long u32_t;
 typedef unsigned short clock_time_t;
 typedef unsigned short uip_stats_t;
-typedef unsigned long off_t;
-
-#define INFINITE_TIME 0xffff
 
 /* Clock ticks per second */
 #define CLOCK_CONF_SECOND 126
@@ -74,28 +71,10 @@ typedef unsigned long off_t;
 /* The sleep timer in raven-lcd.c also uses the crystal and adds a TIMER2 interrupt routine if not already define by clock.c */
 #define AVR_CONF_USE32KCRYSTAL 0
 
-/* COM port to be used for SLIP connection. Not tested on Raven */
 #define SLIP_PORT RS232_PORT_0
-
-/* Pre-allocated memory for loadable modules heap space (in bytes)*/
-/* Default is 4096. Currently used only when elfloader is present. Not tested on Raven */
-//#define MMEM_CONF_SIZE 256
-
-/* Starting address for code received via the codeprop facility. Not tested on Raven */
-//#define EEPROMFS_ADDR_CODEPROP 0x8000
-
-/* Network setup. The new NETSTACK interface requires RF230BB (as does ip4) */
-#if RF230BB
-#undef PACKETBUF_CONF_HDR_SIZE                  //Use the packetbuf default for header size
-#else
-#define PACKETBUF_CONF_HDR_SIZE    0            //RF230 combined driver/mac handles headers internally
-#endif /*RF230BB*/
-
-#define HEXABUS_FORWARDING 1
 
 #define UIP_CONF_IPV6 1
 
-#if UIP_CONF_IPV6
 #define RIMEADDR_CONF_SIZE        8
 #define UIP_CONF_ICMP6            1
 #define UIP_CONF_UDP              1
@@ -103,20 +82,11 @@ typedef unsigned long off_t;
 #define UIP_CONF_MLD              1
 #define NETSTACK_CONF_NETWORK       sicslowpan_driver
 #define SICSLOWPAN_CONF_COMPRESSION SICSLOWPAN_COMPRESSION_HC06
-#else
-/* ip4 should build but is largely untested */
-#define RIMEADDR_CONF_SIZE        2
-#define NETSTACK_CONF_NETWORK     rime_driver
-#endif /* UIP_CONF_IPV6 */
 
 /* See uip-ds6.h */
-#define UIP_CONF_DS6_NBR_NBU      20
-#define UIP_CONF_DS6_DEFRT_NBU    2
 #define UIP_CONF_DS6_PREFIX_NBU   3
 #define UIP_CONF_DS6_ROUTE_NBU    20
-#define UIP_CONF_DS6_ADDR_NBU     3
-#define UIP_CONF_DS6_MADDR_NBU    0
-#define UIP_CONF_DS6_AADDR_NBU    0
+#define UIP_CONF_DS6_MADDR_NBU    1
 
 #define UIP_CONF_LL_802154       1
 #define UIP_CONF_LLH_LEN         0
@@ -124,7 +94,7 @@ typedef unsigned long off_t;
 /* 10 bytes per stateful address context - see sicslowpan.c */
 /* Default is 1 context with prefix aaaa::/64 */
 /* These must agree with all the other nodes or there will be a failure to communicate! */
-#define SICSLOWPAN_CONF_MAX_ADDR_CONTEXTS 1
+#define SICSLOWPAN_CONF_MAX_ADDR_CONTEXTS 0
 #define SICSLOWPAN_CONF_ADDR_CONTEXT_0 {addr_contexts[0].prefix[0]=0xaa;addr_contexts[0].prefix[1]=0xaa;}
 #define SICSLOWPAN_CONF_ADDR_CONTEXT_1 {addr_contexts[1].prefix[0]=0xbb;addr_contexts[1].prefix[1]=0xbb;}
 #define SICSLOWPAN_CONF_ADDR_CONTEXT_2 {addr_contexts[2].prefix[0]=0x20;addr_contexts[2].prefix[1]=0x01;addr_contexts[2].prefix[2]=0x49;addr_contexts[2].prefix[3]=0x78,addr_contexts[2].prefix[4]=0x1d;addr_contexts[2].prefix[5]=0xb1;}
@@ -172,7 +142,7 @@ typedef unsigned long off_t;
 /* AUTOACK receive mode gives better rssi measurements, even if ACK is never requested */
 #define RF230_CONF_AUTOACK        1
 /* Request 802.15.4 ACK on all packets sent (else autoretry). This is primarily for testing. */
-#define SICSLOWPAN_CONF_ACK_ALL   1
+#define SICSLOWPAN_CONF_ACK_ALL   0
 /* Number of auto retry attempts 0-15 (0 implies don't use extended TX_ARET_ON mode with CCA) */
 #define RF230_CONF_AUTORETRIES    2
 // CCA threshold for LBT is -82dBm, see rf212 datasheet page 89
@@ -185,7 +155,7 @@ typedef unsigned long off_t;
 
 
 /* Logging adds 200 bytes to program size */
-#define LOG_CONF_ENABLED         1
+#define LOG_CONF_ENABLED         0
 
 /* ************************************************************************** */
 //#pragma mark RPL Settings
@@ -205,7 +175,7 @@ typedef unsigned long off_t;
  */
 
 #define UIP_CONF_ROUTER                 0
-#define UIP_CONF_ND6_SEND_RA		    0
+#define UIP_CONF_ND6_SEND_RA            0
 #define UIP_CONF_ND6_REACHABLE_TIME     600000
 #define UIP_CONF_ND6_RETRANS_TIMER      10000
 
