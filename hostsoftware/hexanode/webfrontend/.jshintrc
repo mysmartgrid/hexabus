@@ -1,0 +1,6 @@
+{
+	"eqeqeq" : false,
+	"eqnull" : true,
+	"undef" : true,
+	"node" : true
+}
