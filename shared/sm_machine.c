@@ -466,6 +466,13 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 #define TOP_N(n) (stack[top - n])
 #define TOP TOP_N(0)
 
+	if (sm_first_run) {
+		for (unsigned i = 0; i < SM_REG_COUNT; i++) {
+			sm_registers[i].type = HXB_DTYPE_BOOL;
+			sm_registers[i].v_uint = false;
+		}
+	}
+
 	{
 		uint32_t val;
 

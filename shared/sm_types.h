@@ -1,3 +1,6 @@
+#ifndef SHARED_SM__TYPES_H_FBE69B5E7D88EBB1
+#define SHARED_SM__TYPES_H_FBE69B5E7D88EBB1
+
 enum hxb_sm_opcode {
 	HSO_LD_SOURCE_IP,
 	HSO_LD_SOURCE_EID,
@@ -106,3 +109,5 @@ enum hxb_sm_vector_offsets {
 	HSVO_PACKET   = 0x0002,
 	HSVO_PERIODIC = 0x0004,
 };
+
+#endif

@@ -62,7 +62,10 @@ static uint8_t on_write(uint32_t eid, hexabus::sm::Machine::write_value_t value)
 
 	switch (value.which()) {
 	case 0: type = "bool"; break;
-	case 1: type = "uint8"; break;
+	case 1:
+		type = "uint8";
+		value = (uint32_t) boost::get<uint8_t>(value);
+		break;
 	case 2: type = "uint32"; break;
 	case 3: type = "float"; break;
 	}
