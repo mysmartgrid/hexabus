@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include "hexabus_config.h"
 #include "eeprom_variables.h"
+#include <avr/pgmspace.h>
 
 //#define LOG_LEVEL ENDPOINT_REGISTRY_DEBUG
 #define LOG_LEVEL LOG_DEBUG
@@ -30,11 +31,6 @@ void _endpoint_register(const struct endpoint_descriptor* ep, struct endpoint_re
 	memcpy_P(&ep_copy, ep, sizeof(ep_copy));
 
 	syslog(LOG_DEBUG, "Register endpoint %lu", ep_copy.eid);
-
-	if (ep_copy.eid % 32 == 0) {
-		syslog(LOG_DEBUG, "Endpoint descriptor %p claims to be synthethic (EID = 0 (mod 32)), ignoring", ep);
-		return;
-	}
 
 	for (struct endpoint_registry_entry* head = _endpoint_chain; head; head = head->next) {
 		if (descriptor_eid(head) == ep_copy.eid) {
@@ -76,17 +72,17 @@ void _endpoint_register(const struct endpoint_descriptor* ep, struct endpoint_re
 	_endpoint_chain = chain_link;
 }
 
-static void synthesize_read_m32(uint32_t eid, struct hxb_value* value)
+static void synthesize_read_zero(uint32_t eid, struct hxb_value* value)
 {
-	value->datatype = HXB_DTYPE_UINT32;
-	value->v_u32 = 1;
+	value->datatype = HXB_DTYPE_128STRING;
 
-	for (struct endpoint_registry_entry* ep = _endpoint_chain; ep; ep = ep->next) {
-		uint32_t ep_eid = descriptor_eid(ep);
-		if (ep_eid >= eid && ep_eid < eid + 32) {
-			value->v_u32 |= 1UL << (ep_eid - eid);
+	size_t len = HXB_STRING_PACKET_MAX_BUFFER_LENGTH;
+	if (len >= eep_size(domain_name)) {
+			len = eep_size(domain_name) - 1;
 		}
-	}
+
+	eeprom_read_block(value->v_string, eep_addr(domain_name), len);
+	value->v_string[eep_size(domain_name)] = '\0';
 }
 
 static bool find_descriptor(uint32_t eid, struct endpoint_descriptor* result)
@@ -103,8 +99,8 @@ static bool find_descriptor(uint32_t eid, struct endpoint_descriptor* result)
 
 enum hxb_datatype endpoint_get_datatype(uint32_t eid)
 {
-	if (eid % 32 == 0) {
-		return HXB_DTYPE_UINT32;
+	if (eid == 0) {
+		return HXB_DTYPE_128STRING;
 	} else {
 		struct endpoint_descriptor ep;
 		if (find_descriptor(eid, &ep)) {
@@ -117,7 +113,7 @@ enum hxb_datatype endpoint_get_datatype(uint32_t eid)
 
 enum hxb_error_code endpoint_write(uint32_t eid, const struct hxb_envelope* env)
 {
-	if (eid % 32 == 0) {
+	if (eid == 0) {
 		return HXB_ERR_WRITEREADONLY;
 	} else {
 		struct endpoint_descriptor ep;
@@ -137,8 +133,8 @@ enum hxb_error_code endpoint_write(uint32_t eid, const struct hxb_envelope* env)
 
 enum hxb_error_code endpoint_read(uint32_t eid, struct hxb_value* value)
 {
-	if (eid % 32 == 0) {
-		synthesize_read_m32(eid, value);
+	if (eid == 0) {
+		synthesize_read_zero(eid, value);
 		return HXB_ERR_SUCCESS;
 	} else {
 		struct endpoint_descriptor ep;
@@ -153,12 +149,8 @@ enum hxb_error_code endpoint_read(uint32_t eid, struct hxb_value* value)
 
 enum hxb_error_code endpoint_get_name(uint32_t eid, char* buffer, size_t len)
 {
-	if (eid % 32 == 0) {
-		if (len >= eep_size(domain_name)) {
-			len = eep_size(domain_name) - 1;
-		}
-		eeprom_read_block(buffer, eep_addr(domain_name), len);
-		buffer[eep_size(domain_name)] = '\0';
+	if (eid == 0) {
+		strncpy_P(buffer, PSTR("Device Information"), len);
 		return HXB_ERR_SUCCESS;
 	} else {
 		struct endpoint_descriptor ep;
@@ -242,9 +234,6 @@ static bool find_property(uint32_t eid, uint32_t propid, struct endpoint_propert
 
 enum hxb_error_code endpoint_property_write(uint32_t eid, uint32_t propid, const struct hxb_value* value)
 {
-	if (eid % 32 == 0)
-		eid = 0;
-
 	if(propid == 0) {
 		return HXB_ERR_WRITEREADONLY;
 	} else {
@@ -321,9 +310,6 @@ uint32_t get_next_property(uint32_t eid, uint32_t propid)
 
 enum hxb_error_code endpoint_property_read(uint32_t eid, uint32_t propid, struct hxb_value* value)
 {
-	if (eid % 32 == 0)
-		eid = 0;
-
 	if(propid == 0) {
 		value->datatype = HXB_DTYPE_UINT32;
 		value->v_u32 = get_next_endpoint(eid);

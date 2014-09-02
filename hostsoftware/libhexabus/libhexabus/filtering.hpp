@@ -68,6 +68,11 @@ namespace filtering {
 	template<>
 	struct is_filter<IsEndpointQuery> : boost::mpl::true_ {};
 
+	struct IsPropertyQuery : IsOfType<PropertyQueryPacket> {};
+
+	template<>
+	struct is_filter<IsPropertyQuery> : boost::mpl::true_ {};
+
 	template<typename TValue>
 	struct Value {
 		typedef TValue value_type;
@@ -150,6 +155,18 @@ namespace filtering {
 
 	template<>
 	struct is_filter<IsAck> : boost::mpl::true_ {};
+
+	template<typename TValue>
+	struct IsPropertyReport : IsOfType<PropertyReportPacket<TValue> > {};
+
+	template<typename T>
+	struct is_filter<IsPropertyReport<T> > : boost::mpl::true_ {};
+
+	template<typename TValue>
+	struct IsPropertyWrite : IsOfType<PropertyWritePacket<TValue> > {};
+
+	template<typename T>
+	struct is_filter<IsPropertyWrite<T> > : boost::mpl::true_ {};
 
 	struct SourceIP {
 		typedef boost::asio::ip::address_v6 value_type;
@@ -248,16 +265,21 @@ namespace filtering {
 	static inline EID eid() { return EID(); }
 	static inline IsQuery isQuery() { return IsQuery(); }
 	static inline IsEndpointQuery isEndpointQuery() { return IsEndpointQuery(); }
+	static inline IsPropertyQuery isPropertyQuery() { return IsPropertyQuery(); }
 	template<typename TValue>
 	static inline Value<TValue> value() { return Value<TValue>(); }
 	template<typename TValue>
 	static inline IsInfo<TValue> isInfo() { return IsInfo<TValue>(); }
+	template<typename TValue>
+	static inline IsPropertyReport<TValue> isPropertyReport() { return IsPropertyReport<TValue>(); }
 	template<typename TValue>
 	static inline IsReport<TValue> isReport() { return IsReport<TValue>(); }
 	template<typename TValue>
 	static inline IsProxyInfo<TValue> isProxyInfo() { return IsProxyInfo<TValue>(); }
 	template<typename TValue>
 	static inline IsWrite<TValue> isWrite() { return IsWrite<TValue>(); }
+	template<typename TValue>
+	static inline IsPropertyWrite<TValue> isPropertyWrite() { return IsPropertyWrite<TValue>(); }
 	static inline IsEndpointInfo isEndpointInfo() { return IsEndpointInfo(); }
 	static inline IsEndpointReport isEndpointReport() { return IsEndpointReport(); }
 	static inline IsAck isAck() { return IsAck(); }
@@ -296,7 +318,7 @@ namespace filtering {
 		};
 
 	}
-	
+
 	template<typename Exp>
 	struct is_filter<ast::HasExpression<Exp> > : boost::mpl::true_ {};
 

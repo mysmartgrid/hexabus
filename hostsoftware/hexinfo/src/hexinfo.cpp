@@ -17,12 +17,30 @@
 
 namespace po = boost::program_options;
 
-struct endpoint_descriptor 
+struct property_descriptor
+{
+	uint32_t propid;
+	uint8_t datatype;
+	boost::variant<
+		bool,
+		uint8_t,
+		uint32_t,
+		float,
+		std::string
+	> value;
+
+	bool operator<(const property_descriptor &b) const
+	{
+		return (propid < b.propid);
+	}
+};
+
+struct endpoint_descriptor
 {
 	uint32_t eid;
 	uint8_t datatype;
 	std::string name;
-
+	std::set<property_descriptor> properties;
 	bool operator<(const endpoint_descriptor &b) const
 	{
 		return (eid < b.eid);
@@ -33,7 +51,7 @@ struct device_descriptor
 {
 	boost::asio::ip::address_v6 ipv6_address;
 	std::string name;
-	std::set<uint32_t> endpoint_ids;
+	std::set<endpoint_descriptor> endpoint_ids;
 
 	bool operator<(const device_descriptor &b) const
 	{
@@ -50,45 +68,108 @@ struct ReceiveCallback { // callback for device discovery
 };
 
 struct ReportCallback { // callback for populating data structures
-	device_descriptor* device;
-	std::set<endpoint_descriptor>* endpoints;
-	bool* received;
+	endpoint_descriptor* current_ep;
 	void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep)
 	{
 		const hexabus::EndpointReportPacket* endpointReport = dynamic_cast<const hexabus::EndpointReportPacket*>(&packet);
-		const hexabus::ReportPacket<uint32_t>* report = dynamic_cast<const hexabus::ReportPacket<uint32_t>*>(&packet);
 		if(endpointReport != NULL)
 		{
-			if(endpointReport->eid() == EP_DEVICE_DESCRIPTOR) // If it's endpoint 0 (device descriptor), it contains the device name.
-			{
-				device->name = endpointReport->value();
-			} else { // otherwise it contains information about an endpoint, so build an endpoint_descriptor and add it to the list
-				endpoint_descriptor ep;
-				ep.eid = endpointReport->eid();
-				ep.datatype = endpointReport->datatype();
-				ep.name = endpointReport->value();
-
-				endpoints->insert(ep);
-			}
-			*received = true;
+			current_ep->eid = endpointReport->eid();
+			current_ep->datatype = endpointReport->datatype();
+			current_ep->name = endpointReport->value();
 		}
+	}
+};
 
+struct NameCallback {
+	device_descriptor* dev;
+	void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep)
+	{
+		const hexabus::ReportPacket<std::string>* report = dynamic_cast<const hexabus::ReportPacket<std::string>*>(&packet);
 		if(report != NULL)
 		{
-			if ((report->eid() % 32) == 0) // we only care for the device descriptors
-			{
-				uint32_t val = report->value() >> 1; // skip device descriptor
-				for(int i = 1; i < 32; ++i)
-				{
-					if(val & 1) // find out whether LSB is set
-						device->endpoint_ids.insert(report->eid() + i); // if it's set, store the EID (the bit's position in the device descriptor).
-
-					val >>= 1; // right-shift in order to have the next EID in the LSB
-				}
-			}
-			*received = true;
+			dev->name = report->value();
 		}
+	}
+};
 
+struct PropreportCallback {
+	endpoint_descriptor* current_ep;
+	uint32_t current_pid;
+	uint32_t next_eid;
+
+	void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep)
+	{
+		property_descriptor pd;
+
+		do {
+			const hexabus::PropertyReportPacket<bool>* propertyReport_b = dynamic_cast<const hexabus::PropertyReportPacket<bool>* >(&packet);
+			if(propertyReport_b !=NULL) {
+				pd.propid = current_pid;
+				pd.datatype = HXB_DTYPE_BOOL;
+				pd.value = propertyReport_b->value();
+				current_pid = propertyReport_b->nextid();
+				current_ep->properties.insert(pd);
+				break;
+			}
+			const hexabus::PropertyReportPacket<uint8_t>* propertyReport_u8 = dynamic_cast<const hexabus::PropertyReportPacket<uint8_t>* >(&packet);
+			if(propertyReport_u8 !=NULL) {
+				pd.propid = current_pid;
+				pd.datatype = HXB_DTYPE_UINT8;
+				pd.value = propertyReport_u8->value();
+				current_pid = propertyReport_u8->nextid();
+				current_ep->properties.insert(pd);
+				break;
+			}
+			const hexabus::PropertyReportPacket<uint32_t>* propertyReport_u32 = dynamic_cast<const hexabus::PropertyReportPacket<uint32_t>* >(&packet);
+			if(propertyReport_u32 !=NULL) {
+				pd.propid = current_pid;
+				if(current_pid == 0) {
+					next_eid = propertyReport_u32->value();
+				}
+				pd.datatype = HXB_DTYPE_UINT32;
+				pd.value = propertyReport_u32->value();
+				current_pid = propertyReport_u32->nextid();
+				current_ep->properties.insert(pd);
+				break;
+			}
+			const hexabus::PropertyReportPacket<float>* propertyReport_f = dynamic_cast<const hexabus::PropertyReportPacket<float>* >(&packet);
+			if(propertyReport_f !=NULL) {
+				pd.propid = current_pid;
+				pd.datatype = HXB_DTYPE_FLOAT;
+				pd.value = propertyReport_f->value();
+				current_pid = propertyReport_f->nextid();
+				current_ep->properties.insert(pd);
+				break;
+			}
+			const hexabus::PropertyReportPacket<std::string>* propertyReport_s = dynamic_cast<const hexabus::PropertyReportPacket<std::string>* >(&packet);
+			if(propertyReport_s !=NULL) {
+				pd.propid = current_pid;
+				pd.datatype = HXB_DTYPE_128STRING;
+				pd.value = propertyReport_s->value();
+				current_pid = propertyReport_s->nextid();
+				current_ep->properties.insert(pd);
+				break;
+			}
+			const hexabus::PropertyReportPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >* propertyReport_16b = dynamic_cast<const hexabus::PropertyReportPacket<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >* >(&packet);
+			if(propertyReport_16b !=NULL) {
+				pd.propid = current_pid;
+				pd.datatype = HXB_DTYPE_16BYTES;
+				pd.value = std::string(propertyReport_16b->value().begin(), propertyReport_16b->value().end());
+				current_pid = propertyReport_16b->nextid();
+				current_ep->properties.insert(pd);
+				break;
+			}
+			const hexabus::PropertyReportPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >* propertyReport_66b = dynamic_cast<const hexabus::PropertyReportPacket<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >* >(&packet);
+			if(propertyReport_66b !=NULL) {
+				pd.propid = current_pid;
+				pd.datatype = HXB_DTYPE_66BYTES;
+				pd.value = std::string(propertyReport_66b->value().begin(), propertyReport_66b->value().end());
+				current_pid = propertyReport_66b->nextid();
+				current_ep->properties.insert(pd);
+				break;
+			}
+		} while(false);
 	}
 };
 
@@ -100,22 +181,35 @@ struct ErrorCallback {
 	}
 };
 
+struct TransmissionCallback {
+	boost::asio::io_service* io;
+
+	void operator()(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep, bool failed)
+	{
+		io->stop();
+		if(failed) {
+			std::cerr << "Error transmitting packet: Timeout" << std::endl;
+			exit(1);
+		}
+	}
+};
+
 void print_dev_info(const device_descriptor& dev)
 {
 	std::cout << "Device information:" << std::endl;
 	std::cout << "\tIP address: \t" << dev.ipv6_address.to_string() << std::endl;
-	std::cout << "\tDevice name: \t" << dev.name << std::endl;
+	std::cout << "\tDevice type: \t" << dev.name << std::endl;
 	std::cout << "\tEndpoints: \t";
-	for(std::set<uint32_t>::const_iterator it = dev.endpoint_ids.begin(); it != dev.endpoint_ids.end(); ++it)
-		std::cout << *it << " ";
+	for(std::set<endpoint_descriptor>::const_iterator it = dev.endpoint_ids.begin(); it != dev.endpoint_ids.end(); ++it)
+		std::cout << it->eid << " ";
 	std::cout << std::endl;
 }
 
 void print_ep_info(const endpoint_descriptor& ep)
 {
-	std::cout << "Endpoint Information:" << std::endl;
-	std::cout << "\tEndpoint ID:\t" << ep.eid << std::endl;
-	std::cout << "\tData type:\t";
+	std::cout << "\tEndpoint Information:" << std::endl;
+	std::cout << "\t\tEndpoint ID:\t" << ep.eid << std::endl;
+	std::cout << "\t\tData type:\t";
 	switch(ep.datatype)
 	{
 		case HXB_DTYPE_BOOL:
@@ -140,8 +234,40 @@ void print_ep_info(const endpoint_descriptor& ep)
 			std::cout << "(unknown)"; break;
 	}
 	std::cout << std::endl;
-	std::cout << "\tName:\t\t" << ep.name <<std::endl;
+	std::cout << "\t\tName:\t\t" << ep.name <<std::endl;
 	std::cout << std::endl;
+}
+
+void print_prop_info(const property_descriptor& pd)
+{
+	std::cout << "\t\tProperty Information:" << std::endl;
+	std::cout << "\t\t\tProperty ID:\t" << pd.propid << std::endl;
+	std::cout << "\t\t\tData type:\t";
+	switch(pd.datatype)
+	{
+		case HXB_DTYPE_BOOL:
+			std::cout << "Bool"; break;
+		case HXB_DTYPE_UINT8:
+			std::cout << "UInt8"; break;
+		case HXB_DTYPE_UINT32:
+			std::cout << "UInt32"; break;
+		case HXB_DTYPE_DATETIME:
+			std::cout << "Datetime"; break;
+		case HXB_DTYPE_FLOAT:
+			std::cout << "Float"; break;
+		case HXB_DTYPE_TIMESTAMP:
+			std::cout << "Timestamp"; break;
+		case HXB_DTYPE_128STRING:
+			std::cout << "String"; break;
+		case HXB_DTYPE_16BYTES:
+			std::cout << "Binary (16bytes)"; break;
+		case HXB_DTYPE_66BYTES:
+			std::cout << "Binary (66bytes)"; break;
+		default:
+			std::cout << "(unknown)"; break;
+	}
+	std::cout << std::endl;
+	std::cout << "\t\t\tValue:\t" << pd.value << std::endl;
 }
 
 std::string remove_specialchars(std::string s)
@@ -170,9 +296,9 @@ void write_dev_desc(const device_descriptor& dev, std::ostream& target)
 	target << "device " << remove_specialchars(dev.name) << " {" << std::endl;
 	target << "\tip " << dev.ipv6_address.to_string() << ";" << std::endl;
 	target << "\teids { ";
-	for(std::set<uint32_t>::const_iterator it = dev.endpoint_ids.begin(); it != dev.endpoint_ids.end(); ) // no increment here!
+	for(std::set<endpoint_descriptor>::const_iterator it = dev.endpoint_ids.begin(); it != dev.endpoint_ids.end(); ) // no increment here!
 	{
-		target << *it;
+		target << it->eid;
 		if(++it != dev.endpoint_ids.end()) // increment here to see if we have to put a comma
 			target << ", ";
 	}
@@ -205,7 +331,7 @@ json_string_writer json(const std::string& str)
 	return json_string_writer(str);
 }
 
-bool write_dev_desc_json(const device_descriptor& dev, std::ostream& target, bool emit_comma)
+bool write_dev_desc_json(const device_descriptor& dev, std::ostream& target, bool emit_comma, bool write_metadata)
 {
 	static hexabus::EndpointRegistry ep_registry;
 
@@ -219,31 +345,60 @@ bool write_dev_desc_json(const device_descriptor& dev, std::ostream& target, boo
 			<< "\t\"name\": \"" << json(dev.name) << "\"," << std::endl
 			<< "\t\"ip\": \"" << dev.ipv6_address << "\"," << std::endl
 			<< "\t\"endpoints\": [" << std::endl;
-		for (std::set<uint32_t>::const_iterator it = dev.endpoint_ids.begin(), end = dev.endpoint_ids.end(); it != end; ) {
-			// device descriptors are not interesting
-			if (*it % 32 == 0) {
-				it++;
-				continue;
-			}
-
+		for (std::set<endpoint_descriptor>::const_iterator it = dev.endpoint_ids.begin(), end = dev.endpoint_ids.end(); it != end; ) {
 			target
 				<< "\t\t{" << std::endl
-				<< "\t\t\t\"eid\": " << *it << "," << std::endl;
+				<< "\t\t\"eid\": " << it->eid;
 
-			hexabus::EndpointRegistry::const_iterator ep_it = ep_registry.find(*it);
+			hexabus::EndpointRegistry::const_iterator ep_it = ep_registry.find(it->eid);
 			if (ep_it != ep_registry.end()) {
 				target
-					<< "\t\t\t\"unit\": \"" << json(ep_it->second.unit().get_value_or("")) << "\"," << std::endl
-					<< "\t\t\t\"description\": \"" << json(ep_it->second.description()) << "\"," << std::endl
-					<< "\t\t\t\"function\": \"";
+					<< "," << std::endl
+					<< "\t\t\"unit\": \"" << json(ep_it->second.unit().get_value_or("")) << "\"," << std::endl
+					<< "\t\t\"description\": \"" << json(ep_it->second.description()) << "\"," << std::endl
+					<< "\t\t\"function\": \"";
 				switch (ep_it->second.function()) {
 					case hexabus::EndpointDescriptor::sensor:         target << "sensor"; break;
 					case hexabus::EndpointDescriptor::actor:          target << "actor"; break;
 					case hexabus::EndpointDescriptor::infrastructure: target << "infrastructure"; break;
 				}
 				target << "\"," << std::endl
-					<< "\t\t\t\"type\": " << ep_it->second.type() << std::endl;
+					<< "\t\t\"type\": " << ep_it->second.type();
+
+				if(write_metadata) {
+					target
+						<< "," << std::endl
+						<<  "\t\t\"properties\": [" << std::endl;
+
+					for(std::set<property_descriptor>::const_iterator prop_it = it->properties.begin(), prop_end = it->properties.end(); prop_it != prop_end; ) {
+						if(prop_it->propid != 0) {
+							target
+								<< "\t\t\t{" << std::endl
+								<< "\t\t\t\"property ID\": " << prop_it->propid << "," << std::endl;
+
+								if(boost::get<std::string>(&prop_it->value))
+									target << "\t\t\t\"value\": \"" << prop_it->value << "\"" << std::endl;
+								else
+									target << "\t\t\t\"value\": " << prop_it->value << std::endl;
+
+								target << "\t\t\t}";
+
+							prop_it++;
+
+							if(prop_it != prop_end) {
+								target << ",";
+							}
+							target << std::endl;
+						} else {
+							prop_it++;
+						}
+					}
+					target << "\t\t]" << std::endl;
+				} else {
+					target << std::endl;
+				}
 			} else {
+				target << std::endl;
 			}
 
 			target << "\t\t}";
@@ -373,6 +528,7 @@ int main(int argc, char** argv)
 		("ip,i", po::value<std::string>(), "IP address of device")
 		("interface,I", po::value<std::string>(), "Interface to send multicast from")
 		("discover,c", "automatically discover hexabus devices")
+		("metadata,m", "aditionally query endpoint metadata")
 		("print,p", "print device and endpoint info to the console")
 		("epfile,e", po::value<std::string>(), "name of Hexabus Compiler header file to write the endpoint list to")
 		("devfile,d", po::value<std::string>(), "name of Hexabus Compiler header file to write the device definition to")
@@ -415,7 +571,7 @@ int main(int argc, char** argv)
 	std::set<boost::asio::ip::address_v6> addresses; // Holds the list of addresses to scan -- either filled with everything we "discover" or with just one "ip"
 	// init the network interface
 	boost::asio::io_service io;
-	hexabus::Socket* network = new hexabus::Socket(io);
+	hexabus::Socket* network = new hexabus::Socket(io, 5);
 	try {
 		if(vm.count("interface")) {
 			if(verbose)
@@ -428,11 +584,9 @@ int main(int argc, char** argv)
 	}
 	boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
 	network->bind(bind_addr);
-	
-	const unsigned int NUM_RETRIES = 5;
+
 	// sets for storing the received data
 	std::set<device_descriptor> devices;
-	std::set<endpoint_descriptor> endpoints;
 	// =========================================
 
 
@@ -456,7 +610,7 @@ int main(int argc, char** argv)
 
 		// use connections so that callback handlers get deleted (.disconnect())
 		boost::signals2::connection c1 = network->onAsyncError(errorCallback);
-		boost::signals2::connection c2 = network->onPacketReceived(receiveCallback, hexabus::filtering::isReport<uint32_t>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR));
+		boost::signals2::connection c2 = network->onPacketReceived(receiveCallback, hexabus::filtering::isReport<std::string>() && (hexabus::filtering::eid() == EP_DEVICE_DESCRIPTOR));
 
 		// timer that cancels receiving after n seconds
 		boost::asio::deadline_timer timer(network->ioService());
@@ -500,109 +654,99 @@ int main(int argc, char** argv)
 		if(verbose)
 			std::cout << "Querying device " << target_ip.to_string() << "..." << std::endl;
 
-		// callback handler for incoming (ep)info packets
-		bool received = false;
-		ReportCallback reportCallback = { &device, &endpoints, &received };
+		ReportCallback reportCallback;
+		PropreportCallback propreportCallback;
+		TransmissionCallback transmissionCallback = { &(network->ioService()) };
 		ErrorCallback errorCallback;
+		NameCallback nameCallback = { &device };
+
 		boost::signals2::connection c1 = network->onAsyncError(errorCallback);
-		boost::signals2::connection c2 = network->onPacketReceived(reportCallback,
-			(hexabus::filtering::isReport<uint32_t>() && (hexabus::filtering::eid() % 32 == 0))
-			|| hexabus::filtering::isEndpointReport());
 
-		unsigned int retries = 0;
+		//Query device name
+		boost::signals2::connection c2 = network->onPacketReceived(boost::ref(nameCallback),
+			hexabus::filtering::isReport<std::string>());
+		network->onPacketTransmitted(boost::ref(transmissionCallback),
+			hexabus::QueryPacket(EP_DEVICE_DESCRIPTOR, hexabus::Packet::want_ack),
+			boost::asio::ip::udp::endpoint(target_ip, HXB_PORT));
 
-		// epquery the dev.descriptor, to get the name of the device
-		while(!received && retries < NUM_RETRIES)
-		{
-			// send the device name query packet and listen for the reply
+		network->ioService().reset();
+		network->ioService().run();
+		c2.disconnect();
+
+		//Query all endpoints
+		propreportCallback.next_eid = 0;
+		do {
+			endpoint_descriptor current_ep;
+			current_ep.eid = propreportCallback.next_eid;
+			reportCallback.current_ep = &current_ep;
+			propreportCallback.current_ep = &current_ep;
+
 			if(verbose)
-				std::cout << "Sending EPQuery." << std::endl;
-			send_packet(network, target_ip, hexabus::EndpointQueryPacket(EP_DEVICE_DESCRIPTOR));
+				std::cout<< "\tQuerying Endpoint " << propreportCallback.next_eid << std::endl;
 
-			boost::asio::deadline_timer timer(network->ioService()); // wait for a second
-			timer.expires_from_now(boost::posix_time::milliseconds(350));
-			timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
+			boost::signals2::connection c2 = network->onPacketReceived(boost::ref(reportCallback),
+				hexabus::filtering::isEndpointReport());
+			network->onPacketTransmitted(boost::ref(transmissionCallback),
+				hexabus::EndpointQueryPacket(current_ep.eid, hexabus::Packet::want_ack),
+				boost::asio::ip::udp::endpoint(target_ip, HXB_PORT));
 
 			network->ioService().reset();
 			network->ioService().run();
+			c2.disconnect();
 
-			retries++;
-		}
+			//Get endpoint properties
+			propreportCallback.current_pid = 0;
+			boost::signals2::connection c3 = network->onPacketReceived(boost::ref(propreportCallback),
+				hexabus::filtering::isPropertyReport<bool>() ||
+				hexabus::filtering::isPropertyReport<uint8_t>() ||
+				hexabus::filtering::isPropertyReport<uint32_t>() ||
+				hexabus::filtering::isPropertyReport<float>() ||
+				hexabus::filtering::isPropertyReport<std::string>() ||
+				hexabus::filtering::isPropertyReport<boost::array<char, HXB_16BYTES_PACKET_MAX_BUFFER_LENGTH> >() ||
+				hexabus::filtering::isPropertyReport<boost::array<char, HXB_66BYTES_PACKET_MAX_BUFFER_LENGTH> >());
 
-		if(!received && verbose)
-			std::cout << "No reply on device descriptor EPQuery from " << target_ip.to_string() << std::endl;
+			do {
+				if(verbose)
+					std::cout<< "\t\tQuerying Property " << propreportCallback.current_pid << std::endl;
 
-		for (uint32_t ep_desc = 0; ep_desc < 256; ep_desc += 32) {
-			received = false;
-			retries = 0;
-
-			// query the dev.descriptor, to build a list of endpoints
-			while (!received && retries < NUM_RETRIES) {
-				if (verbose)
-					std::cout << "Sending descriptor query for " << ep_desc << "." << std::endl;
-				// send the device descriptor (endpoint list) query packet and listen for the reply
-				send_packet(network, target_ip, hexabus::QueryPacket(ep_desc));
-
-				boost::asio::deadline_timer timer(network->ioService()); // wait for a second
-				timer.expires_from_now(boost::posix_time::milliseconds(350));
-				timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
+				network->onPacketTransmitted(boost::ref(transmissionCallback),
+					hexabus::PropertyQueryPacket(propreportCallback.current_pid, current_ep.eid, hexabus::Packet::want_ack),
+					boost::asio::ip::udp::endpoint(target_ip, HXB_PORT));
 
 				network->ioService().reset();
 				network->ioService().run();
 
-				retries++;
-			}
+				if(!vm.count("metadata"))
+				{
+					break;
+				}
 
-			if(!received && verbose)
-				std::cout << "No reply on device descriptor Query from " << target_ip.to_string() << std::endl;
-		}
+			} while(propreportCallback.current_pid != 0);
+			c3.disconnect();
 
-		// step 1: Make a set of endpoints to query.
-		std::multiset<uint32_t> eps_to_query;
-		BOOST_FOREACH(uint32_t endpoint_id, device.endpoint_ids)
-		{
-			// put each EP into this list three times, so that it is queried at maximum three times
-			for(unsigned int i = 0; i < NUM_RETRIES; i++)
-				eps_to_query.insert(endpoint_id);
-		}
+			device.endpoint_ids.insert(current_ep);
 
-		// step 2: Query each entry of the set, and remove it.
-		while(eps_to_query.size())
-		{
-			received = false;
-			uint32_t eid = *eps_to_query.begin();
-			eps_to_query.erase(eps_to_query.begin());
-
-			if(verbose)
-				std::cout << "Sending EPQuery to EID " << eid << std::endl;
-
-			send_packet(network, target_ip, hexabus::EndpointQueryPacket(eid));
-
-			boost::asio::deadline_timer timer(network->ioService()); // wait for a second
-			timer.expires_from_now(boost::posix_time::milliseconds(350));
-			timer.async_wait(boost::bind(&boost::asio::io_service::stop, &io));
-
-			network->ioService().reset();
-			network->ioService().run();
-
-			// step 2a: If a reply is received for this EP, remove it completely from the set.
-			if(received)
-				eps_to_query.erase(eid);
-		}
+		} while(propreportCallback.next_eid != 0);
 
 		c1.disconnect();
-		c2.disconnect();
-
-		// step 3: Now we have a set of endpoint descriptors.
 
 		if(vm.count("print"))
 		{
 			// print the information onto the command line
 			print_dev_info(device);
 			std::cout << std::endl;
-			for(std::set<endpoint_descriptor>::iterator it = endpoints.begin(); it != endpoints.end(); ++it)
-				if (device.endpoint_ids.count(it->eid))
+			for(std::set<endpoint_descriptor>::iterator it = device.endpoint_ids.begin(); it != device.endpoint_ids.end(); ++it)
+			{
+				if (device.endpoint_ids.count(*it))
+				{
 					print_ep_info(*it);
+					if(vm.count("metadata")) {
+						for(std::set<property_descriptor>::iterator pit = (*it).properties.begin(); pit != (*it).properties.end(); ++pit)
+							if(pit->propid != 0) //omit 'next eid' property
+								print_prop_info(*pit);
+					}
+				}
+			}
 		}
 
 		devices.insert(device);
@@ -648,10 +792,15 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		for(std::set<endpoint_descriptor>::iterator it = endpoints.begin(); it != endpoints.end(); ++it)
+		for(std::set<device_descriptor>::iterator it = devices.begin(); it != devices.end(); ++it)
 		{
-			if(!existing_eids.count(it->eid))
-				write_ep_desc(*it, ofs);
+			for(std::set<endpoint_descriptor>::iterator itt = it->endpoint_ids.begin(); itt != it->endpoint_ids.end(); ++itt)
+			{
+				if (it->endpoint_ids.count(*itt))
+				{
+					write_ep_desc(*itt, ofs);
+				}
+			}
 		}
 	}
 
@@ -681,7 +830,7 @@ int main(int argc, char** argv)
 			bool hasWritten = false;
 			for(std::set<device_descriptor>::iterator it = devices.begin(); it != devices.end(); ++it)
 			{
-				hasWritten |= write_dev_desc_json(*it, out, hasWritten && it != devices.begin());
+				hasWritten |= write_dev_desc_json(*it, out, hasWritten && it != devices.begin(), vm.count("metadata"));
 			}
 
 			out << "]}" << std::endl;
