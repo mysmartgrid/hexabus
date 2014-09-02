@@ -187,6 +187,23 @@ static Testcase switchTableComments = {
 	"	ret.stay"
 };
 
+static Testcase allVectorsUnique = {
+	{ ".version 0" },
+	{ ".machine 0x00000000000000000000000000000000" },
+	{ "; machine id", { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, true },
+	{ "; version number", { 0x0 }, true },
+	{ ".on_init L0", { 0x00, 0x07 } },
+	{ ".on_packet L1", { 0x00, 0x08 } },
+	{ ".on_periodic L2", { 0x00, 0x09 } },
+	{ "" },
+	{ "L0:" },
+	{ "	ret.stay", { 0x38 } },
+	{ "L1:" },
+	{ "	ret.stay", { 0x38 } },
+	{ "L2:" },
+	{ "	ret.stay", { 0x38 } }
+};
+
 template<typename It1, typename It2>
 bool matches(It1& begin1, It1 end1, It2 begin2, It2 end2)
 {
@@ -269,6 +286,11 @@ BOOST_AUTO_TEST_CASE(assemblerSwitchTableComments)
 	checkAssembler(switchTableComments);
 }
 
+BOOST_AUTO_TEST_CASE(assemblerAllVectorsUnique)
+{
+	checkAssembler(allVectorsUnique);
+}
+
 
 
 void checkDisssembler(const std::vector<AssemblerLine> program)
@@ -303,4 +325,9 @@ BOOST_AUTO_TEST_CASE(disassemblerFull)
 BOOST_AUTO_TEST_CASE(disassemblerNoInit)
 {
 	checkDisssembler(noInit);
+}
+
+BOOST_AUTO_TEST_CASE(disassemblerAllVectorsUnique)
+{
+	checkDisssembler(allVectorsUnique);
 }

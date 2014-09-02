@@ -32,7 +32,7 @@ struct RawProgram {
 	uint8_t version;
 	std::array<uint8_t, 16> machineID;
 
-	size_t onPacketPos, onPeriodicPos, onInit;
+	size_t onPacketPos, onPeriodicPos, onInitPos;
 
 	std::vector<RawInstruction> instructions;
 };
@@ -95,7 +95,7 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 		throw InvalidProgram("unknown program version", extra);
 	}
 
-	result.onInit = read_u16();
+	result.onInitPos = read_u16();
 	result.onPacketPos = read_u16();
 	result.onPeriodicPos = read_u16();
 
@@ -338,7 +338,7 @@ std::map<size_t, hbt::ir::Label> resolveLabels(const RawProgram& program, hbt::i
 	std::map<size_t, Label> result;
 
 	for (auto& insn : program.instructions) {
-		if ((insn.pos == program.onPacketPos || insn.pos == program.onPeriodicPos) &&
+		if ((insn.pos == program.onPacketPos || insn.pos == program.onPeriodicPos || insn.pos == program.onInitPos) &&
 				!result.count(insn.pos))
 			result.insert({ insn.pos, builder.createLabel() });
 
@@ -374,10 +374,10 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 
 	std::map<size_t, Label> labelAbsPositions = resolveLabels(raw, builder);
 
-	if (raw.onInit != 0xffff) {
-		if (!labelAbsPositions.count(raw.onInit))
+	if (raw.onInitPos != 0xffff) {
+		if (!labelAbsPositions.count(raw.onInitPos))
 			throw InvalidProgram("invalid on_init vector", "");
-		builder.onInit(labelAbsPositions.at(raw.onInit));
+		builder.onInit(labelAbsPositions.at(raw.onInitPos));
 	}
 
 	if (!labelAbsPositions.count(raw.onPacketPos))
