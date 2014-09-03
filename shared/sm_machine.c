@@ -95,7 +95,6 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 
 	case HSO_LD_DT: {
 		uint32_t mask = LOAD(u8);
-		uint32_t offset = 1;
 		op->immed.type = HXB_DTYPE_DATETIME;
 		uint8_t second = 0;
 		uint8_t minute = 0;
@@ -128,8 +127,6 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 		break;
 
 	case HSO_OP_DT_DECOMPOSE:
-	case HSO_CMP_DT_LT:
-	case HSO_CMP_DT_GE:
 		op->dt_mask = LOAD(u8);
 		break;
 
@@ -200,26 +197,6 @@ static int sm_dt_op(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op, uint8_
 
 		v1->type = HXB_DTYPE_UINT32;
 		v1->v_uint = 86400 * (d1 - d2) + (s1 - s2);
-		break;
-	}
-
-	case HSO_CMP_DT_GE:
-	case HSO_CMP_DT_LT: {
-		bool result = true;
-		bool ge_inv = op != HSO_CMP_DT_GE;
-		const hxb_datetime_t* d1 = &v1->v_datetime;
-		const hxb_datetime_t* d2 = &v2->v_datetime;
-
-		if (mask & HSDM_SECOND) result &= ge_inv ^ (hxbdt_second(d1) >= hxbdt_second(d2));
-		if (mask & HSDM_MINUTE) result &= ge_inv ^ (hxbdt_minute(d1) >= hxbdt_minute(d2));
-		if (mask & HSDM_HOUR) result &= ge_inv ^ (hxbdt_hour(d1) >= hxbdt_hour(d2));
-		if (mask & HSDM_DAY) result &= ge_inv ^ (hxbdt_day(d1) >= hxbdt_day(d2));
-		if (mask & HSDM_MONTH) result &= ge_inv ^ (hxbdt_month(d1) >= hxbdt_month(d2));
-		if (mask & HSDM_YEAR) result &= ge_inv ^ (hxbdt_year(d1) >= hxbdt_year(d2));
-		if (mask & HSDM_WEEKDAY) result &= ge_inv ^ (hxbdt_weekday(d1) >= hxbdt_weekday(d2));
-
-		v1->type = HXB_DTYPE_BOOL;
-		v1->v_uint = result;
 		break;
 	}
 
@@ -574,8 +551,6 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 			break;
 
 		case HSO_OP_DT_DIFF:
-		case HSO_CMP_DT_LT:
-		case HSO_CMP_DT_GE:
 			CHECK_POP(2);
 			FAIL_AS(sm_dt_op(&TOP_N(1), &TOP_N(0), insn.opcode, insn.dt_mask));
 			top--;

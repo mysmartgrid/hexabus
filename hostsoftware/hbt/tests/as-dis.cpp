@@ -56,7 +56,7 @@ static Testcase allFeatures = {
 	{ ".on_periodic L0", { 0x00, 0x07 } },
 	{ "" },
 	{ "L0:" },
-	{ "	ret.stay", { 0x38 } },
+	{ "	ret.stay", { 0x36 } },
 	{ "L1:" },
 	{ "	ld src.ip", { 0x00 } },
 	{ "	ld src.eid", { 0x01 } },
@@ -113,20 +113,18 @@ static Testcase allFeatures = {
 	{ "	cmp.ge", { 0x29 } },
 	{ "	cmp.eq", { 0x2a } },
 	{ "	cmp.neq", { 0x2b } },
-	{ "	cmp.dt.lt smM", { 0x2c, 19 } },
-	{ "	cmp.dt.ge smM", { 0x2d, 19 } },
-	{ "	conv.b", { 0x2e } },
-	{ "	conv.u8", { 0x2f } },
-	{ "	conv.u32", { 0x30 } },
-	{ "	conv.f", { 0x31 } },
-	{ "	jnz L4", { 0x32, 0, 6 } },
-	{ "	jz L4", { 0x33, 0, 3 } },
-	{ "	jump L4", { 0x34, 0, 0 } },
+	{ "	conv.b", { 0x2c } },
+	{ "	conv.u8", { 0x2d } },
+	{ "	conv.u32", { 0x2e } },
+	{ "	conv.f", { 0x2f } },
+	{ "	jnz L4", { 0x30, 0, 6 } },
+	{ "	jz L4", { 0x31, 0, 3 } },
+	{ "	jump L4", { 0x32, 0, 0 } },
 	{ "L4:" },
-	{ "	write", { 0x35 } },
-	{ "	pop", { 0x36 } },
-	{ "	ret.change", { 0x37 } },
-	{ "	ret.stay", { 0x38 } },
+	{ "	write", { 0x33 } },
+	{ "	pop", { 0x34 } },
+	{ "	ret.change", { 0x35 } },
+	{ "	ret.stay", { 0x36 } },
 };
 
 static Testcase noInit = {
@@ -139,7 +137,7 @@ static Testcase noInit = {
 	{ ".on_periodic L0", { 0x00, 0x07 } },
 	{ "" },
 	{ "L0:" },
-	{ "	ret.stay", { 0x38 } },
+	{ "	ret.stay", { 0x36 } },
 };
 
 static Testcase multiLabel = {
@@ -197,11 +195,11 @@ static Testcase allVectorsUnique = {
 	{ ".on_periodic L2", { 0x00, 0x09 } },
 	{ "" },
 	{ "L0:" },
-	{ "	ret.stay", { 0x38 } },
+	{ "	ret.stay", { 0x36 } },
 	{ "L1:" },
-	{ "	ret.stay", { 0x38 } },
+	{ "	ret.stay", { 0x36 } },
 	{ "L2:" },
-	{ "	ret.stay", { 0x38 } }
+	{ "	ret.stay", { 0x36 } }
 };
 
 template<typename It1, typename It2>

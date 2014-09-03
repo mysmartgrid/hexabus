@@ -49,8 +49,6 @@ enum hxb_sm_opcode {
 	HSO_CMP_GE,
 	HSO_CMP_EQ,
 	HSO_CMP_NEQ,
-	HSO_CMP_DT_LT,
-	HSO_CMP_DT_GE,
 
 	HSO_CONV_B,
 	HSO_CONV_U8,

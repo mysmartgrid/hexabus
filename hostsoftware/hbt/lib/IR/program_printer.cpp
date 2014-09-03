@@ -122,8 +122,6 @@ const char* opcodeName(hbt::ir::Opcode op)
 	case Opcode::SWITCH_32:
 		return "switch";
 	case Opcode::DT_DECOMPOSE: return "dt.decomp";
-	case Opcode::CMP_DT_LT: return "cmp.dt.lt";
-	case Opcode::CMP_DT_GE: return "cmp.dt.ge";
 	case Opcode::CMP_BLOCK: return "cmp.block";
 	case Opcode::JNZ: return "jnz";
 	case Opcode::JZ: return "jz";
@@ -288,8 +286,6 @@ std::string prettyPrint(const Program& program)
 			throw std::runtime_error("invalid program printed");
 
 		case Opcode::DT_DECOMPOSE:
-		case Opcode::CMP_DT_LT:
-		case Opcode::CMP_DT_GE:
 			if (auto* i = dynamic_cast<const ImmediateInstruction<DTMask>*>(insn)) {
 				out << " " << i->immed();
 				break;

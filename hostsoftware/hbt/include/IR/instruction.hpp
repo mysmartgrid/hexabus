@@ -60,8 +60,6 @@ enum class Opcode {
 	CMP_GE,
 	CMP_EQ,
 	CMP_NEQ,
-	CMP_DT_LT,
-	CMP_DT_GE,
 
 	CONV_B,
 	CONV_U8,

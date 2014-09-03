@@ -161,8 +161,6 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 			throw std::runtime_error("invalid program assembled");
 
 		case Opcode::DT_DECOMPOSE:
-		case Opcode::CMP_DT_LT:
-		case Opcode::CMP_DT_GE:
 			if (auto* i = dynamic_cast<const ImmediateInstruction<DTMask>*>(insn)) {
 				append_u8(uint8_t(i->immed()));
 				break;

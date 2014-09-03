@@ -227,9 +227,7 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 			break;
 		}
 
-		case Opcode::DT_DECOMPOSE:
-		case Opcode::CMP_DT_LT:
-		case Opcode::CMP_DT_GE: {
+		case Opcode::DT_DECOMPOSE: {
 			if (!canRead(1))
 				break;
 
@@ -485,8 +483,6 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 			break;
 
 		case Opcode::DT_DECOMPOSE:
-		case Opcode::CMP_DT_LT:
-		case Opcode::CMP_DT_GE:
 			builder.append(thisLabel, insn.op, boost::get<DTMask>(insn.immed), 0);
 			break;
 

@@ -130,8 +130,6 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		return;
 
 	case Opcode::DT_DECOMPOSE:
-	case Opcode::CMP_DT_LT:
-	case Opcode::CMP_DT_GE:
 		if (!get<DTMask>(immed) || invalid(get<DTMask>(*immed)))
 			throw std::invalid_argument("immed");
 

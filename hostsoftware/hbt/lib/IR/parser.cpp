@@ -277,9 +277,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunsequenced"
 		dt_masked_instruction =
-			(TOKEN("dt.decomp") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::DT_DECOMPOSE>, _1)])
-			| (TOKEN("cmp.dt.lt") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::CMP_DT_LT>, _1)])
-			| (TOKEN("cmp.dt.ge") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::CMP_DT_GE>, _1)]);
+			(TOKEN("dt.decomp") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::DT_DECOMPOSE>, _1)]);
 
 		ld_operand_immediate.name("immediate operand");
 		ld_operand_immediate =
