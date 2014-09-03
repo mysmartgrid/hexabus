@@ -50,6 +50,11 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	if (vm.count("help")) {
+		std::cout << visibleOpts;
+		return 0;
+	}
+
 	if (!vm.count("input-file")) {
 		std::cerr << "hbt-dis: error: no input file specified\n";
 		return 1;
