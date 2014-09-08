@@ -3,14 +3,14 @@
 #include "hexabus_config.h"
 #include "value_broadcast.h"
 #include "udp_handler.h"
-#include "eeprom_variables.h"
 #include "endpoints.h"
 #include "state_machine.h"
 #include "endpoint_registry.h"
 #include "datetime_service.h"
 #include <stdbool.h>
 #include <stdlib.h>
-#include <string.h>      // memcpy
+#include <string.h>
+#include "nvm.h"
 
 #define LOG_LEVEL STATE_MACHINE_DEBUG
 #include "syslog.h"

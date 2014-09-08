@@ -1,12 +1,9 @@
 #include "endpoint_registry.h"
 
 #include <stddef.h>
-#include <stdbool.h>
-#include <avr/eeprom.h>
 
-#include "eeprom_variables.h"
-#include <stdio.h>
 #include "hexabus_config.h"
+#include "nvm.h"
 
 #define LOG_LEVEL ENDPOINT_REGISTRY_DEBUG
 #include "syslog.h"
@@ -15,14 +12,16 @@ struct endpoint_registry_entry* _endpoint_chain = 0;
 
 static uint32_t descriptor_eid(struct endpoint_registry_entry* entry)
 {
-	return pgm_read_dword(((uint16_t) entry->descriptor) + offsetof(struct endpoint_descriptor, eid));
+	struct endpoint_descriptor ep = {};
+	memcpy_from_rodata(&ep, entry->descriptor, sizeof(ep));
+	return ep.eid;
 }
 
 void _endpoint_register(const struct endpoint_descriptor* ep, struct endpoint_registry_entry* chain_link)
 {
 #if ENDPOINT_REGISTRY_DEBUG
 	struct endpoint_descriptor ep_copy;
-	memcpy_P(&ep_copy, ep, sizeof(ep_copy));
+	memcpy_from_rodata(&ep_copy, ep, sizeof(ep_copy));
 
 	syslog(LOG_DEBUG, "Register endpoint %lu", ep_copy.eid);
 
@@ -88,7 +87,7 @@ static bool find_descriptor(uint32_t eid, struct endpoint_descriptor* result)
 {
 	for (struct endpoint_registry_entry* ep = _endpoint_chain; ep; ep = ep->next) {
 		if (descriptor_eid(ep) == eid) {
-			memcpy_P(result, ep->descriptor, sizeof(*result));
+			memcpy_from_rodata(result, ep->descriptor, sizeof(*result));
 			return true;
 		}
 	}
@@ -101,7 +100,7 @@ enum hxb_datatype endpoint_get_datatype(uint32_t eid)
 	if (eid % 32 == 0) {
 		return HXB_DTYPE_UINT32;
 	} else {
-		struct endpoint_descriptor ep;
+		struct endpoint_descriptor ep = {};
 		if (find_descriptor(eid, &ep)) {
 			return ep.datatype;
 		} else {
@@ -115,7 +114,7 @@ enum hxb_error_code endpoint_write(uint32_t eid, const struct hxb_envelope* env)
 	if (eid % 32 == 0) {
 		return HXB_ERR_WRITEREADONLY;
 	} else {
-		struct endpoint_descriptor ep;
+		struct endpoint_descriptor ep = {};
 		if (find_descriptor(eid, &ep)) {
 			if (ep.write == 0) {
 				return HXB_ERR_WRITEREADONLY;
@@ -136,7 +135,7 @@ enum hxb_error_code endpoint_read(uint32_t eid, struct hxb_value* value)
 		synthesize_read_m32(eid, value);
 		return HXB_ERR_SUCCESS;
 	} else {
-		struct endpoint_descriptor ep;
+		struct endpoint_descriptor ep = {};
 		if (find_descriptor(eid, &ep)) {
 			value->datatype = ep.datatype;
 			return ep.read(value);
@@ -149,16 +148,16 @@ enum hxb_error_code endpoint_read(uint32_t eid, struct hxb_value* value)
 enum hxb_error_code endpoint_get_name(uint32_t eid, char* buffer, size_t len)
 {
 	if (eid % 32 == 0) {
-		if (len >= EE_DOMAIN_NAME_SIZE) {
-			len = EE_DOMAIN_NAME_SIZE - 1;
+		if (len >= nvm_size(domain_name)) {
+			len = nvm_size(domain_name) - 1;
 		}
-		eeprom_read_block(buffer, (void*)(EE_DOMAIN_NAME), len);
-		buffer[EE_DOMAIN_NAME_SIZE] = '\0';
+		nvm_read_block(domain_name, buffer, len);
+		buffer[nvm_size(domain_name)] = '\0';
 		return HXB_ERR_SUCCESS;
 	} else {
 		struct endpoint_descriptor ep;
 		if (find_descriptor(eid, &ep)) {
-			strncpy_P(buffer, ep.name, len);
+			strncpy_from_rodata(buffer, ep.name, len);
 			return HXB_ERR_SUCCESS;
 		} else {
 			return HXB_ERR_UNKNOWNEID;

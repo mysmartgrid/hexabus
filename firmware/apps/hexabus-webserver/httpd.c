@@ -44,12 +44,12 @@
 #include "httpd-fs.h"
 #include "httpd-cgi.h"
 #include "httpd.h"
-#include "eeprom_variables.h"
 #include "hexabus_config.h"
 
 #include "relay.h"
 #include "state_machine.h"
 #include "metering.h"
+#include "nvm.h"
 
 //#include "http-strings.h"
 #if COFFEE_FILES
@@ -532,10 +532,10 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			//check for domain_name
 			PSOCK_READTO(&s->sin, ISO_amper);
 			if(s->inputbuf[0] != ISO_amper) {
-				char tmp[EE_DOMAIN_NAME_SIZE];
-				memset(tmp, 0, EE_DOMAIN_NAME_SIZE);
+				char tmp[nvm_size(domain_name)];
+				memset(tmp, 0, sizeof (tmp));
 				memcpy(tmp, s->inputbuf, PSOCK_DATALEN(&s->sin) - 1);
-				eeprom_write_block(tmp, (void*) EE_DOMAIN_NAME, EE_DOMAIN_NAME_SIZE);
+				nvm_write_block(domain_name, tmp, sizeof(tmp));
 			}
 
 			PSOCK_READTO(&s->sin, ISO_equal);

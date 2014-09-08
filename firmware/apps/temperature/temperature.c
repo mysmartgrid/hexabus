@@ -13,13 +13,13 @@
 #include "contiki.h"
 #include "dev/leds.h"
 #include <avr/eeprom.h>
-#include "eeprom_variables.h"
 #include "dev/leds.h"
 #include "debug.h"
 #include "tempsensors.h"
 #include "hexabus_config.h"
 #include "endpoint_registry.h"
 #include "endpoints.h"
+#include "nvm.h"
 
 #if TEMPERATURE_SENSOR == 1
 #include "humidity.h"

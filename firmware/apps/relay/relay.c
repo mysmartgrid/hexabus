@@ -36,12 +36,11 @@
 #include <stdbool.h>
 #include <util/delay.h>
 #include "dev/leds.h"
-#include <avr/eeprom.h>
-#include "eeprom_variables.h"
 #include "hexabus_config.h"
 #include "metering.h"
 #include "endpoints.h"
 #include "endpoint_registry.h"
+#include "nvm.h"
 
 
 /** \brief This is a file internal variable that contains the default state of the relay.
@@ -138,14 +137,12 @@ relay_default(void)
     }
 }
 
-void
-set_relay_default(bool d_value)
+void set_relay_default(bool d_value)
 {
-  if (relay_default_state != d_value)
-    {
-      eeprom_write_byte((uint8_t *) EE_RELAY_DEFAULT, (unsigned char)d_value);
-      relay_default_state = d_value;
-    }
+	if (relay_default_state != d_value) {
+		nvm_write_u8(relay_default, d_value);
+		relay_default_state = d_value;
+	}
 }
 
 static enum hxb_error_code read(struct hxb_value* value)
@@ -173,27 +170,26 @@ ENDPOINT_DESCRIPTOR endpoint_relay = {
 	.write = write
 };
 
-void
-relay_init(void)
+void relay_init(void)
 {
 #if RELAY_ENABLE
 #if ! METERING_ENERGY_PERSISTENT
-  /* Load reference values from EEPROM */
-  relay_default_state = (bool) eeprom_read_byte((void*) EE_RELAY_DEFAULT);
+	/* Load reference values from EEPROM */
+	relay_default_state = nvm_read_u8(relay_default);
 
-  /*PWM Specific Initialization.*/
+	/*PWM Specific Initialization.*/
 #if RELAY_POWER_SAVING
-  SET_RELAY_TCCRxA();
-  SET_RELAY_TCCRxB();
+	SET_RELAY_TCCRxA();
+	SET_RELAY_TCCRxB();
 #else
-  DDRB |= (1 << PB3);
+	DDRB |= (1 << PB3);
 #endif
 
-  //relay is off at init
-  relay_state = 0;
+	//relay is off at init
+	relay_state = 0;
 
-  //set default state according to eeprom value
-  relay_default();
+	//set default state according to eeprom value
+	relay_default();
 #endif
 	ENDPOINT_REGISTER(endpoint_relay);
 #endif

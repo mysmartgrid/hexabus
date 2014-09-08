@@ -1,8 +1,8 @@
 #ifndef ENDPOINT_REGISTRY_H_
 #define ENDPOINT_REGISTRY_H_
 
-#include <stdint.h>
-#include <avr/pgmspace.h>
+#include "hexabus_config.h"
+
 #include "hexabus_packet.h"
 
 typedef enum hxb_error_code (*endpoint_read_fn)(struct hxb_value* value);
@@ -12,7 +12,7 @@ struct endpoint_descriptor {
 	uint8_t datatype;
 	uint32_t eid;
 
-	PGM_P name;
+	const char* name;
 
 	// if set to 0, the endpoint will not be readable
 	endpoint_read_fn read;
@@ -20,7 +20,7 @@ struct endpoint_descriptor {
 	endpoint_write_fn write;
 };
 
-#define ENDPOINT_DESCRIPTOR const struct endpoint_descriptor PROGMEM
+#define ENDPOINT_DESCRIPTOR const struct endpoint_descriptor RODATA
 
 struct endpoint_registry_entry {
 	const struct endpoint_descriptor* descriptor;

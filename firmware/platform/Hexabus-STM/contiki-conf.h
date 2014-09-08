@@ -1,77 +1,28 @@
-/*
- * Copyright (c) 2006, Technical University of Munich
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the Institute nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- * This file is part of the Contiki operating system.
- *
- * @(#)$$
- */
-
-/**
- * \file
- *         Configuration for HexaBus Socket
- *
- * \author
- * 		   Günter Hildebrandt <guenter.hildebrandt@esk.fraunhofer.de>
- *         Simon Barner <barner@in.tum.de>
- *         David Kopf <dak664@embarqmail.com>
- */
-
 #ifndef __CONTIKI_CONF_H__
 #define __CONTIKI_CONF_H__
 
-#ifndef F_CPU
-# error F_CPU not defined
+#ifndef MCK
+# error MCK not defined
 #endif
 
 #if !RF230BB
 # error unsupported radio
 #endif
 
-#define HEXABUS_SOCKET 1000
-#define PLATFORM_TYPE  HEXABUS_SOCKET
+#define HEXABUS_STM    1001
+#define PLATFORM_TYPE  HEXABUS_STM
 
+#include <stdbool.h>
 #include <stdint.h>
 
-typedef unsigned short clock_time_t;
-typedef unsigned short uip_stats_t;
+typedef uint32_t clock_time_t;
+typedef uint16_t uip_stats_t;
 
-/* Clock ticks per second */
-#define CLOCK_CONF_SECOND 126
+#define CLOCK_CONF_SECOND (125UL)
 
 /* Maximum tick interval is 0xffff/125 = 524 seconds */
 #define RIME_CONF_BROADCAST_ANNOUNCEMENT_MAX_TIME CLOCK_CONF_SECOND * 524UL /* Default uses 600UL */
 #define COLLECT_CONF_BROADCAST_ANNOUNCEMENT_MAX_TIME CLOCK_CONF_SECOND * 524UL /* Default uses 600UL */
-
-/* The 1284p can use TIMER2 with the external 32768Hz crystal to keep time. Else TIMER0 is used. */
-/* The sleep timer in raven-lcd.c also uses the crystal and adds a TIMER2 interrupt routine if not already define by clock.c */
-#define AVR_CONF_USE32KCRYSTAL 0
-
-#define SLIP_PORT RS232_PORT_0
 
 #define UIP_CONF_IPV6 1
 
@@ -160,7 +111,6 @@ typedef unsigned short uip_stats_t;
 /* ************************************************************************** */
 //#pragma mark RPL Settings
 /* ************************************************************************** */
-
 /* Define MAX_*X_POWER to reduce tx power and ignore weak rx packets for testing a miniature multihop network.
  * Leave undefined for full power and sensitivity.
  * tx=0 (3dbm, default) to 15 (-17.2dbm)

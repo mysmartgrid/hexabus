@@ -61,9 +61,9 @@
 #include "metering.h"
 #include "temperature.h"
 #include "relay.h"
-#include "eeprom_variables.h"
 #include "datetime_service.h"
 #include "state_machine.h"
+#include "nvm.h"
 
 #if RF230BB
 #include "radio/rf230bb/rf230bb.h"
@@ -175,7 +175,7 @@ generate_file_stats(void *arg)
   static const char httpd_cgi_filestat3[] HTTPD_STRING_ATTR = "%5u";
   char tmp[20];
   struct httpd_fsdata_file_noconst *f,fram;
-  u16_t i;
+  uint16_t i;
   unsigned short numprinted;
 
   /* Transfer arg from whichever flash that contains the html file to RAM */
@@ -338,16 +338,18 @@ make_neighbors(void *p)
 {
 uint8_t i,j=0;
 uint16_t numprinted;
+uip_ds6_nbr_t *nbr;
+
   numprinted = httpd_snprintf((char *)uip_appdata, uip_mss(),httpd_cgi_addrh);
-  for (i=0; i<UIP_DS6_NBR_NB;i++) {
-    if (uip_ds6_nbr_cache[i].isused) {
-      j++;
-      numprinted += httpd_cgi_sprint_ip6(uip_ds6_nbr_cache[i].ipaddr, uip_appdata + numprinted);
-      numprinted += httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_addrb); 
-    }
+  for(nbr = nbr_table_head(ds6_neighbors);
+      nbr != NULL;
+      nbr = nbr_table_next(ds6_neighbors, nbr)) {
+    j++;
+    numprinted += httpd_cgi_sprint_ip6(nbr->ipaddr, uip_appdata + numprinted);
+    numprinted += httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_addrb);
   }
 //if (j==0) numprinted += httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_addrn);
-  numprinted += httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_addrf,UIP_DS6_NBR_NB-j);
+  numprinted += httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_addrf,NBR_TABLE_MAX_NEIGHBORS-j);
   return numprinted;
 }
 /*---------------------------------------------------------------------------*/
@@ -364,23 +366,25 @@ PT_THREAD(neighbors(struct httpd_state *s, char *ptr))
 static unsigned short
 make_routes(void *p)
 {
-static const char httpd_cgi_rtes1[] HTTPD_STRING_ATTR = "(%u (via ";
-static const char httpd_cgi_rtes2[] HTTPD_STRING_ATTR = ") %lus<br>";
-static const char httpd_cgi_rtes3[] HTTPD_STRING_ATTR = ")<br>";
-uint8_t i,j=0;
-uint16_t numprinted;
+  static const char httpd_cgi_rtes1[] HTTPD_STRING_ATTR = "(%u (via ";
+  static const char httpd_cgi_rtes2[] HTTPD_STRING_ATTR = ") %lus<br>";
+  static const char httpd_cgi_rtes3[] HTTPD_STRING_ATTR = ")<br>";
+  uint8_t i,j=0;
+  uint16_t numprinted;
+  uip_ds6_route_t *r;
+
   numprinted = httpd_snprintf((char *)uip_appdata, uip_mss(),httpd_cgi_addrh);
-  for (i=0; i<UIP_DS6_ROUTE_NB;i++) {
-    if (uip_ds6_routing_table[i].isused) {
-      j++;
-      numprinted += httpd_cgi_sprint_ip6(uip_ds6_routing_table[i].ipaddr, uip_appdata + numprinted);
-      numprinted += httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_rtes1, uip_ds6_routing_table[i].length);
-      numprinted += httpd_cgi_sprint_ip6(uip_ds6_routing_table[i].nexthop, uip_appdata + numprinted);
-      if(uip_ds6_routing_table[i].state.lifetime < 3600) {
-         numprinted += httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_rtes2, uip_ds6_routing_table[i].state.lifetime);
-      } else {
-         numprinted += httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_rtes3);
-      }
+  for(r = uip_ds6_route_head();
+      r != NULL;
+      r = uip_ds6_route_next(r)) {
+    j++;
+    numprinted += httpd_cgi_sprint_ip6(r->ipaddr, uip_appdata + numprinted);
+    numprinted += httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_rtes1, r->length);
+    numprinted += httpd_cgi_sprint_ip6(*uip_ds6_route_nexthop(r), uip_appdata + numprinted);
+    if(r->state.lifetime < 3600) {
+      numprinted += httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_rtes2, r->state.lifetime);
+    } else {
+      numprinted += httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_rtes3);
     }
   }
   if (j==0) numprinted += httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_addrn);
@@ -462,18 +466,18 @@ generate_config(void *arg)
 
     char* checked = "checked";
 	numprinted=0;
-	char tmp[EE_DOMAIN_NAME_SIZE];
-	eeprom_read_block(tmp,(const void*) EE_DOMAIN_NAME, EE_DOMAIN_NAME_SIZE);
+	char tmp[nvm_size(domain_name)];
+	nvm_read_block(domain_name, tmp, sizeof(tmp));
 	numprinted =httpd_snprintf((char *)uip_appdata, uip_mss(), httpd_cgi_config_line1, tmp);
 
-	if (!eeprom_read_byte((void*) EE_RELAY_DEFAULT))
+	if (!nvm_read_u8(relay_default))
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line2, checked, "");
 	else
 		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_config_line2, "", checked);
 
 #if S0_ENABLE
     char s0val[5];
-    uint32_t refval= (eeprom_read_word((void*) EE_METERING_REF));
+    uint32_t refval= (eeprom_read_word(eep_addr(metering_ref)));
     refval = ((3600000*CLOCK_SECOND)/(refval*10));            // 1h*1000(for kilowatts) / refval*10(to fit into 16bits)
 
     ltoa(refval, s0val, 10);
@@ -632,49 +636,49 @@ httpd_cgi_init(void)
 /*---------------------------------------------------------------------------*/
 
 uint8_t httpd_cgi_sprint_ip6(uip_ip6addr_t addr, char * result)
-{
-  unsigned char zerocnt = 0;
-  unsigned char numprinted = 0;
-  char * starting = result;
+        {
+        unsigned char zerocnt = 0;
+        unsigned char numprinted = 0;
+        char * starting = result;
 
-  unsigned char i = 0;
+    unsigned char i = 0;
 
-  while (numprinted < 8)
-  {
-    //Address is zero, have we used our ability to
-    //replace a bunch with : yet?
-    if ((addr.u16[i] == 0) && (zerocnt == 0))
-    {
-      //How many zeros?
-      zerocnt = 0;
-      while(addr.u16[zerocnt + i] == 0)
-        zerocnt++;
+        while (numprinted < 8)
+                {
+                //Address is zero, have we used our ability to
+                //replace a bunch with : yet?
+                if ((addr.u16[i] == 0) && (zerocnt == 0))
+                        {
+                        //How mant zeros?
+                        zerocnt = 0;
+                        while(addr.u16[zerocnt + i] == 0)
+                                zerocnt++;
 
-      //just one, don't waste our zeros...
-      if (zerocnt == 1)
-      {
-        *result++ = '0';
-        numprinted++;
-        break;
-      }
+                        //just one, don't waste our zeros...
+                        if (zerocnt == 1)
+                                {
+                                *result++ = '0';
+                                numprinted++;
+                                break;
+                                }
 
-      //Cool - can replace a bunch of zeros
-      i += zerocnt;
-      numprinted += zerocnt;
-    }
-    //Normal address, just print it
-    else
-    {
-      result += sprintf(result, "%x", (unsigned int)(uip_ntohs(addr.u16[i])));
-      i++;
-      numprinted++;
-    }
+                        //Cool - can replace a bunch of zeros
+                        i += zerocnt;
+                        numprinted += zerocnt;
+                        }
+                //Normal address, just print it
+                else
+                        {
+                        result += sprintf(result, "%x", (unsigned int)(uip_ntohs(addr.u16[i])));
+                        i++;
+                        numprinted++;
+                        }
 
-    //Don't print : on last one
-    if (numprinted != 8)
-      *result++ = ':';
-  }
+                //Don't print : on last one
+                if (numprinted != 8)
+                        *result++ = ':';
+                }
 
-  return (result - starting);
-}
+    return (result - starting);
+        }
 

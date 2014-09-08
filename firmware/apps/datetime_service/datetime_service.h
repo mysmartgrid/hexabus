@@ -13,11 +13,15 @@
  *   extra := secPerDay - secPerDay
  *   skipEvery := 86400 / extra
  */
-#if PLATFORM == PLATFORM_AVR && RAVEN_REVISION == HEXABUS_SOCKET
+#if PLATFORM_TYPE == HEXABUS_SOCKET
 /* the clock is defined to have 126 ticks per second, at 8MHz system clock the timer prescaler
  * from clock-avr.h we get 126.008something ticks per second with a timer rate of 8e6 / 1024.
  */
 # define DTS_SKIP_EVERY_N 15624
+#elif PLATFORM_TYPE == HEXABUS_STM
+/* SysTick 32MHz -> 125 ticks is exact
+ */
+# define DTS_SKIP_EVERY_N 0
 #else
 # error no skip counters set
 #endif
