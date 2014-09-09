@@ -67,17 +67,6 @@
 
 #include "lib/random.h"
 
-#if WEBSERVER
-#include "httpd-fs.h"
-#include "httpd-cgi.h"
-#include "webserver-nogui.h"
-#endif
-
-#ifdef COFFEE_FILES
-#include "cfs/cfs.h"
-#include "cfs/cfs-coffee.h"
-#endif
-
 #if UIP_CONF_ROUTER&&0
 #include "net/routing/rimeroute.h"
 #include "net/rime/rime-udp.h"
@@ -143,7 +132,7 @@ FUSES = {.low = 0xE2, .high = 0x90, .extended = 0xFF,};
 /*----------------------Configuration of EEPROM---------------------------*/
 /* Use existing EEPROM if it passes the integrity test, else reinitialize with build values */
 
-volatile uint8_t ee_mem[EESIZE] EEMEM =
+volatile uint8_t ee_mem[EEP_SIZE] EEMEM =
 {
 	0x00, // ee_dummy
 	0x02, 0x11, 0x22, 0xff, 0xfe, 0x33, 0x44, 0x11, // ee_mac_addr
@@ -163,25 +152,29 @@ volatile uint8_t ee_mem[EESIZE] EEMEM =
 
 
 
-bool get_mac_from_eeprom(uint8_t* macptr) {
-	eeprom_read_block ((void *)macptr, (const void *)EE_MAC_ADDR, EE_MAC_ADDR_SIZE);
-	return true;
+void get_mac_from_eeprom(uint8_t* macptr)
+{
+	eeprom_read_block(macptr, eep_addr(mac_addr), eep_size(mac_addr));
 }
 
-uint16_t get_panid_from_eeprom(void) {
-	return eeprom_read_word ((const void *)EE_PAN_ID);
+uint16_t get_panid_from_eeprom(void)
+{
+	return eeprom_read_word(eep_addr(pan_id));
 }
 
-uint16_t get_panaddr_from_eeprom(void) {
-	return eeprom_read_word ((const void *)EE_PAN_ADDR);
+uint16_t get_panaddr_from_eeprom(void)
+{
+	return eeprom_read_word(eep_addr(pan_addr));
 }
 
-uint8_t get_relay_default_from_eeprom(void) {
-	return eeprom_read_byte ((const void *)EE_RELAY_DEFAULT);
+uint8_t get_relay_default_from_eeprom(void)
+{
+	return eeprom_read_byte(eep_addr(relay_default));
 }
 
-void get_aes128key_from_eeprom(uint8_t keyptr[16]) {
-	eeprom_read_block ((void *)keyptr, (const void *)EE_ENCRYPTION_KEY, EE_ENCRYPTION_KEY_SIZE);
+void get_aes128key_from_eeprom(uint8_t keyptr[16])
+{
+	eeprom_read_block(keyptr, eep_addr(encryption_key), 16);
 }
 
 #include <util/delay.h>
@@ -222,10 +215,10 @@ void initialize(void)
   rimeaddr_t addr;
   memset(&addr, 0, sizeof(rimeaddr_t));
   get_mac_from_eeprom(addr.u8);
- 
-#if UIP_CONF_IPV6 
+
+#if UIP_CONF_IPV6
   memcpy(&uip_lladdr.addr, &addr.u8, 8);
-#endif  
+#endif
   rf230_set_pan_addr(
 	get_panid_from_eeprom(),
 	get_panaddr_from_eeprom(),
@@ -239,7 +232,7 @@ void initialize(void)
 	mac_dst_pan_id = get_panid_from_eeprom();
 	mac_src_pan_id = mac_dst_pan_id;
 
-  rimeaddr_set_node_addr(&addr); 
+  rimeaddr_set_node_addr(&addr);
 
   PRINTFD("MAC address %x:%x:%x:%x:%x:%x:%x:%x\n",addr.u8[0],addr.u8[1],addr.u8[2],addr.u8[3],addr.u8[4],addr.u8[5],addr.u8[6],addr.u8[7]);
 
@@ -274,13 +267,9 @@ void initialize(void)
   process_start(&tcpip_process, NULL);
 
   //initialize random number generator with part of the MAC address
-  random_init(eeprom_read_word((uint16_t*)(EE_MAC_ADDR + EE_MAC_ADDR_SIZE - 2)));
+  random_init(eeprom_read_word(eep_addr(mac_addr[eep_size(mac_addr) - sizeof(uint16_t)])));
 
-#if WEBSERVER
-  process_start(&webserver_nogui_process, NULL);
-#endif
-
-#if MEMORY_DEBUGGER_ENABLE 
+#if MEMORY_DEBUGGER_ENABLE
   memory_debugger_init();
   /* periodically print memory usage */
   process_start(&memory_debugger_process, NULL);
@@ -314,26 +303,9 @@ void initialize(void)
   /* Autostart other processes */
   autostart_start(autostart_processes);
 
-  /*---If using coffee file system create initial web content if necessary---*/
-#if COFFEE_FILES
-  int fa = cfs_open( "/index.html", CFS_READ);
-  if (fa<0) {     //Make some default web content
-    PRINTF("No index.html file found, creating upload.html!\n");
-    PRINTF("Formatting FLASH file system for coffee...");
-    cfs_coffee_format();
-    PRINTF("Done!\n");
-    fa = cfs_open( "/index.html", CFS_WRITE);
-    int r = cfs_write(fa, &"It works!", 9);
-    if (r<0) PRINTF("Can''t create /index.html!\n");
-    cfs_close(fa);
-//  fa = cfs_open("upload.html"), CFW_WRITE);
-// <html><body><form action="upload.html" enctype="multipart/form-data" method="post"><input name="userfile" type="file" size="50" /><input value="Upload" type="submit" /></form></body></html>
-  }
-#endif /* COFFEE_FILES */
-
 /* Add addresses for testing */
 #if 0
-{  
+{
   uip_ip6addr_t ipaddr;
   uip_ip6addr(&ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0);
   uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
@@ -343,36 +315,6 @@ void initialize(void)
 
 /*--------------------------Announce the configuration---------------------*/
 #if ANNOUNCE_BOOT
-
-#if WEBSERVER
-  uint8_t i;
-  char buf[80];
-  unsigned int size;
-
-  for (i=0;i<UIP_DS6_ADDR_NB;i++) {
-	if (uip_ds6_if.addr_list[i].isused) {	  
-	   httpd_cgi_sprint_ip6(uip_ds6_if.addr_list[i].ipaddr,buf);
-       PRINTF("IPv6 Address: %s\n",buf);
-	}
-  }
-	eeprom_read_block(buf, (const void*) EE_DOMAIN_NAME, EE_DOMAIN_NAME_SIZE);
-	buf[EE_DOMAIN_NAME_SIZE] = 0;
-	size=httpd_fs_get_size();
-#ifndef COFFEE_FILES
-   PRINTF(".%s online with fixed %u byte web content\n",buf,size);
-#elif COFFEE_FILES==1
-   PRINTF(".%s online with static %u byte EEPROM file system\n",buf,size);
-#elif COFFEE_FILES==2
-   PRINTF(".%s online with dynamic %u KB EEPROM file system\n",buf,size>>10);
-#elif COFFEE_FILES==3
-   PRINTF(".%s online with static %u byte program memory file system\n",buf,size);
-#elif COFFEE_FILES==4
-   PRINTF(".%s online with dynamic %u KB program memory file system\n",buf,size>>10);
-#endif /* COFFEE_FILES */
-
-#else
-   PRINTF("Online\n");
-#endif /* WEBSERVER */
 
 #endif /* ANNOUNCE_BOOT */
 #if EPAPER_ENABLE

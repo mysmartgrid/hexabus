@@ -2,10 +2,10 @@ all: ipso
 	 mv ipso.Hexabus-Socket Hexabus-Socket.elf
 	 avr-objcopy -O ihex -R .signature -R .fuse -R .eeprom Hexabus-Socket.elf Hexabus-Socket.hex
 	 avr-size -C --mcu=atmega1284P Hexabus-Socket.elf
-APPS =hexabus-webserver udp_handler temperature button endpoint_registry
-APPS +=datetime_service shutter relay state_machine button_handlers hexapush 
+APPS =udp_handler temperature button endpoint_registry
+APPS +=datetime_service shutter relay state_machine button_handlers hexapush
 APPS +=metering shutter relay provisioning value_broadcast hxb_broadcast_handler
-APPS +=presence_detector hexonoff analogread i2c humidity pressure 
+APPS +=presence_detector hexonoff analogread i2c humidity pressure
 APPS +=ir_receiver  memory_debugger sm_upload epaper pt100 hexasense
 UIP_CONF_IPV6=1
 
@@ -42,11 +42,11 @@ calinit:
 	sleep 5
 	avrdude -p atmega1284p -P usb -c jtag2 -F -e -U eeprom:w:sock.eep:r -U hfuse:w:0x90:m
 
-flash-jtag2: 
-	avrdude -c jtag2 -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F 
+flash-jtag2:
+	avrdude -c jtag2 -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F
 
-flash-jtag3: 
-	avrdude -c jtag3 -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F 
+flash-jtag3:
+	avrdude -c jtag3 -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F
 
-flash-dragon: 
-	avrdude -c dragon_jtag -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F 
+flash-dragon:
+	avrdude -c dragon_jtag -P usb -p atmega1284p -U flash:w:Hexabus-Socket.hex -F

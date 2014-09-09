@@ -40,12 +40,24 @@ ENDPOINT_DESCRIPTOR endpoint_hexapush_pressed = {
 	.write = 0
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_hexapush_pressed_name = {
+	.datatype = HXB_DTYPE_128STRING,
+	.eid = EP_HEXAPUSH_PRESSED,
+	.propid = EP_PROP_NAME,
+};
+
 ENDPOINT_DESCRIPTOR endpoint_hexapush_clicked = {
 	.datatype = HXB_DTYPE_UINT8,
 	.eid = EP_HEXAPUSH_CLICKED,
 	.name = ep_clicked,
 	.read = read_clicked,
 	.write = 0
+};
+
+ENDPOINT_PROPERTY_DESCRIPTOR prop_hexapush_clicked_name = {
+	.datatype = HXB_DTYPE_128STRING,
+	.eid = EP_HEXAPUSH_CLICKED,
+	.propid = EP_PROP_NAME,
 };
 
 
@@ -102,6 +114,8 @@ void hexapush_init()
 	BUTTON_REGISTER(buttons_hexapush, HEXAPUSH_BUTTON_COUNT);
 
 	ENDPOINT_REGISTER(endpoint_hexapush_pressed);
+	ENDPOINT_PROPERTY_REGISTER(prop_hexapush_pressed_name);
 	ENDPOINT_REGISTER(endpoint_hexapush_clicked);
+	ENDPOINT_PROPERTY_REGISTER(prop_hexapush_clicked_name);
 }
 

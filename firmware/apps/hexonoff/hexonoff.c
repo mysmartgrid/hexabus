@@ -46,6 +46,12 @@ ENDPOINT_DESCRIPTOR endpoint_hexonoff_set = {
 	.write = write_set
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_hexonoff_set_name = {
+    .datatype = HXB_DTYPE_128STRING,
+    .eid = EP_HEXONOFF_SET,
+    .propid = EP_PROP_NAME,
+};
+
 static enum hxb_error_code write_toggle(const struct hxb_envelope* env)
 {
 	toggle_outputs(env->value.v_u8);
@@ -59,6 +65,12 @@ ENDPOINT_DESCRIPTOR endpoint_hexonoff_toggle = {
 	.name = ep_toggle_name,
 	.read = read,
 	.write = write_toggle
+};
+
+ENDPOINT_PROPERTY_DESCRIPTOR prop_hexonoff_toggle_name = {
+    .datatype = HXB_DTYPE_128STRING,
+    .eid = EP_HEXONOFF_TOGGLE,
+    .propid = EP_PROP_NAME,
 };
 
 void hexonoff_init(void) {
@@ -94,5 +106,7 @@ void hexonoff_init(void) {
     set_outputs(HEXONOFF_INITIAL_VALUE);
 
 	ENDPOINT_REGISTER(endpoint_hexonoff_set);
+    ENDPOINT_PROPERTY_REGISTER(prop_hexonoff_set_name);
 	ENDPOINT_REGISTER(endpoint_hexonoff_toggle);
+    ENDPOINT_PROPERTY_REGISTER(prop_hexonoff_toggle_name);
 }

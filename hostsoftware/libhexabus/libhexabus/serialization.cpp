@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <arpa/inet.h>
 
-#include "crc.hpp"
 #include "error.hpp"
 
 #include "../../../shared/hexabus_definitions.h"
@@ -13,273 +12,293 @@ using namespace hexabus;
 
 // {{{ Binary serialization visitor
 
-class BinarySerializer : public PacketVisitor {
-	private:
-		std::vector<char>& _target;
-		size_t _headerStart;
+// {{{ Buffer with common functions
 
+class SerializerBuffer {
+	protected:
+		std::vector<char> _target;
+
+	public:
 		void append_u8(uint8_t value);
 		void append_u16(uint16_t value);
 		void append_u32(uint32_t value);
 		void append_float(float value);
 
-		void appendHeader(const Packet& packet);
-		void appendEIDHeader(const EIDPacket& packet);
-		void appendValueHeader(const TypedPacket& packet);
-
 		void appendValue(const ValuePacket<bool>& value);
 		void appendValue(const ValuePacket<uint8_t>& value);
 		void appendValue(const ValuePacket<uint32_t>& value);
 		void appendValue(const ValuePacket<float>& value);
-		void appendValue(const ValuePacket<boost::posix_time::ptime>& value);
-		void appendValue(const ValuePacket<boost::posix_time::time_duration>& value);
 		void appendValue(const ValuePacket<std::string>& value);
 		void appendValue(const ValuePacket<boost::array<char, 65> >& value);
 		void appendValue(const ValuePacket<boost::array<char, 16> >& value);
 
-		void appendCRC();
+		std::vector<char>& buffer() { return _target; }
 
-	public:
-		BinarySerializer(std::vector<char>& target);
-
-		virtual void visit(const ErrorPacket& error);
-		virtual void visit(const QueryPacket& query);
-		virtual void visit(const EndpointQueryPacket& endpointQuery);
-		virtual void visit(const EndpointInfoPacket& endpointInfo);
-
-		virtual void visit(const InfoPacket<bool>& info);
-		virtual void visit(const InfoPacket<uint8_t>& info);
-		virtual void visit(const InfoPacket<uint32_t>& info);
-		virtual void visit(const InfoPacket<float>& info);
-		virtual void visit(const InfoPacket<boost::posix_time::ptime>& info);
-		virtual void visit(const InfoPacket<boost::posix_time::time_duration>& info);
-		virtual void visit(const InfoPacket<std::string>& info);
-		virtual void visit(const InfoPacket<boost::array<char, 16> >& info);
-		virtual void visit(const InfoPacket<boost::array<char, 65> >& info);
-
-		virtual void visit(const WritePacket<bool>& write);
-		virtual void visit(const WritePacket<uint8_t>& write);
-		virtual void visit(const WritePacket<uint32_t>& write);
-		virtual void visit(const WritePacket<float>& write);
-		virtual void visit(const WritePacket<boost::posix_time::ptime>& write);
-		virtual void visit(const WritePacket<boost::posix_time::time_duration>& write);
-		virtual void visit(const WritePacket<std::string>& write);
-		virtual void visit(const WritePacket<boost::array<char, 65> >& write);
-		virtual void visit(const WritePacket<boost::array<char, 16> >& write);
 };
 
-BinarySerializer::BinarySerializer(std::vector<char>& target)
-	: _target(target)
-{
-}
-
-void BinarySerializer::append_u8(uint8_t value)
+void SerializerBuffer::append_u8(uint8_t value)
 {
 	_target.push_back(value);
 }
 
-void BinarySerializer::append_u16(uint16_t value)
+void SerializerBuffer::append_u16(uint16_t value)
 {
-	union {
-		uint16_t u16;
-		char raw[sizeof(value)];
-	} c;
-
-	c.u16 = htons(value);
-
-	_target.insert(_target.end(), c.raw, c.raw + sizeof(c.raw));
+	_target.push_back((value >> 8) & 0xFF);
+	_target.push_back((value >> 0) & 0xFF);
 }
 
-void BinarySerializer::append_u32(uint32_t value)
+void SerializerBuffer::append_u32(uint32_t value)
 {
-	union {
-		uint32_t u32;
-		char raw[sizeof(value)];
-	} c = { htonl(value) };
-
-	_target.insert(_target.end(), c.raw, c.raw + sizeof(c.raw));
+	_target.push_back((value >> 24) & 0xFF);
+	_target.push_back((value >> 16) & 0xFF);
+	_target.push_back((value >> 8) & 0xFF);
+	_target.push_back((value >> 0) & 0xFF);
 }
 
-void BinarySerializer::append_float(float value)
+void SerializerBuffer::append_float(float value)
 {
-	union {
-		float f;
-		uint32_t u32;
-		char raw[sizeof(value)];
-	} c = { value };
-	c.u32 = htonl(c.u32);
-
-	_target.insert(_target.end(), c.raw, c.raw + sizeof(c.raw));
+	uint32_t bits;
+	memcpy(&bits, &value, sizeof(value));
+	append_u32(bits);
 }
 
-void BinarySerializer::appendHeader(const Packet& packet)
+void SerializerBuffer::appendValue(const ValuePacket<bool>& value)
 {
-	_headerStart = _target.size();
+	append_u8(value.value());
+}
+
+void SerializerBuffer::appendValue(const ValuePacket<uint8_t>& value)
+{
+	append_u8(value.value());
+}
+
+void SerializerBuffer::appendValue(const ValuePacket<uint32_t>& value)
+{
+	append_u32(value.value());
+}
+
+void SerializerBuffer::appendValue(const ValuePacket<float>& value)
+{
+	append_float(value.value());
+}
+
+void SerializerBuffer::appendValue(const ValuePacket<std::string>& value)
+{
+	_target.insert(_target.end(), value.value().begin(), value.value().end());
+	_target.insert(_target.end(), HXB_STRING_PACKET_BUFFER_LENGTH + 1 - value.value().size(), '\0');
+}
+
+void SerializerBuffer::appendValue(const ValuePacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& value)
+{
+	_target.insert(_target.end(), value.value().begin(), value.value().end());
+}
+
+void SerializerBuffer::appendValue(const ValuePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& value)
+{
+	_target.insert(_target.end(), value.value().begin(), value.value().end());
+}
+
+// }}}
+
+template<template<typename TValue> class TPacket>
+class TypedPacketSerializer: public virtual SerializerBuffer, public virtual TypedPacketVisitor<TPacket> {
+	private:
+		template<typename TValue>
+		void append(const TPacket<TValue>& packet)
+		{
+			append_u32(packet.eid());
+			append_u8(packet.datatype());
+			appendValue(packet);
+		}
+
+		virtual void visit(const TPacket<bool>& packet) { append(packet); }
+		virtual void visit(const TPacket<uint8_t>& packet) { append(packet); }
+		virtual void visit(const TPacket<uint32_t>& packet) { append(packet); }
+		virtual void visit(const TPacket<float>& packet) { append(packet); }
+		virtual void visit(const TPacket<std::string>& packet) { append(packet); }
+		virtual void visit(const TPacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& packet) { append(packet); }
+		virtual void visit(const TPacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& packet) { append(packet); }
+};
+
+class ReportPacketSerializer: public virtual SerializerBuffer, public virtual TypedPacketVisitor<ReportPacket> {
+	private:
+		template<typename TValue>
+		void append(const ReportPacket<TValue>& packet)
+		{
+			append_u32(packet.eid());
+			append_u8(packet.datatype());
+			appendValue(packet);
+			append_u16(packet.cause());
+		}
+
+		virtual void visit(const ReportPacket<bool>& packet) { append(packet); }
+		virtual void visit(const ReportPacket<uint8_t>& packet) { append(packet); }
+		virtual void visit(const ReportPacket<uint32_t>& packet) { append(packet); }
+		virtual void visit(const ReportPacket<float>& packet) { append(packet); }
+		virtual void visit(const ReportPacket<std::string>& packet) { append(packet); }
+		virtual void visit(const ReportPacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& packet) { append(packet); }
+		virtual void visit(const ReportPacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& packet) { append(packet); }
+};
+
+class ProxyInfoPacketSerializer : public virtual SerializerBuffer, public virtual TypedPacketSerializer<ProxyInfoPacket> {
+	private:
+		template<typename TValue>
+		void append(const ProxyInfoPacket<TValue>& packet)
+		{
+			boost::asio::ip::address_v6::bytes_type origin = packet.origin().to_bytes();
+
+			append_u32(packet.eid());
+			append_u8(packet.datatype());
+			appendValue(packet);
+			_target.insert(_target.end(), origin.begin(), origin.end());
+		}
+
+		virtual void visit(const ProxyInfoPacket<bool>& packet) { append(packet); }
+		virtual void visit(const ProxyInfoPacket<uint8_t>& packet) { append(packet); }
+		virtual void visit(const ProxyInfoPacket<uint32_t>& packet) { append(packet); }
+		virtual void visit(const ProxyInfoPacket<float>& packet) { append(packet); }
+		virtual void visit(const ProxyInfoPacket<std::string>& packet) { append(packet); }
+		virtual void visit(const ProxyInfoPacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& packet) { append(packet); }
+		virtual void visit(const ProxyInfoPacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& packet) { append(packet); }
+};
+
+class PropertyReportPacketSerializer: public virtual SerializerBuffer, public virtual TypedPacketVisitor<PropertyReportPacket> {
+	private:
+		template<typename TValue>
+		void append(const PropertyReportPacket<TValue>& packet)
+		{
+			append_u32(packet.eid());
+			append_u8(packet.datatype());
+			append_u32(packet.nextid());
+			appendValue(packet);
+			append_u16(packet.cause());
+		}
+
+		virtual void visit(const PropertyReportPacket<bool>& packet) { append(packet); }
+		virtual void visit(const PropertyReportPacket<uint8_t>& packet) { append(packet); }
+		virtual void visit(const PropertyReportPacket<uint32_t>& packet) { append(packet); }
+		virtual void visit(const PropertyReportPacket<float>& packet) { append(packet); }
+		virtual void visit(const PropertyReportPacket<std::string>& packet) { append(packet); }
+		virtual void visit(const PropertyReportPacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& packet) { append(packet); }
+		virtual void visit(const PropertyReportPacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& packet) { append(packet); }
+};
+
+class PropertyWritePacketSerializer: public virtual SerializerBuffer, public virtual TypedPacketVisitor<PropertyWritePacket> {
+	private:
+		template<typename TValue>
+		void append(const PropertyWritePacket<TValue>& packet)
+		{
+			append_u32(packet.eid());
+			append_u8(packet.datatype());
+			append_u32(packet.propid());
+			appendValue(packet);
+		}
+
+		virtual void visit(const PropertyWritePacket<bool>& packet) { append(packet); }
+		virtual void visit(const PropertyWritePacket<uint8_t>& packet) { append(packet); }
+		virtual void visit(const PropertyWritePacket<uint32_t>& packet) { append(packet); }
+		virtual void visit(const PropertyWritePacket<float>& packet) { append(packet); }
+		virtual void visit(const PropertyWritePacket<std::string>& packet) { append(packet); }
+		virtual void visit(const PropertyWritePacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& packet) { append(packet); }
+		virtual void visit(const PropertyWritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& packet) { append(packet); }
+};
+
+class BinarySerializer :
+		private virtual SerializerBuffer,
+		private virtual TypedPacketSerializer<InfoPacket>,
+		private virtual ReportPacketSerializer,
+		private virtual TypedPacketSerializer<WritePacket>,
+		private virtual ProxyInfoPacketSerializer,
+		private virtual PropertyWritePacketSerializer,
+		private virtual PropertyReportPacketSerializer,
+		private virtual PacketVisitor {
+	public:
+		std::vector<char> serialize(const Packet& packet, uint16_t seqNum);
+
+	private:
+		virtual void visit(const ErrorPacket& error);
+		virtual void visit(const QueryPacket& query);
+		virtual void visit(const EndpointQueryPacket& endpointQuery);
+		virtual void visit(const EndpointInfoPacket& endpointInfo);
+		virtual void visit(const EndpointReportPacket& endpointReport);
+		virtual void visit(const AckPacket& ack);
+		virtual void visit(const TimeInfoPacket& timeinfo);
+		virtual void visit(const PropertyQueryPacket& propertyQuery);
+};
+
+std::vector<char> BinarySerializer::serialize(const Packet& packet, uint16_t seqNum)
+{
+	_target.clear();
 
 	_target.insert(_target.end(), HXB_HEADER, HXB_HEADER + strlen(HXB_HEADER));
-	_target.push_back(packet.type());
-	_target.push_back(packet.flags());
-}
+	append_u8(packet.type());
+	append_u8(packet.flags());
+	append_u16(seqNum);
+	packet.accept(*this);
 
-void BinarySerializer::appendEIDHeader(const EIDPacket& packet)
-{
-	appendHeader(packet);
-	append_u32(packet.eid());
-}
-
-void BinarySerializer::appendValueHeader(const TypedPacket& packet)
-{
-	appendEIDHeader(packet);
-	append_u8(packet.datatype());
-}
-
-void BinarySerializer::appendCRC()
-{
-	uint16_t crc = hexabus::crc(&_target[_headerStart], _target.size() - _headerStart);
-
-	append_u16(crc);
+	return _target;
 }
 
 void BinarySerializer::visit(const ErrorPacket& error)
 {
-	appendHeader(error);
 	append_u8(error.code());
-	appendCRC();
+	append_u16(error.cause());
 }
 
 void BinarySerializer::visit(const QueryPacket& query)
 {
-	appendEIDHeader(query);
-	appendCRC();
+	append_u32(query.eid());
 }
 
 void BinarySerializer::visit(const EndpointQueryPacket& endpointQuery)
 {
-	appendEIDHeader(endpointQuery);
-	appendCRC();
+	append_u32(endpointQuery.eid());
 }
 
-void BinarySerializer::appendValue(const ValuePacket<bool>& value)
+void BinarySerializer::visit(const EndpointInfoPacket& endpointInfo)
 {
-	appendValueHeader(value);
-
-	append_u8(value.value());
-
-	appendCRC();
+	append_u32(endpointInfo.eid());
+	append_u8(endpointInfo.datatype());
+	appendValue(endpointInfo);
 }
 
-void BinarySerializer::appendValue(const ValuePacket<uint8_t>& value)
+void BinarySerializer::visit(const EndpointReportPacket& endpointReport)
 {
-	appendValueHeader(value);
-
-	append_u8(value.value());
-
-	appendCRC();
+	append_u32(endpointReport.eid());
+	append_u8(endpointReport.datatype());
+	appendValue(endpointReport);
+	append_u16(endpointReport.cause());
 }
 
-void BinarySerializer::appendValue(const ValuePacket<uint32_t>& value)
+void BinarySerializer::visit(const AckPacket& ack)
 {
-	appendValueHeader(value);
-
-	append_u32(value.value());
-
-	appendCRC();
+	append_u16(ack.cause());
 }
 
-void BinarySerializer::appendValue(const ValuePacket<float>& value)
+void BinarySerializer::visit(const TimeInfoPacket& timeinfo)
 {
-	appendValueHeader(value);
-
-	append_float(value.value());
-
-	appendCRC();
+	append_u8(timeinfo.datetime().time_of_day().hours());
+	append_u8(timeinfo.datetime().time_of_day().minutes());
+	append_u8(timeinfo.datetime().time_of_day().seconds());
+	append_u8(timeinfo.datetime().date().day());
+	append_u8(timeinfo.datetime().date().month());
+	append_u16(timeinfo.datetime().date().year());
+	append_u8(timeinfo.datetime().date().day_of_week());
 }
 
-void BinarySerializer::appendValue(const ValuePacket<boost::posix_time::ptime>& value)
+void BinarySerializer::visit(const PropertyQueryPacket& propertyQuery)
 {
-	appendValueHeader(value);
-
-	append_u8(value.value().time_of_day().hours());
-	append_u8(value.value().time_of_day().minutes());
-	append_u8(value.value().time_of_day().seconds());
-	append_u8(value.value().date().day());
-	append_u8(value.value().date().month());
-	append_u16(value.value().date().year());
-	append_u8(value.value().date().day_of_week());
-
-	appendCRC();
+	append_u32(propertyQuery.eid());
+	append_u32(propertyQuery.propid());
 }
-
-void BinarySerializer::appendValue(const ValuePacket<boost::posix_time::time_duration>& value)
-{
-	appendValueHeader(value);
-
-	append_u32(value.value().total_seconds());
-
-	appendCRC();
-}
-
-void BinarySerializer::appendValue(const ValuePacket<std::string>& value)
-{
-	appendValueHeader(value);
-
-	_target.insert(_target.end(), value.value().begin(), value.value().end());
-	_target.insert(_target.end(), ValuePacket<std::string>::max_length + 1 - value.value().size(), '\0');
-
-	appendCRC();
-}
-
-void BinarySerializer::appendValue(const ValuePacket<boost::array<char, 16> >& value)
-{
-	appendValueHeader(value);
-
-	_target.insert(_target.end(), value.value().begin(), value.value().end());
-
-	appendCRC();
-}
-
-void BinarySerializer::appendValue(const ValuePacket<boost::array<char, 65> >& value)
-{
-	appendValueHeader(value);
-
-	_target.insert(_target.end(), value.value().begin(), value.value().end());
-
-	appendCRC();
-}
-
-
-void BinarySerializer::visit(const EndpointInfoPacket& endpointInfo) { appendValue(endpointInfo); }
-
-void BinarySerializer::visit(const InfoPacket<bool>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<uint8_t>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<uint32_t>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<float>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<boost::posix_time::ptime>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<boost::posix_time::time_duration>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<std::string>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<boost::array<char, 16> >& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<boost::array<char, 65> >& info) { appendValue(info); }
-
-void BinarySerializer::visit(const WritePacket<bool>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<uint8_t>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<uint32_t>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<float>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<boost::posix_time::ptime>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<boost::posix_time::time_duration>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<std::string>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<boost::array<char, 16> >& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<boost::array<char, 65> >& write) { appendValue(write); }
 
 // }}}
 
-std::vector<char> hexabus::serialize(const Packet& packet)
+std::vector<char> hexabus::serialize(const Packet& packet, uint16_t seqNum)
 {
-	std::vector<char> result;
-	BinarySerializer serializer(result);
+	BinarySerializer serializer;
 
-	serializer.visitPacket(packet);
-
-	return result;
+	return serializer.serialize(packet, seqNum);
 }
 
 // {{{ Binary deserialization
@@ -303,7 +322,9 @@ class BinaryDeserializer {
 		std::string read_string();
 
 		template<typename T>
-		Packet::Ptr checkInfo(bool info, uint32_t eid, const T& value, uint8_t flags);
+		Packet::Ptr completeAndCheck(uint8_t packetType, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum);
+		template<typename T>
+		Packet::Ptr completeAndCheck(uint32_t propnextid, uint8_t packetType, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum);
 
 		template<typename T>
 		Packet::Ptr check(const T& packet);
@@ -346,38 +367,31 @@ uint16_t BinaryDeserializer::read_u16()
 {
 	checkLength(sizeof(uint16_t));
 
-	union {
-		char raw[sizeof(uint16_t)];
-		uint16_t u16;
-	} c;
-	memcpy(c.raw, _packet + _offset, sizeof(c.raw));
+	uint16_t val;
+	memcpy(&val, _packet + _offset, sizeof(val));
+	_offset += sizeof(val);
 
-	_offset += sizeof(uint16_t);
-	return ntohs(c.u16);
+	return ntohs(val);
 }
 
 uint32_t BinaryDeserializer::read_u32()
 {
 	checkLength(sizeof(uint32_t));
 
-	union C {
-		char raw[sizeof(uint32_t)];
-		uint32_t u32;
-	} c;
-	memcpy(c.raw, _packet + _offset, sizeof(c.raw));
+	uint32_t val;
+	memcpy(&val, _packet + _offset, sizeof(val));
+	_offset += sizeof(val);
 
-	_offset += sizeof(uint32_t);
-	return ntohl(c.u32);
+	return ntohl(val);
 }
 
 float BinaryDeserializer::read_float()
 {
-	union {
-		uint32_t u32;
-		float f;
-	} c = { read_u32() };
+	uint32_t bits = read_u32();
+	float result;
 
-	return c.f;
+	memcpy(&result, &bits, sizeof(bits));
+	return result;
 }
 
 template<size_t L>
@@ -406,23 +420,57 @@ std::string BinaryDeserializer::read_string()
 }
 
 template<typename T>
-Packet::Ptr BinaryDeserializer::checkInfo(bool info, uint32_t eid, const T& value, uint8_t flags)
+Packet::Ptr BinaryDeserializer::completeAndCheck(uint8_t packetType, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum)
 {
-	if (info) {
-		return check(InfoPacket<T>(eid, value, flags));
-	} else {
-		return check(WritePacket<T>(eid, value, flags));
+	switch (packetType) {
+		case HXB_PTYPE_INFO:
+			return check(InfoPacket<T>(eid, value, flags, seqNum));
+
+		case HXB_PTYPE_WRITE:
+			return check(WritePacket<T>(eid, value, flags, seqNum));
+
+		case HXB_PTYPE_REPORT:
+			{
+				uint16_t cause = read_u16();
+				return check(ReportPacket<T>(cause, eid, value, flags, seqNum));
+			}
+
+		case HXB_PTYPE_PINFO:
+			{
+				boost::asio::ip::address_v6::bytes_type bytes;
+				for (size_t i = 0; i < 16; i++) {
+					bytes[i] = read_u8();
+				}
+				boost::asio::ip::address_v6 source(bytes);
+				return check(ProxyInfoPacket<T>(source, eid, value, flags, seqNum));
+			}
+
+		default:
+			throw BadPacketException("completeAndCheck assumptions violated");
+	}
+}
+
+template<typename T>
+Packet::Ptr BinaryDeserializer::completeAndCheck(uint32_t propnextid, uint8_t packetType, uint32_t eid, const T& value, uint8_t flags, uint16_t seqNum)
+{
+	switch (packetType) {
+		case HXB_PTYPE_EP_PROP_WRITE:
+			return check(PropertyWritePacket<T>(propnextid, eid, value, flags, seqNum));
+
+		case HXB_PTYPE_EP_PROP_REPORT:
+			{
+				uint16_t cause = read_u16();
+				return check(PropertyReportPacket<T>(propnextid, cause, eid, value, flags, seqNum));
+			}
+
+		default:
+			throw BadPacketException("completeAndCheck assumptions violated");
 	}
 }
 
 template<typename T>
 Packet::Ptr BinaryDeserializer::check(const T& packet)
 {
-	uint16_t crc = hexabus::crc(_packet, _offset);
-	if (crc != read_u16()) {
-		throw BadPacketException("Bad checksum");
-	}
-
 	return Packet::Ptr(new T(packet));
 }
 
@@ -432,67 +480,46 @@ Packet::Ptr BinaryDeserializer::deserialize()
 
 	uint8_t type = read_u8();
 	uint8_t flags = read_u8();
+	uint16_t seqNum = read_u16();
 
 	switch (type) {
 		case HXB_PTYPE_ERROR:
 			{
 				uint8_t code = read_u8();
-				return check(ErrorPacket(code, flags));
+				uint16_t cause = read_u16();
+				return check(ErrorPacket(code, cause, flags, seqNum));
 			}
 
 		case HXB_PTYPE_INFO:
 		case HXB_PTYPE_WRITE:
+		case HXB_PTYPE_REPORT:
+		case HXB_PTYPE_PINFO:
 			{
-				bool info = type == HXB_PTYPE_INFO;
 				uint32_t eid = read_u32();
 				uint8_t datatype = read_u8();
 
 				switch (datatype) {
 					case HXB_DTYPE_BOOL:
-						return checkInfo<bool>(info, eid, read_u8(), flags);
+						return completeAndCheck<bool>(type, eid, read_u8(), flags, seqNum);
 
 					case HXB_DTYPE_UINT8:
-						return checkInfo<uint8_t>(info, eid, read_u8(), flags);
+						return completeAndCheck<uint8_t>(type, eid, read_u8(), flags, seqNum);
 
 					case HXB_DTYPE_UINT32:
-						return checkInfo<uint32_t>(info, eid, read_u32(), flags);
+						return completeAndCheck<uint32_t>(type, eid, read_u32(), flags, seqNum);
 
 					case HXB_DTYPE_FLOAT:
-						return checkInfo<float>(info, eid, read_float(), flags);
-
-					case HXB_DTYPE_DATETIME:
-						{
-							uint8_t hour = read_u8();
-							uint8_t minute = read_u8();
-							uint8_t second = read_u8();
-							uint8_t day = read_u8();
-							uint8_t month = read_u8();
-							uint16_t year = read_u8();
-							uint8_t weekday = read_u8();
-
-							boost::posix_time::ptime dt(
-								boost::gregorian::date(year, month, day),
-								boost::posix_time::hours(hour)
-									+ boost::posix_time::minutes(minute)
-									+ boost::posix_time::seconds(second));
-
-							if (dt.date().day_of_week() != weekday)
-								throw BadPacketException("Invalid datetime format");
-
-							return checkInfo<boost::posix_time::ptime>(info, eid, dt, flags);
-						}
-
-					case HXB_DTYPE_TIMESTAMP:
-						return checkInfo<boost::posix_time::time_duration>(info, eid, boost::posix_time::seconds(read_u32()), flags);
+						return completeAndCheck<float>(type, eid, read_float(), flags, seqNum);
 
 					case HXB_DTYPE_128STRING:
-						return checkInfo<std::string>(info, eid, read_string(), flags);
+						return completeAndCheck<std::string>(type, eid, read_string(), flags, seqNum);
 
 					case HXB_DTYPE_16BYTES:
-						return checkInfo<boost::array<char, 16> >(info, eid, read_bytes<16>(), flags);
+						return completeAndCheck<boost::array<char, 16> >(type, eid, read_bytes<16>(), flags, seqNum);
 
 					case HXB_DTYPE_65BYTES:
-						return checkInfo<boost::array<char, 65> >(info, eid, read_bytes<65>(), flags);
+						return completeAndCheck<boost::array<char, 65> >(type, eid, read_bytes<65>(), flags, seqNum);
+
 
 					default:
 						throw BadPacketException("Invalid datatype");
@@ -502,20 +529,96 @@ Packet::Ptr BinaryDeserializer::deserialize()
 		case HXB_PTYPE_QUERY:
 			{
 				uint32_t eid = read_u32();
-				return check(QueryPacket(eid, flags));
+				return check(QueryPacket(eid, flags, seqNum));
 			}
 
 		case HXB_PTYPE_EPQUERY:
 			{
 				uint32_t eid = read_u32();
-				return check(EndpointQueryPacket(eid, flags));
+				return check(EndpointQueryPacket(eid, flags, seqNum));
 			}
 
 		case HXB_PTYPE_EPINFO:
 			{
 				uint32_t eid = read_u32();
 				uint8_t datatype = read_u8();
-				return check(EndpointInfoPacket(eid, datatype, read_string(), flags));
+				return check(EndpointInfoPacket(eid, datatype, read_string(), flags, seqNum));
+			}
+
+		case HXB_PTYPE_EPREPORT:
+			{
+				uint32_t eid = read_u32();
+				uint8_t datatype = read_u8();
+				std::string value = read_string();
+				uint16_t cause = read_u16();
+				return check(EndpointReportPacket(cause, eid, datatype, value, flags, seqNum));
+			}
+
+		case HXB_PTYPE_ACK:
+			{
+				return check(AckPacket(read_u16(), flags, seqNum));
+			}
+		case HXB_PTYPE_TIMEINFO:
+			{
+				uint8_t hour = read_u8();
+				uint8_t minute = read_u8();
+				uint8_t second = read_u8();
+				uint8_t day = read_u8();
+				uint8_t month = read_u8();
+				uint16_t year = read_u8();
+				uint8_t weekday = read_u8();
+
+				boost::posix_time::ptime dt(
+					boost::gregorian::date(year, month, day),
+					boost::posix_time::hours(hour)
+					+ boost::posix_time::minutes(minute)
+					+ boost::posix_time::seconds(second));
+
+				if (dt.date().day_of_week() != weekday)
+					throw BadPacketException("Invalid datetime format");
+
+				return check(TimeInfoPacket(dt, flags, seqNum));
+			}
+
+		case HXB_PTYPE_EP_PROP_WRITE:
+		case HXB_PTYPE_EP_PROP_REPORT:
+			{
+				uint32_t eid = read_u32();
+				uint8_t datatype = read_u8();
+				uint16_t propnextid = read_u32();
+
+				switch (datatype) {
+					case HXB_DTYPE_BOOL:
+						return completeAndCheck<bool>(propnextid, type, eid, read_u8(), flags, seqNum);
+
+					case HXB_DTYPE_UINT8:
+						return completeAndCheck<uint8_t>(propnextid, type, eid, read_u8(), flags, seqNum);
+
+					case HXB_DTYPE_UINT32:
+						return completeAndCheck<uint32_t>(propnextid, type, eid, read_u32(), flags, seqNum);
+
+					case HXB_DTYPE_FLOAT:
+						return completeAndCheck<float>(propnextid, type, eid, read_float(), flags, seqNum);
+
+					case HXB_DTYPE_128STRING:
+						return completeAndCheck<std::string>(propnextid, type, eid, read_string(), flags, seqNum);
+
+					case HXB_DTYPE_16BYTES:
+						return completeAndCheck<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >(propnextid, type, eid, read_bytes<HXB_16BYTES_PACKET_BUFFER_LENGTH>(), flags, seqNum);
+
+					case HXB_DTYPE_65BYTES:
+						return completeAndCheck<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >(propnextid, type, eid, read_bytes<HXB_65BYTES_PACKET_BUFFER_LENGTH>(), flags, seqNum);
+
+					default:
+						throw BadPacketException("Invalid datatype");
+					}
+			}
+
+		case HXB_PTYPE_EP_PROP_QUERY:
+			{
+				uint32_t eid = read_u32();
+				uint32_t propid = read_u32();
+				return check(PropertyQueryPacket(propid, eid, flags, seqNum));
 			}
 
 		default:

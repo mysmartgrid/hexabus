@@ -13,7 +13,12 @@
 
 namespace hexabus {
 
-class Logger : private PacketVisitor {
+class Logger :
+		private PacketVisitor,
+		virtual hexabus::TypedPacketVisitor<hexabus::ReportPacket>::Empty,
+		virtual hexabus::TypedPacketVisitor<hexabus::ProxyInfoPacket>::Empty,
+		virtual hexabus::TypedPacketVisitor<hexabus::PropertyReportPacket>::Empty,
+		virtual hexabus::TypedPacketVisitor<hexabus::PropertyWritePacket>::Empty {
 	protected:
 		klio::TimeConverter& tc;
 		klio::SensorFactory& sensor_factory;
@@ -41,11 +46,9 @@ class Logger : private PacketVisitor {
 		virtual void visit(const hexabus::InfoPacket<uint8_t>& info);
 		virtual void visit(const hexabus::InfoPacket<uint32_t>& info);
 		virtual void visit(const hexabus::InfoPacket<float>& info);
-		virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info);
 
-		// FIXME: handle these properly, we should not drop valid info packets
-		virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) {} 
-		virtual void visit(const hexabus::InfoPacket<std::string>& info) {} 
+		// REPORT and PINFO packets are also dropped, as indicated by the ::Empty subvisitors
+		virtual void visit(const hexabus::InfoPacket<std::string>& info) {}
 		virtual void visit(const hexabus::InfoPacket<boost::array<char, 16> >& info) {}
 		virtual void visit(const hexabus::InfoPacket<boost::array<char, 65> >& info) {}
 
@@ -53,16 +56,34 @@ class Logger : private PacketVisitor {
 		virtual void visit(const hexabus::QueryPacket& query) {}
 		virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery) {}
 		virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo) {}
+		virtual void visit(const hexabus::EndpointReportPacket& endpointInfo) {}
+		virtual void visit(const hexabus::AckPacket& ack) {}
+		virtual void visit(const hexabus::TimeInfoPacket& timeinfo) {}
+		virtual void visit(const hexabus::PropertyQueryPacket& propertyQuery) {}
 
 		virtual void visit(const hexabus::WritePacket<bool>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint32_t>& write) {}
 		virtual void visit(const hexabus::WritePacket<float>& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) {}
 		virtual void visit(const hexabus::WritePacket<std::string>& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, 16> >& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& write) {}
+
+		virtual void visit(const hexabus::PropertyWritePacket<bool>& propertyWrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<uint8_t>& propertyWrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<uint32_t>& propertyWrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<float>& propertyWrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<std::string>& propertyWrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& propertyWrite) {}
+		virtual void visit(const hexabus::PropertyWritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& propertyWrite) {}
+
+		virtual void visit(const hexabus::PropertyReportPacket<bool>& propertyReport) {}
+		virtual void visit(const hexabus::PropertyReportPacket<uint8_t>& propertyReport) {}
+		virtual void visit(const hexabus::PropertyReportPacket<uint32_t>& propertyReport) {}
+		virtual void visit(const hexabus::PropertyReportPacket<float>& propertyReport) {}
+		virtual void visit(const hexabus::PropertyReportPacket<std::string>& propertyReport) {}
+		virtual void visit(const hexabus::PropertyReportPacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& propertyReport) {}
+		virtual void visit(const hexabus::PropertyReportPacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& propertyReport) {}
 
 	protected:
 		virtual void record_reading(klio::Sensor::Ptr sensor, klio::timestamp_t ts, double value) = 0;

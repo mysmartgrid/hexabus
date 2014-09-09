@@ -1,9 +1,6 @@
 CONTIKI_TARGET_DIRS = .
 
-CONTIKI_TARGET_SOURCEFILES += contiki-hexabus-init-lowlevel.c contiki-hexabus-main.c 
-CONTIKI_TARGET_SOURCEFILES += mem-debug.c hexabus_app_bootstrap.c health.c
-#The avr cpu makefile will also add these files if COFFEE_FILES is specified.
-#CONTIKI_TARGET_SOURCEFILES += cfs-coffee.c cfs-coffee-arch.c
+CONTIKI_TARGET_SOURCEFILES += platform_init.c mem-debug.c hexabus_app_bootstrap.c
 #Needed for slip
 #CONTIKI_TARGET_SOURCEFILES += slip_uart0.c slip.c
 

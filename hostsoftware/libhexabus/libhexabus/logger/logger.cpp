@@ -32,11 +32,6 @@ void Logger::visit(const hexabus::InfoPacket<float>& info)
 	accept_packet(info.value(), info.eid());
 }
 
-void Logger::visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info)
-{
-	accept_packet(info.value().total_seconds(), info.eid());
-}
-
 const char* Logger::eid_to_unit(uint32_t eid)
 {
 	hexabus::EndpointRegistry::const_iterator it;
@@ -88,7 +83,7 @@ void Logger::on_sensor_error(const std::string& sensor_id, const hexabus::Generi
 {
 	std::cerr
 		<< "Error getting device name: " << err.what() << ", "
-		<< "dropping " << new_sensor_backlog[sensor_id].second.size() 
+		<< "dropping " << new_sensor_backlog[sensor_id].second.size()
 		<< " readings from " << sensor_id << std::endl;
 
 	new_sensor_backlog.erase(sensor_id);

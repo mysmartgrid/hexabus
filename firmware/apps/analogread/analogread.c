@@ -29,6 +29,12 @@ ENDPOINT_DESCRIPTOR endpoint_analogread = {
 	.write = 0
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_analogread_name = {
+	.datatype = HXB_DTYPE_128STRING,
+	.eid = EP_ANALOGREAD,
+	.propid = EP_PROP_NAME,
+};
+
 static enum hxb_error_code read_lightsensor(struct hxb_value* value)
 {
 	value->v_float = get_lightvalue();
@@ -44,6 +50,12 @@ ENDPOINT_DESCRIPTOR endpoint_lightsensor = {
 	.write = 0
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_lightsensor_name = {
+	.datatype = HXB_DTYPE_128STRING,
+	.eid = EP_LIGHTSENSOR,
+	.propid = EP_PROP_NAME,
+};
+
 void analogread_init() {
     ADMUX = (0<<REFS1) | (1<<REFS0); // AVCC as reference
     ADCSRA = (1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2); // prescaler 128
@@ -53,9 +65,11 @@ void analogread_init() {
 
 #if ANALOGREAD_ENABLE
 		ENDPOINT_REGISTER(endpoint_analogread);
+		ENDPOINT_PROPERTY_REGISTER(prop_analogread_name);
 #endif
 #if LIGHTSENSOR_ENABLE
 		ENDPOINT_REGISTER(endpoint_lightsensor);
+		ENDPOINT_PROPERTY_REGISTER(prop_lightsensor_name);
 #endif
 }
 

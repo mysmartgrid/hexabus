@@ -2,7 +2,6 @@
 #include <fstream>
 #include <string.h>
 #include <libhexabus/common.hpp>
-#include <libhexabus/crc.hpp>
 #include <time.h>
 #include <libhexabus/packet.hpp>
 #include <boost/program_options.hpp>
@@ -45,57 +44,15 @@ enum ErrorCode {
 
 class RetryingPacketSender {
 	protected:
-		boost::asio::deadline_timer timeout;
 		hexabus::Socket& socket;
 		boost::asio::ip::address_v6 target;
-		int retryLimit;
-		boost::signals2::scoped_connection errorHandler;
 
 		const hexabus::Packet* packet;
 		ErrorCode result;
 
-		int failCount;
-
-		void armTimer()
-		{
-			timeout.expires_from_now(boost::posix_time::seconds(1));
-			timeout.async_wait(boost::bind(&RetryingPacketSender::onTimeout, this, _1));
-		}
-
-		void failOne(char sign)
-		{
-			failCount++;
-			if (failCount > retryLimit || retryLimit < 0) {
-				finish(ERR_MAXRETRY_EXCEEDED);
-			} else {
-				std::cout << sign << std::flush;
-				sendPacket();
-			}
-		}
-
-		void onTimeout(const boost::system::error_code& err)
-		{
-			if (!err) {
-				failOne('T');
-				armTimer();
-			}
-		}
-
-		void onError(const hexabus::GenericException& e)
-		{
-			const hexabus::NetworkException* ne = dynamic_cast<const hexabus::NetworkException*>(&e);
-			if (ne) {
-				std::cerr << "Error receiving packet: " << ne->code().message() << std::endl;
-				finish(ERR_NETWORK);
-			} else {
-				std::cerr << "Error receiving packet: " << e.what() << std::endl;
-				finish(ERR_NETWORK);
-			}
-		}
-
 		virtual void sendPacket()
 		{
-			socket.send(*packet, target);
+			socket.onPacketTransmitted((boost::bind(&RetryingPacketSender::onTransmit, this, _1, _2, _3)), *packet, boost::asio::ip::udp::endpoint(target, HXB_PORT));
 		}
 
 		void finish(ErrorCode result)
@@ -104,10 +61,18 @@ class RetryingPacketSender {
 			socket.ioService().stop();
 		}
 
+		void onTransmit(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint& from, bool transmissionFailed) {
+			if(transmissionFailed) {
+				std::cout<<"Execeed max tries"<<std::endl;
+				finish(ERR_MAXRETRY_EXCEEDED);
+			} else {
+				finish(ERR_NONE);
+			}
+		}
+
 	public:
-		RetryingPacketSender(hexabus::Socket& socket, const boost::asio::ip::address_v6& target, int retryLimit)
-			: timeout(socket.ioService()), socket(socket), target(target), retryLimit(retryLimit),
-				errorHandler(socket.onAsyncError(boost::bind(&RetryingPacketSender::onError, this, _1)))
+		RetryingPacketSender(hexabus::Socket& socket, const boost::asio::ip::address_v6& target)
+			: socket(socket), target(target)
 		{
 		}
 
@@ -117,13 +82,8 @@ class RetryingPacketSender {
 
 			sendPacket();
 
-			armTimer();
-			failCount = 0;
-
 			socket.ioService().reset();
 			socket.ioService().run();
-
-			timeout.cancel();
 
 			return result;
 		}
@@ -132,12 +92,13 @@ class RetryingPacketSender {
 class RemoteStateMachine : protected RetryingPacketSender {
 	private:
 		boost::signals2::connection replyHandler;
+		boost::signals2::scoped_connection errorHandler;
 
 		STM_state_t reqState;
 
 		void onReply(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint& from)
 		{
-			const hexabus::InfoPacket<uint8_t>& u8 = dynamic_cast<const hexabus::InfoPacket<uint8_t>&>(packet);
+			const hexabus::ReportPacket<uint8_t>& u8 = dynamic_cast<const hexabus::ReportPacket<uint8_t>&>(packet);
 
 			switch (reqState) {
 				case STM_STATE_STOPPED:
@@ -156,6 +117,18 @@ class RemoteStateMachine : protected RetryingPacketSender {
 			}
 		}
 
+		void onError(const hexabus::GenericException& e)
+		{
+			const hexabus::NetworkException* ne = dynamic_cast<const hexabus::NetworkException*>(&e);
+			if (ne) {
+				std::cerr << "Error receiving packet: " << ne->code().message() << std::endl;
+				finish(ERR_NETWORK);
+			} else {
+				std::cerr << "Error receiving packet: " << e.what() << std::endl;
+				finish(ERR_NETWORK);
+			}
+		}
+
 		virtual void sendPacket()
 		{
 			RetryingPacketSender::sendPacket();
@@ -165,7 +138,7 @@ class RemoteStateMachine : protected RetryingPacketSender {
 		ErrorCode setAndCheckState(STM_state_t state)
 		{
 			reqState = state;
-			ErrorCode err = send(hexabus::WritePacket<uint8_t>(EP_SM_CONTROL, state));
+			ErrorCode err = send(hexabus::WritePacket<uint8_t>(EP_SM_CONTROL, state, hexabus::Packet::want_ack));
 
 			if (err) {
 				std::cout << std::endl
@@ -175,19 +148,23 @@ class RemoteStateMachine : protected RetryingPacketSender {
 		}
 
 	public:
-		RemoteStateMachine(hexabus::Socket& socket, const boost::asio::ip::address_v6& target, int retryLimit)
-			: RetryingPacketSender(socket, target, retryLimit)
+		RemoteStateMachine(hexabus::Socket& socket, const boost::asio::ip::address_v6& target)
+			: RetryingPacketSender(socket, target)
 		{
 			namespace hf = hexabus::filtering;
 
+			errorHandler = socket.onAsyncError(
+					boost::bind(&RemoteStateMachine::onError, this, _1));
+
 			replyHandler = socket.onPacketReceived(
 					boost::bind(&RemoteStateMachine::onReply, this, _1, _2),
-					hf::sourceIP() == target && hf::isInfo<uint8_t>() && hf::eid() == EP_SM_CONTROL);
+					hf::sourceIP() == target && hf::isReport<uint8_t>() && hf::eid() == EP_SM_CONTROL);
 		}
 
 		~RemoteStateMachine()
 		{
 			replyHandler.disconnect();
+			errorHandler.disconnect();
 		}
 
 		ErrorCode start()
@@ -204,34 +181,13 @@ class RemoteStateMachine : protected RetryingPacketSender {
 static const size_t UploadChunkSize = EE_STATEMACHINE_CHUNK_SIZE;
 
 class ChunkSender : protected RetryingPacketSender {
-	private:
-		boost::signals2::connection replyHandler;
-
-		void onReply(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint& from)
-		{
-			if (dynamic_cast<const hexabus::InfoPacket<bool>&>(packet).value()) {
-				std::cout << "." << std::flush;
-				finish(ERR_NONE);
-			} else {
-				failOne('F');
-			}
-		}
-
 	public:
-		ChunkSender(hexabus::Socket& socket, const boost::asio::ip::address_v6& target, int retryLimit)
-			: RetryingPacketSender(socket, target, retryLimit)
-		{
-			namespace hf = hexabus::filtering;
-
-			replyHandler = socket.onPacketReceived(
-					boost::bind(&ChunkSender::onReply, this, _1, _2),
-					hf::sourceIP() == target && hf::isInfo<bool>() && hf::eid() == EP_SM_UP_ACKNAK);
-		}
+		ChunkSender(hexabus::Socket& socket, const boost::asio::ip::address_v6& target)
+			: RetryingPacketSender(socket, target)
+		{}
 
 		~ChunkSender()
-		{
-			replyHandler.disconnect();
-		}
+		{}
 
 		ErrorCode sendChunk(uint8_t chunkId, const boost::array<char, UploadChunkSize>& chunk)
 		{
@@ -240,7 +196,7 @@ class ChunkSender : protected RetryingPacketSender {
 			packet_data[0] = chunkId;
 			std::copy(chunk.begin(), chunk.end(), packet_data.begin() + 1);
 
-			return send(hexabus::WritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, packet_data));
+			return send(hexabus::WritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, packet_data, hexabus::Packet::want_ack)));
 		}
 };
 
@@ -308,7 +264,7 @@ int main(int argc, char** argv) {
 		std::cout << "Cannot proceed without IP of the target device (-i <IP>)" << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
-	
+
   if (vm.count("keep-name") && !vm.count("program")) {
 		std::cout << "The keep-name argument is only valid when programming" << std::endl;
 		return ERR_PARAMETER_INVALID;
@@ -345,7 +301,7 @@ int main(int argc, char** argv) {
 		boost::asio::ip::address_v6::bytes_type ipBuffer;
 		in.read(reinterpret_cast<char*>(ipBuffer.c_array()), ipBuffer.size());
 		target = boost::asio::ip::address_v6(ipBuffer);
-		
+
 
 		while (in && !in.eof()) {
 			boost::array<char, UploadChunkSize> chunk;
@@ -359,10 +315,10 @@ int main(int argc, char** argv) {
 				return ERR_READ_FAILED;
 			}
 		}
-  
-    //Remove device name inside the first 30 bytes inside the first chunk 
+
+    //Remove device name inside the first 30 bytes inside the first chunk
     if (vm.count("keep-name")) {
-      chunks[0].assign(0); 
+      chunks[0].assign(0);
     }
 
 	} else {
@@ -390,11 +346,11 @@ int main(int argc, char** argv) {
 	}
 
 	try {
-		hexabus::Socket socket(io);
 		uint8_t chunkId = 0;
 		int retryLimit = vm.count("retry") ? vm["retry"].as<int>() : 3;
-		ChunkSender sender(socket, *target, retryLimit);
-		RemoteStateMachine sm(socket, *target, retryLimit);
+		hexabus::Socket socket(io, retryLimit);
+		ChunkSender sender(socket, *target);
+		RemoteStateMachine sm(socket, *target);
 		ErrorCode err;
 
 		if ((err = sm.stop())) {
@@ -419,6 +375,8 @@ int main(int argc, char** argv) {
 				err = sender.sendChunk(chunkId, chunk);
 				if (err) {
 					break;
+				} else {
+					std::cout << "." << std::flush;
 				}
 			}
 		} else {
@@ -427,6 +385,8 @@ int main(int argc, char** argv) {
 
 				if (err) {
 					break;
+				} else {
+					std::cout << "." << std::flush;
 				}
 			}
 		}
