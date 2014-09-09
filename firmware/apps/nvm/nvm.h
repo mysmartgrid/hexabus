@@ -16,14 +16,7 @@ struct hxb_sm_nvm_layout {
 	 * at statemachine_id[0], and expects that to work. crazy. */
 	uint8_t id[16];
 
-	uint8_t n_conditions;
-	uint8_t conditions[511];
-
-	uint8_t n_dt_transitions;
-	uint8_t dt_transitions[511];
-
-	uint8_t n_transitions;
-	uint8_t transitions[495];
+	uint8_t code[2048 - 16];
 } __attribute__((packed));
 
 struct hxb_nvm_layout {

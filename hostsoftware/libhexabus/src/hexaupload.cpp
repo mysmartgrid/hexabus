@@ -352,9 +352,9 @@ int main(int argc, char** argv) {
 			chunk.assign(0);
 
 			in.read(chunk.c_array(), chunk.size());
-			if (in) {
+			if (in || in.eof()) {
 				chunks.push_back(chunk);
-			} else if (!in.eof()) {
+			} else {
 				std::cerr << "Can't read program" << std::endl;
 				return ERR_READ_FAILED;
 			}
