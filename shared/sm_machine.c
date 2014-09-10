@@ -737,10 +737,13 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 
 			hxb_sm_value_t write_val = TOP_N(0);
 			uint32_t write_eid = TOP_N(1).v_uint;
-			top--;
 
-			TOP.v_uint = sm_endpoint_write(write_eid, &write_val);
-			TOP.type = HXB_DTYPE_UINT8;
+			enum hxb_error_code err = (enum hxb_error_code) sm_endpoint_write(write_eid, &write_val);
+
+			if (err)
+				FAIL_WITH(HSE_WRITE_FAILED);
+
+			top -= 2;
 			break;
 		}
 

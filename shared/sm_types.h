@@ -100,6 +100,7 @@ enum hxb_sm_error {
 	HSE_INVALID_HEADER,
 	HSE_INVALID_OPERATION,
 	HSE_STACK_ERROR,
+	HSE_WRITE_FAILED,
 };
 
 enum hxb_sm_vector_offsets {
