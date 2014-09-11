@@ -120,6 +120,29 @@ static void start_socket_processes(void)
 }
 #endif
 
+#ifdef CONTIKI_TARGET_HEXABUS_STM
+#include "metering_cs5463.h"
+#include "dimmer.h"
+
+static void init_stm_apps(void)
+{
+	metering_cs5463_init();
+	dimmer_init();
+}
+
+static void start_stm_processes(void)
+{
+}
+#else
+static void init_stm_apps(void)
+{
+}
+
+static void start_stm_processes(void)
+{
+}
+#endif
+
 static void hexabus_bootstrap_init_apps()
 {
 	PRINTF("Initializing all EIDs and apps...\n");
@@ -143,6 +166,7 @@ static void hexabus_bootstrap_init_apps()
 #endif
 
 	init_socket_apps();
+	init_stm_apps();
 }
 
 static void hexabus_bootstrap_start_processes()
@@ -167,6 +191,7 @@ static void hexabus_bootstrap_start_processes()
 #endif
 
 	start_socket_processes();
+	start_stm_processes();
 }
 
 void hexabus_app_bootstrap()

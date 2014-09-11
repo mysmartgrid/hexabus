@@ -1,4 +1,9 @@
 HEXABUS_TARGET = STM
+SUBTARGET = 15xRC
+
+APPS += \
+	metering_cs5463 \
+	dimmer
 
 define free_ram_script
 { \
