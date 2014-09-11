@@ -184,6 +184,8 @@ typedef unsigned short uip_stats_t;
 #define UIP_CONF_PINGADDRCONF    0
 #define UIP_CONF_LOGGING         0
 
+#define UIP_CONF_BUFFER_SIZE     1280
+
 
 
 #define CCIF
