@@ -90,8 +90,8 @@ namespace hexabus {
 			virtual void visit(const TPacket<uint32_t>& info) = 0;
 			virtual void visit(const TPacket<float>& info) = 0;
 			virtual void visit(const TPacket<std::string>& info) = 0;
-			virtual void visit(const TPacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& info) = 0;
-			virtual void visit(const TPacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& info) = 0;
+			virtual void visit(const TPacket<boost::array<char, 16> >& info) = 0;
+			virtual void visit(const TPacket<boost::array<char, 65> >& info) = 0;
 
 			class Empty : public virtual TypedPacketVisitor {
 				public:
@@ -100,8 +100,8 @@ namespace hexabus {
 					virtual void visit(const TPacket<uint32_t>& info) {}
 					virtual void visit(const TPacket<float>& info) {}
 					virtual void visit(const TPacket<std::string>& info) {}
-					virtual void visit(const TPacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& info) {}
-					virtual void visit(const TPacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& info) {}
+					virtual void visit(const TPacket<boost::array<char, 16> >& info) {}
+					virtual void visit(const TPacket<boost::array<char, 65> >& info) {}
 			};
 	};
 

@@ -1,0 +1,18 @@
+HEXABUS_TARGET = STM
+
+define free_ram_script
+{ \
+	if ($$3 == "_ebss") { \
+		ebss = "0x"$$1; \
+	} else if ($$3 == "_estack") { \
+		stack = "0x"$$1; \
+	} \
+} \
+END { \
+	print "Free RAM: " (strtonum(stack) - strtonum(ebss)) " Bytes"; \
+}
+endef
+
+all: hexabus-main.$(TARGET) hexabus-main.bin
+	arm-none-eabi-size hexabus-main.$(TARGET)
+	@arm-none-eabi-nm hexabus-main.Hexabus-STM | awk '$(free_ram_script)'

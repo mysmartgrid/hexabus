@@ -35,16 +35,15 @@
  */
 #include "contiki-hexabus.h"
 
+#include "platform_init.h"
+
 #include "contiki.h"
 #include <util/delay.h>
 #include "dev/leds.h"
 
-void init_lowlevel(void)
+void platform_init(void)
 {
-	leds_init(); //init LEDs
-	leds_on(LEDS_ALL);
-	_delay_us(50000);
-	leds_off(LEDS_ALL);
+	leds_init();
 
 	/*  rs232 port for debugging */
 

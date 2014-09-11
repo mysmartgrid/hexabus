@@ -12,6 +12,7 @@
 #include "error.hpp"
 #include "packet.hpp"
 #include "filtering.hpp"
+#include "../../../shared/hexabus_definitions.h"
 
 namespace hexabus {
 	class SocketBase {

@@ -43,9 +43,7 @@
 #include "contiki.h"
 #include "dev/leds.h"
 
-#include "eeprom_variables.h"
-#include <avr/eeprom.h>
-#include <avr/interrupt.h>
+#include "nvm.h"
 
 #define LOG_LEVEL PRESENCE_DETECTOR_DEBUG
 #include "syslog.h"

@@ -1,14 +1,9 @@
 #include "endpoint_registry.h"
 
 #include <stddef.h>
-#include <stdbool.h>
-#include <avr/eeprom.h>
 
-#include "eeprom_variables.h"
-#include <stdio.h>
 #include "hexabus_config.h"
-#include "eeprom_variables.h"
-#include <avr/pgmspace.h>
+#include "nvm.h"
 
 //#define LOG_LEVEL ENDPOINT_REGISTRY_DEBUG
 #define LOG_LEVEL LOG_DEBUG
@@ -17,18 +12,20 @@
 struct endpoint_registry_entry* _endpoint_chain = 0;
 struct endpoint_property_registry_entry* _endpoint_property_chain = 0;
 
-static void* next_eeprom_addr = eep_addr(endpoint_properties);
+static uintptr_t next_nvm_addr = nvm_addr(endpoint_properties);
 
 static uint32_t descriptor_eid(struct endpoint_registry_entry* entry)
 {
-	return pgm_read_dword(((uint16_t) entry->descriptor) + offsetof(struct endpoint_descriptor, eid));
+	struct endpoint_descriptor ep = {};
+	memcpy_from_rodata(&ep, entry->descriptor, sizeof(ep));
+	return ep.eid;
 }
 
 void _endpoint_register(const struct endpoint_descriptor* ep, struct endpoint_registry_entry* chain_link)
 {
 #if ENDPOINT_REGISTRY_DEBUG
 	struct endpoint_descriptor ep_copy;
-	memcpy_P(&ep_copy, ep, sizeof(ep_copy));
+	memcpy_from_rodata(&ep_copy, ep, sizeof(ep_copy));
 
 	syslog(LOG_DEBUG, "Register endpoint %lu", ep_copy.eid);
 
@@ -77,19 +74,19 @@ static void synthesize_read_zero(uint32_t eid, struct hxb_value* value)
 	value->datatype = HXB_DTYPE_128STRING;
 
 	size_t len = HXB_STRING_PACKET_BUFFER_LENGTH;
-	if (len >= eep_size(domain_name)) {
-			len = eep_size(domain_name) - 1;
+	if (len >= nvm_size(domain_name)) {
+			len = nvm_size(domain_name) - 1;
 		}
 
-	eeprom_read_block(value->v_string, eep_addr(domain_name), len);
-	value->v_string[eep_size(domain_name)] = '\0';
+	nvm_read_block(domain_name, value->v_string, len);
+	value->v_string[nvm_size(domain_name)] = '\0';
 }
 
 static bool find_descriptor(uint32_t eid, struct endpoint_descriptor* result)
 {
 	for (struct endpoint_registry_entry* ep = _endpoint_chain; ep; ep = ep->next) {
 		if (descriptor_eid(ep) == eid) {
-			memcpy_P(result, ep->descriptor, sizeof(*result));
+			memcpy_from_rodata(result, ep->descriptor, sizeof(*result));
 			return true;
 		}
 	}
@@ -102,7 +99,7 @@ enum hxb_datatype endpoint_get_datatype(uint32_t eid)
 	if (eid == 0) {
 		return HXB_DTYPE_128STRING;
 	} else {
-		struct endpoint_descriptor ep;
+		struct endpoint_descriptor ep = {};
 		if (find_descriptor(eid, &ep)) {
 			return ep.datatype;
 		} else {
@@ -116,7 +113,7 @@ enum hxb_error_code endpoint_write(uint32_t eid, const struct hxb_envelope* env)
 	if (eid == 0) {
 		return HXB_ERR_WRITEREADONLY;
 	} else {
-		struct endpoint_descriptor ep;
+		struct endpoint_descriptor ep = {};
 		if (find_descriptor(eid, &ep)) {
 			if (ep.write == 0) {
 				return HXB_ERR_WRITEREADONLY;
@@ -137,7 +134,7 @@ enum hxb_error_code endpoint_read(uint32_t eid, struct hxb_value* value)
 		synthesize_read_zero(eid, value);
 		return HXB_ERR_SUCCESS;
 	} else {
-		struct endpoint_descriptor ep;
+		struct endpoint_descriptor ep = {};
 		if (find_descriptor(eid, &ep)) {
 			value->datatype = ep.datatype;
 			return ep.read(value);
@@ -155,7 +152,7 @@ enum hxb_error_code endpoint_get_name(uint32_t eid, char* buffer, size_t len)
 	} else {
 		struct endpoint_descriptor ep;
 		if (find_descriptor(eid, &ep)) {
-			strncpy_P(buffer, ep.name, len);
+			strncpy_from_rodata(buffer, ep.name, len);
 			return HXB_ERR_SUCCESS;
 		} else {
 			return HXB_ERR_UNKNOWNEID;
@@ -182,33 +179,33 @@ void _property_register(const struct endpoint_property_descriptor* epp, struct e
 	memcpy_P(&epp_copy, epp, sizeof(epp_copy));
 	syslog(LOG_DEBUG, "Registering %u %lu %lu\n", epp_copy.datatype, epp_copy.eid, epp_copy.propid);
 
-	chain_link->value = next_eeprom_addr;
+	chain_link->value = next_nvm_addr;
 
 	switch(epp_copy.datatype){
 		case HXB_DTYPE_BOOL:
 		case HXB_DTYPE_UINT8:
-			next_eeprom_addr+=sizeof(uint8_t);
+			next_nvm_addr+=sizeof(uint8_t);
 			break;
 		case HXB_DTYPE_UINT32:
-			next_eeprom_addr+=sizeof(uint32_t);
+			next_nvm_addr+=sizeof(uint32_t);
 			break;
 		case HXB_DTYPE_DATETIME:
-			next_eeprom_addr+=sizeof(struct hxb_datetime);
+			next_nvm_addr+=sizeof(struct hxb_datetime);
 			break;
 		case HXB_DTYPE_FLOAT:
-			next_eeprom_addr+=sizeof(float);
+			next_nvm_addr+=sizeof(float);
 			break;
 		case HXB_DTYPE_128STRING:
-			next_eeprom_addr+=HXB_PROPERTY_STRING_LENGTH+1;
+			next_nvm_addr+=HXB_PROPERTY_STRING_LENGTH+1;
 			break;
 		case HXB_DTYPE_TIMESTAMP:
-			next_eeprom_addr+=sizeof(uint32_t);
+			next_nvm_addr+=sizeof(uint32_t);
 			break;
 		case HXB_DTYPE_65BYTES:
-			next_eeprom_addr+=sizeof(HXB_65BYTES_PACKET_BUFFER_LENGTH);
+			next_nvm_addr+=sizeof(HXB_65BYTES_PACKET_BUFFER_LENGTH);
 			break;
 		case HXB_DTYPE_16BYTES:
-			next_eeprom_addr+=sizeof(HXB_16BYTES_PACKET_BUFFER_LENGTH);
+			next_nvm_addr+=sizeof(HXB_16BYTES_PACKET_BUFFER_LENGTH);
 			break;
 		default:
 			return;
@@ -244,32 +241,32 @@ enum hxb_error_code endpoint_property_write(uint32_t eid, uint32_t propid, const
 			} else {
 				switch(value->datatype) {
 					case HXB_DTYPE_BOOL:
-						eeprom_write_block((unsigned char*) &(value->v_bool), epp.value, sizeof(uint8_t));
+						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_bool), sizeof(uint8_t));
 						break;
 					case HXB_DTYPE_UINT8:
-						eeprom_write_block((unsigned char*) &(value->v_u8), epp.value, sizeof(uint8_t));
+						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_u8), sizeof(uint8_t));
 						break;
 					case HXB_DTYPE_UINT32:
-						eeprom_write_block((unsigned char*) &(value->v_u32), epp.value, sizeof(uint32_t));
+						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_u32), sizeof(uint32_t));
 						break;
 					case HXB_DTYPE_DATETIME:
-						eeprom_write_block((unsigned char*) &(value->v_datetime), epp.value, sizeof(struct hxb_datetime));
+						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_datetime), sizeof(struct hxb_datetime));
 						break;
 					case HXB_DTYPE_FLOAT:
-						eeprom_write_block((unsigned char*) &(value->v_float), epp.value, sizeof(float));
+						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_float), sizeof(float));
 						break;
 					case HXB_DTYPE_128STRING:
 						value->v_string[HXB_PROPERTY_STRING_LENGTH] =  '\0';
-						eeprom_write_block((unsigned char*) value->v_string, epp.value, HXB_PROPERTY_STRING_LENGTH);
+						nvm_write_block_at(epp.value, (unsigned char*) value->v_string, HXB_PROPERTY_STRING_LENGTH);
 						break;
 					case HXB_DTYPE_TIMESTAMP:
-						eeprom_write_block((unsigned char*) &(value->v_timestamp), epp.value, sizeof(uint32_t));
+						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_timestamp), sizeof(uint32_t));
 						break;
 					case HXB_DTYPE_65BYTES:
-						eeprom_write_block((unsigned char*) value->v_binary, epp.value, HXB_65BYTES_PACKET_BUFFER_LENGTH);
+						nvm_write_block_at(epp.value, (unsigned char*) value->v_binary, HXB_65BYTES_PACKET_BUFFER_LENGTH);
 						break;
 					case HXB_DTYPE_16BYTES:
-						eeprom_write_block((unsigned char*) value->v_binary, epp.value, HXB_16BYTES_PACKET_BUFFER_LENGTH);
+						nvm_write_block_at(epp.value, (unsigned char*) value->v_binary, HXB_16BYTES_PACKET_BUFFER_LENGTH);
 						break;
 					default:
 						return HXB_ERR_DATATYPE;
@@ -320,31 +317,31 @@ enum hxb_error_code endpoint_property_read(uint32_t eid, uint32_t propid, struct
 			value->datatype = epp.desc.datatype;
 			switch(value->datatype) {
 				case HXB_DTYPE_BOOL:
-					eeprom_read_block((unsigned char*) &(value->v_bool), epp.value, sizeof(uint8_t));
+					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_bool), sizeof(uint8_t));
 					break;
 				case HXB_DTYPE_UINT8:
-					eeprom_read_block((unsigned char*) &(value->v_u8), epp.value, sizeof(uint8_t));
+					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_u8), sizeof(uint8_t));
 					break;
 				case HXB_DTYPE_UINT32:
-					eeprom_read_block((unsigned char*) &(value->v_u32), epp.value, sizeof(uint32_t));
+					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_u32), sizeof(uint32_t));
 					break;
 				case HXB_DTYPE_DATETIME:
-					eeprom_read_block((unsigned char*) &(value->v_datetime), epp.value, sizeof(struct hxb_datetime));
+					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_datetime), sizeof(struct hxb_datetime));
 					break;
 				case HXB_DTYPE_FLOAT:
-					eeprom_read_block((unsigned char*) &(value->v_float), epp.value, sizeof(float));
+					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_float), sizeof(float));
 					break;
 				case HXB_DTYPE_128STRING:
-					eeprom_read_block((unsigned char*) value->v_string, epp.value, HXB_PROPERTY_STRING_LENGTH);
+					nvm_read_block_at(epp.value, (unsigned char*) value->v_string, HXB_PROPERTY_STRING_LENGTH);
 					break;
 				case HXB_DTYPE_TIMESTAMP:
-					eeprom_read_block((unsigned char*) &(value->v_timestamp), epp.value, sizeof(uint32_t));
+					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_timestamp), sizeof(uint32_t));
 					break;
 				case HXB_DTYPE_65BYTES:
-					eeprom_read_block((unsigned char*) value->v_binary, epp.value, HXB_65BYTES_PACKET_BUFFER_LENGTH);
+					nvm_read_block_at(epp.value, (unsigned char*) value->v_binary, HXB_65BYTES_PACKET_BUFFER_LENGTH);
 					break;
 				case HXB_DTYPE_16BYTES:
-					eeprom_read_block((unsigned char*) value->v_binary, epp.value, HXB_16BYTES_PACKET_BUFFER_LENGTH);
+					nvm_read_block_at(epp.value, (unsigned char*) value->v_binary, HXB_16BYTES_PACKET_BUFFER_LENGTH);
 					break;
 				default:
 					return HXB_ERR_DATATYPE;

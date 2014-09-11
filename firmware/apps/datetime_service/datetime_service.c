@@ -4,7 +4,7 @@
 #include "contiki.h"
 
 #include "hexabus_config.h"
-// #include "nvm.h"
+#include "nvm.h"
 
 #include <stdlib.h>
 #include <stdio.h>

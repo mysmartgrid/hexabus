@@ -7,7 +7,7 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * libhexabus is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -60,7 +60,7 @@ Device::Device(boost::asio::io_service& io, const std::vector<std::string>& inte
 		hexabus::Socket *socket = 0;
 		try {
 			socket = new hexabus::Socket(io);
-			socket->bind(boost::asio::ip::udp::endpoint(boost::asio::ip::address_v6::from_string(*it), 61616));
+			socket->bind(boost::asio::ip::udp::endpoint(boost::asio::ip::address_v6::from_string(*it), HXB_PORT));
 			socket->onPacketReceived(boost::bind(&Device::_handle_query, this, socket, _1, _2), filtering::isQuery() && (filtering::eid() % 32 > 0));
 			socket->onPacketReceived(boost::bind(&Device::_handle_write, this, socket, _1, _2), isWrite && (filtering::eid() % 32 > 0));
 
@@ -92,7 +92,7 @@ Device::Device(boost::asio::io_service& io, const std::vector<std::string>& inte
 	smcontrolEP->onRead(boost::bind(&Device::_handle_smcontrolquery, this));
 	smcontrolEP->onWrite(boost::bind(&Device::_handle_smcontrolwrite, this, _1));
 	addEndpoint(smcontrolEP);
-	//dummy endpoint to let _handle_descquery knows we can handle statemachine upload
+	//dummy endpoint to let _handle_descquery know we can handle statemachine upload
 	TypedEndpointFunctions<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >::Ptr smupreceiverEP(new TypedEndpointFunctions<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, "Statemachine upload receiver"));
 	smupreceiverEP->onWrite(&dummy_write_handler);
 	addEndpoint(smupreceiverEP);
@@ -141,9 +141,9 @@ void Device::_handle_query(hexabus::Socket* socket, const Packet& p, const boost
 	std::map<uint32_t, const EndpointFunctions::Ptr>::iterator it = _endpoints.find(query->eid());
 	try {
 		if ( it != _endpoints.end() ) {
-			socket->send(*(it->second->handle_query()), from);
+			socket->send(*(it->second->handle_query(query->sequenceNumber())), from);
 		} else {
-			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
+			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID, query->sequenceNumber()), from);
 		}
 	} catch ( const NetworkException& error ) {
 		std::stringstream oss;
@@ -171,10 +171,10 @@ void Device::_handle_write(hexabus::Socket* socket, const Packet& p, const boost
 				std::stringstream oss;
 				oss << "An error occured when handling a write packet for eid " << write->eid();
 				_asyncError(GenericException(oss.str()));
-				socket->send(ErrorPacket(res), from);
+				socket->send(ErrorPacket(res, write->sequenceNumber()), from);
 			}
 		} else {
-			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
+			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID, write->sequenceNumber()), from);
 		}
 	} catch ( const NetworkException& error ) {
 		std::stringstream oss;
@@ -207,7 +207,7 @@ void Device::_handle_epquery(hexabus::Socket* socket, const Packet& p, const boo
 		if ( it != _endpoints.end() ) {
 			socket->send(EndpointInfoPacket(query->eid(), it->second->datatype(), it->second->name()), from);
 		} else {
-			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
+			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID, query->sequenceNumber()), from);
 		}
 	} catch ( const NetworkException& error ) {
 		std::stringstream oss;
@@ -339,7 +339,7 @@ void Device::_handle_broadcasts(const boost::system::error_code& error)
 		for ( std::map<uint32_t, const EndpointFunctions::Ptr>::iterator epIt = _endpoints.begin(), end = _endpoints.end(); epIt != end; ++epIt )
 		{
 			try {
-				Packet::Ptr p = epIt->second->handle_query();
+				Packet::Ptr p = epIt->second->handle_query(0);
 				if ( p && p->type() != HXB_PTYPE_ERROR )
 				{
 					for ( std::vector<hexabus::Socket*>::const_iterator sIt = _sockets.begin(), sEnd = _sockets.end(); sIt != sEnd; ++sIt )

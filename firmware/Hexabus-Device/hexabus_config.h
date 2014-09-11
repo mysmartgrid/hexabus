@@ -12,6 +12,9 @@ _DEBUG options should be set to:
 #ifndef HEXABUS_CONFIG_H
 #define HEXABUS_CONFIG_H
 
+#include "contiki-conf.h"
+#include <stdbool.h>
+
 // options common to all incarnations of Hexabus devices
 #define UDP_HANDLER_DEBUG LOG_DEBUG
 
@@ -29,11 +32,9 @@ _DEBUG options should be set to:
 #define BUTTON_HAS_EID 1 // set to 1 to have button on EID 4. Set to 0 to have button not do any interaction with network
 #define BUTTON_TOGGLES_RELAY 0 // set to 1 to have the button toggle the relay directly
 
-#define BUTTON_DEBOUNCE_TICKS		1
-#define BUTTON_PIN							PIND
-#define BUTTON_BIT							PD5
-#define	BUTTON_CLICK_MS					2000UL
-#define	BUTTON_LONG_CLICK_MS		7000UL
+#define BUTTON_DEBOUNCE_TICKS 1
+#define BUTTON_CLICK_MS       2000UL
+#define BUTTON_LONG_CLICK_MS  7000UL
 
 // datetime_service
 #define DATETIME_SERVICE_ENABLE 1
@@ -171,5 +172,9 @@ _DEBUG options should be set to:
 #define IR_RECEIVER_DEBUG 0
 #define IR_REPEAT 1 // 0 disables repeat, 1 enables repeat for buttons configured in ir_receiver.h
 #define IR_RECEIVER_RAW_MODE 0
+
+
+
+#include "hexabus_platform_config.h"
 
 #endif // HEXBAUS_CONFIG_H

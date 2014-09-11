@@ -18,6 +18,8 @@
 
 namespace po = boost::program_options;
 
+using namespace hexabus;
+
 struct property_descriptor
 {
 	uint32_t propid;

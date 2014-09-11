@@ -4,7 +4,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "eeprom_variables.h"
 #include "hexabus_statemachine_structs.h"
 
 // Used for wrapping the eeprom access

@@ -14,6 +14,9 @@
 
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/scope_exit.hpp>
+
+#include "../../../shared/hexabus_definitions.h"
 
 using namespace hexabus;
 namespace bs2 = boost::signals2;
