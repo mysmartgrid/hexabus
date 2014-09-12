@@ -301,9 +301,8 @@ static int sm_int_op2(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op)
 		return -HSE_INVALID_TYPES;
 
 	/* widen v1 to if v2 is of greater rank than v1 */
-	if (v1->type < v2->type) {
-		v1->type = v2->type;
-	}
+	if (v1->type < HXB_DTYPE_UINT32)
+		v1->type = HXB_DTYPE_UINT32;
 
 	switch (op) {
 	case HSO_OP_AND: v1->v_uint &=  v2->v_uint; break;
