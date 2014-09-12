@@ -222,6 +222,8 @@ static int sm_arith_op2(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op)
 	uint8_t common_type = v1->type;
 	if (common_type < v2->type)
 		common_type = v2->type;
+	if (common_type < HXB_DTYPE_UINT32)
+		common_type = HXB_DTYPE_UINT32;
 
 	bool is_float = common_type == HXB_DTYPE_FLOAT;
 
