@@ -34,6 +34,11 @@ struct block_immediate {
 	std::vector<uint8_t> block;
 };
 
+struct mem_immediate {
+	hbt::ir::MemType type;
+	uint16_t addr;
+};
+
 struct ir_instruction {
 	typedef boost::variant<
 			uint8_t,
@@ -44,7 +49,8 @@ struct ir_instruction {
 			block_immediate,
 			hbt::ir::DTMask,
 			std::string,
-			datetime_immediate
+			datetime_immediate,
+			mem_immediate
 		> param_t;
 
 	typedef boost::optional<param_t> immed_t;
@@ -266,35 +272,36 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			> (
 				ld_operand_simple
 				| ld_operand_immediate
-				| ld_st_operand_register(hbt::ir::Opcode::LD_REG)
+				| mem_instruction_rest(hbt::ir::Opcode::LD_MEM)
 				| (eps > errors.ld_operand)
 			);
 
 		st_instruction %=
 			TOKEN("st")
-			> ld_st_operand_register(hbt::ir::Opcode::ST_REG);
+			> mem_instruction_rest(hbt::ir::Opcode::ST_MEM);
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunsequenced"
+#pragma clang diagnostic ignored "-Woverloaded-shift-op-parentheses"
 		dt_masked_instruction =
 			(TOKEN("dt.decomp") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::DT_DECOMPOSE>, _1)]);
 
 		ld_operand_immediate.name("immediate operand");
 		ld_operand_immediate =
 			(
-				lit("u8") > lit("(")
+				lit("u8") >> lit("(")
 				> u8_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_U8>, _1)]
 				> lit(")")
 			) | (
-				lit("u32") > lit("(")
+				lit("u32") >> lit("(")
 				> u32_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_U32>, _1)]
 				> lit(")")
 			) | (
-				lit("f") > lit("(")
+				lit("f") >> lit("(")
 				> float_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_FLOAT>, _1)]
 				> lit(")")
 			) | (
-				lit("dt") > lit("(")
+				lit("dt") >> lit("(")
 				> dt_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_DT>, _1)]
 				> lit(")")
 			);
@@ -317,7 +324,6 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 				stack_slot[_val = bind(make_insn_t<hbt::ir::Opcode::ROT_I>, _1)]
 				| eps[_val = val(ir_instruction{ hbt::ir::Opcode::ROT, boost::none_t() })]
 			);
-#pragma clang diagnostic pop
 
 		switch_instruction =
 			lit("switch")
@@ -339,15 +345,22 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 				| (eps > errors.binary_block_too_long)
 			);
 
-		ld_st_operand_register.name("register operand");
-		ld_st_operand_register =
-			(lit("[") > register_index > lit("]"))[_val = bind(make_insn, _r1, _1)];
+		mem_instruction_rest.name("memory operand");
+		mem_instruction_rest =
+			(
+				(lit("b") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::Bool, _1)]
+				| (lit("u8") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::U8, _1)]
+				| (lit("u32") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::U32, _1)]
+				| (lit("f") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::Float, _1)]
+				| (lit("dt") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::DateTime, _1)]
+			) > lit("]");
+#pragma clang diagnostic pop
 
-		register_index.name("register index (0..15)");
-		register_index %= uint_[_pass = _1 < 16];
+		mem_addr.name("memory address (0..4095)");
+		mem_addr %= uint_[_pass = _1 < 4096];
 
-		stack_slot.name("stack slot (0..31)");
-		stack_slot %= uint_[_pass = _1 < 32];
+		stack_slot.name("stack slot (0..255)");
+		stack_slot %= uint_[_pass = _1 < 256];
 
 		u8_immed.name("u8 immediate");
 		u8_immed %= uint_[_pass = _1 <= std::numeric_limits<uint8_t>::max()];
@@ -468,6 +481,11 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		return { opcode, immed };
 	}
 
+	static ir_instruction make_mem_insn(hbt::ir::Opcode opcode, hbt::ir::MemType type, uint16_t addr)
+	{
+		return make_insn(opcode, mem_immediate{type, addr});
+	}
+
 	static ir_instruction make_switch(const std::vector<switch_entry>& entries)
 	{
 		return { hbt::ir::Opcode::SWITCH_32, ir_instruction::immed_t(entries) };
@@ -520,7 +538,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	simple_instructions simple_instruction;
 	qi::rule<It, ir_instruction(), asm_ws<It>> block_instruction;
 
-	qi::rule<It, ir_instruction(hbt::ir::Opcode), asm_ws<It>> ld_st_operand_register;
+	qi::rule<It, ir_instruction(hbt::ir::Opcode), asm_ws<It>> mem_instruction_rest;
 
 	qi::rule<It, std::string(), asm_ws<It>> identifier;
 	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed;
@@ -533,7 +551,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed_0_6;
 	qi::rule<It, uint16_t(), asm_ws<It>> u16_immed;
 
-	qi::rule<It, uint8_t(), asm_ws<It>> register_index;
+	qi::rule<It, uint16_t(), asm_ws<It>> mem_addr;
 	qi::rule<It, uint8_t(), asm_ws<It>> stack_slot;
 
 	qi::rule<It, hbt::ir::DTMask(), asm_ws<It>> dt_mask;
@@ -717,6 +735,13 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 			DateTime dt(s, m, h, D, M, Y, W);
 
 			builder.append(thisLabel, insn.opcode, std::make_tuple(mask, dt), line.line);
+			break;
+		}
+
+		case 9: {
+			const auto& operand = boost::get<mem_immediate>(*insn.immediate);
+
+			builder.append(thisLabel, insn.opcode, std::make_tuple(operand.type, operand.addr), line.line);
 			break;
 		}
 

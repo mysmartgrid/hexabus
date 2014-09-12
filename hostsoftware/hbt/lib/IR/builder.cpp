@@ -80,8 +80,6 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		return;
 
 	case Opcode::LD_U8:
-	case Opcode::LD_REG:
-	case Opcode::ST_REG:
 	case Opcode::DUP_I:
 	case Opcode::ROT_I:
 		if (!get<uint8_t>(immed))
@@ -90,6 +88,21 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		_instructions.push_back(
 			new ImmediateInstruction<uint8_t>(op, get<uint8_t>(*immed), l, line));
 		return;
+
+	case Opcode::LD_MEM:
+	case Opcode::ST_MEM: {
+		const auto* ref = get<std::tuple<MemType, uint16_t>>(immed);
+
+		if (!ref)
+			throw std::invalid_argument("immed");
+
+		if (std::get<1>(*ref) > 0xfff)
+			throw InvalidProgram("memory operand address invalid", "");
+
+		_instructions.push_back(
+			new ImmediateInstruction<std::tuple<MemType, uint16_t>>(op, *ref, l, line));
+		return;
+	}
 
 	case Opcode::LD_U16:
 		if (!get<uint16_t>(immed))

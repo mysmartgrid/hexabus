@@ -108,9 +108,9 @@ const char* opcodeName(hbt::ir::Opcode op)
 	case Opcode::LD_U32:
 	case Opcode::LD_FLOAT:
 	case Opcode::LD_DT:
-	case Opcode::LD_REG:
+	case Opcode::LD_MEM:
 		return "ld";
-	case Opcode::ST_REG: return "st";
+	case Opcode::ST_MEM: return "st";
 	case Opcode::DUP:
 	case Opcode::DUP_I:
 		return "dup";
@@ -253,16 +253,29 @@ std::string prettyPrint(const Program& program)
 			}
 			throw std::runtime_error("invalid program printed");
 
-		case Opcode::LD_REG:
-		case Opcode::ST_REG:
+		case Opcode::LD_MEM:
+		case Opcode::ST_MEM:
+			if (auto* i = dynamic_cast<const ImmediateInstruction<std::tuple<MemType, uint16_t>>*>(insn)) {
+				format f;
+
+				switch (std::get<0>(i->immed())) {
+				case MemType::Bool: f = format(" b[%1%]"); break;
+				case MemType::U8: f = format(" u8[%1%]"); break;
+				case MemType::U32: f = format(" u32[%1%]"); break;
+				case MemType::Float: f = format(" f[%1%]"); break;
+				case MemType::DateTime: f = format(" dt[%1%]"); break;
+				}
+				out << f % std::get<1>(i->immed());
+				break;
+			}
+			throw std::runtime_error("invalid program printed");
+
 		case Opcode::DUP_I:
 		case Opcode::ROT_I:
 			if (auto* i = dynamic_cast<const ImmediateInstruction<uint8_t>*>(insn)) {
 				format f;
 
 				switch (insn->opcode()) {
-				case Opcode::LD_REG: f = format(" [%1%]"); break;
-				case Opcode::ST_REG: f = format(" [%1%]"); break;
 				case Opcode::DUP_I: f = format(" %1%"); break;
 				case Opcode::ROT_I: f = format(" %1%"); break;
 				default: std::runtime_error("invalid program printed");

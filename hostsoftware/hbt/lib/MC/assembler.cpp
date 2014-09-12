@@ -87,12 +87,20 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 
 		switch (insn->opcode()) {
 		case Opcode::LD_U8:
-		case Opcode::LD_REG:
-		case Opcode::ST_REG:
 		case Opcode::DUP_I:
 		case Opcode::ROT_I:
 			if (auto* i = dynamic_cast<const ImmediateInstruction<uint8_t>*>(insn)) {
 				append_u8(i->immed());
+				break;
+			}
+			throw std::runtime_error("invalid program assembled");
+
+		case Opcode::LD_MEM:
+		case Opcode::ST_MEM:
+			if (auto* i = dynamic_cast<const ImmediateInstruction<std::tuple<MemType, uint16_t>>*>(insn)) {
+				MemType type = std::get<0>(i->immed());
+				uint16_t addr = std::get<1>(i->immed());
+				append_u16((uint16_t(type) << 12) | (addr & 0xfff));
 				break;
 			}
 			throw std::runtime_error("invalid program assembled");

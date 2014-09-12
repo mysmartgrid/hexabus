@@ -27,8 +27,8 @@ enum class Opcode {
 	LD_DT,
 	LD_SYSTIME,
 
-	LD_REG,
-	ST_REG,
+	LD_MEM,
+	ST_MEM,
 
 	MUL,
 	DIV,
@@ -76,6 +76,16 @@ enum class Opcode {
 
 	RET_CHANGE,
 	RET_STAY,
+};
+
+
+
+enum class MemType {
+	Bool,
+	U8,
+	U32,
+	Float,
+	DateTime
 };
 
 
@@ -241,7 +251,8 @@ class ImmediateInstruction : public Instruction {
 		std::is_same<Immed, float>::value ||
 		std::is_same<Immed, DTMask>::value ||
 		std::is_same<Immed, Label>::value ||
-		std::is_same<Immed, std::tuple<DTMask, DateTime>>::value
+		std::is_same<Immed, std::tuple<DTMask, DateTime>>::value ||
+		std::is_same<Immed, std::tuple<MemType, uint16_t>>::value
 		, "");
 	private:
 		Immed _immed;

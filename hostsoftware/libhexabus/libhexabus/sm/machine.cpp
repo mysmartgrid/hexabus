@@ -93,7 +93,8 @@ void Machine::sm_diag_msg(int code, const char* file, int line)
 {
 	static const char* msgs[] = {
 		"success",
-		"invalid read in opcode stream",
+		"read crossed memory boundaries",
+		"write crossed memory boundaries",
 		"invalid opcode",
 		"invalid types",
 		"division by zero",

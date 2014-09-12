@@ -66,10 +66,13 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 		op->immed.v_uint = 1;
 		break;
 
-	case HSO_LD_REG:
-	case HSO_ST_REG:
-		op->immed.v_uint = LOAD(u8);
+	case HSO_LD_MEM:
+	case HSO_ST_MEM: {
+		uint16_t memref = LOAD(u16);
+		op->mem.type = (enum hxb_sm_memtype) (memref >> 12);
+		op->mem.addr = memref & 0xfff;
 		break;
+	}
 
 	case HSO_LD_U8:
 		op->immed.type = HXB_DTYPE_UINT8;
@@ -154,6 +157,8 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 	}
 
 	return offset;
+
+#undef LOAD
 }
 
 static bool is_int(const hxb_sm_value_t* v)
@@ -396,6 +401,127 @@ static int sm_convert(hxb_sm_value_t* val, uint8_t to_type)
 	return 0;
 }
 
+int SM_EXPORT(sm_load_mem)(const struct hxb_sm_instruction* insn, hxb_sm_value_t* value)
+{
+#define CHECK_MEM_SIZE(size) \
+	do { \
+		if (insn->mem.addr + size > SM_MEMORY_SIZE || insn->mem.addr + size < insn->mem.addr) \
+			return -HSE_OOB_READ; \
+	} while (0)
+#define MEM_OP(field, type) \
+	do { \
+		type tmp; \
+		CHECK_MEM_SIZE(sizeof(type)); \
+		memcpy(&tmp, sm_memory + insn->mem.addr, sizeof(type)); \
+		value->field = tmp; \
+	} while (0)
+
+	switch (insn->mem.type) {
+	case HSM_BOOL:
+		value->type = HXB_DTYPE_BOOL;
+		MEM_OP(v_uint, bool);
+		break;
+
+	case HSM_U32:
+		value->type = HXB_DTYPE_UINT32;
+		MEM_OP(v_uint, uint32_t);
+		break;
+
+	case HSM_U8:
+		value->type = HXB_DTYPE_UINT8;
+		MEM_OP(v_uint, uint8_t);
+		break;
+
+	case HSM_FLOAT:
+		value->type = HXB_DTYPE_FLOAT;
+		MEM_OP(v_float, float);
+		break;
+
+	case HSM_DATETIME: {
+		uint8_t hour, minute, second, day, month, weekday;
+		uint16_t year;
+
+		CHECK_MEM_SIZE(8);
+
+		memcpy(&second,  sm_memory + insn->mem.addr + 0, 1);
+		memcpy(&minute,  sm_memory + insn->mem.addr + 1, 1);
+		memcpy(&hour,    sm_memory + insn->mem.addr + 2, 1);
+		memcpy(&day,     sm_memory + insn->mem.addr + 3, 1);
+		memcpy(&month,   sm_memory + insn->mem.addr + 4, 1);
+		memcpy(&year,    sm_memory + insn->mem.addr + 5, 2);
+		memcpy(&weekday, sm_memory + insn->mem.addr + 7, 1);
+
+		value->type = HXB_DTYPE_DATETIME;
+		hxbdt_set(&value->v_datetime, second, minute, hour, day, month, year, weekday);
+		break;
+	}
+	}
+
+	return 0;
+
+#undef CHECK_MEM_SIZE
+#undef MEM_OP
+}
+
+int SM_EXPORT(sm_store_mem)(const struct hxb_sm_instruction* insn, const hxb_sm_value_t* value)
+{
+#define CHECK_MEM_SIZE(size) \
+	do { \
+		if (insn->mem.addr + size > SM_MEMORY_SIZE || insn->mem.addr + size < insn->mem.addr) \
+			return -HSE_OOB_WRITE; \
+	} while (0)
+#define MEM_OP(field, type) \
+	do { \
+		const type tmp = value->field; \
+		CHECK_MEM_SIZE(sizeof(type)); \
+		memcpy(sm_memory + insn->mem.addr, &tmp, sizeof(type)); \
+	} while (0)
+
+	switch (insn->mem.type) {
+	case HSM_BOOL:
+		MEM_OP(v_uint, bool);
+		break;
+
+	case HSM_U32:
+		MEM_OP(v_uint, uint32_t);
+		break;
+
+	case HSM_U8:
+		MEM_OP(v_uint, uint8_t);
+		break;
+
+	case HSM_FLOAT:
+		MEM_OP(v_float, float);
+		break;
+
+	case HSM_DATETIME: {
+		const uint8_t hour = hxbdt_hour(&value->v_datetime);
+		const uint8_t minute = hxbdt_minute(&value->v_datetime);
+		const uint8_t second = hxbdt_second(&value->v_datetime);
+		const uint8_t day = hxbdt_day(&value->v_datetime);
+		const uint8_t month = hxbdt_month(&value->v_datetime);
+		const uint8_t weekday = hxbdt_weekday(&value->v_datetime);
+		const uint16_t year = hxbdt_year(&value->v_datetime);
+
+		CHECK_MEM_SIZE(8);
+
+		memcpy(sm_memory + insn->mem.addr + 0, &second,  1);
+		memcpy(sm_memory + insn->mem.addr + 1, &minute,  1);
+		memcpy(sm_memory + insn->mem.addr + 2, &hour,    1);
+		memcpy(sm_memory + insn->mem.addr + 3, &day,     1);
+		memcpy(sm_memory + insn->mem.addr + 4, &month,   1);
+		memcpy(sm_memory + insn->mem.addr + 5, &year,    2);
+		memcpy(sm_memory + insn->mem.addr + 7, &weekday, 1);
+		break;
+	}
+	}
+
+	return 0;
+
+#undef CHECK_MEM_SIZE
+#undef MEM_OP
+}
+
 int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val)
 {
 	uint16_t addr = 0;
@@ -444,10 +570,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 #define TOP TOP_N(0)
 
 	if (sm_first_run) {
-		for (unsigned i = 0; i < SM_REG_COUNT; i++) {
-			sm_registers[i].type = HXB_DTYPE_BOOL;
-			sm_registers[i].v_uint = false;
-		}
+		memset(sm_memory, 0, SM_MEMORY_SIZE);
 	}
 
 	{
@@ -518,19 +641,14 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 			break;
 		}
 
-		case HSO_LD_REG:
-			if (insn.immed.v_uint >= SM_REG_COUNT)
-				FAIL_WITH(HSE_INVALID_OPERATION);
-			PUSH_V(sm_registers[insn.immed.v_uint]);
+		case HSO_LD_MEM:
+			PUSH(HXB_DTYPE_BOOL, v_uint, 0);
+			FAIL_AS(sm_load_mem(&insn, &TOP));
 			break;
 
-		case HSO_ST_REG:
-			if (insn.immed.v_uint >= SM_REG_COUNT)
-				FAIL_WITH(HSE_INVALID_OPERATION);
+		case HSO_ST_MEM:
 			CHECK_POP(1);
-			if (!is_arithmetic(&TOP) && TOP.type != HXB_DTYPE_DATETIME)
-				FAIL_WITH(HSE_INVALID_TYPES);
-			sm_registers[insn.immed.v_uint] = TOP;
+			FAIL_AS(sm_store_mem(&insn, &TOP));
 			top--;
 			break;
 
@@ -792,4 +910,13 @@ end_program:
 fail:
 	sm_first_run = false;
 	return ret;
+
+#undef FAIL_WITH
+#undef FAIL_AS
+#undef CHECK_PUSH
+#undef CHECK_POP
+#undef PUSH
+#undef PUSH_V
+#undef TOP_N
+#undef TOP
 }

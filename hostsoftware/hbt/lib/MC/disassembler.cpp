@@ -156,8 +156,6 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 			break;
 
 		case Opcode::LD_U8:
-		case Opcode::LD_REG:
-		case Opcode::ST_REG:
 		case Opcode::DUP_I:
 		case Opcode::ROT_I:
 			if (!canRead(1))
@@ -165,6 +163,20 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 			insn.immed = read_u8();
 			insn.isValid = true;
 			break;
+
+		case Opcode::LD_MEM:
+		case Opcode::ST_MEM: {
+			if (!canRead(2))
+				break;
+
+			uint16_t ref = read_u16();
+			MemType type = MemType(ref >> 12);
+			uint16_t addr = ref & 0xfff;
+
+			insn.immed = std::make_tuple(type, addr);
+			insn.isValid = true;
+			break;
+		}
 
 		case Opcode::LD_U16:
 			if (!canRead(2))
@@ -459,11 +471,14 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 			break;
 
 		case Opcode::LD_U8:
-		case Opcode::LD_REG:
-		case Opcode::ST_REG:
 		case Opcode::DUP_I:
 		case Opcode::ROT_I:
 			builder.append(thisLabel, insn.op, boost::get<uint8_t>(insn.immed), 0);
+			break;
+
+		case Opcode::LD_MEM:
+		case Opcode::ST_MEM:
+			builder.append(thisLabel, insn.op, boost::get<std::tuple<MemType, uint16_t>>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_U16:

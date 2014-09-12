@@ -26,7 +26,8 @@ class Builder {
 				BlockPart,
 				DTMask,
 				Label,
-				std::tuple<DTMask, DateTime>
+				std::tuple<DTMask, DateTime>,
+				std::tuple<MemType, uint16_t>
 			> immediate_t;
 
 	private:

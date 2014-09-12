@@ -26,13 +26,13 @@ AUTOSTART_PROCESSES(&state_machine_process);
 static process_event_t sm_handle_input_event;
 
 enum {
-	SM_REG_COUNT = 16,
 	SM_STACK_SIZE = 32,
+	SM_MEMORY_SIZE = 128,
 };
 
-hxb_sm_value_t sm_registers[SM_REG_COUNT];
-uint32_t sm_curstate, sm_in_state_since;
-bool sm_first_run;
+static uint8_t sm_memory[SM_MEMORY_SIZE];
+static uint32_t sm_curstate, sm_in_state_since;
+static bool sm_first_run;
 
 static uint32_t sm_get_timestamp();
 
@@ -54,7 +54,6 @@ void sm_start()
 		sm_curstate = 0;  // always start in state 0
 		sm_in_state_since = sm_get_timestamp();
 		sm_first_run = true;
-		memset(sm_registers, 0, sizeof(sm_registers));
 		process_start(&state_machine_process, NULL);
 	}
 }

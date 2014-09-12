@@ -16,8 +16,8 @@ enum hxb_sm_opcode {
 	HSO_LD_DT,
 	HSO_LD_SYSTIME,
 
-	HSO_LD_REG,
-	HSO_ST_REG,
+	HSO_LD_MEM,
+	HSO_ST_MEM,
 
 	HSO_OP_MUL,
 	HSO_OP_DIV,
@@ -77,6 +77,14 @@ enum hxb_sm_dtmask {
 	HSDM_WEEKDAY = 64,
 };
 
+enum hxb_sm_memtype {
+	HSM_BOOL,
+	HSM_U8,
+	HSM_U32,
+	HSM_FLOAT,
+	HSM_DATETIME
+};
+
 struct hxb_sm_instruction {
 	enum hxb_sm_opcode opcode;
 
@@ -88,12 +96,17 @@ struct hxb_sm_instruction {
 		uint8_t last;
 		char data[16];
 	} block;
+	struct {
+		enum hxb_sm_memtype type;
+		uint16_t addr;
+	} mem;
 };
 
 enum hxb_sm_error {
 	HSE_SUCCESS = 0,
 
 	HSE_OOB_READ,
+	HSE_OOB_WRITE,
 	HSE_INVALID_OPCODE,
 	HSE_INVALID_TYPES,
 	HSE_DIV_BY_ZERO,
