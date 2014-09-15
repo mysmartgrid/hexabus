@@ -109,6 +109,9 @@ BOOST_FUSION_ADAPT_STRUCT(
 	(std::vector<ir_line>, lines)
 )
 
+namespace hbt {
+namespace ir {
+
 namespace {
 
 namespace qi = boost::spirit::qi;
@@ -130,7 +133,6 @@ struct asm_ws : qi::grammar<It> {
 struct simple_instructions : qi::symbols<char, ir_instruction> {
 	simple_instructions()
 	{
-		using hbt::ir::Opcode;
 		add
 			("mul", { Opcode::MUL, boost::none_t() })
 			("div", { Opcode::DIV, boost::none_t() })
@@ -166,7 +168,6 @@ struct simple_instructions : qi::symbols<char, ir_instruction> {
 struct ld_simple_operands : qi::symbols<char, ir_instruction> {
 	ld_simple_operands()
 	{
-		using hbt::ir::Opcode;
 		add
 			("src.ip", { Opcode::LD_SOURCE_IP, boost::none_t() })
 			("src.eid", { Opcode::LD_SOURCE_EID, boost::none_t() })
@@ -255,57 +256,57 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			> (
 				ld_operand_simple
 				| ld_operand_immediate
-				| mem_instruction_rest(hbt::ir::Opcode::LD_MEM)
+				| mem_instruction_rest(Opcode::LD_MEM)
 				| (eps > errors.ld_operand)
 			);
 
 		st_instruction %=
 			TOKEN("st")
-			> mem_instruction_rest(hbt::ir::Opcode::ST_MEM);
+			> mem_instruction_rest(Opcode::ST_MEM);
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunsequenced"
 #pragma clang diagnostic ignored "-Woverloaded-shift-op-parentheses"
 		dt_masked_instruction =
-			(TOKEN("dt.decomp") > dt_mask[_val = bind(make_insn_t<hbt::ir::Opcode::DT_DECOMPOSE>, _1)]);
+			(TOKEN("dt.decomp") > dt_mask[_val = bind(make_insn_t<Opcode::DT_DECOMPOSE>, _1)]);
 
 		ld_operand_immediate.name("immediate operand");
 		ld_operand_immediate =
 			(
 				lit("u8") >> lit("(")
-				> u8_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_U8>, _1)]
+				> u8_immed[_val = bind(make_insn_t<Opcode::LD_U8>, _1)]
 				> lit(")")
 			) | (
 				lit("u32") >> lit("(")
-				> u32_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_U32>, _1)]
+				> u32_immed[_val = bind(make_insn_t<Opcode::LD_U32>, _1)]
 				> lit(")")
 			) | (
 				lit("u64") >> lit("(")
-				> u64_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_U64>, _1)]
+				> u64_immed[_val = bind(make_insn_t<Opcode::LD_U64>, _1)]
 				> lit(")")
 			) | (
 				lit("f") >> lit("(")
-				> float_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_FLOAT>, _1)]
+				> float_immed[_val = bind(make_insn_t<Opcode::LD_FLOAT>, _1)]
 				> lit(")")
 			);
 
 		jump_instruction =
-			(TOKEN("jnz") > identifier)[_val = bind(make_insn_t<hbt::ir::Opcode::JNZ>, _1)]
-			| (TOKEN("jz") > identifier)[_val = bind(make_insn_t<hbt::ir::Opcode::JZ>, _1)]
-			| (TOKEN("jump") > identifier)[_val = bind(make_insn_t<hbt::ir::Opcode::JUMP>, _1)];
+			(TOKEN("jnz") > identifier)[_val = bind(make_insn_t<Opcode::JNZ>, _1)]
+			| (TOKEN("jz") > identifier)[_val = bind(make_insn_t<Opcode::JZ>, _1)]
+			| (TOKEN("jump") > identifier)[_val = bind(make_insn_t<Opcode::JUMP>, _1)];
 
 		dup_instruction =
 			TOKEN("dup")
 			> (
-				stack_slot[_val = bind(make_insn_t<hbt::ir::Opcode::DUP_I>, _1)]
-				| eps[_val = val(ir_instruction{ hbt::ir::Opcode::DUP, boost::none_t() })]
+				stack_slot[_val = bind(make_insn_t<Opcode::DUP_I>, _1)]
+				| eps[_val = val(ir_instruction{ Opcode::DUP, boost::none_t() })]
 			);
 
 		rot_instruction =
 			TOKEN("rot")
 			> (
-				stack_slot[_val = bind(make_insn_t<hbt::ir::Opcode::ROT_I>, _1)]
-				| eps[_val = val(ir_instruction{ hbt::ir::Opcode::ROT, boost::none_t() })]
+				stack_slot[_val = bind(make_insn_t<Opcode::ROT_I>, _1)]
+				| eps[_val = val(ir_instruction{ Opcode::ROT, boost::none_t() })]
 			);
 
 		switch_instruction =
@@ -324,18 +325,18 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			> (
 				block_immed
 					[_pass = bind(check_block, _1)]
-					[_val = bind(make_insn_t<hbt::ir::Opcode::CMP_BLOCK>, _1)]
+					[_val = bind(make_insn_t<Opcode::CMP_BLOCK>, _1)]
 				| (eps > errors.binary_block_too_long)
 			);
 
 		mem_instruction_rest.name("memory operand");
 		mem_instruction_rest =
 			(
-				(lit("b") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::Bool, _1)]
-				| (lit("u8") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::U8, _1)]
-				| (lit("u32") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::U32, _1)]
-				| (lit("u64") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::U64, _1)]
-				| (lit("f") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::Float, _1)]
+				(lit("b") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::Bool, _1)]
+				| (lit("u8") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::U8, _1)]
+				| (lit("u32") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::U32, _1)]
+				| (lit("u64") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::U64, _1)]
+				| (lit("f") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::Float, _1)]
 			) > lit("]");
 #pragma clang diagnostic pop
 
@@ -363,13 +364,13 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		dt_mask.name("datetime mask");
 		dt_mask =
 			lexeme[
-				char_('s')[_val |= hbt::ir::DTMask::second]
-				^ char_('m')[_val |= hbt::ir::DTMask::minute]
-				^ char_('h')[_val |= hbt::ir::DTMask::hour]
-				^ char_('D')[_val |= hbt::ir::DTMask::day]
-				^ char_('M')[_val |= hbt::ir::DTMask::month]
-				^ char_('Y')[_val |= hbt::ir::DTMask::year]
-				^ char_('W')[_val |= hbt::ir::DTMask::weekday]
+				char_('s')[_val |= DTMask::second]
+				^ char_('m')[_val |= DTMask::minute]
+				^ char_('h')[_val |= DTMask::hour]
+				^ char_('D')[_val |= DTMask::day]
+				^ char_('M')[_val |= DTMask::month]
+				^ char_('Y')[_val |= DTMask::year]
+				^ char_('W')[_val |= DTMask::weekday]
 			];
 
 		switch_table_entry.name("switch table entry");
@@ -431,25 +432,25 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		return get_line(range.begin());
 	}
 
-	template<hbt::ir::Opcode Opcode>
+	template<Opcode Opcode>
 	static ir_instruction make_insn_t(ir_instruction::param_t immed)
 	{
 		return make_insn(Opcode, immed);
 	}
 
-	static ir_instruction make_insn(hbt::ir::Opcode opcode, ir_instruction::param_t immed)
+	static ir_instruction make_insn(Opcode opcode, ir_instruction::param_t immed)
 	{
 		return { opcode, immed };
 	}
 
-	static ir_instruction make_mem_insn(hbt::ir::Opcode opcode, hbt::ir::MemType type, uint16_t addr)
+	static ir_instruction make_mem_insn(Opcode opcode, MemType type, uint16_t addr)
 	{
 		return make_insn(opcode, mem_immediate{type, addr});
 	}
 
 	static ir_instruction make_switch(const std::vector<switch_entry>& entries)
 	{
-		return { hbt::ir::Opcode::SWITCH_32, ir_instruction::immed_t(entries) };
+		return { Opcode::SWITCH_32, ir_instruction::immed_t(entries) };
 	}
 
 	static bool check_block(const block_immediate& imm)
@@ -499,7 +500,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	simple_instructions simple_instruction;
 	qi::rule<It, ir_instruction(), asm_ws<It>> block_instruction;
 
-	qi::rule<It, ir_instruction(hbt::ir::Opcode), asm_ws<It>> mem_instruction_rest;
+	qi::rule<It, ir_instruction(Opcode), asm_ws<It>> mem_instruction_rest;
 
 	qi::rule<It, std::string(), asm_ws<It>> identifier;
 	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed;
@@ -511,7 +512,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, uint16_t(), asm_ws<It>> mem_addr;
 	qi::rule<It, uint8_t(), asm_ws<It>> stack_slot;
 
-	qi::rule<It, hbt::ir::DTMask(), asm_ws<It>> dt_mask;
+	qi::rule<It, DTMask(), asm_ws<It>> dt_mask;
 
 	qi::rule<It, switch_entry(), asm_ws<It>> switch_table_entry;
 
@@ -553,16 +554,16 @@ std::array<uint8_t, 16> toMachineID(const std::vector<uint8_t>& vec)
 	return result;
 }
 
-std::map<std::string, hbt::ir::Label> makeLabelMap(const ir_program& program, hbt::ir::Builder& builder)
+std::map<std::string, Label> makeLabelMap(const ir_program& program, Builder& builder)
 {
-	std::map<std::string, hbt::ir::Label> result;
+	std::map<std::string, Label> result;
 
 	auto it = program.lines.begin();
 	auto end = program.lines.end();
 
 	while (it != end) {
 		if (it->content.which() == 0) {
-			hbt::ir::Label current = builder.createLabel(boost::get<std::string>(it->content));
+			Label current = builder.createLabel(boost::get<std::string>(it->content));
 
 			while (it != end && it->content.which() == 0) {
 				auto&& next = builder.createLabel(current, boost::get<std::string>(it->content));
@@ -577,7 +578,7 @@ std::map<std::string, hbt::ir::Label> makeLabelMap(const ir_program& program, hb
 	return result;
 }
 
-std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
+std::unique_ptr<Program> makeProgram(const ir_program& program)
 {
 	using namespace hbt::ir;
 
@@ -695,9 +696,6 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 
 }
 
-namespace hbt {
-namespace ir {
-
 std::unique_ptr<Program> parse(const hbt::util::MemoryBuffer& input)
 {
 	typedef boost::spirit::line_pos_iterator<const char*> lpi;
@@ -727,7 +725,7 @@ std::unique_ptr<Program> parse(const hbt::util::MemoryBuffer& input)
 					detail = badToken;
 			}
 
-			throw hbt::ir::ParseError(
+			throw ParseError(
 					ef.first.position(),
 					get_column(lpi(ctext.begin()), ef.first),
 					expected,
