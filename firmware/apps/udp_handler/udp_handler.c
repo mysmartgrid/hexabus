@@ -100,12 +100,12 @@ static float htonf(float f)
 
 static uint64_t ntohul(uint64_t u)
 {
-	return (((uint64_t) uip_ntohl(u >> 32)) << 32) | uip_ntohl(u & 0xFFFFFFFF);
+	return (((uint64_t) uip_ntohl(u >> 32))) | (((uint64_t) uip_ntohl(u & 0xFFFFFFFF)) << 32);
 }
 
 static uint64_t htonul(uint64_t u)
 {
-	return (((uint64_t) uip_htonl(u >> 32)) << 32) | uip_htonl(u & 0xFFFFFFFF);
+	return (((uint64_t) uip_htonl(u >> 32))) | (((uint64_t) uip_htonl(u & 0xFFFFFFFF)) << 32);
 }
 
 static size_t prepare_for_send(union hxb_packet_any* packet)
