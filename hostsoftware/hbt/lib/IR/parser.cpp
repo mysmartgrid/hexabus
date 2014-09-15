@@ -358,9 +358,6 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		float_immed.name("float immediate");
 		float_immed %= float_;
 
-		u16_immed.name("0..65535");
-		u16_immed %= uint_[_pass = _1 <= 65535];
-
 		dt_mask.name("datetime mask");
 		dt_mask =
 			lexeme[
@@ -507,7 +504,6 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, uint32_t(), asm_ws<It>> u32_immed;
 	qi::rule<It, uint64_t(), asm_ws<It>> u64_immed;
 	qi::rule<It, float(), asm_ws<It>> float_immed;
-	qi::rule<It, uint16_t(), asm_ws<It>> u16_immed;
 
 	qi::rule<It, uint16_t(), asm_ws<It>> mem_addr;
 	qi::rule<It, uint8_t(), asm_ws<It>> stack_slot;
