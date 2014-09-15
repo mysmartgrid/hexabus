@@ -55,16 +55,6 @@ enum hxb_error_code {
 	HXB_ERR_INVALID_WRITE     = 0x83
 };
 
-// Operators for comparison in state machine
-enum hxb_stm_op {
-	STM_EQ  = 0x00,
-	STM_LEQ = 0x01,
-	STM_GEQ = 0x02,
-	STM_LT  = 0x03,
-	STM_GT  = 0x04,
-	STM_NEQ = 0x05,
-};
-
 // State machine runtime states
 enum STM_state_t {
   STM_STATE_STOPPED = 0,
