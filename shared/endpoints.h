@@ -65,6 +65,8 @@
 #define EP_GL_POWER_FACTOR_L2      70L
 #define EP_GL_POWER_FACTOR_L3      71L
 
+#define EP_LOCALTIME               129L
+
 
 
 #endif // ENDPOINTS_H_

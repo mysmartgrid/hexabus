@@ -488,19 +488,11 @@ static enum hxb_error_code handle_info(union hxb_packet_any* packet)
 		return HXB_ERR_SUCCESS;
 	}
 
-	if (packet->value_header.datatype != HXB_DTYPE_UINT64) {
 #if STATE_MACHINE_ENABLE
-		sm_handle_input(&envelope);
+	sm_handle_input(&envelope);
 #else
-		syslog(LOG_NOTICE, "Received Broadcast, but no handler for datatype.");
+	syslog(LOG_DEBUG, "Received Broadcast, but no handler for datatype.");
 #endif
-	} else {
-#if DATETIME_SERVICE_ENABLE
-		updateDatetime(&envelope);
-#else
-		syslog(LOG_NOTICE, "Received Broadcast, but no handler for datatype.");
-#endif
-	}
 
 	return HXB_ERR_SUCCESS;
 }

@@ -3,6 +3,8 @@
 #include "sys/etimer.h"
 #include "contiki.h"
 
+#include "endpoint_registry.h"
+#include "endpoints.h"
 #include "hexabus_config.h"
 #include "nvm.h"
 
@@ -34,6 +36,32 @@ int getDatetime(uint64_t* dt)
 	return time_valid ? 0 : -1;
 }
 
+static enum hxb_error_code read(struct hxb_value* value)
+{
+	value->v_u64 = current_dt;
+
+	return HXB_ERR_SUCCESS;
+}
+
+static enum hxb_error_code write(const struct hxb_envelope* env)
+{
+	if (!uip_is_addr_loopback(&env->src_ip))
+		return HXB_ERR_WRITEREADONLY;
+
+	current_dt = env->value.v_u64;
+
+	return HXB_ERR_SUCCESS;
+}
+
+static const char ep_name[] RODATA = "Local time";
+static ENDPOINT_DESCRIPTOR endpoint_systime = {
+	.datatype = HXB_DTYPE_UINT64,
+	.eid = EP_LOCALTIME,
+	.name = ep_name,
+	.read = read,
+	.write = write
+};
+
 PROCESS(datetime_service_process, "Keeps the Date and Time up-to-date\n");
 
 PROCESS_THREAD(datetime_service_process, ev, data)
@@ -43,6 +71,8 @@ PROCESS_THREAD(datetime_service_process, ev, data)
 	time_valid = false;
 
 	etimer_set(&update_timer, CLOCK_SECOND);
+
+	ENDPOINT_REGISTER(endpoint_systime);
 
 	while(1) {
 		PROCESS_WAIT_EVENT();
