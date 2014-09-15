@@ -9,7 +9,9 @@
 #include "datetime_service.h"
 #include "sm_types.h"
 
+#include <math.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "nvm.h"
@@ -112,9 +114,9 @@ static uint8_t sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val)
 	return endpoint_write(eid, &env);
 }
 
-static hxb_datetime_t sm_get_systime()
+static uint64_t sm_get_systime()
 {
-	hxb_datetime_t d;
+	uint64_t d;
 
 	getDatetime(&d);
 	return d;
@@ -183,12 +185,15 @@ void sm_handle_input(const struct hxb_envelope* env)
 		value.v_uint = env->value.v_u32;
 		break;
 
+	case HXB_DTYPE_UINT64:
+		value.v_uint64 = env->value.v_u64;
+		break;
+
 	case HXB_DTYPE_FLOAT:
 		value.v_uint = env->value.v_float;
 		break;
 
 
-	case HXB_DTYPE_DATETIME:
 	case HXB_DTYPE_128STRING:
 	case HXB_DTYPE_65BYTES:
 	case HXB_DTYPE_16BYTES:

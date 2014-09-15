@@ -12,8 +12,8 @@ enum hxb_sm_opcode {
 	HSO_LD_U8,
 	HSO_LD_U16,
 	HSO_LD_U32,
+	HSO_LD_U64,
 	HSO_LD_FLOAT,
-	HSO_LD_DT,
 	HSO_LD_SYSTIME,
 
 	HSO_LD_MEM,
@@ -24,7 +24,6 @@ enum hxb_sm_opcode {
 	HSO_OP_MOD,
 	HSO_OP_ADD,
 	HSO_OP_SUB,
-	HSO_OP_DT_DIFF,
 	HSO_OP_AND,
 	HSO_OP_OR,
 	HSO_OP_XOR,
@@ -53,6 +52,7 @@ enum hxb_sm_opcode {
 	HSO_CONV_B,
 	HSO_CONV_U8,
 	HSO_CONV_U32,
+	HSO_CONV_U64,
 	HSO_CONV_F,
 
 	HSO_JNZ,
@@ -81,8 +81,8 @@ enum hxb_sm_memtype {
 	HSM_BOOL,
 	HSM_U8,
 	HSM_U32,
+	HSM_U64,
 	HSM_FLOAT,
-	HSM_DATETIME
 };
 
 struct hxb_sm_instruction {

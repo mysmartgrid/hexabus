@@ -66,12 +66,13 @@ int Machine::sm_get_float(uint16_t at, float* f)
 
 uint8_t Machine::sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val)
 {
-	boost::variant<bool, uint8_t, uint32_t, float> value;
+	write_value_t value;
 
 	switch (val->type) {
 	case HXB_DTYPE_BOOL:   value = (bool) val->v_uint; break;
 	case HXB_DTYPE_UINT8:  value = (uint8_t) val->v_uint; break;
 	case HXB_DTYPE_UINT32: value = (uint32_t) val->v_uint; break;
+	case HXB_DTYPE_UINT64: value = (uint64_t) val->v_uint64; break;
 	case HXB_DTYPE_FLOAT:  value = (float) val->v_float; break;
 	default: return HXB_ERR_INVALID_WRITE;
 	}
@@ -81,12 +82,13 @@ uint8_t Machine::sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val)
 
 uint32_t Machine::sm_get_timestamp()
 {
-	return (sm_get_systime() - _created_at).total_seconds();
+	return sm_get_systime() - _created_at;
 }
 
-hxb_datetime_t Machine::sm_get_systime()
+uint64_t Machine::sm_get_systime()
 {
-	return boost::posix_time::second_clock::local_time();
+	boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1), boost::posix_time::time_duration(0, 0, 0, 0));
+	return (boost::posix_time::second_clock::local_time() - epoch).total_seconds();
 }
 
 void Machine::sm_diag_msg(int code, const char* file, int line)

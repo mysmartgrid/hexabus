@@ -62,9 +62,9 @@ struct hxb_packet_u32 {
 	HXB_PACKET_FOOTER
 } __attribute__((packed));
 
-struct hxb_packet_datetime {
+struct hxb_packet_u64 {
 	HXB_VALUEPACKET_HEADER
-	struct hxb_datetime value;
+	uint64_t value;
 	HXB_PACKET_FOOTER
 } __attribute__((packed));
 
@@ -103,7 +103,7 @@ union hxb_packet_any {
 	struct hxb_packet_query p_query;
 	struct hxb_packet_u8 p_u8;
 	struct hxb_packet_u32 p_u32;
-	struct hxb_packet_datetime p_datetime;
+	struct hxb_packet_u64 p_u64;
 	struct hxb_packet_float p_float;
 	struct hxb_packet_128string p_128string;
 	struct hxb_packet_65bytes p_65bytes;

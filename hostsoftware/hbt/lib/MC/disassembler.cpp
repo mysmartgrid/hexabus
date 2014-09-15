@@ -66,6 +66,12 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 		return (a << 16) | b;
 	};
 
+	auto read_u64 = [&] () -> uint64_t {
+		uint64_t a = read_u32();
+		uint64_t b = read_u32();
+		return (a << 32) | b;
+	};
+
 	auto read_f = [&] () {
 		uint32_t u = read_u32();
 		float f;
@@ -127,7 +133,6 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 		case Opcode::MOD:
 		case Opcode::ADD:
 		case Opcode::SUB:
-		case Opcode::DT_DIFF:
 		case Opcode::AND:
 		case Opcode::OR:
 		case Opcode::XOR:
@@ -147,6 +152,7 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 		case Opcode::CONV_B:
 		case Opcode::CONV_U8:
 		case Opcode::CONV_U32:
+		case Opcode::CONV_U64:
 		case Opcode::CONV_F:
 		case Opcode::WRITE:
 		case Opcode::POP:
@@ -192,52 +198,19 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 			insn.isValid = true;
 			break;
 
+		case Opcode::LD_U64:
+			if (!canRead(8))
+				break;
+			insn.immed = read_u64();
+			insn.isValid = true;
+			break;
+
 		case Opcode::LD_FLOAT:
 			if (!canRead(4))
 				break;
 			insn.immed = read_f();
 			insn.isValid = true;
 			break;
-
-		case Opcode::LD_DT: {
-			if (!canRead(1))
-				break;
-
-			DTMask mask = DTMask(read_u8());
-			unsigned second = 0;
-			unsigned minute = 0;
-			unsigned hour = 0;
-			unsigned day = 0;
-			unsigned month = 0;
-			unsigned year = 0;
-			unsigned weekday = 0;
-			unsigned dtLength = 0;
-
-			insn.dtMaskInvalid = invalid(mask);
-
-			if (DTMask::second == (mask & DTMask::second)) dtLength++;
-			if (DTMask::minute == (mask & DTMask::minute)) dtLength++;
-			if (DTMask::hour == (mask & DTMask::hour)) dtLength++;
-			if (DTMask::day == (mask & DTMask::day)) dtLength++;
-			if (DTMask::month == (mask & DTMask::month)) dtLength++;
-			if (DTMask::year == (mask & DTMask::year)) dtLength += 2;
-			if (DTMask::weekday == (mask & DTMask::weekday)) dtLength++;
-
-			if (!canRead(dtLength))
-				break;
-
-			if (DTMask::second == (mask & DTMask::second)) second = read_u8();
-			if (DTMask::minute == (mask & DTMask::minute)) minute = read_u8();
-			if (DTMask::hour == (mask & DTMask::hour)) hour = read_u8();
-			if (DTMask::day == (mask & DTMask::day)) day = read_u8();
-			if (DTMask::month == (mask & DTMask::month)) month = read_u8();
-			if (DTMask::year == (mask & DTMask::year)) year = read_u16();
-			if (DTMask::weekday == (mask & DTMask::weekday)) weekday = read_u8();
-
-			insn.immed = std::make_tuple(mask, DateTime(second, minute, hour, day, month, year, weekday));
-			insn.isValid = true;
-			break;
-		}
 
 		case Opcode::DT_DECOMPOSE: {
 			if (!canRead(1))
@@ -442,7 +415,6 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 		case Opcode::MOD:
 		case Opcode::ADD:
 		case Opcode::SUB:
-		case Opcode::DT_DIFF:
 		case Opcode::AND:
 		case Opcode::OR:
 		case Opcode::XOR:
@@ -461,6 +433,7 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 		case Opcode::CONV_B:
 		case Opcode::CONV_U8:
 		case Opcode::CONV_U32:
+		case Opcode::CONV_U64:
 		case Opcode::CONV_F:
 		case Opcode::WRITE:
 		case Opcode::POP:
@@ -489,12 +462,12 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 			builder.append(thisLabel, insn.op, boost::get<uint32_t>(insn.immed), 0);
 			break;
 
-		case Opcode::LD_FLOAT:
-			builder.append(thisLabel, insn.op, boost::get<float>(insn.immed), 0);
+		case Opcode::LD_U64:
+			builder.append(thisLabel, insn.op, boost::get<uint64_t>(insn.immed), 0);
 			break;
 
-		case Opcode::LD_DT:
-			builder.append(thisLabel, insn.op, boost::get<std::tuple<DTMask, DateTime>>(insn.immed), 0);
+		case Opcode::LD_FLOAT:
+			builder.append(thisLabel, insn.op, boost::get<float>(insn.immed), 0);
 			break;
 
 		case Opcode::DT_DECOMPOSE:

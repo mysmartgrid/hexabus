@@ -18,12 +18,6 @@
 
 namespace {
 
-struct datetime_immediate {
-	boost::optional<unsigned> second, minute, hour;
-	boost::optional<unsigned> day, month, year;
-	boost::optional<unsigned> weekday;
-};
-
 struct switch_entry {
 	uint32_t label;
 	std::string target;
@@ -44,12 +38,12 @@ struct ir_instruction {
 			uint8_t,
 			uint16_t,
 			uint32_t,
+			uint64_t,
 			float,
 			std::vector<switch_entry>,
 			block_immediate,
 			hbt::ir::DTMask,
 			std::string,
-			datetime_immediate,
 			mem_immediate
 		> param_t;
 
@@ -76,17 +70,6 @@ struct ir_program {
 };
 
 }
-
-BOOST_FUSION_ADAPT_STRUCT(
-	datetime_immediate,
-	(boost::optional<unsigned>, second)
-	(boost::optional<unsigned>, minute)
-	(boost::optional<unsigned>, hour)
-	(boost::optional<unsigned>, day)
-	(boost::optional<unsigned>, month)
-	(boost::optional<unsigned>, year)
-	(boost::optional<unsigned>, weekday)
-)
 
 BOOST_FUSION_ADAPT_STRUCT(
 	switch_entry,
@@ -161,7 +144,6 @@ struct simple_instructions : qi::symbols<char, ir_instruction> {
 			("shl", { Opcode::SHL, boost::none_t() })
 			("shr", { Opcode::SHR, boost::none_t() })
 			("gettype", { Opcode::GETTYPE, boost::none_t() })
-			("dt.diff", { Opcode::DT_DIFF, boost::none_t() })
 			("cmp.localhost", { Opcode::CMP_IP_LO, boost::none_t() })
 			("cmp.lt", { Opcode::CMP_LT, boost::none_t() })
 			("cmp.le", { Opcode::CMP_LE, boost::none_t() })
@@ -172,6 +154,7 @@ struct simple_instructions : qi::symbols<char, ir_instruction> {
 			("conv.b", { Opcode::CONV_B, boost::none_t() })
 			("conv.u8", { Opcode::CONV_U8, boost::none_t() })
 			("conv.u32", { Opcode::CONV_U32, boost::none_t() })
+			("conv.u64", { Opcode::CONV_U64, boost::none_t() })
 			("conv.f", { Opcode::CONV_F, boost::none_t() })
 			("write", { Opcode::WRITE, boost::none_t() })
 			("pop", { Opcode::POP, boost::none_t() })
@@ -297,12 +280,12 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 				> u32_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_U32>, _1)]
 				> lit(")")
 			) | (
-				lit("f") >> lit("(")
-				> float_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_FLOAT>, _1)]
+				lit("u64") >> lit("(")
+				> u64_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_U64>, _1)]
 				> lit(")")
 			) | (
-				lit("dt") >> lit("(")
-				> dt_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_DT>, _1)]
+				lit("f") >> lit("(")
+				> float_immed[_val = bind(make_insn_t<hbt::ir::Opcode::LD_FLOAT>, _1)]
 				> lit(")")
 			);
 
@@ -351,8 +334,8 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 				(lit("b") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::Bool, _1)]
 				| (lit("u8") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::U8, _1)]
 				| (lit("u32") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::U32, _1)]
+				| (lit("u64") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::U64, _1)]
 				| (lit("f") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::Float, _1)]
-				| (lit("dt") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, hbt::ir::MemType::DateTime, _1)]
 			) > lit("]");
 #pragma clang diagnostic pop
 
@@ -368,33 +351,11 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		u32_immed.name("u32 immediate");
 		u32_immed %= uint_[_pass = _1 <= std::numeric_limits<uint32_t>::max()];
 
+		u64_immed.name("u64 immediate");
+		u64_immed %= ulong_long[_pass = _1 <= std::numeric_limits<uint64_t>::max()];
+
 		float_immed.name("float immediate");
 		float_immed %= float_;
-
-		dt_immed.name("datetime immediate");
-		dt_immed %=
-			(lit("s") > lit("(") > u8_immed_0_59 > lit(")"))
-			^ (lit("m") > lit("(") > u8_immed_0_59 > lit(")"))
-			^ (lit("h") > lit("(") > u8_immed_0_23 > lit(")"))
-			^ (lit("D") > lit("(") > u8_immed_0_31 > lit(")"))
-			^ (lit("M") > lit("(") > u8_immed_0_11 > lit(")"))
-			^ (lit("Y") > lit("(") > u16_immed > lit(")"))
-			^ (lit("W") > lit("(") > u8_immed_0_6 > lit(")"));
-
-		u8_immed_0_59.name("0..59");
-		u8_immed_0_59 %= uint_[_pass = _1 <= 59];
-
-		u8_immed_0_31.name("0..31");
-		u8_immed_0_31 %= uint_[_pass = _1 <= 31];
-
-		u8_immed_0_23.name("0..23");
-		u8_immed_0_23 %= uint_[_pass = _1 <= 23];
-
-		u8_immed_0_11.name("0..11");
-		u8_immed_0_11 %= uint_[_pass = _1 <= 11];
-
-		u8_immed_0_6.name("0..6");
-		u8_immed_0_6 %= uint_[_pass = _1 <= 6];
 
 		u16_immed.name("0..65535");
 		u16_immed %= uint_[_pass = _1 <= 65535];
@@ -543,19 +504,14 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, std::string(), asm_ws<It>> identifier;
 	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed;
 	qi::rule<It, uint32_t(), asm_ws<It>> u32_immed;
+	qi::rule<It, uint64_t(), asm_ws<It>> u64_immed;
 	qi::rule<It, float(), asm_ws<It>> float_immed;
-	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed_0_59;
-	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed_0_31;
-	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed_0_23;
-	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed_0_11;
-	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed_0_6;
 	qi::rule<It, uint16_t(), asm_ws<It>> u16_immed;
 
 	qi::rule<It, uint16_t(), asm_ws<It>> mem_addr;
 	qi::rule<It, uint8_t(), asm_ws<It>> stack_slot;
 
 	qi::rule<It, hbt::ir::DTMask(), asm_ws<It>> dt_mask;
-	qi::rule<It, datetime_immediate(), asm_ws<It>> dt_immed;
 
 	qi::rule<It, switch_entry(), asm_ws<It>> switch_table_entry;
 
@@ -668,10 +624,14 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 			break;
 
 		case 3:
+			builder.append(thisLabel, insn.opcode, boost::get<uint64_t>(*insn.immediate), line.line);
+			break;
+
+		case 4:
 			builder.append(thisLabel, insn.opcode, boost::get<float>(*insn.immediate), line.line);
 			break;
 
-		case 4: {
+		case 5: {
 			const auto& operand = boost::get<std::vector<switch_entry>>(*insn.immediate);
 			std::vector<SwitchEntry> entries;
 
@@ -688,7 +648,7 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 			break;
 		}
 
-		case 5: {
+		case 6: {
 			const auto& operand = boost::get<block_immediate>(*insn.immediate);
 
 			std::array<uint8_t, 16> data;
@@ -703,40 +663,14 @@ std::unique_ptr<hbt::ir::Program> makeProgram(const ir_program& program)
 			break;
 		}
 
-		case 6:
+		case 7:
 			builder.append(thisLabel, insn.opcode, boost::get<DTMask>(*insn.immediate), line.line);
 			break;
 
-		case 7:
+		case 8:
 			builder.append(thisLabel, insn.opcode,
 					getLabelFor(boost::get<std::string>(*insn.immediate)), line.line);
 			break;
-
-		case 8: {
-			const auto& operand = boost::get<datetime_immediate>(*insn.immediate);
-
-			unsigned s, m, h, D, M, Y, W;
-			DTMask mask = DTMask(0);
-
-			auto checkFlag = [&] (DTMask flag, unsigned& t, boost::optional<unsigned> val) {
-				t = val.get_value_or(0);
-				if (val)
-					mask |= flag;
-			};
-
-			checkFlag(DTMask::second, s, operand.second);
-			checkFlag(DTMask::minute, m, operand.minute);
-			checkFlag(DTMask::hour, h, operand.hour);
-			checkFlag(DTMask::day, D, operand.day);
-			checkFlag(DTMask::month, M, operand.month);
-			checkFlag(DTMask::year, Y, operand.year);
-			checkFlag(DTMask::weekday, W, operand.weekday);
-
-			DateTime dt(s, m, h, D, M, Y, W);
-
-			builder.append(thisLabel, insn.opcode, std::make_tuple(mask, dt), line.line);
-			break;
-		}
 
 		case 9: {
 			const auto& operand = boost::get<mem_immediate>(*insn.immediate);

@@ -90,6 +90,10 @@ static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, voi
 			buffer->p_u32.value = val.v_u32;
 			break;
 
+		case HXB_DTYPE_UINT64:
+			buffer->p_u64.value = val.v_u64;
+			break;
+
 		case HXB_DTYPE_FLOAT:
 			buffer->p_float.value = val.v_float;
 			break;
@@ -98,10 +102,6 @@ static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, voi
 		case HXB_DTYPE_16BYTES:
 		case HXB_DTYPE_128STRING:
 		case HXB_DTYPE_65BYTES:
-			break;
-
-		case HXB_DTYPE_DATETIME:
-			buffer->p_datetime.value = val.v_datetime;
 			break;
 
 		case HXB_DTYPE_UNDEFINED:

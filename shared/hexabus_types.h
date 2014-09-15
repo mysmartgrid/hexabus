@@ -26,7 +26,7 @@ enum hxb_datatype {
 	HXB_DTYPE_BOOL      = 0x01, // Boolean. Value still represented by 8 bits, but may only be HXB_TRUE or HXB_FALSE
 	HXB_DTYPE_UINT8     = 0x02, // Unsigned 8 bit integer
 	HXB_DTYPE_UINT32    = 0x03, // Unsigned 32 bit integer
-	HXB_DTYPE_DATETIME  = 0x04, // Date and time
+	HXB_DTYPE_UINT64    = 0x04, // Unsigned 64 bit integer, mainly for unix dates
 	HXB_DTYPE_FLOAT     = 0x05, // 32bit floating point
 	HXB_DTYPE_128STRING = 0x06, // 128char fixed length string
 	HXB_DTYPE_TIMESTAMP = 0x07, // timestamp - used for measuring durations, time differences and so on - uint32; seconds
@@ -72,30 +72,20 @@ enum STM_state_t {
   STM_STATE_RUNNING = 1
 };
 
-struct hxb_datetime {
-    uint8_t   hour;
-    uint8_t   minute;
-    uint8_t   second;
-    uint8_t   day;
-    uint8_t   month;
-    uint16_t  year;
-    uint8_t   weekday;  // numbers from 0 to 6, sunday as the first day of the week.
-} __attribute__ ((packed));
-
 // Struct for passing Hexabus values around
 // One struct for all data types (except 128string, because that'd need too much memory), with a datatype flag indicating which
 // of the values is used. Used for passing values to and from endpoint_access
 struct hxb_value {
 	uint8_t               datatype;   // Datatype that is used, or HXB_DTYPE_UNDEFINED
 	union {
-		uint8_t             v_bool;
-		uint8_t             v_u8;
-		uint32_t            v_u32;
-		struct hxb_datetime v_datetime;
-		float               v_float;
-		char*               v_string;
-		uint32_t            v_timestamp;
-		char*               v_binary;
+		uint8_t   v_bool;
+		uint8_t   v_u8;
+		uint32_t  v_u32;
+		uint64_t  v_u64;
+		float     v_float;
+		char*     v_string;
+		uint32_t  v_timestamp;
+		char*     v_binary;
 	};
 } __attribute__((packed));
 

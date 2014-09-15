@@ -23,8 +23,8 @@ enum class Opcode {
 	LD_U8,
 	LD_U16,
 	LD_U32,
+	LD_U64,
 	LD_FLOAT,
-	LD_DT,
 	LD_SYSTIME,
 
 	LD_MEM,
@@ -35,7 +35,6 @@ enum class Opcode {
 	MOD,
 	ADD,
 	SUB,
-	DT_DIFF,
 	AND,
 	OR,
 	XOR,
@@ -64,6 +63,7 @@ enum class Opcode {
 	CONV_B,
 	CONV_U8,
 	CONV_U32,
+	CONV_U64,
 	CONV_F,
 
 	JNZ,
@@ -84,8 +84,8 @@ enum class MemType {
 	Bool,
 	U8,
 	U32,
+	U64,
 	Float,
-	DateTime
 };
 
 
@@ -120,35 +120,6 @@ inline DTMask operator|=(DTMask& a, DTMask b)
 
 inline bool invalid(DTMask m)
 { return m != ~~m; }
-
-
-
-class DateTime {
-	private:
-		uint8_t _second;
-		uint8_t _minute;
-		uint8_t _hour;
-		uint8_t _day;
-		uint8_t _month;
-		uint16_t _year;
-		uint8_t _weekday;
-
-	public:
-		DateTime(uint8_t second, uint8_t minute, uint8_t hour,
-				uint8_t day, uint8_t month, uint16_t year,
-				uint8_t weekday)
-			: _second(second), _minute(minute), _hour(hour), _day(day),
-			  _month(month), _year(year), _weekday(weekday)
-		{}
-
-		uint8_t second() const { return _second; }
-		uint8_t minute() const { return _minute; }
-		uint8_t hour() const { return _hour; }
-		uint8_t day() const { return _day; }
-		uint8_t month() const { return _month; }
-		uint16_t year() const { return _year; }
-		uint8_t weekday() const { return _weekday; }
-};
 
 
 
@@ -248,10 +219,10 @@ class ImmediateInstruction : public Instruction {
 		std::is_same<Immed, uint8_t>::value ||
 		std::is_same<Immed, uint16_t>::value ||
 		std::is_same<Immed, uint32_t>::value ||
+		std::is_same<Immed, uint64_t>::value ||
 		std::is_same<Immed, float>::value ||
 		std::is_same<Immed, DTMask>::value ||
 		std::is_same<Immed, Label>::value ||
-		std::is_same<Immed, std::tuple<DTMask, DateTime>>::value ||
 		std::is_same<Immed, std::tuple<MemType, uint16_t>>::value
 		, "");
 	private:

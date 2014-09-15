@@ -79,7 +79,6 @@ const char* opcodeName(hbt::ir::Opcode op)
 	case Opcode::SHL: return "shl";
 	case Opcode::SHR: return "shr";
 	case Opcode::GETTYPE: return "gettype";
-	case Opcode::DT_DIFF: return "dt.diff";
 	case Opcode::CMP_IP_LO: return "cmp.localhost";
 	case Opcode::CMP_LT: return "cmp.lt";
 	case Opcode::CMP_LE: return "cmp.le";
@@ -90,6 +89,7 @@ const char* opcodeName(hbt::ir::Opcode op)
 	case Opcode::CONV_B: return "conv.b";
 	case Opcode::CONV_U8: return "conv.u8";
 	case Opcode::CONV_U32: return "conv.u32";
+	case Opcode::CONV_U64: return "conv.u64";
 	case Opcode::CONV_F: return "conv.f";
 	case Opcode::WRITE: return "write";
 	case Opcode::POP: return "pop";
@@ -106,8 +106,8 @@ const char* opcodeName(hbt::ir::Opcode op)
 	case Opcode::LD_U8:
 	case Opcode::LD_U16:
 	case Opcode::LD_U32:
+	case Opcode::LD_U64:
 	case Opcode::LD_FLOAT:
-	case Opcode::LD_DT:
 	case Opcode::LD_MEM:
 		return "ld";
 	case Opcode::ST_MEM: return "st";
@@ -215,40 +215,16 @@ std::string prettyPrint(const Program& program)
 			}
 			throw std::runtime_error("invalid program printed");
 
-		case Opcode::LD_FLOAT:
-			if (auto* i = dynamic_cast<const ImmediateInstruction<float>*>(insn)) {
-				out << format(" f(%1%)") % i->immed();
+		case Opcode::LD_U64:
+			if (auto* i = dynamic_cast<const ImmediateInstruction<uint64_t>*>(insn)) {
+				out << format(" u64(%1%)") % i->immed();
 				break;
 			}
 			throw std::runtime_error("invalid program printed");
 
-		case Opcode::LD_DT:
-			if (auto* i = dynamic_cast<const ImmediateInstruction<std::tuple<DTMask, DateTime>>*>(insn)) {
-				out << " dt(";
-
-				bool skip = false;
-				auto append = [&skip, &out] (char name, unsigned val) {
-					if (skip)
-						out << " ";
-					out << format("%1%(%2%)") % name % val;
-					skip = true;
-				};
-				auto has = [] (DTMask a, DTMask b) {
-					return (a & b) == b;
-				};
-
-				DTMask mask = std::get<0>(i->immed());
-				DateTime dt = std::get<1>(i->immed());
-
-				if (has(mask, DTMask::second)) append('s', dt.second());
-				if (has(mask, DTMask::minute)) append('m', dt.minute());
-				if (has(mask, DTMask::hour)) append('h', dt.hour());
-				if (has(mask, DTMask::day)) append('D', dt.day());
-				if (has(mask, DTMask::month)) append('M', dt.month());
-				if (has(mask, DTMask::year)) append('Y', dt.year());
-				if (has(mask, DTMask::weekday)) append('W', dt.weekday());
-
-				out << ")";
+		case Opcode::LD_FLOAT:
+			if (auto* i = dynamic_cast<const ImmediateInstruction<float>*>(insn)) {
+				out << format(" f(%1%)") % i->immed();
 				break;
 			}
 			throw std::runtime_error("invalid program printed");
@@ -262,8 +238,8 @@ std::string prettyPrint(const Program& program)
 				case MemType::Bool: f = format(" b[%1%]"); break;
 				case MemType::U8: f = format(" u8[%1%]"); break;
 				case MemType::U32: f = format(" u32[%1%]"); break;
+				case MemType::U64: f = format(" u64[%1%]"); break;
 				case MemType::Float: f = format(" f[%1%]"); break;
-				case MemType::DateTime: f = format(" dt[%1%]"); break;
 				}
 				out << f % std::get<1>(i->immed());
 				break;
@@ -336,7 +312,6 @@ std::string prettyPrint(const Program& program)
 		case Opcode::SHL:
 		case Opcode::SHR:
 		case Opcode::GETTYPE:
-		case Opcode::DT_DIFF:
 		case Opcode::CMP_IP_LO:
 		case Opcode::CMP_LT:
 		case Opcode::CMP_LE:
@@ -347,6 +322,7 @@ std::string prettyPrint(const Program& program)
 		case Opcode::CONV_B:
 		case Opcode::CONV_U8:
 		case Opcode::CONV_U32:
+		case Opcode::CONV_U64:
 		case Opcode::CONV_F:
 		case Opcode::WRITE:
 		case Opcode::POP:

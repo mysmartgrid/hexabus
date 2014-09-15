@@ -440,14 +440,6 @@ generate_socket_readings(void *arg)
  // dtostrf(temperature_value, 9, 4, &buffer);
 	numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor4, temperature_as_string());
   // Add Date and Time
-  struct hxb_datetime dt;
-	if(getDatetime(&dt) == 0) {
-		char time[30];
-		sprintf(time, "%u:%u:%u, %u.%u.%u", dt.hour, dt.minute, dt.second, dt.day, dt.month, dt.year);
-		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_datetime, time);
-	} else {
-		numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_datetime, "Date and Time not valid.");
-	}
   return numprinted;
 }
 
@@ -529,41 +521,6 @@ generate_radio_stats(void *arg)
   return numprinted;
 }
 #endif
-/*---------------------------------------------------------------------------*/
-void hxbtos(char *dest, char *data, uint8_t datatype)
-{
-	struct hxb_datetime *dt;
-	switch ((enum hxb_datatype) datatype) {
-		case HXB_DTYPE_UNDEFINED:	// "Do nothing" Datatype
-			sprintf(dest, "0");		// 0 so the format does not break
-			break;
-		case HXB_DTYPE_BOOL:
-		case HXB_DTYPE_UINT8:
-			sprintf(dest, "%u", *(uint8_t*)data);
-			break;
-		case HXB_DTYPE_UINT32:
-		case HXB_DTYPE_TIMESTAMP:
-			sprintf(dest, "%lu", *(uint32_t*)data);
-			break;
-		case HXB_DTYPE_DATETIME:
-			dt = (struct hxb_datetime*)data;
-			sprintf(dest, "%u*%u*%u*%u*%u*%u*%u*", dt->hour, dt->minute, dt->second, dt->day, dt->month, (uint16_t)dt->year, dt->weekday); 
-			break;
-		case HXB_DTYPE_FLOAT:
-			dtostrf(*(float*)data, 1, 6, dest);
-			uint8_t i;
-			for(i = 0;dest[i] != '.';) {
-				i++;
-			}
-			dest[i] = ',';
-			break;
-		case HXB_DTYPE_128STRING:
-		case HXB_DTYPE_65BYTES:
-		case HXB_DTYPE_16BYTES:
-		default:
-			break;
-	}
-}
 /*---------------------------------------------------------------------------*/
 static
 PT_THREAD(socket_readings(struct httpd_state *s, char *ptr))

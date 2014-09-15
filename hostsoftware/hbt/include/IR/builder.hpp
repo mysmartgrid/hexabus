@@ -21,12 +21,12 @@ class Builder {
 				uint8_t,
 				uint16_t,
 				uint32_t,
+				uint64_t,
 				float,
 				SwitchTable,
 				BlockPart,
 				DTMask,
 				Label,
-				std::tuple<DTMask, DateTime>,
 				std::tuple<MemType, uint16_t>
 			> immediate_t;
 

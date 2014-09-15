@@ -72,8 +72,8 @@ namespace hexabus {
 			virtual void visit(const InfoPacket<bool>& info) = 0;
 			virtual void visit(const InfoPacket<uint8_t>& info) = 0;
 			virtual void visit(const InfoPacket<uint32_t>& info) = 0;
+			virtual void visit(const InfoPacket<uint64_t>& info) = 0;
 			virtual void visit(const InfoPacket<float>& info) = 0;
-			virtual void visit(const InfoPacket<boost::posix_time::ptime>& info) = 0;
 			virtual void visit(const InfoPacket<boost::posix_time::time_duration>& info) = 0;
 			virtual void visit(const InfoPacket<std::string>& info) = 0;
 			virtual void visit(const InfoPacket<boost::array<char, 16> >& info) = 0;
@@ -82,8 +82,8 @@ namespace hexabus {
 			virtual void visit(const WritePacket<bool>& write) = 0;
 			virtual void visit(const WritePacket<uint8_t>& write) = 0;
 			virtual void visit(const WritePacket<uint32_t>& write) = 0;
+			virtual void visit(const WritePacket<uint64_t>& write) = 0;
 			virtual void visit(const WritePacket<float>& write) = 0;
-			virtual void visit(const WritePacket<boost::posix_time::ptime>& write) = 0;
 			virtual void visit(const WritePacket<boost::posix_time::time_duration>& write) = 0;
 			virtual void visit(const WritePacket<std::string>& write) = 0;
 			virtual void visit(const WritePacket<boost::array<char, 16> >& write) = 0;
@@ -167,8 +167,8 @@ namespace hexabus {
 				boost::is_same<TValue, bool>::value
 					|| boost::is_same<TValue, uint8_t>::value
 					|| boost::is_same<TValue, uint32_t>::value
+					|| boost::is_same<TValue, uint64_t>::value
 					|| boost::is_same<TValue, float>::value
-					|| boost::is_same<TValue, boost::posix_time::ptime>::value
 					|| boost::is_same<TValue, boost::posix_time::time_duration>::value
 					|| boost::is_same<TValue, boost::array<char, 16> >::value
 					|| boost::is_same<TValue, boost::array<char, 65> >::value),
@@ -179,8 +179,8 @@ namespace hexabus {
 				return boost::is_same<TValue, bool>::value ? HXB_DTYPE_BOOL :
 					boost::is_same<TValue, uint8_t>::value ? HXB_DTYPE_UINT8 :
 					boost::is_same<TValue, uint32_t>::value ? HXB_DTYPE_UINT32 :
+					boost::is_same<TValue, uint64_t>::value ? HXB_DTYPE_UINT64 :
 					boost::is_same<TValue, float>::value ? HXB_DTYPE_FLOAT :
-					boost::is_same<TValue, boost::posix_time::ptime>::value ? HXB_DTYPE_DATETIME :
 					boost::is_same<TValue, boost::posix_time::time_duration>::value ? HXB_DTYPE_TIMESTAMP :
 					boost::is_same<TValue, boost::array<char, 16> >::value
 						? HXB_DTYPE_16BYTES :

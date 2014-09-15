@@ -48,7 +48,6 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 	case Opcode::MOD:
 	case Opcode::ADD:
 	case Opcode::SUB:
-	case Opcode::DT_DIFF:
 	case Opcode::AND:
 	case Opcode::OR:
 	case Opcode::XOR:
@@ -68,6 +67,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 	case Opcode::CONV_B:
 	case Opcode::CONV_U8:
 	case Opcode::CONV_U32:
+	case Opcode::CONV_U64:
 	case Opcode::CONV_F:
 	case Opcode::WRITE:
 	case Opcode::POP:
@@ -125,21 +125,20 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		}
 		return;
 
+	case Opcode::LD_U64:
+		if (!get<uint64_t>(immed))
+			throw std::invalid_argument("immed");
+
+		_instructions.push_back(
+			new ImmediateInstruction<uint64_t>(op, get<uint64_t>(*immed), l, line));
+		return;
+
 	case Opcode::LD_FLOAT:
 		if (!get<float>(immed))
 			throw std::invalid_argument("immed");
 
 		_instructions.push_back(
 			new ImmediateInstruction<float>(op, get<float>(*immed), l, line));
-		return;
-
-	case Opcode::LD_DT:
-		typedef std::tuple<DTMask, DateTime> ld_dt_immed;
-		if (!get<ld_dt_immed>(immed) || invalid(std::get<0>(get<ld_dt_immed>(*immed))))
-			throw std::invalid_argument("immed");
-
-		_instructions.push_back(
-			new ImmediateInstruction<ld_dt_immed>(op, get<ld_dt_immed>(*immed), l, line));
 		return;
 
 	case Opcode::DT_DECOMPOSE:

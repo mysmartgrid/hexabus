@@ -98,6 +98,16 @@ static float htonf(float f)
 	return fconv.f;
 }
 
+static uint64_t ntohul(uint64_t u)
+{
+	return (((uint64_t) uip_ntohl(u >> 32)) << 32) | uip_ntohl(u & 0xFFFFFFFF);
+}
+
+static uint64_t htonul(uint64_t u)
+{
+	return (((uint64_t) uip_htonl(u >> 32)) << 32) | uip_htonl(u & 0xFFFFFFFF);
+}
+
 static size_t prepare_for_send(union hxb_packet_any* packet)
 {
 	size_t len;
@@ -117,10 +127,10 @@ static size_t prepare_for_send(union hxb_packet_any* packet)
 					packet->p_u32.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 					break;
 
-				case HXB_DTYPE_DATETIME:
-					len = sizeof(packet->p_datetime);
-					packet->p_datetime.value.year = uip_htons(packet->p_datetime.value.year);
-					packet->p_datetime.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
+				case HXB_DTYPE_UINT64:
+					len = sizeof(packet->p_u64);
+					packet->p_u64.value = htonul(packet->p_u64.value);
+					packet->p_u64.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 					break;
 
 				case HXB_DTYPE_FLOAT:
@@ -263,6 +273,11 @@ static enum hxb_error_code check_crc(const union hxb_packet_any* packet)
 					crc = packet->p_u32.crc;
 					break;
 
+				case HXB_DTYPE_UINT64:
+					data_len = sizeof(packet->p_u64);
+					crc = packet->p_u64.crc;
+					break;
+
 				case HXB_DTYPE_FLOAT:
 					data_len = sizeof(packet->p_float);
 					crc = packet->p_float.crc;
@@ -271,11 +286,6 @@ static enum hxb_error_code check_crc(const union hxb_packet_any* packet)
 				case HXB_DTYPE_128STRING:
 					data_len = sizeof(packet->p_128string);
 					crc = packet->p_128string.crc;
-					break;
-
-				case HXB_DTYPE_DATETIME:
-					data_len = sizeof(packet->p_datetime);
-					crc = packet->p_datetime.crc;
 					break;
 
 				case HXB_DTYPE_65BYTES:
@@ -333,9 +343,8 @@ static enum hxb_error_code extract_value(union hxb_packet_any* packet, struct hx
 			value->v_u32 = uip_ntohl(packet->p_u32.value);
 			break;
 
-		case HXB_DTYPE_DATETIME:
-			value->v_datetime = packet->p_datetime.value;
-			value->v_datetime.year = uip_ntohs(value->v_datetime.year);
+		case HXB_DTYPE_UINT64:
+			value->v_u64 = ntohul(packet->p_u64.value);
 			break;
 
 		case HXB_DTYPE_FLOAT:
@@ -419,8 +428,8 @@ static enum hxb_error_code generate_query_response(union hxb_packet_any* buffer,
 			buffer->p_u32.value = value.v_u32;
 			break;
 
-		case HXB_DTYPE_DATETIME:
-			buffer->p_datetime.value = value.v_datetime;
+		case HXB_DTYPE_UINT64:
+			buffer->p_u64.value = value.v_u64;
 			break;
 
 		case HXB_DTYPE_FLOAT:
@@ -479,7 +488,7 @@ static enum hxb_error_code handle_info(union hxb_packet_any* packet)
 		return HXB_ERR_SUCCESS;
 	}
 
-	if (packet->value_header.datatype != HXB_DTYPE_DATETIME) {
+	if (packet->value_header.datatype != HXB_DTYPE_UINT64) {
 #if STATE_MACHINE_ENABLE
 		sm_handle_input(&envelope);
 #else

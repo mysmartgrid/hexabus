@@ -23,7 +23,6 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 	case HSO_OP_MOD:
 	case HSO_OP_ADD:
 	case HSO_OP_SUB:
-	case HSO_OP_DT_DIFF:
 	case HSO_OP_AND:
 	case HSO_OP_OR:
 	case HSO_OP_XOR:
@@ -41,6 +40,7 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 	case HSO_CONV_B:
 	case HSO_CONV_U8:
 	case HSO_CONV_U32:
+	case HSO_CONV_U64:
 	case HSO_CONV_F:
 	case HSO_WRITE:
 	case HSO_POP:
@@ -89,35 +89,17 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 		op->immed.v_uint = LOAD(u32);
 		break;
 
+	case HSO_LD_U64:
+		op->immed.type = HXB_DTYPE_UINT64;
+		op->immed.v_uint64 = LOAD(u32);
+		op->immed.v_uint64 <<= 32;
+		op->immed.v_uint64 |= LOAD(u32);
+		break;
+
 	case HSO_LD_FLOAT: {
 		uint32_t f = LOAD(u32);
 		op->immed.type = HXB_DTYPE_FLOAT;
 		memcpy(&op->immed.v_float, &f, sizeof(float));
-		break;
-	}
-
-	case HSO_LD_DT: {
-		uint32_t mask = LOAD(u8);
-		op->immed.type = HXB_DTYPE_DATETIME;
-		uint8_t second = 0;
-		uint8_t minute = 0;
-		uint8_t hour = 0;
-		uint8_t day = 0;
-		uint8_t month = 0;
-		uint16_t year = 0;
-		uint8_t weekday = 0;
-
-		if (mask & HSDM_SECOND) second = LOAD(u8);
-		if (mask & HSDM_MINUTE) minute = LOAD(u8);
-		if (mask & HSDM_HOUR) hour = LOAD(u8);
-		if (mask & HSDM_DAY) day = LOAD(u8);
-		if (mask & HSDM_MONTH) month = LOAD(u8);
-		if (mask & HSDM_YEAR) year = LOAD(u16);
-		if (mask & HSDM_WEEKDAY) weekday = LOAD(u8);
-		hxbdt_set(&op->immed.v_datetime,
-			second, minute, hour,
-			day, month, year,
-			weekday);
 		break;
 	}
 
@@ -165,7 +147,8 @@ static bool is_int(const hxb_sm_value_t* v)
 {
 	return v->type == HXB_DTYPE_BOOL ||
 		v->type == HXB_DTYPE_UINT8 ||
-		v->type == HXB_DTYPE_UINT32;
+		v->type == HXB_DTYPE_UINT32 ||
+		v->type == HXB_DTYPE_UINT64;
 }
 
 static bool is_arithmetic(const hxb_sm_value_t* v)
@@ -173,46 +156,58 @@ static bool is_arithmetic(const hxb_sm_value_t* v)
 	return is_int(v) || v->type == HXB_DTYPE_FLOAT;
 }
 
-static void datetime_span(const hxb_datetime_t* dt, uint32_t* days, uint32_t* seconds)
+static int sm_convert(hxb_sm_value_t* val, uint8_t to_type)
 {
-	/* we want julian days, see https://en.wikipedia.org/wiki/Julian_day
-	 * negative years obviously aren't interesting. */
-	uint8_t a = hxbdt_month(dt) <= 2 ? 1 : 0;
-	uint32_t y = hxbdt_year(dt) + 4800 - a;
-	uint8_t m = hxbdt_month(dt) + 12 * a - 3;
-
-	*days = hxbdt_day(dt) + (153 * m + 2) / 5 + 365 * y + y / 4 - y / 100
-			+ y / 400 - 32045;
-
-	*seconds = hxbdt_second(dt) + 60 * hxbdt_minute(dt)
-		+ 3600 * hxbdt_hour(dt);
-}
-
-static int sm_dt_op(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op, uint8_t mask)
-{
-	if (v1->type != HXB_DTYPE_DATETIME || v2->type != HXB_DTYPE_DATETIME)
+	if (to_type != HXB_DTYPE_BOOL &&
+		to_type != HXB_DTYPE_UINT8 &&
+		to_type != HXB_DTYPE_UINT32 &&
+		to_type != HXB_DTYPE_UINT64 &&
+		to_type != HXB_DTYPE_FLOAT)
 		return -HSE_INVALID_TYPES;
 
-	switch (op) {
-	case HSO_OP_DT_DIFF: {
-		uint32_t d1, s1, d2, s2;
+	if (val->type == to_type)
+		return 0;
 
-		datetime_span(&v1->v_datetime, &d1, &s1);
-		datetime_span(&v2->v_datetime, &d2, &s2);
-
-		v1->type = HXB_DTYPE_UINT32;
-		v1->v_uint = 86400 * (d1 - d2) + (s1 - s2);
+	switch (val->type) {
+	case HXB_DTYPE_BOOL:
+	case HXB_DTYPE_UINT8:
+	case HXB_DTYPE_UINT32:
+		switch (to_type) {
+		case HXB_DTYPE_BOOL:   val->v_uint   = !!val->v_uint; break;
+		case HXB_DTYPE_UINT8:  val->v_uint   = (uint8_t) val->v_uint; break;
+		case HXB_DTYPE_UINT32: val->v_uint   = (uint32_t) val->v_uint; break;
+		case HXB_DTYPE_UINT64: val->v_uint64 = val->v_uint; break;
+		case HXB_DTYPE_FLOAT:  val->v_float  = val->v_uint; break;
+		}
 		break;
+
+	case HXB_DTYPE_UINT64:
+		switch (to_type) {
+		case HXB_DTYPE_BOOL:   val->v_uint  = !!val->v_uint64; break;
+		case HXB_DTYPE_UINT8:  val->v_uint  = (uint8_t) val->v_uint64; break;
+		case HXB_DTYPE_UINT32: val->v_uint  = (uint32_t) val->v_uint64; break;
+		case HXB_DTYPE_FLOAT:  val->v_float = val->v_uint64; break;
+		}
+		break;
+
+	case HXB_DTYPE_FLOAT:
+		switch (to_type) {
+		case HXB_DTYPE_BOOL:   val->v_uint   = val->v_float != 0; break;
+		case HXB_DTYPE_UINT8:  val->v_uint   = (uint8_t) val->v_float; break;
+		case HXB_DTYPE_UINT32: val->v_uint   = (uint32_t) val->v_float; break;
+		case HXB_DTYPE_UINT64: val->v_uint64 = (uint64_t) val->v_float; break;
+		}
+		break;
+
+	default: return -HSE_INVALID_OPCODE;
 	}
 
-	default:
-		return -HSE_INVALID_OPCODE;
-	}
+	val->type = to_type;
 
 	return 0;
 }
 
-static int sm_arith_op2(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op)
+static int sm_arith_op2(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
 {
 	if (!is_arithmetic(v1) || !is_arithmetic(v2))
 		return -HSE_INVALID_TYPES;
@@ -226,48 +221,43 @@ static int sm_arith_op2(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op)
 		common_type = HXB_DTYPE_UINT32;
 
 	bool is_float = common_type == HXB_DTYPE_FLOAT;
+	bool is_u64 = common_type == HXB_DTYPE_UINT64;
 
-	union {
-		uint32_t u;
-		float f;
-	} val1, val2;
+	int res = sm_convert(v1, common_type);
+	if (res < 0)
+		return res;
 
-	if (v1->type == HXB_DTYPE_FLOAT)
-		val1.f = v1->v_float;
-	else if (common_type == HXB_DTYPE_FLOAT)
-		val1.f = v1->v_uint;
-	else
-		val1.u = v1->v_uint;
-
-	if (v2->type == HXB_DTYPE_FLOAT)
-		val2.f = v2->v_float;
-	else if (common_type == HXB_DTYPE_FLOAT)
-		val2.f = v2->v_uint;
-	else
-		val2.u = v2->v_uint;
-
-	v1->type = common_type;
+	res = sm_convert(v2, common_type);
+	if (res < 0)
+		return res;
 
 	switch (op) {
 #define ONE_OP(OP) \
 		if (is_float) \
-			v1->v_float = val1.f OP val2.f; \
+			v1->v_float = v1->v_float OP v2->v_float; \
+		else if (is_u64) \
+			v1->v_uint64 = v1->v_uint64 OP v2->v_uint64; \
 		else \
-			v1->v_uint = val1.u OP val2.u; \
+			v1->v_uint = v1->v_uint OP v2->v_uint; \
 		break;
 
 	case HSO_OP_MUL: ONE_OP(*)
 	case HSO_OP_DIV:
-		if (!is_float && val2.u == 0)
+		if ((is_u64 && v2->v_uint64 == 0)
+				|| (!is_u64 && !is_float && v2->v_uint == 0))
 			return -HSE_DIV_BY_ZERO;
 		ONE_OP(/)
 	case HSO_OP_MOD:
-		if (is_float)
-			v1->v_float = 0.f;
-		else if (v2->v_uint == 0)
+		if ((is_u64 && v2->v_uint64 == 0)
+				|| (!is_u64 && !is_float && v2->v_uint == 0)
+				|| (is_float && (v2->v_float == 0 || isinf(v2->v_float))))
 			return -HSE_DIV_BY_ZERO;
+		if (is_float)
+			v1->v_float = fmodf(v1->v_float, v2->v_float);
+		else if (is_u64)
+			v1->v_uint64 = v1->v_uint64 % v2->v_uint64;
 		else
-			v1->v_uint = val1.u % val2.u;
+			v1->v_uint = v1->v_uint % v2->v_uint;
 		break;
 	case HSO_OP_ADD: ONE_OP(+)
 	case HSO_OP_SUB: ONE_OP(-)
@@ -275,8 +265,10 @@ static int sm_arith_op2(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op)
 #undef ONE_OP
 #define ONE_OP(OP) \
 		v1->v_uint = is_float \
-			? val1.f OP val2.f \
-			: val1.u OP val2.u; \
+			? v1->v_float OP v2->v_float \
+			: is_u64 \
+				? v1->v_uint64 OP v1->v_uint64 \
+				: v1->v_uint OP v1->v_uint; \
 		v1->type = HXB_DTYPE_BOOL; \
 		break;
 
@@ -295,24 +287,37 @@ static int sm_arith_op2(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op)
 	return 0;
 }
 
-static int sm_int_op2(hxb_sm_value_t* v1, const hxb_sm_value_t* v2, int op)
+static int sm_int_op2(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
 {
 	if (!is_int(v1) || !is_int(v2))
 		return -HSE_INVALID_TYPES;
 
-	/* widen v1 to if v2 is of greater rank than v1 */
+	/* widen v1 to uint32 and v2 to width of v1 if necessary */
 	if (v1->type < HXB_DTYPE_UINT32)
 		v1->type = HXB_DTYPE_UINT32;
+	if (v2->type < v1->type)
+		v2->type = v1->type;
+
+	bool is_u64 = v1->type == HXB_DTYPE_UINT64;
+
+#define ONE_OP(OP) \
+	if (is_u64) \
+		v1->v_uint64 = v1->v_uint64 OP v2->v_uint64; \
+	else \
+		v1->v_uint = v1->v_uint OP v2->v_uint; \
+	break;
 
 	switch (op) {
-	case HSO_OP_AND: v1->v_uint &=  v2->v_uint; break;
-	case HSO_OP_OR:  v1->v_uint |=  v2->v_uint; break;
-	case HSO_OP_XOR: v1->v_uint ^=  v2->v_uint; break;
-	case HSO_OP_SHL: v1->v_uint <<= v2->v_uint; break;
-	case HSO_OP_SHR: v1->v_uint >>= v2->v_uint; break;
+	case HSO_OP_AND: ONE_OP(&)
+	case HSO_OP_OR:  ONE_OP(|)
+	case HSO_OP_XOR: ONE_OP(^)
+	case HSO_OP_SHL: ONE_OP(<<)
+	case HSO_OP_SHR: ONE_OP(>>)
 
 	default: return -HSE_INVALID_OPCODE;
 	}
+
+#undef ONE_OP
 
 	return 0;
 }
@@ -342,66 +347,6 @@ static int sm_cmp_block(hxb_sm_value_t* val, int op,
 	return -HSE_INVALID_OPCODE;
 }
 
-static int sm_convert(hxb_sm_value_t* val, uint8_t to_type)
-{
-	if (to_type != HXB_DTYPE_BOOL &&
-		to_type != HXB_DTYPE_UINT8 &&
-		to_type != HXB_DTYPE_UINT32 &&
-		to_type != HXB_DTYPE_FLOAT)
-		return -HSE_INVALID_TYPES;
-
-	if (val->type == to_type)
-		return 0;
-
-	switch (val->type) {
-	case HXB_DTYPE_BOOL:
-	case HXB_DTYPE_UINT8:
-	case HXB_DTYPE_UINT32:
-		switch (to_type) {
-		case HXB_DTYPE_FLOAT:
-			val->v_float = val->v_uint;
-			break;
-
-		case HXB_DTYPE_BOOL:
-			val->v_uint = !!val->v_uint;
-			break;
-
-		case HXB_DTYPE_UINT8:
-			val->v_uint &= 0xFF;
-			break;
-
-		default:
-			break;
-		}
-		val->type = to_type;
-		break;
-
-	case HXB_DTYPE_FLOAT:
-		switch (to_type) {
-		case HXB_DTYPE_BOOL:
-			val->v_uint = val->v_float != 0;
-			break;
-
-		case HXB_DTYPE_UINT8:
-			val->v_uint = ((uint32_t) val->v_float) & 0xFF;
-			break;
-
-		case HXB_DTYPE_UINT32:
-			val->v_uint = (uint32_t) val->v_float;
-			break;
-
-		default:
-			break;
-		}
-		val->type = to_type;
-		break;
-
-	default: return -HSE_INVALID_OPCODE;
-	}
-
-	return 0;
-}
-
 int SM_EXPORT(sm_load_mem)(const struct hxb_sm_instruction* insn, hxb_sm_value_t* value)
 {
 #define CHECK_MEM_SIZE(size) \
@@ -423,39 +368,25 @@ int SM_EXPORT(sm_load_mem)(const struct hxb_sm_instruction* insn, hxb_sm_value_t
 		MEM_OP(v_uint, bool);
 		break;
 
+	case HSM_U8:
+		value->type = HXB_DTYPE_UINT8;
+		MEM_OP(v_uint, uint8_t);
+		break;
+
 	case HSM_U32:
 		value->type = HXB_DTYPE_UINT32;
 		MEM_OP(v_uint, uint32_t);
 		break;
 
-	case HSM_U8:
-		value->type = HXB_DTYPE_UINT8;
-		MEM_OP(v_uint, uint8_t);
+	case HSM_U64:
+		value->type = HXB_DTYPE_UINT64;
+		MEM_OP(v_uint, uint64_t);
 		break;
 
 	case HSM_FLOAT:
 		value->type = HXB_DTYPE_FLOAT;
 		MEM_OP(v_float, float);
 		break;
-
-	case HSM_DATETIME: {
-		uint8_t hour, minute, second, day, month, weekday;
-		uint16_t year;
-
-		CHECK_MEM_SIZE(8);
-
-		memcpy(&second,  sm_memory + insn->mem.addr + 0, 1);
-		memcpy(&minute,  sm_memory + insn->mem.addr + 1, 1);
-		memcpy(&hour,    sm_memory + insn->mem.addr + 2, 1);
-		memcpy(&day,     sm_memory + insn->mem.addr + 3, 1);
-		memcpy(&month,   sm_memory + insn->mem.addr + 4, 1);
-		memcpy(&year,    sm_memory + insn->mem.addr + 5, 2);
-		memcpy(&weekday, sm_memory + insn->mem.addr + 7, 1);
-
-		value->type = HXB_DTYPE_DATETIME;
-		hxbdt_set(&value->v_datetime, second, minute, hour, day, month, year, weekday);
-		break;
-	}
 	}
 
 	return 0;
@@ -483,38 +414,21 @@ int SM_EXPORT(sm_store_mem)(const struct hxb_sm_instruction* insn, const hxb_sm_
 		MEM_OP(v_uint, bool);
 		break;
 
+	case HSM_U8:
+		MEM_OP(v_uint, uint8_t);
+		break;
+
 	case HSM_U32:
 		MEM_OP(v_uint, uint32_t);
 		break;
 
-	case HSM_U8:
-		MEM_OP(v_uint, uint8_t);
+	case HSM_U64:
+		MEM_OP(v_uint, uint64_t);
 		break;
 
 	case HSM_FLOAT:
 		MEM_OP(v_float, float);
 		break;
-
-	case HSM_DATETIME: {
-		const uint8_t hour = hxbdt_hour(&value->v_datetime);
-		const uint8_t minute = hxbdt_minute(&value->v_datetime);
-		const uint8_t second = hxbdt_second(&value->v_datetime);
-		const uint8_t day = hxbdt_day(&value->v_datetime);
-		const uint8_t month = hxbdt_month(&value->v_datetime);
-		const uint8_t weekday = hxbdt_weekday(&value->v_datetime);
-		const uint16_t year = hxbdt_year(&value->v_datetime);
-
-		CHECK_MEM_SIZE(8);
-
-		memcpy(sm_memory + insn->mem.addr + 0, &second,  1);
-		memcpy(sm_memory + insn->mem.addr + 1, &minute,  1);
-		memcpy(sm_memory + insn->mem.addr + 2, &hour,    1);
-		memcpy(sm_memory + insn->mem.addr + 3, &day,     1);
-		memcpy(sm_memory + insn->mem.addr + 4, &month,   1);
-		memcpy(sm_memory + insn->mem.addr + 5, &year,    2);
-		memcpy(sm_memory + insn->mem.addr + 7, &weekday, 1);
-		break;
-	}
 	}
 
 	return 0;
@@ -632,13 +546,13 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		case HSO_LD_U8:
 		case HSO_LD_U16:
 		case HSO_LD_U32:
+		case HSO_LD_U64:
 		case HSO_LD_FLOAT:
-		case HSO_LD_DT:
 			PUSH_V(insn.immed);
 			break;
 
 		case HSO_LD_SYSTIME: {
-			PUSH(HXB_DTYPE_DATETIME, v_datetime, sm_get_systime());
+			PUSH(HXB_DTYPE_UINT64, v_uint64, sm_get_systime());
 			break;
 		}
 
@@ -669,12 +583,6 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 			top--;
 			break;
 
-		case HSO_OP_DT_DIFF:
-			CHECK_POP(2);
-			FAIL_AS(sm_dt_op(&TOP_N(1), &TOP_N(0), insn.opcode, insn.dt_mask));
-			top--;
-			break;
-
 		case HSO_OP_AND:
 		case HSO_OP_OR:
 		case HSO_OP_XOR:
@@ -692,10 +600,12 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 				TOP.v_uint = !TOP.v_uint;
 				break;
 			case HXB_DTYPE_UINT8:
-				TOP.v_uint = ~TOP.v_uint & 0xFF;
-				break;
 			case HXB_DTYPE_UINT32:
 				TOP.v_uint = ~TOP.v_uint;
+				TOP.type = HXB_DTYPE_UINT32;
+				break;
+			case HXB_DTYPE_UINT64:
+				TOP.v_uint64 = ~TOP.v_uint64;
 				break;
 			default:
 				FAIL_WITH(HSE_INVALID_TYPES);
@@ -728,27 +638,118 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		case HSO_OP_DT_DECOMPOSE: {
 			CHECK_POP(1);
 
-			if (TOP.type != HXB_DTYPE_DATETIME)
+			if (!is_int(&TOP))
 				FAIL_WITH(HSE_INVALID_TYPES);
 
-			const hxb_datetime_t* dt = &TOP.v_datetime;
+			uint64_t t = TOP.type == HXB_DTYPE_UINT64 ? TOP.v_uint64 : TOP.v_uint;
+			struct {
+				uint8_t tm_sec;
+				uint8_t tm_min;
+				uint8_t tm_hour;
+				uint8_t tm_mday;
+				uint8_t tm_mon;
+				uint32_t tm_year;
+				uint8_t tm_wday;
+			} tm;
 
 			top--;
 
+			/* this is taken from __secs_to_tm of musl libc, since avr libc doesn't
+			 * seem to provide localtime_r. the documentation says it's there, but it
+			 * actually isn't in ubuntu 14.04LTS packages ... */
+
+			/* 2000-03-01 (mod 400 year, immediately after feb29 */
+			#define LEAPOCH (946684800LL + 86400*(31+29))
+
+			#define DAYS_PER_400Y (365UL*400 + 97)
+			#define DAYS_PER_100Y (365UL*100 + 24)
+			#define DAYS_PER_4Y   (365UL*4   + 1)
+
+			{
+				long long days, secs;
+				int remdays, remsecs, remyears;
+				int qc_cycles, c_cycles, q_cycles;
+				int years, months;
+				int wday, yday, leap;
+				const char days_in_month[] = {31,30,31,30,31,31,30,31,30,31,31,29};
+
+				/* Reject time_t values whose year would overflow uint32 */
+				if (t > UINT32_MAX * 31622400LL)
+					FAIL_WITH(HSE_INVALID_OPERATION);
+
+				secs = t - LEAPOCH;
+				days = secs / 86400;
+				remsecs = secs % 86400;
+				if (remsecs < 0) {
+					remsecs += 86400;
+					days--;
+				}
+
+				wday = (3+days)%7;
+				if (wday < 0) wday += 7;
+
+				qc_cycles = days / DAYS_PER_400Y;
+				remdays = days % DAYS_PER_400Y;
+				if (remdays < 0) {
+					remdays += DAYS_PER_400Y;
+					qc_cycles--;
+				}
+
+				c_cycles = remdays / DAYS_PER_100Y;
+				if (c_cycles == 4) c_cycles--;
+				remdays -= c_cycles * DAYS_PER_100Y;
+
+				q_cycles = remdays / DAYS_PER_4Y;
+				if (q_cycles == 25) q_cycles--;
+				remdays -= q_cycles * DAYS_PER_4Y;
+
+				remyears = remdays / 365;
+				if (remyears == 4) remyears--;
+				remdays -= remyears * 365;
+
+				leap = !remyears && (q_cycles || !c_cycles);
+				yday = remdays + 31 + 28 + leap;
+				if (yday >= 365+leap) yday -= 365+leap;
+
+				years = remyears + 4*q_cycles + 100*c_cycles + 400*qc_cycles;
+
+				for (months=0; days_in_month[months] <= remdays; months++)
+					remdays -= days_in_month[months];
+
+				tm.tm_year = years + 100;
+				tm.tm_mon = months + 2;
+				if (tm.tm_mon >= 12) {
+					tm.tm_mon -=12;
+					tm.tm_year++;
+				}
+				tm.tm_mday = remdays + 1;
+				tm.tm_wday = wday;
+
+				tm.tm_hour = remsecs / 3600;
+				tm.tm_min = remsecs / 60 % 60;
+				tm.tm_sec = remsecs % 60;
+			}
+
+			/* end musl code */
+			#undef LEAPOCH
+			#undef DAYS_PER_400Y
+			#undef DAYS_PER_100Y
+			#undef DAYS_PER_4Y
+
 			if (insn.dt_mask & HSDM_WEEKDAY)
-				PUSH(HXB_DTYPE_UINT32, v_uint, hxbdt_weekday(dt));
+				PUSH(HXB_DTYPE_UINT32, v_uint, tm.tm_wday);
 			if (insn.dt_mask & HSDM_YEAR)
-				PUSH(HXB_DTYPE_UINT32, v_uint, hxbdt_year(dt));
+				PUSH(HXB_DTYPE_UINT32, v_uint, tm.tm_year);
 			if (insn.dt_mask & HSDM_MONTH)
-				PUSH(HXB_DTYPE_UINT32, v_uint, hxbdt_month(dt));
+				PUSH(HXB_DTYPE_UINT32, v_uint, tm.tm_mon + 1);
 			if (insn.dt_mask & HSDM_DAY)
-				PUSH(HXB_DTYPE_UINT32, v_uint, hxbdt_day(dt));
+				PUSH(HXB_DTYPE_UINT32, v_uint, tm.tm_mday);
 			if (insn.dt_mask & HSDM_HOUR)
-				PUSH(HXB_DTYPE_UINT32, v_uint, hxbdt_hour(dt));
+				PUSH(HXB_DTYPE_UINT32, v_uint, tm.tm_hour);
 			if (insn.dt_mask & HSDM_MINUTE)
-				PUSH(HXB_DTYPE_UINT32, v_uint, hxbdt_minute(dt));
+				PUSH(HXB_DTYPE_UINT32, v_uint, tm.tm_min);
 			if (insn.dt_mask & HSDM_SECOND)
-				PUSH(HXB_DTYPE_UINT32, v_uint, hxbdt_second(dt));
+				PUSH(HXB_DTYPE_UINT32, v_uint, tm.tm_sec);
 
 			break;
 		}
@@ -869,6 +870,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		case HSO_CONV_B:
 		case HSO_CONV_U8:
 		case HSO_CONV_U32:
+		case HSO_CONV_U64:
 		case HSO_CONV_F: {
 			CHECK_POP(1);
 
@@ -877,6 +879,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 			case HSO_CONV_B: to = HXB_DTYPE_BOOL; break;
 			case HSO_CONV_U8: to = HXB_DTYPE_UINT8; break;
 			case HSO_CONV_U32: to = HXB_DTYPE_UINT32; break;
+			case HSO_CONV_U64: to = HXB_DTYPE_UINT64; break;
 			case HSO_CONV_F: to = HXB_DTYPE_FLOAT; break;
 			default: FAIL_WITH(HSE_INVALID_TYPES);
 			}

@@ -12,7 +12,7 @@
 #define LOG_LEVEL DATETIME_SERVICE_DEBUG
 #include "syslog.h"
 
-static struct hxb_datetime current_dt;
+static uint64_t current_dt;
 static bool time_valid;
 
 static struct etimer update_timer;
@@ -21,69 +21,20 @@ void updateDatetime(struct hxb_envelope* envelope)
 {
 	syslog(LOG_DEBUG, "Time: Got update.");
 
-	current_dt = envelope->value.v_datetime;
+	current_dt = envelope->value.v_u64;
 	time_valid = true;
 
 	etimer_restart(&update_timer);
 }
 
-int getDatetime(struct hxb_datetime *dt)
+int getDatetime(uint64_t* dt)
 {
-	dt->hour = current_dt.hour;
-	dt->minute = current_dt.minute;
-	dt->second = current_dt.second;
-	dt->day = current_dt.day;
-	dt->month = current_dt.month;
-	dt->year = current_dt.year;
-	dt->weekday = current_dt.weekday;
+	*dt = current_dt;
 
 	return time_valid ? 0 : -1;
 }
 
 PROCESS(datetime_service_process, "Keeps the Date and Time up-to-date\n");
-
-static void updateClock()
-{
-	if (++current_dt.second < 60)
-		return;
-
-	current_dt.second = 0;
-	if (++current_dt.minute < 60)
-		return;
-
-	current_dt.minute = 0;
-	if (++current_dt.hour < 24)
-		return;
-
-	char monthLength = 31;
-	switch (current_dt.month) {
-		case 2:
-			if ((current_dt.year % 4 == 0 && current_dt.year % 100 != 0) || current_dt.year % 400 == 0)
-				monthLength = 29;
-			else
-				monthLength = 28;
-			break;
-
-		case 4:
-		case 6:
-		case 9:
-		case 11:
-			monthLength = 30;
-			break;
-	}
-
-	current_dt.hour = 0;
-	current_dt.weekday = (current_dt.weekday + 1) % 7;
-	if (++current_dt.day <= monthLength)
-		return;
-
-	current_dt.day = 1;
-	if (++current_dt.month < 12)
-		return;
-
-	current_dt.month = 1;
-	current_dt.year++;
-}
 
 PROCESS_THREAD(datetime_service_process, ev, data)
 {
@@ -113,11 +64,11 @@ PROCESS_THREAD(datetime_service_process, ev, data)
 				skipCounter = 0;
 				continue;
 			} else if (DTS_SKIP_EVERY_N < 0 && skipCounter == -DTS_SKIP_EVERY_N) {
-				updateClock();
+				current_dt += 1;
 			}
 #endif
 
-			updateClock();
+			current_dt += 1;
 		}
 	}
 	PROCESS_END();

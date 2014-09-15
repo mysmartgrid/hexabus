@@ -30,8 +30,8 @@ class BinarySerializer : public PacketVisitor {
 		void appendValue(const ValuePacket<bool>& value);
 		void appendValue(const ValuePacket<uint8_t>& value);
 		void appendValue(const ValuePacket<uint32_t>& value);
+		void appendValue(const ValuePacket<uint64_t>& value);
 		void appendValue(const ValuePacket<float>& value);
-		void appendValue(const ValuePacket<boost::posix_time::ptime>& value);
 		void appendValue(const ValuePacket<boost::posix_time::time_duration>& value);
 		void appendValue(const ValuePacket<std::string>& value);
 		void appendValue(const ValuePacket<boost::array<char, 65> >& value);
@@ -50,8 +50,8 @@ class BinarySerializer : public PacketVisitor {
 		virtual void visit(const InfoPacket<bool>& info);
 		virtual void visit(const InfoPacket<uint8_t>& info);
 		virtual void visit(const InfoPacket<uint32_t>& info);
+		virtual void visit(const InfoPacket<uint64_t>& info);
 		virtual void visit(const InfoPacket<float>& info);
-		virtual void visit(const InfoPacket<boost::posix_time::ptime>& info);
 		virtual void visit(const InfoPacket<boost::posix_time::time_duration>& info);
 		virtual void visit(const InfoPacket<std::string>& info);
 		virtual void visit(const InfoPacket<boost::array<char, 16> >& info);
@@ -60,8 +60,8 @@ class BinarySerializer : public PacketVisitor {
 		virtual void visit(const WritePacket<bool>& write);
 		virtual void visit(const WritePacket<uint8_t>& write);
 		virtual void visit(const WritePacket<uint32_t>& write);
+		virtual void visit(const WritePacket<uint64_t>& write);
 		virtual void visit(const WritePacket<float>& write);
-		virtual void visit(const WritePacket<boost::posix_time::ptime>& write);
 		virtual void visit(const WritePacket<boost::posix_time::time_duration>& write);
 		virtual void visit(const WritePacket<std::string>& write);
 		virtual void visit(const WritePacket<boost::array<char, 65> >& write);
@@ -186,26 +186,21 @@ void BinarySerializer::appendValue(const ValuePacket<uint32_t>& value)
 	appendCRC();
 }
 
+void BinarySerializer::appendValue(const ValuePacket<uint64_t>& value)
+{
+	appendValueHeader(value);
+
+	append_u32(value.value() >> 32);
+	append_u32(value.value() & 0xFFFFFFFF);
+
+	appendCRC();
+}
+
 void BinarySerializer::appendValue(const ValuePacket<float>& value)
 {
 	appendValueHeader(value);
 
 	append_float(value.value());
-
-	appendCRC();
-}
-
-void BinarySerializer::appendValue(const ValuePacket<boost::posix_time::ptime>& value)
-{
-	appendValueHeader(value);
-
-	append_u8(value.value().time_of_day().hours());
-	append_u8(value.value().time_of_day().minutes());
-	append_u8(value.value().time_of_day().seconds());
-	append_u8(value.value().date().day());
-	append_u8(value.value().date().month());
-	append_u16(value.value().date().year());
-	append_u8(value.value().date().day_of_week());
 
 	appendCRC();
 }
@@ -253,8 +248,8 @@ void BinarySerializer::visit(const EndpointInfoPacket& endpointInfo) { appendVal
 void BinarySerializer::visit(const InfoPacket<bool>& info) { appendValue(info); }
 void BinarySerializer::visit(const InfoPacket<uint8_t>& info) { appendValue(info); }
 void BinarySerializer::visit(const InfoPacket<uint32_t>& info) { appendValue(info); }
+void BinarySerializer::visit(const InfoPacket<uint64_t>& info) { appendValue(info); }
 void BinarySerializer::visit(const InfoPacket<float>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<boost::posix_time::ptime>& info) { appendValue(info); }
 void BinarySerializer::visit(const InfoPacket<boost::posix_time::time_duration>& info) { appendValue(info); }
 void BinarySerializer::visit(const InfoPacket<std::string>& info) { appendValue(info); }
 void BinarySerializer::visit(const InfoPacket<boost::array<char, 16> >& info) { appendValue(info); }
@@ -263,8 +258,8 @@ void BinarySerializer::visit(const InfoPacket<boost::array<char, 65> >& info) { 
 void BinarySerializer::visit(const WritePacket<bool>& write) { appendValue(write); }
 void BinarySerializer::visit(const WritePacket<uint8_t>& write) { appendValue(write); }
 void BinarySerializer::visit(const WritePacket<uint32_t>& write) { appendValue(write); }
+void BinarySerializer::visit(const WritePacket<uint64_t>& write) { appendValue(write); }
 void BinarySerializer::visit(const WritePacket<float>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<boost::posix_time::ptime>& write) { appendValue(write); }
 void BinarySerializer::visit(const WritePacket<boost::posix_time::time_duration>& write) { appendValue(write); }
 void BinarySerializer::visit(const WritePacket<std::string>& write) { appendValue(write); }
 void BinarySerializer::visit(const WritePacket<boost::array<char, 16> >& write) { appendValue(write); }
@@ -457,30 +452,14 @@ Packet::Ptr BinaryDeserializer::deserialize()
 					case HXB_DTYPE_UINT32:
 						return checkInfo<uint32_t>(info, eid, read_u32(), flags);
 
+					case HXB_DTYPE_UINT64: {
+						uint64_t high = read_u32();
+						uint64_t low = read_u32();
+						return checkInfo<uint64_t>(info, eid, (high << 32) | low, flags);
+					}
+
 					case HXB_DTYPE_FLOAT:
 						return checkInfo<float>(info, eid, read_float(), flags);
-
-					case HXB_DTYPE_DATETIME:
-						{
-							uint8_t hour = read_u8();
-							uint8_t minute = read_u8();
-							uint8_t second = read_u8();
-							uint8_t day = read_u8();
-							uint8_t month = read_u8();
-							uint16_t year = read_u8();
-							uint8_t weekday = read_u8();
-
-							boost::posix_time::ptime dt(
-								boost::gregorian::date(year, month, day),
-								boost::posix_time::hours(hour)
-									+ boost::posix_time::minutes(minute)
-									+ boost::posix_time::seconds(second));
-
-							if (dt.date().day_of_week() != weekday)
-								throw BadPacketException("Invalid datetime format");
-
-							return checkInfo<boost::posix_time::ptime>(info, eid, dt, flags);
-						}
 
 					case HXB_DTYPE_TIMESTAMP:
 						return checkInfo<boost::posix_time::time_duration>(info, eid, boost::posix_time::seconds(read_u32()), flags);

@@ -12,7 +12,7 @@ namespace sm {
 
 class Machine {
 	public:
-		typedef boost::variant<bool, uint8_t, uint32_t, float> write_value_t;
+		typedef boost::variant<bool, uint8_t, uint32_t, uint64_t, float> write_value_t;
 		typedef boost::signals2::signal<uint8_t (uint32_t, write_value_t)> write_signal_t;
 
 	private:
@@ -25,7 +25,7 @@ class Machine {
 		uint32_t sm_curstate, sm_in_state_since, sm_first_run;
 
 		std::vector<uint8_t> _program;
-		boost::posix_time::ptime _created_at;
+		uint64_t _created_at;
 		write_signal_t _on_write;
 
 		int sm_get_block(uint16_t at, uint8_t size, void* block);
@@ -35,7 +35,7 @@ class Machine {
 		int sm_get_float(uint16_t at, float* f);
 		uint8_t sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val);
 		uint32_t sm_get_timestamp();
-		hxb_datetime_t sm_get_systime();
+		static uint64_t sm_get_systime();
 		void sm_diag_msg(int code, const char* file, int line);
 
 		int sm_get_instruction(uint16_t at, struct hxb_sm_instruction* op);
@@ -46,7 +46,7 @@ class Machine {
 		Machine(const std::vector<uint8_t>& program)
 			: sm_curstate(0), sm_in_state_since(0), sm_first_run(true),
 			  _program(program),
-			  _created_at(boost::posix_time::second_clock::local_time())
+			  _created_at(sm_get_systime())
 		{
 		}
 

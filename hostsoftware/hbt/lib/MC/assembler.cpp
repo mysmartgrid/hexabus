@@ -119,32 +119,17 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 			}
 			throw std::runtime_error("invalid program assembled");
 
-		case Opcode::LD_FLOAT:
-			if (auto* i = dynamic_cast<const ImmediateInstruction<float>*>(insn)) {
-				append_f(i->immed());
+		case Opcode::LD_U64:
+			if (auto* i = dynamic_cast<const ImmediateInstruction<uint64_t>*>(insn)) {
+				append_u32(i->immed() >> 32);
+				append_u32(i->immed() & 0xFFFFFFFF);
 				break;
 			}
 			throw std::runtime_error("invalid program assembled");
 
-		case Opcode::LD_DT:
-			if (auto* i = dynamic_cast<const ImmediateInstruction<std::tuple<DTMask, DateTime>>*>(insn)) {
-				auto has = [] (DTMask a, DTMask b) {
-					return (a & b) == b;
-				};
-
-				DTMask mask = std::get<0>(i->immed());
-				DateTime dt = std::get<1>(i->immed());
-
-				append_u8(uint8_t(mask));
-
-				if (has(mask, DTMask::second)) append_u8(dt.second());
-				if (has(mask, DTMask::minute)) append_u8(dt.minute());
-				if (has(mask, DTMask::hour)) append_u8(dt.hour());
-				if (has(mask, DTMask::day)) append_u8(dt.day());
-				if (has(mask, DTMask::month)) append_u8(dt.month());
-				if (has(mask, DTMask::year)) append_u16(dt.year());
-				if (has(mask, DTMask::weekday)) append_u8(dt.weekday());
-
+		case Opcode::LD_FLOAT:
+			if (auto* i = dynamic_cast<const ImmediateInstruction<float>*>(insn)) {
+				append_f(i->immed());
 				break;
 			}
 			throw std::runtime_error("invalid program assembled");
@@ -215,7 +200,6 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 		case Opcode::SHL:
 		case Opcode::SHR:
 		case Opcode::GETTYPE:
-		case Opcode::DT_DIFF:
 		case Opcode::CMP_IP_LO:
 		case Opcode::CMP_LT:
 		case Opcode::CMP_LE:
@@ -226,6 +210,7 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 		case Opcode::CONV_B:
 		case Opcode::CONV_U8:
 		case Opcode::CONV_U32:
+		case Opcode::CONV_U64:
 		case Opcode::CONV_F:
 		case Opcode::WRITE:
 		case Opcode::POP:

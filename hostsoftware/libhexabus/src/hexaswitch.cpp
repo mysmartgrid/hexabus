@@ -165,8 +165,8 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 					case HXB_DTYPE_UINT32:
 						target << "UInt32";
 						break;
-					case HXB_DTYPE_DATETIME:
-						target << "Datetime";
+					case HXB_DTYPE_UINT64:
+						target << "UInt64";
 						break;
 					case HXB_DTYPE_FLOAT:
 						target << "Float";
@@ -200,8 +200,8 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::InfoPacket<bool>& info) { printValuePacket(info, "Bool"); }
 		virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { printValuePacket(info, "UInt8"); }
 		virtual void visit(const hexabus::InfoPacket<uint32_t>& info) { printValuePacket(info, "UInt32"); }
+		virtual void visit(const hexabus::InfoPacket<uint64_t>& info) { printValuePacket(info, "UInt64"); }
 		virtual void visit(const hexabus::InfoPacket<float>& info) { printValuePacket(info, "Float"); }
-		virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) { printValuePacket(info, "Datetime"); }
 		virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info) { printValuePacket(info, "Timestamp"); }
 		virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "String"); }
 		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (16 bytes)"); }
@@ -210,8 +210,8 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::WritePacket<bool>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint32_t>& write) {}
+		virtual void visit(const hexabus::WritePacket<uint64_t>& write) {}
 		virtual void visit(const hexabus::WritePacket<float>& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) {}
 		virtual void visit(const hexabus::WritePacket<std::string>& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& write) {}
@@ -288,6 +288,13 @@ ErrorCode send_value_packet(hexabus::Socket& net, const boost::asio::ip::address
 					return send_packet(net, ip, ValuePacket<uint32_t>(eid, u32));
 				}
 
+			case HXB_DTYPE_UINT64:
+				{
+					uint64_t u64 = boost::lexical_cast<uint64_t>(value);
+					std::cout << "Sending value " << u64 << std::endl;
+					return send_packet(net, ip, ValuePacket<uint64_t>(eid, u64));
+				}
+
 			case HXB_DTYPE_FLOAT:
 				{
 					float f = boost::lexical_cast<float>(value);
@@ -337,7 +344,7 @@ int main(int argc, char** argv) {
     ("bind,b", po::value<std::string>(), "local IP address to use")
     ("interface,I", po::value<std::vector<std::string> >(), "for listen: interface to listen on. otherwise: outgoing interface for multicasts")
     ("eid,e", po::value<uint32_t>(), "Endpoint ID (EID)")
-    ("datatype,d", po::value<unsigned int>(), "{1: Bool | 2: UInt8 | 3: UInt32 | 4: HexaTime | 5: Float | 6: String}")
+    ("datatype,d", po::value<unsigned int>(), "{1: Bool | 2: UInt8 | 3: UInt32 | 4: UInt64 | 5: Float | 6: String}")
     ("value,v", po::value<std::string>(), "Value")
     ("reliable,r", po::bool_switch(), "Reliable initialization of network access (adds delay, only needed for broadcasts)")
     ("oneline", po::bool_switch(), "Print each receive packet on one line")
