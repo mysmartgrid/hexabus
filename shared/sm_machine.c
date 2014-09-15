@@ -441,7 +441,6 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 {
 	uint16_t addr = 0;
 	int8_t top = -1;
-	hxb_sm_value_t stack[SM_STACK_SIZE];
 	struct hxb_sm_instruction insn;
 	int ret = 0;
 
@@ -481,7 +480,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		top++; \
 		TOP = val; \
 	} while (0)
-#define TOP_N(n) (stack[top - n])
+#define TOP_N(n) (sm_stack[top - n])
 #define TOP TOP_N(0)
 
 	if (sm_first_run) {
@@ -630,7 +629,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 
 			CHECK_POP(offset + 1);
 			hxb_sm_value_t val = TOP_N(offset);
-			memmove(stack + top - offset, stack + top - offset + 1, offset * sizeof(stack[0]));
+			memmove(sm_stack + top - offset, sm_stack + top - offset + 1, offset * sizeof(sm_stack[0]));
 			TOP = val;
 			break;
 		}

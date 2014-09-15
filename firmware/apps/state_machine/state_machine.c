@@ -33,6 +33,7 @@ enum {
 };
 
 static uint8_t sm_memory[SM_MEMORY_SIZE];
+static hxb_sm_value_t sm_stack[SM_STACK_SIZE];
 static uint32_t sm_curstate, sm_in_state_since;
 static bool sm_first_run;
 

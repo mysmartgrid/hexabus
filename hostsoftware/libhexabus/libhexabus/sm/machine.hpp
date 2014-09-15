@@ -22,6 +22,7 @@ class Machine {
 		};
 
 		uint8_t sm_memory[SM_MEMORY_SIZE];
+		hxb_sm_value_t sm_stack[SM_STACK_SIZE];
 		uint32_t sm_curstate, sm_in_state_since, sm_first_run;
 
 		std::vector<uint8_t> _program;
