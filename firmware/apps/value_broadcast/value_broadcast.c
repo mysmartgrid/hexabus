@@ -86,7 +86,6 @@ static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, voi
 			break;
 
 		case HXB_DTYPE_UINT32:
-		case HXB_DTYPE_TIMESTAMP:
 			buffer->p_u32.value = val.v_u32;
 			break;
 

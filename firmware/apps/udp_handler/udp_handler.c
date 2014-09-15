@@ -120,7 +120,6 @@ static size_t prepare_for_send(union hxb_packet_any* packet)
 		case HXB_PTYPE_WRITE:
 			packet->eid_header.eid = uip_htonl(packet->eid_header.eid);
 			switch ((enum hxb_datatype) packet->value_header.datatype) {
-				case HXB_DTYPE_TIMESTAMP:
 				case HXB_DTYPE_UINT32:
 					len = sizeof(packet->p_u32);
 					packet->p_u32.value = uip_htonl(packet->p_u32.value);
@@ -268,7 +267,6 @@ static enum hxb_error_code check_crc(const union hxb_packet_any* packet)
 					break;
 
 				case HXB_DTYPE_UINT32:
-				case HXB_DTYPE_TIMESTAMP:
 					data_len = sizeof(packet->p_u32);
 					crc = packet->p_u32.crc;
 					break;
@@ -339,7 +337,6 @@ static enum hxb_error_code extract_value(union hxb_packet_any* packet, struct hx
 			break;
 
 		case HXB_DTYPE_UINT32:
-		case HXB_DTYPE_TIMESTAMP:
 			value->v_u32 = uip_ntohl(packet->p_u32.value);
 			break;
 
@@ -424,7 +421,6 @@ static enum hxb_error_code generate_query_response(union hxb_packet_any* buffer,
 			break;
 
 		case HXB_DTYPE_UINT32:
-		case HXB_DTYPE_TIMESTAMP:
 			buffer->p_u32.value = value.v_u32;
 			break;
 

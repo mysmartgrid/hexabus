@@ -122,8 +122,6 @@ void EndpointRegistry::reload()
 			type = HXB_DTYPE_FLOAT;
 		else if (boost::equals(type_str, "128STRING"))
 			type = HXB_DTYPE_128STRING;
-		else if (boost::equals(type_str, "TIMESTAMP"))
-			type = HXB_DTYPE_TIMESTAMP;
 		else if (boost::equals(type_str, "65BYTES"))
 			type = HXB_DTYPE_65BYTES;
 		else if (boost::equals(type_str, "16BYTES"))

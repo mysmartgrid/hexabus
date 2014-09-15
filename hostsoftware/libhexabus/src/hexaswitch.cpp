@@ -171,9 +171,6 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 					case HXB_DTYPE_FLOAT:
 						target << "Float";
 						break;
-					case HXB_DTYPE_TIMESTAMP:
-						target << "Timestamp";
-						break;
 					case HXB_DTYPE_128STRING:
 						target << "String";
 						break;
@@ -202,7 +199,6 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::InfoPacket<uint32_t>& info) { printValuePacket(info, "UInt32"); }
 		virtual void visit(const hexabus::InfoPacket<uint64_t>& info) { printValuePacket(info, "UInt64"); }
 		virtual void visit(const hexabus::InfoPacket<float>& info) { printValuePacket(info, "Float"); }
-		virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info) { printValuePacket(info, "Timestamp"); }
 		virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "String"); }
 		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (16 bytes)"); }
 		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (65 bytes)"); }
@@ -212,7 +208,6 @@ struct PacketPrinter : public hexabus::PacketVisitor {
 		virtual void visit(const hexabus::WritePacket<uint32_t>& write) {}
 		virtual void visit(const hexabus::WritePacket<uint64_t>& write) {}
 		virtual void visit(const hexabus::WritePacket<float>& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) {}
 		virtual void visit(const hexabus::WritePacket<std::string>& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& write) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& write) {}
