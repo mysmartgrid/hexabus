@@ -73,7 +73,6 @@ struct hxb_value {
 		uint64_t  v_u64;
 		float     v_float;
 		char*     v_string;
-		uint32_t  v_timestamp;
 		char*     v_binary;
 	};
 } __attribute__((packed));
