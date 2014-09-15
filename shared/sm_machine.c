@@ -380,7 +380,7 @@ int SM_EXPORT(sm_load_mem)(const struct hxb_sm_instruction* insn, hxb_sm_value_t
 
 	case HSM_U64:
 		value->type = HXB_DTYPE_UINT64;
-		MEM_OP(v_uint, uint64_t);
+		MEM_OP(v_uint64, uint64_t);
 		break;
 
 	case HSM_FLOAT:
@@ -423,7 +423,7 @@ int SM_EXPORT(sm_store_mem)(const struct hxb_sm_instruction* insn, const hxb_sm_
 		break;
 
 	case HSM_U64:
-		MEM_OP(v_uint, uint64_t);
+		MEM_OP(v_uint64, uint64_t);
 		break;
 
 	case HSM_FLOAT:
