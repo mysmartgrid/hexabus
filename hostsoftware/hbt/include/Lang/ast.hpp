@@ -599,34 +599,65 @@ public:
 
 
 
-class MachineClass : public ProgramPart {
+class MachineBody {
 private:
-	SourceLocation _sloc;
-	std::vector<Identifier> _parameters;
 	std::vector<DeclarationStmt> _variables;
 	std::vector<State> _states;
 
-public:
-	MachineClass(SourceLocation&& sloc, std::vector<Identifier>&& parameters, std::vector<DeclarationStmt>&& variables,
-			std::vector<State>&& states)
-		: _sloc(std::move(sloc)), _parameters(std::move(_parameters)), _variables(std::move(variables)),
-		  _states(std::move(states))
+protected:
+	MachineBody(std::vector<DeclarationStmt>&& variables, std::vector<State>&& states)
+		: _variables(std::move(variables)), _states(std::move(states))
 	{}
 
-	const SourceLocation& sloc() const { return _sloc; }
-	const std::vector<Identifier>& parameters() const { return _parameters; }
+public:
 	const std::vector<DeclarationStmt>& variables() const { return _variables; }
 	const std::vector<State>& states() const { return _states; }
 };
 
-class Machine : public ProgramPart {
+class MachineClass : public ProgramPart {
+private:
+	SourceLocation _sloc;
+	Identifier _name;
+	std::vector<Identifier> _parameters;
+	MachineBody _body;
+
+public:
+	MachineClass(SourceLocation&& sloc, Identifier&& name, std::vector<Identifier>&& parameters,
+			MachineBody&& body)
+		: _sloc(std::move(sloc)), _name(std::move(name)), _parameters(std::move(_parameters)),
+		  _body(std::move(body))
+	{}
+
+	const SourceLocation& sloc() const { return _sloc; }
+	const Identifier& name() const { return _name; }
+	const std::vector<Identifier>& parameters() const { return _parameters; }
+	const MachineBody& body() const { return _body; }
+};
+
+class MachineDefinition : public ProgramPart {
+private:
+	SourceLocation _sloc;
+	Identifier _name;
+	MachineBody _body;
+
+public:
+	MachineDefinition(SourceLocation&& sloc, Identifier&& name, MachineBody&& body)
+		: _sloc(std::move(sloc)), _name(std::move(name)), _body(std::move(body))
+	{}
+
+	const SourceLocation& sloc() const { return _sloc; }
+	const Identifier& name() const { return _name; }
+	const MachineBody& body() const { return _body; }
+};
+
+class MachineInstantiation : public ProgramPart {
 private:
 	SourceLocation _sloc;
 	const MachineClass* _instanceOf;
 	std::vector<std::unique_ptr<Expr>> _arguments;
 
 public:
-	Machine(SourceLocation&& sloc, const MachineClass* instanceOf, std::vector<std::unique_ptr<Expr>>&& arguments)
+	MachineInstantiation(SourceLocation&& sloc, const MachineClass* instanceOf, std::vector<std::unique_ptr<Expr>>&& arguments)
 		: _sloc(std::move(sloc)), _instanceOf(instanceOf), _arguments(std::move(arguments))
 	{}
 
