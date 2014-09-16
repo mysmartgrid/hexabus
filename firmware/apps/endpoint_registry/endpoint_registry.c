@@ -5,8 +5,7 @@
 #include "hexabus_config.h"
 #include "nvm.h"
 
-//#define LOG_LEVEL ENDPOINT_REGISTRY_DEBUG
-#define LOG_LEVEL LOG_DEBUG
+#define LOG_LEVEL ENDPOINT_REGISTRY_DEBUG
 #include "syslog.h"
 
 static const char str_dev_info[] RODATA = "Device Information";
@@ -183,7 +182,7 @@ void _property_register(const struct endpoint_property_descriptor* epp, struct e
 #endif
 	struct endpoint_property_descriptor epp_copy;
 	memcpy_from_rodata(&epp_copy, epp, sizeof(epp_copy));
-	syslog(LOG_DEBUG, "Registering %u %lu %lu\n", epp_copy.datatype, epp_copy.eid, epp_copy.propid);
+	syslog(LOG_DEBUG, "Registering Type %u on EID %lu with PropID %lu\n", epp_copy.datatype, epp_copy.eid, epp_copy.propid);
 
 	chain_link->value = next_nvm_addr;
 

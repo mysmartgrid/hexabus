@@ -46,16 +46,12 @@ struct hxb_nvm_layout {
 	uint16_t metering_cal_load;
 	uint8_t metering_cal_flag;
 
-	uint8_t relay_default;
-
 	uint8_t forwarding;
 
 	struct hxb_sm_nvm_layout sm;
 
-	/* pad by SIZE - trailer - leader to fill EEP_SIZE exactly */
-	uint8_t __padding[EEP_SIZE - 1544 - (70 + sizeof(struct hxb_sm_nvm_layout))];
-
-	uint8_t endpoint_properties[1536];
+	/* use the remaining space for properties (EEP_SIZE - trailer - leader)*/
+	uint8_t endpoint_properties[EEP_SIZE - 8 - (69 + sizeof(struct hxb_sm_nvm_layout))];
 
 	uint32_t energy_metering_pulses;
 	uint32_t energy_metering_pulses_total;
