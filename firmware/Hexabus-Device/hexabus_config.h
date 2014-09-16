@@ -16,12 +16,9 @@ _DEBUG options should be set to:
 #include <stdbool.h>
 
 // options common to all incarnations of Hexabus devices
-#define UDP_HANDLER_DEBUG LOG_DEBUG
+#define UDP_HANDLER_DEBUG 0
 
 #define ENDPOINT_REGISTRY_DEBUG 0
-
-// WebServer
-#define WEBSERVER_DEBUG 0
 
 // Memory debugger process
 #define MEMORY_DEBUGGER_ENABLE 0

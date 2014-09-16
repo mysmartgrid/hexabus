@@ -11,12 +11,8 @@
 #include "health.h"
 #include "udp_handler.h"
 #include "state_machine.h"
-
-#if WEBSERVER
-#include "httpd-fs.h"
-#include "httpd-cgi.h"
-#include "webserver-nogui.h"
-#endif
+#include "endpoint_registry.h"
+#include "endpoints.h"
 
 #if HEXABUS_BOOTSTRAP_DEBUG
 #include <stdio.h>
@@ -169,9 +165,17 @@ static void hexabus_bootstrap_init_apps()
 	init_stm_apps();
 }
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_devname_name = {
+	.datatype = HXB_DTYPE_128STRING,
+	.eid = EP_DEVICE_DESCRIPTOR,
+	.propid = EP_PROP_NAME,
+};
+
 static void hexabus_bootstrap_start_processes()
 {
 	PRINTF("Starting processes...\n");
+
+	ENDPOINT_PROPERTY_REGISTER(prop_devname_name);
 
 	process_start(&udp_handler_process, NULL);
 
@@ -185,10 +189,6 @@ static void hexabus_bootstrap_start_processes()
 #endif
 
 	process_start(&button_pressed_process, NULL);
-
-#if WEBSERVER
-	process_start(&webserver_nogui_process, NULL);
-#endif
 
 	start_socket_processes();
 	start_stm_processes();

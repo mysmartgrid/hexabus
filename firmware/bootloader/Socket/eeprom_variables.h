@@ -60,10 +60,7 @@
 #define EE_ENCRYPTION_KEY		( EE_FIRST_RUN_FLAG + EE_FIRST_RUN_FLAG_SIZE )		//128bit AES key for encryption
 #define EE_ENCRYPTION_KEY_SIZE 16
 
-#define EE_DOMAIN_NAME		( EE_ENCRYPTION_KEY + EE_ENCRYPTION_KEY_SIZE )			// Domain name of Webserver (30 Byte)
-#define EE_DOMAIN_NAME_SIZE		30
-
-#define EE_METERING_REF  	( EE_DOMAIN_NAME + EE_DOMAIN_NAME_SIZE )          		// Reference value for power measurement (2 Byte)
+#define EE_METERING_REF  	( EE_ENCRYPTION_KEY + EE_ENCRYPTION_KEY_SIZE )          		// Reference value for power measurement (2 Byte)
 #define EE_METERING_REF_SIZE	        2
 
 #define EE_METERING_CAL_LOAD    ( EE_METERING_REF + EE_METERING_REF_SIZE ) 	        // Load power for calibration (2 Byte)
