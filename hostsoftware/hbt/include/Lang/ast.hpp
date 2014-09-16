@@ -1,11 +1,11 @@
 #ifndef INCLUDE_LANG_AST_HPP_4EAF8E6910F9343C
 #define INCLUDE_LANG_AST_HPP_4EAF8E6910F9343C
 
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <string>
 #include <type_traits>
-#include <unordered_map>
 #include <vector>
 
 namespace hbt {
@@ -138,22 +138,23 @@ class Device : public ProgramPart {
 private:
 	SourceLocation _sloc;
 	Identifier _name;
-	std::unordered_map<std::string, const Endpoint*> _endpoints;
+	std::array<uint8_t, 16> _address;
+	std::vector<const Endpoint*> _endpoints;
 
 public:
-	Device(SourceLocation&& sloc, Identifier&& name, std::unordered_map<std::string, const Endpoint*>&& endpoints)
-		: _sloc(std::move(sloc)), _name(std::move(name)), _endpoints(std::move(endpoints))
+	Device(SourceLocation&& sloc, Identifier&& name, const std::array<uint8_t, 16>& address,
+			std::vector<const Endpoint*>&& endpoints)
+		: _sloc(std::move(sloc)), _name(std::move(name)), _address(address), _endpoints(std::move(endpoints))
 	{}
 
 	const SourceLocation& sloc() const { return _sloc; }
 	const Identifier& name() const { return _name; }
+	const std::array<uint8_t, 16>& address() const { return _address; }
+	const std::vector<const Endpoint*>& endpoints() const { return _endpoints; }
 
-	const Endpoint* endpoint(const std::string& name) const
+	bool hasEndpoint(const Endpoint& ep) const
 	{
-		auto it = _endpoints.find(name);
-		return it == _endpoints.end()
-			? nullptr
-			: it->second;
+		return std::count(_endpoints.begin(), _endpoints.end(), &ep);
 	}
 };
 
