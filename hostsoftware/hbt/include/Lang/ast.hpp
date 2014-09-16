@@ -87,22 +87,49 @@ public:
 
 
 
+enum class EndpointAccess {
+	Read          = 0x01,
+	Write         = 0x02,
+	NonLocalWrite = 0x04,
+	Broadcast     = 0x08,
+};
+
+inline EndpointAccess operator&(EndpointAccess a, EndpointAccess b)
+{ return static_cast<EndpointAccess>(static_cast<unsigned>(a) & static_cast<unsigned>(b)); }
+
+inline EndpointAccess operator|(EndpointAccess a, EndpointAccess b)
+{ return static_cast<EndpointAccess>(static_cast<unsigned>(a) | static_cast<unsigned>(b)); }
+
+inline EndpointAccess operator^(EndpointAccess a, EndpointAccess b)
+{ return static_cast<EndpointAccess>(static_cast<unsigned>(a) ^ static_cast<unsigned>(b)); }
+
+inline EndpointAccess operator~(EndpointAccess a)
+{ return static_cast<EndpointAccess>(~static_cast<unsigned>(a) & 0x0f); }
+
+inline EndpointAccess operator&=(EndpointAccess& a, EndpointAccess b)
+{ a = a & b; return a; }
+
+inline EndpointAccess operator|=(EndpointAccess& a, EndpointAccess b)
+{ a = a | b; return a; }
+
 class Endpoint : public ProgramPart {
 private:
 	SourceLocation _sloc;
 	Identifier _name;
 	uint32_t _eid;
 	Type _type;
+	EndpointAccess _access;
 
 public:
-	Endpoint(SourceLocation&& sloc, Identifier&& name, uint32_t eid, Type type)
-		: _sloc(std::move(sloc)), _name(std::move(name)), _eid(eid), _type(type)
+	Endpoint(SourceLocation&& sloc, Identifier&& name, uint32_t eid, Type type, EndpointAccess access)
+		: _sloc(std::move(sloc)), _name(std::move(name)), _eid(eid), _type(type), _access(access)
 	{}
 
 	const SourceLocation& sloc() const { return _sloc; }
 	const Identifier& name() const { return _name; }
 	uint32_t eid() const { return _eid; }
 	Type type() const { return _type; }
+	EndpointAccess access() const { return _access; }
 };
 
 
