@@ -20,7 +20,7 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 		}
 
 		var devices = {};
-		var used = view.devices;
+		var used = view.endpoints;
 
 		devicetree.forEach(function(device) {
 			var entry = devices[device.ip] = { name: device.name, ip: device.ip, eids: [] };
@@ -38,7 +38,7 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 		res.render('view/edit.ejs', {
 			active_nav: 'configuration',
 			known_devices: devices,
-			used_devices: used,
+			used_endpoints: used,
 			view_name: view.name,
 			view_id: req.params.id
 		});
@@ -52,11 +52,10 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 			return;
 		}
 
-		view.devices = JSON.parse(req.body.device_order);
-		view.name = req.body.view_name;
+		console.log(req.body.endpoint_order);
 
-		var devicetree_file = nconf.get('config') + '/devicetree.json';
-		devicetree.save(devicetree_file);
+		view.endpoints = JSON.parse(req.body.endpoint_order);
+		view.name = req.body.view_name;
 
 		res.redirect('/');
 	});
@@ -70,9 +69,6 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 		}
 		
 		devicetree.removeView(req.params.id);
-		
-		var devicetree_file = nconf.get('config') + '/devicetree.json';
-		devicetree.save(devicetree_file);
 
 		res.redirect('/');
 	});

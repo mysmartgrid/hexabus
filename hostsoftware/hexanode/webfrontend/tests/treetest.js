@@ -1,11 +1,15 @@
 'use strict';
 
 var assert = require('assert');
+var fs = require('fs');
 
-var DeviceTree = require('./lib/devicetree');
+var DeviceTree = require('../lib/devicetree');
 
-var tree = new DeviceTree('devicetree.json');
-var tree2 = new DeviceTree('devicetree.json');
+console.log(DeviceTree);
+
+var jsonTree = JSON.parse(fs.readFileSync('../devicetree.json'));
+var tree = new DeviceTree(jsonTree);
+var tree2 = new DeviceTree(jsonTree);
 
 
 tree.on('update',function(update) {
@@ -24,14 +28,14 @@ var assertEqualTrees = function(msg) {
 	assert.equal(JSON.stringify(tree.toJSON(),null,'\t'), JSON.stringify(tree2.toJSON(),null,'\t'), msg);
 };
 
-tree.views['9ce90c6a-6ada-4971-b7cd-3268ec2dad4d'].name = 'New Name';
-assertEqualTrees('View name change failed');
-
-tree.views['9ce90c6a-6ada-4971-b7cd-3268ec2dad4d'].devices = ['caca::50:c4ff:fe04:8341.2'];
-assertEqualTrees('View device list change failed');
-
 var view = tree.addView('FooBarz',['caca::50:c4ff:fe04:8341.42']);
 assertEqualTrees('Adding view failed');
+
+tree.views[view.id].name = 'New Name';
+assertEqualTrees('View name change failed');
+
+tree.views[view.id].endpoints = ['caca::50:c4ff:fe04:8341.2'];
+assertEqualTrees('View endpoints list change failed');
 
 tree.removeView(view.id);
 assertEqualTrees('Removing view failed');

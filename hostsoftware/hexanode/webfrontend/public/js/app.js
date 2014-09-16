@@ -6,102 +6,89 @@ angular.module('dashboard', [
 	'controls'
 ])
 .controller('dashboardController', ['$scope', 'Socket', '$timeout', 'Lang', function($scope, Socket, $timeout, Lang) {
-	var lastSensorValueReceivedAt;
+	var hexabusclient = new window.HexabusClient(Socket);
 
-	var pendingUpdateControl = null;
+	$scope.devicetree = new window.DeviceTree();
+	$scope.endpointById = $scope.devicetree.endpoint_by_id.bind($scope.devicetree);
+
+	var lastTreeUpdateReceivedAt;
 
 	$scope.lastUpdate = "never";
-
-	$scope.sensorList = {};
-	$scope.actorList = {};
-	$scope.views = window.all_views;
+	$scope.errorMessage = "";
 
 	$scope.current_view = {};
 	$scope.hide_unitless = true;
 
-	$scope.setView = function(view) {
-		if (view == "sensors") {
-			$("#view-name").text(Lang.pack["dashboard"]["all-sensors"]);
+	var getEndpointsByFunction = function(fun) {
+		var endpoints = [];
+
+		$scope.devicetree.forEach(function(device) {
+			device.forEachEndpoint(function(endpoint) {
+				if(endpoint.function == fun) {
+					endpoints.push(endpoint.id);
+				}
+			});
+		});
+
+		return endpoints;
+	};
+
+	$scope.setView = function(view_id) {
+		if (view_id == "sensors") {
 			$scope.current_view = {
-				view: "sensors",
-				endpoints: $scope.sensorList
+				id: "sensors",
+				name: Lang.pack["dashboard"]["all-sensors"],
+				endpoints: getEndpointsByFunction('sensor')
 			};
 			$scope.hide_unitless = true;
-		} else if (view == "actors") {
-			$("#view-name").text(Lang.pack["dashboard"]["all-actors"]);
+		} else if (view_id == "actors") {
 			$scope.current_view = {
-				view: "actors",
-				endpoints: $scope.actorList
+				id: "actors",
+				name: Lang.pack["dashboard"]["all-actors"],
+				endpoints: getEndpointsByFunction('actor')
 			};
 			$scope.hide_unitless = false;
 		} else {
-			$("#view-name").text(view.name);
+			$scope.current_view = $scope.devicetree.views[view_id];
 			$scope.hide_unitless = false;
-
-			$scope.current_view = {
-				view: view,
-				endpoints: []
-			};
-			view.devices.forEach(function(id) {
-				if ($scope.sensorList[id]) {
-					$scope.current_view.endpoints.push($scope.sensorList[id]);
-				} else if ($scope.actorList[id]) {
-					$scope.current_view.endpoints.push($scope.actorList[id]);
-				}
-			});
 		}
+		console.log('SetView: ' + view_id);
 	};
 
-	$scope.setView("sensors");
 
-	var updateDisplayScheduled;
-	var updateDisplay = function() {
-		if (updateDisplayScheduled) {
-			$timeout.cancel(updateDisplayScheduled);
-		}
-
-		updateDisplayScheduled = $timeout(function() {
-			lastSensorValueReceivedAt = new Date();
-			keepLastUpdateCurrent();
-
-			if (pendingUpdateControl) {
-				pendingUpdateControl.focus();
-			}
-
-			if ($scope.current_view.view == "sensors" || $scope.current_view.view == "actors") {
-				$scope.setView($scope.current_view.view);
-			}
-		}, 100);
-	};
+	var pendingUpdateControl = null;
 
 	$scope.editBegin = function(endpoint, data) {
-		pendingUpdateControl = $scope.sensorList[endpoint.id].control;
+		pendingUpdateControl = $scope.devicetree.endpoint_by_id(endpoint.id).control;
 	};
 
 	var sensorEditDone = function(endpoint, data) {
-		var entry = $scope.sensorList[endpoint.id];
+		var entry = $scope.devicetree.endpoint_by_id(endpoint.id);
 		if (data.minvalue !== undefined) {
-			entry.control.cover();
-			Socket.emit('ep_change_metadata', { id: endpoint.id, data: { minvalue: data.minvalue } });
+			hexabusclient.updateEndpointMetadata(entry, 'minvalue', data.minvalue);
 		} else if (data.maxvalue !== undefined) {
-			entry.control.cover();
-			Socket.emit('ep_change_metadata', { id: endpoint.id, data: { maxvalue: data.maxvalue } });
+			hexabusclient.updateEndpointMetadata(entry, 'maxvalue', data.maxvalue);
 		} else if (data.name !== undefined) {
 			entry.control.coverClass();
-			Socket.emit('device_rename', { device: endpoint.ip, name: data.name });
+			hexabusclient.renameDevice(entry.device, data.name, function(data) {
+				console.log(data);
+				if(!data.success) {
+					$scope.errorMessage = Lang.pack["rename-error"]["template"].replace("{reason}", Lang.pack["rename-error"]["timeout"]);
+				}
+				entry.control.uncover();
+			});
 		}
 		pendingUpdateControl = null;
+		updateDisplay();
 	};
 
+
 	var actorEditDone = function(endpoint, data) {
-		Socket.emit('ep_set', {
-			ip: endpoint.ip,
-			eid: endpoint.eid,
-			id: endpoint.id,
-			type: endpoint.type,
-			value: data.value
+		hexabusclient.setEndpoint(endpoint, data.value ? 1 : 0, function(data) {
+			if(!data.success) {
+				$scope.errorMessage = 'Error setting endpoint: ' + data.error;
+			}
 		});
-		console.log(endpoint);
 	};
 
 	$scope.editDone = function(endpoint, data) {
@@ -112,134 +99,57 @@ angular.module('dashboard', [
 		}
 	};
 
-	var epMetadataHandler = function(ep) {
-		var target;
-
-		if (ep.function == "actor") {
-			target = $scope.actorList;
-		} else if (ep.function == "sensor") {
-			target = $scope.sensorList;
-		} else {
-			return;
+	var updateDisplayScheduled;
+	var updateDisplay = function() {
+		if (updateDisplayScheduled) {
+			$timeout.cancel(updateDisplayScheduled);
 		}
 
-		var entry;
-		var new_ep = false;
-		if (!target[ep.id]) {
-			target[ep.id] = {
-				ep_desc: {},
-				associated: {}
-		 	};
-			new_ep = true;
-		}
-		entry = target[ep.id];
-
-		for (var key in ep) {
-			entry.ep_desc[key] = ep[key];
-		}
-		if (new_ep) {
-			entry.ep_desc.value = 0;
-			entry.ep_desc.has_value = false;
-
-			var associate = function(target) {
-				if (target.ep_desc.ip == entry.ep_desc.ip) {
-					var master, slave;
-					if (target.ep_desc.eid == 2 && entry.ep_desc.eid == 1) {
-						master = target;
-						slave = entry;
-					} else if (target.ep_desc.eid == 1 && entry.ep_desc.eid == 2) {
-						master = entry;
-						slave = target;
-					}
-					if (master && slave) {
-						master.associated[slave.ep_desc.id] = {
-							id: slave.ep_desc.id,
-
-							ep: slave
-						};
-					}
-				}
-			};
-			for (var sensorKey in $scope.sensorList) {
-				if (sensorKey.substr(0, 1) != "$") {
-					associate($scope.sensorList[sensorKey]);
-				}
-			}
-			for (var actorKey in $scope.actorList) {
-				if (actorKey.substr(0, 1) != "$") {
-					associate($scope.actorList[actorKey]);
-				}
-			}
+		if (lastTreeUpdateReceivedAt) {
+			var secondsDiff = Math.round((Date.now() - lastTreeUpdateReceivedAt) / 1000);
+			$('#last-update-when').text(Lang.localizeLastUpdate(lastTreeUpdateReceivedAt / 1000));
 		}
 
-		if (entry.control) {
-			entry.control.uncover();
+		if (pendingUpdateControl) {
+			pendingUpdateControl.focus();
 		}
 
-		updateDisplay();
+		updateDisplayScheduled = $timeout(updateDisplay, 100);
 	};
 
-	Socket.on('clear_state', function() {
-		$scope.sensorList = {};
-		gauges = {};
+	Socket.on('devicetree_init', function(json) {
+		$scope.devicetree = new window.DeviceTree(json);
+		$scope.endpointById = $scope.devicetree.endpoint_by_id.bind($scope.devicetree);
+		$scope.setView("sensors");
+
+		console.log(json);
+
+		$scope.devicetree.on('update', function(update) {
+			Socket.emit('devicetree_update', update);
+			console.log(update);
+		});
+
+		$scope.devicetree.on('delete', function(deletion) {
+			Socket.emit('devicetree_delete', deletion);
+		});
+
+		lastTreeUpdateReceivedAt = Date.now();
 	});
 
-	Socket.on('ep_new', epMetadataHandler, { apply: false });
-	Socket.on('ep_metadata', epMetadataHandler, { apply: false });
-
-	Socket.on('device_removed', function(msg) {
-		for (var id in $scope.sensorList) {
-			if ($scope.sensorList[id].ep_desc.ip == msg.device) {
-				delete $scope.sensorList[id];
-			}
-		}
-	});
-
-	Socket.on('ep_update', function(data) {
-		var epId = data.ep;
-		var ep;
-		if (epId in $scope.sensorList) {
-			ep = $scope.sensorList[epId];
-		} else if (epId in $scope.actorList) {
-			ep = $scope.actorList[epId];
-		} else {
-			Socket.emit('ep_request_metadata', epId);
-			return;
-		}
-
-		ep.ep_desc.value = data.value;
-		ep.disabled = false;
-		ep.ep_desc.has_value = true;
-
+	Socket.on('devicetree_update', function(update) {
+		$scope.devicetree.applyUpdate(update);
+		lastTreeUpdateReceivedAt = Date.now();
 		updateDisplay();
-	}, { apply: false });
-
-	Socket.on('ep_timeout', function(msg) {
-		if (msg.ep.function == "sensor" && $scope.sensorList[msg.ep.id]) {
-			$scope.sensorList[msg.ep.id].disabled = true;
-		}
 	});
 
-	Socket.on('device_rename_error', function(msg) {
-		$(document.getElementsByClassName("gauge-" + msg.device)).children(".transient").remove();
-		alert(Lang.pack["rename-error"]["template"].replace("{reason}", Lang.pack["rename-error"]["timeout"]));
+	Socket.on('devicetree_delete', function(deletion) {
+		$scope.devicetree.applyDeletion(deletion);
+		lastTreeUpdateReceivedAt = Date.now();
+		updateDisplay();
 	});
 
-	var waitingLastUpdateRecalc;
-
-	var keepLastUpdateCurrent = function() {
-		if (waitingLastUpdateRecalc) {
-			$timeout.cancel(waitingLastUpdateRecalc);
-		}
-
-		var nextUpdateIn = 5000;
-		if (lastSensorValueReceivedAt) {
-			var secondsDiff = Math.round((Date.now() - lastSensorValueReceivedAt) / 1000);
-			$('#last-update-when').text(Lang.localizeLastUpdate(lastSensorValueReceivedAt / 1000));
-		}
-
-		waitingLastUpdateRecalc = $timeout(keepLastUpdateCurrent, nextUpdateIn);
-	};
+	Socket.emit('devicetree_request_init');
+	updateDisplay();
 }])
 .controller('viewConfig', ['$scope', function($scope) {
 	var known_hexabus_devices = window.known_hexabus_devices;
@@ -261,22 +171,22 @@ angular.module('dashboard', [
 		});
 	}
 
-	$(".device-list > tbody").sortable({
+	$(".endpoint-list > tbody").sortable({
 		cursorAt: {
 			left: 5,
 			top: 5
 		},
-		connectWith: ".device-list > tbody"
+		connectWith: ".endpoint-list > tbody"
 	});
 
 	$scope.doneClick = function() {
 		var view_content = [];
 
-		var devices = $(".devices-for-view *[data-endpoint-id]");
+		var devices = $(".endpoints-for-view *[data-endpoint-id]");
 		devices.each(function() {
 			view_content.push($(this).data("endpoint-id"));
 		});
-		$("#device-order").attr("value", JSON.stringify(view_content));
+		$("#endpoint-order").attr("value", JSON.stringify(view_content));
 	};
 }])
 .controller('alertController', ['$scope', 'Socket', function($scope, Socket) {

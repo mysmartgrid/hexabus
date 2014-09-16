@@ -4,8 +4,8 @@ var application_root = __dirname,
 	connect = require('connect'),
 	validator = require('validator'),
 	app = module.exports = express(),
-	server=require("http").createServer(app),
-	io = require('socket.io').listen(server),
+	server=require('http').Server(app),
+	io = require('socket.io')(server),
 	DeviceTree = require("./lib/devicetree"),
 	Hexabus = require("./lib/hexabus"),
 	hexabus = new Hexabus(),
@@ -14,6 +14,7 @@ var application_root = __dirname,
 	ApiController = require("./controllers/api"),
 	WizardController = require("./controllers/wizard"),
 	ViewsController = require("./controllers/views"),
+	HexabusServer = require("./controllers/hexabusserver"),
 	StatemachineController = require("./controllers/statemachine"),
 	fs = require("fs"),
 	nconf=require('nconf');
@@ -44,15 +45,23 @@ var devicetree_file = configDir + '/devicetree.json';
 
 var devicetree;
 
-function open_config() {
+var loadDeviceTree = function() {
 	try {
-		devicetree = new DeviceTree(fs.existsSync(devicetree_file) ? devicetree_file : undefined);
-	} catch (e) {
+		if(fs.existsSync(devicetree_file)) {
+			var jsonTree = JSON.parse(fs.readFileSync(devicetree_file));
+			devicetree = new DeviceTree(jsonTree);
+		}
+		else {
+			throw 'File: ' + devicetree_file + ' does not exist';
+		}
+	}
+	catch(e) {
 		console.log(e);
 		devicetree = new DeviceTree();
 	}
-}
-open_config();
+};
+
+loadDeviceTree();
 
 var enumerate_network = function(cb) {
 	cb = cb || Object;
@@ -86,10 +95,15 @@ enumerate_network();
 setInterval(enumerate_network, 60 * 60 * 1000);
 
 var save_devicetree = function(cb) {
-	devicetree.save(devicetree_file, cb);
+	fs.writeFile(devicetree_file, JSON.stringify(devicetree, null, '\t'), function(err) {
+		if (cb) {
+			cb(err);
+		}
+	});
+	console.log('Saved Devicetree');
 };
 
-setInterval(save_devicetree, 10 * 60 * 1000);
+setInterval(save_devicetree, 2 * 60 * 1000);
 
 process.on('SIGINT', function() {
 	save_devicetree(process.exit);
@@ -115,7 +129,7 @@ if (nconf.get('socket-debug') !== undefined) {
 app.configure(function () {
   app.set('views', __dirname + '/views');
   app.set('view engine', 'ejs');
-//  app.use(connect.logger('dev'));
+//	app.use(connect.logger('dev'));
   app.use(express.urlencoded());
   app.use(express.json());
   app.use(express.methodOverride());
@@ -145,9 +159,9 @@ app.get('/about', function(req, res) {
 	res.render('about.ejs', { active_nav: 'about' });
 });
 
-
-
-
+app.get('/commonjs/devicetree.js', function(req, res) {
+	res.sendfile(path.join(application_root, 'lib/devicetree/devicetree.js'));
+});
 
 var sensor_is_old = function(ep) {
 	//console.log("Age for " + ep.name + " : " + ep.age);
@@ -164,7 +178,7 @@ setInterval(function() {
 	});
 }, 1000);
 
-io.sockets.on('connection', function (socket) {
+io.on('connection', function (socket) {
 	console.log("Registering new client.");
 
 	var on = function(ev, cb) {
@@ -183,6 +197,42 @@ io.sockets.on('connection', function (socket) {
 	};
 
 	var emit = socket.emit.bind(socket);
+
+	var hexabusServer = new HexabusServer(socket, devicetree);
+
+	on('devicetree_request_init', function() {
+		emit('devicetree_init', devicetree.toJSON());
+	});
+
+	socket.on('devicetree_update', function(update) {
+		try {
+			devicetree.applyUpdate(update);
+			socket.broadcast.emit('devicetree_update', update);
+		}
+		catch(error) {
+			socket.emit('devicetree_error', error);
+		}
+	});
+
+	socket.on('devicetree_delete', function(update) {
+		try {
+			devicetree.applyDeletion(update);
+			socket.broadcast.emit('devicetree_delete', update);
+		}
+		catch(error) {
+			socket.emit('devicetree_error', error);
+		}
+	});
+
+
+	devicetree.on('update',function(update) {
+		emit('devicetree_update', update);
+	});
+
+	devicetree.on('delete',function(deletion) {
+		emit('devicetree_delete', deletion);
+	});
+
 	var health_update_timeout;
 	var send_health_update = function() {
 		health_update_timeout = setTimeout(send_health_update, 60 * 1000);
@@ -198,7 +248,7 @@ io.sockets.on('connection', function (socket) {
 		broadcast('ep_metadata', ep);
 	};
 	var send_ep_update = function(ep) {
-		emit('ep_update', { ep: ep.id, device: ep.device.ip, value: ep.last_value, last_update: ep.last_update });
+		//emit('ep_update', { ep: ep.id, device: ep.device.ip, value: ep.last_value, last_update: ep.last_update });
 	};
 
 	var devicetree_events = {
