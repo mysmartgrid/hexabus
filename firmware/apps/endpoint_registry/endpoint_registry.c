@@ -9,6 +9,8 @@
 #define LOG_LEVEL LOG_DEBUG
 #include "syslog.h"
 
+static const char str_dev_info[] RODATA = "Device Information";
+
 struct endpoint_registry_entry* _endpoint_chain = 0;
 struct endpoint_property_registry_entry* _endpoint_property_chain = 0;
 
@@ -147,7 +149,7 @@ enum hxb_error_code endpoint_read(uint32_t eid, struct hxb_value* value)
 enum hxb_error_code endpoint_get_name(uint32_t eid, char* buffer, size_t len)
 {
 	if (eid == 0) {
-		strncpy_P(buffer, PSTR("Device Information"), len);
+		strncpy_from_rodata(buffer, str_dev_info, len);
 		return HXB_ERR_SUCCESS;
 	} else {
 		struct endpoint_descriptor ep;
@@ -162,12 +164,16 @@ enum hxb_error_code endpoint_get_name(uint32_t eid, char* buffer, size_t len)
 
 static uint32_t property_eid(struct endpoint_property_registry_entry* entry)
 {
-	return pgm_read_dword(((uint16_t) entry->descriptor) + offsetof(struct endpoint_property_descriptor, eid));
+	struct endpoint_property_descriptor pd = {};
+	memcpy_from_rodata(&pd, entry->descriptor, sizeof(pd));
+	return pd.eid;
 }
 
 static uint32_t property_id(struct endpoint_property_registry_entry* entry)
 {
-	return pgm_read_dword(((uint16_t) entry->descriptor) + offsetof(struct endpoint_property_descriptor, propid));
+	struct endpoint_property_descriptor pd = {};
+	memcpy_from_rodata(&pd, entry->descriptor, sizeof(pd));
+	return pd.propid;
 }
 
 void _property_register(const struct endpoint_property_descriptor* epp, struct endpoint_property_registry_entry* chain_link)
@@ -176,7 +182,7 @@ void _property_register(const struct endpoint_property_descriptor* epp, struct e
 	//TODO
 #endif
 	struct endpoint_property_descriptor epp_copy;
-	memcpy_P(&epp_copy, epp, sizeof(epp_copy));
+	memcpy_from_rodata(&epp_copy, epp, sizeof(epp_copy));
 	syslog(LOG_DEBUG, "Registering %u %lu %lu\n", epp_copy.datatype, epp_copy.eid, epp_copy.propid);
 
 	chain_link->value = next_nvm_addr;
@@ -220,7 +226,7 @@ static bool find_property(uint32_t eid, uint32_t propid, struct endpoint_propert
 {
 	for (struct endpoint_property_registry_entry* epp = _endpoint_property_chain; epp; epp = epp->next) {
 		if (property_eid(epp) == eid && property_id(epp) == propid) {
-			memcpy_P(&(result->desc), epp->descriptor, sizeof(result->desc));
+			memcpy_from_rodata(&(result->desc), epp->descriptor, sizeof(result->desc));
 			result->value = epp->value;
 			return true;
 		}

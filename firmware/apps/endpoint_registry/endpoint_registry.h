@@ -32,7 +32,7 @@ struct endpoint_property_value_descriptor {
 	uintptr_t value;
 };
 
-#define ENDPOINT_PROPERTY_DESCRIPTOR const struct endpoint_property_descriptor PROGMEM
+#define ENDPOINT_PROPERTY_DESCRIPTOR const struct endpoint_property_descriptor RODATA
 
 struct endpoint_registry_entry {
 	const struct endpoint_descriptor* descriptor;
