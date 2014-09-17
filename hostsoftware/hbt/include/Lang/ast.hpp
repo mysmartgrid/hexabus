@@ -18,7 +18,7 @@ private:
 	const SourceLocation* _parent;
 
 public:
-	SourceLocation(std::shared_ptr<std::string>&& file, size_t line, size_t col, const SourceLocation* parent = nullptr)
+	SourceLocation(const std::shared_ptr<std::string>& file, size_t line, size_t col, const SourceLocation* parent = nullptr)
 		: _file(std::move(file)), _line(line), _col(col), _parent(parent)
 	{}
 
@@ -31,6 +31,8 @@ public:
 
 
 enum class Type {
+	Unknown,
+
 	Bool,
 	UInt8,
 	UInt32,
@@ -40,7 +42,13 @@ enum class Type {
 
 inline Type commonType(Type a, Type b)
 {
+	if (a == Type::Unknown || b == Type::Unknown)
+		return Type::Unknown;
+
 	switch (a) {
+	case Type::Unknown:
+		return a;
+
 	case Type::Bool:
 	case Type::UInt8:
 	case Type::UInt32:
@@ -255,6 +263,9 @@ private:
 
 	static Type unaryType(UnaryOperator op, Type type)
 	{
+		if (type == Type::Unknown)
+			return type;
+
 		return op == UnaryOperator::Not
 			? Type::Bool
 			: type;
@@ -304,7 +315,7 @@ public:
 	const Expr& right() const { return *_right; }
 };
 
-class TernaryExpr : public Expr {
+class ConditionalExpr : public Expr {
 private:
 	ptr_t _cond, _true, _false;
 
@@ -314,12 +325,12 @@ private:
 	}
 
 public:
-	TernaryExpr(SourceLocation&& sloc, ptr_t&& cond, ptr_t&& ifTrue, ptr_t&& ifFalse)
+	ConditionalExpr(SourceLocation&& sloc, ptr_t&& cond, ptr_t&& ifTrue, ptr_t&& ifFalse)
 		: Expr(std::move(sloc), ternaryType(ifTrue->type(), ifFalse->type())), _cond(std::move(cond)),
 		  _true(std::move(ifTrue)), _false(std::move(ifFalse))
 	{}
 
-	const Expr& cond() const { return *_cond; }
+	const Expr& condition() const { return *_cond; }
 	const Expr& ifTrue() const { return *_true; }
 	const Expr& ifFalse() const { return *_false; }
 };
@@ -344,7 +355,7 @@ private:
 	std::vector<ptr_t> _arguments;
 
 public:
-	CallExpr(SourceLocation& sloc, std::string&& name, std::vector<ptr_t>&& arguments, Type type)
+	CallExpr(SourceLocation&& sloc, std::string&& name, std::vector<ptr_t>&& arguments, Type type)
 		: Expr(std::move(sloc), type), _name(std::move(name)), _arguments(std::move(arguments))
 	{}
 
