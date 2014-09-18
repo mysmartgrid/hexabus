@@ -23,6 +23,7 @@ class MemoryBuffer {
 
 	public:
 		typedef decltype(_data.begin()) iterator;
+		typedef decltype(_data.cbegin()) const_iterator;
 
 	public:
 		MemoryBuffer() = default;
@@ -51,6 +52,9 @@ class MemoryBuffer {
 
 		iterator begin() { return _data.begin(); }
 		iterator end() { return _data.end(); }
+
+		const_iterator cbegin() const { return _data.cbegin(); }
+		const_iterator cend() const { return _data.cend(); }
 
 		void insert(iterator pos, const void* data, size_t size)
 		{

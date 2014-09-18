@@ -13,13 +13,13 @@ namespace lang {
 
 class SourceLocation {
 private:
-	std::shared_ptr<std::string> _file;
+	const std::string* _file;
 	size_t _line, _col;
 	const SourceLocation* _parent;
 
 public:
-	SourceLocation(const std::shared_ptr<std::string>& file, size_t line, size_t col, const SourceLocation* parent = nullptr)
-		: _file(std::move(file)), _line(line), _col(col), _parent(parent)
+	SourceLocation(const std::string* file, size_t line, size_t col, const SourceLocation* parent = nullptr)
+		: _file(file), _line(line), _col(col), _parent(parent)
 	{}
 
 	const std::string& file() const { return *_file; }
@@ -78,8 +78,8 @@ private:
 	std::string _name;
 
 public:
-	Identifier(SourceLocation&& sloc, std::string&& name)
-		: _sloc(std::move(sloc)), _name(std::move(name))
+	Identifier(const SourceLocation& sloc, const std::string& name)
+		: _sloc(sloc), _name(name)
 	{}
 
 	const SourceLocation& sloc() const { return _sloc; }
@@ -129,8 +129,8 @@ private:
 	EndpointAccess _access;
 
 public:
-	Endpoint(SourceLocation&& sloc, Identifier&& name, uint32_t eid, Type type, EndpointAccess access)
-		: _sloc(std::move(sloc)), _name(std::move(name)), _eid(eid), _type(type), _access(access)
+	Endpoint(const SourceLocation& sloc, const Identifier& name, uint32_t eid, Type type, EndpointAccess access)
+		: _sloc(sloc), _name(name), _eid(eid), _type(type), _access(access)
 	{}
 
 	const SourceLocation& sloc() const { return _sloc; }
@@ -147,23 +147,18 @@ private:
 	SourceLocation _sloc;
 	Identifier _name;
 	std::array<uint8_t, 16> _address;
-	std::vector<const Endpoint*> _endpoints;
+	std::vector<Identifier> _endpoints;
 
 public:
-	Device(SourceLocation&& sloc, Identifier&& name, const std::array<uint8_t, 16>& address,
-			std::vector<const Endpoint*>&& endpoints)
-		: _sloc(std::move(sloc)), _name(std::move(name)), _address(address), _endpoints(std::move(endpoints))
+	Device(const SourceLocation& sloc, const Identifier& name, const std::array<uint8_t, 16>& address,
+			std::vector<Identifier>&& endpoints)
+		: _sloc(sloc), _name(name), _address(address), _endpoints(std::move(endpoints))
 	{}
 
 	const SourceLocation& sloc() const { return _sloc; }
 	const Identifier& name() const { return _name; }
 	const std::array<uint8_t, 16>& address() const { return _address; }
-	const std::vector<const Endpoint*>& endpoints() const { return _endpoints; }
-
-	bool hasEndpoint(const Endpoint& ep) const
-	{
-		return std::count(_endpoints.begin(), _endpoints.end(), &ep);
-	}
+	const std::vector<Identifier>& endpoints() const { return _endpoints; }
 };
 
 
@@ -176,7 +171,7 @@ private:
 protected:
 	typedef std::unique_ptr<Expr> ptr_t;
 
-	Expr(SourceLocation&& sloc, Type type)
+	Expr(const SourceLocation& sloc, Type type)
 		: _sloc(sloc), _type(type)
 	{}
 
@@ -185,6 +180,8 @@ public:
 
 	const SourceLocation& sloc() const { return _sloc; }
 	Type type() const { return _type; }
+
+	void type(Type t) { _type = t; }
 };
 
 class IdentifierExpr : public Expr {
@@ -192,8 +189,8 @@ private:
 	std::string _name;
 
 public:
-	IdentifierExpr(SourceLocation&& sloc, std::string&& name, Type type)
-		: Expr(std::move(sloc), type), _name(std::move(name))
+	IdentifierExpr(const SourceLocation& sloc, std::string&& name, Type type)
+		: Expr(sloc, type), _name(std::move(name))
 	{}
 
 	const std::string& name() const { return _name; }
@@ -229,8 +226,8 @@ private:
 	T _value;
 
 public:
-	TypedLiteral(SourceLocation&& sloc, T value)
-		: Literal(std::move(sloc), calcType()), _value(value)
+	TypedLiteral(const SourceLocation& sloc, T value)
+		: Literal(sloc, calcType()), _value(value)
 	{}
 
 	T value() const { return _value; }
@@ -241,8 +238,8 @@ private:
 	ptr_t _expr;
 
 public:
-	CastExpr(SourceLocation&& sloc, Type type, ptr_t&& expr)
-		: Expr(std::move(sloc), type), _expr(std::move(expr))
+	CastExpr(const SourceLocation& sloc, Type type, ptr_t&& expr)
+		: Expr(sloc, type), _expr(std::move(expr))
 	{}
 
 	const Expr& expr() const { return *_expr; }
@@ -271,8 +268,8 @@ private:
 	}
 
 public:
-	UnaryExpr(SourceLocation&& sloc, UnaryOperator op, ptr_t&& expr)
-		: Expr(std::move(sloc), unaryType(op, expr->type())), _op(op), _expr(std::move(expr))
+	UnaryExpr(const SourceLocation& sloc, UnaryOperator op, ptr_t&& expr)
+		: Expr(sloc, unaryType(op, expr->type())), _op(op), _expr(std::move(expr))
 	{}
 
 	UnaryOperator op() const { return _op; }
@@ -296,6 +293,8 @@ enum class BinaryOperator {
 	LessOrEqual,
 	GreaterThan,
 	GreaterOrEqual,
+	ShiftLeft,
+	ShiftRight,
 };
 
 class BinaryExpr : public Expr {
@@ -304,8 +303,8 @@ private:
 	std::unique_ptr<Expr> _left, _right;
 
 public:
-	BinaryExpr(SourceLocation&& sloc, ptr_t&& left, BinaryOperator op, ptr_t&& right)
-		: Expr(std::move(sloc), commonType(left->type(), right->type())), _op(op),
+	BinaryExpr(const SourceLocation& sloc, ptr_t&& left, BinaryOperator op, ptr_t&& right)
+		: Expr(sloc, commonType(left->type(), right->type())), _op(op),
 		  _left(std::move(left)), _right(std::move(right))
 	{}
 
@@ -324,8 +323,8 @@ private:
 	}
 
 public:
-	ConditionalExpr(SourceLocation&& sloc, ptr_t&& cond, ptr_t&& ifTrue, ptr_t&& ifFalse)
-		: Expr(std::move(sloc), ternaryType(ifTrue->type(), ifFalse->type())), _cond(std::move(cond)),
+	ConditionalExpr(const SourceLocation& sloc, ptr_t&& cond, ptr_t&& ifTrue, ptr_t&& ifFalse)
+		: Expr(sloc, ternaryType(ifTrue->type(), ifFalse->type())), _cond(std::move(cond)),
 		  _true(std::move(ifTrue)), _false(std::move(ifFalse))
 	{}
 
@@ -336,16 +335,16 @@ public:
 
 class EndpointExpr : public Expr {
 private:
-	const Device& _device;
-	const Endpoint& _endpoint;
+	Identifier _device;
+	Identifier _endpoint;
 
 public:
-	EndpointExpr(SourceLocation&& sloc, const Device& device, const Endpoint& endpoint)
-		: Expr(std::move(sloc), endpoint.type()), _device(device), _endpoint(endpoint)
+	EndpointExpr(const SourceLocation& sloc, const Identifier& device, const Identifier& endpoint, Type type)
+		: Expr(sloc, type), _device(device), _endpoint(endpoint)
 	{}
 
-	const Device& device() const { return _device; }
-	const Endpoint& endpoint() const { return _endpoint; }
+	const Identifier& device() const { return _device; }
+	const Identifier& endpoint() const { return _endpoint; }
 };
 
 class CallExpr : public Expr {
@@ -354,51 +353,26 @@ private:
 	std::vector<ptr_t> _arguments;
 
 public:
-	CallExpr(SourceLocation&& sloc, std::string&& name, std::vector<ptr_t>&& arguments, Type type)
-		: Expr(std::move(sloc), type), _name(std::move(name)), _arguments(std::move(arguments))
+	CallExpr(const SourceLocation& sloc, const std::string& name, std::vector<ptr_t>&& arguments, Type type)
+		: Expr(sloc, type), _name(name), _arguments(std::move(arguments))
 	{}
 
 	const std::string& name() const { return _name; }
 	const std::vector<ptr_t>& arguments() const { return _arguments; }
 };
 
-enum class SystemProperty {
-	Time,
-	StateTime,
-	PacketEID,
+class PacketEIDExpr : public Expr {
+public:
+	PacketEIDExpr(const SourceLocation& sloc)
+		: Expr(sloc, Type::UInt32)
+	{}
 };
 
-class SystemPropertyExpr : public Expr {
-private:
-	SystemProperty _prop;
-
-	static Type propType(SystemProperty prop)
-	{
-		switch (prop) {
-		case SystemProperty::Time: return Type::UInt64;
-		case SystemProperty::StateTime: return Type::UInt32;
-		case SystemProperty::PacketEID: return Type::UInt32;
-		}
-	}
-
+class TimeoutExpr : public Expr {
 public:
-	SystemPropertyExpr(SourceLocation&& sloc, SystemProperty prop)
-		: Expr(std::move(sloc), propType(prop)), _prop(prop)
+	TimeoutExpr(const SourceLocation& sloc)
+		: Expr(sloc, Type::UInt32)
 	{}
-
-	SystemProperty property() const { return _prop; }
-};
-
-class PacketValueExpr : public Expr {
-private:
-	const Endpoint& _endpoint;
-
-public:
-	PacketValueExpr(SourceLocation&& sloc, const Endpoint& endpoint)
-		: Expr(std::move(sloc), endpoint.type()), _endpoint(endpoint)
-	{}
-
-	const Endpoint& endpoint() const { return _endpoint; }
 };
 
 
@@ -410,8 +384,8 @@ private:
 protected:
 	typedef std::unique_ptr<Stmt> ptr_t;
 
-	Stmt(SourceLocation&& sloc)
-		: _sloc(std::move(sloc))
+	Stmt(const SourceLocation& sloc)
+		: _sloc(sloc)
 	{}
 
 public:
@@ -426,8 +400,8 @@ private:
 	std::unique_ptr<Expr> _value;
 
 public:
-	AssignStmt(SourceLocation&& sloc, Identifier&& target, std::unique_ptr<Expr>&& value)
-		: Stmt(std::move(sloc)), _target(std::move(target)), _value(std::move(value))
+	AssignStmt(const SourceLocation& sloc, const Identifier& target, std::unique_ptr<Expr>&& value)
+		: Stmt(sloc), _target(target), _value(std::move(value))
 	{}
 
 	const Identifier& target() const { return _target; }
@@ -436,17 +410,17 @@ public:
 
 class WriteStmt : public Stmt {
 private:
-	const Device& _device;
-	const Endpoint& _endpoint;
+	Identifier _device;
+	Identifier _endpoint;
 	std::unique_ptr<Expr> _value;
 
 public:
-	WriteStmt(SourceLocation&& sloc, const Device& device, const Endpoint& endpoint, std::unique_ptr<Expr>&& value)
-		: Stmt(std::move(sloc)), _device(device), _endpoint(endpoint), _value(std::move(value))
+	WriteStmt(const SourceLocation& sloc, const Identifier& device, const Identifier& endpoint, std::unique_ptr<Expr>&& value)
+		: Stmt(sloc), _device(device), _endpoint(endpoint), _value(std::move(value))
 	{}
 
-	const Device& device() const { return _device; }
-	const Endpoint& endpoint() const { return _endpoint; }
+	const Identifier& device() const { return _device; }
+	const Identifier& endpoint() const { return _endpoint; }
 	const Expr& value() const { return *_value; }
 };
 
@@ -456,13 +430,13 @@ private:
 	ptr_t _true, _false;
 
 public:
-	IfStmt(SourceLocation&& sloc, ptr_t&& ifTrue, ptr_t&& ifFalse)
-		: Stmt(std::move(sloc)), _true(std::move(ifTrue)), _false(std::move(ifFalse))
+	IfStmt(const SourceLocation& sloc, std::unique_ptr<Expr>&& sel, ptr_t&& ifTrue, ptr_t&& ifFalse)
+		: Stmt(sloc), _selector(std::move(sel)), _true(std::move(ifTrue)), _false(std::move(ifFalse))
 	{}
 
 	const Expr& selector() const { return *_selector; }
 	const Stmt& ifTrue() const { return *_true; }
-	const Stmt& isFalse() const { return *_false; }
+	const Stmt* ifFalse() const { return _false.get(); }
 };
 
 class SwitchEntry {
@@ -481,16 +455,16 @@ public:
 
 class SwitchStmt : public Stmt {
 private:
-	std::vector<SwitchEntry> _labels;
-	ptr_t _default;
+	std::unique_ptr<Expr> _expr;
+	std::vector<SwitchEntry> _entries;
 
 public:
-	SwitchStmt(SourceLocation&& sloc, std::vector<SwitchEntry>&& labels, ptr_t defaultLabel = ptr_t())
-		: Stmt(std::move(sloc)), _labels(std::move(labels)), _default(std::move(defaultLabel))
+	SwitchStmt(const SourceLocation& sloc, std::unique_ptr<Expr>&& expr, std::vector<SwitchEntry>&& entries)
+		: Stmt(sloc), _expr(std::move(expr)), _entries(std::move(entries))
 	{}
 
-	const std::vector<SwitchEntry>& labels() const { return _labels; }
-	const Stmt* defaultLabel() const { return _default.get(); }
+	const Expr& expr() const { return *_expr; }
+	const std::vector<SwitchEntry>& entries() const { return _entries; }
 };
 
 class BlockStmt : public Stmt {
@@ -498,8 +472,8 @@ private:
 	std::vector<ptr_t> _stmts;
 
 public:
-	BlockStmt(SourceLocation&& sloc, std::vector<ptr_t>&& stmts)
-		: Stmt(std::move(sloc)), _stmts(std::move(stmts))
+	BlockStmt(const SourceLocation& sloc, std::vector<ptr_t>&& stmts)
+		: Stmt(sloc), _stmts(std::move(stmts))
 	{}
 
 	const std::vector<ptr_t>& statements() const { return _stmts; }
@@ -512,8 +486,8 @@ private:
 	std::unique_ptr<Expr> _value;
 
 public:
-	DeclarationStmt(SourceLocation&& sloc, Type type, Identifier&& name, std::unique_ptr<Expr>&& value = nullptr)
-		: Stmt(std::move(sloc)), _type(type), _name(std::move(name)), _value(std::move(value))
+	DeclarationStmt(const SourceLocation& sloc, Type type, const Identifier& name, std::unique_ptr<Expr>&& value = nullptr)
+		: Stmt(sloc), _type(type), _name(name), _value(std::move(value))
 	{}
 
 	Type type() const { return _type; }
@@ -526,8 +500,8 @@ private:
 	Identifier _state;
 
 public:
-	GotoStmt(SourceLocation&& sloc, Identifier&& state)
-		: Stmt(std::move(sloc)), _state(std::move(state))
+	GotoStmt(const SourceLocation& sloc, const Identifier& state)
+		: Stmt(sloc), _state(state)
 	{}
 
 	const Identifier& state() const { return _state; }
@@ -547,28 +521,30 @@ class OnBlock {
 private:
 	SourceLocation _sloc;
 	OnBlockTrigger _trigger;
+	std::unique_ptr<BlockStmt> _block;
 
 public:
-	OnBlock(SourceLocation&& sloc, OnBlockTrigger trigger)
-		: _sloc(sloc), _trigger(trigger)
+	OnBlock(const SourceLocation& sloc, OnBlockTrigger trigger, std::unique_ptr<BlockStmt>&& block)
+		: _sloc(sloc), _trigger(trigger), _block(std::move(block))
 	{}
 
 	virtual ~OnBlock() {}
 
 	const SourceLocation& sloc() const { return _sloc; }
 	OnBlockTrigger trigger() const { return _trigger; }
+	const BlockStmt& block() const { return *_block; }
 };
 
 class OnPacketBlock : public OnBlock {
 private:
-	std::array<uint8_t, 16> _source;
+	Identifier _source;
 
 public:
-	OnPacketBlock(SourceLocation&& sloc, const std::array<uint8_t, 16>& source)
-		: OnBlock(std::move(sloc), OnBlockTrigger::Packet), _source(source)
+	OnPacketBlock(const SourceLocation& sloc, const Identifier& source, std::unique_ptr<BlockStmt>&& block)
+		: OnBlock(sloc, OnBlockTrigger::Packet, std::move(block)), _source(source)
 	{}
 
-	const std::array<uint8_t, 16> source() const { return _source; }
+	const Identifier& source() const { return _source; }
 };
 
 class OnExprBlock : public OnBlock {
@@ -576,8 +552,8 @@ private:
 	std::unique_ptr<Expr> _condition;
 
 public:
-	OnExprBlock(SourceLocation&& sloc, std::unique_ptr<Expr>&& condition)
-		: OnBlock(std::move(sloc), OnBlockTrigger::Packet), _condition(std::move(condition))
+	OnExprBlock(const SourceLocation& sloc, std::unique_ptr<Expr>&& condition, std::unique_ptr<BlockStmt>&& block)
+		: OnBlock(sloc, OnBlockTrigger::Expr, std::move(block)), _condition(std::move(condition))
 	{}
 
 	const Expr& condition() const { return *_condition; }
@@ -594,9 +570,9 @@ private:
 	std::vector<std::unique_ptr<Stmt>> _statements;
 
 public:
-	State(SourceLocation&& sloc, Identifier&& name, std::vector<DeclarationStmt>&& variables,
+	State(const SourceLocation& sloc, const Identifier& name, std::vector<DeclarationStmt>&& variables,
 			decltype(_onBlocks)&& onBlocks, decltype(_statements)&& statements)
-		: _sloc(std::move(sloc)), _name(std::move(name)), _variables(std::move(variables)),
+		: _sloc(sloc), _name(name), _variables(std::move(variables)),
 		  _onBlocks(std::move(onBlocks)), _statements(std::move(statements))
 	{}
 
@@ -611,69 +587,98 @@ public:
 
 class MachineBody {
 private:
+	SourceLocation _sloc;
+	Identifier _name;
 	std::vector<DeclarationStmt> _variables;
 	std::vector<State> _states;
 
 protected:
-	MachineBody(std::vector<DeclarationStmt>&& variables, std::vector<State>&& states)
-		: _variables(std::move(variables)), _states(std::move(states))
+	MachineBody(const SourceLocation& sloc, const Identifier& name,
+			std::vector<DeclarationStmt>&& variables, std::vector<State>&& states)
+		: _sloc(sloc), _name(name), _variables(std::move(variables)), _states(std::move(states))
 	{}
 
 public:
+	virtual ~MachineBody() {}
+
+	const SourceLocation& sloc() const { return _sloc; }
+	const Identifier& name() const { return _name; }
 	const std::vector<DeclarationStmt>& variables() const { return _variables; }
 	const std::vector<State>& states() const { return _states; }
 };
 
-class MachineClass : public ProgramPart {
+class MachineClass : public MachineBody, public ProgramPart {
 private:
-	SourceLocation _sloc;
-	Identifier _name;
 	std::vector<Identifier> _parameters;
-	MachineBody _body;
 
 public:
-	MachineClass(SourceLocation&& sloc, Identifier&& name, std::vector<Identifier>&& parameters,
-			MachineBody&& body)
-		: _sloc(std::move(sloc)), _name(std::move(name)), _parameters(std::move(_parameters)),
-		  _body(std::move(body))
-	{}
+	MachineClass(const SourceLocation& sloc, const Identifier& name, std::vector<Identifier>&& parameters,
+			std::vector<DeclarationStmt>&& variables, std::vector<State>&& states)
+		: MachineBody(sloc, name, std::move(variables), std::move(states)),
+		  _parameters(std::move(parameters))
+	{
+	}
 
-	const SourceLocation& sloc() const { return _sloc; }
-	const Identifier& name() const { return _name; }
 	const std::vector<Identifier>& parameters() const { return _parameters; }
-	const MachineBody& body() const { return _body; }
 };
 
-class MachineDefinition : public ProgramPart {
-private:
-	SourceLocation _sloc;
-	Identifier _name;
-	MachineBody _body;
-
+class MachineDefinition : public MachineBody, public ProgramPart {
 public:
-	MachineDefinition(SourceLocation&& sloc, Identifier&& name, MachineBody&& body)
-		: _sloc(std::move(sloc)), _name(std::move(name)), _body(std::move(body))
+	MachineDefinition(const SourceLocation& sloc, const Identifier& name, std::vector<DeclarationStmt>&& variables,
+			std::vector<State>&& states)
+		: MachineBody(sloc, name, std::move(variables), std::move(states))
 	{}
-
-	const SourceLocation& sloc() const { return _sloc; }
-	const Identifier& name() const { return _name; }
-	const MachineBody& body() const { return _body; }
 };
 
 class MachineInstantiation : public ProgramPart {
 private:
 	SourceLocation _sloc;
-	const MachineClass* _instanceOf;
+	Identifier _name;
+	Identifier _instanceOf;
 	std::vector<std::unique_ptr<Expr>> _arguments;
 
 public:
-	MachineInstantiation(SourceLocation&& sloc, const MachineClass* instanceOf, std::vector<std::unique_ptr<Expr>>&& arguments)
-		: _sloc(std::move(sloc)), _instanceOf(instanceOf), _arguments(std::move(arguments))
+	MachineInstantiation(const SourceLocation& sloc, const Identifier& name, const Identifier& instanceOf,
+			std::vector<std::unique_ptr<Expr>>&& arguments)
+		: _sloc(sloc), _name(name), _instanceOf(instanceOf), _arguments(std::move(arguments))
 	{}
 
 	const SourceLocation& sloc() const { return _sloc; }
-	const MachineClass* instanceOf() const { return _instanceOf; }
+	const Identifier& name() const { return _name; }
+	const Identifier& instanceOf() const { return _instanceOf; }
 	const std::vector<std::unique_ptr<Expr>>& arguments() const { return _arguments; }
+};
+
+
+
+class IncludeLine : public ProgramPart {
+private:
+	SourceLocation _sloc;
+	std::string _file;
+
+public:
+	IncludeLine(const SourceLocation& sloc, std::string&& file)
+		: _sloc(sloc), _file(file)
+	{}
+
+	const SourceLocation& sloc() const { return _sloc; }
+	const std::string& file() const { return _file; }
+};
+
+
+
+class TranslationUnit {
+private:
+	std::unique_ptr<std::string> _file;
+	std::vector<std::unique_ptr<ProgramPart>> _items;
+
+public:
+	TranslationUnit(std::unique_ptr<std::string>&& file, std::vector<std::unique_ptr<ProgramPart>>&& items)
+		: _file(std::move(file)), _items(std::move(items))
+	{}
+
+	const std::string& file() const { return *_file; }
+	const std::vector<std::unique_ptr<ProgramPart>>& items() const { return _items; }
 };
 
 }
