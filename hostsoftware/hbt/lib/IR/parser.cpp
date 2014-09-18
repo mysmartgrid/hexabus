@@ -266,26 +266,25 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunsequenced"
-#pragma clang diagnostic ignored "-Woverloaded-shift-op-parentheses"
 		dt_masked_instruction =
 			(TOKEN("dt.decomp") > dt_mask[_val = bind(make_insn_t<Opcode::DT_DECOMPOSE>, _1)]);
 
 		ld_operand_immediate.name("immediate operand");
 		ld_operand_immediate =
 			(
-				lit("u8") >> lit("(")
+				(lit("u8") >> lit("("))
 				> u8_immed[_val = bind(make_insn_t<Opcode::LD_U8>, _1)]
 				> lit(")")
 			) | (
-				lit("u32") >> lit("(")
+				(lit("u32") >> lit("("))
 				> u32_immed[_val = bind(make_insn_t<Opcode::LD_U32>, _1)]
 				> lit(")")
 			) | (
-				lit("u64") >> lit("(")
+				(lit("u64") >> lit("("))
 				> u64_immed[_val = bind(make_insn_t<Opcode::LD_U64>, _1)]
 				> lit(")")
 			) | (
-				lit("f") >> lit("(")
+				(lit("f") >> lit("("))
 				> float_immed[_val = bind(make_insn_t<Opcode::LD_FLOAT>, _1)]
 				> lit(")")
 			);
@@ -332,11 +331,11 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		mem_instruction_rest.name("memory operand");
 		mem_instruction_rest =
 			(
-				(lit("b") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::Bool, _1)]
-				| (lit("u8") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::U8, _1)]
-				| (lit("u32") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::U32, _1)]
-				| (lit("u64") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::U64, _1)]
-				| (lit("f") >> lit("[") > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::Float, _1)]
+				((lit("b") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::Bool, _1)]
+				| ((lit("u8") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::U8, _1)]
+				| ((lit("u32") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::U32, _1)]
+				| ((lit("u64") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::U64, _1)]
+				| ((lit("f") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::Float, _1)]
 			) > lit("]");
 #pragma clang diagnostic pop
 
