@@ -129,16 +129,11 @@ class RemoteStateMachine : protected RetryingPacketSender {
 			}
 		}
 
-		virtual void sendPacket()
-		{
-			RetryingPacketSender::sendPacket();
-			socket.send(hexabus::QueryPacket(EP_SM_CONTROL), target);
-		}
-
 		ErrorCode setAndCheckState(STM_state_t state)
 		{
 			reqState = state;
 			ErrorCode err = send(hexabus::WritePacket<uint8_t>(EP_SM_CONTROL, state, hexabus::Packet::want_ack));
+			err = send(hexabus::QueryPacket(EP_SM_CONTROL));
 
 			if (err) {
 				std::cout << std::endl
@@ -367,6 +362,8 @@ int main(int argc, char** argv) {
 		 *    - if NAK: Retransmit current packet. failure counter++. Abort if
 		 *    maxtry reached.
 		 */
+		std::cout << "Uploading";
+
 		if (vm.count("clear")) {
 			boost::array<char, UploadChunkSize> chunk;
 			chunk.assign(0);
@@ -390,9 +387,10 @@ int main(int argc, char** argv) {
 				}
 			}
 		}
+		std::cout << std::endl;
 
 		if (err) {
-			std::cerr << "Failed to upload program" << std::endl;
+			std::cerr << std::endl << "Failed to upload program: " << std::endl;
 			return err;
 		}
 
