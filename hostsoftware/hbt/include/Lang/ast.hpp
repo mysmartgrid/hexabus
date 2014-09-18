@@ -253,7 +253,6 @@ enum class UnaryOperator {
 	Minus,
 	Not,
 	Negate,
-	Identity,
 };
 
 class UnaryExpr : public Expr {
