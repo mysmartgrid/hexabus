@@ -76,7 +76,7 @@ namespace hexabus {
 
 			virtual hexabus::Packet::Ptr handle_query(uint16_t cause) const {
 				if ( _read.num_slots() < 1 )
-						return Packet::Ptr(new ErrorPacket(HXB_ERR_UNKNOWNEID, cause));
+					return Packet::Ptr(new ErrorPacket(HXB_ERR_UNKNOWNEID, cause));
 
 				boost::optional<TValue> value = _read();
 				if ( !value ) {

@@ -12,7 +12,6 @@
 #include "error.hpp"
 #include "packet.hpp"
 #include "filtering.hpp"
-#include "../../../shared/hexabus_definitions.h"
 
 namespace hexabus {
 	class SocketBase {
@@ -137,7 +136,7 @@ namespace hexabus {
 
 			uint16_t send(const Packet& packet, const boost::asio::ip::address_v6& dest = GroupAddress)
 			{
-				return send(packet, boost::asio::ip::udp::endpoint(dest, HXB_PORT));
+				return send(packet, boost::asio::ip::udp::endpoint(dest, 61616));
 			}
 
 			uint16_t send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest)
