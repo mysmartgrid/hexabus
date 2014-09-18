@@ -462,6 +462,7 @@ var moduleWrapper = function(globalScope) {
 		last_value = last_value || 0;
 	};
 
+
 	var View = function(name, endpoints, emitter, id) {
 
 		this.propagateUpdate = function() {

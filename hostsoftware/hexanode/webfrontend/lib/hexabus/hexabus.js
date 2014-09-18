@@ -109,7 +109,8 @@ var hexabus = function() {
 					cb({ error: error });
 				} else {
 					var devices = JSON.parse(stdout).devices;
-					//console.log(devices);
+					console.log('Hexinfo:');
+					console.log(devices);
 					devices.forEach(function(dev) {
 						cb({ device: dev });
 					});

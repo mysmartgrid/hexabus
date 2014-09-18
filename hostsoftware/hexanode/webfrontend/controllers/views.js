@@ -37,8 +37,6 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 
 		res.render('view/edit.ejs', {
 			active_nav: 'configuration',
-			known_devices: devices,
-			used_endpoints: used,
 			view_name: view.name,
 			view_id: req.params.id
 		});
