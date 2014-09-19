@@ -80,11 +80,6 @@ uint8_t Machine::sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val)
 	return _on_write(eid, value).get_value_or(0);
 }
 
-uint32_t Machine::sm_get_timestamp()
-{
-	return sm_get_systime() - _created_at;
-}
-
 uint64_t Machine::sm_get_systime()
 {
 	boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1), boost::posix_time::time_duration(0, 0, 0, 0));

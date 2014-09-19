@@ -34,7 +34,6 @@ enum {
 
 static uint8_t sm_memory[SM_MEMORY_SIZE];
 static hxb_sm_value_t sm_stack[SM_STACK_SIZE];
-static uint32_t sm_curstate, sm_in_state_since;
 static bool sm_first_run;
 
 static uint32_t sm_get_timestamp();
@@ -54,8 +53,6 @@ void sm_start()
 		syslog(LOG_DEBUG, "State machine process is already running - not starting it.");
 	} else {
 		syslog(LOG_DEBUG, "Starting state machine process.");
-		sm_curstate = 0;  // always start in state 0
-		sm_in_state_since = sm_get_timestamp();
 		sm_first_run = true;
 		process_start(&state_machine_process, NULL);
 	}
@@ -129,11 +126,6 @@ static uint64_t sm_get_systime()
 	do { \
 		syslog(LOG_DEBUG, "(sm:" STR(line) "): %i", code); \
 	} while (0)
-
-static uint32_t sm_get_timestamp()
-{
-	return clock_seconds();
-}
 
 #define SM_EXPORT(name) name
 

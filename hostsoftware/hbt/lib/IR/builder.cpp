@@ -38,8 +38,6 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 	case Opcode::LD_SOURCE_IP:
 	case Opcode::LD_SOURCE_EID:
 	case Opcode::LD_SOURCE_VAL:
-	case Opcode::LD_CURSTATE:
-	case Opcode::LD_CURSTATETIME:
 	case Opcode::LD_FALSE:
 	case Opcode::LD_TRUE:
 	case Opcode::LD_SYSTIME:
@@ -71,8 +69,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 	case Opcode::CONV_F:
 	case Opcode::WRITE:
 	case Opcode::POP:
-	case Opcode::RET_CHANGE:
-	case Opcode::RET_STAY:
+	case Opcode::RET:
 		if (immed)
 			throw std::invalid_argument("immed");
 

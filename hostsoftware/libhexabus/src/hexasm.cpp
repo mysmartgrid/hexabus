@@ -44,14 +44,14 @@ static void on_packet(hexabus::sm::Machine& machine,
 
 	std::cout << "Running state machine for packet: "
 		<< machine.run_sm((const char*) &addr[0], eid, &value)
-		<< ", in state " << machine.state() << std::endl;
+		<< std::endl;
 }
 
 static void on_periodic(hexabus::sm::Machine& machine, boost::asio::deadline_timer& timer)
 {
 	std::cout << "Running state machine for periodic check: "
 		<< machine.run_sm(NULL, 0, NULL)
-		<< ", in state " << machine.state() << std::endl;
+		<< std::endl;
 	timer.expires_from_now(boost::posix_time::seconds(1));
 	timer.async_wait(boost::bind(on_periodic, boost::ref(machine), boost::ref(timer)));
 }

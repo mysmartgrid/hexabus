@@ -160,8 +160,7 @@ struct simple_instructions : qi::symbols<char, ir_instruction> {
 			("conv.f", { Opcode::CONV_F, boost::none_t() })
 			("write", { Opcode::WRITE, boost::none_t() })
 			("pop", { Opcode::POP, boost::none_t() })
-			("ret.change", { Opcode::RET_CHANGE, boost::none_t() })
-			("ret.stay", { Opcode::RET_STAY, boost::none_t() });
+			("ret", { Opcode::RET, boost::none_t() });
 	}
 };
 
@@ -172,8 +171,6 @@ struct ld_simple_operands : qi::symbols<char, ir_instruction> {
 			("src.ip", { Opcode::LD_SOURCE_IP, boost::none_t() })
 			("src.eid", { Opcode::LD_SOURCE_EID, boost::none_t() })
 			("src.val", { Opcode::LD_SOURCE_VAL, boost::none_t() })
-			("sys.state", { Opcode::LD_CURSTATE, boost::none_t() })
-			("sys.statetime", { Opcode::LD_CURSTATETIME, boost::none_t() })
 			("false", { Opcode::LD_FALSE, boost::none_t() })
 			("true", { Opcode::LD_TRUE, boost::none_t() })
 			("sys.time", { Opcode::LD_SYSTIME, boost::none_t() });

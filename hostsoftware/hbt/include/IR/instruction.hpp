@@ -16,8 +16,6 @@ enum class Opcode {
 	LD_SOURCE_IP,
 	LD_SOURCE_EID,
 	LD_SOURCE_VAL,
-	LD_CURSTATE,
-	LD_CURSTATETIME,
 	LD_FALSE,
 	LD_TRUE,
 	LD_U8,
@@ -74,8 +72,7 @@ enum class Opcode {
 
 	POP,
 
-	RET_CHANGE,
-	RET_STAY,
+	RET,
 };
 
 

@@ -123,8 +123,6 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 		case Opcode::LD_SOURCE_IP:
 		case Opcode::LD_SOURCE_EID:
 		case Opcode::LD_SOURCE_VAL:
-		case Opcode::LD_CURSTATE:
-		case Opcode::LD_CURSTATETIME:
 		case Opcode::LD_FALSE:
 		case Opcode::LD_TRUE:
 		case Opcode::LD_SYSTIME:
@@ -156,8 +154,7 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 		case Opcode::CONV_F:
 		case Opcode::WRITE:
 		case Opcode::POP:
-		case Opcode::RET_CHANGE:
-		case Opcode::RET_STAY:
+		case Opcode::RET:
 			insn.isValid = true;
 			break;
 
@@ -405,8 +402,6 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 		case Opcode::LD_SOURCE_IP:
 		case Opcode::LD_SOURCE_EID:
 		case Opcode::LD_SOURCE_VAL:
-		case Opcode::LD_CURSTATE:
-		case Opcode::LD_CURSTATETIME:
 		case Opcode::LD_FALSE:
 		case Opcode::LD_TRUE:
 		case Opcode::LD_SYSTIME:
@@ -437,8 +432,7 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 		case Opcode::CONV_F:
 		case Opcode::WRITE:
 		case Opcode::POP:
-		case Opcode::RET_CHANGE:
-		case Opcode::RET_STAY:
+		case Opcode::RET:
 		case Opcode::CMP_IP_LO:
 			builder.append(thisLabel, insn.op, 0);
 			break;

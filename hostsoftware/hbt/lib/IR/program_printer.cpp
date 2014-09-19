@@ -93,13 +93,10 @@ const char* opcodeName(hbt::ir::Opcode op)
 	case Opcode::CONV_F: return "conv.f";
 	case Opcode::WRITE: return "write";
 	case Opcode::POP: return "pop";
-	case Opcode::RET_CHANGE: return "ret.change";
-	case Opcode::RET_STAY: return "ret.stay";
+	case Opcode::RET: return "ret";
 	case Opcode::LD_SOURCE_IP:
 	case Opcode::LD_SOURCE_EID:
 	case Opcode::LD_SOURCE_VAL:
-	case Opcode::LD_CURSTATE:
-	case Opcode::LD_CURSTATETIME:
 	case Opcode::LD_FALSE:
 	case Opcode::LD_TRUE:
 	case Opcode::LD_SYSTIME:
@@ -188,8 +185,6 @@ std::string prettyPrint(const Program& program)
 		case Opcode::LD_SOURCE_IP: out << " src.ip"; break;
 		case Opcode::LD_SOURCE_EID: out << " src.eid"; break;
 		case Opcode::LD_SOURCE_VAL: out << " src.val"; break;
-		case Opcode::LD_CURSTATE: out << " sys.state"; break;
-		case Opcode::LD_CURSTATETIME: out << " sys.statetime"; break;
 		case Opcode::LD_FALSE: out << " false"; break;
 		case Opcode::LD_TRUE: out << " true"; break;
 		case Opcode::LD_SYSTIME: out << " sys.time"; break;
@@ -326,8 +321,7 @@ std::string prettyPrint(const Program& program)
 		case Opcode::CONV_F:
 		case Opcode::WRITE:
 		case Opcode::POP:
-		case Opcode::RET_CHANGE:
-		case Opcode::RET_STAY:
+		case Opcode::RET:
 		case Opcode::DUP:
 		case Opcode::ROT:
 			break;

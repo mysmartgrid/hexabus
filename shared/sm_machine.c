@@ -15,8 +15,6 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 	case HSO_LD_SOURCE_IP:
 	case HSO_LD_SOURCE_EID:
 	case HSO_LD_SOURCE_VAL:
-	case HSO_LD_CURSTATE:
-	case HSO_LD_CURSTATETIME:
 	case HSO_LD_SYSTIME:
 	case HSO_OP_MUL:
 	case HSO_OP_DIV:
@@ -44,8 +42,7 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 	case HSO_CONV_F:
 	case HSO_WRITE:
 	case HSO_POP:
-	case HSO_RET_CHANGE:
-	case HSO_RET_STAY:
+	case HSO_RET:
 		break;
 
 	case HSO_OP_DUP:
@@ -532,14 +529,6 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 			PUSH_V(*val);
 			break;
 
-		case HSO_LD_CURSTATE:
-			PUSH(HXB_DTYPE_UINT32, v_uint, sm_curstate);
-			break;
-
-		case HSO_LD_CURSTATETIME:
-			PUSH(HXB_DTYPE_UINT32, v_uint, sm_get_timestamp() - sm_in_state_since);
-			break;
-
 		case HSO_LD_FALSE:
 		case HSO_LD_TRUE:
 		case HSO_LD_U8:
@@ -891,15 +880,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 			top--;
 			break;
 
-		case HSO_RET_CHANGE:
-			CHECK_POP(1);
-			if (!is_int(&TOP))
-				FAIL_WITH(HSE_INVALID_TYPES);
-			sm_curstate = TOP.v_uint;
-			sm_in_state_since = sm_get_timestamp();
-			goto end_program;
-
-		case HSO_RET_STAY:
+		case HSO_RET:
 			goto end_program;
 		}
 

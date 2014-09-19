@@ -5,8 +5,6 @@ enum hxb_sm_opcode {
 	HSO_LD_SOURCE_IP,
 	HSO_LD_SOURCE_EID,
 	HSO_LD_SOURCE_VAL,
-	HSO_LD_CURSTATE,
-	HSO_LD_CURSTATETIME,
 	HSO_LD_FALSE,
 	HSO_LD_TRUE,
 	HSO_LD_U8,
@@ -63,8 +61,7 @@ enum hxb_sm_opcode {
 
 	HSO_POP,
 
-	HSO_RET_CHANGE,
-	HSO_RET_STAY,
+	HSO_RET,
 };
 
 enum hxb_sm_dtmask {

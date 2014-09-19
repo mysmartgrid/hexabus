@@ -183,8 +183,6 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 		case Opcode::LD_SOURCE_IP:
 		case Opcode::LD_SOURCE_EID:
 		case Opcode::LD_SOURCE_VAL:
-		case Opcode::LD_CURSTATE:
-		case Opcode::LD_CURSTATETIME:
 		case Opcode::LD_FALSE:
 		case Opcode::LD_TRUE:
 		case Opcode::LD_SYSTIME:
@@ -214,8 +212,7 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 		case Opcode::CONV_F:
 		case Opcode::WRITE:
 		case Opcode::POP:
-		case Opcode::RET_CHANGE:
-		case Opcode::RET_STAY:
+		case Opcode::RET:
 		case Opcode::DUP:
 		case Opcode::ROT:
 			break;

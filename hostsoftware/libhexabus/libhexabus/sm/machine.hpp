@@ -23,7 +23,7 @@ class Machine {
 
 		uint8_t sm_memory[SM_MEMORY_SIZE];
 		hxb_sm_value_t sm_stack[SM_STACK_SIZE];
-		uint32_t sm_curstate, sm_in_state_since, sm_first_run;
+		uint32_t sm_first_run;
 
 		std::vector<uint8_t> _program;
 		uint64_t _created_at;
@@ -35,7 +35,6 @@ class Machine {
 		int sm_get_u32(uint16_t at, uint32_t* u);
 		int sm_get_float(uint16_t at, float* f);
 		uint8_t sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val);
-		uint32_t sm_get_timestamp();
 		static uint64_t sm_get_systime();
 		void sm_diag_msg(int code, const char* file, int line);
 
@@ -45,15 +44,11 @@ class Machine {
 
 	public:
 		Machine(const std::vector<uint8_t>& program)
-			: sm_curstate(0), sm_in_state_since(0), sm_first_run(true),
-			  _program(program),
-			  _created_at(sm_get_systime())
+			: sm_first_run(true), _program(program), _created_at(sm_get_systime())
 		{
 		}
 
 		int run_sm(const char* src_ip, uint32_t eid, const hxb_sm_value_t* val);
-
-		uint32_t state() const { return sm_curstate; }
 
 		boost::signals2::connection onWrite(write_signal_t::slot_type slot)
 		{
