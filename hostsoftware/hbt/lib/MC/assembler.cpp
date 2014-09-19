@@ -89,6 +89,7 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 		case Opcode::LD_U8:
 		case Opcode::DUP_I:
 		case Opcode::ROT_I:
+		case Opcode::EXCHANGE:
 			if (auto* i = dynamic_cast<const ImmediateInstruction<uint8_t>*>(insn)) {
 				append_u8(i->immed());
 				break;

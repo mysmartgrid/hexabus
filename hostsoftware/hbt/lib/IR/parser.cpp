@@ -244,6 +244,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 				| jump_instruction
 				| dup_instruction
 				| rot_instruction
+				| exchange_instruction
 				| switch_instruction
 				| block_instruction
 			);
@@ -304,6 +305,10 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 				stack_slot[_val = bind(make_insn_t<Opcode::ROT_I>, _1)]
 				| eps[_val = val(ir_instruction{ Opcode::ROT, boost::none_t() })]
 			);
+
+		exchange_instruction =
+			TOKEN("exchange")
+			> stack_slot[_val = bind(make_insn_t<Opcode::EXCHANGE>, _1)];
 
 		switch_instruction =
 			lit("switch")
@@ -489,6 +494,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, ir_instruction(), asm_ws<It>> jump_instruction;
 	qi::rule<It, ir_instruction(), asm_ws<It>> dup_instruction;
 	qi::rule<It, ir_instruction(), asm_ws<It>> rot_instruction;
+	qi::rule<It, ir_instruction(), asm_ws<It>> exchange_instruction;
 	qi::rule<It, ir_instruction(), asm_ws<It>> switch_instruction;
 	simple_instructions simple_instruction;
 	qi::rule<It, ir_instruction(), asm_ws<It>> block_instruction;

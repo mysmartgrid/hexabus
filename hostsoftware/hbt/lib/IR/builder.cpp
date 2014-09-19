@@ -79,6 +79,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 	case Opcode::LD_U8:
 	case Opcode::DUP_I:
 	case Opcode::ROT_I:
+	case Opcode::EXCHANGE:
 		if (!get<uint8_t>(immed))
 			throw std::invalid_argument("immed");
 

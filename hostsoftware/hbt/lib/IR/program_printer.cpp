@@ -93,6 +93,7 @@ const char* opcodeName(hbt::ir::Opcode op)
 	case Opcode::CONV_F: return "conv.f";
 	case Opcode::WRITE: return "write";
 	case Opcode::POP: return "pop";
+	case Opcode::EXCHANGE: return "exchange";
 	case Opcode::RET: return "ret";
 	case Opcode::LD_SOURCE_IP:
 	case Opcode::LD_SOURCE_EID:
@@ -243,15 +244,9 @@ std::string prettyPrint(const Program& program)
 
 		case Opcode::DUP_I:
 		case Opcode::ROT_I:
+		case Opcode::EXCHANGE:
 			if (auto* i = dynamic_cast<const ImmediateInstruction<uint8_t>*>(insn)) {
-				format f;
-
-				switch (insn->opcode()) {
-				case Opcode::DUP_I: f = format(" %1%"); break;
-				case Opcode::ROT_I: f = format(" %1%"); break;
-				default: std::runtime_error("invalid program printed");
-				}
-				out << f % unsigned(i->immed());
+				out << format(" %1%") % unsigned(i->immed());
 				break;
 			}
 			throw std::runtime_error("invalid program printed");

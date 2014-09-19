@@ -57,7 +57,7 @@ static Testcase allFeatures = {
 	{ ".on_periodic L0", { 0x00, 0x07 } },
 	{ "" },
 	{ "L0:" },
-	{ "	ret", { 0x33 } },
+	{ "	ret", { 0x34 } },
 	{ "L1:" },
 	{ "	ld src.ip", { 0x00 } },
 	{ "	ld src.eid", { 0x01 } },
@@ -130,7 +130,8 @@ static Testcase allFeatures = {
 	{ "L4:" },
 	{ "	write", { 0x31 } },
 	{ "	pop", { 0x32 } },
-	{ "	ret", { 0x33 } },
+	{ "	exchange 7", { 0x33, 0x07 } },
+	{ "	ret", { 0x34 } },
 };
 
 static Testcase noInit = {
@@ -143,7 +144,7 @@ static Testcase noInit = {
 	{ ".on_periodic L0", { 0x00, 0x07 } },
 	{ "" },
 	{ "L0:" },
-	{ "	ret", { 0x33 } },
+	{ "	ret", { 0x34 } },
 };
 
 static Testcase multiLabel = {
@@ -201,11 +202,11 @@ static Testcase allVectorsUnique = {
 	{ ".on_periodic L2", { 0x00, 0x09 } },
 	{ "" },
 	{ "L0:" },
-	{ "	ret", { 0x33 } },
+	{ "	ret", { 0x34 } },
 	{ "L1:" },
-	{ "	ret", { 0x33 } },
+	{ "	ret", { 0x34 } },
 	{ "L2:" },
-	{ "	ret", { 0x33 } }
+	{ "	ret", { 0x34 } }
 };
 
 template<typename It1, typename It2>

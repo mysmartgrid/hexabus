@@ -161,6 +161,7 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 		case Opcode::LD_U8:
 		case Opcode::DUP_I:
 		case Opcode::ROT_I:
+		case Opcode::EXCHANGE:
 			if (!canRead(1))
 				break;
 			insn.immed = read_u8();
@@ -440,6 +441,7 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 		case Opcode::LD_U8:
 		case Opcode::DUP_I:
 		case Opcode::ROT_I:
+		case Opcode::EXCHANGE:
 			builder.append(thisLabel, insn.op, boost::get<uint8_t>(insn.immed), 0);
 			break;
 
