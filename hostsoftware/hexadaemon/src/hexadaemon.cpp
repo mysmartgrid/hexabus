@@ -3,27 +3,22 @@
 // ~~~~~~~~~~
 //
 // Copyright (c) 2003-2011 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+// Copyright (c) 2013-2014 Stephan Platz (platz at itwm dot fraunhofer dot de)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
 #include <boost/asio/io_service.hpp>
-//#include <boost/asio/ip/udp.hpp>
 #include <boost/asio/signal_set.hpp>
-//#include <boost/array.hpp>
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
-//#include <ctime>
 #include <iostream>
 #include <syslog.h>
-//#include <unistd.h>
 
 namespace po = boost::program_options;
 
 #include "hexabus_server.hpp"
-
-boost::asio::io_service io_service;
 
 int main(int argc, char** argv)
 {
@@ -35,9 +30,8 @@ int main(int argc, char** argv)
     ("debug,d", "enable debug mode")
     ("logfile,l", po::value<std::string>(), "set the logfile to use")
     ("interval,i", po::value<int>(), "set the broadcast interval")
-    ("interface,I", po::value<std::string>(), "interface to use for multicast")
-    //("address,a", po::value<std::vector<std::string> >(), "address to listen on")
-    ("address,a", po::value<std::string>(), "address to listen on")
+    ("interface,I", po::value<std::vector<std::string> >(), "interface to use for multicast")
+    ("address,a", po::value<std::vector<std::string> >(), "address to listen on")
     ;
   po::variables_map vm;
 
@@ -54,8 +48,8 @@ int main(int argc, char** argv)
   bool debug = false;
   std::string logfile = "/tmp/hexadaemon.log";
   int interval = 2;
-  std::string interface;
-  std::string address;
+  std::vector<std::string> interfaces;
+  std::vector<std::string> addresses;
 
   if (vm.count("help")) {
     std::cout << desc << std::endl;
@@ -63,19 +57,24 @@ int main(int argc, char** argv)
   }
 
   if (vm.count("debug")) {
+    std::cout << "debug enabled" << std::endl;
     debug = true;
   }
 
   if (vm.count("logfile")) {
     logfile = vm["logfile"].as<std::string>();
+    debug && std::cout << "logfile: " << logfile << std::endl;
   }
 
   if (vm.count("interval")) {
     interval = vm["interval"].as<int>();
+    std::cout << "interval: " << interval << std::endl;
   }
 
   if (vm.count("interface")) {
-    interface = vm["interface"].as<std::string>();
+    interfaces = vm["interface"].as<std::vector<std::string> >();
+    for (std::vector<std::string>::iterator it = interfaces.begin(); it != interfaces.end(); ++it)
+      debug && std::cout << "interface: " << *it << std::endl;
   } else {
     std::cerr << "You have to specify at least one interface." << std::endl;
     return 1;
@@ -83,7 +82,9 @@ int main(int argc, char** argv)
 
 
   if (vm.count("address")) {
-    address = vm["address"].as<std::string>();
+    addresses = vm["address"].as<std::vector<std::string> >();
+    for (std::vector<std::string>::iterator it = addresses.begin(); it != addresses.end(); ++it)
+      debug && std::cout << "address: " << *it << std::endl;
   } else {
     std::cerr << "You have to specify at least one address." << std::endl;
     return 1;
@@ -91,13 +92,14 @@ int main(int argc, char** argv)
 
   try
   {
+    boost::asio::io_service io_service;
 
     // Initialise the server before becoming a daemon. If the process is
     // started from a shell, this means any errors will be reported back to the
     // user.
     //udp_daytime_server server(io_service);
     hexadaemon::HexabusServer *server;
-    server = new hexadaemon::HexabusServer(io_service, interface, address, interval, debug);
+    server = new hexadaemon::HexabusServer(io_service, interfaces, addresses, interval, debug);
 
     // Register signal handlers so that the daemon may be shut down. You may
     // also want to register for other signals, such as SIGHUP to trigger a
@@ -213,6 +215,18 @@ int main(int argc, char** argv)
     io_service.run();
     if ( !debug )
       syslog(LOG_INFO | LOG_USER, "HexabusDaemon stopped");
+  }
+  catch (hexabus::NetworkException& e)
+  {
+    std::cerr << "An error occured during " << e.reason() << ": " << e.code().message() << std::endl;
+  }
+  catch (hexabus::GenericException& e)
+  {
+    std::cerr << "An error occured during " << e.reason() << std::endl;
+  }
+  catch (boost::exception& e)
+  {
+    std::cerr << "Boost Exception: " << diagnostic_information(e) << std::endl;
   }
   catch (std::exception& e)
   {

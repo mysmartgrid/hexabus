@@ -16,14 +16,21 @@
 #include <libklio/store-factory.hpp>
 #include <libklio/sensor.hpp>
 #include <libklio/sensor-factory.hpp>
+#include <libklio/sqlite3/sqlite3-store.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/filesystem.hpp>
+
 // commandline parsing.
 #include <boost/program_options.hpp>
 #include <boost/program_options/positional_options.hpp>
 namespace po = boost::program_options;
+
+#include <boost/format.hpp>
+//namespace bf = boost::format;
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
@@ -32,17 +39,19 @@ namespace po = boost::program_options;
 #include <libhexabus/logger/logger.hpp>
 
 #include "resolv.hpp"
+using boost::format;
+using boost::io::group;
 
 #define KLIO_AUTOCOMMIT 0
 
 class Logger : public hexabus::Logger {
-	private:
-		bfs::path store_file;
-		klio::Store::Ptr store;
-    unsigned int _packet_counter;
-    unsigned int _packet_counter_max;
+private:
+  bfs::path store_file;
+  klio::SQLite3Store::Ptr store;
+  unsigned int _packet_counter;
+  unsigned int _packet_counter_max;
 
-		klio::Sensor::Ptr lookup_sensor(const std::string& id)
+  klio::Sensor::Ptr lookup_sensor(const std::string& id)
 		{
 			std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_external_id(id);
 			
@@ -51,7 +60,7 @@ class Logger : public hexabus::Logger {
       return sensors[0];
 		}
 
-		void new_sensor_found(klio::Sensor::Ptr sensor, const boost::asio::ip::address_v6&)
+  void new_sensor_found(klio::Sensor::Ptr sensor, const boost::asio::ip::address_v6&)
 		{
 			store->add_sensor(sensor);
 			std::cout << "Created new sensor: " << sensor->str() << std::endl;
@@ -61,7 +70,7 @@ class Logger : public hexabus::Logger {
 #endif
 		}
 
-		void record_reading(klio::Sensor::Ptr sensor, klio::timestamp_t ts, double value)
+  void record_reading(klio::Sensor::Ptr sensor, klio::timestamp_t ts, double value)
 		{
       double msecs1;
       double msecs2;
@@ -105,68 +114,61 @@ class Logger : public hexabus::Logger {
 			}
 		}
 
-	public:
-		Logger(const bfs::path& store_file,
-			klio::Store::Ptr& store,
-			klio::TimeConverter& tc,
-			klio::SensorFactory& sensor_factory,
-			const std::string& sensor_timezone,
-			hexabus::DeviceInterrogator& interrogator,
-			hexabus::EndpointRegistry& reg)
+public:
+  Logger(const bfs::path& store_file,
+         klio::SQLite3Store::Ptr& store,
+         klio::TimeConverter& tc,
+         klio::SensorFactory& sensor_factory,
+         const std::string& sensor_timezone,
+         hexabus::DeviceInterrogator& interrogator,
+         hexabus::EndpointRegistry& reg)
 			: hexabus::Logger(tc, sensor_factory, sensor_timezone, interrogator, reg), store_file(store_file), store(store)
       , _packet_counter(0)
       , _packet_counter_max(10)
 		{
 		}
 
-		void rotate_stores()
+  void rotate_stores()
 		{
 			std::cout << "Rotating store " << store_file << "..." << std::endl;
-
-			{
-				std::cout << "Loading sensor schema" << std::endl;
-				std::vector<klio::Sensor::uuid_t> uuids = store->get_sensor_uuids();
-				std::vector<klio::Sensor::uuid_t>::const_iterator it, end;
-				for (it = uuids.begin(), end = uuids.end(); it != end; ++it) {
-					klio::Sensor::Ptr sensor = store->get_sensor(*it);
-
-					//sensor_cache[sensor->name()] = sensor;
-					sensor_cache[sensor->external_id()] = sensor;
-				}
-			}
+			std::cout << "Rotating store call flush " << store_file << "..." << std::endl;
+      fflush(stdout);
+			try {
+        store->flush(true);
+			} catch (klio::StoreException const& ex) {
+				std::cout << "Failed to flush the buffers : " << ex.what() << std::endl;
+      }
+      std::cout << "Rotating store flushed " << store_file << "..." << std::endl;
+      fflush(stdout);
 
 			std::cout << "Reopening store" << std::endl;
 
-#if KLIO_AUTOCOMMIT
-      store->commit_transaction();
-#endif
-      klio::StoreFactory store_factory; 
-      klio::Store::Ptr store_new;
-      store_new = store_factory.create_sqlite3_store(store_file);//, true, false);
-      store_new->sync_sensors(store);
-			store->close();
-			//store = klio::StoreFactory().create_sqlite3_store(store_file, true, false);
-      store = store_new;
+      const boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+
+      std::string s;
+      s= str( format("%04d%02d%02d-%02d%02d")        % now.date().year_month_day().year
+              % now.date().year_month_day().month.as_number()
+              % now.date().year_month_day().day.as_number()
+              % now.time_of_day().hours()
+              % now.time_of_day().minutes());
+
+      std::string name(store_file.string());
+      name+=".";
+      name+=s;
+      
+      bfs::path dbname(name);
+      std::cout << "===> renaming to: "<< name<<std::endl;
+      fflush(stdout);
+			try {
+        store->rotate(dbname);
+			} catch (klio::StoreException const& ex) {
+				std::cout << "Failed to rotate the klio-databse : " << ex.what() << std::endl;
+      }
+      
 
 #if KLIO_AUTOCOMMIT
       store->start_transaction();
 #endif
-			{
-				std::cout << "Adding sensors..." << std::endl;
-				std::set<klio::Sensor::uuid_t> new_sensors;
-				{
-					std::vector<klio::Sensor::uuid_t> uuids = store->get_sensor_uuids();
-					new_sensors.insert(uuids.begin(), uuids.end());
-				}
-
-				std::map<std::string, klio::Sensor::Ptr>::const_iterator it, end;
-				for (it = sensor_cache.begin(), end = sensor_cache.end(); it != end; ++it) {
-					if (!new_sensors.count(it->second->uuid())) {
-						store->add_sensor(it->second);
-						std::cout << it->second->name() << std::endl;
-					}
-				}
-			}
 
 			std::cout << "Rotation done" << std::endl;
 		}
@@ -209,7 +211,7 @@ int main(int argc, char** argv)
 	po::variables_map vm;
 	try {
 		po::store(po::command_line_parser(argc, argv).
-                    options(desc).positional(p).run(), vm);
+              options(desc).positional(p).run(), vm);
 		po::notify(vm);
 	} catch (const std::exception& e) {
 		std::cerr << "Cannot process commandline options: " << e.what() << std::endl;
@@ -255,7 +257,7 @@ int main(int argc, char** argv)
 
 	try {
 		klio::StoreFactory store_factory; 
-		klio::Store::Ptr store;
+    klio::SQLite3Store::Ptr store;
 
 		std::string storefile(vm["storefile"].as<std::string>());
 		bfs::path db(storefile);
@@ -268,13 +270,13 @@ int main(int argc, char** argv)
 		store = store_factory.open_sqlite3_store(db, false, true, 30);
     store->start_transaction();
 #else
-		store = store_factory.open_sqlite3_store(db, true, true, 30);
+		store = store_factory.open_sqlite3_store(db, true, true, 30, klio::SQLite3Store::OS_SYNC_OFF);
 #endif
 
 		std::string sensor_timezone("Europe/Berlin"); 
 		if (! vm.count("timezone")) {
 			std::cerr << "Using default timezone " << sensor_timezone 
-			<< ", change with -t <NEW_TIMEZONE>" << std::endl;
+                << ", change with -t <NEW_TIMEZONE>" << std::endl;
 		} else {
 			sensor_timezone=vm["timezone"].as<std::string>();
 		}
@@ -295,14 +297,19 @@ int main(int argc, char** argv)
 		listener.onPacketReceived(boost::ref(logger));
 
 		boost::asio::signal_set rotate_handler(io, SIGHUP);
+		boost::asio::signal_set terminate_handler(io, SIGTERM);
 
-		while (true) {
+    bool term_received = false;
+		while (!term_received) {
 			bool hup_received = false;
 
 			using namespace boost::lambda;
 			rotate_handler.async_wait(
-					(var(hup_received) = true,
-					boost::lambda::bind(&boost::asio::io_service::stop, &io)));
+        (var(hup_received) = true,
+         boost::lambda::bind(&boost::asio::io_service::stop, &io)));
+			terminate_handler.async_wait(
+        (var(term_received) = true,
+         boost::lambda::bind(&boost::asio::io_service::stop, &io)));
 
 			io.reset();
 			io.run();
@@ -313,6 +320,11 @@ int main(int argc, char** argv)
 				break;
 			}
 		}
+    std::cout << "Terminating hexalog."<< std::endl;
+    store->flush(true);
+    store->close();
+    fflush(stdout);
+    
 	} catch (const hexabus::NetworkException& e) {
 		std::cerr << "Network error: " << e.code().message() << std::endl;
 		return ERR_NETWORK;

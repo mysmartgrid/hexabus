@@ -17,8 +17,14 @@ include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/libhexabus
+  ${CMAKE_SOURCE_DIR}/../../shared
 )
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+
+get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+foreach(dir ${dirs})
+  message(STATUS "dir='${dir}'")
+endforeach()
 
 if(LIBKLIO_FOUND)
   include_directories(
