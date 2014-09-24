@@ -212,13 +212,6 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		return vec ? unpack(*vec) : std::vector<T>();
 	}
 
-	template<typename Fn, typename... Args>
-	static auto make(Fn fn, Args&&... args)
-		-> decltype(qi::_val = bindl(fn, args...))
-	{
-		return qi::_val = bindl(fn, args...);
-	}
-
 	static std::string str(const range& range)
 	{
 		return std::string(range.begin(), range.end());
@@ -261,7 +254,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		using namespace spirit_workarounds;
 
 		unexpected = !eps;
-#define expected(s) (omit[eps[bindl([this] () { unexpected.name(s); })] > unexpected])
+#define expected(s) (omit[eps[fwd % [this] () { unexpected.name(s); }] > unexpected])
 
 		start =
 			*(

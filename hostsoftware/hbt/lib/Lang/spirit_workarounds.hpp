@@ -6,6 +6,7 @@
 #include <boost/fusion/include/vector.hpp>
 #include <boost/optional.hpp>
 #include <boost/spirit/include/phoenix.hpp>
+#include <boost/spirit/include/qi.hpp>
 
 namespace hbt {
 namespace lang {
@@ -198,6 +199,13 @@ struct fwd_s {
 	{
 		return call_maybe_prepend_val(std::tuple<Attrib&>(a), ctx, pass);
 	}
+
+	template<typename Context>
+	auto operator()(boost::spirit::unused_type, Context& ctx, bool& pass) const
+		-> decltype(call_maybe_prepend_val(std::tuple<>(), ctx, pass))
+	{
+		return call_maybe_prepend_val(std::tuple<>(), ctx, pass);
+	}
 };
 
 template<typename Fn, bool ForwardVal = false>
@@ -208,36 +216,6 @@ struct makefwd_s {
 	void operator()(Attrib& a, Context& ctx, bool& pass) const
 	{
 		boost::fusion::at_c<0>(ctx.attributes) = fn(a, ctx, pass);
-	}
-};
-
-template<typename Fn>
-struct lambda_binder {
-	Fn fn;
-
-	// apparently, Boost lies a lot about what result_of does.
-	template<typename... Args>
-	struct result {
-		typedef decltype(std::declval<Fn>()(std::declval<Args&>()...)) type;
-	};
-	template<typename F, typename... Args>
-	struct result<F(Args...)> {
-		typedef decltype(std::declval<Fn>()(std::declval<Args>()...)) type;
-	};
-
-	template<typename Sig>
-	struct result_of;
-	template<typename R, typename... Args>
-	struct result_of<R (Fn::*)(Args...) const> {
-		typedef R type;
-	};
-	typedef typename result_of<decltype(&Fn::operator())>::type result_type;
-
-	template<typename... Args>
-	auto operator()(const Args&... args) const
-		-> decltype(fn(const_cast<Args&>(args)...))
-	{
-		return fn(const_cast<Args&>(args)...);
 	}
 };
 
@@ -270,13 +248,6 @@ static constexpr struct {
 		return { fn };
 	}
 } makefwd = {};
-
-template<typename Fn, typename... Args>
-static auto bindl(Fn fn, Args&&... args)
-	-> decltype(boost::phoenix::bind(detail::lambda_binder<Fn>{fn}, args...))
-{
-	return boost::phoenix::bind(detail::lambda_binder<Fn>{fn}, args...);
-}
 
 }
 }

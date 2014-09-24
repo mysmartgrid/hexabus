@@ -255,7 +255,7 @@ class main(a, b, __123_usd) {
 
 			if (f > 5 && timeout < 76) {
 				a.b := hour(dev.x);
-				a.c := dev.value
+				a.c := dev.value;
 			} else a.c := packet_eid;
 			switch (x) {
 				case 1+1: goto z;
