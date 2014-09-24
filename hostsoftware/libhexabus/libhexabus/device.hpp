@@ -34,21 +34,26 @@ namespace hexabus {
 			uint32_t eid() const { return _eid; }
 			std::string name() const { return _name; }
 			uint8_t datatype() const { return _datatype; }
+			bool broadcast() const { return _broadcast; }
 
 			virtual hexabus::Packet::Ptr handle_query() const = 0;
 			virtual uint8_t handle_write(const hexabus::Packet& p) const = 0;
+			virtual bool is_readable() const = 0;
+			virtual bool is_writable() const = 0;
 
 		protected:
-			EndpointFunctions(uint32_t eid, const std::string& name, uint8_t datatype)
+			EndpointFunctions(uint32_t eid, const std::string& name, uint8_t datatype, bool broadcast = true)
 				: _eid(eid)
 				, _name(name)
 				, _datatype(datatype)
+				, _broadcast(broadcast)
 			{}
 
 		private:
 			uint32_t _eid;
 			std::string _name;
 			uint8_t _datatype;
+			bool _broadcast;
 	};
 
 	template<typename TValue>
@@ -57,8 +62,8 @@ namespace hexabus {
 			typedef std::tr1::shared_ptr<TypedEndpointFunctions<TValue> > Ptr;
 			typedef boost::function<TValue ()> endpoint_read_fn_t;
 			typedef boost::function<bool (const TValue& value)> endpoint_write_fn_t;
-			TypedEndpointFunctions(uint32_t eid, const std::string& name)
-				: EndpointFunctions(eid, name, calculateDatatype())
+			TypedEndpointFunctions(uint32_t eid, const std::string& name, bool broadcast = true)
+				: EndpointFunctions(eid, name, calculateDatatype(), broadcast)
 			{}
 
 			boost::signals2::connection onRead(
@@ -74,8 +79,16 @@ namespace hexabus {
 				return result;
 			}
 
+			virtual bool is_readable() const {
+				return _read.num_slots() > 0;
+			}
+
+			virtual bool is_writable() const {
+				return _write.num_slots() > 0;
+			}
+
 			virtual hexabus::Packet::Ptr handle_query() const {
-				if ( _read.num_slots() < 1 )
+				if ( !is_readable() )
 					return Packet::Ptr(new ErrorPacket(HXB_ERR_UNKNOWNEID));
 
 				boost::optional<TValue> value = _read();
@@ -89,7 +102,7 @@ namespace hexabus {
 			virtual uint8_t handle_write(const hexabus::Packet& p) const {
 				const WritePacket<TValue>* write = dynamic_cast<const WritePacket<TValue>*>(&p);
 				if ( write != NULL ) {
-					if ( _write.num_slots() < 1 ) {
+					if ( !is_writable() ) {
 						return HXB_ERR_WRITEREADONLY;
 					}
 
