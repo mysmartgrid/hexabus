@@ -21,11 +21,15 @@ namespace lang {
 
 namespace {
 
+enum {
+	TOKEN_ANY = 1000,
+};
+
 template<typename Lexer>
 struct tokenizer : boost::spirit::lex::lexer<Lexer> {
-	void add(boost::spirit::lex::token_def<>& token)
+	void add(boost::spirit::lex::token_def<>& token, int id = 0)
 	{
-		this->self += token;
+		this->self.add(token, id);
 	}
 
 	tokenizer()
@@ -108,7 +112,7 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 		add(lit.uint32_ = R"(\d+)");
 		add(lit.uint64_ = R"(\d+[lL])");
 
-		add(any = ".");
+		add(any = ".", TOKEN_ANY);
 	}
 
 	boost::spirit::lex::token_def<>
@@ -167,6 +171,14 @@ struct lambda_binder {
 	struct result<F(Args...)> {
 		typedef decltype(std::declval<Fn>()(std::declval<Args>()...)) type;
 	};
+
+	template<typename Sig>
+	struct result_of;
+	template<typename R, typename... Args>
+	struct result_of<R (Fn::*)(Args...) const> {
+		typedef R type;
+	};
+	typedef typename result_of<decltype(&Fn::operator())>::type result_type;
 
 	template<typename... Args>
 	auto operator()(const Args&... args) const
@@ -284,6 +296,13 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		using namespace qi;
 		using namespace boost::phoenix;
 
+		unexpected = !eps;
+		auto expected = [this] (std::string msg) {
+			return eps[bindl([this, msg] () {
+					unexpected.name(msg);
+				})] > unexpected;
+		};
+
 		start =
 			*(
 				machine_class[push_back(_val, _1)]
@@ -292,6 +311,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				| endpoint[push_back(_val, _1)]
 				| device[push_back(_val, _1)]
 				| include[push_back(_val, _1)]
+				| !eoi >> expected("toplevel element")
 			);
 
 		e.primary =
@@ -526,7 +546,8 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		state =
 			(tok.word.state >> identifier >> tok.lbrace >> *s.decl >> *on_block >> *statement >> tok.rbrace)[
 				make(
-					[this] (range& r, opt<Identifier>& id, std::vector<ptr<DeclarationStmt>>& decls, std::vector<ptr<OnBlock>>& onBlocks, std::vector<ptr<Stmt>>& stmts) {
+					[this] (range& r, opt<Identifier>& id, std::vector<ptr<DeclarationStmt>>& decls,
+							std::vector<ptr<OnBlock>>& onBlocks, std::vector<ptr<Stmt>>& stmts) {
 						return new State(locOf(r), std::move(*id), unpack(decls), move(onBlocks), move(stmts));
 					}, _1, _2, _4, _5, _6)];
 
@@ -559,8 +580,8 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 					}, _1, _2, _3, _5, _7, _pass)];
 
 		device =
-			(tok.word.device >> identifier >> tok.lparen >> ip_addr >> tok.rparen >> tok.colon
-				>> -(identifier % omit[tok.comma]) >> tok.semicolon)[make(
+			(tok.word.device > identifier > tok.lparen > ip_addr > tok.rparen > tok.colon
+				> -(identifier % omit[tok.comma]) > tok.semicolon)[make(
 					[this] (range& r, opt<Identifier>& name, std::array<uint8_t, 16>& ip,
 							opt<std::vector<opt<Identifier>>>& eps) {
 						return new Device(locOf(r), *name, ip, unpack(eps));
@@ -598,34 +619,24 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				) % tok.comma
 			);
 
-		auto dt = [this] (range& b, Type t) {
-			return locd<Type>{locOf(b), t};
-		};
-
+		datatype.name("datatype");
 		datatype =
-			tok.type.bool_[make(dt, _1, Type::Bool)]
-			| tok.type.uint8_[make(dt, _1, Type::UInt8)]
-			| tok.type.uint32_[make(dt, _1, Type::UInt32)]
-			| tok.type.uint64_[make(dt, _1, Type::UInt64)]
-			| tok.type.float_[make(dt, _1, Type::Float)];
+			(
+				tok.type.bool_[_a = Type::Bool]
+				| tok.type.uint8_[_a = Type::UInt8]
+				| tok.type.uint32_[_a = Type::UInt32]
+				| tok.type.uint64_[_a = Type::UInt64]
+				| tok.type.float_[_a = Type::Float]
+			)[make([this] (range& r, Type t) {
+					return locd<Type>{locOf(r), t};
+				}, _1, _a)];
 
+		identifier.name("identifier");
 		identifier =
 			tok.ident[make(
 				[this] (range& id) {
 					return Identifier(locOf(id), str(id));
 				}, _1)];
-
-		auto anyID = tok.any.id();
-		on_error<fail>(start, bindl(
-			[anyID] (const It& r, const boost::spirit::info& info) {
-				if (r->is_valid()) {
-					auto b = r->value().begin(), e = r->value().end();
-					throw std::tuple<range, boost::spirit::info, bool>(range(b, e), info, r->id() == anyID);
-				} else {
-					typename range::iterator it;
-					throw std::tuple<range, boost::spirit::info, bool>(range(it, it), info, false);
-				}
-			}, _3, _4));
 	}
 
 	std::shared_ptr<std::string> file;
@@ -668,8 +679,10 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 	rule<std::array<uint8_t, 16>()> ip_addr;
 	rule<EndpointAccess()> endpoint_access;
-	rule<opt<locd<Type>>()> datatype;
+	rule<opt<locd<Type>>(), qi::locals<Type>> datatype;
 	rule<opt<Identifier>()> identifier;
+
+	rule<> unexpected;
 
 	int tabWidth;
 
@@ -704,36 +717,38 @@ std::unique_ptr<TranslationUnit> parse(const hbt::util::MemoryBuffer& input)
 		bool result = boost::spirit::lex::tokenize_and_phrase_parse(first, last, t, g, ws, parts);
 
 		if (!result || first != last)
-			throw ParseError(0, 0, "...not this anyway...", "parsing aborted (internal error)");
-	} catch (const std::tuple<boost::iterator_range<iter>, boost::spirit::info, bool>& fail) {
-		auto& badRange = std::get<0>(fail);
+			throw ParseError(0, 0, "...not this anyway...", "parsing aborted (internal error)", "problems");
+	} catch (const qi::expectation_failure<iterator_type>& ef) {
 		std::string badToken;
-		std::string rule_name = std::get<1>(fail).tag;
-		std::string expected, detail;
+		int line = -1, col = -1;
 
-		if (std::get<2>(fail)) {
-			unsigned val = (unsigned char) *badRange.begin();
-			char buf[16];
-			sprintf(buf, "\\x%02x", val);
-			badToken = buf;
-		} else if (badRange) {
-			badToken = std::string(badRange.begin().base(), badRange.end().base());
+		if (ef.first->is_valid()) {
+			if (ef.first->id() == TOKEN_ANY) {
+				unsigned val = (unsigned char) *ef.first->value().begin();
+				char buf[16];
+				sprintf(buf, "\\x%02x", val);
+				badToken = buf;
+			} else {
+				badToken = std::string(ef.first->value().begin(), ef.first->value().end());
+			}
+			line = getLine(ef.first->value().begin());
+			col = getColumn(ef.first->value().begin(), tabWidth);
 		} else {
 			badToken = "<EOF>";
 		}
+
+		std::string rule_name = ef.what_.tag;
+		std::string expected, detail;
 
 		if (rule_name[0] == '~') {
 			size_t sep = rule_name.find('~', 1);
 			expected = rule_name.substr(1, sep - 1);
 			detail = rule_name.substr(sep + 1);
-		} else if (rule_name == "literal-string") {
-			expected = boost::get<std::string>(std::get<1>(fail).value);
 		} else {
 			expected = rule_name;
-			detail = badToken;
 		}
 
-		throw ParseError(getLine(badRange.begin()), getColumn(badRange.begin(), tabWidth), expected, detail);
+		throw ParseError(line, col, expected, detail, badToken);
 	}
 
 	return std::unique_ptr<TranslationUnit>(

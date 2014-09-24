@@ -248,7 +248,7 @@ int main()
 class main(a, b, __123_usd) {
 	state init {
 		float x3;
-		float i9;
+		uint32 i9;
 
 		on (snafu.zu > 8.1) {
 			float f = 17;
@@ -266,6 +266,7 @@ class main(a, b, __123_usd) {
 		on entry {}
 		if (x3 > 0)
 			goto z;
+
 	}
 	state dead {
 		// test
@@ -282,7 +283,7 @@ machine tree : main();
 
 endpoint button(4) : bool (broadcast, read, read);
 
-device/**/dev(fd01::2) : button;
+device dev(fd01::2) : button;
 //)#";
 
 	hbt::util::MemoryBuffer buf(expr);
@@ -297,10 +298,10 @@ device/**/dev(fd01::2) : button;
 			<< "expected " << e.expected() << " at " << e.line() << ":" << e.column();
 		if (e.detail().size())
 			std::cout << " (" << e.detail() << ")";
-		std::cout << "\n";
+		std::cout << ", got " << e.got() << "\n";
 		return 1;
 	} catch (const std::exception& e) {
-		std::cerr << "hbt-as: error: " << e.what() << "\n";
+		std::cerr << "hbt-lang: error: " << e.what() << "\n";
 		return 1;
 	}
 }
