@@ -24,6 +24,8 @@ set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where m
 # No user settings below
 ###################################################################################################
 
+add_definitions("-std=c++0x")
+
 # Where are the additional libraries installed? Note: provide includes
 # path here, subsequent checks will resolve everything else
 set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)

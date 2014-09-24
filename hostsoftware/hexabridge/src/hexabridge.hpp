@@ -23,9 +23,6 @@
 
 #include <libhexabus/device.hpp>
 
-#include <libklio/msg/msg-sensor.hpp>
-#include <libklio/msg/msg-store.hpp>
-
 namespace hexabridge {
 	class Pusher {
 		public:
@@ -36,15 +33,14 @@ namespace hexabridge {
 			std::string loadDeviceName();
 			void saveDeviceName(const std::string& name);
 
-			uint32_t get_last_reading();
+			uint32_t getLastReading();
 
 		private:
 			void _init();
 
 		private:
 			hexabus::Device _device;
-			klio::MSGStore::Ptr _store;
-			klio::MSGSensor::Ptr _sensor;
+			const std::string _url, _id, _token;
 			bool _debug;
 	};
 }

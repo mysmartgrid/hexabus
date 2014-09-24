@@ -25,7 +25,9 @@
 #include <libhexabus/device.hpp>
 #include <libhexabus/endpoint_registry.hpp>
 
-#include <libklio/store-factory.hpp>
+#include <json/json.h>
+#include <libmysmartgrid/error.h>
+#include <libmysmartgrid/webclient.h>
 
 using namespace hexabridge;
 
@@ -37,24 +39,11 @@ uint32_t eid = 2;
 Pusher::Pusher(boost::asio::io_service& io, const std::vector<std::string>& interfaces, const std::vector<std::string>& addresses,
 		const std::string& url, const std::string& id, const std::string& token, int interval, bool debug)
 	: _device(io, interfaces, addresses, interval)
+	, _url(url)
+	, _id(id)
+	, _token(token)
 	, _debug(debug)
 {
-	klio::StoreFactory store_factory;
-
-	//TODO: url handling
-	_store = store_factory.create_msg_store(false);
-
-	klio::SensorFactory sensor_factory;
-	_sensor = sensor_factory.create_msg_sensor(
-		"uid123",
-		id,
-		"test",
-		"description",
-		"watt",
-		"Europe/Berlin",
-		token);
-	_store->add_sensor(_sensor);
-
 	_init();
 }
 
@@ -69,19 +58,32 @@ void Pusher::_init() {
 	hexabus::TypedEndpointFunctions<uint32_t>::Ptr powerEP = ep_it != ep_registry.end()
 		? hexabus::TypedEndpointFunctions<uint32_t>::fromEndpointDescriptor(ep_it->second)
 		: hexabus::TypedEndpointFunctions<uint32_t>::Ptr(new hexabus::TypedEndpointFunctions<uint32_t>(eid, "HexabusPlug+ Power meter (W)"));
-	powerEP->onRead(boost::bind(&Pusher::get_last_reading, this));
+	powerEP->onRead(boost::bind(&Pusher::getLastReading, this));
 	_device.addEndpoint(powerEP);
 }
 
-uint32_t Pusher::get_last_reading() {
+uint32_t Pusher::getLastReading() {
+	std::pair<int, int> reading = std::pair<int,int>(0,0);
 	try {
-		klio::reading_t reading = _store->get_last_reading(_sensor);
-		std::cout << reading.first << ": " << reading.second << std::endl;
-		return reading.second;
-	} catch (klio::GenericException e) {
+		libmsg::Webclient::ParamList p;
+		p["interval"] = "hour";
+		p["unit"] = "watt";
+		std::string url = libmsg::Webclient::composeSensorUrl(_url, _id, p);
+		libmsg::JsonPtr result = libmsg::Webclient::performHttpGetToken(url , _token);
+		//TODO: iterate over entries in array and find the one with the highest timestamp
+		for (auto it = result->begin(), end = result->end(); it != end; ++it) {
+			Json::Value timestamp = (*it)[0];
+			Json::Value value = (*it)[1];
+			if (value.isConvertibleTo(Json::intValue)) {
+				reading.first = timestamp.asInt();
+				reading.second = value.asInt();
+			}
+		}
+		std::cout << "LastReading (" << reading.first << "): " << reading.second << std::endl;
+	} catch (const libmsg::GenericException &e) {
 		std::cerr << "Error during fetch of sensor data: " << e.what() << std::endl;
 	}
-	return 0;
+	return reading.second;
 }
 
 std::string Pusher::loadDeviceName()
