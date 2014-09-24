@@ -63,13 +63,13 @@ static std::ostream& operator<<(std::ostream& o, const Expr& e)
 	} else if (auto t = dynamic_cast<const TypedLiteral<float>*>(&e)) {
 		o << t->value();
 	} else if (auto i = dynamic_cast<const TimeoutExpr*>(&e)) {
-		o << "$timeout";
+		o << "timeout";
 	} else if (auto i = dynamic_cast<const IdentifierExpr*>(&e)) {
 		o << i->name();
 	} else if (auto c = dynamic_cast<const ConditionalExpr*>(&e)) {
 		o << "(" << c->condition() << ") ? (" << c->ifTrue() << ") : (" << c->ifFalse() << ")";
 	} else if (auto s = dynamic_cast<const PacketEIDExpr*>(&e)) {
-		o << s->type() << "packet.eid";
+		o << "packet_eid";
 	} else if (auto ep = dynamic_cast<const EndpointExpr*>(&e)) {
 		o << ep->device().name() << "." << ep->endpoint().name();
 	} else if (auto c = dynamic_cast<const CallExpr*>(&e)) {
@@ -255,8 +255,8 @@ class main(a, b, __123_usd) {
 
 			if (f > 5 && timeout < 76) {
 				a.b := hour(dev.x);
-				a.c := dev.value;
-			} else a.c := 0;
+				a.c := dev.value
+			} else a.c := packet_eid;
 			switch (x) {
 				case 1+1: goto z;
 				default: case 8+hour(d): goto y;
