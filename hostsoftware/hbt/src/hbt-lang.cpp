@@ -253,7 +253,7 @@ class main(a, b, __123_usd) {
 		on (snafu.zu > 8.1) {
 			float f = 17;
 
-			if (f > 5 && timeout < 76) {
+			if (f > 5 && (timeout < 76)) {
 				a.b := hour(dev.x);
 				a.c := dev.value;
 			} else a.c := packet_eid;
@@ -280,6 +280,11 @@ include "../hb	t.hbh";
 
 machine tree : main(4, dev);
 machine tree : main();
+
+machine foo : {
+	state init {
+	}
+}
 
 endpoint button(4) : bool (broadcast, read, read);
 
