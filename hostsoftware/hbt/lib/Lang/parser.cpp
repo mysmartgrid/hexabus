@@ -254,7 +254,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		using namespace spirit_workarounds;
 
 		unexpected = !eps;
-#define expected(s) (omit[eps[fwd % [this] () { unexpected.name(s); }] > unexpected])
+#define expected(s) (omit[eps[fwd > [this] () { unexpected.name(s); }] > unexpected])
 
 		start =
 			*(
@@ -269,29 +269,29 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		e.primary =
 			e.literal[_val = _1]
 			| (tok.lparen >> expr >> tok.rparen)[_val = _2]
-			| (tok.word.timeout)[makefwd %
+			| (tok.word.timeout)[fwd >=
 				[this] (range& r) {
 					return new TimeoutExpr(locOf(r));
 				}]
-			| (tok.word.packet_eid)[makefwd %
+			| (tok.word.packet_eid)[fwd >=
 				[this] (range& r) {
 					return new PacketEIDExpr(locOf(r));
 				}]
-			| (identifier >> omit[tok.dot] >> identifier)[makefwd %
+			| (identifier >> omit[tok.dot] >> identifier)[fwd >=
 				[this] (opt<Identifier>& dev, opt<Identifier>& ep) {
 					return new EndpointExpr(dev->sloc(), *dev, *ep, Type::Unknown);
 				}]
-			| (tok.ident)[makefwd %
+			| (tok.ident)[fwd >=
 				[this] (range& id) {
 					return new IdentifierExpr(locOf(id), str(id), Type::Unknown);
 				}];
 
 		e.callOrCast =
-			(datatype >> omit[tok.lparen] >> expr >> omit[tok.rparen])[makefwd %
+			(datatype >> omit[tok.lparen] >> expr >> omit[tok.rparen])[fwd >=
 				[this] (opt<locd<Type>>& dt, ptr<Expr>& e) {
 					return new CastExpr(std::move(dt->loc), dt->val, e);
 				}]
-			| (identifier >> omit[tok.lparen] >> -(expr % omit[tok.comma]) >> omit[tok.rparen])[makefwd %
+			| (identifier >> omit[tok.lparen] >> -(expr % omit[tok.comma]) >> omit[tok.rparen])[fwd >=
 				[this] (opt<Identifier>& id, opt<std::vector<ptr<Expr>>>& args) {
 					return new CallExpr(id->sloc(), id->name(), move(args), Type::Unknown);
 				}]
@@ -303,13 +303,13 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			};
 		};
 		e.unop =
-			tok.op.plus[makefwd % unop(UnaryOperator::Plus)]
-			| tok.op.minus[makefwd % unop(UnaryOperator::Minus)]
-			| tok.op.not_[makefwd % unop(UnaryOperator::Not)]
-			| tok.op.neg[makefwd % unop(UnaryOperator::Negate)];
+			tok.op.plus[fwd >= unop(UnaryOperator::Plus)]
+			| tok.op.minus[fwd >= unop(UnaryOperator::Minus)]
+			| tok.op.not_[fwd >= unop(UnaryOperator::Not)]
+			| tok.op.neg[fwd >= unop(UnaryOperator::Negate)];
 		e.unary =
 			e.callOrCast[_val = _1]
-			| (e.unop >> e.unary)[makefwd %
+			| (e.unop >> e.unary)[fwd >=
 				[this] (opt<locd<UnaryOperator>>& op, ptr<Expr>& e) {
 					return new UnaryExpr(std::move(op->loc), op->val, e);
 				}];
@@ -329,71 +329,71 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		};
 
 		e.binop.mul =
-			tok.op.mul[makefwd % binop(BinaryOperator::Multiply)]
-			| tok.op.div[makefwd % binop(BinaryOperator::Divide)]
-			| tok.op.mod[makefwd % binop(BinaryOperator::Modulo)];
+			tok.op.mul[fwd >= binop(BinaryOperator::Multiply)]
+			| tok.op.div[fwd >= binop(BinaryOperator::Divide)]
+			| tok.op.mod[fwd >= binop(BinaryOperator::Modulo)];
 		e.mul =
 			e.unary[_val = _1]
 			>> *(
-				(e.binop.mul >> e.unary)[makefwd & updateBinop]
+				(e.binop.mul >> e.unary)[fwd >>= updateBinop]
 			);
 
 		e.binop.add =
-			tok.op.plus[makefwd % binop(BinaryOperator::Plus)]
-			| tok.op.minus[makefwd % binop(BinaryOperator::Minus)];
+			tok.op.plus[fwd >= binop(BinaryOperator::Plus)]
+			| tok.op.minus[fwd >= binop(BinaryOperator::Minus)];
 		e.add =
 			e.mul[_val = _1]
 			>> *(
-				(e.binop.add >> e.mul)[makefwd & updateBinop]
+				(e.binop.add >> e.mul)[fwd >>= updateBinop]
 			);
 
 		e.binop.shift =
-			tok.op.shl[makefwd % binop(BinaryOperator::ShiftLeft)]
-			| tok.op.shr[makefwd % binop(BinaryOperator::ShiftRight)];
+			tok.op.shl[fwd >= binop(BinaryOperator::ShiftLeft)]
+			| tok.op.shr[fwd >= binop(BinaryOperator::ShiftRight)];
 		e.shift =
 			e.add[_val = _1]
 			>> *(
-				(e.binop.shift >> e.add)[makefwd & updateBinop]
+				(e.binop.shift >> e.add)[fwd >>= updateBinop]
 			);
 
 		e.binop.rel =
-			tok.op.lesseq[makefwd % binop(BinaryOperator::LessOrEqual)]
-			| tok.op.less[makefwd % binop(BinaryOperator::LessThan)]
-			| tok.op.greatereq[makefwd % binop(BinaryOperator::GreaterOrEqual)]
-			| tok.op.greater[makefwd % binop(BinaryOperator::GreaterThan)];
+			tok.op.lesseq[fwd >= binop(BinaryOperator::LessOrEqual)]
+			| tok.op.less[fwd >= binop(BinaryOperator::LessThan)]
+			| tok.op.greatereq[fwd >= binop(BinaryOperator::GreaterOrEqual)]
+			| tok.op.greater[fwd >= binop(BinaryOperator::GreaterThan)];
 		e.rel =
 			e.shift[_val = _1]
 			>> *(
-				(e.binop.rel >> e.shift)[makefwd & updateBinop]
+				(e.binop.rel >> e.shift)[fwd >>= updateBinop]
 			);
 
 		e.and_ =
 			e.rel[_val = _1]
 			>> *(
-				(tok.op.and_ >> e.rel)[makefwd & updateBinopT(BinaryOperator::And)]
+				(tok.op.and_ >> e.rel)[fwd >>= updateBinopT(BinaryOperator::And)]
 			);
 
 		e.or_ =
 			e.and_[_val = _1]
 			>> *(
-				(tok.op.or_ >> e.and_)[makefwd & updateBinopT(BinaryOperator::Or)]
+				(tok.op.or_ >> e.and_)[fwd >>= updateBinopT(BinaryOperator::Or)]
 			);
 
 		e.boolAnd =
 			e.or_[_val = _1]
 			>> *(
-				(tok.op.boolAnd >> e.or_)[makefwd & updateBinopT(BinaryOperator::BoolAnd)]
+				(tok.op.boolAnd >> e.or_)[fwd >>= updateBinopT(BinaryOperator::BoolAnd)]
 			);
 
 		e.boolOr =
 			e.boolAnd[_val = _1]
 			>> *(
-				(tok.op.boolOr >> e.boolAnd)[makefwd & updateBinopT(BinaryOperator::BoolOr)]
+				(tok.op.boolOr >> e.boolAnd)[fwd >>= updateBinopT(BinaryOperator::BoolOr)]
 			);
 
 		e.cond =
 			(e.boolOr >> !tok.op.qmark)[_val = _1]
-			| (e.boolOr >> omit[tok.op.qmark] >> expr >> omit[tok.colon] >> expr)[makefwd %
+			| (e.boolOr >> omit[tok.op.qmark] >> expr >> omit[tok.colon] >> expr)[fwd >=
 				[this] (ptr<Expr>& cond, ptr<Expr>& ifTrue, ptr<Expr>& ifFalse) {
 					return new ConditionalExpr(cond->sloc(), cond, ifTrue, ifFalse);
 				}];
@@ -402,23 +402,23 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			e.cond;
 
 		e.literal =
-			tok.lit.bool_[makefwd %
+			tok.lit.bool_[fwd >=
 				[this] (range& r) {
 					return new TypedLiteral<bool>(locOf(r), str(r) == "true");
 				}]
-			| tok.lit.uint8_[makefwd %
+			| tok.lit.uint8_[fwd >=
 				[this] (range& r, bool& pass) {
 					return convUI<uint8_t>(r, pass);
 				}]
-			| tok.lit.uint32_[makefwd %
+			| tok.lit.uint32_[fwd >=
 				[this] (range& r, bool& pass) {
 					return convUI<uint32_t>(r, pass);
 				}]
-			| tok.lit.uint64_[makefwd %
+			| tok.lit.uint64_[fwd >=
 				[this] (range& r, bool& pass) {
 					return convUI<uint64_t>(r, pass);
 				}]
-			| tok.lit.float_[makefwd %
+			| tok.lit.float_[fwd >=
 				[this] (range& r, bool& pass) {
 					return convF(r, pass);
 				}];
@@ -427,21 +427,21 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			s.assign | s.if_ | s.switch_ | s.write | s.block | s.decl | s.goto_;
 
 		s.assign =
-			(identifier >> tok.op.assign >> expr >> omit[tok.semicolon])[makefwd %
+			(identifier >> tok.op.assign >> expr >> omit[tok.semicolon])[fwd >=
 				[this] (opt<Identifier>& id, range& r, ptr<Expr>& e) {
 					return new AssignStmt(locOf(r), std::move(*id), e);
 				}];
 
 		s.if_ =
 			(tok.word.if_ >> omit[tok.lparen] >> expr >> omit[tok.rparen] >> statement >> -(omit[tok.word.else_] >> statement))[
-				makefwd %
+				fwd >=
 					[this] (range& r, ptr<Expr>& cond, ptr<Stmt>& ifTrue, opt<ptr<Stmt>>& ifFalse) {
 						return new IfStmt(locOf(r), cond, ifTrue, ifFalse ? *ifFalse : ptr<Stmt>());
 					}];
 
 		s.switch_ =
 			(tok.word.switch_ >> omit[tok.lparen] >> expr >> omit[tok.rparen >> tok.lbrace] >> s.switch_body >> omit[tok.rbrace])[
-				makefwd %
+				fwd >=
 					[this] (range& r, ptr<Expr>& e, ptr<std::vector<SwitchEntry>>& entries) {
 						return new SwitchStmt(locOf(r), e, std::move(*entries));
 					}];
@@ -452,7 +452,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		};
 		s.switch_body =
 			eps[_val = new_<std::vector<SwitchEntry>>()]
-			>> +((s.switch_labels >> statement)[makefwd & appendSwitchEntry]);
+			>> +((s.switch_labels >> statement)[fwd >>= appendSwitchEntry]);
 
 		s.switch_labels =
 			+(
@@ -462,25 +462,25 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 		s.write =
 			(identifier >> omit[tok.dot] >> identifier >> tok.op.write >> expr >> omit[tok.semicolon | expected(";")])[
-				makefwd %
+				fwd >=
 					[this] (opt<Identifier>& dev, opt<Identifier>& ep, range& r, ptr<Expr>& e) {
 						return new WriteStmt(locOf(r), *dev, *ep, e);
 					}];
 
 		s.block =
-			(tok.lbrace >> *statement >> omit[tok.rbrace])[makefwd %
+			(tok.lbrace >> *statement >> omit[tok.rbrace])[fwd >=
 				[this] (range& r, std::vector<ptr<Stmt>>& block) {
 					return new BlockStmt(locOf(r), move(block));
 				}];
 
 		s.decl =
-			(datatype >> identifier >> -(omit[tok.op.assign] >> expr) >> omit[tok.semicolon])[makefwd %
+			(datatype >> identifier >> -(omit[tok.op.assign] >> expr) >> omit[tok.semicolon])[fwd >=
 				[this] (opt<locd<Type>>& dt, opt<Identifier>& id, opt<ptr<Expr>>& e) {
 					return new DeclarationStmt(std::move(dt->loc), dt->val, std::move(*id), e ? *e : ptr<Expr>());
 				}];
 
 		s.goto_ =
-			(tok.word.goto_ >> identifier >> omit[tok.semicolon])[makefwd %
+			(tok.word.goto_ >> identifier >> omit[tok.semicolon])[fwd >=
 				[this] (range& r, opt<Identifier> to) {
 					return new GotoStmt(locOf(r), std::move(*to));
 				}];
@@ -491,21 +491,21 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			};
 		};
 		on_block =
-			(tok.word.on >> omit[tok.word.entry] >> s.block)[makefwd % onSimple(OnBlockTrigger::Entry)]
-			| (tok.word.on >> omit[tok.word.exit] >> s.block)[makefwd % onSimple(OnBlockTrigger::Exit)]
-			| (tok.word.on >> omit[tok.word.periodic] >> s.block)[makefwd % onSimple(OnBlockTrigger::Periodic)]
-			| (tok.word.on >> omit[tok.word.packet >> tok.word.from] >> identifier >> s.block)[makefwd %
+			(tok.word.on >> omit[tok.word.entry] >> s.block)[fwd >= onSimple(OnBlockTrigger::Entry)]
+			| (tok.word.on >> omit[tok.word.exit] >> s.block)[fwd >= onSimple(OnBlockTrigger::Exit)]
+			| (tok.word.on >> omit[tok.word.periodic] >> s.block)[fwd >= onSimple(OnBlockTrigger::Periodic)]
+			| (tok.word.on >> omit[tok.word.packet >> tok.word.from] >> identifier >> s.block)[fwd >=
 				[this] (range& r, opt<Identifier>& from, ptr<BlockStmt>& block) {
 					return new OnPacketBlock(locOf(r), *from, block);
 				}]
-			| (tok.word.on >> omit[tok.lparen] >> expr >> omit[tok.rparen] >> s.block)[makefwd %
+			| (tok.word.on >> omit[tok.lparen] >> expr >> omit[tok.rparen] >> s.block)[fwd >=
 				[this] (range& r, ptr<Expr>& e, ptr<BlockStmt>& block) {
 					return new OnExprBlock(locOf(r), e, block);
 				}];
 
 		state =
 			(tok.word.state >> identifier >> omit[tok.lbrace] >> *s.decl >> *on_block >> *statement >> omit[tok.rbrace])[
-				makefwd %
+				fwd >=
 					[this] (range& r, opt<Identifier>& id, std::vector<ptr<DeclarationStmt>>& decls,
 							std::vector<ptr<OnBlock>>& onBlocks, std::vector<ptr<Stmt>>& stmts) {
 						return new State(locOf(r), std::move(*id), unpack(decls), move(onBlocks), move(stmts));
@@ -513,48 +513,48 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 		machine_class =
 			(tok.word.class_ >> identifier >> omit[tok.lparen] >> -(identifier % tok.comma) >> omit[tok.rparen] >>
-				omit[tok.lbrace] >> *s.decl >> *state >> omit[tok.rbrace])[makefwd %
+				omit[tok.lbrace] >> *s.decl >> *state >> omit[tok.rbrace])[fwd >=
 					[this] (range& r, opt<Identifier>& id, opt<std::vector<opt<Identifier>>>& params,
 							std::vector<ptr<DeclarationStmt>>& decls, std::vector<ptr<State>>& states) {
 						return new MachineClass(locOf(r), std::move(*id), unpack(params), unpack(decls), unpack(states));
 					}];
 
 		machine_def =
-			(tok.word.machine >> identifier >> omit[tok.colon >> tok.lbrace] >> *s.decl >> *state >> omit[tok.rbrace])[makefwd %
+			(tok.word.machine >> identifier >> omit[tok.colon >> tok.lbrace] >> *s.decl >> *state >> omit[tok.rbrace])[fwd >=
 				[this] (range& r, opt<Identifier>& id, std::vector<ptr<DeclarationStmt>>& decls, std::vector<ptr<State>>& states) {
 					return new MachineDefinition(locOf(r), std::move(*id), unpack(decls), unpack(states));
 				}];
 
 		machine_inst =
 			(tok.word.machine >> identifier >> omit[tok.colon] >> identifier >> omit[tok.lparen] >> -(expr % tok.comma) >>
-				omit[tok.rparen >> tok.semicolon])[makefwd %
+				omit[tok.rparen >> tok.semicolon])[fwd >=
 					[this] (range& r, opt<Identifier>& name, opt<Identifier>& class_, opt<std::vector<ptr<Expr>>>& args) {
 						return new MachineInstantiation(locOf(r), std::move(*name), *class_, move(args));
 					}];
 
 		endpoint =
 			(tok.word.endpoint >> identifier >> omit[tok.lparen] >> tok.lit.uint32_ >> omit[tok.rparen >> tok.colon]
-				>> datatype >> omit[tok.lparen] >> endpoint_access >> omit[tok.rparen >> tok.semicolon])[makefwd %
+				>> datatype >> omit[tok.lparen] >> endpoint_access >> omit[tok.rparen >> tok.semicolon])[fwd >=
 					[this] (range& r, opt<Identifier>& name, range& eid, opt<locd<Type>>& dt, EndpointAccess access, bool& pass) {
 						return new Endpoint(locOf(r), *name, parseUI<uint32_t>(eid, pass), dt->val, access);
 					}];
 
 		device =
 			(tok.word.device >> identifier > omit[tok.lparen] > ip_addr >> omit[tok.rparen > tok.colon]
-				> -(identifier % omit[tok.comma]) > omit[tok.semicolon])[makefwd %
+				> -(identifier % omit[tok.comma]) > omit[tok.semicolon])[fwd >=
 					[this] (range& r, opt<Identifier>& name, std::array<uint8_t, 16>& ip,
 							opt<std::vector<opt<Identifier>>>& eps) {
 						return new Device(locOf(r), *name, ip, unpack(eps));
 					}];
 
 		include =
-			(tok.word.include >> tok.string >> omit[tok.semicolon])[makefwd %
+			(tok.word.include >> tok.string >> omit[tok.semicolon])[fwd >=
 				[this] (range& r, range& file) {
 					return new IncludeLine(locOf(r), std::string(file.begin().base() + 1, file.end().base() - 1));
 				}];
 
 		ip_addr =
-			lexeme[+(tok.colon | tok.dot | tok.lit.uint32_ | tok.ident)][makefwd %
+			lexeme[+(tok.colon | tok.dot | tok.lit.uint32_ | tok.ident)][fwd >=
 				[] (std::vector<range>& addr, bool& pass) {
 					std::array<uint8_t, 16> result;
 					try {
@@ -586,15 +586,15 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		};
 		datatype.name("datatype");
 		datatype =
-			tok.type.bool_[makefwd % dt(Type::Bool)]
-			| tok.type.uint8_[makefwd % dt(Type::UInt8)]
-			| tok.type.uint32_[makefwd % dt(Type::UInt32)]
-			| tok.type.uint64_[makefwd % dt(Type::UInt64)]
-			| tok.type.float_[makefwd % dt(Type::Float)];
+			tok.type.bool_[fwd >= dt(Type::Bool)]
+			| tok.type.uint8_[fwd >= dt(Type::UInt8)]
+			| tok.type.uint32_[fwd >= dt(Type::UInt32)]
+			| tok.type.uint64_[fwd >= dt(Type::UInt64)]
+			| tok.type.float_[fwd >= dt(Type::Float)];
 
 		identifier.name("identifier");
 		identifier =
-			tok.ident[makefwd %
+			tok.ident[fwd >=
 				[this] (range& id) {
 					return Identifier(locOf(id), str(id));
 				}];

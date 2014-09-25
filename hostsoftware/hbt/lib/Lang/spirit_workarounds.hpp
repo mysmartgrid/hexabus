@@ -91,10 +91,9 @@ struct make_list<Max, Max, L...> {
 	typedef list<L...> type;
 };
 
-template<typename T>
-static std::tuple<const T&> tupleize(const T& t)
+static std::tuple<> tupleize(boost::spirit::unused_type)
 {
-	return std::tuple<const T&>(t);
+	return {};
 }
 
 template<typename T>
@@ -184,27 +183,11 @@ struct fwd_s {
 		return call_maybe_append_pass(std::tuple_cat(val_tuple(ctx, std::integral_constant<bool, ForwardVal>()), args), pass);
 	}
 
-	template<typename Attrib, typename Context,
-		typename = typename std::enable_if<boost::fusion::traits::is_sequence<Attrib>::value>::type>
+	template<typename Attrib, typename Context>
 	auto operator()(Attrib& a, Context& ctx, bool& pass) const
 		-> decltype(call_maybe_prepend_val(tupleize(a), ctx, pass))
 	{
 		return call_maybe_prepend_val(tupleize(a), ctx, pass);
-	}
-
-	template<typename Attrib, typename Context,
-		typename = typename std::enable_if<!boost::fusion::traits::is_sequence<Attrib>::value>::type>
-	auto operator()(Attrib& a, Context& ctx, bool& pass) const
-		-> decltype(call_maybe_prepend_val(std::tuple<Attrib&>(a), ctx, pass))
-	{
-		return call_maybe_prepend_val(std::tuple<Attrib&>(a), ctx, pass);
-	}
-
-	template<typename Context>
-	auto operator()(boost::spirit::unused_type, Context& ctx, bool& pass) const
-		-> decltype(call_maybe_prepend_val(std::tuple<>(), ctx, pass))
-	{
-		return call_maybe_prepend_val(std::tuple<>(), ctx, pass);
 	}
 };
 
@@ -215,7 +198,7 @@ struct makefwd_s {
 	template<typename Attrib, typename Context>
 	void operator()(Attrib& a, Context& ctx, bool& pass) const
 	{
-		boost::fusion::at_c<0>(ctx.attributes) = fn(a, ctx, pass);
+		boost::spirit::qi::_val(a, ctx) = fn(a, ctx, pass);
 	}
 };
 
@@ -223,31 +206,29 @@ struct makefwd_s {
 
 static constexpr struct {
 	template<typename Fn>
-	detail::fwd_s<Fn> operator%(Fn fn) const
+	detail::fwd_s<Fn> operator>(Fn fn) const
 	{
 		return { fn };
 	}
 
 	template<typename Fn>
-	detail::fwd_s<Fn, true> operator&(Fn fn) const
+	detail::fwd_s<Fn, true> operator>>(Fn fn) const
 	{
 		return { fn };
+	}
+
+	template<typename Fn>
+	detail::makefwd_s<Fn> operator>=(Fn fn) const
+	{
+		return { *this > fn };
+	}
+
+	template<typename Fn>
+	detail::makefwd_s<Fn, true> operator>>=(Fn fn) const
+	{
+		return { *this >> fn };
 	}
 } fwd = {};
-
-static constexpr struct {
-	template<typename Fn>
-	detail::makefwd_s<Fn> operator%(Fn fn) const
-	{
-		return { fn };
-	}
-
-	template<typename Fn>
-	detail::makefwd_s<Fn, true> operator&(Fn fn) const
-	{
-		return { fn };
-	}
-} makefwd = {};
 
 }
 }
