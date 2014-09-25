@@ -286,18 +286,22 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 		e.callOrCast.name("expression");
 		e.callOrCast =
-			(datatype
+			(
+				datatype
 				> omit[tok.lparen | expected("(")]
 				> expr
-				> omit[tok.rparen | expected(")")])[fwd >= [this] (opt<locd<Type>>& dt, ptr<Expr>& e) {
-					return new CastExpr(std::move(dt->loc), dt->val, e);
-				}]
-			| (identifier
+				> omit[tok.rparen | expected(")")]
+			)[fwd >= [this] (opt<locd<Type>>& dt, ptr<Expr>& e) {
+				return new CastExpr(std::move(dt->loc), dt->val, e);
+			}]
+			| (
+				identifier
 				>> omit[tok.lparen]
 				> -(expr % omit[tok.comma])
-				> omit[tok.rparen | expected(")")])[fwd >= [this] (opt<Identifier>& id, opt<std::vector<ptr<Expr>>>& args) {
-					return new CallExpr(id->sloc(), id->name(), move(args), Type::Unknown);
-				}]
+				> omit[tok.rparen | expected(")")]
+			)[fwd >= [this] (opt<Identifier>& id, opt<std::vector<ptr<Expr>>>& args) {
+				return new CallExpr(id->sloc(), id->name(), move(args), Type::Unknown);
+			}]
 			| e.primary[_val = _1];
 
 		auto unop = [this] (UnaryOperator op) {
