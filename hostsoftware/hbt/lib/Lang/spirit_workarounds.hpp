@@ -97,6 +97,12 @@ static std::tuple<> tupleize(boost::spirit::unused_type)
 }
 
 template<typename T>
+static std::tuple<T*> tupleize(boost::optional<T>& opt)
+{
+	return std::tuple<T*>(opt.get_ptr());
+}
+
+template<typename T>
 static std::tuple<T&> tupleize(T& t)
 {
 	return std::tuple<T&>(t);

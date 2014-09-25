@@ -190,7 +190,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 	}
 
 	template<typename T>
-	static std::vector<std::unique_ptr<T>> move(opt<std::vector<ptr<T>>>& vec)
+	static std::vector<std::unique_ptr<T>> move(std::vector<ptr<T>>* vec)
 	{
 		return vec ? move(*vec) : std::vector<std::unique_ptr<T>>();
 	}
@@ -208,7 +208,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 	}
 
 	template<typename T, template<typename> class Wrapper>
-	static std::vector<T> unpack(opt<std::vector<Wrapper<T>>>& vec)
+	static std::vector<T> unpack(std::vector<Wrapper<T>>* vec)
 	{
 		return vec ? unpack(*vec) : std::vector<T>();
 	}
@@ -277,7 +277,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			| tok.word.packet_eid[fwd >= [this] (range& r) {
 				return new PacketEIDExpr(locOf(r));
 			}]
-			| (identifier >> omit[tok.dot] > identifier)[fwd >= [this] (opt<Identifier>& dev, opt<Identifier>& ep) {
+			| (identifier >> omit[tok.dot] > identifier)[fwd >= [this] (Identifier* dev, Identifier* ep) {
 				return new EndpointExpr(dev->sloc(), *dev, *ep, Type::Unknown);
 			}]
 			| tok.ident[fwd >= [this] (range& id) {
@@ -291,7 +291,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> omit[tok.lparen | expected("(")]
 				> expr
 				> omit[tok.rparen | expected(")")]
-			)[fwd >= [this] (opt<locd<Type>>& dt, ptr<Expr>& e) {
+			)[fwd >= [this] (locd<Type>* dt, ptr<Expr>& e) {
 				return new CastExpr(std::move(dt->loc), dt->val, e);
 			}]
 			| (
@@ -299,7 +299,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				>> omit[tok.lparen]
 				> -(expr % omit[tok.comma])
 				> omit[tok.rparen | expected(")")]
-			)[fwd >= [this] (opt<Identifier>& id, opt<std::vector<ptr<Expr>>>& args) {
+			)[fwd >= [this] (Identifier* id, std::vector<ptr<Expr>>* args) {
 				return new CallExpr(id->sloc(), id->name(), move(args), Type::Unknown);
 			}]
 			| e.primary[_val = _1];
@@ -317,7 +317,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		e.unary.name("expression");
 		e.unary =
 			e.callOrCast[_val = _1]
-			| (e.unop > e.unary)[fwd >= [this] (opt<locd<UnaryOperator>>& op, ptr<Expr>& e) {
+			| (e.unop > e.unary)[fwd >= [this] (locd<UnaryOperator>* op, ptr<Expr>& e) {
 				return new UnaryExpr(std::move(op->loc), op->val, e);
 			}];
 
@@ -326,7 +326,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				return locd<BinaryOperator>{locOf(r), op};
 			};
 		};
-		auto updateBinop = [this] (ptr<Expr>& val, opt<locd<BinaryOperator>>& op, ptr<Expr>& e) {
+		auto updateBinop = [this] (ptr<Expr>& val, locd<BinaryOperator>* op, ptr<Expr>& e) {
 			return new BinaryExpr(std::move(op->loc), val, op->val, e);
 		};
 		auto updateBinopT = [this] (BinaryOperator op) {
@@ -459,7 +459,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> tok.op.assign
 				> expr
 				> omit[tok.semicolon | expected(";")]
-			)[fwd >= [this] (opt<Identifier>& id, range& r, ptr<Expr>& e) {
+			)[fwd >= [this] (Identifier* id, range& r, ptr<Expr>& e) {
 				return new AssignStmt(locOf(r), std::move(*id), e);
 			}]
 			| (
@@ -469,7 +469,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> tok.op.assign
 				> expr
 				> omit[tok.semicolon | expected(";")]
-			)[fwd >= [this] (opt<Identifier>& dev, opt<Identifier>& ep, range& r, ptr<Expr>& e) {
+			)[fwd >= [this] (Identifier* dev, Identifier* ep, range& r, ptr<Expr>& e) {
 				return new WriteStmt(locOf(r), *dev, *ep, e);
 			}];
 
@@ -485,7 +485,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 					omit[tok.word.else_]
 					> statement
 				)
-			)[fwd >= [this] (range& r, ptr<Expr>& cond, ptr<Stmt>& ifTrue, opt<ptr<Stmt>>& ifFalse) {
+			)[fwd >= [this] (range& r, ptr<Expr>& cond, ptr<Stmt>& ifTrue, ptr<Stmt>* ifFalse) {
 				return new IfStmt(locOf(r), cond, ifTrue, ifFalse ? *ifFalse : ptr<Stmt>());
 			}];
 
@@ -540,7 +540,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> identifier
 				> -(omit[tok.op.assign] > expr)
 				> omit[tok.semicolon | expected(";")]
-			)[fwd >= [this] (opt<locd<Type>>& dt, opt<Identifier>& id, opt<ptr<Expr>>& e) {
+			)[fwd >= [this] (locd<Type>* dt, Identifier* id, ptr<Expr>* e) {
 				return new DeclarationStmt(std::move(dt->loc), dt->val, std::move(*id), e ? *e : ptr<Expr>());
 			}];
 
@@ -550,7 +550,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				tok.word.goto_
 				> identifier
 				> omit[tok.semicolon | expected(";")]
-			)[fwd >= [this] (range& r, opt<Identifier> to) {
+			)[fwd >= [this] (range& r, Identifier* to) {
 				return new GotoStmt(locOf(r), std::move(*to));
 			}];
 
@@ -571,7 +571,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				]
 				> identifier
 				> s.block
-			)[fwd >= [this] (range& r, opt<Identifier>& from, ptr<BlockStmt>& block) {
+			)[fwd >= [this] (range& r, Identifier* from, ptr<BlockStmt>& block) {
 				return new OnPacketBlock(locOf(r), *from, block);
 			}]
 			| (
@@ -594,7 +594,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> *on_block
 				> *statement
 				> omit[tok.rbrace | expected("}")]
-			)[fwd >= [this] (range& r, opt<Identifier>& id, std::vector<ptr<DeclarationStmt>>& decls,
+			)[fwd >= [this] (range& r, Identifier* id, std::vector<ptr<DeclarationStmt>>& decls,
 					std::vector<ptr<OnBlock>>& onBlocks, std::vector<ptr<Stmt>>& stmts) {
 				return new State(locOf(r), std::move(*id), unpack(decls), move(onBlocks), move(stmts));
 			}];
@@ -610,7 +610,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> *s.decl
 				> *state
 				> omit[tok.rbrace | expected("}")]
-			)[fwd >= [this] (range& r, opt<Identifier>& id, opt<std::vector<opt<Identifier>>>& params,
+			)[fwd >= [this] (range& r, Identifier* id, std::vector<opt<Identifier>>* params,
 					std::vector<ptr<DeclarationStmt>>& decls, std::vector<ptr<State>>& states) {
 				return new MachineClass(locOf(r), std::move(*id), unpack(params), unpack(decls), unpack(states));
 			}];
@@ -628,7 +628,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 					(tok.rparen | expected(")"))
 					>> (tok.semicolon | expected(";"))
 				]
-			)[fwd >= [this] (range& r, opt<Identifier>& name, opt<Identifier>& class_, opt<std::vector<ptr<Expr>>>& args) {
+			)[fwd >= [this] (range& r, Identifier* name, Identifier* class_, std::vector<ptr<Expr>>* args) {
 				return new MachineInstantiation(locOf(r), std::move(*name), *class_, move(args));
 			}]
 			| (
@@ -641,7 +641,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> *s.decl
 				> *state
 				> omit[tok.rbrace | expected("}")]
-			)[fwd >= [this] (range& r, opt<Identifier>& id, std::vector<ptr<DeclarationStmt>>& decls,
+			)[fwd >= [this] (range& r, Identifier* id, std::vector<ptr<DeclarationStmt>>& decls,
 					std::vector<ptr<State>>& states) {
 				return new MachineDefinition(locOf(r), std::move(*id), unpack(decls), unpack(states));
 			}];
@@ -664,7 +664,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 					(tok.rparen | expected("endpoint access specification"))
 					> (tok.semicolon | expected(";"))
 				]
-			)[fwd >= [this] (range& r, opt<Identifier>& name, range& eid, opt<locd<Type>>& dt, EndpointAccess access, bool& pass) {
+			)[fwd >= [this] (range& r, Identifier* name, range& eid, locd<Type>* dt, EndpointAccess access, bool& pass) {
 				return new Endpoint(locOf(r), *name, parseUI<uint32_t>(eid, pass), dt->val, access);
 			}];
 
@@ -680,7 +680,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				]
 				> -(identifier % omit[tok.comma])
 				> omit[tok.semicolon | expected(";")]
-			)[fwd >= [this] (range& r, opt<Identifier>& name, std::array<uint8_t, 16>& ip, opt<std::vector<opt<Identifier>>>& eps) {
+			)[fwd >= [this] (range& r, Identifier* name, std::array<uint8_t, 16>& ip, std::vector<opt<Identifier>>* eps) {
 				return new Device(locOf(r), *name, ip, unpack(eps));
 			}];
 
