@@ -78,7 +78,6 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 		add(op.xor_ = R"(\^)");
 		add(op.qmark = R"(\?)");
 		add(op.assign = "=");
-		add(op.write = ":=");
 
 		add(word.machine = "machine");
 		add(word.device = "device");
@@ -136,7 +135,7 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 			and_, or_, xor_,
 			boolAnd, boolOr,
 			qmark,
-			assign, write,
+			assign,
 			shl, shr;
 	} op;
 	struct {
@@ -446,17 +445,28 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 		statement.name("statement");
 		statement %=
-			s.assign | s.if_ | s.switch_ | s.write | s.block | s.decl | s.goto_;
+			s.assign | s.if_ | s.switch_ | s.block | s.decl | s.goto_;
 
 		s.assign.name("assign statement");
 		s.assign =
 			(
 				identifier
-				>> tok.op.assign
+				>> !omit[tok.dot]
+				> tok.op.assign
 				> expr
 				> omit[tok.semicolon | expected(";")]
 			)[fwd >= [this] (opt<Identifier>& id, range& r, ptr<Expr>& e) {
 				return new AssignStmt(locOf(r), std::move(*id), e);
+			}]
+			| (
+				identifier
+				> omit[tok.dot]
+				> identifier
+				> tok.op.assign
+				> expr
+				> omit[tok.semicolon | expected(";")]
+			)[fwd >= [this] (opt<Identifier>& dev, opt<Identifier>& ep, range& r, ptr<Expr>& e) {
+				return new WriteStmt(locOf(r), *dev, *ep, e);
 			}];
 
 		s.if_.name("if statement");
@@ -511,14 +521,6 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				(tok.word.case_ > expr > (tok.colon | expected(":")))[push_back(_val, _2)]
 				| (tok.word.default_ > (tok.colon | expected(":")))[push_back(_val, nullptr)]
 			);
-
-		s.write.name("write statement");
-		s.write =
-			(identifier >> omit[tok.dot] >> identifier >> tok.op.write >> expr >> omit[tok.semicolon | expected(";")])[
-				fwd >=
-					[this] (opt<Identifier>& dev, opt<Identifier>& ep, range& r, ptr<Expr>& e) {
-						return new WriteStmt(locOf(r), *dev, *ep, e);
-					}];
 
 		s.block.name("block statement");
 		s.block =
@@ -754,7 +756,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 	rule<ptr<Stmt>()> statement;
 	struct {
-		rule<ptr<Stmt>()> assign, if_, switch_, write;
+		rule<ptr<Stmt>()> assign, if_, switch_;
 		rule<ptr<BlockStmt>()> block;
 		rule<ptr<DeclarationStmt>()> decl;
 		rule<ptr<Stmt>()> goto_;

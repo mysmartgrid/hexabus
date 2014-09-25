@@ -254,9 +254,9 @@ class main(a, b, __123_usd) {
 			float f = 17;
 
 			if (f > 5 && (timeout < 76)) {
-				a.b := hour(dev.x);
-				a.c := dev.value;
-			} else a.c := packet_eid;
+				a.b = hour(dev.x);
+				a.c = dev.value;
+			} else a.c = packet_eid;
 			switch (x) {
 				case 1+1: goto z;
 				default: case 8+hour(d): goto y;
