@@ -1,0 +1,98 @@
+include devices.hbh;
+include endpoints.hbh;
+
+module Plug($dev, $btnOn, $btnOff) {
+       states { init, off, on }
+
+       in(init) {
+               if (true) {
+                       write $dev.power := 0;
+                       goto off;
+               }
+       }
+
+       in(on) {
+               if (ep hexanode.button_pressed == $btnOn) {
+                       write $dev.power := 0;
+                       goto off;
+               }
+	    if (ep localhost.button == 1) {
+	      write $dev.power := 0;
+	      goto off;
+	    }
+       }
+
+       in(off) {
+               if (ep hexanode.button_pressed == $btnOff) {
+                       write $dev.power := 1;
+                       goto on;
+               }
+	    if (ep localhost.button == 1) {
+	      write $dev.power := 1;
+	      goto on;
+	    }
+       }
+}
+
+instance Plug1 : Plug(Waschmaschine, 36, 40);
+instance Plug2 : Plug(Leuchte, 37, 41);
+
+#machine main {
+#	states { init, running }
+#	
+#	in(init) {
+#		if (true) {
+#			write Waschmaschine.power := 0;
+#			write Leuchte.power := 0;
+#			goto running;
+#		}
+#	}
+#
+#	in(running) {
+#		if (ep hexanode.button_pressed == 36) {
+#			write Waschmaschine.power := 0;
+#			goto running;
+#		} else if (ep hexanode.button_pressed == 37) {
+#			write Leuchte.power := 0;
+#			goto running;
+#		} else if (ep hexanode.button_pressed == 38) {
+#                        goto running;
+#		} else if (ep hexanode.button_pressed == 39) {
+#                        goto running;
+#		} else if (ep hexanode.button_pressed == 40) {
+#			write Waschmaschine.power := 1;
+#			goto running;
+#		} else if (ep hexanode.button_pressed == 41) {
+#                        write Leuchte.power := 1;
+#			goto running;
+#                } else if (ep hexanode.button_pressed == 42) {
+#                        goto running;
+#                } else if (ep hexanode.button_pressed == 43) {
+#                        goto running;
+#		}
+#	}
+#        in(leuchte_on) {
+#    # TODO: Check value
+#    if (ep hexanode.button_pressed == 36) {
+#      write lamp1.power:=0;
+#      goto leuchte_off;
+#    }
+#    if (ep localhost.button == 1) {
+#      write lamp1.power := 0;
+#      goto leuchte_off;
+#    }
+#  }
+#
+#  in(leuchte_off) {
+#    # TODO: Check value
+#    if (ep hexanode.button_pressed == 40) {
+#      write lamp1.power:=1;
+#      goto leuchte_on;
+#    }
+#    if (ep localhost.button == 1) {
+#      write lamp1.power:=1;
+#      goto leuchte_on;
+#    }
+#  }
+#
+#}

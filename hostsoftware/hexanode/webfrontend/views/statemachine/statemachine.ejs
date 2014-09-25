@@ -46,6 +46,10 @@
 	<div data-ng-show="machineProp=='production_threshold'" class="well">
 		<% include forms/productionthreshold %>
 	</div>
+
+	<div class="well">
+		<button class="btn btn-success" data-ng-disabled="busy" data-ng-click="demo.upload()">Upload Default Statemachines</button>
+	</div>
 </div>
 
 <% include ../footer %>

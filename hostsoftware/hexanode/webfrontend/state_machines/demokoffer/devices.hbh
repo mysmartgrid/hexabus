@@ -1,0 +1,25 @@
+device hexanode {
+  # The IP of the machine on which hexanode is running.
+  ip fd00:9::50:c4ff:fe04:26a;
+  eids {0, 1, 2, 4, 9, 10, 11, 12, 24, 25 }
+}
+
+device Waschmaschine {
+  # this is a plug which controls a lamp.
+  ip fd00:9::50:c4ff:fe04:82f1;
+  #eids {0, 1, 2, 4, 9, 10, 11, 12}
+  eids { 1}
+}
+
+device Leuchte{
+  # this is a plug which controls a lamp.
+  ip fd00:9::50:c4ff:fe04:8218;
+  #eids {0, 1, 2, 4, 9, 10, 11, 12}
+  eids { 1}
+}
+
+device localhost {
+  ip ::1;
+  eids {4}
+}
+

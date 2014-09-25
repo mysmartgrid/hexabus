@@ -1,0 +1,69 @@
+include devices.hbh;
+include endpoints.hbh;
+
+#module Plug($dev, $btnOn, $btnOff) {
+#       states { init, off, on };
+#
+#       in(init) {
+#               if (true) {
+#                       write $dev.power := 0;
+#                       goto off;
+#               }
+#       }
+#
+#       in(off) {
+#               if (ep hexanode.button_pressed == $btnOn) {
+#                       write $dev.power := 1;
+#                       goto on;
+#               }
+#       }
+#
+#       in(on) {
+#               if (ep hexanode.button_pressed == $btnOff) {
+#                       write $dev.power := 0;
+#                       goto off;
+#               }
+#       }
+#}
+
+#instance Plug1 : Plug(plug1, 36, 40);
+#instance Plug2 : Plug(plug2, 37, 41);
+#instance Plug3 : Plug(plug3, 38, 42);
+#instance Plug4 : Plug(plug4, 39, 43);
+
+machine main {
+	states { init, leuchte_on, leuchte_off }
+	
+	in(init) {
+		if (true) {
+			write Waschmaschine.power := 0;
+			write Leuchte.power := 0;
+			goto leuchte_off;
+		}
+	}
+
+        in(leuchte_on) {
+    # TODO: Check value
+    if (ep hexanode.button_pressed == 36) {
+      write Leuchte.power:=0;
+      goto leuchte_off;
+    }
+    if (ep localhost.button == 1) {
+      write Leuchte.power := 0;
+      goto leuchte_off;
+    }
+  }
+
+  in(leuchte_off) {
+    # TODO: Check value
+    if (ep hexanode.button_pressed == 40) {
+      write Leuchte.power:=1;
+      goto leuchte_on;
+    }
+    if (ep localhost.button == 1) {
+      write Leuchte.power:=1;
+      goto leuchte_on;
+    }
+  }
+
+}

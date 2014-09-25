@@ -755,6 +755,17 @@ angular.module('dashboard', [
 		Socket.emit('productionthreshold_sm', message);
 	};
 
+/*
+ * Default demo statemachine
+ */
+	$scope.demo = {};
+ 	$scope.demo.upload = function() {
+		hideAlerts();
+		$scope.busy = true;
+		Socket.emit('demo_sm', {});
+	};
+
+
 }])
 .directive('focusIf', [function () {
     return function focusIf(scope, element, attr) {

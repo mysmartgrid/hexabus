@@ -1,0 +1,45 @@
+include devices.hbh;
+include endpoints.hbh;
+
+
+#instance Plug1 : Plug(plug1, 36, 40);
+#instance Plug2 : Plug(plug2, 37, 41);
+#instance Plug3 : Plug(plug3, 38, 42);
+#instance Plug4 : Plug(plug4, 39, 43);
+
+machine main {
+	states { init, on, off }
+	
+	in(init) {
+		if (true) {
+			write Waschmaschine.power := 0;
+			write Leuchte.power := 0;
+			goto off;
+		}
+	}
+
+        in(on) {
+    # TODO: Check value
+    if (ep hexanode.button_pressed == 36) {
+      write Waschmaschine.power:=0;
+      goto off;
+    }
+    if (ep localhost.button == 1) {
+      write Waschmaschine.power := 0;
+      goto off;
+    }
+  }
+
+  in(off) {
+    # TODO: Check value
+    if (ep hexanode.button_pressed == 40) {
+      write Waschmaschine.power:=1;
+      goto on;
+    }
+    if (ep localhost.button == 1) {
+      write Waschmaschine.power:=1;
+      goto on;
+    }
+  }
+
+}

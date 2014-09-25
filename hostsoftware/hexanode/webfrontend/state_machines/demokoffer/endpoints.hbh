@@ -1,0 +1,17 @@
+endpoint power {
+  eid 1;
+  datatype BOOL;
+  access {write}
+}
+
+endpoint button {
+  eid 4;
+  datatype BOOL;
+  access {broadcast}
+}
+
+endpoint button_pressed {
+  eid 25;
+  datatype UINT8;
+  access {broadcast}
+}
