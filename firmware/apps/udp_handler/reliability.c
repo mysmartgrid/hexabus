@@ -40,6 +40,7 @@ struct reliability_state {
 	bool ack;
 	uint8_t retrans;
 	uint16_t want_ack_for;
+	bool isUlAck;
 	struct etimer timeout_timer;
 	bool recved_packet;
 	uint16_t rseq_num;
@@ -82,6 +83,15 @@ enum hxb_error_code enqueue_packet(const uip_ipaddr_t* toaddr, uint16_t toport, 
 	} else {
 		return HXB_ERR_NO_VALUE;
 	}
+
+	return HXB_ERR_SUCCESS;
+}
+
+enum hxb_error_code acknowledge_packet(const uip_ipaddr_t* toaddr, uint16_t seq_num) {
+	uint8_t rs = hash_ip(toaddr);
+
+	rstates[rs].ack = true;
+	rstates[rs].recv_state = RREADY;
 
 	return HXB_ERR_SUCCESS;
 }
@@ -168,6 +178,7 @@ static void run_send_state_machine(uint8_t rs) {
 					send_packet((struct hxb_queue_packet *)rstates[rs].P);
 					rstates[rs].retrans = 0;
 					rstates[rs].ack = false;
+					rstates[rs].isUlAck = (rstates[rs].P->packet.header.flags)&HXB_FLAG_WANT_UL_ACK;
 					rstates[rs].send_state = SWAIT_ACK;
 					etimer_set(&(rstates[rs].timeout_timer), RETRANS_TIMEOUT);
 				}
@@ -231,7 +242,7 @@ static void run_recv_state_machine(uint8_t rs) {
 
 				rstates[rs].rseq_num = MAX(rstates[rs].rseq_num, uip_ntohs(R->packet.header.sequence_number));
 
-				if(rstates[rs].want_ack_for != 0 && is_ack_for(&(R->packet), rstates[rs].want_ack_for)) {
+				if(rstates[rs].want_ack_for != 0 && !rstates[rs].isUlAck && is_ack_for(&(R->packet), rstates[rs].want_ack_for)) {
 					syslog(LOG_DEBUG, "Received ACK");
 					rstates[rs].ack = true;
 					rstates[rs].recv_state = RREADY;

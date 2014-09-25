@@ -240,7 +240,7 @@ bool Socket::packetPrereceive(const Packet::Ptr& packet, const boost::asio::ip::
 
 		if(assoc.want_ack_for && ackfilter(*packet, from) && cpacket) {
 
-			if(cpacket->cause() == assoc.want_ack_for) {
+			if(cpacket->cause() == assoc.want_ack_for && !assoc.isUlAck) {
 				assoc.want_ack_for = 0;
 				assoc.retrans_count = 0;
 				assoc.currentPacket.first.reset();
@@ -250,7 +250,7 @@ bool Socket::packetPrereceive(const Packet::Ptr& packet, const boost::asio::ip::
 			}
 		}
 
-		return !filtering::isAck()(*packet, from);
+		return !filtering::isAck()(*packet, from) && !(packet->flags()&Packet::want_ul_ack);
 	}
 }
 
@@ -286,6 +286,7 @@ void Socket::beginSend(const boost::asio::ip::udp::endpoint& to)
 			assoc.currentPacket.first = assoc.sendQueue.front().first;
 			assoc.currentPacket.second = assoc.sendQueue.front().second;
 			assoc.want_ack_for = generateSequenceNumber(to);
+			assoc.isUlAck = assoc.currentPacket.first->flags()&Packet::want_ul_ack;
 			assoc.sendQueue.pop();
 			send(*assoc.currentPacket.first, to, assoc.want_ack_for);
 			assoc.timeout_timer.expires_from_now(boost::posix_time::seconds(1));
@@ -307,6 +308,20 @@ void Socket::onPacketTransmitted(
 	} else {
 		send(packet, dest);
 		callback(packet, dest, false);
+	}
+}
+
+void Socket::acknowledgePacket(const boost::asio::ip::udp::endpoint& dest, const uint16_t seqNum)
+{
+	Association& assoc = getAssociation(dest);
+
+	if(seqNum == assoc.want_ack_for) {
+		assoc.want_ack_for = 0;
+		assoc.retrans_count = 0;
+		assoc.currentPacket.first.reset();
+		assoc.timeout_timer.cancel();
+		assoc.currentPacket.second(ErrorPacket(HXB_ERR_SUCCESS, seqNum), dest, false);
+		beginSend(dest);
 	}
 }
 
@@ -349,6 +364,7 @@ Socket::Association& Socket::getAssociation(const boost::asio::ip::udp::endpoint
 		assoc->retrans_count = 0;
 		assoc->want_ack_for = 0;
 		assoc->rSeqNum = 0;
+		assoc->isUlAck = false;
 
 		boost::asio::ip::address_v6::bytes_type bytes = target.address().to_v6().to_bytes();
 		for (uint32_t i = 0; i < 16; i += 2) {

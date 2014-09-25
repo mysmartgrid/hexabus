@@ -806,11 +806,7 @@ udphandler(process_event_t ev, process_data_t data)
 					.packet = *packet,
 				};
 
-				//ignore INFO packets
-				if(!(packet->header.type == HXB_PTYPE_INFO))
-					receive_packet(&R);
-				else
-					syslog(LOG_DEBUG, "Ignoring INFO packet!");
+				receive_packet(&R);
       }
     }
   }

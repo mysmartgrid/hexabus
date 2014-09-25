@@ -95,6 +95,7 @@ namespace hexabus {
 				std::queue< std::pair <boost::shared_ptr<const Packet>, on_packet_transmitted_callback_t> > sendQueue;
 				uint16_t retrans_count;
 				uint16_t want_ack_for;
+				bool isUlAck;
 				boost::asio::deadline_timer timeout_timer;
 				std::pair<boost::shared_ptr<const Packet>, on_packet_transmitted_callback_t> currentPacket;
 			};
@@ -149,6 +150,8 @@ namespace hexabus {
 					const boost::asio::ip::udp::endpoint& dest);
 
 			void filterAckReplys(const filter_t& filter = filtering::any());
+
+			void acknowledgePacket(const boost::asio::ip::udp::endpoint& dest, const uint16_t seqNum);
 
 			uint16_t generateSequenceNumber(const boost::asio::ip::udp::endpoint& target);
 			Association& getAssociation(const boost::asio::ip::udp::endpoint& target);

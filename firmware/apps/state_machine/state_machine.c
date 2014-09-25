@@ -163,8 +163,8 @@ bool eval(uint8_t condIndex, struct hxb_envelope *envelope) {
     case HXB_DTYPE_TIMESTAMP:
       if(cond.op == HXB_SM_TIMESTAMP_OP) // in-state-since
       {
-				syslog(LOG_DEBUG, "Checking in-state-since Condition! Have been in this state for %lu sec.", getTimestamp() - inStateSince);
-				syslog(LOG_DEBUG, "getTimestamp(): %lu - inStateSince: %lu >= cond.value.data: %lu", getTimestamp(), inStateSince, cond.value.v_u32);
+				syslog(LOG_DEBUG, "Checking in-state-since Condition! Have been in this state for %lu sec.", clock_seconds() - inStateSince);
+				syslog(LOG_DEBUG, "getTimestamp(): %lu - inStateSince: %lu >= cond.value.data: %lu", clock_seconds(), inStateSince, cond.value.v_u32);
         return clock_seconds() - inStateSince >= cond.value.v_u32;
       }
       break;
