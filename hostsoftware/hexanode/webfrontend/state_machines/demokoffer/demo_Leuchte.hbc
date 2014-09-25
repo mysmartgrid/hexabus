@@ -44,7 +44,7 @@ machine main {
 
         in(leuchte_on) {
     # TODO: Check value
-    if (ep hexanode.button_pressed == 36) {
+    if (ep hexanode.button_pressed == 37) {
       write Leuchte.power:=0;
       goto leuchte_off;
     }
@@ -56,7 +56,7 @@ machine main {
 
   in(leuchte_off) {
     # TODO: Check value
-    if (ep hexanode.button_pressed == 40) {
+    if (ep hexanode.button_pressed == 41) {
       write Leuchte.power:=1;
       goto leuchte_on;
     }
