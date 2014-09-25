@@ -33,12 +33,28 @@ static bool writeStream(std::ostream& stream, const std::vector<char>& contents)
 namespace hbt {
 namespace util {
 
-MemoryBuffer MemoryBuffer::loadFile(const std::string& path)
+static std::unique_ptr<MemoryBuffer> tryLoadFile(const std::string& path)
 {
 	std::vector<char> result;
 	bool success;
 
-	if (path == "-") {
+	std::ifstream file(path);
+
+	if (!file)
+		return {nullptr};
+
+	if (!readStream(file, result))
+		return {nullptr};
+
+	return std::unique_ptr<MemoryBuffer>(new MemoryBuffer(std::move(result)));
+}
+
+MemoryBuffer MemoryBuffer::loadFile(const std::string& path, bool allowStdin)
+{
+	std::vector<char> result;
+	bool success;
+
+	if (path == "-" && allowStdin) {
 		success = readStream(std::cin, result);
 	} else {
 		std::ifstream file(path);
@@ -55,11 +71,11 @@ MemoryBuffer MemoryBuffer::loadFile(const std::string& path)
 	return MemoryBuffer(std::move(result));
 }
 
-void MemoryBuffer::writeFile(const std::string& path)
+void MemoryBuffer::writeFile(const std::string& path, bool allowStdout)
 {
 	bool success;
 
-	if (path == "-") {
+	if (path == "-" && allowStdout) {
 		success = writeStream(std::cout, _data);
 	} else {
 		std::ofstream file(path, std::ios_base::trunc);

@@ -2,6 +2,7 @@
 #define INCLUDE_UTIL_MEMORYBUFFER_HPP_2B2C6567CF10D7F0
 
 #include <cstring>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -47,8 +48,10 @@ class MemoryBuffer {
 			: _data(std::forward<std::vector<char>>(data))
 		{}
 
-		static MemoryBuffer loadFile(const std::string& path);
-		void writeFile(const std::string& path);
+		static std::unique_ptr<MemoryBuffer> tryLoadFile(const std::string& path);
+		static MemoryBuffer loadFile(const std::string& path, bool allowStdin = false);
+
+		void writeFile(const std::string& path, bool allowStdout = false);
 
 		iterator begin() { return _data.begin(); }
 		iterator end() { return _data.end(); }

@@ -2,6 +2,10 @@
 #define INCLUDE_LANG_PARSER_HPP_986D1853A6D8E2D9
 
 #include <memory>
+#include <string>
+#include <vector>
+
+#include "Lang/ast.hpp"
 
 namespace hbt {
 
@@ -11,29 +15,24 @@ class MemoryBuffer;
 
 namespace lang {
 
-class TranslationUnit;
-
 class ParseError : public std::runtime_error {
 	private:
-		int _line, _column;
+		std::vector<std::unique_ptr<std::string>> _strings;
+		std::vector<std::unique_ptr<SourceLocation>> _locs;
+		SourceLocation* _at;
 		std::string _expected;
-		std::string _detail;
 		std::string _got;
 
 	public:
-		ParseError(int line, int column, const std::string& expected, const std::string& detail, const std::string& got)
-			: runtime_error(expected),
-			  _line(line), _column(column), _expected(expected), _detail(detail), _got(got)
-		{}
+		ParseError(const SourceLocation& at, const std::string& expected, const std::string& got);
 
-		int line() const { return _line; }
-		int column() const { return _column; }
+		const SourceLocation& at() const { return *_at; }
 		const std::string& expected() const { return _expected; }
-		const std::string& detail() const { return _detail; }
 		const std::string& got() const { return _got; }
 };
 
-std::unique_ptr<TranslationUnit> parse(const hbt::util::MemoryBuffer& input);
+std::unique_ptr<TranslationUnit> parse(const util::MemoryBuffer& file, const std::string& fileName,
+		const std::vector<std::string>& includePaths, int tabWidth = 4);
 
 }
 }

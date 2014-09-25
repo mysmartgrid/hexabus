@@ -247,8 +247,8 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 	}
 
 	template<typename TokenDef>
-	grammar(const TokenDef& tok, int tabWidth)
-		: grammar::base_type(start), tabWidth(tabWidth)
+	grammar(const TokenDef& tok, const std::string* file, const SourceLocation* includedFrom, int tabWidth)
+		: grammar::base_type(start), file(file), includedFrom(includedFrom), tabWidth(tabWidth)
 	{
 		using namespace qi;
 		using namespace boost::phoenix;
@@ -742,7 +742,8 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 #undef expected
 	}
 
-	std::shared_ptr<std::string> file;
+	const std::string* file;
+	const SourceLocation* includedFrom;
 
 	rule<std::list<std::unique_ptr<ProgramPart>>()> start;
 
@@ -790,7 +791,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 	SourceLocation locOf(const range& range)
 	{
-		return SourceLocation(file.get(), getLine(range.begin()), getColumn(range.begin(), tabWidth));
+		return SourceLocation(file, getLine(range.begin()), getColumn(range.begin(), tabWidth), includedFrom);
 	}
 };
 
@@ -798,7 +799,30 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 
 
-std::unique_ptr<TranslationUnit> parse(const hbt::util::MemoryBuffer& input)
+static SourceLocation* cloneSloc(const SourceLocation* sloc, std::vector<std::unique_ptr<std::string>>& strings,
+		std::vector<std::unique_ptr<SourceLocation>>& locs)
+{
+	if (sloc) {
+		strings.emplace_back(new std::string(sloc->file()));
+		locs.emplace_back(
+			new SourceLocation(
+				strings.back().get(),
+				sloc->line(),
+				sloc->col(),
+				cloneSloc(sloc->parent(), strings, locs)));
+		return locs.back().get();
+	} else {
+		return nullptr;
+	}
+}
+
+ParseError::ParseError(const SourceLocation& at, const std::string& expected, const std::string& got)
+	: runtime_error(expected), _at(cloneSloc(&at, _strings, _locs)), _expected(expected), _got(got)
+{
+}
+
+static std::list<std::unique_ptr<ProgramPart>> parseFileInto(const util::MemoryBuffer& input,
+		const std::string* fileName, const SourceLocation* includedFrom, int tabWidth)
 {
 	typedef sloc_iterator<const char*> iter;
 	typedef boost::spirit::lex::lexertl::token<iter> token_type;
@@ -808,10 +832,9 @@ std::unique_ptr<TranslationUnit> parse(const hbt::util::MemoryBuffer& input)
 	auto ctext = input.crange<char>();
 
 	std::list<std::unique_ptr<ProgramPart>> parts;
-	int tabWidth = 4;
 
 	tokenizer<lexer_type> t;
-	grammar<iterator_type> g(t, tabWidth);
+	grammar<iterator_type> g(t, fileName, includedFrom, tabWidth);
 	whitespace<iterator_type> ws(t);
 
 	try {
@@ -819,7 +842,7 @@ std::unique_ptr<TranslationUnit> parse(const hbt::util::MemoryBuffer& input)
 		bool result = boost::spirit::lex::tokenize_and_phrase_parse(first, last, t, g, ws, parts);
 
 		if (!result || first != last)
-			throw ParseError(0, 0, "...not this anyway...", "parsing aborted (internal error)", "problems");
+			throw ParseError(SourceLocation(fileName, 0, 0, includedFrom), "...not this anyway...", "<internal error>");
 	} catch (const qi::expectation_failure<iterator_type>& ef) {
 		std::string badToken;
 		int line = -1, col = -1;
@@ -848,26 +871,32 @@ std::unique_ptr<TranslationUnit> parse(const hbt::util::MemoryBuffer& input)
 			badToken = "<EOF>";
 		}
 
-		std::string rule_name = ef.what_.tag;
-		std::string expected, detail;
+		const std::string& expected = ef.what_.tag;
 
-		if (rule_name[0] == '~') {
-			size_t sep = rule_name.find('~', 1);
-			expected = rule_name.substr(1, sep - 1);
-			detail = rule_name.substr(sep + 1);
-		} else {
-			expected = rule_name;
-		}
-
-		throw ParseError(line, col, expected, detail, badToken);
+		throw ParseError(SourceLocation(fileName, line, col, includedFrom), expected, badToken);
 	}
+
+	return parts;
+}
+
+std::unique_ptr<TranslationUnit> parse(const util::MemoryBuffer& file, const std::string& fileName,
+		const std::vector<std::string>& includePaths, int tabWidth)
+{
+	std::list<std::unique_ptr<ProgramPart>> incomplete, complete;
+	std::unique_ptr<std::string> filePtr(new std::string(fileName));
+
+	static std::string s("asdf");
+	static SourceLocation top(&s, 23, 42);
+
+	incomplete = parseFileInto(file, filePtr.get(), &top, tabWidth);
+	complete.splice(complete.begin(), std::move(incomplete));
 
 	return std::unique_ptr<TranslationUnit>(
 		new TranslationUnit(
-			std::unique_ptr<std::string>(),
+			std::move(filePtr),
 			std::vector<std::unique_ptr<ProgramPart>>(
-				std::make_move_iterator(parts.begin()),
-				std::make_move_iterator(parts.end()))));
+				std::make_move_iterator(complete.begin()),
+				std::make_move_iterator(complete.end()))));
 }
 
 }

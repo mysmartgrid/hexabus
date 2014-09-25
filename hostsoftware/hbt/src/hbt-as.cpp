@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 	}
 
 	try {
-		auto buffer = hbt::util::MemoryBuffer::loadFile(input);
+		auto buffer = hbt::util::MemoryBuffer::loadFile(input, true);
 
 		std::unique_ptr<hbt::ir::Program> program = hbt::ir::parse(buffer);
 
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
 
 		assembly = std::move(hbt::mc::assemble(*program));
 
-		assembly.writeFile(output);
+		assembly.writeFile(output, true);
 	} catch (const hbt::ir::ParseError& e) {
 		std::cout << "hbt-as: error in input\n"
 			<< "expected " << e.expected() << " at " << e.line() << ":" << e.column();

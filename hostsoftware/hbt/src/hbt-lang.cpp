@@ -294,16 +294,17 @@ device dev(fd01::2) : button;
 	hbt::util::MemoryBuffer buf(expr);
 
 	try {
-		auto tu = hbt::lang::parse(buf);
+		auto tu = hbt::lang::parse(buf, "<input>", {}, 4);
 
 		for (auto& part : tu->items())
 			std::cout << *part;
 	} catch (const hbt::lang::ParseError& e) {
-		std::cout << "hbt-lang: error in input\n"
-			<< "expected " << e.expected() << " at " << e.line() << ":" << e.column();
-		if (e.detail().size())
-			std::cout << " (" << e.detail() << ")";
-		std::cout << ", got " << e.got() << "\n";
+		const auto* sloc = &e.at();
+		std::cout << sloc->file() << ":" << sloc->line() << ":" << sloc->col()
+			<< " error: expected " << e.expected() << ", got " << e.got() << "\n";
+		while ((sloc = sloc->parent())) {
+			std::cout << "included from " << sloc->file() << ":" << sloc->line() << ":" << sloc->col() << "\n";
+		}
 		return 1;
 	} catch (const std::exception& e) {
 		std::cerr << "hbt-lang: error: " << e.what() << "\n";

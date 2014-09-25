@@ -65,13 +65,13 @@ int main(int argc, char* argv[])
 	}
 
 	try {
-		auto buffer = hbt::util::MemoryBuffer::loadFile(input);
+		auto buffer = hbt::util::MemoryBuffer::loadFile(input, true);
 
 		auto program = hbt::mc::disassemble(buffer);
 
 		std::string disassembly = hbt::ir::prettyPrint(*program);
 
-		hbt::util::MemoryBuffer(disassembly).writeFile(output);
+		hbt::util::MemoryBuffer(disassembly).writeFile(output, true);
 	} catch (const std::exception& e) {
 		std::cerr << "hbt-dis: error: " << e.what() << "\n";
 		return 1;
