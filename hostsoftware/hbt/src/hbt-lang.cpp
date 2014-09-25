@@ -271,8 +271,8 @@ class main(a, b, __123_usd) {
 	state dead {
 		// test
 		/*
-		 * bar
-		 */
+		 * asdf
+		 ****/
 	}
 }
 

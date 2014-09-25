@@ -37,7 +37,8 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 	tokenizer()
 	{
 		add(linecomment = R"((?-s:\/\/.*))", TOKEN_SPACE);
-		add(blockcomment = R"((?s:\/\*.*?\*\/))", TOKEN_SPACE);
+		add(blockcomment = R"(\/\*([^*]|\*+[^/*])*\*+\/)", TOKEN_SPACE);
+		add(unterminated_blockcomment = R"(\/\*([^*]|\*+[^/*])*)");
 		add(whitespace = R"([\r\n\t ]+)", TOKEN_SPACE);
 
 		add(type.bool_ = "bool");
@@ -120,7 +121,7 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 		lparen, rparen, lbrace, rbrace,
 		ident, string,
 		colon, comma, semicolon, dot,
-		linecomment, blockcomment, whitespace,
+		linecomment, blockcomment, unterminated_blockcomment, whitespace,
 		any;
 
 	struct {
@@ -153,10 +154,14 @@ struct whitespace : qi::grammar<It> {
 		using namespace qi;
 
 		start =
-			tok.whitespace | tok.linecomment | tok.blockcomment;
+			tok.whitespace | tok.linecomment | tok.blockcomment | (tok.unterminated_blockcomment > unterminated);
+
+		unterminated.name("blockcomment terminator");
+		unterminated = !eps;
 	}
 
 	qi::rule<It> start;
+	qi::rule<It> unterminated;
 };
 
 template<typename It>
@@ -456,7 +461,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			(
 				identifier
 				>> !omit[tok.dot]
-				> tok.op.assign
+				>> tok.op.assign
 				> expr
 				> omit[tok.semicolon | expected(";")]
 			)[fwd >= [this] (Identifier* id, range& r, ptr<Expr>& e) {
@@ -464,8 +469,9 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			}]
 			| (
 				identifier
-				> omit[tok.dot]
+				> omit[tok.dot | expected(". or =")]
 				> identifier
+				> &omit[tok.op.assign | expected("=")]
 				> tok.op.assign
 				> expr
 				> omit[tok.semicolon | expected(";")]
@@ -675,7 +681,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> omit[tok.lparen | expected("(")]
 				> ip_addr
 				> omit[
-					(tok.rparen | expected("ip address"))
+					(tok.rparen | expected(")"))
 					 > (tok.colon | expected(":"))
 				]
 				> -(identifier % omit[tok.comma])
@@ -694,16 +700,18 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				return new IncludeLine(locOf(r), std::string(file.begin().base() + 1, file.end().base() - 1));
 			}];
 
+		ip_addr.name("IP address");
 		ip_addr =
 			lexeme[+(tok.colon | tok.dot | tok.lit.uint32_ | tok.ident)][fwd >=
-				[] (std::vector<range>& addr, bool& pass) {
+				[this] (std::vector<range>& addr, bool& pass) {
 					std::array<uint8_t, 16> result;
+					std::string str(addr.front().begin(), addr.back().end());
 					try {
-						std::string str(addr.front().begin(), addr.back().end());
 						auto parsed = boost::asio::ip::address_v6::from_string(str);
 						auto bytes = parsed.to_bytes();
 						std::copy(bytes.begin(), bytes.end(), result.begin());
 					} catch (...) {
+						badIP = str;
 						pass = false;
 					}
 					return result;
@@ -744,6 +752,8 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 	const std::string* file;
 	const SourceLocation* includedFrom;
+
+	std::string badIP;
 
 	rule<std::list<std::unique_ptr<ProgramPart>>()> start;
 
@@ -845,33 +855,39 @@ static std::list<std::unique_ptr<ProgramPart>> parseFileInto(const util::MemoryB
 			throw ParseError(SourceLocation(fileName, 0, 0, includedFrom), "...not this anyway...", "<internal error>");
 	} catch (const qi::expectation_failure<iterator_type>& ef) {
 		std::string badToken;
-		int line = -1, col = -1;
+		int line = 0, col = 0;
+		const std::string& expected = ef.what_.tag;
 
 		if (ef.first->is_valid()) {
 			iter errit = ef.first->value().begin();
 
-			boost::spirit::lex::tokenize(errit, iter(ctext.end()), t,
-				[&badToken, &line, &col, tabWidth] (const token_type& token) {
-					if (token.id() == TOKEN_SPACE)
-						return true;
+			if (expected == g.ip_addr.name())
+				badToken = g.badIP;
+			else
+				boost::spirit::lex::tokenize(errit, iter(ctext.end()), t,
+					[&badToken, &line, &col, tabWidth] (const token_type& token) {
+						if (token.id() == TOKEN_SPACE)
+							return true;
 
-					if (token.id() == TOKEN_ANY && !std::isprint(*token.value().begin())) {
-						unsigned val = (unsigned char) *token.value().begin();
-						char buf[16];
-						sprintf(buf, "\\x%02x", val);
-						badToken = buf;
-					} else {
-						badToken = '\'' + std::string(token.value().begin(), token.value().end()) + '\'';
-					}
-					line = getLine(token.value().begin());
-					col = getColumn(token.value().begin(), tabWidth);
-					return false;
-				});
+						if (token.id() == TOKEN_ANY && !std::isprint(*token.value().begin())) {
+							unsigned val = (unsigned char) *token.value().begin();
+							char buf[16];
+							sprintf(buf, "\\x%02x", val);
+							badToken = buf;
+						} else {
+							badToken = '\'' + std::string(token.value().begin(), token.value().end()) + '\'';
+						}
+						line = getLine(token.value().begin());
+						col = getColumn(token.value().begin(), tabWidth);
+						return false;
+					});
 		} else {
+			for (auto it = iter(ctext.begin()), end = iter(ctext.end()); it != end; ++it) {
+				line = getLine(it);
+				col = getColumn(it, tabWidth);
+			}
 			badToken = "<EOF>";
 		}
-
-		const std::string& expected = ef.what_.tag;
 
 		throw ParseError(SourceLocation(fileName, line, col, includedFrom), expected, badToken);
 	}
@@ -885,10 +901,7 @@ std::unique_ptr<TranslationUnit> parse(const util::MemoryBuffer& file, const std
 	std::list<std::unique_ptr<ProgramPart>> incomplete, complete;
 	std::unique_ptr<std::string> filePtr(new std::string(fileName));
 
-	static std::string s("asdf");
-	static SourceLocation top(&s, 23, 42);
-
-	incomplete = parseFileInto(file, filePtr.get(), &top, tabWidth);
+	incomplete = parseFileInto(file, filePtr.get(), nullptr, tabWidth);
 	complete.splice(complete.begin(), std::move(incomplete));
 
 	return std::unique_ptr<TranslationUnit>(

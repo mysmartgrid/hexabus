@@ -36,11 +36,6 @@ private:
 		++this->base_reference();
 	}
 
-	void decrement()
-	{
-		--this->base_reference();
-	}
-
 public:
 	sloc_iterator() {}
 	explicit sloc_iterator(Base base)
