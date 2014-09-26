@@ -1,10 +1,13 @@
 #include <iostream>
 
+#include <unistd.h>
+
 #include "Util/memorybuffer.hpp"
 #include "Lang/parser.hpp"
 #include "Lang/ast.hpp"
 
 #include <boost/asio/ip/address_v6.hpp>
+#include <boost/filesystem.hpp>
 
 using namespace hbt::lang;
 
@@ -242,59 +245,20 @@ static std::ostream& operator<<(std::ostream& o, const ProgramPart& p)
 	return o;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-	const char* expr = R"#(
-class main(a, b, __123_usd) {
-	state init {
-		float x3;
-		uint32 i9;
-
-		on (snafu.zu > 8.1) {
-			float f = 17;
-
-			if (f > 5 && (timeout < 76)) {
-				a.b = hour(dev.x);
-				a.c = dev.value;
-			} else a.c = packet_eid;
-			switch (x) {
-				case 1+1: goto z;
-				default: case 8+hour(d): goto y;
-			}
-		}
-
-		on entry {}
-		if (x3 > 0)
-			goto z;
-
+	if (argc < 2) {
+		std::cerr << "input missing\n";
+		return 1;
 	}
-	state dead {
-		// test
-		/*
-		 * asdf
-		 ****/
-	}
-}
 
-include "../hb	t.hbh";
-
-machine tree : main(4, dev);
-machine tree : main();
-
-machine foo : {
-	state init {
-	}
-}
-
-endpoint button(4) : bool (broadcast, read, read);
-
-device dev(fd01::2) : button;
-//)#";
-
-	hbt::util::MemoryBuffer buf(expr);
+	auto buf = hbt::util::MemoryBuffer::loadFile(argv[1], true);
 
 	try {
-		auto tu = hbt::lang::parse(buf, "<input>", {}, 4);
+		std::unique_ptr<char, void (*)(void*)> wd(get_current_dir_name(), free);
+		boost::filesystem::path file(argv[1]);
+
+		auto tu = hbt::lang::Parser({ wd.get() }, 4).parse(file.is_absolute() ? file.native() : (wd.get() / file).native());
 
 		for (auto& part : tu->items())
 			std::cout << *part;

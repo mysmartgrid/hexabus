@@ -3,6 +3,7 @@
 #include <cctype>
 #include <list>
 #include <map>
+#include <set>
 
 #include "Lang/ast.hpp"
 #include "Util/memorybuffer.hpp"
@@ -10,6 +11,7 @@
 #include "sloc_iterator.hpp"
 #include "spirit_workarounds.hpp"
 
+#include <boost/filesystem.hpp>
 #include <boost/asio/ip/address_v6.hpp>
 #include <boost/spirit/include/lex_lexertl.hpp>
 #include <boost/spirit/include/phoenix.hpp>
@@ -831,7 +833,7 @@ ParseError::ParseError(const SourceLocation& at, const std::string& expected, co
 {
 }
 
-static std::list<std::unique_ptr<ProgramPart>> parseFileInto(const util::MemoryBuffer& input,
+static std::list<std::unique_ptr<ProgramPart>> parseBuffer(const util::MemoryBuffer& input,
 		const std::string* fileName, const SourceLocation* includedFrom, int tabWidth)
 {
 	typedef sloc_iterator<const char*> iter;
@@ -895,21 +897,94 @@ static std::list<std::unique_ptr<ProgramPart>> parseFileInto(const util::MemoryB
 	return parts;
 }
 
-std::unique_ptr<TranslationUnit> parse(const util::MemoryBuffer& file, const std::string& fileName,
-		const std::vector<std::string>& includePaths, int tabWidth)
+
+
+Parser::Parser(std::vector<std::string> includePaths, int tabWidth)
+	: _includePaths(std::move(includePaths)), _tabWidth(tabWidth)
 {
-	std::list<std::unique_ptr<ProgramPart>> incomplete, complete;
+	for (const auto& path : _includePaths)
+		if (!boost::filesystem::path(path).is_absolute())
+			throw std::invalid_argument("includePaths");
+}
+
+Parser::FileData Parser::loadFile(const std::string& file, const std::string* extraSearchDir)
+{
+	std::unique_ptr<util::MemoryBuffer> buf;
+
+	if (extraSearchDir) {
+		std::string beneathExtraDir = (boost::filesystem::path(*extraSearchDir) / file).native();
+		if ((buf = util::MemoryBuffer::tryLoadFile(beneathExtraDir)))
+			return { std::move(*buf), beneathExtraDir };
+	}
+
+	for (auto& includeDir : _includePaths) {
+		std::string beneathIncludeDir = (boost::filesystem::path(includeDir) / file).native();
+		if ((buf = util::MemoryBuffer::tryLoadFile(beneathIncludeDir)))
+			return { std::move(*buf), beneathIncludeDir };
+	}
+
+	return {};
+}
+
+std::list<std::unique_ptr<ProgramPart>> Parser::parseFile(const FileData& fileData, const std::string* pathPtr,
+		const SourceLocation* includedFrom)
+{
+	auto parsed = parseBuffer(fileData.buf, pathPtr, includedFrom, _tabWidth);
+	for (auto it = parsed.begin(), end = parsed.end(); it != end; ++it) {
+		auto* inc = dynamic_cast<IncludeLine*>(it->get());
+		if (!inc)
+			continue;
+
+		++it;
+		parsed.splice(it, parseRecursive(*inc, &boost::filesystem::path(fileData.fullPath).parent_path().native()));
+	}
+
+	return parsed;
+}
+
+std::list<std::unique_ptr<ProgramPart>> Parser::parseRecursive(IncludeLine& include, const std::string* extraSearchDir)
+{
+	auto fileData = loadFile(include.file(), extraSearchDir);
+
+	if (!fileData.fullPath.size())
+		throw ParseError(include.sloc(), "included file '" + include.file() + "' to exist", "nothing");
+
+	if (_currentIncludeStack.count(fileData.fullPath))
+		throw ParseError(include.sloc(), "included file '" + include.file() + "' to be nonrecursive", "just that");
+
+	if (_filesAlreadyIncluded.count(fileData.fullPath))
+		return {};
+
+	_currentIncludeStack.insert(fileData.fullPath);
+	include.fullPath(fileData.fullPath);
+
+	auto parsed = parseFile(fileData, &include.fullPath(), &include.sloc());
+
+	_filesAlreadyIncluded.insert(fileData.fullPath);
+	_currentIncludeStack.erase(fileData.fullPath);
+
+	return parsed;
+}
+
+std::unique_ptr<TranslationUnit> Parser::parse(const std::string& fileName)
+{
+	if (!boost::filesystem::path(fileName).is_absolute())
+		throw std::invalid_argument("fileName");
+
+	_filesAlreadyIncluded.clear();
+	_currentIncludeStack.clear();
+	_currentIncludeStack.insert(fileName);
+
 	std::unique_ptr<std::string> filePtr(new std::string(fileName));
 
-	incomplete = parseFileInto(file, filePtr.get(), nullptr, tabWidth);
-	complete.splice(complete.begin(), std::move(incomplete));
+	auto parsed = parseFile({ util::MemoryBuffer::loadFile(fileName), fileName }, filePtr.get());
 
 	return std::unique_ptr<TranslationUnit>(
 		new TranslationUnit(
 			std::move(filePtr),
 			std::vector<std::unique_ptr<ProgramPart>>(
-				std::make_move_iterator(complete.begin()),
-				std::make_move_iterator(complete.end()))));
+				std::make_move_iterator(parsed.begin()),
+				std::make_move_iterator(parsed.end()))));
 }
 
 }

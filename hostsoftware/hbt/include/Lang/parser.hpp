@@ -1,11 +1,14 @@
 #ifndef INCLUDE_LANG_PARSER_HPP_986D1853A6D8E2D9
 #define INCLUDE_LANG_PARSER_HPP_986D1853A6D8E2D9
 
+#include <list>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
 #include "Lang/ast.hpp"
+#include "Util/memorybuffer.hpp"
 
 namespace hbt {
 
@@ -31,8 +34,29 @@ class ParseError : public std::runtime_error {
 		const std::string& got() const { return _got; }
 };
 
-std::unique_ptr<TranslationUnit> parse(const util::MemoryBuffer& file, const std::string& fileName,
-		const std::vector<std::string>& includePaths, int tabWidth = 4);
+class Parser {
+	private:
+		struct FileData {
+			util::MemoryBuffer buf;
+			std::string fullPath;
+		};
+
+		std::vector<std::string> _includePaths;
+		int _tabWidth;
+
+		std::set<std::string> _filesAlreadyIncluded;
+		std::set<std::string> _currentIncludeStack;
+
+		FileData loadFile(const std::string& file, const std::string* extraSearchDir);
+		std::list<std::unique_ptr<ProgramPart>> parseFile(const FileData& fileData, const std::string* pathPtr,
+				const SourceLocation* includedFrom = nullptr);
+		std::list<std::unique_ptr<ProgramPart>> parseRecursive(IncludeLine& include, const std::string* extraSearchDir);
+
+	public:
+		Parser(std::vector<std::string> includePaths, int tabWidth = 4);
+
+		std::unique_ptr<TranslationUnit> parse(const std::string& fileName);
+};
 
 }
 }

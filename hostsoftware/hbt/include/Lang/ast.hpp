@@ -655,6 +655,7 @@ class IncludeLine : public ProgramPart {
 private:
 	SourceLocation _sloc;
 	std::string _file;
+	std::string _fullPath;
 
 public:
 	IncludeLine(const SourceLocation& sloc, std::string&& file)
@@ -663,6 +664,9 @@ public:
 
 	const SourceLocation& sloc() const { return _sloc; }
 	const std::string& file() const { return _file; }
+
+	const std::string& fullPath() const { return _fullPath; }
+	void fullPath(std::string path) { _fullPath = std::move(path); }
 };
 
 

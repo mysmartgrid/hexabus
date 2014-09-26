@@ -33,7 +33,7 @@ static bool writeStream(std::ostream& stream, const std::vector<char>& contents)
 namespace hbt {
 namespace util {
 
-static std::unique_ptr<MemoryBuffer> tryLoadFile(const std::string& path)
+std::unique_ptr<MemoryBuffer> MemoryBuffer::tryLoadFile(const std::string& path)
 {
 	std::vector<char> result;
 	bool success;
