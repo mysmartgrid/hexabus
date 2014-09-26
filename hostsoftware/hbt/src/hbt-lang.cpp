@@ -137,12 +137,12 @@ static std::ostream& operator<<(std::ostream& o, const OnBlock& b)
 		o << "on packet from " << p->source().name() << " " << p->block();
 	} else if (auto e = dynamic_cast<const OnExprBlock*>(&b)) {
 		o << "on (" << e->condition() << ") " << e->block();
-	} else {
+	} else if (auto e = dynamic_cast<const OnSimpleBlock*>(&b)) {
 		o << "on ";
-		switch (b.trigger()) {
-		case OnBlockTrigger::Entry: o << "entry "; break;
-		case OnBlockTrigger::Exit: o << "exit "; break;
-		case OnBlockTrigger::Periodic: o << "periodic "; break;
+		switch (e->trigger()) {
+		case OnSimpleTrigger::Entry: o << "entry "; break;
+		case OnSimpleTrigger::Exit: o << "exit "; break;
+		case OnSimpleTrigger::Periodic: o << "periodic "; break;
 		default: o << "unknown trigger\n"; exit(1); break;
 		}
 		o << b.block();

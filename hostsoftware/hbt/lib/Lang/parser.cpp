@@ -562,15 +562,15 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				return new GotoStmt(locOf(r), std::move(*to));
 			}];
 
-		auto onSimple = [this] (OnBlockTrigger trigger) {
+		auto onSimple = [this] (OnSimpleTrigger trigger) {
 			return [this, trigger] (range& r, ptr<BlockStmt>& block) {
-				return new OnBlock(locOf(r), trigger, block);
+				return new OnSimpleBlock(locOf(r), trigger, block);
 			};
 		};
 		on_block =
-			(tok.word.on >> omit[tok.word.entry] > s.block)[fwd >= onSimple(OnBlockTrigger::Entry)]
-			| (tok.word.on >> omit[tok.word.exit] > s.block)[fwd >= onSimple(OnBlockTrigger::Exit)]
-			| (tok.word.on >> omit[tok.word.periodic] > s.block)[fwd >= onSimple(OnBlockTrigger::Periodic)]
+			(tok.word.on >> omit[tok.word.entry] > s.block)[fwd >= onSimple(OnSimpleTrigger::Entry)]
+			| (tok.word.on >> omit[tok.word.exit] > s.block)[fwd >= onSimple(OnSimpleTrigger::Exit)]
+			| (tok.word.on >> omit[tok.word.periodic] > s.block)[fwd >= onSimple(OnSimpleTrigger::Periodic)]
 			| (
 				tok.word.on
 				>> omit[

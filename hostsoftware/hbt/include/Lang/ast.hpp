@@ -88,11 +88,83 @@ public:
 
 
 
-class ProgramPart {
+
+class ASTVisitor;
+template<typename T>
+class TypedLiteral;
+class CastExpr;
+class UnaryExpr;
+class BinaryExpr;
+class ConditionalExpr;
+class EndpointExpr;
+class CallExpr;
+class PacketEIDExpr;
+class TimeoutExpr;
+class AssignStmt;
+class WriteStmt;
+class IfStmt;
+class SwitchStmt;
+class BlockStmt;
+class DeclarationStmt;
+class GotoStmt;
+class OnSimpleBlock;
+class OnPacketBlock;
+class OnExprBlock;
+class Endpoint;
+class Device;
+class MachineClass;
+class MachineDefinition;
+class MachineInstantiation;
+class IncludeLine;
+
+class ASTVisitable {
 public:
-	virtual ~ProgramPart() {}
+	virtual ~ASTVisitable() {}
+
+	virtual void accept(ASTVisitor&) = 0;
 };
 
+struct ASTVisitor {
+	virtual ~ASTVisitor();
+
+	void visit(ASTVisitable& av)
+	{
+		av.accept(*this);
+	}
+
+	virtual void visit(TypedLiteral<bool>&) = 0;
+	virtual void visit(TypedLiteral<uint8_t>&) = 0;
+	virtual void visit(TypedLiteral<uint32_t>&) = 0;
+	virtual void visit(TypedLiteral<uint64_t>&) = 0;
+	virtual void visit(TypedLiteral<float>&) = 0;
+	virtual void visit(CastExpr&) = 0;
+	virtual void visit(UnaryExpr&) = 0;
+	virtual void visit(BinaryExpr&) = 0;
+	virtual void visit(ConditionalExpr&) = 0;
+	virtual void visit(EndpointExpr&) = 0;
+	virtual void visit(CallExpr&) = 0;
+	virtual void visit(PacketEIDExpr&) = 0;
+	virtual void visit(TimeoutExpr&) = 0;
+
+	virtual void visit(AssignStmt&) = 0;
+	virtual void visit(WriteStmt&) = 0;
+	virtual void visit(IfStmt&) = 0;
+	virtual void visit(SwitchStmt&) = 0;
+	virtual void visit(BlockStmt&) = 0;
+	virtual void visit(DeclarationStmt&) = 0;
+	virtual void visit(GotoStmt&) = 0;
+
+	virtual void visit(OnSimpleBlock&) = 0;
+	virtual void visit(OnPacketBlock&) = 0;
+	virtual void visit(OnExprBlock&) = 0;
+
+	virtual void visit(Endpoint&) = 0;
+	virtual void visit(Device&) = 0;
+	virtual void visit(MachineClass&) = 0;
+	virtual void visit(MachineDefinition&) = 0;
+	virtual void visit(MachineInstantiation&) = 0;
+	virtual void visit(IncludeLine&) = 0;
+};
 
 
 enum class EndpointAccess {
@@ -120,50 +192,9 @@ inline EndpointAccess operator&=(EndpointAccess& a, EndpointAccess b)
 inline EndpointAccess operator|=(EndpointAccess& a, EndpointAccess b)
 { a = a | b; return a; }
 
-class Endpoint : public ProgramPart {
-private:
-	SourceLocation _sloc;
-	Identifier _name;
-	uint32_t _eid;
-	Type _type;
-	EndpointAccess _access;
-
-public:
-	Endpoint(const SourceLocation& sloc, const Identifier& name, uint32_t eid, Type type, EndpointAccess access)
-		: _sloc(sloc), _name(name), _eid(eid), _type(type), _access(access)
-	{}
-
-	const SourceLocation& sloc() const { return _sloc; }
-	const Identifier& name() const { return _name; }
-	uint32_t eid() const { return _eid; }
-	Type type() const { return _type; }
-	EndpointAccess access() const { return _access; }
-};
 
 
-
-class Device : public ProgramPart {
-private:
-	SourceLocation _sloc;
-	Identifier _name;
-	std::array<uint8_t, 16> _address;
-	std::vector<Identifier> _endpoints;
-
-public:
-	Device(const SourceLocation& sloc, const Identifier& name, const std::array<uint8_t, 16>& address,
-			std::vector<Identifier>&& endpoints)
-		: _sloc(sloc), _name(name), _address(address), _endpoints(std::move(endpoints))
-	{}
-
-	const SourceLocation& sloc() const { return _sloc; }
-	const Identifier& name() const { return _name; }
-	const std::array<uint8_t, 16>& address() const { return _address; }
-	const std::vector<Identifier>& endpoints() const { return _endpoints; }
-};
-
-
-
-class Expr {
+class Expr : public ASTVisitable {
 private:
 	SourceLocation _sloc;
 	Type _type;
@@ -176,8 +207,6 @@ protected:
 	{}
 
 public:
-	virtual ~Expr() {}
-
 	const SourceLocation& sloc() const { return _sloc; }
 	Type type() const { return _type; }
 
@@ -194,6 +223,11 @@ public:
 	{}
 
 	const std::string& name() const { return _name; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class Literal : public Expr {
@@ -231,6 +265,11 @@ public:
 	{}
 
 	T value() const { return _value; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class CastExpr : public Expr {
@@ -243,6 +282,11 @@ public:
 	{}
 
 	const Expr& expr() const { return *_expr; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 enum class UnaryOperator {
@@ -274,6 +318,11 @@ public:
 
 	UnaryOperator op() const { return _op; }
 	const Expr& expr() const { return *_expr; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 enum class BinaryOperator {
@@ -311,6 +360,11 @@ public:
 	BinaryOperator op() const { return _op; }
 	const Expr& left() const { return *_left; }
 	const Expr& right() const { return *_right; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class ConditionalExpr : public Expr {
@@ -331,6 +385,11 @@ public:
 	const Expr& condition() const { return *_cond; }
 	const Expr& ifTrue() const { return *_true; }
 	const Expr& ifFalse() const { return *_false; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class EndpointExpr : public Expr {
@@ -345,6 +404,11 @@ public:
 
 	const Identifier& device() const { return _device; }
 	const Identifier& endpoint() const { return _endpoint; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class CallExpr : public Expr {
@@ -359,6 +423,11 @@ public:
 
 	const std::string& name() const { return _name; }
 	const std::vector<ptr_t>& arguments() const { return _arguments; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class PacketEIDExpr : public Expr {
@@ -366,6 +435,11 @@ public:
 	PacketEIDExpr(const SourceLocation& sloc)
 		: Expr(sloc, Type::UInt32)
 	{}
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class TimeoutExpr : public Expr {
@@ -373,11 +447,16 @@ public:
 	TimeoutExpr(const SourceLocation& sloc)
 		: Expr(sloc, Type::UInt32)
 	{}
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 
 
-class Stmt {
+class Stmt : public ASTVisitable {
 private:
 	SourceLocation _sloc;
 
@@ -389,8 +468,6 @@ protected:
 	{}
 
 public:
-	virtual ~Stmt() {}
-
 	const SourceLocation& sloc() const { return _sloc; }
 };
 
@@ -406,6 +483,11 @@ public:
 
 	const Identifier& target() const { return _target; }
 	const Expr& value() const { return *_value; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class WriteStmt : public Stmt {
@@ -422,6 +504,11 @@ public:
 	const Identifier& device() const { return _device; }
 	const Identifier& endpoint() const { return _endpoint; }
 	const Expr& value() const { return *_value; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class IfStmt : public Stmt {
@@ -437,6 +524,11 @@ public:
 	const Expr& selector() const { return *_selector; }
 	const Stmt& ifTrue() const { return *_true; }
 	const Stmt* ifFalse() const { return _false.get(); }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class SwitchEntry {
@@ -465,6 +557,11 @@ public:
 
 	const Expr& expr() const { return *_expr; }
 	const std::vector<SwitchEntry>& entries() const { return _entries; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class BlockStmt : public Stmt {
@@ -477,6 +574,11 @@ public:
 	{}
 
 	const std::vector<ptr_t>& statements() const { return _stmts; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class DeclarationStmt : public Stmt {
@@ -493,6 +595,11 @@ public:
 	Type type() const { return _type; }
 	const Identifier& name() const { return _name; }
 	const Expr* value() const { return _value.get(); }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class GotoStmt : public Stmt {
@@ -505,34 +612,51 @@ public:
 	{}
 
 	const Identifier& state() const { return _state; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 
 
-enum class OnBlockTrigger {
-	Entry,
-	Exit,
-	Packet,
-	Periodic,
-	Expr,
-};
-
-class OnBlock {
+class OnBlock : public ASTVisitable {
 private:
 	SourceLocation _sloc;
-	OnBlockTrigger _trigger;
 	std::unique_ptr<BlockStmt> _block;
 
-public:
-	OnBlock(const SourceLocation& sloc, OnBlockTrigger trigger, std::unique_ptr<BlockStmt>&& block)
-		: _sloc(sloc), _trigger(trigger), _block(std::move(block))
+protected:
+	OnBlock(const SourceLocation& sloc, std::unique_ptr<BlockStmt>&& block)
+		: _sloc(sloc), _block(std::move(block))
 	{}
 
-	virtual ~OnBlock() {}
-
+public:
 	const SourceLocation& sloc() const { return _sloc; }
-	OnBlockTrigger trigger() const { return _trigger; }
 	const BlockStmt& block() const { return *_block; }
+};
+
+enum class OnSimpleTrigger {
+	Entry,
+	Exit,
+	Periodic,
+};
+
+class OnSimpleBlock : public OnBlock {
+private:
+	OnSimpleTrigger _trigger;
+
+public:
+	OnSimpleBlock(const SourceLocation& sloc, OnSimpleTrigger trigger, std::unique_ptr<BlockStmt>&& block)
+		: OnBlock(sloc, std::move(block)), _trigger(trigger)
+	{}
+
+	OnSimpleTrigger trigger() const { return _trigger; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class OnPacketBlock : public OnBlock {
@@ -541,10 +665,15 @@ private:
 
 public:
 	OnPacketBlock(const SourceLocation& sloc, const Identifier& source, std::unique_ptr<BlockStmt>&& block)
-		: OnBlock(sloc, OnBlockTrigger::Packet, std::move(block)), _source(source)
+		: OnBlock(sloc, std::move(block)), _source(source)
 	{}
 
 	const Identifier& source() const { return _source; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class OnExprBlock : public OnBlock {
@@ -553,10 +682,15 @@ private:
 
 public:
 	OnExprBlock(const SourceLocation& sloc, std::unique_ptr<Expr>&& condition, std::unique_ptr<BlockStmt>&& block)
-		: OnBlock(sloc, OnBlockTrigger::Expr, std::move(block)), _condition(std::move(condition))
+		: OnBlock(sloc, std::move(block)), _condition(std::move(condition))
 	{}
 
 	const Expr& condition() const { return *_condition; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 
@@ -581,6 +715,64 @@ public:
 	const std::vector<DeclarationStmt>& variables() const { return _variables; }
 	const std::vector<std::unique_ptr<OnBlock>>& onBlocks() const { return _onBlocks; }
 	const std::vector<std::unique_ptr<Stmt>>& statements() const { return _statements; }
+};
+
+
+
+class ProgramPart : public ASTVisitable {
+};
+
+
+
+class Endpoint : public ProgramPart {
+private:
+	SourceLocation _sloc;
+	Identifier _name;
+	uint32_t _eid;
+	Type _type;
+	EndpointAccess _access;
+
+public:
+	Endpoint(const SourceLocation& sloc, const Identifier& name, uint32_t eid, Type type, EndpointAccess access)
+		: _sloc(sloc), _name(name), _eid(eid), _type(type), _access(access)
+	{}
+
+	const SourceLocation& sloc() const { return _sloc; }
+	const Identifier& name() const { return _name; }
+	uint32_t eid() const { return _eid; }
+	Type type() const { return _type; }
+	EndpointAccess access() const { return _access; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
+};
+
+
+
+class Device : public ProgramPart {
+private:
+	SourceLocation _sloc;
+	Identifier _name;
+	std::array<uint8_t, 16> _address;
+	std::vector<Identifier> _endpoints;
+
+public:
+	Device(const SourceLocation& sloc, const Identifier& name, const std::array<uint8_t, 16>& address,
+			std::vector<Identifier>&& endpoints)
+		: _sloc(sloc), _name(name), _address(address), _endpoints(std::move(endpoints))
+	{}
+
+	const SourceLocation& sloc() const { return _sloc; }
+	const Identifier& name() const { return _name; }
+	const std::array<uint8_t, 16>& address() const { return _address; }
+	const std::vector<Identifier>& endpoints() const { return _endpoints; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 
@@ -620,6 +812,11 @@ public:
 	}
 
 	const std::vector<Identifier>& parameters() const { return _parameters; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class MachineDefinition : public MachineBody, public ProgramPart {
@@ -628,6 +825,11 @@ public:
 			std::vector<State>&& states)
 		: MachineBody(sloc, name, std::move(variables), std::move(states))
 	{}
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 class MachineInstantiation : public ProgramPart {
@@ -647,6 +849,11 @@ public:
 	const Identifier& name() const { return _name; }
 	const Identifier& instanceOf() const { return _instanceOf; }
 	const std::vector<std::unique_ptr<Expr>>& arguments() const { return _arguments; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 
@@ -667,11 +874,16 @@ public:
 
 	const std::string& fullPath() const { return _fullPath; }
 	void fullPath(std::string path) { _fullPath = std::move(path); }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 
 
-class TranslationUnit {
+class TranslationUnit : public ASTVisitable {
 private:
 	std::unique_ptr<std::string> _file;
 	std::vector<std::unique_ptr<ProgramPart>> _items;
@@ -683,6 +895,11 @@ public:
 
 	const std::string& file() const { return *_file; }
 	const std::vector<std::unique_ptr<ProgramPart>>& items() const { return _items; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
 };
 
 }
