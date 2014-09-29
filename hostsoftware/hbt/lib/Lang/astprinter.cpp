@@ -283,7 +283,7 @@ void ASTPrinter::visit(IfStmt& i)
 	if (i.ifFalse()) {
 		bool falseBlock = dynamic_cast<BlockStmt*>(i.ifFalse());
 		if (trueBlock)
-			out << " else \n";
+			out << " else ";
 		else
 			out << "\nelse\n";
 
