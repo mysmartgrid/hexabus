@@ -911,16 +911,18 @@ Parser::FileData Parser::loadFile(const std::string& file, const std::string* ex
 {
 	std::unique_ptr<util::MemoryBuffer> buf;
 
+	if (file.find("./") != 0) {
+		for (auto& includeDir : _includePaths) {
+			std::string beneathIncludeDir = (boost::filesystem::path(includeDir) / file).native();
+			if ((buf = util::MemoryBuffer::tryLoadFile(beneathIncludeDir)))
+				return { std::move(*buf), beneathIncludeDir };
+		}
+	}
+
 	if (extraSearchDir) {
 		std::string beneathExtraDir = (boost::filesystem::path(*extraSearchDir) / file).native();
 		if ((buf = util::MemoryBuffer::tryLoadFile(beneathExtraDir)))
 			return { std::move(*buf), beneathExtraDir };
-	}
-
-	for (auto& includeDir : _includePaths) {
-		std::string beneathIncludeDir = (boost::filesystem::path(includeDir) / file).native();
-		if ((buf = util::MemoryBuffer::tryLoadFile(beneathIncludeDir)))
-			return { std::move(*buf), beneathIncludeDir };
 	}
 
 	return {};
