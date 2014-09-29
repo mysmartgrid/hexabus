@@ -1,5 +1,7 @@
 #include "Lang/astprinter.hpp"
 
+#include <sstream>
+
 #include "boost/asio/ip/address_v6.hpp"
 
 namespace hbt {
@@ -55,7 +57,40 @@ void ASTPrinter::visit(TypedLiteral<uint64_t>& l)
 
 void ASTPrinter::visit(TypedLiteral<float>& l)
 {
-	out << l.value() << "/*inexact?*/";
+	switch (std::fpclassify(l.value())) {
+	case FP_NAN:
+		out << "nan";
+		return;
+
+	case FP_INFINITE:
+		out << (l.value() < 0 ? "-inf" : "inf");
+		return;
+	}
+
+	auto doesRoundtrip = [&l] (unsigned precision) {
+		float f;
+		std::stringstream buf;
+
+		buf.precision(precision);
+		buf << l.value();
+		buf >> f;
+		return l.value() == f;
+	};
+
+	unsigned precision = 6;
+	while (!doesRoundtrip(precision)) {
+		precision += 10;
+	}
+	while (doesRoundtrip(precision) && precision > 6) {
+		precision--;
+	}
+	precision++;
+
+	std::stringstream buf;
+
+	buf.precision(precision);
+	buf << l.value();
+	out << buf.str();
 }
 
 void ASTPrinter::visit(CastExpr& c)
