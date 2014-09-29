@@ -108,13 +108,14 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 		add(word.timeout = "timeout");
 
 		add(lit.bool_ = "true|false");
-		add(ident = R"([_a-zA-Z][_0-9a-zA-Z]*)");
 		add(string = R"(\"[^\r\n"]*\")");
 
-		add(lit.float_ = R"(((\d+\.\d*)|(\d*\.\d+))([eE][-+]\d+)?)");
+		add(lit.float_ = R"(((\d+\.\d*)|(\d*\.\d+))([eE][-+]?\d+)?|(\d+[eE][-+]?\d+)|nan|inf)");
 		add(lit.uint8_ = R"(\d+[sS])");
 		add(lit.uint32_ = R"(\d+)");
 		add(lit.uint64_ = R"(\d+[lL])");
+
+		add(ident = R"([_a-zA-Z][_0-9a-zA-Z]*)");
 
 		add(any = ".", TOKEN_ANY);
 	}
@@ -249,6 +250,8 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 	{
 		float val;
 		pass = qi::parse(r.begin(), r.end(), qi::float_, val);
+		if (str(r) != "inf")
+			pass &= std::fpclassify(val) != FP_INFINITE;
 
 		return new TypedLiteral<float>(locOf(r), val);
 	}
