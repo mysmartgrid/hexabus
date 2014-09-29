@@ -90,6 +90,7 @@ public:
 
 
 class ASTVisitor;
+class IdentifierExpr;
 template<typename T>
 class TypedLiteral;
 class CastExpr;
@@ -116,6 +117,7 @@ class MachineClass;
 class MachineDefinition;
 class MachineInstantiation;
 class IncludeLine;
+class TranslationUnit;
 
 class ASTVisitable {
 public:
@@ -125,13 +127,14 @@ public:
 };
 
 struct ASTVisitor {
-	virtual ~ASTVisitor();
+	virtual ~ASTVisitor() {}
 
 	void visit(ASTVisitable& av)
 	{
 		av.accept(*this);
 	}
 
+	virtual void visit(IdentifierExpr&) = 0;
 	virtual void visit(TypedLiteral<bool>&) = 0;
 	virtual void visit(TypedLiteral<uint8_t>&) = 0;
 	virtual void visit(TypedLiteral<uint32_t>&) = 0;
@@ -164,6 +167,7 @@ struct ASTVisitor {
 	virtual void visit(MachineDefinition&) = 0;
 	virtual void visit(MachineInstantiation&) = 0;
 	virtual void visit(IncludeLine&) = 0;
+	virtual void visit(TranslationUnit&) = 0;
 };
 
 
@@ -281,7 +285,7 @@ public:
 		: Expr(sloc, type), _expr(std::move(expr))
 	{}
 
-	const Expr& expr() const { return *_expr; }
+	Expr& expr() { return *_expr; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -317,7 +321,7 @@ public:
 	{}
 
 	UnaryOperator op() const { return _op; }
-	const Expr& expr() const { return *_expr; }
+	Expr& expr() { return *_expr; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -358,8 +362,8 @@ public:
 	{}
 
 	BinaryOperator op() const { return _op; }
-	const Expr& left() const { return *_left; }
-	const Expr& right() const { return *_right; }
+	Expr& left() { return *_left; }
+	Expr& right() { return *_right; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -382,9 +386,9 @@ public:
 		  _true(std::move(ifTrue)), _false(std::move(ifFalse))
 	{}
 
-	const Expr& condition() const { return *_cond; }
-	const Expr& ifTrue() const { return *_true; }
-	const Expr& ifFalse() const { return *_false; }
+	Expr& condition() { return *_cond; }
+	Expr& ifTrue() { return *_true; }
+	Expr& ifFalse() { return *_false; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -422,7 +426,7 @@ public:
 	{}
 
 	const std::string& name() const { return _name; }
-	const std::vector<ptr_t>& arguments() const { return _arguments; }
+	std::vector<ptr_t>& arguments() { return _arguments; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -482,7 +486,7 @@ public:
 	{}
 
 	const Identifier& target() const { return _target; }
-	const Expr& value() const { return *_value; }
+	Expr& value() { return *_value; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -503,7 +507,7 @@ public:
 
 	const Identifier& device() const { return _device; }
 	const Identifier& endpoint() const { return _endpoint; }
-	const Expr& value() const { return *_value; }
+	Expr& value() { return *_value; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -513,17 +517,17 @@ public:
 
 class IfStmt : public Stmt {
 private:
-	std::unique_ptr<Expr> _selector;
+	std::unique_ptr<Expr> _condition;
 	ptr_t _true, _false;
 
 public:
-	IfStmt(const SourceLocation& sloc, std::unique_ptr<Expr>&& sel, ptr_t&& ifTrue, ptr_t&& ifFalse)
-		: Stmt(sloc), _selector(std::move(sel)), _true(std::move(ifTrue)), _false(std::move(ifFalse))
+	IfStmt(const SourceLocation& sloc, std::unique_ptr<Expr>&& condition, ptr_t&& ifTrue, ptr_t&& ifFalse)
+		: Stmt(sloc), _condition(std::move(condition)), _true(std::move(ifTrue)), _false(std::move(ifFalse))
 	{}
 
-	const Expr& selector() const { return *_selector; }
-	const Stmt& ifTrue() const { return *_true; }
-	const Stmt* ifFalse() const { return _false.get(); }
+	Expr& condition() { return *_condition; }
+	Stmt& ifTrue() { return *_true; }
+	Stmt* ifFalse() { return _false.get(); }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -541,8 +545,8 @@ public:
 		: _labels(std::move(labels)), _stmt(std::move(stmt))
 	{}
 
-	const std::vector<std::unique_ptr<Expr>>& labels() const { return _labels; }
-	const Stmt& statement() const { return *_stmt; }
+	std::vector<std::unique_ptr<Expr>>& labels() { return _labels; }
+	Stmt& statement() { return *_stmt; }
 };
 
 class SwitchStmt : public Stmt {
@@ -555,8 +559,8 @@ public:
 		: Stmt(sloc), _expr(std::move(expr)), _entries(std::move(entries))
 	{}
 
-	const Expr& expr() const { return *_expr; }
-	const std::vector<SwitchEntry>& entries() const { return _entries; }
+	Expr& expr() { return *_expr; }
+	std::vector<SwitchEntry>& entries() { return _entries; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -573,7 +577,7 @@ public:
 		: Stmt(sloc), _stmts(std::move(stmts))
 	{}
 
-	const std::vector<ptr_t>& statements() const { return _stmts; }
+	std::vector<ptr_t>& statements() { return _stmts; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -594,7 +598,7 @@ public:
 
 	Type type() const { return _type; }
 	const Identifier& name() const { return _name; }
-	const Expr* value() const { return _value.get(); }
+	Expr* value() { return _value.get(); }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -633,7 +637,7 @@ protected:
 
 public:
 	const SourceLocation& sloc() const { return _sloc; }
-	const BlockStmt& block() const { return *_block; }
+	BlockStmt& block() { return *_block; }
 };
 
 enum class OnSimpleTrigger {
@@ -685,7 +689,7 @@ public:
 		: OnBlock(sloc, std::move(block)), _condition(std::move(condition))
 	{}
 
-	const Expr& condition() const { return *_condition; }
+	Expr& condition() { return *_condition; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -712,9 +716,9 @@ public:
 
 	const SourceLocation& sloc() const { return _sloc; }
 	const Identifier& name() const { return _name; }
-	const std::vector<DeclarationStmt>& variables() const { return _variables; }
-	const std::vector<std::unique_ptr<OnBlock>>& onBlocks() const { return _onBlocks; }
-	const std::vector<std::unique_ptr<Stmt>>& statements() const { return _statements; }
+	std::vector<DeclarationStmt>& variables() { return _variables; }
+	std::vector<std::unique_ptr<OnBlock>>& onBlocks() { return _onBlocks; }
+	std::vector<std::unique_ptr<Stmt>>& statements() { return _statements; }
 };
 
 
@@ -795,8 +799,8 @@ public:
 
 	const SourceLocation& sloc() const { return _sloc; }
 	const Identifier& name() const { return _name; }
-	const std::vector<DeclarationStmt>& variables() const { return _variables; }
-	const std::vector<State>& states() const { return _states; }
+	std::vector<DeclarationStmt>& variables() { return _variables; }
+	std::vector<State>& states() { return _states; }
 };
 
 class MachineClass : public MachineBody, public ProgramPart {
@@ -848,7 +852,7 @@ public:
 	const SourceLocation& sloc() const { return _sloc; }
 	const Identifier& name() const { return _name; }
 	const Identifier& instanceOf() const { return _instanceOf; }
-	const std::vector<std::unique_ptr<Expr>>& arguments() const { return _arguments; }
+	std::vector<std::unique_ptr<Expr>>& arguments() { return _arguments; }
 
 	virtual void accept(ASTVisitor& v)
 	{

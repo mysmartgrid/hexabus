@@ -385,11 +385,19 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				(e.binop.rel > e.shift)[fwd >>= updateBinop]
 			);
 
-		e.and_.name("expression");
-		e.and_ =
+		e.eq.name("expression");
+		e.eq =
 			e.rel[_val = _1]
 			>> *(
-				(tok.op.and_ > e.rel)[fwd >>= updateBinopT(BinaryOperator::And)]
+				(tok.op.equal > e.rel)[fwd >>= updateBinopT(BinaryOperator::Equals)]
+				| (tok.op.notequal > e.rel)[fwd >>= updateBinopT(BinaryOperator::NotEquals)]
+			);
+
+		e.and_.name("expression");
+		e.and_ =
+			e.eq[_val = _1]
+			>> *(
+				(tok.op.and_ > e.eq)[fwd >>= updateBinopT(BinaryOperator::And)]
 			);
 
 		e.xor_.name("expression");
