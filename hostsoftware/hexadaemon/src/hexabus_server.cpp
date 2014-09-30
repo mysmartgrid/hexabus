@@ -134,6 +134,9 @@ void HexabusServer::updateFluksoValues()
 	{
 		for ( bf::directory_iterator sensors(p); sensors != bf::directory_iterator(); sensors++ )
 		{
+			if ( ! exists((*sensors).path()) ) {
+				_debug && std::cout << "File " << sensors->path().string() << " disappeared." << std::endl;
+			}
 			std::string filename = (*sensors).path().filename().string();
 			boost::regex hex32("^[0-9a-f]{32}$");
 			boost::match_results<std::string::const_iterator> what;
@@ -174,6 +177,8 @@ void HexabusServer::updateFluksoValues()
         }
 			}
 		}
+	} else {
+		_debug && std::cout << "Directory for flukso measurements (" << p.string() << ") does not exist. Please make sure the flukso daemon is still running." << std::endl;
 	}
 }
 
