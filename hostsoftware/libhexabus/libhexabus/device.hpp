@@ -34,21 +34,26 @@ namespace hexabus {
 			uint32_t eid() const { return _eid; }
 			std::string name() const { return _name; }
 			uint8_t datatype() const { return _datatype; }
+			bool broadcast() const { return _broadcast; }
 
 			virtual hexabus::Packet::Ptr handle_query() const = 0;
 			virtual uint8_t handle_write(const hexabus::Packet& p) const = 0;
+			virtual bool is_readable() const = 0;
+			virtual bool is_writable() const = 0;
 
 		protected:
-			EndpointFunctions(uint32_t eid, const std::string& name, uint8_t datatype)
+			EndpointFunctions(uint32_t eid, const std::string& name, uint8_t datatype, bool broadcast)
 				: _eid(eid)
 				, _name(name)
 				, _datatype(datatype)
+				, _broadcast(broadcast)
 			{}
 
 		private:
 			uint32_t _eid;
 			std::string _name;
 			uint8_t _datatype;
+			bool _broadcast;
 	};
 
 	template<typename TValue>
@@ -57,8 +62,8 @@ namespace hexabus {
 			typedef std::tr1::shared_ptr<TypedEndpointFunctions<TValue> > Ptr;
 			typedef boost::function<TValue ()> endpoint_read_fn_t;
 			typedef boost::function<bool (const TValue& value)> endpoint_write_fn_t;
-			TypedEndpointFunctions(uint32_t eid, const std::string& name)
-				: EndpointFunctions(eid, name, calculateDatatype())
+			TypedEndpointFunctions(uint32_t eid, const std::string& name, bool broadcast = true)
+				: EndpointFunctions(eid, name, calculateDatatype(), broadcast)
 			{}
 
 			boost::signals2::connection onRead(
@@ -74,21 +79,30 @@ namespace hexabus {
 				return result;
 			}
 
+			virtual bool is_readable() const {
+				return _read.num_slots() > 0;
+			}
+
+			virtual bool is_writable() const {
+				return _write.num_slots() > 0;
+			}
+
 			virtual hexabus::Packet::Ptr handle_query() const {
-				if ( _read.num_slots() < 1 )
+				if ( !is_readable() )
 					return Packet::Ptr(new ErrorPacket(HXB_ERR_UNKNOWNEID));
 
 				boost::optional<TValue> value = _read();
-				if ( value ) {
-					return Packet::Ptr(new InfoPacket<TValue>(eid(), *value));
-				} else {
-					std::cerr << "error reading" << std::endl;
+				if ( !value ) {
+					std::stringstream oss;
+					oss << "Error reading endpoint " << name() << " (" << eid() << ")";
+					throw hexabus::GenericException(oss.str());
 				}
+				return Packet::Ptr(new InfoPacket<TValue>(eid(), *value));
 			}
 			virtual uint8_t handle_write(const hexabus::Packet& p) const {
 				const WritePacket<TValue>* write = dynamic_cast<const WritePacket<TValue>*>(&p);
 				if ( write != NULL ) {
-					if ( _write.num_slots() < 1 ) {
+					if ( !is_writable() ) {
 						return HXB_ERR_WRITEREADONLY;
 					}
 
@@ -102,7 +116,7 @@ namespace hexabus {
 			}
 
 			static typename TypedEndpointFunctions<TValue>::Ptr fromEndpointDescriptor(const EndpointDescriptor& ep) {
-				typename TypedEndpointFunctions<TValue>::Ptr result(new TypedEndpointFunctions<TValue>(ep.eid(), ep.description()));
+				typename TypedEndpointFunctions<TValue>::Ptr result(new TypedEndpointFunctions<TValue>(ep.eid(), ep.description(), ep.function() != EndpointDescriptor::infrastructure));
 
 				if (ep.type() != result->datatype())
 					throw hexabus::GenericException("Datatype mismatch while creating endpoint functions.");
@@ -147,13 +161,17 @@ namespace hexabus {
 		public:
 			typedef boost::function<std::string ()> read_name_fn_t;
 			typedef boost::function<void (const std::string& name)> write_name_fn_t;
+			typedef boost::function<void (const GenericException& error)> async_error_fn_t;
 			Device(boost::asio::io_service& io, const std::vector<std::string>& interfaces, const std::vector<std::string>& addresses, int interval = 60);
+			~Device();
 			void addEndpoint(const EndpointFunctions::Ptr ep);
 
 			boost::signals2::connection onReadName(
 					const read_name_fn_t& callback);
 			boost::signals2::connection onWriteName(
 					const write_name_fn_t& callback);
+			boost::signals2::connection onAsyncError(
+					const async_error_fn_t& callback);
 		protected:
 			void _handle_query(hexabus::Socket* socket, const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
 			void _handle_write(hexabus::Socket* socket, const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from);
@@ -172,6 +190,7 @@ namespace hexabus {
 
 			boost::signals2::signal<std::string ()> _read;
 			boost::signals2::signal<void (const std::string&)> _write;
+			boost::signals2::signal<void (const GenericException& error)> _asyncError;
 
 			hexabus::Listener _listener;
 			std::vector<hexabus::Socket*> _sockets;

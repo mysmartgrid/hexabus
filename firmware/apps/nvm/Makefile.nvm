@@ -1,0 +1,7 @@
+ifeq ($(HEXABUS_TARGET),Socket)
+  nvm_src = eeprom-socket.c
+else ifeq ($(HEXABUS_TARGET),STM)
+  nvm_src = eeprom-stm.c
+else
+  $(error no NVM support on this device)
+endif
