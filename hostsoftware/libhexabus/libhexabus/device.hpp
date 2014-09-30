@@ -42,7 +42,7 @@ namespace hexabus {
 			virtual bool is_writable() const = 0;
 
 		protected:
-			EndpointFunctions(uint32_t eid, const std::string& name, uint8_t datatype, bool broadcast = true)
+			EndpointFunctions(uint32_t eid, const std::string& name, uint8_t datatype, bool broadcast)
 				: _eid(eid)
 				, _name(name)
 				, _datatype(datatype)
@@ -116,7 +116,7 @@ namespace hexabus {
 			}
 
 			static typename TypedEndpointFunctions<TValue>::Ptr fromEndpointDescriptor(const EndpointDescriptor& ep) {
-				typename TypedEndpointFunctions<TValue>::Ptr result(new TypedEndpointFunctions<TValue>(ep.eid(), ep.description()));
+				typename TypedEndpointFunctions<TValue>::Ptr result(new TypedEndpointFunctions<TValue>(ep.eid(), ep.description(), ep.function() != EndpointDescriptor::infrastructure));
 
 				if (ep.type() != result->datatype())
 					throw hexabus::GenericException("Datatype mismatch while creating endpoint functions.");
