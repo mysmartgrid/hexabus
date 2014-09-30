@@ -496,17 +496,15 @@ public:
 
 class WriteStmt : public Stmt {
 private:
-	Identifier _device;
-	Identifier _endpoint;
+	EndpointExpr _target;
 	std::unique_ptr<Expr> _value;
 
 public:
-	WriteStmt(const SourceLocation& sloc, const Identifier& device, const Identifier& endpoint, std::unique_ptr<Expr>&& value)
-		: Stmt(sloc), _device(device), _endpoint(endpoint), _value(std::move(value))
+	WriteStmt(const SourceLocation& sloc, EndpointExpr target, std::unique_ptr<Expr>&& value)
+		: Stmt(sloc), _target(std::move(target)), _value(std::move(value))
 	{}
 
-	const Identifier& device() const { return _device; }
-	const Identifier& endpoint() const { return _endpoint; }
+	EndpointExpr& target() { return _target; }
 	Expr& value() { return *_value; }
 
 	virtual void accept(ASTVisitor& v)

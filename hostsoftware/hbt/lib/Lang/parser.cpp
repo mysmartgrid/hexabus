@@ -489,7 +489,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> expr
 				> omit[tok.semicolon | expected(";")]
 			)[fwd >= [this] (Identifier* dev, Identifier* ep, range& r, ptr<Expr>& e) {
-				return new WriteStmt(locOf(r), *dev, *ep, e);
+				return new WriteStmt(locOf(r), EndpointExpr(locOf(r), *dev, *ep, Type::Unknown), e);
 			}];
 
 		s.if_.name("if statement");

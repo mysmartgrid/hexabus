@@ -254,7 +254,7 @@ void ASTPrinter::visit(WriteStmt& w)
 {
 	indent();
 
-	out << w.device().name() << "." << w.endpoint().name() << " = ";
+	w.target().accept(*this);
 	w.value().accept(*this);
 	out << ";";
 }
