@@ -586,6 +586,7 @@ angular.module('dashboard', [
 
 	$scope.resetForms = function() {
 
+		$scope.simpleSwitch.resetForm();
 		$scope.masterSlave.resetForm();
 		$scope.standbyKiller.resetForm();
 		$scope.productionThreshold.resetForm();
@@ -642,6 +643,139 @@ angular.module('dashboard', [
 	$scope.successAlert = {show: false };
 
 	$scope.buys = false;
+
+/*
+ * Simple switch statemachine
+ */
+
+	$scope.simpleSwitch = {};
+	$scope.simpleSwitch.buttons = {};
+	$scope.simpleSwitch.actors = [];
+
+	var makeButton = function(ip, eid, name, value) {
+			$scope.simpleSwitch.buttons[ip + '.' + eid + '#' + value] = {'ip' : ip, 
+																		'eid' : eid, 
+																		'name': name, 
+																		'value':  value};
+	};
+
+	var hexanodeIP = 'fd00:9::50:c4ff:fe04:26a';
+	var midiButtonEid = 25;
+
+	makeButton(hexanodeIP,midiButtonEid,'Hexanode - Midipad Button 1',36);
+	makeButton(hexanodeIP,midiButtonEid,'Hexanode - Midipad Button 2',37);
+	makeButton(hexanodeIP,midiButtonEid,'Hexanode - Midipad Button 3',40);
+	makeButton(hexanodeIP,midiButtonEid,'Hexanode - Midipad Button 4',41);
+
+	for(var ip in $scope.devices) {
+		var device = $scope.devices[ip];
+		for(var eid in device.eids) {
+			var endpoint = device.eids[eid];
+			if(endpoint.function == "sensor" && endpoint.type == 1) {
+				console.log("Button: " + device.name + " - " + endpoint.description);
+				makeButton(device.ip,endpoint.eid, device.name + " - " + endpoint.description, 1);
+			}
+			else if(endpoint.eid == 1) {
+				console.log("Switch: " + device.name + " - " + endpoint.description);
+				$scope.simpleSwitch.actors.push(device);
+			}
+		}
+	}
+
+	$scope.simpleSwitch.buttonCount = Object.keys($scope.simpleSwitch.buttons).length;
+
+	$scope.simpleSwitch.resetForm = function() {
+		$scope.simpleSwitch.buttonsOn = [];
+		$scope.simpleSwitch.buttonsOff = [];
+		
+		$scope.simpleSwitch.switchDevice = $scope.simpleSwitch.actors[Object.keys($scope.simpleSwitch.actors)[0]].ip;
+
+		$scope.simpleSwitch.validateForm();
+	};
+
+	var addButton = function(target) {
+		target.push({'id': Object.keys($scope.simpleSwitch.buttons)[0]});
+		$scope.simpleSwitch.validateForm();
+	};
+
+	$scope.simpleSwitch.addButtonOn = function() {
+		addButton($scope.simpleSwitch.buttonsOn);
+	};
+	
+	$scope.simpleSwitch.addButtonOff = function() {
+		addButton($scope.simpleSwitch.buttonsOff);
+	};
+
+	var removeButton  = function(target, button) {
+		var i = target.indexOf(button);
+		if(i > -1) {
+			target.splice(i,1);
+		}
+		$scope.simpleSwitch.validateForm();
+	};
+	
+	$scope.simpleSwitch.removeButtonOn = function(button) {
+		console.log(button);
+		removeButton($scope.simpleSwitch.buttonsOn, button);
+	};
+
+	$scope.simpleSwitch.removeButtonOff = function(button) {
+		removeButton($scope.simpleSwitch.buttonsOff, button);
+	};
+
+	var hasDuplicates = function(target) {
+		entries = [];
+
+		for(var key in target) {
+			var entry = target[key].id;
+			if(entries.indexOf(entry) != -1) {
+				return true;
+			}
+			entries.push(entry);
+		}
+
+		return false;
+	};
+
+	$scope.simpleSwitch.validateForm = function() {
+		$scope.simpleSwitchForm.$setValidity('duplicateButtonOn',true);
+		$scope.simpleSwitchForm.$setValidity('duplicateButtonOff',true);
+
+		if(hasDuplicates($scope.simpleSwitch.buttonsOn)) {
+			$scope.simpleSwitchForm.$setValidity('duplicateButtonOn',false);
+		}
+
+		if(hasDuplicates($scope.simpleSwitch.buttonsOff)) {
+			$scope.simpleSwitchForm.$setValidity('duplicateButtonOff',false);
+		}
+
+	};
+
+	$scope.simpleSwitch.upload = function() {
+		hideAlerts();
+		$scope.busy = true;
+
+		
+		var buttonsOn = [];
+		for(var indexOn in $scope.simpleSwitch.buttonsOn) {
+			buttonsOn.push($scope.simpleSwitch.buttons[$scope.simpleSwitch.buttonsOn[indexOn].id]);
+		}
+
+		var buttonsOff = [];
+		for(var indexOff in $scope.simpleSwitch.buttonsOff) {
+			buttonsOff.push($scope.simpleSwitch.buttons[$scope.simpleSwitch.buttonsOff[indexOff].id]);
+		}
+
+		console.log($scope.simpleSwitch.switchDevice);
+		console.log($scope.simpleSwitch.buttons);
+		console.log(buttonsOn);
+		console.log(buttonsOff);
+
+
+		Socket.emit('simpleswitch_sm', {'switchIP' : $scope.simpleSwitch.switchDevice, 
+										'buttonsOn' : buttonsOn,
+										'buttonsOff' : buttonsOff});
+	};
 
 
 /*

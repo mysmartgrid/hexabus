@@ -1,0 +1,15 @@
+<% for(var eid in endpoints)  { %>
+endpoint <%= endpoints[eid].name %> {
+  eid <%= eid %>;
+  datatype <%= endpoints[eid].datatype %>;
+  access {broadcast}
+}
+
+<% } %>
+
+endpoint power {
+  eid 1;
+  datatype BOOL;
+  access {write}
+}
+

@@ -1,0 +1,18 @@
+<% for(var ip in devices)  { %>
+device <%= devices[ip].name %> {
+	ip <%= ip %>;
+	eids {<%= devices[ip].endpoints.join(',') %>}
+}
+<% } %>
+
+device SwitchDevice {
+	ip <%= switchIP %>;
+	eids { 1 }
+}
+
+device localhost {
+  ip ::1;
+  eids {4}
+}
+
+

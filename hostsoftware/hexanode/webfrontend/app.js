@@ -387,6 +387,10 @@ io.sockets.on('connection', function (socket) {
 	on('productionthreshold_sm', function(msg) {
 		buildStatemachine(msg,statemachines.productionThreshold);
 	});
+	
+	on('simpleswitch_sm', function(msg) {
+		buildStatemachine(msg,statemachines.simpleSwitch);
+	});
 
 	on('demo_sm', function(msg) {
 		buildStatemachine(msg,statemachines.demoKoffer);

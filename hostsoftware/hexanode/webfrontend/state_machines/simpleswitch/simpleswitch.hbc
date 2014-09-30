@@ -1,0 +1,32 @@
+include devices.hbh;
+include endpoints.hbh;
+
+machine SimpleSwitch {
+	states { init, on, off }
+	
+	in(init) {
+		if (true) {
+			write SwitchDevice.power := 0;
+			goto off;
+		}
+	}
+
+	in(on) {
+		<% for(var i = 0; i < buttonsOff.length; i++)  { %>
+		if (ep <%= buttonsOff[i].deviceName %>.<%= buttonsOff[i].endpointName %> == <%= buttonsOff[i].value %>) {
+			write SwitchDevice.power := 0;
+			goto off;
+		}
+		<% } %>
+	}
+
+	in(off) {
+		<% for(var i = 0; i < buttonsOn.length; i++)  { %>
+		if (ep <%= buttonsOn[i].deviceName %>.<%= buttonsOn[i].endpointName %> == <%= buttonsOn[i].value %>) {
+			write SwitchDevice.power := 1;
+			goto on;
+		}
+		<% } %>
+	}
+
+}
