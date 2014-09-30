@@ -33,6 +33,20 @@ auto make_range(const Range& r)
 	return { r.begin(), r.end() };
 }
 
+template<typename Container>
+auto reverse_range(const Container& c)
+	-> range<decltype(c.rbegin())>
+{
+	return { c.rbegin(), c.rend() };
+}
+
+template<typename Container>
+auto reverse_range(Container& c)
+	-> range<decltype(c.rbegin())>
+{
+	return { c.rbegin(), c.rend() };
+}
+
 }
 }
 

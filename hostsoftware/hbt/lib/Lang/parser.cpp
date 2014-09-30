@@ -524,25 +524,27 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				return new SwitchStmt(locOf(r), e, std::move(*entries));
 			}];
 
-		auto appendSwitchEntry = [] (ptr<std::vector<SwitchEntry>>& entries, std::vector<ptr<Expr>>& labels, ptr<Stmt>& stmt) {
-			entries->emplace_back(move(labels), stmt);
-			return entries;
-		};
 		s.switch_body.name("switch body");
 		s.switch_body =
 			eps[_val = new_<std::vector<SwitchEntry>>()]
 			>> +(
 				(s.switch_labels > statement)[
-					fwd >> [] (ptr<std::vector<SwitchEntry>>& entries, std::vector<ptr<Expr>>& labels, ptr<Stmt>& stmt) {
-						entries->emplace_back(move(labels), stmt);
+					fwd >> [] (ptr<std::vector<SwitchEntry>>& entries, std::vector<ptr<SwitchLabel>>& labels, ptr<Stmt>& stmt) {
+						entries->emplace_back(unpack(labels), stmt);
 					}]
 			);
 
 		s.switch_labels.name("switch label set");
 		s.switch_labels =
 			+(
-				(tok.word.case_ > expr > (tok.colon | expected(":")))[push_back(_val, _2)]
-				| (tok.word.default_ > (tok.colon | expected(":")))[push_back(_val, nullptr)]
+				(tok.word.case_ > expr > omit[tok.colon | expected(":")])[
+					fwd >> [this] (std::vector<ptr<SwitchLabel>>& vec, range& r, ptr<Expr>& l) {
+						vec.emplace_back(new SwitchLabel(locOf(r), l));
+					}]
+				| (tok.word.default_ > omit[tok.colon | expected(":")])[
+					fwd >> [this] (std::vector<ptr<SwitchLabel>>& vec, range& r) {
+						vec.emplace_back(new SwitchLabel(locOf(r), nullptr));
+					}]
 			);
 
 		s.block.name("block statement");
@@ -629,9 +631,14 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> *s.decl
 				> *state
 				> omit[tok.rbrace | expected("}")]
-			)[fwd >= [this] (range& r, Identifier* id, std::vector<opt<Identifier>>* params,
+			)[fwd >= [this] (range& r, Identifier* id, std::vector<opt<Identifier>>* paramNames,
 					std::vector<ptr<DeclarationStmt>>& decls, std::vector<ptr<State>>& states) {
-				return new MachineClass(locOf(r), std::move(*id), unpack(params), unpack(decls), unpack(states));
+				std::vector<ClassParameter> params;
+
+				for (auto& param : *paramNames)
+					params.emplace_back(param->sloc(), param->name());
+
+				return new MachineClass(locOf(r), std::move(*id), std::move(params), unpack(decls), unpack(states));
 			}];
 
 		machine_spec =
@@ -790,7 +797,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		rule<ptr<Stmt>()> goto_;
 
 		rule<ptr<std::vector<SwitchEntry>>()> switch_body;
-		rule<std::vector<ptr<Expr>>()> switch_labels;
+		rule<std::vector<ptr<SwitchLabel>>()> switch_labels;
 	} s;
 
 	rule<ptr<OnBlock>()> on_block;

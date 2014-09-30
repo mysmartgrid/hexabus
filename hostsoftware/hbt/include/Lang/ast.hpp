@@ -40,35 +40,7 @@ enum class Type {
 	Float,
 };
 
-inline Type commonType(Type a, Type b)
-{
-	if (a == Type::Unknown || b == Type::Unknown)
-		return Type::Unknown;
-
-	switch (a) {
-	case Type::Unknown:
-		return a;
-
-	case Type::Bool:
-	case Type::UInt8:
-	case Type::UInt32:
-		if (b == Type::UInt64)
-			return Type::UInt64;
-		else if (b == Type::Float)
-			return Type::Float;
-		else
-			return Type::UInt32;
-
-	case Type::UInt64:
-		if (b == Type::Float)
-			return Type::Float;
-		else
-			return Type::UInt64;
-
-	case Type::Float:
-		return Type::Float;
-	}
-}
+std::string typeName(Type type);
 
 
 
@@ -202,19 +174,24 @@ class Expr : public ASTVisitable {
 private:
 	SourceLocation _sloc;
 	Type _type;
+	bool _isConstant, _isDependent;
 
 protected:
 	typedef std::unique_ptr<Expr> ptr_t;
 
 	Expr(const SourceLocation& sloc, Type type)
-		: _sloc(sloc), _type(type)
+		: _sloc(sloc), _type(type), _isConstant(false), _isDependent(false)
 	{}
 
 public:
 	const SourceLocation& sloc() const { return _sloc; }
 	Type type() const { return _type; }
+	bool isConstant() const { return _isConstant; }
+	bool isDependent() const { return _isDependent; }
 
 	void type(Type t) { _type = t; }
+	void isConstant(bool b) { _isConstant = b; }
+	void isDependent(bool b) { _isDependent = b; }
 };
 
 class IdentifierExpr : public Expr {
@@ -241,15 +218,7 @@ protected:
 
 template<typename T>
 class TypedLiteral : public Literal {
-	static_assert(
-		std::is_same<T, bool>::value ||
-		std::is_same<T, uint8_t>::value ||
-		std::is_same<T, uint32_t>::value ||
-		std::is_same<T, uint64_t>::value ||
-		std::is_same<T, float>::value,
-		"bad literal type");
-
-	static Type calcType()
+	static constexpr Type calcType()
 	{
 		return
 			std::is_same<T, bool>::value ? Type::Bool :
@@ -257,8 +226,10 @@ class TypedLiteral : public Literal {
 			std::is_same<T, uint32_t>::value ? Type::UInt32 :
 			std::is_same<T, uint64_t>::value ? Type::UInt64 :
 			std::is_same<T, float>::value ? Type::Float :
-			throw "invalid type";
+			Type::Unknown;
 	}
+
+	static_assert(calcType() != Type::Unknown, "bad literal type");
 
 private:
 	T _value;
@@ -305,19 +276,9 @@ private:
 	UnaryOperator _op;
 	ptr_t _expr;
 
-	static Type unaryType(UnaryOperator op, Type type)
-	{
-		if (type == Type::Unknown)
-			return type;
-
-		return op == UnaryOperator::Not
-			? Type::Bool
-			: type;
-	}
-
 public:
 	UnaryExpr(const SourceLocation& sloc, UnaryOperator op, ptr_t&& expr)
-		: Expr(sloc, unaryType(op, expr->type())), _op(op), _expr(std::move(expr))
+		: Expr(sloc, Type::Unknown), _op(op), _expr(std::move(expr))
 	{}
 
 	UnaryOperator op() const { return _op; }
@@ -357,8 +318,7 @@ private:
 
 public:
 	BinaryExpr(const SourceLocation& sloc, ptr_t&& left, BinaryOperator op, ptr_t&& right)
-		: Expr(sloc, commonType(left->type(), right->type())), _op(op),
-		  _left(std::move(left)), _right(std::move(right))
+		: Expr(sloc, Type::Unknown), _op(op), _left(std::move(left)), _right(std::move(right))
 	{}
 
 	BinaryOperator op() const { return _op; }
@@ -375,15 +335,9 @@ class ConditionalExpr : public Expr {
 private:
 	ptr_t _cond, _true, _false;
 
-	static Type ternaryType(Type a, Type b)
-	{
-		return a == b ? a : commonType(a, b);
-	}
-
 public:
 	ConditionalExpr(const SourceLocation& sloc, ptr_t&& cond, ptr_t&& ifTrue, ptr_t&& ifFalse)
-		: Expr(sloc, ternaryType(ifTrue->type(), ifFalse->type())), _cond(std::move(cond)),
-		  _true(std::move(ifTrue)), _false(std::move(ifFalse))
+		: Expr(sloc, Type::Unknown), _cond(std::move(cond)), _true(std::move(ifTrue)), _false(std::move(ifFalse))
 	{}
 
 	Expr& condition() { return *_cond; }
@@ -533,17 +487,31 @@ public:
 	}
 };
 
+class SwitchLabel {
+private:
+	SourceLocation _sloc;
+	std::unique_ptr<Expr> _expr;
+
+public:
+	SwitchLabel(const SourceLocation& sloc, std::unique_ptr<Expr> expr)
+		: _sloc(sloc), _expr(std::move(expr))
+	{}
+
+	const SourceLocation& sloc() const { return _sloc; }
+	Expr* expr() { return _expr.get(); }
+};
+
 class SwitchEntry {
 private:
-	std::vector<std::unique_ptr<Expr>> _labels;
+	std::vector<SwitchLabel> _labels;
 	std::unique_ptr<Stmt> _stmt;
 
 public:
-	SwitchEntry(std::vector<std::unique_ptr<Expr>>&& labels, std::unique_ptr<Stmt>&& stmt)
+	SwitchEntry(std::vector<SwitchLabel> labels, std::unique_ptr<Stmt>&& stmt)
 		: _labels(std::move(labels)), _stmt(std::move(stmt))
 	{}
 
-	std::vector<std::unique_ptr<Expr>>& labels() { return _labels; }
+	std::vector<SwitchLabel>& labels() { return _labels; }
 	Stmt& statement() { return *_stmt; }
 };
 
@@ -722,13 +690,21 @@ public:
 
 
 class ProgramPart : public ASTVisitable {
+private:
+	SourceLocation _sloc;
+
+public:
+	ProgramPart(const SourceLocation& sloc)
+		: _sloc(sloc)
+	{}
+
+	const SourceLocation& sloc() const { return _sloc; }
 };
 
 
 
 class Endpoint : public ProgramPart {
 private:
-	SourceLocation _sloc;
 	Identifier _name;
 	uint32_t _eid;
 	Type _type;
@@ -736,10 +712,9 @@ private:
 
 public:
 	Endpoint(const SourceLocation& sloc, const Identifier& name, uint32_t eid, Type type, EndpointAccess access)
-		: _sloc(sloc), _name(name), _eid(eid), _type(type), _access(access)
+		: ProgramPart(sloc), _name(name), _eid(eid), _type(type), _access(access)
 	{}
 
-	const SourceLocation& sloc() const { return _sloc; }
 	const Identifier& name() const { return _name; }
 	uint32_t eid() const { return _eid; }
 	Type type() const { return _type; }
@@ -755,7 +730,6 @@ public:
 
 class Device : public ProgramPart {
 private:
-	SourceLocation _sloc;
 	Identifier _name;
 	std::array<uint8_t, 16> _address;
 	std::vector<Identifier> _endpoints;
@@ -763,10 +737,9 @@ private:
 public:
 	Device(const SourceLocation& sloc, const Identifier& name, const std::array<uint8_t, 16>& address,
 			std::vector<Identifier>&& endpoints)
-		: _sloc(sloc), _name(name), _address(address), _endpoints(std::move(endpoints))
+		: ProgramPart(sloc), _name(name), _address(address), _endpoints(std::move(endpoints))
 	{}
 
-	const SourceLocation& sloc() const { return _sloc; }
 	const Identifier& name() const { return _name; }
 	const std::array<uint8_t, 16>& address() const { return _address; }
 	const std::vector<Identifier>& endpoints() const { return _endpoints; }
@@ -781,39 +754,63 @@ public:
 
 class MachineBody {
 private:
-	SourceLocation _sloc;
 	Identifier _name;
 	std::vector<DeclarationStmt> _variables;
 	std::vector<State> _states;
 
 protected:
-	MachineBody(const SourceLocation& sloc, const Identifier& name,
-			std::vector<DeclarationStmt>&& variables, std::vector<State>&& states)
-		: _sloc(sloc), _name(name), _variables(std::move(variables)), _states(std::move(states))
+	MachineBody(const Identifier& name, std::vector<DeclarationStmt>&& variables, std::vector<State>&& states)
+		: _name(name), _variables(std::move(variables)), _states(std::move(states))
 	{}
 
 public:
 	virtual ~MachineBody() {}
 
-	const SourceLocation& sloc() const { return _sloc; }
 	const Identifier& name() const { return _name; }
 	std::vector<DeclarationStmt>& variables() { return _variables; }
 	std::vector<State>& states() { return _states; }
 };
 
-class MachineClass : public MachineBody, public ProgramPart {
+class ClassParameter {
+public:
+	enum class Type {
+		Unknown,
+
+		Value,
+		Device,
+		Endpoint
+	};
+
 private:
-	std::vector<Identifier> _parameters;
+	SourceLocation _sloc;
+	std::string _name;
+	Type _type;
 
 public:
-	MachineClass(const SourceLocation& sloc, const Identifier& name, std::vector<Identifier>&& parameters,
+	ClassParameter(const SourceLocation& sloc, const std::string& name, Type type = Type::Unknown)
+		: _sloc(sloc), _name(name), _type(type)
+	{}
+
+	const SourceLocation& sloc() const { return _sloc; }
+	const std::string& name() const { return _name; }
+	const Type type() const { return _type; }
+
+	void type(Type type) { _type = type; }
+};
+
+class MachineClass : public MachineBody, public ProgramPart {
+private:
+	std::vector<ClassParameter> _parameters;
+
+public:
+	MachineClass(const SourceLocation& sloc, const Identifier& name, std::vector<ClassParameter>&& parameters,
 			std::vector<DeclarationStmt>&& variables, std::vector<State>&& states)
-		: MachineBody(sloc, name, std::move(variables), std::move(states)),
-		  _parameters(std::move(parameters))
+		: MachineBody(name, std::move(variables), std::move(states)),
+		  ProgramPart(sloc), _parameters(std::move(parameters))
 	{
 	}
 
-	const std::vector<Identifier>& parameters() const { return _parameters; }
+	std::vector<ClassParameter>& parameters() { return _parameters; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -825,7 +822,7 @@ class MachineDefinition : public MachineBody, public ProgramPart {
 public:
 	MachineDefinition(const SourceLocation& sloc, const Identifier& name, std::vector<DeclarationStmt>&& variables,
 			std::vector<State>&& states)
-		: MachineBody(sloc, name, std::move(variables), std::move(states))
+		: MachineBody(name, std::move(variables), std::move(states)), ProgramPart(sloc)
 	{}
 
 	virtual void accept(ASTVisitor& v)
@@ -836,7 +833,6 @@ public:
 
 class MachineInstantiation : public ProgramPart {
 private:
-	SourceLocation _sloc;
 	Identifier _name;
 	Identifier _instanceOf;
 	std::vector<std::unique_ptr<Expr>> _arguments;
@@ -844,10 +840,9 @@ private:
 public:
 	MachineInstantiation(const SourceLocation& sloc, const Identifier& name, const Identifier& instanceOf,
 			std::vector<std::unique_ptr<Expr>>&& arguments)
-		: _sloc(sloc), _name(name), _instanceOf(instanceOf), _arguments(std::move(arguments))
+		: ProgramPart(sloc), _name(name), _instanceOf(instanceOf), _arguments(std::move(arguments))
 	{}
 
-	const SourceLocation& sloc() const { return _sloc; }
 	const Identifier& name() const { return _name; }
 	const Identifier& instanceOf() const { return _instanceOf; }
 	std::vector<std::unique_ptr<Expr>>& arguments() { return _arguments; }
@@ -862,16 +857,14 @@ public:
 
 class IncludeLine : public ProgramPart {
 private:
-	SourceLocation _sloc;
 	std::string _file;
 	std::string _fullPath;
 
 public:
 	IncludeLine(const SourceLocation& sloc, std::string&& file)
-		: _sloc(sloc), _file(file)
+		: ProgramPart(sloc), _file(file)
 	{}
 
-	const SourceLocation& sloc() const { return _sloc; }
 	const std::string& file() const { return _file; }
 
 	const std::string& fullPath() const { return _fullPath; }

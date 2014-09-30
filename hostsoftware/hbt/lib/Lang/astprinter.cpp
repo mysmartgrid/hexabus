@@ -7,21 +7,6 @@
 namespace hbt {
 namespace lang {
 
-static const char* typeName(Type t)
-{
-	switch (t) {
-	case Type::Unknown: return "<""??"">"; break;
-	case Type::Bool:    return "bool"; break;
-	case Type::UInt8:   return "uint8"; break;
-	case Type::UInt32:  return "uint32"; break;
-	case Type::UInt64:  return "uint64"; break;
-	case Type::Float:   return "float"; break;
-	default: throw "unknown type";
-	}
-}
-
-
-
 void ASTPrinter::indent()
 {
 	if (!_skipIndent)
@@ -255,6 +240,7 @@ void ASTPrinter::visit(WriteStmt& w)
 	indent();
 
 	w.target().accept(*this);
+	out << " = ";
 	w.value().accept(*this);
 	out << ";";
 }
@@ -310,20 +296,31 @@ void ASTPrinter::visit(SwitchStmt& s)
 		if (count++)
 			out << "\n\n";
 
+		unsigned lcount = 0;
 		for (auto& label : entry.labels()) {
+			if (lcount++)
+				out << "\n";
+
 			indent();
-			if (label) {
+			if (label.expr()) {
 				out << "case ";
-				label->accept(*this);
-				out << ":\n";
+				label.expr()->accept(*this);
+				out << ":";
 			} else {
-				out << "default:\n";
+				out << "default:";
 			}
 		}
 
-		_indent++;
-		entry.statement().accept(*this);
-		_indent--;
+		if (dynamic_cast<BlockStmt*>(&entry.statement())) {
+			out << " ";
+			_skipIndent = true;
+			entry.statement().accept(*this);
+		} else {
+			out << "\n";
+			_indent++;
+			entry.statement().accept(*this);
+			_indent--;
+		}
 	}
 
 	out << "\n";
