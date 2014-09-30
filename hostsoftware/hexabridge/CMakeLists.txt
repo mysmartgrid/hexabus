@@ -73,22 +73,18 @@ endif()
 # always set these flags
 set(CMAKE_CXX_FLAGS "-Wall")
 
-FIND_PACKAGE(Sqlite)
+# We depend on boost >= 1.46.1 because of the updated filesystem
+# library. The boost version detection is a mess, see 
+# $ cmake --help-module FindBoost
+# , section " The mess that is Boost_ADDITIONAL_VERSIONS (sorry?)"
+SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
+  "1.49.0" "1.49" "1.50.0" "1.50")
+set (Boost_USE_STATIC_LIBS ON)
+SET(Boost_DETAILED_FAILURE_MSG true)
+FIND_PACKAGE(Boost 1.46.1 
+  COMPONENTS test_exec_monitor program_options filesystem system date_time)
 
-# libjson
-include(FindJson)
-
-# Curl
-IF(WIN32)
-	add_definitions(-DCURL_STATICLIB)
-	include(FindCURL_WIN32)
-else(WIN32)
-	#  add_definitions(-DCURL_STATICLIB)
-	include(FindCurl)
-endif(WIN32)
-find_package(OpenSSL)
-
-find_package(Libklio)
+find_package(LibMysmartGrid)
 
 find_package(LibHexabus)
 
@@ -133,7 +129,9 @@ include(CPackTools)
 message("")
 message("***** Configuration *****")
 message("  prefix: ${CMAKE_INSTALL_PREFIX}")
+message("  boost include: ${Boost_INCLUDE_DIRS}")
+message("  boost libraries shortcut: ${Boost_LIBRARIES}")
 message("  json: -L${JSON_LIBRARY} -I${JSON_INCLUDE_DIR}")
 message("  sqlite3 include: ${SQLITE3_INCLUDE_DIR}, lib: ${SQLITE3_LIBRARIES}")
-message("  libklio include: ${LIBKLIO_INCLUDE_DIR}, lib: ${LIBKLIO_LIBRARY}")
+message("  libmysmartgrid include: ${LIBMYSMARTGRID_INCLUDE_DIR}, lib: ${LIBMYSMARTGRID_LIBRARY}")
 message("  libhexabus include: ${HXB_INCLUDE_DIR}, lib: ${HXB_LIBRARIES}")

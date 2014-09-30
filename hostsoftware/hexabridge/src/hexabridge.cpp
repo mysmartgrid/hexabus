@@ -63,27 +63,14 @@ void Pusher::_init() {
 }
 
 uint32_t Pusher::getLastReading() {
-	std::pair<int, int> reading = std::pair<int,int>(0,0);
 	try {
-		libmsg::Webclient::ParamList p;
-		p["interval"] = "hour";
-		p["unit"] = "watt";
-		std::string url = libmsg::Webclient::composeSensorUrl(_url, _id, p);
-		libmsg::JsonPtr result = libmsg::Webclient::performHttpGetToken(url , _token);
-		//TODO: iterate over entries in array and find the one with the highest timestamp
-		for (auto it = result->begin(), end = result->end(); it != end; ++it) {
-			Json::Value timestamp = (*it)[0];
-			Json::Value value = (*it)[1];
-			if (value.isConvertibleTo(Json::intValue)) {
-				reading.first = timestamp.asInt();
-				reading.second = value.asInt();
-			}
-		}
-		std::cout << "LastReading (" << reading.first << "): " << reading.second << std::endl;
-	} catch (const libmsg::GenericException &e) {
-		std::cerr << "Error during fetch of sensor data: " << e.what() << std::endl;
+		libmsg::Webclient::Reading reading = libmsg::Webclient::getLastReading(_url, _id, _token);
+		return reading.second;
+	} catch ( const libmsg::CommunicationException& e ) {
+		// ignore network problems
+		std::cerr << "Warning: An error occured while communicating with the mysmartgrid server: " << e.what() << std::endl;
 	}
-	return reading.second;
+	return 0;
 }
 
 std::string Pusher::loadDeviceName()
