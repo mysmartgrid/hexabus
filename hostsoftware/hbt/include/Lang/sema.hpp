@@ -32,6 +32,34 @@ private:
 		ScopeEntry* insert(DeclarationStmt& decl);
 	};
 
+	struct ClassParamInstance {
+		ClassParameter& parameter;
+		const SourceLocation* inferredFrom;
+		const bool hasValue;
+
+		union {
+			Expr* value;
+			Device* device;
+			Endpoint* endpoint;
+		};
+
+		ClassParamInstance(ClassParameter& cp, const SourceLocation* inferredFrom)
+			: parameter(cp), inferredFrom(inferredFrom), hasValue(false)
+		{}
+
+		ClassParamInstance(ClassParameter& cp, const SourceLocation* inferredFrom, Expr* value)
+			: parameter(cp), inferredFrom(inferredFrom), hasValue(true), value(value)
+		{}
+
+		ClassParamInstance(ClassParameter& cp, const SourceLocation* inferredFrom, Device* device)
+			: parameter(cp), inferredFrom(inferredFrom), hasValue(true), device(device)
+		{}
+
+		ClassParamInstance(ClassParameter& cp, const SourceLocation* inferredFrom, Endpoint* ep)
+			: parameter(cp), inferredFrom(inferredFrom), hasValue(true), endpoint(ep)
+		{}
+	};
+
 private:
 	DiagnosticOutput& diags;
 
@@ -40,9 +68,7 @@ private:
 
 	std::map<std::string, State*> knownStates;
 
-	std::map<std::string, ClassParameter*> classParams;
-	std::map<std::string, const SourceLocation*> classParamInferenceSites;
-	std::map<std::string, Type> classParamTypes;
+	std::map<std::string, ClassParamInstance> classParams;
 
 	ScopeStack scopes;
 

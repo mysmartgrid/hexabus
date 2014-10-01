@@ -43,6 +43,9 @@ Type commonType(Type a, Type b)
 
 	case Type::Float:
 		return Type::Float;
+
+	default:
+		throw "invalid type";
 	}
 }
 
@@ -61,7 +64,7 @@ bool isAssignableFrom(Type to, Type from)
 		return from == to || from == Type::UInt32 || from == Type::UInt8;
 
 	default:
-		return false;
+		throw "invalid type";
 	}
 }
 

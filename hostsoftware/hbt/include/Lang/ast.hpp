@@ -342,14 +342,20 @@ class EndpointExpr : public Expr {
 private:
 	Identifier _device;
 	Identifier _endpoint;
+	bool _deviceIsDependent, _endpointIsDependent;
 
 public:
 	EndpointExpr(const SourceLocation& sloc, const Identifier& device, const Identifier& endpoint, Type type)
-		: Expr(sloc, type), _device(device), _endpoint(endpoint)
+		: Expr(sloc, type), _device(device), _endpoint(endpoint), _deviceIsDependent(false), _endpointIsDependent(false)
 	{}
 
 	const Identifier& device() const { return _device; }
 	const Identifier& endpoint() const { return _endpoint; }
+	bool deviceIsDependent() const { return _deviceIsDependent; }
+	bool endpointIsDependent() const { return _endpointIsDependent; }
+
+	void deviceIsDependent(bool b) {  _deviceIsDependent = b; isDependent(_deviceIsDependent || _endpointIsDependent); }
+	void endpointIsDependent(bool b) {  _endpointIsDependent = b; isDependent(_deviceIsDependent || _endpointIsDependent); }
 
 	virtual void accept(ASTVisitor& v)
 	{

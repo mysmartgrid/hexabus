@@ -78,31 +78,39 @@ static Diagnostic identifierIsNoClass(const Identifier& ident)
 	return { DiagnosticKind::Error, &ident.sloc(), str(format("identifier '%1%' does not name a machine class") % ident.name()) };
 }
 
-static Diagnostic deviceDoesNotHave(const EndpointExpr& ep)
+static Diagnostic deviceDoesNotHave(const EndpointExpr& e, const std::string& dev, const std::string& ep)
 {
-	return {
-		DiagnosticKind::Error,
-		&ep.sloc(),
-		str(format("device %1% does not implement endpoint %2%") % ep.device().name() % ep.endpoint().name())
-	};
+	auto& devName = e.deviceIsDependent()
+		? str(format("%1% (aka %2%)") % e.device().name() % dev)
+		: e.device().name();
+	auto& epName = e.endpointIsDependent()
+		? str(format("%1% (aka %2%)") % e.endpoint().name() % ep)
+		: e.endpoint().name();
+	return { DiagnosticKind::Error, &e.sloc(), str(format("device %1% does not implement endpoint %2%") % devName % epName) };
 }
 
-static Diagnostic endpointNotReadable(const EndpointExpr& ep)
+static Diagnostic endpointNotReadable(const EndpointExpr& ep, const Endpoint& subst)
 {
-	return {
-		DiagnosticKind::Error,
-		&ep.sloc(),
-		str(format("endpoint %1% cannot be read") % ep.endpoint().name())
-	};
+	if (ep.endpointIsDependent()) {
+		return {
+			DiagnosticKind::Error,
+			&ep.sloc(),
+			str(format("endpoint %1% (aka %2%) cannot be read") % ep.endpoint().name() % subst.name().name()) };
+	} else {
+		return { DiagnosticKind::Error, &ep.sloc(), str(format("endpoint %1% cannot be read") % ep.endpoint().name()) };
+	}
 }
 
-static Diagnostic endpointNotWritable(const EndpointExpr& ep)
+static Diagnostic endpointNotWritable(const EndpointExpr& ep, const Endpoint& subst)
 {
-	return {
-		DiagnosticKind::Error,
-		&ep.sloc(),
-		str(format("endpoint %1% cannot be written") % ep.endpoint().name())
-	};
+	if (ep.endpointIsDependent()) {
+		return {
+			DiagnosticKind::Error,
+			&ep.sloc(),
+			str(format("endpoint %1% (aka %2%) cannot be written") % ep.endpoint().name() % subst.name().name()) };
+	} else {
+		return { DiagnosticKind::Error, &ep.sloc(), str(format("endpoint %1% cannot be written") % ep.endpoint().name()) };
+	}
 }
 
 static Diagnostic invalidCallArgCount(CallExpr& c, unsigned expected)
@@ -234,21 +242,20 @@ bool SemanticVisitor::inferClassParam(const std::string& name, const SourceLocat
 {
 	auto cpit = classParams.find(name);
 	if (cpit != classParams.end()) {
-		auto cp = cpit->second;
+		auto& cp = cpit->second;
 
-		if (cp->type() == type) {
+		if (cp.parameter.type() == type) {
 			return true;
-		} else if (cp->type() == ClassParameter::Type::Unknown) {
-			cp->type(type);
-			classParamInferenceSites.insert({ name, &at });
+		} else if (cp.parameter.type() == ClassParameter::Type::Unknown) {
+			cp.parameter.type(type);
+			cp.inferredFrom = &at;
 			return true;
 		}
 
 		diags.print(
 			classParameterTypeError(at, name),
 			cptUsedAs(at, type),
-			cptUsedAs(*classParamInferenceSites.at(name), cp->type()));
-		return true;
+			cptUsedAs(*cp.inferredFrom, cp.parameter.type()));
 	}
 
 	return false;
@@ -261,19 +268,21 @@ void SemanticVisitor::visit(IdentifierExpr& i)
 		return;
 	}
 
-	if (!inferClassParam(i.name(), i.sloc(), ClassParameter::Type::Value)) {
-		diags.print(undeclaredIdentifier(Identifier(i.sloc(), i.name())));
-	} else {
+	if (inferClassParam(i.name(), i.sloc(), ClassParameter::Type::Value)) {
 		i.isConstant(true);
 
-		auto it = classParamTypes.find(i.name());
-		if (it != classParamTypes.end()) {
+		auto& cp = classParams.at(i.name());
+		if (cp.hasValue) {
 			i.isDependent(false);
-			i.type(it->second);
+			i.type(cp.value->type());
 		} else {
 			i.isDependent(true);
 		}
+		return;
 	}
+
+	if (!classParams.count(i.name()))
+		diags.print(undeclaredIdentifier(Identifier(i.sloc(), i.name())));
 }
 
 void SemanticVisitor::visit(TypedLiteral<bool>& l)
@@ -396,39 +405,52 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 
 	Device* dev = nullptr;
 	Endpoint* ep = nullptr;
+	bool exprIsFullyDefined = true;
 
 	{
-		auto devit = globalNames.find(e.device().name());
-		if (devit != globalNames.end()) {
-			dev = dynamic_cast<Device*>(devit->second);
-			if (!dev) {
-				diags.print(
-					identifierIsNoDevice(e.device()),
-					previouslyDeclaredHere(devit->second->sloc()));
-			}
-		} else if (auto se = scopes.resolve(e.device().name())) {
+		auto cpit = classParams.find(e.device().name());
+		auto it = globalNames.find(e.device().name());
+
+		if (auto se = scopes.resolve(e.device().name())) {
 			diags.print(
 				identifierIsNoDevice(e.device()),
 				previouslyDeclaredHere(se->declaration->sloc()));
-		} else if (!inferClassParam(e.device().name(), e.device().sloc(), ClassParameter::Type::Device)) {
+		} else if (cpit != classParams.end()) {
+			e.deviceIsDependent(true);
+			exprIsFullyDefined &= cpit->second.hasValue;
+			if (inferClassParam(e.device().name(), e.device().sloc(), ClassParameter::Type::Device) && cpit->second.hasValue)
+				dev = cpit->second.device;
+		} else if (it != globalNames.end()) {
+			dev = dynamic_cast<Device*>(it->second);
+			if (!dev)
+				diags.print(
+					identifierIsNoDevice(e.device()),
+					declaredHere(it->second->sloc()));
+		} else {
 			diags.print(undeclaredIdentifier(e.device()));
 		}
 	}
 
 	{
-		auto epit = globalNames.find(e.endpoint().name());
-		if (epit != globalNames.end()) {
-			ep = dynamic_cast<Endpoint*>(epit->second);
-			if (!ep) {
-				diags.print(
-					identifierIsNoDevice(e.endpoint()),
-					previouslyDeclaredHere(epit->second->sloc()));
-			}
-		} else if (auto se = scopes.resolve(e.endpoint().name())) {
+		auto cpit = classParams.find(e.endpoint().name());
+		auto it = globalNames.find(e.endpoint().name());
+
+		if (auto se = scopes.resolve(e.endpoint().name())) {
 			diags.print(
 				identifierIsNoDevice(e.endpoint()),
-				previouslyDeclaredHere(se->declaration->sloc()));
-		} else if (!inferClassParam(e.endpoint().name(), e.endpoint().sloc(), ClassParameter::Type::Endpoint)) {
+				declaredHere(se->declaration->sloc()));
+		} else if (cpit != classParams.end()) {
+			e.endpointIsDependent(true);
+			exprIsFullyDefined &= cpit->second.hasValue;
+			if (inferClassParam(e.endpoint().name(), e.endpoint().sloc(), ClassParameter::Type::Endpoint) && cpit->second.hasValue)
+				ep = cpit->second.endpoint;
+		} else if (it != globalNames.end()) {
+			ep = dynamic_cast<Endpoint*>(it->second);
+			if (!ep)
+				diags.print(
+					identifierIsNoEndpoint(e.endpoint()),
+					previouslyDeclaredHere(it->second->sloc()));
+		} else {
 			diags.print(undeclaredIdentifier(e.endpoint()));
 		}
 	}
@@ -436,12 +458,15 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 	if (!dev || !ep)
 		return nullptr;
 
+	if (!exprIsFullyDefined)
+		return nullptr;
+
 	bool hasEP = dev->endpoints().end() != std::find_if(dev->endpoints().begin(), dev->endpoints().end(),
 		[ep] (const Identifier& i) {
 			return i.name() == ep->name().name();
 		});
 	if (!hasEP) {
-		diags.print(deviceDoesNotHave(e));
+		diags.print(deviceDoesNotHave(e, dev->name().name(), ep->name().name()));
 		return nullptr;
 	}
 
@@ -453,8 +478,8 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 void SemanticVisitor::visit(EndpointExpr& e)
 {
 	if (auto ep = checkEndpointExpr(e)) {
-		if ((ep->access() & EndpointAccess::Read) != EndpointAccess::Read)
-			diags.print(endpointNotReadable(e));
+		if ((ep->access() & EndpointAccess::Broadcast) != EndpointAccess::Broadcast)
+			diags.print(endpointNotReadable(e, *ep));
 	}
 }
 
@@ -516,7 +541,7 @@ void SemanticVisitor::visit(WriteStmt& w)
 
 	if (auto ep = checkEndpointExpr(w.target())) {
 		if ((ep->access() & EndpointAccess::Write) != EndpointAccess::Write)
-			diags.print(endpointNotWritable(w.target()));
+			diags.print(endpointNotWritable(w.target(), *ep));
 
 		if (!w.value().isDependent() && ep->type() != w.value().type())
 			diags.print(invalidImplicitConversion(w.sloc(), w.value().type(), ep->type()));
@@ -586,10 +611,8 @@ void SemanticVisitor::visit(DeclarationStmt& d)
 
 	if (d.value()) {
 		d.value()->accept(*this);
-		if (decl) {
-			if (!isAssignableFrom(d.type(), d.value()->type()))
-				diags.print(invalidImplicitConversion(d.sloc(), d.value()->type(), d.type()));
-		}
+		if (decl && !d.value()->isDependent() && !isAssignableFrom(d.type(), d.value()->type()))
+			diags.print(invalidImplicitConversion(d.sloc(), d.value()->type(), d.type()));
 	}
 }
 
@@ -696,17 +719,16 @@ void SemanticVisitor::visit(MachineClass& m)
 	declareGlobalName(m, m.name().name());
 
 	for (auto& param : m.parameters()) {
-		auto res = classParams.insert({ param.name(), &param });
+		auto res = classParams.insert({ param.name(), { param, nullptr } });
 
 		if (!res.second)
 			diags.print(
 				classParamRedefined(param),
-				previouslyDeclaredHere(res.first->second->sloc()));
+				previouslyDeclaredHere(res.first->second.parameter.sloc()));
 	}
 
 	checkMachineBody(m);
 	classParams.clear();
-	classParamInferenceSites.clear();
 }
 
 void SemanticVisitor::visit(MachineDefinition& m)
@@ -745,13 +767,18 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 				(*arg)->accept(*this);
 				if (!(*arg)->isConstant())
 					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
-				classParamTypes.insert({ param->name(), (*arg)->type() });
+				else
+					classParams.insert({ param->name(), { *param, nullptr, (*arg).get() } });
 				break;
 
 			case ClassParameter::Type::Device:
 				if (auto id = dynamic_cast<IdentifierExpr*>(arg->get())) {
 					auto dev = globalNames.find(id->name());
-					if (dev == globalNames.end() || !dynamic_cast<Device*>(dev->second))
+					if (dev == globalNames.end())
+						diags.print(undeclaredIdentifier(Identifier(id->sloc(), id->name())));
+					else if (auto decl = dynamic_cast<Device*>(dev->second))
+						classParams.insert({ param->name(), { *param, nullptr, decl } });
+					else
 						diags.print(identifierIsNoDevice(Identifier(id->sloc(), id->name())));
 				} else {
 					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
@@ -761,7 +788,11 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 			case ClassParameter::Type::Endpoint:
 				if (auto id = dynamic_cast<IdentifierExpr*>(arg->get())) {
 					auto ep = globalNames.find(id->name());
-					if (ep == globalNames.end() || !dynamic_cast<Endpoint*>(ep->second))
+					if (ep == globalNames.end())
+						diags.print(undeclaredIdentifier(Identifier(id->sloc(), id->name())));
+					else if (auto decl = dynamic_cast<Endpoint*>(ep->second))
+						classParams.insert({ param->name(), { *param, nullptr, decl } });
+					else
 						diags.print(identifierIsNoEndpoint(Identifier(id->sloc(), id->name())));
 				} else {
 					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
@@ -771,15 +802,13 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 			default:
 				throw "invalid class parameter type";
 			}
-
-			classParams.insert({ param->name(), &*param });
 		}
 
 		auto hint = diags.useHint(m.sloc(), "instantiated from here");
 
-		checkMachineBody(*mclass);
+		if (classParams.size() == mclass->parameters().size())
+			checkMachineBody(*mclass);
 		classParams.clear();
-		classParamTypes.clear();
 	}
 }
 
