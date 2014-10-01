@@ -209,15 +209,19 @@ void SemanticVisitor::visit(BinaryExpr& b)
 	case BinaryOperator::ShiftLeft:
 	case BinaryOperator::ShiftRight:
 		if (b.left().type() == Type::Float || b.right().type() == Type::Float)
-			errorAt(b.left().sloc(), "invalid types in binary expression (" + typeName(b.left().type()) + " and " + 
-				typeName(b.right().type()) + ")");
+			errorAt(b.left().sloc(), str(
+				format("invalid types in binary expression (%1% and %2%)")
+					% typeName(b.left().type())
+					% typeName(b.right().type())));
 		break;
 
 	case BinaryOperator::BoolAnd:
 	case BinaryOperator::BoolOr:
 		if (b.left().type() != Type::Bool || b.right().type() != Type::Bool)
-			errorAt(b.left().sloc(), "invalid types in binary expression (" + typeName(b.left().type()) + " and " + 
-				typeName(b.right().type()) + ")");
+			errorAt(b.left().sloc(), str(
+				format("invalid types in binary expression (%1% and %2%)")
+					% typeName(b.left().type())
+					% typeName(b.right().type())));
 		b.type(Type::Bool);
 		break;
 
@@ -371,8 +375,10 @@ void SemanticVisitor::visit(WriteStmt& w)
 			errorAt(w.sloc(), "endpoint '" + w.target().endpoint().name() + "' cannot be written");
 
 		if (!w.value().isDependent() && ep->type() != w.value().type())
-			errorAt(w.sloc(), "invalid types in assignment (" + typeName(ep->type()) + " and " +
-				typeName(w.value().type()) + ")");
+			errorAt(w.sloc(), str(
+				format("invalid types in assignment (%1% and %2%)")
+					% typeName(ep->type())
+					% typeName(w.value().type())));
 	}
 }
 

@@ -8,58 +8,10 @@
 #include <vector>
 
 #include "Lang/ast.hpp"
+#include "Lang/type.hpp"
 
 namespace hbt {
 namespace lang {
-
-inline Type commonType(Type a, Type b)
-{
-	if (a == Type::Unknown || b == Type::Unknown)
-		return Type::Unknown;
-
-	switch (a) {
-	case Type::Unknown:
-		return a;
-
-	case Type::Bool:
-	case Type::UInt8:
-	case Type::UInt32:
-		if (b == Type::UInt64)
-			return Type::UInt64;
-		else if (b == Type::Float)
-			return Type::Float;
-		else
-			return Type::UInt32;
-
-	case Type::UInt64:
-		if (b == Type::Float)
-			return Type::Float;
-		else
-			return Type::UInt64;
-
-	case Type::Float:
-		return Type::Float;
-	}
-}
-
-inline bool isAssignableFrom(Type to, Type from)
-{
-	switch (to) {
-	case Type::Bool:
-	case Type::UInt8:
-	case Type::Float:
-		return from == to;
-
-	case Type::UInt32:
-		return from == to || from == Type::UInt8;
-
-	case Type::UInt64:
-		return from == to || from == Type::UInt32 || from == Type::UInt8;
-
-	default:
-		return false;
-	}
-}
 
 class SemanticVisitor : public ASTVisitor {
 private:

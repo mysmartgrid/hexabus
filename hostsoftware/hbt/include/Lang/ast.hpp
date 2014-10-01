@@ -8,6 +8,8 @@
 #include <type_traits>
 #include <vector>
 
+#include "Lang/type.hpp"
+
 namespace hbt {
 namespace lang {
 
@@ -27,20 +29,6 @@ public:
 	size_t col() const { return _col; }
 	const SourceLocation* parent() const { return _parent; }
 };
-
-
-
-enum class Type {
-	Unknown,
-
-	Bool,
-	UInt8,
-	UInt32,
-	UInt64,
-	Float,
-};
-
-std::string typeName(Type type);
 
 
 
