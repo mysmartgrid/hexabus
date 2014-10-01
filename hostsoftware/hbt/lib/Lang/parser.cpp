@@ -306,11 +306,11 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			}]
 			| (
 				identifier
-				>> omit[tok.lparen]
+				>> tok.lparen
 				> -(expr % omit[tok.comma])
 				> omit[tok.rparen | expected(")")]
-			)[fwd >= [this] (Identifier* id, std::vector<ptr<Expr>>* args) {
-				return new CallExpr(id->sloc(), id->name(), move(args), Type::Unknown);
+			)[fwd >= [this] (Identifier* id, range& r, std::vector<ptr<Expr>>* args) {
+				return new CallExpr(locOf(r), *id, move(args), Type::Unknown);
 			}]
 			| e.primary[_val = _1];
 

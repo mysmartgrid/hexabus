@@ -359,15 +359,15 @@ public:
 
 class CallExpr : public Expr {
 private:
-	std::string _name;
+	Identifier _name;
 	std::vector<ptr_t> _arguments;
 
 public:
-	CallExpr(const SourceLocation& sloc, const std::string& name, std::vector<ptr_t>&& arguments, Type type)
+	CallExpr(const SourceLocation& sloc, const Identifier& name, std::vector<ptr_t>&& arguments, Type type)
 		: Expr(sloc, type), _name(name), _arguments(std::move(arguments))
 	{}
 
-	const std::string& name() const { return _name; }
+	const Identifier& name() const { return _name; }
 	std::vector<ptr_t>& arguments() { return _arguments; }
 
 	virtual void accept(ASTVisitor& v)

@@ -206,7 +206,7 @@ void ASTPrinter::visit(EndpointExpr& e)
 
 void ASTPrinter::visit(CallExpr& c)
 {
-	out << c.name() << "(";
+	out << c.name().name() << "(";
 	unsigned idx = 0;
 	for (auto& arg : c.arguments()) {
 		if (idx++)

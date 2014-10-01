@@ -9,7 +9,6 @@ using boost::format;
 namespace hbt {
 namespace lang {
 
-
 static std::string cptDeclStr(ClassParameter::Type t)
 {
 	switch (t) {
@@ -19,6 +18,177 @@ static std::string cptDeclStr(ClassParameter::Type t)
 	default: throw "invalid class parameter type";
 	}
 }
+
+static Diagnostic redeclaration(const SourceLocation& sloc, const std::string& name)
+{
+	return { DiagnosticKind::Error, &sloc, str(format("redeclaration of '%1%'") % name) };
+}
+
+static Diagnostic previouslyDeclaredHere(const SourceLocation& sloc)
+{
+	return { DiagnosticKind::Hint, &sloc, "previously declared here" };
+}
+
+static Diagnostic declaredHere(const SourceLocation& sloc)
+{
+	return { DiagnosticKind::Hint, &sloc, "declared here" };
+}
+
+static Diagnostic classParameterTypeError(const SourceLocation& sloc, const std::string& name)
+{
+	return { DiagnosticKind::Error, &sloc, str(format("class parameter '%1%' used in incompatible contexts") % name) };
+}
+
+static Diagnostic cptUsedAs(const SourceLocation& sloc, ClassParameter::Type type)
+{
+	return { DiagnosticKind::Hint, &sloc, str(format("used as %1% here") % cptDeclStr(type)) };
+}
+
+static Diagnostic undeclaredIdentifier(const Identifier& id)
+{
+	return { DiagnosticKind::Error, &id.sloc(), str(format("use of undeclared identifier '%1%'") % id.name()) };
+}
+
+static Diagnostic invalidUnaryOp(const SourceLocation& sloc, Type type)
+{
+	return { DiagnosticKind::Error, &sloc, str(format("invalid type %1% in unary expression") % typeName(type)) };
+}
+
+static Diagnostic invalidBinaryOp(const SourceLocation& sloc, Type left, Type right)
+{
+	return {
+		DiagnosticKind::Error,
+		&sloc,
+		str(format("invalid types in binary expression (%1% and %2%)") % typeName(left) % typeName(right))
+	};
+}
+
+static Diagnostic identifierIsNoDevice(const Identifier& ident)
+{
+	return { DiagnosticKind::Error, &ident.sloc(), str(format("identifier '%1%' does not name a device") % ident.name()) };
+}
+
+static Diagnostic identifierIsNoEndpoint(const Identifier& ident)
+{
+	return { DiagnosticKind::Error, &ident.sloc(), str(format("identifier '%1%' does not name an endpoint") % ident.name()) };
+}
+
+static Diagnostic identifierIsNoClass(const Identifier& ident)
+{
+	return { DiagnosticKind::Error, &ident.sloc(), str(format("identifier '%1%' does not name a machine class") % ident.name()) };
+}
+
+static Diagnostic deviceDoesNotHave(const EndpointExpr& ep)
+{
+	return {
+		DiagnosticKind::Error,
+		&ep.sloc(),
+		str(format("device %1% does not implement endpoint %2%") % ep.device().name() % ep.endpoint().name())
+	};
+}
+
+static Diagnostic endpointNotReadable(const EndpointExpr& ep)
+{
+	return {
+		DiagnosticKind::Error,
+		&ep.sloc(),
+		str(format("endpoint %1% cannot be read") % ep.endpoint().name())
+	};
+}
+
+static Diagnostic endpointNotWritable(const EndpointExpr& ep)
+{
+	return {
+		DiagnosticKind::Error,
+		&ep.sloc(),
+		str(format("endpoint %1% cannot be written") % ep.endpoint().name())
+	};
+}
+
+static Diagnostic invalidCallArgCount(CallExpr& c, unsigned expected)
+{
+	return {
+		DiagnosticKind::Error,
+		&c.sloc(),
+		str(format("too %1% arguments to call of function %2% (expected %3%, got %4%)")
+			% (c.arguments().size() < expected ? "few" : "many")
+			% c.name().name()
+			% expected
+			% c.arguments().size())
+	};
+}
+
+static Diagnostic invalidArgType(CallExpr& c, Type expected, unsigned arg)
+{
+	return {
+		DiagnosticKind::Error,
+		&c.sloc(),
+		str(format("invalid type for argument %1% of function %2% (expected %3%, got %4%)")
+			% (arg + 1)
+			% c.name().name()
+			% typeName(expected)
+			% typeName(c.arguments()[arg]->type()))
+	};
+}
+
+static Diagnostic invalidImplicitConversion(const SourceLocation& sloc, Type from, Type to)
+{
+	return {
+		DiagnosticKind::Error,
+		&sloc,
+		str(format("invalid implicit type conversion from %1% to %2%") % typeName(from) % typeName(to))
+	};
+}
+
+static Diagnostic caseLabelInvalid(const SwitchLabel& l)
+{
+	return { DiagnosticKind::Error, &l.sloc(), "case label must be an integral constant expression" };
+}
+
+static Diagnostic caseLabelDuplicated(const SwitchLabel& l)
+{
+	return { DiagnosticKind::Error, &l.sloc(), "duplicated case label value" };
+}
+
+static Diagnostic eidRedefined(const Endpoint& ep)
+{
+	return { DiagnosticKind::Error, &ep.sloc(), str(format("redefinition of endpoint %1%") % ep.eid()) };
+}
+
+static Diagnostic stateRedefined(const State& s)
+{
+	return { DiagnosticKind::Error, &s.sloc(), str(format("redefinition of state %1%") % s.name().name()) };
+}
+
+static Diagnostic classParamRedefined(const ClassParameter& cp)
+{
+	return { DiagnosticKind::Error, &cp.sloc(), str(format("redefinition of class parameter %1%") % cp.name()) };
+}
+
+static Diagnostic invalidClassArgCount(MachineInstantiation& m, unsigned expected)
+{
+	return {
+		DiagnosticKind::Error,
+		&m.sloc(),
+		str(format("too %1% arguments in instantiation of class %2% (expected %3%, got %4%)")
+			% (m.arguments().size() < expected ? "few" : "many")
+			% m.instanceOf().name()
+			% expected
+			% m.arguments().size())
+	};
+}
+
+static Diagnostic classArgumentInvalid(const SourceLocation& sloc, const ClassParameter& cp)
+{
+	return {
+		DiagnosticKind::Error,
+		&sloc,
+		str(format("expected %1% for class parameter %2%")
+			% cptDeclStr(cp.type())
+			% cp.name())
+	};
+}
+
 
 
 void SemanticVisitor::ScopeStack::enter()
@@ -49,43 +219,15 @@ SemanticVisitor::ScopeEntry* SemanticVisitor::ScopeStack::insert(DeclarationStmt
 }
 
 
-static void printIncludeStack(std::ostream& out, const SourceLocation* sloc)
-{
-	if (!sloc)
-		return;
-
-	printIncludeStack(out, sloc->parent());
-	out << "in file included from " << sloc->file() << ":" << sloc->line() << ":" << sloc->col() << ":\n";
-}
-
-void SemanticVisitor::errorAt(const SourceLocation& sloc, const std::string& msg)
-{
-	if (hadError)
-		diagOut << "\n";
-
-	printIncludeStack(diagOut, sloc.parent());
-
-	diagOut << sloc.file() << ":" << sloc.line() << ":" << sloc.col() << ": error: " << msg;
-	diagOut << "\n";
-
-	hadError = true;
-}
-
-void SemanticVisitor::hintAt(const SourceLocation& sloc, const std::string& msg)
-{
-	diagOut << sloc.file() << ":" << sloc.line() << ":" << sloc.col() << ": " << msg;
-	diagOut << "\n";
-}
-
 
 void SemanticVisitor::declareGlobalName(ProgramPart& p, const std::string& name)
 {
 	auto res = globalNames.insert({ name, &p });
 
-	if (!res.second) {
-		errorAt(p.sloc(), "redeclaration of '" + name + "'");
-		hintAt(res.first->second->sloc(), "previously declared here");
-	}
+	if (!res.second)
+		diags.print(
+			redeclaration(p.sloc(), name),
+			previouslyDeclaredHere(res.first->second->sloc()));
 }
 
 bool SemanticVisitor::inferClassParam(const std::string& name, const SourceLocation& at, ClassParameter::Type type)
@@ -102,9 +244,10 @@ bool SemanticVisitor::inferClassParam(const std::string& name, const SourceLocat
 			return true;
 		}
 
-		errorAt(at, "class parameter '" + name + "' used in multiple contexts");
-		hintAt(at, "used as " + cptDeclStr(type) + " here");
-		hintAt(*classParamInferenceSites.at(name), "used as " + cptDeclStr(cp->type()) + " here");
+		diags.print(
+			classParameterTypeError(at, name),
+			cptUsedAs(at, type),
+			cptUsedAs(*classParamInferenceSites.at(name), cp->type()));
 		return true;
 	}
 
@@ -119,7 +262,7 @@ void SemanticVisitor::visit(IdentifierExpr& i)
 	}
 
 	if (!inferClassParam(i.name(), i.sloc(), ClassParameter::Type::Value)) {
-		errorAt(i.sloc(), "use of undeclared identifier '" + i.name() + "'");
+		diags.print(undeclaredIdentifier(Identifier(i.sloc(), i.name())));
 	} else {
 		i.isConstant(true);
 
@@ -174,7 +317,7 @@ void SemanticVisitor::visit(UnaryExpr& u)
 		return;
 
 	if (u.expr().type() == Type::Float && u.op() == UnaryOperator::Negate)
-		errorAt(u.sloc(), "invalid type 'float' in unary negation");
+		diags.print(invalidUnaryOp(u.sloc(), u.expr().type()));
 
 	if (u.op() == UnaryOperator::Not)
 		u.type(Type::Bool);
@@ -209,19 +352,13 @@ void SemanticVisitor::visit(BinaryExpr& b)
 	case BinaryOperator::ShiftLeft:
 	case BinaryOperator::ShiftRight:
 		if (b.left().type() == Type::Float || b.right().type() == Type::Float)
-			errorAt(b.left().sloc(), str(
-				format("invalid types in binary expression (%1% and %2%)")
-					% typeName(b.left().type())
-					% typeName(b.right().type())));
+			diags.print(invalidBinaryOp(b.sloc(), b.left().type(), b.right().type()));
 		break;
 
 	case BinaryOperator::BoolAnd:
 	case BinaryOperator::BoolOr:
 		if (b.left().type() != Type::Bool || b.right().type() != Type::Bool)
-			errorAt(b.left().sloc(), str(
-				format("invalid types in binary expression (%1% and %2%)")
-					% typeName(b.left().type())
-					% typeName(b.right().type())));
+			diags.print(invalidBinaryOp(b.sloc(), b.left().type(), b.right().type()));
 		b.type(Type::Bool);
 		break;
 
@@ -265,14 +402,16 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 		if (devit != globalNames.end()) {
 			dev = dynamic_cast<Device*>(devit->second);
 			if (!dev) {
-				errorAt(e.device().sloc(), "identifier '" + e.device().name() + "' does not name a device");
-				hintAt(devit->second->sloc(), "previously declared here");
+				diags.print(
+					identifierIsNoDevice(e.device()),
+					previouslyDeclaredHere(devit->second->sloc()));
 			}
 		} else if (auto se = scopes.resolve(e.device().name())) {
-			errorAt(e.device().sloc(), "identifier '" + e.device().name() + "' does not name a device");
-			hintAt(se->declaration->sloc(), "previously declared here");
+			diags.print(
+				identifierIsNoDevice(e.device()),
+				previouslyDeclaredHere(se->declaration->sloc()));
 		} else if (!inferClassParam(e.device().name(), e.device().sloc(), ClassParameter::Type::Device)) {
-			errorAt(e.device().sloc(), "use of undeclared device '" + e.device().name() + "'");
+			diags.print(undeclaredIdentifier(e.device()));
 		}
 	}
 
@@ -281,14 +420,16 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 		if (epit != globalNames.end()) {
 			ep = dynamic_cast<Endpoint*>(epit->second);
 			if (!ep) {
-				errorAt(e.endpoint().sloc(), "identifier '" + e.endpoint().name() + "' does not name an endpoint");
-				hintAt(epit->second->sloc(), "previously declared here");
+				diags.print(
+					identifierIsNoDevice(e.endpoint()),
+					previouslyDeclaredHere(epit->second->sloc()));
 			}
 		} else if (auto se = scopes.resolve(e.endpoint().name())) {
-			errorAt(e.endpoint().sloc(), "identifier '" + e.endpoint().name() + "' does not name an endpoint");
-			hintAt(se->declaration->sloc(), "previously declared here");
+			diags.print(
+				identifierIsNoDevice(e.endpoint()),
+				previouslyDeclaredHere(se->declaration->sloc()));
 		} else if (!inferClassParam(e.endpoint().name(), e.endpoint().sloc(), ClassParameter::Type::Endpoint)) {
-			errorAt(e.endpoint().sloc(), "use of undeclared endpoint '" + e.endpoint().name() + "'");
+			diags.print(undeclaredIdentifier(e.endpoint()));
 		}
 	}
 
@@ -300,7 +441,7 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 			return i.name() == ep->name().name();
 		});
 	if (!hasEP) {
-		errorAt(e.sloc(), "device '" + dev->name().name() + "' does not implement endpoint '" + ep->name().name() + "'");
+		diags.print(deviceDoesNotHave(e));
 		return nullptr;
 	}
 
@@ -313,7 +454,7 @@ void SemanticVisitor::visit(EndpointExpr& e)
 {
 	if (auto ep = checkEndpointExpr(e)) {
 		if ((ep->access() & EndpointAccess::Read) != EndpointAccess::Read)
-			errorAt(e.sloc(), "endpoint '" + e.endpoint().name() + "' cannot be read");
+			diags.print(endpointNotReadable(e));
 	}
 }
 
@@ -322,16 +463,24 @@ void SemanticVisitor::visit(CallExpr& c)
 	for (auto& arg : c.arguments())
 		arg->accept(*this);
 
-	if (c.name() != "hour" && c.name() != "minute" && c.name() != "second" &&
-			c.name() != "day" && c.name() != "month" && c.name() != "year" && c.name() != "weekday") {
-		errorAt(c.sloc(), "use of undeclared identifier '" + c.name() + "'");
+	if (c.name().name() != "hour" && c.name().name() != "minute" && c.name().name() != "second" &&
+			c.name().name() != "day" && c.name().name() != "month" && c.name().name() != "year" &&
+			c.name().name() != "weekday") {
+		diags.print(undeclaredIdentifier(c.name()));
 		return;
 	}
 
-	if (c.arguments().size() != 1)
-		errorAt(c.sloc(), str(format("function '%1%' expects 1 arguments, %2% given") % c.name() % c.arguments().size()));
-
 	c.type(Type::UInt32);
+
+	if (c.arguments().size() != 1)
+		diags.print(invalidCallArgCount(c, 1));
+
+	if (c.arguments().size() < 1)
+		return;
+
+	if (!isIntType(c.arguments()[0]->type()))
+		diags.print(invalidArgType(c, Type::UInt64, 0));
+
 	c.isConstant(c.arguments()[0]->isConstant());
 	c.isDependent(c.arguments()[0]->isDependent());
 }
@@ -353,17 +502,12 @@ void SemanticVisitor::visit(AssignStmt& a)
 	a.value().accept(*this);
 
 	if (!se) {
-		errorAt(a.sloc(), "use of undeclared identifier '" + a.target().name() + "'");
+		diags.print(undeclaredIdentifier(a.target()));
 		return;
 	}
 
-	if (!a.value().isDependent() && !isAssignableFrom(se->declaration->type(), a.value().type())) {
-		errorAt(a.sloc(), str(
-			format("invalid implicit type conversion from %1% to %2%")
-				% typeName(a.value().type())
-				% typeName(se->declaration->type())));
-		return;
-	}
+	if (!a.value().isDependent() && !isAssignableFrom(se->declaration->type(), a.value().type()))
+		diags.print(invalidImplicitConversion(a.sloc(), a.value().type(), se->declaration->type()));
 }
 
 void SemanticVisitor::visit(WriteStmt& w)
@@ -372,13 +516,10 @@ void SemanticVisitor::visit(WriteStmt& w)
 
 	if (auto ep = checkEndpointExpr(w.target())) {
 		if ((ep->access() & EndpointAccess::Write) != EndpointAccess::Write)
-			errorAt(w.sloc(), "endpoint '" + w.target().endpoint().name() + "' cannot be written");
+			diags.print(endpointNotWritable(w.target()));
 
 		if (!w.value().isDependent() && ep->type() != w.value().type())
-			errorAt(w.sloc(), str(
-				format("invalid types in assignment (%1% and %2%)")
-					% typeName(ep->type())
-					% typeName(w.value().type())));
+			diags.print(invalidImplicitConversion(w.sloc(), w.value().type(), ep->type()));
 	}
 }
 
@@ -394,9 +535,9 @@ void SemanticVisitor::visit(SwitchStmt& s)
 {
 	s.expr().accept(*this);
 	if (!s.expr().isDependent() && s.expr().type() == Type::Float)
-		errorAt(s.expr().sloc(), "cannot switch on type float");
+		diags.print(invalidImplicitConversion(s.sloc(), s.expr().type(), Type::UInt32));
 
-	const SourceLocation* defaultPos = nullptr;
+	const SwitchLabel* defaultPos = nullptr;
 	for (auto& se : s.entries()) {
 		scopes.enter();
 
@@ -405,14 +546,15 @@ void SemanticVisitor::visit(SwitchStmt& s)
 				l.expr()->accept(*this);
 				if (!l.expr()->isDependent()) {
 					if (!l.expr()->isConstant() || l.expr()->type() == Type::Float)
-						errorAt(l.sloc(), "case labels must be integral constant expressions");
+						diags.print(caseLabelInvalid(l));
 				}
 			} else if (!l.expr()) {
-				if (defaultPos) {
-					errorAt(l.sloc(), "duplicate default labels");
-					hintAt(*defaultPos, "first set here");
-				}
-				defaultPos = &l.sloc();
+				if (defaultPos)
+					diags.print(
+						caseLabelInvalid(l),
+						previouslyDeclaredHere(defaultPos->sloc()));
+
+				defaultPos = &l;
 			}
 		}
 
@@ -435,8 +577,9 @@ void SemanticVisitor::visit(DeclarationStmt& d)
 	ScopeEntry* decl = nullptr;
 
 	if (auto old = scopes.resolve(d.name().name())) {
-		errorAt(d.sloc(), "redeclaration of '" + d.name().name() + "'");
-		hintAt(old->declaration->sloc(), "previously declared here");
+		diags.print(
+			redeclaration(d.name().sloc(), d.name().name()),
+			previouslyDeclaredHere(old->declaration->sloc()));
 	} else {
 		decl = scopes.insert(d);
 	}
@@ -445,10 +588,7 @@ void SemanticVisitor::visit(DeclarationStmt& d)
 		d.value()->accept(*this);
 		if (decl) {
 			if (!isAssignableFrom(d.type(), d.value()->type()))
-				errorAt(d.sloc(), str(
-					format("invalid implicit type conversion from %1% to %2%")
-						% typeName(d.value()->type())
-						% typeName(d.type())));
+				diags.print(invalidImplicitConversion(d.sloc(), d.value()->type(), d.type()));
 		}
 	}
 }
@@ -456,7 +596,7 @@ void SemanticVisitor::visit(DeclarationStmt& d)
 void SemanticVisitor::visit(GotoStmt& g)
 {
 	if (!knownStates.count(g.state().name()))
-		errorAt(g.state().sloc(), "use of undeclared state '" + g.state().name() + "'");
+		diags.print(undeclaredIdentifier(g.state()));
 }
 
 void SemanticVisitor::visit(OnSimpleBlock& o)
@@ -469,9 +609,9 @@ void SemanticVisitor::visit(OnPacketBlock& o)
 	auto it = globalNames.find(o.source().name());
 
 	if (it == globalNames.end())
-		errorAt(o.sloc(), "use of undeclared device '" + o.source().name() + "'");
+		diags.print(undeclaredIdentifier(o.source()));
 	else if (!dynamic_cast<Device*>(it->second))
-		errorAt(o.sloc(), "identifier '" + o.source().name() + "' does not name a device");
+		diags.print(identifierIsNoDevice(o.source()));
 
 	o.block().accept(*this);
 }
@@ -480,12 +620,8 @@ void SemanticVisitor::visit(OnExprBlock& o)
 {
 	o.condition().accept(*this);
 
-	if (!o.condition().isDependent() && o.condition().type() != Type::Bool) {
-		errorAt(o.sloc(), str(
-			format("invalid implicit type conversion from %1% to %2%")
-				% typeName(o.condition().type())
-				% typeName(Type::Bool)));
-	}
+	if (!o.condition().isDependent() && o.condition().type() != Type::Bool)
+		diags.print(invalidImplicitConversion(o.sloc(), o.condition().type(), Type::Bool));
 
 	o.block().accept(*this);
 }
@@ -496,10 +632,10 @@ void SemanticVisitor::visit(Endpoint& e)
 
 	auto res = endpointsByEID.insert({ e.eid(), &e });
 
-	if (!res.second) {
-		errorAt(e.sloc(), str(format("redefinition of EID %1%") % e.eid()));
-		hintAt(res.first->second->sloc(), "previously defined here");
-	}
+	if (!res.second)
+		diags.print(
+			eidRedefined(e),
+			previouslyDeclaredHere(res.first->second->sloc()));
 }
 
 void SemanticVisitor::visit(Device& d)
@@ -510,15 +646,15 @@ void SemanticVisitor::visit(Device& d)
 		auto eit = globalNames.find(ep.name());
 
 		if (eit == globalNames.end()) {
-			errorAt(ep.sloc(), "undefined endpoint '" + ep.name() + "'");
+			diags.print(undeclaredIdentifier(ep));
 			continue;
 		}
 
 		auto epDef = dynamic_cast<Endpoint*>(eit->second);
-		if (!epDef) {
-			errorAt(ep.sloc(), "'" + ep.name() + "' is not an endpoint");
-			hintAt(eit->second->sloc(), "declared here");
-		}
+		if (!epDef)
+			diags.print(
+				identifierIsNoEndpoint(Identifier(ep.sloc(), ep.name())),
+				declaredHere(eit->second->sloc()));
 	}
 }
 
@@ -541,10 +677,10 @@ void SemanticVisitor::checkMachineBody(MachineBody& m)
 	for (auto& state : m.states()) {
 		auto res = knownStates.insert({ state.name().name(), &state });
 
-		if (!res.second) {
-			errorAt(state.sloc(), "redefinition of '" + state.name().name() + "'");
-			hintAt(res.first->second->sloc(), "previously defined here");
-		}
+		if (!res.second)
+			diags.print(
+				stateRedefined(state),
+				previouslyDeclaredHere(res.first->second->sloc()));
 	}
 
 	scopes.enter();
@@ -562,10 +698,10 @@ void SemanticVisitor::visit(MachineClass& m)
 	for (auto& param : m.parameters()) {
 		auto res = classParams.insert({ param.name(), &param });
 
-		if (!res.second) {
-			errorAt(param.sloc(), "redeclaration of clas parameter '" + param.name() + "'");
-			hintAt(res.first->second->sloc(), "previously declared here");
-		}
+		if (!res.second)
+			diags.print(
+				classParamRedefined(param),
+				previouslyDeclaredHere(res.first->second->sloc()));
 	}
 
 	checkMachineBody(m);
@@ -585,23 +721,20 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 
 	auto mit = globalNames.find(m.instanceOf().name());
 	if (mit == globalNames.end()) {
-		errorAt(m.instanceOf().sloc(), "undeclared identifier " + m.instanceOf().name());
+		diags.print(undeclaredIdentifier(m.instanceOf()));
 		return;
 	}
 
 	auto mclass = dynamic_cast<MachineClass*>(mit->second);
 	if (!mclass) {
-		errorAt(m.instanceOf().sloc(), "'" + m.instanceOf().name() + "' is not a machine class");
-		hintAt(mit->second->sloc(), "declared here");
+		diags.print(
+			identifierIsNoClass(m.instanceOf()),
+			declaredHere(mit->second->sloc()));
 		return;
 	}
 
 	if (m.arguments().size() != mclass->parameters().size()) {
-		errorAt(m.sloc(),
-			str(format("%1% expects %2% parameters, %3% given")
-				% mclass->name().name()
-				% mclass->parameters().size()
-				% m.arguments().size()));
+		diags.print(invalidClassArgCount(m, mclass->parameters().size()));
 	} else {
 		auto arg = m.arguments().begin(), aend = m.arguments().end();
 		auto param = mclass->parameters().begin(), pend = mclass->parameters().end();
@@ -611,7 +744,7 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 			case ClassParameter::Type::Value:
 				(*arg)->accept(*this);
 				if (!(*arg)->isConstant())
-					errorAt((*arg)->sloc(), "expected constant value for class parameter '" + param->name() + "'");
+					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
 				classParamTypes.insert({ param->name(), (*arg)->type() });
 				break;
 
@@ -619,9 +752,9 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 				if (auto id = dynamic_cast<IdentifierExpr*>(arg->get())) {
 					auto dev = globalNames.find(id->name());
 					if (dev == globalNames.end() || !dynamic_cast<Device*>(dev->second))
-						errorAt(id->sloc(), "identifier '" + id->name() + "' does not name a device");
+						diags.print(identifierIsNoDevice(Identifier(id->sloc(), id->name())));
 				} else {
-					errorAt((*arg)->sloc(), "expected device identifier for class parameter '" + param->name() + "'");
+					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
 				}
 				break;
 
@@ -629,9 +762,9 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 				if (auto id = dynamic_cast<IdentifierExpr*>(arg->get())) {
 					auto ep = globalNames.find(id->name());
 					if (ep == globalNames.end() || !dynamic_cast<Endpoint*>(ep->second))
-						errorAt(id->sloc(), "identifier '" + id->name() + "' does not name an endpoint");
+						diags.print(identifierIsNoEndpoint(Identifier(id->sloc(), id->name())));
 				} else {
-					errorAt((*arg)->sloc(), "expected endpoint identifier for class parameter '" + param->name() + "'");
+					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
 				}
 				break;
 
@@ -641,6 +774,8 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 
 			classParams.insert({ param->name(), &*param });
 		}
+
+		auto hint = diags.useHint(m.sloc(), "instantiated from here");
 
 		checkMachineBody(*mclass);
 		classParams.clear();
@@ -655,7 +790,6 @@ void SemanticVisitor::visit(IncludeLine& i)
 
 void SemanticVisitor::visit(TranslationUnit& t)
 {
-	hadError = false;
 	globalNames.clear();
 	endpointsByEID.clear();
 	scopes = ScopeStack();

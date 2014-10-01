@@ -29,7 +29,13 @@ int main(int argc, char* argv[])
 		auto tu = hbt::lang::Parser({ wd.get() }, 4).parse(file.is_absolute() ? file.native() : (wd.get() / file).native());
 
 		ASTPrinter(std::cout).visit(*tu);
-		SemanticVisitor(std::cout).visit(*tu);
+
+		DiagnosticOutput diag(std::cout);
+		SemanticVisitor(diag).visit(*tu);
+
+		if (diag.errorCount()) {
+			std::cout << "\n\n" << "got " << diag.errorCount() << " errors\n";
+		}
 	} catch (const hbt::lang::ParseError& e) {
 		const auto* sloc = &e.at();
 		std::cout << sloc->file() << ":" << sloc->line() << ":" << sloc->col()

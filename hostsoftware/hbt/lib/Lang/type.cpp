@@ -65,5 +65,10 @@ bool isAssignableFrom(Type to, Type from)
 	}
 }
 
+bool isIntType(Type t)
+{
+	return isAssignableFrom(Type::UInt64, t);
+}
+
 }
 }

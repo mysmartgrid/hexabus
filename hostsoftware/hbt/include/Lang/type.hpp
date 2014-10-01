@@ -18,6 +18,7 @@ const char* typeName(Type type);
 
 Type commonType(Type a, Type b);
 bool isAssignableFrom(Type to, Type from);
+bool isIntType(Type t);
 
 }
 }

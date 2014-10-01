@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "Lang/ast.hpp"
+#include "Lang/diagnostics.hpp"
 #include "Lang/type.hpp"
 
 namespace hbt {
@@ -32,8 +33,7 @@ private:
 	};
 
 private:
-	std::ostream& diagOut;
-	bool hadError;
+	DiagnosticOutput& diags;
 
 	std::map<std::string, ProgramPart*> globalNames;
 	std::map<uint32_t, Endpoint*> endpointsByEID;
@@ -46,9 +46,6 @@ private:
 
 	ScopeStack scopes;
 
-	void errorAt(const SourceLocation& sloc, const std::string& msg);
-	void hintAt(const SourceLocation& sloc, const std::string& msg);
-
 	void declareGlobalName(ProgramPart& p, const std::string& name);
 
 	void checkState(State& s);
@@ -58,8 +55,8 @@ private:
 	bool inferClassParam(const std::string& name, const SourceLocation& at, ClassParameter::Type type);
 
 public:
-	SemanticVisitor(std::ostream& diagOut)
-		: diagOut(diagOut)
+	SemanticVisitor(DiagnosticOutput& diagOut)
+		: diags(diagOut)
 	{}
 
 	virtual void visit(IdentifierExpr& i) override;
