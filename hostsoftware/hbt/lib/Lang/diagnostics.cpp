@@ -16,7 +16,7 @@ static void printIncludeStack(std::ostream& out, const SourceLocation* sloc)
 
 void DiagnosticOutput::printFirst(const Diagnostic& diag)
 {
-	printIncludeStack(out, diag.sloc);
+	printIncludeStack(out, diag.sloc->parent());
 	printRest(diag);
 }
 
