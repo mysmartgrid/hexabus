@@ -12,6 +12,7 @@ class SourceLocation;
 
 enum class DiagnosticKind {
 	Hint,
+	Warning,
 	Error,
 };
 
@@ -50,7 +51,7 @@ private:
 	std::ostream& out;
 	std::list<Diagnostic> hintStack;
 	bool addExtraNewlines;
-	unsigned _errorCount;
+	unsigned _errorCount, _warningCount;
 
 	void printFirst(const Diagnostic& diag);
 	void printRest(const Diagnostic& diag);
@@ -66,7 +67,7 @@ private:
 
 public:
 	DiagnosticOutput(std::ostream& out)
-		: out(out), hintStack(), addExtraNewlines(false), _errorCount(0)
+		: out(out), hintStack(), addExtraNewlines(false), _errorCount(0), _warningCount(0)
 	{}
 
 	DiagnosticOutput(const DiagnosticOutput&) = delete;
@@ -91,6 +92,7 @@ public:
 	}
 
 	unsigned errorCount() const { return _errorCount; }
+	unsigned warningCount() const { return _warningCount; }
 };
 
 }

@@ -26,6 +26,7 @@ void DiagnosticOutput::printRest(const Diagnostic& diag)
 
 	switch (diag.kind) {
 	case DiagnosticKind::Hint: out << "hint: "; break;
+	case DiagnosticKind::Warning: out << "warning: "; break;
 	case DiagnosticKind::Error: out << "error: "; break;
 	default: throw "invalid diag kind";
 	}
@@ -34,6 +35,8 @@ void DiagnosticOutput::printRest(const Diagnostic& diag)
 
 	if (diag.kind == DiagnosticKind::Error)
 		_errorCount++;
+	if (diag.kind == DiagnosticKind::Warning)
+		_warningCount++;
 }
 
 void DiagnosticOutput::printHints()

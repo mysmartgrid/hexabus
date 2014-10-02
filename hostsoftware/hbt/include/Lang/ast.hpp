@@ -162,24 +162,27 @@ class Expr : public ASTVisitable {
 private:
 	SourceLocation _sloc;
 	Type _type;
-	bool _isConstant, _isDependent;
+	bool _isConstexpr, _isDependent;
+	uint64_t _constexprValue;
 
 protected:
 	typedef std::unique_ptr<Expr> ptr_t;
 
-	Expr(const SourceLocation& sloc, Type type)
-		: _sloc(sloc), _type(type), _isConstant(false), _isDependent(false)
+	Expr(const SourceLocation& sloc, Type type, uint64_t constexprValue = 0)
+		: _sloc(sloc), _type(type), _isConstexpr(false), _isDependent(false), _constexprValue(constexprValue)
 	{}
 
 public:
 	const SourceLocation& sloc() const { return _sloc; }
 	Type type() const { return _type; }
-	bool isConstant() const { return _isConstant; }
+	bool isConstexpr() const { return _isConstexpr; }
 	bool isDependent() const { return _isDependent; }
+	uint64_t constexprValue() const { return _constexprValue; }
 
 	void type(Type t) { _type = t; }
-	void isConstant(bool b) { _isConstant = b; }
+	void isConstexpr(bool b) { _isConstexpr = b; }
 	void isDependent(bool b) { _isDependent = b; }
+	void constexprValue(uint64_t v) { _constexprValue = v; }
 };
 
 class IdentifierExpr : public Expr {
@@ -224,8 +227,10 @@ private:
 
 public:
 	TypedLiteral(const SourceLocation& sloc, T value)
-		: Literal(sloc, calcType()), _value(value)
-	{}
+		: Literal(sloc, calcType(), value), _value(value)
+	{
+		isConstexpr(isConstexprType(calcType()));
+	}
 
 	T value() const { return _value; }
 
@@ -772,7 +777,7 @@ public:
 
 		Value,
 		Device,
-		Endpoint
+		Endpoint,
 	};
 
 private:

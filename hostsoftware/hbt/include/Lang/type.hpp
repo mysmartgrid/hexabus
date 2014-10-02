@@ -17,8 +17,26 @@ enum class Type {
 const char* typeName(Type type);
 
 Type commonType(Type a, Type b);
+
 bool isAssignableFrom(Type to, Type from);
-bool isIntType(Type t);
+
+inline bool isIntType(Type t)
+{
+	switch (t) {
+	case Type::UInt8:
+	case Type::UInt32:
+	case Type::UInt64:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+inline bool isConstexprType(Type t)
+{
+	return t == Type::Bool || isIntType(t);
+}
 
 }
 }

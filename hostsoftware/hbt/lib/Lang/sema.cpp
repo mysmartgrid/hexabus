@@ -158,6 +158,11 @@ static Diagnostic caseLabelDuplicated(const SwitchLabel& l)
 	return { DiagnosticKind::Error, &l.sloc(), "duplicated case label value" };
 }
 
+static Diagnostic caseLabelDuplicated(const SwitchLabel& l, uint64_t value)
+{
+	return { DiagnosticKind::Error, &l.sloc(), str(format("duplicated case label value %1%") % value) };
+}
+
 static Diagnostic eidRedefined(const Endpoint& ep)
 {
 	return { DiagnosticKind::Error, &ep.sloc(), str(format("redefinition of endpoint %1%") % ep.eid()) };
@@ -195,6 +200,29 @@ static Diagnostic classArgumentInvalid(const SourceLocation& sloc, const ClassPa
 			% cptDeclStr(cp.type())
 			% cp.name())
 	};
+}
+
+static Diagnostic constexprInvokesUB(const Expr& b)
+{
+	return { DiagnosticKind::Error, &b.sloc(), "evaluation of constant expression invokes undefined behaviour" };
+}
+
+static Diagnostic classParamUnused(const ClassParameter& cp)
+{
+	return { DiagnosticKind::Warning, &cp.sloc(), "unused class parameter " + cp.name() };
+}
+
+
+
+static void restrictConstexprValueToType(Expr& e)
+{
+	switch (e.type()) {
+	case Type::Bool: e.constexprValue(bool(e.constexprValue())); break;
+	case Type::UInt8: e.constexprValue(uint8_t(e.constexprValue())); break;
+	case Type::UInt32: e.constexprValue(uint32_t(e.constexprValue())); break;
+	case Type::UInt64: e.constexprValue(uint64_t(e.constexprValue())); break;
+	default: break;
+	}
 }
 
 
@@ -269,12 +297,12 @@ void SemanticVisitor::visit(IdentifierExpr& i)
 	}
 
 	if (inferClassParam(i.name(), i.sloc(), ClassParameter::Type::Value)) {
-		i.isConstant(true);
-
 		auto& cp = classParams.at(i.name());
 		if (cp.hasValue) {
 			i.isDependent(false);
 			i.type(cp.value->type());
+			i.constexprValue(cp.value->constexprValue());
+			i.isConstexpr(cp.value->isConstexpr());
 		} else {
 			i.isDependent(true);
 		}
@@ -285,41 +313,27 @@ void SemanticVisitor::visit(IdentifierExpr& i)
 		diags.print(undeclaredIdentifier(Identifier(i.sloc(), i.name())));
 }
 
-void SemanticVisitor::visit(TypedLiteral<bool>& l)
-{
-	l.isConstant(true);
-}
-
-void SemanticVisitor::visit(TypedLiteral<uint8_t>& l)
-{
-	l.isConstant(true);
-}
-
-void SemanticVisitor::visit(TypedLiteral<uint32_t>& l)
-{
-	l.isConstant(true);
-}
-
-void SemanticVisitor::visit(TypedLiteral<uint64_t>& l)
-{
-	l.isConstant(true);
-}
-
-void SemanticVisitor::visit(TypedLiteral<float>& l)
-{
-	l.isConstant(true);
-}
+// nothing to do for typed literals
+// only isConstexpr is relevant, and the ast knows that already
+void SemanticVisitor::visit(TypedLiteral<bool>& l) {}
+void SemanticVisitor::visit(TypedLiteral<uint8_t>& l) {}
+void SemanticVisitor::visit(TypedLiteral<uint32_t>& l) {}
+void SemanticVisitor::visit(TypedLiteral<uint64_t>& l) {}
+void SemanticVisitor::visit(TypedLiteral<float>& l) {}
 
 void SemanticVisitor::visit(CastExpr& c)
 {
 	c.expr().accept(*this);
-	c.isConstant(c.expr().isConstant());
+	c.isDependent(c.expr().isDependent());
+	c.isConstexpr(c.expr().isConstexpr() && isConstexprType(c.type()));
+	c.constexprValue(c.expr().constexprValue());
+	restrictConstexprValueToType(c);
 }
 
 void SemanticVisitor::visit(UnaryExpr& u)
 {
 	u.expr().accept(*this);
-	u.isConstant(u.expr().isConstant());
+	u.isConstexpr(u.expr().isConstexpr());
 	u.isDependent(u.expr().isDependent());
 
 	if (u.isDependent())
@@ -332,6 +346,28 @@ void SemanticVisitor::visit(UnaryExpr& u)
 		u.type(Type::Bool);
 	else
 		u.type(u.expr().type());
+
+	if (!u.isConstexpr())
+		return;
+
+	switch (u.op()) {
+	case UnaryOperator::Plus:
+		break;
+
+	case UnaryOperator::Minus:
+		u.constexprValue(-u.expr().constexprValue());
+		break;
+
+	case UnaryOperator::Not:
+		u.constexprValue(!u.expr().constexprValue());
+		break;
+
+	case UnaryOperator::Negate:
+		u.constexprValue(~u.expr().constexprValue());
+		break;
+	}
+
+	restrictConstexprValueToType(u);
 }
 
 void SemanticVisitor::visit(BinaryExpr& b)
@@ -339,7 +375,7 @@ void SemanticVisitor::visit(BinaryExpr& b)
 	b.left().accept(*this);
 	b.right().accept(*this);
 
-	b.isConstant(b.left().isConstant() && b.right().isConstant());
+	b.isConstexpr(b.left().isConstexpr() && b.right().isConstexpr());
 	b.isDependent(b.left().isDependent() || b.right().isDependent());
 
 	if (b.isDependent())
@@ -383,6 +419,45 @@ void SemanticVisitor::visit(BinaryExpr& b)
 	default:
 		throw "invalid binary operator";
 	}
+
+	if (!b.isConstexpr())
+		return;
+
+	switch (b.op()) {
+	case BinaryOperator::Plus: b.constexprValue(b.left().constexprValue() + b.right().constexprValue()); break;
+	case BinaryOperator::Minus: b.constexprValue(b.left().constexprValue() - b.right().constexprValue()); break;
+	case BinaryOperator::Multiply: b.constexprValue(b.left().constexprValue() * b.right().constexprValue()); break;
+
+	case BinaryOperator::Divide:
+		if (b.right().constexprValue() == 0)
+			diags.print(constexprInvokesUB(b));
+		else
+			b.constexprValue(b.left().constexprValue() / b.right().constexprValue());
+		break;
+
+	case BinaryOperator::Modulo:
+		if (b.right().constexprValue() == 0)
+			diags.print(constexprInvokesUB(b));
+		else
+			b.constexprValue(b.left().constexprValue() % b.right().constexprValue());
+		break;
+
+	case BinaryOperator::And: b.constexprValue(b.left().constexprValue() & b.right().constexprValue()); break;
+	case BinaryOperator::Or: b.constexprValue(b.left().constexprValue() | b.right().constexprValue()); break;
+	case BinaryOperator::Xor: b.constexprValue(b.left().constexprValue() ^ b.right().constexprValue()); break;
+	case BinaryOperator::ShiftLeft: b.constexprValue(b.left().constexprValue() << b.right().constexprValue()); break;
+	case BinaryOperator::ShiftRight: b.constexprValue(b.left().constexprValue() >> b.right().constexprValue()); break;
+	case BinaryOperator::BoolAnd: b.constexprValue(b.left().constexprValue() && b.right().constexprValue()); break;
+	case BinaryOperator::BoolOr: b.constexprValue(b.left().constexprValue() || b.right().constexprValue()); break;
+	case BinaryOperator::Equals: b.constexprValue(b.left().constexprValue() == b.right().constexprValue()); break;
+	case BinaryOperator::NotEquals: b.constexprValue(b.left().constexprValue() != b.right().constexprValue()); break;
+	case BinaryOperator::LessThan: b.constexprValue(b.left().constexprValue() < b.right().constexprValue()); break;
+	case BinaryOperator::LessOrEqual: b.constexprValue(b.left().constexprValue() <= b.right().constexprValue()); break;
+	case BinaryOperator::GreaterThan: b.constexprValue(b.left().constexprValue() > b.right().constexprValue()); break;
+	case BinaryOperator::GreaterOrEqual: b.constexprValue(b.left().constexprValue() >= b.right().constexprValue()); break;
+	}
+
+	restrictConstexprValueToType(b);
 }
 
 void SemanticVisitor::visit(ConditionalExpr& c)
@@ -391,11 +466,16 @@ void SemanticVisitor::visit(ConditionalExpr& c)
 	c.ifTrue().accept(*this);
 	c.ifFalse().accept(*this);
 
-	c.isConstant(c.condition().isConstant() && c.ifTrue().isConstant() && c.ifFalse().isConstant());
+	c.isConstexpr(c.condition().isConstexpr() && c.ifTrue().isConstexpr() && c.ifFalse().isConstexpr());
 	c.isDependent(c.condition().isDependent() || c.ifTrue().isDependent() || c.ifFalse().isDependent());
 
 	if (!c.isDependent())
 		c.type(commonType(c.ifTrue().type(), c.ifFalse().type()));
+
+	if (c.isConstexpr()) {
+		c.constexprValue(c.condition().constexprValue() ? c.ifTrue().constexprValue() : c.ifFalse().constexprValue());
+		restrictConstexprValueToType(c);
+	}
 }
 
 Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
@@ -506,7 +586,6 @@ void SemanticVisitor::visit(CallExpr& c)
 	if (!isIntType(c.arguments()[0]->type()))
 		diags.print(invalidArgType(c, Type::UInt64, 0));
 
-	c.isConstant(c.arguments()[0]->isConstant());
 	c.isDependent(c.arguments()[0]->isDependent());
 }
 
@@ -559,10 +638,11 @@ void SemanticVisitor::visit(IfStmt& i)
 void SemanticVisitor::visit(SwitchStmt& s)
 {
 	s.expr().accept(*this);
-	if (!s.expr().isDependent() && s.expr().type() == Type::Float)
+	if (!s.expr().isDependent() && !isAssignableFrom(Type::UInt32, s.expr().type()))
 		diags.print(invalidImplicitConversion(s.sloc(), s.expr().type(), Type::UInt32));
 
-	const SwitchLabel* defaultPos = nullptr;
+	const SwitchLabel* defaultLabel = nullptr;
+	std::map<uint32_t, const SwitchLabel*> caseLabels;
 	for (auto& se : s.entries()) {
 		scopes.enter();
 
@@ -570,16 +650,29 @@ void SemanticVisitor::visit(SwitchStmt& s)
 			if (l.expr()) {
 				l.expr()->accept(*this);
 				if (!l.expr()->isDependent()) {
-					if (!l.expr()->isConstant() || l.expr()->type() == Type::Float)
+					if (!isAssignableFrom(Type::UInt32, l.expr()->type())) {
+						diags.print(invalidImplicitConversion(l.sloc(), l.expr()->type(), Type::UInt32));
+						continue;
+					}
+
+					if (!l.expr()->isConstexpr()) {
 						diags.print(caseLabelInvalid(l));
+						continue;
+					}
+
+					auto res = caseLabels.insert({ l.expr()->constexprValue(), &l });
+					if (!res.second)
+						diags.print(
+							caseLabelDuplicated(l, l.expr()->constexprValue()),
+							previouslyDeclaredHere(res.first->second->sloc()));
 				}
 			} else if (!l.expr()) {
-				if (defaultPos)
+				if (defaultLabel)
 					diags.print(
-						caseLabelInvalid(l),
-						previouslyDeclaredHere(defaultPos->sloc()));
+						caseLabelDuplicated(l),
+						previouslyDeclaredHere(defaultLabel->sloc()));
 
-				defaultPos = &l;
+				defaultLabel = &l;
 			}
 		}
 
@@ -727,6 +820,11 @@ void SemanticVisitor::visit(MachineClass& m)
 
 	checkMachineBody(m);
 	classParams.clear();
+
+	for (auto& param : m.parameters()) {
+		if (param.type() == ClassParameter::Type::Unknown)
+			diags.print(classParamUnused(param));
+	}
 }
 
 void SemanticVisitor::visit(MachineDefinition& m)
@@ -763,7 +861,7 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 			switch (param->type()) {
 			case ClassParameter::Type::Value:
 				(*arg)->accept(*this);
-				if (!(*arg)->isConstant())
+				if (!(*arg)->isConstexpr())
 					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
 				else
 					classParams.insert({ param->name(), { *param, nullptr, (*arg).get() } });
@@ -795,6 +893,10 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 				} else {
 					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
 				}
+				break;
+
+			case ClassParameter::Type::Unknown:
+				classParams.insert({ param->name(), { *param, nullptr } });
 				break;
 
 			default:

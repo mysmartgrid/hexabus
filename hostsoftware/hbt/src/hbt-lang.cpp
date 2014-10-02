@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
 		SemanticVisitor(diag).visit(*tu);
 
 		if (diag.errorCount()) {
-			std::cout << "\n\n" << "got " << diag.errorCount() << " errors\n";
+			std::cout << "\n\n" << "got " << diag.errorCount() << " errors and " << diag.warningCount() << " warnings\n";
 		}
 	} catch (const hbt::lang::ParseError& e) {
 		const auto* sloc = &e.at();
