@@ -416,10 +416,10 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 				identifierIsNoDevice(e.device()),
 				previouslyDeclaredHere(se->declaration->sloc()));
 		} else if (cpit != classParams.end()) {
-			e.deviceIsDependent(true);
 			exprIsFullyDefined &= cpit->second.hasValue;
 			if (inferClassParam(e.device().name(), e.device().sloc(), ClassParameter::Type::Device) && cpit->second.hasValue)
 				dev = cpit->second.device;
+			e.deviceIsDependent(!dev);
 		} else if (it != globalNames.end()) {
 			dev = dynamic_cast<Device*>(it->second);
 			if (!dev)
@@ -440,10 +440,10 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 				identifierIsNoDevice(e.endpoint()),
 				declaredHere(se->declaration->sloc()));
 		} else if (cpit != classParams.end()) {
-			e.endpointIsDependent(true);
 			exprIsFullyDefined &= cpit->second.hasValue;
 			if (inferClassParam(e.endpoint().name(), e.endpoint().sloc(), ClassParameter::Type::Endpoint) && cpit->second.hasValue)
 				ep = cpit->second.endpoint;
+			e.deviceIsDependent(!ep);
 		} else if (it != globalNames.end()) {
 			ep = dynamic_cast<Endpoint*>(it->second);
 			if (!ep)
