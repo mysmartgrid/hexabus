@@ -55,7 +55,7 @@ struct value_default<float> {
 };
 float value_default<float>::value = 23.42f;
 const char* value_default<float>::name = "float";
-boost::array<char, 4> value_default<float>::bytes = {{ 0x41, 0xbb, 0x5c, 0x29 }};
+boost::array<char, 4> value_default<float>::bytes = {{ 0x41, '\xbb', 0x5c, 0x29 }};
 
 template<>
 struct value_default<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> > {
