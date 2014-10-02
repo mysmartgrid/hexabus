@@ -61,14 +61,14 @@ static pass_type runSema()
 	};
 }
 
-static pass_type runSemaExpect(const std::map<unsigned, std::string>& patterns, const std::string& filePath)
+static pass_type runSemaExpect(const std::multimap<unsigned, std::string>& patterns, const std::string& filePath)
 {
 	return [&patterns, &filePath] (std::unique_ptr<TranslationUnit>& tu) {
 		std::stringstream buf;
 		DiagnosticOutput diag(buf);
 		SemanticVisitor(diag).visit(*tu);
 
-		std::list<std::pair<unsigned, boost::regex>> patternRegexes;
+		std::list<std::tuple<unsigned, boost::regex, const std::string&>> patternRegexes;
 
 		for (const auto& pattern : patterns) {
 			std::stringstream patternRegex;
@@ -79,7 +79,7 @@ static pass_type runSemaExpect(const std::map<unsigned, std::string>& patterns, 
 
 			patternRegex << "^";
 			appendEscapedRegex(filePath);
-			patternRegex << ":" << std::dec << std::setw(0) << pattern.first << ":\\d+: .*";
+			patternRegex << ":" << std::dec << std::setw(0) << pattern.first << ":\\d+: .*?";
 
 			auto expected = pattern.second;
 			do {
@@ -102,11 +102,12 @@ static pass_type runSemaExpect(const std::map<unsigned, std::string>& patterns, 
 				}
 			} while (expected.size());
 
-			patternRegex << ".*$";
+			patternRegex << ".*?$";
 
-			patternRegexes.push_back({ pattern.first, boost::regex(patternRegex.str()) });
+			patternRegexes.emplace_back(pattern.first, boost::regex(patternRegex.str()), pattern.second);
 		}
 
+		bool success = true;
 		while (buf.tellg() != buf.tellp()) {
 			std::string diagLine;
 			while (diagLine.size() == 0 && !buf.fail()) {
@@ -118,13 +119,14 @@ static pass_type runSemaExpect(const std::map<unsigned, std::string>& patterns, 
 
 			bool matched = false;
 			for (auto it = patternRegexes.begin(), end = patternRegexes.end(); it != end; ++it) {
-				if (boost::regex_match(diagLine, it->second)) {
+				if (boost::regex_match(diagLine, std::get<1>(*it))) {
 					patternRegexes.erase(it);
 					matched = true;
 					break;
 				}
 			}
 
+			success &= matched;
 			if (!matched)
 				std::cout << "unmatched diagnostic line: " << diagLine << "\n";
 		}
@@ -134,12 +136,12 @@ static pass_type runSemaExpect(const std::map<unsigned, std::string>& patterns, 
 
 		if (patternRegexes.size()) {
 			for (auto& p : patternRegexes) {
-				std::cout << "unmatched expectation in line " << p.first << ": " << patterns.at(p.first) << "\n";
+				std::cout << "unmatched expectation in line " << std::get<0>(p) << ": " << std::get<1>(p) << "\n";
 			}
 			return false;
 		}
 
-		return true;
+		return success;
 	};
 }
 
@@ -170,7 +172,7 @@ Passes:
 
 	std::vector<std::string> includePaths;
 
-	std::map<unsigned, std::string> semaExpected;
+	std::multimap<unsigned, std::string> semaExpected;
 
 	auto getNextArg = [argc, argv] (int& arg) {
 		if (arg + 1 >= argc) {

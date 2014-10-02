@@ -2,7 +2,6 @@
 
 #include <cctype>
 #include <list>
-#include <map>
 #include <set>
 
 #include "Lang/ast.hpp"
@@ -160,7 +159,7 @@ struct whitespace : qi::grammar<It> {
 	}
 
 	template<typename TokenDef>
-	whitespace(const TokenDef& tok, std::map<unsigned, std::string>* expectations)
+	whitespace(const TokenDef& tok, std::multimap<unsigned, std::string>* expectations)
 		: whitespace::base_type(start)
 	{
 		using namespace qi;
@@ -178,6 +177,13 @@ struct whitespace : qi::grammar<It> {
 				static const char prefix[] = "//#expect: ";
 				if (line.substr(0, strlen(prefix)) == prefix) {
 					expectations->insert({ getLine(r.begin()), line.substr(strlen(prefix)) });
+					lastLine = getLine(r.begin());
+				}
+
+
+				static const char prefixMore[] = "//#expect+: ";
+				if (line.substr(0, strlen(prefixMore)) == prefixMore) {
+					expectations->insert({ lastLine, line.substr(strlen(prefixMore)) });
 				}
 			}]
 			| tok.blockcomment
@@ -190,6 +196,7 @@ struct whitespace : qi::grammar<It> {
 	qi::rule<It> start;
 	qi::rule<It> unterminated;
 	std::set<range> expectationRangesProcessed;
+	unsigned lastLine;
 };
 
 template<typename It>
@@ -879,7 +886,7 @@ ParseError::ParseError(const SourceLocation& at, const std::string& expected, co
 
 static std::list<std::unique_ptr<ProgramPart>> parseBuffer(const util::MemoryBuffer& input,
 		const std::string* fileName, const SourceLocation* includedFrom, int tabWidth,
-		std::map<unsigned, std::string>* expectations)
+		std::multimap<unsigned, std::string>* expectations)
 {
 	typedef sloc_iterator<const char*> iter;
 	typedef boost::spirit::lex::lexertl::token<iter> token_type;
@@ -944,7 +951,7 @@ static std::list<std::unique_ptr<ProgramPart>> parseBuffer(const util::MemoryBuf
 
 
 
-Parser::Parser(std::vector<std::string> includePaths, int tabWidth, std::map<unsigned, std::string>* expectations)
+Parser::Parser(std::vector<std::string> includePaths, int tabWidth, std::multimap<unsigned, std::string>* expectations)
 	: _includePaths(std::move(includePaths)), _tabWidth(tabWidth), _expectations(expectations)
 {
 	for (const auto& path : _includePaths)

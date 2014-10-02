@@ -44,7 +44,7 @@ class Parser {
 
 		std::vector<std::string> _includePaths;
 		int _tabWidth;
-		std::map<unsigned, std::string>* _expectations;
+		std::multimap<unsigned, std::string>* _expectations;
 
 		std::set<std::string> _filesAlreadyIncluded;
 		std::set<std::string> _currentIncludeStack;
@@ -55,7 +55,7 @@ class Parser {
 		std::list<std::unique_ptr<ProgramPart>> parseRecursive(IncludeLine& include, const std::string* extraSearchDir);
 
 	public:
-		Parser(std::vector<std::string> includePaths, int tabWidth = 4, std::map<unsigned, std::string>* expectations = nullptr);
+		Parser(std::vector<std::string> includePaths, int tabWidth = 4, std::multimap<unsigned, std::string>* expectations = nullptr);
 
 		std::unique_ptr<TranslationUnit> parse(const std::string& fileName);
 };

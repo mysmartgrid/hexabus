@@ -1,0 +1,7 @@
+class c(x) {
+	state init {
+		x.x = 0; //#expect: error: class parameter 'x' used in incompatible contexts
+		         //#expect+: hint: used as endpoint name here
+		         //#expect+: hint: used as device name here
+	}
+}
