@@ -1,3 +1,4 @@
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 
@@ -11,6 +12,7 @@
 
 #include <boost/asio/ip/address_v6.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
 
 using namespace hbt::lang;
 
@@ -59,6 +61,88 @@ static pass_type runSema()
 	};
 }
 
+static pass_type runSemaExpect(const std::map<unsigned, std::string>& patterns, const std::string& filePath)
+{
+	return [&patterns, &filePath] (std::unique_ptr<TranslationUnit>& tu) {
+		std::stringstream buf;
+		DiagnosticOutput diag(buf);
+		SemanticVisitor(diag).visit(*tu);
+
+		std::list<std::pair<unsigned, boost::regex>> patternRegexes;
+
+		for (const auto& pattern : patterns) {
+			std::stringstream patternRegex;
+			auto appendEscapedRegex = [&patternRegex] (const std::string& part) {
+				for (char c : part)
+					patternRegex << "\\x" << std::hex << std::setw(2) << unsigned((unsigned char) c);
+			};
+
+			patternRegex << "^";
+			appendEscapedRegex(filePath);
+			patternRegex << ":" << std::dec << std::setw(0) << pattern.first << ":\\d+: .*";
+
+			auto expected = pattern.second;
+			do {
+				auto beginRe = expected.find("{{");
+				if (beginRe == 0) {
+					auto endPos = expected.find("}}");
+					if (endPos == expected.npos) {
+						patternRegex << expected;
+						expected = "";
+					} else {
+						patternRegex << expected.substr(2, endPos - 2);
+						expected = expected.substr(endPos + 2);
+					}
+				} else if (beginRe == expected.npos) {
+					appendEscapedRegex(expected);
+					expected = "";
+				} else {
+					appendEscapedRegex(expected.substr(0, beginRe));
+					expected = expected.substr(beginRe);
+				}
+			} while (expected.size());
+
+			patternRegex << ".*$";
+
+			patternRegexes.push_back({ pattern.first, boost::regex(patternRegex.str()) });
+		}
+
+		while (buf.tellg() != buf.tellp()) {
+			std::string diagLine;
+			while (diagLine.size() == 0 && !buf.fail()) {
+				getline(buf, diagLine, '\n');
+			}
+
+			if (buf.fail())
+				break;
+
+			bool matched = false;
+			for (auto it = patternRegexes.begin(), end = patternRegexes.end(); it != end; ++it) {
+				if (boost::regex_match(diagLine, it->second)) {
+					patternRegexes.erase(it);
+					matched = true;
+					break;
+				}
+			}
+
+			if (!matched)
+				std::cout << "unmatched diagnostic line: " << diagLine << "\n";
+		}
+
+		while (buf.peek() == '\n')
+			buf.get();
+
+		if (patternRegexes.size()) {
+			for (auto& p : patternRegexes) {
+				std::cout << "unmatched expectation in line " << p.first << ": " << patterns.at(p.first) << "\n";
+			}
+			return false;
+		}
+
+		return true;
+	};
+}
+
 int main(int argc, char* argv[])
 {
 	static const char* helpMessage = R"(Usage: hbt-lang [options] [passes] <input>
@@ -79,11 +163,14 @@ Passes:
 	}
 
 	const char* input = nullptr;
+	std::string fileName;
 
 	std::vector<pass_type> passes;
 	bool hadOnlyPrintPasses = true;
 
 	std::vector<std::string> includePaths;
+
+	std::map<unsigned, std::string> semaExpected;
 
 	auto getNextArg = [argc, argv] (int& arg) {
 		if (arg + 1 >= argc) {
@@ -114,6 +201,9 @@ Passes:
 			addNonSemaPass(printAST(getNextArg(i)), true);
 		} else if (arg == "-sema") {
 			passes.push_back(runSema());
+		} else if (arg == "-sema-expect") {
+			passes.push_back(runSemaExpect(semaExpected, fileName));
+			hadOnlyPrintPasses = false;
 		} else {
 			if ((input && arg[0] == '-') || (!input && arg[0] == '-' && arg != "-")) {
 				std::cerr << "superfluous argument '" << arg << "'\n";
@@ -132,13 +222,14 @@ Passes:
 		return 1;
 	}
 
-	auto buf = hbt::util::MemoryBuffer::loadFile(input, true);
-
 	try {
 		std::unique_ptr<char, void (*)(void*)> wd(get_current_dir_name(), free);
 		boost::filesystem::path file(input);
 
-		auto tu = hbt::lang::Parser(includePaths, 4).parse(file.is_absolute() ? file.native() : (wd.get() / file).native());
+		Parser parser(includePaths, 4, &semaExpected);
+		fileName = file.is_absolute() ? file.native() : (wd.get() / file).native();
+
+		auto tu = parser.parse(fileName);
 
 		for (auto& pass : passes) {
 			if (!pass(tu))

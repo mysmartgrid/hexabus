@@ -44,7 +44,7 @@ set(CMAKE_CXX_FLAGS "${CXXFLAGS} -std=c++11")
 
 set(Boost_USE_STATIC_LIBS ON)
 SET(Boost_DETAILED_FAILURE_MSG true)
-FIND_PACKAGE(Boost 1.54 REQUIRED COMPONENTS test_exec_monitor program_options filesystem system date_time thread)
+FIND_PACKAGE(Boost 1.54 REQUIRED COMPONENTS test_exec_monitor program_options filesystem regex system date_time thread)
 
 # Reflect the package structure
 include_directories(${CMAKE_SOURCE_DIR}/include)

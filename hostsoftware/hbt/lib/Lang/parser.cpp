@@ -27,6 +27,7 @@ namespace {
 enum {
 	TOKEN_ANY = 1,
 	TOKEN_SPACE = 2,
+	TOKEN_LINECOMMENT = 3,
 };
 
 template<typename Lexer>
@@ -38,7 +39,7 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 
 	tokenizer()
 	{
-		add(linecomment = R"((?-s:\/\/.*))", TOKEN_SPACE);
+		add(linecomment = R"((?-s:\/\/.*))", TOKEN_LINECOMMENT);
 		add(blockcomment = R"(\/\*([^*]|\*+[^/*])*\*+\/)", TOKEN_SPACE);
 		add(unterminated_blockcomment = R"(\/\*([^*]|\*+[^/*])*)");
 		add(whitespace = R"([\r\n\t ]+)", TOKEN_SPACE);
@@ -151,13 +152,36 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 
 template<typename It>
 struct whitespace : qi::grammar<It> {
+	typedef boost::iterator_range<typename It::base_iterator_type> range;
+
+	static std::string str(const range& range)
+	{
+		return std::string(range.begin(), range.end());
+	}
+
 	template<typename TokenDef>
-	whitespace(const TokenDef& tok) : whitespace::base_type(start)
+	whitespace(const TokenDef& tok, std::map<unsigned, std::string>* expectations)
+		: whitespace::base_type(start)
 	{
 		using namespace qi;
 
 		start =
-			tok.whitespace | tok.linecomment | tok.blockcomment | (tok.unterminated_blockcomment > unterminated);
+			tok.whitespace
+			| tok.linecomment[spirit_workarounds::fwd > [this, expectations] (range& r) {
+				if (!expectations)
+					return;
+
+				if (!expectationRangesProcessed.insert(r).second)
+					return;
+
+				std::string line = str(r);
+				static const char prefix[] = "//#expect: ";
+				if (line.substr(0, strlen(prefix)) == prefix) {
+					expectations->insert({ getLine(r.begin()), line.substr(strlen(prefix)) });
+				}
+			}]
+			| tok.blockcomment
+			| (tok.unterminated_blockcomment > unterminated);
 
 		unterminated.name("blockcomment terminator");
 		unterminated = !eps;
@@ -165,6 +189,7 @@ struct whitespace : qi::grammar<It> {
 
 	qi::rule<It> start;
 	qi::rule<It> unterminated;
+	std::set<range> expectationRangesProcessed;
 };
 
 template<typename It>
@@ -853,7 +878,8 @@ ParseError::ParseError(const SourceLocation& at, const std::string& expected, co
 }
 
 static std::list<std::unique_ptr<ProgramPart>> parseBuffer(const util::MemoryBuffer& input,
-		const std::string* fileName, const SourceLocation* includedFrom, int tabWidth)
+		const std::string* fileName, const SourceLocation* includedFrom, int tabWidth,
+		std::map<unsigned, std::string>* expectations)
 {
 	typedef sloc_iterator<const char*> iter;
 	typedef boost::spirit::lex::lexertl::token<iter> token_type;
@@ -866,7 +892,7 @@ static std::list<std::unique_ptr<ProgramPart>> parseBuffer(const util::MemoryBuf
 
 	tokenizer<lexer_type> t;
 	grammar<iterator_type> g(t, fileName, includedFrom, tabWidth);
-	whitespace<iterator_type> ws(t);
+	whitespace<iterator_type> ws(t, expectations);
 
 	try {
 		iter first(ctext.begin()), last(ctext.end());
@@ -887,7 +913,7 @@ static std::list<std::unique_ptr<ProgramPart>> parseBuffer(const util::MemoryBuf
 			else
 				boost::spirit::lex::tokenize(errit, iter(ctext.end()), t,
 					[&badToken, &line, &col, tabWidth] (const token_type& token) {
-						if (token.id() == TOKEN_SPACE)
+						if (token.id() == TOKEN_SPACE || token.id() == TOKEN_LINECOMMENT)
 							return true;
 
 						if (token.id() == TOKEN_ANY && !std::isprint(*token.value().begin())) {
@@ -918,8 +944,8 @@ static std::list<std::unique_ptr<ProgramPart>> parseBuffer(const util::MemoryBuf
 
 
 
-Parser::Parser(std::vector<std::string> includePaths, int tabWidth)
-	: _includePaths(std::move(includePaths)), _tabWidth(tabWidth)
+Parser::Parser(std::vector<std::string> includePaths, int tabWidth, std::map<unsigned, std::string>* expectations)
+	: _includePaths(std::move(includePaths)), _tabWidth(tabWidth), _expectations(expectations)
 {
 	for (const auto& path : _includePaths)
 		if (!boost::filesystem::path(path).is_absolute())
@@ -950,7 +976,7 @@ Parser::FileData Parser::loadFile(const std::string& file, const std::string* ex
 std::list<std::unique_ptr<ProgramPart>> Parser::parseFile(const FileData& fileData, const std::string* pathPtr,
 		const SourceLocation* includedFrom)
 {
-	auto parsed = parseBuffer(fileData.buf, pathPtr, includedFrom, _tabWidth);
+	auto parsed = parseBuffer(fileData.buf, pathPtr, includedFrom, _tabWidth, _expectations);
 	for (auto it = parsed.begin(), end = parsed.end(); it != end; ++it) {
 		auto* inc = dynamic_cast<IncludeLine*>(it->get());
 		if (!inc)
