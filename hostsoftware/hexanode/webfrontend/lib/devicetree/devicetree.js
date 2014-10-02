@@ -704,6 +704,16 @@ var moduleWrapper = function(globalScope) {
 			}
 		};
 
+		this.reset = onServer(function() {
+			for(var ip in devices) {
+				this.removeDevice(ip);
+			}
+		
+			for(var id in view) {
+				this.removeView(id);
+			}
+		});
+
 		Object.defineProperties(this, {
 			devices: {
 				get: function() {

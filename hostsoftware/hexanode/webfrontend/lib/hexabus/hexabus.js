@@ -71,8 +71,7 @@ var hexabus = function() {
 	};
 
 	this.get_activation_code = function(cb) {
-		var program = nconf.get('debug-wizard')
-			? '../backend/build/src/hexabus_msg_bridge --config bridge.conf -A'
+		var program = nconf.get('debug-wizard') ? '../backend/build/src/hexabus_msg_bridge --config bridge.conf -A'
 			: 'hexabus_msg_bridge -A';
 		exec(program, function(error, stdout, stderr) {
 			if (error) {
@@ -100,10 +99,10 @@ var hexabus = function() {
 		});
 	};
 
-	this.enumerate_network = function(cb) {
-		cb = cb || Object;
-		var interfaces = (nconf.get("debug-hxb-ifaces") || "eth0,usb0").split(",");
-		interfaces.forEach(function(iface) {
+	this.enumerate_network = function(deviceCb) {
+		deviceCb = deviceCb || Object;
+		
+		var enumerateInterface = function(iface, cb) {
 			exec("hexinfo --discover --interface " + iface + " --json --devfile -", function(error, stdout, stderr) {
 				if (error) {
 					cb({ error: error });
@@ -112,16 +111,26 @@ var hexabus = function() {
 					console.log('Hexinfo:');
 					console.log(devices);
 					devices.forEach(function(dev) {
-						cb({ device: dev });
+						deviceCb({ device: dev });
 					});
-					cb({ done: true });
+					cb();
 				}
 			});
+		};
+		
+		var interfaces = (nconf.get("debug-hxb-ifaces") || "eth0,usb0").split(",");
+		async.each(interfaces, enumerateInterface, function(error) {
+			if(error !== undefined) {
+				deviceCb(error);
+			}
+			else {
+				deviceCb({'done' : true});
+			}
 		});
 	};
 
 	this.is_ignored_endpoint = function(ip, eid) {
-		return eid == 7 || eid == 8;
+		return eid >= 7 && eid <= 12;
 	};
 
 

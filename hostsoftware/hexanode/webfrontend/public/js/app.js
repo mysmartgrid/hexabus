@@ -110,11 +110,12 @@ angular.module('dashboard', [
 			$('#last-update-when').text(Lang.localizeLastUpdate(lastTreeUpdateReceivedAt / 1000));
 		}
 
+
 		if (pendingUpdateControl) {
 			pendingUpdateControl.focus();
 		}
 
-		updateDisplayScheduled = $timeout(updateDisplay, 100);
+		updateDisplayScheduled = $timeout(updateDisplay, 1000);
 	};
 
 	Socket.on('devicetree_init', function(json) {
@@ -330,116 +331,39 @@ angular.module('dashboard', [
 		}
 	});
 }])
-.controller('devicesList', ['$scope', 'Socket', 'Lang', function($scope, Socket, Lang) {
-	$scope.devices = window.known_hexabus_devices;
-
+.controller('devicesList', ['$scope', '$timeout', 'Socket', 'Lang', function($scope, $timeout, Socket, Lang) {
 	$scope.Lang = Lang;
 
-	var now = function() {
-		return Math.round((+new Date()) / 1000);
-	};
+	$scope.devicetree = new window.DeviceTree();
+	
+	var hexabusclient = new window.HexabusClient(Socket);
 
-	Socket.on('ep_update', function(data) {
-		if ($scope.devices[data.device]) {
-			if(!$scope.devices[data.device].last_update || data.last_update > $scope.devices[data.device].last_update) {
-				$scope.devices[data.device].last_update = data.last_update;
-				$scope.devices[data.device].timeout = false;
-			}	
-		}
-	});
-
-	var on_ep_metadata = function(ep) {
-		if (ep.function == "infrastructure") {
-			return;
-		}
-		var device = ($scope.devices[ep.ip] = $scope.devices[ep.ip] || { ip: ep.ip, eids: [] });
-
-		console.log(ep.last_update);
-
-		//ep.last_update = Math.round((+new Date(ep.last_update)) / 1000);
-
-		device.name = ep.name;
-		if(device.renaming && ep.ip == device.ip) {
-			if(device.new_name == ep.name) {
-				device.renaming = false;
-				device.rename = false;
-				device.rename_error_class = "";
-				device.rename_error = false;
-			}
-		} else {
-			device.new_name = ep.name;
-		}
-
-		if (!device.last_update || device.last_update < ep.last_update) {
-			device.last_update = ep.last_update;
-		}
-
-		var eid = {
-			eid: parseInt(ep.eid),
-			description: ep.description,
-			unit: ep.unit
-		};
-
-		var found = false;
-		for (var key in device.eids) {
-			found = found || device.eids[key].eid == eid.eid;
-			if (found)
-				break;
-		}
-
-		if (!found) {
-			device.eids.push(eid);
-			device.eids.sort(function(a, b) {
-				return b.eid - a.eid;
-			});
-		}
-	};
-
-	var on_device_rename_error = function(msg) {
-		var device = $scope.devices[msg.device];
-		if(device.renaming) {
-			device.renaming = false;
-			device.rename_error_msg = msg.error.code || msg.error;
-			device.rename_error_class = "error";
-			device.rename_error = true;
-		}
-	};
 
 	$scope.show_rename = function(device) {
 		device.rename = true;
 	};
-
+	
 	$scope.rename_device = function(device) {
 		device.renaming = true;
-		var name = device.new_name;
-		Socket.emit('device_rename', {device: device.ip, name: name});
+		hexabusclient.renameDevice(device, device.new_name, function(data) {
+			if(!data.success) {
+				console.log('Renaming failed !');
+				console.log(data.error);
+				device.rename_error_code = data.error;
+				device.rename_error = true;
+			}
+			else {
+				device.rename = false;
+			}
+			device.renaming = false;
+		});
 	};
 
-	Socket.on('device_rename_error', on_device_rename_error);
+	var updateDisplay = function() {
+		//Calling $timeout is sufficient to trigger an update of the angular bindings
+		$timeout(updateDisplay, 1000);
+	};
 
-
-	Socket.on('ep_new', on_ep_metadata);
-	Socket.on('ep_metadata', on_ep_metadata);
-
-	Socket.on('device_removed', function(msg) {
-		for (var id in $scope.devices) {
-			if ($scope.devices[id].ip == msg.device) {
-				delete $scope.devices[id];
-			}
-		}
-	});
-
-	Socket.emit('devices_enumerate');
-
-	Socket.on('devices_enumerate_done', function() {
-		$scope.scanDone = true;
-	});
-
-	Socket.on('ep_timeout', function(msg) {
-		if($scope.devices[msg.ep.ip]) {
-			$scope.devices[msg.ep.ip].timeout = true;
-		}
-	});
 
 	$scope.remove = function(device) {
 		var message = "Do you really want to remove {device}?";
@@ -448,10 +372,40 @@ angular.module('dashboard', [
 
 		message = message.replace("{device}", device.name);
 		if (confirm(message)) {
-			Socket.emit('device_remove', { device: device.ip });
-			Socket.emit('device_removed', { device: device.ip });
+			$scope.devicetree.removeDevice(device.ip);	
 		}
 	};
+	
+	Socket.on('devicetree_init', function(json) {
+		$scope.devicetree = new window.DeviceTree(json);
+
+		$scope.devicetree.on('update', function(update) {
+			Socket.emit('devicetree_update', update);
+		});
+
+		$scope.devicetree.on('delete', function(deletion) {
+			Socket.emit('devicetree_delete', deletion);
+		});
+	});
+
+	Socket.on('devicetree_update', function(update) {
+		$scope.devicetree.applyUpdate(update);
+	});
+
+	Socket.on('devicetree_delete', function(deletion) {
+		$scope.devicetree.applyDeletion(deletion);
+	});
+
+	Socket.emit('devicetree_request_init');
+
+	hexabusclient.enumerateNetwork(function(data) {
+		//TODO: handle hexinfo errors
+		$scope.scanDone = true;
+		console.log('Scan done');		
+	});
+
+	updateDisplay();
+
 }])
 .controller('devicesAdd', ['$scope', 'Socket', 'Lang', function($scope, Socket, Lang) {
 	

@@ -11,4 +11,9 @@ window.HexabusClient = function(socket) {
 		socket.emit('hexabus_set_endpoint', {'endpointId' : endpoint.id, 'value' : value}, cb);
 	};
 
+	this.enumerateNetwork = function(cb) {
+		console.log('Enumerating network');
+		socket.emit('hexabus_enumerate', {}, cb);
+	};
+
 };

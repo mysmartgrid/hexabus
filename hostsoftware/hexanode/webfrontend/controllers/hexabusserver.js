@@ -35,7 +35,7 @@ var HexabusServer = function(socket, devicetree) {
 	});
 
 
-	socket.on('hexabus_rename_device', function(data, cb) {
+	on('hexabus_rename_device', function(data, cb) {
 		if(data.deviceIp === undefined || data.name === undefined) {
 			throw 'Invalid rename';
 		}
@@ -43,7 +43,7 @@ var HexabusServer = function(socket, devicetree) {
 
 		hexabus.rename_device(data.deviceIp, data.name, function(error) {
 			if(error) {
-				cb({'success' : false, 'error' : error});
+				cb({'success' : false, 'errorCode' : error.code});
 			}
 			else {
 				devicetree.devices[data.deviceIp].name = data.name;
@@ -53,7 +53,7 @@ var HexabusServer = function(socket, devicetree) {
 	});
 
 	
-	socket.on('hexabus_set_endpoint', function(data, cb) {
+	on('hexabus_set_endpoint', function(data, cb) {
 		
 		if(data.endpointId === undefined || data.value === undefined) {
 			throw 'Invalid set endpoint';
@@ -72,6 +72,30 @@ var HexabusServer = function(socket, devicetree) {
 			else {
 				ep.last_value = data.value;
 				cb({'success' : true});
+			}
+		});
+	});
+
+	on('hexabus_enumerate', function(data, cb) {
+		console.log('Enumerate called');
+		hexabus.enumerate_network(function(dev) {
+			if (dev.done) {
+				cb({'success' : true});
+			} else if (dev.error) {
+				console.log(dev.error);
+				cb({'success' : false, 'msg' : dev.error});
+			} else {
+				dev = dev.device;
+				for (var key in dev.endpoints) {
+					var ep = dev.endpoints[key];
+					ep.name = ep.name || dev.name;
+					if ((!devicetree.devices[dev.ip] || !devicetree.devices[dev.ip].endpoints[ep.eid]) && !hexabus.is_ignored_endpoint(dev.ip, ep.eid)) {
+						devicetree.add_endpoint(dev.ip, ep.eid, ep);
+					}
+					else if(devicetree.devices[dev.ip] && devicetree.devices[dev.ip].endpoints[ep.eid] && !hexabus.is_ignored_endpoint(dev.ip, ep.eid)) {
+						devicetree.devices[dev.ip].endpoints[ep.eid].update();
+					}
+				}
 			}
 		});
 	});
