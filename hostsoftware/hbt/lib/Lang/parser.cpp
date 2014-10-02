@@ -559,10 +559,11 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			(
 				datatype
 				> identifier
-				> -(omit[tok.op.assign] > expr)
+				> omit[tok.op.assign | expected("=")]
+				> expr
 				> omit[tok.semicolon | expected(";")]
-			)[fwd >= [this] (locd<Type>* dt, Identifier* id, ptr<Expr>* e) {
-				return new DeclarationStmt(std::move(dt->loc), dt->val, std::move(*id), e ? *e : ptr<Expr>());
+			)[fwd >= [this] (locd<Type>* dt, Identifier* id, ptr<Expr>& e) {
+				return new DeclarationStmt(std::move(dt->loc), dt->val, std::move(*id), e);
 			}];
 
 		s.goto_.name("goto statement");

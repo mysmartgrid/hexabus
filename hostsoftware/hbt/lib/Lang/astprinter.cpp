@@ -348,11 +348,8 @@ void ASTPrinter::visit(DeclarationStmt& d)
 {
 	indent();
 
-	out << typeName(d.type()) << " " << d.name().name();
-	if (d.value()) {
-		out << " = ";
-		d.value()->accept(*this);
-	}
+	out << typeName(d.type()) << " " << d.name().name() << " = ";
+	d.value().accept(*this);
 	out << ";";
 }
 

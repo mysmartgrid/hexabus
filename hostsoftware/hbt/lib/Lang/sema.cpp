@@ -609,11 +609,9 @@ void SemanticVisitor::visit(DeclarationStmt& d)
 		decl = scopes.insert(d);
 	}
 
-	if (d.value()) {
-		d.value()->accept(*this);
-		if (decl && !d.value()->isDependent() && !isAssignableFrom(d.type(), d.value()->type()))
-			diags.print(invalidImplicitConversion(d.sloc(), d.value()->type(), d.type()));
-	}
+	d.value().accept(*this);
+	if (decl && !d.value().isDependent() && !isAssignableFrom(d.type(), d.value().type()))
+		diags.print(invalidImplicitConversion(d.sloc(), d.value().type(), d.type()));
 }
 
 void SemanticVisitor::visit(GotoStmt& g)

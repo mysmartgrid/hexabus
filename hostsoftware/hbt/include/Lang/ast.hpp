@@ -552,13 +552,13 @@ private:
 	std::unique_ptr<Expr> _value;
 
 public:
-	DeclarationStmt(const SourceLocation& sloc, Type type, const Identifier& name, std::unique_ptr<Expr>&& value = nullptr)
+	DeclarationStmt(const SourceLocation& sloc, Type type, const Identifier& name, std::unique_ptr<Expr>&& value)
 		: Stmt(sloc), _type(type), _name(name), _value(std::move(value))
 	{}
 
 	Type type() const { return _type; }
 	const Identifier& name() const { return _name; }
-	Expr* value() { return _value.get(); }
+	Expr& value() { return *_value; }
 
 	virtual void accept(ASTVisitor& v)
 	{
