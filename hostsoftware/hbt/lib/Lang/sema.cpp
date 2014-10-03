@@ -706,6 +706,8 @@ void SemanticVisitor::visit(DeclarationStmt& d)
 {
 	ScopeEntry* decl = nullptr;
 
+	d.value().accept(*this);
+
 	if (auto old = scopes.resolve(d.name().name())) {
 		diags.print(
 			redeclaration(d.name().sloc(), d.name().name()),
@@ -714,7 +716,6 @@ void SemanticVisitor::visit(DeclarationStmt& d)
 		decl = scopes.insert(d);
 	}
 
-	d.value().accept(*this);
 	if (decl && !d.value().isIncomplete() && !isAssignableFrom(d.type(), d.value().type()))
 		diags.print(invalidImplicitConversion(d.sloc(), d.value().type(), d.type()));
 }
