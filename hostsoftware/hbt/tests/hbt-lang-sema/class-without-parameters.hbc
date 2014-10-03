@@ -1,0 +1,4 @@
+class c() { //#expect: error: class c has no parameters
+	state init {
+	}
+}

@@ -668,8 +668,9 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 					std::vector<ptr<DeclarationStmt>>& decls, std::vector<ptr<State>>& states) {
 				std::vector<ClassParameter> params;
 
-				for (auto& param : *paramNames)
-					params.emplace_back(param->sloc(), param->name());
+				if (paramNames)
+					for (auto& param : *paramNames)
+						params.emplace_back(param->sloc(), param->name());
 
 				return new MachineClass(locOf(r), std::move(*id), std::move(params), unpack(decls), unpack(states));
 			}];

@@ -212,6 +212,11 @@ static Diagnostic classParamUnused(const ClassParameter& cp)
 	return { DiagnosticKind::Warning, &cp.sloc(), "unused class parameter " + cp.name() };
 }
 
+static Diagnostic classWithoutParameters(const MachineClass& m)
+{
+	return { DiagnosticKind::Error, &m.sloc(), str(format("class %1% has no parameters") % m.name().name()) };
+}
+
 
 
 static void restrictConstexprValueToType(Expr& e)
@@ -808,6 +813,9 @@ void SemanticVisitor::checkMachineBody(MachineBody& m)
 void SemanticVisitor::visit(MachineClass& m)
 {
 	declareGlobalName(m, m.name().name());
+
+	if (!m.parameters().size())
+		diags.print(classWithoutParameters(m));
 
 	for (auto& param : m.parameters()) {
 		auto res = classParams.insert({ param.name(), { param, nullptr } });
