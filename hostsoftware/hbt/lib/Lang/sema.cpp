@@ -80,10 +80,10 @@ static Diagnostic identifierIsNoClass(const Identifier& ident)
 
 static Diagnostic deviceDoesNotHave(const EndpointExpr& e, const std::string& dev, const std::string& ep)
 {
-	auto& devName = e.deviceIsDependent()
+	auto& devName = e.deviceIsIncomplete()
 		? str(format("%1% (aka %2%)") % e.device().name() % dev)
 		: e.device().name();
-	auto& epName = e.endpointIsDependent()
+	auto& epName = e.endpointIsIncomplete()
 		? str(format("%1% (aka %2%)") % e.endpoint().name() % ep)
 		: e.endpoint().name();
 	return { DiagnosticKind::Error, &e.sloc(), str(format("device %1% does not implement endpoint %2%") % devName % epName) };
@@ -91,7 +91,7 @@ static Diagnostic deviceDoesNotHave(const EndpointExpr& e, const std::string& de
 
 static Diagnostic endpointNotReadable(const EndpointExpr& ep, const Endpoint& subst)
 {
-	if (ep.endpointIsDependent()) {
+	if (ep.endpointIsIncomplete()) {
 		return {
 			DiagnosticKind::Error,
 			&ep.sloc(),
@@ -103,7 +103,7 @@ static Diagnostic endpointNotReadable(const EndpointExpr& ep, const Endpoint& su
 
 static Diagnostic endpointNotWritable(const EndpointExpr& ep, const Endpoint& subst)
 {
-	if (ep.endpointIsDependent()) {
+	if (ep.endpointIsIncomplete()) {
 		return {
 			DiagnosticKind::Error,
 			&ep.sloc(),
@@ -301,15 +301,15 @@ void SemanticVisitor::visit(IdentifierExpr& i)
 		return;
 	}
 
+	i.isIncomplete(true);
+
 	if (inferClassParam(i.name(), i.sloc(), ClassParameter::Type::Value)) {
 		auto& cp = classParams.at(i.name());
 		if (cp.hasValue) {
-			i.isDependent(false);
+			i.isIncomplete(false);
 			i.type(cp.value->type());
 			i.constexprValue(cp.value->constexprValue());
 			i.isConstexpr(cp.value->isConstexpr());
-		} else {
-			i.isDependent(true);
 		}
 		return;
 	}
@@ -329,7 +329,7 @@ void SemanticVisitor::visit(TypedLiteral<float>& l) {}
 void SemanticVisitor::visit(CastExpr& c)
 {
 	c.expr().accept(*this);
-	c.isDependent(c.expr().isDependent());
+	c.isIncomplete(c.expr().isIncomplete());
 	c.isConstexpr(c.expr().isConstexpr() && isConstexprType(c.type()));
 	c.constexprValue(c.expr().constexprValue());
 	restrictConstexprValueToType(c);
@@ -339,9 +339,9 @@ void SemanticVisitor::visit(UnaryExpr& u)
 {
 	u.expr().accept(*this);
 	u.isConstexpr(u.expr().isConstexpr());
-	u.isDependent(u.expr().isDependent());
+	u.isIncomplete(u.expr().isIncomplete());
 
-	if (u.isDependent())
+	if (u.isIncomplete())
 		return;
 
 	if (u.expr().type() == Type::Float && u.op() == UnaryOperator::Negate)
@@ -381,9 +381,9 @@ void SemanticVisitor::visit(BinaryExpr& b)
 	b.right().accept(*this);
 
 	b.isConstexpr(b.left().isConstexpr() && b.right().isConstexpr());
-	b.isDependent(b.left().isDependent() || b.right().isDependent());
+	b.isIncomplete(b.left().isIncomplete() || b.right().isIncomplete());
 
-	if (b.isDependent())
+	if (b.isIncomplete())
 		return;
 
 	b.type(commonType(b.left().type(), b.right().type()));
@@ -472,9 +472,9 @@ void SemanticVisitor::visit(ConditionalExpr& c)
 	c.ifFalse().accept(*this);
 
 	c.isConstexpr(c.condition().isConstexpr() && c.ifTrue().isConstexpr() && c.ifFalse().isConstexpr());
-	c.isDependent(c.condition().isDependent() || c.ifTrue().isDependent() || c.ifFalse().isDependent());
+	c.isIncomplete(c.condition().isIncomplete() || c.ifTrue().isIncomplete() || c.ifFalse().isIncomplete());
 
-	if (!c.isDependent())
+	if (!c.isIncomplete())
 		c.type(commonType(c.ifTrue().type(), c.ifFalse().type()));
 
 	if (c.isConstexpr()) {
@@ -504,7 +504,7 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 			exprIsFullyDefined &= cpit->second.hasValue;
 			if (inferClassParam(e.device().name(), e.device().sloc(), ClassParameter::Type::Device) && cpit->second.hasValue)
 				dev = cpit->second.device;
-			e.deviceIsDependent(!dev);
+			e.deviceIsIncomplete(!dev);
 		} else if (it != globalNames.end()) {
 			dev = dynamic_cast<Device*>(it->second);
 			if (!dev)
@@ -528,7 +528,7 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 			exprIsFullyDefined &= cpit->second.hasValue;
 			if (inferClassParam(e.endpoint().name(), e.endpoint().sloc(), ClassParameter::Type::Endpoint) && cpit->second.hasValue)
 				ep = cpit->second.endpoint;
-			e.deviceIsDependent(!ep);
+			e.deviceIsIncomplete(!ep);
 		} else if (it != globalNames.end()) {
 			ep = dynamic_cast<Endpoint*>(it->second);
 			if (!ep)
@@ -540,8 +540,10 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 		}
 	}
 
-	if (!dev || !ep)
+	if (!dev || !ep) {
+		e.isIncomplete(true);
 		return nullptr;
+	}
 
 	if (!exprIsFullyDefined)
 		return nullptr;
@@ -577,6 +579,7 @@ void SemanticVisitor::visit(CallExpr& c)
 			c.name().name() != "day" && c.name().name() != "month" && c.name().name() != "year" &&
 			c.name().name() != "weekday") {
 		diags.print(undeclaredIdentifier(c.name()));
+		c.isIncomplete(true);
 		return;
 	}
 
@@ -591,7 +594,7 @@ void SemanticVisitor::visit(CallExpr& c)
 	if (!isIntType(c.arguments()[0]->type()))
 		diags.print(invalidArgType(c, Type::UInt64, 0));
 
-	c.isDependent(c.arguments()[0]->isDependent());
+	c.isIncomplete(c.arguments()[0]->isIncomplete());
 }
 
 void SemanticVisitor::visit(PacketEIDExpr& p)
@@ -615,7 +618,7 @@ void SemanticVisitor::visit(AssignStmt& a)
 		return;
 	}
 
-	if (!a.value().isDependent() && !isAssignableFrom(se->declaration->type(), a.value().type()))
+	if (!a.value().isIncomplete() && !isAssignableFrom(se->declaration->type(), a.value().type()))
 		diags.print(invalidImplicitConversion(a.sloc(), a.value().type(), se->declaration->type()));
 }
 
@@ -627,7 +630,7 @@ void SemanticVisitor::visit(WriteStmt& w)
 		if ((ep->access() & EndpointAccess::Write) != EndpointAccess::Write)
 			diags.print(endpointNotWritable(w.target(), *ep));
 
-		if (!w.value().isDependent() && ep->type() != w.value().type())
+		if (!w.value().isIncomplete() && ep->type() != w.value().type())
 			diags.print(invalidImplicitConversion(w.sloc(), w.value().type(), ep->type()));
 	}
 }
@@ -643,7 +646,7 @@ void SemanticVisitor::visit(IfStmt& i)
 void SemanticVisitor::visit(SwitchStmt& s)
 {
 	s.expr().accept(*this);
-	if (!s.expr().isDependent() && !isAssignableFrom(Type::UInt32, s.expr().type()))
+	if (!s.expr().isIncomplete() && !isAssignableFrom(Type::UInt32, s.expr().type()))
 		diags.print(invalidImplicitConversion(s.sloc(), s.expr().type(), Type::UInt32));
 
 	const SwitchLabel* defaultLabel = nullptr;
@@ -654,7 +657,7 @@ void SemanticVisitor::visit(SwitchStmt& s)
 		for (auto& l : se.labels()) {
 			if (l.expr()) {
 				l.expr()->accept(*this);
-				if (!l.expr()->isDependent()) {
+				if (!l.expr()->isIncomplete()) {
 					if (!isAssignableFrom(Type::UInt32, l.expr()->type())) {
 						diags.print(invalidImplicitConversion(l.sloc(), l.expr()->type(), Type::UInt32));
 						continue;
@@ -708,7 +711,7 @@ void SemanticVisitor::visit(DeclarationStmt& d)
 	}
 
 	d.value().accept(*this);
-	if (decl && !d.value().isDependent() && !isAssignableFrom(d.type(), d.value().type()))
+	if (decl && !d.value().isIncomplete() && !isAssignableFrom(d.type(), d.value().type()))
 		diags.print(invalidImplicitConversion(d.sloc(), d.value().type(), d.type()));
 }
 
@@ -739,7 +742,7 @@ void SemanticVisitor::visit(OnExprBlock& o)
 {
 	o.condition().accept(*this);
 
-	if (!o.condition().isDependent() && o.condition().type() != Type::Bool)
+	if (!o.condition().isIncomplete() && o.condition().type() != Type::Bool)
 		diags.print(invalidImplicitConversion(o.sloc(), o.condition().type(), Type::Bool));
 
 	o.block().accept(*this);

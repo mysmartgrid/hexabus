@@ -1,0 +1,11 @@
+endpoint a(0) : bool (broadcast);
+endpoint b(1) : bool (write);
+
+device dev(::) : a, b;
+
+machine m : {
+	state init {
+		bool A = dev.b; //#expect: error: endpoint b cannot be read
+		dev.a = A; //#expect: error: endpoint a cannot be written
+	}
+}

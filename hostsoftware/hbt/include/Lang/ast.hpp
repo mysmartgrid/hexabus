@@ -162,26 +162,26 @@ class Expr : public ASTVisitable {
 private:
 	SourceLocation _sloc;
 	Type _type;
-	bool _isConstexpr, _isDependent;
+	bool _isConstexpr, _isIncomplete;
 	uint64_t _constexprValue;
 
 protected:
 	typedef std::unique_ptr<Expr> ptr_t;
 
 	Expr(const SourceLocation& sloc, Type type, uint64_t constexprValue = 0)
-		: _sloc(sloc), _type(type), _isConstexpr(false), _isDependent(false), _constexprValue(constexprValue)
+		: _sloc(sloc), _type(type), _isConstexpr(false), _isIncomplete(false), _constexprValue(constexprValue)
 	{}
 
 public:
 	const SourceLocation& sloc() const { return _sloc; }
 	Type type() const { return _type; }
 	bool isConstexpr() const { return _isConstexpr; }
-	bool isDependent() const { return _isDependent; }
+	bool isIncomplete() const { return _isIncomplete; }
 	uint64_t constexprValue() const { return _constexprValue; }
 
 	void type(Type t) { _type = t; }
 	void isConstexpr(bool b) { _isConstexpr = b; }
-	void isDependent(bool b) { _isDependent = b; }
+	void isIncomplete(bool b) { _isIncomplete = b; }
 	void constexprValue(uint64_t v) { _constexprValue = v; }
 };
 
@@ -347,20 +347,20 @@ class EndpointExpr : public Expr {
 private:
 	Identifier _device;
 	Identifier _endpoint;
-	bool _deviceIsDependent, _endpointIsDependent;
+	bool _deviceIsIncomplete, _endpointIsIncomplete;
 
 public:
 	EndpointExpr(const SourceLocation& sloc, const Identifier& device, const Identifier& endpoint, Type type)
-		: Expr(sloc, type), _device(device), _endpoint(endpoint), _deviceIsDependent(false), _endpointIsDependent(false)
+		: Expr(sloc, type), _device(device), _endpoint(endpoint), _deviceIsIncomplete(false), _endpointIsIncomplete(false)
 	{}
 
 	const Identifier& device() const { return _device; }
 	const Identifier& endpoint() const { return _endpoint; }
-	bool deviceIsDependent() const { return _deviceIsDependent; }
-	bool endpointIsDependent() const { return _endpointIsDependent; }
+	bool deviceIsIncomplete() const { return _deviceIsIncomplete; }
+	bool endpointIsIncomplete() const { return _endpointIsIncomplete; }
 
-	void deviceIsDependent(bool b) {  _deviceIsDependent = b; isDependent(_deviceIsDependent || _endpointIsDependent); }
-	void endpointIsDependent(bool b) {  _endpointIsDependent = b; isDependent(_deviceIsDependent || _endpointIsDependent); }
+	void deviceIsIncomplete(bool b) {  _deviceIsIncomplete = b; isIncomplete(_deviceIsIncomplete || _endpointIsIncomplete); }
+	void endpointIsIncomplete(bool b) {  _endpointIsIncomplete = b; isIncomplete(_deviceIsIncomplete || _endpointIsIncomplete); }
 
 	virtual void accept(ASTVisitor& v)
 	{

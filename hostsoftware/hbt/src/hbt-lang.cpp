@@ -61,7 +61,7 @@ static pass_type runSema()
 	};
 }
 
-static pass_type runSemaExpect(const std::multimap<unsigned, std::string>& patterns, const std::string& filePath)
+static pass_type runSemaExpect(const std::vector<std::pair<unsigned, std::string>>& patterns, const std::string& filePath)
 {
 	return [&patterns, &filePath] (std::unique_ptr<TranslationUnit>& tu) {
 		std::stringstream buf;
@@ -136,7 +136,7 @@ static pass_type runSemaExpect(const std::multimap<unsigned, std::string>& patte
 
 		if (patternRegexes.size()) {
 			for (auto& p : patternRegexes) {
-				std::cout << "unmatched expectation in line " << std::get<0>(p) << ": " << std::get<1>(p) << "\n";
+				std::cout << "unmatched expectation in line " << std::get<0>(p) << ": " << std::get<2>(p) << "\n";
 			}
 			return false;
 		}
@@ -172,7 +172,7 @@ Passes:
 
 	std::vector<std::string> includePaths;
 
-	std::multimap<unsigned, std::string> semaExpected;
+	std::vector<std::pair<unsigned, std::string>> semaExpected;
 
 	auto getNextArg = [argc, argv] (int& arg) {
 		if (arg + 1 >= argc) {

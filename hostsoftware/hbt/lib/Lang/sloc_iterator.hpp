@@ -45,6 +45,11 @@ public:
 	size_t line() const { return _line; }
 	size_t col() const { return _col; }
 	size_t tabs() const { return _tabs; }
+
+	friend bool operator<(const sloc_iterator& left, const sloc_iterator& right)
+	{
+		return left.base_reference() < right.base_reference();
+	}
 };
 
 template<typename Base>
