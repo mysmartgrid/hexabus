@@ -1,0 +1,14 @@
+endpoint e(0) : bool (); //#expect: previously declared here
+endpoint e(1) : bool (); //#expect: error: redeclaration of 'e'
+
+device d(::) : e; //#expect: previously declared here
+device d(::) : e; //#expect: error: redeclaration of 'd'
+
+class c(x) { bool b = x; } //#expect: previously declared here
+class c(x) { bool b = x; } //#expect: error: redeclaration of 'c'
+
+machine mdef : {} //#expect: previously declared here
+machine mdef : {} //#expect: error: redeclaration of 'mdef'
+
+machine minst : c(true); //#expect: previously declared here
+machine minst : c(true); //#expect: error: redeclaration of 'minst'

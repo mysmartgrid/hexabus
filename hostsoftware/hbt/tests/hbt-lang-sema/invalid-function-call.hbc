@@ -1,0 +1,6 @@
+machine m : {
+	state init {
+		uint32 x = hour(0, 0); //#expect: error: too many arguments to call of function hour (expected 1, got 2)
+		uint32 y = hour(0.0); //#expect: error: invalid type for argument 1 of function hour (expected uint64, got float)
+	}
+}

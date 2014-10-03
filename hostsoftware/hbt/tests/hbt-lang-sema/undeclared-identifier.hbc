@@ -17,11 +17,14 @@ class c (dev, ep) {
 		}
 
 		dev.ep = 8;
+		x = 7; //#expect: error: use of undeclared identifier 'x'
+		goto u; //#expect: error: use of undeclared identifier 'u'
 	}
 }
 
 endpoint ep(0) : bool();
 device dev(::) : ep;
+device dev2(::) : ep2; //#expect: error: use of undeclared identifier 'ep2'
 
 machine m1 : c1 (7); //#expect: error: use of undeclared identifier 'c1'
 machine m2 : c(U, ep); //#expect: error: use of undeclared identifier 'U'

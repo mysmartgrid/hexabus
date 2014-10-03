@@ -12,7 +12,7 @@ namespace lang {
 static std::string cptDeclStr(ClassParameter::Type t)
 {
 	switch (t) {
-	case ClassParameter::Type::Value: return "value";
+	case ClassParameter::Type::Value: return "integer constant expression";
 	case ClassParameter::Type::Device: return "device name";
 	case ClassParameter::Type::Endpoint: return "endpoint name";
 	default: throw "invalid class parameter type";
@@ -155,7 +155,7 @@ static Diagnostic caseLabelInvalid(const SwitchLabel& l)
 
 static Diagnostic caseLabelDuplicated(const SwitchLabel& l)
 {
-	return { DiagnosticKind::Error, &l.sloc(), "duplicated case label value" };
+	return { DiagnosticKind::Error, &l.sloc(), "duplicated case label 'default'" };
 }
 
 static Diagnostic caseLabelDuplicated(const SwitchLabel& l, uint64_t value)
@@ -434,17 +434,21 @@ void SemanticVisitor::visit(BinaryExpr& b)
 	case BinaryOperator::Multiply: b.constexprValue(b.left().constexprValue() * b.right().constexprValue()); break;
 
 	case BinaryOperator::Divide:
-		if (b.right().constexprValue() == 0)
+		if (b.right().constexprValue() == 0) {
+			b.isIncomplete(true);
 			diags.print(constexprInvokesUB(b));
-		else
+		} else {
 			b.constexprValue(b.left().constexprValue() / b.right().constexprValue());
+		}
 		break;
 
 	case BinaryOperator::Modulo:
-		if (b.right().constexprValue() == 0)
+		if (b.right().constexprValue() == 0) {
+			b.isIncomplete(true);
 			diags.print(constexprInvokesUB(b));
-		else
+		} else {
 			b.constexprValue(b.left().constexprValue() % b.right().constexprValue());
+		}
 		break;
 
 	case BinaryOperator::And: b.constexprValue(b.left().constexprValue() & b.right().constexprValue()); break;
@@ -499,7 +503,7 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 		if (auto se = scopes.resolve(e.device().name())) {
 			diags.print(
 				identifierIsNoDevice(e.device()),
-				previouslyDeclaredHere(se->declaration->sloc()));
+				declaredHere(se->declaration->sloc()));
 		} else if (cpit != classParams.end()) {
 			exprIsFullyDefined &= cpit->second.hasValue;
 			if (inferClassParam(e.device().name(), e.device().sloc(), ClassParameter::Type::Device) && cpit->second.hasValue)
@@ -522,7 +526,7 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 
 		if (auto se = scopes.resolve(e.endpoint().name())) {
 			diags.print(
-				identifierIsNoDevice(e.endpoint()),
+				identifierIsNoEndpoint(e.endpoint()),
 				declaredHere(se->declaration->sloc()));
 		} else if (cpit != classParams.end()) {
 			exprIsFullyDefined &= cpit->second.hasValue;
@@ -534,7 +538,7 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 			if (!ep)
 				diags.print(
 					identifierIsNoEndpoint(e.endpoint()),
-					previouslyDeclaredHere(it->second->sloc()));
+					declaredHere(it->second->sloc()));
 		} else {
 			diags.print(undeclaredIdentifier(e.endpoint()));
 		}
@@ -729,10 +733,11 @@ void SemanticVisitor::visit(OnSimpleBlock& o)
 void SemanticVisitor::visit(OnPacketBlock& o)
 {
 	auto it = globalNames.find(o.source().name());
+	auto se = scopes.resolve(o.source().name());
 
-	if (it == globalNames.end())
+	if (it == globalNames.end() && !se)
 		diags.print(undeclaredIdentifier(o.source()));
-	else if (!dynamic_cast<Device*>(it->second))
+	else if (se || !dynamic_cast<Device*>(it->second))
 		diags.print(identifierIsNoDevice(o.source()));
 
 	o.block().accept(*this);
@@ -830,12 +835,13 @@ void SemanticVisitor::visit(MachineClass& m)
 	}
 
 	checkMachineBody(m);
-	classParams.clear();
 
-	for (auto& param : m.parameters()) {
-		if (param.type() == ClassParameter::Type::Unknown)
-			diags.print(classParamUnused(param));
+	for (auto& param : classParams) {
+		if (param.second.parameter.type() == ClassParameter::Type::Unknown)
+			diags.print(classParamUnused(param.second.parameter));
 	}
+
+	classParams.clear();
 }
 
 void SemanticVisitor::visit(MachineDefinition& m)

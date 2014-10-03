@@ -1,0 +1,18 @@
+endpoint ep(0) : bool (write);
+device dev(::) : ep;
+
+machine m : {
+	uint8 u8 = 0; //#expect: error: invalid implicit type conversion from uint32 to uint8
+	state init {
+		on (7) { //#expect: error: invalid implicit type conversion from uint32 to bool
+		}
+
+		u8 = 0; //#expect: error: invalid implicit type conversion from uint32 to uint8
+		dev.ep = 1; //#expect: error: invalid implicit type conversion from uint32 to bool
+
+		switch (1.0) { //#expect: error: invalid implicit type conversion from float to uint32
+		default: {}
+		case 1.0: {} //#expect: error: invalid implicit type conversion from float to uint32
+		}
+	}
+}

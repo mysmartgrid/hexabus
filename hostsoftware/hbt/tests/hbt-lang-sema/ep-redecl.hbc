@@ -1,2 +1,0 @@
-endpoint e(0) : bool (); //#expect: previously declared here
-endpoint e(1) : bool (); //#expect: error: redeclaration of 'e'

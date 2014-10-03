@@ -1,0 +1,11 @@
+machine m : {
+	state init {
+		switch (1) {
+		case hour(1): {} //#expect: error: case label must be an integral constant expression
+		case 1:    //#expect: hint: previously declared here
+		case 1: {} //#expect: error: duplicated case label value 1
+		default:    //#expect: hint: previously declared here
+		default: {} //#expect: error: duplicated case label 'default'
+		}
+	}
+}

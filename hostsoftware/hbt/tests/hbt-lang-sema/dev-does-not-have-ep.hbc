@@ -1,0 +1,8 @@
+endpoint e(0) : bool (write);
+device dev(::) : ;
+
+machine m : {
+	state init {
+		dev.e = false; //#expect: error: device dev does not implement endpoint e
+	}
+}
