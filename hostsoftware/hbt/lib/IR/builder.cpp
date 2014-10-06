@@ -54,7 +54,6 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 	case Opcode::SHR:
 	case Opcode::DUP:
 	case Opcode::ROT:
-	case Opcode::GETTYPE:
 	case Opcode::CMP_IP_LO:
 	case Opcode::CMP_LT:
 	case Opcode::CMP_LE:

@@ -145,7 +145,6 @@ struct simple_instructions : qi::symbols<char, ir_instruction> {
 			("not", { Opcode::NOT, boost::none_t() })
 			("shl", { Opcode::SHL, boost::none_t() })
 			("shr", { Opcode::SHR, boost::none_t() })
-			("gettype", { Opcode::GETTYPE, boost::none_t() })
 			("cmp.localhost", { Opcode::CMP_IP_LO, boost::none_t() })
 			("cmp.lt", { Opcode::CMP_LT, boost::none_t() })
 			("cmp.le", { Opcode::CMP_LE, boost::none_t() })

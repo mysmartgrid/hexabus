@@ -44,7 +44,6 @@ enum class Opcode {
 	ROT,
 	ROT_I,
 	DT_DECOMPOSE,
-	GETTYPE,
 	SWITCH_8,
 	SWITCH_16,
 	SWITCH_32,

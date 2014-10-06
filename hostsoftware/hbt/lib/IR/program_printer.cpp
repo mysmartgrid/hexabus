@@ -78,7 +78,6 @@ const char* opcodeName(hbt::ir::Opcode op)
 	case Opcode::NOT: return "not";
 	case Opcode::SHL: return "shl";
 	case Opcode::SHR: return "shr";
-	case Opcode::GETTYPE: return "gettype";
 	case Opcode::CMP_IP_LO: return "cmp.localhost";
 	case Opcode::CMP_LT: return "cmp.lt";
 	case Opcode::CMP_LE: return "cmp.le";
@@ -301,7 +300,6 @@ std::string prettyPrint(const Program& program)
 		case Opcode::NOT:
 		case Opcode::SHL:
 		case Opcode::SHR:
-		case Opcode::GETTYPE:
 		case Opcode::CMP_IP_LO:
 		case Opcode::CMP_LT:
 		case Opcode::CMP_LE:

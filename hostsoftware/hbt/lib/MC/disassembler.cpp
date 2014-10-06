@@ -139,7 +139,6 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 		case Opcode::SHR:
 		case Opcode::DUP:
 		case Opcode::ROT:
-		case Opcode::GETTYPE:
 		case Opcode::CMP_IP_LO:
 		case Opcode::CMP_LT:
 		case Opcode::CMP_LE:
@@ -419,7 +418,6 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 		case Opcode::SHR:
 		case Opcode::DUP:
 		case Opcode::ROT:
-		case Opcode::GETTYPE:
 		case Opcode::CMP_LT:
 		case Opcode::CMP_LE:
 		case Opcode::CMP_GT:

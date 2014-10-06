@@ -198,7 +198,6 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 		case Opcode::NOT:
 		case Opcode::SHL:
 		case Opcode::SHR:
-		case Opcode::GETTYPE:
 		case Opcode::CMP_IP_LO:
 		case Opcode::CMP_LT:
 		case Opcode::CMP_LE:

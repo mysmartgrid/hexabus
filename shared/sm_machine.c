@@ -27,7 +27,6 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 	case HSO_OP_NOT:
 	case HSO_OP_SHL:
 	case HSO_OP_SHR:
-	case HSO_OP_GETTYPE:
 	case HSO_CMP_IP_LO:
 	case HSO_CMP_LT:
 	case HSO_CMP_LE:
@@ -751,12 +750,6 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 
 			break;
 		}
-
-		case HSO_OP_GETTYPE:
-			CHECK_POP(1);
-			TOP.v_uint = TOP.type;
-			TOP.type = HXB_DTYPE_UINT8;
-			break;
 
 		case HSO_OP_SWITCH_8:
 		case HSO_OP_SWITCH_16:
