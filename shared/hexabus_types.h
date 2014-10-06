@@ -4,11 +4,6 @@
 #ifdef __cplusplus
 namespace hexabus {
 #endif
-// Boolean values
-enum hxb_bool {
-	HXB_FALSE = 0,
-	HXB_TRUE = 1,
-};
 
 // Packet types
 enum hxb_packet_type {
@@ -22,15 +17,21 @@ enum hxb_packet_type {
 
 // Data types
 enum hxb_datatype {
-	HXB_DTYPE_UNDEFINED = 0x00, // Undefined: Nonexistent data type
-	HXB_DTYPE_BOOL      = 0x01, // Boolean. Value still represented by 8 bits, but may only be HXB_TRUE or HXB_FALSE
-	HXB_DTYPE_UINT8     = 0x02, // Unsigned 8 bit integer
+	HXB_DTYPE_BOOL      = 0x00, // Boolean. Value is still represented by 8 bits, but may only be 0 or 1
+	HXB_DTYPE_UINT8     = 0x01, // Unsigned 8 bit integer
+	HXB_DTYPE_UINT16    = 0x02, // Unsigned 16 bit integer
 	HXB_DTYPE_UINT32    = 0x03, // Unsigned 32 bit integer
-	HXB_DTYPE_UINT64    = 0x04, // Unsigned 64 bit integer, mainly for unix dates
-	HXB_DTYPE_FLOAT     = 0x05, // 32bit floating point
-	HXB_DTYPE_128STRING = 0x06, // 128char fixed length string
-	HXB_DTYPE_65BYTES   = 0x07, // raw 65 byte array, e.g. state machine data.
-	HXB_DTYPE_16BYTES   = 0x08, // raw 16 byte array, e.g. state machine ID.
+	HXB_DTYPE_UINT64    = 0x04, // Unsigned 64 bit integer
+	HXB_DTYPE_SINT8     = 0x05, // Signed 8 bit integer
+	HXB_DTYPE_SINT16    = 0x06, // Signed 16 bit integer
+	HXB_DTYPE_SINT32    = 0x07, // Signed 32 bit integer
+	HXB_DTYPE_SINT64    = 0x08, // Signed 64 bit integer, mainly for unix dates
+	HXB_DTYPE_FLOAT     = 0x09, // 32bit floating point
+	HXB_DTYPE_128STRING = 0x0a, // 128char fixed length string
+	HXB_DTYPE_65BYTES   = 0x0b, // raw 65 byte array, e.g. state machine data.
+	HXB_DTYPE_16BYTES   = 0x0c, // raw 16 byte array, e.g. state machine ID.
+
+	HXB_DTYPE_UNDEFINED = 0xFF, // Undefined: Nonexistent data type
 };
 
 enum hxb_flags {

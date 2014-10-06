@@ -75,7 +75,6 @@ const char* opcodeName(hbt::ir::Opcode op)
 	case Opcode::AND: return "and";
 	case Opcode::OR: return "or";
 	case Opcode::XOR: return "xor";
-	case Opcode::NOT: return "not";
 	case Opcode::SHL: return "shl";
 	case Opcode::SHR: return "shr";
 	case Opcode::CMP_IP_LO: return "cmp.localhost";
@@ -87,8 +86,13 @@ const char* opcodeName(hbt::ir::Opcode op)
 	case Opcode::CMP_NEQ: return "cmp.neq";
 	case Opcode::CONV_B: return "conv.b";
 	case Opcode::CONV_U8: return "conv.u8";
+	case Opcode::CONV_U16: return "conv.u16";
 	case Opcode::CONV_U32: return "conv.u32";
 	case Opcode::CONV_U64: return "conv.u64";
+	case Opcode::CONV_S8: return "conv.s8";
+	case Opcode::CONV_S16: return "conv.s16";
+	case Opcode::CONV_S32: return "conv.s32";
+	case Opcode::CONV_S64: return "conv.s64";
 	case Opcode::CONV_F: return "conv.f";
 	case Opcode::WRITE: return "write";
 	case Opcode::POP: return "pop";
@@ -104,6 +108,10 @@ const char* opcodeName(hbt::ir::Opcode op)
 	case Opcode::LD_U16:
 	case Opcode::LD_U32:
 	case Opcode::LD_U64:
+	case Opcode::LD_S8:
+	case Opcode::LD_S16:
+	case Opcode::LD_S32:
+	case Opcode::LD_S64:
 	case Opcode::LD_FLOAT:
 	case Opcode::LD_MEM:
 		return "ld";
@@ -198,7 +206,7 @@ std::string prettyPrint(const Program& program)
 
 		case Opcode::LD_U16:
 			if (auto* i = dynamic_cast<const ImmediateInstruction<uint16_t>*>(insn)) {
-				out << format(" u32(%1%)") % i->immed();
+				out << format(" u16(%1%)") % i->immed();
 				break;
 			}
 			throw std::runtime_error("invalid program printed");
@@ -213,6 +221,34 @@ std::string prettyPrint(const Program& program)
 		case Opcode::LD_U64:
 			if (auto* i = dynamic_cast<const ImmediateInstruction<uint64_t>*>(insn)) {
 				out << format(" u64(%1%)") % i->immed();
+				break;
+			}
+			throw std::runtime_error("invalid program printed");
+
+		case Opcode::LD_S8:
+			if (auto* i = dynamic_cast<const ImmediateInstruction<int8_t>*>(insn)) {
+				out << format(" s8(%1%)") % int(i->immed());
+				break;
+			}
+			throw std::runtime_error("invalid program printed");
+
+		case Opcode::LD_S16:
+			if (auto* i = dynamic_cast<const ImmediateInstruction<int16_t>*>(insn)) {
+				out << format(" s16(%1%)") % i->immed();
+				break;
+			}
+			throw std::runtime_error("invalid program printed");
+
+		case Opcode::LD_S32:
+			if (auto* i = dynamic_cast<const ImmediateInstruction<int32_t>*>(insn)) {
+				out << format(" s32(%1%)") % i->immed();
+				break;
+			}
+			throw std::runtime_error("invalid program printed");
+
+		case Opcode::LD_S64:
+			if (auto* i = dynamic_cast<const ImmediateInstruction<int64_t>*>(insn)) {
+				out << format(" s64(%1%)") % i->immed();
 				break;
 			}
 			throw std::runtime_error("invalid program printed");
@@ -232,8 +268,13 @@ std::string prettyPrint(const Program& program)
 				switch (std::get<0>(i->immed())) {
 				case MemType::Bool: f = format(" b[%1%]"); break;
 				case MemType::U8: f = format(" u8[%1%]"); break;
+				case MemType::U16: f = format(" u16[%1%]"); break;
 				case MemType::U32: f = format(" u32[%1%]"); break;
 				case MemType::U64: f = format(" u64[%1%]"); break;
+				case MemType::S8: f = format(" s8[%1%]"); break;
+				case MemType::S16: f = format(" s16[%1%]"); break;
+				case MemType::S32: f = format(" s32[%1%]"); break;
+				case MemType::S64: f = format(" s64[%1%]"); break;
 				case MemType::Float: f = format(" f[%1%]"); break;
 				}
 				out << f % std::get<1>(i->immed());
@@ -297,7 +338,6 @@ std::string prettyPrint(const Program& program)
 		case Opcode::AND:
 		case Opcode::OR:
 		case Opcode::XOR:
-		case Opcode::NOT:
 		case Opcode::SHL:
 		case Opcode::SHR:
 		case Opcode::CMP_IP_LO:
@@ -309,8 +349,13 @@ std::string prettyPrint(const Program& program)
 		case Opcode::CMP_NEQ:
 		case Opcode::CONV_B:
 		case Opcode::CONV_U8:
+		case Opcode::CONV_U16:
 		case Opcode::CONV_U32:
 		case Opcode::CONV_U64:
+		case Opcode::CONV_S8:
+		case Opcode::CONV_S16:
+		case Opcode::CONV_S32:
+		case Opcode::CONV_S64:
 		case Opcode::CONV_F:
 		case Opcode::WRITE:
 		case Opcode::POP:

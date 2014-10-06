@@ -40,7 +40,7 @@ class Machine {
 
 		int sm_get_instruction(uint16_t at, struct hxb_sm_instruction* op);
 		int sm_load_mem(const struct hxb_sm_instruction* insn, hxb_sm_value_t* value);
-		int sm_store_mem(const struct hxb_sm_instruction* insn, const hxb_sm_value_t* value);
+		int sm_store_mem(const struct hxb_sm_instruction* insn, hxb_sm_value_t value);
 
 	public:
 		Machine(const std::vector<uint8_t>& program)

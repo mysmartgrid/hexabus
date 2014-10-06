@@ -22,6 +22,10 @@ enum class Opcode {
 	LD_U16,
 	LD_U32,
 	LD_U64,
+	LD_S8,
+	LD_S16,
+	LD_S32,
+	LD_S64,
 	LD_FLOAT,
 	LD_SYSTIME,
 
@@ -36,7 +40,6 @@ enum class Opcode {
 	AND,
 	OR,
 	XOR,
-	NOT,
 	SHL,
 	SHR,
 	DUP,
@@ -59,8 +62,13 @@ enum class Opcode {
 
 	CONV_B,
 	CONV_U8,
+	CONV_U16,
 	CONV_U32,
 	CONV_U64,
+	CONV_S8,
+	CONV_S16,
+	CONV_S32,
+	CONV_S64,
 	CONV_F,
 
 	JNZ,
@@ -80,8 +88,13 @@ enum class Opcode {
 enum class MemType {
 	Bool,
 	U8,
+	U16,
 	U32,
 	U64,
+	S8,
+	S16,
+	S32,
+	S64,
 	Float,
 };
 
@@ -217,6 +230,10 @@ class ImmediateInstruction : public Instruction {
 		std::is_same<Immed, uint16_t>::value ||
 		std::is_same<Immed, uint32_t>::value ||
 		std::is_same<Immed, uint64_t>::value ||
+		std::is_same<Immed, int8_t>::value ||
+		std::is_same<Immed, int16_t>::value ||
+		std::is_same<Immed, int32_t>::value ||
+		std::is_same<Immed, int64_t>::value ||
 		std::is_same<Immed, float>::value ||
 		std::is_same<Immed, DTMask>::value ||
 		std::is_same<Immed, Label>::value ||

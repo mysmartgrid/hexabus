@@ -128,6 +128,35 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 			}
 			throw std::runtime_error("invalid program assembled");
 
+		case Opcode::LD_S8:
+			if (auto* i = dynamic_cast<const ImmediateInstruction<int8_t>*>(insn)) {
+				append_u8(i->immed());
+				break;
+			}
+			throw std::runtime_error("invalid program assembled");
+
+		case Opcode::LD_S16:
+			if (auto* i = dynamic_cast<const ImmediateInstruction<int16_t>*>(insn)) {
+				append_u16(i->immed());
+				break;
+			}
+			throw std::runtime_error("invalid program assembled");
+
+		case Opcode::LD_S32:
+			if (auto* i = dynamic_cast<const ImmediateInstruction<int32_t>*>(insn)) {
+				append_u32(i->immed());
+				break;
+			}
+			throw std::runtime_error("invalid program assembled");
+
+		case Opcode::LD_S64:
+			if (auto* i = dynamic_cast<const ImmediateInstruction<int64_t>*>(insn)) {
+				append_u32(uint64_t(i->immed()) >> 32);
+				append_u32(uint64_t(i->immed()) & 0xFFFFFFFF);
+				break;
+			}
+			throw std::runtime_error("invalid program assembled");
+
 		case Opcode::LD_FLOAT:
 			if (auto* i = dynamic_cast<const ImmediateInstruction<float>*>(insn)) {
 				append_f(i->immed());
@@ -195,7 +224,6 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 		case Opcode::AND:
 		case Opcode::OR:
 		case Opcode::XOR:
-		case Opcode::NOT:
 		case Opcode::SHL:
 		case Opcode::SHR:
 		case Opcode::CMP_IP_LO:
@@ -207,8 +235,13 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 		case Opcode::CMP_NEQ:
 		case Opcode::CONV_B:
 		case Opcode::CONV_U8:
+		case Opcode::CONV_U16:
 		case Opcode::CONV_U32:
 		case Opcode::CONV_U64:
+		case Opcode::CONV_S8:
+		case Opcode::CONV_S16:
+		case Opcode::CONV_S32:
+		case Opcode::CONV_S64:
 		case Opcode::CONV_F:
 		case Opcode::WRITE:
 		case Opcode::POP:

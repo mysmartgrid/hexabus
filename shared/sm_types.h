@@ -11,6 +11,10 @@ enum hxb_sm_opcode {
 	HSO_LD_U16,
 	HSO_LD_U32,
 	HSO_LD_U64,
+	HSO_LD_S8,
+	HSO_LD_S16,
+	HSO_LD_S32,
+	HSO_LD_S64,
 	HSO_LD_FLOAT,
 	HSO_LD_SYSTIME,
 
@@ -25,7 +29,6 @@ enum hxb_sm_opcode {
 	HSO_OP_AND,
 	HSO_OP_OR,
 	HSO_OP_XOR,
-	HSO_OP_NOT,
 	HSO_OP_SHL,
 	HSO_OP_SHR,
 	HSO_OP_DUP,
@@ -46,10 +49,16 @@ enum hxb_sm_opcode {
 	HSO_CMP_EQ,
 	HSO_CMP_NEQ,
 
+	// keep these in order with the corresponding HXB_DTYPE_*
 	HSO_CONV_B,
 	HSO_CONV_U8,
+	HSO_CONV_U16,
 	HSO_CONV_U32,
 	HSO_CONV_U64,
+	HSO_CONV_S8,
+	HSO_CONV_S16,
+	HSO_CONV_S32,
+	HSO_CONV_S64,
 	HSO_CONV_F,
 
 	HSO_JNZ,
@@ -75,10 +84,16 @@ enum hxb_sm_dtmask {
 };
 
 enum hxb_sm_memtype {
+	// keep these in order with the corresponding HXB_DTYPE_*
 	HSM_BOOL,
 	HSM_U8,
+	HSM_U16,
 	HSM_U32,
 	HSM_U64,
+	HSM_S8,
+	HSM_S16,
+	HSM_S32,
+	HSM_S64,
 	HSM_FLOAT,
 };
 
@@ -111,6 +126,7 @@ enum hxb_sm_error {
 	HSE_INVALID_OPERATION,
 	HSE_STACK_ERROR,
 	HSE_WRITE_FAILED,
+	HSE_SIGNED_OVERFLOW,
 };
 
 enum hxb_sm_vector_offsets {

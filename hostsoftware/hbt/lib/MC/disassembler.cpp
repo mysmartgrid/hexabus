@@ -134,7 +134,6 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 		case Opcode::AND:
 		case Opcode::OR:
 		case Opcode::XOR:
-		case Opcode::NOT:
 		case Opcode::SHL:
 		case Opcode::SHR:
 		case Opcode::DUP:
@@ -148,8 +147,13 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 		case Opcode::CMP_NEQ:
 		case Opcode::CONV_B:
 		case Opcode::CONV_U8:
+		case Opcode::CONV_U16:
 		case Opcode::CONV_U32:
 		case Opcode::CONV_U64:
+		case Opcode::CONV_S8:
+		case Opcode::CONV_S16:
+		case Opcode::CONV_S32:
+		case Opcode::CONV_S64:
 		case Opcode::CONV_F:
 		case Opcode::WRITE:
 		case Opcode::POP:
@@ -201,6 +205,50 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 			insn.immed = read_u64();
 			insn.isValid = true;
 			break;
+
+		case Opcode::LD_S8: {
+			if (!canRead(1))
+				break;
+			uint8_t val = read_u8();
+			int8_t immed;
+			memcpy(&immed, &val, sizeof(val));
+			insn.immed = immed;
+			insn.isValid = true;
+			break;
+		}
+
+		case Opcode::LD_S16: {
+			if (!canRead(2))
+				break;
+			uint16_t val = read_u16();
+			int16_t immed;
+			memcpy(&immed, &val, sizeof(val));
+			insn.immed = immed;
+			insn.isValid = true;
+			break;
+		}
+
+		case Opcode::LD_S32: {
+			if (!canRead(4))
+				break;
+			uint32_t val = read_u32();
+			int32_t immed;
+			memcpy(&immed, &val, sizeof(val));
+			insn.immed = immed;
+			insn.isValid = true;
+			break;
+		}
+
+		case Opcode::LD_S64: {
+			if (!canRead(8))
+				break;
+			uint64_t val = read_u64();
+			int64_t immed;
+			memcpy(&immed, &val, sizeof(val));
+			insn.immed = immed;
+			insn.isValid = true;
+			break;
+		}
 
 		case Opcode::LD_FLOAT:
 			if (!canRead(4))
@@ -413,7 +461,6 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 		case Opcode::AND:
 		case Opcode::OR:
 		case Opcode::XOR:
-		case Opcode::NOT:
 		case Opcode::SHL:
 		case Opcode::SHR:
 		case Opcode::DUP:
@@ -426,8 +473,13 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 		case Opcode::CMP_NEQ:
 		case Opcode::CONV_B:
 		case Opcode::CONV_U8:
+		case Opcode::CONV_U16:
 		case Opcode::CONV_U32:
 		case Opcode::CONV_U64:
+		case Opcode::CONV_S8:
+		case Opcode::CONV_S16:
+		case Opcode::CONV_S32:
+		case Opcode::CONV_S64:
 		case Opcode::CONV_F:
 		case Opcode::WRITE:
 		case Opcode::POP:
@@ -458,6 +510,22 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 
 		case Opcode::LD_U64:
 			builder.append(thisLabel, insn.op, boost::get<uint64_t>(insn.immed), 0);
+			break;
+
+		case Opcode::LD_S8:
+			builder.append(thisLabel, insn.op, boost::get<int8_t>(insn.immed), 0);
+			break;
+
+		case Opcode::LD_S16:
+			builder.append(thisLabel, insn.op, boost::get<int16_t>(insn.immed), 0);
+			break;
+
+		case Opcode::LD_S32:
+			builder.append(thisLabel, insn.op, boost::get<int32_t>(insn.immed), 0);
+			break;
+
+		case Opcode::LD_S64:
+			builder.append(thisLabel, insn.op, boost::get<int64_t>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_FLOAT:

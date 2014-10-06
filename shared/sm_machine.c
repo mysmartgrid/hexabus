@@ -24,7 +24,6 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 	case HSO_OP_AND:
 	case HSO_OP_OR:
 	case HSO_OP_XOR:
-	case HSO_OP_NOT:
 	case HSO_OP_SHL:
 	case HSO_OP_SHR:
 	case HSO_CMP_IP_LO:
@@ -36,8 +35,13 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 	case HSO_CMP_NEQ:
 	case HSO_CONV_B:
 	case HSO_CONV_U8:
+	case HSO_CONV_U16:
 	case HSO_CONV_U32:
 	case HSO_CONV_U64:
+	case HSO_CONV_S8:
+	case HSO_CONV_S16:
+	case HSO_CONV_S32:
+	case HSO_CONV_S64:
 	case HSO_CONV_F:
 	case HSO_WRITE:
 	case HSO_POP:
@@ -76,7 +80,7 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 		break;
 
 	case HSO_LD_U16:
-		op->immed.type = HXB_DTYPE_UINT32;
+		op->immed.type = HXB_DTYPE_UINT16;
 		op->immed.v_uint = LOAD(u16);
 		break;
 
@@ -91,6 +95,36 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 		op->immed.v_uint64 <<= 32;
 		op->immed.v_uint64 |= LOAD(u32);
 		break;
+
+	case HSO_LD_S8: {
+		op->immed.type = HXB_DTYPE_SINT8;
+		uint8_t val = LOAD(u8);
+		memcpy(&op->immed.v_sint, &val, 1);
+		break;
+	}
+
+	case HSO_LD_S16: {
+		op->immed.type = HXB_DTYPE_SINT16;
+		uint16_t val = LOAD(u16);
+		memcpy(&op->immed.v_sint, &val, 2);
+		break;
+	}
+
+	case HSO_LD_S32: {
+		op->immed.type = HXB_DTYPE_SINT32;
+		uint32_t val = LOAD(u32);
+		memcpy(&op->immed.v_sint, &val, 4);
+		break;
+	}
+
+	case HSO_LD_S64: {
+		op->immed.type = HXB_DTYPE_SINT64;
+		uint64_t val = LOAD(u32);
+		val <<= 32;
+		val |= LOAD(u32);
+		memcpy(&op->immed.v_sint64, &val, 8);
+		break;
+	}
 
 	case HSO_LD_FLOAT: {
 		uint32_t f = LOAD(u32);
@@ -140,141 +174,254 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 #undef LOAD
 }
 
-static bool is_int(const hxb_sm_value_t* v)
+static bool is_int(uint8_t type)
 {
-	return v->type == HXB_DTYPE_BOOL ||
-		v->type == HXB_DTYPE_UINT8 ||
-		v->type == HXB_DTYPE_UINT32 ||
-		v->type == HXB_DTYPE_UINT64;
+	return type >= HXB_DTYPE_BOOL && type < HXB_DTYPE_FLOAT;
 }
 
-static bool is_arithmetic(const hxb_sm_value_t* v)
+static bool is_arithmetic(uint8_t type)
 {
-	return is_int(v) || v->type == HXB_DTYPE_FLOAT;
+	return is_int(type) || type == HXB_DTYPE_FLOAT;
 }
 
 static int sm_convert(hxb_sm_value_t* val, uint8_t to_type)
 {
-	if (to_type != HXB_DTYPE_BOOL &&
-		to_type != HXB_DTYPE_UINT8 &&
-		to_type != HXB_DTYPE_UINT32 &&
-		to_type != HXB_DTYPE_UINT64 &&
-		to_type != HXB_DTYPE_FLOAT)
-		return -HSE_INVALID_TYPES;
-
 	if (val->type == to_type)
 		return 0;
 
-	switch (val->type) {
+	switch ((enum hxb_datatype) val->type) {
 	case HXB_DTYPE_BOOL:
 	case HXB_DTYPE_UINT8:
+	case HXB_DTYPE_UINT16:
+		val->type = HXB_DTYPE_UINT32;
+		break;
+
+	case HXB_DTYPE_SINT8:
+	case HXB_DTYPE_SINT16:
+		val->type = HXB_DTYPE_SINT32;
+		break;
+
 	case HXB_DTYPE_UINT32:
-		switch (to_type) {
-		case HXB_DTYPE_BOOL:   val->v_uint   = !!val->v_uint; break;
-		case HXB_DTYPE_UINT8:  val->v_uint   = (uint8_t) val->v_uint; break;
-		case HXB_DTYPE_UINT32: val->v_uint   = (uint32_t) val->v_uint; break;
-		case HXB_DTYPE_UINT64: val->v_uint64 = val->v_uint; break;
-		case HXB_DTYPE_FLOAT:  val->v_float  = val->v_uint; break;
-		}
+	case HXB_DTYPE_SINT32:
+	case HXB_DTYPE_UINT64:
+	case HXB_DTYPE_SINT64:
+	case HXB_DTYPE_FLOAT:
+		break;
+
+	default:
+		return -HSE_INVALID_OPERATION;
+	}
+
+#define TRY_SIGNED_CONV(into, from, type, min, max) \
+	do { \
+		if (val->from < min || val->from > max) \
+			return -HSE_SIGNED_OVERFLOW; \
+		val->into = (type) val->from; \
+	} while (0);
+#define TRY_UNSIGNED_CONV(into, from, type, min, max) \
+	do { \
+		if (val->from > max) \
+			return -HSE_SIGNED_OVERFLOW; \
+		val->into = (type) val->from; \
+	} while (0);
+#define TRY_CONVERT_ANY(from, CONV) \
+	do { \
+		switch (to_type) { \
+		case HXB_DTYPE_BOOL:   val->v_uint = val->from != 0; break; \
+		case HXB_DTYPE_UINT8:  val->v_uint = (uint8_t) val->from; break; \
+		case HXB_DTYPE_UINT16: val->v_uint = (uint16_t) val->from; break; \
+		case HXB_DTYPE_UINT32: val->v_uint = (uint32_t) val->from; break; \
+		case HXB_DTYPE_UINT64: val->v_uint = (uint64_t) val->from; break; \
+		case HXB_DTYPE_FLOAT:  val->v_float = (float) val->from; break; \
+		case HXB_DTYPE_SINT8:  CONV(v_sint, from, int8_t, INT8_MIN, INT8_MAX); break; \
+		case HXB_DTYPE_SINT16: CONV(v_sint, from, int16_t, INT16_MIN, INT16_MAX); break; \
+		case HXB_DTYPE_SINT32: CONV(v_sint, from, int32_t, INT32_MIN, INT32_MAX); break; \
+		case HXB_DTYPE_SINT64: CONV(v_sint64, from, int64_t, INT64_MIN, INT64_MAX); break; \
+		} \
+	} while (0)
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
+#endif
+	switch (val->type) {
+	case HXB_DTYPE_UINT32:
+		TRY_CONVERT_ANY(v_uint, TRY_UNSIGNED_CONV);
+		break;
+
+	case HXB_DTYPE_SINT32:
+		TRY_CONVERT_ANY(v_sint, TRY_SIGNED_CONV);
 		break;
 
 	case HXB_DTYPE_UINT64:
-		switch (to_type) {
-		case HXB_DTYPE_BOOL:   val->v_uint  = !!val->v_uint64; break;
-		case HXB_DTYPE_UINT8:  val->v_uint  = (uint8_t) val->v_uint64; break;
-		case HXB_DTYPE_UINT32: val->v_uint  = (uint32_t) val->v_uint64; break;
-		case HXB_DTYPE_FLOAT:  val->v_float = val->v_uint64; break;
-		}
+		TRY_CONVERT_ANY(v_uint64, TRY_UNSIGNED_CONV);
+		break;
+
+	case HXB_DTYPE_SINT64:
+		TRY_CONVERT_ANY(v_sint64, TRY_SIGNED_CONV);
 		break;
 
 	case HXB_DTYPE_FLOAT:
-		switch (to_type) {
-		case HXB_DTYPE_BOOL:   val->v_uint   = val->v_float != 0; break;
-		case HXB_DTYPE_UINT8:  val->v_uint   = (uint8_t) val->v_float; break;
-		case HXB_DTYPE_UINT32: val->v_uint   = (uint32_t) val->v_float; break;
-		case HXB_DTYPE_UINT64: val->v_uint64 = (uint64_t) val->v_float; break;
-		}
+		TRY_CONVERT_ANY(v_float, TRY_SIGNED_CONV);
 		break;
-
-	default: return -HSE_INVALID_OPCODE;
 	}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+#undef TRY_CONVERT_ANY
+#undef TRY_UNSIGNED_CONV
+#undef TRY_SIGNED_CONV
 
 	val->type = to_type;
 
 	return 0;
 }
 
+static uint8_t sm_type_rank(uint8_t t)
+{
+	switch (t) {
+	case HXB_DTYPE_BOOL:
+		return 0;
+
+	case HXB_DTYPE_UINT8:
+	case HXB_DTYPE_SINT8:
+		return 1;
+
+	case HXB_DTYPE_UINT16:
+	case HXB_DTYPE_SINT16:
+		return 2;
+
+	case HXB_DTYPE_UINT32:
+	case HXB_DTYPE_SINT32:
+		return 3;
+
+	case HXB_DTYPE_UINT64:
+	case HXB_DTYPE_SINT64:
+		return 4;
+	}
+
+	return 0xff;
+}
+
+static uint8_t sm_common_type(uint8_t t1, uint8_t t2)
+{
+	if (t1 == HXB_DTYPE_FLOAT || t2 == HXB_DTYPE_FLOAT)
+		return HXB_DTYPE_FLOAT;
+
+	bool t1signed = t1 >= HXB_DTYPE_SINT8 && t1 <= HXB_DTYPE_SINT64;
+	bool t2signed = t2 >= HXB_DTYPE_SINT8 && t2 <= HXB_DTYPE_SINT64;
+
+	uint8_t t1rank = sm_type_rank(t1);
+	uint8_t t2rank = sm_type_rank(t2);
+	uint8_t mrank = t1rank > t2rank ? t1rank : t2rank;
+
+	switch (mrank) {
+	case 0:
+	case 1:
+	case 2:
+	case 3:
+		return (t1signed && t2signed) || (t1signed && !t2signed && t1rank > t2rank) || (!t1signed && t2signed && t1rank < t2rank)
+			? HXB_DTYPE_SINT32
+			: HXB_DTYPE_UINT32;
+
+	case 4:
+		return (t1signed && t2signed) || (t1signed && !t2signed && t1rank > t2rank) || (!t1signed && t2signed && t1rank < t2rank)
+			? HXB_DTYPE_SINT64
+			: HXB_DTYPE_UINT64;
+	}
+
+	return HXB_DTYPE_UNDEFINED;
+}
+
 static int sm_arith_op2(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
 {
-	if (!is_arithmetic(v1) || !is_arithmetic(v2))
+	uint8_t common_type = sm_common_type(v1->type, v2->type);
+
+	if (!is_arithmetic(common_type))
 		return -HSE_INVALID_TYPES;
 
-	/* widen v1 if v2 is of greater rank than v1, this covers integer
-	 * conversion ranks and int<float for all ints */
-	uint8_t common_type = v1->type;
-	if (common_type < v2->type)
-		common_type = v2->type;
-	if (common_type < HXB_DTYPE_UINT32)
-		common_type = HXB_DTYPE_UINT32;
+	if (sm_convert(v1, common_type) < 0)
+		return -HSE_INVALID_OPERATION;
 
-	bool is_float = common_type == HXB_DTYPE_FLOAT;
-	bool is_u64 = common_type == HXB_DTYPE_UINT64;
+	if (sm_convert(v2, common_type) < 0)
+		return -HSE_INVALID_OPERATION;
 
-	int res = sm_convert(v1, common_type);
-	if (res < 0)
-		return res;
+	if (op == HSO_OP_DIV || op == HSO_OP_MOD) {
+		switch (common_type) {
+		case HXB_DTYPE_UINT32:
+			if (v2->v_uint == 0)
+				return -HSE_DIV_BY_ZERO;
+			break;
 
-	res = sm_convert(v2, common_type);
-	if (res < 0)
-		return res;
+		case HXB_DTYPE_UINT64:
+			if (v2->v_uint64 == 0)
+				return -HSE_DIV_BY_ZERO;
+			break;
+
+		case HXB_DTYPE_SINT32:
+			if (v2->v_sint == 0)
+				return -HSE_DIV_BY_ZERO;
+			break;
+
+		case HXB_DTYPE_SINT64:
+			if (v2->v_sint64 == 0)
+				return -HSE_DIV_BY_ZERO;
+			break;
+
+		case HXB_DTYPE_FLOAT:
+			if (op == HSO_OP_DIV)
+				break;
+			if (v2->v_float == 0 || isinf(v2->v_float))
+				return -HSE_DIV_BY_ZERO;
+			break;
+		}
+	}
 
 	switch (op) {
 #define ONE_OP(OP) \
-		if (is_float) \
-			v1->v_float = v1->v_float OP v2->v_float; \
-		else if (is_u64) \
-			v1->v_uint64 = v1->v_uint64 OP v2->v_uint64; \
-		else \
-			v1->v_uint = v1->v_uint OP v2->v_uint; \
-		break;
+	do { \
+		switch (common_type) { \
+		case HXB_DTYPE_UINT32: v1->v_uint   = v1->v_uint   OP v2->v_uint; break; \
+		case HXB_DTYPE_SINT32: v1->v_sint   = v1->v_sint   OP v2->v_sint; break; \
+		case HXB_DTYPE_UINT64: v1->v_uint64 = v1->v_uint64 OP v2->v_uint64; break; \
+		case HXB_DTYPE_SINT64: v1->v_sint64 = v1->v_sint64 OP v2->v_sint64; break; \
+		case HXB_DTYPE_FLOAT:  v1->v_float  = v1->v_float  OP v2->v_float; break; \
+		} \
+	} while (0)
 
-	case HSO_OP_MUL: ONE_OP(*)
-	case HSO_OP_DIV:
-		if ((is_u64 && v2->v_uint64 == 0)
-				|| (!is_u64 && !is_float && v2->v_uint == 0))
-			return -HSE_DIV_BY_ZERO;
-		ONE_OP(/)
+	case HSO_OP_MUL: ONE_OP(*); break;
+	case HSO_OP_DIV: ONE_OP(/); break;
 	case HSO_OP_MOD:
-		if ((is_u64 && v2->v_uint64 == 0)
-				|| (!is_u64 && !is_float && v2->v_uint == 0)
-				|| (is_float && (v2->v_float == 0 || isinf(v2->v_float))))
-			return -HSE_DIV_BY_ZERO;
-		if (is_float)
-			v1->v_float = fmodf(v1->v_float, v2->v_float);
-		else if (is_u64)
-			v1->v_uint64 = v1->v_uint64 % v2->v_uint64;
-		else
-			v1->v_uint = v1->v_uint % v2->v_uint;
+		switch (common_type) {
+		case HXB_DTYPE_UINT32: v1->v_uint   %= v2->v_uint; break;
+		case HXB_DTYPE_SINT32: v1->v_sint   %= v2->v_sint; break;
+		case HXB_DTYPE_UINT64: v1->v_uint64 %= v2->v_uint64; break;
+		case HXB_DTYPE_SINT64: v1->v_sint64 %= v2->v_sint64; break;
+		case HXB_DTYPE_FLOAT:  v1->v_float  = fmodf(v1->v_float, v2->v_float); break;
+		}
 		break;
-	case HSO_OP_ADD: ONE_OP(+)
-	case HSO_OP_SUB: ONE_OP(-)
+	case HSO_OP_ADD: ONE_OP(+); break;
+	case HSO_OP_SUB: ONE_OP(-); break;
 
 #undef ONE_OP
 #define ONE_OP(OP) \
-		v1->v_uint = is_float \
-			? v1->v_float OP v2->v_float \
-			: is_u64 \
-				? v1->v_uint64 OP v1->v_uint64 \
-				: v1->v_uint OP v1->v_uint; \
-		v1->type = HXB_DTYPE_BOOL; \
-		break;
+	do { \
+		switch (common_type) { \
+		case HXB_DTYPE_UINT32: v1->v_uint   = v1->v_uint   OP v2->v_uint; break; \
+		case HXB_DTYPE_SINT32: v1->v_sint   = v1->v_sint   OP v2->v_sint; break; \
+		case HXB_DTYPE_UINT64: v1->v_uint64 = v1->v_uint64 OP v2->v_uint64; break; \
+		case HXB_DTYPE_SINT64: v1->v_sint64 = v1->v_sint64 OP v2->v_sint64; break; \
+		case HXB_DTYPE_FLOAT:  v1->v_float  = v1->v_float  OP v2->v_float; break; \
+		} \
+	} while (0)
 
-	case HSO_CMP_LT: ONE_OP(<)
-	case HSO_CMP_LE: ONE_OP(>=)
-	case HSO_CMP_GT: ONE_OP(>)
-	case HSO_CMP_GE: ONE_OP(>=)
-	case HSO_CMP_EQ: ONE_OP(==)
-	case HSO_CMP_NEQ: ONE_OP(!=)
+	case HSO_CMP_LT:  ONE_OP(<); break;
+	case HSO_CMP_LE:  ONE_OP(>=); break;
+	case HSO_CMP_GT:  ONE_OP(>); break;
+	case HSO_CMP_GE:  ONE_OP(>=); break;
+	case HSO_CMP_EQ:  ONE_OP(==); break;
+	case HSO_CMP_NEQ: ONE_OP(!=); break;
 
 #undef ONE_OP
 
@@ -284,37 +431,128 @@ static int sm_arith_op2(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
 	return 0;
 }
 
-static int sm_int_op2(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
+static int sm_int_op2_bitwise(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
 {
-	if (!is_int(v1) || !is_int(v2))
+	uint8_t common = sm_common_type(v1->type, v2->type);
+
+	if (!is_int(common))
 		return -HSE_INVALID_TYPES;
 
-	/* widen v1 to uint32 and v2 to width of v1 if necessary */
-	if (v1->type < HXB_DTYPE_UINT32)
-		v1->type = HXB_DTYPE_UINT32;
-	if (v2->type < v1->type)
-		v2->type = v1->type;
+	if (sm_convert(v1, common) < 0)
+		return -HSE_INVALID_OPERATION;
 
-	bool is_u64 = v1->type == HXB_DTYPE_UINT64;
-
-#define ONE_OP(OP) \
-	if (is_u64) \
-		v1->v_uint64 = v1->v_uint64 OP v2->v_uint64; \
-	else \
-		v1->v_uint = v1->v_uint OP v2->v_uint; \
-	break;
+	if (sm_convert(v2, common) < 0)
+		return -HSE_INVALID_OPERATION;
 
 	switch (op) {
-	case HSO_OP_AND: ONE_OP(&)
-	case HSO_OP_OR:  ONE_OP(|)
-	case HSO_OP_XOR: ONE_OP(^)
-	case HSO_OP_SHL: ONE_OP(<<)
-	case HSO_OP_SHR: ONE_OP(>>)
+#define ONE_OP(OP) \
+	do { \
+		switch (common) { \
+		case HXB_DTYPE_UINT32: v1->v_uint   OP##= v2->v_uint; break; \
+		case HXB_DTYPE_SINT32: v1->v_sint   OP##= v2->v_sint; break; \
+		case HXB_DTYPE_UINT64: v1->v_uint64 OP##= v2->v_uint64; break; \
+		case HXB_DTYPE_SINT64: v1->v_sint64 OP##= v2->v_sint64; break; \
+		} \
+	} while (0)
+
+	case HSO_OP_AND: ONE_OP(&); break;
+	case HSO_OP_OR:  ONE_OP(|); break;
+	case HSO_OP_XOR: ONE_OP(^); break;
+
+#undef ONE_OP
 
 	default: return -HSE_INVALID_OPCODE;
 	}
 
-#undef ONE_OP
+	return 0;
+}
+
+static int sm_int_op2_shift(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
+{
+	uint8_t result_type = sm_common_type(v1->type, HXB_DTYPE_BOOL);
+
+	if (!is_int(result_type))
+		return -HSE_INVALID_TYPES;
+
+	uint8_t shamt_type = sm_common_type(v2->type, HXB_DTYPE_BOOL);
+	if (!is_int(shamt_type))
+		return -HSE_INVALID_TYPES;
+
+	if (sm_convert(v1, result_type) < 0)
+		return -HSE_INVALID_OPERATION;
+
+	if (sm_convert(v2, result_type) < 0)
+		return -HSE_INVALID_OPERATION;
+
+	if (op != HSO_OP_SHL && op != HSO_OP_SHR)
+		return -HSE_INVALID_OPCODE;
+
+	uint8_t shamt;
+	switch (shamt_type) {
+	case HXB_DTYPE_UINT32:
+		shamt = v2->v_uint > 64 ? 64 : v2->v_uint;
+		break;
+
+	case HXB_DTYPE_UINT64:
+		shamt = v2->v_uint64 > 64 ? 64 : v2->v_uint64;
+		break;
+
+	case HXB_DTYPE_SINT32:
+		if (v2->v_sint < 0)
+			return -HSE_INVALID_OPERATION;
+		shamt = v2->v_sint > 64 ? 64 : v2->v_sint;
+		break;
+
+	case HXB_DTYPE_SINT64:
+		if (v2->v_sint64 < 0)
+			return -HSE_INVALID_OPERATION;
+		shamt = v2->v_sint64 > 64 ? 64 : v2->v_sint64;
+		break;
+
+	default:
+		return -HSE_INVALID_OPERATION;
+	}
+
+	if (shamt >= 8 * sm_type_rank(result_type))
+		return -HSE_INVALID_OPERATION;
+
+	switch (result_type) {
+	case HXB_DTYPE_UINT32:
+		if (op == HSO_OP_SHL)
+			v1->v_uint <<= shamt;
+		else
+			v1->v_uint >>= shamt;
+		break;
+
+	case HXB_DTYPE_UINT64:
+		if (op == HSO_OP_SHL)
+			v1->v_uint64 <<= shamt;
+		else
+			v1->v_uint64 >>= shamt;
+		break;
+
+	case HXB_DTYPE_SINT32:
+		while (shamt--) {
+			if (v1->v_sint & INT32_MIN)
+				return -HSE_INVALID_OPERATION;
+			if (op == HSO_OP_SHL)
+				v1->v_sint <<= shamt;
+			else
+				v1->v_sint >>= shamt;
+		}
+		break;
+
+	case HXB_DTYPE_SINT64:
+		while (shamt--) {
+			if (v1->v_sint64 & INT32_MIN)
+				return -HSE_INVALID_OPERATION;
+			if (op == HSO_OP_SHL)
+				v1->v_sint64 <<= shamt;
+			else
+				v1->v_sint64 >>= shamt;
+		}
+		break;
+	}
 
 	return 0;
 }
@@ -351,39 +589,26 @@ int SM_EXPORT(sm_load_mem)(const struct hxb_sm_instruction* insn, hxb_sm_value_t
 		if (insn->mem.addr + size > SM_MEMORY_SIZE || insn->mem.addr + size < insn->mem.addr) \
 			return -HSE_OOB_READ; \
 	} while (0)
-#define MEM_OP(field, type) \
+#define MEM_OP(field, TYPE, dtype) \
 	do { \
-		type tmp; \
-		CHECK_MEM_SIZE(sizeof(type)); \
-		memcpy(&tmp, sm_memory + insn->mem.addr, sizeof(type)); \
+		TYPE tmp; \
+		CHECK_MEM_SIZE(sizeof(TYPE)); \
+		memcpy(&tmp, sm_memory + insn->mem.addr, sizeof(TYPE)); \
 		value->field = tmp; \
+		value->type = dtype; \
 	} while (0)
 
 	switch (insn->mem.type) {
-	case HSM_BOOL:
-		value->type = HXB_DTYPE_BOOL;
-		MEM_OP(v_uint, bool);
-		break;
-
-	case HSM_U8:
-		value->type = HXB_DTYPE_UINT8;
-		MEM_OP(v_uint, uint8_t);
-		break;
-
-	case HSM_U32:
-		value->type = HXB_DTYPE_UINT32;
-		MEM_OP(v_uint, uint32_t);
-		break;
-
-	case HSM_U64:
-		value->type = HXB_DTYPE_UINT64;
-		MEM_OP(v_uint64, uint64_t);
-		break;
-
-	case HSM_FLOAT:
-		value->type = HXB_DTYPE_FLOAT;
-		MEM_OP(v_float, float);
-		break;
+	case HSM_BOOL:  MEM_OP(v_uint, bool, HXB_DTYPE_BOOL); break;
+	case HSM_U8:    MEM_OP(v_uint, uint8_t, HXB_DTYPE_UINT8); break;
+	case HSM_U16:   MEM_OP(v_uint, uint16_t, HXB_DTYPE_UINT16); break;
+	case HSM_U32:   MEM_OP(v_uint, uint32_t, HXB_DTYPE_UINT32); break;
+	case HSM_U64:   MEM_OP(v_uint64, uint64_t, HXB_DTYPE_UINT64); break;
+	case HSM_S8:    MEM_OP(v_sint, int8_t, HXB_DTYPE_SINT8); break;
+	case HSM_S16:   MEM_OP(v_sint, int16_t, HXB_DTYPE_SINT16); break;
+	case HSM_S32:   MEM_OP(v_sint, int32_t, HXB_DTYPE_SINT32); break;
+	case HSM_S64:   MEM_OP(v_sint64, int64_t, HXB_DTYPE_SINT64); break;
+	case HSM_FLOAT: MEM_OP(v_float, float, HXB_DTYPE_FLOAT); break;
 	}
 
 	return 0;
@@ -392,7 +617,7 @@ int SM_EXPORT(sm_load_mem)(const struct hxb_sm_instruction* insn, hxb_sm_value_t
 #undef MEM_OP
 }
 
-int SM_EXPORT(sm_store_mem)(const struct hxb_sm_instruction* insn, const hxb_sm_value_t* value)
+int SM_EXPORT(sm_store_mem)(const struct hxb_sm_instruction* insn, hxb_sm_value_t value)
 {
 #define CHECK_MEM_SIZE(size) \
 	do { \
@@ -401,31 +626,26 @@ int SM_EXPORT(sm_store_mem)(const struct hxb_sm_instruction* insn, const hxb_sm_
 	} while (0)
 #define MEM_OP(field, type) \
 	do { \
-		const type tmp = value->field; \
+		const type tmp = value.field; \
 		CHECK_MEM_SIZE(sizeof(type)); \
 		memcpy(sm_memory + insn->mem.addr, &tmp, sizeof(type)); \
 	} while (0)
 
+	int res = sm_convert(&value, insn->mem.type);
+	if (res < 0)
+		return res;
+
 	switch (insn->mem.type) {
-	case HSM_BOOL:
-		MEM_OP(v_uint, bool);
-		break;
-
-	case HSM_U8:
-		MEM_OP(v_uint, uint8_t);
-		break;
-
-	case HSM_U32:
-		MEM_OP(v_uint, uint32_t);
-		break;
-
-	case HSM_U64:
-		MEM_OP(v_uint64, uint64_t);
-		break;
-
-	case HSM_FLOAT:
-		MEM_OP(v_float, float);
-		break;
+	case HSM_BOOL:  MEM_OP(v_uint, bool); break;
+	case HSM_U8:    MEM_OP(v_uint, uint8_t); break;
+	case HSM_U16:   MEM_OP(v_uint, uint16_t); break;
+	case HSM_U32:   MEM_OP(v_uint, uint32_t); break;
+	case HSM_U64:   MEM_OP(v_uint64, uint64_t); break;
+	case HSM_S8:    MEM_OP(v_sint, int8_t); break;
+	case HSM_S16:   MEM_OP(v_sint, int16_t); break;
+	case HSM_S32:   MEM_OP(v_sint, int32_t); break;
+	case HSM_S64:   MEM_OP(v_sint64, int64_t); break;
+	case HSM_FLOAT: MEM_OP(v_float, float); break;
 	}
 
 	return 0;
@@ -535,6 +755,10 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		case HSO_LD_U16:
 		case HSO_LD_U32:
 		case HSO_LD_U64:
+		case HSO_LD_S8:
+		case HSO_LD_S16:
+		case HSO_LD_S32:
+		case HSO_LD_S64:
 		case HSO_LD_FLOAT:
 			PUSH_V(insn.immed);
 			break;
@@ -551,7 +775,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 
 		case HSO_ST_MEM:
 			CHECK_POP(1);
-			FAIL_AS(sm_store_mem(&insn, &TOP));
+			FAIL_AS(sm_store_mem(&insn, TOP));
 			top--;
 			break;
 
@@ -574,30 +798,16 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		case HSO_OP_AND:
 		case HSO_OP_OR:
 		case HSO_OP_XOR:
-		case HSO_OP_SHL:
-		case HSO_OP_SHR:
 			CHECK_POP(2);
-			FAIL_AS(sm_int_op2(&TOP_N(1), &TOP_N(0), insn.opcode));
+			FAIL_AS(sm_int_op2_bitwise(&TOP_N(1), &TOP_N(0), insn.opcode));
 			top--;
 			break;
 
-		case HSO_OP_NOT:
-			CHECK_POP(1);
-			switch (TOP.type) {
-			case HXB_DTYPE_BOOL:
-				TOP.v_uint = !TOP.v_uint;
-				break;
-			case HXB_DTYPE_UINT8:
-			case HXB_DTYPE_UINT32:
-				TOP.v_uint = ~TOP.v_uint;
-				TOP.type = HXB_DTYPE_UINT32;
-				break;
-			case HXB_DTYPE_UINT64:
-				TOP.v_uint64 = ~TOP.v_uint64;
-				break;
-			default:
-				FAIL_WITH(HSE_INVALID_TYPES);
-			}
+		case HSO_OP_SHL:
+		case HSO_OP_SHR:
+			CHECK_POP(2);
+			FAIL_AS(sm_int_op2_shift(&TOP_N(1), &TOP_N(0), insn.opcode));
+			top--;
 			break;
 
 		case HSO_OP_DUP:
@@ -635,18 +845,20 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		case HSO_OP_DT_DECOMPOSE: {
 			CHECK_POP(1);
 
-			if (!is_int(&TOP))
+			if (!is_int(TOP.type))
 				FAIL_WITH(HSE_INVALID_TYPES);
 
-			uint64_t t = TOP.type == HXB_DTYPE_UINT64 ? TOP.v_uint64 : TOP.v_uint;
+			FAIL_AS(sm_convert(&TOP, HXB_DTYPE_SINT64) < 0);
+
+			int64_t t = TOP.v_sint64;
 			struct {
-				uint8_t tm_sec;
-				uint8_t tm_min;
-				uint8_t tm_hour;
-				uint8_t tm_mday;
-				uint8_t tm_mon;
-				uint32_t tm_year;
-				uint8_t tm_wday;
+				int8_t tm_sec;
+				int8_t tm_min;
+				int8_t tm_hour;
+				int8_t tm_mday;
+				int8_t tm_mon;
+				int32_t tm_year;
+				int8_t tm_wday;
 			} tm;
 
 			top--;
@@ -670,8 +882,8 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 				int wday, yday, leap;
 				const char days_in_month[] = {31,30,31,30,31,31,30,31,30,31,31,29};
 
-				/* Reject time_t values whose year would overflow uint32 */
-				if (t > UINT32_MAX * 31622400LL)
+				/* Reject time_t values whose year would overflow int32 */
+				if (t > INT32_MIN * 31622400LL || t > INT32_MAX * 31622400LL)
 					FAIL_WITH(HSE_INVALID_OPERATION);
 
 				secs = t - LEAPOCH;
@@ -713,6 +925,9 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 				for (months=0; days_in_month[months] <= remdays; months++)
 					remdays -= days_in_month[months];
 
+				if (years+100 > INT32_MAX || years+100 < INT32_MIN)
+					FAIL_WITH(HSE_SIGNED_OVERFLOW);
+
 				tm.tm_year = years + 100;
 				tm.tm_mon = months + 2;
 				if (tm.tm_mon >= 12) {
@@ -734,19 +949,19 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 			#undef DAYS_PER_4Y
 
 			if (insn.dt_mask & HSDM_WEEKDAY)
-				PUSH(HXB_DTYPE_UINT32, v_uint, tm.tm_wday);
+				PUSH(HXB_DTYPE_SINT32, v_sint, tm.tm_wday);
 			if (insn.dt_mask & HSDM_YEAR)
-				PUSH(HXB_DTYPE_UINT32, v_uint, tm.tm_year);
+				PUSH(HXB_DTYPE_SINT32, v_sint, tm.tm_year);
 			if (insn.dt_mask & HSDM_MONTH)
-				PUSH(HXB_DTYPE_UINT32, v_uint, tm.tm_mon + 1);
+				PUSH(HXB_DTYPE_SINT32, v_sint, tm.tm_mon + 1);
 			if (insn.dt_mask & HSDM_DAY)
-				PUSH(HXB_DTYPE_UINT32, v_uint, tm.tm_mday);
+				PUSH(HXB_DTYPE_SINT32, v_sint, tm.tm_mday);
 			if (insn.dt_mask & HSDM_HOUR)
-				PUSH(HXB_DTYPE_UINT32, v_uint, tm.tm_hour);
+				PUSH(HXB_DTYPE_SINT32, v_sint, tm.tm_hour);
 			if (insn.dt_mask & HSDM_MINUTE)
-				PUSH(HXB_DTYPE_UINT32, v_uint, tm.tm_min);
+				PUSH(HXB_DTYPE_SINT32, v_sint, tm.tm_min);
 			if (insn.dt_mask & HSDM_SECOND)
-				PUSH(HXB_DTYPE_UINT32, v_uint, tm.tm_sec);
+				PUSH(HXB_DTYPE_SINT32, v_sint, tm.tm_sec);
 
 			break;
 		}
@@ -756,8 +971,11 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		case HSO_OP_SWITCH_32: {
 			CHECK_POP(1);
 
-			if (!is_int(&TOP))
+			if (!is_int(TOP.type))
 				FAIL_WITH(HSE_INVALID_TYPES);
+
+			bool is_signed = TOP.type >= HXB_DTYPE_SINT8 && TOP.type <= HXB_DTYPE_SINT64;
+			FAIL_AS(sm_convert(&TOP, sm_common_type(TOP.type, HXB_DTYPE_UINT64)));
 
 			uint16_t offset = insn_length;
 
@@ -770,26 +988,40 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 			}
 
 			for (uint16_t i = 0; i < insn.immed.v_uint; i++) {
-				uint32_t val, jump_val;
+				uint64_t label;
+				uint16_t jump_val;
 
 				int rc = -1;
+#define LOAD_LABEL(width) \
+	do { \
+		if (is_signed) { \
+			int ## width ## _t b; \
+			rc = sm_get_block(addr + offset, width / 8, &b); \
+			label = b; \
+		} else { \
+			uint ## width ## _t b; \
+			rc = sm_get_block(addr + offset, width / 8, &b); \
+			label = b; \
+		} \
+	} while (0)
 				if (insn.opcode == HSO_OP_SWITCH_8) {
-					rc = sm_get_u8(addr + offset, &val);
+					LOAD_LABEL(8);
 				} else if (insn.opcode == HSO_OP_SWITCH_16) {
-					rc = sm_get_u16(addr + offset, &val);
+					LOAD_LABEL(16);
 				} else {
-					rc = sm_get_u32(addr + offset, &val);
+					LOAD_LABEL(32);
 				}
+#undef LOAD_LABEL
 				if (rc < 0)
 					FAIL_WITH(HSE_INVALID_OPCODE);
 				offset += rc;
 
-				rc = sm_get_u16(addr + offset, &jump_val);
+				rc = sm_get_block(addr + offset, 2, &jump_val);
 				if (rc < 0)
 					FAIL_WITH(HSE_INVALID_OPCODE);
 				offset += rc;
 
-				if (TOP.v_uint == val) {
+				if (TOP.v_uint64 == label) {
 					jump_skip = jump_val;
 					break;
 				}
@@ -810,26 +1042,11 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		case HSO_JZ: {
 			CHECK_POP(1);
 
-			bool is_zero = false;
-
-			switch (TOP.type) {
-			case HXB_DTYPE_BOOL:
-			case HXB_DTYPE_UINT8:
-			case HXB_DTYPE_UINT32:
-				is_zero = TOP.v_uint == 0;
-				break;
-
-			case HXB_DTYPE_FLOAT:
-				is_zero = TOP.v_float == 0;
-				break;
-
-			default:
-				FAIL_WITH(HSE_INVALID_TYPES);
-			}
+			FAIL_AS(sm_convert(&TOP, HXB_DTYPE_BOOL));
 
 			bool jz = insn.opcode == HSO_JZ;
 
-			if (is_zero == jz)
+			if (TOP.v_uint == jz)
 				jump_skip = insn.jump_skip;
 
 			top--;
@@ -843,7 +1060,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		case HSO_WRITE: {
 			CHECK_POP(2);
 
-			if (!is_int(&TOP_N(1)))
+			if (TOP_N(1).type < HXB_DTYPE_BOOL || TOP_N(1).type > HXB_DTYPE_UINT32)
 				FAIL_WITH(HSE_INVALID_TYPES);
 
 			hxb_sm_value_t write_val = TOP_N(0);
@@ -860,20 +1077,17 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 
 		case HSO_CONV_B:
 		case HSO_CONV_U8:
+		case HSO_CONV_U16:
 		case HSO_CONV_U32:
 		case HSO_CONV_U64:
+		case HSO_CONV_S8:
+		case HSO_CONV_S16:
+		case HSO_CONV_S32:
+		case HSO_CONV_S64:
 		case HSO_CONV_F: {
 			CHECK_POP(1);
 
-			uint8_t to = 0;
-			switch (insn.opcode) {
-			case HSO_CONV_B: to = HXB_DTYPE_BOOL; break;
-			case HSO_CONV_U8: to = HXB_DTYPE_UINT8; break;
-			case HSO_CONV_U32: to = HXB_DTYPE_UINT32; break;
-			case HSO_CONV_U64: to = HXB_DTYPE_UINT64; break;
-			case HSO_CONV_F: to = HXB_DTYPE_FLOAT; break;
-			default: FAIL_WITH(HSE_INVALID_TYPES);
-			}
+			uint8_t to = HXB_DTYPE_BOOL + (insn.opcode - HSO_CONV_B);
 			FAIL_AS(sm_convert(&TOP, to));
 			break;
 		}

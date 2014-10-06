@@ -49,7 +49,6 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 	case Opcode::AND:
 	case Opcode::OR:
 	case Opcode::XOR:
-	case Opcode::NOT:
 	case Opcode::SHL:
 	case Opcode::SHR:
 	case Opcode::DUP:
@@ -63,8 +62,13 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 	case Opcode::CMP_NEQ:
 	case Opcode::CONV_B:
 	case Opcode::CONV_U8:
+	case Opcode::CONV_U16:
 	case Opcode::CONV_U32:
 	case Opcode::CONV_U64:
+	case Opcode::CONV_S8:
+	case Opcode::CONV_S16:
+	case Opcode::CONV_S32:
+	case Opcode::CONV_S64:
 	case Opcode::CONV_F:
 	case Opcode::WRITE:
 	case Opcode::POP:
@@ -128,6 +132,38 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 
 		_instructions.push_back(
 			new ImmediateInstruction<uint64_t>(op, get<uint64_t>(*immed), l, line));
+		return;
+
+	case Opcode::LD_S8:
+		if (!get<int8_t>(immed))
+			throw std::invalid_argument("immed");
+
+		_instructions.push_back(
+			new ImmediateInstruction<int8_t>(op, get<int8_t>(*immed), l, line));
+		return;
+
+	case Opcode::LD_S16:
+		if (!get<int16_t>(immed))
+			throw std::invalid_argument("immed");
+
+		_instructions.push_back(
+			new ImmediateInstruction<int16_t>(op, get<int16_t>(*immed), l, line));
+		return;
+
+	case Opcode::LD_S32:
+		if (!get<int32_t>(immed))
+			throw std::invalid_argument("immed");
+
+		_instructions.push_back(
+			new ImmediateInstruction<int32_t>(op, get<int32_t>(*immed), l, line));
+		return;
+
+	case Opcode::LD_S64:
+		if (!get<int64_t>(immed))
+			throw std::invalid_argument("immed");
+
+		_instructions.push_back(
+			new ImmediateInstruction<int64_t>(op, get<int64_t>(*immed), l, line));
 		return;
 
 	case Opcode::LD_FLOAT:

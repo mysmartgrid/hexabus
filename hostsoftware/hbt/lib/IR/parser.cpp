@@ -39,6 +39,10 @@ struct ir_instruction {
 			uint16_t,
 			uint32_t,
 			uint64_t,
+			int8_t,
+			int16_t,
+			int32_t,
+			int64_t,
 			float,
 			std::vector<switch_entry>,
 			block_immediate,
@@ -142,7 +146,6 @@ struct simple_instructions : qi::symbols<char, ir_instruction> {
 			("and", { Opcode::AND, boost::none_t() })
 			("or", { Opcode::OR, boost::none_t() })
 			("xor", { Opcode::XOR, boost::none_t() })
-			("not", { Opcode::NOT, boost::none_t() })
 			("shl", { Opcode::SHL, boost::none_t() })
 			("shr", { Opcode::SHR, boost::none_t() })
 			("cmp.localhost", { Opcode::CMP_IP_LO, boost::none_t() })
@@ -154,8 +157,13 @@ struct simple_instructions : qi::symbols<char, ir_instruction> {
 			("cmp.neq", { Opcode::CMP_NEQ, boost::none_t() })
 			("conv.b", { Opcode::CONV_B, boost::none_t() })
 			("conv.u8", { Opcode::CONV_U8, boost::none_t() })
+			("conv.u16", { Opcode::CONV_U16, boost::none_t() })
 			("conv.u32", { Opcode::CONV_U32, boost::none_t() })
 			("conv.u64", { Opcode::CONV_U64, boost::none_t() })
+			("conv.s8", { Opcode::CONV_S8, boost::none_t() })
+			("conv.s16", { Opcode::CONV_S16, boost::none_t() })
+			("conv.s32", { Opcode::CONV_S32, boost::none_t() })
+			("conv.s64", { Opcode::CONV_S64, boost::none_t() })
 			("conv.f", { Opcode::CONV_F, boost::none_t() })
 			("write", { Opcode::WRITE, boost::none_t() })
 			("pop", { Opcode::POP, boost::none_t() })
@@ -273,12 +281,32 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 				> u8_immed[_val = bind(make_insn_t<Opcode::LD_U8>, _1)]
 				> lit(")")
 			) | (
+				(lit("u16") >> lit("("))
+				> u16_immed[_val = bind(make_insn_t<Opcode::LD_U16>, _1)]
+				> lit(")")
+			) | (
 				(lit("u32") >> lit("("))
 				> u32_immed[_val = bind(make_insn_t<Opcode::LD_U32>, _1)]
 				> lit(")")
 			) | (
 				(lit("u64") >> lit("("))
 				> u64_immed[_val = bind(make_insn_t<Opcode::LD_U64>, _1)]
+				> lit(")")
+			) | (
+				(lit("s8") >> lit("("))
+				> s8_immed[_val = bind(make_insn_t<Opcode::LD_S8>, _1)]
+				> lit(")")
+			) | (
+				(lit("s16") >> lit("("))
+				> s16_immed[_val = bind(make_insn_t<Opcode::LD_S16>, _1)]
+				> lit(")")
+			) | (
+				(lit("s32") >> lit("("))
+				> s32_immed[_val = bind(make_insn_t<Opcode::LD_S32>, _1)]
+				> lit(")")
+			) | (
+				(lit("s64") >> lit("("))
+				> s64_immed[_val = bind(make_insn_t<Opcode::LD_S64>, _1)]
 				> lit(")")
 			) | (
 				(lit("f") >> lit("("))
@@ -334,8 +362,13 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			(
 				((lit("b") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::Bool, _1)]
 				| ((lit("u8") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::U8, _1)]
+				| ((lit("u16") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::U16, _1)]
 				| ((lit("u32") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::U32, _1)]
 				| ((lit("u64") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::U64, _1)]
+				| ((lit("s8") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::S8, _1)]
+				| ((lit("s16") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::S16, _1)]
+				| ((lit("s32") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::S32, _1)]
+				| ((lit("s64") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::S64, _1)]
 				| ((lit("f") >> lit("[")) > mem_addr)[_val = bind(make_mem_insn, _r1, MemType::Float, _1)]
 			) > lit("]");
 #pragma clang diagnostic pop
@@ -347,13 +380,28 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		stack_slot %= uint_[_pass = _1 < 256];
 
 		u8_immed.name("u8 immediate");
-		u8_immed %= uint_[_pass = _1 <= std::numeric_limits<uint8_t>::max()];
+		u8_immed %= ulong_long[_pass = _1 <= std::numeric_limits<uint8_t>::max()];
+
+		u16_immed.name("u16 immediate");
+		u16_immed %= ulong_long[_pass = _1 <= std::numeric_limits<uint16_t>::max()];
 
 		u32_immed.name("u32 immediate");
-		u32_immed %= uint_[_pass = _1 <= std::numeric_limits<uint32_t>::max()];
+		u32_immed %= ulong_long[_pass = _1 <= std::numeric_limits<uint32_t>::max()];
 
 		u64_immed.name("u64 immediate");
 		u64_immed %= ulong_long[_pass = _1 <= std::numeric_limits<uint64_t>::max()];
+
+		s8_immed.name("s8 immediate");
+		s8_immed %= long_long[_pass = _1 >= std::numeric_limits<int8_t>::min() && _1 <= std::numeric_limits<int8_t>::max()];
+
+		s16_immed.name("s16 immediate");
+		s16_immed %= long_long[_pass = _1 >= std::numeric_limits<int16_t>::min() && _1 <= std::numeric_limits<int16_t>::max()];
+
+		s32_immed.name("s32 immediate");
+		s32_immed %= long_long[_pass = _1 >= std::numeric_limits<int32_t>::min() && _1 <= std::numeric_limits<int32_t>::max()];
+
+		s64_immed.name("s64 immediate");
+		s64_immed %= long_long[_pass = _1 >= std::numeric_limits<int64_t>::min() && _1 <= std::numeric_limits<int64_t>::max()];
 
 		float_immed.name("float immediate");
 		float_immed %= float_;
@@ -502,8 +550,13 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 	qi::rule<It, std::string(), asm_ws<It>> identifier;
 	qi::rule<It, uint8_t(), asm_ws<It>> u8_immed;
+	qi::rule<It, uint16_t(), asm_ws<It>> u16_immed;
 	qi::rule<It, uint32_t(), asm_ws<It>> u32_immed;
 	qi::rule<It, uint64_t(), asm_ws<It>> u64_immed;
+	qi::rule<It, int8_t(), asm_ws<It>> s8_immed;
+	qi::rule<It, int16_t(), asm_ws<It>> s16_immed;
+	qi::rule<It, int32_t(), asm_ws<It>> s32_immed;
+	qi::rule<It, int64_t(), asm_ws<It>> s64_immed;
 	qi::rule<It, float(), asm_ws<It>> float_immed;
 
 	qi::rule<It, uint16_t(), asm_ws<It>> mem_addr;
@@ -608,33 +661,30 @@ std::unique_ptr<Program> makeProgram(const ir_program& program)
 			continue;
 		}
 
-		switch (insn.immediate->which()) {
-		case 0:
-			builder.append(thisLabel, insn.opcode, boost::get<uint8_t>(*insn.immediate), line.line);
-			break;
-
-		case 1:
-			builder.append(thisLabel, insn.opcode, boost::get<uint16_t>(*insn.immediate), line.line);
-			break;
-
-		case 2:
-			builder.append(thisLabel, insn.opcode, boost::get<uint32_t>(*insn.immediate), line.line);
-			break;
-
-		case 3:
-			builder.append(thisLabel, insn.opcode, boost::get<uint64_t>(*insn.immediate), line.line);
-			break;
-
-		case 4:
-			builder.append(thisLabel, insn.opcode, boost::get<float>(*insn.immediate), line.line);
-			break;
-
-		case 5: {
-			const auto& operand = boost::get<std::vector<switch_entry>>(*insn.immediate);
+		using boost::get;
+		if (auto* val = get<uint8_t>(insn.immediate.get_ptr())) {
+			builder.append(thisLabel, insn.opcode, *val, line.line);
+		} else if (auto* val = get<uint16_t>(insn.immediate.get_ptr())) {
+			builder.append(thisLabel, insn.opcode, *val, line.line);
+		} else if (auto* val = get<uint32_t>(insn.immediate.get_ptr())) {
+			builder.append(thisLabel, insn.opcode, *val, line.line);
+		} else if (auto* val = get<uint64_t>(insn.immediate.get_ptr())) {
+			builder.append(thisLabel, insn.opcode, *val, line.line);
+		} else if (auto* val = get<int8_t>(insn.immediate.get_ptr())) {
+			builder.append(thisLabel, insn.opcode, *val, line.line);
+		} else if (auto* val = get<int16_t>(insn.immediate.get_ptr())) {
+			builder.append(thisLabel, insn.opcode, *val, line.line);
+		} else if (auto* val = get<int32_t>(insn.immediate.get_ptr())) {
+			builder.append(thisLabel, insn.opcode, *val, line.line);
+		} else if (auto* val = get<int64_t>(insn.immediate.get_ptr())) {
+			builder.append(thisLabel, insn.opcode, *val, line.line);
+		} else if (auto* val = get<float>(insn.immediate.get_ptr())) {
+			builder.append(thisLabel, insn.opcode, *val, line.line);
+		} else if (auto* val = get<std::vector<switch_entry>>(insn.immediate.get_ptr())) {
 			std::vector<SwitchEntry> entries;
 
-			entries.reserve(operand.size());
-			std::transform(operand.begin(), operand.end(), std::back_inserter(entries),
+			entries.reserve(val->size());
+			std::transform(val->begin(), val->end(), std::back_inserter(entries),
 				[&getLabelFor](const switch_entry& e) {
 					return SwitchEntry{ e.label, getLabelFor(e.target) };
 				});
@@ -642,42 +692,22 @@ std::unique_ptr<Program> makeProgram(const ir_program& program)
 			SwitchTable table(entries.begin(), entries.end());
 
 			builder.append(thisLabel, insn.opcode, std::move(table), line.line);
-
-			break;
-		}
-
-		case 6: {
-			const auto& operand = boost::get<block_immediate>(*insn.immediate);
-
+		} else if (auto* val = get<block_immediate>(insn.immediate.get_ptr())) {
 			std::array<uint8_t, 16> data;
 
 			data.fill(0);
-			std::copy(operand.block.begin(), operand.block.end(), data.begin());
+			std::copy(val->block.begin(), val->block.end(), data.begin());
 
-			BlockPart block(operand.start, operand.block.size(), data);
+			BlockPart block(val->start, val->block.size(), data);
 
 			builder.append(thisLabel, insn.opcode, block, line.line);
-
-			break;
-		}
-
-		case 7:
-			builder.append(thisLabel, insn.opcode, boost::get<DTMask>(*insn.immediate), line.line);
-			break;
-
-		case 8:
-			builder.append(thisLabel, insn.opcode,
-					getLabelFor(boost::get<std::string>(*insn.immediate)), line.line);
-			break;
-
-		case 9: {
-			const auto& operand = boost::get<mem_immediate>(*insn.immediate);
-
-			builder.append(thisLabel, insn.opcode, std::make_tuple(operand.type, operand.addr), line.line);
-			break;
-		}
-
-		default:
+		} else if (auto* val = get<DTMask>(insn.immediate.get_ptr())) {
+			builder.append(thisLabel, insn.opcode, *val, line.line);
+		} else if (auto* val = get<std::string>(insn.immediate.get_ptr())) {
+			builder.append(thisLabel, insn.opcode, getLabelFor(*val), line.line);
+		} else if (auto* val = get<mem_immediate>(insn.immediate.get_ptr())) {
+			builder.append(thisLabel, insn.opcode, std::make_tuple(val->type, val->addr), line.line);
+		} else {
 			throw std::runtime_error("internal error: invalid assembler program?");
 		}
 	}

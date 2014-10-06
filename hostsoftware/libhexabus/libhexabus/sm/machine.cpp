@@ -98,6 +98,7 @@ void Machine::sm_diag_msg(int code, const char* file, int line)
 		"invalid machine code header",
 		"invalid operation",
 		"stack error",
+		"signed overflow",
 	};
 
 	std::cerr << "(" << file << ":" << line << "): ";
