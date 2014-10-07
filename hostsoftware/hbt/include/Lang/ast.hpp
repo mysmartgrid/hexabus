@@ -791,8 +791,6 @@ public:
 class ClassParameter {
 public:
 	enum class Type {
-		Unknown,
-
 		Value,
 		Device,
 		Endpoint,
@@ -802,17 +800,17 @@ private:
 	SourceLocation _sloc;
 	std::string _name;
 	Type _type;
+	lang::Type _valueType;
 
 public:
-	ClassParameter(const SourceLocation& sloc, const std::string& name, Type type = Type::Unknown)
-		: _sloc(sloc), _name(name), _type(type)
+	ClassParameter(const SourceLocation& sloc, const std::string& name, Type type, lang::Type valueType = lang::Type::Unknown)
+		: _sloc(sloc), _name(name), _type(type), _valueType(valueType)
 	{}
 
 	const SourceLocation& sloc() const { return _sloc; }
 	const std::string& name() const { return _name; }
 	const Type type() const { return _type; }
-
-	void type(Type type) { _type = type; }
+	const lang::Type valueType() const { return _valueType; }
 };
 
 class MachineClass : public MachineBody, public ProgramPart {

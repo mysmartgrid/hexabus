@@ -1,4 +1,4 @@
-class c(div, inval) {
+class c(int8 div, int8 inval) {
 	state init {
 		uint32 val = 42 + (inval != 0 ? 0 : 0);
 

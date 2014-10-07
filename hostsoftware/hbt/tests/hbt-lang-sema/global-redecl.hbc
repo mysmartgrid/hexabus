@@ -4,8 +4,8 @@ endpoint e(1) : bool (); //#expect: error: redeclaration of 'e'
 device d(::) : e; //#expect: previously declared here
 device d(::) : e; //#expect: error: redeclaration of 'd'
 
-class c(x) { bool b = x; } //#expect: previously declared here
-class c(x) { bool b = x; } //#expect: error: redeclaration of 'c'
+class c(bool x) { bool b = x; } //#expect: previously declared here
+class c(bool x) { bool b = x; } //#expect: error: redeclaration of 'c'
 
 machine mdef : {} //#expect: previously declared here
 machine mdef : {} //#expect: error: redeclaration of 'mdef'

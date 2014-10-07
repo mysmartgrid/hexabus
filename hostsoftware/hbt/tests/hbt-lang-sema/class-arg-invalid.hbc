@@ -1,4 +1,4 @@
-class c(dev, ep, v) {
+class c(device dev, endpoint ep, bool v) {
 	state init {
 		dev.ep = v;
 	}

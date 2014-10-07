@@ -11,7 +11,7 @@ machine m : {
 	}
 }
 
-class c (dev, ep) {
+class c (device dev, endpoint ep) {
 	state init {
 		on packet from D { //#expect: error: use of undeclared identifier 'D'
 		}

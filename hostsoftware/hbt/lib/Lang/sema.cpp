@@ -301,29 +301,6 @@ void SemanticVisitor::declareGlobalName(ProgramPart& p, const std::string& name)
 			previouslyDeclaredHere(res.first->second->sloc()));
 }
 
-bool SemanticVisitor::inferClassParam(const std::string& name, const SourceLocation& at, ClassParameter::Type type)
-{
-	auto cpit = classParams.find(name);
-	if (cpit != classParams.end()) {
-		auto& cp = cpit->second;
-
-		if (cp.parameter.type() == type) {
-			return true;
-		} else if (cp.parameter.type() == ClassParameter::Type::Unknown) {
-			cp.parameter.type(type);
-			cp.inferredFrom = &at;
-			return true;
-		}
-
-		diags.print(
-			classParameterTypeError(at, name),
-			cptUsedAs(at, type),
-			cptUsedAs(*cp.inferredFrom, cp.parameter.type()));
-	}
-
-	return false;
-}
-
 void SemanticVisitor::visit(IdentifierExpr& i)
 {
 	if (auto se = scopes.resolve(i.name())) {
@@ -333,14 +310,16 @@ void SemanticVisitor::visit(IdentifierExpr& i)
 
 	i.isIncomplete(true);
 
-	if (inferClassParam(i.name(), i.sloc(), ClassParameter::Type::Value)) {
-		auto& cp = classParams.at(i.name());
+	auto cpit = classParams.find(i.name());
+	if (cpit != classParams.end()) {
+		auto& cp = cpit->second;
 		if (cp.hasValue) {
 			i.isIncomplete(false);
 			i.type(cp.value->type());
 			i.constexprValue(cp.value->constexprValue());
 			i.isConstexpr(cp.value->isConstexpr());
 		}
+		cp.used = true;
 		return;
 	}
 
@@ -559,8 +538,7 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 				declaredHere(se->declaration->sloc()));
 		} else if (cpit != classParams.end()) {
 			exprIsFullyDefined &= cpit->second.hasValue;
-			if (inferClassParam(e.device().name(), e.device().sloc(), ClassParameter::Type::Device) && cpit->second.hasValue)
-				dev = cpit->second.device;
+			cpit->second.used = true;
 			e.deviceIsIncomplete(!dev);
 		} else if (it != globalNames.end()) {
 			dev = dynamic_cast<Device*>(it->second);
@@ -583,8 +561,7 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 				declaredHere(se->declaration->sloc()));
 		} else if (cpit != classParams.end()) {
 			exprIsFullyDefined &= cpit->second.hasValue;
-			if (inferClassParam(e.endpoint().name(), e.endpoint().sloc(), ClassParameter::Type::Endpoint) && cpit->second.hasValue)
-				ep = cpit->second.endpoint;
+			cpit->second.used = true;
 			e.deviceIsIncomplete(!ep);
 		} else if (it != globalNames.end()) {
 			ep = dynamic_cast<Endpoint*>(it->second);
@@ -891,7 +868,7 @@ void SemanticVisitor::visit(MachineClass& m)
 	checkMachineBody(m);
 
 	for (auto& param : classParams) {
-		if (param.second.parameter.type() == ClassParameter::Type::Unknown)
+		if (!param.second.used)
 			diags.print(classParamUnused(param.second.parameter));
 	}
 
@@ -934,6 +911,8 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 				(*arg)->accept(*this);
 				if (!(*arg)->isConstexpr())
 					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
+				else if (!isAssignableFrom(param->valueType(), (*arg)->type()))
+					diags.print(invalidImplicitConversion((*arg)->sloc(), (*arg)->type(), param->valueType()));
 				else
 					classParams.insert({ param->name(), { *param, nullptr, (*arg).get() } });
 				break;
@@ -964,10 +943,6 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 				} else {
 					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
 				}
-				break;
-
-			case ClassParameter::Type::Unknown:
-				classParams.insert({ param->name(), { *param, nullptr } });
 				break;
 
 			default:

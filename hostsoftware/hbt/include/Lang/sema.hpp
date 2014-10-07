@@ -36,6 +36,7 @@ private:
 		ClassParameter& parameter;
 		const SourceLocation* inferredFrom;
 		const bool hasValue;
+		bool used;
 
 		union {
 			Expr* value;
@@ -44,19 +45,19 @@ private:
 		};
 
 		ClassParamInstance(ClassParameter& cp, const SourceLocation* inferredFrom)
-			: parameter(cp), inferredFrom(inferredFrom), hasValue(false)
+			: parameter(cp), inferredFrom(inferredFrom), hasValue(false), used(false)
 		{}
 
 		ClassParamInstance(ClassParameter& cp, const SourceLocation* inferredFrom, Expr* value)
-			: parameter(cp), inferredFrom(inferredFrom), hasValue(true), value(value)
+			: parameter(cp), inferredFrom(inferredFrom), hasValue(true), value(value), used(false)
 		{}
 
 		ClassParamInstance(ClassParameter& cp, const SourceLocation* inferredFrom, Device* device)
-			: parameter(cp), inferredFrom(inferredFrom), hasValue(true), device(device)
+			: parameter(cp), inferredFrom(inferredFrom), hasValue(true), device(device), used(false)
 		{}
 
 		ClassParamInstance(ClassParameter& cp, const SourceLocation* inferredFrom, Endpoint* ep)
-			: parameter(cp), inferredFrom(inferredFrom), hasValue(true), endpoint(ep)
+			: parameter(cp), inferredFrom(inferredFrom), hasValue(true), endpoint(ep), used(false)
 		{}
 	};
 
@@ -77,8 +78,6 @@ private:
 	void checkState(State& s);
 	void checkMachineBody(MachineBody& m);
 	Endpoint* checkEndpointExpr(EndpointExpr& e);
-
-	bool inferClassParam(const std::string& name, const SourceLocation& at, ClassParameter::Type type);
 
 public:
 	SemanticVisitor(DiagnosticOutput& diagOut)

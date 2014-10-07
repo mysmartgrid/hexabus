@@ -679,26 +679,36 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				return new State(locOf(r), std::move(*id), unpack(decls), move(onBlocks), move(stmts));
 			}];
 
+		classParam.name("class parameter");
+		classParam =
+			(tok.word.device > tok.ident)[fwd >= [this] (range& r, range& id) {
+				return ClassParameter(locOf(r), str(id), ClassParameter::Type::Device);
+			}]
+			| (tok.word.endpoint > tok.ident)[fwd >= [this] (range& r, range& id) {
+				return ClassParameter(locOf(r), str(id), ClassParameter::Type::Endpoint);
+			}]
+			| (datatype > tok.ident)[fwd >= [this] (locd<Type>* t, range& id) {
+				return ClassParameter(t->loc, str(id), ClassParameter::Type::Value, t->val);
+			}];
+
 		machine_class =
 			(
 				tok.word.class_
 				> identifier
 				> omit[tok.lparen | expected("(")]
-				> -(identifier % tok.comma)
+				> -(classParam % tok.comma)
 				> omit[tok.rparen | expected(")")]
 				> omit[tok.lbrace | expected("{")]
 				> *s.decl
 				> *state
 				> omit[tok.rbrace | expected("}")]
-			)[fwd >= [this] (range& r, Identifier* id, std::vector<opt<Identifier>>* paramNames,
+			)[fwd >= [this] (range& r, Identifier* id, std::vector<opt<ClassParameter>>* params,
 					std::vector<ptr<DeclarationStmt>>& decls, std::vector<ptr<State>>& states) {
-				std::vector<ClassParameter> params;
-
-				if (paramNames)
-					for (auto& param : *paramNames)
-						params.emplace_back(param->sloc(), param->name());
-
-				return new MachineClass(locOf(r), std::move(*id), std::move(params), unpack(decls), unpack(states));
+				if (params)
+					return new MachineClass(locOf(r), std::move(*id), unpack(*params), unpack(decls), unpack(states));
+				else
+					return new MachineClass(locOf(r), std::move(*id), std::vector<ClassParameter>(),
+							unpack(decls), unpack(states));
 			}];
 
 		machine_spec =
@@ -881,6 +891,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 	rule<EndpointAccess()> endpoint_access;
 	rule<opt<locd<Type>>()> datatype;
 	rule<opt<Identifier>()> identifier;
+	rule<opt<ClassParameter>()> classParam;
 
 	rule<> unexpected;
 

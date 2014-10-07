@@ -1,6 +1,6 @@
-class c(x) {
+class c(int8 x) {
 	state init {
-		if (x)
+		if (x > 0)
 			goto init;
 	}
 }

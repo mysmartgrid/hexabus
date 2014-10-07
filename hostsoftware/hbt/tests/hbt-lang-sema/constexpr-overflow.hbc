@@ -1,4 +1,4 @@
-class c(arg) {
+class c(int64 arg) {
 	state init {
 		switch (1) {
 		case arg << 65: {} //#expect: error: value 36893488147419103232 overflows type int32
