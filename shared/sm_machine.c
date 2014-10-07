@@ -362,11 +362,19 @@ static int sm_arith_op2(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
 		case HXB_DTYPE_SINT32:
 			if (v2->v_sint == 0)
 				return -HSE_DIV_BY_ZERO;
+			if (v1->v_sint == INT32_MIN && v2->v_sint == -1) {
+				v1->v_sint = op == HSO_OP_DIV ? v1->v_sint : 0;
+				return 0;
+			}
 			break;
 
 		case HXB_DTYPE_SINT64:
 			if (v2->v_sint64 == 0)
 				return -HSE_DIV_BY_ZERO;
+			if (v1->v_sint64 == INT64_MIN && v2->v_sint64 == -1) {
+				v1->v_sint64 = op == HSO_OP_DIV ? v1->v_sint64 : 0;
+				return 0;
+			}
 			break;
 
 		case HXB_DTYPE_FLOAT:
@@ -498,60 +506,68 @@ static int sm_int_op2_shift(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
 		break;
 
 	case HXB_DTYPE_SINT32:
-		if (v2->v_sint < 0)
-			return -HSE_INVALID_OPERATION;
-		shamt = v2->v_sint > 64 ? 64 : v2->v_sint;
+		if (v2->v_sint < 0) {
+			op = op == HSO_OP_SHL ? HSO_OP_SHR : HSO_OP_SHL;
+			shamt = v2->v_sint < -64 ? 64 : -v2->v_sint;
+		} else {
+			shamt = v2->v_sint > 64 ? 64 : v2->v_sint;
+		}
 		break;
 
 	case HXB_DTYPE_SINT64:
-		if (v2->v_sint64 < 0)
-			return -HSE_INVALID_OPERATION;
-		shamt = v2->v_sint64 > 64 ? 64 : v2->v_sint64;
+		if (v2->v_sint64 < 0) {
+			op = op == HSO_OP_SHL ? HSO_OP_SHR : HSO_OP_SHL;
+			shamt = v2->v_sint64 < -64 ? 64 : -v2->v_sint64;
+		} else {
+			shamt = v2->v_sint64 > 64 ? 64 : v2->v_sint64;
+		}
 		break;
 
 	default:
 		return -HSE_INVALID_OPERATION;
 	}
 
-	if (shamt >= 8 * sm_type_rank(result_type))
-		return -HSE_INVALID_OPERATION;
-
-	switch (result_type) {
-	case HXB_DTYPE_UINT32:
-		if (op == HSO_OP_SHL)
-			v1->v_uint <<= shamt;
-		else
-			v1->v_uint >>= shamt;
-		break;
-
-	case HXB_DTYPE_UINT64:
-		if (op == HSO_OP_SHL)
-			v1->v_uint64 <<= shamt;
-		else
-			v1->v_uint64 >>= shamt;
-		break;
-
-	case HXB_DTYPE_SINT32:
-		while (shamt--) {
-			if (v1->v_sint & INT32_MIN)
-				return -HSE_INVALID_OPERATION;
-			if (op == HSO_OP_SHL)
-				v1->v_sint <<= shamt;
-			else
-				v1->v_sint >>= shamt;
+	if (shamt >= 8 * sm_type_rank(result_type)) {
+		switch (result_type) {
+		case HXB_DTYPE_UINT32: v1->v_uint = 0; break;
+		case HXB_DTYPE_UINT64: v1->v_uint64 = 0; break;
+		case HXB_DTYPE_SINT32: v1->v_sint = v1->v_sint < 0 ? -1 : 0; break;
+		case HXB_DTYPE_SINT64: v1->v_sint64 = v1->v_sint64 < 0 ? -1 : 0; break;
 		}
-		break;
 
-	case HXB_DTYPE_SINT64:
-		while (shamt--) {
-			if (v1->v_sint64 & INT32_MIN)
-				return -HSE_INVALID_OPERATION;
-			if (op == HSO_OP_SHL)
-				v1->v_sint64 <<= shamt;
-			else
-				v1->v_sint64 >>= shamt;
+		return 0;
+	}
+
+	if (op == HSO_OP_SHL) {
+		switch (result_type) {
+		case HXB_DTYPE_UINT32: v1->v_uint <<= shamt; break;
+		case HXB_DTYPE_UINT64: v1->v_uint64 <<= shamt; break;
+
+		case HXB_DTYPE_SINT32: {
+			uint32_t u;
+
+			memcpy(&u, &v1->v_sint, sizeof(u));
+			u <<= shamt;
+			memcpy(&v1->v_sint, &u, sizeof(u));
+			break;
 		}
-		break;
+
+		case HXB_DTYPE_SINT64: {
+			uint64_t u;
+
+			memcpy(&u, &v1->v_sint64, sizeof(u));
+			u <<= shamt;
+			memcpy(&v1->v_sint64, &u, sizeof(u));
+			break;
+		}
+		}
+	} else {
+		switch (result_type) {
+		case HXB_DTYPE_UINT32: v1->v_uint >>= shamt; break;
+		case HXB_DTYPE_UINT64: v1->v_uint64 >>= shamt; break;
+		case HXB_DTYPE_SINT32: v1->v_sint >>= shamt; break;
+		case HXB_DTYPE_SINT64: v1->v_sint64 >>= shamt; break;
+		}
 	}
 
 	return 0;
