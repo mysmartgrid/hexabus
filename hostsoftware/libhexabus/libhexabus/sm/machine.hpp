@@ -12,7 +12,11 @@ namespace sm {
 
 class Machine {
 	public:
-		typedef boost::variant<bool, uint8_t, uint32_t, uint64_t, float> write_value_t;
+		typedef boost::variant<
+			bool,
+			uint8_t, uint16_t, uint32_t, uint64_t,
+			int8_t, int16_t, int32_t, int64_t,
+			float> write_value_t;
 		typedef boost::signals2::signal<uint8_t (uint32_t, write_value_t)> write_signal_t;
 
 	private:

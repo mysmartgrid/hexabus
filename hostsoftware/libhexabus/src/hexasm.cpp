@@ -66,9 +66,17 @@ static uint8_t on_write(uint32_t eid, hexabus::sm::Machine::write_value_t value)
 		type = "uint8";
 		value = (uint32_t) boost::get<uint8_t>(value);
 		break;
-	case 2: type = "uint32"; break;
-	case 3: type = "uint64"; break;
-	case 4: type = "float"; break;
+	case 2: type = "uint16"; break;
+	case 3: type = "uint32"; break;
+	case 4: type = "uint64"; break;
+	case 5:
+		type = "int8";
+		value = (int32_t) boost::get<int8_t>(value);
+		break;
+	case 6: type = "int16"; break;
+	case 7: type = "int32"; break;
+	case 8: type = "int64"; break;
+	case 9: type = "float"; break;
 	}
 
 	std::cout << "WRITE\n"

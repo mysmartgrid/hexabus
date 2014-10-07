@@ -83,21 +83,16 @@ static uint8_t sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val)
 
 	env.value.datatype = val->type;
 	switch (val->type) {
-	case HXB_DTYPE_BOOL:
-		env.value.v_bool = val->v_uint;
-		break;
-
-	case HXB_DTYPE_UINT8:
-		env.value.v_u8 = val->v_uint;
-		break;
-
-	case HXB_DTYPE_UINT32:
-		env.value.v_u32 = val->v_uint;
-		break;
-
-	case HXB_DTYPE_FLOAT:
-		env.value.v_float = val->v_float;
-		break;
+	case HXB_DTYPE_BOOL:   env.value.v_bool = val->v_uint; break;
+	case HXB_DTYPE_UINT8:  env.value.v_u8 = val->v_uint; break;
+	case HXB_DTYPE_UINT16: env.value.v_u16 = val->v_uint; break;
+	case HXB_DTYPE_UINT32: env.value.v_u32 = val->v_uint; break;
+	case HXB_DTYPE_UINT64: env.value.v_u64 = val->v_uint64; break;
+	case HXB_DTYPE_SINT8:  env.value.v_s8 = val->v_sint; break;
+	case HXB_DTYPE_SINT16: env.value.v_s16 = val->v_sint; break;
+	case HXB_DTYPE_SINT32: env.value.v_s32 = val->v_sint; break;
+	case HXB_DTYPE_SINT64: env.value.v_s64 = val->v_sint64; break;
+	case HXB_DTYPE_FLOAT:  env.value.v_float = val->v_float; break;
 
 	default:
 		return HXB_ERR_INVALID_WRITE;

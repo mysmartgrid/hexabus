@@ -1,15 +1,25 @@
+#if !defined(__GNUC__) && !defined(__clang__)
+# error Signed overflows in this file depend on GCC/clang behaviour. Check validity.
+#endif
+
 int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 {
 	uint32_t offset = 0;
 
-#define LOAD(type) ({ \
-	uint32_t tmp; \
-	int rc = sm_get_##type(at + offset, &tmp); \
+#define LOAD_UNSIGNED(width) ({ \
+	uint ## width ## _t tmp; \
+	int rc = sm_get_block(at + offset, sizeof(tmp), &tmp); \
+	if (rc < 0) return -HSE_INVALID_OPCODE; \
+	offset += rc; \
+	tmp; })
+#define LOAD_SIGNED(width) ({ \
+	int ## width ## _t tmp; \
+	int rc = sm_get_block(at + offset, sizeof(tmp), &tmp); \
 	if (rc < 0) return -HSE_INVALID_OPCODE; \
 	offset += rc; \
 	tmp; })
 
-	op->opcode = (enum hxb_sm_opcode) LOAD(u8);
+	op->opcode = (enum hxb_sm_opcode) LOAD_UNSIGNED(8);
 
 	switch (op->opcode) {
 	case HSO_LD_SOURCE_IP:
@@ -68,7 +78,7 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 
 	case HSO_LD_MEM:
 	case HSO_ST_MEM: {
-		uint16_t memref = LOAD(u16);
+		uint16_t memref = LOAD_UNSIGNED(16);
 		op->mem.type = (enum hxb_sm_memtype) (memref >> 12);
 		op->mem.addr = memref & 0xfff;
 		break;
@@ -76,58 +86,46 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 
 	case HSO_LD_U8:
 		op->immed.type = HXB_DTYPE_UINT8;
-		op->immed.v_uint = LOAD(u8);
+		op->immed.v_uint = LOAD_UNSIGNED(8);
 		break;
 
 	case HSO_LD_U16:
 		op->immed.type = HXB_DTYPE_UINT16;
-		op->immed.v_uint = LOAD(u16);
+		op->immed.v_uint = LOAD_UNSIGNED(16);
 		break;
 
 	case HSO_LD_U32:
 		op->immed.type = HXB_DTYPE_UINT32;
-		op->immed.v_uint = LOAD(u32);
+		op->immed.v_uint = LOAD_UNSIGNED(32);
 		break;
 
 	case HSO_LD_U64:
 		op->immed.type = HXB_DTYPE_UINT64;
-		op->immed.v_uint64 = LOAD(u32);
-		op->immed.v_uint64 <<= 32;
-		op->immed.v_uint64 |= LOAD(u32);
+		op->immed.v_uint64 = LOAD_UNSIGNED(64);
 		break;
 
-	case HSO_LD_S8: {
+	case HSO_LD_S8:
 		op->immed.type = HXB_DTYPE_SINT8;
-		uint8_t val = LOAD(u8);
-		memcpy(&op->immed.v_sint, &val, 1);
+		op->immed.v_sint = LOAD_SIGNED(8);
 		break;
-	}
 
-	case HSO_LD_S16: {
+	case HSO_LD_S16:
 		op->immed.type = HXB_DTYPE_SINT16;
-		uint16_t val = LOAD(u16);
-		memcpy(&op->immed.v_sint, &val, 2);
+		op->immed.v_sint = LOAD_SIGNED(16);
 		break;
-	}
 
-	case HSO_LD_S32: {
+	case HSO_LD_S32:
 		op->immed.type = HXB_DTYPE_SINT32;
-		uint32_t val = LOAD(u32);
-		memcpy(&op->immed.v_sint, &val, 4);
+		op->immed.v_sint = LOAD_SIGNED(32);
 		break;
-	}
 
-	case HSO_LD_S64: {
+	case HSO_LD_S64:
 		op->immed.type = HXB_DTYPE_SINT64;
-		uint64_t val = LOAD(u32);
-		val <<= 32;
-		val |= LOAD(u32);
-		memcpy(&op->immed.v_sint64, &val, 8);
+		op->immed.v_sint = LOAD_SIGNED(64);
 		break;
-	}
 
 	case HSO_LD_FLOAT: {
-		uint32_t f = LOAD(u32);
+		uint32_t f = LOAD_UNSIGNED(32);
 		op->immed.type = HXB_DTYPE_FLOAT;
 		memcpy(&op->immed.v_float, &f, sizeof(float));
 		break;
@@ -139,15 +137,15 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 	case HSO_OP_SWITCH_8:
 	case HSO_OP_SWITCH_16:
 	case HSO_OP_SWITCH_32:
-		op->immed.v_uint = LOAD(u8);
+		op->immed.v_uint = LOAD_UNSIGNED(8);
 		break;
 
 	case HSO_OP_DT_DECOMPOSE:
-		op->dt_mask = LOAD(u8);
+		op->dt_mask = LOAD_UNSIGNED(8);
 		break;
 
 	case HSO_CMP_BLOCK: {
-		uint32_t tmp = LOAD(u8);
+		uint32_t tmp = LOAD_UNSIGNED(8);
 		op->block.first = tmp >> 4;
 		op->block.last = tmp & 0xF;
 		if (op->block.first > op->block.last)
@@ -162,7 +160,7 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 	case HSO_JNZ:
 	case HSO_JZ:
 	case HSO_JUMP:
-		op->jump_skip = LOAD(u16);
+		op->jump_skip = LOAD_UNSIGNED(16);
 		break;
 
 	default:
@@ -171,7 +169,8 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 
 	return offset;
 
-#undef LOAD
+#undef LOAD_SIGNED
+#undef LOAD_UNSIGNED
 }
 
 static bool is_int(uint8_t type)
@@ -212,19 +211,7 @@ static int sm_convert(hxb_sm_value_t* val, uint8_t to_type)
 		return -HSE_INVALID_OPERATION;
 	}
 
-#define TRY_SIGNED_CONV(into, from, type, min, max) \
-	do { \
-		if (val->from < min || val->from > max) \
-			return -HSE_SIGNED_OVERFLOW; \
-		val->into = (type) val->from; \
-	} while (0);
-#define TRY_UNSIGNED_CONV(into, from, type, min, max) \
-	do { \
-		if (val->from > max) \
-			return -HSE_SIGNED_OVERFLOW; \
-		val->into = (type) val->from; \
-	} while (0);
-#define TRY_CONVERT_ANY(from, CONV) \
+#define CONVERT_ANY(from) \
 	do { \
 		switch (to_type) { \
 		case HXB_DTYPE_BOOL:   val->v_uint = val->from != 0; break; \
@@ -233,45 +220,22 @@ static int sm_convert(hxb_sm_value_t* val, uint8_t to_type)
 		case HXB_DTYPE_UINT32: val->v_uint = (uint32_t) val->from; break; \
 		case HXB_DTYPE_UINT64: val->v_uint = (uint64_t) val->from; break; \
 		case HXB_DTYPE_FLOAT:  val->v_float = (float) val->from; break; \
-		case HXB_DTYPE_SINT8:  CONV(v_sint, from, int8_t, INT8_MIN, INT8_MAX); break; \
-		case HXB_DTYPE_SINT16: CONV(v_sint, from, int16_t, INT16_MIN, INT16_MAX); break; \
-		case HXB_DTYPE_SINT32: CONV(v_sint, from, int32_t, INT32_MIN, INT32_MAX); break; \
-		case HXB_DTYPE_SINT64: CONV(v_sint64, from, int64_t, INT64_MIN, INT64_MAX); break; \
+		case HXB_DTYPE_SINT8:  val->v_sint = (int8_t) val->from; break; \
+		case HXB_DTYPE_SINT16: val->v_sint = (int16_t) val->from; break; \
+		case HXB_DTYPE_SINT32: val->v_sint = (int32_t) val->from; break; \
+		case HXB_DTYPE_SINT64: val->v_sint64 = (int64_t) val->from; break; \
 		} \
 	} while (0)
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
-#endif
 	switch (val->type) {
-	case HXB_DTYPE_UINT32:
-		TRY_CONVERT_ANY(v_uint, TRY_UNSIGNED_CONV);
-		break;
-
-	case HXB_DTYPE_SINT32:
-		TRY_CONVERT_ANY(v_sint, TRY_SIGNED_CONV);
-		break;
-
-	case HXB_DTYPE_UINT64:
-		TRY_CONVERT_ANY(v_uint64, TRY_UNSIGNED_CONV);
-		break;
-
-	case HXB_DTYPE_SINT64:
-		TRY_CONVERT_ANY(v_sint64, TRY_SIGNED_CONV);
-		break;
-
-	case HXB_DTYPE_FLOAT:
-		TRY_CONVERT_ANY(v_float, TRY_SIGNED_CONV);
-		break;
+	case HXB_DTYPE_UINT32: CONVERT_ANY(v_uint); break;
+	case HXB_DTYPE_SINT32: CONVERT_ANY(v_sint); break;
+	case HXB_DTYPE_UINT64: CONVERT_ANY(v_uint64); break;
+	case HXB_DTYPE_SINT64: CONVERT_ANY(v_sint64); break;
+	case HXB_DTYPE_FLOAT: CONVERT_ANY(v_float); break;
 	}
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
-#undef TRY_CONVERT_ANY
-#undef TRY_UNSIGNED_CONV
-#undef TRY_SIGNED_CONV
+#undef CONVERT_ANY
 
 	val->type = to_type;
 
@@ -421,12 +385,13 @@ static int sm_arith_op2(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
 #define ONE_OP(OP) \
 	do { \
 		switch (common_type) { \
-		case HXB_DTYPE_UINT32: v1->v_uint   = v1->v_uint   OP v2->v_uint; break; \
-		case HXB_DTYPE_SINT32: v1->v_sint   = v1->v_sint   OP v2->v_sint; break; \
-		case HXB_DTYPE_UINT64: v1->v_uint64 = v1->v_uint64 OP v2->v_uint64; break; \
-		case HXB_DTYPE_SINT64: v1->v_sint64 = v1->v_sint64 OP v2->v_sint64; break; \
-		case HXB_DTYPE_FLOAT:  v1->v_float  = v1->v_float  OP v2->v_float; break; \
+		case HXB_DTYPE_UINT32: v1->v_uint = v1->v_uint   OP v2->v_uint; break; \
+		case HXB_DTYPE_SINT32: v1->v_uint = v1->v_sint   OP v2->v_sint; break; \
+		case HXB_DTYPE_UINT64: v1->v_uint = v1->v_uint64 OP v2->v_uint64; break; \
+		case HXB_DTYPE_SINT64: v1->v_uint = v1->v_sint64 OP v2->v_sint64; break; \
+		case HXB_DTYPE_FLOAT:  v1->v_uint = v1->v_float  OP v2->v_float; break; \
 		} \
+		v1->type = HXB_DTYPE_BOOL; \
 	} while (0)
 
 	case HSO_CMP_LT:  ONE_OP(<); break;
@@ -461,10 +426,10 @@ static int sm_int_op2_bitwise(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
 #define ONE_OP(OP) \
 	do { \
 		switch (common) { \
-		case HXB_DTYPE_UINT32: v1->v_uint   OP##= v2->v_uint; break; \
-		case HXB_DTYPE_SINT32: v1->v_sint   OP##= v2->v_sint; break; \
-		case HXB_DTYPE_UINT64: v1->v_uint64 OP##= v2->v_uint64; break; \
-		case HXB_DTYPE_SINT64: v1->v_sint64 OP##= v2->v_sint64; break; \
+		case HXB_DTYPE_UINT32: v1->v_uint   = v1->v_uint   OP v2->v_uint; break; \
+		case HXB_DTYPE_SINT32: v1->v_sint   = v1->v_sint   OP v2->v_sint; break; \
+		case HXB_DTYPE_UINT64: v1->v_uint64 = v1->v_uint64 OP v2->v_uint64; break; \
+		case HXB_DTYPE_SINT64: v1->v_sint64 = v1->v_sint64 OP v2->v_sint64; break; \
 		} \
 	} while (0)
 
@@ -536,8 +501,8 @@ static int sm_int_op2_shift(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
 		switch (result_type) {
 		case HXB_DTYPE_UINT32: v1->v_uint = 0; break;
 		case HXB_DTYPE_UINT64: v1->v_uint64 = 0; break;
-		case HXB_DTYPE_SINT32: v1->v_sint = v1->v_sint < 0 ? -1 : 0; break;
-		case HXB_DTYPE_SINT64: v1->v_sint64 = v1->v_sint64 < 0 ? -1 : 0; break;
+		case HXB_DTYPE_SINT32: v1->v_sint = v1->v_sint < 0 && op == HSO_OP_SHR ? -1 : 0; break;
+		case HXB_DTYPE_SINT64: v1->v_sint64 = v1->v_sint64 < 0 && op == HSO_OP_SHR ? -1 : 0; break;
 		}
 
 		return 0;
@@ -652,9 +617,8 @@ int SM_EXPORT(sm_store_mem)(const struct hxb_sm_instruction* insn, hxb_sm_value_
 		memcpy(sm_memory + insn->mem.addr, &tmp, sizeof(type)); \
 	} while (0)
 
-	int res = sm_convert(&value, insn->mem.type);
-	if (res < 0)
-		return res;
+	if (sm_convert(&value, insn->mem.type) < 0)
+		return -HSE_INVALID_OPERATION;
 
 	switch (insn->mem.type) {
 	case HSM_BOOL:  MEM_OP(v_uint, bool); break;
@@ -1081,7 +1045,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		case HSO_WRITE: {
 			CHECK_POP(2);
 
-			if (TOP_N(1).type < HXB_DTYPE_BOOL || TOP_N(1).type > HXB_DTYPE_UINT32)
+			if (TOP_N(1).type < HXB_DTYPE_BOOL || TOP_N(1).type > HXB_DTYPE_FLOAT)
 				FAIL_WITH(HSE_INVALID_TYPES);
 
 			hxb_sm_value_t write_val = TOP_N(0);

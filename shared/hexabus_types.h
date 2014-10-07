@@ -63,15 +63,20 @@ enum STM_state_t {
 };
 
 // Struct for passing Hexabus values around
-// One struct for all data types (except 128string, because that'd need too much memory), with a datatype flag indicating which
+// One struct for all data types (except blobs, because that'd need too much memory), with a datatype flag indicating which
 // of the values is used. Used for passing values to and from endpoint_access
 struct hxb_value {
 	uint8_t               datatype;   // Datatype that is used, or HXB_DTYPE_UNDEFINED
 	union {
 		uint8_t   v_bool;
 		uint8_t   v_u8;
+		uint16_t  v_u16;
 		uint32_t  v_u32;
 		uint64_t  v_u64;
+		int8_t    v_s8;
+		int16_t   v_s16;
+		int32_t   v_s32;
+		int64_t   v_s64;
 		float     v_float;
 		char*     v_string;
 		char*     v_binary;
