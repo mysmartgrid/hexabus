@@ -170,10 +170,6 @@ PROCESS_THREAD(provisioning_process, ev, data)
 		} while(packetbuf_datalen() != sizeof(PROVISIONING_HEADER) || strncmp((char*)packetbuf_dataptr(), PROVISIONING_HEADER, sizeof(PROVISIONING_HEADER)));
 	// timer expired
 	if(clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT_USB) {
-		mac_dst_pan_id = prov_pan_id;
-		mac_src_pan_id = prov_pan_id;
-		rf212_set_pan_addr(prov_pan_id, 0, NULL);
-		bootloader_mode = 0;
 		printf_P(PSTR(P_FAL_STR));
 	} else {
 
@@ -203,14 +199,15 @@ PROCESS_THREAD(provisioning_process, ev, data)
 		packetbuf_clear();
 		encryption_enabled = tmp_enc;
 		//provisioning_done_leds();
-		mac_dst_pan_id = prov_pan_id;
-		mac_src_pan_id = prov_pan_id;
-		rf212_set_pan_addr(prov_pan_id, 0, NULL);
-		bootloader_mode = 0;
 		printf_P(PSTR(P_SUC_STR));
 	}
 
 	exit: ;
+	mac_dst_pan_id = prov_pan_id;
+	mac_src_pan_id = prov_pan_id;
+	rf212_set_pan_addr(prov_pan_id, 0, NULL);
+	bootloader_mode = 0;
+
 	//indicate normal operation
 	leds_off(LEDS_ALL);
 	leds_on(LEDS_GREEN);
