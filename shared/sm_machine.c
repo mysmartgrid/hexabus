@@ -304,6 +304,11 @@ static uint8_t sm_type_rank(uint8_t t)
 	return 0xff;
 }
 
+static uint8_t sm_type_width(uint8_t t)
+{
+	return 8 * sm_type_rank(t);
+}
+
 static uint8_t sm_common_type(uint8_t t1, uint8_t t2)
 {
 	if (t1 == HXB_DTYPE_FLOAT || t2 == HXB_DTYPE_FLOAT)
@@ -527,7 +532,7 @@ static int sm_int_op2_shift(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
 		return -HSE_INVALID_OPERATION;
 	}
 
-	if (shamt >= 8 * sm_type_rank(result_type)) {
+	if (shamt >= sm_type_width(result_type)) {
 		switch (result_type) {
 		case HXB_DTYPE_UINT32: v1->v_uint = 0; break;
 		case HXB_DTYPE_UINT64: v1->v_uint64 = 0; break;
