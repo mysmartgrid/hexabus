@@ -29,7 +29,7 @@ int main(int argc, char** argv)
     ("help,h", "produce this message")
     ("debug,d", "enable debug mode")
     ("logfile,l", po::value<std::string>(), "set the logfile to use")
-    ("interval,i", po::value<int>(), "set the broadcast interval")
+    ("interval,i", po::value<int>(), "set the broadcast interval (in minutes)")
     ("interface,I", po::value<std::vector<std::string> >(), "interface to use for multicast")
     ("address,a", po::value<std::vector<std::string> >(), "address to listen on")
 		("url,u", po::value<std::string>(), "Url to the MySmartGrid API")
@@ -73,7 +73,7 @@ int main(int argc, char** argv)
   }
 
   if (vm.count("interval")) {
-    interval = vm["interval"].as<int>();
+    interval = vm["interval"].as<int>() * 60; //Use minute resolution for intervals
     std::cout << "interval: " << interval << std::endl;
   }
 

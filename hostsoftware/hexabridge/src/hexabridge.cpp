@@ -63,14 +63,19 @@ void Pusher::_init() {
 }
 
 uint32_t Pusher::getLastReading() {
-	try {
-		libmsg::Webclient::Reading reading = libmsg::Webclient::getLastReading(_url, _id, _token);
-		return reading.second;
-	} catch ( const libmsg::CommunicationException& e ) {
-		// ignore network problems
-		std::cerr << "Warning: An error occured while communicating with the mysmartgrid server: " << e.what() << std::endl;
+	std::stringstream err;
+	// Try multiple times to query mysmartgrid
+	for ( unsigned int i = 0; i < 5; ++i ) {
+		try {
+			libmsg::Webclient::Reading reading = libmsg::Webclient::getLastReading(_url, _id, _token);
+			if ( reading.second > 0 )
+				return reading.second;
+		} catch ( const libmsg::CommunicationException& e ) {
+			// ignore network problems
+			err << "An error occured while communicating with the mysmartgrid server: " << e.what();
+		}
 	}
-	return 0;
+	throw libmsg::CommunicationException(err.str());
 }
 
 std::string Pusher::loadDeviceName()
