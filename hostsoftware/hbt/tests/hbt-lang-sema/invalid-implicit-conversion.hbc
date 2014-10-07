@@ -8,9 +8,9 @@ machine m : {
 
 		dev.ep = 1; //#expect: error: invalid implicit type conversion from int8 to bool
 
-		switch (1.0) { //#expect: error: invalid implicit type conversion from float to uint32
+		switch (1.0) { //#expect: error: expected expression of integral type, got float
 		default: {}
-		case 1.0: {} //#expect: error: invalid implicit type conversion from float to uint32
+		case 1.0: {} //#expect: error: expected expression of integral type, got float
 		}
 	}
 }

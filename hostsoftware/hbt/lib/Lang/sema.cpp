@@ -227,6 +227,15 @@ static Diagnostic constexprDoesNotFit(const Expr& e)
 	};
 }
 
+static Diagnostic expectedIntType(const Expr& e)
+{
+	return {
+		DiagnosticKind::Error,
+		&e.sloc(),
+		str(format("expected expression of integral type, got %1%") % typeName(e.type()))
+	};
+}
+
 
 
 template<typename T>
@@ -694,8 +703,8 @@ void SemanticVisitor::visit(IfStmt& i)
 void SemanticVisitor::visit(SwitchStmt& s)
 {
 	s.expr().accept(*this);
-	if (!s.expr().isIncomplete() && !isAssignableFrom(Type::UInt32, s.expr().type()))
-		diags.print(invalidImplicitConversion(s.sloc(), s.expr().type(), Type::UInt32));
+	if (!s.expr().isIncomplete() && !isIntType(s.expr().type()))
+		diags.print(expectedIntType(s.expr()));
 
 	const SwitchLabel* defaultLabel = nullptr;
 	std::map<cln::cl_I, const SwitchLabel*> caseLabels;
@@ -706,8 +715,8 @@ void SemanticVisitor::visit(SwitchStmt& s)
 			if (l.expr()) {
 				l.expr()->accept(*this);
 				if (!l.expr()->isIncomplete()) {
-					if (!isAssignableFrom(Type::UInt32, l.expr()->type())) {
-						diags.print(invalidImplicitConversion(l.sloc(), l.expr()->type(), Type::UInt32));
+					if (!isIntType(l.expr()->type())) {
+						diags.print(expectedIntType(*l.expr()));
 						continue;
 					}
 
