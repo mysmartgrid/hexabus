@@ -701,7 +701,10 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> omit[tok.lbrace | expected("{")]
 				> *s.decl
 				> *state
-				> omit[tok.rbrace | expected("}")]
+				> omit[
+					(tok.rbrace | expected("}"))
+					>> (tok.semicolon | expected(";"))
+				]
 			)[fwd >= [this] (range& r, Identifier* id, std::vector<opt<ClassParameter>>* params,
 					std::vector<ptr<DeclarationStmt>>& decls, std::vector<ptr<State>>& states) {
 				if (params)
@@ -715,8 +718,8 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			(
 				tok.word.machine
 				>> identifier
-				>> omit[tok.colon | expected(":")]
 				>> !tok.lbrace
+				>> omit[tok.colon | expected(":")]
 				> identifier
 				> omit[tok.lparen | expected("(")]
 				> -(expr % tok.comma)
@@ -730,13 +733,13 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			| (
 				tok.word.machine
 				> identifier
-				> omit[
-					(tok.colon | expected(":"))
-					> (tok.lbrace | expected("{"))
-				]
+				> omit[tok.lbrace | expected("{")]
 				> *s.decl
 				> *state
-				> omit[tok.rbrace | expected("}")]
+				> omit[
+					(tok.rbrace | expected("}"))
+					>> (tok.semicolon | expected(";"))
+				]
 			)[fwd >= [this] (range& r, Identifier* id, std::vector<ptr<DeclarationStmt>>& decls,
 					std::vector<ptr<State>>& states) {
 				return new MachineDefinition(locOf(r), std::move(*id), unpack(decls), unpack(states));

@@ -3,7 +3,7 @@ class c(int8 x) {
 		if (x > 0)
 			goto init;
 	}
-}
+};
 
 machine m1 : m1(0); //#expect: error: identifier 'm1' does not name a machine class
                     //#expect+: declared here

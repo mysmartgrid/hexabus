@@ -5,7 +5,7 @@ class c(int64 arg) {
 		case arg * uint32(-1) + 1: {} //#expect: error: value 4294967296 overflows type uint32
 		}
 	}
-}
+};
 
 machine m : c(1); //#expect: hint: instantiated from here
                   //#expect+: hint: instantiated from here

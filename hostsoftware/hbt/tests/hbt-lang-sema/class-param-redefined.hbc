@@ -3,4 +3,4 @@ class c(bool x, bool x) { //#expect: error: redefinition of class parameter x
 	state init {
 		if (x) goto init;
 	}
-}
+};

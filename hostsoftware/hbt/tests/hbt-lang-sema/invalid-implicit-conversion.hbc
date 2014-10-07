@@ -1,7 +1,7 @@
 endpoint ep(0) : bool (write);
 device dev(::) : ep;
 
-machine m : {
+machine m {
 	state init {
 		on (7) { //#expect: error: invalid implicit type conversion from int8 to bool
 		}
@@ -13,4 +13,4 @@ machine m : {
 		case 1.0: {} //#expect: error: expected expression of integral type, got float
 		}
 	}
-}
+};

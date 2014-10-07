@@ -1,4 +1,4 @@
-machine m : {
+machine m {
 	state a {} //#expect: hint: previously declared here
 	state a {} //#expect: error: redefinition of state a
-}
+};

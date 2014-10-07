@@ -1,6 +1,6 @@
 class c(int8 x) { //#expect: warning: unused class parameter x
 	state init {
 	}
-}
+};
 
 machine m : c(0);

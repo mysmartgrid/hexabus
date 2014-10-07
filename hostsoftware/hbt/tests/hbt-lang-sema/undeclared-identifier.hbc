@@ -1,4 +1,4 @@
-machine m : {
+machine m {
 	uint32 x = foo(0); //#expect: error: use of undeclared identifier 'foo'
 	bool b = A.B; //#expect: error: use of undeclared identifier 'A'
 	              //#expect+: error: use of undeclared identifier 'B'
@@ -9,7 +9,7 @@ machine m : {
 		if (b || t) //#expect: error: use of undeclared identifier 't'
 			goto init;
 	}
-}
+};
 
 class c (device dev, endpoint ep) {
 	state init {
@@ -20,7 +20,7 @@ class c (device dev, endpoint ep) {
 		x = 7; //#expect: error: use of undeclared identifier 'x'
 		goto u; //#expect: error: use of undeclared identifier 'u'
 	}
-}
+};
 
 endpoint ep(0) : bool();
 device dev(::) : ep;

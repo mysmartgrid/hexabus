@@ -2,7 +2,7 @@ class c(device dev, endpoint ep, bool v) {
 	state init {
 		dev.ep = v;
 	}
-}
+};
 
 endpoint ep(0) : bool (write);
 device dev(::) : ep;

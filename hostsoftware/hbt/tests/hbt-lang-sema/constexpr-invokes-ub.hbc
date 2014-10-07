@@ -8,7 +8,7 @@ class c(int8 div, int8 inval) {
 			{}
 		}
 	}
-}
+};
 
 machine m : c(0, int8(888)); //#expect: evaluation of constant expression invokes undefined behaviour
                              //#expect+: hint: instantiated from here

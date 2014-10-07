@@ -1,6 +1,6 @@
-machine test : {
+machine test {
 	state init {
 		bool b = false; //#expect: hint: previously declared here
 		bool b = true; //#expect: error: redeclaration
 	}
-}
+};

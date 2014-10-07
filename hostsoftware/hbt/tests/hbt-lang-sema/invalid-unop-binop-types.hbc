@@ -1,8 +1,8 @@
-machine m : {
+machine m {
 	float f = ~1.0; //#expect: error: invalid type float in unary expression
 	bool b =
 		(f || true)     //#expect: error: invalid types in binary expression (float and bool)
 		&& (true || f); //#expect: error: invalid types in binary expression (bool and float)
 	float f2 = f << 1; //#expect: error: invalid types in binary expression (float and int8)
 	float f3 = 1 << f;//#expect: error: invalid types in binary expression (int8 and float)
-}
+};
