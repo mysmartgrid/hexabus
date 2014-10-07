@@ -67,7 +67,7 @@ uint32_t Pusher::getLastReading() {
 	// Try multiple times to query mysmartgrid
 	for ( unsigned int i = 0; i < 5; ++i ) {
 		try {
-			libmsg::Webclient::Reading reading = libmsg::Webclient::getLastReading(_url, _id, _token);
+			libmsg::Webclient::Reading reading = libmsg::Webclient::getLastReading(_url, _id, libmsg::Secret::fromToken(_token));
 			if ( reading.second > 0 )
 				return reading.second;
 		} catch ( const libmsg::CommunicationException& e ) {
