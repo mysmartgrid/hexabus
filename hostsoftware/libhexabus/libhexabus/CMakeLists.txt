@@ -13,6 +13,9 @@ endif()
 file(GLOB sm_hdrs sm/*.h sm/*.hpp)
 file(GLOB sm_src  sm/*.cpp sm/*.hpp)
 
+#meh
+set_source_files_properties(sm/machine.cpp PROPERTIES OBJECT_DEPENDS ../../../shared/sm_machine.c)
+
 install(FILES ${hdrs}        DESTINATION include/libhexabus)
 install(FILES ${logger_hdrs} DESTINATION include/libhexabus/logger)
 install(FILES ${sm_hdrs}     DESTINATION include/libhexabus/sm)
