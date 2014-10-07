@@ -10,6 +10,8 @@
 
 #include "Lang/type.hpp"
 
+#include <cln/integer.h>
+
 namespace hbt {
 namespace lang {
 
@@ -168,12 +170,12 @@ private:
 	SourceLocation _sloc;
 	Type _type;
 	bool _isConstexpr, _isIncomplete;
-	uint64_t _constexprValue;
+	cln::cl_I _constexprValue;
 
 protected:
 	typedef std::unique_ptr<Expr> ptr_t;
 
-	Expr(const SourceLocation& sloc, Type type, uint64_t constexprValue = 0)
+	Expr(const SourceLocation& sloc, Type type, cln::cl_I constexprValue = 0)
 		: _sloc(sloc), _type(type), _isConstexpr(false), _isIncomplete(false), _constexprValue(constexprValue)
 	{}
 
@@ -182,12 +184,12 @@ public:
 	Type type() const { return _type; }
 	bool isConstexpr() const { return _isConstexpr; }
 	bool isIncomplete() const { return _isIncomplete; }
-	uint64_t constexprValue() const { return _constexprValue; }
+	const cln::cl_I& constexprValue() const { return _constexprValue; }
 
 	void type(Type t) { _type = t; }
 	void isConstexpr(bool b) { _isConstexpr = b; }
 	void isIncomplete(bool b) { _isIncomplete = b; }
-	void constexprValue(uint64_t v) { _constexprValue = v; }
+	void constexprValue(cln::cl_I v) { _constexprValue = v; }
 };
 
 class IdentifierExpr : public Expr {
@@ -230,6 +232,12 @@ class TypedLiteral : public Literal {
 			Type::Unknown;
 	}
 
+	typedef typename std::conditional<
+			std::is_integral<T>::value && std::is_signed<T>::value,
+			int64_t,
+			uint64_t
+		>::type widenened_const_type;
+
 	static_assert(calcType() != Type::Unknown, "bad literal type");
 
 private:
@@ -237,7 +245,7 @@ private:
 
 public:
 	TypedLiteral(const SourceLocation& sloc, T value)
-		: Literal(sloc, calcType(), value), _value(value)
+		: Literal(sloc, calcType(), static_cast<widenened_const_type>(value)), _value(value)
 	{
 		isConstexpr(isConstexprType(calcType()));
 	}

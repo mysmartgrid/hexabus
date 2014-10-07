@@ -1,6 +1,6 @@
-class c(div) {
+class c(div, inval) {
 	state init {
-		uint32 val = 42;
+		uint32 val = 42 + (inval != 0 ? 0 : 0);
 
 		switch (val) {
 		case 7 / div: //#expect: error: evaluation of constant expression invokes undefined behaviour
@@ -10,5 +10,6 @@ class c(div) {
 	}
 }
 
-machine m : c(0); //#expect: hint: instantiated from here
-                  //#expect+: hint: instantiated from here
+machine m : c(0, int8(888)); //#expect: evaluation of constant expression invokes undefined behaviour
+                             //#expect+: hint: instantiated from here
+                             //#expect+: hint: instantiated from here

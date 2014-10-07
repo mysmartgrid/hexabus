@@ -32,6 +32,7 @@ target_link_libraries(hbt-lang
 	lib_Lang
 	lib_Util
 	${Boost_LIBRARIES}
+	${CLN_LIBRARIES}
 )
 
 install(PROGRAMS

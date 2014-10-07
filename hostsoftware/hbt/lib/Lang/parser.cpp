@@ -272,18 +272,11 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		T val;
 	};
 
-	template<typename T>
-	static T parseUI(const range& r, bool& pass)
-	{
-		T val;
-		pass = qi::parse(r.begin(), r.end(), qi::uint_parser<T, 10, 1, 99>(), val);
-		return val;
-	}
-
 	Literal* convUI(const range& r, bool& pass)
 	{
 		if (*r.begin() == '-') {
-			int64_t i = parseUI<int64_t>(r, pass);
+			int64_t i;
+			pass = qi::parse(r.begin(), r.end(), qi::int_parser<int64_t, 10, 1, 99>(), i);
 			if (i >= INT8_MIN)
 				return new TypedLiteral<int8_t>(locOf(r), i);
 			else if (i >= INT16_MIN)
@@ -293,7 +286,8 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			else
 				return new TypedLiteral<int64_t>(locOf(r), i);
 		} else {
-			uint64_t u = parseUI<uint64_t>(r, pass);
+			uint64_t u;
+			pass = qi::parse(r.begin(), r.end(), qi::int_parser<uint64_t, 10, 1, 99>(), u);
 			if (u <= INT8_MAX)
 				return new TypedLiteral<int8_t>(locOf(r), u);
 			else if (u <= UINT8_MAX)
@@ -757,7 +751,9 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 					> (tok.semicolon | expected(";"))
 				]
 			)[fwd >= [this] (range& r, Identifier* name, range& eid, locd<Type>* dt, EndpointAccess access, bool& pass) {
-				return new Endpoint(locOf(r), *name, parseUI<uint32_t>(eid, pass), dt->val, access);
+				uint32_t eidVal;
+				pass = qi::parse(eid.begin(), eid.end(), qi::uint_parser<uint32_t, 10, 1, 99>(), eidVal);
+				return new Endpoint(locOf(r), *name, eidVal, dt->val, access);
 			}];
 
 		device =

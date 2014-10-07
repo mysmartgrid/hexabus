@@ -3,6 +3,7 @@
 #include "Util/range.hpp"
 
 #include <boost/format.hpp>
+#include <cln/integer_io.h>
 
 using boost::format;
 
@@ -158,7 +159,7 @@ static Diagnostic caseLabelDuplicated(const SwitchLabel& l)
 	return { DiagnosticKind::Error, &l.sloc(), "duplicated case label 'default'" };
 }
 
-static Diagnostic caseLabelDuplicated(const SwitchLabel& l, uint64_t value)
+static Diagnostic caseLabelDuplicated(const SwitchLabel& l, const cln::cl_I& value)
 {
 	return { DiagnosticKind::Error, &l.sloc(), str(format("duplicated case label value %1%") % value) };
 }
@@ -217,20 +218,35 @@ static Diagnostic classWithoutParameters(const MachineClass& m)
 	return { DiagnosticKind::Error, &m.sloc(), str(format("class %1% has no parameters") % m.name().name()) };
 }
 
+static Diagnostic constexprDoesNotFit(const Expr& e)
+{
+	return {
+		DiagnosticKind::Error,
+		&e.sloc(),
+		str(format("value %1% overflows type %2%") % e.constexprValue() % typeName(e.type()))
+	};
+}
 
 
-static void restrictConstexprValueToType(Expr& e)
+
+template<typename T>
+static bool fitsIntoNumericLimits(const cln::cl_I& value)
+{
+	return std::numeric_limits<T>::min() <= value && value <= std::numeric_limits<T>::max();
+}
+
+static bool fitsIntoConstexprType(Expr& e)
 {
 	switch (e.type()) {
-	case Type::Bool: e.constexprValue(bool(e.constexprValue())); break;
-	case Type::UInt8: e.constexprValue(uint8_t(e.constexprValue())); break;
-	case Type::UInt16: e.constexprValue(uint16_t(e.constexprValue())); break;
-	case Type::UInt32: e.constexprValue(uint32_t(e.constexprValue())); break;
-	case Type::UInt64: e.constexprValue(uint64_t(e.constexprValue())); break;
-	case Type::Int8: e.constexprValue(int8_t(e.constexprValue())); break;
-	case Type::Int16: e.constexprValue(int16_t(e.constexprValue())); break;
-	case Type::Int32: e.constexprValue(int32_t(e.constexprValue())); break;
-	case Type::Int64: e.constexprValue(int64_t(e.constexprValue())); break;
+	case Type::Bool: return fitsIntoNumericLimits<bool>(e.constexprValue()); break;
+	case Type::UInt8: return fitsIntoNumericLimits<uint8_t>(e.constexprValue()); break;
+	case Type::UInt16: return fitsIntoNumericLimits<uint16_t>(e.constexprValue()); break;
+	case Type::UInt32: return fitsIntoNumericLimits<uint32_t>(e.constexprValue()); break;
+	case Type::UInt64: return fitsIntoNumericLimits<uint64_t>(e.constexprValue()); break;
+	case Type::Int8: return fitsIntoNumericLimits<int8_t>(e.constexprValue()); break;
+	case Type::Int16: return fitsIntoNumericLimits<int16_t>(e.constexprValue()); break;
+	case Type::Int32: return fitsIntoNumericLimits<int32_t>(e.constexprValue()); break;
+	case Type::Int64: return fitsIntoNumericLimits<int64_t>(e.constexprValue()); break;
 	default: throw "invalid type";
 	}
 }
@@ -342,7 +358,21 @@ void SemanticVisitor::visit(CastExpr& c)
 	c.isIncomplete(c.expr().isIncomplete());
 	c.isConstexpr(c.expr().isConstexpr() && isConstexprType(c.type()));
 	c.constexprValue(c.expr().constexprValue());
-	restrictConstexprValueToType(c);
+
+	switch (c.type()) {
+	case Type::Bool: c.constexprValue(c.constexprValue() != 0); break;
+	case Type::UInt8: c.constexprValue(c.constexprValue() & std::numeric_limits<uint8_t>::max()); break;
+	case Type::UInt16: c.constexprValue(c.constexprValue() & std::numeric_limits<uint16_t>::max()); break;
+	case Type::UInt32: c.constexprValue(c.constexprValue() & std::numeric_limits<uint32_t>::max()); break;
+	case Type::UInt64: c.constexprValue(c.constexprValue() & std::numeric_limits<uint64_t>::max()); break;
+	default:
+		break;
+	}
+
+	if (!fitsIntoConstexprType(c)) {
+		diags.print(constexprInvokesUB(c));
+		c.isIncomplete(true);
+	}
 }
 
 void SemanticVisitor::visit(UnaryExpr& u)
@@ -374,7 +404,7 @@ void SemanticVisitor::visit(UnaryExpr& u)
 		break;
 
 	case UnaryOperator::Not:
-		u.constexprValue(!u.expr().constexprValue());
+		u.constexprValue(u.expr().constexprValue() != 0);
 		break;
 
 	case UnaryOperator::Negate:
@@ -382,7 +412,10 @@ void SemanticVisitor::visit(UnaryExpr& u)
 		break;
 	}
 
-	restrictConstexprValueToType(u);
+	if (!fitsIntoConstexprType(u)) {
+		diags.print(constexprDoesNotFit(u));
+		u.isIncomplete(true);
+	}
 }
 
 void SemanticVisitor::visit(BinaryExpr& b)
@@ -448,7 +481,7 @@ void SemanticVisitor::visit(BinaryExpr& b)
 			b.isIncomplete(true);
 			diags.print(constexprInvokesUB(b));
 		} else {
-			b.constexprValue(b.left().constexprValue() / b.right().constexprValue());
+			b.constexprValue(truncate1(b.left().constexprValue(), b.right().constexprValue()));
 		}
 		break;
 
@@ -457,7 +490,7 @@ void SemanticVisitor::visit(BinaryExpr& b)
 			b.isIncomplete(true);
 			diags.print(constexprInvokesUB(b));
 		} else {
-			b.constexprValue(b.left().constexprValue() % b.right().constexprValue());
+			b.constexprValue(rem(b.left().constexprValue(), b.right().constexprValue()));
 		}
 		break;
 
@@ -466,8 +499,8 @@ void SemanticVisitor::visit(BinaryExpr& b)
 	case BinaryOperator::Xor: b.constexprValue(b.left().constexprValue() ^ b.right().constexprValue()); break;
 	case BinaryOperator::ShiftLeft: b.constexprValue(b.left().constexprValue() << b.right().constexprValue()); break;
 	case BinaryOperator::ShiftRight: b.constexprValue(b.left().constexprValue() >> b.right().constexprValue()); break;
-	case BinaryOperator::BoolAnd: b.constexprValue(b.left().constexprValue() && b.right().constexprValue()); break;
-	case BinaryOperator::BoolOr: b.constexprValue(b.left().constexprValue() || b.right().constexprValue()); break;
+	case BinaryOperator::BoolAnd: b.constexprValue(b.left().constexprValue() != 0 && b.right().constexprValue() != 0); break;
+	case BinaryOperator::BoolOr: b.constexprValue(b.left().constexprValue() != 0 || b.right().constexprValue() != 0); break;
 	case BinaryOperator::Equals: b.constexprValue(b.left().constexprValue() == b.right().constexprValue()); break;
 	case BinaryOperator::NotEquals: b.constexprValue(b.left().constexprValue() != b.right().constexprValue()); break;
 	case BinaryOperator::LessThan: b.constexprValue(b.left().constexprValue() < b.right().constexprValue()); break;
@@ -476,7 +509,10 @@ void SemanticVisitor::visit(BinaryExpr& b)
 	case BinaryOperator::GreaterOrEqual: b.constexprValue(b.left().constexprValue() >= b.right().constexprValue()); break;
 	}
 
-	restrictConstexprValueToType(b);
+	if (!fitsIntoConstexprType(b)) {
+		diags.print(constexprDoesNotFit(b));
+		b.isIncomplete(true);
+	}
 }
 
 void SemanticVisitor::visit(ConditionalExpr& c)
@@ -491,10 +527,8 @@ void SemanticVisitor::visit(ConditionalExpr& c)
 	if (!c.isIncomplete())
 		c.type(commonType(c.ifTrue().type(), c.ifFalse().type()));
 
-	if (c.isConstexpr()) {
-		c.constexprValue(c.condition().constexprValue() ? c.ifTrue().constexprValue() : c.ifFalse().constexprValue());
-		restrictConstexprValueToType(c);
-	}
+	if (c.isConstexpr())
+		c.constexprValue(c.condition().constexprValue() != 0 ? c.ifTrue().constexprValue() : c.ifFalse().constexprValue());
 }
 
 Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
@@ -664,7 +698,7 @@ void SemanticVisitor::visit(SwitchStmt& s)
 		diags.print(invalidImplicitConversion(s.sloc(), s.expr().type(), Type::UInt32));
 
 	const SwitchLabel* defaultLabel = nullptr;
-	std::map<uint32_t, const SwitchLabel*> caseLabels;
+	std::map<cln::cl_I, const SwitchLabel*> caseLabels;
 	for (auto& se : s.entries()) {
 		scopes.enter();
 

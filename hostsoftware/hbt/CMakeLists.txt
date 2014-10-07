@@ -46,6 +46,8 @@ set(Boost_USE_STATIC_LIBS ON)
 SET(Boost_DETAILED_FAILURE_MSG true)
 FIND_PACKAGE(Boost 1.54 REQUIRED COMPONENTS test_exec_monitor program_options filesystem regex system date_time thread)
 
+find_package(CLN)
+
 # Reflect the package structure
 include_directories(${CMAKE_SOURCE_DIR}/include)
 add_subdirectory(lib)
