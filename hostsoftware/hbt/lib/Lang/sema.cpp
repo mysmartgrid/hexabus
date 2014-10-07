@@ -224,9 +224,14 @@ static void restrictConstexprValueToType(Expr& e)
 	switch (e.type()) {
 	case Type::Bool: e.constexprValue(bool(e.constexprValue())); break;
 	case Type::UInt8: e.constexprValue(uint8_t(e.constexprValue())); break;
+	case Type::UInt16: e.constexprValue(uint16_t(e.constexprValue())); break;
 	case Type::UInt32: e.constexprValue(uint32_t(e.constexprValue())); break;
 	case Type::UInt64: e.constexprValue(uint64_t(e.constexprValue())); break;
-	default: break;
+	case Type::Int8: e.constexprValue(int8_t(e.constexprValue())); break;
+	case Type::Int16: e.constexprValue(int16_t(e.constexprValue())); break;
+	case Type::Int32: e.constexprValue(int32_t(e.constexprValue())); break;
+	case Type::Int64: e.constexprValue(int64_t(e.constexprValue())); break;
+	default: throw "invalid type";
 	}
 }
 
@@ -322,8 +327,13 @@ void SemanticVisitor::visit(IdentifierExpr& i)
 // only isConstexpr is relevant, and the ast knows that already
 void SemanticVisitor::visit(TypedLiteral<bool>& l) {}
 void SemanticVisitor::visit(TypedLiteral<uint8_t>& l) {}
+void SemanticVisitor::visit(TypedLiteral<uint16_t>& l) {}
 void SemanticVisitor::visit(TypedLiteral<uint32_t>& l) {}
 void SemanticVisitor::visit(TypedLiteral<uint64_t>& l) {}
+void SemanticVisitor::visit(TypedLiteral<int8_t>& l) {}
+void SemanticVisitor::visit(TypedLiteral<int16_t>& l) {}
+void SemanticVisitor::visit(TypedLiteral<int32_t>& l) {}
+void SemanticVisitor::visit(TypedLiteral<int64_t>& l) {}
 void SemanticVisitor::visit(TypedLiteral<float>& l) {}
 
 void SemanticVisitor::visit(CastExpr& c)

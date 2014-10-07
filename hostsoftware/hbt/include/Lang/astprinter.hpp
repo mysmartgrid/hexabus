@@ -28,8 +28,13 @@ public:
 	virtual void visit(IdentifierExpr& i) override;
 	virtual void visit(TypedLiteral<bool>& l) override;
 	virtual void visit(TypedLiteral<uint8_t>& l) override;
+	virtual void visit(TypedLiteral<uint16_t>& l) override;
 	virtual void visit(TypedLiteral<uint32_t>& l) override;
 	virtual void visit(TypedLiteral<uint64_t>& l) override;
+	virtual void visit(TypedLiteral<int8_t>& l) override;
+	virtual void visit(TypedLiteral<int16_t>& l) override;
+	virtual void visit(TypedLiteral<int32_t>& l) override;
+	virtual void visit(TypedLiteral<int64_t>& l) override;
 	virtual void visit(TypedLiteral<float>& l) override;
 	virtual void visit(CastExpr& c) override;
 	virtual void visit(UnaryExpr& u) override;

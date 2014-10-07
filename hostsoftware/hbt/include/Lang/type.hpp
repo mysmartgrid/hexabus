@@ -9,8 +9,13 @@ enum class Type {
 
 	Bool,
 	UInt8,
+	UInt16,
 	UInt32,
 	UInt64,
+	Int8,
+	Int16,
+	Int32,
+	Int64,
 	Float,
 };
 
@@ -19,19 +24,8 @@ const char* typeName(Type type);
 Type commonType(Type a, Type b);
 
 bool isAssignableFrom(Type to, Type from);
-
-inline bool isIntType(Type t)
-{
-	switch (t) {
-	case Type::UInt8:
-	case Type::UInt32:
-	case Type::UInt64:
-		return true;
-
-	default:
-		return false;
-	}
-}
+bool isSigned(Type t);
+bool isIntType(Type t);
 
 inline bool isConstexprType(Type t)
 {

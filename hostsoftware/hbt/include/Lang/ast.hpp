@@ -97,8 +97,13 @@ struct ASTVisitor {
 	virtual void visit(IdentifierExpr&) = 0;
 	virtual void visit(TypedLiteral<bool>&) = 0;
 	virtual void visit(TypedLiteral<uint8_t>&) = 0;
+	virtual void visit(TypedLiteral<uint16_t>&) = 0;
 	virtual void visit(TypedLiteral<uint32_t>&) = 0;
 	virtual void visit(TypedLiteral<uint64_t>&) = 0;
+	virtual void visit(TypedLiteral<int8_t>&) = 0;
+	virtual void visit(TypedLiteral<int16_t>&) = 0;
+	virtual void visit(TypedLiteral<int32_t>&) = 0;
+	virtual void visit(TypedLiteral<int64_t>&) = 0;
 	virtual void visit(TypedLiteral<float>&) = 0;
 	virtual void visit(CastExpr&) = 0;
 	virtual void visit(UnaryExpr&) = 0;
@@ -214,8 +219,13 @@ class TypedLiteral : public Literal {
 		return
 			std::is_same<T, bool>::value ? Type::Bool :
 			std::is_same<T, uint8_t>::value ? Type::UInt8 :
+			std::is_same<T, uint16_t>::value ? Type::UInt16 :
 			std::is_same<T, uint32_t>::value ? Type::UInt32 :
 			std::is_same<T, uint64_t>::value ? Type::UInt64 :
+			std::is_same<T, int8_t>::value ? Type::Int8 :
+			std::is_same<T, int16_t>::value ? Type::Int16 :
+			std::is_same<T, int32_t>::value ? Type::Int32 :
+			std::is_same<T, int64_t>::value ? Type::Int64 :
 			std::is_same<T, float>::value ? Type::Float :
 			Type::Unknown;
 	}

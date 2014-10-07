@@ -25,20 +25,14 @@ void ASTPrinter::visit(TypedLiteral<bool>& l)
 	out << (l.value() ? "true" : "false");
 }
 
-void ASTPrinter::visit(TypedLiteral<uint8_t>& l)
-{
-	out << unsigned(l.value()) << "S";
-}
-
-void ASTPrinter::visit(TypedLiteral<uint32_t>& l)
-{
-	out << l.value();
-}
-
-void ASTPrinter::visit(TypedLiteral<uint64_t>& l)
-{
-	out << l.value() << "L";
-}
+void ASTPrinter::visit(TypedLiteral<uint8_t>& l) { out << unsigned(l.value()); }
+void ASTPrinter::visit(TypedLiteral<uint16_t>& l) { out << l.value(); }
+void ASTPrinter::visit(TypedLiteral<uint32_t>& l) { out << l.value(); }
+void ASTPrinter::visit(TypedLiteral<uint64_t>& l) { out << l.value(); }
+void ASTPrinter::visit(TypedLiteral<int8_t>& l) { out << int(l.value()); }
+void ASTPrinter::visit(TypedLiteral<int16_t>& l) { out << l.value(); }
+void ASTPrinter::visit(TypedLiteral<int32_t>& l) { out << l.value(); }
+void ASTPrinter::visit(TypedLiteral<int64_t>& l) { out << l.value(); }
 
 void ASTPrinter::visit(TypedLiteral<float>& l)
 {

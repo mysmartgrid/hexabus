@@ -46,8 +46,13 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 		add(type.bool_ = "bool");
 		add(type.float_ = "float");
 		add(type.uint8_ = "uint8");
+		add(type.uint16_ = "uint16");
 		add(type.uint32_ = "uint32");
 		add(type.uint64_ = "uint64");
+		add(type.int8_ = "int8");
+		add(type.int16_ = "int16");
+		add(type.int32_ = "int32");
+		add(type.int64_ = "int64");
 
 		add(colon = ":");
 		add(comma = ",");
@@ -110,10 +115,9 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 		add(lit.bool_ = "true|false");
 		add(string = R"(\"[^\r\n"]*\")");
 
-		add(lit.float_ = R"(((\d+\.\d*)|(\d*\.\d+))([eE][-+]?\d+)?|(\d+[eE][-+]?\d+)|nan|inf)");
-		add(lit.uint8_ = R"(\d+[sS])");
-		add(lit.uint32_ = R"(\d+)");
-		add(lit.uint64_ = R"(\d+[lL])");
+		add(lit.float_ = R"((-?((\d+\.\d*)|(\d*\.\d+))([eE][-+]?\d+)?|(\d+[eE][-+]?\d+))|nan|inf)");
+		add(lit.uint_ = R"(\d+)");
+		add(lit.sint_ = R"(-\d+)");
 
 		add(ident = R"([_a-zA-Z][_0-9a-zA-Z]*)");
 
@@ -128,8 +132,11 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 		any;
 
 	struct {
-		boost::spirit::lex::token_def<> bool_, float_, uint8_, uint32_, uint64_;
-	} lit, type;
+		boost::spirit::lex::token_def<> bool_, float_, uint8_, uint16_, uint32_, uint64_, int8_, int16_, int32_, int64_;
+	} type;
+	struct {
+		boost::spirit::lex::token_def<> bool_, float_, sint_, uint_;
+	} lit;
 	struct {
 		boost::spirit::lex::token_def<>
 			plus, minus, not_, neg,
@@ -273,10 +280,37 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		return val;
 	}
 
-	template<typename T>
-	TypedLiteral<T>* convUI(const range& r, bool& pass)
+	Literal* convUI(const range& r, bool& pass)
 	{
-		return new TypedLiteral<T>(locOf(r), parseUI<T>(r, pass));
+		if (*r.begin() == '-') {
+			int64_t i = parseUI<int64_t>(r, pass);
+			if (i >= INT8_MIN)
+				return new TypedLiteral<int8_t>(locOf(r), i);
+			else if (i >= INT16_MIN)
+				return new TypedLiteral<int16_t>(locOf(r), i);
+			else if (i >= INT32_MIN)
+				return new TypedLiteral<int32_t>(locOf(r), i);
+			else
+				return new TypedLiteral<int64_t>(locOf(r), i);
+		} else {
+			uint64_t u = parseUI<uint64_t>(r, pass);
+			if (u <= INT8_MAX)
+				return new TypedLiteral<int8_t>(locOf(r), u);
+			else if (u <= UINT8_MAX)
+				return new TypedLiteral<uint8_t>(locOf(r), u);
+			else if (u <= INT16_MAX)
+				return new TypedLiteral<int16_t>(locOf(r), u);
+			else if (u <= UINT16_MAX)
+				return new TypedLiteral<uint16_t>(locOf(r), u);
+			else if (u <= INT32_MAX)
+				return new TypedLiteral<int32_t>(locOf(r), u);
+			else if (u <= UINT32_MAX)
+				return new TypedLiteral<uint32_t>(locOf(r), u);
+			else if (u <= INT64_MAX)
+				return new TypedLiteral<int64_t>(locOf(r), u);
+			else
+				return new TypedLiteral<uint64_t>(locOf(r), u);
+		}
 	}
 
 	TypedLiteral<float>* convF(const range& r, bool& pass)
@@ -485,14 +519,11 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			tok.lit.bool_[fwd >= [this] (range& r) {
 				return new TypedLiteral<bool>(locOf(r), str(r) == "true");
 			}]
-			| tok.lit.uint8_[fwd >= [this] (range& r, bool& pass) {
-				return convUI<uint8_t>(r, pass);
+			| tok.lit.uint_[fwd >= [this] (range& r, bool& pass) {
+				return convUI(r, pass);
 			}]
-			| tok.lit.uint32_[fwd >= [this] (range& r, bool& pass) {
-				return convUI<uint32_t>(r, pass);
-			}]
-			| tok.lit.uint64_[fwd >= [this] (range& r, bool& pass) {
-				return convUI<uint64_t>(r, pass);
+			| tok.lit.sint_[fwd >= [this] (range& r, bool& pass) {
+				return convUI(r, pass);
 			}]
 			| tok.lit.float_[fwd >= [this] (range& r, bool& pass) {
 				return convF(r, pass);
@@ -712,8 +743,8 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				tok.word.endpoint
 				> identifier
 				> omit[tok.lparen | expected("(")]
-				> &omit[tok.lit.uint32_ | expected("endpoint id")]
-				> tok.lit.uint32_
+				> &omit[tok.lit.uint_ | expected("endpoint id")]
+				> tok.lit.uint_
 				> omit[
 					(tok.rparen | expected(")"))
 					> (tok.colon | expected(":"))
@@ -757,7 +788,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 		ip_addr.name("IP address");
 		ip_addr =
-			lexeme[+(tok.colon | tok.dot | tok.lit.uint32_ | tok.ident)][fwd >=
+			lexeme[+(tok.colon | tok.dot | tok.lit.uint_ | tok.ident)][fwd >=
 				[this] (std::vector<range>& addr, bool& pass) {
 					std::array<uint8_t, 16> result;
 					std::string str(addr.front().begin(), addr.back().end());
@@ -792,8 +823,13 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		datatype =
 			tok.type.bool_[fwd >= dt(Type::Bool)]
 			| tok.type.uint8_[fwd >= dt(Type::UInt8)]
+			| tok.type.uint16_[fwd >= dt(Type::UInt16)]
 			| tok.type.uint32_[fwd >= dt(Type::UInt32)]
 			| tok.type.uint64_[fwd >= dt(Type::UInt64)]
+			| tok.type.int8_[fwd >= dt(Type::Int8)]
+			| tok.type.int16_[fwd >= dt(Type::Int16)]
+			| tok.type.int32_[fwd >= dt(Type::Int32)]
+			| tok.type.int64_[fwd >= dt(Type::Int64)]
 			| tok.type.float_[fwd >= dt(Type::Float)];
 
 		identifier.name("identifier");
