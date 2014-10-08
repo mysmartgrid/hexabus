@@ -157,6 +157,7 @@ Passes:
   -print-ast <file>  print current AST to <file>
   -sema              run semantic checks again (sema will always be run as
                      first non-printing pass)
+  -sema-expect       run semantic checks again, process #expect comments too
 )";
 
 	if (argc <= 1) {
