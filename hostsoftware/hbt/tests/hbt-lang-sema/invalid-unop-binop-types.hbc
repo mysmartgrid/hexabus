@@ -3,6 +3,8 @@ machine m {
 	bool b =
 		(f || true)     //#expect: error: invalid types in binary expression (float and bool)
 		&& (true || f); //#expect: error: invalid types in binary expression (bool and float)
-	float f2 = f << 1; //#expect: error: invalid types in binary expression (float and int8)
-	float f3 = 1 << f;//#expect: error: invalid types in binary expression (int8 and float)
+	float f2 = f << 1; //#expect: error: invalid types in binary expression (float and int32)
+	float f3 = 1 << f; //#expect: error: invalid types in binary expression (int32 and float)
+	                   //#expect+: error: invalid implicit type conversion from int32 to float
+	bool b2 = !1; //#expect: error: invalid type int32 in unary expression
 };

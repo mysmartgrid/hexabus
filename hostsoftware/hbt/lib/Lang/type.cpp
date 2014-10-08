@@ -49,6 +49,21 @@ static unsigned rank(Type t)
 	}
 }
 
+Type promote(Type t)
+{
+	switch (t) {
+	case Type::UInt8:
+	case Type::UInt16:
+	case Type::Int8:
+	case Type::Int16:
+	case Type::Int32:
+		return Type::Int32;
+
+	default:
+		return t;
+	}
+}
+
 Type commonType(Type a, Type b)
 {
 	if (a == Type::Unknown || b == Type::Unknown)
@@ -128,6 +143,35 @@ bool isIntType(Type t)
 
 	default:
 		return false;
+	}
+}
+
+unsigned widthOf(Type t)
+{
+	switch (t) {
+	case Type::Bool:
+		return 1;
+
+	case Type::UInt8:
+	case Type::Int8:
+		return 8;
+
+	case Type::UInt16:
+	case Type::Int16:
+		return 16;
+
+	case Type::UInt32:
+	case Type::Int32:
+		return 32;
+
+	case Type::UInt64:
+	case Type::Int64:
+		return 64;
+
+	case Type::Float:
+		return 0;
+
+	default: throw "unknown type";
 	}
 }
 

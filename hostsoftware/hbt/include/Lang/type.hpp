@@ -25,7 +25,9 @@ Type commonType(Type a, Type b);
 
 bool isAssignableFrom(Type to, Type from);
 bool isSigned(Type t);
+Type promote(Type t);
 bool isIntType(Type t);
+unsigned widthOf(Type t);
 
 inline bool isConstexprType(Type t)
 {

@@ -270,7 +270,28 @@ static uint8_t sm_type_rank(uint8_t t)
 
 static uint8_t sm_type_width(uint8_t t)
 {
-	return 8 * sm_type_rank(t);
+	switch (t) {
+	case HXB_DTYPE_BOOL:
+		return 1;
+
+	case HXB_DTYPE_UINT8:
+	case HXB_DTYPE_SINT8:
+		return 8;
+
+	case HXB_DTYPE_UINT16:
+	case HXB_DTYPE_SINT16:
+		return 16;
+
+	case HXB_DTYPE_UINT32:
+	case HXB_DTYPE_SINT32:
+		return 32;
+
+	case HXB_DTYPE_UINT64:
+	case HXB_DTYPE_SINT64:
+		return 64;
+	}
+
+	return 0xff;
 }
 
 static uint8_t sm_common_type(uint8_t t1, uint8_t t2)

@@ -236,6 +236,15 @@ static Diagnostic expectedIntType(const Expr& e)
 	};
 }
 
+static Diagnostic invalidShiftAmount(BinaryExpr& b)
+{
+	return {
+		DiagnosticKind::Error,
+		&b.sloc(),
+		str(format("invalid shift of type %1% by %2% bits") % typeName(b.left().type()) % b.right().constexprValue())
+	};
+}
+
 
 
 template<typename T>
@@ -244,9 +253,9 @@ static bool fitsIntoNumericLimits(const cln::cl_I& value)
 	return std::numeric_limits<T>::min() <= value && value <= std::numeric_limits<T>::max();
 }
 
-static bool fitsIntoConstexprType(Expr& e)
+static bool fitsIntoConstexprType(Expr& e, Type  t)
 {
-	switch (e.type()) {
+	switch (t) {
 	case Type::Bool: return fitsIntoNumericLimits<bool>(e.constexprValue()); break;
 	case Type::UInt8: return fitsIntoNumericLimits<uint8_t>(e.constexprValue()); break;
 	case Type::UInt16: return fitsIntoNumericLimits<uint16_t>(e.constexprValue()); break;
@@ -258,6 +267,11 @@ static bool fitsIntoConstexprType(Expr& e)
 	case Type::Int64: return fitsIntoNumericLimits<int64_t>(e.constexprValue()); break;
 	default: throw "invalid type";
 	}
+}
+
+static bool fitsIntoConstexprType(Expr& e)
+{
+	return fitsIntoConstexprType(e, e.type());
 }
 
 
@@ -374,11 +388,13 @@ void SemanticVisitor::visit(UnaryExpr& u)
 
 	if (u.expr().type() == Type::Float && u.op() == UnaryOperator::Negate)
 		diags.print(invalidUnaryOp(u.sloc(), u.expr().type()));
+	else if (u.expr().type() != Type::Bool && u.op() == UnaryOperator::Not)
+		diags.print(invalidUnaryOp(u.sloc(), u.expr().type()));
 
 	if (u.op() == UnaryOperator::Not)
 		u.type(Type::Bool);
 	else
-		u.type(u.expr().type());
+		u.type(promote(u.expr().type()));
 
 	if (!u.isConstexpr())
 		return;
@@ -430,10 +446,17 @@ void SemanticVisitor::visit(BinaryExpr& b)
 	case BinaryOperator::And:
 	case BinaryOperator::Or:
 	case BinaryOperator::Xor:
-	case BinaryOperator::ShiftLeft:
-	case BinaryOperator::ShiftRight:
 		if (b.left().type() == Type::Float || b.right().type() == Type::Float)
 			diags.print(invalidBinaryOp(b.sloc(), b.left().type(), b.right().type()));
+		break;
+
+	case BinaryOperator::ShiftLeft:
+	case BinaryOperator::ShiftRight:
+		b.type(promote(b.left().type()));
+		if (b.left().type() == Type::Float || b.right().type() == Type::Float)
+			diags.print(invalidBinaryOp(b.sloc(), b.left().type(), b.right().type()));
+		else if (b.right().isConstexpr() && b.right().constexprValue() >= widthOf(b.left().type()))
+			diags.print(invalidShiftAmount(b));
 		break;
 
 	case BinaryOperator::BoolAnd:
@@ -911,7 +934,8 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 				(*arg)->accept(*this);
 				if (!(*arg)->isConstexpr())
 					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
-				else if (!isAssignableFrom(param->valueType(), (*arg)->type()))
+				else if (!isAssignableFrom(param->valueType(), (*arg)->type()) &&
+						!fitsIntoConstexprType(**arg, param->valueType()))
 					diags.print(invalidImplicitConversion((*arg)->sloc(), (*arg)->type(), param->valueType()));
 				else
 					classParams.insert({ param->name(), { *param, nullptr, (*arg).get() } });

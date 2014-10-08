@@ -277,26 +277,14 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		if (*r.begin() == '-') {
 			int64_t i;
 			pass = qi::parse(r.begin(), r.end(), qi::int_parser<int64_t, 10, 1, 99>(), i);
-			if (i >= INT8_MIN)
-				return new TypedLiteral<int8_t>(locOf(r), i);
-			else if (i >= INT16_MIN)
-				return new TypedLiteral<int16_t>(locOf(r), i);
-			else if (i >= INT32_MIN)
+			if (i >= INT32_MIN)
 				return new TypedLiteral<int32_t>(locOf(r), i);
 			else
 				return new TypedLiteral<int64_t>(locOf(r), i);
 		} else {
 			uint64_t u;
 			pass = qi::parse(r.begin(), r.end(), qi::int_parser<uint64_t, 10, 1, 99>(), u);
-			if (u <= INT8_MAX)
-				return new TypedLiteral<int8_t>(locOf(r), u);
-			else if (u <= UINT8_MAX)
-				return new TypedLiteral<uint8_t>(locOf(r), u);
-			else if (u <= INT16_MAX)
-				return new TypedLiteral<int16_t>(locOf(r), u);
-			else if (u <= UINT16_MAX)
-				return new TypedLiteral<uint16_t>(locOf(r), u);
-			else if (u <= INT32_MAX)
+			if (u <= INT32_MAX)
 				return new TypedLiteral<int32_t>(locOf(r), u);
 			else if (u <= UINT32_MAX)
 				return new TypedLiteral<uint32_t>(locOf(r), u);
