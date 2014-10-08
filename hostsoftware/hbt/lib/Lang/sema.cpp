@@ -315,7 +315,7 @@ void SemanticVisitor::visit(IdentifierExpr& i)
 		auto& cp = cpit->second;
 		if (cp.hasValue) {
 			i.isIncomplete(false);
-			i.type(cp.value->type());
+			i.type(cp.parameter.valueType());
 			i.constexprValue(cp.value->constexprValue());
 			i.isConstexpr(cp.value->isConstexpr());
 		}
