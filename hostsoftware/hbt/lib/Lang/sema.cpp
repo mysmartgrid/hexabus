@@ -274,6 +274,14 @@ static bool fitsIntoConstexprType(Expr& e)
 	return fitsIntoConstexprType(e, e.type());
 }
 
+static bool isContextuallyConvertibleTo(Expr& e, Type t)
+{
+	if (e.isConstexpr())
+		return isAssignableFrom(t, e.type()) || fitsIntoConstexprType(e, t);
+	else
+		return isAssignableFrom(t, e.type());
+}
+
 
 
 void SemanticVisitor::ScopeStack::enter()
@@ -675,7 +683,7 @@ void SemanticVisitor::visit(AssignStmt& a)
 		return;
 	}
 
-	if (!a.value().isIncomplete() && !isAssignableFrom(se->declaration->type(), a.value().type()))
+	if (!a.value().isIncomplete() && !isContextuallyConvertibleTo(a.value(), se->declaration->type()))
 		diags.print(invalidImplicitConversion(a.sloc(), a.value().type(), se->declaration->type()));
 }
 
@@ -769,7 +777,7 @@ void SemanticVisitor::visit(DeclarationStmt& d)
 		decl = scopes.insert(d);
 	}
 
-	if (decl && !d.value().isIncomplete() && !isAssignableFrom(d.type(), d.value().type()))
+	if (decl && !d.value().isIncomplete() && !isContextuallyConvertibleTo(d.value(), d.type()))
 		diags.print(invalidImplicitConversion(d.sloc(), d.value().type(), d.type()));
 }
 
@@ -934,8 +942,7 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 				(*arg)->accept(*this);
 				if (!(*arg)->isConstexpr())
 					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
-				else if (!isAssignableFrom(param->valueType(), (*arg)->type()) &&
-						!fitsIntoConstexprType(**arg, param->valueType()))
+				else if (!isContextuallyConvertibleTo(**arg, param->valueType()))
 					diags.print(invalidImplicitConversion((*arg)->sloc(), (*arg)->type(), param->valueType()));
 				else
 					classParams.insert({ param->name(), { *param, nullptr, (*arg).get() } });

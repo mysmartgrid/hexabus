@@ -15,5 +15,7 @@ machine m {
 
 		int8 x1 = 1 << (dev.ep ? 1 : 0); //#expect: error: invalid implicit type conversion from int32 to int8
 		int8 x2 = ~x1; //#expect: error: invalid implicit type conversion from int32 to int8
+		int8 x3 = 1;
+		int8 x4 = 1000; //#expect: error: invalid implicit type conversion from int32 to int8
 	}
 };
