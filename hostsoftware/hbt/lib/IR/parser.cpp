@@ -223,10 +223,14 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			)[_val = bind(make_block, _1)];
 
 		on_packet_vector.name("packet vector");
-		on_packet_vector %= lit(".on_packet") > identifier > +eol;
+		on_packet_vector %=
+			(lit(".on_packet") > identifier > +eol)
+			| string("");
 
 		on_periodic_vector.name("periodic vector");
-		on_periodic_vector %= lit(".on_periodic") > identifier > +eol;
+		on_periodic_vector %=
+			(lit(".on_periodic") > identifier > +eol)
+			| string("");
 
 		on_init_vector.name("init vector");
 		on_init_vector %=
@@ -712,11 +716,12 @@ std::unique_ptr<Program> makeProgram(const ir_program& program)
 		}
 	}
 
-	builder.onPacket(getLabelFor(program.header.on_packet));
-	builder.onPeriodic(getLabelFor(program.header.on_periodic));
-	if (program.header.on_init.size()) {
+	if (program.header.on_packet.size())
+		builder.onPacket(getLabelFor(program.header.on_packet));
+	if (program.header.on_periodic.size())
+		builder.onPeriodic(getLabelFor(program.header.on_periodic));
+	if (program.header.on_init.size())
 		builder.onInit(getLabelFor(program.header.on_init));
-	}
 
 	return builder.finish();
 }

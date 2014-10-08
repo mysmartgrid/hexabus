@@ -408,13 +408,17 @@ std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program,
 		builder.onInit(labelAbsPositions.at(raw.onInitPos));
 	}
 
-	if (!labelAbsPositions.count(raw.onPacketPos))
-		throw InvalidProgram("invalid on_packet vector", "");
-	builder.onPacket(labelAbsPositions.at(raw.onPacketPos));
+	if (raw.onPacketPos != 0xffff) {
+		if (!labelAbsPositions.count(raw.onPacketPos))
+			throw InvalidProgram("invalid on_packet vector", "");
+		builder.onPacket(labelAbsPositions.at(raw.onPacketPos));
+	}
 
-	if (!labelAbsPositions.count(raw.onPeriodicPos))
-		throw InvalidProgram("invalid on_periodic vector", "");
-	builder.onPeriodic(labelAbsPositions.at(raw.onPeriodicPos));
+	if (raw.onPeriodicPos != 0xffff) {
+		if (!labelAbsPositions.count(raw.onPeriodicPos))
+			throw InvalidProgram("invalid on_periodic vector", "");
+		builder.onPeriodic(labelAbsPositions.at(raw.onPeriodicPos));
+	}
 
 	for (const auto& insn : raw.instructions) {
 		if (!insn.isValid && !ignoreInvalid)

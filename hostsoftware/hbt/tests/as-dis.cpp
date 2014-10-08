@@ -226,6 +226,17 @@ static Testcase allVectorsUnique = {
 	{ "	ret", { 0x3b } }
 };
 
+static Testcase noVectors = {
+	{ ".version 0" },
+	{ ".machine 0x00000000000000000000000000000000" },
+	{ "; machine id", { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, true },
+	{ "; version number", { 0x0 }, true },
+	{ "; init vector", { 0xff, 0xff }, true },
+	{ "; packet vector", { 0xff, 0xff }, true },
+	{ "; periodic vector", { 0xff, 0xff }, true },
+	{ "" },
+};
+
 template<typename It1, typename It2>
 bool matches(It1& begin1, It1 end1, It2 begin2, It2 end2)
 {
@@ -313,6 +324,11 @@ BOOST_AUTO_TEST_CASE(assemblerAllVectorsUnique)
 	checkAssembler(allVectorsUnique);
 }
 
+BOOST_AUTO_TEST_CASE(assemblerNoVectors)
+{
+	checkAssembler(noVectors);
+}
+
 
 
 void checkDisssembler(const std::vector<AssemblerLine> program)
@@ -352,4 +368,9 @@ BOOST_AUTO_TEST_CASE(disassemblerNoInit)
 BOOST_AUTO_TEST_CASE(disassemblerAllVectorsUnique)
 {
 	checkDisssembler(allVectorsUnique);
+}
+
+BOOST_AUTO_TEST_CASE(disassemblerNoVectors)
+{
+	checkDisssembler(noVectors);
 }

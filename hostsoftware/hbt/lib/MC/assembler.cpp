@@ -67,10 +67,12 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 	if (program.onInit())
 		fixups.push_back({ result.size(), 0, *program.onInit() });
 	append_u16(0xffff);
-	fixups.push_back({ result.size(), 0, program.onPacket() });
-	append_u16(0);
-	fixups.push_back({ result.size(), 0, program.onPeriodic() });
-	append_u16(0);
+	if (program.onPacket())
+		fixups.push_back({ result.size(), 0, *program.onPacket() });
+	append_u16(0xffff);
+	if (program.onPeriodic())
+		fixups.push_back({ result.size(), 0, *program.onPeriodic() });
+	append_u16(0xffff);
 
 	for (auto* insn : program.instructions()) {
 		if (insn->label())

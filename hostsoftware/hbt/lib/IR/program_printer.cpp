@@ -162,10 +162,10 @@ std::string prettyPrint(const Program& program)
 
 	if (program.onInit())
 		out << ".on_init " << *program.onInit() << "\n";
-
-	out
-		<< ".on_packet " << program.onPacket() << "\n"
-		<< ".on_periodic " << program.onPeriodic() << "\n";
+	if (program.onPacket())
+		out << ".on_packet " << *program.onPacket() << "\n";
+	if (program.onPeriodic())
+		out << ".on_periodic " << *program.onPeriodic() << "\n";
 
 	for (auto* insn : program.instructions()) {
 		out << "\n";
