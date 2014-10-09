@@ -195,7 +195,7 @@ void ASTPrinter::visit(ConditionalExpr& c)
 
 void ASTPrinter::visit(EndpointExpr& e)
 {
-	out << e.device().name() << "." << e.endpoint().name();
+	out << e.deviceId().name() << "." << e.endpointId().name();
 }
 
 void ASTPrinter::visit(CallExpr& c)

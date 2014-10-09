@@ -81,36 +81,36 @@ static Diagnostic identifierIsNoClass(const Identifier& ident)
 
 static Diagnostic deviceDoesNotHave(const EndpointExpr& e, const std::string& dev, const std::string& ep)
 {
-	auto& devName = e.deviceIsIncomplete()
-		? str(format("%1% (aka %2%)") % e.device().name() % dev)
-		: e.device().name();
-	auto& epName = e.endpointIsIncomplete()
-		? str(format("%1% (aka %2%)") % e.endpoint().name() % ep)
-		: e.endpoint().name();
+	auto& devName = e.deviceIdIsIncomplete()
+		? str(format("%1% (aka %2%)") % e.deviceId().name() % dev)
+		: e.deviceId().name();
+	auto& epName = e.endpointIdIsIncomplete()
+		? str(format("%1% (aka %2%)") % e.endpointId().name() % ep)
+		: e.endpointId().name();
 	return { DiagnosticKind::Error, &e.sloc(), str(format("device %1% does not implement endpoint %2%") % devName % epName) };
 }
 
 static Diagnostic endpointNotReadable(const EndpointExpr& ep, const Endpoint& subst)
 {
-	if (ep.endpointIsIncomplete()) {
+	if (ep.endpointIdIsIncomplete()) {
 		return {
 			DiagnosticKind::Error,
 			&ep.sloc(),
-			str(format("endpoint %1% (aka %2%) cannot be read") % ep.endpoint().name() % subst.name().name()) };
+			str(format("endpoint %1% (aka %2%) cannot be read") % ep.endpointId().name() % subst.name().name()) };
 	} else {
-		return { DiagnosticKind::Error, &ep.sloc(), str(format("endpoint %1% cannot be read") % ep.endpoint().name()) };
+		return { DiagnosticKind::Error, &ep.sloc(), str(format("endpoint %1% cannot be read") % ep.endpointId().name()) };
 	}
 }
 
 static Diagnostic endpointNotWritable(const EndpointExpr& ep, const Endpoint& subst)
 {
-	if (ep.endpointIsIncomplete()) {
+	if (ep.endpointIdIsIncomplete()) {
 		return {
 			DiagnosticKind::Error,
 			&ep.sloc(),
-			str(format("endpoint %1% (aka %2%) cannot be written") % ep.endpoint().name() % subst.name().name()) };
+			str(format("endpoint %1% (aka %2%) cannot be written") % ep.endpointId().name() % subst.name().name()) };
 	} else {
-		return { DiagnosticKind::Error, &ep.sloc(), str(format("endpoint %1% cannot be written") % ep.endpoint().name()) };
+		return { DiagnosticKind::Error, &ep.sloc(), str(format("endpoint %1% cannot be written") % ep.endpointId().name()) };
 	}
 }
 
@@ -553,56 +553,58 @@ void SemanticVisitor::visit(ConditionalExpr& c)
 Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 {
 	if (e.type() != Type::Unknown)
-		return dynamic_cast<Endpoint*>(globalNames[e.endpoint().name()]);
+		return dynamic_cast<Endpoint*>(globalNames[e.endpointId().name()]);
 
 	Device* dev = nullptr;
 	Endpoint* ep = nullptr;
 	bool exprIsFullyDefined = true;
 
 	{
-		auto cpit = classParams.find(e.device().name());
-		auto it = globalNames.find(e.device().name());
+		auto cpit = classParams.find(e.deviceId().name());
+		auto it = globalNames.find(e.deviceId().name());
 
-		if (auto se = scopes.resolve(e.device().name())) {
+		if (auto se = scopes.resolve(e.deviceId().name())) {
 			diags.print(
-				identifierIsNoDevice(e.device()),
+				identifierIsNoDevice(e.deviceId()),
 				declaredHere(se->declaration->sloc()));
 		} else if (cpit != classParams.end()) {
 			exprIsFullyDefined &= cpit->second.hasValue;
 			cpit->second.used = true;
-			e.deviceIsIncomplete(!dev);
+			e.deviceIdIsIncomplete(!dev);
 		} else if (it != globalNames.end()) {
 			dev = dynamic_cast<Device*>(it->second);
 			if (!dev)
 				diags.print(
-					identifierIsNoDevice(e.device()),
+					identifierIsNoDevice(e.deviceId()),
 					declaredHere(it->second->sloc()));
 		} else {
-			diags.print(undeclaredIdentifier(e.device()));
+			diags.print(undeclaredIdentifier(e.deviceId()));
 		}
+		e.device(dev);
 	}
 
 	{
-		auto cpit = classParams.find(e.endpoint().name());
-		auto it = globalNames.find(e.endpoint().name());
+		auto cpit = classParams.find(e.endpointId().name());
+		auto it = globalNames.find(e.endpointId().name());
 
-		if (auto se = scopes.resolve(e.endpoint().name())) {
+		if (auto se = scopes.resolve(e.endpointId().name())) {
 			diags.print(
-				identifierIsNoEndpoint(e.endpoint()),
+				identifierIsNoEndpoint(e.endpointId()),
 				declaredHere(se->declaration->sloc()));
 		} else if (cpit != classParams.end()) {
 			exprIsFullyDefined &= cpit->second.hasValue;
 			cpit->second.used = true;
-			e.deviceIsIncomplete(!ep);
+			e.deviceIdIsIncomplete(!ep);
 		} else if (it != globalNames.end()) {
 			ep = dynamic_cast<Endpoint*>(it->second);
 			if (!ep)
 				diags.print(
-					identifierIsNoEndpoint(e.endpoint()),
+					identifierIsNoEndpoint(e.endpointId()),
 					declaredHere(it->second->sloc()));
 		} else {
-			diags.print(undeclaredIdentifier(e.endpoint()));
+			diags.print(undeclaredIdentifier(e.endpointId()));
 		}
+		e.endpoint(ep);
 	}
 
 	if (!dev || !ep) {

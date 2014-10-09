@@ -363,22 +363,39 @@ public:
 
 class EndpointExpr : public Expr {
 private:
-	Identifier _device;
-	Identifier _endpoint;
-	bool _deviceIsIncomplete, _endpointIsIncomplete;
+	Identifier _deviceId;
+	Identifier _endpointId;
+	bool _deviceIdIsIncomplete, _endpointIdIsIncomplete;
+	Device* _device;
+	Endpoint* _endpoint;
 
 public:
-	EndpointExpr(const SourceLocation& sloc, const Identifier& device, const Identifier& endpoint, Type type)
-		: Expr(sloc, type), _device(device), _endpoint(endpoint), _deviceIsIncomplete(false), _endpointIsIncomplete(false)
+	EndpointExpr(const SourceLocation& sloc, const Identifier& deviceId, const Identifier& endpointId, Type type)
+		: Expr(sloc, type), _deviceId(deviceId), _endpointId(endpointId), _deviceIdIsIncomplete(false),
+		  _endpointIdIsIncomplete(false), _device(nullptr), _endpoint(nullptr)
 	{}
 
-	const Identifier& device() const { return _device; }
-	const Identifier& endpoint() const { return _endpoint; }
-	bool deviceIsIncomplete() const { return _deviceIsIncomplete; }
-	bool endpointIsIncomplete() const { return _endpointIsIncomplete; }
+	const Identifier& deviceId() const { return _deviceId; }
+	const Identifier& endpointId() const { return _endpointId; }
+	bool deviceIdIsIncomplete() const { return _deviceIdIsIncomplete; }
+	bool endpointIdIsIncomplete() const { return _endpointIdIsIncomplete; }
+	Device* device() { return _device; }
+	Endpoint* endpoint() { return _endpoint; }
 
-	void deviceIsIncomplete(bool b) {  _deviceIsIncomplete = b; isIncomplete(_deviceIsIncomplete || _endpointIsIncomplete); }
-	void endpointIsIncomplete(bool b) {  _endpointIsIncomplete = b; isIncomplete(_deviceIsIncomplete || _endpointIsIncomplete); }
+	void device(Device* d) { _device = d; }
+	void endpoint(Endpoint* e) { _endpoint = e; }
+
+	void deviceIdIsIncomplete(bool b)
+	{
+		_deviceIdIsIncomplete = b;
+		isIncomplete(_deviceIdIsIncomplete || _endpointIdIsIncomplete);
+	}
+
+	void endpointIdIsIncomplete(bool b)
+	{
+		_endpointIdIsIncomplete = b;
+		isIncomplete(_deviceIdIsIncomplete || _endpointIdIsIncomplete);
+	}
 
 	virtual void accept(ASTVisitor& v)
 	{
