@@ -99,7 +99,7 @@ add_subdirectory(src)
 #CPack Packaging
 INSTALL(FILES 
   LICENSE_1_0.txt LICENSE 
-  DESTINATION share/doc/hexanbridge)
+  DESTINATION share/doc/hexabridge)
 
 INSTALL(PROGRAMS ${CMAKE_BINARY_DIR}/src/hexabridge DESTINATION bin)
 
