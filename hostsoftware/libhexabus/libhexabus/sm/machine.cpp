@@ -74,10 +74,10 @@ uint8_t Machine::sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val)
 	case HXB_DTYPE_UINT16: value = (uint16_t) val->v_uint; break;
 	case HXB_DTYPE_UINT32: value = (uint32_t) val->v_uint; break;
 	case HXB_DTYPE_UINT64: value = (uint64_t) val->v_uint64; break;
-	case HXB_DTYPE_SINT8:  value = (int8_t) val->v_uint; break;
-	case HXB_DTYPE_SINT16: value = (int16_t) val->v_uint; break;
-	case HXB_DTYPE_SINT32: value = (int32_t) val->v_uint; break;
-	case HXB_DTYPE_SINT64: value = (int64_t) val->v_uint64; break;
+	case HXB_DTYPE_SINT8:  value = (int8_t) val->v_sint; break;
+	case HXB_DTYPE_SINT16: value = (int16_t) val->v_sint; break;
+	case HXB_DTYPE_SINT32: value = (int32_t) val->v_sint; break;
+	case HXB_DTYPE_SINT64: value = (int64_t) val->v_sint64; break;
 	case HXB_DTYPE_FLOAT:  value = (float) val->v_float; break;
 	default: return HXB_ERR_INVALID_WRITE;
 	}
