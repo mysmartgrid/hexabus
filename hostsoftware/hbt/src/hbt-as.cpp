@@ -1,8 +1,8 @@
-#include "IR/builder.hpp"
-#include "IR/instruction.hpp"
-#include "IR/parser.hpp"
-#include "IR/program.hpp"
 #include "MC/assembler.hpp"
+#include "MC/builder.hpp"
+#include "MC/instruction.hpp"
+#include "MC/parser.hpp"
+#include "MC/program.hpp"
 #include "Util/memorybuffer.hpp"
 
 #include <iostream>
@@ -66,21 +66,21 @@ int main(int argc, char* argv[])
 	try {
 		auto buffer = hbt::util::MemoryBuffer::loadFile(input, true);
 
-		std::unique_ptr<hbt::ir::Program> program = hbt::ir::parse(buffer);
+		std::unique_ptr<hbt::mc::Program> program = hbt::mc::parse(buffer);
 
 		hbt::util::MemoryBuffer assembly;
 
 		assembly = std::move(hbt::mc::assemble(*program));
 
 		assembly.writeFile(output, true);
-	} catch (const hbt::ir::ParseError& e) {
+	} catch (const hbt::mc::ParseError& e) {
 		std::cout << "hbt-as: error in input\n"
 			<< "expected " << e.expected() << " at " << e.line() << ":" << e.column();
 		if (e.detail().size())
 			std::cout << " (" << e.detail() << ")";
 		std::cout << "\n";
 		return 1;
-	} catch (const hbt::ir::InvalidProgram& e) {
+	} catch (const hbt::mc::InvalidProgram& e) {
 		std::cout << "hbt-as: invalid program\n"
 			<< e.what() << "\n";
 		if (e.extra().size())

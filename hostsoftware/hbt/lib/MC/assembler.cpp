@@ -1,6 +1,6 @@
 #include "MC/assembler.hpp"
 
-#include "IR/program.hpp"
+#include "MC/program.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -13,7 +13,7 @@ struct Fixup {
 	size_t position;
 	ssize_t offsetFrom;
 
-	hbt::ir::Label target;
+	hbt::mc::Label target;
 };
 
 }
@@ -21,10 +21,8 @@ struct Fixup {
 namespace hbt {
 namespace mc {
 
-hbt::util::MemoryBuffer assemble(const ir::Program& program)
+hbt::util::MemoryBuffer assemble(const Program& program)
 {
-	using namespace hbt::ir;
-
 	hbt::util::MemoryBuffer result;
 
 	std::map<size_t, size_t> labelPositions;
@@ -57,7 +55,7 @@ hbt::util::MemoryBuffer assemble(const ir::Program& program)
 		append_u32(u);
 	};
 
-	auto append_label = [&fixups, &result, &append_u16] (ir::Label target) {
+	auto append_label = [&fixups, &result, &append_u16] (mc::Label target) {
 		fixups.push_back({ result.size(), -1, target });
 		append_u16(0);
 	};

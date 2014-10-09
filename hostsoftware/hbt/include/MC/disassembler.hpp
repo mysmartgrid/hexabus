@@ -7,17 +7,15 @@
 
 namespace hbt {
 
-namespace ir {
-class Program;
-}
-
 namespace util {
 class MemoryBuffer;
 }
 
 namespace mc {
 
-std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program, bool ignoreInvalid = false);
+class Program;
+
+std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program, bool ignoreInvalid = false);
 
 }
 }

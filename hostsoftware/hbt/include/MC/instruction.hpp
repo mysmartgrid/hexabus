@@ -1,5 +1,5 @@
-#ifndef INCLUDE_IR_INSTRUCTION_HPP_BCDA16AC543B8A1A
-#define INCLUDE_IR_INSTRUCTION_HPP_BCDA16AC543B8A1A
+#ifndef INCLUDE_MC_INSTRUCTION_HPP_BCDA16AC543B8A1A
+#define INCLUDE_MC_INSTRUCTION_HPP_BCDA16AC543B8A1A
 
 #include <array>
 #include <exception>
@@ -10,7 +10,7 @@
 #include <boost/optional.hpp>
 
 namespace hbt {
-namespace ir {
+namespace mc {
 
 enum class Opcode {
 	LD_SOURCE_IP,

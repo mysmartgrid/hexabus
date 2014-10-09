@@ -1,7 +1,7 @@
-#include "IR/program.hpp"
+#include "MC/program.hpp"
 
 namespace hbt {
-namespace ir {
+namespace mc {
 
 Program::~Program()
 {

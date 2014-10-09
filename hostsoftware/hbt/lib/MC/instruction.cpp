@@ -1,7 +1,7 @@
-#include "IR/instruction.hpp"
+#include "MC/instruction.hpp"
 
 namespace hbt {
-namespace ir {
+namespace mc {
 
 Instruction::~Instruction()
 {

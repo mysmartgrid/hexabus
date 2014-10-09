@@ -8,7 +8,6 @@ set(hbt_lang_src "hbt-lang.cpp")
 
 add_executable(hbt-as ${hbt_as_src})
 target_link_libraries(hbt-as
-	lib_IR
 	lib_MC
 	lib_Util
 	${Boost_LIBRARIES}
@@ -22,7 +21,6 @@ install(PROGRAMS
 add_executable(hbt-dis ${hbt_dis_src})
 target_link_libraries(hbt-dis
 	lib_MC
-	lib_IR
 	lib_Util
 	${Boost_LIBRARIES}
 )
@@ -30,7 +28,7 @@ target_link_libraries(hbt-dis
 add_executable(hbt-lang ${hbt_lang_src})
 target_link_libraries(hbt-lang
 	lib_Lang
-	lib_IR
+	lib_MC
 	lib_Util
 	${Boost_LIBRARIES}
 	${CLN_LIBRARIES}

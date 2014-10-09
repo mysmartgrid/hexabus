@@ -1,7 +1,7 @@
-#ifndef INCLUDE_IR_BUILDER_HPP_3D3CABD64D9DF80F
-#define INCLUDE_IR_BUILDER_HPP_3D3CABD64D9DF80F
+#ifndef INCLUDE_MC_BUILDER_HPP_3D3CABD64D9DF80F
+#define INCLUDE_MC_BUILDER_HPP_3D3CABD64D9DF80F
 
-#include "IR/instruction.hpp"
+#include "MC/instruction.hpp"
 
 #include <list>
 #include <map>
@@ -11,7 +11,7 @@
 #include <boost/variant.hpp>
 
 namespace hbt {
-namespace ir {
+namespace mc {
 
 class Program;
 

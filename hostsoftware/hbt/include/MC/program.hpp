@@ -1,13 +1,13 @@
-#ifndef INCLUDE_IR_PROGRAM_HPP_345A0781A78039CE
-#define INCLUDE_IR_PROGRAM_HPP_345A0781A78039CE
+#ifndef INCLUDE_MC_PROGRAM_HPP_345A0781A78039CE
+#define INCLUDE_MC_PROGRAM_HPP_345A0781A78039CE
 
-#include "IR/instruction.hpp"
+#include "MC/instruction.hpp"
 #include "Util/range.hpp"
 
 #include <vector>
 
 namespace hbt {
-namespace ir {
+namespace mc {
 
 class InvalidProgram : public std::logic_error {
 	private:

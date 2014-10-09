@@ -8,11 +8,11 @@
 #include <iterator>
 #include <vector>
 
-#include "IR/parser.hpp"
-#include "IR/program.hpp"
-#include "IR/program_printer.hpp"
 #include "MC/assembler.hpp"
 #include "MC/disassembler.hpp"
+#include "MC/parser.hpp"
+#include "MC/program.hpp"
+#include "MC/program_printer.hpp"
 #include "Util/memorybuffer.hpp"
 
 namespace {
@@ -265,7 +265,7 @@ void checkAssembler(const std::vector<AssemblerLine> program)
 		std::copy(line.binary.begin(), line.binary.end(), std::back_inserter(binary));
 	}
 
-	auto parsed = hbt::ir::parse(hbt::util::MemoryBuffer(text));
+	auto parsed = hbt::mc::parse(hbt::util::MemoryBuffer(text));
 	auto assembled = hbt::mc::assemble(*parsed);
 
 	if (!binary.size())
@@ -347,7 +347,7 @@ void checkDisssembler(const std::vector<AssemblerLine> program)
 	}
 
 	auto disassembled = hbt::mc::disassemble(hbt::util::MemoryBuffer(binary));
-	auto printed = hbt::ir::prettyPrint(*disassembled);
+	auto printed = hbt::mc::prettyPrint(*disassembled);
 
 	if (text != printed) {
 		std::cout << "text\n" << text << "\n//--------\n";

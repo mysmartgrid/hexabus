@@ -1,7 +1,7 @@
-#include "IR/parser.hpp"
+#include "MC/parser.hpp"
 
-#include "IR/builder.hpp"
-#include "IR/program.hpp"
+#include "MC/builder.hpp"
+#include "MC/program.hpp"
 #include "Util/memorybuffer.hpp"
 
 #include <boost/fusion/adapted/struct/adapt_struct.hpp>
@@ -29,7 +29,7 @@ struct block_immediate {
 };
 
 struct mem_immediate {
-	hbt::ir::MemType type;
+	hbt::mc::MemType type;
 	uint16_t addr;
 };
 
@@ -46,14 +46,14 @@ struct ir_instruction {
 			float,
 			std::vector<switch_entry>,
 			block_immediate,
-			hbt::ir::DTMask,
+			hbt::mc::DTMask,
 			std::string,
 			mem_immediate
 		> param_t;
 
 	typedef boost::optional<param_t> immed_t;
 
-	hbt::ir::Opcode opcode;
+	hbt::mc::Opcode opcode;
 	immed_t immediate;
 };
 
@@ -89,7 +89,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
 	ir_instruction,
-	(hbt::ir::Opcode, opcode)
+	(hbt::mc::Opcode, opcode)
 	(ir_instruction::immed_t, immediate)
 )
 
@@ -114,7 +114,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 namespace hbt {
-namespace ir {
+namespace mc {
 
 namespace {
 
@@ -634,7 +634,7 @@ std::map<std::string, Label> makeLabelMap(const ir_program& program, Builder& bu
 
 std::unique_ptr<Program> makeProgram(const ir_program& program)
 {
-	using namespace hbt::ir;
+	using namespace hbt::mc;
 
 	Builder builder(0, toMachineID(program.header.machine_id));
 

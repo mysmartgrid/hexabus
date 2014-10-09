@@ -1,9 +1,9 @@
-#include "IR/builder.hpp"
-#include "IR/instruction.hpp"
-#include "IR/parser.hpp"
-#include "IR/program.hpp"
-#include "IR/program_printer.hpp"
+#include "MC/builder.hpp"
 #include "MC/disassembler.hpp"
+#include "MC/instruction.hpp"
+#include "MC/parser.hpp"
+#include "MC/program.hpp"
+#include "MC/program_printer.hpp"
 #include "Util/memorybuffer.hpp"
 
 #include <iostream>
@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
 
 		auto program = hbt::mc::disassemble(buffer);
 
-		std::string disassembly = hbt::ir::prettyPrint(*program);
+		std::string disassembly = hbt::mc::prettyPrint(*program);
 
 		hbt::util::MemoryBuffer(disassembly).writeFile(output, true);
 	} catch (const std::exception& e) {

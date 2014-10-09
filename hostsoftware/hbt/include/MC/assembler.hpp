@@ -8,13 +8,11 @@
 
 namespace hbt {
 
-namespace ir {
-class Program;
-}
-
 namespace mc {
 
-hbt::util::MemoryBuffer assemble(const ir::Program& program);
+class Program;
+
+hbt::util::MemoryBuffer assemble(const Program& program);
 
 }
 }

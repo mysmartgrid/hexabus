@@ -1,7 +1,7 @@
 #include "MC/disassembler.hpp"
 
-#include "IR/builder.hpp"
-#include "IR/program.hpp"
+#include "MC/builder.hpp"
+#include "MC/program.hpp"
 #include "Util/memorybuffer.hpp"
 
 #include <algorithm>
@@ -16,14 +16,14 @@ namespace {
 struct RawInstruction {
 	size_t pos;
 
-	hbt::ir::Opcode op;
+	hbt::mc::Opcode op;
 
 	bool isValid, dtMaskInvalid, operandMissing, blockCmpMaskInvalid;
 	bool isRelativeLabel, isSwitchTable;
 
 	size_t nextPos;
 
-	hbt::ir::Builder::immediate_t immed;
+	hbt::mc::Builder::immediate_t immed;
 };
 
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
@@ -39,7 +39,7 @@ struct RawProgram {
 
 RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 {
-	using namespace hbt::ir;
+	using namespace hbt::mc;
 
 	if (program.size() < 16 + 1 + 2 + 2)
 		throw InvalidProgram("program too short", "");
@@ -359,9 +359,9 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 	return result;
 }
 
-std::map<size_t, hbt::ir::Label> resolveLabels(const RawProgram& program, hbt::ir::Builder& builder)
+std::map<size_t, hbt::mc::Label> resolveLabels(const RawProgram& program, hbt::mc::Builder& builder)
 {
-	using namespace hbt::ir;
+	using namespace hbt::mc;
 
 	std::map<size_t, Label> result;
 
@@ -392,10 +392,8 @@ std::map<size_t, hbt::ir::Label> resolveLabels(const RawProgram& program, hbt::i
 namespace hbt {
 namespace mc {
 
-std::unique_ptr<ir::Program> disassemble(const hbt::util::MemoryBuffer& program, bool ignoreInvalid)
+std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program, bool ignoreInvalid)
 {
-	using namespace hbt::ir;
-
 	RawProgram raw = parseRaw(program);
 
 	Builder builder(raw.version, raw.machineID);

@@ -5,7 +5,7 @@
 
 namespace hbt {
 
-namespace ir {
+namespace mc {
 class Program;
 }
 
@@ -13,7 +13,7 @@ namespace lang {
 
 class TranslationUnit;
 
-std::unique_ptr<ir::Program> generateMachineCodeFor(TranslationUnit& tu);
+std::unique_ptr<mc::Program> generateMachineCodeFor(TranslationUnit& tu);
 
 }
 }

@@ -5,8 +5,8 @@
 #include <tuple>
 #include <vector>
 
-#include "IR/builder.hpp"
-#include "IR/program.hpp"
+#include "MC/builder.hpp"
+#include "MC/program.hpp"
 #include "Lang/ast.hpp"
 
 namespace hbt {
@@ -27,22 +27,22 @@ void die(const std::string& msg)
 
 
 struct CodegenBlock {
-	ir::Label entryLabel;
-	std::vector<std::tuple<boost::optional<ir::Label>, ir::Opcode, boost::optional<ir::Builder::immediate_t>>> instructions;
+	mc::Label entryLabel;
+	std::vector<std::tuple<boost::optional<mc::Label>, mc::Opcode, boost::optional<mc::Builder::immediate_t>>> instructions;
 
-	boost::optional<ir::Label> nextLabel;
+	boost::optional<mc::Label> nextLabel;
 
-	CodegenBlock(ir::Label label)
+	CodegenBlock(mc::Label label)
 		: entryLabel(label), nextLabel(label)
 	{}
 
-	void append(ir::Opcode op)
+	void append(mc::Opcode op)
 	{
 		instructions.emplace_back(nextLabel, op, boost::none_t());
 		nextLabel.reset();
 	}
 
-	void append(ir::Opcode op, ir::Builder::immediate_t immed)
+	void append(mc::Opcode op, mc::Builder::immediate_t immed)
 	{
 		instructions.emplace_back(nextLabel, op, std::move(immed));
 		nextLabel.reset();
@@ -60,7 +60,7 @@ struct CodegenBlock {
 			std::back_inserter(instructions));
 	}
 
-	void emit(ir::Builder& into)
+	void emit(mc::Builder& into)
 	{
 		for (auto& insn : instructions) {
 			if (std::get<2>(insn)) {
@@ -78,7 +78,7 @@ class CodegenVisitor : public ASTVisitor {
 private:
 	Device* currentDevice;
 
-	ir::Builder builder;
+	mc::Builder builder;
 
 	std::vector<CodegenBlock*> blocks;
 
@@ -185,25 +185,25 @@ public:
 	virtual void visit(IncludeLine&) override;
 	virtual void visit(TranslationUnit&) override;
 
-	std::unique_ptr<ir::Program> finish()
+	std::unique_ptr<mc::Program> finish()
 	{
 		return builder.finish();
 	}
 };
 
-static ir::MemType memtypeFor(Type t)
+static mc::MemType memtypeFor(Type t)
 {
 	switch (t) {
-	case Type::Bool: return ir::MemType::Bool;
-	case Type::UInt8: return ir::MemType::U8;
-	case Type::UInt16: return ir::MemType::U16;
-	case Type::UInt32: return ir::MemType::U32;
-	case Type::UInt64: return ir::MemType::U64;
-	case Type::Int8: return ir::MemType::S8;
-	case Type::Int16: return ir::MemType::S16;
-	case Type::Int32: return ir::MemType::S32;
-	case Type::Int64: return ir::MemType::S64;
-	case Type::Float: return ir::MemType::Float;
+	case Type::Bool: return mc::MemType::Bool;
+	case Type::UInt8: return mc::MemType::U8;
+	case Type::UInt16: return mc::MemType::U16;
+	case Type::UInt32: return mc::MemType::U32;
+	case Type::UInt64: return mc::MemType::U64;
+	case Type::Int8: return mc::MemType::S8;
+	case Type::Int16: return mc::MemType::S16;
+	case Type::Int32: return mc::MemType::S32;
+	case Type::Int64: return mc::MemType::S64;
+	case Type::Float: return mc::MemType::Float;
 	case Type::Unknown: break;
 	}
 	die("unknown types");
@@ -212,40 +212,40 @@ static ir::MemType memtypeFor(Type t)
 void CodegenVisitor::visit(IdentifierExpr& e)
 {
 	if (variableAddresses.count(e.name()))
-		current().append(ir::Opcode::LD_MEM, std::make_tuple(memtypeFor(e.type()), variableAddresses[e.name()]));
+		current().append(mc::Opcode::LD_MEM, std::make_tuple(memtypeFor(e.type()), variableAddresses[e.name()]));
 	else
-		current().append(ir::Opcode::DUP_I, uint8_t(distanceTo(e.name()) - 1));
+		current().append(mc::Opcode::DUP_I, uint8_t(distanceTo(e.name()) - 1));
 }
 
 void CodegenVisitor::visit(TypedLiteral<bool>& l)
 {
-	current().append(l.value() ? ir::Opcode::LD_TRUE : ir::Opcode::LD_FALSE);
+	current().append(l.value() ? mc::Opcode::LD_TRUE : mc::Opcode::LD_FALSE);
 }
 
-void CodegenVisitor::visit(TypedLiteral<uint8_t>& l) { current().append(ir::Opcode::LD_U8, l.value()); }
-void CodegenVisitor::visit(TypedLiteral<uint16_t>& l) { current().append(ir::Opcode::LD_U16, l.value()); }
-void CodegenVisitor::visit(TypedLiteral<uint32_t>& l) { current().append(ir::Opcode::LD_U32, l.value()); }
-void CodegenVisitor::visit(TypedLiteral<uint64_t>& l) { current().append(ir::Opcode::LD_U64, l.value()); }
-void CodegenVisitor::visit(TypedLiteral<int8_t>& l) { current().append(ir::Opcode::LD_S8, l.value()); }
-void CodegenVisitor::visit(TypedLiteral<int16_t>& l) { current().append(ir::Opcode::LD_S16, l.value()); }
-void CodegenVisitor::visit(TypedLiteral<int32_t>& l) { current().append(ir::Opcode::LD_S32, l.value()); }
-void CodegenVisitor::visit(TypedLiteral<int64_t>& l) { current().append(ir::Opcode::LD_S64, l.value()); }
-void CodegenVisitor::visit(TypedLiteral<float>& l) { current().append(ir::Opcode::LD_FLOAT, l.value()); }
+void CodegenVisitor::visit(TypedLiteral<uint8_t>& l) { current().append(mc::Opcode::LD_U8, l.value()); }
+void CodegenVisitor::visit(TypedLiteral<uint16_t>& l) { current().append(mc::Opcode::LD_U16, l.value()); }
+void CodegenVisitor::visit(TypedLiteral<uint32_t>& l) { current().append(mc::Opcode::LD_U32, l.value()); }
+void CodegenVisitor::visit(TypedLiteral<uint64_t>& l) { current().append(mc::Opcode::LD_U64, l.value()); }
+void CodegenVisitor::visit(TypedLiteral<int8_t>& l) { current().append(mc::Opcode::LD_S8, l.value()); }
+void CodegenVisitor::visit(TypedLiteral<int16_t>& l) { current().append(mc::Opcode::LD_S16, l.value()); }
+void CodegenVisitor::visit(TypedLiteral<int32_t>& l) { current().append(mc::Opcode::LD_S32, l.value()); }
+void CodegenVisitor::visit(TypedLiteral<int64_t>& l) { current().append(mc::Opcode::LD_S64, l.value()); }
+void CodegenVisitor::visit(TypedLiteral<float>& l) { current().append(mc::Opcode::LD_FLOAT, l.value()); }
 
 void CodegenVisitor::visit(CastExpr& c)
 {
 	c.expr().accept(*this);
 	switch (c.type()) {
-	case Type::Bool:   current().append(ir::Opcode::CONV_B); return;
-	case Type::UInt8:  current().append(ir::Opcode::CONV_U8); return;
-	case Type::UInt16: current().append(ir::Opcode::CONV_U16); return;
-	case Type::UInt32: current().append(ir::Opcode::CONV_U32); return;
-	case Type::UInt64: current().append(ir::Opcode::CONV_U64); return;
-	case Type::Int8:   current().append(ir::Opcode::CONV_S8); return;
-	case Type::Int16:  current().append(ir::Opcode::CONV_S16); return;
-	case Type::Int32:  current().append(ir::Opcode::CONV_S32); return;
-	case Type::Int64:  current().append(ir::Opcode::CONV_S64); return;
-	case Type::Float:  current().append(ir::Opcode::CONV_F); return;
+	case Type::Bool:   current().append(mc::Opcode::CONV_B); return;
+	case Type::UInt8:  current().append(mc::Opcode::CONV_U8); return;
+	case Type::UInt16: current().append(mc::Opcode::CONV_U16); return;
+	case Type::UInt32: current().append(mc::Opcode::CONV_U32); return;
+	case Type::UInt64: current().append(mc::Opcode::CONV_U64); return;
+	case Type::Int8:   current().append(mc::Opcode::CONV_S8); return;
+	case Type::Int16:  current().append(mc::Opcode::CONV_S16); return;
+	case Type::Int32:  current().append(mc::Opcode::CONV_S32); return;
+	case Type::Int64:  current().append(mc::Opcode::CONV_S64); return;
+	case Type::Float:  current().append(mc::Opcode::CONV_F); return;
 
 	case Type::Unknown: break;
 	}
@@ -260,23 +260,23 @@ void CodegenVisitor::visit(UnaryExpr& e)
 		break;
 
 	case UnaryOperator::Minus:
-		current().append(ir::Opcode::LD_FALSE);
-		current().append(ir::Opcode::ROT);
-		current().append(ir::Opcode::SUB);
+		current().append(mc::Opcode::LD_FALSE);
+		current().append(mc::Opcode::ROT);
+		current().append(mc::Opcode::SUB);
 		break;
 
 	case UnaryOperator::Not:
 	case UnaryOperator::Negate:
 		if (e.expr().type() == Type::Bool) {
-			current().append(ir::Opcode::LD_TRUE);
-			current().append(ir::Opcode::XOR);
+			current().append(mc::Opcode::LD_TRUE);
+			current().append(mc::Opcode::XOR);
 		} else {
-			current().append(ir::Opcode::LD_FALSE);
-			current().append(ir::Opcode::LD_TRUE);
-			current().append(ir::Opcode::SUB);
+			current().append(mc::Opcode::LD_FALSE);
+			current().append(mc::Opcode::LD_TRUE);
+			current().append(mc::Opcode::SUB);
 			if (e.expr().type() == Type::UInt64 || e.expr().type() == Type::Int64)
-				current().append(ir::Opcode::CONV_U64);
-			current().append(ir::Opcode::XOR);
+				current().append(mc::Opcode::CONV_U64);
+			current().append(mc::Opcode::XOR);
 		}
 		break;
 	}
@@ -288,40 +288,40 @@ void CodegenVisitor::visit(BinaryExpr& e)
 
 	e.left().accept(*this);
 	if (isBoolShortcut && e.left().type() != Type::Bool)
-		current().append(ir::Opcode::CONV_B);
+		current().append(mc::Opcode::CONV_B);
 
 	temporarySlotsUsed++;
 	e.right().accept(*this);
 	if (isBoolShortcut && e.right().type() != Type::Bool)
-		current().append(ir::Opcode::CONV_B);
+		current().append(mc::Opcode::CONV_B);
 	temporarySlotsUsed--;
 
 	switch (e.op()) {
-	case BinaryOperator::Plus: current().append(ir::Opcode::ADD); break;
-	case BinaryOperator::Minus: current().append(ir::Opcode::SUB); break;
-	case BinaryOperator::Multiply: current().append(ir::Opcode::MUL); break;
-	case BinaryOperator::Divide: current().append(ir::Opcode::DIV); break;
-	case BinaryOperator::Modulo: current().append(ir::Opcode::MOD); break;
+	case BinaryOperator::Plus: current().append(mc::Opcode::ADD); break;
+	case BinaryOperator::Minus: current().append(mc::Opcode::SUB); break;
+	case BinaryOperator::Multiply: current().append(mc::Opcode::MUL); break;
+	case BinaryOperator::Divide: current().append(mc::Opcode::DIV); break;
+	case BinaryOperator::Modulo: current().append(mc::Opcode::MOD); break;
 
 	case BinaryOperator::BoolAnd:
 	case BinaryOperator::And:
-		current().append(ir::Opcode::AND);
+		current().append(mc::Opcode::AND);
 		break;
 
 	case BinaryOperator::BoolOr:
 	case BinaryOperator::Or:
-		current().append(ir::Opcode::OR);
+		current().append(mc::Opcode::OR);
 		break;
 
-	case BinaryOperator::Xor: current().append(ir::Opcode::XOR); break;
-	case BinaryOperator::Equals: current().append(ir::Opcode::CMP_EQ); break;
-	case BinaryOperator::NotEquals: current().append(ir::Opcode::CMP_NEQ); break;
-	case BinaryOperator::LessThan: current().append(ir::Opcode::CMP_LT); break;
-	case BinaryOperator::LessOrEqual: current().append(ir::Opcode::CMP_LE); break;
-	case BinaryOperator::GreaterThan: current().append(ir::Opcode::CMP_GT); break;
-	case BinaryOperator::GreaterOrEqual: current().append(ir::Opcode::CMP_GE); break;
-	case BinaryOperator::ShiftLeft: current().append(ir::Opcode::SHL); break;
-	case BinaryOperator::ShiftRight: current().append(ir::Opcode::SHR); break;
+	case BinaryOperator::Xor: current().append(mc::Opcode::XOR); break;
+	case BinaryOperator::Equals: current().append(mc::Opcode::CMP_EQ); break;
+	case BinaryOperator::NotEquals: current().append(mc::Opcode::CMP_NEQ); break;
+	case BinaryOperator::LessThan: current().append(mc::Opcode::CMP_LT); break;
+	case BinaryOperator::LessOrEqual: current().append(mc::Opcode::CMP_LE); break;
+	case BinaryOperator::GreaterThan: current().append(mc::Opcode::CMP_GT); break;
+	case BinaryOperator::GreaterOrEqual: current().append(mc::Opcode::CMP_GE); break;
+	case BinaryOperator::ShiftLeft: current().append(mc::Opcode::SHL); break;
+	case BinaryOperator::ShiftRight: current().append(mc::Opcode::SHR); break;
 	}
 }
 
@@ -331,7 +331,7 @@ void CodegenVisitor::visit(ConditionalExpr& c)
 
 	CodegenBlock ifTrue(builder.createLabel());
 	CodegenBlock ifFalse(builder.createLabel());
-	ir::Label exit(builder.createLabel());
+	mc::Label exit(builder.createLabel());
 
 	blocks.push_back(&ifTrue);
 	c.ifTrue().accept(*this);
@@ -341,14 +341,14 @@ void CodegenVisitor::visit(ConditionalExpr& c)
 	c.ifFalse().accept(*this);
 	blocks.pop_back();
 
-	current().append(ir::Opcode::JZ, ifFalse.entryLabel);
-	ifTrue.append(ir::Opcode::JUMP, exit);
+	current().append(mc::Opcode::JZ, ifFalse.entryLabel);
+	ifTrue.append(mc::Opcode::JUMP, exit);
 	current().append(std::move(ifTrue));
 	current().append(std::move(ifFalse));
 
 	current().nextLabel = exit;
-	current().append(ir::Opcode::LD_FALSE);
-	current().append(ir::Opcode::POP);
+	current().append(mc::Opcode::LD_FALSE);
+	current().append(mc::Opcode::POP);
 }
 
 void CodegenVisitor::visit(EndpointExpr&)
@@ -364,19 +364,19 @@ void CodegenVisitor::visit(CallExpr& c)
 	}
 
 	if (c.name().name() == "second")
-		current().append(ir::Opcode::DT_DECOMPOSE, ir::DTMask::second);
+		current().append(mc::Opcode::DT_DECOMPOSE, mc::DTMask::second);
 	else if (c.name().name() == "minute")
-		current().append(ir::Opcode::DT_DECOMPOSE, ir::DTMask::minute);
+		current().append(mc::Opcode::DT_DECOMPOSE, mc::DTMask::minute);
 	else if (c.name().name() == "hour")
-		current().append(ir::Opcode::DT_DECOMPOSE, ir::DTMask::hour);
+		current().append(mc::Opcode::DT_DECOMPOSE, mc::DTMask::hour);
 	else if (c.name().name() == "day")
-		current().append(ir::Opcode::DT_DECOMPOSE, ir::DTMask::day);
+		current().append(mc::Opcode::DT_DECOMPOSE, mc::DTMask::day);
 	else if (c.name().name() == "month")
-		current().append(ir::Opcode::DT_DECOMPOSE, ir::DTMask::month);
+		current().append(mc::Opcode::DT_DECOMPOSE, mc::DTMask::month);
 	else if (c.name().name() == "year")
-		current().append(ir::Opcode::DT_DECOMPOSE, ir::DTMask::year);
+		current().append(mc::Opcode::DT_DECOMPOSE, mc::DTMask::year);
 	else if (c.name().name() == "weekday")
-		current().append(ir::Opcode::DT_DECOMPOSE, ir::DTMask::weekday);
+		current().append(mc::Opcode::DT_DECOMPOSE, mc::DTMask::weekday);
 	else
 		die("unknown functions");
 
@@ -388,7 +388,7 @@ void CodegenVisitor::visit(PacketEIDExpr&)
 	if (!currentPacketSource)
 		die("packet access outside of on packet");
 
-	current().append(ir::Opcode::LD_SOURCE_EID);
+	current().append(mc::Opcode::LD_SOURCE_EID);
 }
 
 void CodegenVisitor::visit(PacketValueExpr&)
@@ -396,12 +396,12 @@ void CodegenVisitor::visit(PacketValueExpr&)
 	if (!currentPacketSource)
 		die("packet access outside of on packet");
 
-	current().append(ir::Opcode::LD_SOURCE_VAL);
+	current().append(mc::Opcode::LD_SOURCE_VAL);
 }
 
 void CodegenVisitor::visit(SysTimeExpr&)
 {
-	current().append(ir::Opcode::LD_SYSTIME);
+	current().append(mc::Opcode::LD_SYSTIME);
 }
 
 void CodegenVisitor::visit(AssignStmt& s)
@@ -409,10 +409,10 @@ void CodegenVisitor::visit(AssignStmt& s)
 	s.value().accept(*this);
 	if (variableAddresses.count(s.target().name()))
 		current().append(
-			ir::Opcode::ST_MEM,
+			mc::Opcode::ST_MEM,
 			std::make_tuple(memtypeFor(s.targetDecl()->type()), variableAddresses[s.target().name()]));
 	else
-		current().append(ir::Opcode::EXCHANGE, uint8_t(distanceTo(s.target().name()) - 1));
+		current().append(mc::Opcode::EXCHANGE, uint8_t(distanceTo(s.target().name()) - 1));
 }
 
 void CodegenVisitor::visit(WriteStmt& w)
@@ -421,11 +421,11 @@ void CodegenVisitor::visit(WriteStmt& w)
 		die("multiple devices written by a single machine");
 
 	currentDevice = w.target().device();
-	current().append(ir::Opcode::LD_U32, w.target().endpoint()->eid());
+	current().append(mc::Opcode::LD_U32, w.target().endpoint()->eid());
 	temporarySlotsUsed++;
 	w.value().accept(*this);
 	temporarySlotsUsed--;
-	current().append(ir::Opcode::WRITE);
+	current().append(mc::Opcode::WRITE);
 }
 
 void CodegenVisitor::visit(IfStmt& i)
@@ -434,7 +434,7 @@ void CodegenVisitor::visit(IfStmt& i)
 
 	CodegenBlock ifTrue(builder.createLabel());
 	CodegenBlock ifFalse(builder.createLabel());
-	ir::Label exit(builder.createLabel());
+	mc::Label exit(builder.createLabel());
 
 	blocks.push_back(&ifTrue);
 	i.ifTrue().accept(*this);
@@ -448,32 +448,32 @@ void CodegenVisitor::visit(IfStmt& i)
 
 	if (ifTrue.instructions.size()) {
 		if (ifFalse.instructions.size()) {
-			current().append(ir::Opcode::JZ, ifFalse.entryLabel);
-			ifTrue.append(ir::Opcode::JUMP, exit);
+			current().append(mc::Opcode::JZ, ifFalse.entryLabel);
+			ifTrue.append(mc::Opcode::JUMP, exit);
 			current().append(std::move(ifTrue));
 			current().append(std::move(ifFalse));
 		} else {
-			current().append(ir::Opcode::JZ, exit);
+			current().append(mc::Opcode::JZ, exit);
 			current().append(std::move(ifTrue));
 		}
 	} else if (ifFalse.instructions.size()) {
-		current().append(ir::Opcode::JZ, exit);
+		current().append(mc::Opcode::JZ, exit);
 		current().append(std::move(ifFalse));
 	} else {
-		current().append(ir::Opcode::POP);
+		current().append(mc::Opcode::POP);
 	}
 	current().nextLabel = exit;
-	current().append(ir::Opcode::LD_FALSE);
-	current().append(ir::Opcode::POP);
+	current().append(mc::Opcode::LD_FALSE);
+	current().append(mc::Opcode::POP);
 }
 
 void CodegenVisitor::visit(SwitchStmt& s)
 {
-	std::vector<ir::SwitchEntry> labels;
+	std::vector<mc::SwitchEntry> labels;
 	std::map<uint32_t, CodegenBlock*> blocks;
 	CodegenBlock* defaultBlock = nullptr;
 	std::vector<std::unique_ptr<CodegenBlock>> blockPtrs;
-	ir::Label exit(builder.createLabel());
+	mc::Label exit(builder.createLabel());
 
 	for (auto& e : s.entries()) {
 		blockPtrs.emplace_back(new CodegenBlock(builder.createLabel()));
@@ -494,7 +494,7 @@ void CodegenVisitor::visit(SwitchStmt& s)
 		}
 		this->blocks.push_back(blockPtrs.back().get());
 		e.statement().accept(*this);
-		current().append(ir::Opcode::JUMP, exit);
+		current().append(mc::Opcode::JUMP, exit);
 		this->blocks.pop_back();
 	}
 
@@ -502,17 +502,17 @@ void CodegenVisitor::visit(SwitchStmt& s)
 		die("large switch blocks");
 
 	s.expr().accept(*this);
-	current().append(ir::Opcode::SWITCH_32, ir::SwitchTable(labels.begin(), labels.end()));
+	current().append(mc::Opcode::SWITCH_32, mc::SwitchTable(labels.begin(), labels.end()));
 	if (defaultBlock)
-		current().append(ir::Opcode::JUMP, defaultBlock->entryLabel);
-	current().append(ir::Opcode::JUMP, exit);
+		current().append(mc::Opcode::JUMP, defaultBlock->entryLabel);
+	current().append(mc::Opcode::JUMP, exit);
 
 	for (auto& block : blockPtrs)
 		current().append(std::move(*block));
 
 	current().nextLabel = exit;
-	current().append(ir::Opcode::LD_FALSE);
-	current().append(ir::Opcode::POP);
+	current().append(mc::Opcode::LD_FALSE);
+	current().append(mc::Opcode::POP);
 }
 
 void CodegenVisitor::visit(BlockStmt& b)
@@ -523,7 +523,7 @@ void CodegenVisitor::visit(BlockStmt& b)
 		s->accept(*this);
 
 	for (auto& e : scopes.back().variables)
-		current().append(ir::Opcode::POP);
+		current().append(mc::Opcode::POP);
 
 	scopes.pop_back();
 }
@@ -536,7 +536,7 @@ void CodegenVisitor::visit(DeclarationStmt& d)
 
 void CodegenVisitor::visit(GotoStmt&)
 {
-	current().append(ir::Opcode::RET);
+	current().append(mc::Opcode::RET);
 }
 
 void CodegenVisitor::visit(OnSimpleBlock& o)
@@ -604,14 +604,14 @@ void CodegenVisitor::visit(MachineDefinition& m)
 			on->accept(*this);
 			blocks.pop_back();
 
-			packetSwitchBlock.append(ir::Opcode::LD_SOURCE_IP);
-			packetSwitchBlock.append(ir::Opcode::CMP_BLOCK, ir::BlockPart(0, 16, packet->source()->address()));
-			packetSwitchBlock.append(ir::Opcode::JNZ, block->entryLabel);
+			packetSwitchBlock.append(mc::Opcode::LD_SOURCE_IP);
+			packetSwitchBlock.append(mc::Opcode::CMP_BLOCK, mc::BlockPart(0, 16, packet->source()->address()));
+			packetSwitchBlock.append(mc::Opcode::JNZ, block->entryLabel);
 		}
 	}
 
 	if (packetSwitchBlock.instructions.size()) {
-		packetSwitchBlock.append(ir::Opcode::RET);
+		packetSwitchBlock.append(mc::Opcode::RET);
 		builder.onPacket(packetSwitchBlock.entryLabel);
 	}
 
@@ -627,9 +627,9 @@ void CodegenVisitor::visit(MachineDefinition& m)
 
 	if (stmtBlock.instructions.size()) {
 		for (auto& block : simpleBlocks)
-			block.second->append(ir::Opcode::JUMP, stmtBlock.entryLabel);
+			block.second->append(mc::Opcode::JUMP, stmtBlock.entryLabel);
 		for (auto& block : packetBlocks)
-			block.second->append(ir::Opcode::JUMP, stmtBlock.entryLabel);
+			block.second->append(mc::Opcode::JUMP, stmtBlock.entryLabel);
 	}
 
 	for (auto& block : simpleBlocks) {
@@ -658,7 +658,7 @@ void CodegenVisitor::visit(TranslationUnit& tu)
 
 }
 
-std::unique_ptr<ir::Program> generateMachineCodeFor(TranslationUnit& tu)
+std::unique_ptr<mc::Program> generateMachineCodeFor(TranslationUnit& tu)
 {
 	CodegenVisitor cv;
 

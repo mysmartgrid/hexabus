@@ -1,5 +1,5 @@
-#ifndef INCLUDE_IR_PARSER_HPP_E6C996D913035D86
-#define INCLUDE_IR_PARSER_HPP_E6C996D913035D86
+#ifndef INCLUDE_MC_PARSER_HPP_E6C996D913035D86
+#define INCLUDE_MC_PARSER_HPP_E6C996D913035D86
 
 #include <memory>
 #include <string>
@@ -10,7 +10,7 @@ namespace util {
 class MemoryBuffer;
 }
 
-namespace ir {
+namespace mc {
 
 class Program;
 

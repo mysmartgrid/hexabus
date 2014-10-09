@@ -1,6 +1,6 @@
-#include "IR/program_printer.hpp"
+#include "MC/program_printer.hpp"
 
-#include "IR/program.hpp"
+#include "MC/program.hpp"
 
 #include <boost/format.hpp>
 #include <sstream>
@@ -41,15 +41,15 @@ HexBlockPrinter<typename Range::const_iterator> hexBlock(const Range& r)
 }
 
 template<typename Char, typename Traits>
-std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& out, hbt::ir::Label l)
+std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& out, hbt::mc::Label l)
 {
 	return out << "L" << l.id();
 }
 
 template<typename Char, typename Traits>
-std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& out, hbt::ir::DTMask m)
+std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& out, hbt::mc::DTMask m)
 {
-	using hbt::ir::DTMask;
+	using hbt::mc::DTMask;
 
 	if (DTMask::second == (m & DTMask::second)) out << "s";
 	if (DTMask::minute == (m & DTMask::minute)) out << "m";
@@ -62,9 +62,9 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 	return out;
 }
 
-const char* opcodeName(hbt::ir::Opcode op)
+const char* opcodeName(hbt::mc::Opcode op)
 {
-	using hbt::ir::Opcode;
+	using hbt::mc::Opcode;
 
 	switch (op) {
 	case Opcode::MUL: return "mul";
@@ -136,7 +136,7 @@ const char* opcodeName(hbt::ir::Opcode op)
 }
 
 template<typename Char, typename Traits>
-std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& out, hbt::ir::Opcode op)
+std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& out, hbt::mc::Opcode op)
 {
 	const char* name = opcodeName(op);
 	if (name)
@@ -148,7 +148,7 @@ std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& o
 }
 
 namespace hbt {
-namespace ir {
+namespace mc {
 
 std::string prettyPrint(const Program& program)
 {

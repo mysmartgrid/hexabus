@@ -4,13 +4,13 @@
 
 #include <unistd.h>
 
-#include "IR/program.hpp"
-#include "IR/program_printer.hpp"
 #include "Lang/ast.hpp"
 #include "Lang/astprinter.hpp"
 #include "Lang/codegen.hpp"
 #include "Lang/parser.hpp"
 #include "Lang/sema.hpp"
+#include "MC/program.hpp"
+#include "MC/program_printer.hpp"
 #include "Util/memorybuffer.hpp"
 
 #include <boost/asio/ip/address_v6.hpp>
@@ -152,7 +152,7 @@ static pass_type runCodegen(const std::string& file)
 {
 	return [file] (std::unique_ptr<TranslationUnit>& tu) {
 		auto program = generateMachineCodeFor(*tu);
-		std::string assembled = hbt::ir::prettyPrint(*program);
+		std::string assembled = hbt::mc::prettyPrint(*program);
 		hbt::util::MemoryBuffer(assembled).writeFile(file, true);
 		return true;
 	};
