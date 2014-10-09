@@ -232,17 +232,16 @@ class TypedLiteral : public Literal {
 			std::is_same<T, int16_t>::value ? Type::Int16 :
 			std::is_same<T, int32_t>::value ? Type::Int32 :
 			std::is_same<T, int64_t>::value ? Type::Int64 :
-			std::is_same<T, float>::value ? Type::Float :
-			Type::Unknown;
+			Type::Float;
 	}
+
+	static_assert((calcType() == Type::Float) == std::is_same<T, float>::value, "bad literal type");
 
 	typedef typename std::conditional<
 			std::is_integral<T>::value && std::is_signed<T>::value,
 			int64_t,
 			uint64_t
 		>::type widenened_const_type;
-
-	static_assert(calcType() != Type::Unknown, "bad literal type");
 
 private:
 	T _value;
@@ -293,7 +292,7 @@ private:
 
 public:
 	UnaryExpr(const SourceLocation& sloc, UnaryOperator op, ptr_t&& expr)
-		: Expr(sloc, Type::Unknown), _op(op), _expr(std::move(expr))
+		: Expr(sloc, Type::Int32), _op(op), _expr(std::move(expr))
 	{}
 
 	UnaryOperator op() const { return _op; }
@@ -333,7 +332,7 @@ private:
 
 public:
 	BinaryExpr(const SourceLocation& sloc, ptr_t&& left, BinaryOperator op, ptr_t&& right)
-		: Expr(sloc, Type::Unknown), _op(op), _left(std::move(left)), _right(std::move(right))
+		: Expr(sloc, Type::Int32), _op(op), _left(std::move(left)), _right(std::move(right))
 	{}
 
 	BinaryOperator op() const { return _op; }
@@ -352,7 +351,7 @@ private:
 
 public:
 	ConditionalExpr(const SourceLocation& sloc, ptr_t&& cond, ptr_t&& ifTrue, ptr_t&& ifFalse)
-		: Expr(sloc, Type::Unknown), _cond(std::move(cond)), _true(std::move(ifTrue)), _false(std::move(ifFalse))
+		: Expr(sloc, Type::Int32), _cond(std::move(cond)), _true(std::move(ifTrue)), _false(std::move(ifFalse))
 	{}
 
 	Expr& condition() { return *_cond; }
@@ -856,7 +855,7 @@ private:
 	lang::Type _valueType;
 
 public:
-	ClassParameter(const SourceLocation& sloc, const std::string& name, Type type, lang::Type valueType = lang::Type::Unknown)
+	ClassParameter(const SourceLocation& sloc, const std::string& name, Type type, lang::Type valueType = lang::Type::Int32)
 		: _sloc(sloc), _name(name), _type(type), _valueType(valueType)
 	{}
 

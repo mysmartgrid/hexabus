@@ -553,8 +553,8 @@ void SemanticVisitor::visit(ConditionalExpr& c)
 
 Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 {
-	if (e.type() != Type::Unknown)
-		return dynamic_cast<Endpoint*>(globalNames[e.endpointId().name()]);
+	if (e.endpoint())
+		return e.endpoint();
 
 	Device* dev = nullptr;
 	Endpoint* ep = nullptr;

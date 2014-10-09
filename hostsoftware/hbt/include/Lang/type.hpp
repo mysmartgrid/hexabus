@@ -5,8 +5,6 @@ namespace hbt {
 namespace lang {
 
 enum class Type {
-	Unknown,
-
 	Bool,
 	UInt8,
 	UInt16,

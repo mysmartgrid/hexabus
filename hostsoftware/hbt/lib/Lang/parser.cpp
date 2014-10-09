@@ -350,10 +350,10 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				return new SysTimeExpr(locOf(r));
 			}]
 			| (identifier >> omit[tok.dot] > identifier)[fwd >= [this] (Identifier* dev, Identifier* ep) {
-				return new EndpointExpr(dev->sloc(), *dev, *ep, Type::Unknown);
+				return new EndpointExpr(dev->sloc(), *dev, *ep, Type::Int32);
 			}]
 			| tok.ident[fwd >= [this] (range& id) {
-				return new IdentifierExpr(locOf(id), str(id), Type::Unknown);
+				return new IdentifierExpr(locOf(id), str(id), Type::Int32);
 			}];
 
 		e.callOrCast.name("expression");
@@ -372,7 +372,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> -(expr % omit[tok.comma])
 				> omit[tok.rparen | expected(")")]
 			)[fwd >= [this] (Identifier* id, range& r, std::vector<ptr<Expr>>* args) {
-				return new CallExpr(locOf(r), *id, move(args), Type::Unknown);
+				return new CallExpr(locOf(r), *id, move(args), Type::Int32);
 			}]
 			| e.primary[_val = _1];
 
@@ -548,7 +548,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> expr
 				> omit[tok.semicolon | expected(";")]
 			)[fwd >= [this] (Identifier* dev, Identifier* ep, range& r, ptr<Expr>& e) {
-				return new WriteStmt(locOf(r), EndpointExpr(locOf(r), *dev, *ep, Type::Unknown), e);
+				return new WriteStmt(locOf(r), EndpointExpr(locOf(r), *dev, *ep, Type::Int32), e);
 			}];
 
 		s.if_.name("if statement");

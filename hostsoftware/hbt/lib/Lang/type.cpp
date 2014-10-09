@@ -8,7 +8,6 @@ namespace lang {
 const char* typeName(Type type)
 {
 	switch (type) {
-	case Type::Unknown: return "<""??"">"; break;
 	case Type::Bool:    return "bool"; break;
 	case Type::UInt8:   return "uint8"; break;
 	case Type::UInt16:  return "uint16"; break;
@@ -66,9 +65,6 @@ Type promote(Type t)
 
 Type commonType(Type a, Type b)
 {
-	if (a == Type::Unknown || b == Type::Unknown)
-		return Type::Unknown;
-
 	if (a == Type::Float || b == Type::Float)
 		return Type::Float;
 

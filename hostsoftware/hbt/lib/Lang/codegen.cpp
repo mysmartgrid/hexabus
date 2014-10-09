@@ -204,7 +204,6 @@ static mc::MemType memtypeFor(Type t)
 	case Type::Int32: return mc::MemType::S32;
 	case Type::Int64: return mc::MemType::S64;
 	case Type::Float: return mc::MemType::Float;
-	case Type::Unknown: break;
 	}
 	die("unknown types");
 }
@@ -246,8 +245,6 @@ void CodegenVisitor::visit(CastExpr& c)
 	case Type::Int32:  current().append(mc::Opcode::CONV_S32); return;
 	case Type::Int64:  current().append(mc::Opcode::CONV_S64); return;
 	case Type::Float:  current().append(mc::Opcode::CONV_F); return;
-
-	case Type::Unknown: break;
 	}
 	die("unknown types");
 }
