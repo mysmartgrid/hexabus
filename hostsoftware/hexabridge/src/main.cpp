@@ -28,13 +28,15 @@ int main(int argc, char** argv)
   desc.add_options()
     ("help,h", "produce this message")
     ("debug,d", "enable debug mode")
+		("foreground,F", "do not fork")
     ("logfile,l", po::value<std::string>(), "set the logfile to use")
     ("interval,i", po::value<int>(), "set the broadcast interval (in minutes)")
     ("interface,I", po::value<std::vector<std::string> >(), "interface to use for multicast")
     ("address,a", po::value<std::vector<std::string> >(), "address to listen on")
-		("url,u", po::value<std::string>(), "Url to the MySmartGrid API")
-		("id", po::value<std::string>(), "Sensor Id")
-		("token", po::value<std::string>(), "Sensor Token")
+		("url,u", po::value<std::string>(), "Url to the Discovergy API")
+		("id", po::value<std::string>(), "Discovergy Meter Id")
+		("username", po::value<std::string>(), "Discovergy Username")
+		("password,p", po::value<std::string>(), "Discovergy Password")
     ;
   po::variables_map vm;
 
@@ -49,13 +51,15 @@ int main(int argc, char** argv)
   }
 
   bool debug = false;
+	bool doFork = true;
   std::string logfile = "/tmp/hexadaemon.log";
   int interval = 2;
   std::vector<std::string> interfaces;
   std::vector<std::string> addresses;
-	std::string url = "https://api.mysmartgrid.de:8443/";
-	std::string id;
-	std::string token;
+	std::string url = "https://my.discovergy.com/";
+	std::string meterId;
+	std::string username;
+	std::string password;
 
   if (vm.count("help")) {
     std::cout << desc << std::endl;
@@ -65,6 +69,10 @@ int main(int argc, char** argv)
   if (vm.count("debug")) {
     std::cout << "debug enabled" << std::endl;
     debug = true;
+  }
+
+  if (vm.count("foreground")) {
+    doFork = false;
   }
 
   if (vm.count("logfile")) {
@@ -102,18 +110,26 @@ int main(int argc, char** argv)
 	debug && std::cout << "url: " << url << std::endl;
 
 	if (vm.count("id")) {
-		id = vm["id"].as<std::string>();
-		debug && std::cout << "id: " << id << std::endl;
+		meterId = vm["id"].as<std::string>();
+		debug && std::cout << "id: " << meterId << std::endl;
 	} else {
-		std::cerr << "You have to specify the sensor id to be used." << std::endl;
+		std::cerr << "You have to specify the meter id to be used." << std::endl;
 		return 1;
 	}
 
-	if (vm.count("token")) {
-		token = vm["token"].as<std::string>();
-		debug && std::cout << "token: " << token << std::endl;
+	if (vm.count("username")) {
+		username = vm["username"].as<std::string>();
+		debug && std::cout << "username: " << username << std::endl;
 	} else {
-		std::cerr << "You have to specify the sensor token to be used." << std::endl;
+		std::cerr << "You have to specify the Discovergy username to be used." << std::endl;
+		return 1;
+	}
+
+	if (vm.count("password")) {
+		password = vm["password"].as<std::string>();
+		debug && std::cout << "password: " << password << std::endl;
+	} else {
+		std::cerr << "You have to specify the Discovergy password to be used." << std::endl;
 		return 1;
 	}
 
@@ -125,7 +141,7 @@ int main(int argc, char** argv)
     // started from a shell, this means any errors will be reported back to the
     // user.
     //udp_daytime_server server(io_service);
-    new hexabridge::Pusher(io_service, interfaces, addresses, url, id, token, interval, debug);
+    new hexabridge::Pusher(io_service, interfaces, addresses, url, meterId, username, password, interval, debug);
 
     // Register signal handlers so that the daemon may be shut down. You may
     // also want to register for other signals, such as SIGHUP to trigger a
@@ -134,7 +150,7 @@ int main(int argc, char** argv)
     signals.async_wait(
       boost::bind(&boost::asio::io_service::stop, &io_service));
 
-    if ( !debug ) {
+    if ( !debug && doFork ) {
       // Inform the io_service that we are about to become a daemon. The
       // io_service cleans up any internal resources, such as threads, that may
       // interfere with forking.

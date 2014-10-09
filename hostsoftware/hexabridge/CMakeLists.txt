@@ -84,7 +84,7 @@ SET(Boost_DETAILED_FAILURE_MSG true)
 FIND_PACKAGE(Boost 1.46.1 
   COMPONENTS test_exec_monitor program_options filesystem system date_time)
 
-find_package(LibMysmartGrid)
+find_package(LibDiscovergy)
 
 find_package(LibHexabus)
 

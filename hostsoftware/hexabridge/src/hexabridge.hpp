@@ -27,7 +27,7 @@ namespace hexabridge {
 	class Pusher {
 		public:
 			typedef boost::shared_ptr<Pusher> Ptr;
-			Pusher(boost::asio::io_service& io, const std::vector<std::string>& interfaces, const std::vector<std::string>& addresses, const std::string& url, const std::string& id, const std::string& token, int interval = 60, bool debug = false);
+			Pusher(boost::asio::io_service& io, const std::vector<std::string>& interfaces, const std::vector<std::string>& addresses, const std::string& url, const std::string& meterId, const std::string& username, const std::string& password, int interval = 60, bool debug = false);
 			virtual ~Pusher() {};
 
 			std::string loadDeviceName();
@@ -40,7 +40,7 @@ namespace hexabridge {
 
 		private:
 			hexabus::Device _device;
-			const std::string _url, _id, _token;
+			const std::string _url, _meterId, _username, _password;
 			bool _debug;
 	};
 }

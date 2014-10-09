@@ -28,6 +28,9 @@
 #include <libmysmartgrid/error.h>
 #include <libmysmartgrid/webclient.h>
 
+#include <libdiscovergy/error.h>
+#include <libdiscovergy/webclient.h>
+
 using namespace hexabridge;
 
 namespace bf = boost::filesystem;
@@ -36,11 +39,12 @@ std::string _device_name = "HexaBridge";
 uint32_t eid = 2;
 
 Pusher::Pusher(boost::asio::io_service& io, const std::vector<std::string>& interfaces, const std::vector<std::string>& addresses,
-		const std::string& url, const std::string& id, const std::string& token, int interval, bool debug)
+		const std::string& url, const std::string& meterId, const std::string& username, const std::string& password, int interval, bool debug)
 	: _device(io, interfaces, addresses, interval)
 	, _url(url)
-	, _id(id)
-	, _token(token)
+	, _meterId(meterId)
+	, _username(username)
+	, _password(password)
 	, _debug(debug)
 {
 	_init();
@@ -66,15 +70,15 @@ uint32_t Pusher::getLastReading() {
 	// Try multiple times to query mysmartgrid
 	for ( unsigned int i = 0; i < 5; ++i ) {
 		try {
-			libmsg::Webclient::Reading reading = libmsg::Webclient::getLastReading(_url, _id, libmsg::Secret::fromToken(_token));
+			libdiscovergy::Webclient::Reading reading = libdiscovergy::Webclient::getLastReading(_url, _meterId, _username, _password);
 			if ( reading.second > 0 )
 				return reading.second;
-		} catch ( const libmsg::CommunicationException& e ) {
+		} catch ( const libdiscovergy::CommunicationException& e ) {
 			// ignore network problems
 			err << "An error occured while communicating with the mysmartgrid server: " << e.what();
 		}
 	}
-	throw libmsg::CommunicationException(err.str());
+	throw libdiscovergy::CommunicationException(err.str());
 }
 
 std::string Pusher::loadDeviceName()
