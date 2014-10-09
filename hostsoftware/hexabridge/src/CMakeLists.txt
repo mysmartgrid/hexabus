@@ -15,6 +15,7 @@ target_link_libraries(hexabridge
                       ${LIBMYSMARTGRID_LIBRARY}
                       ${LIBMYSMARTGRID_LIBRARIES}
                       ${HXB_LIBRARIES}
+                      pthread
 )
 
 # sensor programs to the install target

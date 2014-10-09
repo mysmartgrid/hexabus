@@ -101,6 +101,10 @@ INSTALL(FILES
   LICENSE_1_0.txt LICENSE 
   DESTINATION share/doc/hexabridge)
 
+
+INSTALL(PROGRAMS etc/service/hexabridge/run DESTINATION /etc/service/hexabridge)
+INSTALL(PROGRAMS etc/service/hexabridge/log/run DESTINATION /etc/service/hexabridge/log)
+
 INSTALL(PROGRAMS ${CMAKE_BINARY_DIR}/src/hexabridge DESTINATION bin)
 
 include(InstallRequiredSystemLibraries)
@@ -116,8 +120,10 @@ set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13), libsqlite3-0 (>= 3.7), libgnutls26 (>= 2.12), libssl1.0.0, libcurl3, libhexabus (>= 0.6.0.200), ca-certificates")
 #set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/debian/preinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/d    ebian/preinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
 
-set(CPACK_PACKAGE_EXECUTABLES "hexanode" "Bridge that pushes values from msg to hexabus.")
+
+set(CPACK_PACKAGE_EXECUTABLES "hexabridge" "Bridge that pushes values from msg to hexabus.")
 set(CPACK_SOURCE_STRIP_FILES "")
 set(CPACK_STRIP_FILES "bin/hexabridge")
 set(CPACK_SECTION "net")
