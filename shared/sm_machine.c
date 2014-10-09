@@ -952,7 +952,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 					remdays -= days_in_month[months];
 
 				if (years+100 > INT32_MAX || years+100 < INT32_MIN)
-					FAIL_WITH(HSE_SIGNED_OVERFLOW);
+					FAIL_WITH(HSE_INVALID_OPERATION);
 
 				tm.tm_year = years + 100;
 				tm.tm_mon = months + 2;

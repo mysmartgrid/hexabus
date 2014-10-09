@@ -126,7 +126,6 @@ enum hxb_sm_error {
 	HSE_INVALID_OPERATION,
 	HSE_STACK_ERROR,
 	HSE_WRITE_FAILED,
-	HSE_SIGNED_OVERFLOW,
 };
 
 enum hxb_sm_vector_offsets {
