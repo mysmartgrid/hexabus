@@ -169,7 +169,32 @@ unsigned widthOf(Type t)
 		return 64;
 
 	case Type::Float:
-		return 0;
+		return 32;
+
+	default: throw "unknown type";
+	}
+}
+
+unsigned sizeOf(Type t)
+{
+	switch (t) {
+	case Type::Bool:
+	case Type::UInt8:
+	case Type::Int8:
+		return 1;
+
+	case Type::UInt16:
+	case Type::Int16:
+		return 2;
+
+	case Type::UInt32:
+	case Type::Int32:
+	case Type::Float:
+		return 4;
+
+	case Type::UInt64:
+	case Type::Int64:
+		return 8;
 
 	default: throw "unknown type";
 	}

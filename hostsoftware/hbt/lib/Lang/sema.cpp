@@ -664,15 +664,11 @@ void SemanticVisitor::visit(CallExpr& c)
 	c.isIncomplete(c.arguments()[0]->isIncomplete());
 }
 
-void SemanticVisitor::visit(PacketEIDExpr& p)
-{
-	// nothing to do
-}
-
-void SemanticVisitor::visit(TimeoutExpr& t)
-{
-	// nothing to do
-}
+// nothing to do for these
+void SemanticVisitor::visit(PacketEIDExpr&) {}
+void SemanticVisitor::visit(PacketValueExpr&) {}
+void SemanticVisitor::visit(SysTimeExpr&) {}
+void SemanticVisitor::visit(TimeoutExpr&) {}
 
 void SemanticVisitor::visit(AssignStmt& a)
 {
@@ -684,6 +680,8 @@ void SemanticVisitor::visit(AssignStmt& a)
 		diags.print(undeclaredIdentifier(a.target()));
 		return;
 	}
+
+	a.targetDecl(se->declaration);
 
 	if (!a.value().isIncomplete() && !isContextuallyConvertibleTo(a.value(), se->declaration->type()))
 		diags.print(invalidImplicitConversion(a.sloc(), a.value().type(), se->declaration->type()));
@@ -796,13 +794,15 @@ void SemanticVisitor::visit(OnSimpleBlock& o)
 
 void SemanticVisitor::visit(OnPacketBlock& o)
 {
-	auto it = globalNames.find(o.source().name());
-	auto se = scopes.resolve(o.source().name());
+	auto it = globalNames.find(o.sourceId().name());
+	auto se = scopes.resolve(o.sourceId().name());
 
 	if (it == globalNames.end() && !se)
-		diags.print(undeclaredIdentifier(o.source()));
+		diags.print(undeclaredIdentifier(o.sourceId()));
 	else if (se || !dynamic_cast<Device*>(it->second))
-		diags.print(identifierIsNoDevice(o.source()));
+		diags.print(identifierIsNoDevice(o.sourceId()));
+	else
+		o.source(dynamic_cast<Device*>(it->second));
 
 	o.block().accept(*this);
 }

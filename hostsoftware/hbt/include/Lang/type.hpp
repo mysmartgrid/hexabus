@@ -28,6 +28,7 @@ bool isSigned(Type t);
 Type promote(Type t);
 bool isIntType(Type t);
 unsigned widthOf(Type t);
+unsigned sizeOf(Type t);
 
 inline bool isConstexprType(Type t)
 {

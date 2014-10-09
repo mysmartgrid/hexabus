@@ -62,6 +62,8 @@ class ConditionalExpr;
 class EndpointExpr;
 class CallExpr;
 class PacketEIDExpr;
+class PacketValueExpr;
+class SysTimeExpr;
 class TimeoutExpr;
 class AssignStmt;
 class WriteStmt;
@@ -114,6 +116,8 @@ struct ASTVisitor {
 	virtual void visit(EndpointExpr&) = 0;
 	virtual void visit(CallExpr&) = 0;
 	virtual void visit(PacketEIDExpr&) = 0;
+	virtual void visit(PacketValueExpr&) = 0;
+	virtual void visit(SysTimeExpr&) = 0;
 	virtual void visit(TimeoutExpr&) = 0;
 
 	virtual void visit(AssignStmt&) = 0;
@@ -434,9 +438,33 @@ public:
 	}
 };
 
+class PacketValueExpr : public Expr {
+public:
+	PacketValueExpr(const SourceLocation& sloc, Type t)
+		: Expr(sloc, t)
+	{}
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
+};
+
 class TimeoutExpr : public Expr {
 public:
 	TimeoutExpr(const SourceLocation& sloc)
+		: Expr(sloc, Type::UInt32)
+	{}
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
+};
+
+class SysTimeExpr : public Expr {
+public:
+	SysTimeExpr(const SourceLocation& sloc)
 		: Expr(sloc, Type::UInt32)
 	{}
 
@@ -467,14 +495,18 @@ class AssignStmt : public Stmt {
 private:
 	Identifier _target;
 	std::unique_ptr<Expr> _value;
+	DeclarationStmt* _targetDecl;
 
 public:
 	AssignStmt(const SourceLocation& sloc, const Identifier& target, std::unique_ptr<Expr>&& value)
-		: Stmt(sloc), _target(target), _value(std::move(value))
+		: Stmt(sloc), _target(target), _value(std::move(value)), _targetDecl(nullptr)
 	{}
 
 	const Identifier& target() const { return _target; }
 	Expr& value() { return *_value; }
+	DeclarationStmt* targetDecl() { return _targetDecl; }
+
+	void targetDecl(DeclarationStmt* d) { _targetDecl = d; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -665,14 +697,18 @@ public:
 
 class OnPacketBlock : public OnBlock {
 private:
-	Identifier _source;
+	Identifier _sourceId;
+	Device* _source;
 
 public:
-	OnPacketBlock(const SourceLocation& sloc, const Identifier& source, std::unique_ptr<BlockStmt>&& block)
-		: OnBlock(sloc, std::move(block)), _source(source)
+	OnPacketBlock(const SourceLocation& sloc, const Identifier& sourceId, std::unique_ptr<BlockStmt>&& block)
+		: OnBlock(sloc, std::move(block)), _sourceId(sourceId), _source(nullptr)
 	{}
 
-	const Identifier& source() const { return _source; }
+	const Identifier& sourceId() const { return _sourceId; }
+	Device* source() { return _source; }
+
+	void source(Device* d) { _source = d; }
 
 	virtual void accept(ASTVisitor& v)
 	{

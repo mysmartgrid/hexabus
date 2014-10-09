@@ -212,12 +212,22 @@ void ASTPrinter::visit(CallExpr& c)
 
 void ASTPrinter::visit(PacketEIDExpr& p)
 {
-	out << "packet_eid";
+	out << "@eid";
+}
+
+void ASTPrinter::visit(PacketValueExpr& p)
+{
+	out << "@value<" << typeName(p.type()) << ">";
+}
+
+void ASTPrinter::visit(SysTimeExpr& p)
+{
+	out << "@time";
 }
 
 void ASTPrinter::visit(TimeoutExpr& t)
 {
-	out << "timeout";
+	out << "@since";
 }
 
 void ASTPrinter::visit(AssignStmt& a)
@@ -387,7 +397,7 @@ void ASTPrinter::visit(OnPacketBlock& o)
 {
 	indent();
 
-	out << "on packet from " << o.source().name() << " {";
+	out << "on packet from " << o.sourceId().name() << " {";
 	printOnBlockBody(o);
 }
 

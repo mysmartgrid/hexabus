@@ -102,6 +102,8 @@ public:
 	virtual void visit(EndpointExpr& e) override;
 	virtual void visit(CallExpr& c) override;
 	virtual void visit(PacketEIDExpr& p) override;
+	virtual void visit(PacketValueExpr& p) override;
+	virtual void visit(SysTimeExpr& p) override;
 	virtual void visit(TimeoutExpr& t) override;
 
 	virtual void visit(AssignStmt& a) override;

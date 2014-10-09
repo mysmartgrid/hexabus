@@ -105,12 +105,14 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 		add(word.default_ = "default");
 		add(word.goto_ = "goto");
 		add(word.packet = "packet");
-		add(word.packet_eid = "packet_eid");
+		add(word.packet_eid = "@eid");
+		add(word.packet_value = "@value");
+		add(word.time = "@time");
 		add(word.from = "from");
 		add(word.entry = "entry");
 		add(word.exit = "exit");
 		add(word.periodic = "periodic");
-		add(word.timeout = "timeout");
+		add(word.timeout = "@since");
 
 		add(lit.bool_ = "true|false");
 		add(string = R"(\"[^\r\n"]*\")");
@@ -152,7 +154,7 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 	struct {
 		boost::spirit::lex::token_def<>
 			machine, device, endpoint, include, read, write, global_write, broadcast, class_, state, on, if_, else_,
-			switch_, case_, default_, goto_, packet, packet_eid, from, entry, exit, periodic, timeout;
+			switch_, case_, default_, goto_, packet, packet_eid, packet_value, time, from, entry, exit, periodic, timeout;
 	} word;
 };
 
@@ -335,6 +337,17 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			}]
 			| tok.word.packet_eid[fwd >= [this] (range& r) {
 				return new PacketEIDExpr(locOf(r));
+			}]
+			| (
+				tok.word.packet_value
+				> omit[tok.op.less | expected("<")]
+				> datatype
+				> omit[tok.op.greater | expected(">")]
+			)[fwd >= [this] (range& r, locd<Type>* t) {
+				return new PacketValueExpr(locOf(r), t->val);
+			}]
+			| tok.word.time[fwd >= [this] (range& r) {
+				return new SysTimeExpr(locOf(r));
 			}]
 			| (identifier >> omit[tok.dot] > identifier)[fwd >= [this] (Identifier* dev, Identifier* ep) {
 				return new EndpointExpr(dev->sloc(), *dev, *ep, Type::Unknown);
