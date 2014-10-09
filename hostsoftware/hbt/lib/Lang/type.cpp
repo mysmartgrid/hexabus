@@ -106,7 +106,7 @@ bool isAssignableFrom(Type to, Type from)
 	case Type::Int16:
 	case Type::Int32:
 	case Type::Int64:
-		return rank(to) >= rank(from);
+		return isIntType(from) && rank(to) >= rank(from);
 
 	default:
 		throw "invalid type";

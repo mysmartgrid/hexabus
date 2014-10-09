@@ -277,7 +277,7 @@ static bool fitsIntoConstexprType(Expr& e)
 static bool isContextuallyConvertibleTo(Expr& e, Type t)
 {
 	if (e.isConstexpr())
-		return isAssignableFrom(t, e.type()) || fitsIntoConstexprType(e, t);
+		return isAssignableFrom(t, e.type()) || (fitsIntoConstexprType(e, t) && isIntType(e.type()) == isIntType(t));
 	else
 		return isAssignableFrom(t, e.type());
 }
@@ -697,7 +697,7 @@ void SemanticVisitor::visit(WriteStmt& w)
 		if ((ep->access() & EndpointAccess::Write) != EndpointAccess::Write)
 			diags.print(endpointNotWritable(w.target(), *ep));
 
-		if (!w.value().isIncomplete() && ep->type() != w.value().type())
+		if (!w.value().isIncomplete() && !isContextuallyConvertibleTo(w.value(), ep->type()))
 			diags.print(invalidImplicitConversion(w.sloc(), w.value().type(), ep->type()));
 	}
 }

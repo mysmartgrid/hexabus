@@ -1,5 +1,6 @@
 endpoint ep(0) : bool (write, broadcast);
-device dev(::) : ep;
+endpoint ep2(1) : int64 (write, broadcast);
+device dev(::) : ep, ep2;
 
 machine m {
 	state init {
@@ -7,6 +8,7 @@ machine m {
 		}
 
 		dev.ep = 1; //#expect: error: invalid implicit type conversion from int32 to bool
+		dev.ep2 = uint8(111111111111111);
 
 		switch (1.0) { //#expect: error: expected expression of integral type, got float
 		default: {}
