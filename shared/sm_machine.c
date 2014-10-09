@@ -909,7 +909,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 				const char days_in_month[] = {31,30,31,30,31,31,30,31,30,31,31,29};
 
 				/* Reject time_t values whose year would overflow int32 */
-				if (t > INT32_MIN * 31622400LL || t > INT32_MAX * 31622400LL)
+				if (t < INT32_MIN * 31622400LL || t > INT32_MAX * 31622400LL)
 					FAIL_WITH(HSE_INVALID_OPERATION);
 
 				secs = t - LEAPOCH;
