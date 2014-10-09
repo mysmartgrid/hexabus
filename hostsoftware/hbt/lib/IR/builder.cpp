@@ -117,13 +117,8 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		if (!get<uint32_t>(immed))
 			throw std::invalid_argument("immed");
 
-		if (get<uint32_t>(*immed) <= 65535) {
-			_instructions.push_back(
-				new ImmediateInstruction<uint16_t>(Opcode::LD_U16, get<uint32_t>(*immed), l, line));
-		} else {
-			_instructions.push_back(
-				new ImmediateInstruction<uint32_t>(op, get<uint32_t>(*immed), l, line));
-		}
+		_instructions.push_back(
+			new ImmediateInstruction<uint32_t>(op, get<uint32_t>(*immed), l, line));
 		return;
 
 	case Opcode::LD_U64:
