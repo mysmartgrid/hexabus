@@ -250,7 +250,8 @@ static Diagnostic invalidShiftAmount(BinaryExpr& b)
 template<typename T>
 static bool fitsIntoNumericLimits(const cln::cl_I& value)
 {
-	return std::numeric_limits<T>::min() <= value && value <= std::numeric_limits<T>::max();
+	typedef typename std::conditional<std::is_signed<T>::value, int64_t, uint64_t>::type clt;
+	return clt(std::numeric_limits<T>::min()) <= value && value <= clt(std::numeric_limits<T>::max());
 }
 
 static bool fitsIntoConstexprType(Expr& e, Type  t)
