@@ -1,3 +1,12 @@
 #!/bin/sh
 
-exec setuidgid hexabus hexabridge 2>&1
+SENSOR=""
+TOKEN=""
+HXBINTERFACE="usb0"
+HXBADDRESS=""
+
+while ! (ip -o -6 address show usb0 | grep -v "inet6 fe80::") >/dev/null 2>&1; do
+	sleep 1
+done
+
+exec setuidgid hexabus hexabridge --id "$SENSOR" --token "$TOKEN" -I "$HXBINTERFACE" -a "$HXBADDRESS"  2>&1;
