@@ -2,6 +2,27 @@
 # error Signed overflows in this file depend on GCC/clang behaviour. Check validity.
 #endif
 
+#define be8toh(be) (be)
+
+#ifdef __AVR__
+static uint16_t be16toh(uint16_t be)
+{
+	return (be >> 8) | ((be & 0xff) << 8);
+}
+
+static uint32_t be32toh(uint32_t be)
+{
+	return ((uint32_t) be16toh(be >> 16)) | (((uint32_t) be16toh(be & 0xffff)) << 16);
+}
+
+static uint64_t be64toh(uint64_t be)
+{
+	return ((uint64_t) be32toh(be >> 32)) | (((uint64_t) be32toh(be & 0xffffffff)) << 32);
+}
+#else
+#include <endian.h>
+#endif
+
 int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 {
 	uint32_t offset = 0;
@@ -11,12 +32,11 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 	int rc = sm_get_block(at + offset, sizeof(tmp), &tmp); \
 	if (rc < 0) return -HSE_INVALID_OPCODE; \
 	offset += rc; \
-	tmp; })
+	be ## width ## toh(tmp); })
 #define LOAD_SIGNED(width) ({ \
-	int ## width ## _t tmp; \
-	int rc = sm_get_block(at + offset, sizeof(tmp), &tmp); \
-	if (rc < 0) return -HSE_INVALID_OPCODE; \
-	offset += rc; \
+	uint ## width ## _t tmp = LOAD_UNSIGNED(width); \
+	int ## width ## _t val; \
+	memcpy(&val, &tmp, sizeof(val)); \
 	tmp; })
 
 	op->opcode = (enum hxb_sm_opcode) LOAD_UNSIGNED(8);
@@ -121,7 +141,7 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 
 	case HSO_LD_S64:
 		op->immed.type = HXB_DTYPE_SINT64;
-		op->immed.v_sint = LOAD_SIGNED(64);
+		op->immed.v_sint64 = LOAD_SIGNED(64);
 		break;
 
 	case HSO_LD_FLOAT: {
@@ -703,7 +723,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		top++; \
 		TOP = val; \
 	} while (0)
-#define TOP_N(n) (sm_stack[top - n])
+#define TOP_N(n) (sm_stack[top - (n)])
 #define TOP TOP_N(0)
 
 	if (sm_first_run) {
@@ -1127,3 +1147,5 @@ fail:
 #undef TOP_N
 #undef TOP
 }
+
+#undef be8toh
