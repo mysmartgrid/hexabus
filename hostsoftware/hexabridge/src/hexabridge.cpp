@@ -25,9 +25,6 @@
 #include <libhexabus/device.hpp>
 #include <libhexabus/endpoint_registry.hpp>
 
-#include <libmysmartgrid/error.h>
-#include <libmysmartgrid/webclient.h>
-
 #include <libdiscovergy/error.h>
 #include <libdiscovergy/webclient.h>
 
