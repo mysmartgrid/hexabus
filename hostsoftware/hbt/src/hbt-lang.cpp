@@ -4,11 +4,14 @@
 
 #include <unistd.h>
 
-#include "Util/memorybuffer.hpp"
-#include "Lang/parser.hpp"
+#include "IR/program.hpp"
+#include "IR/program_printer.hpp"
 #include "Lang/ast.hpp"
 #include "Lang/astprinter.hpp"
+#include "Lang/codegen.hpp"
+#include "Lang/parser.hpp"
 #include "Lang/sema.hpp"
+#include "Util/memorybuffer.hpp"
 
 #include <boost/asio/ip/address_v6.hpp>
 #include <boost/filesystem.hpp>
@@ -145,6 +148,16 @@ static pass_type runSemaExpect(const std::vector<std::pair<unsigned, std::string
 	};
 }
 
+static pass_type runCodegen(const std::string& file)
+{
+	return [file] (std::unique_ptr<TranslationUnit>& tu) {
+		auto program = generateMachineCodeFor(*tu);
+		std::string assembled = hbt::ir::prettyPrint(*program);
+		hbt::util::MemoryBuffer(assembled).writeFile(file, true);
+		return true;
+	};
+}
+
 int main(int argc, char* argv[])
 {
 	static const char* helpMessage = R"(Usage: hbt-lang [options] [passes] <input>
@@ -154,6 +167,7 @@ Options:
   -I <dir>           add <dir> to list of include directories
 
 Passes:
+  -codegen <file>    run codegen and print output to <file>
   -print-ast <file>  print current AST to <file>
   -sema              run semantic checks again (sema will always be run as
                      first non-printing pass)
@@ -207,6 +221,8 @@ Passes:
 		} else if (arg == "-sema-expect") {
 			passes.push_back(runSemaExpect(semaExpected, fileName));
 			hadOnlyPrintPasses = false;
+		} else if (arg == "-codegen") {
+			addNonSemaPass(runCodegen(getNextArg(i)), false);
 		} else {
 			if ((input && arg[0] == '-') || (!input && arg[0] == '-' && arg != "-")) {
 				std::cerr << "superfluous argument '" << arg << "'\n";
