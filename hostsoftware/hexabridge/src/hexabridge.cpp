@@ -25,7 +25,6 @@
 #include <libhexabus/device.hpp>
 #include <libhexabus/endpoint_registry.hpp>
 
-#include <json/json.h>
 #include <libmysmartgrid/error.h>
 #include <libmysmartgrid/webclient.h>
 
