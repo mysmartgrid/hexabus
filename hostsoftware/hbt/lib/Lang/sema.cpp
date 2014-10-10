@@ -245,6 +245,11 @@ static Diagnostic invalidShiftAmount(BinaryExpr& b)
 	};
 }
 
+static Diagnostic identifierIsFunction(const SourceLocation& sloc, const std::string& name)
+{
+	return { DiagnosticKind::Error, &sloc, str(format("'%1%' names a function") % name) };
+}
+
 
 
 template<typename T>
@@ -283,6 +288,18 @@ static bool isContextuallyConvertibleTo(Expr& e, Type t)
 		return isAssignableFrom(t, e.type());
 }
 
+static bool isFunctionName(const std::string& name)
+{
+	return
+		name == "second"
+		|| name == "minute"
+		|| name == "hour"
+		|| name == "day"
+		|| name == "month"
+		|| name == "year"
+		|| name == "weekday";
+}
+
 
 
 void SemanticVisitor::ScopeStack::enter()
@@ -316,6 +333,11 @@ SemanticVisitor::ScopeEntry* SemanticVisitor::ScopeStack::insert(DeclarationStmt
 
 void SemanticVisitor::declareGlobalName(ProgramPart& p, const std::string& name)
 {
+	if (isFunctionName(name)) {
+		diags.print(identifierIsFunction(p.sloc(), name));
+		return;
+	}
+
 	auto res = globalNames.insert({ name, &p });
 
 	if (!res.second)
@@ -332,6 +354,11 @@ void SemanticVisitor::visit(IdentifierExpr& i)
 	}
 
 	i.isIncomplete(true);
+
+	if (isFunctionName(i.name())) {
+		diags.print(identifierIsFunction(i.sloc(), i.name()));
+		return;
+	}
 
 	auto cpit = classParams.find(i.name());
 	if (cpit != classParams.end()) {
@@ -564,7 +591,9 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 		auto cpit = classParams.find(e.deviceId().name());
 		auto it = globalNames.find(e.deviceId().name());
 
-		if (auto se = scopes.resolve(e.deviceId().name())) {
+		if (isFunctionName(e.deviceId().name())) {
+			diags.print(identifierIsNoDevice(e.deviceId()));
+		} else if (auto se = scopes.resolve(e.deviceId().name())) {
 			diags.print(
 				identifierIsNoDevice(e.deviceId()),
 				declaredHere(se->declaration->sloc()));
@@ -588,7 +617,9 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 		auto cpit = classParams.find(e.endpointId().name());
 		auto it = globalNames.find(e.endpointId().name());
 
-		if (auto se = scopes.resolve(e.endpointId().name())) {
+		if (isFunctionName(e.endpointId().name())) {
+			diags.print(identifierIsNoEndpoint(e.endpointId()));
+		} else if (auto se = scopes.resolve(e.endpointId().name())) {
 			diags.print(
 				identifierIsNoEndpoint(e.endpointId()),
 				declaredHere(se->declaration->sloc()));
@@ -643,9 +674,7 @@ void SemanticVisitor::visit(CallExpr& c)
 	for (auto& arg : c.arguments())
 		arg->accept(*this);
 
-	if (c.name().name() != "hour" && c.name().name() != "minute" && c.name().name() != "second" &&
-			c.name().name() != "day" && c.name().name() != "month" && c.name().name() != "year" &&
-			c.name().name() != "weekday") {
+	if (!isFunctionName(c.name().name())) {
 		diags.print(undeclaredIdentifier(c.name()));
 		c.isIncomplete(true);
 		return;
@@ -677,6 +706,10 @@ void SemanticVisitor::visit(AssignStmt& a)
 
 	a.value().accept(*this);
 
+	if (isFunctionName(a.target().name())) {
+		diags.print(identifierIsFunction(a.sloc(), a.target().name()));
+		return;
+	}
 	if (!se) {
 		diags.print(undeclaredIdentifier(a.target()));
 		return;
@@ -770,7 +803,9 @@ void SemanticVisitor::visit(DeclarationStmt& d)
 
 	d.value().accept(*this);
 
-	if (auto old = scopes.resolve(d.name().name())) {
+	if (isFunctionName(d.name().name())) {
+		diags.print(redeclaration(d.name().sloc(), d.name().name()));
+	} else if (auto old = scopes.resolve(d.name().name())) {
 		diags.print(
 			redeclaration(d.name().sloc(), d.name().name()),
 			previouslyDeclaredHere(old->declaration->sloc()));
@@ -798,14 +833,19 @@ void SemanticVisitor::visit(OnPacketBlock& o)
 	auto it = globalNames.find(o.sourceId().name());
 	auto se = scopes.resolve(o.sourceId().name());
 
+	o.block().accept(*this);
+
+	if (isFunctionName(o.sourceId().name())) {
+		diags.print(identifierIsFunction(o.sloc(), o.sourceId().name()));
+		return;
+	}
+
 	if (it == globalNames.end() && !se)
 		diags.print(undeclaredIdentifier(o.sourceId()));
 	else if (se || !dynamic_cast<Device*>(it->second))
 		diags.print(identifierIsNoDevice(o.sourceId()));
 	else
 		o.source(dynamic_cast<Device*>(it->second));
-
-	o.block().accept(*this);
 }
 
 void SemanticVisitor::visit(OnExprBlock& o)

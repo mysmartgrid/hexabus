@@ -1,14 +1,19 @@
 endpoint e(0) : bool (); //#expect: previously declared here
 endpoint e(1) : bool (); //#expect: error: redeclaration of 'e'
+endpoint hour(2) : bool (); //#expect: error: 'hour' names a function
 
 device d(::) : e; //#expect: previously declared here
 device d(::) : e; //#expect: error: redeclaration of 'd'
+device minute(::) : e; //#expect: error: 'minute' names a function
 
 class c(bool x) { bool b = x; }; //#expect: previously declared here
 class c(bool x) { bool b = x; }; //#expect: error: redeclaration of 'c'
+class second(bool x) { bool b0 = x; }; //#expect: error: 'second' names a function
 
 machine mdef {}; //#expect: previously declared here
 machine mdef {}; //#expect: error: redeclaration of 'mdef'
+machine day {}; //#expect: error: 'day' names a function
 
 machine minst : c(true); //#expect: previously declared here
 machine minst : c(true); //#expect: error: redeclaration of 'minst'
+machine month : c(true); //#expect: error: 'month' names a function
