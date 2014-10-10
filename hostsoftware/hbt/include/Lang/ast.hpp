@@ -193,7 +193,7 @@ public:
 	void type(Type t) { _type = t; }
 	void isConstexpr(bool b) { _isConstexpr = b; }
 	void isIncomplete(bool b) { _isIncomplete = b; }
-	void constexprValue(cln::cl_I v) { _constexprValue = v; }
+	void constexprValue(const cln::cl_I& v) { _constexprValue = v; }
 };
 
 class IdentifierExpr : public Expr {
@@ -201,7 +201,7 @@ private:
 	std::string _name;
 
 public:
-	IdentifierExpr(const SourceLocation& sloc, std::string&& name, Type type)
+	IdentifierExpr(const SourceLocation& sloc, std::string name, Type type)
 		: Expr(sloc, type), _name(std::move(name))
 	{}
 
@@ -266,7 +266,7 @@ private:
 	ptr_t _expr;
 
 public:
-	CastExpr(const SourceLocation& sloc, Type type, ptr_t&& expr)
+	CastExpr(const SourceLocation& sloc, Type type, ptr_t expr)
 		: Expr(sloc, type), _expr(std::move(expr))
 	{}
 
@@ -291,7 +291,7 @@ private:
 	ptr_t _expr;
 
 public:
-	UnaryExpr(const SourceLocation& sloc, UnaryOperator op, ptr_t&& expr)
+	UnaryExpr(const SourceLocation& sloc, UnaryOperator op, ptr_t expr)
 		: Expr(sloc, Type::Int32), _op(op), _expr(std::move(expr))
 	{}
 
@@ -331,7 +331,7 @@ private:
 	std::unique_ptr<Expr> _left, _right;
 
 public:
-	BinaryExpr(const SourceLocation& sloc, ptr_t&& left, BinaryOperator op, ptr_t&& right)
+	BinaryExpr(const SourceLocation& sloc, ptr_t left, BinaryOperator op, ptr_t right)
 		: Expr(sloc, Type::Int32), _op(op), _left(std::move(left)), _right(std::move(right))
 	{}
 
@@ -350,7 +350,7 @@ private:
 	ptr_t _cond, _true, _false;
 
 public:
-	ConditionalExpr(const SourceLocation& sloc, ptr_t&& cond, ptr_t&& ifTrue, ptr_t&& ifFalse)
+	ConditionalExpr(const SourceLocation& sloc, ptr_t cond, ptr_t ifTrue, ptr_t ifFalse)
 		: Expr(sloc, Type::Int32), _cond(std::move(cond)), _true(std::move(ifTrue)), _false(std::move(ifFalse))
 	{}
 
@@ -412,7 +412,7 @@ private:
 	std::vector<ptr_t> _arguments;
 
 public:
-	CallExpr(const SourceLocation& sloc, const Identifier& name, std::vector<ptr_t>&& arguments, Type type)
+	CallExpr(const SourceLocation& sloc, const Identifier& name, std::vector<ptr_t> arguments, Type type)
 		: Expr(sloc, type), _name(name), _arguments(std::move(arguments))
 	{}
 
@@ -464,7 +464,7 @@ public:
 class SysTimeExpr : public Expr {
 public:
 	SysTimeExpr(const SourceLocation& sloc)
-		: Expr(sloc, Type::UInt32)
+		: Expr(sloc, Type::Int64)
 	{}
 
 	virtual void accept(ASTVisitor& v)
@@ -497,7 +497,7 @@ private:
 	DeclarationStmt* _targetDecl;
 
 public:
-	AssignStmt(const SourceLocation& sloc, const Identifier& target, std::unique_ptr<Expr>&& value)
+	AssignStmt(const SourceLocation& sloc, const Identifier& target, std::unique_ptr<Expr> value)
 		: Stmt(sloc), _target(target), _value(std::move(value)), _targetDecl(nullptr)
 	{}
 
@@ -519,7 +519,7 @@ private:
 	std::unique_ptr<Expr> _value;
 
 public:
-	WriteStmt(const SourceLocation& sloc, EndpointExpr target, std::unique_ptr<Expr>&& value)
+	WriteStmt(const SourceLocation& sloc, EndpointExpr target, std::unique_ptr<Expr> value)
 		: Stmt(sloc), _target(std::move(target)), _value(std::move(value))
 	{}
 
@@ -538,7 +538,7 @@ private:
 	ptr_t _true, _false;
 
 public:
-	IfStmt(const SourceLocation& sloc, std::unique_ptr<Expr>&& condition, ptr_t&& ifTrue, ptr_t&& ifFalse)
+	IfStmt(const SourceLocation& sloc, std::unique_ptr<Expr> condition, ptr_t ifTrue, ptr_t ifFalse)
 		: Stmt(sloc), _condition(std::move(condition)), _true(std::move(ifTrue)), _false(std::move(ifFalse))
 	{}
 
@@ -572,7 +572,7 @@ private:
 	std::unique_ptr<Stmt> _stmt;
 
 public:
-	SwitchEntry(std::vector<SwitchLabel> labels, std::unique_ptr<Stmt>&& stmt)
+	SwitchEntry(std::vector<SwitchLabel> labels, std::unique_ptr<Stmt> stmt)
 		: _labels(std::move(labels)), _stmt(std::move(stmt))
 	{}
 
@@ -586,7 +586,7 @@ private:
 	std::vector<SwitchEntry> _entries;
 
 public:
-	SwitchStmt(const SourceLocation& sloc, std::unique_ptr<Expr>&& expr, std::vector<SwitchEntry>&& entries)
+	SwitchStmt(const SourceLocation& sloc, std::unique_ptr<Expr> expr, std::vector<SwitchEntry> entries)
 		: Stmt(sloc), _expr(std::move(expr)), _entries(std::move(entries))
 	{}
 
@@ -604,7 +604,7 @@ private:
 	std::vector<ptr_t> _stmts;
 
 public:
-	BlockStmt(const SourceLocation& sloc, std::vector<ptr_t>&& stmts)
+	BlockStmt(const SourceLocation& sloc, std::vector<ptr_t> stmts)
 		: Stmt(sloc), _stmts(std::move(stmts))
 	{}
 
@@ -623,7 +623,7 @@ private:
 	std::unique_ptr<Expr> _value;
 
 public:
-	DeclarationStmt(const SourceLocation& sloc, Type type, const Identifier& name, std::unique_ptr<Expr>&& value)
+	DeclarationStmt(const SourceLocation& sloc, Type type, const Identifier& name, std::unique_ptr<Expr> value)
 		: Stmt(sloc), _type(type), _name(name), _value(std::move(value))
 	{}
 
@@ -662,7 +662,7 @@ private:
 	std::unique_ptr<BlockStmt> _block;
 
 protected:
-	OnBlock(const SourceLocation& sloc, std::unique_ptr<BlockStmt>&& block)
+	OnBlock(const SourceLocation& sloc, std::unique_ptr<BlockStmt> block)
 		: _sloc(sloc), _block(std::move(block))
 	{}
 
@@ -682,7 +682,7 @@ private:
 	OnSimpleTrigger _trigger;
 
 public:
-	OnSimpleBlock(const SourceLocation& sloc, OnSimpleTrigger trigger, std::unique_ptr<BlockStmt>&& block)
+	OnSimpleBlock(const SourceLocation& sloc, OnSimpleTrigger trigger, std::unique_ptr<BlockStmt> block)
 		: OnBlock(sloc, std::move(block)), _trigger(trigger)
 	{}
 
@@ -700,7 +700,7 @@ private:
 	Device* _source;
 
 public:
-	OnPacketBlock(const SourceLocation& sloc, const Identifier& sourceId, std::unique_ptr<BlockStmt>&& block)
+	OnPacketBlock(const SourceLocation& sloc, const Identifier& sourceId, std::unique_ptr<BlockStmt> block)
 		: OnBlock(sloc, std::move(block)), _sourceId(sourceId), _source(nullptr)
 	{}
 
@@ -720,7 +720,7 @@ private:
 	std::unique_ptr<Expr> _condition;
 
 public:
-	OnExprBlock(const SourceLocation& sloc, std::unique_ptr<Expr>&& condition, std::unique_ptr<BlockStmt>&& block)
+	OnExprBlock(const SourceLocation& sloc, std::unique_ptr<Expr> condition, std::unique_ptr<BlockStmt> block)
 		: OnBlock(sloc, std::move(block)), _condition(std::move(condition))
 	{}
 
@@ -743,8 +743,8 @@ private:
 	std::vector<std::unique_ptr<Stmt>> _statements;
 
 public:
-	State(const SourceLocation& sloc, const Identifier& name, std::vector<DeclarationStmt>&& variables,
-			decltype(_onBlocks)&& onBlocks, decltype(_statements)&& statements)
+	State(const SourceLocation& sloc, const Identifier& name, std::vector<DeclarationStmt> variables,
+			decltype(_onBlocks) onBlocks, decltype(_statements) statements)
 		: _sloc(sloc), _name(name), _variables(std::move(variables)),
 		  _onBlocks(std::move(onBlocks)), _statements(std::move(statements))
 	{}
@@ -805,7 +805,7 @@ private:
 
 public:
 	Device(const SourceLocation& sloc, const Identifier& name, const std::array<uint8_t, 16>& address,
-			std::vector<Identifier>&& endpoints)
+			std::vector<Identifier> endpoints)
 		: ProgramPart(sloc), _name(name), _address(address), _endpoints(std::move(endpoints))
 	{}
 
@@ -828,7 +828,7 @@ private:
 	std::vector<State> _states;
 
 protected:
-	MachineBody(const Identifier& name, std::vector<DeclarationStmt>&& variables, std::vector<State>&& states)
+	MachineBody(const Identifier& name, std::vector<DeclarationStmt> variables, std::vector<State> states)
 		: _name(name), _variables(std::move(variables)), _states(std::move(states))
 	{}
 
@@ -870,8 +870,8 @@ private:
 	std::vector<ClassParameter> _parameters;
 
 public:
-	MachineClass(const SourceLocation& sloc, const Identifier& name, std::vector<ClassParameter>&& parameters,
-			std::vector<DeclarationStmt>&& variables, std::vector<State>&& states)
+	MachineClass(const SourceLocation& sloc, const Identifier& name, std::vector<ClassParameter> parameters,
+			std::vector<DeclarationStmt> variables, std::vector<State> states)
 		: MachineBody(name, std::move(variables), std::move(states)),
 		  ProgramPart(sloc), _parameters(std::move(parameters))
 	{
@@ -887,8 +887,8 @@ public:
 
 class MachineDefinition : public MachineBody, public ProgramPart {
 public:
-	MachineDefinition(const SourceLocation& sloc, const Identifier& name, std::vector<DeclarationStmt>&& variables,
-			std::vector<State>&& states)
+	MachineDefinition(const SourceLocation& sloc, const Identifier& name, std::vector<DeclarationStmt> variables,
+			std::vector<State> states)
 		: MachineBody(name, std::move(variables), std::move(states)), ProgramPart(sloc)
 	{}
 
@@ -906,7 +906,7 @@ private:
 
 public:
 	MachineInstantiation(const SourceLocation& sloc, const Identifier& name, const Identifier& instanceOf,
-			std::vector<std::unique_ptr<Expr>>&& arguments)
+			std::vector<std::unique_ptr<Expr>> arguments)
 		: ProgramPart(sloc), _name(name), _instanceOf(instanceOf), _arguments(std::move(arguments))
 	{}
 
@@ -928,7 +928,7 @@ private:
 	std::string _fullPath;
 
 public:
-	IncludeLine(const SourceLocation& sloc, std::string&& file)
+	IncludeLine(const SourceLocation& sloc, std::string file)
 		: ProgramPart(sloc), _file(file)
 	{}
 
@@ -951,7 +951,7 @@ private:
 	std::vector<std::unique_ptr<ProgramPart>> _items;
 
 public:
-	TranslationUnit(std::unique_ptr<std::string>&& file, std::vector<std::unique_ptr<ProgramPart>>&& items)
+	TranslationUnit(std::unique_ptr<std::string> file, std::vector<std::unique_ptr<ProgramPart>> items)
 		: _file(std::move(file)), _items(std::move(items))
 	{}
 
