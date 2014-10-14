@@ -505,7 +505,7 @@ void ASTPrinter::printMachineBody(MachineBody& m)
 	}
 
 	_indent--;
-	out << "\n}";
+	out << "\n};";
 }
 
 void ASTPrinter::visit(MachineClass& m)
@@ -516,6 +516,11 @@ void ASTPrinter::visit(MachineClass& m)
 	for (auto& p : m.parameters()) {
 		if (count++)
 			out << ", ";
+		switch (p.type()) {
+		case ClassParameter::Type::Value: out << typeName(p.valueType()) << " "; break;
+		case ClassParameter::Type::Device: out << "device "; break;
+		case ClassParameter::Type::Endpoint: out << "endpoint "; break;
+		}
 		out << p.name();
 	}
 
@@ -525,7 +530,7 @@ void ASTPrinter::visit(MachineClass& m)
 
 void ASTPrinter::visit(MachineDefinition& m)
 {
-	out << "machine " << m.name().name() << " : {";
+	out << "machine " << m.name().name() << " {";
 	printMachineBody(m);
 }
 
