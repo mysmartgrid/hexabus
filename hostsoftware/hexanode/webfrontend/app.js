@@ -388,6 +388,12 @@ io.sockets.on('connection', function (socket) {
 		buildStatemachine(msg,statemachines.productionThreshold);
 	});
 
+	on('threshold_sm', function(msg) {
+		buildStatemachine(msg,statemachines.threshold);
+	});
+
+
+
 	emit('clear_state');
 
 	devicetree.forEach(function(device) {

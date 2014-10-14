@@ -589,6 +589,7 @@ angular.module('dashboard', [
 		$scope.masterSlave.resetForm();
 		$scope.standbyKiller.resetForm();
 		$scope.productionThreshold.resetForm();
+		$scope.threshold.resetForm();
 
 		hideAlerts();
 	};
@@ -754,6 +755,44 @@ angular.module('dashboard', [
 
 		Socket.emit('productionthreshold_sm', message);
 	};
+
+/*
+ * Threshold statemachine
+ */
+	$scope.threshold = {};
+	$scope.threshold.meter_devices = {};
+	$scope.threshold.switch_devices = {};
+	
+	for(ip in $scope.devices) {
+		if(hasEId($scope.devices[ip],2)) {
+			$scope.threshold.meter_devices[ip] = $scope.devices[ip];
+		}
+		if(hasEId($scope.devices[ip],1)) {
+			$scope.threshold.switch_devices[ip] = $scope.devices[ip];
+		}
+	}
+	
+	$scope.threshold.resetForm = function() {
+				
+		$scope.threshold.meterDevice = $scope.threshold.meter_devices[Object.keys($scope.threshold.meter_devices)[0]].ip;
+		$scope.threshold.threshold = 100;
+		$scope.threshold.offDelay = 5;
+		$scope.threshold.onDelay = 5;
+		$scope.threshold.switchDevice = $scope.threshold.switch_devices[Object.keys($scope.threshold.switch_devices)[0]].ip;
+	};
+
+	$scope.threshold.upload = function() {
+		hideAlerts();
+		$scope.busy = true;
+		var message = {meterIp: $scope.threshold.meterDevice,
+					threshold: $scope.threshold.threshold,
+					offDelay: $scope.threshold.offDelay, 
+					onDelay: $scope.threshold.onDelay,
+					switchIp: $scope.threshold.switchDevice};
+
+		Socket.emit('threshold_sm', message);
+	};
+
 
 }])
 .directive('focusIf', [function () {

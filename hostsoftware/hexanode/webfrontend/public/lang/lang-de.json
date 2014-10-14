@@ -167,8 +167,11 @@
 			"choose-off-timeout": "Bitte die maximale Zeitspanne in Minuten die das Gerät ausgeschaltet sein soll eingeben.",
 			"choose-usage-threshold": "Bitte den Verbrauchschwellwert auswählen.",
 			"choose-on-timeout": "Bitte die maximale Zeitspanne in Minuten die das Gerät angeschaltet sein soll eingeben.",
-			"choose-consumer": "Bitte den zu schaltenden Vebraucher auswählen"
-
+			"choose-consumer": "Bitte den zu schaltenden Vebraucher auswählen.",
+			"choose-on-delay": "Bitte die minimale Zeitspanne in Minuten die das Gerät angeschaltet sein soll eingeben.",
+			"choose-off-delay": "Bitte die minimale Zeitspanne in Minuten die das Gerät ausgeschaltet sein soll eingeben.",
+			"choose-switch-device": "Bitte den zu schaltenden Vebraucher auswählen.",
+			"choose-meter-device": "Bitte das Messgerät auswählen."
 		}
 	},
 	"upgrade": {

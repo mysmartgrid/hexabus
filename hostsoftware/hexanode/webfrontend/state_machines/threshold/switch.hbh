@@ -1,0 +1,5 @@
+device switch {
+  ip <%= switchIp %>;
+  eids { 1, 2, 4 }
+}
+   

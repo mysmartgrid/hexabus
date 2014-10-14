@@ -1,0 +1,4 @@
+device meter {
+  ip <%= meterIp %>;
+  eids { 2 }
+}
