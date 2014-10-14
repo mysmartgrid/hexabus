@@ -360,12 +360,12 @@ int main(int argc, char** argv) {
 			}
 		}
   
-    //Remove device name inside the first 30 bytes inside the first chunk 
-    if (vm.count("keep-name")) {
-      chunks[0].assign(0); 
-    }
+		//Remove device name inside the first 30 bytes inside the first chunk 
+    	if (vm.count("keep-name")) {
+      		chunks[0].assign(0); 
+    	}
 
-	} else {
+	} else if(vm.count("renaming")) {
 		boost::array<char, UploadChunkSize> chunk;
 
 		chunk.assign(0);
