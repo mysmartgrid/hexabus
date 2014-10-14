@@ -40,11 +40,6 @@ static Diagnostic classParameterTypeError(const SourceLocation& sloc, const std:
 	return { DiagnosticKind::Error, &sloc, str(format("class parameter '%1%' used in incompatible contexts") % name) };
 }
 
-static Diagnostic cptUsedAs(const SourceLocation& sloc, ClassParameter::Type type)
-{
-	return { DiagnosticKind::Hint, &sloc, str(format("used as %1% here") % cptDeclStr(type)) };
-}
-
 static Diagnostic undeclaredIdentifier(const Identifier& id)
 {
 	return { DiagnosticKind::Error, &id.sloc(), str(format("use of undeclared identifier '%1%'") % id.name()) };
@@ -931,7 +926,7 @@ void SemanticVisitor::visit(MachineClass& m)
 		diags.print(classWithoutParameters(m));
 
 	for (auto& param : m.parameters()) {
-		auto res = classParams.insert({ param->name(), { *param, nullptr } });
+		auto res = classParams.insert({ param->name(), { *param } });
 
 		if (!res.second)
 			diags.print(
@@ -988,7 +983,7 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 				else if (!isContextuallyConvertibleTo(**arg, (*param)->valueType()))
 					diags.print(invalidImplicitConversion((*arg)->sloc(), (*arg)->type(), (*param)->valueType()));
 				else
-					classParams.insert({ (*param)->name(), { **param, nullptr, (*arg).get() } });
+					classParams.insert({ (*param)->name(), { **param, (*arg).get() } });
 				break;
 
 			case ClassParameter::Type::Device:
@@ -997,7 +992,7 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 					if (dev == globalNames.end())
 						diags.print(undeclaredIdentifier(Identifier(id->sloc(), id->name())));
 					else if (auto decl = dynamic_cast<Device*>(dev->second))
-						classParams.insert({ (*param)->name(), { **param, nullptr, decl } });
+						classParams.insert({ (*param)->name(), { **param, decl } });
 					else
 						diags.print(identifierIsNoDevice(Identifier(id->sloc(), id->name())));
 				} else {
@@ -1011,7 +1006,7 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 					if (ep == globalNames.end())
 						diags.print(undeclaredIdentifier(Identifier(id->sloc(), id->name())));
 					else if (auto decl = dynamic_cast<Endpoint*>(ep->second))
-						classParams.insert({ (*param)->name(), { **param, nullptr, decl } });
+						classParams.insert({ (*param)->name(), { **param, decl } });
 					else
 						diags.print(identifierIsNoEndpoint(Identifier(id->sloc(), id->name())));
 				} else {

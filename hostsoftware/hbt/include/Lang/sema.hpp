@@ -34,7 +34,6 @@ private:
 
 	struct ClassParamInstance {
 		ClassParameter& parameter;
-		const SourceLocation* inferredFrom;
 		const bool hasValue;
 		bool used;
 
@@ -44,20 +43,20 @@ private:
 			Endpoint* endpoint;
 		};
 
-		ClassParamInstance(ClassParameter& cp, const SourceLocation* inferredFrom)
-			: parameter(cp), inferredFrom(inferredFrom), hasValue(false), used(false)
+		ClassParamInstance(ClassParameter& cp)
+			: parameter(cp), hasValue(false), used(false)
 		{}
 
-		ClassParamInstance(ClassParameter& cp, const SourceLocation* inferredFrom, Expr* value)
-			: parameter(cp), inferredFrom(inferredFrom), hasValue(true), value(value), used(false)
+		ClassParamInstance(ClassParameter& cp, Expr* value)
+			: parameter(cp), hasValue(true), value(value), used(false)
 		{}
 
-		ClassParamInstance(ClassParameter& cp, const SourceLocation* inferredFrom, Device* device)
-			: parameter(cp), inferredFrom(inferredFrom), hasValue(true), device(device), used(false)
+		ClassParamInstance(ClassParameter& cp, Device* device)
+			: parameter(cp), hasValue(true), device(device), used(false)
 		{}
 
-		ClassParamInstance(ClassParameter& cp, const SourceLocation* inferredFrom, Endpoint* ep)
-			: parameter(cp), inferredFrom(inferredFrom), hasValue(true), endpoint(ep), used(false)
+		ClassParamInstance(ClassParameter& cp, Endpoint* ep)
+			: parameter(cp), hasValue(true), endpoint(ep), used(false)
 		{}
 	};
 
