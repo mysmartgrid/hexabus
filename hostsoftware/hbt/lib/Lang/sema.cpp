@@ -931,11 +931,11 @@ void SemanticVisitor::visit(MachineClass& m)
 		diags.print(classWithoutParameters(m));
 
 	for (auto& param : m.parameters()) {
-		auto res = classParams.insert({ param.name(), { param, nullptr } });
+		auto res = classParams.insert({ param->name(), { *param, nullptr } });
 
 		if (!res.second)
 			diags.print(
-				classParamRedefined(param),
+				classParamRedefined(*param),
 				previouslyDeclaredHere(res.first->second.parameter.sloc()));
 	}
 
@@ -980,15 +980,15 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 		auto param = mclass->parameters().begin(), pend = mclass->parameters().end();
 
 		for (; arg != aend; ++arg, ++param) {
-			switch (param->type()) {
+			switch ((*param)->type()) {
 			case ClassParameter::Type::Value:
 				(*arg)->accept(*this);
 				if (!(*arg)->isConstexpr())
-					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
-				else if (!isContextuallyConvertibleTo(**arg, param->valueType()))
-					diags.print(invalidImplicitConversion((*arg)->sloc(), (*arg)->type(), param->valueType()));
+					diags.print(classArgumentInvalid((*arg)->sloc(), **param));
+				else if (!isContextuallyConvertibleTo(**arg, (*param)->valueType()))
+					diags.print(invalidImplicitConversion((*arg)->sloc(), (*arg)->type(), (*param)->valueType()));
 				else
-					classParams.insert({ param->name(), { *param, nullptr, (*arg).get() } });
+					classParams.insert({ (*param)->name(), { **param, nullptr, (*arg).get() } });
 				break;
 
 			case ClassParameter::Type::Device:
@@ -997,11 +997,11 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 					if (dev == globalNames.end())
 						diags.print(undeclaredIdentifier(Identifier(id->sloc(), id->name())));
 					else if (auto decl = dynamic_cast<Device*>(dev->second))
-						classParams.insert({ param->name(), { *param, nullptr, decl } });
+						classParams.insert({ (*param)->name(), { **param, nullptr, decl } });
 					else
 						diags.print(identifierIsNoDevice(Identifier(id->sloc(), id->name())));
 				} else {
-					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
+					diags.print(classArgumentInvalid((*arg)->sloc(), **param));
 				}
 				break;
 
@@ -1011,11 +1011,11 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 					if (ep == globalNames.end())
 						diags.print(undeclaredIdentifier(Identifier(id->sloc(), id->name())));
 					else if (auto decl = dynamic_cast<Endpoint*>(ep->second))
-						classParams.insert({ param->name(), { *param, nullptr, decl } });
+						classParams.insert({ (*param)->name(), { **param, nullptr, decl } });
 					else
 						diags.print(identifierIsNoEndpoint(Identifier(id->sloc(), id->name())));
 				} else {
-					diags.print(classArgumentInvalid((*arg)->sloc(), *param));
+					diags.print(classArgumentInvalid((*arg)->sloc(), **param));
 				}
 				break;
 

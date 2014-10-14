@@ -867,17 +867,17 @@ public:
 
 class MachineClass : public MachineBody, public ProgramPart {
 private:
-	std::vector<ClassParameter> _parameters;
+	std::vector<std::unique_ptr<ClassParameter>> _parameters;
 
 public:
-	MachineClass(const SourceLocation& sloc, const Identifier& name, std::vector<ClassParameter> parameters,
+	MachineClass(const SourceLocation& sloc, const Identifier& name, std::vector<std::unique_ptr<ClassParameter>> parameters,
 			std::vector<DeclarationStmt> variables, std::vector<State> states)
 		: MachineBody(name, std::move(variables), std::move(states)),
 		  ProgramPart(sloc), _parameters(std::move(parameters))
 	{
 	}
 
-	std::vector<ClassParameter>& parameters() { return _parameters; }
+	std::vector<std::unique_ptr<ClassParameter>>& parameters() { return _parameters; }
 
 	virtual void accept(ASTVisitor& v)
 	{
