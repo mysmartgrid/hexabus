@@ -132,17 +132,17 @@ struct fwd_s {
 	Fn f;
 
 	template<typename... Args, size_t... L>
-	auto call_with(const std::tuple<Args...>& args, list<L...>) const
+	static auto call_with(const Fn& f, const std::tuple<Args...>& args, list<L...>)
 		-> decltype(f(std::get<L>(args)...))
 	{
 		return f(std::get<L>(args)...);
 	}
 
 	template<typename... Args>
-	auto call_with(const std::tuple<Args...>& args) const
-		-> decltype(call_with(args, typename make_list<sizeof...(Args)>::type()))
+	static auto call_with(const Fn& f, const std::tuple<Args...>& args)
+		-> decltype(call_with(f, args, typename make_list<sizeof...(Args)>::type()))
 	{
-		return call_with(args, typename make_list<sizeof...(Args)>::type());
+		return call_with(f, args, typename make_list<sizeof...(Args)>::type());
 	}
 
 	template<typename Ctx>
@@ -160,9 +160,9 @@ struct fwd_s {
 	}
 
 	template<typename... Args>
-	auto pass_tuple(const std::tuple<Args...>& args, bool& pass, int) const
+	static auto pass_tuple(const std::tuple<Args...>& args, bool& pass, int)
 		-> typename std::enable_if<
-				!decltype(call_with(std::tuple_cat(args, std::tuple<bool&>(pass))), 0)(),
+				!decltype(call_with(std::declval<Fn>(), std::tuple_cat(args, std::tuple<bool&>(pass))), 0)(),
 				std::tuple<bool&>
 			>::type
 	{
@@ -176,24 +176,28 @@ struct fwd_s {
 	}
 
 	template<typename... Args>
-	auto call_maybe_append_pass(const std::tuple<Args...>& args, bool& pass) const
-		-> decltype(call_with(std::tuple_cat(args, pass_tuple(args, pass, 0))))
+	static auto call_maybe_append_pass(const Fn& f, const std::tuple<Args...>& args, bool& pass)
+		-> decltype(call_with(f, std::tuple_cat(args, pass_tuple(args, pass, 0))))
 	{
-		return call_with(std::tuple_cat(args, pass_tuple(args, pass, 0)));
+		return call_with(f, std::tuple_cat(args, pass_tuple(args, pass, 0)));
 	}
 
 	template<typename... Args, typename Context>
-	auto call_maybe_prepend_val(const std::tuple<Args...>& args, Context& ctx, bool& pass) const
-		-> decltype(call_maybe_append_pass(std::tuple_cat(val_tuple(ctx, std::integral_constant<bool, ForwardVal>()), args), pass))
+	static auto call_maybe_prepend_val(const Fn& f, const std::tuple<Args...>& args, Context& ctx, bool& pass)
+		-> decltype(
+			call_maybe_append_pass(
+				f,
+				std::tuple_cat(val_tuple(ctx, std::integral_constant<bool, ForwardVal>()), args),
+				pass))
 	{
-		return call_maybe_append_pass(std::tuple_cat(val_tuple(ctx, std::integral_constant<bool, ForwardVal>()), args), pass);
+		return call_maybe_append_pass(f, std::tuple_cat(val_tuple(ctx, std::integral_constant<bool, ForwardVal>()), args), pass);
 	}
 
 	template<typename Attrib, typename Context>
 	auto operator()(Attrib& a, Context& ctx, bool& pass) const
-		-> decltype(call_maybe_prepend_val(tupleize(a), ctx, pass))
+		-> decltype(call_maybe_prepend_val(f, tupleize(a), ctx, pass))
 	{
-		return call_maybe_prepend_val(tupleize(a), ctx, pass);
+		return call_maybe_prepend_val(f, tupleize(a), ctx, pass);
 	}
 };
 
