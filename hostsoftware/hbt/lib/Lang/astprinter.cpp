@@ -493,7 +493,7 @@ void ASTPrinter::printMachineBody(MachineBody& m)
 
 	for (auto& v : m.variables()) {
 		out << "\n";
-		v.accept(*this);
+		v->accept(*this);
 	}
 
 	if (m.variables().size())
@@ -516,10 +516,10 @@ void ASTPrinter::visit(MachineClass& m)
 	for (auto& p : m.parameters()) {
 		if (count++)
 			out << ", ";
-		switch (p->type()) {
-		case ClassParameter::Type::Value: out << typeName(p->valueType()) << " "; break;
-		case ClassParameter::Type::Device: out << "device "; break;
-		case ClassParameter::Type::Endpoint: out << "endpoint "; break;
+		switch (p->kind()) {
+		case ClassParameter::Kind::Value: out << typeName(static_cast<CPValue&>(*p).type()) << " "; break;
+		case ClassParameter::Kind::Device: out << "device "; break;
+		case ClassParameter::Kind::Endpoint: out << "endpoint "; break;
 		}
 		out << p->name();
 	}
@@ -546,6 +546,12 @@ void ASTPrinter::visit(MachineInstantiation& m)
 	}
 
 	out << ");";
+
+	if (m.instantiation()) {
+		out << " /* ";
+		printMachineBody(*m.instantiation());
+		out << " */";
+	}
 }
 
 void ASTPrinter::visit(IncludeLine& i)

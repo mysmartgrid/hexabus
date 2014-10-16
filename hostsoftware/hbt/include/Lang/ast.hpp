@@ -142,6 +142,24 @@ struct ASTVisitor {
 };
 
 
+
+class IdentifiedValue {
+public:
+	virtual ~IdentifiedValue() {}
+};
+
+class IdentifiedDevice {
+public:
+	virtual ~IdentifiedDevice() {}
+};
+
+class IdentifiedEndpoint {
+public:
+	virtual ~IdentifiedEndpoint() {}
+};
+
+
+
 enum class EndpointAccess {
 	Read          = 0x01,
 	Write         = 0x02,
@@ -199,6 +217,7 @@ public:
 class IdentifierExpr : public Expr {
 private:
 	std::string _name;
+	IdentifiedValue* _target;
 
 public:
 	IdentifierExpr(const SourceLocation& sloc, std::string name, Type type)
@@ -206,6 +225,9 @@ public:
 	{}
 
 	const std::string& name() const { return _name; }
+	IdentifiedValue* target() { return _target; }
+
+	void target(IdentifiedValue* i) { _target = i; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -369,8 +391,8 @@ private:
 	Identifier _deviceId;
 	Identifier _endpointId;
 	bool _deviceIdIsIncomplete, _endpointIdIsIncomplete;
-	Device* _device;
-	Endpoint* _endpoint;
+	IdentifiedDevice* _device;
+	IdentifiedEndpoint* _endpoint;
 
 public:
 	EndpointExpr(const SourceLocation& sloc, const Identifier& deviceId, const Identifier& endpointId, Type type)
@@ -382,11 +404,11 @@ public:
 	const Identifier& endpointId() const { return _endpointId; }
 	bool deviceIdIsIncomplete() const { return _deviceIdIsIncomplete; }
 	bool endpointIdIsIncomplete() const { return _endpointIdIsIncomplete; }
-	Device* device() { return _device; }
-	Endpoint* endpoint() { return _endpoint; }
+	IdentifiedDevice* device() { return _device; }
+	IdentifiedEndpoint* endpoint() { return _endpoint; }
 
-	void device(Device* d) { _device = d; }
-	void endpoint(Endpoint* e) { _endpoint = e; }
+	void device(IdentifiedDevice* d) { _device = d; }
+	void endpoint(IdentifiedEndpoint* e) { _endpoint = e; }
 
 	void deviceIdIsIncomplete(bool b)
 	{
@@ -616,7 +638,7 @@ public:
 	}
 };
 
-class DeclarationStmt : public Stmt {
+class DeclarationStmt : public Stmt, public IdentifiedValue {
 private:
 	Type _type;
 	Identifier _name;
@@ -697,7 +719,7 @@ public:
 class OnPacketBlock : public OnBlock {
 private:
 	Identifier _sourceId;
-	Device* _source;
+	IdentifiedDevice* _source;
 
 public:
 	OnPacketBlock(const SourceLocation& sloc, const Identifier& sourceId, std::unique_ptr<BlockStmt> block)
@@ -705,9 +727,9 @@ public:
 	{}
 
 	const Identifier& sourceId() const { return _sourceId; }
-	Device* source() { return _source; }
+	IdentifiedDevice* source() { return _source; }
 
-	void source(Device* d) { _source = d; }
+	void source(IdentifiedDevice* d) { _source = d; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -772,7 +794,7 @@ public:
 
 
 
-class Endpoint : public ProgramPart {
+class Endpoint : public ProgramPart, public IdentifiedEndpoint {
 private:
 	Identifier _name;
 	uint32_t _eid;
@@ -797,7 +819,7 @@ public:
 
 
 
-class Device : public ProgramPart {
+class Device : public ProgramPart, public IdentifiedDevice {
 private:
 	Identifier _name;
 	std::array<uint8_t, 16> _address;
@@ -824,11 +846,11 @@ public:
 class MachineBody {
 private:
 	Identifier _name;
-	std::vector<DeclarationStmt> _variables;
+	std::vector<std::unique_ptr<DeclarationStmt>> _variables;
 	std::vector<State> _states;
 
 protected:
-	MachineBody(const Identifier& name, std::vector<DeclarationStmt> variables, std::vector<State> states)
+	MachineBody(const Identifier& name, std::vector<std::unique_ptr<DeclarationStmt>> variables, std::vector<State> states)
 		: _name(name), _variables(std::move(variables)), _states(std::move(states))
 	{}
 
@@ -836,13 +858,13 @@ public:
 	virtual ~MachineBody() {}
 
 	const Identifier& name() const { return _name; }
-	std::vector<DeclarationStmt>& variables() { return _variables; }
+	std::vector<std::unique_ptr<DeclarationStmt>>& variables() { return _variables; }
 	std::vector<State>& states() { return _states; }
 };
 
 class ClassParameter {
 public:
-	enum class Type {
+	enum class Kind {
 		Value,
 		Device,
 		Endpoint,
@@ -851,18 +873,45 @@ public:
 private:
 	SourceLocation _sloc;
 	std::string _name;
-	Type _type;
-	lang::Type _valueType;
+	Kind _kind;
+
+protected:
+	ClassParameter(const SourceLocation& sloc, const std::string& name, Kind kind)
+		: _sloc(sloc), _name(name), _kind(kind)
+	{}
 
 public:
-	ClassParameter(const SourceLocation& sloc, const std::string& name, Type type, lang::Type valueType = lang::Type::Int32)
-		: _sloc(sloc), _name(name), _type(type), _valueType(valueType)
-	{}
+	virtual ~ClassParameter() {}
 
 	const SourceLocation& sloc() const { return _sloc; }
 	const std::string& name() const { return _name; }
-	const Type type() const { return _type; }
-	const lang::Type valueType() const { return _valueType; }
+	Kind kind() const { return _kind; }
+};
+
+class CPValue : public ClassParameter, public IdentifiedValue {
+private:
+	Type _type;
+
+public:
+	CPValue(const SourceLocation& sloc, const std::string& name, Type type)
+		: ClassParameter(sloc, name, Kind::Value), _type(type)
+	{}
+
+	Type type() const { return _type; }
+};
+
+class CPDevice : public ClassParameter, public IdentifiedDevice {
+public:
+	CPDevice(const SourceLocation& sloc, const std::string& name)
+		: ClassParameter(sloc, name, Kind::Device)
+	{}
+};
+
+class CPEndpoint : public ClassParameter, public IdentifiedEndpoint {
+public:
+	CPEndpoint(const SourceLocation& sloc, const std::string& name)
+		: ClassParameter(sloc, name, Kind::Endpoint)
+	{}
 };
 
 class MachineClass : public MachineBody, public ProgramPart {
@@ -871,7 +920,7 @@ private:
 
 public:
 	MachineClass(const SourceLocation& sloc, const Identifier& name, std::vector<std::unique_ptr<ClassParameter>> parameters,
-			std::vector<DeclarationStmt> variables, std::vector<State> states)
+			std::vector<std::unique_ptr<DeclarationStmt>> variables, std::vector<State> states)
 		: MachineBody(name, std::move(variables), std::move(states)),
 		  ProgramPart(sloc), _parameters(std::move(parameters))
 	{
@@ -887,7 +936,7 @@ public:
 
 class MachineDefinition : public MachineBody, public ProgramPart {
 public:
-	MachineDefinition(const SourceLocation& sloc, const Identifier& name, std::vector<DeclarationStmt> variables,
+	MachineDefinition(const SourceLocation& sloc, const Identifier& name, std::vector<std::unique_ptr<DeclarationStmt>> variables,
 			std::vector<State> states)
 		: MachineBody(name, std::move(variables), std::move(states)), ProgramPart(sloc)
 	{}
@@ -904,15 +953,24 @@ private:
 	Identifier _instanceOf;
 	std::vector<std::unique_ptr<Expr>> _arguments;
 
+	MachineClass* _class;
+	std::unique_ptr<MachineDefinition> _instantiation;
+
 public:
 	MachineInstantiation(const SourceLocation& sloc, const Identifier& name, const Identifier& instanceOf,
 			std::vector<std::unique_ptr<Expr>> arguments)
-		: ProgramPart(sloc), _name(name), _instanceOf(instanceOf), _arguments(std::move(arguments))
+		: ProgramPart(sloc), _name(name), _instanceOf(instanceOf), _arguments(std::move(arguments)), _class(nullptr)
 	{}
 
 	const Identifier& name() const { return _name; }
 	const Identifier& instanceOf() const { return _instanceOf; }
 	std::vector<std::unique_ptr<Expr>>& arguments() { return _arguments; }
+
+	MachineClass* baseClass() { return _class; }
+	MachineDefinition* instantiation() { return _instantiation.get(); }
+
+	void baseClass(MachineClass* m) { _class = m; }
+	void instantiation(std::unique_ptr<MachineDefinition> u) { _instantiation = std::move(u); }
 
 	virtual void accept(ASTVisitor& v)
 	{

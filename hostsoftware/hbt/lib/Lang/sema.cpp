@@ -1,5 +1,6 @@
 #include "Lang/sema.hpp"
 
+#include "instantiationvisitor.hpp"
 #include "Util/range.hpp"
 
 #include <boost/format.hpp>
@@ -10,12 +11,12 @@ using boost::format;
 namespace hbt {
 namespace lang {
 
-static std::string cptDeclStr(ClassParameter::Type t)
+static std::string cptDeclStr(ClassParameter::Kind k)
 {
-	switch (t) {
-	case ClassParameter::Type::Value: return "integer constant expression";
-	case ClassParameter::Type::Device: return "device name";
-	case ClassParameter::Type::Endpoint: return "endpoint name";
+	switch (k) {
+	case ClassParameter::Kind::Value: return "integer constant expression";
+	case ClassParameter::Kind::Device: return "device name";
+	case ClassParameter::Kind::Endpoint: return "endpoint name";
 	default: throw "invalid class parameter type";
 	}
 }
@@ -198,7 +199,7 @@ static Diagnostic classArgumentInvalid(const SourceLocation& sloc, const ClassPa
 		DiagnosticKind::Error,
 		&sloc,
 		str(format("expected %1% for class parameter %2%")
-			% cptDeclStr(cp.type())
+			% cptDeclStr(cp.kind())
 			% cp.name())
 	};
 }
@@ -350,6 +351,7 @@ void SemanticVisitor::visit(IdentifierExpr& i)
 {
 	if (auto se = scopes.resolve(i.name())) {
 		i.type(se->declaration->type());
+		i.target(se->declaration);
 		return;
 	}
 
@@ -370,13 +372,21 @@ void SemanticVisitor::visit(IdentifierExpr& i)
 	auto cpit = classParams.find(i.name());
 	if (cpit != classParams.end()) {
 		auto& cp = cpit->second;
+
+		cp.used = true;
+		if (cp.parameter.kind() != ClassParameter::Kind::Value) {
+			diags.print(
+				identifierIsNoValue(i),
+				declaredHere(cp.parameter.sloc()));
+			return;
+		}
+		i.target(static_cast<CPValue*>(&cp.parameter));
 		if (cp.hasValue) {
 			i.isIncomplete(false);
-			i.type(cp.parameter.valueType());
+			i.type(static_cast<CPValue&>(cp.parameter).type());
 			i.constexprValue(cp.value->constexprValue());
 			i.isConstexpr(cp.value->isConstexpr());
 		}
-		cp.used = true;
 		return;
 	}
 
@@ -402,6 +412,10 @@ void SemanticVisitor::visit(CastExpr& c)
 	c.expr().accept(*this);
 	c.isIncomplete(c.expr().isIncomplete());
 	c.isConstexpr(c.expr().isConstexpr() && isConstexprType(c.type()));
+
+	if (c.isIncomplete())
+		return;
+
 	c.constexprValue(c.expr().constexprValue());
 
 	switch (c.type()) {
@@ -578,8 +592,10 @@ void SemanticVisitor::visit(ConditionalExpr& c)
 	c.isConstexpr(c.condition().isConstexpr() && c.ifTrue().isConstexpr() && c.ifFalse().isConstexpr());
 	c.isIncomplete(c.condition().isIncomplete() || c.ifTrue().isIncomplete() || c.ifFalse().isIncomplete());
 
-	if (!c.isIncomplete())
-		c.type(commonType(c.ifTrue().type(), c.ifFalse().type()));
+	if (c.isIncomplete())
+		return;
+
+	c.type(commonType(c.ifTrue().type(), c.ifFalse().type()));
 
 	if (c.isConstexpr())
 		c.constexprValue(c.condition().constexprValue() != 0 ? c.ifTrue().constexprValue() : c.ifFalse().constexprValue());
@@ -587,8 +603,8 @@ void SemanticVisitor::visit(ConditionalExpr& c)
 
 Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 {
-	if (e.endpoint())
-		return e.endpoint();
+	if (auto* ep = dynamic_cast<Endpoint*>(e.endpoint()))
+		return ep;
 
 	Device* dev = nullptr;
 	Endpoint* ep = nullptr;
@@ -605,11 +621,22 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 				identifierIsNoDevice(e.deviceId()),
 				declaredHere(se->declaration->sloc()));
 		} else if (cpit != classParams.end()) {
-			exprIsFullyDefined &= cpit->second.hasValue;
-			cpit->second.used = true;
-			e.deviceIdIsIncomplete(!dev);
+			auto& cpi = cpit->second;
+
+			if (cpi.parameter.kind() != ClassParameter::Kind::Device) {
+				diags.print(
+					identifierIsNoDevice(e.deviceId()),
+					declaredHere(cpi.parameter.sloc()));
+			} else {
+				cpi.used = true;
+				exprIsFullyDefined &= cpi.hasValue;
+				e.device(static_cast<CPDevice*>(&cpi.parameter));
+				if (cpi.hasValue)
+					dev = cpi.device;
+			}
 		} else if (it != globalNames.end()) {
 			dev = dynamic_cast<Device*>(it->second);
+			e.device(dev);
 			if (!dev)
 				diags.print(
 					identifierIsNoDevice(e.deviceId()),
@@ -617,7 +644,7 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 		} else {
 			diags.print(undeclaredIdentifier(e.deviceId()));
 		}
-		e.device(dev);
+		e.deviceIdIsIncomplete(!e.device());
 	}
 
 	{
@@ -631,11 +658,22 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 				identifierIsNoEndpoint(e.endpointId()),
 				declaredHere(se->declaration->sloc()));
 		} else if (cpit != classParams.end()) {
-			exprIsFullyDefined &= cpit->second.hasValue;
-			cpit->second.used = true;
-			e.deviceIdIsIncomplete(!ep);
+			auto& cpi = cpit->second;
+
+			if (cpi.parameter.kind() != ClassParameter::Kind::Endpoint) {
+				diags.print(
+					identifierIsNoEndpoint(e.endpointId()),
+					declaredHere(cpi.parameter.sloc()));
+			} else {
+				cpi.used = true;
+				exprIsFullyDefined &= cpi.hasValue;
+				e.endpoint(static_cast<CPEndpoint*>(&cpi.parameter));
+				if (cpi.hasValue)
+					ep = cpi.endpoint;
+			}
 		} else if (it != globalNames.end()) {
 			ep = dynamic_cast<Endpoint*>(it->second);
+			e.endpoint(ep);
 			if (!ep)
 				diags.print(
 					identifierIsNoEndpoint(e.endpointId()),
@@ -643,15 +681,10 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 		} else {
 			diags.print(undeclaredIdentifier(e.endpointId()));
 		}
-		e.endpoint(ep);
+		e.endpointIdIsIncomplete(!e.endpoint());
 	}
 
-	if (!dev || !ep) {
-		e.isIncomplete(true);
-		return nullptr;
-	}
-
-	if (!exprIsFullyDefined)
+	if (e.isIncomplete() || !exprIsFullyDefined)
 		return nullptr;
 
 	bool hasEP = dev->endpoints().end() != std::find_if(dev->endpoints().begin(), dev->endpoints().end(),
@@ -924,7 +957,7 @@ void SemanticVisitor::checkMachineBody(MachineBody& m)
 
 	scopes.enter();
 	for (auto& var : m.variables())
-		var.accept(*this);
+		var->accept(*this);
 	for (auto& state : m.states())
 		checkState(state);
 	scopes.leave();
@@ -980,25 +1013,31 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 		return;
 	}
 
+	m.baseClass(mclass);
+
 	if (m.arguments().size() != mclass->parameters().size()) {
 		diags.print(invalidClassArgCount(m, mclass->parameters().size()));
 	} else {
 		auto arg = m.arguments().begin(), aend = m.arguments().end();
 		auto param = mclass->parameters().begin(), pend = mclass->parameters().end();
 
+		auto previousErrorCount = diags.errorCount();
+
 		for (; arg != aend; ++arg, ++param) {
-			switch ((*param)->type()) {
-			case ClassParameter::Type::Value:
+			switch ((*param)->kind()) {
+			case ClassParameter::Kind::Value: {
+				auto& cpv = static_cast<CPValue&>(**param);
 				(*arg)->accept(*this);
 				if (!(*arg)->isConstexpr())
-					diags.print(classArgumentInvalid((*arg)->sloc(), **param));
-				else if (!isContextuallyConvertibleTo(**arg, (*param)->valueType()))
-					diags.print(invalidImplicitConversion((*arg)->sloc(), (*arg)->type(), (*param)->valueType()));
+					diags.print(classArgumentInvalid((*arg)->sloc(), cpv));
+				else if (!isContextuallyConvertibleTo(**arg, cpv.type()))
+					diags.print(invalidImplicitConversion((*arg)->sloc(), (*arg)->type(), cpv.type()));
 				else
-					classParams.insert({ (*param)->name(), { **param, (*arg).get() } });
+					classParams.insert({ cpv.name(), { cpv, (*arg).get() } });
 				break;
+			}
 
-			case ClassParameter::Type::Device:
+			case ClassParameter::Kind::Device:
 				if (auto id = dynamic_cast<IdentifierExpr*>(arg->get())) {
 					auto dev = globalNames.find(id->name());
 					if (dev == globalNames.end())
@@ -1012,7 +1051,7 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 				}
 				break;
 
-			case ClassParameter::Type::Endpoint:
+			case ClassParameter::Kind::Endpoint:
 				if (auto id = dynamic_cast<IdentifierExpr*>(arg->get())) {
 					auto ep = globalNames.find(id->name());
 					if (ep == globalNames.end())
@@ -1033,8 +1072,11 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 
 		auto hint = diags.useHint(m.sloc(), "instantiated from here");
 
-		if (classParams.size() == mclass->parameters().size())
-			checkMachineBody(*mclass);
+		if (diags.errorCount() == previousErrorCount && classParams.size() == mclass->parameters().size()) {
+			InstantiationVisitor iv(globalNames);
+			m.accept(iv);
+			checkMachineBody(*m.instantiation());
+		}
 		classParams.clear();
 	}
 }

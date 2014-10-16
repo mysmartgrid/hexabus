@@ -417,8 +417,8 @@ void CodegenVisitor::visit(WriteStmt& w)
 	if (currentDevice && currentDevice != w.target().device())
 		die("multiple devices written by a single machine");
 
-	currentDevice = w.target().device();
-	current().append(mc::Opcode::LD_U32, w.target().endpoint()->eid());
+	currentDevice = static_cast<Device*>(w.target().device());
+	current().append(mc::Opcode::LD_U32, static_cast<Endpoint*>(w.target().endpoint())->eid());
 	temporarySlotsUsed++;
 	w.value().accept(*this);
 	temporarySlotsUsed--;
@@ -568,8 +568,8 @@ void CodegenVisitor::visit(MachineDefinition& m)
 
 	unsigned totalVarSize = 0;
 	for (auto& var : m.variables()) {
-		variableAddresses.insert({ var.name().name(), totalVarSize });
-		totalVarSize += sizeOf(var.type());
+		variableAddresses.insert({ var->name().name(), totalVarSize });
+		totalVarSize += sizeOf(var->type());
 	}
 
 	std::map<OnSimpleTrigger, std::unique_ptr<CodegenBlock>> simpleBlocks;
@@ -590,19 +590,21 @@ void CodegenVisitor::visit(MachineDefinition& m)
 			on->accept(*this);
 			blocks.pop_back();
 		} else if (auto* packet = dynamic_cast<OnPacketBlock*>(on.get())) {
-			if (packetBlocks.count(packet->source()))
+			auto* source = static_cast<Device*>(packet->source());
+
+			if (packetBlocks.count(source))
 				die("multiple packet blocks per source");
 
-			packetBlocks.emplace(packet->source(), std::unique_ptr<CodegenBlock>(new CodegenBlock(builder.createLabel())));
-			CodegenBlock* block = packetBlocks[packet->source()].get();
+			packetBlocks.emplace(source, std::unique_ptr<CodegenBlock>(new CodegenBlock(builder.createLabel())));
+			CodegenBlock* block = packetBlocks[source].get();
 
 			blocks.push_back(block);
-			currentPacketSource = packet->source();
+			currentPacketSource = source;
 			on->accept(*this);
 			blocks.pop_back();
 
 			packetSwitchBlock.append(mc::Opcode::LD_SOURCE_IP);
-			packetSwitchBlock.append(mc::Opcode::CMP_BLOCK, mc::BlockPart(0, 16, packet->source()->address()));
+			packetSwitchBlock.append(mc::Opcode::CMP_BLOCK, mc::BlockPart(0, 16, source->address()));
 			packetSwitchBlock.append(mc::Opcode::JNZ, block->entryLabel);
 		}
 	}

@@ -683,13 +683,13 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 		classParam.name("class parameter");
 		classParam =
 			(tok.word.device > tok.ident)[fwd >= [this] (range& r, range& id) {
-				return new ClassParameter(locOf(r), str(id), ClassParameter::Type::Device);
+				return new CPDevice(locOf(r), str(id));
 			}]
 			| (tok.word.endpoint > tok.ident)[fwd >= [this] (range& r, range& id) {
-				return new ClassParameter(locOf(r), str(id), ClassParameter::Type::Endpoint);
+				return new CPEndpoint(locOf(r), str(id));
 			}]
 			| (datatype > tok.ident)[fwd >= [this] (locd<Type>* t, range& id) {
-				return new ClassParameter(t->loc, str(id), ClassParameter::Type::Value, t->val);
+				return new CPValue(t->loc, str(id), t->val);
 			}];
 
 		machine_class =
@@ -709,9 +709,9 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			)[fwd >= [this] (range& r, Identifier* id, std::vector<ptr<ClassParameter>>* params,
 					std::vector<ptr<DeclarationStmt>>& decls, std::vector<ptr<State>>& states) {
 				if (params)
-					return new MachineClass(locOf(r), std::move(*id), move(*params), unpack(decls), unpack(states));
+					return new MachineClass(locOf(r), std::move(*id), move(*params), move(decls), unpack(states));
 				else
-					return new MachineClass(locOf(r), std::move(*id), {}, unpack(decls), unpack(states));
+					return new MachineClass(locOf(r), std::move(*id), {}, move(decls), unpack(states));
 			}];
 
 		machine_spec =
@@ -742,7 +742,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				]
 			)[fwd >= [this] (range& r, Identifier* id, std::vector<ptr<DeclarationStmt>>& decls,
 					std::vector<ptr<State>>& states) {
-				return new MachineDefinition(locOf(r), std::move(*id), unpack(decls), unpack(states));
+				return new MachineDefinition(locOf(r), std::move(*id), move(decls), unpack(states));
 			}];
 
 		endpoint =
