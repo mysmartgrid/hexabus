@@ -59,6 +59,11 @@ static Diagnostic invalidBinaryOp(const SourceLocation& sloc, Type left, Type ri
 	};
 }
 
+static Diagnostic identifierIsNoValue(const IdentifierExpr& ident)
+{
+	return { DiagnosticKind::Error, &ident.sloc(), str(format("identifier '%1%' does not name a value") % ident.name()) };
+}
+
 static Diagnostic identifierIsNoDevice(const Identifier& ident)
 {
 	return { DiagnosticKind::Error, &ident.sloc(), str(format("identifier '%1%' does not name a device") % ident.name()) };
@@ -349,6 +354,13 @@ void SemanticVisitor::visit(IdentifierExpr& i)
 	}
 
 	i.isIncomplete(true);
+
+	if (globalNames.count(i.name())) {
+		diags.print(
+			identifierIsNoValue(i),
+			declaredHere(globalNames.at(i.name())->sloc()));
+		return;
+	}
 
 	if (isFunctionName(i.name())) {
 		diags.print(identifierIsFunction(i.sloc(), i.name()));
