@@ -9,6 +9,7 @@
 
 #include "Lang/ast.hpp"
 #include "Lang/diagnostics.hpp"
+#include "Lang/sema-scope.hpp"
 #include "Lang/type.hpp"
 
 namespace hbt {
@@ -16,22 +17,6 @@ namespace lang {
 
 class SemanticVisitor : public ASTVisitor {
 private:
-	struct ScopeEntry {
-		DeclarationStmt* declaration;
-	};
-
-	class ScopeStack {
-	private:
-		std::vector<std::map<std::string, ScopeEntry>> stack;
-
-	public:
-		void enter();
-		void leave();
-
-		ScopeEntry* resolve(const std::string& ident);
-		ScopeEntry* insert(DeclarationStmt& decl);
-	};
-
 	struct ClassParamInstance {
 		ClassParameter& parameter;
 		const bool hasValue;
@@ -63,25 +48,28 @@ private:
 private:
 	DiagnosticOutput& diags;
 
-	std::map<std::string, ProgramPart*> globalNames;
 	std::map<uint32_t, Endpoint*> endpointsByEID;
 
 	std::map<std::string, State*> knownStates;
 
 	std::map<std::string, ClassParamInstance> classParams;
 
-	ScopeStack scopes;
+	std::vector<BuiltinFunction> builtinFunctions;
+	Scope globalScope;
+	Scope* currentScope;
 
-	void declareGlobalName(ProgramPart& p, const std::string& name);
+	void declareInCurrentScope(Declaration& decl);
 
 	void checkState(State& s);
 	void checkMachineBody(MachineBody& m);
+
+	std::pair<Declaration*, Device*> resolveDeviceInScope(const Identifier& device);
+	std::pair<Declaration*, Endpoint*> resolveEndpointInScope(const Identifier& endpoint);
+
 	Endpoint* checkEndpointExpr(EndpointExpr& e);
 
 public:
-	SemanticVisitor(DiagnosticOutput& diagOut)
-		: diags(diagOut)
-	{}
+	SemanticVisitor(DiagnosticOutput& diagOut);
 
 	virtual void visit(IdentifierExpr& i) override;
 	virtual void visit(TypedLiteral<bool>& l) override;

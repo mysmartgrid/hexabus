@@ -168,9 +168,17 @@ void InstantiationVisitor::visit(OnSimpleBlock& o)
 void InstantiationVisitor::visit(OnPacketBlock& o)
 {
 	std::unique_ptr<BlockStmt> block(static_cast<BlockStmt*>(clone(o.block()).release()));
-	std::unique_ptr<OnPacketBlock> c(new OnPacketBlock(o.sloc(), o.sourceId(), std::move(block)));
+	std::unique_ptr<OnPacketBlock> c;
 
-	c->source(o.source());
+	if (auto* cpd = dynamic_cast<CPDevice*>(o.source())) {
+		auto* src = cpDevices.at(cpd);
+		c.reset(new OnPacketBlock(o.sloc(), src->name(), std::move(block)));
+		c->source(src);
+	} else {
+		c.reset(new OnPacketBlock(o.sloc(), o.sourceId(), std::move(block)));
+		c->source(o.source());
+	}
+
 	_onBlock = std::move(c);
 }
 
@@ -224,14 +232,14 @@ void InstantiationVisitor::visit(MachineInstantiation& m)
 		case ClassParameter::Kind::Device:
 			cpDevices.insert({
 				&static_cast<CPDevice&>(param),
-				static_cast<Device*>(globals.at(static_cast<IdentifierExpr&>(arg).name()))
+				static_cast<Device*>(scope.resolve(static_cast<IdentifierExpr&>(arg).name()))
 			});
 			break;
 
 		case ClassParameter::Kind::Endpoint:
 			cpEndpoints.insert({
 				&static_cast<CPEndpoint&>(param),
-				static_cast<Endpoint*>(globals.at(static_cast<IdentifierExpr&>(arg).name()))
+				static_cast<Endpoint*>(scope.resolve(static_cast<IdentifierExpr&>(arg).name()))
 			});
 			break;
 		}

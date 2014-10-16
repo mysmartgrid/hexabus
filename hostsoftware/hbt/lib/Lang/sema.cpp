@@ -246,9 +246,14 @@ static Diagnostic invalidShiftAmount(BinaryExpr& b)
 	};
 }
 
-static Diagnostic identifierIsFunction(const SourceLocation& sloc, const std::string& name)
+static Diagnostic identifierIsNoFunction(const Identifier& id)
 {
-	return { DiagnosticKind::Error, &sloc, str(format("'%1%' names a function") % name) };
+	return { DiagnosticKind::Error, &id.sloc(), str(format("'%1%' is not a function") % id.name()) };
+}
+
+static Diagnostic cannotAssignTo(const Identifier& id)
+{
+	return { DiagnosticKind::Error, &id.sloc(), str(format("cannot assign to '%1%'") % id.name()) };
 }
 
 
@@ -303,95 +308,91 @@ static bool isFunctionName(const std::string& name)
 
 
 
-void SemanticVisitor::ScopeStack::enter()
-{
-	stack.push_back({});
-}
+class StackedScope {
+private:
+	Scope nested;
+	Scope*& parent;
 
-void SemanticVisitor::ScopeStack::leave()
-{
-	stack.pop_back();
-}
-
-SemanticVisitor::ScopeEntry* SemanticVisitor::ScopeStack::resolve(const std::string& ident)
-{
-	for (auto& scope : util::reverse_range(stack)) {
-		auto it = scope.find(ident);
-
-		if (it != scope.end())
-			return &it->second;
+public:
+	StackedScope(Scope*& parent)
+		: nested(parent), parent(parent)
+	{
+		parent = &nested;
 	}
 
-	return nullptr;
-}
-
-SemanticVisitor::ScopeEntry* SemanticVisitor::ScopeStack::insert(DeclarationStmt& decl)
-{
-	return &stack.back().insert({ decl.name().name(), { &decl } }).first->second;
-}
-
-
-
-void SemanticVisitor::declareGlobalName(ProgramPart& p, const std::string& name)
-{
-	if (isFunctionName(name)) {
-		diags.print(identifierIsFunction(p.sloc(), name));
-		return;
+	~StackedScope()
+	{
+		parent = nested.parent();
 	}
 
-	auto res = globalNames.insert({ name, &p });
+	StackedScope(StackedScope&&) = delete;
+
+	StackedScope& operator=(StackedScope&&) = delete;
+};
+
+
+
+SemanticVisitor::SemanticVisitor(DiagnosticOutput& diagOut)
+	: diags(diagOut), currentScope(&globalScope)
+{
+	builtinFunctions.emplace_back("second");
+	builtinFunctions.emplace_back("minute");
+	builtinFunctions.emplace_back("hour");
+	builtinFunctions.emplace_back("day");
+	builtinFunctions.emplace_back("month");
+	builtinFunctions.emplace_back("year");
+	builtinFunctions.emplace_back("weekday");
+
+	for (auto& builtin : builtinFunctions)
+		globalScope.insert(builtin);
+}
+
+void SemanticVisitor::declareInCurrentScope(Declaration& decl)
+{
+	auto res = currentScope->insert(decl);
 
 	if (!res.second)
 		diags.print(
-			redeclaration(p.sloc(), name),
-			previouslyDeclaredHere(res.first->second->sloc()));
+			redeclaration(decl.sloc(), decl.identifier()),
+			previouslyDeclaredHere(res.first->sloc()));
 }
 
 void SemanticVisitor::visit(IdentifierExpr& i)
 {
-	if (auto se = scopes.resolve(i.name())) {
-		i.type(se->declaration->type());
-		i.target(se->declaration);
-		return;
-	}
+	auto* se = currentScope->resolve(i.name());
 
 	i.isIncomplete(true);
 
-	if (globalNames.count(i.name())) {
-		diags.print(
-			identifierIsNoValue(i),
-			declaredHere(globalNames.at(i.name())->sloc()));
+	if (!se) {
+		diags.print(undeclaredIdentifier(Identifier(i.sloc(), i.name())));
 		return;
 	}
 
-	if (isFunctionName(i.name())) {
-		diags.print(identifierIsFunction(i.sloc(), i.name()));
+	if (auto* decl = dynamic_cast<DeclarationStmt*>(se)) {
+		i.type(decl->type());
+		i.target(decl);
+		i.isIncomplete(false);
 		return;
 	}
 
-	auto cpit = classParams.find(i.name());
-	if (cpit != classParams.end()) {
-		auto& cp = cpit->second;
+	if (auto* cpv = dynamic_cast<CPValue*>(se)) {
+		auto& cp = classParams.at(i.name());
 
 		cp.used = true;
-		if (cp.parameter.kind() != ClassParameter::Kind::Value) {
-			diags.print(
-				identifierIsNoValue(i),
-				declaredHere(cp.parameter.sloc()));
-			return;
-		}
-		i.target(static_cast<CPValue*>(&cp.parameter));
+		i.target(cpv);
+		i.type(cpv->type());
+		i.isConstexpr(true);
+
 		if (cp.hasValue) {
 			i.isIncomplete(false);
-			i.type(static_cast<CPValue&>(cp.parameter).type());
 			i.constexprValue(cp.value->constexprValue());
-			i.isConstexpr(cp.value->isConstexpr());
 		}
 		return;
 	}
 
-	if (!classParams.count(i.name()))
-		diags.print(undeclaredIdentifier(Identifier(i.sloc(), i.name())));
+	diags.print(
+		identifierIsNoValue(i),
+		declaredHere(se->sloc()));
 }
 
 // nothing to do for typed literals
@@ -601,104 +602,101 @@ void SemanticVisitor::visit(ConditionalExpr& c)
 		c.constexprValue(c.condition().constexprValue() != 0 ? c.ifTrue().constexprValue() : c.ifFalse().constexprValue());
 }
 
+std::pair<Declaration*, Device*> SemanticVisitor::resolveDeviceInScope(const Identifier& device)
+{
+	auto* decl = currentScope->resolve(device.name());
+
+	if (!decl) {
+		diags.print(undeclaredIdentifier(device));
+		return { nullptr, nullptr };
+	}
+
+	if (auto* dev = dynamic_cast<Device*>(decl))
+		return { dev, dev };
+
+	if (auto* cpd = dynamic_cast<CPDevice*>(decl)) {
+		auto cpit = classParams.find(device.name());
+
+		if (cpit != classParams.end()) {
+			auto& cpi = cpit->second;
+
+			cpi.used = true;
+			if (cpi.hasValue)
+				return { cpd, cpi.device };
+		}
+
+		return { cpd, nullptr };
+	}
+
+	diags.print(
+		identifierIsNoDevice(device),
+		declaredHere(decl->sloc()));
+
+	return { nullptr, nullptr };
+}
+
+std::pair<Declaration*, Endpoint*> SemanticVisitor::resolveEndpointInScope(const Identifier& endpoint)
+{
+	auto* decl = currentScope->resolve(endpoint.name());
+
+	if (!decl) {
+		diags.print(undeclaredIdentifier(endpoint));
+		return { nullptr, nullptr };
+	}
+
+	if (auto* ep = dynamic_cast<Endpoint*>(decl))
+		return { ep, ep };
+
+	if (auto* cpe = dynamic_cast<CPEndpoint*>(decl)) {
+		auto cpit = classParams.find(endpoint.name());
+
+		if (cpit != classParams.end()) {
+			auto& cpi = cpit->second;
+
+			cpi.used = true;
+			if (cpi.hasValue)
+				return { cpe, cpi.endpoint };
+		}
+
+		return { cpe, nullptr };
+	}
+
+	diags.print(
+		identifierIsNoEndpoint(endpoint),
+		declaredHere(decl->sloc()));
+
+	return { nullptr, nullptr };
+}
+
 Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 {
 	if (auto* ep = dynamic_cast<Endpoint*>(e.endpoint()))
 		return ep;
 
-	Device* dev = nullptr;
-	Endpoint* ep = nullptr;
-	bool exprIsFullyDefined = true;
+	auto dev = resolveDeviceInScope(e.deviceId());
+	auto ep = resolveEndpointInScope(e.endpointId());
 
-	{
-		auto cpit = classParams.find(e.deviceId().name());
-		auto it = globalNames.find(e.deviceId().name());
+	e.device(dev.first);
+	e.endpoint(ep.first);
+	e.deviceIdIsIncomplete(!dev.second);
+	e.endpointIdIsIncomplete(!ep.second);
 
-		if (isFunctionName(e.deviceId().name())) {
-			diags.print(identifierIsNoDevice(e.deviceId()));
-		} else if (auto se = scopes.resolve(e.deviceId().name())) {
-			diags.print(
-				identifierIsNoDevice(e.deviceId()),
-				declaredHere(se->declaration->sloc()));
-		} else if (cpit != classParams.end()) {
-			auto& cpi = cpit->second;
-
-			if (cpi.parameter.kind() != ClassParameter::Kind::Device) {
-				diags.print(
-					identifierIsNoDevice(e.deviceId()),
-					declaredHere(cpi.parameter.sloc()));
-			} else {
-				cpi.used = true;
-				exprIsFullyDefined &= cpi.hasValue;
-				e.device(static_cast<CPDevice*>(&cpi.parameter));
-				if (cpi.hasValue)
-					dev = cpi.device;
-			}
-		} else if (it != globalNames.end()) {
-			dev = dynamic_cast<Device*>(it->second);
-			e.device(dev);
-			if (!dev)
-				diags.print(
-					identifierIsNoDevice(e.deviceId()),
-					declaredHere(it->second->sloc()));
-		} else {
-			diags.print(undeclaredIdentifier(e.deviceId()));
-		}
-		e.deviceIdIsIncomplete(!e.device());
-	}
-
-	{
-		auto cpit = classParams.find(e.endpointId().name());
-		auto it = globalNames.find(e.endpointId().name());
-
-		if (isFunctionName(e.endpointId().name())) {
-			diags.print(identifierIsNoEndpoint(e.endpointId()));
-		} else if (auto se = scopes.resolve(e.endpointId().name())) {
-			diags.print(
-				identifierIsNoEndpoint(e.endpointId()),
-				declaredHere(se->declaration->sloc()));
-		} else if (cpit != classParams.end()) {
-			auto& cpi = cpit->second;
-
-			if (cpi.parameter.kind() != ClassParameter::Kind::Endpoint) {
-				diags.print(
-					identifierIsNoEndpoint(e.endpointId()),
-					declaredHere(cpi.parameter.sloc()));
-			} else {
-				cpi.used = true;
-				exprIsFullyDefined &= cpi.hasValue;
-				e.endpoint(static_cast<CPEndpoint*>(&cpi.parameter));
-				if (cpi.hasValue)
-					ep = cpi.endpoint;
-			}
-		} else if (it != globalNames.end()) {
-			ep = dynamic_cast<Endpoint*>(it->second);
-			e.endpoint(ep);
-			if (!ep)
-				diags.print(
-					identifierIsNoEndpoint(e.endpointId()),
-					declaredHere(it->second->sloc()));
-		} else {
-			diags.print(undeclaredIdentifier(e.endpointId()));
-		}
-		e.endpointIdIsIncomplete(!e.endpoint());
-	}
-
-	if (e.isIncomplete() || !exprIsFullyDefined)
+	if (e.isIncomplete())
 		return nullptr;
 
-	bool hasEP = dev->endpoints().end() != std::find_if(dev->endpoints().begin(), dev->endpoints().end(),
+	auto& endpoints = dev.second->endpoints();
+	bool hasEP = endpoints.end() != std::find_if(endpoints.begin(), endpoints.end(),
 		[ep] (const Identifier& i) {
-			return i.name() == ep->name().name();
+			return i.name() == ep.second->name().name();
 		});
 	if (!hasEP) {
-		diags.print(deviceDoesNotHave(e, dev->name().name(), ep->name().name()));
+		diags.print(deviceDoesNotHave(e, dev.second->name().name(), ep.second->name().name()));
 		return nullptr;
 	}
 
-	e.type(ep->type());
+	e.type(ep.second->type());
 
-	return ep;
+	return ep.second;
 }
 
 void SemanticVisitor::visit(EndpointExpr& e)
@@ -714,13 +712,22 @@ void SemanticVisitor::visit(CallExpr& c)
 	for (auto& arg : c.arguments())
 		arg->accept(*this);
 
-	if (!isFunctionName(c.name().name())) {
+	auto* se = currentScope->resolve(c.name().name());
+	auto* fun = dynamic_cast<BuiltinFunction*>(se);
+
+	c.isIncomplete(true);
+
+	if (!se) {
 		diags.print(undeclaredIdentifier(c.name()));
-		c.isIncomplete(true);
 		return;
 	}
 
-	c.type(Type::UInt32);
+	if (!fun) {
+		diags.print(identifierIsNoFunction(c.name()));
+		return;
+	}
+
+	c.type(Type::Int32);
 
 	if (c.arguments().size() != 1)
 		diags.print(invalidCallArgCount(c, 1));
@@ -728,10 +735,12 @@ void SemanticVisitor::visit(CallExpr& c)
 	if (c.arguments().size() < 1)
 		return;
 
-	if (!isIntType(c.arguments()[0]->type()))
-		diags.print(invalidArgType(c, Type::UInt64, 0));
+	auto& arg0 = *c.arguments()[0];
 
-	c.isIncomplete(c.arguments()[0]->isIncomplete());
+	if (!isContextuallyConvertibleTo(arg0, Type::Int64))
+		diags.print(invalidArgType(c, Type::Int64, 0));
+
+	c.isIncomplete(arg0.isIncomplete());
 }
 
 // nothing to do for these
@@ -742,23 +751,26 @@ void SemanticVisitor::visit(TimeoutExpr&) {}
 
 void SemanticVisitor::visit(AssignStmt& a)
 {
-	ScopeEntry* se = scopes.resolve(a.target().name());
+	auto* se = currentScope->resolve(a.target().name());
 
 	a.value().accept(*this);
 
-	if (isFunctionName(a.target().name())) {
-		diags.print(identifierIsFunction(a.sloc(), a.target().name()));
-		return;
-	}
 	if (!se) {
 		diags.print(undeclaredIdentifier(a.target()));
 		return;
 	}
 
-	a.targetDecl(se->declaration);
+	if (auto* decl = dynamic_cast<DeclarationStmt*>(se)) {
+		a.targetDecl(decl);
 
-	if (!a.value().isIncomplete() && !isContextuallyConvertibleTo(a.value(), se->declaration->type()))
-		diags.print(invalidImplicitConversion(a.sloc(), a.value().type(), se->declaration->type()));
+		if (!a.value().isIncomplete() && !isContextuallyConvertibleTo(a.value(), decl->type()))
+			diags.print(invalidImplicitConversion(a.sloc(), a.value().type(), decl->type()));
+		return;
+	}
+
+	diags.print(
+		cannotAssignTo(a.target()),
+		declaredHere(se->sloc()));
 }
 
 void SemanticVisitor::visit(WriteStmt& w)
@@ -791,7 +803,7 @@ void SemanticVisitor::visit(SwitchStmt& s)
 	const SwitchLabel* defaultLabel = nullptr;
 	std::map<cln::cl_I, const SwitchLabel*> caseLabels;
 	for (auto& se : s.entries()) {
-		scopes.enter();
+		StackedScope caseScope(currentScope);
 
 		for (auto& l : se.labels()) {
 			if (l.expr()) {
@@ -824,36 +836,24 @@ void SemanticVisitor::visit(SwitchStmt& s)
 		}
 
 		se.statement().accept(*this);
-
-		scopes.leave();
 	}
 }
 
 void SemanticVisitor::visit(BlockStmt& b)
 {
-	scopes.enter();
+	StackedScope blockScope(currentScope);
+
 	for (auto& s : b.statements())
 		s->accept(*this);
-	scopes.leave();
 }
 
 void SemanticVisitor::visit(DeclarationStmt& d)
 {
-	ScopeEntry* decl = nullptr;
-
 	d.value().accept(*this);
 
-	if (isFunctionName(d.name().name())) {
-		diags.print(redeclaration(d.name().sloc(), d.name().name()));
-	} else if (auto old = scopes.resolve(d.name().name())) {
-		diags.print(
-			redeclaration(d.name().sloc(), d.name().name()),
-			previouslyDeclaredHere(old->declaration->sloc()));
-	} else {
-		decl = scopes.insert(d);
-	}
+	declareInCurrentScope(d);
 
-	if (decl && !d.value().isIncomplete() && !isContextuallyConvertibleTo(d.value(), d.type()))
+	if (!d.value().isIncomplete() && !isContextuallyConvertibleTo(d.value(), d.type()))
 		diags.print(invalidImplicitConversion(d.sloc(), d.value().type(), d.type()));
 }
 
@@ -870,22 +870,32 @@ void SemanticVisitor::visit(OnSimpleBlock& o)
 
 void SemanticVisitor::visit(OnPacketBlock& o)
 {
-	auto it = globalNames.find(o.sourceId().name());
-	auto se = scopes.resolve(o.sourceId().name());
+	auto* se = currentScope->resolve(o.sourceId().name());
 
-	o.block().accept(*this);
+	Declaration* sourceDevice = dynamic_cast<Device*>(se);
 
-	if (isFunctionName(o.sourceId().name())) {
-		diags.print(identifierIsFunction(o.sloc(), o.sourceId().name()));
+	if (!sourceDevice) {
+		auto* cpd = dynamic_cast<CPDevice*>(se);
+
+		if (cpd)
+			classParams.at(cpd->identifier()).used = true;
+
+		sourceDevice = cpd;
+	}
+
+	if (!se) {
+		diags.print(undeclaredIdentifier(o.sourceId()));
 		return;
 	}
 
-	if (it == globalNames.end() && !se)
-		diags.print(undeclaredIdentifier(o.sourceId()));
-	else if (se || !dynamic_cast<Device*>(it->second))
-		diags.print(identifierIsNoDevice(o.sourceId()));
-	else
-		o.source(dynamic_cast<Device*>(it->second));
+	if (!sourceDevice) {
+		diags.print(
+			identifierIsNoDevice(o.sourceId()),
+			declaredHere(se->sloc()));
+	}
+
+	o.block().accept(*this);
+	o.source(sourceDevice);
 }
 
 void SemanticVisitor::visit(OnExprBlock& o)
@@ -900,7 +910,7 @@ void SemanticVisitor::visit(OnExprBlock& o)
 
 void SemanticVisitor::visit(Endpoint& e)
 {
-	declareGlobalName(e, e.name().name());
+	declareInCurrentScope(e);
 
 	auto res = endpointsByEID.insert({ e.eid(), &e });
 
@@ -912,34 +922,34 @@ void SemanticVisitor::visit(Endpoint& e)
 
 void SemanticVisitor::visit(Device& d)
 {
-	declareGlobalName(d, d.name().name());
+	declareInCurrentScope(d);
 
 	for (auto& ep : d.endpoints()) {
-		auto eit = globalNames.find(ep.name());
+		auto* se = currentScope->resolve(ep.name());
 
-		if (eit == globalNames.end()) {
+		if (!se) {
 			diags.print(undeclaredIdentifier(ep));
 			continue;
 		}
 
-		auto epDef = dynamic_cast<Endpoint*>(eit->second);
-		if (!epDef)
+		if (!dynamic_cast<Endpoint*>(se)) {
 			diags.print(
 				identifierIsNoEndpoint(Identifier(ep.sloc(), ep.name())),
-				declaredHere(eit->second->sloc()));
+				declaredHere(se->sloc()));
+		}
 	}
 }
 
 void SemanticVisitor::checkState(State& s)
 {
-	scopes.enter();
+	StackedScope stateScope(currentScope);
+
 	for (auto& var : s.variables())
 		var.accept(*this);
 	for (auto& on : s.onBlocks())
 		on->accept(*this);
 	for (auto& stmt : s.statements())
 		stmt->accept(*this);
-	scopes.leave();
 }
 
 void SemanticVisitor::checkMachineBody(MachineBody& m)
@@ -955,28 +965,31 @@ void SemanticVisitor::checkMachineBody(MachineBody& m)
 				previouslyDeclaredHere(res.first->second->sloc()));
 	}
 
-	scopes.enter();
+	StackedScope machineScope(currentScope);
+
 	for (auto& var : m.variables())
 		var->accept(*this);
 	for (auto& state : m.states())
 		checkState(state);
-	scopes.leave();
 }
 
 void SemanticVisitor::visit(MachineClass& m)
 {
-	declareGlobalName(m, m.name().name());
+	declareInCurrentScope(m);
 
 	if (!m.parameters().size())
 		diags.print(classWithoutParameters(m));
 
+	StackedScope classScope(currentScope);
+
 	for (auto& param : m.parameters()) {
-		auto res = classParams.insert({ param->name(), { *param } });
+		auto res = currentScope->insert(*param);
+		classParams.emplace(param->identifier(), *param);
 
 		if (!res.second)
 			diags.print(
 				classParamRedefined(*param),
-				previouslyDeclaredHere(res.first->second.parameter.sloc()));
+				previouslyDeclaredHere(res.first->sloc()));
 	}
 
 	checkMachineBody(m);
@@ -991,29 +1004,32 @@ void SemanticVisitor::visit(MachineClass& m)
 
 void SemanticVisitor::visit(MachineDefinition& m)
 {
-	declareGlobalName(m, m.name().name());
+	declareInCurrentScope(m);
 	checkMachineBody(m);
 }
 
 void SemanticVisitor::visit(MachineInstantiation& m)
 {
-	declareGlobalName(m, m.name().name());
+	declareInCurrentScope(m);
 
-	auto mit = globalNames.find(m.instanceOf().name());
-	if (mit == globalNames.end()) {
+	auto* se = currentScope->resolve(m.instanceOf().name());
+
+	if (!se) {
 		diags.print(undeclaredIdentifier(m.instanceOf()));
 		return;
 	}
 
-	auto mclass = dynamic_cast<MachineClass*>(mit->second);
+	auto mclass = dynamic_cast<MachineClass*>(se);
 	if (!mclass) {
 		diags.print(
 			identifierIsNoClass(m.instanceOf()),
-			declaredHere(mit->second->sloc()));
+			declaredHere(se->sloc()));
 		return;
 	}
 
 	m.baseClass(mclass);
+
+	StackedScope machineScope(currentScope);
 
 	if (m.arguments().size() != mclass->parameters().size()) {
 		diags.print(invalidClassArgCount(m, mclass->parameters().size()));
@@ -1039,13 +1055,15 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 
 			case ClassParameter::Kind::Device:
 				if (auto id = dynamic_cast<IdentifierExpr*>(arg->get())) {
-					auto dev = globalNames.find(id->name());
-					if (dev == globalNames.end())
+					auto se = currentScope->resolve(id->name());
+					auto dev = dynamic_cast<Device*>(se);
+
+					if (!se)
 						diags.print(undeclaredIdentifier(Identifier(id->sloc(), id->name())));
-					else if (auto decl = dynamic_cast<Device*>(dev->second))
-						classParams.insert({ (*param)->name(), { **param, decl } });
-					else
+					else if (!dev)
 						diags.print(identifierIsNoDevice(Identifier(id->sloc(), id->name())));
+					else
+						classParams.insert({ (*param)->name(), { **param, dev } });
 				} else {
 					diags.print(classArgumentInvalid((*arg)->sloc(), **param));
 				}
@@ -1053,13 +1071,15 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 
 			case ClassParameter::Kind::Endpoint:
 				if (auto id = dynamic_cast<IdentifierExpr*>(arg->get())) {
-					auto ep = globalNames.find(id->name());
-					if (ep == globalNames.end())
+					auto se = currentScope->resolve(id->name());
+					auto ep = dynamic_cast<Endpoint*>(se);
+
+					if (!se)
 						diags.print(undeclaredIdentifier(Identifier(id->sloc(), id->name())));
-					else if (auto decl = dynamic_cast<Endpoint*>(ep->second))
-						classParams.insert({ (*param)->name(), { **param, decl } });
-					else
+					else if (!ep)
 						diags.print(identifierIsNoEndpoint(Identifier(id->sloc(), id->name())));
+					else
+						classParams.insert({ (*param)->name(), { **param, ep } });
 				} else {
 					diags.print(classArgumentInvalid((*arg)->sloc(), **param));
 				}
@@ -1073,7 +1093,10 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 		auto hint = diags.useHint(m.sloc(), "instantiated from here");
 
 		if (diags.errorCount() == previousErrorCount && classParams.size() == mclass->parameters().size()) {
-			InstantiationVisitor iv(globalNames);
+			for (auto& param : mclass->parameters())
+				currentScope->insert(dynamic_cast<Declaration&>(*param));
+
+			InstantiationVisitor iv(*currentScope);
 			m.accept(iv);
 			checkMachineBody(*m.instantiation());
 		}
@@ -1088,9 +1111,7 @@ void SemanticVisitor::visit(IncludeLine& i)
 
 void SemanticVisitor::visit(TranslationUnit& t)
 {
-	globalNames.clear();
 	endpointsByEID.clear();
-	scopes = ScopeStack();
 
 	for (auto& item : t.items())
 		item->accept(*this);

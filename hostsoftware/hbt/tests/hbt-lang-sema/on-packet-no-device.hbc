@@ -1,5 +1,5 @@
 machine m {
-	bool dev = false;
+	bool dev = false; //#expect: hint: declared here
 	state init {
 		on packet from dev { //#expect: error: identifier 'dev' does not name a device
 		}

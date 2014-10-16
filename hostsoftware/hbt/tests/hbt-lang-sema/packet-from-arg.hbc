@@ -1,0 +1,10 @@
+device dev(::) : ;
+
+class c(device d) {
+	state init {
+		on packet from d {
+		}
+	}
+};
+
+machine m : c(dev);

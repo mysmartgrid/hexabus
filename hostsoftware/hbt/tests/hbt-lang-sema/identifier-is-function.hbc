@@ -2,10 +2,13 @@ machine m {
 	state init {
 		bool second = minute.hour; //#expect: error: identifier 'minute' does not name a device
 		                           //#expect+: error: identifier 'hour' does not name an endpoint
-		                           //#expect+: error: redeclaration of 'second'
+		                           //#expect+: @<builtin>hint: declared here
+		                           //#expect+: @<builtin>hint: declared here
+		                           //#expect+: @<builtin>hint: declared here
 
-		on packet from day {} //#expect: error: 'day' names a function
+		on packet from day {} //#expect: error: identifier 'day' does not name a device
+		                      //#expect: @<builtin>hint: declared here
 
-		month = 1; //#expect: error: 'month' names a function
+		month = 1; //#expect: error: cannot assign to 'month'
 	}
 };

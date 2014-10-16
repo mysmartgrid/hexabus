@@ -80,11 +80,17 @@ static pass_type runSemaExpect(const std::vector<std::pair<unsigned, std::string
 					patternRegex << "\\x" << std::hex << std::setw(2) << unsigned((unsigned char) c);
 			};
 
-			patternRegex << "^";
-			appendEscapedRegex(filePath);
-			patternRegex << ":" << std::dec << std::setw(0) << pattern.first << ":\\d+: .*?";
-
 			auto expected = pattern.second;
+
+			patternRegex << "^";
+			if (expected.find("@<builtin>") == 0) {
+				patternRegex << "<builtin>:0:0: .*?";
+				expected = expected.substr(strlen("@<builtin>"));
+			} else {
+				appendEscapedRegex(filePath);
+				patternRegex << ":" << std::dec << std::setw(0) << pattern.first << ":\\d+: .*?";
+			}
+
 			do {
 				auto beginRe = expected.find("{{");
 				if (beginRe == 0) {

@@ -1,10 +1,11 @@
 #ifndef LIB_LANG_INSTANTIATIONVISITOR_HPP_937EC712DE60D9BB
 #define LIB_LANG_INSTANTIATIONVISITOR_HPP_937EC712DE60D9BB
 
-#include "Lang/ast.hpp"
-
 #include <map>
 #include <memory>
+
+#include "Lang/ast.hpp"
+#include "Lang/sema-scope.hpp"
 
 namespace hbt {
 namespace lang {
@@ -15,13 +16,13 @@ private:
 	std::unique_ptr<Stmt> _stmt;
 	std::unique_ptr<OnBlock> _onBlock;
 
-	std::map<IdentifiedValue*, Expr*> cpValues;
-	std::map<IdentifiedDevice*, Device*> cpDevices;
-	std::map<IdentifiedEndpoint*, Endpoint*> cpEndpoints;
+	std::map<Declaration*, Expr*> cpValues;
+	std::map<Declaration*, Device*> cpDevices;
+	std::map<Declaration*, Endpoint*> cpEndpoints;
 
-	std::map<IdentifiedValue*, DeclarationStmt*> declClones;
+	std::map<Declaration*, DeclarationStmt*> declClones;
 
-	std::map<std::string, ProgramPart*>& globals;
+	Scope& scope;
 
 	std::unique_ptr<Expr> clone(Expr& e);
 	std::unique_ptr<Stmt> clone(Stmt& e);
@@ -29,8 +30,8 @@ private:
 	State clone(State& e);
 
 public:
-	InstantiationVisitor(std::map<std::string, ProgramPart*>& globals)
-		: globals(globals)
+	InstantiationVisitor(Scope& scope)
+		: scope(scope)
 	{}
 
 	virtual void visit(IdentifierExpr&) override;
