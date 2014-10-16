@@ -72,10 +72,13 @@ void InstantiationVisitor::visit(ConditionalExpr& c)
 
 void InstantiationVisitor::visit(EndpointExpr& e)
 {
+	auto devId = cpDevices.count(e.device()) ? cpDevices.at(e.device())->name() : e.deviceId();
+	auto epId = cpEndpoints.count(e.endpoint()) ? cpEndpoints.at(e.endpoint())->name() : e.endpointId();
+
 	auto dev = cpDevices.count(e.device()) ? cpDevices.at(e.device()) : e.device();
 	auto ep = cpEndpoints.count(e.endpoint()) ? cpEndpoints.at(e.endpoint()) : e.endpoint();
 
-	std::unique_ptr<EndpointExpr> ec(new EndpointExpr(e.sloc(), e.deviceId(), e.endpointId(), e.type()));
+	std::unique_ptr<EndpointExpr> ec(new EndpointExpr(e.sloc(), devId, epId, e.type()));
 	ec->device(dev);
 	ec->endpoint(ep);
 	_expr = std::move(ec);
