@@ -160,10 +160,6 @@ public:
 	virtual void visit(ConditionalExpr&) override;
 	virtual void visit(EndpointExpr&) override;
 	virtual void visit(CallExpr&) override;
-	virtual void visit(PacketEIDExpr&) override;
-	virtual void visit(PacketValueExpr&) override;
-	virtual void visit(SysTimeExpr&) override;
-	virtual void visit(TimeoutExpr&) override;
 
 	virtual void visit(AssignStmt&) override;
 	virtual void visit(WriteStmt&) override;
@@ -374,31 +370,12 @@ void CodegenVisitor::visit(CallExpr& c)
 		current().append(mc::Opcode::DT_DECOMPOSE, mc::DTMask::year);
 	else if (c.name().name() == "weekday")
 		current().append(mc::Opcode::DT_DECOMPOSE, mc::DTMask::weekday);
+	else if (c.name().name() == "now")
+		current().append(mc::Opcode::LD_SYSTIME);
 	else
 		die("unknown functions");
 
 	temporarySlotsUsed -= c.arguments().size();
-}
-
-void CodegenVisitor::visit(PacketEIDExpr&)
-{
-	if (!currentPacketSource)
-		die("packet access outside of on packet");
-
-	current().append(mc::Opcode::LD_SOURCE_EID);
-}
-
-void CodegenVisitor::visit(PacketValueExpr&)
-{
-	if (!currentPacketSource)
-		die("packet access outside of on packet");
-
-	current().append(mc::Opcode::LD_SOURCE_VAL);
-}
-
-void CodegenVisitor::visit(SysTimeExpr&)
-{
-	current().append(mc::Opcode::LD_SYSTIME);
 }
 
 void CodegenVisitor::visit(AssignStmt& s)
@@ -550,7 +527,6 @@ void CodegenVisitor::visit(OnPacketBlock& o)
 }
 
 void CodegenVisitor::visit(OnExprBlock&) {die("expression-triggered on blocks");}
-void CodegenVisitor::visit(TimeoutExpr&) { die("timeout expressions"); }
 void CodegenVisitor::visit(MachineInstantiation&) { die("machine instantiations"); }
 
 // nothing to do here

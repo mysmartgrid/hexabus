@@ -335,13 +335,14 @@ public:
 SemanticVisitor::SemanticVisitor(DiagnosticOutput& diagOut)
 	: diags(diagOut), currentScope(&globalScope)
 {
-	builtinFunctions.emplace_back("second");
-	builtinFunctions.emplace_back("minute");
-	builtinFunctions.emplace_back("hour");
-	builtinFunctions.emplace_back("day");
-	builtinFunctions.emplace_back("month");
-	builtinFunctions.emplace_back("year");
-	builtinFunctions.emplace_back("weekday");
+	builtinFunctions.emplace_back(BuiltinFunction("second", Type::Int32, { Type::Int64 }));
+	builtinFunctions.emplace_back(BuiltinFunction("minute", Type::Int32, { Type::Int64 }));
+	builtinFunctions.emplace_back(BuiltinFunction("hour", Type::Int32, { Type::Int64 }));
+	builtinFunctions.emplace_back(BuiltinFunction("day", Type::Int32, { Type::Int64 }));
+	builtinFunctions.emplace_back(BuiltinFunction("month", Type::Int32, { Type::Int64 }));
+	builtinFunctions.emplace_back(BuiltinFunction("year", Type::Int32, { Type::Int64 }));
+	builtinFunctions.emplace_back(BuiltinFunction("weekday", Type::Int32, { Type::Int64 }));
+	builtinFunctions.emplace_back(BuiltinFunction("now", Type::Int64, {}));
 
 	for (auto& builtin : builtinFunctions)
 		globalScope.insert(builtin);
@@ -727,27 +728,24 @@ void SemanticVisitor::visit(CallExpr& c)
 		return;
 	}
 
-	c.type(Type::Int32);
+	c.type(fun->returnType());
+	c.target(fun);
 
-	if (c.arguments().size() != 1)
-		diags.print(invalidCallArgCount(c, 1));
+	if (c.arguments().size() != fun->argumentTypes().size())
+		diags.print(invalidCallArgCount(c, fun->argumentTypes().size()));
 
-	if (c.arguments().size() < 1)
-		return;
+	auto ait = c.arguments().begin(), aend = c.arguments().end();
+	auto tit = fun->argumentTypes().begin(), tend = fun->argumentTypes().end();
+	bool incomplete = false;
 
-	auto& arg0 = *c.arguments()[0];
+	for (; ait != aend && tit != tend; ++ait, ++tit) {
+		if (!isContextuallyConvertibleTo(**ait, *tit))
+			diags.print(invalidArgType(c, *tit, ait - c.arguments().begin()));
+		incomplete |= (*ait)->isIncomplete();
+	}
 
-	if (!isContextuallyConvertibleTo(arg0, Type::Int64))
-		diags.print(invalidArgType(c, Type::Int64, 0));
-
-	c.isIncomplete(arg0.isIncomplete());
+	c.isIncomplete(incomplete);
 }
-
-// nothing to do for these
-void SemanticVisitor::visit(PacketEIDExpr&) {}
-void SemanticVisitor::visit(PacketValueExpr&) {}
-void SemanticVisitor::visit(SysTimeExpr&) {}
-void SemanticVisitor::visit(TimeoutExpr&) {}
 
 void SemanticVisitor::visit(AssignStmt& a)
 {

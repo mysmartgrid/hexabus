@@ -210,26 +210,6 @@ void ASTPrinter::visit(CallExpr& c)
 	out << ")";
 }
 
-void ASTPrinter::visit(PacketEIDExpr& p)
-{
-	out << "@eid";
-}
-
-void ASTPrinter::visit(PacketValueExpr& p)
-{
-	out << "@value<" << typeName(p.type()) << ">";
-}
-
-void ASTPrinter::visit(SysTimeExpr& p)
-{
-	out << "@time";
-}
-
-void ASTPrinter::visit(TimeoutExpr& t)
-{
-	out << "@since";
-}
-
 void ASTPrinter::visit(AssignStmt& a)
 {
 	indent();

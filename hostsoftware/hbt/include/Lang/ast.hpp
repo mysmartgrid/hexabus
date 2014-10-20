@@ -61,10 +61,6 @@ class BinaryExpr;
 class ConditionalExpr;
 class EndpointExpr;
 class CallExpr;
-class PacketEIDExpr;
-class PacketValueExpr;
-class SysTimeExpr;
-class TimeoutExpr;
 class AssignStmt;
 class WriteStmt;
 class IfStmt;
@@ -115,10 +111,6 @@ struct ASTVisitor {
 	virtual void visit(ConditionalExpr&) = 0;
 	virtual void visit(EndpointExpr&) = 0;
 	virtual void visit(CallExpr&) = 0;
-	virtual void visit(PacketEIDExpr&) = 0;
-	virtual void visit(PacketValueExpr&) = 0;
-	virtual void visit(SysTimeExpr&) = 0;
-	virtual void visit(TimeoutExpr&) = 0;
 
 	virtual void visit(AssignStmt&) = 0;
 	virtual void visit(WriteStmt&) = 0;
@@ -425,62 +417,18 @@ class CallExpr : public Expr {
 private:
 	Identifier _name;
 	std::vector<ptr_t> _arguments;
+	Declaration* _target;
 
 public:
 	CallExpr(const SourceLocation& sloc, const Identifier& name, std::vector<ptr_t> arguments, Type type)
-		: Expr(sloc, type), _name(name), _arguments(std::move(arguments))
+		: Expr(sloc, type), _name(name), _arguments(std::move(arguments)), _target(nullptr)
 	{}
 
 	const Identifier& name() const { return _name; }
 	std::vector<ptr_t>& arguments() { return _arguments; }
+	Declaration* target() { return _target; }
 
-	virtual void accept(ASTVisitor& v)
-	{
-		v.visit(*this);
-	}
-};
-
-class PacketEIDExpr : public Expr {
-public:
-	PacketEIDExpr(const SourceLocation& sloc)
-		: Expr(sloc, Type::UInt32)
-	{}
-
-	virtual void accept(ASTVisitor& v)
-	{
-		v.visit(*this);
-	}
-};
-
-class PacketValueExpr : public Expr {
-public:
-	PacketValueExpr(const SourceLocation& sloc, Type t)
-		: Expr(sloc, t)
-	{}
-
-	virtual void accept(ASTVisitor& v)
-	{
-		v.visit(*this);
-	}
-};
-
-class TimeoutExpr : public Expr {
-public:
-	TimeoutExpr(const SourceLocation& sloc)
-		: Expr(sloc, Type::UInt32)
-	{}
-
-	virtual void accept(ASTVisitor& v)
-	{
-		v.visit(*this);
-	}
-};
-
-class SysTimeExpr : public Expr {
-public:
-	SysTimeExpr(const SourceLocation& sloc)
-		: Expr(sloc, Type::Int64)
-	{}
+	void target(Declaration* d) { _target = d; }
 
 	virtual void accept(ASTVisitor& v)
 	{

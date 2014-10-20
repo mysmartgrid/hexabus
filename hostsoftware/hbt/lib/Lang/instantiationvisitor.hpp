@@ -51,10 +51,6 @@ public:
 	virtual void visit(ConditionalExpr&) override;
 	virtual void visit(EndpointExpr&) override;
 	virtual void visit(CallExpr&) override;
-	virtual void visit(PacketEIDExpr&) override;
-	virtual void visit(PacketValueExpr&) override;
-	virtual void visit(SysTimeExpr&) override;
-	virtual void visit(TimeoutExpr&) override;
 
 	virtual void visit(AssignStmt&) override;
 	virtual void visit(WriteStmt&) override;

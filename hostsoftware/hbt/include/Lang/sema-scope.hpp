@@ -3,6 +3,7 @@
 
 #include <map>
 #include <memory>
+#include <vector>
 
 #include "Lang/ast.hpp"
 
@@ -15,14 +16,18 @@ private:
 	static SourceLocation builtinSloc;
 
 	std::string _name;
+	Type _returnType;
+	std::vector<Type> _argumentTypes;
 
 public:
-	BuiltinFunction(std::string name)
-		: _name(std::move(name))
+	BuiltinFunction(std::string name, Type retType, std::vector<Type> argTypes)
+		: _name(std::move(name)), _returnType(retType), _argumentTypes(std::move(argTypes))
 	{}
 
 	const SourceLocation& sloc() const override { return builtinSloc; }
 	const std::string& identifier() const { return _name; }
+	Type returnType() const { return _returnType; }
+	const std::vector<Type>& argumentTypes() const { return _argumentTypes; }
 };
 
 

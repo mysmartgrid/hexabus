@@ -92,12 +92,8 @@ void InstantiationVisitor::visit(CallExpr& c)
 		args.emplace_back(clone(*arg));
 
 	_expr.reset(new CallExpr(c.sloc(), c.name(), std::move(args), c.type()));
+	static_cast<CallExpr&>(*_expr).target(c.target());
 }
-
-void InstantiationVisitor::visit(PacketEIDExpr& p) { _expr.reset(new auto(p)); }
-void InstantiationVisitor::visit(PacketValueExpr& p) { _expr.reset(new auto(p)); }
-void InstantiationVisitor::visit(SysTimeExpr& s) { _expr.reset(new auto(s)); }
-void InstantiationVisitor::visit(TimeoutExpr& t) { _expr.reset(new auto(t)); }
 
 void InstantiationVisitor::visit(AssignStmt& a)
 {
