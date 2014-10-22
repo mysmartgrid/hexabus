@@ -593,7 +593,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 					return new BlockStmt(locOf(r), move(block));
 				}];
 
-		s.block.name("declaration statement");
+		s.decl.name("declaration statement");
 		s.decl =
 			(
 				datatype
