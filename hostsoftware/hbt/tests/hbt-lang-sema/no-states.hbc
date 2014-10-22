@@ -1,0 +1,6 @@
+class c(uint8 a) { //#expect: error: class c has no states
+	uint8 x = a;
+};
+
+machine m { //#expect: error: machine m has no states
+};

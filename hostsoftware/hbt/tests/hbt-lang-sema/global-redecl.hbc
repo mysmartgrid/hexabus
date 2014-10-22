@@ -8,15 +8,15 @@ device d(::) : e; //#expect: error: redeclaration of 'd'
 device minute(::) : e; //#expect: error: redeclaration of 'minute'
 		               //#expect+: @<builtin>hint: previously declared here
 
-class c(bool x) { bool b = x; }; //#expect: previously declared here
-class c(bool x) { bool b = x; }; //#expect: error: redeclaration of 'c'
-class second(bool x) { bool b0 = x; }; //#expect: error: redeclaration of 'second'
-		                               //#expect+: @<builtin>hint: previously declared here
+class c(bool x) { bool b = x; state s {} }; //#expect: previously declared here
+class c(bool x) { bool b = x; state s {} }; //#expect: error: redeclaration of 'c'
+class second(bool x) { bool b0 = x; state s{} }; //#expect: error: redeclaration of 'second'
+		                                         //#expect+: @<builtin>hint: previously declared here
 
-machine mdef {}; //#expect: previously declared here
-machine mdef {}; //#expect: error: redeclaration of 'mdef'
-machine day {}; //#expect: error: redeclaration of 'day'
-		        //#expect+: @<builtin>hint: previously declared here
+machine mdef { state s {} }; //#expect: previously declared here
+machine mdef { state s {} }; //#expect: error: redeclaration of 'mdef'
+machine day { state s {} }; //#expect: error: redeclaration of 'day'
+		                   //#expect+: @<builtin>hint: previously declared here
 
 machine minst : c(true); //#expect: previously declared here
 machine minst : c(true); //#expect: error: redeclaration of 'minst'

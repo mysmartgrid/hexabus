@@ -261,6 +261,16 @@ static Diagnostic gotoForbiddenIn(const GotoStmt& g, const char* scope)
 	return { DiagnosticKind::Error, &g.sloc(), str(format("invalid use of goto in %1%") % scope) };
 }
 
+static Diagnostic classWithoutStates(const MachineClass& m)
+{
+	return { DiagnosticKind::Error, &m.sloc(), str(format("class %1% has no states") % m.name().name()) };
+}
+
+static Diagnostic machineWithoutStates(const MachineDefinition& m)
+{
+	return { DiagnosticKind::Error, &m.sloc(), str(format("machine %1% has no states") % m.name().name()) };
+}
+
 
 
 template<typename T>
@@ -990,6 +1000,8 @@ void SemanticVisitor::visit(MachineClass& m)
 
 	if (!m.parameters().size())
 		diags.print(classWithoutParameters(m));
+	if (!m.states().size())
+		diags.print(classWithoutStates(m));
 
 	StackedScope classScope(currentScope);
 
@@ -1016,6 +1028,10 @@ void SemanticVisitor::visit(MachineClass& m)
 void SemanticVisitor::visit(MachineDefinition& m)
 {
 	declareInCurrentScope(m);
+
+	if (!m.states().size())
+		diags.print(machineWithoutStates(m));
+
 	checkMachineBody(m);
 }
 

@@ -7,4 +7,6 @@ machine m {
 	float f3 = 1 << f; //#expect: error: invalid types in binary expression (int32 and float)
 	                   //#expect+: error: invalid implicit type conversion from int32 to float
 	bool b2 = !1; //#expect: error: invalid type int32 in unary expression
+
+	state s {}
 };
