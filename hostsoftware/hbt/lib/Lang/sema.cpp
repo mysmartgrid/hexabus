@@ -256,6 +256,11 @@ static Diagnostic cannotAssignTo(const Identifier& id)
 	return { DiagnosticKind::Error, &id.sloc(), str(format("cannot assign to '%1%'") % id.name()) };
 }
 
+static Diagnostic gotoForbiddenIn(const GotoStmt& g, const char* scope)
+{
+	return { DiagnosticKind::Error, &g.sloc(), str(format("invalid use of goto in %1%") % scope) };
+}
+
 
 
 template<typename T>
@@ -333,7 +338,7 @@ public:
 
 
 SemanticVisitor::SemanticVisitor(DiagnosticOutput& diagOut)
-	: diags(diagOut), currentScope(&globalScope)
+	: diags(diagOut), currentScope(&globalScope), gotoExclusionScope(nullptr)
 {
 	builtinFunctions.emplace_back(BuiltinFunction("second", Type::Int32, { Type::Int64 }));
 	builtinFunctions.emplace_back(BuiltinFunction("minute", Type::Int32, { Type::Int64 }));
@@ -857,13 +862,21 @@ void SemanticVisitor::visit(DeclarationStmt& d)
 
 void SemanticVisitor::visit(GotoStmt& g)
 {
+	if (gotoExclusionScope)
+		diags.print(gotoForbiddenIn(g, gotoExclusionScope));
 	if (!knownStates.count(g.state().name()))
 		diags.print(undeclaredIdentifier(g.state()));
 }
 
 void SemanticVisitor::visit(OnSimpleBlock& o)
 {
+	switch (o.trigger()) {
+	case OnSimpleTrigger::Entry: gotoExclusionScope = "on entry block"; break;
+	case OnSimpleTrigger::Exit: gotoExclusionScope = "on exit block"; break;
+	default: break;
+	}
 	o.block().accept(*this);
+	gotoExclusionScope = nullptr;
 }
 
 void SemanticVisitor::visit(OnPacketBlock& o)

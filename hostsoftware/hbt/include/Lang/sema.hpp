@@ -58,6 +58,8 @@ private:
 	Scope globalScope;
 	Scope* currentScope;
 
+	const char* gotoExclusionScope;
+
 	void declareInCurrentScope(Declaration& decl);
 
 	void checkState(State& s);
