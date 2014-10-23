@@ -4,7 +4,9 @@ device dev(::) : ep;
 machine m { //#expect: hint: declared here
             //#expect+: hint: declared here
 	state init {
-		m.ep = false; //#expect: error: identifier 'm' does not name a device
-		dev.m = false; //#expect: error: identifier 'm' does not name an endpoint
+		always {
+			m.ep = false; //#expect: error: identifier 'm' does not name a device
+			dev.m = false; //#expect: error: identifier 'm' does not name an endpoint
+		}
 	}
 };

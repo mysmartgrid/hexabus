@@ -455,9 +455,10 @@ void ASTPrinter::printState(State& s)
 	if (s.onBlocks().size())
 		out << "\n";
 
-	for (auto& st : s.statements()) {
-		out << "\n";
-		st->accept(*this);
+	if (s.always()) {
+		out << "always ";
+		_skipIndent = true;
+		s.always()->accept(*this);
 	}
 
 	_indent--;

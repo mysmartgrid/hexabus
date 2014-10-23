@@ -1,7 +1,9 @@
 class c(int8 x) {
 	state init {
-		if (x > 0)
-			goto init;
+		always {
+			if (x > 0)
+				goto init;
+		}
 	}
 };
 

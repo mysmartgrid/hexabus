@@ -191,16 +191,17 @@ State InstantiationVisitor::clone(State& s)
 {
 	std::vector<DeclarationStmt> decls;
 	std::vector<std::unique_ptr<OnBlock>> onBlocks;
-	std::vector<std::unique_ptr<Stmt>> statements;
+	std::unique_ptr<BlockStmt> always;
 
 	for (auto& decl : s.variables())
 		decls.push_back(std::move(static_cast<DeclarationStmt&>(*clone(decl))));
 	for (auto& on : s.onBlocks())
 		onBlocks.push_back(clone(*on));
-	for (auto& stmt : s.statements())
-		statements.push_back(clone(*stmt));
 
-	return { s.sloc(), s.name(), std::move(decls), std::move(onBlocks), std::move(statements) };
+	if (s.always())
+		always.reset(static_cast<BlockStmt*>(clone(*s.always()).release()));
+
+	return { s.sloc(), s.name(), std::move(decls), std::move(onBlocks), std::move(always) };
 }
 
 void InstantiationVisitor::visit(MachineClass&) {}

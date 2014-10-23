@@ -3,11 +3,13 @@ machine m {
 	bool b = A.B; //#expect: error: use of undeclared identifier 'A'
 	              //#expect+: error: use of undeclared identifier 'B'
 	state init {
-		if (Z) //#expect: error: use of undeclared identifier 'Z'
-			goto i; //#expect: error: use of undeclared identifier 'i'
+		always {
+			if (Z) //#expect: error: use of undeclared identifier 'Z'
+				goto i; //#expect: error: use of undeclared identifier 'i'
 
-		if (b || t) //#expect: error: use of undeclared identifier 't'
-			goto init;
+			if (b || t) //#expect: error: use of undeclared identifier 't'
+				goto init;
+		}
 	}
 };
 
@@ -15,10 +17,11 @@ class c (device dev, endpoint ep) {
 	state init {
 		on packet from D { //#expect: error: use of undeclared identifier 'D'
 		}
-
-		dev.ep = 8;
-		x = 7; //#expect: error: use of undeclared identifier 'x'
-		goto u; //#expect: error: use of undeclared identifier 'u'
+		always {
+			dev.ep = 8;
+			x = 7; //#expect: error: use of undeclared identifier 'x'
+			goto u; //#expect: error: use of undeclared identifier 'u'
+		}
 	}
 };
 

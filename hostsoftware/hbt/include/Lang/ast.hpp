@@ -706,20 +706,20 @@ private:
 	Identifier _name;
 	std::vector<DeclarationStmt> _variables;
 	std::vector<std::unique_ptr<OnBlock>> _onBlocks;
-	std::vector<std::unique_ptr<Stmt>> _statements;
+	std::unique_ptr<BlockStmt> _always;
 
 public:
 	State(const SourceLocation& sloc, const Identifier& name, std::vector<DeclarationStmt> variables,
-			decltype(_onBlocks) onBlocks, decltype(_statements) statements)
+			decltype(_onBlocks) onBlocks, decltype(_always) always)
 		: _sloc(sloc), _name(name), _variables(std::move(variables)),
-		  _onBlocks(std::move(onBlocks)), _statements(std::move(statements))
+		  _onBlocks(std::move(onBlocks)), _always(std::move(always))
 	{}
 
 	const SourceLocation& sloc() const { return _sloc; }
 	const Identifier& name() const { return _name; }
 	std::vector<DeclarationStmt>& variables() { return _variables; }
 	std::vector<std::unique_ptr<OnBlock>>& onBlocks() { return _onBlocks; }
-	std::vector<std::unique_ptr<Stmt>>& statements() { return _statements; }
+	BlockStmt* always() { return _always.get(); }
 };
 
 

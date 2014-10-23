@@ -1,9 +1,11 @@
 machine m {
 	state init {
-		bool b = true; //#expect: hint: declared here
-		bool c = false; //#expect: hint: declared here
+		always {
+			bool b = true; //#expect: hint: declared here
+			bool c = false; //#expect: hint: declared here
 
-		b.c = 7; //#expect: error: identifier 'b' does not name a device
-		         //#expect+: error: identifier 'c' does not name an endpoint
+			b.c = 7; //#expect: error: identifier 'b' does not name a device
+			         //#expect+: error: identifier 'c' does not name an endpoint
+		}
 	}
 };

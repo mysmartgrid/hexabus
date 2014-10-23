@@ -590,12 +590,11 @@ void CodegenVisitor::visit(MachineDefinition& m)
 		builder.onPacket(packetSwitchBlock.entryLabel);
 	}
 
-	if (m.states()[0].statements().size()) {
+	if (m.states()[0].always()) {
 		currentPacketSource = nullptr;
 		blocks.push_back(&stmtBlock);
 
-		for (auto& s : m.states()[0].statements())
-			s->accept(*this);
+		m.states()[0].always()->accept(*this);
 
 		blocks.pop_back();
 	}

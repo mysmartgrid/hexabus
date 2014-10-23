@@ -1,11 +1,13 @@
 class c(int8 div, int8 inval) {
 	state init {
-		uint32 val = 42 + (inval != 0 ? 0 : 0);
+		always {
+			uint32 val = 42 + (inval != 0 ? 0 : 0);
 
-		switch (val) {
-		case 7 / div: //#expect: error: evaluation of constant expression invokes undefined behaviour
-		case 2 % div: //#expect: error: evaluation of constant expression invokes undefined behaviour
-			{}
+			switch (val) {
+			case 7 / div: //#expect: error: evaluation of constant expression invokes undefined behaviour
+			case 2 % div: //#expect: error: evaluation of constant expression invokes undefined behaviour
+				{}
+			}
 		}
 	}
 };

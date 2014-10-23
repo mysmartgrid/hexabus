@@ -1,6 +1,8 @@
 class c(bool x, bool x) { //#expect: error: redefinition of class parameter x
                           //#expect+: previously declared here
 	state init {
-		if (x) goto init;
+		always {
+			if (x) goto init;
+		}
 	}
 };

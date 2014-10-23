@@ -5,7 +5,9 @@ device d2(::2) : ep;
 
 class c(device dev, endpoint e, uint8 a) {
 	state init {
-		dev.e = a;
+		always {
+			dev.e = a;
+		}
 	}
 };
 

@@ -1,6 +1,8 @@
 class c(device dev, endpoint ep, bool v) {
 	state init {
-		dev.ep = v;
+		always {
+			dev.ep = v;
+		}
 	}
 };
 

@@ -9,6 +9,8 @@ machine m {
 		on packet from day {} //#expect: error: identifier 'day' does not name a device
 		                      //#expect: @<builtin>hint: declared here
 
-		month = 1; //#expect: error: cannot assign to 'month'
+		always {
+			month = 1; //#expect: error: cannot assign to 'month'
+		}
 	}
 };

@@ -969,8 +969,8 @@ void SemanticVisitor::checkState(State& s)
 		var.accept(*this);
 	for (auto& on : s.onBlocks())
 		on->accept(*this);
-	for (auto& stmt : s.statements())
-		stmt->accept(*this);
+	if (s.always())
+		s.always()->accept(*this);
 }
 
 void SemanticVisitor::checkMachineBody(MachineBody& m)

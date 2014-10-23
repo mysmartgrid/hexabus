@@ -3,6 +3,8 @@ device dev(::) : ;
 
 machine m {
 	state init {
-		dev.e = false; //#expect: error: device dev does not implement endpoint e
+		always {
+			dev.e = false; //#expect: error: device dev does not implement endpoint e
+		}
 	}
 };

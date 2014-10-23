@@ -109,6 +109,7 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 		add(word.entry = "entry");
 		add(word.exit = "exit");
 		add(word.periodic = "periodic");
+		add(word.always = "always");
 
 		add(lit.bool_ = "true|false");
 		add(string = R"(\"[^\r\n"]*\")");
@@ -150,7 +151,7 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 	struct {
 		boost::spirit::lex::token_def<>
 			machine, device, endpoint, include, read, write, global_write, broadcast, class_, state, on, if_, else_,
-			switch_, case_, default_, goto_, packet, from, entry, exit, periodic;
+			switch_, case_, default_, goto_, packet, from, entry, exit, periodic, always;
 	} word;
 };
 
@@ -652,11 +653,11 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> omit[tok.lbrace | expected("{")]
 				> *s.decl
 				> *on_block
-				> *statement
+				> -(omit[tok.word.always] > s.block)
 				> omit[tok.rbrace | expected("}")]
 			)[fwd >= [this] (range& r, Identifier* id, std::vector<ptr<DeclarationStmt>>& decls,
-					std::vector<ptr<OnBlock>>& onBlocks, std::vector<ptr<Stmt>>& stmts) {
-				return new State(locOf(r), std::move(*id), unpack(decls), move(onBlocks), move(stmts));
+					std::vector<ptr<OnBlock>>& onBlocks, ptr<BlockStmt>* always) {
+				return new State(locOf(r), std::move(*id), unpack(decls), move(onBlocks), always ? *always : nullptr);
 			}];
 
 		classParam.name("class parameter");
