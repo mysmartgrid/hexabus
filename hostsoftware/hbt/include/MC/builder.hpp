@@ -37,7 +37,7 @@ class Builder {
 	private:
 		size_t _labelMax;
 		std::map<size_t, unsigned> _marked;
-		std::list<Instruction*> _instructions;
+		std::list<std::unique_ptr<Instruction>> _instructions;
 
 		uint8_t _version;
 		std::array<uint8_t, 16> _machine_id;
@@ -48,18 +48,6 @@ class Builder {
 
 	public:
 		Builder(uint8_t version, const std::array<uint8_t, 16>& machine_id);
-
-		Builder(const Builder&) = delete;
-		Builder& operator=(const Builder&) = delete;
-
-		Builder(Builder&& b)
-		{
-			*this = std::forward<Builder>(b);
-		}
-
-		Builder& operator=(Builder&&) = default;
-
-		~Builder();
 
 		void append(boost::optional<Label> l, Opcode op, unsigned line)
 		{
@@ -83,7 +71,9 @@ class Builder {
 
 		void appendInvalid(Opcode op, const std::string& comment, unsigned line)
 		{
-			_instructions.push_back(new InvalidInstruction(op, comment, line));
+			_instructions.push_back(
+				std::unique_ptr<Instruction>(
+					new InvalidInstruction(op, comment, line)));
 		}
 
 		Label createLabel(const std::string& name = "")

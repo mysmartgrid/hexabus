@@ -16,6 +16,16 @@ class range {
 			: _begin(begin), _end(end)
 		{}
 
+		template<typename Range>
+		range(Range& r)
+			: _begin(r.begin()), _end(r.end())
+		{}
+
+		template<typename Range>
+		range(const Range& r)
+			: _begin(r.begin()), _end(r.end())
+		{}
+
 		It begin() const { return _begin; }
 		It end() const { return _end; }
 };
@@ -24,13 +34,6 @@ template<typename It>
 range<It> make_range(It begin, It end)
 {
 	return { begin, end };
-}
-
-template<typename Range>
-auto make_range(const Range& r)
-	-> range<decltype(r.begin())>
-{
-	return { r.begin(), r.end() };
 }
 
 template<typename Container>

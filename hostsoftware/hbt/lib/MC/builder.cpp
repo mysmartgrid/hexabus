@@ -13,12 +13,6 @@ Builder::Builder(uint8_t version, const std::array<uint8_t, 16>& machine_id)
 		throw std::invalid_argument("version");
 }
 
-Builder::~Builder()
-{
-	for (Instruction* i : _instructions)
-		delete i;
-}
-
 void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immediate_t* immed, unsigned line)
 {
 	using boost::get;
@@ -33,6 +27,10 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 
 	if (l)
 		_marked.insert({ l->id(), line });
+
+	auto appendInsn = [&] (Instruction* i) {
+		_instructions.push_back(std::unique_ptr<Instruction>(i));
+	};
 
 	switch (op) {
 	case Opcode::LD_SOURCE_IP:
@@ -76,7 +74,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		if (immed)
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(new Instruction(op, l, line));
+		appendInsn(new Instruction(op, l, line));
 		return;
 
 	case Opcode::LD_U8:
@@ -86,8 +84,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		if (!get<uint8_t>(immed))
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(
-			new ImmediateInstruction<uint8_t>(op, get<uint8_t>(*immed), l, line));
+		appendInsn(new ImmediateInstruction<uint8_t>(op, get<uint8_t>(*immed), l, line));
 		return;
 
 	case Opcode::LD_MEM:
@@ -100,8 +97,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		if (std::get<1>(*ref) > 0xfff)
 			throw InvalidProgram("memory operand address invalid", "");
 
-		_instructions.push_back(
-			new ImmediateInstruction<std::tuple<MemType, uint16_t>>(op, *ref, l, line));
+		appendInsn(new ImmediateInstruction<std::tuple<MemType, uint16_t>>(op, *ref, l, line));
 		return;
 	}
 
@@ -109,72 +105,63 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		if (!get<uint16_t>(immed))
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(
-			new ImmediateInstruction<uint16_t>(op, get<uint16_t>(*immed), l, line));
+		appendInsn(new ImmediateInstruction<uint16_t>(op, get<uint16_t>(*immed), l, line));
 		return;
 
 	case Opcode::LD_U32:
 		if (!get<uint32_t>(immed))
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(
-			new ImmediateInstruction<uint32_t>(op, get<uint32_t>(*immed), l, line));
+		appendInsn(new ImmediateInstruction<uint32_t>(op, get<uint32_t>(*immed), l, line));
 		return;
 
 	case Opcode::LD_U64:
 		if (!get<uint64_t>(immed))
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(
-			new ImmediateInstruction<uint64_t>(op, get<uint64_t>(*immed), l, line));
+		appendInsn(new ImmediateInstruction<uint64_t>(op, get<uint64_t>(*immed), l, line));
 		return;
 
 	case Opcode::LD_S8:
 		if (!get<int8_t>(immed))
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(
-			new ImmediateInstruction<int8_t>(op, get<int8_t>(*immed), l, line));
+		appendInsn(new ImmediateInstruction<int8_t>(op, get<int8_t>(*immed), l, line));
 		return;
 
 	case Opcode::LD_S16:
 		if (!get<int16_t>(immed))
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(
-			new ImmediateInstruction<int16_t>(op, get<int16_t>(*immed), l, line));
+		appendInsn(new ImmediateInstruction<int16_t>(op, get<int16_t>(*immed), l, line));
 		return;
 
 	case Opcode::LD_S32:
 		if (!get<int32_t>(immed))
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(
-			new ImmediateInstruction<int32_t>(op, get<int32_t>(*immed), l, line));
+		appendInsn(new ImmediateInstruction<int32_t>(op, get<int32_t>(*immed), l, line));
 		return;
 
 	case Opcode::LD_S64:
 		if (!get<int64_t>(immed))
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(
-			new ImmediateInstruction<int64_t>(op, get<int64_t>(*immed), l, line));
+		appendInsn(new ImmediateInstruction<int64_t>(op, get<int64_t>(*immed), l, line));
 		return;
 
 	case Opcode::LD_FLOAT:
 		if (!get<float>(immed))
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(
-			new ImmediateInstruction<float>(op, get<float>(*immed), l, line));
+		appendInsn(new ImmediateInstruction<float>(op, get<float>(*immed), l, line));
 		return;
 
 	case Opcode::DT_DECOMPOSE:
 		if (!get<DTMask>(immed) || invalid(get<DTMask>(*immed)))
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(
-			new ImmediateInstruction<DTMask>(op, get<DTMask>(*immed), l, line));
+		appendInsn(new ImmediateInstruction<DTMask>(op, get<DTMask>(*immed), l, line));
 		return;
 
 	case Opcode::SWITCH_8:
@@ -193,8 +180,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 				? Opcode::SWITCH_16
 				: Opcode::SWITCH_32;
 
-		_instructions.push_back(
-			new ImmediateInstruction<SwitchTable>(shortOp, std::move(get<SwitchTable>(*immed)), l, line));
+		appendInsn(new ImmediateInstruction<SwitchTable>(shortOp, std::move(get<SwitchTable>(*immed)), l, line));
 		return;
 	}
 
@@ -202,8 +188,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		if (!get<BlockPart>(immed))
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(
-			new ImmediateInstruction<BlockPart>(op, get<BlockPart>(*immed), l, line));
+		appendInsn(new ImmediateInstruction<BlockPart>(op, get<BlockPart>(*immed), l, line));
 		return;
 
 	case Opcode::JNZ:
@@ -213,8 +198,7 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 		if (!target)
 			throw std::invalid_argument("immed");
 
-		_instructions.push_back(
-			new ImmediateInstruction<Label>(op, *target, l, line));
+		appendInsn(new ImmediateInstruction<Label>(op, *target, l, line));
 		return;
 	}
 	}
@@ -227,32 +211,32 @@ std::unique_ptr<Program> Builder::finish()
 	std::map<size_t, unsigned> markedLabels;
 	std::multimap<size_t, std::pair<Label, unsigned>> labelUses;
 
-	auto useJumpLabel = [&] (Label to, const Instruction* insn) {
+	auto useJumpLabel = [&] (Label to, const Instruction& insn) {
 		if (markedLabels.count(to.id())) {
 			auto&& extra = (
 				boost::format("jump in line %1% to %2% in line %3%")
-					% insn->line() % to.id() % markedLabels[to.id()]
+					% insn.line() % to.id() % markedLabels[to.id()]
 				).str();
 			throw InvalidProgram("backward jump not allowed", extra);
 		}
-		labelUses.insert({ to.id(), { to, insn->line() } });
+		labelUses.insert({ to.id(), { to, insn.line() } });
 	};
 
-	for (const auto* insn : _instructions) {
+	for (const auto& insn : _instructions) {
 		if (insn->label()) {
 			markedLabels.insert({ insn->label()->id(), insn->line() });
 			labelUses.erase(insn->label()->id());
 		}
 
-		if (auto* switchInsn = dynamic_cast<const ImmediateInstruction<SwitchTable>*>(insn)) {
+		if (auto* switchInsn = dynamic_cast<const ImmediateInstruction<SwitchTable>*>(insn.get())) {
 			for (const SwitchEntry& e : switchInsn->immed())
-				useJumpLabel(e.target, insn);
+				useJumpLabel(e.target, *insn);
 
 			continue;
 		}
 
-		if (auto* jumpInsn = dynamic_cast<const ImmediateInstruction<Label>*>(insn)) {
-			useJumpLabel(jumpInsn->immed(), insn);
+		if (auto* jumpInsn = dynamic_cast<const ImmediateInstruction<Label>*>(insn.get())) {
+			useJumpLabel(jumpInsn->immed(), *insn);
 
 			continue;
 		}
@@ -268,12 +252,11 @@ std::unique_ptr<Program> Builder::finish()
 		throw InvalidProgram("jump to undefined label", extra);
 	}
 
-	Program* p = new Program(
+	return std::unique_ptr<Program>(
+		new Program(
 			_version, _machine_id, _on_packet, _on_periodic, _on_init,
-			_instructions.begin(), _instructions.end());
-
-	_instructions.clear();
-	return std::unique_ptr<Program>(p);
+			std::make_move_iterator(_instructions.begin()),
+			std::make_move_iterator(_instructions.end())));
 }
 
 }
