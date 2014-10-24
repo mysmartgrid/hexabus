@@ -472,7 +472,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		errors.machine_id_too_long.name("~machine id~machine id too long");
 		errors.machine_id_too_long = !eps;
 
-		errors.ld_operand.name("~ld operand~immediate | src.(ip | eid | val) | sys.(state | statetime | time)");
+		errors.ld_operand.name("~ld operand~immediate | src.(ip | eid | val) | sys.time");
 		errors.ld_operand = !eps;
 	}
 
