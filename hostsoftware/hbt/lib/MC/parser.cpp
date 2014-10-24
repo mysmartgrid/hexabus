@@ -499,7 +499,17 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 
 	static ir_instruction make_switch(const std::vector<switch_entry>& entries)
 	{
-		return { Opcode::SWITCH_32, ir_instruction::immed_t(entries) };
+		uint32_t maxLabel = 0;
+		for (const auto& e : entries)
+			maxLabel = std::max(maxLabel, e.label);
+
+		auto op = maxLabel <= 255
+			? Opcode::SWITCH_8
+			: maxLabel <= 65535
+				? Opcode::SWITCH_16
+				: Opcode::SWITCH_32;
+
+		return { op, ir_instruction::immed_t(entries) };
 	}
 
 	static bool check_block(const block_immediate& imm)

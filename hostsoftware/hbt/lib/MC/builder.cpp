@@ -167,21 +167,19 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 	case Opcode::SWITCH_8:
 	case Opcode::SWITCH_16:
 	case Opcode::SWITCH_32: {
-		if (!get<SwitchTable>(immed))
-			throw std::invalid_argument("immed");
+		if (auto* st = get<SwitchTable>(immed)) {
+			uint32_t maxLabel = 0;
+			for (const auto& e : *st)
+				maxLabel = std::max(maxLabel, e.label);
 
-		uint32_t maxLabel = 0;
-		for (const auto& e : get<SwitchTable>(*immed))
-			maxLabel = std::max(maxLabel, e.label);
+			if ((op == Opcode::SWITCH_8 && maxLabel > 255)
+					|| (op == Opcode::SWITCH_16 && maxLabel > 65535))
+				throw std::invalid_argument("immed");
 
-		auto shortOp = maxLabel <= 255
-			? Opcode::SWITCH_8
-			: maxLabel <= 65535
-				? Opcode::SWITCH_16
-				: Opcode::SWITCH_32;
-
-		appendInsn(new ImmediateInstruction<SwitchTable>(shortOp, std::move(get<SwitchTable>(*immed)), l, line));
-		return;
+			appendInsn(new ImmediateInstruction<SwitchTable>(op, std::move(*st), l, line));
+			return;
+		}
+		throw std::invalid_argument("immed");
 	}
 
 	case Opcode::CMP_BLOCK:
