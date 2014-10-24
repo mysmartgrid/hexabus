@@ -670,29 +670,29 @@ std::unique_ptr<Program> makeProgram(const ir_program& program)
 
 		const ir_instruction& insn = boost::get<ir_instruction>(line.content);
 		if (!insn.immediate) {
-			builder.append(thisLabel, insn.opcode, line.line);
+			builder.insert(thisLabel, insn.opcode, line.line);
 			continue;
 		}
 
 		using boost::get;
 		if (auto* val = get<uint8_t>(insn.immediate.get_ptr())) {
-			builder.append(thisLabel, insn.opcode, *val, line.line);
+			builder.insert(thisLabel, insn.opcode, *val, line.line);
 		} else if (auto* val = get<uint16_t>(insn.immediate.get_ptr())) {
-			builder.append(thisLabel, insn.opcode, *val, line.line);
+			builder.insert(thisLabel, insn.opcode, *val, line.line);
 		} else if (auto* val = get<uint32_t>(insn.immediate.get_ptr())) {
-			builder.append(thisLabel, insn.opcode, *val, line.line);
+			builder.insert(thisLabel, insn.opcode, *val, line.line);
 		} else if (auto* val = get<uint64_t>(insn.immediate.get_ptr())) {
-			builder.append(thisLabel, insn.opcode, *val, line.line);
+			builder.insert(thisLabel, insn.opcode, *val, line.line);
 		} else if (auto* val = get<int8_t>(insn.immediate.get_ptr())) {
-			builder.append(thisLabel, insn.opcode, *val, line.line);
+			builder.insert(thisLabel, insn.opcode, *val, line.line);
 		} else if (auto* val = get<int16_t>(insn.immediate.get_ptr())) {
-			builder.append(thisLabel, insn.opcode, *val, line.line);
+			builder.insert(thisLabel, insn.opcode, *val, line.line);
 		} else if (auto* val = get<int32_t>(insn.immediate.get_ptr())) {
-			builder.append(thisLabel, insn.opcode, *val, line.line);
+			builder.insert(thisLabel, insn.opcode, *val, line.line);
 		} else if (auto* val = get<int64_t>(insn.immediate.get_ptr())) {
-			builder.append(thisLabel, insn.opcode, *val, line.line);
+			builder.insert(thisLabel, insn.opcode, *val, line.line);
 		} else if (auto* val = get<float>(insn.immediate.get_ptr())) {
-			builder.append(thisLabel, insn.opcode, *val, line.line);
+			builder.insert(thisLabel, insn.opcode, *val, line.line);
 		} else if (auto* val = get<std::vector<switch_entry>>(insn.immediate.get_ptr())) {
 			std::vector<SwitchEntry> entries;
 
@@ -704,7 +704,7 @@ std::unique_ptr<Program> makeProgram(const ir_program& program)
 
 			SwitchTable table(entries.begin(), entries.end());
 
-			builder.append(thisLabel, insn.opcode, std::move(table), line.line);
+			builder.insert(thisLabel, insn.opcode, std::move(table), line.line);
 		} else if (auto* val = get<block_immediate>(insn.immediate.get_ptr())) {
 			std::array<uint8_t, 16> data;
 
@@ -713,13 +713,13 @@ std::unique_ptr<Program> makeProgram(const ir_program& program)
 
 			BlockPart block(val->start, val->block.size(), data);
 
-			builder.append(thisLabel, insn.opcode, block, line.line);
+			builder.insert(thisLabel, insn.opcode, block, line.line);
 		} else if (auto* val = get<DTMask>(insn.immediate.get_ptr())) {
-			builder.append(thisLabel, insn.opcode, *val, line.line);
+			builder.insert(thisLabel, insn.opcode, *val, line.line);
 		} else if (auto* val = get<std::string>(insn.immediate.get_ptr())) {
-			builder.append(thisLabel, insn.opcode, getLabelFor(*val), line.line);
+			builder.insert(thisLabel, insn.opcode, getLabelFor(*val), line.line);
 		} else if (auto* val = get<mem_immediate>(insn.immediate.get_ptr())) {
-			builder.append(thisLabel, insn.opcode, std::make_tuple(val->type, val->addr), line.line);
+			builder.insert(thisLabel, insn.opcode, std::make_tuple(val->type, val->addr), line.line);
 		} else {
 			throw std::runtime_error("internal error: invalid assembler program?");
 		}

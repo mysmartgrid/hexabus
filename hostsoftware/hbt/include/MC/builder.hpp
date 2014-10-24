@@ -3,6 +3,9 @@
 
 #include "MC/instruction.hpp"
 
+#include "Util/iterator.hpp"
+#include "Util/range.hpp"
+
 #include <list>
 #include <map>
 #include <memory>
@@ -35,37 +38,47 @@ class Builder {
 			> immediate_t;
 
 	private:
+		typedef std::list<std::unique_ptr<Instruction>> insn_list;
+	public:
+		typedef util::const_uptr_value_iterator<insn_list, Builder> insn_iterator;
+
+	private:
 		size_t _labelMax;
-		std::list<std::unique_ptr<Instruction>> _instructions;
+		insn_list _instructions;
+		insn_iterator _insertPos;
 
 		uint8_t _version;
 		std::array<uint8_t, 16> _machine_id;
 		boost::optional<Label> _on_packet, _on_periodic, _on_init;
 
-		void appendInstruction(boost::optional<Label> l, Opcode op, const immediate_t* immed,
-				unsigned line);
+		insn_iterator insertInstruction(boost::optional<Label> l, Opcode op,
+			const immediate_t* immed, unsigned line);
 
 	public:
 		Builder(uint8_t version, const std::array<uint8_t, 16>& machine_id);
 
-		void append(boost::optional<Label> l, Opcode op, unsigned line)
+		util::range<insn_iterator> instructions() const { return _instructions; }
+
+		void insertBefore(insn_iterator i) { _insertPos = i; }
+
+		insn_iterator insert(boost::optional<Label> l, Opcode op, unsigned line)
 		{
-			appendInstruction(l, op, nullptr, line);
+			return insertInstruction(l, op, nullptr, line);
 		}
 
-		void append(Opcode op, unsigned line)
+		insn_iterator insert(Opcode op, unsigned line)
 		{
-			appendInstruction(boost::none_t(), op, nullptr, line);
+			return insertInstruction(boost::none_t(), op, nullptr, line);
 		}
 
-		void append(boost::optional<Label> l, Opcode op, immediate_t&& immed, unsigned line)
+		insn_iterator insert(boost::optional<Label> l, Opcode op, immediate_t&& immed, unsigned line)
 		{
-			appendInstruction(l, op, &immed, line);
+			return insertInstruction(l, op, &immed, line);
 		}
 
-		void append(Opcode op, immediate_t&& immed, unsigned line)
+		insn_iterator insert(Opcode op, immediate_t&& immed, unsigned line)
 		{
-			appendInstruction(boost::none_t(), op, &immed, line);
+			return insertInstruction(boost::none_t(), op, &immed, line);
 		}
 
 		Label createLabel(const std::string& name = "")

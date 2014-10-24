@@ -8,8 +8,9 @@
 namespace hbt {
 namespace util {
 
-template<typename Container>
+template<typename Container, typename Context = void>
 class const_uptr_value_iterator {
+	friend Context;
 private:
 	typedef typename Container::const_iterator It;
 	typedef const_uptr_value_iterator type;
@@ -30,6 +31,8 @@ public:
 private:
 	It _base;
 	value_type _p;
+
+	const It& baseIterator() const { return _base; }
 
 public:
 	const_uptr_value_iterator() = default;

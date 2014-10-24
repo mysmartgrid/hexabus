@@ -64,9 +64,9 @@ struct CodegenBlock {
 	{
 		for (auto& insn : instructions) {
 			if (std::get<2>(insn)) {
-				into.append(std::get<0>(insn), std::get<1>(insn), std::move(*std::get<2>(insn)), 0);
+				into.insert(std::get<0>(insn), std::get<1>(insn), std::move(*std::get<2>(insn)), 0);
 			} else {
-				into.append(std::get<0>(insn), std::get<1>(insn), 0);
+				into.insert(std::get<0>(insn), std::get<1>(insn), 0);
 			}
 		}
 	}

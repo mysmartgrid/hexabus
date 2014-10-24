@@ -466,59 +466,59 @@ std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program)
 		case Opcode::POP:
 		case Opcode::RET:
 		case Opcode::CMP_IP_LO:
-			builder.append(thisLabel, insn.op, 0);
+			builder.insert(thisLabel, insn.op, 0);
 			break;
 
 		case Opcode::LD_U8:
 		case Opcode::DUP_I:
 		case Opcode::ROT_I:
 		case Opcode::EXCHANGE:
-			builder.append(thisLabel, insn.op, boost::get<uint8_t>(insn.immed), 0);
+			builder.insert(thisLabel, insn.op, boost::get<uint8_t>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_MEM:
 		case Opcode::ST_MEM:
-			builder.append(thisLabel, insn.op, boost::get<std::tuple<MemType, uint16_t>>(insn.immed), 0);
+			builder.insert(thisLabel, insn.op, boost::get<std::tuple<MemType, uint16_t>>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_U16:
-			builder.append(thisLabel, insn.op, boost::get<uint16_t>(insn.immed), 0);
+			builder.insert(thisLabel, insn.op, boost::get<uint16_t>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_U32:
-			builder.append(thisLabel, insn.op, boost::get<uint32_t>(insn.immed), 0);
+			builder.insert(thisLabel, insn.op, boost::get<uint32_t>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_U64:
-			builder.append(thisLabel, insn.op, boost::get<uint64_t>(insn.immed), 0);
+			builder.insert(thisLabel, insn.op, boost::get<uint64_t>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_S8:
-			builder.append(thisLabel, insn.op, boost::get<int8_t>(insn.immed), 0);
+			builder.insert(thisLabel, insn.op, boost::get<int8_t>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_S16:
-			builder.append(thisLabel, insn.op, boost::get<int16_t>(insn.immed), 0);
+			builder.insert(thisLabel, insn.op, boost::get<int16_t>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_S32:
-			builder.append(thisLabel, insn.op, boost::get<int32_t>(insn.immed), 0);
+			builder.insert(thisLabel, insn.op, boost::get<int32_t>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_S64:
-			builder.append(thisLabel, insn.op, boost::get<int64_t>(insn.immed), 0);
+			builder.insert(thisLabel, insn.op, boost::get<int64_t>(insn.immed), 0);
 			break;
 
 		case Opcode::LD_FLOAT:
-			builder.append(thisLabel, insn.op, boost::get<float>(insn.immed), 0);
+			builder.insert(thisLabel, insn.op, boost::get<float>(insn.immed), 0);
 			break;
 
 		case Opcode::DT_DECOMPOSE:
-			builder.append(thisLabel, insn.op, boost::get<DTMask>(insn.immed), 0);
+			builder.insert(thisLabel, insn.op, boost::get<DTMask>(insn.immed), 0);
 			break;
 
 		case Opcode::CMP_BLOCK:
-			builder.append(thisLabel, insn.op, boost::get<BlockPart>(insn.immed), 0);
+			builder.insert(thisLabel, insn.op, boost::get<BlockPart>(insn.immed), 0);
 			break;
 
 		case Opcode::SWITCH_8:
@@ -536,7 +536,7 @@ std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program)
 				entries.push_back({ e.label, labelAbsPositions.at(e.target.id() + insn.nextPos) });
 			}
 
-			builder.append(thisLabel, insn.op, SwitchTable(entries.begin(), entries.end()), 0);
+			builder.insert(thisLabel, insn.op, SwitchTable(entries.begin(), entries.end()), 0);
 			break;
 		}
 
@@ -548,7 +548,7 @@ std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program)
 			if (!labelAbsPositions.count(addr))
 				throw InvalidProgram("invalid instruction", (boost::format("at %1%") % insn.pos).str());
 
-			builder.append(thisLabel, insn.op, labelAbsPositions.at(addr), 0);
+			builder.insert(thisLabel, insn.op, labelAbsPositions.at(addr), 0);
 			break;
 		}
 
