@@ -392,7 +392,7 @@ std::map<size_t, hbt::mc::Label> resolveLabels(const RawProgram& program, hbt::m
 namespace hbt {
 namespace mc {
 
-std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program, bool ignoreInvalid)
+std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program)
 {
 	RawProgram raw = parseRaw(program);
 
@@ -419,29 +419,8 @@ std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program, boo
 	}
 
 	for (const auto& insn : raw.instructions) {
-		if (!insn.isValid && !ignoreInvalid)
+		if (!insn.isValid)
 			throw InvalidProgram("invalid instruction", (boost::format("at %1%") % insn.pos).str());
-
-		if (!insn.isValid) {
-			std::string comment;
-
-			auto append = [&comment] (const std::string& s) {
-				if (comment.size())
-					comment += ", ";
-				comment += s;
-			};
-
-			if (insn.dtMaskInvalid)
-				append("DTMask invalid");
-			if (insn.operandMissing)
-				append("operand data missing");
-			if (insn.blockCmpMaskInvalid)
-				append("block compare mask invalid");
-
-			builder.appendInvalid(insn.op, comment, 0);
-
-			continue;
-		}
 
 		boost::optional<Label> thisLabel;
 
@@ -551,16 +530,8 @@ std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program, boo
 
 			entries.reserve(immed.size());
 			for (auto& e : immed) {
-				if (!labelAbsPositions.count(e.target.id() + insn.nextPos)) {
-					if (!ignoreInvalid)
-						throw InvalidProgram("invalid instruction", (boost::format("at %1%") % insn.pos).str());
-
-					builder.appendInvalid(
-						insn.op,
-						(boost::format("invalid entry (%1%, %2%)") % e.label % e.target.id()).str(), 0);
-
-					continue;
-				}
+				if (!labelAbsPositions.count(e.target.id() + insn.nextPos))
+					throw InvalidProgram("invalid instruction", (boost::format("at %1%") % insn.pos).str());
 
 				entries.push_back({ e.label, labelAbsPositions.at(e.target.id() + insn.nextPos) });
 			}
@@ -574,16 +545,8 @@ std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program, boo
 		case Opcode::JUMP: {
 			size_t addr = boost::get<Label>(insn.immed).id() + insn.nextPos;
 
-			if (!labelAbsPositions.count(addr)) {
-				if (!ignoreInvalid)
-					throw InvalidProgram("invalid instruction", (boost::format("at %1%") % insn.pos).str());
-
-				builder.appendInvalid(
-					insn.op,
-					(boost::format("invalid jump offset %1%") % (addr - insn.nextPos)).str(), 0);
-
-				continue;
-			}
+			if (!labelAbsPositions.count(addr))
+				throw InvalidProgram("invalid instruction", (boost::format("at %1%") % insn.pos).str());
 
 			builder.append(thisLabel, insn.op, labelAbsPositions.at(addr), 0);
 			break;

@@ -15,7 +15,7 @@ namespace mc {
 
 class Program;
 
-std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program, bool ignoreInvalid = false);
+std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program);
 
 }
 }

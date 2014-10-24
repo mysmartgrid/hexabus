@@ -69,13 +69,6 @@ class Builder {
 			appendInstruction(boost::none_t(), op, &immed, line);
 		}
 
-		void appendInvalid(Opcode op, const std::string& comment, unsigned line)
-		{
-			_instructions.push_back(
-				std::unique_ptr<Instruction>(
-					new InvalidInstruction(op, comment, line)));
-		}
-
 		Label createLabel(const std::string& name = "")
 		{
 			return Label(_labelMax++, name);

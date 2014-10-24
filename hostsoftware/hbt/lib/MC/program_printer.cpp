@@ -170,15 +170,6 @@ std::string prettyPrint(const Program& program)
 	for (auto* insn : program.instructions()) {
 		out << "\n";
 
-		if (auto* i = dynamic_cast<const InvalidInstruction*>(insn)) {
-			out << "\t; invalid instruction " << unsigned(i->opcode());
-			if (auto* name = opcodeName(i->opcode()))
-				out << " (" << name << ")";
-			if (i->comment().size())
-				out << ":" << i->comment();
-			continue;
-		}
-
 		if (insn->label()) {
 			out << *insn->label() << ":";
 			if (insn->label()->name().size())
