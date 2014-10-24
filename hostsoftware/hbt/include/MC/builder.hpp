@@ -36,7 +36,6 @@ class Builder {
 
 	private:
 		size_t _labelMax;
-		std::map<size_t, unsigned> _marked;
 		std::list<std::unique_ptr<Instruction>> _instructions;
 
 		uint8_t _version;
@@ -72,11 +71,6 @@ class Builder {
 		Label createLabel(const std::string& name = "")
 		{
 			return Label(_labelMax++, name);
-		}
-
-		Label createLabel(const Label& old, const std::string& name = "")
-		{
-			return Label(old.id(), name);
 		}
 
 		void onPacket(const Label& l)

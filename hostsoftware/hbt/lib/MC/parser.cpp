@@ -630,8 +630,7 @@ std::map<std::string, Label> makeLabelMap(const ir_program& program, Builder& bu
 			Label current = builder.createLabel(boost::get<std::string>(it->content));
 
 			while (it != end && it->content.which() == 0) {
-				auto&& next = builder.createLabel(current, boost::get<std::string>(it->content));
-				result.insert({ next.name(), next });
+				result.insert({ boost::get<std::string>(it->content), current });
 				++it;
 			}
 		} else {

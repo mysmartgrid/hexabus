@@ -17,17 +17,6 @@ void Builder::appendInstruction(boost::optional<Label> l, Opcode op, const immed
 {
 	using boost::get;
 
-	if (l && _marked.count(l->id())) {
-		auto&& extra = (
-			boost::format("label %1% defined in lines %2% and %3%")
-				% l->id() % _marked[l->id()] % line
-			).str();
-		throw InvalidProgram("label defined multpiple times", extra);
-	}
-
-	if (l)
-		_marked.insert({ l->id(), line });
-
 	auto appendInsn = [&] (Instruction* i) {
 		_instructions.push_back(std::unique_ptr<Instruction>(i));
 	};
@@ -212,8 +201,8 @@ std::unique_ptr<Program> Builder::finish()
 	auto useJumpLabel = [&] (Label to, const Instruction& insn) {
 		if (markedLabels.count(to.id())) {
 			auto&& extra = (
-				boost::format("jump in line %1% to %2% in line %3%")
-					% insn.line() % to.id() % markedLabels[to.id()]
+				boost::format("jump in line %1% to '%2%' in line %3%")
+					% insn.line() % to.name() % markedLabels[to.id()]
 				).str();
 			throw InvalidProgram("backward jump not allowed", extra);
 		}
@@ -222,7 +211,13 @@ std::unique_ptr<Program> Builder::finish()
 
 	for (const auto& insn : _instructions) {
 		if (insn->label()) {
-			markedLabels.insert({ insn->label()->id(), insn->line() });
+			if (!markedLabels.insert({ insn->label()->id(), insn->line() }).second) {
+				auto&& extra = (
+					boost::format("label '%1%' defined in lines %2% and %3%")
+						% insn->label()->name() % markedLabels[insn->label()->id()] % insn->line()
+					).str();
+				throw InvalidProgram("label defined multiple times", extra);
+			}
 			labelUses.erase(insn->label()->id());
 		}
 
@@ -245,7 +240,7 @@ std::unique_ptr<Program> Builder::finish()
 		for (const auto& use : labelUses) {
 			if (extra.size())
 				extra += ", ";
-			extra += (boost::format("%1% (in line %2%)") % use.second.first.name() % use.second.second).str();
+			extra += (boost::format("'%1%' (in line %2%)") % use.second.first.name() % use.second.second).str();
 		}
 		throw InvalidProgram("jump to undefined label", extra);
 	}

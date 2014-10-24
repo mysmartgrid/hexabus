@@ -238,6 +238,36 @@ static Testcase noVectors = {
 	{ "" },
 };
 
+static Testcase backwardJump = {
+	".version 0",
+	".machine 0x0",
+	".on_packet packet",
+
+	"L0:",
+	"packet:",
+	"	jump L0",
+};
+
+static Testcase undefinedJump = {
+	".version 0",
+	".machine 0x0",
+	".on_packet packet",
+
+	"packet:",
+	"	jump L0",
+};
+
+static Testcase labelRedefined = {
+	".version 0",
+	".machine 0x0",
+	".on_packet packet",
+
+	"packet:",
+	"	ret",
+	"packet:",
+	"	ret",
+};
+
 template<typename It1, typename It2>
 bool matches(It1& begin1, It1 end1, It2 begin2, It2 end2)
 {
@@ -250,8 +280,6 @@ bool matches(It1& begin1, It1 end1, It2 begin2, It2 end2)
 	}
 
 	return true;
-}
-
 }
 
 void checkAssembler(const std::vector<AssemblerLine> program)
@@ -295,6 +323,8 @@ void checkAssembler(const std::vector<AssemblerLine> program)
 	}
 }
 
+}
+
 BOOST_AUTO_TEST_CASE(assemblerFull)
 {
 	checkAssembler(allFeatures);
@@ -330,9 +360,45 @@ BOOST_AUTO_TEST_CASE(assemblerNoVectors)
 	checkAssembler(noVectors);
 }
 
+BOOST_AUTO_TEST_CASE(assemblerBackwardJump)
+{
+	try {
+		checkAssembler(backwardJump);
+	} catch (const hbt::mc::InvalidProgram& p) {
+		BOOST_CHECK(p.what() == std::string("backward jump not allowed"));
+		BOOST_CHECK(p.extra() == "jump in line 6 to 'L0' in line 6");
+		return;
+	}
+	BOOST_REQUIRE(false);
+}
+
+BOOST_AUTO_TEST_CASE(assemblerUndefinedJump)
+{
+	try {
+		checkAssembler(undefinedJump);
+	} catch (const hbt::mc::InvalidProgram& p) {
+		BOOST_CHECK(p.what() == std::string("jump to undefined label"));
+		BOOST_CHECK(p.extra() == "'L0' (in line 5)");
+		return;
+	}
+	BOOST_REQUIRE(false);
+}
+
+BOOST_AUTO_TEST_CASE(assemblerLabelRedefined)
+{
+	try {
+		checkAssembler(labelRedefined);
+	} catch (const hbt::mc::InvalidProgram& p) {
+		BOOST_CHECK(p.what() == std::string("label defined multiple times"));
+		BOOST_CHECK(p.extra() == "label 'packet' defined in lines 5 and 7");
+		return;
+	}
+	BOOST_REQUIRE(false);
+}
 
 
-void checkDisssembler(const std::vector<AssemblerLine> program)
+
+static void checkDisssembler(const std::vector<AssemblerLine> program)
 {
 	std::string text = "";
 	std::vector<uint8_t> binary;
