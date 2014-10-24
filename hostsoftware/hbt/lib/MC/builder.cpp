@@ -70,71 +70,59 @@ Builder::insn_iterator Builder::insertInstruction(boost::optional<Label> l, Opco
 	case Opcode::DUP_I:
 	case Opcode::ROT_I:
 	case Opcode::EXCHANGE:
-		if (!get<uint8_t>(immed))
-			throw std::invalid_argument("immed");
-
-		return insertInsn(new ImmediateInstruction<uint8_t>(op, get<uint8_t>(*immed), l, line));
+		if (auto* v = get<uint8_t>(immed))
+			return insertInsn(new ImmediateInstruction<uint8_t>(op, *v, l, line));
+		throw std::invalid_argument("immed");
 
 	case Opcode::LD_MEM:
-	case Opcode::ST_MEM: {
-		const auto* ref = get<std::tuple<MemType, uint16_t>>(immed);
+	case Opcode::ST_MEM:
+		if (auto* ref = get<std::tuple<MemType, uint16_t>>(immed)) {
+			if (std::get<1>(*ref) > 0xfff)
+				throw InvalidProgram("memory operand address invalid", "");
 
-		if (!ref)
-			throw std::invalid_argument("immed");
-
-		if (std::get<1>(*ref) > 0xfff)
-			throw InvalidProgram("memory operand address invalid", "");
-
-		return insertInsn(new ImmediateInstruction<std::tuple<MemType, uint16_t>>(op, *ref, l, line));
-	}
+			return insertInsn(new ImmediateInstruction<std::tuple<MemType, uint16_t>>(op, *ref, l, line));
+		}
+		throw std::invalid_argument("immed");
 
 	case Opcode::LD_U16:
-		if (!get<uint16_t>(immed))
-			throw std::invalid_argument("immed");
-
-		return insertInsn(new ImmediateInstruction<uint16_t>(op, get<uint16_t>(*immed), l, line));
+		if (auto* v = get<uint16_t>(immed))
+			return insertInsn(new ImmediateInstruction<uint16_t>(op, *v, l, line));
+		throw std::invalid_argument("immed");
 
 	case Opcode::LD_U32:
-		if (!get<uint32_t>(immed))
-			throw std::invalid_argument("immed");
-
-		return insertInsn(new ImmediateInstruction<uint32_t>(op, get<uint32_t>(*immed), l, line));
+		if (auto* v = get<uint32_t>(immed))
+			return insertInsn(new ImmediateInstruction<uint32_t>(op, *v, l, line));
+		throw std::invalid_argument("immed");
 
 	case Opcode::LD_U64:
-		if (!get<uint64_t>(immed))
-			throw std::invalid_argument("immed");
-
-		return insertInsn(new ImmediateInstruction<uint64_t>(op, get<uint64_t>(*immed), l, line));
+		if (auto* v = get<uint64_t>(immed))
+			return insertInsn(new ImmediateInstruction<uint64_t>(op, *v, l, line));
+		throw std::invalid_argument("immed");
 
 	case Opcode::LD_S8:
-		if (!get<int8_t>(immed))
-			throw std::invalid_argument("immed");
-
-		return insertInsn(new ImmediateInstruction<int8_t>(op, get<int8_t>(*immed), l, line));
+		if (auto* v = get<int8_t>(immed))
+			return insertInsn(new ImmediateInstruction<int8_t>(op, *v, l, line));
+		throw std::invalid_argument("immed");
 
 	case Opcode::LD_S16:
-		if (!get<int16_t>(immed))
-			throw std::invalid_argument("immed");
-
-		return insertInsn(new ImmediateInstruction<int16_t>(op, get<int16_t>(*immed), l, line));
+		if (auto* v = get<int16_t>(immed))
+			return insertInsn(new ImmediateInstruction<int16_t>(op, *v, l, line));
+		throw std::invalid_argument("immed");
 
 	case Opcode::LD_S32:
-		if (!get<int32_t>(immed))
-			throw std::invalid_argument("immed");
-
-		return insertInsn(new ImmediateInstruction<int32_t>(op, get<int32_t>(*immed), l, line));
+		if (auto* v = get<int32_t>(immed))
+			return insertInsn(new ImmediateInstruction<int32_t>(op, *v, l, line));
+		throw std::invalid_argument("immed");
 
 	case Opcode::LD_S64:
-		if (!get<int64_t>(immed))
-			throw std::invalid_argument("immed");
-
-		return insertInsn(new ImmediateInstruction<int64_t>(op, get<int64_t>(*immed), l, line));
+		if (auto* v = get<int64_t>(immed))
+			return insertInsn(new ImmediateInstruction<int64_t>(op, *v, l, line));
+		throw std::invalid_argument("immed");
 
 	case Opcode::LD_FLOAT:
-		if (!get<float>(immed))
-			throw std::invalid_argument("immed");
-
-		return insertInsn(new ImmediateInstruction<float>(op, get<float>(*immed), l, line));
+		if (auto* v = get<float>(immed))
+			return insertInsn(new ImmediateInstruction<float>(op, *v, l, line));
+		throw std::invalid_argument("immed");
 
 	case Opcode::DT_DECOMPOSE:
 		if (!get<DTMask>(immed) || invalid(get<DTMask>(*immed)))
@@ -144,7 +132,7 @@ Builder::insn_iterator Builder::insertInstruction(boost::optional<Label> l, Opco
 
 	case Opcode::SWITCH_8:
 	case Opcode::SWITCH_16:
-	case Opcode::SWITCH_32: {
+	case Opcode::SWITCH_32:
 		if (auto* st = get<SwitchTable>(immed)) {
 			uint32_t maxLabel = 0;
 			for (const auto& e : *st)
@@ -157,23 +145,18 @@ Builder::insn_iterator Builder::insertInstruction(boost::optional<Label> l, Opco
 			return insertInsn(new ImmediateInstruction<SwitchTable>(op, std::move(*st), l, line));
 		}
 		throw std::invalid_argument("immed");
-	}
 
 	case Opcode::CMP_BLOCK:
-		if (!get<BlockPart>(immed))
-			throw std::invalid_argument("immed");
-
-		return insertInsn(new ImmediateInstruction<BlockPart>(op, get<BlockPart>(*immed), l, line));
+		if (auto* v = get<BlockPart>(immed))
+			return insertInsn(new ImmediateInstruction<BlockPart>(op, *v, l, line));
+		throw std::invalid_argument("immed");
 
 	case Opcode::JNZ:
 	case Opcode::JZ:
-	case Opcode::JUMP: {
-		const Label* target = get<Label>(immed);
-		if (!target)
-			throw std::invalid_argument("immed");
-
-		return insertInsn(new ImmediateInstruction<Label>(op, *target, l, line));
-	}
+	case Opcode::JUMP:
+		if (auto* target = get<Label>(immed))
+			return insertInsn(new ImmediateInstruction<Label>(op, *target, l, line));
+		throw std::invalid_argument("immed");
 	}
 
 	throw std::invalid_argument("op");
