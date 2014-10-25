@@ -125,10 +125,9 @@ const char* opcodeName(hbt::mc::Opcode op)
 	case Opcode::ROT:
 	case Opcode::ROT_I:
 		return "rot";
-	case Opcode::SWITCH_8:
-	case Opcode::SWITCH_16:
-	case Opcode::SWITCH_32:
-		return "switch";
+	case Opcode::SWITCH_8: return "switch8";
+	case Opcode::SWITCH_16: return "switch16";
+	case Opcode::SWITCH_32: return "switch32";
 	case Opcode::DT_DECOMPOSE: return "dt.decomp";
 	case Opcode::CMP_BLOCK: return "cmp.block";
 	case Opcode::JNZ: return "jnz";

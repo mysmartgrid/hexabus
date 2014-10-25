@@ -342,11 +342,14 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			> stack_slot[_val = bind(make_insn_t<Opcode::EXCHANGE>, _1)];
 
 		switch_instruction =
-			lit("switch")
-			> lit("{")
+			(
+				lit("switch8")[_a = Opcode::SWITCH_8]
+				| lit("switch16")[_a = Opcode::SWITCH_16]
+				| lit("switch32")[_a = Opcode::SWITCH_32]
+			) > lit("{")
 			> +eol
 			> repeat(0, 255)[switch_table_entry]
-				[_val = bind(make_switch, _1)]
+				[_val = bind(make_switch, _1, _a)]
 			> (
 				lit("}")
 				| (eps > errors.end_of_switch)
@@ -497,18 +500,8 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		return make_insn(opcode, mem_immediate{type, addr});
 	}
 
-	static ir_instruction make_switch(const std::vector<switch_entry>& entries)
+	static ir_instruction make_switch(const std::vector<switch_entry>& entries, Opcode op)
 	{
-		uint32_t maxLabel = 0;
-		for (const auto& e : entries)
-			maxLabel = std::max(maxLabel, e.label);
-
-		auto op = maxLabel <= 255
-			? Opcode::SWITCH_8
-			: maxLabel <= 65535
-				? Opcode::SWITCH_16
-				: Opcode::SWITCH_32;
-
 		return { op, ir_instruction::immed_t(entries) };
 	}
 
@@ -556,7 +549,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, ir_instruction(), asm_ws<It>> dup_instruction;
 	qi::rule<It, ir_instruction(), asm_ws<It>> rot_instruction;
 	qi::rule<It, ir_instruction(), asm_ws<It>> exchange_instruction;
-	qi::rule<It, ir_instruction(), asm_ws<It>> switch_instruction;
+	qi::rule<It, ir_instruction(), qi::locals<Opcode>, asm_ws<It>> switch_instruction;
 	simple_instructions simple_instruction;
 	qi::rule<It, ir_instruction(), asm_ws<It>> block_instruction;
 
