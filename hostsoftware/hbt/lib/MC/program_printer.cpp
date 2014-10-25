@@ -43,7 +43,10 @@ HexBlockPrinter<typename Range::const_iterator> hexBlock(const Range& r)
 template<typename Char, typename Traits>
 std::basic_ostream<Char, Traits>& operator<<(std::basic_ostream<Char, Traits>& out, hbt::mc::Label l)
 {
-	return out << "L" << l.id();
+	if (l.name().size())
+		return out << l.name();
+	else
+		return out << "L" << l.id();
 }
 
 template<typename Char, typename Traits>
@@ -170,12 +173,8 @@ std::string prettyPrint(const Program& program)
 	for (auto* insn : program.instructions()) {
 		out << "\n";
 
-		if (insn->label()) {
-			out << *insn->label() << ":";
-			if (insn->label()->name().size())
-				out << "\t;" << insn->label()->name();
-			out << "\n";
-		}
+		if (insn->label())
+			out << *insn->label() << ":\n";
 		out << "\t";
 
 		out << insn->opcode();
