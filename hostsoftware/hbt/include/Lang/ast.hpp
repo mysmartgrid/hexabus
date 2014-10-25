@@ -77,6 +77,7 @@ class MachineDefinition;
 class MachineInstantiation;
 class IncludeLine;
 class TranslationUnit;
+class State;
 
 class ASTVisitable {
 public:
@@ -605,6 +606,7 @@ public:
 class GotoStmt : public Stmt {
 private:
 	Identifier _state;
+	State* _target;
 
 public:
 	GotoStmt(const SourceLocation& sloc, const Identifier& state)
@@ -612,6 +614,9 @@ public:
 	{}
 
 	const Identifier& state() const { return _state; }
+	State* target() const { return _target; }
+
+	void target(State* s) { _target = s; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -702,6 +707,7 @@ private:
 	std::vector<DeclarationStmt> _variables;
 	std::vector<std::unique_ptr<OnBlock>> _onBlocks;
 	std::unique_ptr<BlockStmt> _always;
+	unsigned _id;
 
 public:
 	State(const SourceLocation& sloc, const Identifier& name, std::vector<DeclarationStmt> variables,
@@ -715,6 +721,9 @@ public:
 	std::vector<DeclarationStmt>& variables() { return _variables; }
 	std::vector<std::unique_ptr<OnBlock>>& onBlocks() { return _onBlocks; }
 	BlockStmt* always() { return _always.get(); }
+	unsigned id() const { return _id; }
+
+	void id(unsigned u) { _id = u; }
 };
 
 

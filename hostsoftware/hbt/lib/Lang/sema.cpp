@@ -881,6 +881,8 @@ void SemanticVisitor::visit(GotoStmt& g)
 		diags.print(gotoForbiddenIn(g, gotoExclusionScope));
 	if (!knownStates.count(g.state().name()))
 		diags.print(undeclaredIdentifier(g.state()));
+
+	g.target(knownStates[g.state().name()]);
 }
 
 void SemanticVisitor::visit(OnSimpleBlock& o)
@@ -963,6 +965,8 @@ void SemanticVisitor::checkMachineBody(MachineBody& m)
 	knownStates.clear();
 
 	for (auto& state : m.states()) {
+		state.id(knownStates.size());
+
 		auto res = knownStates.insert({ state.name().name(), &state });
 
 		if (!res.second)
