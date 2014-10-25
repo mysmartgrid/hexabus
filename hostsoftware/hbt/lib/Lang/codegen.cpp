@@ -463,7 +463,7 @@ void CodegenVisitor::visit(SwitchStmt& s)
 			if (l.expr()->constexprValue() > 0xffffffff)
 				die("large switch labels");
 
-			labels.push_back({ cl_I_to_UL(l.expr()->constexprValue()), blockPtrs.back()->entryLabel });
+			labels.push_back({ l.expr()->constexprValue().toU32(), blockPtrs.back()->entryLabel });
 			blocks[labels.back().label] = blockPtrs.back().get();
 		}
 		this->blocks.push_back(blockPtrs.back().get());

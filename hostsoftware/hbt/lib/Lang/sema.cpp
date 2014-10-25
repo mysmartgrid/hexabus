@@ -4,7 +4,6 @@
 #include "Util/range.hpp"
 
 #include <boost/format.hpp>
-#include <cln/integer_io.h>
 
 using boost::format;
 
@@ -160,7 +159,7 @@ static Diagnostic caseLabelDuplicated(const SwitchLabel& l)
 	return { DiagnosticKind::Error, &l.sloc(), "duplicated case label 'default'" };
 }
 
-static Diagnostic caseLabelDuplicated(const SwitchLabel& l, const cln::cl_I& value)
+static Diagnostic caseLabelDuplicated(const SwitchLabel& l, const util::Bigint& value)
 {
 	return { DiagnosticKind::Error, &l.sloc(), str(format("duplicated case label value %1%") % value) };
 }
@@ -282,25 +281,18 @@ static Diagnostic endpointNotLive(const EndpointExpr& e)
 
 
 
-template<typename T>
-static bool fitsIntoNumericLimits(const cln::cl_I& value)
-{
-	typedef typename std::conditional<std::is_signed<T>::value, int64_t, uint64_t>::type clt;
-	return clt(std::numeric_limits<T>::min()) <= value && value <= clt(std::numeric_limits<T>::max());
-}
-
-static bool fitsIntoConstexprType(Expr& e, Type  t)
+static bool fitsIntoConstexprType(Expr& e, Type t)
 {
 	switch (t) {
-	case Type::Bool: return fitsIntoNumericLimits<bool>(e.constexprValue()); break;
-	case Type::UInt8: return fitsIntoNumericLimits<uint8_t>(e.constexprValue()); break;
-	case Type::UInt16: return fitsIntoNumericLimits<uint16_t>(e.constexprValue()); break;
-	case Type::UInt32: return fitsIntoNumericLimits<uint32_t>(e.constexprValue()); break;
-	case Type::UInt64: return fitsIntoNumericLimits<uint64_t>(e.constexprValue()); break;
-	case Type::Int8: return fitsIntoNumericLimits<int8_t>(e.constexprValue()); break;
-	case Type::Int16: return fitsIntoNumericLimits<int16_t>(e.constexprValue()); break;
-	case Type::Int32: return fitsIntoNumericLimits<int32_t>(e.constexprValue()); break;
-	case Type::Int64: return fitsIntoNumericLimits<int64_t>(e.constexprValue()); break;
+	case Type::Bool: return e.constexprValue().fitsInto<bool>(); break;
+	case Type::UInt8: return e.constexprValue().fitsInto<uint8_t>(); break;
+	case Type::UInt16: return e.constexprValue().fitsInto<uint16_t>(); break;
+	case Type::UInt32: return e.constexprValue().fitsInto<uint32_t>(); break;
+	case Type::UInt64: return e.constexprValue().fitsInto<uint64_t>(); break;
+	case Type::Int8: return e.constexprValue().fitsInto<int8_t>(); break;
+	case Type::Int16: return e.constexprValue().fitsInto<int16_t>(); break;
+	case Type::Int32: return e.constexprValue().fitsInto<int32_t>(); break;
+	case Type::Int64: return e.constexprValue().fitsInto<int64_t>(); break;
 	default: throw "invalid type";
 	}
 }
@@ -491,7 +483,7 @@ void SemanticVisitor::visit(UnaryExpr& u)
 		break;
 
 	case UnaryOperator::Not:
-		u.constexprValue(u.expr().constexprValue() != 0);
+		u.constexprValue(!u.expr().constexprValue());
 		break;
 
 	case UnaryOperator::Negate:
@@ -575,7 +567,7 @@ void SemanticVisitor::visit(BinaryExpr& b)
 			b.isIncomplete(true);
 			diags.print(constexprInvokesUB(b));
 		} else {
-			b.constexprValue(truncate1(b.left().constexprValue(), b.right().constexprValue()));
+			b.constexprValue(b.left().constexprValue() / b.right().constexprValue());
 		}
 		break;
 
@@ -584,7 +576,7 @@ void SemanticVisitor::visit(BinaryExpr& b)
 			b.isIncomplete(true);
 			diags.print(constexprInvokesUB(b));
 		} else {
-			b.constexprValue(rem(b.left().constexprValue(), b.right().constexprValue()));
+			b.constexprValue(b.left().constexprValue() % b.right().constexprValue());
 		}
 		break;
 
@@ -827,7 +819,7 @@ void SemanticVisitor::visit(SwitchStmt& s)
 		diags.print(expectedIntType(s.expr()));
 
 	const SwitchLabel* defaultLabel = nullptr;
-	std::map<cln::cl_I, const SwitchLabel*> caseLabels;
+	std::map<util::Bigint, const SwitchLabel*> caseLabels;
 	for (auto& se : s.entries()) {
 		StackedScope caseScope(currentScope);
 

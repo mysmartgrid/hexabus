@@ -9,8 +9,7 @@
 #include <vector>
 
 #include "Lang/type.hpp"
-
-#include <cln/integer.h>
+#include "Util/bigint.hpp"
 
 namespace hbt {
 namespace lang {
@@ -177,12 +176,12 @@ private:
 	SourceLocation _sloc;
 	Type _type;
 	bool _isConstexpr, _isIncomplete;
-	cln::cl_I _constexprValue;
+	util::Bigint _constexprValue;
 
 protected:
 	typedef std::unique_ptr<Expr> ptr_t;
 
-	Expr(const SourceLocation& sloc, Type type, cln::cl_I constexprValue = 0)
+	Expr(const SourceLocation& sloc, Type type, util::Bigint constexprValue = 0)
 		: _sloc(sloc), _type(type), _isConstexpr(false), _isIncomplete(false), _constexprValue(constexprValue)
 	{}
 
@@ -191,12 +190,12 @@ public:
 	Type type() const { return _type; }
 	bool isConstexpr() const { return _isConstexpr; }
 	bool isIncomplete() const { return _isIncomplete; }
-	const cln::cl_I& constexprValue() const { return _constexprValue; }
+	const util::Bigint& constexprValue() const { return _constexprValue; }
 
 	void type(Type t) { _type = t; }
 	void isConstexpr(bool b) { _isConstexpr = b; }
 	void isIncomplete(bool b) { _isIncomplete = b; }
-	void constexprValue(const cln::cl_I& v) { _constexprValue = v; }
+	void constexprValue(const util::Bigint& v) { _constexprValue = v; }
 };
 
 class IdentifierExpr : public Expr {
