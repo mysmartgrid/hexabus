@@ -57,7 +57,22 @@ class Builder {
 	public:
 		Builder(uint8_t version, const std::array<uint8_t, 16>& machine_id);
 
+		Builder(Program&& p);
+
 		util::range<insn_iterator> instructions() const { return _instructions; }
+
+		void erase(insn_iterator begin, insn_iterator end)
+		{
+			_instructions.erase(begin.baseIterator(), end.baseIterator());
+		}
+
+		insn_iterator moveRange(insn_iterator pos, insn_iterator begin, insn_iterator end)
+		{
+			_instructions.splice(
+				pos.baseIterator(), _instructions,
+				begin.baseIterator(), end.baseIterator());
+			return begin;
+		}
 
 		void insertBefore(insn_iterator i) { _insertPos = i; }
 
@@ -86,20 +101,13 @@ class Builder {
 			return Label(_labelMax++, name);
 		}
 
-		void onPacket(const Label& l)
-		{
-			_on_packet = l;
-		}
+		void onPacket(const Label& l) { _on_packet = l; }
+		void onPeriodic(const Label& l) { _on_periodic = l; }
+		void onInit(const Label& l) { _on_init = l; }
 
-		void onPeriodic(const Label& l)
-		{
-			_on_periodic = l;
-		}
-
-		void onInit(const Label& l)
-		{
-			_on_init = l;
-		}
+		const Label* onPacket() const { return _on_packet.get_ptr(); }
+		const Label* onPeriodic() const { return _on_periodic.get_ptr(); }
+		const Label* onInit() const { return _on_init.get_ptr(); }
 
 		std::unique_ptr<Program> finish();
 };

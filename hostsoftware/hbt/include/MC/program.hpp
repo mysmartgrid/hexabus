@@ -23,6 +23,8 @@ class InvalidProgram : public std::logic_error {
 };
 
 class Program {
+	friend class Builder;
+
 	private:
 		uint8_t _version;
 		std::array<uint8_t, 16> _machine_id;

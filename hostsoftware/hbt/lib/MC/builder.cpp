@@ -7,10 +7,24 @@ namespace hbt {
 namespace mc {
 
 Builder::Builder(uint8_t version, const std::array<uint8_t, 16>& machine_id)
-	: _labelMax(0), _version(version), _machine_id(machine_id), _insertPos(_instructions.begin())
+	: _labelMax(0), _version(version), _machine_id(machine_id), _insertPos(_instructions.end())
 {
 	if (version != 0)
 		throw std::invalid_argument("version");
+}
+
+Builder::Builder(Program&& p)
+	: _labelMax(0),
+	  _instructions(
+		std::make_move_iterator(p._instructions.begin()),
+		std::make_move_iterator(p._instructions.end())),
+	  _insertPos(_instructions.end()), _version(p.version()),
+	  _machine_id(p.machine_id()), _on_packet(p._on_packet),
+	  _on_periodic(p._on_periodic), _on_init(p._on_init)
+{
+	for (auto* i : instructions())
+		if (i->label())
+			_labelMax = std::max(i->label()->id() + 1, _labelMax);
 }
 
 Builder::insn_iterator Builder::insertInstruction(boost::optional<Label> l, Opcode op,
