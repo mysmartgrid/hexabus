@@ -109,6 +109,7 @@ void pruneUnreachableInstructions(Builder& b)
 void moveJumpTargets(Builder& b)
 {
 	threadTrivialJumps(b);
+	pruneUnreachableInstructions(b);
 
 	bool somethingChanged = false;
 	do {
@@ -136,6 +137,14 @@ void moveJumpTargets(Builder& b)
 			return (*it)->opcode() == Opcode::JUMP || (*it)->opcode() == Opcode::RET;
 		};
 
+		auto rangeHasAnyLabel = [] (util::range<Builder::insn_iterator> r, const std::set<unsigned>& labels) {
+			for (auto* i : r)
+				if (i->label() && labels.count(i->label()->id()))
+					return true;
+
+			return false;
+		};
+
 		for (auto it = b.instructions().begin(), end = b.instructions().end(); it != end; ++it) {
 			if ((*it)->opcode() != Opcode::JUMP)
 				continue;
@@ -147,12 +156,19 @@ void moveJumpTargets(Builder& b)
 				if (!isTerminator(std::prev(target)))
 					continue;
 
-				++it;
-				b.erase(std::prev(it), it);
-				somethingChanged = true;
+				std::set<unsigned> jumpTargetsBetween;
+				for (auto* i : util::make_range(std::next(it), end)) {
+					if (auto* j = dynamic_cast<const ImmediateInstruction<Label>*>(i)) {
+						jumpTargetsBetween.insert(j->immed().id());
+						continue;
+					}
 
-				if (target == it)
-					continue;
+					if (auto* sw = dynamic_cast<const ImmediateInstruction<SwitchTable>*>(i)) {
+						for (auto& e : sw->immed())
+							jumpTargetsBetween.insert(e.target.id());
+						continue;
+					}
+				}
 
 				auto targetEnd = target;
 				while (targetEnd != end && !isTerminator(targetEnd))
@@ -160,16 +176,21 @@ void moveJumpTargets(Builder& b)
 				if (targetEnd != end)
 					++targetEnd;
 
+				if (rangeHasAnyLabel({target, targetEnd}, jumpTargetsBetween))
+					continue;
+
+				++it;
+				b.erase(std::prev(it), it);
+				somethingChanged = true;
+
+				if (target == it)
+					continue;
+
 				b.moveRange(it, target, targetEnd);
+				break;
 			}
 		}
 	} while (somethingChanged);
-}
-
-void collapseTrivialJumps(Builder& b)
-{
-	moveJumpTargets(b);
-	pruneUnreachableInstructions(b);
 }
 
 }

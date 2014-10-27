@@ -96,10 +96,6 @@ static Testcase moveableJumpTargets = {
 	{ ".on_init L1" },
 	{ ".on_packet L0", },
 	{ "" },
-	{ "	switch8 {" },
-	{ "		0: L3" },
-	{ "	}" },
-	{ "	jump L3" },
 	{ "L0:" },
 	{ "	pop" },
 	{ "	jump L2", empty },
@@ -114,6 +110,24 @@ static Testcase moveableJumpTargets = {
 	{ "	jump L3", empty },
 	{ "L3:"     , empty },
 	{ "	ret",     empty },
+};
+
+static Testcase noInvalidMoves = {
+	{ ".version 0" },
+	{ ".machine 0x00000000000000000000000000000000" },
+	{ ".on_init L1", },
+	{ ".on_packet L0", },
+	{ "" },
+	{ "L0:" },
+	{ "	pop" },
+	{ "	jump L2" },
+	{ "L1:" },
+	{ "	pop" },
+	{ "	jump L3" },
+	{ "L2:" },
+	{ "	pop" },
+	{ "L3:" },
+	{ "	ret" },
 };
 
 }
@@ -150,4 +164,5 @@ BOOST_AUTO_TEST_CASE(opt_pruneUnreachableInstructions)
 BOOST_AUTO_TEST_CASE(opt_moveJumpTargets)
 {
 	testTransform(moveableJumpTargets, hbt::mc::moveJumpTargets);
+	testTransform(noInvalidMoves, hbt::mc::moveJumpTargets);
 }

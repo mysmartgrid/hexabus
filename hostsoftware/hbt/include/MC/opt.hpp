@@ -10,8 +10,6 @@ void threadTrivialJumps(Builder& b);
 void pruneUnreachableInstructions(Builder& b);
 void moveJumpTargets(Builder& b);
 
-void collapseTrivialJumps(Builder& b);
-
 }
 }
 
