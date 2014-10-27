@@ -238,7 +238,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			| string("");
 
 		identifier.name("identifier");
-		identifier %= lexeme[char_("_a-zA-Z") > *char_("_0-9a-zA-Z")];
+		identifier %= lexeme[char_("_a-zA-Z") > *char_("_0-9a-zA-Z.")];
 
 		label.name("label");
 		label %= currentLine >> identifier >> lit(":");
