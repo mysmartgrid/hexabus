@@ -7,8 +7,8 @@
 
 namespace hbt {
 
-namespace mc {
-class Program;
+namespace ir {
+class ModuleBuilder;
 }
 
 namespace lang {
@@ -19,7 +19,7 @@ class TranslationUnit;
 
 std::map<const Device*, std::set<MachineDefinition*>> collectMachines(TranslationUnit& tu);
 
-std::unique_ptr<mc::Program> generateMachineCodeFor(TranslationUnit& tu);
+std::unique_ptr<ir::ModuleBuilder> generateIR(const Device* dev, std::set<MachineDefinition*>& machines);
 
 }
 }

@@ -4,11 +4,16 @@
 
 #include <unistd.h>
 
+#include "IR/codegen.hpp"
+#include "IR/module.hpp"
+#include "IR/moduleprinter.hpp"
 #include "Lang/ast.hpp"
 #include "Lang/astprinter.hpp"
 #include "Lang/codegen.hpp"
 #include "Lang/parser.hpp"
 #include "Lang/sema.hpp"
+#include "MC/builder.hpp"
+#include "MC/opt.hpp"
 #include "MC/program.hpp"
 #include "MC/program_printer.hpp"
 #include "Util/memorybuffer.hpp"
@@ -154,12 +159,31 @@ static pass_type runSemaExpect(const std::vector<std::pair<unsigned, std::string
 	};
 }
 
-static pass_type runCodegen(const std::string& file)
+static pass_type runCodegen()
 {
-	return [file] (std::unique_ptr<TranslationUnit>& tu) {
-		auto program = generateMachineCodeFor(*tu);
-		std::string assembled = hbt::mc::prettyPrint(*program);
-		hbt::util::MemoryBuffer(assembled).writeFile(file, true);
+	return [] (std::unique_ptr<TranslationUnit>& tu) {
+		auto machines = collectMachines(*tu);
+
+		for (auto& mp : machines) {
+			std::cout << "//------ " << mp.first->name().name() << "\n";
+
+			auto irb = generateIR(mp.first, mp.second);
+			std::cout << prettyPrint(*irb);
+
+			std::string msg;
+			auto ir = irb->finish(&msg);
+			if (!ir) {
+				std::cout << "\n" << msg << "\n";
+				return false;
+			}
+
+			auto mcb = hbt::ir::generateMachineCode(*ir);
+			hbt::mc::moveJumpTargets(*mcb);
+			std::cout << "\n\n" << hbt::mc::prettyPrint(*mcb->finish());
+
+			std::cout << "\n\n";
+		}
+
 		return true;
 	};
 }
@@ -204,7 +228,7 @@ Passes:
 		return std::string(argv[arg]);
 	};
 
-	auto addNonSemaPass = [&passes, &hadOnlyPrintPasses] (pass_type pass, bool isPrint) {
+	auto addNonSemaPass = [&passes, &hadOnlyPrintPasses] (pass_type pass, bool isPrint = false) {
 		if (!isPrint && hadOnlyPrintPasses) {
 			passes.push_back(runSema());
 		}
@@ -228,7 +252,7 @@ Passes:
 			passes.push_back(runSemaExpect(semaExpected, fileName));
 			hadOnlyPrintPasses = false;
 		} else if (arg == "-codegen") {
-			addNonSemaPass(runCodegen(getNextArg(i)), false);
+			addNonSemaPass(runCodegen());
 		} else {
 			if ((input && arg[0] == '-') || (!input && arg[0] == '-' && arg != "-")) {
 				std::cerr << "superfluous argument '" << arg << "'\n";

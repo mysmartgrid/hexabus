@@ -479,8 +479,8 @@ void Codegen::emitBlock(const BasicBlock* block)
 				auto* trueBranch = s.labels().count(1) ? s.labels().at(1) : s.defaultLabel();
 				auto* falseBranch = s.labels().count(0) ? s.labels().at(0) : s.defaultLabel();
 
-				auto& glue = entryBlockForJumpTo(falseBranch);
 				mb.loadForUser(s.value(), &s);
+				auto& glue = entryBlockForJumpTo(falseBranch);
 				mb.append(mc::Opcode::JZ, glue.label());
 				emitJumpTo(trueBranch);
 				return;

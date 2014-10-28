@@ -29,6 +29,7 @@ add_executable(hbt-lang ${hbt_lang_src})
 target_link_libraries(hbt-lang
 	lib_Lang
 	lib_MC
+	lib_IR
 	lib_Util
 	${Boost_LIBRARIES}
 	${CLN_LIBRARIES}
