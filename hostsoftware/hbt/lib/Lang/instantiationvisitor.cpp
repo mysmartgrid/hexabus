@@ -161,27 +161,17 @@ void InstantiationVisitor::visit(OnSimpleBlock& o)
 	_onBlock.reset(new OnSimpleBlock(o.sloc(), o.trigger(), std::move(block)));
 }
 
-void InstantiationVisitor::visit(OnPacketBlock& o)
-{
-	std::unique_ptr<BlockStmt> block(static_cast<BlockStmt*>(clone(o.block()).release()));
-	std::unique_ptr<OnPacketBlock> c;
-
-	if (auto* cpd = dynamic_cast<CPDevice*>(o.source())) {
-		auto* src = cpDevices.at(cpd);
-		c.reset(new OnPacketBlock(o.sloc(), src->name(), std::move(block)));
-		c->source(src);
-	} else {
-		c.reset(new OnPacketBlock(o.sloc(), o.sourceId(), std::move(block)));
-		c->source(o.source());
-	}
-
-	_onBlock = std::move(c);
-}
-
 void InstantiationVisitor::visit(OnExprBlock& o)
 {
 	std::unique_ptr<BlockStmt> block(static_cast<BlockStmt*>(clone(o.block()).release()));
 	_onBlock.reset(new OnExprBlock(o.sloc(), clone(o.condition()), std::move(block)));
+}
+
+void InstantiationVisitor::visit(OnUpdateBlock& o)
+{
+	std::unique_ptr<BlockStmt> block(static_cast<BlockStmt*>(clone(o.block()).release()));
+	std::unique_ptr<EndpointExpr> ep(static_cast<EndpointExpr*>(clone(o.endpoint()).release()));
+	_onBlock.reset(new OnUpdateBlock(o.sloc(), std::move(*ep), std::move(block)));
 }
 
 void InstantiationVisitor::visit(Endpoint&) {}

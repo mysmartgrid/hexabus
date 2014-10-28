@@ -69,8 +69,8 @@ class BlockStmt;
 class DeclarationStmt;
 class GotoStmt;
 class OnSimpleBlock;
-class OnPacketBlock;
 class OnExprBlock;
+class OnUpdateBlock;
 class Endpoint;
 class Device;
 class MachineClass;
@@ -121,8 +121,8 @@ struct ASTVisitor {
 	virtual void visit(GotoStmt&) = 0;
 
 	virtual void visit(OnSimpleBlock&) = 0;
-	virtual void visit(OnPacketBlock&) = 0;
 	virtual void visit(OnExprBlock&) = 0;
+	virtual void visit(OnUpdateBlock&) = 0;
 
 	virtual void visit(Endpoint&) = 0;
 	virtual void visit(Device&) = 0;
@@ -660,27 +660,6 @@ public:
 	}
 };
 
-class OnPacketBlock : public OnBlock {
-private:
-	Identifier _sourceId;
-	Declaration* _source;
-
-public:
-	OnPacketBlock(const SourceLocation& sloc, const Identifier& sourceId, std::unique_ptr<BlockStmt> block)
-		: OnBlock(sloc, std::move(block)), _sourceId(sourceId), _source(nullptr)
-	{}
-
-	const Identifier& sourceId() const { return _sourceId; }
-	Declaration* source() { return _source; }
-
-	void source(Declaration* d) { _source = d; }
-
-	virtual void accept(ASTVisitor& v)
-	{
-		v.visit(*this);
-	}
-};
-
 class OnExprBlock : public OnBlock {
 private:
 	std::unique_ptr<Expr> _condition;
@@ -691,6 +670,23 @@ public:
 	{}
 
 	Expr& condition() { return *_condition; }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
+};
+
+class OnUpdateBlock : public OnBlock {
+private:
+	EndpointExpr _endpoint;
+
+public:
+	OnUpdateBlock(const SourceLocation& sloc, EndpointExpr ep, std::unique_ptr<BlockStmt> block)
+		: OnBlock(sloc, std::move(block)), _endpoint(std::move(ep))
+	{}
+
+	EndpointExpr& endpoint() { return _endpoint; }
 
 	virtual void accept(ASTVisitor& v)
 	{

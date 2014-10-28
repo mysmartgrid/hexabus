@@ -5,9 +5,10 @@ device dev(::) : a, b;
 
 machine m {
 	state init {
+		on update from dev.b { //#expect: error: endpoint b cannot be read
+		}
 		always {
-			bool A = dev.b; //#expect: error: endpoint b cannot be read
-			dev.a = A; //#expect: error: endpoint a cannot be written
+			dev.a = true; //#expect: error: endpoint a cannot be written
 		}
 	}
 };

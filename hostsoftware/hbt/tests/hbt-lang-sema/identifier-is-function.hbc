@@ -6,8 +6,10 @@ machine m {
 		                           //#expect+: @<builtin>hint: declared here
 		                           //#expect+: @<builtin>hint: declared here
 
-		on packet from day {} //#expect: error: identifier 'day' does not name a device
-		                      //#expect: @<builtin>hint: declared here
+		on update from day.year {} //#expect: error: identifier 'day' does not name a device
+		                           //#expect+: error: identifier 'year' does not name an endpoint
+		                           //#expect: @<builtin>hint: declared here
+		                           //#expect: @<builtin>hint: declared here
 
 		always {
 			month = 1; //#expect: error: cannot assign to 'month'

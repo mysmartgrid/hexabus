@@ -1,7 +1,9 @@
 machine m {
 	bool dev = false; //#expect: hint: declared here
+	                  //#expect+: hint: declared here
 	state init {
-		on packet from dev { //#expect: error: identifier 'dev' does not name a device
+		on update from dev.dev { //#expect: error: identifier 'dev' does not name a device
+		                         //#expect+: error: identifier 'dev' does not name an endpoint
 		}
 	}
 };

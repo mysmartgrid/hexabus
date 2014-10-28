@@ -61,8 +61,8 @@ public:
 	virtual void visit(GotoStmt&) override;
 
 	virtual void visit(OnSimpleBlock&) override;
-	virtual void visit(OnPacketBlock&) override;
 	virtual void visit(OnExprBlock&) override;
+	virtual void visit(OnUpdateBlock&) override;
 
 	virtual void visit(Endpoint&) override;
 	virtual void visit(Device&) override;

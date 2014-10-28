@@ -15,7 +15,7 @@ machine m {
 
 class c (device dev, endpoint ep) {
 	state init {
-		on packet from D { //#expect: error: use of undeclared identifier 'D'
+		on update from D.ep { //#expect: error: use of undeclared identifier 'D'
 		}
 		always {
 			dev.ep = 8;

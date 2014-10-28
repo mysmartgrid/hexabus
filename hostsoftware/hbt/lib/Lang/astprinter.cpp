@@ -373,14 +373,6 @@ void ASTPrinter::visit(OnSimpleBlock& o)
 	printOnBlockBody(o);
 }
 
-void ASTPrinter::visit(OnPacketBlock& o)
-{
-	indent();
-
-	out << "on packet from " << o.sourceId().name() << " {";
-	printOnBlockBody(o);
-}
-
 void ASTPrinter::visit(OnExprBlock& o)
 {
 	indent();
@@ -388,6 +380,16 @@ void ASTPrinter::visit(OnExprBlock& o)
 	out << "on (";
 	o.condition().accept(*this);
 	out << ") {";
+	printOnBlockBody(o);
+}
+
+void ASTPrinter::visit(OnUpdateBlock& o)
+{
+	indent();
+
+	out << "on update from ";
+	o.endpoint().accept(*this);
+	out << " {";
 	printOnBlockBody(o);
 }
 

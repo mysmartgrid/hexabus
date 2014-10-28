@@ -170,8 +170,8 @@ public:
 	virtual void visit(GotoStmt&) override;
 
 	virtual void visit(OnSimpleBlock&) override;
-	virtual void visit(OnPacketBlock&) override;
 	virtual void visit(OnExprBlock&) override;
+	virtual void visit(OnUpdateBlock&) override;
 
 	virtual void visit(Endpoint&) override;
 	virtual void visit(Device&) override;
@@ -521,12 +521,8 @@ void CodegenVisitor::visit(OnSimpleBlock& o)
 	o.block().accept(*this);
 }
 
-void CodegenVisitor::visit(OnPacketBlock& o)
-{
-	o.block().accept(*this);
-}
-
 void CodegenVisitor::visit(OnExprBlock&) {die("expression-triggered on blocks");}
+void CodegenVisitor::visit(OnUpdateBlock&) {die("value-triggered on blocks");}
 void CodegenVisitor::visit(MachineInstantiation&) { die("machine instantiations"); }
 
 // nothing to do here
@@ -565,23 +561,6 @@ void CodegenVisitor::visit(MachineDefinition& m)
 			currentPacketSource = nullptr;
 			on->accept(*this);
 			blocks.pop_back();
-		} else if (auto* packet = dynamic_cast<OnPacketBlock*>(on.get())) {
-			auto* source = static_cast<Device*>(packet->source());
-
-			if (packetBlocks.count(source))
-				die("multiple packet blocks per source");
-
-			packetBlocks.emplace(source, std::unique_ptr<CodegenBlock>(new CodegenBlock(builder.createLabel())));
-			CodegenBlock* block = packetBlocks[source].get();
-
-			blocks.push_back(block);
-			currentPacketSource = source;
-			on->accept(*this);
-			blocks.pop_back();
-
-			packetSwitchBlock.append(mc::Opcode::LD_SOURCE_IP);
-			packetSwitchBlock.append(mc::Opcode::CMP_BLOCK, mc::BlockPart(0, 16, source->address()));
-			packetSwitchBlock.append(mc::Opcode::JNZ, block->entryLabel);
 		}
 	}
 

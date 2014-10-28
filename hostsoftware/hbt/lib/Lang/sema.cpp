@@ -271,6 +271,15 @@ static Diagnostic machineWithoutStates(const MachineDefinition& m)
 	return { DiagnosticKind::Error, &m.sloc(), str(format("machine %1% has no states") % m.name().name()) };
 }
 
+static Diagnostic endpointNotLive(const EndpointExpr& e)
+{
+	return {
+		DiagnosticKind::Error,
+		&e.sloc(),
+		str(format("endpoint %1%.%2% is not live") % e.deviceId().name() % e.endpointId().name())
+	};
+}
+
 
 
 template<typename T>
@@ -348,7 +357,7 @@ public:
 
 
 SemanticVisitor::SemanticVisitor(DiagnosticOutput& diagOut)
-	: diags(diagOut), currentScope(&globalScope), gotoExclusionScope(nullptr)
+	: diags(diagOut), currentScope(&globalScope), liveEndpoint(nullptr), gotoExclusionScope(nullptr)
 {
 	builtinFunctions.emplace_back(BuiltinFunction("second", Type::Int32, { Type::Int64 }));
 	builtinFunctions.emplace_back(BuiltinFunction("minute", Type::Int32, { Type::Int64 }));
@@ -684,7 +693,7 @@ std::pair<Declaration*, Endpoint*> SemanticVisitor::resolveEndpointInScope(const
 	return { nullptr, nullptr };
 }
 
-Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
+Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e, bool forRead)
 {
 	if (auto* ep = dynamic_cast<Endpoint*>(e.endpoint()))
 		return ep;
@@ -696,6 +705,10 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 	e.endpoint(ep.first);
 	e.deviceIdIsIncomplete(!dev.second);
 	e.endpointIdIsIncomplete(!ep.second);
+
+	if (forRead && e.device() && e.endpoint() &&
+			(!liveEndpoint || liveEndpoint->endpoint() != e.endpoint() || liveEndpoint->device() != e.device()))
+		diags.print(endpointNotLive(e));
 
 	if (e.isIncomplete())
 		return nullptr;
@@ -717,7 +730,7 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e)
 
 void SemanticVisitor::visit(EndpointExpr& e)
 {
-	if (auto ep = checkEndpointExpr(e)) {
+	if (auto ep = checkEndpointExpr(e, true)) {
 		if ((ep->access() & EndpointAccess::Broadcast) != EndpointAccess::Broadcast)
 			diags.print(endpointNotReadable(e, *ep));
 	}
@@ -790,7 +803,7 @@ void SemanticVisitor::visit(WriteStmt& w)
 {
 	w.value().accept(*this);
 
-	if (auto ep = checkEndpointExpr(w.target())) {
+	if (auto ep = checkEndpointExpr(w.target(), false)) {
 		if ((ep->access() & EndpointAccess::Write) != EndpointAccess::Write)
 			diags.print(endpointNotWritable(w.target(), *ep));
 
@@ -889,36 +902,6 @@ void SemanticVisitor::visit(OnSimpleBlock& o)
 	gotoExclusionScope = nullptr;
 }
 
-void SemanticVisitor::visit(OnPacketBlock& o)
-{
-	auto* se = currentScope->resolve(o.sourceId().name());
-
-	Declaration* sourceDevice = dynamic_cast<Device*>(se);
-
-	if (!sourceDevice) {
-		auto* cpd = dynamic_cast<CPDevice*>(se);
-
-		if (cpd)
-			classParams.at(cpd->identifier()).used = true;
-
-		sourceDevice = cpd;
-	}
-
-	if (!se) {
-		diags.print(undeclaredIdentifier(o.sourceId()));
-		return;
-	}
-
-	if (!sourceDevice) {
-		diags.print(
-			identifierIsNoDevice(o.sourceId()),
-			declaredHere(se->sloc()));
-	}
-
-	o.block().accept(*this);
-	o.source(sourceDevice);
-}
-
 void SemanticVisitor::visit(OnExprBlock& o)
 {
 	o.condition().accept(*this);
@@ -927,6 +910,16 @@ void SemanticVisitor::visit(OnExprBlock& o)
 		diags.print(invalidImplicitConversion(o.sloc(), o.condition().type(), Type::Bool));
 
 	o.block().accept(*this);
+}
+
+void SemanticVisitor::visit(OnUpdateBlock& o)
+{
+	liveEndpoint = &o.endpoint();
+
+	o.endpoint().accept(*this);
+	o.block().accept(*this);
+
+	liveEndpoint = nullptr;
 }
 
 void SemanticVisitor::visit(Endpoint& e)

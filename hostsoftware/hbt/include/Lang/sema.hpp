@@ -58,6 +58,8 @@ private:
 	Scope globalScope;
 	Scope* currentScope;
 
+	EndpointExpr* liveEndpoint;
+
 	const char* gotoExclusionScope;
 
 	void declareInCurrentScope(Declaration& decl);
@@ -68,7 +70,7 @@ private:
 	std::pair<Declaration*, Device*> resolveDeviceInScope(const Identifier& device);
 	std::pair<Declaration*, Endpoint*> resolveEndpointInScope(const Identifier& endpoint);
 
-	Endpoint* checkEndpointExpr(EndpointExpr& e);
+	Endpoint* checkEndpointExpr(EndpointExpr& e, bool forRead);
 
 public:
 	SemanticVisitor(DiagnosticOutput& diagOut);
@@ -100,8 +102,8 @@ public:
 	virtual void visit(GotoStmt& g) override;
 
 	virtual void visit(OnSimpleBlock& o) override;
-	virtual void visit(OnPacketBlock& o) override;
 	virtual void visit(OnExprBlock& o) override;
+	virtual void visit(OnUpdateBlock& o) override;
 
 	virtual void visit(Endpoint& e) override;
 	virtual void visit(Device& d) override;

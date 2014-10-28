@@ -104,12 +104,12 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 		add(word.case_ = "case");
 		add(word.default_ = "default");
 		add(word.goto_ = "goto");
-		add(word.packet = "packet");
 		add(word.from = "from");
 		add(word.entry = "entry");
 		add(word.exit = "exit");
 		add(word.periodic = "periodic");
 		add(word.always = "always");
+		add(word.update = "update");
 
 		add(lit.bool_ = "true|false");
 		add(string = R"(\"[^\r\n"]*\")");
@@ -151,7 +151,7 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 	struct {
 		boost::spirit::lex::token_def<>
 			machine, device, endpoint, include, read, write, global_write, broadcast, class_, state, on, if_, else_,
-			switch_, case_, default_, goto_, packet, from, entry, exit, periodic, always;
+			switch_, case_, default_, goto_, from, entry, exit, periodic, always, update;
 	} word;
 };
 
@@ -325,13 +325,17 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				| !eoi >> expected("toplevel element")
 			);
 
+		e.endpoint.name("endpoint");
+		e.endpoint =
+			(identifier >> omit[tok.dot] > identifier)[fwd >= [this] (Identifier* dev, Identifier* ep) {
+				return new EndpointExpr(dev->sloc(), *dev, *ep, Type::Int32);
+			}];
+
 		e.primary.name("expression");
 		e.primary =
 			e.literal[_val = _1]
 			| (tok.lparen > expr > tok.rparen)[_val = _2]
-			| (identifier >> omit[tok.dot] > identifier)[fwd >= [this] (Identifier* dev, Identifier* ep) {
-				return new EndpointExpr(dev->sloc(), *dev, *ep, Type::Int32);
-			}]
+			| e.endpoint[_val = _1]
 			| tok.ident[fwd >= [this] (range& id) {
 				return new IdentifierExpr(locOf(id), str(id), Type::Int32);
 			}];
@@ -627,13 +631,13 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			| (
 				tok.word.on
 				>> omit[
-					tok.word.packet
+					tok.word.update
 					> tok.word.from
 				]
-				> identifier
+				> e.endpoint
 				> s.block
-			)[fwd >= [this] (range& r, Identifier* from, ptr<BlockStmt>& block) {
-				return new OnPacketBlock(locOf(r), *from, block);
+			)[fwd >= [this] (range& r, ptr<EndpointExpr>& ep, ptr<BlockStmt>& block) {
+				return new OnUpdateBlock(locOf(r), std::move(*ep), block);
 			}]
 			| (
 				tok.word.on
@@ -841,6 +845,8 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 	struct {
 		rule<ptr<Expr>()> primary, callOrCast, unary, mul, add, shift, rel, eq, and_, or_, xor_, boolAnd, boolOr, cond;
 		rule<ptr<Expr>()> literal;
+
+		rule<ptr<EndpointExpr>()> endpoint;
 
 		struct {
 			rule<opt<locd<BinaryOperator>>()> mul, add, shift, rel;

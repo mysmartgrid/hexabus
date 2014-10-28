@@ -1,0 +1,20 @@
+endpoint ep(0) : bool (broadcast);
+
+device dev(::) : ep;
+
+machine m {
+	state s {
+		on (dev.ep) { //#expect: error: endpoint dev.ep is not live
+		}
+	}
+};
+
+class c(device d, endpoint e) {
+	state s {
+		on (d.e) { //#expect: error: endpoint d.e is not live
+		           //#expect+: error: invalid implicit type conversion from int32 to bool
+		}
+	}
+};
+
+machine m2 : c(dev, ep); //#expect: hint: instantiated from here
