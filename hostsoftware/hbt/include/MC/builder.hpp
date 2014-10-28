@@ -6,10 +6,10 @@
 #include "Util/iterator.hpp"
 #include "Util/range.hpp"
 
-#include <list>
 #include <map>
 #include <memory>
 
+#include <boost/container/list.hpp>
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
 
@@ -38,7 +38,7 @@ class Builder {
 			> immediate_t;
 
 	private:
-		typedef std::list<std::unique_ptr<Instruction>> insn_list;
+		typedef boost::container::list<std::unique_ptr<Instruction>> insn_list;
 	public:
 		typedef util::const_uptr_value_iterator<insn_list, Builder> insn_iterator;
 
