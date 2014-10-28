@@ -173,7 +173,7 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 
 };
 
-module.exports.socketioSetup = function(on, emit, devicetree) {
+module.exports.socketioSetup = function(on, emit, hexabus, devicetree) {
 	
 	on('upgrade', function() {
 		var wizard = new Wizard();
@@ -209,8 +209,10 @@ module.exports.socketioSetup = function(on, emit, devicetree) {
 
 	on('devices_add', function() {
 		var wizard = new Wizard();
+		
+		console.log('Adding Device');
 
-		wizard.addDevice(devicetree, function(msg) {
+		wizard.addDevice(devicetree, hexabus, function(msg) {
 			emit('device_found', msg);
 		});
 	});

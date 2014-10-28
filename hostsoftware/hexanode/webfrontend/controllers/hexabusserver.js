@@ -78,24 +78,13 @@ var HexabusServer = function(socket, devicetree) {
 
 	on('hexabus_enumerate', function(data, cb) {
 		console.log('Enumerate called');
-		hexabus.enumerate_network(function(dev) {
-			if (dev.done) {
+		hexabus.update_devicetree(devicetree, function(error) {
+			if (error === undefined) {
 				cb({'success' : true});
-			} else if (dev.error) {
-				console.log(dev.error);
-				cb({'success' : false, 'msg' : dev.error});
-			} else {
-				dev = dev.device;
-				for (var key in dev.endpoints) {
-					var ep = dev.endpoints[key];
-					ep.name = ep.name || dev.name;
-					if ((!devicetree.devices[dev.ip] || !devicetree.devices[dev.ip].endpoints[ep.eid]) && !hexabus.is_ignored_endpoint(dev.ip, ep.eid)) {
-						devicetree.add_endpoint(dev.ip, ep.eid, ep);
-					}
-					else if(devicetree.devices[dev.ip] && devicetree.devices[dev.ip].endpoints[ep.eid] && !hexabus.is_ignored_endpoint(dev.ip, ep.eid)) {
-						devicetree.devices[dev.ip].endpoints[ep.eid].update();
-					}
-				}
+			}
+			else {
+				console.log(error);
+				cb({'success' : false, 'msg' : error});
 			}
 		});
 	});

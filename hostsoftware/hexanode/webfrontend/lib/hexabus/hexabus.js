@@ -133,6 +133,29 @@ var hexabus = function() {
 		return eid >= 7 && eid <= 12;
 	};
 
+	this.update_devicetree = function(devicetree, cb) {
+		this.enumerate_network(function(dev) {
+			if (dev.done) {
+				cb();
+			} else if (dev.error) {
+				console.log(dev.error);
+				cb(dev.error);
+			} else {
+				dev = dev.device;
+				for (var key in dev.endpoints) {
+					var ep = dev.endpoints[key];
+					ep.name = ep.name || dev.name;
+					if ((!devicetree.devices[dev.ip] || !devicetree.devices[dev.ip].endpoints[ep.eid]) && !this.is_ignored_endpoint(dev.ip, ep.eid)) {
+						devicetree.add_endpoint(dev.ip, ep.eid, ep);
+					}
+					else if(devicetree.devices[dev.ip] && devicetree.devices[dev.ip].endpoints[ep.eid] && !this.is_ignored_endpoint(dev.ip, ep.eid)) {
+						devicetree.devices[dev.ip].endpoints[ep.eid].update();
+					}
+				}
+			}
+		}.bind(this));
+	};
+
 
 	this.read_endpoint = function(ip, eid, cb) {
 	};

@@ -20,12 +20,14 @@ var application_root = __dirname,
 	nconf=require('nconf');
 
 nconf.env().argv().file({file: 'config.json'});
+
 // Setting default values
 nconf.defaults({
   'port': '3000',
 	'config': '.'
 });
 server.listen(nconf.get('port'));
+
 
 // drop root if we ever had it, our arguments say so.
 // this includes all supplemental groups, of course
@@ -40,55 +42,40 @@ if (nconf.get('uid')) {
 	process.setuid(uid);
 }
 
+
+// Load Devicetree
 var configDir = nconf.get('config');
 var devicetree_file = configDir + '/devicetree.json';
 
 var devicetree;
-
-var loadDeviceTree = function() {
-	try {
-		if(fs.existsSync(devicetree_file)) {
-			var jsonTree = JSON.parse(fs.readFileSync(devicetree_file));
-			devicetree = new DeviceTree(jsonTree);
-		}
-		else {
-			throw 'File: ' + devicetree_file + ' does not exist';
-		}
+try {
+	if(fs.existsSync(devicetree_file)) {
+		var jsonTree = JSON.parse(fs.readFileSync(devicetree_file));
+		devicetree = new DeviceTree(jsonTree);
 	}
-	catch(e) {
-		console.log(e);
-		devicetree = new DeviceTree();
+	else {
+		throw 'File: ' + devicetree_file + ' does not exist';
 	}
-};
+}
+catch(e) {
+	console.log(e);
+	devicetree = new DeviceTree();
+}
 
-loadDeviceTree();
 
-var enumerate_network = function(cb) {
-	cb = cb || Object;
-	hexabus.enumerate_network(function(dev) {
-		if (dev.done) {
-			cb();
-		} else if (dev.error) {
-			console.log(dev.error);
-		} else {
-			dev = dev.device;
-			for (var key in dev.endpoints) {
-				var ep = dev.endpoints[key];
-				if ((!devicetree.devices[dev.ip] || !devicetree.devices[dev.ip].endpoints[ep.eid]) && !hexabus.is_ignored_endpoint(dev.ip, ep.eid)) {
-					devicetree.add_endpoint(dev.ip, ep.eid, ep);
-				}
-				else if(devicetree.devices[dev.ip] && devicetree.devices[dev.ip].endpoints[ep.eid] && !hexabus.is_ignored_endpoint(dev.ip, ep.eid)) {
-					devicetree.devices[dev.ip].endpoints[ep.eid].update();
-				}
-			}
+// Set up timer to regularily enumerate the network
+var enumerate_network = function() {
+	hexabus.update_devicetree(devicetree, function(error) {
+		if(error !== undefined) {
+			console.log(error);
 		}
 	});
 };
-
 enumerate_network();
-
 setInterval(enumerate_network, 60 * 60 * 1000);
 
+
+// Setup timer to regularily save the devictree to disk (just in case)
 var save_devicetree = function(cb) {
 	fs.writeFile(devicetree_file, JSON.stringify(devicetree, null, '\t'), function(err) {
 		if (cb) {
@@ -97,9 +84,9 @@ var save_devicetree = function(cb) {
 	});
 	console.log('Saved Devicetree');
 };
-
 setInterval(save_devicetree, 2 * 60 * 1000);
 
+// We also need to save the devicetree if we are killed
 process.on('SIGINT', function() {
 	save_devicetree(process.exit);
 });
@@ -108,6 +95,8 @@ process.on('SIGTERM', function() {
 	save_devicetree(process.exit);
 });
 
+
+// Start
 console.log("Using configuration: ");
 console.log(" - port: " + nconf.get('port'));
 console.log(" - config dir: " + nconf.get('config'));
@@ -159,6 +148,7 @@ io.on('connection', function (socket) {
 			try {
 				cb(data);
 			} catch (e) {
+				console.log('error in socket.io handler: ' + e);
 				socket.emit('_error_', e);
 			}
 		});
@@ -174,7 +164,7 @@ io.on('connection', function (socket) {
 	var hexabusServer = new HexabusServer(socket, devicetree);
 
 	StatemachineController.socketioSetup(emit, on, hexabus, devicetree);
-	WizardController.socketioSetup(on, emit, devicetree);
+	WizardController.socketioSetup(on, emit, hexabus, devicetree);
 
 
 	on('devicetree_request_init', function() {
