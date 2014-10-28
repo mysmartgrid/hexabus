@@ -1,11 +1,20 @@
 'use strict';
 
+/*
+ * A Serverobject that exposes some hexabus functions via socket io.
+ *
+ * The browser side code uses the functions exposed by this object to
+ * perform various interaction with hexbus devices.
+ */
+
+
 var Hexabus = require("../lib/hexabus");
 
 var HexabusServer = function(socket, devicetree) {
-	
+
 	var hexabus = new Hexabus();
 
+	// Wrapper for socket.on with improved exception handling.
 	var on = function(ev, cb) {
 		socket.on(ev, function(data, ackcb) {
 			try {
@@ -17,6 +26,17 @@ var HexabusServer = function(socket, devicetree) {
 		});
 	};
 
+
+	/*
+	 * Update the metadata of endpoint in the devicetree.
+	 *
+	 * Expected format for the incoming socket.io message:
+	 * {
+	 *	 enpointId: "<deviceIp>.<eid>",
+	 *	 field: "<NameOfTheMetadataField>",
+	 *	 value: "<NewValueForTheMetadataField>"
+	 * }
+	 */
 	on('hexabus_update_endpoint_metadata', function(data) {
 		if(data.endpointId === undefined || data.field === undefined || data.value === undefined) {
 			throw 'Invalid enpoint metadata update';
@@ -35,6 +55,15 @@ var HexabusServer = function(socket, devicetree) {
 	});
 
 
+	/*
+	 * Rename a hexabus device.
+	 *
+	 * Expected format for the incoming socket.io message:
+	 * {
+	 *	 deviceIp: "<IpOfTheDevice>",
+	 *	 name: "<NewNameForTheDevice>"
+	 * }
+	 */
 	on('hexabus_rename_device', function(data, cb) {
 		if(data.deviceIp === undefined || data.name === undefined) {
 			throw 'Invalid rename';
@@ -53,6 +82,17 @@ var HexabusServer = function(socket, devicetree) {
 	});
 
 	
+	/*
+	 * Write a new value to an endpoint.
+	 *
+	 * Can for example be used to switch a relais off and on.
+	 *
+	 * Expected format for the incoming socket.io message:
+	 * {
+	 *	 endpointId: "<deviceIp>.<eid>",
+	 *	 value: "<NewValueForTheEndpoint>"
+	 * }
+	 */
 	on('hexabus_set_endpoint', function(data, cb) {
 		
 		if(data.endpointId === undefined || data.value === undefined) {
@@ -76,6 +116,12 @@ var HexabusServer = function(socket, devicetree) {
 		});
 	});
 
+	/*
+	 * Enumerate the hexabus network.
+	 *
+	 * Runs device discovery in the hexabus network and adds newly found device to
+	 * the devicetree.
+	 */
 	on('hexabus_enumerate', function(data, cb) {
 		console.log('Enumerate called');
 		hexabus.update_devicetree(devicetree, function(error) {

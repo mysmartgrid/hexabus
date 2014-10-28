@@ -96,7 +96,7 @@ process.on('SIGTERM', function() {
 });
 
 
-// Start
+
 console.log("Using configuration: ");
 console.log(" - port: " + nconf.get('port'));
 console.log(" - config dir: " + nconf.get('config'));
@@ -115,11 +115,18 @@ app.configure(function () {
   app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 });
 
+/*
+ * Initialize the different controllers.
+ */
 ApiController.expressSetup(app, nconf, hexabus, devicetree);
 WizardController.expressSetup(app, nconf, hexabus, devicetree);
 ViewsController.expressSetup(app, nconf, hexabus, devicetree);
 StatemachineController.expressSetup(app, nconf, hexabus, devicetree);
 
+/*
+ * The overview page.
+ * This page may redirect to /wizzard/new in case hexanode has not yet been configured.
+ */
 app.get('/', function(req, res) {
 		var wizard = new Wizard();
 		if (wizard.is_finished()) {
@@ -132,17 +139,31 @@ app.get('/', function(req, res) {
 		}
 });
 
+
+/*
+ * The about page for displaying some rudimentary version info.
+ */
 app.get('/about', function(req, res) {
 	res.render('about.ejs', { active_nav: 'about' });
 });
 
+
+/*
+ * Make the devicetree.js file accessable to the browser.
+ * Note: The file is written in special way to be executed by nodejs as well as by a browsers javascript engine.
+ */
 app.get('/commonjs/devicetree.js', function(req, res) {
 	res.sendfile(path.join(application_root, 'lib/devicetree/devicetree.js'));
 });
 
+
+/*
+ * Socket.io setup
+ */
 io.on('connection', function (socket) {
 	console.log("Registering new client.");
 
+	// Simple wrapper around socket.on that provides better exception handling.
 	var on = function(ev, cb) {
 		socket.on(ev, function(data) {
 			try {
@@ -154,23 +175,48 @@ io.on('connection', function (socket) {
 		});
 	};
 
+	/*
+	 * Since socket.broadcast sends a message to every socket except the one it is called on,
+	 * this wrapper is required to do a real broadcast.
+	 */
 	var broadcast = function(ev, data) {
 		socket.broadcast.emit(ev, data);
 		socket.emit(ev, data);
 	};
 
+	// Shorthand for socket.emit
 	var emit = socket.emit.bind(socket);
 
+	// A hexabusserver to handle hexabus_... messages
 	var hexabusServer = new HexabusServer(socket, devicetree);
 
+	// Setup handlers for statemachine messages
 	StatemachineController.socketioSetup(emit, on, hexabus, devicetree);
+
+	// Setup handler needed by the wizzard pages
 	WizardController.socketioSetup(on, emit, hexabus, devicetree);
 
 
+	/*
+	 * Setup handlers for devicetree synchronization.
+	 *
+	 * Since the devicetree aims to be agnostic towards the communication channel
+	 * used to synchronize its instances, there is no specialized setup method for socket.io.
+	 */
+
+	/*
+	 * Send the full devicetree to initialize a new browserside instance.
+	 */
 	on('devicetree_request_init', function() {
 		emit('devicetree_init', devicetree.toJSON());
 	});
 
+	/*
+	 * Apply a browerside update to the serverside instance and propagate it to all other browserside instances.
+	 *
+	 * If applying the update locally fails the update is not propagated.
+	 * Instead an error message is send backt to the browserside instance.
+	 */
 	socket.on('devicetree_update', function(update) {
 		try {
 			devicetree.applyUpdate(update);
@@ -181,6 +227,13 @@ io.on('connection', function (socket) {
 		}
 	});
 
+
+	/*
+	 * Apply a browserside deletion to the serverside instance and propagate it to all other browserside instances.
+	 *
+	 * If applying the deletion locally fails the deletion is not propagated.
+	 * Instead an error message is send backt to the browserside instance.
+	 */
 	socket.on('devicetree_delete', function(update) {
 		try {
 			devicetree.applyDeletion(update);
@@ -192,14 +245,24 @@ io.on('connection', function (socket) {
 	});
 
 
+	/*
+	 * Propagate a serverside devicetree update to all browserside instances.
+	 */
 	devicetree.on('update',function(update) {
 		emit('devicetree_update', update);
 	});
 
+	/*
+	 * Propagate a serverside devicetree deletion to all browserside instances.
+	 */
 	devicetree.on('delete',function(deletion) {
 		emit('devicetree_delete', deletion);
 	});
 
+
+	/*
+	 * Send an update for the mysmartgrid heartbeat state to browser.
+	 */
 	var health_update_timeout;
 	var send_health_update = function() {
 		health_update_timeout = setTimeout(send_health_update, 60 * 1000);
@@ -208,9 +271,8 @@ io.on('connection', function (socket) {
 			emit('health_update', ((err || state.code !== 0) && wizard.is_finished()));
 		});
 	};
-
 	send_health_update();
 
-	
+	// Reset the browserside sate
 	emit('clear_state');
 });
