@@ -1001,7 +1001,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 				FAIL_WITH(HSE_INVALID_TYPES);
 
 			bool is_signed = TOP.type >= HXB_DTYPE_SINT8 && TOP.type <= HXB_DTYPE_SINT64;
-			FAIL_AS(sm_convert(&TOP, sm_common_type(TOP.type, HXB_DTYPE_UINT64)));
+			FAIL_AS(sm_convert(&TOP, HXB_DTYPE_UINT64));
 
 			uint16_t offset = insn_length;
 
@@ -1015,7 +1015,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 
 			for (uint16_t i = 0; i < insn.immed.v_uint; i++) {
 				uint64_t label;
-				uint16_t jump_val;
+				uint32_t jump_val;
 
 				int rc = -1;
 #define LOAD_LABEL(width) \
@@ -1042,7 +1042,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 					FAIL_WITH(HSE_INVALID_OPCODE);
 				offset += rc;
 
-				rc = sm_get_block(addr + offset, 2, &jump_val);
+				rc = sm_get_u16(addr + offset, &jump_val);
 				if (rc < 0)
 					FAIL_WITH(HSE_INVALID_OPCODE);
 				offset += rc;
@@ -1070,9 +1070,9 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 
 			FAIL_AS(sm_convert(&TOP, HXB_DTYPE_BOOL));
 
-			bool jz = insn.opcode == HSO_JZ;
+			bool wanted = insn.opcode == HSO_JZ ? false : true;
 
-			if (TOP.v_uint == jz)
+			if (TOP.v_uint == wanted)
 				jump_skip = insn.jump_skip;
 
 			top--;
