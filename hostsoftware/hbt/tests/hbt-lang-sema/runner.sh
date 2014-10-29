@@ -7,7 +7,7 @@ failed=0
 for file in $dir/*.hbc
 do
 	total=$(($total + 1))
-	if $dir/../../build/src/hbt-lang -sema-expect $file
+	if $dir/../../build/src/hbc -fsyntax-only $file
 	then
 		echo "PASS: " $(basename $file)
 	else

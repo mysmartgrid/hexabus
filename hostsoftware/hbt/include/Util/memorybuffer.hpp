@@ -51,7 +51,7 @@ class MemoryBuffer {
 		static std::unique_ptr<MemoryBuffer> tryLoadFile(const std::string& path);
 		static MemoryBuffer loadFile(const std::string& path, bool allowStdin = false);
 
-		void writeFile(const std::string& path, bool allowStdout = false);
+		void writeFile(const std::string& path, bool allowStdout = false) const;
 
 		iterator begin() { return _data.begin(); }
 		iterator end() { return _data.end(); }

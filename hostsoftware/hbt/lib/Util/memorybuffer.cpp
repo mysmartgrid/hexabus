@@ -71,7 +71,7 @@ MemoryBuffer MemoryBuffer::loadFile(const std::string& path, bool allowStdin)
 	return MemoryBuffer(std::move(result));
 }
 
-void MemoryBuffer::writeFile(const std::string& path, bool allowStdout)
+void MemoryBuffer::writeFile(const std::string& path, bool allowStdout) const
 {
 	bool success;
 
