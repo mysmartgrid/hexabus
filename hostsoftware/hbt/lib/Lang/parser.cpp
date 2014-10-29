@@ -183,8 +183,8 @@ struct whitespace : qi::grammar<It> {
 				std::string line = str(r);
 				static const char prefix[] = "//#expect: ";
 				if (line.substr(0, strlen(prefix)) == prefix) {
-					expectations->emplace_back(getLine(r.begin()), line.substr(strlen(prefix)));
-					lastLine = getLine(r.begin());
+					expectations->emplace_back(r.begin().line(), line.substr(strlen(prefix)));
+					lastLine = r.begin().line();
 				}
 
 
@@ -305,8 +305,8 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 	}
 
 	template<typename TokenDef>
-	grammar(const TokenDef& tok, const std::string* file, const SourceLocation* includedFrom, int tabWidth)
-		: grammar::base_type(start), file(file), includedFrom(includedFrom), tabWidth(tabWidth)
+	grammar(const TokenDef& tok, const std::string* file, const SourceLocation* includedFrom)
+		: grammar::base_type(start), file(file), includedFrom(includedFrom)
 	{
 		using namespace qi;
 		using namespace boost::phoenix;
@@ -884,11 +884,9 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 	rule<> unexpected;
 
-	int tabWidth;
-
 	SourceLocation locOf(const range& range)
 	{
-		return SourceLocation(file, getLine(range.begin()), getColumn(range.begin(), tabWidth), includedFrom);
+		return SourceLocation(file, range.begin().line(), range.begin().col(), includedFrom);
 	}
 };
 
@@ -932,11 +930,11 @@ static std::list<std::unique_ptr<ProgramPart>> parseBuffer(const util::MemoryBuf
 	std::list<std::unique_ptr<ProgramPart>> parts;
 
 	tokenizer<lexer_type> t;
-	grammar<iterator_type> g(t, fileName, includedFrom, tabWidth);
+	grammar<iterator_type> g(t, fileName, includedFrom);
 	whitespace<iterator_type> ws(t, expectations);
 
 	try {
-		iter first(ctext.begin()), last(ctext.end());
+		iter first(ctext.begin(), tabWidth), last(ctext.end(), tabWidth);
 		bool result = boost::spirit::lex::tokenize_and_phrase_parse(first, last, t, g, ws, parts);
 
 		if (!result || first != last)
@@ -952,7 +950,7 @@ static std::list<std::unique_ptr<ProgramPart>> parseBuffer(const util::MemoryBuf
 			if (expected == g.ip_addr.name())
 				badToken = g.badIP;
 			else
-				boost::spirit::lex::tokenize(errit, iter(ctext.end()), t,
+				boost::spirit::lex::tokenize(errit, iter(ctext.end(), tabWidth), t,
 					[&badToken, &line, &col, tabWidth] (const token_type& token) {
 						if (token.id() == TOKEN_SPACE || token.id() == TOKEN_LINECOMMENT)
 							return true;
@@ -965,14 +963,14 @@ static std::list<std::unique_ptr<ProgramPart>> parseBuffer(const util::MemoryBuf
 						} else {
 							badToken = '\'' + std::string(token.value().begin(), token.value().end()) + '\'';
 						}
-						line = getLine(token.value().begin());
-						col = getColumn(token.value().begin(), tabWidth);
+						line = token.value().begin().line();
+						col = token.value().begin().col();
 						return false;
 					});
 		} else {
-			for (auto it = iter(ctext.begin()), end = iter(ctext.end()); it != end; ++it) {
-				line = getLine(it);
-				col = getColumn(it, tabWidth);
+			for (auto it = iter(ctext.begin(), tabWidth), end = iter(ctext.end(), tabWidth); it != end; ++it) {
+				line = it.line();
+				col = it.col();
 			}
 			badToken = "<EOF>";
 		}

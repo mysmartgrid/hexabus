@@ -13,7 +13,7 @@ class sloc_iterator : public boost::iterator_adaptor<
 	boost::use_default,
 	boost::forward_traversal_tag> {
 private:
-	size_t _line, _col, _tabs;
+	size_t _line, _col, _tabWidth;
 	typename std::iterator_traits<Base>::value_type prev;
 
 	friend class boost::iterator_core_access;
@@ -25,9 +25,8 @@ private:
 		if ((cur == '\r' && prev != '\n') || (cur == '\n' && prev != '\r')) {
 			_line++;
 			_col = 1;
-			_tabs = 0;
 		} else if (cur == '\t') {
-			_tabs++;
+			_col += _tabWidth - _col % _tabWidth;
 		} else {
 			_col++;
 		}
@@ -38,31 +37,18 @@ private:
 
 public:
 	sloc_iterator() {}
-	explicit sloc_iterator(Base base)
-		: sloc_iterator::iterator_adaptor_(base), _line(1), _col(1), _tabs(0), prev(0)
+	sloc_iterator(Base base, size_t tabWidth)
+		: sloc_iterator::iterator_adaptor_(base), _line(1), _col(1), _tabWidth(tabWidth), prev(0)
 	{}
 
 	size_t line() const { return _line; }
 	size_t col() const { return _col; }
-	size_t tabs() const { return _tabs; }
 
 	friend bool operator<(const sloc_iterator& left, const sloc_iterator& right)
 	{
 		return left.base_reference() < right.base_reference();
 	}
 };
-
-template<typename Base>
-size_t getLine(const sloc_iterator<Base>& it)
-{
-	return it.line();
-}
-
-template<typename Base>
-size_t getColumn(const sloc_iterator<Base>& it, size_t tabwidth)
-{
-	return it.col() + tabwidth * it.tabs();
-}
 
 }
 }
