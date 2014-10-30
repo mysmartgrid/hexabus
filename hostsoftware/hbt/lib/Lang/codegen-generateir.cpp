@@ -487,13 +487,19 @@ private:
 
 		for (auto* decl : updatedDecls) {
 			ir::PhiInsn::sources_type sources;
+			bool valueChanged = false;
 
 			for (auto& map : maps) {
-				if (map.second.count(decl))
+				if (map.second.count(decl)) {
 					sources.insert({ map.first, map.second.at(decl) });
-				else
+					valueChanged |= map.second.at(decl) != preForkValues.at(decl);
+				} else {
 					sources.insert({ map.first, preForkValues.at(decl) });
+				}
 			}
+
+			if (!valueChanged)
+				continue;
 
 			auto type = dynamic_cast<const DeclarationStmt&>(*decl).type();
 			cgc.valueForDecl[decl] = _inBlock->append(
