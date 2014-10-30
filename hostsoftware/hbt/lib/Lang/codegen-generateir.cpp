@@ -581,7 +581,8 @@ void StmtCG::visit(WriteStmt& w)
 
 	auto* ep = static_cast<Endpoint*>(w.target().endpoint());
 
-	_inBlock->append(ir::WriteInsn(ep->eid(), eval(w.value(), ep->type())));
+	auto* val = eval(w.value(), ep->type());
+	_inBlock->append(ir::WriteInsn(ep->eid(), val));
 }
 
 void StmtCG::visit(IfStmt& i)
