@@ -825,7 +825,9 @@ ir::BasicBlock* StateCG::emitOnBlock(CGContext& cgc, OnUpdateBlock* on, ir::Basi
 	auto* matches = cgc.newBlock();
 	auto* cont = cgc.newBlock();
 
-	auto* cmpIP = block->append(ir::CompareIPInsn(cgc.newName(), 0, 16, dev->address()));
+	auto* cmpIP = dev == cgc.forDev
+		? block->append(ir::CompareIPInsn(cgc.newName(), 0, 16, {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}))
+		: block->append(ir::CompareIPInsn(cgc.newName(), 0, 16, dev->address()));
 	auto* eid = block->append(ir::LoadIntInsn(cgc.newName(), ir::Type::UInt32, ep->eid()));
 	auto* srcEID = block->append(ir::LoadSpecialInsn(cgc.newName(), ir::Type::UInt32, ir::SpecialVal::SourceEID));
 	auto* cmpEID = block->append(ir::ArithmeticInsn(cgc.newName(), ir::Type::Bool, ir::ArithOp::Eq, eid, srcEID));
