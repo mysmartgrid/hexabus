@@ -97,8 +97,9 @@ const char* opcodeName(hbt::mc::Opcode op)
 	case Opcode::CONV_S64: return "conv.s64";
 	case Opcode::CONV_F: return "conv.f";
 	case Opcode::WRITE: return "write";
-	case Opcode::POP: return "pop";
-	case Opcode::EXCHANGE: return "exchange";
+	case Opcode::POP:
+	case Opcode::POP_I:
+		return "pop";
 	case Opcode::RET: return "ret";
 	case Opcode::LD_SOURCE_EID:
 	case Opcode::LD_SOURCE_VAL:
@@ -270,7 +271,7 @@ std::string prettyPrint(const Program& program)
 
 		case Opcode::DUP_I:
 		case Opcode::ROT_I:
-		case Opcode::EXCHANGE:
+		case Opcode::POP_I:
 			if (auto* i = dynamic_cast<const ImmediateInstruction<uint8_t>*>(insn)) {
 				out << format(" %1%") % unsigned(i->immed());
 				break;

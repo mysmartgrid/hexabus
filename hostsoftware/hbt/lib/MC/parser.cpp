@@ -165,7 +165,6 @@ struct simple_instructions : qi::symbols<char, ir_instruction> {
 			("conv.s64", { Opcode::CONV_S64, boost::none_t() })
 			("conv.f", { Opcode::CONV_F, boost::none_t() })
 			("write", { Opcode::WRITE, boost::none_t() })
-			("pop", { Opcode::POP, boost::none_t() })
 			("ret", { Opcode::RET, boost::none_t() });
 	}
 };
@@ -253,7 +252,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 				| jump_instruction
 				| dup_instruction
 				| rot_instruction
-				| exchange_instruction
+				| pop_instruction
 				| switch_instruction
 				| block_instruction
 			);
@@ -335,9 +334,12 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 				| eps[_val = val(ir_instruction{ Opcode::ROT, boost::none_t() })]
 			);
 
-		exchange_instruction =
-			TOKEN("exchange")
-			> stack_slot[_val = bind(make_insn_t<Opcode::EXCHANGE>, _1)];
+		pop_instruction =
+			TOKEN("pop")
+			> (
+				stack_slot[_val = bind(make_insn_t<Opcode::POP_I>, _1)]
+				| eps[_val = val(ir_instruction{ Opcode::POP, boost::none_t() })]
+			);
 
 		switch_instruction =
 			(
@@ -546,7 +548,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, ir_instruction(), asm_ws<It>> jump_instruction;
 	qi::rule<It, ir_instruction(), asm_ws<It>> dup_instruction;
 	qi::rule<It, ir_instruction(), asm_ws<It>> rot_instruction;
-	qi::rule<It, ir_instruction(), asm_ws<It>> exchange_instruction;
+	qi::rule<It, ir_instruction(), asm_ws<It>> pop_instruction;
 	qi::rule<It, ir_instruction(), qi::locals<Opcode>, asm_ws<It>> switch_instruction;
 	simple_instructions simple_instruction;
 	qi::rule<It, ir_instruction(), asm_ws<It>> block_instruction;

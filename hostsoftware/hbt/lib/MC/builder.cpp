@@ -81,7 +81,7 @@ Builder::insn_iterator Builder::insertInstruction(boost::optional<Label> l, Opco
 	case Opcode::LD_U8:
 	case Opcode::DUP_I:
 	case Opcode::ROT_I:
-	case Opcode::EXCHANGE:
+	case Opcode::POP_I:
 		if (auto* v = get<uint8_t>(immed))
 			return insertInsn(new ImmediateInstruction<uint8_t>(op, *v, l, line));
 		throw std::invalid_argument("immed");

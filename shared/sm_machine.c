@@ -72,11 +72,11 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 	case HSO_CONV_S64:
 	case HSO_CONV_F:
 	case HSO_WRITE:
-	case HSO_POP:
 	case HSO_RET:
 		break;
 
 	case HSO_OP_DUP:
+	case HSO_POP:
 		op->immed.v_uint = 0;
 		break;
 
@@ -151,7 +151,7 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 
 	case HSO_OP_DUP_I:
 	case HSO_OP_ROT_I:
-	case HSO_EXCHANGE:
+	case HSO_POP_I:
 	case HSO_OP_SWITCH_8:
 	case HSO_OP_SWITCH_16:
 	case HSO_OP_SWITCH_32:
@@ -816,22 +816,18 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		}
 
 		case HSO_OP_ROT:
-		case HSO_OP_ROT_I: {
+		case HSO_OP_ROT_I:
+		case HSO_POP:
+		case HSO_POP_I: {
 			uint8_t offset = insn.immed.v_uint;
 
 			CHECK_POP(offset + 1);
 			hxb_sm_value_t val = TOP_N(offset);
 			memmove(sm_stack + top - offset, sm_stack + top - offset + 1, offset * sizeof(sm_stack[0]));
-			TOP = val;
-			break;
-		}
-
-		case HSO_EXCHANGE: {
-			uint8_t offset = insn.immed.v_uint;
-
-			CHECK_POP(offset + 1);
-			TOP_N(offset + 1) = TOP;
-			top--;
+			if (insn.opcode == HSO_POP || insn.opcode == HSO_POP_I)
+				top--;
+			else
+				TOP = val;
 			break;
 		}
 
@@ -1085,11 +1081,6 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 			FAIL_AS(sm_convert(&TOP, to));
 			break;
 		}
-
-		case HSO_POP:
-			CHECK_POP(1);
-			top--;
-			break;
 
 		case HSO_RET:
 			goto end_program;

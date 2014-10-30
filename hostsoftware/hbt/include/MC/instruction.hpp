@@ -76,7 +76,7 @@ enum class Opcode {
 	WRITE,
 
 	POP,
-	EXCHANGE,
+	POP_I,
 
 	RET,
 };

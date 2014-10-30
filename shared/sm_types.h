@@ -66,7 +66,7 @@ enum hxb_sm_opcode {
 	HSO_WRITE,
 
 	HSO_POP,
-	HSO_EXCHANGE,
+	HSO_POP_I,
 
 	HSO_RET,
 };

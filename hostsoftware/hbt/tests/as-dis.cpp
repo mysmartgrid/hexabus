@@ -146,7 +146,7 @@ static Testcase allFeatures = {
 	{ "L4:" },
 	{ "	write", { 0x36 } },
 	{ "	pop", { 0x37 } },
-	{ "	exchange 7", { 0x38, 0x07 } },
+	{ "	pop 7", { 0x38, 0x07 } },
 	{ "	ret", { 0x39 } },
 };
 

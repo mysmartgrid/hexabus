@@ -302,6 +302,14 @@ void MachineBlockWithStack::loadForUser(const Value* v, const Instruction* user,
 				slot.second -= 1;
 		}
 
+		if (!user) {
+			if (slotOffset == 0)
+				append(mc::Opcode::POP);
+			else
+				append(mc::Opcode::POP_I, uint8_t(slotOffset));
+			return;
+		}
+
 		if (slotOffset == 0)
 			return;
 
@@ -334,13 +342,11 @@ void MachineBlockWithStack::emitInterblockGlue(const BasicBlock* from)
 
 	for (auto* oldLive : module.liveValuesIn(from)) {
 		if (materializedValues.count(oldLive) && !module.liveValuesIn(currentBlock).count(oldLive))
-			newlyDeadValues.insert({ -materializedValues.at(oldLive), oldLive });
+			newlyDeadValues.insert({ unsigned(-1) - materializedValues.at(oldLive), oldLive });
 	}
 
-	for (auto& dead : newlyDeadValues) {
+	for (auto& dead : newlyDeadValues)
 		loadForUser(dead.second, nullptr);
-		append(mc::Opcode::POP);
-	}
 
 	for (auto& insn : currentBlock->instructions()) {
 		if (insn->insnType() != InsnType::Phi)
