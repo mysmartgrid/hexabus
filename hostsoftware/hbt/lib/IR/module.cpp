@@ -441,6 +441,7 @@ void ModuleVerifier::verifyInsn(const BasicBlock* in, const Instruction& insn)
 		auto& a = static_cast<const ArithmeticInsn&>(insn);
 
 		Type targetType;
+		bool argTypesCorrect = a.left()->type() == a.right()->type();
 		switch (a.op()) {
 		case ArithOp::Mul:
 		case ArithOp::Div:
@@ -450,9 +451,12 @@ void ModuleVerifier::verifyInsn(const BasicBlock* in, const Instruction& insn)
 		case ArithOp::And:
 		case ArithOp::Or:
 		case ArithOp::Xor:
+			targetType = a.left()->type();
+			break;
 		case ArithOp::Shl:
 		case ArithOp::Shr:
 			targetType = a.left()->type();
+			argTypesCorrect = a.right()->type() == Type::UInt32;
 			break;
 		case ArithOp::Lt:
 		case ArithOp::Le:
@@ -463,7 +467,7 @@ void ModuleVerifier::verifyInsn(const BasicBlock* in, const Instruction& insn)
 			targetType = Type::Bool;
 			break;
 		}
-		if (a.left()->type() != a.right()->type() || a.type() != targetType)
+		if (!argTypesCorrect || a.type() != targetType)
 			insnError(*in, "type mismatch in " + a.name());
 
 		break;

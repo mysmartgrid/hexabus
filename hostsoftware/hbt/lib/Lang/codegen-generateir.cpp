@@ -351,16 +351,51 @@ void ExprCG::visit(BinaryExpr& b)
 		return;
 	}
 
-	auto common = commonType(b.left().type(), b.right().type());
+	Type lType = promote(b.left().type());
+	Type rType = promote(b.right().type());
+	Type resType;
+
+	switch (b.op()) {
+	case BinaryOperator::Plus:
+	case BinaryOperator::Minus:
+	case BinaryOperator::Multiply:
+	case BinaryOperator::Divide:
+	case BinaryOperator::Modulo:
+	case BinaryOperator::And:
+	case BinaryOperator::Or:
+	case BinaryOperator::Xor:
+		resType = commonType(b.left().type(), b.right().type());
+		lType = resType;
+		rType = resType;
+		break;
+	case BinaryOperator::BoolAnd:
+	case BinaryOperator::BoolOr:
+	case BinaryOperator::Equals:
+	case BinaryOperator::NotEquals:
+	case BinaryOperator::LessThan:
+	case BinaryOperator::LessOrEqual:
+	case BinaryOperator::GreaterThan:
+	case BinaryOperator::GreaterOrEqual:
+		resType = Type::Bool;
+		lType = commonType(lType, rType);
+		rType = lType;
+		break;
+	case BinaryOperator::ShiftLeft:
+	case BinaryOperator::ShiftRight:
+		rType = Type::UInt32;
+		resType = promote(b.left().type());
+		break;
+	}
+
 	auto rightEntry = cgc.newBlock();
-	auto leftCG = runRecursive(b.left(), common);
-	auto rightCG = runRecursive(b.right(), common, rightEntry);
+	auto leftCG = runRecursive(b.left(), lType);
+	auto rightCG = runRecursive(b.right(), rType, rightEntry);
 
 	leftCG.finalBlock()->append(ir::JumpInsn(rightEntry));
 	_inBlock = rightCG.finalBlock();
 	_value = _inBlock->append(
 		ir::ArithmeticInsn(
-			cgc.newName(), irtypeFor(common), arithOpFor(b.op()),
+			cgc.newName(), irtypeFor(resType), arithOpFor(b.op()),
 			leftCG.finalValue(), rightCG.finalValue()));
 }
 
