@@ -80,7 +80,6 @@ const char* opcodeName(hbt::mc::Opcode op)
 	case Opcode::XOR: return "xor";
 	case Opcode::SHL: return "shl";
 	case Opcode::SHR: return "shr";
-	case Opcode::CMP_IP_LO: return "cmp.localhost";
 	case Opcode::CMP_LT: return "cmp.lt";
 	case Opcode::CMP_LE: return "cmp.le";
 	case Opcode::CMP_GT: return "cmp.gt";
@@ -101,7 +100,6 @@ const char* opcodeName(hbt::mc::Opcode op)
 	case Opcode::POP: return "pop";
 	case Opcode::EXCHANGE: return "exchange";
 	case Opcode::RET: return "ret";
-	case Opcode::LD_SOURCE_IP:
 	case Opcode::LD_SOURCE_EID:
 	case Opcode::LD_SOURCE_VAL:
 	case Opcode::LD_FALSE:
@@ -129,7 +127,7 @@ const char* opcodeName(hbt::mc::Opcode op)
 	case Opcode::SWITCH_16: return "switch16";
 	case Opcode::SWITCH_32: return "switch32";
 	case Opcode::DT_DECOMPOSE: return "dt.decomp";
-	case Opcode::CMP_BLOCK: return "cmp.block";
+	case Opcode::CMP_SRC_IP: return "cmp.srcip";
 	case Opcode::JNZ: return "jnz";
 	case Opcode::JZ: return "jz";
 	case Opcode::JUMP: return "jump";
@@ -179,7 +177,6 @@ std::string prettyPrint(const Program& program)
 		out << insn->opcode();
 
 		switch (insn->opcode()) {
-		case Opcode::LD_SOURCE_IP: out << " src.ip"; break;
 		case Opcode::LD_SOURCE_EID: out << " src.eid"; break;
 		case Opcode::LD_SOURCE_VAL: out << " src.val"; break;
 		case Opcode::LD_FALSE: out << " false"; break;
@@ -300,7 +297,7 @@ std::string prettyPrint(const Program& program)
 			}
 			throw std::runtime_error("invalid program printed");
 
-		case Opcode::CMP_BLOCK:
+		case Opcode::CMP_SRC_IP:
 			if (auto* i = dynamic_cast<const ImmediateInstruction<BlockPart>*>(insn)) {
 				auto& block = i->immed().block();
 				out << " (" << i->immed().start() << ", "
@@ -329,7 +326,6 @@ std::string prettyPrint(const Program& program)
 		case Opcode::XOR:
 		case Opcode::SHL:
 		case Opcode::SHR:
-		case Opcode::CMP_IP_LO:
 		case Opcode::CMP_LT:
 		case Opcode::CMP_LE:
 		case Opcode::CMP_GT:

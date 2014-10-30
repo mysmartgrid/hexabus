@@ -13,7 +13,6 @@ namespace hbt {
 namespace mc {
 
 enum class Opcode {
-	LD_SOURCE_IP,
 	LD_SOURCE_EID,
 	LD_SOURCE_VAL,
 	LD_FALSE,
@@ -51,8 +50,7 @@ enum class Opcode {
 	SWITCH_16,
 	SWITCH_32,
 
-	CMP_BLOCK,
-	CMP_IP_LO,
+	CMP_SRC_IP,
 	CMP_LT,
 	CMP_LE,
 	CMP_GT,

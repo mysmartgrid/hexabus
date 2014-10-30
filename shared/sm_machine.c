@@ -42,7 +42,6 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 	op->opcode = (enum hxb_sm_opcode) LOAD_UNSIGNED(8);
 
 	switch (op->opcode) {
-	case HSO_LD_SOURCE_IP:
 	case HSO_LD_SOURCE_EID:
 	case HSO_LD_SOURCE_VAL:
 	case HSO_LD_SYSTIME:
@@ -56,7 +55,6 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 	case HSO_OP_XOR:
 	case HSO_OP_SHL:
 	case HSO_OP_SHR:
-	case HSO_CMP_IP_LO:
 	case HSO_CMP_LT:
 	case HSO_CMP_LE:
 	case HSO_CMP_GT:
@@ -164,7 +162,7 @@ int SM_EXPORT(sm_get_instruction)(uint16_t at, struct hxb_sm_instruction* op)
 		op->dt_mask = LOAD_UNSIGNED(8);
 		break;
 
-	case HSO_CMP_BLOCK: {
+	case HSO_CMP_SRC_IP: {
 		uint32_t tmp = LOAD_UNSIGNED(8);
 		op->block.first = tmp >> 4;
 		op->block.last = tmp & 0xF;
@@ -584,31 +582,6 @@ static int sm_int_op2_shift(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
 	return 0;
 }
 
-static int sm_cmp_block(hxb_sm_value_t* val, int op,
-	uint8_t first, uint8_t last, const char* cmp)
-{
-	if (val->type != HXB_DTYPE_16BYTES)
-		return -HSE_INVALID_TYPES;
-
-	val->type = HXB_DTYPE_BOOL;
-
-	if (op == HSO_CMP_BLOCK) {
-		val->v_uint = memcmp(val->v_binary + first, cmp, last - first + 1) == 0;
-		return 0;
-	}
-
-	if (op == HSO_CMP_IP_LO) {
-		bool zero = true;
-		for (uint8_t i = 0; i < 15; i++)
-			zero &= val->v_binary[i] == 0;
-
-		val->v_uint = zero && val->v_binary[15] == 1;
-		return 0;
-	}
-
-	return -HSE_INVALID_OPCODE;
-}
-
 int SM_EXPORT(sm_load_mem)(const struct hxb_sm_instruction* insn, hxb_sm_value_t* value)
 {
 #define CHECK_MEM_SIZE(size) \
@@ -757,12 +730,6 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		FAIL_AS(insn_length);
 
 		switch (insn.opcode) {
-		case HSO_LD_SOURCE_IP:
-			if (!src_ip || !val)
-				FAIL_WITH(HSE_INVALID_OPERATION);
-			PUSH(HXB_DTYPE_16BYTES, v_binary, src_ip);
-			break;
-
 		case HSO_LD_SOURCE_EID:
 			if (!src_ip || !val)
 				FAIL_WITH(HSE_INVALID_OPERATION);
@@ -1057,11 +1024,12 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 			break;
 		}
 
-		case HSO_CMP_BLOCK:
-		case HSO_CMP_IP_LO:
-			CHECK_POP(1);
-			FAIL_AS(sm_cmp_block(&TOP, insn.opcode, insn.block.first,
-					insn.block.last, insn.block.data));
+		case HSO_CMP_SRC_IP:
+			if (!src_ip || !val)
+				FAIL_WITH(HSE_INVALID_OPERATION);
+
+			PUSH(HXB_DTYPE_BOOL, v_uint,
+				memcmp(src_ip + insn.block.first, insn.block.data, insn.block.last - insn.block.first + 1) == 0);
 			break;
 
 		case HSO_JNZ:

@@ -190,7 +190,7 @@ hbt::util::MemoryBuffer assemble(const Program& program)
 			}
 			throw std::runtime_error("invalid program assembled");
 
-		case Opcode::CMP_BLOCK:
+		case Opcode::CMP_SRC_IP:
 			if (auto* i = dynamic_cast<const ImmediateInstruction<BlockPart>*>(insn)) {
 				uint8_t start = i->immed().start();
 				uint8_t end = start + i->immed().length() - 1;
@@ -210,7 +210,6 @@ hbt::util::MemoryBuffer assemble(const Program& program)
 			}
 			throw std::runtime_error("invalid program assembled");
 
-		case Opcode::LD_SOURCE_IP:
 		case Opcode::LD_SOURCE_EID:
 		case Opcode::LD_SOURCE_VAL:
 		case Opcode::LD_FALSE:
@@ -226,7 +225,6 @@ hbt::util::MemoryBuffer assemble(const Program& program)
 		case Opcode::XOR:
 		case Opcode::SHL:
 		case Opcode::SHR:
-		case Opcode::CMP_IP_LO:
 		case Opcode::CMP_LT:
 		case Opcode::CMP_LE:
 		case Opcode::CMP_GT:

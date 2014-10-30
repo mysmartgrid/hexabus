@@ -120,7 +120,6 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 		RawInstruction& insn = result.instructions.back();
 
 		switch (insn.op) {
-		case Opcode::LD_SOURCE_IP:
 		case Opcode::LD_SOURCE_EID:
 		case Opcode::LD_SOURCE_VAL:
 		case Opcode::LD_FALSE:
@@ -138,7 +137,6 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 		case Opcode::SHR:
 		case Opcode::DUP:
 		case Opcode::ROT:
-		case Opcode::CMP_IP_LO:
 		case Opcode::CMP_LT:
 		case Opcode::CMP_LE:
 		case Opcode::CMP_GT:
@@ -310,7 +308,7 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 			break;
 		}
 
-		case Opcode::CMP_BLOCK: {
+		case Opcode::CMP_SRC_IP: {
 			if (!canRead(1))
 				break;
 
@@ -428,7 +426,6 @@ std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program)
 			thisLabel = labelAbsPositions.at(insn.pos);
 
 		switch (insn.op) {
-		case Opcode::LD_SOURCE_IP:
 		case Opcode::LD_SOURCE_EID:
 		case Opcode::LD_SOURCE_VAL:
 		case Opcode::LD_FALSE:
@@ -465,7 +462,6 @@ std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program)
 		case Opcode::WRITE:
 		case Opcode::POP:
 		case Opcode::RET:
-		case Opcode::CMP_IP_LO:
 			builder.insert(thisLabel, insn.op, 0);
 			break;
 
@@ -517,7 +513,7 @@ std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program)
 			builder.insert(thisLabel, insn.op, boost::get<DTMask>(insn.immed), 0);
 			break;
 
-		case Opcode::CMP_BLOCK:
+		case Opcode::CMP_SRC_IP:
 			builder.insert(thisLabel, insn.op, boost::get<BlockPart>(insn.immed), 0);
 			break;
 

@@ -37,7 +37,6 @@ Builder::insn_iterator Builder::insertInstruction(boost::optional<Label> l, Opco
 	};
 
 	switch (op) {
-	case Opcode::LD_SOURCE_IP:
 	case Opcode::LD_SOURCE_EID:
 	case Opcode::LD_SOURCE_VAL:
 	case Opcode::LD_FALSE:
@@ -55,7 +54,6 @@ Builder::insn_iterator Builder::insertInstruction(boost::optional<Label> l, Opco
 	case Opcode::SHR:
 	case Opcode::DUP:
 	case Opcode::ROT:
-	case Opcode::CMP_IP_LO:
 	case Opcode::CMP_LT:
 	case Opcode::CMP_LE:
 	case Opcode::CMP_GT:
@@ -160,7 +158,7 @@ Builder::insn_iterator Builder::insertInstruction(boost::optional<Label> l, Opco
 		}
 		throw std::invalid_argument("immed");
 
-	case Opcode::CMP_BLOCK:
+	case Opcode::CMP_SRC_IP:
 		if (auto* v = get<BlockPart>(immed))
 			return insertInsn(new ImmediateInstruction<BlockPart>(op, *v, l, line));
 		throw std::invalid_argument("immed");

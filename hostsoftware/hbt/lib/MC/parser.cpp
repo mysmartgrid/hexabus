@@ -148,7 +148,6 @@ struct simple_instructions : qi::symbols<char, ir_instruction> {
 			("xor", { Opcode::XOR, boost::none_t() })
 			("shl", { Opcode::SHL, boost::none_t() })
 			("shr", { Opcode::SHR, boost::none_t() })
-			("cmp.localhost", { Opcode::CMP_IP_LO, boost::none_t() })
 			("cmp.lt", { Opcode::CMP_LT, boost::none_t() })
 			("cmp.le", { Opcode::CMP_LE, boost::none_t() })
 			("cmp.gt", { Opcode::CMP_GT, boost::none_t() })
@@ -175,7 +174,6 @@ struct ld_simple_operands : qi::symbols<char, ir_instruction> {
 	ld_simple_operands()
 	{
 		add
-			("src.ip", { Opcode::LD_SOURCE_IP, boost::none_t() })
 			("src.eid", { Opcode::LD_SOURCE_EID, boost::none_t() })
 			("src.val", { Opcode::LD_SOURCE_VAL, boost::none_t() })
 			("false", { Opcode::LD_FALSE, boost::none_t() })
@@ -356,11 +354,11 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 			);
 
 		block_instruction =
-			lit("cmp.block")
+			lit("cmp.srcip")
 			> (
 				block_immed
 					[_pass = bind(check_block, _1)]
-					[_val = bind(make_insn_t<Opcode::CMP_BLOCK>, _1)]
+					[_val = bind(make_insn_t<Opcode::CMP_SRC_IP>, _1)]
 				| (eps > errors.binary_block_too_long)
 			);
 
@@ -475,7 +473,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		errors.machine_id_too_long.name("~machine id~machine id too long");
 		errors.machine_id_too_long = !eps;
 
-		errors.ld_operand.name("~ld operand~immediate | src.(ip | eid | val) | sys.time");
+		errors.ld_operand.name("~ld operand~immediate | src.(eid | val) | sys.time");
 		errors.ld_operand = !eps;
 	}
 

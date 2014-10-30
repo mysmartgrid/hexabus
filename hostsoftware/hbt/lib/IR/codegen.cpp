@@ -226,8 +226,7 @@ void MachineBlockWithStack::materializeLoad(const LoadInsn& l)
 
 void MachineBlockWithStack::materializeCompareIP(const CompareIPInsn& c)
 {
-	append(mc::Opcode::LD_SOURCE_IP);
-	append(mc::Opcode::CMP_BLOCK, mc::BlockPart(c.start(), c.length(), c.block()));
+	append(mc::Opcode::CMP_SRC_IP, mc::BlockPart(c.start(), c.length(), c.block()));
 }
 
 void MachineBlockWithStack::materializeExtractDatePart(const ExtractDatePartInsn& e)
