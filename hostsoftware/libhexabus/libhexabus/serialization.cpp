@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 #include <algorithm>
-#include <arpa/inet.h>
+#include <endian.h>
 #include <string.h>
 
 #include "crc.hpp"
@@ -19,10 +19,39 @@ class BinarySerializer : public PacketVisitor {
 		std::vector<char>& _target;
 		size_t _headerStart;
 
-		void append_u8(uint8_t value);
-		void append_u16(uint16_t value);
-		void append_u32(uint32_t value);
-		void append_float(float value);
+		template<typename B>
+		void appendBlock(B block)
+		{
+			size_t size = _target.size();
+			_target.insert(_target.end(), sizeof(B), 0);
+			memcpy(&_target[size], &block, sizeof(B));
+		}
+
+		static uint64_t signedToBits(int64_t val)
+		{
+			uint64_t result;
+			memcpy(&result, &val, sizeof(val));
+			return result;
+		}
+
+		static uint32_t floatToBits(float val)
+		{
+			BOOST_STATIC_ASSERT(sizeof(uint32_t) == sizeof(float));
+
+			uint32_t result;
+			memcpy(&result, &val, sizeof(val));
+			return result;
+		}
+
+		void append_u8(uint8_t value) { appendBlock<uint8_t>(value); }
+		void append_u16(uint16_t value) { appendBlock<uint16_t>(htobe16(value)); }
+		void append_u32(uint32_t value) { appendBlock<uint32_t>(htobe32(value)); }
+		void append_u64(uint64_t value) { appendBlock<uint64_t>(htobe64(value)); }
+		void append_s8(int8_t value) { append_u8(signedToBits(value)); }
+		void append_s16(int16_t value) { append_u16(signedToBits(value)); }
+		void append_s32(int32_t value) { append_u32(signedToBits(value)); }
+		void append_s64(int64_t value) { append_u64(signedToBits(value)); }
+		void append_float(float value) { append_u32(floatToBits(value)); }
 
 		void appendHeader(const Packet& packet);
 		void appendEIDHeader(const EIDPacket& packet);
@@ -30,8 +59,13 @@ class BinarySerializer : public PacketVisitor {
 
 		void appendValue(const ValuePacket<bool>& value);
 		void appendValue(const ValuePacket<uint8_t>& value);
+		void appendValue(const ValuePacket<uint16_t>& value);
 		void appendValue(const ValuePacket<uint32_t>& value);
 		void appendValue(const ValuePacket<uint64_t>& value);
+		void appendValue(const ValuePacket<int8_t>& value);
+		void appendValue(const ValuePacket<int16_t>& value);
+		void appendValue(const ValuePacket<int32_t>& value);
+		void appendValue(const ValuePacket<int64_t>& value);
 		void appendValue(const ValuePacket<float>& value);
 		void appendValue(const ValuePacket<std::string>& value);
 		void appendValue(const ValuePacket<boost::array<char, 65> >& value);
@@ -45,69 +79,40 @@ class BinarySerializer : public PacketVisitor {
 		virtual void visit(const ErrorPacket& error);
 		virtual void visit(const QueryPacket& query);
 		virtual void visit(const EndpointQueryPacket& endpointQuery);
-		virtual void visit(const EndpointInfoPacket& endpointInfo);
+		virtual void visit(const EndpointInfoPacket& endpointInfo) { appendValue(endpointInfo); }
 
-		virtual void visit(const InfoPacket<bool>& info);
-		virtual void visit(const InfoPacket<uint8_t>& info);
-		virtual void visit(const InfoPacket<uint32_t>& info);
-		virtual void visit(const InfoPacket<uint64_t>& info);
-		virtual void visit(const InfoPacket<float>& info);
-		virtual void visit(const InfoPacket<std::string>& info);
-		virtual void visit(const InfoPacket<boost::array<char, 16> >& info);
-		virtual void visit(const InfoPacket<boost::array<char, 65> >& info);
+		virtual void visit(const InfoPacket<bool>& info) { appendValue(info); }
+		virtual void visit(const InfoPacket<uint8_t>& info) { appendValue(info); }
+		virtual void visit(const InfoPacket<uint16_t>& info) { appendValue(info); }
+		virtual void visit(const InfoPacket<uint32_t>& info) { appendValue(info); }
+		virtual void visit(const InfoPacket<uint64_t>& info) { appendValue(info); }
+		virtual void visit(const InfoPacket<int8_t>& info) { appendValue(info); }
+		virtual void visit(const InfoPacket<int16_t>& info) { appendValue(info); }
+		virtual void visit(const InfoPacket<int32_t>& info) { appendValue(info); }
+		virtual void visit(const InfoPacket<int64_t>& info) { appendValue(info); }
+		virtual void visit(const InfoPacket<float>& info) { appendValue(info); }
+		virtual void visit(const InfoPacket<std::string>& info) { appendValue(info); }
+		virtual void visit(const InfoPacket<boost::array<char, 16> >& info) { appendValue(info); }
+		virtual void visit(const InfoPacket<boost::array<char, 65> >& info) { appendValue(info); }
 
-		virtual void visit(const WritePacket<bool>& write);
-		virtual void visit(const WritePacket<uint8_t>& write);
-		virtual void visit(const WritePacket<uint32_t>& write);
-		virtual void visit(const WritePacket<uint64_t>& write);
-		virtual void visit(const WritePacket<float>& write);
-		virtual void visit(const WritePacket<std::string>& write);
-		virtual void visit(const WritePacket<boost::array<char, 65> >& write);
-		virtual void visit(const WritePacket<boost::array<char, 16> >& write);
+		virtual void visit(const WritePacket<bool>& write) { appendValue(write); }
+		virtual void visit(const WritePacket<uint8_t>& write) { appendValue(write); }
+		virtual void visit(const WritePacket<uint16_t>& write) { appendValue(write); }
+		virtual void visit(const WritePacket<uint32_t>& write) { appendValue(write); }
+		virtual void visit(const WritePacket<uint64_t>& write) { appendValue(write); }
+		virtual void visit(const WritePacket<int8_t>& write) { appendValue(write); }
+		virtual void visit(const WritePacket<int16_t>& write) { appendValue(write); }
+		virtual void visit(const WritePacket<int32_t>& write) { appendValue(write); }
+		virtual void visit(const WritePacket<int64_t>& write) { appendValue(write); }
+		virtual void visit(const WritePacket<float>& write) { appendValue(write); }
+		virtual void visit(const WritePacket<std::string>& write) { appendValue(write); }
+		virtual void visit(const WritePacket<boost::array<char, 65> >& write) { appendValue(write); }
+		virtual void visit(const WritePacket<boost::array<char, 16> >& write) { appendValue(write); }
 };
 
 BinarySerializer::BinarySerializer(std::vector<char>& target)
 	: _target(target)
 {
-}
-
-void BinarySerializer::append_u8(uint8_t value)
-{
-	_target.push_back(value);
-}
-
-void BinarySerializer::append_u16(uint16_t value)
-{
-	union {
-		uint16_t u16;
-		char raw[sizeof(value)];
-	} c;
-
-	c.u16 = htons(value);
-
-	_target.insert(_target.end(), c.raw, c.raw + sizeof(c.raw));
-}
-
-void BinarySerializer::append_u32(uint32_t value)
-{
-	union {
-		uint32_t u32;
-		char raw[sizeof(value)];
-	} c = { htonl(value) };
-
-	_target.insert(_target.end(), c.raw, c.raw + sizeof(c.raw));
-}
-
-void BinarySerializer::append_float(float value)
-{
-	union {
-		float f;
-		uint32_t u32;
-		char raw[sizeof(value)];
-	} c = { value };
-	c.u32 = htonl(c.u32);
-
-	_target.insert(_target.end(), c.raw, c.raw + sizeof(c.raw));
 }
 
 void BinarySerializer::appendHeader(const Packet& packet)
@@ -157,51 +162,26 @@ void BinarySerializer::visit(const EndpointQueryPacket& endpointQuery)
 	appendCRC();
 }
 
-void BinarySerializer::appendValue(const ValuePacket<bool>& value)
-{
-	appendValueHeader(value);
+#define BS_APPEND_VALUE(TYPE, APPEND) \
+	void BinarySerializer::appendValue(const ValuePacket<TYPE>& value) \
+	{ \
+		appendValueHeader(value); \
+		APPEND(value.value()); \
+		appendCRC(); \
+	}
 
-	append_u8(value.value());
+BS_APPEND_VALUE(bool, append_u8)
+BS_APPEND_VALUE(uint8_t, append_u8)
+BS_APPEND_VALUE(uint16_t, append_u16)
+BS_APPEND_VALUE(uint32_t, append_u32)
+BS_APPEND_VALUE(uint64_t, append_u64)
+BS_APPEND_VALUE(int8_t, append_s8)
+BS_APPEND_VALUE(int16_t, append_s16)
+BS_APPEND_VALUE(int32_t, append_s32)
+BS_APPEND_VALUE(int64_t, append_s64)
+BS_APPEND_VALUE(float, append_float)
 
-	appendCRC();
-}
-
-void BinarySerializer::appendValue(const ValuePacket<uint8_t>& value)
-{
-	appendValueHeader(value);
-
-	append_u8(value.value());
-
-	appendCRC();
-}
-
-void BinarySerializer::appendValue(const ValuePacket<uint32_t>& value)
-{
-	appendValueHeader(value);
-
-	append_u32(value.value());
-
-	appendCRC();
-}
-
-void BinarySerializer::appendValue(const ValuePacket<uint64_t>& value)
-{
-	appendValueHeader(value);
-
-	append_u32(value.value() >> 32);
-	append_u32(value.value() & 0xFFFFFFFF);
-
-	appendCRC();
-}
-
-void BinarySerializer::appendValue(const ValuePacket<float>& value)
-{
-	appendValueHeader(value);
-
-	append_float(value.value());
-
-	appendCRC();
-}
+#undef BS_APPEND_VALUE
 
 void BinarySerializer::appendValue(const ValuePacket<std::string>& value)
 {
@@ -231,27 +211,6 @@ void BinarySerializer::appendValue(const ValuePacket<boost::array<char, 65> >& v
 	appendCRC();
 }
 
-
-void BinarySerializer::visit(const EndpointInfoPacket& endpointInfo) { appendValue(endpointInfo); }
-
-void BinarySerializer::visit(const InfoPacket<bool>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<uint8_t>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<uint32_t>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<uint64_t>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<float>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<std::string>& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<boost::array<char, 16> >& info) { appendValue(info); }
-void BinarySerializer::visit(const InfoPacket<boost::array<char, 65> >& info) { appendValue(info); }
-
-void BinarySerializer::visit(const WritePacket<bool>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<uint8_t>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<uint32_t>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<uint64_t>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<float>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<std::string>& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<boost::array<char, 16> >& write) { appendValue(write); }
-void BinarySerializer::visit(const WritePacket<boost::array<char, 65> >& write) { appendValue(write); }
-
 // }}}
 
 std::vector<char> hexabus::serialize(const Packet& packet)
@@ -276,10 +235,43 @@ class BinaryDeserializer {
 
 		void readHeader();
 
-		uint8_t read_u8();
-		uint16_t read_u16();
-		uint32_t read_u32();
-		float read_float();
+		template<typename B>
+		B readBlock()
+		{
+			checkLength(sizeof(B));
+
+			B data;
+			memcpy(&data, _packet + _offset, sizeof(B));
+			_offset += sizeof(B);
+			return data;
+		}
+
+		int64_t signedFromBits(uint64_t val)
+		{
+			int64_t result;
+			memcpy(&result, &val, sizeof(val));
+			return result;
+		}
+
+		static float floatFromBits(uint32_t val)
+		{
+			BOOST_STATIC_ASSERT(sizeof(uint32_t) == sizeof(float));
+
+			float result;
+			memcpy(&result, &val, sizeof(val));
+			return result;
+		}
+
+		uint8_t read_u8() { return readBlock<uint8_t>(); }
+		uint16_t read_u16() { return be16toh(readBlock<uint16_t>()); }
+		uint32_t read_u32() { return be32toh(readBlock<uint32_t>()); }
+		uint64_t read_u64() { return be64toh(readBlock<uint64_t>()); }
+		int8_t read_s8() { return signedFromBits(read_u8()); }
+		int16_t read_s16() { return signedFromBits(read_u16()); }
+		int32_t read_s32() { return signedFromBits(read_u32()); }
+		int64_t read_s64() { return signedFromBits(read_u64()); }
+		float read_float() { return floatFromBits(read_u32()); }
+
 		template<size_t L>
 		boost::array<char, L> read_bytes();
 		std::string read_string();
@@ -315,51 +307,6 @@ void BinaryDeserializer::readHeader()
 		throw BadPacketException("Invalid header");
 
 	_offset += strlen(HXB_HEADER);
-}
-
-uint8_t BinaryDeserializer::read_u8()
-{
-	checkLength(sizeof(uint8_t));
-
-	return *(_packet + _offset++);
-}
-
-uint16_t BinaryDeserializer::read_u16()
-{
-	checkLength(sizeof(uint16_t));
-
-	union {
-		char raw[sizeof(uint16_t)];
-		uint16_t u16;
-	} c;
-	memcpy(c.raw, _packet + _offset, sizeof(c.raw));
-
-	_offset += sizeof(uint16_t);
-	return ntohs(c.u16);
-}
-
-uint32_t BinaryDeserializer::read_u32()
-{
-	checkLength(sizeof(uint32_t));
-
-	union C {
-		char raw[sizeof(uint32_t)];
-		uint32_t u32;
-	} c;
-	memcpy(c.raw, _packet + _offset, sizeof(c.raw));
-
-	_offset += sizeof(uint32_t);
-	return ntohl(c.u32);
-}
-
-float BinaryDeserializer::read_float()
-{
-	union {
-		uint32_t u32;
-		float f;
-	} c = { read_u32() };
-
-	return c.f;
 }
 
 template<size_t L>
@@ -430,32 +377,19 @@ Packet::Ptr BinaryDeserializer::deserialize()
 				uint8_t datatype = read_u8();
 
 				switch (datatype) {
-					case HXB_DTYPE_BOOL:
-						return checkInfo<bool>(info, eid, read_u8(), flags);
-
-					case HXB_DTYPE_UINT8:
-						return checkInfo<uint8_t>(info, eid, read_u8(), flags);
-
-					case HXB_DTYPE_UINT32:
-						return checkInfo<uint32_t>(info, eid, read_u32(), flags);
-
-					case HXB_DTYPE_UINT64: {
-						uint64_t high = read_u32();
-						uint64_t low = read_u32();
-						return checkInfo<uint64_t>(info, eid, (high << 32) | low, flags);
-					}
-
-					case HXB_DTYPE_FLOAT:
-						return checkInfo<float>(info, eid, read_float(), flags);
-
-					case HXB_DTYPE_128STRING:
-						return checkInfo<std::string>(info, eid, read_string(), flags);
-
-					case HXB_DTYPE_16BYTES:
-						return checkInfo<boost::array<char, 16> >(info, eid, read_bytes<16>(), flags);
-
-					case HXB_DTYPE_65BYTES:
-						return checkInfo<boost::array<char, 65> >(info, eid, read_bytes<65>(), flags);
+					case HXB_DTYPE_BOOL: return checkInfo<bool>(info, eid, read_u8(), flags);
+					case HXB_DTYPE_UINT8: return checkInfo<uint8_t>(info, eid, read_u8(), flags);
+					case HXB_DTYPE_UINT16: return checkInfo<uint16_t>(info, eid, read_u16(), flags);
+					case HXB_DTYPE_UINT32: return checkInfo<uint32_t>(info, eid, read_u32(), flags);
+					case HXB_DTYPE_UINT64: return checkInfo<uint64_t>(info, eid, read_u64(), flags);
+					case HXB_DTYPE_SINT8: return checkInfo<int8_t>(info, eid, read_s8(), flags);
+					case HXB_DTYPE_SINT16: return checkInfo<int16_t>(info, eid, read_s16(), flags);
+					case HXB_DTYPE_SINT32: return checkInfo<int32_t>(info, eid, read_s32(), flags);
+					case HXB_DTYPE_SINT64: return checkInfo<int64_t>(info, eid, read_s64(), flags);
+					case HXB_DTYPE_FLOAT: return checkInfo<float>(info, eid, read_float(), flags);
+					case HXB_DTYPE_128STRING: return checkInfo<std::string>(info, eid, read_string(), flags);
+					case HXB_DTYPE_16BYTES: return checkInfo<boost::array<char, 16> >(info, eid, read_bytes<16>(), flags);
+					case HXB_DTYPE_65BYTES: return checkInfo<boost::array<char, 65> >(info, eid, read_bytes<65>(), flags);
 
 					default:
 						throw BadPacketException("Invalid datatype");

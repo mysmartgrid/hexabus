@@ -12,7 +12,6 @@ namespace sm {
 typedef struct {
 	uint8_t type;
 
-	bool v_bool;
 	uint32_t v_uint;
 	uint64_t v_uint64;
 	int32_t v_sint;

@@ -138,26 +138,16 @@ void sm_handle_input(const struct hxb_envelope* env)
 
 	value.type = env->value.datatype;
 	switch (value.type) {
-	case HXB_DTYPE_BOOL:
-		value.v_uint = env->value.v_bool;
-		break;
-
-	case HXB_DTYPE_UINT8:
-		value.v_uint = env->value.v_u8;
-		break;
-
-	case HXB_DTYPE_UINT32:
-		value.v_uint = env->value.v_u32;
-		break;
-
-	case HXB_DTYPE_UINT64:
-		value.v_uint64 = env->value.v_u64;
-		break;
-
-	case HXB_DTYPE_FLOAT:
-		value.v_uint = env->value.v_float;
-		break;
-
+	case HXB_DTYPE_BOOL: value.v_uint = env->value.v_bool; break;
+	case HXB_DTYPE_UINT8: value.v_uint = env->value.v_u8; break;
+	case HXB_DTYPE_UINT16: value.v_uint = env->value.v_u16; break;
+	case HXB_DTYPE_UINT32: value.v_uint = env->value.v_u32; break;
+	case HXB_DTYPE_UINT64: value.v_uint64 = env->value.v_u64; break;
+	case HXB_DTYPE_SINT8: value.v_sint = env->value.v_s8; break;
+	case HXB_DTYPE_SINT16: value.v_sint = env->value.v_s16; break;
+	case HXB_DTYPE_SINT32: value.v_sint = env->value.v_s32; break;
+	case HXB_DTYPE_SINT64: value.v_sint64 = env->value.v_s64; break;
+	case HXB_DTYPE_FLOAT: value.v_uint = env->value.v_float; break;
 
 	case HXB_DTYPE_128STRING:
 	case HXB_DTYPE_65BYTES:

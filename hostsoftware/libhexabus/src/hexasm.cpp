@@ -7,6 +7,64 @@
 #include "libhexabus/sm/machine.hpp"
 #include "libhexabus/socket.hpp"
 
+using namespace hexabus;
+using namespace hexabus::sm;
+
+struct OnPacketVisitor : private PacketVisitor {
+	hexabus::sm::Machine* machine;
+	const boost::asio::ip::udp::endpoint* remote;
+
+private:
+	template<typename Part, Part hxb_sm_value_t::*Val, typename T>
+	void run(const hexabus::InfoPacket<T>& p)
+	{
+		boost::asio::ip::address_v6::bytes_type addr;
+		addr = remote->address().to_v6().to_bytes();
+
+		hxb_sm_value_t value;
+
+		value.type = p.datatype();
+		value.*Val = p.value();
+
+		std::cout << "Running state machine for packet: "
+			<< machine->run_sm((const char*) &addr[0], p.eid(), &value)
+			<< std::endl;
+	}
+
+	virtual void visit(const hexabus::ErrorPacket& error) {}
+	virtual void visit(const hexabus::QueryPacket& query) {}
+	virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery) {}
+	virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo) {}
+
+	virtual void visit(const hexabus::InfoPacket<bool>& info) { run<uint32_t, &hxb_sm_value_t::v_uint>(info); }
+	virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { run<uint32_t, &hxb_sm_value_t::v_uint>(info); }
+	virtual void visit(const hexabus::InfoPacket<uint16_t>& info) { run<uint32_t, &hxb_sm_value_t::v_uint>(info); }
+	virtual void visit(const hexabus::InfoPacket<uint32_t>& info) { run<uint32_t, &hxb_sm_value_t::v_uint>(info); }
+	virtual void visit(const hexabus::InfoPacket<uint64_t>& info) { run<uint64_t, &hxb_sm_value_t::v_uint64>(info); }
+	virtual void visit(const hexabus::InfoPacket<int8_t>& info) { run<int32_t, &hxb_sm_value_t::v_sint>(info); }
+	virtual void visit(const hexabus::InfoPacket<int16_t>& info) { run<int32_t, &hxb_sm_value_t::v_sint>(info); }
+	virtual void visit(const hexabus::InfoPacket<int32_t>& info) { run<int32_t, &hxb_sm_value_t::v_sint>(info); }
+	virtual void visit(const hexabus::InfoPacket<int64_t>& info) { run<int64_t, &hxb_sm_value_t::v_sint64>(info); }
+	virtual void visit(const hexabus::InfoPacket<float>& info) { run<float, &hxb_sm_value_t::v_float>(info); }
+	virtual void visit(const hexabus::InfoPacket<std::string>& info) {}
+	virtual void visit(const hexabus::InfoPacket<boost::array<char, 16> >& info) {}
+	virtual void visit(const hexabus::InfoPacket<boost::array<char, 65> >& info) {}
+
+	virtual void visit(const hexabus::WritePacket<bool>& write) {}
+	virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
+	virtual void visit(const hexabus::WritePacket<uint16_t>& write) {}
+	virtual void visit(const hexabus::WritePacket<uint32_t>& write) {}
+	virtual void visit(const hexabus::WritePacket<uint64_t>& write) {}
+	virtual void visit(const hexabus::WritePacket<int8_t>& write) {}
+	virtual void visit(const hexabus::WritePacket<int16_t>& write) {}
+	virtual void visit(const hexabus::WritePacket<int32_t>& write) {}
+	virtual void visit(const hexabus::WritePacket<int64_t>& write) {}
+	virtual void visit(const hexabus::WritePacket<float>& write) {}
+	virtual void visit(const hexabus::WritePacket<std::string>& write) {}
+	virtual void visit(const hexabus::WritePacket<boost::array<char, 16> >& write) {}
+	virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& write) {}
+};
+
 static void on_packet(hexabus::sm::Machine& machine,
 		const hexabus::Packet& packet,
 		const boost::asio::ip::udp::endpoint& remote)
