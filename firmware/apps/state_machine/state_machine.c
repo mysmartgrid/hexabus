@@ -127,17 +127,6 @@ static uint64_t sm_get_systime()
 #include "../../../../../shared/sm_machine.c"
 
 
-static void sm_udp_reset()
-{
-	// the udp handler has transitioned to "ready" for some reason, most likely a cold reboot
-	// since anything that can bring the udp handler down will also affect the state machine, reset it
-	// special case: ID 0 is reserved for state machines that should not be automatically reset
-	if (!sm_id_is_zero()) {
-		syslog(LOG_NOTICE, "UDP handler reset, broadcasting Reset-ID");
-		broadcast_value(EP_SM_RESET_ID);
-	}
-}
-
 static void sm_handle_periodic()
 {
 	run_sm(0, 0, 0);
@@ -145,18 +134,6 @@ static void sm_handle_periodic()
 
 void sm_handle_input(const struct hxb_envelope* env)
 {
-	if (!sm_id_is_zero()) {
-		// if our state machine ID is not 0 (0 means "no auto reset".
-		// check if it's a Reset-ID (this means another state machine on the network was just unexpectedly reset)
-		syslog(LOG_DEBUG, "SM_ID is not zero.");
-		if (env->eid == EP_SM_RESET_ID && env->value.datatype == HXB_DTYPE_16BYTES) {
-			syslog(LOG_NOTICE, "Received Reset-ID from " LOG_6ADDR_FMT, LOG_6ADDR_VAL(env->src_ip));
-			if (sm_id_equals(env->value.v_binary))
-				sm_restart();
-			return;
-		}
-	}
-
 	hxb_sm_value_t value;
 
 	value.type = env->value.datatype;
@@ -209,17 +186,13 @@ PROCESS_THREAD(state_machine_process, ev, data)
 		if (!sm_is_running())
 			break;
 
-		if (ev == udp_handler_event && *(udp_handler_event_t*) data == UDP_HANDLER_UP) {
-			sm_udp_reset();
-		} else {
-			if (ev == PROCESS_EVENT_TIMER && etimer_expired(&check_timer)) {
-				syslog(LOG_DEBUG, "periodic check");
-				sm_handle_periodic();
-				etimer_reset(&check_timer);
-			} else if (ev == sm_handle_input_event) {
-				syslog(LOG_DEBUG, "packet check");
-				sm_handle_input(data);
-			}
+		if (ev == PROCESS_EVENT_TIMER && etimer_expired(&check_timer)) {
+			syslog(LOG_DEBUG, "periodic check");
+			sm_handle_periodic();
+			etimer_reset(&check_timer);
+		} else if (ev == sm_handle_input_event) {
+			syslog(LOG_DEBUG, "packet check");
+			sm_handle_input(data);
 		}
 	}
 

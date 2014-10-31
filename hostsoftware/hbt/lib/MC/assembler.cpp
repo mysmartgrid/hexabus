@@ -28,8 +28,6 @@ hbt::util::MemoryBuffer assemble(const Program& program)
 	std::map<size_t, size_t> labelPositions;
 	std::vector<Fixup> fixups;
 
-	result.append(program.machine_id().begin(), program.machine_id().size());
-
 	const size_t programBegin = result.size();
 
 	auto append_u8 = [&result] (uint8_t u8) {

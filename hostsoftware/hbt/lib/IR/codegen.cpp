@@ -417,7 +417,7 @@ private:
 
 public:
 	Codegen(const Module& module)
-		: module(module), builder(module.version(), {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0})
+		: module(module), builder(module.version())
 	{}
 
 	std::unique_ptr<mc::Builder> run();

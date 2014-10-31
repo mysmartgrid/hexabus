@@ -63,7 +63,6 @@ struct ir_line {
 };
 
 struct ir_program_header {
-	std::vector<uint8_t> machine_id;
 	std::string on_packet, on_periodic, on_init;
 };
 
@@ -101,7 +100,6 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
 	ir_program_header,
-	(std::vector<uint8_t>, machine_id)
 	(std::string, on_init)
 	(std::string, on_packet)
 	(std::string, on_periodic)
@@ -203,21 +201,9 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 		machine_header %=
 			*eol
 			> (lit(".version") > lit("0") > +eol)
-			> machine_id
 			> on_init_vector
 			> on_packet_vector
 			> on_periodic_vector;
-
-		machine_id.name("machine identifier");
-		machine_id =
-			(
-				lit(".machine")
-				> lexeme[
-					lit("0x")
-					> repeat(1, 32)[uint_parser<uint8_t, 16, 1, 1>()]
-				]
-				> (+eol | (eps > errors.machine_id_too_long))
-			)[_val = bind(make_block, _1)];
 
 		on_packet_vector.name("packet vector");
 		on_packet_vector %=
@@ -531,7 +517,6 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	qi::rule<It, ir_program(), asm_ws<It>> start;
 
 	qi::rule<It, ir_program_header(), asm_ws<It>> machine_header;
-	qi::rule<It, std::vector<uint8_t>(), asm_ws<It>> machine_id;
 	qi::rule<It, std::string(), asm_ws<It>> on_packet_vector;
 	qi::rule<It, std::string(), asm_ws<It>> on_periodic_vector;
 	qi::rule<It, std::string(), asm_ws<It>> on_init_vector;
@@ -638,7 +623,7 @@ std::unique_ptr<Program> makeProgram(const ir_program& program)
 {
 	using namespace hbt::mc;
 
-	Builder builder(0, toMachineID(program.header.machine_id));
+	Builder builder(0);
 
 	std::map<std::string, Label> labels = makeLabelMap(program, builder);
 

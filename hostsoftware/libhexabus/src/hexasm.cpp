@@ -103,15 +103,11 @@ int main(int argc, char* argv[])
 		std::cerr << "can't open file " << argv[2] << "\n";
 		return 1;
 	}
-	if (file.tellg() < 16) {
-		std::cerr << "file too short\n";
-		return 1;
-	}
 
 	std::vector<uint8_t> machineCode;
 
-	machineCode.resize(std::streamoff(file.tellg()) - 16);
-	file.seekg(16, std::ios::beg);
+	machineCode.resize(std::streamoff(file.tellg()));
+	file.seekg(0, std::ios::beg);
 	file.read((char*) &machineCode[0], machineCode.size());
 	if (file.fail()) {
 		std::cerr << "can't read file " << argv[2] << "\n";

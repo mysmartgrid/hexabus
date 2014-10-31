@@ -47,10 +47,6 @@ struct Testcase {
 
 static Testcase allFeatures = {
 	{ ".version 0" },
-	{ ".machine 0x1234567890abcdeffedcba0987654321" },
-	{ "; machine id",
-		{ 0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x09, 0x87, 0x65, 0x43, 0x21 },
-		true },
 	{ "; version number", { 0x0 }, true },
 	{ ".on_init L0", { 0x00, 0x07 } },
 	{ ".on_packet L1", { 0x00, 0x08 } },
@@ -152,8 +148,6 @@ static Testcase allFeatures = {
 
 static Testcase noInit = {
 	{ ".version 0" },
-	{ ".machine 0x00000000000000000000000000000000" },
-	{ "; machine id", { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, true },
 	{ "; version number", { 0x0 }, true },
 	{ "; no on_init", { 0xff, 0xff }, true },
 	{ ".on_packet L0", { 0x00, 0x07 } },
@@ -165,7 +159,6 @@ static Testcase noInit = {
 
 static Testcase multiLabel = {
 	".version 0",
-	".machine 0x0",
 	".on_packet L0",
 	".on_periodic L0",
 
@@ -180,7 +173,6 @@ static Testcase multiLabel = {
 
 static Testcase labelsWithComments = {
 	".version 0",
-	".machine 0x0",
 	".on_packet packet",
 	".on_periodic periodic",
 
@@ -194,7 +186,6 @@ static Testcase labelsWithComments = {
 
 static Testcase switchTableComments = {
 	".version 0",
-	".machine 0x0",
 	".on_packet L0",
 	".on_periodic L0",
 
@@ -210,8 +201,6 @@ static Testcase switchTableComments = {
 
 static Testcase allVectorsUnique = {
 	{ ".version 0" },
-	{ ".machine 0x00000000000000000000000000000000" },
-	{ "; machine id", { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, true },
 	{ "; version number", { 0x0 }, true },
 	{ ".on_init L0", { 0x00, 0x07 } },
 	{ ".on_packet L1", { 0x00, 0x08 } },
@@ -227,8 +216,6 @@ static Testcase allVectorsUnique = {
 
 static Testcase noVectors = {
 	{ ".version 0" },
-	{ ".machine 0x00000000000000000000000000000000" },
-	{ "; machine id", { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, true },
 	{ "; version number", { 0x0 }, true },
 	{ "; init vector", { 0xff, 0xff }, true },
 	{ "; packet vector", { 0xff, 0xff }, true },
@@ -238,7 +225,6 @@ static Testcase noVectors = {
 
 static Testcase backwardJump = {
 	".version 0",
-	".machine 0x0",
 	".on_packet packet",
 
 	"L0:",
@@ -248,7 +234,6 @@ static Testcase backwardJump = {
 
 static Testcase undefinedJump = {
 	".version 0",
-	".machine 0x0",
 	".on_packet packet",
 
 	"packet:",
@@ -257,7 +242,6 @@ static Testcase undefinedJump = {
 
 static Testcase labelRedefined = {
 	".version 0",
-	".machine 0x0",
 	".on_packet packet",
 
 	"packet:",
@@ -364,7 +348,7 @@ BOOST_AUTO_TEST_CASE(assemblerBackwardJump)
 		checkAssembler(backwardJump);
 	} catch (const hbt::mc::InvalidProgram& p) {
 		BOOST_CHECK(p.what() == std::string("backward jump not allowed"));
-		BOOST_CHECK(p.extra() == "jump in line 6 to 'L0' in line 6");
+		BOOST_CHECK(p.extra() == "jump in line 5 to 'L0' in line 5");
 		return;
 	}
 	BOOST_REQUIRE(false);
@@ -376,7 +360,7 @@ BOOST_AUTO_TEST_CASE(assemblerUndefinedJump)
 		checkAssembler(undefinedJump);
 	} catch (const hbt::mc::InvalidProgram& p) {
 		BOOST_CHECK(p.what() == std::string("jump to undefined label"));
-		BOOST_CHECK(p.extra() == "'L0' (in line 5)");
+		BOOST_CHECK(p.extra() == "'L0' (in line 4)");
 		return;
 	}
 	BOOST_REQUIRE(false);
@@ -388,7 +372,7 @@ BOOST_AUTO_TEST_CASE(assemblerLabelRedefined)
 		checkAssembler(labelRedefined);
 	} catch (const hbt::mc::InvalidProgram& p) {
 		BOOST_CHECK(p.what() == std::string("label defined multiple times"));
-		BOOST_CHECK(p.extra() == "label 'packet' defined in lines 5 and 7");
+		BOOST_CHECK(p.extra() == "label 'packet' defined in lines 4 and 6");
 		return;
 	}
 	BOOST_REQUIRE(false);

@@ -48,14 +48,13 @@ class Builder {
 		insn_iterator _insertPos;
 
 		uint8_t _version;
-		std::array<uint8_t, 16> _machine_id;
 		boost::optional<Label> _on_packet, _on_periodic, _on_init;
 
 		insn_iterator insertInstruction(boost::optional<Label> l, Opcode op,
 			const immediate_t* immed, unsigned line);
 
 	public:
-		Builder(uint8_t version, const std::array<uint8_t, 16>& machine_id);
+		Builder(uint8_t version);
 
 		Builder(Program&& p);
 

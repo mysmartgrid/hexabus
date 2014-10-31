@@ -158,8 +158,7 @@ std::string prettyPrint(const Program& program)
 	std::stringstream out;
 
 	out
-		<< format(".version %1%\n") % unsigned(program.version())
-		<< ".machine " << hexBlock(program.machine_id()) << "\n";
+		<< format(".version %1%\n") % unsigned(program.version());
 
 	if (program.onInit())
 		out << ".on_init " << *program.onInit() << "\n";

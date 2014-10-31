@@ -104,26 +104,9 @@ ENDPOINT_DESCRIPTOR endpoint_sm_upload_acknack = {
 	.write = 0
 };
 
-static enum hxb_error_code read_reset(struct hxb_value* value)
-{
-	syslog(LOG_DEBUG, "READ on SM_RESET_ID EP occurred");
-	sm_get_id(value->v_binary);
-	return HXB_ERR_SUCCESS;
-}
-
-static const char ep_reset_name[] RODATA = "Statemachine emergency-reset endpoint.";
-ENDPOINT_DESCRIPTOR endpoint_sm_reset = {
-	.datatype = HXB_DTYPE_16BYTES,
-	.eid = EP_SM_RESET_ID,
-	.name = ep_reset_name,
-	.read = read_reset,
-	.write = 0
-};
-
 void sm_upload_init()
 {
 	ENDPOINT_REGISTER(endpoint_sm_upload_control);
 	ENDPOINT_REGISTER(endpoint_sm_upload_receiver);
 	ENDPOINT_REGISTER(endpoint_sm_upload_acknack);
-	ENDPOINT_REGISTER(endpoint_sm_reset);
 }

@@ -30,7 +30,6 @@ struct RawInstruction {
 
 struct RawProgram {
 	uint8_t version;
-	std::array<uint8_t, 16> machineID;
 
 	size_t onPacketPos, onPeriodicPos, onInitPos;
 
@@ -41,7 +40,7 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 {
 	using namespace hbt::mc;
 
-	if (program.size() < 16 + 1 + 2 + 2)
+	if (program.size() < 1 + 2 + 2 + 2)
 		throw InvalidProgram("program too short", "");
 
 	auto pit = program.crange<uint8_t>().begin();
@@ -89,9 +88,6 @@ RawProgram parseRaw(const hbt::util::MemoryBuffer& program)
 	};
 
 	RawProgram result;
-
-	std::copy(pit, pit + 16, result.machineID.begin());
-	pit += 16;
 
 	const auto programBegin = pit;
 
@@ -394,7 +390,7 @@ std::unique_ptr<Program> disassemble(const hbt::util::MemoryBuffer& program)
 {
 	RawProgram raw = parseRaw(program);
 
-	Builder builder(raw.version, raw.machineID);
+	Builder builder(raw.version);
 
 	std::map<size_t, Label> labelAbsPositions = resolveLabels(raw, builder);
 

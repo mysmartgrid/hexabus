@@ -58,7 +58,6 @@ struct Testcase {
 
 static Testcase transitiveJumps = {
 	{ ".version 0" },
-	{ ".machine 0x00000000000000000000000000000000" },
 	{ ".on_init L2" },
 	{ ".on_packet L1", ".on_packet L2" },
 	{ "" },
@@ -75,7 +74,6 @@ static Testcase transitiveJumps = {
 
 static Testcase unreachableSeqs = {
 	{ ".version 0" },
-	{ ".machine 0x00000000000000000000000000000000" },
 	{ ".on_init L1" },
 	{ ".on_packet L0", },
 	{ "" },
@@ -92,7 +90,6 @@ static Testcase unreachableSeqs = {
 
 static Testcase moveableJumpTargets = {
 	{ ".version 0" },
-	{ ".machine 0x00000000000000000000000000000000" },
 	{ ".on_init L1" },
 	{ ".on_packet L0", },
 	{ "" },
@@ -114,7 +111,6 @@ static Testcase moveableJumpTargets = {
 
 static Testcase noInvalidMoves = {
 	{ ".version 0" },
-	{ ".machine 0x00000000000000000000000000000000" },
 	{ ".on_init L1", },
 	{ ".on_packet L0", },
 	{ "" },

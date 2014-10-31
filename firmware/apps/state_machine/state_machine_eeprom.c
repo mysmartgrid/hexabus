@@ -7,24 +7,6 @@
 #include <string.h>
 #include "uip.h"
 
-void sm_get_id(char* b)
-{
-	nvm_read_block(sm.id, b, nvm_size(sm.id));
-}
-
-bool sm_id_equals(const char* b)
-{
-	char id[16];
-
-	sm_get_id(id);
-	return memcmp(b, id, 16) == 0;
-}
-
-bool sm_id_is_zero()
-{
-	return sm_id_equals("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0");
-}
-
 bool sm_write_chunk(uint8_t chunk_id, char* data) {
 	// check where the chunk goes: the first chunk goes to the domain_name area of the eeprom
 	// chunk 0 may contain a device name (but need not), the other chunks are state machine data

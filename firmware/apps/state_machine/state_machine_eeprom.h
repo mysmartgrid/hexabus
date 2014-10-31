@@ -5,10 +5,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-void sm_get_id(char* b);
-bool sm_id_equals(const char* b);
-bool sm_id_is_zero();
-
 bool sm_write_chunk(uint8_t chunk_id, char* data);
 
 int sm_get_block(uint16_t at, uint8_t size, void* block);
