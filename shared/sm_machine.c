@@ -1053,8 +1053,8 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 			if (TOP_N(1).type < HXB_DTYPE_BOOL || TOP_N(1).type > HXB_DTYPE_FLOAT)
 				FAIL_WITH(HSE_INVALID_TYPES);
 
-			hxb_sm_value_t write_val = TOP_N(0);
-			uint32_t write_eid = TOP_N(1).v_uint;
+			uint32_t write_eid = TOP_N(0).v_uint;
+			hxb_sm_value_t write_val = TOP_N(1);
 
 			enum hxb_error_code err = (enum hxb_error_code) sm_endpoint_write(write_eid, &write_val);
 

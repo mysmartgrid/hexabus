@@ -582,7 +582,6 @@ void Codegen::emitBlock(const BasicBlock* block)
 
 			mb.loadForUser(w.value(), &w);
 			mb.append(mc::Opcode::LD_U32, w.eid());
-			mb.append(mc::Opcode::ROT);
 			mb.append(mc::Opcode::WRITE);
 			break;
 		}
