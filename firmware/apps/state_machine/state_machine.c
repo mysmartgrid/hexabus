@@ -193,8 +193,6 @@ void sm_handle_input(const struct hxb_envelope* env)
 	}
 
 	run_sm((const char*) env->src_ip.u8, env->eid, &value);
-
-	syslog(LOG_DEBUG, "Now in state: %d", sm_curstate);
 }
 
 PROCESS_THREAD(state_machine_process, ev, data)
@@ -215,11 +213,11 @@ PROCESS_THREAD(state_machine_process, ev, data)
 			sm_udp_reset();
 		} else {
 			if (ev == PROCESS_EVENT_TIMER && etimer_expired(&check_timer)) {
-				syslog(LOG_DEBUG, "periodic, state: %d", sm_curstate);
+				syslog(LOG_DEBUG, "periodic check");
 				sm_handle_periodic();
 				etimer_reset(&check_timer);
 			} else if (ev == sm_handle_input_event) {
-				syslog(LOG_DEBUG, "packet, state: %d", sm_curstate);
+				syslog(LOG_DEBUG, "packet check");
 				sm_handle_input(data);
 			}
 		}
