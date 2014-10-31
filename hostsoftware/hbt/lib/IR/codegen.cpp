@@ -581,6 +581,20 @@ void Codegen::emitBlock(const BasicBlock* block)
 			auto& w = static_cast<const WriteInsn&>(*insn);
 
 			mb.loadForUser(w.value(), &w);
+			switch (w.value()->type()) {
+			case Type::Bool: mb.append(mc::Opcode::CONV_B); break;
+			case Type::UInt8: mb.append(mc::Opcode::CONV_U8); break;
+			case Type::UInt16: mb.append(mc::Opcode::CONV_U16); break;
+			case Type::Int8: mb.append(mc::Opcode::CONV_S8); break;
+			case Type::Int16: mb.append(mc::Opcode::CONV_S16); break;
+
+			case Type::UInt32:
+			case Type::Int32:
+			case Type::UInt64:
+			case Type::Int64:
+			case Type::Float:
+				break;
+			}
 			mb.append(mc::Opcode::LD_U32, w.eid());
 			mb.append(mc::Opcode::WRITE);
 			break;
