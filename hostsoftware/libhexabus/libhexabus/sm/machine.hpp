@@ -37,7 +37,9 @@ class Machine {
 		int sm_get_u8(uint16_t at, uint32_t* u);
 		int sm_get_u16(uint16_t at, uint32_t* u);
 		int sm_get_u32(uint16_t at, uint32_t* u);
-		int sm_get_float(uint16_t at, float* f);
+		int sm_get_s8(uint16_t at, int32_t* s);
+		int sm_get_s16(uint16_t at, int32_t* s);
+		int sm_get_s32(uint16_t at, int32_t* s);
 		uint8_t sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val);
 		static int64_t sm_get_systime();
 		void sm_diag_msg(int code, const char* file, int line);

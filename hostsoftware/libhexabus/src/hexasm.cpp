@@ -10,16 +10,27 @@
 using namespace hexabus;
 using namespace hexabus::sm;
 
-struct OnPacketVisitor : private PacketVisitor {
-	hexabus::sm::Machine* machine;
-	const boost::asio::ip::udp::endpoint* remote;
+class OnPacketVisitor : private PacketVisitor {
+private:
+	hexabus::sm::Machine& machine;
+	const boost::asio::ip::udp::endpoint& remote;
+
+public:
+	OnPacketVisitor(hexabus::sm::Machine& machine, const boost::asio::ip::udp::endpoint& remote)
+		: machine(machine), remote(remote)
+	{}
+
+	void run(const hexabus::Packet& p)
+	{
+		p.accept(*this);
+	}
 
 private:
 	template<typename Part, Part hxb_sm_value_t::*Val, typename T>
 	void run(const hexabus::InfoPacket<T>& p)
 	{
 		boost::asio::ip::address_v6::bytes_type addr;
-		addr = remote->address().to_v6().to_bytes();
+		addr = remote.address().to_v6().to_bytes();
 
 		hxb_sm_value_t value;
 
@@ -27,7 +38,7 @@ private:
 		value.*Val = p.value();
 
 		std::cout << "Running state machine for packet: "
-			<< machine->run_sm((const char*) &addr[0], p.eid(), &value)
+			<< machine.run_sm((const char*) &addr[0], p.eid(), &value)
 			<< std::endl;
 	}
 
@@ -69,40 +80,7 @@ static void on_packet(hexabus::sm::Machine& machine,
 		const hexabus::Packet& packet,
 		const boost::asio::ip::udp::endpoint& remote)
 {
-	using namespace hexabus;
-	using namespace hexabus::sm;
-
-	boost::asio::ip::address_v6::bytes_type addr;
-	uint32_t eid;
-	hxb_sm_value_t value;
-
-	addr = remote.address().to_v6().to_bytes();
-	if (const EIDPacket* p = dynamic_cast<const EIDPacket*>(&packet)) {
-		eid = p->eid();
-	} else {
-		return;
-	}
-
-	if (const InfoPacket<bool>* p = dynamic_cast<const InfoPacket<bool>*>(&packet)) {
-		value.type = p->datatype();
-		value.v_uint = p->value();
-	} else if (const InfoPacket<uint8_t>* p = dynamic_cast<const InfoPacket<uint8_t>*>(&packet)) {
-		value.type = p->datatype();
-		value.v_uint = p->value();
-	} else if (const InfoPacket<uint32_t>* p = dynamic_cast<const InfoPacket<uint32_t>*>(&packet)) {
-		value.type = p->datatype();
-		value.v_uint = p->value();
-	} else if (const InfoPacket<float>* p = dynamic_cast<const InfoPacket<float>*>(&packet)) {
-		value.type = p->datatype();
-		value.v_float = p->value();
-	} else {
-		std::cout << "Received non-sm packet" << std::endl;
-		return;
-	}
-
-	std::cout << "Running state machine for packet: "
-		<< machine.run_sm((const char*) &addr[0], eid, &value)
-		<< std::endl;
+	OnPacketVisitor(machine, remote).run(packet);
 }
 
 static void on_periodic(hexabus::sm::Machine& machine, boost::asio::deadline_timer& timer)

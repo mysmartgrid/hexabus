@@ -20,50 +20,6 @@ int Machine::sm_get_block(uint16_t at, uint8_t size, void* block)
 	return size;
 }
 
-int Machine::sm_get_u8(uint16_t at, uint32_t* u)
-{
-	uint8_t buf;
-
-	if (sm_get_block(at, 1, &buf) < 0)
-		return -HSE_OOB_READ;
-
-	*u = buf;
-	return 1;
-}
-
-int Machine::sm_get_u16(uint16_t at, uint32_t* u)
-{
-	uint16_t buf;
-
-	if (sm_get_block(at, 2, &buf) < 0)
-		return -HSE_OOB_READ;
-
-	*u = be16toh(buf);
-	return 2;
-}
-
-int Machine::sm_get_u32(uint16_t at, uint32_t* u)
-{
-	uint32_t buf;
-
-	if (sm_get_block(at, 4, &buf) < 0)
-		return -HSE_OOB_READ;
-
-	*u = be32toh(buf);
-	return 4;
-}
-
-int Machine::sm_get_float(uint16_t at, float* f)
-{
-	uint32_t u;
-
-	if (sm_get_u32(at, &u) < 0)
-		return -HSE_OOB_READ;
-
-	memcpy(f, &u, 4);
-	return 4;
-}
-
 uint8_t Machine::sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val)
 {
 	write_value_t value;
@@ -119,7 +75,7 @@ void Machine::sm_diag_msg(int code, const char* file, int line)
 
 
 
-#define SM_EXPORT(name) Machine::name
+#define SM_EXPORT(type, name) type Machine::name
 
 #include "../../shared/sm_machine.c"
 

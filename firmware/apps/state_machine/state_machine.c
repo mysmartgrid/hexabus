@@ -122,7 +122,7 @@ static int64_t sm_get_systime()
 		syslog(LOG_DEBUG, "(sm:" STR(line) "): %i", code); \
 	} while (0)
 
-#define SM_EXPORT(name) name
+#define SM_EXPORT(type, name) static type name
 
 #include "../../../../../shared/sm_machine.c"
 
@@ -147,7 +147,7 @@ void sm_handle_input(const struct hxb_envelope* env)
 	case HXB_DTYPE_SINT16: value.v_sint = env->value.v_s16; break;
 	case HXB_DTYPE_SINT32: value.v_sint = env->value.v_s32; break;
 	case HXB_DTYPE_SINT64: value.v_sint64 = env->value.v_s64; break;
-	case HXB_DTYPE_FLOAT: value.v_uint = env->value.v_float; break;
+	case HXB_DTYPE_FLOAT: value.v_float = env->value.v_float; break;
 
 	case HXB_DTYPE_128STRING:
 	case HXB_DTYPE_65BYTES:
