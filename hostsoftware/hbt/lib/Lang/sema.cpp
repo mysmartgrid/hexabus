@@ -310,18 +310,6 @@ static bool isContextuallyConvertibleTo(Expr& e, Type t)
 		return isAssignableFrom(t, e.type());
 }
 
-static bool isFunctionName(const std::string& name)
-{
-	return
-		name == "second"
-		|| name == "minute"
-		|| name == "hour"
-		|| name == "day"
-		|| name == "month"
-		|| name == "year"
-		|| name == "weekday";
-}
-
 
 
 class StackedScope {
@@ -351,17 +339,14 @@ public:
 SemanticVisitor::SemanticVisitor(DiagnosticOutput& diagOut)
 	: diags(diagOut), currentScope(&globalScope), liveEndpoint(nullptr), gotoExclusionScope(nullptr)
 {
-	builtinFunctions.emplace_back(BuiltinFunction("second", Type::Int32, { Type::Int64 }));
-	builtinFunctions.emplace_back(BuiltinFunction("minute", Type::Int32, { Type::Int64 }));
-	builtinFunctions.emplace_back(BuiltinFunction("hour", Type::Int32, { Type::Int64 }));
-	builtinFunctions.emplace_back(BuiltinFunction("day", Type::Int32, { Type::Int64 }));
-	builtinFunctions.emplace_back(BuiltinFunction("month", Type::Int32, { Type::Int64 }));
-	builtinFunctions.emplace_back(BuiltinFunction("year", Type::Int32, { Type::Int64 }));
-	builtinFunctions.emplace_back(BuiltinFunction("weekday", Type::Int32, { Type::Int64 }));
-	builtinFunctions.emplace_back(BuiltinFunction("now", Type::Int64, {}));
-
-	for (auto& builtin : builtinFunctions)
-		globalScope.insert(builtin);
+	globalScope.insert(*BuiltinFunction::second());
+	globalScope.insert(*BuiltinFunction::minute());
+	globalScope.insert(*BuiltinFunction::hour());
+	globalScope.insert(*BuiltinFunction::day());
+	globalScope.insert(*BuiltinFunction::month());
+	globalScope.insert(*BuiltinFunction::year());
+	globalScope.insert(*BuiltinFunction::weekday());
+	globalScope.insert(*BuiltinFunction::now());
 }
 
 void SemanticVisitor::declareInCurrentScope(Declaration& decl)

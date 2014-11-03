@@ -477,7 +477,7 @@ void ModuleVerifier::verifyInsn(const BasicBlock* in, const Instruction& insn)
 		auto& s = static_cast<const LoadSpecialInsn&>(insn);
 
 		if ((s.val() == SpecialVal::SourceEID && s.type() != Type::UInt32) ||
-			(s.val() == SpecialVal::SysTime && s.type() != Type::UInt64))
+			(s.val() == SpecialVal::SysTime && s.type() != Type::Int64))
 			insnError(*in, "incorrect value type for " + s.name());
 
 		break;
@@ -497,6 +497,7 @@ void ModuleVerifier::verifyInsn(const BasicBlock* in, const Instruction& insn)
 	case InsnType::Return:
 	case InsnType::FloatConstant:
 	case InsnType::Write:
+	case InsnType::ExtractDatePart:
 		break;
 
 	case InsnType::Load: {
@@ -563,15 +564,6 @@ void ModuleVerifier::verifyInsn(const BasicBlock* in, const Instruction& insn)
 
 		if (c.start() >= 16 || c.length() > 16 || c.start() + c.length() > 16)
 			insnError(*in, "invalid block bounds for " + c.name());
-
-		break;
-	}
-
-	case InsnType::ExtractDatePart: {
-		auto& e = static_cast<const ExtractDatePartInsn&>(insn);
-
-		if (e.type() != Type::Int64)
-			insnError(*in, "value for " + e.name() + " invalid");
 
 		break;
 	}

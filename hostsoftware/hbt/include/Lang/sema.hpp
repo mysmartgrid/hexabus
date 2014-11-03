@@ -54,7 +54,6 @@ private:
 
 	std::map<std::string, ClassParamInstance> classParams;
 
-	std::vector<BuiltinFunction> builtinFunctions;
 	Scope globalScope;
 	Scope* currentScope;
 

@@ -15,6 +15,15 @@ private:
 	static std::string builtinFile;
 	static SourceLocation builtinSloc;
 
+	static BuiltinFunction _now;
+	static BuiltinFunction _second;
+	static BuiltinFunction _minute;
+	static BuiltinFunction _hour;
+	static BuiltinFunction _day;
+	static BuiltinFunction _month;
+	static BuiltinFunction _year;
+	static BuiltinFunction _weekday;
+
 	std::string _name;
 	Type _returnType;
 	std::vector<Type> _argumentTypes;
@@ -28,6 +37,15 @@ public:
 	const std::string& identifier() const { return _name; }
 	Type returnType() const { return _returnType; }
 	const std::vector<Type>& argumentTypes() const { return _argumentTypes; }
+
+	static BuiltinFunction* now() { return &_now; }
+	static BuiltinFunction* second() { return &_second; }
+	static BuiltinFunction* minute() { return &_minute; }
+	static BuiltinFunction* hour() { return &_hour; }
+	static BuiltinFunction* day() { return &_day; }
+	static BuiltinFunction* month() { return &_month; }
+	static BuiltinFunction* year() { return &_year; }
+	static BuiltinFunction* weekday() { return &_weekday; }
 };
 
 

@@ -6,6 +6,14 @@ namespace lang {
 std::string BuiltinFunction::builtinFile("<builtin>");
 SourceLocation BuiltinFunction::builtinSloc(&builtinFile, 0, 0);
 
+BuiltinFunction BuiltinFunction::_now("now", Type::Int64, {});
+BuiltinFunction BuiltinFunction::_second("second", Type::Int32, { Type::Int64 });
+BuiltinFunction BuiltinFunction::_minute("minute", Type::Int32, { Type::Int64 });
+BuiltinFunction BuiltinFunction::_hour("hour", Type::Int32, { Type::Int64 });
+BuiltinFunction BuiltinFunction::_day("day", Type::Int32, { Type::Int64 });
+BuiltinFunction BuiltinFunction::_month("month", Type::Int32, { Type::Int64 });
+BuiltinFunction BuiltinFunction::_year("year", Type::Int32, { Type::Int64 });
+BuiltinFunction BuiltinFunction::_weekday("weekday", Type::Int32, { Type::Int64 });
 
 
 Declaration* Scope::resolve(const std::string& name)

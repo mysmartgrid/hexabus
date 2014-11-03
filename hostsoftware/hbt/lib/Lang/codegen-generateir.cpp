@@ -431,10 +431,10 @@ void ExprCG::visit(EndpointExpr& e)
 void ExprCG::visit(CallExpr& c)
 {
 	std::vector<const ir::Value*> args;
-	auto& fun = *static_cast<BuiltinFunction*>(c.target());
+	auto* fun = static_cast<BuiltinFunction*>(c.target());
 
 	auto ait = c.arguments().begin(), aend = c.arguments().end();
-	auto tit = fun.argumentTypes().begin(), tend = fun.argumentTypes().end();
+	auto tit = fun->argumentTypes().begin(), tend = fun->argumentTypes().end();
 	for (; ait != aend && tit != tend; ++ait, ++tit) {
 		auto sub = runRecursive(**ait, *tit);
 
@@ -442,21 +442,21 @@ void ExprCG::visit(CallExpr& c)
 		_inBlock = sub.finalBlock();
 	}
 
-	if (fun.identifier() == "now")
+	if (fun == BuiltinFunction::now())
 		_value = _inBlock->append(ir::LoadSpecialInsn(cgc.newName(), ir::Type::Int64, ir::SpecialVal::SysTime));
-	else if (fun.identifier() == "second")
+	else if (fun == BuiltinFunction::second())
 		_value = _inBlock->append(ir::ExtractDatePartInsn(cgc.newName(), ir::DatePart::Second, args[0]));
-	else if (fun.identifier() == "minute")
+	else if (fun == BuiltinFunction::minute())
 		_value = _inBlock->append(ir::ExtractDatePartInsn(cgc.newName(), ir::DatePart::Minute, args[0]));
-	else if (fun.identifier() == "hour")
+	else if (fun == BuiltinFunction::hour())
 		_value = _inBlock->append(ir::ExtractDatePartInsn(cgc.newName(), ir::DatePart::Hour, args[0]));
-	else if (fun.identifier() == "day")
+	else if (fun == BuiltinFunction::day())
 		_value = _inBlock->append(ir::ExtractDatePartInsn(cgc.newName(), ir::DatePart::Day, args[0]));
-	else if (fun.identifier() == "month")
+	else if (fun == BuiltinFunction::month())
 		_value = _inBlock->append(ir::ExtractDatePartInsn(cgc.newName(), ir::DatePart::Month, args[0]));
-	else if (fun.identifier() == "year")
+	else if (fun == BuiltinFunction::year())
 		_value = _inBlock->append(ir::ExtractDatePartInsn(cgc.newName(), ir::DatePart::Year, args[0]));
-	else if (fun.identifier() == "weekday")
+	else if (fun == BuiltinFunction::weekday())
 		_value = _inBlock->append(ir::ExtractDatePartInsn(cgc.newName(), ir::DatePart::Weekday, args[0]));
 	else
 		throw CodegenCantDo("unknown builtins");
