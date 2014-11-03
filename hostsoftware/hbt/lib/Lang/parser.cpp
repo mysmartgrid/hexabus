@@ -781,7 +781,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 		ip_addr.name("IP address");
 		ip_addr =
-			lexeme[+(tok.colon | tok.dot | tok.lit.uint_ | tok.ident)][fwd >=
+			lexeme[+(tok.colon | tok.dot | tok.lit.uint_ | tok.lit.float_ | tok.ident)][fwd >=
 				[this] (std::vector<range>& addr, bool& pass) {
 					std::array<uint8_t, 16> result;
 					std::string str(addr.front().begin(), addr.back().end());
@@ -946,6 +946,9 @@ static std::list<std::unique_ptr<ProgramPart>> parseBuffer(const util::MemoryBuf
 
 		if (ef.first->is_valid()) {
 			iter errit = ef.first->value().begin();
+
+			line = errit.line();
+			col = errit.col();
 
 			if (expected == g.ip_addr.name())
 				badToken = g.badIP;
