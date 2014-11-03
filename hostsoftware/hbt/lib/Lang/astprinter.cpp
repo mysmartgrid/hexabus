@@ -529,30 +529,31 @@ void ASTPrinter::visit(MachineInstantiation& m)
 	}
 
 	out << ");";
-
-	if (m.instantiation()) {
-		out << " /* ";
-		printMachineBody(*m.instantiation());
-		out << " */";
-	}
 }
 
 void ASTPrinter::visit(IncludeLine& i)
 {
-	out << "include \"" << i.file() << "\";";
+	out << "// include \"" << i.file() << "\";";
+	includeStack.push_back(&i);
 }
 
 void ASTPrinter::visit(TranslationUnit& t)
 {
 	auto bundle = [] (ProgramPart& a, ProgramPart& b) {
-		return (dynamic_cast<IncludeLine*>(&a) && dynamic_cast<IncludeLine*>(&b))
+		return (dynamic_cast<Endpoint*>(&a) && dynamic_cast<Endpoint*>(&b))
+			|| (dynamic_cast<Device*>(&a) && dynamic_cast<Device*>(&b))
 			|| (dynamic_cast<MachineInstantiation*>(&a) && dynamic_cast<MachineInstantiation*>(&b));
 	};
 
 	ProgramPart* last = nullptr;
 	for (auto& item : t.items()) {
 		if (last)
-			out << "\n";
+			out << '\n';
+
+		while (!includeStack.empty() && item->sloc().parent() != &includeStack.back()->sloc()) {
+			out << "// end of " << includeStack.back()->file() << "\n";
+			includeStack.pop_back();
+		}
 
 		if (last && !bundle(*last, *item))
 			out << "\n";

@@ -14,6 +14,8 @@ private:
 	bool _skipIndent;
 	std::ostream& out;
 
+	std::vector<const IncludeLine*> includeStack;
+
 	void indent();
 
 	void printState(State& s);
