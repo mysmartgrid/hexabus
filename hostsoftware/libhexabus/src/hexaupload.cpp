@@ -251,10 +251,9 @@ int main(int argc, char** argv) {
 	desc.add_options()
 		("help,h", "produce help message")
 		("version", "print libhexabus version and exit")
-		("ip,i", po::value<std::string>(), "the hostname to connect to. If this option is not set, the target IP address from the program file will be used.")
+		("ip,i", po::value<std::string>(), "the hostname to connect to")
 		("program,p", po::value<std::string>(), "the state machine program to be uploaded")
 		("retry,r", po::value<int>(), "number of retries for failed/timed out uploads")
-    ("keep-name,k", "do not change the device name (for programming only)")
 		("clear,c", "delete the device's state machine")
 		("rename,R", po::value<std::string>(), "rename a device only, don't touch the state machine")
 		;
@@ -304,27 +303,19 @@ int main(int argc, char** argv) {
 		return ERR_PARAMETER_VALUE_INVALID;
 	}
 
-	if (!vm.count("ip") && !vm.count("program")) {
+	if (!vm.count("ip")) {
 		std::cout << "Cannot proceed without IP of the target device (-i <IP>)" << std::endl;
 		return ERR_PARAMETER_MISSING;
 	}
-	
-  if (vm.count("keep-name") && !vm.count("program")) {
-		std::cout << "The keep-name argument is only valid when programming" << std::endl;
-		return ERR_PARAMETER_INVALID;
-	}
 
+	boost::system::error_code err;
 	boost::asio::io_service io;
+	boost::asio::ip::address_v6 target;
 
-	boost::optional<boost::asio::ip::address_v6> target;
-	if (vm.count("ip")) {
-		boost::system::error_code err;
-
-		target = hexabus::resolve(io, vm["ip"].as<std::string>(), err);
-		if (err) {
-			std::cerr << vm["ip"].as<std::string>() << " is not a valid IP address: " << err.message() << std::endl;
-			return ERR_PARAMETER_FORMAT;
-		}
+	target = hexabus::resolve(io, vm["ip"].as<std::string>(), err);
+	if (err) {
+		std::cerr << vm["ip"].as<std::string>() << " is not a valid IP address: " << err.message() << std::endl;
+		return ERR_PARAMETER_FORMAT;
 	}
 
 	std::vector<boost::array<char, UploadChunkSize> > chunks;
@@ -342,10 +333,8 @@ int main(int argc, char** argv) {
 		size_t size = in.tellg();
 		in.seekg(0, std::ios::beg);
 
-		boost::asio::ip::address_v6::bytes_type ipBuffer;
-		in.read(reinterpret_cast<char*>(ipBuffer.c_array()), ipBuffer.size());
-		target = boost::asio::ip::address_v6(ipBuffer);
-		
+		chunks.push_back(boost::array<char, UploadChunkSize>());
+		chunks.back().assign(0);
 
 		while (in && !in.eof()) {
 			boost::array<char, UploadChunkSize> chunk;
@@ -359,13 +348,7 @@ int main(int argc, char** argv) {
 				return ERR_READ_FAILED;
 			}
 		}
-  
-    //Remove device name inside the first 30 bytes inside the first chunk 
-    if (vm.count("keep-name")) {
-      chunks[0].assign(0); 
-    }
-
-	} else {
+	} else if (vm.count("rename")) {
 		boost::array<char, UploadChunkSize> chunk;
 
 		chunk.assign(0);
@@ -375,17 +358,11 @@ int main(int argc, char** argv) {
 		chunks.push_back(chunk);
 	}
 
-	if (!target) {
-		std::cerr << "Target device IP not specified" << std::endl;
-		return ERR_PARAMETER_MISSING;
-	}
-
 	if (vm.count("program")) {
 		std::cout << "Uploading program, size=" << chunks.size() * UploadChunkSize << std::endl;
 	} else if (vm.count("rename")) {
 		std::cout << "Renaming device to " << vm["rename"].as<std::string>() << std::endl;
 	} else {
-		// fill program memory with zeros.
 		std::cout << "Clearing state machine" << std::endl;
 	}
 
@@ -393,8 +370,8 @@ int main(int argc, char** argv) {
 		hexabus::Socket socket(io);
 		uint8_t chunkId = 0;
 		int retryLimit = vm.count("retry") ? vm["retry"].as<int>() : 3;
-		ChunkSender sender(socket, *target, retryLimit);
-		RemoteStateMachine sm(socket, *target, retryLimit);
+		ChunkSender sender(socket, target, retryLimit);
+		RemoteStateMachine sm(socket, target, retryLimit);
 		ErrorCode err;
 
 		if ((err = sm.stop())) {
@@ -413,9 +390,9 @@ int main(int argc, char** argv) {
 		 */
 		if (vm.count("clear")) {
 			boost::array<char, UploadChunkSize> chunk;
-			chunk.assign(0);
+			chunk.assign('\xff');
 
-			for (chunkId = 0; chunkId < PROG_DEFAULT_LENGTH / EE_STATEMACHINE_CHUNK_SIZE; chunkId++) {
+			for (chunkId = 1; chunkId < PROG_DEFAULT_LENGTH / EE_STATEMACHINE_CHUNK_SIZE; chunkId++) {
 				err = sender.sendChunk(chunkId, chunk);
 				if (err) {
 					break;
