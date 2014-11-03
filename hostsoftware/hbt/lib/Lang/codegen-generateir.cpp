@@ -646,7 +646,7 @@ void StmtCG::visit(SwitchStmt& s)
 	};
 
 	ir::SwitchInsn::labels_type labels;
-	const ir::BasicBlock* defaultLabel;
+	const ir::BasicBlock* defaultLabel = nullptr;
 
 	for (auto& entry : s.entries()) {
 		auto entryBlock = cgc.newBlock();

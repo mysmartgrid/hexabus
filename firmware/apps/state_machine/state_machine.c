@@ -107,7 +107,7 @@ static uint8_t sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val)
 	return endpoint_write(eid, &env);
 }
 
-static uint64_t sm_get_systime()
+static int64_t sm_get_systime()
 {
 	uint64_t d;
 

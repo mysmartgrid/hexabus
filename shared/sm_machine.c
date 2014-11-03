@@ -236,7 +236,7 @@ static int sm_convert(hxb_sm_value_t* val, uint8_t to_type)
 		case HXB_DTYPE_UINT8:  val->v_uint = (uint8_t) val->from; break; \
 		case HXB_DTYPE_UINT16: val->v_uint = (uint16_t) val->from; break; \
 		case HXB_DTYPE_UINT32: val->v_uint = (uint32_t) val->from; break; \
-		case HXB_DTYPE_UINT64: val->v_uint = (uint64_t) val->from; break; \
+		case HXB_DTYPE_UINT64: val->v_uint64 = (uint64_t) val->from; break; \
 		case HXB_DTYPE_FLOAT:  val->v_float = (float) val->from; break; \
 		case HXB_DTYPE_SINT8:  val->v_sint = (int8_t) val->from; break; \
 		case HXB_DTYPE_SINT16: val->v_sint = (int16_t) val->from; break; \
@@ -759,7 +759,7 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 			break;
 
 		case HSO_LD_SYSTIME: {
-			PUSH(HXB_DTYPE_UINT64, v_uint64, sm_get_systime());
+			PUSH(HXB_DTYPE_SINT64, v_sint64, sm_get_systime());
 			break;
 		}
 
