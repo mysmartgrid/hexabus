@@ -707,6 +707,8 @@ int SM_EXPORT(run_sm)(const char* src_ip, uint32_t eid, const hxb_sm_value_t* va
 		uint32_t val;
 
 		FAIL_AS(sm_get_u8(0, &val));
+		if (val == 0xFF)
+			goto end_program;
 		if (val != 0)
 			FAIL_WITH(HSE_INVALID_HEADER);
 
