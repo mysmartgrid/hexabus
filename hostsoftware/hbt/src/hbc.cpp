@@ -3,19 +3,19 @@
 #include <sstream>
 #include <vector>
 
-#include "IR/codegen.hpp"
-#include "IR/module.hpp"
-#include "IR/moduleprinter.hpp"
-#include "Lang/ast.hpp"
-#include "Lang/astprinter.hpp"
-#include "Lang/codegen.hpp"
-#include "Lang/parser.hpp"
-#include "Lang/sema.hpp"
-#include "MC/assembler.hpp"
-#include "MC/builder.hpp"
-#include "MC/opt.hpp"
-#include "MC/program.hpp"
-#include "MC/program_printer.hpp"
+#include "hbt/IR/codegen.hpp"
+#include "hbt/IR/module.hpp"
+#include "hbt/IR/moduleprinter.hpp"
+#include "hbt/Lang/ast.hpp"
+#include "hbt/Lang/astprinter.hpp"
+#include "hbt/Lang/codegen.hpp"
+#include "hbt/Lang/parser.hpp"
+#include "hbt/Lang/sema.hpp"
+#include "hbt/MC/assembler.hpp"
+#include "hbt/MC/builder.hpp"
+#include "hbt/MC/opt.hpp"
+#include "hbt/MC/program.hpp"
+#include "hbt/MC/program_printer.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>

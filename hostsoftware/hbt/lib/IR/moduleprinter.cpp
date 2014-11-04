@@ -1,8 +1,8 @@
-#include "IR/moduleprinter.hpp"
+#include "hbt/IR/moduleprinter.hpp"
 
 #include <sstream>
 
-#include "IR/module.hpp"
+#include "hbt/IR/module.hpp"
 
 namespace hbt {
 namespace ir {

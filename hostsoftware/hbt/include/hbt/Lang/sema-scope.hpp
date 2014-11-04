@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-#include "Lang/ast.hpp"
+#include "hbt/Lang/ast.hpp"
 
 namespace hbt {
 namespace lang {

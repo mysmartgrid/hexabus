@@ -1,6 +1,6 @@
-#include "MC/program_printer.hpp"
+#include "hbt/MC/program_printer.hpp"
 
-#include "MC/program.hpp"
+#include "hbt/MC/program.hpp"
 
 #include <boost/format.hpp>
 #include <sstream>

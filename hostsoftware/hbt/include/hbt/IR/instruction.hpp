@@ -6,7 +6,7 @@
 #include <string>
 #include <utility>
 
-#include "Util/bigint.hpp"
+#include "hbt/Util/bigint.hpp"
 
 namespace hbt {
 namespace ir {

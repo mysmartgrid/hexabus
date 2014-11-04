@@ -1,8 +1,8 @@
-#include "MC/parser.hpp"
+#include "hbt/MC/parser.hpp"
 
-#include "MC/builder.hpp"
-#include "MC/program.hpp"
-#include "Util/memorybuffer.hpp"
+#include "hbt/MC/builder.hpp"
+#include "hbt/MC/program.hpp"
+#include "hbt/Util/memorybuffer.hpp"
 
 #include <boost/fusion/adapted/struct/adapt_struct.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>

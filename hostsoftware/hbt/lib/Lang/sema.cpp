@@ -1,7 +1,7 @@
-#include "Lang/sema.hpp"
+#include "hbt/Lang/sema.hpp"
 
 #include "instantiationvisitor.hpp"
-#include "Util/range.hpp"
+#include "hbt/Util/range.hpp"
 
 #include <boost/format.hpp>
 

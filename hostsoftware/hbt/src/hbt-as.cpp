@@ -1,9 +1,9 @@
-#include "MC/assembler.hpp"
-#include "MC/builder.hpp"
-#include "MC/instruction.hpp"
-#include "MC/parser.hpp"
-#include "MC/program.hpp"
-#include "Util/memorybuffer.hpp"
+#include "hbt/MC/assembler.hpp"
+#include "hbt/MC/builder.hpp"
+#include "hbt/MC/instruction.hpp"
+#include "hbt/MC/parser.hpp"
+#include "hbt/MC/program.hpp"
+#include "hbt/Util/memorybuffer.hpp"
 
 #include <iostream>
 #include <fstream>

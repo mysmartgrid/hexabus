@@ -7,9 +7,9 @@
 
 #include <boost/container/list.hpp>
 
-#include "IR/instruction.hpp"
-#include "Util/iterator.hpp"
-#include "Util/range.hpp"
+#include "hbt/IR/instruction.hpp"
+#include "hbt/Util/iterator.hpp"
+#include "hbt/Util/range.hpp"
 
 namespace hbt {
 namespace ir {

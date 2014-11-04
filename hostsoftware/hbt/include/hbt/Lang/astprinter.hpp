@@ -3,7 +3,7 @@
 
 #include <ostream>
 
-#include "Lang/ast.hpp"
+#include "hbt/Lang/ast.hpp"
 
 namespace hbt {
 namespace lang {

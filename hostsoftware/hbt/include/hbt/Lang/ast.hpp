@@ -8,8 +8,8 @@
 #include <type_traits>
 #include <vector>
 
-#include "Lang/type.hpp"
-#include "Util/bigint.hpp"
+#include "hbt/Lang/type.hpp"
+#include "hbt/Util/bigint.hpp"
 
 namespace hbt {
 namespace lang {

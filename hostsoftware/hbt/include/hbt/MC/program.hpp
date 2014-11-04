@@ -1,9 +1,9 @@
 #ifndef INCLUDE_MC_PROGRAM_HPP_345A0781A78039CE
 #define INCLUDE_MC_PROGRAM_HPP_345A0781A78039CE
 
-#include "MC/instruction.hpp"
-#include "Util/iterator.hpp"
-#include "Util/range.hpp"
+#include "hbt/MC/instruction.hpp"
+#include "hbt/Util/iterator.hpp"
+#include "hbt/Util/range.hpp"
 
 #include <vector>
 

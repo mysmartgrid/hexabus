@@ -1,6 +1,6 @@
-#include "Lang/codegen.hpp"
+#include "hbt/Lang/codegen.hpp"
 
-#include "Lang/ast.hpp"
+#include "hbt/Lang/ast.hpp"
 
 namespace hbt {
 namespace lang {

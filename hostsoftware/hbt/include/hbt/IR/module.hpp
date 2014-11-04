@@ -7,9 +7,9 @@
 #include <string>
 #include <vector>
 
-#include "IR/basicblock.hpp"
-#include "Util/iterator.hpp"
-#include "Util/range.hpp"
+#include "hbt/IR/basicblock.hpp"
+#include "hbt/Util/iterator.hpp"
+#include "hbt/Util/range.hpp"
 
 namespace hbt {
 namespace ir {

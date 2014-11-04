@@ -1,7 +1,7 @@
-#include "IR/module.hpp"
+#include "hbt/IR/module.hpp"
 
-#include "IR/basicblock.hpp"
-#include "Util/toposort.hpp"
+#include "hbt/IR/basicblock.hpp"
+#include "hbt/Util/toposort.hpp"
 
 #include <algorithm>
 #include <list>

@@ -1,6 +1,6 @@
-#include "MC/assembler.hpp"
+#include "hbt/MC/assembler.hpp"
 
-#include "MC/program.hpp"
+#include "hbt/MC/program.hpp"
 
 #include <algorithm>
 #include <cstring>

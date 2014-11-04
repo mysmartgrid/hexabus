@@ -1,6 +1,6 @@
-#include "Lang/diagnostics.hpp"
+#include "hbt/Lang/diagnostics.hpp"
 
-#include "Lang/ast.hpp"
+#include "hbt/Lang/ast.hpp"
 
 namespace hbt {
 namespace lang {

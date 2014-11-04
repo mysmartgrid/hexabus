@@ -1,10 +1,10 @@
 #ifndef INCLUDE_MC_BUILDER_HPP_3D3CABD64D9DF80F
 #define INCLUDE_MC_BUILDER_HPP_3D3CABD64D9DF80F
 
-#include "MC/instruction.hpp"
+#include "hbt/MC/instruction.hpp"
 
-#include "Util/iterator.hpp"
-#include "Util/range.hpp"
+#include "hbt/Util/iterator.hpp"
+#include "hbt/Util/range.hpp"
 
 #include <map>
 #include <memory>

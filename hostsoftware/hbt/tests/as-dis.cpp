@@ -8,12 +8,12 @@
 #include <iterator>
 #include <vector>
 
-#include "MC/assembler.hpp"
-#include "MC/disassembler.hpp"
-#include "MC/parser.hpp"
-#include "MC/program.hpp"
-#include "MC/program_printer.hpp"
-#include "Util/memorybuffer.hpp"
+#include "hbt/MC/assembler.hpp"
+#include "hbt/MC/disassembler.hpp"
+#include "hbt/MC/parser.hpp"
+#include "hbt/MC/program.hpp"
+#include "hbt/MC/program_printer.hpp"
+#include "hbt/Util/memorybuffer.hpp"
 
 namespace {
 

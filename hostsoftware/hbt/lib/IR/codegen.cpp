@@ -1,12 +1,12 @@
-#include "IR/codegen.hpp"
+#include "hbt/IR/codegen.hpp"
 
 #include <list>
 #include <stdexcept>
 
-#include "IR/basicblock.hpp"
-#include "IR/module.hpp"
-#include "MC/builder.hpp"
-#include "Util/toposort.hpp"
+#include "hbt/IR/basicblock.hpp"
+#include "hbt/IR/module.hpp"
+#include "hbt/MC/builder.hpp"
+#include "hbt/Util/toposort.hpp"
 
 namespace hbt {
 namespace ir {

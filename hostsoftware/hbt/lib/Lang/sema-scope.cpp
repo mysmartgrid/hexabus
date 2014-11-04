@@ -1,4 +1,4 @@
-#include "Lang/sema-scope.hpp"
+#include "hbt/Lang/sema-scope.hpp"
 
 namespace hbt {
 namespace lang {

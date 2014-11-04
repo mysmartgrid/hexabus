@@ -1,5 +1,5 @@
-#include "MC/builder.hpp"
-#include "MC/program.hpp"
+#include "hbt/MC/builder.hpp"
+#include "hbt/MC/program.hpp"
 
 #include <boost/format.hpp>
 

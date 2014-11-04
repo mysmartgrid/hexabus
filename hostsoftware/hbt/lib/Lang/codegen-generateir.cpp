@@ -1,4 +1,4 @@
-#include "Lang/codegen.hpp"
+#include "hbt/Lang/codegen.hpp"
 
 #include <cstring>
 #include <map>
@@ -8,9 +8,9 @@
 
 #include <boost/format.hpp>
 
-#include "IR/module.hpp"
-#include "Lang/ast.hpp"
-#include "Lang/sema-scope.hpp"
+#include "hbt/IR/module.hpp"
+#include "hbt/Lang/ast.hpp"
+#include "hbt/Lang/sema-scope.hpp"
 
 namespace hbt {
 namespace lang {

@@ -1,11 +1,11 @@
-#include "Lang/parser.hpp"
+#include "hbt/Lang/parser.hpp"
 
 #include <cctype>
 #include <list>
 #include <set>
 
-#include "Lang/ast.hpp"
-#include "Util/memorybuffer.hpp"
+#include "hbt/Lang/ast.hpp"
+#include "hbt/Util/memorybuffer.hpp"
 
 #include "sloc_iterator.hpp"
 #include "spirit_workarounds.hpp"

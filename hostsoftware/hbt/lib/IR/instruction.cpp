@@ -1,4 +1,4 @@
-#include "IR/instruction.hpp"
+#include "hbt/IR/instruction.hpp"
 
 hbt::ir::Value::~Value()
 {

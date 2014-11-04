@@ -7,10 +7,10 @@
 #include <string>
 #include <vector>
 
-#include "Lang/ast.hpp"
-#include "Lang/diagnostics.hpp"
-#include "Lang/sema-scope.hpp"
-#include "Lang/type.hpp"
+#include "hbt/Lang/ast.hpp"
+#include "hbt/Lang/diagnostics.hpp"
+#include "hbt/Lang/sema-scope.hpp"
+#include "hbt/Lang/type.hpp"
 
 namespace hbt {
 namespace lang {

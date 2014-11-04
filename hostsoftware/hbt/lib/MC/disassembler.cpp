@@ -1,8 +1,8 @@
-#include "MC/disassembler.hpp"
+#include "hbt/MC/disassembler.hpp"
 
-#include "MC/builder.hpp"
-#include "MC/program.hpp"
-#include "Util/memorybuffer.hpp"
+#include "hbt/MC/builder.hpp"
+#include "hbt/MC/program.hpp"
+#include "hbt/Util/memorybuffer.hpp"
 
 #include <algorithm>
 #include <cstring>
