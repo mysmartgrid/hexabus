@@ -884,11 +884,11 @@ again:
 			#define DAYS_PER_4Y   (365UL*4   + 1)
 
 			{
-				long long days, secs;
-				int remdays, remsecs, remyears;
-				int qc_cycles, c_cycles, q_cycles;
-				int years, months;
-				int wday, yday, leap;
+				int64_t days, secs;
+				int32_t remdays, remsecs, remyears;
+				int32_t qc_cycles, c_cycles, q_cycles;
+				int32_t years, months;
+				int32_t wday, yday, leap;
 				const char days_in_month[] = {31,30,31,30,31,31,30,31,30,31,31,29};
 
 				/* Reject time_t values whose year would overflow int32 */
