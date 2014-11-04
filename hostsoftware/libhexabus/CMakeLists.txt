@@ -44,6 +44,8 @@ include ( ProjectInfo )
 include ( CompilerFlags )
 include (UseCodeCoverage)
 
+set(CMAKE_CXX_FLAGS "${CXXFLAGS} -std=c++11")
+
 #set(CMAKE_CXX_FLAGS_EXPERIMENTAL "${CMAKE_CXX_FLAGS_EXPERIMENTAL} -Wunused-function")
 #set(CMAKE_CXX_FLAGS_EXPERIMENTAL "${CMAKE_CXX_FLAGS_EXPERIMENTAL} -Wunused -Woverloaded-virtual")
 
