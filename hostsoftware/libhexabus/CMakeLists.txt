@@ -87,24 +87,6 @@ if( LIBKLIO_FOUND )
   endif(WIN32)
 endif( LIBKLIO_FOUND )
 
-configure_file("../../shared/hexabus_types.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" @COPY_ONLY)
-configure_file("../../shared/hexabus_statemachine_structs.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" @COPY_ONLY)
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" DESTINATION include/libhexabus)
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" DESTINATION include/libhexabus)
-
-# Reflect the package structure
-add_subdirectory(libhexabus)
-add_subdirectory(src)
-add_subdirectory(tests)
-
-# enable unit testing
-include(CTest)
-enable_testing()
-
-# add some files to the installation target
-INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
-INSTALL(FILES share/endpoint_registry DESTINATION share/libhexabus)
-
 if( NOT WITHOUT_CPACK )
   # CPACK packaging
   include(InstallRequiredSystemLibraries)
@@ -127,6 +109,24 @@ if( NOT WITHOUT_CPACK )
   set(CPACK_SECTION "net")
   include(CPackTools)
 endif()
+
+configure_file("../../shared/hexabus_types.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" @COPY_ONLY)
+configure_file("../../shared/hexabus_statemachine_structs.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" @COPY_ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" DESTINATION include/libhexabus)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" DESTINATION include/libhexabus)
+
+# Reflect the package structure
+add_subdirectory(libhexabus)
+add_subdirectory(src)
+add_subdirectory(tests)
+
+# enable unit testing
+include(CTest)
+enable_testing()
+
+# add some files to the installation target
+INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
+INSTALL(FILES share/endpoint_registry DESTINATION share/libhexabus)
 
 ### print some output for the user
 message("")
