@@ -25,6 +25,27 @@ struct DiscoveredEP {
 	std::string name;
 
 	bool operator<(const DiscoveredEP& other) const { return eid < other.eid; }
+
+	const char* typeName() const
+	{
+		switch (type) {
+		case hexabus::HXB_DTYPE_BOOL: return "Bool"; break;
+		case hexabus::HXB_DTYPE_UINT8: return "UInt8"; break;
+		case hexabus::HXB_DTYPE_UINT16: return "UInt16"; break;
+		case hexabus::HXB_DTYPE_UINT32: return "UInt32"; break;
+		case hexabus::HXB_DTYPE_UINT64: return "UInt64"; break;
+		case hexabus::HXB_DTYPE_SINT8: return "Int8"; break;
+		case hexabus::HXB_DTYPE_SINT16: return "Int16"; break;
+		case hexabus::HXB_DTYPE_SINT32: return "Int32"; break;
+		case hexabus::HXB_DTYPE_SINT64: return "Int64"; break;
+		case hexabus::HXB_DTYPE_FLOAT: return "Float"; break;
+		case hexabus::HXB_DTYPE_128STRING: return "String"; break;
+		case hexabus::HXB_DTYPE_16BYTES: return "Binary (16 bytes)"; break;
+		case hexabus::HXB_DTYPE_65BYTES: return "Binary (65 bytes)"; break;
+		case hexabus::HXB_DTYPE_UNDEFINED: return "(undefined)"; break;
+		}
+		return "(unknown)";
+	}
 };
 
 struct DiscoveredDev {
@@ -249,23 +270,7 @@ static void printEndpoint(std::ostream& out, const DiscoveredEP& ep)
 	out << "Endpoint information:" << std::endl
 		<< "\tEndpoint ID:\t" << ep.eid << std::endl
 		<< "\tName:       \t" << ep.name << std::endl
-		<< "\tDatatype:   \t";
-	switch (ep.type) {
-	case hexabus::HXB_DTYPE_BOOL: out << "Bool"; break;
-	case hexabus::HXB_DTYPE_UINT8: out << "UInt8"; break;
-	case hexabus::HXB_DTYPE_UINT16: out << "UInt16"; break;
-	case hexabus::HXB_DTYPE_UINT32: out << "UInt32"; break;
-	case hexabus::HXB_DTYPE_UINT64: out << "UInt64"; break;
-	case hexabus::HXB_DTYPE_SINT8: out << "Int8"; break;
-	case hexabus::HXB_DTYPE_SINT16: out << "Int16"; break;
-	case hexabus::HXB_DTYPE_SINT32: out << "Int32"; break;
-	case hexabus::HXB_DTYPE_SINT64: out << "Int64"; break;
-	case hexabus::HXB_DTYPE_FLOAT: out << "Float"; break;
-	case hexabus::HXB_DTYPE_128STRING: out << "String"; break;
-	case hexabus::HXB_DTYPE_16BYTES: out << "Binary (16 bytes)"; break;
-	case hexabus::HXB_DTYPE_65BYTES: out << "Binary (65 bytes)"; break;
-	case hexabus::HXB_DTYPE_UNDEFINED: out << "(undefined)"; break;
-	}
+		<< "\tDatatype:   \t" << ep.typeName() << std::endl;
 	out << std::endl;
 }
 
@@ -323,7 +328,8 @@ static bool writeDevJSON(std::ostream& out, const DiscoveredDev& dev, NameSaniti
 		out
 			<< R"({)" << std::endl
 			<< R"(			"eid": )" << ep.eid << ',' << std::endl
-			<< R"(			"sm_name": ")" << san.sanitizeName(ep) << R"(",)" << std::endl;
+			<< R"(			"sm_name": ")" << san.sanitizeName(ep) << R"(",)" << std::endl
+			<< R"(			"type": ")" << ep.typeName() << R"(",)" << std::endl;
 
 		static hexabus::EndpointRegistry epr;
 		auto epit = epr.find(ep.eid);
@@ -331,7 +337,6 @@ static bool writeDevJSON(std::ostream& out, const DiscoveredDev& dev, NameSaniti
 			out
 				<< R"(			"unit": ")" << json(epit->second.unit().get_value_or("")) << R"(",)" << std::endl
 				<< R"(			"description": ")" << json(epit->second.description()) << R"(",)" << std::endl
-				<< R"(			"type": )" << epit->second.type() << std::endl
 				<< R"(			"function": ")";
 			switch (epit->second.function()) {
 			case hexabus::EndpointDescriptor::sensor: out << "sensor"; break;
@@ -500,7 +505,7 @@ int main(int argc, char** argv)
 		("print,p", "print device and endpoint info to the console")
 		("epfile,e", po::value<std::string>(), "path of Hexabus compiler header file to write the endpoint list to")
 		("devfile,d", po::value<std::string>(), "path of Hexabus compiler header file to write the device definition to")
-		("json,j", "use JSON as output format")
+		("json,j", po::value<std::string>(), "ouput discovered devices as JSON")
 		("verbose,v", "print more status information")
 		(",h", "generate human-readable device/endpoint names")
 		;
@@ -603,13 +608,12 @@ int main(int argc, char** argv)
 		if (vm.count("epfile"))
 			updateEPFile(absolutePath(vm["epfile"].as<std::string>()), devices, san);
 
-		if (vm.count("devfile")) {
-			std::unique_ptr<std::ofstream> ofPtr;
+		if (vm.count("devfile"))
+			updateDevFile(absolutePath(vm["devfile"].as<std::string>()), devices, san);
 
-			if (vm.count("json"))
-				writeDevicesJSON(openFile(vm["devfile"].as<std::string>(), ofPtr), devices, san);
-			else
-				updateDevFile(absolutePath(vm["devfile"].as<std::string>()), devices, san);
+		if (vm.count("json")) {
+			std::unique_ptr<std::ofstream> ofPtr;
+			writeDevicesJSON(openFile(vm["json"].as<std::string>(), ofPtr), devices, san);
 		}
 	} catch (const hexabus::NetworkException& e) {
 		std::cerr << "Network error: " << e.code().message() << std::endl;
