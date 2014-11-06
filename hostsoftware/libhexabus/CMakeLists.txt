@@ -44,6 +44,8 @@ include ( ProjectInfo )
 include ( CompilerFlags )
 include (UseCodeCoverage)
 
+set(CMAKE_CXX_FLAGS "${CXXFLAGS} -std=c++11")
+
 #set(CMAKE_CXX_FLAGS_EXPERIMENTAL "${CMAKE_CXX_FLAGS_EXPERIMENTAL} -Wunused-function")
 #set(CMAKE_CXX_FLAGS_EXPERIMENTAL "${CMAKE_CXX_FLAGS_EXPERIMENTAL} -Wunused -Woverloaded-virtual")
 
@@ -112,8 +114,10 @@ endif()
 
 configure_file("../../shared/hexabus_types.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" @COPY_ONLY)
 configure_file("../../shared/hexabus_statemachine_structs.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" @COPY_ONLY)
+configure_file("../../shared/sm_types.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/sm/sm_types.h" @COPY_ONLY)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" DESTINATION include/libhexabus)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" DESTINATION include/libhexabus)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/sm/sm_types.h" DESTINATION include/libhexabus/sm)
 
 # Reflect the package structure
 add_subdirectory(libhexabus)

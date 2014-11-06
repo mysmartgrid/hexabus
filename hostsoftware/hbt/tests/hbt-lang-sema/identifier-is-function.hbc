@@ -1,0 +1,18 @@
+machine m {
+	state init {
+		bool second = minute.hour; //#expect: error: identifier 'minute' does not name a device
+		                           //#expect+: error: identifier 'hour' does not name an endpoint
+		                           //#expect+: @<builtin>hint: declared here
+		                           //#expect+: @<builtin>hint: declared here
+		                           //#expect+: @<builtin>hint: declared here
+
+		on update from day.year {} //#expect: error: identifier 'day' does not name a device
+		                           //#expect+: error: identifier 'year' does not name an endpoint
+		                           //#expect: @<builtin>hint: declared here
+		                           //#expect: @<builtin>hint: declared here
+
+		always {
+			month = 1; //#expect: error: cannot assign to 'month'
+		}
+	}
+};

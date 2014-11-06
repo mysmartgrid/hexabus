@@ -1,8 +1,0 @@
-#ifndef LIBHBC_CONFIG_H_IN
-#define LIBHBC_CONFIG_H_IN
-
-#define VERSION_MAJOR ${V_MAJOR}
-#define VERSION_MINOR ${V_MINOR}
-#define VERSION_PATCH ${V_PATCH}
-
-#endif /* LIBHBC_CONFIG_H_IN */

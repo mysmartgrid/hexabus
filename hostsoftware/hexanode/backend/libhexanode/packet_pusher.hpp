@@ -62,7 +62,7 @@ namespace hexanode {
 			void pushFromPacket(const hexabus::ValuePacket<T>& packet)
 			{
 				std::ostringstream oss;
-				oss << std::fixed << std::setprecision(1) << float(packet.value());
+				oss << std::fixed << std::setprecision(1) << double(packet.value());
 
 				push_value(packet.eid(), oss.str());
 			}
@@ -79,7 +79,13 @@ namespace hexanode {
 			 */
 			virtual void visit(const hexabus::InfoPacket<bool>& info) { pushFromPacket(info); }
 			virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { pushFromPacket(info); }
+			virtual void visit(const hexabus::InfoPacket<uint16_t>& info) { pushFromPacket(info); }
 			virtual void visit(const hexabus::InfoPacket<uint32_t>& info) { pushFromPacket(info); }
+			virtual void visit(const hexabus::InfoPacket<uint64_t>& info) { pushFromPacket(info); }
+			virtual void visit(const hexabus::InfoPacket<int8_t>& info) { pushFromPacket(info); }
+			virtual void visit(const hexabus::InfoPacket<int16_t>& info) { pushFromPacket(info); }
+			virtual void visit(const hexabus::InfoPacket<int32_t>& info) { pushFromPacket(info); }
+			virtual void visit(const hexabus::InfoPacket<int64_t>& info) { pushFromPacket(info); }
 			virtual void visit(const hexabus::InfoPacket<float>& info) { pushFromPacket(info); }
 			/**
 			 * Ignored
@@ -88,23 +94,25 @@ namespace hexanode {
 			virtual void visit(const hexabus::QueryPacket& query) { rejectPacket(); }
 			virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery) { rejectPacket(); }
 			virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo) { rejectPacket(); }
-			virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) { rejectPacket(); }
-			virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info) { rejectPacket(); }
 			virtual void visit(const hexabus::InfoPacket<std::string>& info) { rejectPacket(); }
 			virtual void visit(const hexabus::InfoPacket<boost::array<char, 16> >& info) { rejectPacket(); }
 			virtual void visit(const hexabus::InfoPacket<boost::array<char, 65> >& info) { rejectPacket(); }
 			/** 
 			 * not needed.
 			 */
-			virtual void visit(const hexabus::WritePacket<bool>& write) { rejectPacket(); }
-			virtual void visit(const hexabus::WritePacket<uint8_t>& write) { rejectPacket(); }
-			virtual void visit(const hexabus::WritePacket<uint32_t>& write) { rejectPacket(); }
-			virtual void visit(const hexabus::WritePacket<float>& write) { rejectPacket(); }
-			virtual void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) { rejectPacket(); }
-			virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) { rejectPacket(); }
-			virtual void visit(const hexabus::WritePacket<std::string>& write) { rejectPacket(); }
-			virtual void visit(const hexabus::WritePacket<boost::array<char, 16> >& write) { rejectPacket(); }
-			virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& write) { rejectPacket(); }
+			virtual void visit(const hexabus::WritePacket<bool>& info) {}
+			virtual void visit(const hexabus::WritePacket<uint8_t>& info) {}
+			virtual void visit(const hexabus::WritePacket<uint16_t>& info) {}
+			virtual void visit(const hexabus::WritePacket<uint32_t>& info) {}
+			virtual void visit(const hexabus::WritePacket<uint64_t>& info) {}
+			virtual void visit(const hexabus::WritePacket<int8_t>& info) {}
+			virtual void visit(const hexabus::WritePacket<int16_t>& info) {}
+			virtual void visit(const hexabus::WritePacket<int32_t>& info) {}
+			virtual void visit(const hexabus::WritePacket<int64_t>& info) {}
+			virtual void visit(const hexabus::WritePacket<float>& info) {}
+			virtual void visit(const hexabus::WritePacket<std::string>& info) {}
+			virtual void visit(const hexabus::WritePacket<boost::array<char, 16> >& info) {}
+			virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& info) {}
   };
 
 }

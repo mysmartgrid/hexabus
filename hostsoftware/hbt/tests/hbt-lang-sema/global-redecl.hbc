@@ -1,0 +1,24 @@
+endpoint e(0) : bool (); //#expect: previously declared here
+endpoint e(1) : bool (); //#expect: error: redeclaration of 'e'
+endpoint hour(2) : bool (); //#expect: error: redeclaration of 'hour'
+		                    //#expect+: @<builtin>hint: previously declared here
+
+device d(::) : e; //#expect: previously declared here
+device d(::) : e; //#expect: error: redeclaration of 'd'
+device minute(::) : e; //#expect: error: redeclaration of 'minute'
+		               //#expect+: @<builtin>hint: previously declared here
+
+class c(bool x) { bool b = x; state s {} }; //#expect: previously declared here
+class c(bool x) { bool b = x; state s {} }; //#expect: error: redeclaration of 'c'
+class second(bool x) { bool b0 = x; state s{} }; //#expect: error: redeclaration of 'second'
+		                                         //#expect+: @<builtin>hint: previously declared here
+
+machine mdef { state s {} }; //#expect: previously declared here
+machine mdef { state s {} }; //#expect: error: redeclaration of 'mdef'
+machine day { state s {} }; //#expect: error: redeclaration of 'day'
+		                   //#expect+: @<builtin>hint: previously declared here
+
+machine minst : c(true); //#expect: previously declared here
+machine minst : c(true); //#expect: error: redeclaration of 'minst'
+machine month : c(true); //#expect: error: redeclaration of 'month'
+		                 //#expect+: @<builtin>hint: previously declared here

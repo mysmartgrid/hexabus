@@ -10,8 +10,15 @@ if(LIBKLIO_FOUND)
   include_directories( ${LIBKLIO_INCLUDE_DIRS} )
 endif()
 
+file(GLOB sm_hdrs sm/*.h sm/*.hpp)
+file(GLOB sm_src  sm/*.cpp sm/*.hpp)
+
+#meh
+set_source_files_properties(sm/machine.cpp PROPERTIES OBJECT_DEPENDS ../../../shared/sm_machine.c)
+
 install(FILES ${hdrs}        DESTINATION include/libhexabus)
 install(FILES ${logger_hdrs} DESTINATION include/libhexabus/logger)
+install(FILES ${sm_hdrs}     DESTINATION include/libhexabus/sm)
 
 configure_file(config.h.in ${CMAKE_BINARY_DIR}/libhexabus/config.h)
 configure_file(private/paths.hpp.in ${CMAKE_BINARY_DIR}/libhexabus/private/paths.hpp)
@@ -27,7 +34,7 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}
 )
-set(hexabus_src ${all_hexabus_src} ${logger_src})
+set(hexabus_src ${all_hexabus_src} ${logger_src} ${sm_src})
 ADD_LIBRARY(hexabus ${hexabus_src})
 
 #target_link_libraries(hexabus ${Boost_IOSTREAMS_LIBRARY})

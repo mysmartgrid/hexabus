@@ -1,0 +1,25 @@
+class c(int64 arg) {
+	state init {
+		always {
+			switch (1) {
+			case (4 * arg) << 63: {} //#expect: error: value 36893488147419103232 overflows type int64
+			case uint32(arg) * uint32(-1) + 1: {} //#expect: error: value 4294967296 overflows type uint32
+			case uint32(arg * uint32(-1) + 1): {}
+			}
+		}
+	}
+};
+
+machine m : c(1); //#expect: hint: instantiated from here
+                  //#expect+: hint: instantiated from here
+
+machine m2 {
+	state init {
+		always {
+			switch (1) {
+			case 1 << 32: {} //#expect: error: invalid shift of type int32 by 32 bits
+			                 //#expect+: error: value 4294967296 overflows type int32
+			}
+		}
+	}
+};

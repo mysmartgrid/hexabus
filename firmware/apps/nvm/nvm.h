@@ -9,21 +9,7 @@ enum {
 };
 
 struct hxb_sm_nvm_layout {
-	/* state machine substructure
-	 *
-	 * these must always be contiguous in memory, since statemachine upload
-	 * writes binary chunks of data without obvious substructure, starting
-	 * at statemachine_id[0], and expects that to work. crazy. */
-	uint8_t id[16];
-
-	uint8_t n_conditions;
-	uint8_t conditions[511];
-
-	uint8_t n_dt_transitions;
-	uint8_t dt_transitions[511];
-
-	uint8_t n_transitions;
-	uint8_t transitions[495];
+	uint8_t code[2048];
 } __attribute__((packed));
 
 struct hxb_nvm_layout {

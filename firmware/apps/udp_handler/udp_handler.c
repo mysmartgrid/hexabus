@@ -98,6 +98,37 @@ static float htonf(float f)
 	return fconv.f;
 }
 
+static uint64_t ntohul(uint64_t u)
+{
+	return (((uint64_t) uip_ntohl(u >> 32))) | (((uint64_t) uip_ntohl(u & 0xFFFFFFFF)) << 32);
+}
+
+static uint64_t htonul(uint64_t u)
+{
+	return (((uint64_t) uip_htonl(u >> 32))) | (((uint64_t) uip_htonl(u & 0xFFFFFFFF)) << 32);
+}
+
+#define BITS_CONV(bitness) \
+	static uint##bitness##_t bits_from_signed##bitness(int##bitness##_t val) \
+	{ \
+		uint##bitness##_t result; \
+		memcpy(&result, &val, sizeof(result)); \
+		return result; \
+	} \
+	static int##bitness##_t bits_to_signed##bitness(uint##bitness##_t val) \
+	{ \
+		int##bitness##_t result; \
+		memcpy(&result, &val, sizeof(result)); \
+		return result; \
+	}
+
+BITS_CONV(8)
+BITS_CONV(16)
+BITS_CONV(32)
+BITS_CONV(64)
+
+#undef BITS_CONV
+
 static size_t prepare_for_send(union hxb_packet_any* packet)
 {
 	size_t len;
@@ -106,76 +137,67 @@ static size_t prepare_for_send(union hxb_packet_any* packet)
 	packet->header.flags = 0;
 
 	switch ((enum hxb_packet_type) packet->header.type) {
-		case HXB_PTYPE_INFO:
-		case HXB_PTYPE_WRITE:
-			packet->eid_header.eid = uip_htonl(packet->eid_header.eid);
-			switch ((enum hxb_datatype) packet->value_header.datatype) {
-				case HXB_DTYPE_TIMESTAMP:
-				case HXB_DTYPE_UINT32:
-					len = sizeof(packet->p_u32);
-					packet->p_u32.value = uip_htonl(packet->p_u32.value);
-					packet->p_u32.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
-					break;
+	case HXB_PTYPE_INFO:
+	case HXB_PTYPE_WRITE:
+		packet->eid_header.eid = uip_htonl(packet->eid_header.eid);
+		switch ((enum hxb_datatype) packet->value_header.datatype) {
+		#define HANDLE_PACKET(DTYPE, PTYPE, CONV, BITEXTRACT) \
+			case DTYPE: \
+				len = sizeof(packet->PTYPE); \
+				packet->PTYPE.value = CONV(BITEXTRACT(packet->PTYPE.value)); \
+				packet->PTYPE.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0)); \
+				break;
 
-				case HXB_DTYPE_DATETIME:
-					len = sizeof(packet->p_datetime);
-					packet->p_datetime.value.year = uip_htons(packet->p_datetime.value.year);
-					packet->p_datetime.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
-					break;
+		HANDLE_PACKET(HXB_DTYPE_BOOL, p_u8, , )
+		HANDLE_PACKET(HXB_DTYPE_UINT8, p_u8, , )
+		HANDLE_PACKET(HXB_DTYPE_UINT16, p_u16, uip_htons, )
+		HANDLE_PACKET(HXB_DTYPE_UINT32, p_u32, uip_htonl, )
+		HANDLE_PACKET(HXB_DTYPE_UINT64, p_u64, htonul, )
+		HANDLE_PACKET(HXB_DTYPE_SINT8, p_s8, , bits_from_signed8)
+		HANDLE_PACKET(HXB_DTYPE_SINT16, p_s16, uip_htons, bits_from_signed16)
+		HANDLE_PACKET(HXB_DTYPE_SINT32, p_s32, uip_htonl, bits_from_signed32)
+		HANDLE_PACKET(HXB_DTYPE_SINT64, p_s64, htonul, bits_from_signed64)
+		HANDLE_PACKET(HXB_DTYPE_FLOAT, p_float, htonf, )
 
-				case HXB_DTYPE_FLOAT:
-					len = sizeof(packet->p_float);
-					packet->p_float.value = htonf(packet->p_float.value);
-					packet->p_float.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
-					break;
+		#undef HANDLE_PACKET
 
-				case HXB_DTYPE_BOOL:
-				case HXB_DTYPE_UINT8:
-					len = sizeof(packet->p_u8);
-					packet->p_u8.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
-					break;
-
-				case HXB_DTYPE_128STRING:
-					len = sizeof(packet->p_128string);
-					packet->p_128string.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
-					break;
-
-				case HXB_DTYPE_65BYTES:
-					len = sizeof(packet->p_65bytes);
-					packet->p_65bytes.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
-					break;
-
-				case HXB_DTYPE_16BYTES:
-					len = sizeof(packet->p_16bytes);
-					packet->p_16bytes.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
-					break;
-
-				case HXB_DTYPE_UNDEFINED:
-				default:
-					return 0;
-			}
-			break;
-
-		case HXB_PTYPE_EPQUERY:
-		case HXB_PTYPE_QUERY:
-			len = sizeof(packet->p_query);
-			packet->eid_header.eid = uip_htonl(packet->eid_header.eid);
-			packet->p_query.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
-			break;
-
-		case HXB_PTYPE_EPINFO:
+		case HXB_DTYPE_128STRING:
 			len = sizeof(packet->p_128string);
-			packet->eid_header.eid = uip_htonl(packet->eid_header.eid);
 			packet->p_128string.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 			break;
 
-		case HXB_PTYPE_ERROR:
-			len = sizeof(packet->p_error);
-			packet->p_error.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
+		case HXB_DTYPE_65BYTES:
+			len = sizeof(packet->p_65bytes);
+			packet->p_65bytes.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
 			break;
 
-		default:
+		case HXB_DTYPE_16BYTES:
+			len = sizeof(packet->p_16bytes);
+			packet->p_16bytes.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
+			break;
+
+		case HXB_DTYPE_UNDEFINED:
 			return 0;
+		}
+		break;
+
+	case HXB_PTYPE_EPQUERY:
+	case HXB_PTYPE_QUERY:
+		len = sizeof(packet->p_query);
+		packet->eid_header.eid = uip_htonl(packet->eid_header.eid);
+		packet->p_query.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
+		break;
+
+	case HXB_PTYPE_EPINFO:
+		len = sizeof(packet->p_128string);
+		packet->eid_header.eid = uip_htonl(packet->eid_header.eid);
+		packet->p_128string.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
+		break;
+
+	case HXB_PTYPE_ERROR:
+		len = sizeof(packet->p_error);
+		packet->p_error.crc = uip_htons(crc16_data((unsigned char*) packet, len - 2, 0));
+		break;
 	}
 
 	return len;
@@ -243,70 +265,54 @@ static enum hxb_error_code check_crc(const union hxb_packet_any* packet)
 	uint16_t data_len = 0;
 	uint16_t crc = 0;
 	switch ((enum hxb_packet_type) packet->header.type) {
-		case HXB_PTYPE_ERROR:
-			data_len = sizeof(packet->p_error);
-			crc = packet->p_error.crc;
-			break;
+	case HXB_PTYPE_ERROR:
+		data_len = sizeof(packet->p_error);
+		crc = packet->p_error.crc;
+		break;
 
-		case HXB_PTYPE_INFO:
-		case HXB_PTYPE_WRITE:
-			switch ((enum hxb_datatype) packet->value_header.datatype) {
-				case HXB_DTYPE_BOOL:
-				case HXB_DTYPE_UINT8:
-					data_len = sizeof(packet->p_u8);
-					crc = packet->p_u8.crc;
-					break;
+	case HXB_PTYPE_INFO:
+	case HXB_PTYPE_WRITE:
+		switch ((enum hxb_datatype) packet->value_header.datatype) {
+		#define HANDLE_PACKET(DTYPE, PTYPE) \
+			case DTYPE: \
+				data_len = sizeof(packet->PTYPE); \
+				crc = packet->PTYPE.crc; \
+				break;
 
-				case HXB_DTYPE_UINT32:
-				case HXB_DTYPE_TIMESTAMP:
-					data_len = sizeof(packet->p_u32);
-					crc = packet->p_u32.crc;
-					break;
+		HANDLE_PACKET(HXB_DTYPE_BOOL, p_u8)
+		HANDLE_PACKET(HXB_DTYPE_UINT8, p_u8)
+		HANDLE_PACKET(HXB_DTYPE_UINT16, p_u16)
+		HANDLE_PACKET(HXB_DTYPE_UINT32, p_u32)
+		HANDLE_PACKET(HXB_DTYPE_UINT64, p_u64)
+		HANDLE_PACKET(HXB_DTYPE_SINT8, p_s8)
+		HANDLE_PACKET(HXB_DTYPE_SINT16, p_s16)
+		HANDLE_PACKET(HXB_DTYPE_SINT32, p_s32)
+		HANDLE_PACKET(HXB_DTYPE_SINT64, p_s64)
+		HANDLE_PACKET(HXB_DTYPE_FLOAT, p_float)
+		HANDLE_PACKET(HXB_DTYPE_128STRING, p_128string)
+		HANDLE_PACKET(HXB_DTYPE_65BYTES, p_65bytes)
+		HANDLE_PACKET(HXB_DTYPE_16BYTES, p_16bytes)
 
-				case HXB_DTYPE_FLOAT:
-					data_len = sizeof(packet->p_float);
-					crc = packet->p_float.crc;
-					break;
+		#undef HANDLE_PACKET
 
-				case HXB_DTYPE_128STRING:
-					data_len = sizeof(packet->p_128string);
-					crc = packet->p_128string.crc;
-					break;
-
-				case HXB_DTYPE_DATETIME:
-					data_len = sizeof(packet->p_datetime);
-					crc = packet->p_datetime.crc;
-					break;
-
-				case HXB_DTYPE_65BYTES:
-					data_len = sizeof(packet->p_65bytes);
-					crc = packet->p_65bytes.crc;
-					break;
-
-				case HXB_DTYPE_16BYTES:
-					data_len = sizeof(packet->p_16bytes);
-					crc = packet->p_16bytes.crc;
-					break;
-
-				case HXB_DTYPE_UNDEFINED:
-				default:
-					return HXB_ERR_MALFORMED_PACKET;
-			}
-			break;
-
-		case HXB_PTYPE_EPINFO:
-			data_len = sizeof(packet->p_128string);
-			crc = packet->p_128string.crc;
-			break;
-
-		case HXB_PTYPE_QUERY:
-		case HXB_PTYPE_EPQUERY:
-			data_len = sizeof(packet->p_query);
-			crc = packet->p_query.crc;
-			break;
-
-		default:
+		case HXB_DTYPE_UNDEFINED:
 			return HXB_ERR_MALFORMED_PACKET;
+		}
+		break;
+
+	case HXB_PTYPE_EPINFO:
+		data_len = sizeof(packet->p_128string);
+		crc = packet->p_128string.crc;
+		break;
+
+	case HXB_PTYPE_QUERY:
+	case HXB_PTYPE_EPQUERY:
+		data_len = sizeof(packet->p_query);
+		crc = packet->p_query.crc;
+		break;
+
+	default:
+		return HXB_ERR_MALFORMED_PACKET;
 	}
 
 	if (uip_ntohs(crc) != crc16_data((unsigned char*) packet, data_len - 2, 0)) {
@@ -321,43 +327,32 @@ static enum hxb_error_code extract_value(union hxb_packet_any* packet, struct hx
 {
 	value->datatype = packet->value_header.datatype;
 
-	// CRC check and how big the actual value is depend on what type of packet we have.
 	switch ((enum hxb_datatype) value->datatype) {
-		case HXB_DTYPE_BOOL:
-		case HXB_DTYPE_UINT8:
-			value->v_u8 = packet->p_u8.value;
+	#define HANDLE_PACKET(DTYPE, TARGET, PTYPE, CONV, BITEXTRACT) \
+		case DTYPE: \
+			value->TARGET = CONV(BITEXTRACT(packet->PTYPE.value)); \
 			break;
 
-		case HXB_DTYPE_UINT32:
-		case HXB_DTYPE_TIMESTAMP:
-			value->v_u32 = uip_ntohl(packet->p_u32.value);
-			break;
+	HANDLE_PACKET(HXB_DTYPE_BOOL, v_u8, p_u8, , )
+	HANDLE_PACKET(HXB_DTYPE_UINT8, v_u8, p_u8, , )
+	HANDLE_PACKET(HXB_DTYPE_UINT16, v_u16, p_u16, uip_ntohs, )
+	HANDLE_PACKET(HXB_DTYPE_UINT32, v_u32, p_u32, uip_ntohl, )
+	HANDLE_PACKET(HXB_DTYPE_UINT64, v_u64, p_u64, ntohul, )
+	HANDLE_PACKET(HXB_DTYPE_SINT8, v_s8, p_s8, , bits_to_signed8)
+	HANDLE_PACKET(HXB_DTYPE_SINT16, v_s16, p_s16, uip_ntohs, bits_to_signed16)
+	HANDLE_PACKET(HXB_DTYPE_SINT32, v_s32, p_s32, uip_ntohl, bits_to_signed32)
+	HANDLE_PACKET(HXB_DTYPE_SINT64, v_s64, p_s64, ntohul, bits_to_signed64)
+	HANDLE_PACKET(HXB_DTYPE_FLOAT, v_float, p_float, ntohf, )
+	HANDLE_PACKET(HXB_DTYPE_128STRING, v_string, p_128string, , )
+	HANDLE_PACKET(HXB_DTYPE_65BYTES, v_binary, p_65bytes, , )
+	HANDLE_PACKET(HXB_DTYPE_16BYTES, v_binary, p_16bytes, , )
 
-		case HXB_DTYPE_DATETIME:
-			value->v_datetime = packet->p_datetime.value;
-			value->v_datetime.year = uip_ntohs(value->v_datetime.year);
-			break;
+	#undef HANDLE_PACKET
 
-		case HXB_DTYPE_FLOAT:
-			value->v_float = ntohf(packet->p_float.value);
-			break;
-
-		case HXB_DTYPE_128STRING:
-			value->v_string = packet->p_128string.value;
-			break;
-
-		case HXB_DTYPE_65BYTES:
-			value->v_binary = packet->p_65bytes.value;
-			break;
-
-		case HXB_DTYPE_16BYTES:
-			value->v_binary = packet->p_16bytes.value;
-			break;
-
-		case HXB_DTYPE_UNDEFINED:
-		default:
-			syslog(LOG_ERR, "Packet of unknown datatype.");
-			return HXB_ERR_DATATYPE;
+	case HXB_DTYPE_UNDEFINED:
+	default:
+		syslog(LOG_ERR, "Packet of unknown datatype.");
+		return HXB_ERR_DATATYPE;
 	}
 
 	return HXB_ERR_SUCCESS;
@@ -409,37 +404,36 @@ static enum hxb_error_code generate_query_response(union hxb_packet_any* buffer,
 
 	buffer->value_header.datatype = value.datatype;
 	switch ((enum hxb_datatype) value.datatype) {
-		case HXB_DTYPE_BOOL:
-		case HXB_DTYPE_UINT8:
-			buffer->p_u8.value = value.v_u8;
+	#define HANDLE_PACKET(DTYPE, PTYPE, SRC) \
+		case DTYPE: \
+			buffer->PTYPE.value = value.SRC; \
 			break;
 
-		case HXB_DTYPE_UINT32:
-		case HXB_DTYPE_TIMESTAMP:
-			buffer->p_u32.value = value.v_u32;
-			break;
+	HANDLE_PACKET(HXB_DTYPE_BOOL, p_u8, v_u8)
+	HANDLE_PACKET(HXB_DTYPE_UINT8, p_u8, v_u8)
+	HANDLE_PACKET(HXB_DTYPE_UINT16, p_u16, v_u16)
+	HANDLE_PACKET(HXB_DTYPE_UINT32, p_u32, v_u32)
+	HANDLE_PACKET(HXB_DTYPE_UINT64, p_u64, v_u64)
+	HANDLE_PACKET(HXB_DTYPE_SINT8, p_s8, v_s8)
+	HANDLE_PACKET(HXB_DTYPE_SINT16, p_s16, v_s16)
+	HANDLE_PACKET(HXB_DTYPE_SINT32, p_s32, v_s32)
+	HANDLE_PACKET(HXB_DTYPE_SINT64, p_s64, v_s64)
+	HANDLE_PACKET(HXB_DTYPE_FLOAT, p_float, v_float)
 
-		case HXB_DTYPE_DATETIME:
-			buffer->p_datetime.value = value.v_datetime;
-			break;
+	#undef HANDLE_PACKET
 
-		case HXB_DTYPE_FLOAT:
-			buffer->p_float.value = value.v_float;
-			break;
+	// these just work, because we pointed v_string and v_binary at the appropriate field in the
+	// packet union.
+	case HXB_DTYPE_128STRING:
+		buffer->p_128string.value[HXB_STRING_PACKET_BUFFER_LENGTH] = 0;
+		break;
 
-		// these just work, because we pointed v_string and v_binary at the appropriate field in the
-		// packet union.
-		case HXB_DTYPE_128STRING:
-			buffer->p_128string.value[HXB_STRING_PACKET_BUFFER_LENGTH] = 0;
-			break;
+	case HXB_DTYPE_65BYTES:
+	case HXB_DTYPE_16BYTES:
+		break;
 
-		case HXB_DTYPE_65BYTES:
-		case HXB_DTYPE_16BYTES:
-			break;
-
-		case HXB_DTYPE_UNDEFINED:
-		default:
-			return HXB_ERR_DATATYPE;
+	case HXB_DTYPE_UNDEFINED:
+		return HXB_ERR_DATATYPE;
 	}
 
 	return HXB_ERR_SUCCESS;
@@ -479,19 +473,11 @@ static enum hxb_error_code handle_info(union hxb_packet_any* packet)
 		return HXB_ERR_SUCCESS;
 	}
 
-	if (packet->value_header.datatype != HXB_DTYPE_DATETIME) {
 #if STATE_MACHINE_ENABLE
-		sm_handle_input(&envelope);
+	sm_handle_input(&envelope);
 #else
-		syslog(LOG_NOTICE, "Received Broadcast, but no handler for datatype.");
+	syslog(LOG_DEBUG, "Received Broadcast, but no handler for datatype.");
 #endif
-	} else {
-#if DATETIME_SERVICE_ENABLE
-		updateDatetime(&envelope);
-#else
-		syslog(LOG_NOTICE, "Received Broadcast, but no handler for datatype.");
-#endif
-	}
 
 	return HXB_ERR_SUCCESS;
 }

@@ -116,14 +116,12 @@ void EndpointRegistry::reload()
 			type = HXB_DTYPE_UINT8;
 		else if (boost::equals(type_str, "UINT32"))
 			type = HXB_DTYPE_UINT32;
-		else if (boost::equals(type_str, "DATETIME"))
-			type = HXB_DTYPE_DATETIME;
+		else if (boost::equals(type_str, "UINT64"))
+			type = HXB_DTYPE_UINT64;
 		else if (boost::equals(type_str, "FLOAT"))
 			type = HXB_DTYPE_FLOAT;
 		else if (boost::equals(type_str, "128STRING"))
 			type = HXB_DTYPE_128STRING;
-		else if (boost::equals(type_str, "TIMESTAMP"))
-			type = HXB_DTYPE_TIMESTAMP;
 		else if (boost::equals(type_str, "65BYTES"))
 			type = HXB_DTYPE_65BYTES;
 		else if (boost::equals(type_str, "16BYTES"))

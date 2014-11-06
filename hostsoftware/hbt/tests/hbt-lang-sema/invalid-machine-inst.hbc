@@ -1,0 +1,20 @@
+class c(int8 x) {
+	state init {
+		always {
+			if (x > 0)
+				goto init;
+		}
+	}
+};
+
+endpoint ep(0) : uint8 (write, broadcast); //#expect: declared here
+device dev(::) : ep; //#expect: declared here
+
+machine m1 : m1(0); //#expect: error: identifier 'm1' does not name a machine class
+                    //#expect+: declared here
+machine m2 : c(); //#expect: error: too few arguments in instantiation of class c (expected 1, got 0)
+machine m3 : c(0, 1); //#expect: error: too many arguments in instantiation of class c (expected 1, got 2)
+machine m4 : c(dev); //#expect: error: identifier 'dev' does not name a value
+                     //#expect+: error: expected integer constant expression for class parameter x
+machine m5 : c(ep); //#expect: error: identifier 'ep' does not name a value
+                    //#expect+: error: expected integer constant expression for class parameter x

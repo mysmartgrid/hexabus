@@ -128,32 +128,9 @@ namespace hexabus {
 			boost::signals2::signal<TValue ()> _read;
 			boost::signals2::signal<bool (const TValue&)> _write;
 
-			BOOST_STATIC_ASSERT_MSG((
-				boost::is_same<TValue, bool>::value
-					|| boost::is_same<TValue, uint8_t>::value
-					|| boost::is_same<TValue, uint32_t>::value
-					|| boost::is_same<TValue, float>::value
-					|| boost::is_same<TValue, std::string>::value
-					|| boost::is_same<TValue, boost::posix_time::ptime>::value
-					|| boost::is_same<TValue, boost::posix_time::time_duration>::value
-					|| boost::is_same<TValue, boost::array<char, 16> >::value
-					|| boost::is_same<TValue, boost::array<char, 65> >::value),
-				"I don't know how to handle that type");
-
 			static uint8_t calculateDatatype()
 			{
-				return boost::is_same<TValue, bool>::value ? HXB_DTYPE_BOOL :
-					boost::is_same<TValue, uint8_t>::value ? HXB_DTYPE_UINT8 :
-					boost::is_same<TValue, uint32_t>::value ? HXB_DTYPE_UINT32 :
-					boost::is_same<TValue, float>::value ? HXB_DTYPE_FLOAT :
-					boost::is_same<TValue, std::string>::value ? HXB_DTYPE_128STRING :
-					boost::is_same<TValue, boost::posix_time::ptime>::value ? HXB_DTYPE_DATETIME :
-					boost::is_same<TValue, boost::posix_time::time_duration>::value ? HXB_DTYPE_TIMESTAMP :
-					boost::is_same<TValue, boost::array<char, 16> >::value
-						? HXB_DTYPE_16BYTES :
-					boost::is_same<TValue, boost::array<char, 65> >::value
-						? HXB_DTYPE_65BYTES :
-					(throw "BUG: Unknown datatype!", HXB_DTYPE_UNDEFINED);
+				return InfoPacket<TValue>(0, TValue(), 0).datatype();
 			}
 	};
 

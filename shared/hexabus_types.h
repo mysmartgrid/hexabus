@@ -4,11 +4,6 @@
 #ifdef __cplusplus
 namespace hexabus {
 #endif
-// Boolean values
-enum hxb_bool {
-	HXB_FALSE = 0,
-	HXB_TRUE = 1,
-};
 
 // Packet types
 enum hxb_packet_type {
@@ -22,16 +17,21 @@ enum hxb_packet_type {
 
 // Data types
 enum hxb_datatype {
-	HXB_DTYPE_UNDEFINED = 0x00, // Undefined: Nonexistent data type
-	HXB_DTYPE_BOOL      = 0x01, // Boolean. Value still represented by 8 bits, but may only be HXB_TRUE or HXB_FALSE
-	HXB_DTYPE_UINT8     = 0x02, // Unsigned 8 bit integer
+	HXB_DTYPE_BOOL      = 0x00, // Boolean. Value is still represented by 8 bits, but may only be 0 or 1
+	HXB_DTYPE_UINT8     = 0x01, // Unsigned 8 bit integer
+	HXB_DTYPE_UINT16    = 0x02, // Unsigned 16 bit integer
 	HXB_DTYPE_UINT32    = 0x03, // Unsigned 32 bit integer
-	HXB_DTYPE_DATETIME  = 0x04, // Date and time
-	HXB_DTYPE_FLOAT     = 0x05, // 32bit floating point
-	HXB_DTYPE_128STRING = 0x06, // 128char fixed length string
-	HXB_DTYPE_TIMESTAMP = 0x07, // timestamp - used for measuring durations, time differences and so on - uint32; seconds
-	HXB_DTYPE_65BYTES   = 0x08, // raw 65 byte array, e.g. state machine data.
-	HXB_DTYPE_16BYTES   = 0x09, // raw 16 byte array, e.g. state machine ID.
+	HXB_DTYPE_UINT64    = 0x04, // Unsigned 64 bit integer
+	HXB_DTYPE_SINT8     = 0x05, // Signed 8 bit integer
+	HXB_DTYPE_SINT16    = 0x06, // Signed 16 bit integer
+	HXB_DTYPE_SINT32    = 0x07, // Signed 32 bit integer
+	HXB_DTYPE_SINT64    = 0x08, // Signed 64 bit integer, mainly for unix dates
+	HXB_DTYPE_FLOAT     = 0x09, // 32bit floating point
+	HXB_DTYPE_128STRING = 0x0a, // 128char fixed length string
+	HXB_DTYPE_65BYTES   = 0x0b, // raw 65 byte array, e.g. state machine data.
+	HXB_DTYPE_16BYTES   = 0x0c, // raw 16 byte array, e.g. state machine ID.
+
+	HXB_DTYPE_UNDEFINED = 0xFF, // Undefined: Nonexistent data type
 };
 
 enum hxb_flags {
@@ -52,17 +52,8 @@ enum hxb_error_code {
 
 	HXB_ERR_MALFORMED_PACKET  = 0x80,
 	HXB_ERR_UNEXPECTED_PACKET = 0x81,
-	HXB_ERR_NO_VALUE          = 0x82
-};
-
-// Operators for comparison in state machine
-enum hxb_stm_op {
-	STM_EQ  = 0x00,
-	STM_LEQ = 0x01,
-	STM_GEQ = 0x02,
-	STM_LT  = 0x03,
-	STM_GT  = 0x04,
-	STM_NEQ = 0x05,
+	HXB_ERR_NO_VALUE          = 0x82,
+	HXB_ERR_INVALID_WRITE     = 0x83
 };
 
 // State machine runtime states
@@ -71,30 +62,24 @@ enum STM_state_t {
   STM_STATE_RUNNING = 1
 };
 
-struct hxb_datetime {
-    uint8_t   hour;
-    uint8_t   minute;
-    uint8_t   second;
-    uint8_t   day;
-    uint8_t   month;
-    uint16_t  year;
-    uint8_t   weekday;  // numbers from 0 to 6, sunday as the first day of the week.
-} __attribute__ ((packed));
-
 // Struct for passing Hexabus values around
-// One struct for all data types (except 128string, because that'd need too much memory), with a datatype flag indicating which
+// One struct for all data types (except blobs, because that'd need too much memory), with a datatype flag indicating which
 // of the values is used. Used for passing values to and from endpoint_access
 struct hxb_value {
 	uint8_t               datatype;   // Datatype that is used, or HXB_DTYPE_UNDEFINED
 	union {
-		uint8_t             v_bool;
-		uint8_t             v_u8;
-		uint32_t            v_u32;
-		struct hxb_datetime v_datetime;
-		float               v_float;
-		char*               v_string;
-		uint32_t            v_timestamp;
-		char*               v_binary;
+		uint8_t   v_bool;
+		uint8_t   v_u8;
+		uint16_t  v_u16;
+		uint32_t  v_u32;
+		uint64_t  v_u64;
+		int8_t    v_s8;
+		int16_t   v_s16;
+		int32_t   v_s32;
+		int64_t   v_s64;
+		float     v_float;
+		char*     v_string;
+		char*     v_binary;
 	};
 } __attribute__((packed));
 
