@@ -1034,15 +1034,20 @@ void MachineCG::emitStateGlue()
 	}
 
 	auto stateVar = memMap.newAnonymous(Type::UInt32);
-	auto curState = _machineHead->append(ir::LoadInsn(prefix + ".state", ir::Type::UInt32, stateVar));
+	auto curState = _machineHead->append(ir::LoadInsn("%" + prefix + ".state", ir::Type::UInt32, stateVar));
 	auto lastPossibleState = stateLabels[states.back().state().id()];
 	stateLabels.erase(states.back().state().id());
 	_machineHead->append(ir::SwitchInsn(curState, std::move(stateLabels), lastPossibleState));
 
-	auto next = exitChange->append(ir::PhiInsn(prefix + ".newstate", ir::Type::UInt32, std::move(newStateSources)));
-	exitChange->append(ir::SwitchInsn(curState, std::move(stateExitLabels), changeAfterExit));
-	changeAfterExit->append(ir::StoreInsn(stateVar, next));
-	changeAfterExit->append(ir::SwitchInsn(next, std::move(stateEntryLabels), _machineTail));
+	if (newStateSources.empty()) {
+		exitChange->append(ir::JumpInsn(changeAfterExit));
+		changeAfterExit->append(ir::JumpInsn(_machineTail));
+	} else {
+		auto next = exitChange->append(ir::PhiInsn("%" + prefix + ".newstate", ir::Type::UInt32, std::move(newStateSources)));
+		exitChange->append(ir::SwitchInsn(curState, std::move(stateExitLabels), changeAfterExit));
+		changeAfterExit->append(ir::StoreInsn(stateVar, next));
+		changeAfterExit->append(ir::SwitchInsn(next, std::move(stateEntryLabels), _machineTail));
+	}
 }
 
 void MachineCG::run()

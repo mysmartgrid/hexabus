@@ -571,6 +571,10 @@ void ModuleVerifier::verifyInsn(const BasicBlock* in, const Instruction& insn)
 	case InsnType::Phi: {
 		auto& p = static_cast<const PhiInsn&>(insn);
 
+		if (p.sources().empty()) {
+			insnError(*in, "empty phi source list");
+		}
+
 		for (auto& src : p.sources()) {
 			if (!predecessors[in].count(src.first))
 				insnError(*in, "invalid phi source " + src.first->name());
