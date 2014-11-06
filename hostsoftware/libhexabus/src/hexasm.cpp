@@ -2,6 +2,7 @@
 #include <utility>
 #include <vector>
 
+#include <boost/format.hpp>
 #include <string.h>
 
 #include "libhexabus/sm/machine.hpp"
@@ -14,15 +15,17 @@ class OnPacketVisitor : private PacketVisitor {
 private:
 	hexabus::sm::Machine& machine;
 	const boost::asio::ip::udp::endpoint& remote;
+	int result;
 
 public:
 	OnPacketVisitor(hexabus::sm::Machine& machine, const boost::asio::ip::udp::endpoint& remote)
 		: machine(machine), remote(remote)
 	{}
 
-	void run(const hexabus::Packet& p)
+	int run(const hexabus::Packet& p)
 	{
 		p.accept(*this);
+		return result;
 	}
 
 private:
@@ -37,9 +40,7 @@ private:
 		value.type = p.datatype();
 		value.*Val = p.value();
 
-		std::cout << "Running state machine for packet: "
-			<< machine.run_sm((const char*) &addr[0], p.eid(), &value)
-			<< std::endl;
+		result = machine.run_sm((const char*) &addr[0], p.eid(), &value);
 	}
 
 	virtual void visit(const hexabus::ErrorPacket& error) {}
@@ -76,52 +77,125 @@ private:
 	virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& write) {}
 };
 
-static void on_packet(hexabus::sm::Machine& machine,
-		const hexabus::Packet& packet,
-		const boost::asio::ip::udp::endpoint& remote)
-{
-	OnPacketVisitor(machine, remote).run(packet);
-}
+class SimulatedMachine {
+private:
+	struct EPValue {
+		hexabus::sm::Machine::write_value_t value;
+		boost::posix_time::ptime writtenAt;
+	};
 
-static void on_periodic(hexabus::sm::Machine& machine, boost::asio::deadline_timer& timer)
-{
-	std::cout << "Running state machine for periodic check: "
-		<< machine.run_sm(NULL, 0, NULL)
-		<< std::endl;
-	timer.expires_from_now(boost::posix_time::seconds(1));
-	timer.async_wait(boost::bind(on_periodic, boost::ref(machine), boost::ref(timer)));
-}
+	hexabus::sm::Machine machine;
+	boost::asio::io_service& ios;
+	boost::asio::deadline_timer timer;
 
-static uint8_t on_write(uint32_t eid, hexabus::sm::Machine::write_value_t value)
-{
-	const char* type = NULL;
+	std::map<uint32_t, EPValue> endpoints;
 
-	switch (value.which()) {
-	case 0: type = "bool"; break;
-	case 1:
-		type = "uint8";
-		value = (uint32_t) boost::get<uint8_t>(value);
-		break;
-	case 2: type = "uint16"; break;
-	case 3: type = "uint32"; break;
-	case 4: type = "uint64"; break;
-	case 5:
-		type = "int8";
-		value = (int32_t) boost::get<int8_t>(value);
-		break;
-	case 6: type = "int16"; break;
-	case 7: type = "int32"; break;
-	case 8: type = "int64"; break;
-	case 9: type = "float"; break;
+	void resetCursor()
+	{
+		std::cout << "\033[1;1H";
 	}
 
-	std::cout << "WRITE\n"
-		<< "	EP " << eid << "\n"
-		<< "	Type " << type << "\n"
-		<< "	Value " << value << std::endl;
+	void clearLine()
+	{
+		std::cout << "\033[2K";
+	}
 
-	return 0;
-}
+	void clearConsole()
+	{
+		std::cout << "\033[2J";
+	}
+
+	void printEndpoints()
+	{
+		std::cout
+			<< str(
+				boost::format("|%|=10u| | %|=8s| | %|=-20g|  |  %|u|")
+				 % "eid" % "type" % "value" % "")
+			<< std::endl
+			<< ("|-----------|----------|-----------------------|")
+			<< std::endl;
+
+		for (const auto& ep : endpoints) {
+			const char* type = nullptr;
+			auto value = ep.second.value;
+
+			switch (value.which()) {
+			case 0: type = "bool"; break;
+			case 1:
+				type = "uint8";
+				value = (uint32_t) boost::get<uint8_t>(value);
+				break;
+			case 2: type = "uint16"; break;
+			case 3: type = "uint32"; break;
+			case 4: type = "uint64"; break;
+			case 5:
+				type = "int8";
+				value = (int32_t) boost::get<int8_t>(value);
+				break;
+			case 6: type = "int16"; break;
+			case 7: type = "int32"; break;
+			case 8: type = "int64"; break;
+			case 9: type = "float"; break;
+			}
+
+			std::cout
+				<< str(
+					boost::format("|%|10u| | %|8s| | %|-20g|  |  %|u| ago")
+						% ep.first
+						% type
+						% value
+						% (boost::posix_time::second_clock::local_time() - ep.second.writtenAt))
+				<< std::endl;
+		}
+	}
+
+	void runPeriodic(const char* reason)
+	{
+		resetCursor();
+		clearLine();
+		std::cout << "Running state machine for " << reason << ": "
+			<< machine.run_sm(NULL, 0, NULL)
+			<< std::endl
+			<< std::endl;
+
+		timer.expires_from_now(boost::posix_time::seconds(1));
+		timer.async_wait(std::bind(&SimulatedMachine::onPeriodic, this));
+
+		printEndpoints();
+	}
+
+	uint8_t onWrite(uint32_t eid, hexabus::sm::Machine::write_value_t value)
+	{
+		endpoints[eid] = { value, boost::posix_time::second_clock::local_time() };
+		return 0;
+	}
+
+public:
+	SimulatedMachine(std::vector<uint8_t> code, boost::asio::io_service& ios)
+		: machine(std::move(code)), ios(ios), timer(ios)
+	{
+		clearConsole();
+		runPeriodic("init");
+		machine.onWrite(boost::bind(&SimulatedMachine::onWrite, this, _1, _2));
+	}
+
+	void onPacket(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint& remote)
+	{
+		resetCursor();
+		clearLine();
+		std::cout << "Running state machine for packet from " << remote << ": "
+			<< OnPacketVisitor(machine, remote).run(packet)
+			<< std::endl
+			<< std::endl;
+
+		printEndpoints();
+	}
+
+	void onPeriodic()
+	{
+		runPeriodic("periodic check");
+	}
+};
 
 int main(int argc, char* argv[])
 {
@@ -150,17 +224,12 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	Machine machine(machineCode);
-	machine.onWrite(on_write);
-
 	boost::asio::io_service io;
 	hexabus::Listener listener(io);
-	boost::asio::deadline_timer timer(io);
+	SimulatedMachine sm(machineCode, io);
 
 	listener.listen(iface);
-	listener.onPacketReceived(boost::bind(::on_packet, boost::ref(machine), _1, _2));
-
-	::on_periodic(machine, timer);
+	listener.onPacketReceived(boost::bind(&SimulatedMachine::onPacket, &sm, _1, _2));
 
 	io.run();
 
