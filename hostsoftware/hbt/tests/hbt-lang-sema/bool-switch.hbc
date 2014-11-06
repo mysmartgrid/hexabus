@@ -1,0 +1,12 @@
+class c(bool b) {
+	state x {
+		always {
+			switch (b) {
+			case true: goto On;
+			case false: goto Off;
+			}
+		}
+	}
+	state On {}
+	state Off {}
+};

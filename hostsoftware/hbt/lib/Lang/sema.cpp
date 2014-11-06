@@ -227,12 +227,12 @@ static Diagnostic constexprDoesNotFit(const Expr& e)
 	};
 }
 
-static Diagnostic expectedIntType(const Expr& e)
+static Diagnostic expectedConstexprType(const Expr& e)
 {
 	return {
 		DiagnosticKind::Error,
 		&e.sloc(),
-		str(format("expected expression of integral type, got %1%") % typeName(e.type()))
+		str(format("expected expression of integral or boolean type, got %1%") % typeName(e.type()))
 	};
 }
 
@@ -800,8 +800,8 @@ void SemanticVisitor::visit(IfStmt& i)
 void SemanticVisitor::visit(SwitchStmt& s)
 {
 	s.expr().accept(*this);
-	if (!s.expr().isIncomplete() && !isIntType(s.expr().type()))
-		diags.print(expectedIntType(s.expr()));
+	if (!s.expr().isIncomplete() && !isConstexprType(s.expr().type()))
+		diags.print(expectedConstexprType(s.expr()));
 
 	const SwitchLabel* defaultLabel = nullptr;
 	std::map<util::Bigint, const SwitchLabel*> caseLabels;
@@ -812,8 +812,8 @@ void SemanticVisitor::visit(SwitchStmt& s)
 			if (l.expr()) {
 				l.expr()->accept(*this);
 				if (!l.expr()->isIncomplete()) {
-					if (!isIntType(l.expr()->type())) {
-						diags.print(expectedIntType(*l.expr()));
+					if (!isConstexprType(l.expr()->type())) {
+						diags.print(expectedConstexprType(*l.expr()));
 						continue;
 					}
 

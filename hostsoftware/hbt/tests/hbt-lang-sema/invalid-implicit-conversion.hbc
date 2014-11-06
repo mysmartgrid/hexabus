@@ -10,9 +10,9 @@ machine m {
 			dev.ep = 1; //#expect: error: invalid implicit type conversion from int32 to bool
 			dev.ep2 = uint8(111111111111111);
 
-			switch (1.0) { //#expect: error: expected expression of integral type, got float
+			switch (1.0) { //#expect: error: expected expression of integral or boolean type, got float
 			default: {}
-			case 1.0: {} //#expect: error: expected expression of integral type, got float
+			case 1.0: {} //#expect: error: expected expression of integral or boolean type, got float
 			}
 
 			uint32 u32 = 0;
