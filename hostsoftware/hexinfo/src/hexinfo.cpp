@@ -13,8 +13,6 @@
 #include <hbt/Lang/astprinter.hpp>
 #include <hbt/Lang/parser.hpp>
 
-#include "../../../shared/hexabus_types.h"
-
 namespace po = boost::program_options;
 
 namespace {
@@ -25,27 +23,6 @@ struct DiscoveredEP {
 	std::string name;
 
 	bool operator<(const DiscoveredEP& other) const { return eid < other.eid; }
-
-	const char* typeName() const
-	{
-		switch (type) {
-		case hexabus::HXB_DTYPE_BOOL: return "Bool"; break;
-		case hexabus::HXB_DTYPE_UINT8: return "UInt8"; break;
-		case hexabus::HXB_DTYPE_UINT16: return "UInt16"; break;
-		case hexabus::HXB_DTYPE_UINT32: return "UInt32"; break;
-		case hexabus::HXB_DTYPE_UINT64: return "UInt64"; break;
-		case hexabus::HXB_DTYPE_SINT8: return "Int8"; break;
-		case hexabus::HXB_DTYPE_SINT16: return "Int16"; break;
-		case hexabus::HXB_DTYPE_SINT32: return "Int32"; break;
-		case hexabus::HXB_DTYPE_SINT64: return "Int64"; break;
-		case hexabus::HXB_DTYPE_FLOAT: return "Float"; break;
-		case hexabus::HXB_DTYPE_128STRING: return "String"; break;
-		case hexabus::HXB_DTYPE_16BYTES: return "Binary (16 bytes)"; break;
-		case hexabus::HXB_DTYPE_65BYTES: return "Binary (65 bytes)"; break;
-		case hexabus::HXB_DTYPE_UNDEFINED: return "(undefined)"; break;
-		}
-		return "(unknown)";
-	}
 };
 
 struct DiscoveredDev {
@@ -270,7 +247,7 @@ static void printEndpoint(std::ostream& out, const DiscoveredEP& ep)
 	out << "Endpoint information:" << std::endl
 		<< "\tEndpoint ID:\t" << ep.eid << std::endl
 		<< "\tName:       \t" << ep.name << std::endl
-		<< "\tDatatype:   \t" << ep.typeName() << std::endl;
+		<< "\tDatatype:   \t" << hexabus::datatypeName(ep.type) << std::endl;
 	out << std::endl;
 }
 
@@ -329,7 +306,7 @@ static bool writeDevJSON(std::ostream& out, const DiscoveredDev& dev, NameSaniti
 			<< R"({)" << std::endl
 			<< R"(			"eid": )" << ep.eid << ',' << std::endl
 			<< R"(			"sm_name": ")" << san.sanitizeName(ep) << R"(",)" << std::endl
-			<< R"(			"type": ")" << ep.typeName() << R"(",)" << std::endl;
+			<< R"(			"type": ")" << hexabus::datatypeName(ep.type) << R"(",)" << std::endl;
 
 		static hexabus::EndpointRegistry epr;
 		auto epit = epr.find(ep.eid);

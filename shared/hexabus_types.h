@@ -2,6 +2,8 @@
 #define HEXABUS_TYPES_H_
 
 #ifdef __cplusplus
+#include <string>
+
 namespace hexabus {
 #endif
 
@@ -84,6 +86,29 @@ struct hxb_value {
 } __attribute__((packed));
 
 #ifdef __cplusplus
+inline std::string datatypeName(hxb_datatype type)
+{
+	switch (type) {
+	case HXB_DTYPE_BOOL: return "Bool";
+	case HXB_DTYPE_UINT8: return "UInt8";
+	case HXB_DTYPE_UINT16: return "UInt16";
+	case HXB_DTYPE_UINT32: return "UInt32";
+	case HXB_DTYPE_UINT64: return "UInt64";
+	case HXB_DTYPE_SINT8: return "Int8";
+	case HXB_DTYPE_SINT16: return "Int16";
+	case HXB_DTYPE_SINT32: return "Int32";
+	case HXB_DTYPE_SINT64: return "Int64";
+	case HXB_DTYPE_FLOAT: return "Float";
+	case HXB_DTYPE_128STRING: return "String";
+	case HXB_DTYPE_65BYTES: return "Binary(65)";
+	case HXB_DTYPE_16BYTES: return "Binary(16)";
+
+	case HXB_DTYPE_UNDEFINED: return "(undefined)";
+	}
+
+	return "(unknown)";
+}
+
 }
 #endif
 
