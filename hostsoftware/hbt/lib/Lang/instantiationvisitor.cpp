@@ -52,7 +52,10 @@ void InstantiationVisitor::visit(TypedLiteral<float>& l) { _expr.reset(new auto(
 
 void InstantiationVisitor::visit(CastExpr& c)
 {
-	_expr.reset(new CastExpr(c.sloc(), c.type(), clone(c.expr())));
+	if (c.typeSource())
+		_expr.reset(new CastExpr(c.sloc(), clone(*c.typeSource()), clone(c.expr())));
+	else
+		_expr.reset(new CastExpr(c.sloc(), c.type(), clone(c.expr())));
 }
 
 void InstantiationVisitor::visit(UnaryExpr& u)
@@ -147,7 +150,12 @@ void InstantiationVisitor::visit(BlockStmt& b)
 
 void InstantiationVisitor::visit(DeclarationStmt& d)
 {
-	std::unique_ptr<DeclarationStmt> dc(new DeclarationStmt(d.sloc(), d.type(), d.name(), clone(d.value())));
+	std::unique_ptr<DeclarationStmt> dc;
+
+	if (d.typeSource())
+		dc.reset(new DeclarationStmt(d.sloc(), clone(*d.typeSource()), d.name(), clone(d.value())));
+	else
+		dc.reset(new DeclarationStmt(d.sloc(), d.type(), d.name(), clone(d.value())));
 
 	declClones[&d] = dc.get();
 	_stmt = std::move(dc);
