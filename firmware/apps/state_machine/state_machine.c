@@ -109,7 +109,7 @@ static uint8_t sm_endpoint_write(uint32_t eid, const hxb_sm_value_t* val)
 
 static int64_t sm_get_systime()
 {
-	uint64_t d;
+	int64_t d;
 
 	getDatetime(&d);
 	return d;

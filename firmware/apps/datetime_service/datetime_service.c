@@ -14,7 +14,7 @@
 #define LOG_LEVEL DATETIME_SERVICE_DEBUG
 #include "syslog.h"
 
-static uint64_t current_dt;
+static int64_t current_dt;
 static bool time_valid;
 
 static struct etimer update_timer;
@@ -29,7 +29,7 @@ void updateDatetime(struct hxb_envelope* envelope)
 	etimer_restart(&update_timer);
 }
 
-int getDatetime(uint64_t* dt)
+int getDatetime(int64_t* dt)
 {
 	*dt = current_dt;
 
@@ -38,7 +38,7 @@ int getDatetime(uint64_t* dt)
 
 static enum hxb_error_code read(struct hxb_value* value)
 {
-	value->v_u64 = current_dt;
+	value->v_s64 = current_dt;
 
 	return HXB_ERR_SUCCESS;
 }
@@ -48,14 +48,14 @@ static enum hxb_error_code write(const struct hxb_envelope* env)
 	if (!uip_is_addr_loopback(&env->src_ip))
 		return HXB_ERR_WRITEREADONLY;
 
-	current_dt = env->value.v_u64;
+	current_dt = env->value.v_s64;
 
 	return HXB_ERR_SUCCESS;
 }
 
 static const char ep_name[] RODATA = "Local time";
 static ENDPOINT_DESCRIPTOR endpoint_systime = {
-	.datatype = HXB_DTYPE_UINT64,
+	.datatype = HXB_DTYPE_SINT64,
 	.eid = EP_LOCALTIME,
 	.name = ep_name,
 	.read = read,

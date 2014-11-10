@@ -27,7 +27,7 @@
 #endif
 
 void updateDatetime(struct hxb_envelope* envelope);
-int getDatetime(uint64_t* dt);
+int getDatetime(int64_t* dt);
 
 PROCESS_NAME(datetime_service_process);
 
