@@ -817,6 +817,10 @@ void SemanticVisitor::visit(SwitchStmt& s)
 						continue;
 					}
 
+					if ((l.expr()->type() == Type::Bool) != (s.expr().type() == Type::Bool)) {
+						diags.print(invalidImplicitConversion(l.expr()->sloc(), l.expr()->type(), s.expr().type()));
+					}
+
 					if (!l.expr()->isConstexpr()) {
 						diags.print(caseLabelInvalid(l));
 						continue;

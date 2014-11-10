@@ -15,6 +15,13 @@ machine m {
 			case 1.0: {} //#expect: error: expected expression of integral or boolean type, got float
 			}
 
+			switch (true) {
+			case 0: {} //#expect: error: invalid implicit type conversion from int32 to bool
+			}
+			switch (0) {
+			case false: {} //#expect: error: invalid implicit type conversion from bool to int32
+			}
+
 			uint32 u32 = 0;
 			int8 x1 = 1 << (u32 ? 1 : 0); //#expect: error: invalid implicit type conversion from int32 to int8
 			int8 x2 = ~x1; //#expect: error: invalid implicit type conversion from int32 to int8
