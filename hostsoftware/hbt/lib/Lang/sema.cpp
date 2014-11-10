@@ -337,7 +337,7 @@ public:
 
 
 SemanticVisitor::SemanticVisitor(DiagnosticOutput& diagOut)
-	: diags(diagOut), currentScope(&globalScope), liveEndpoint(nullptr), gotoExclusionScope(nullptr)
+	: diags(diagOut), currentScope(&globalScope), liveEndpoint(nullptr), gotoExclusionScope(nullptr), isResolvingType(false)
 {
 	globalScope.insert(*BuiltinFunction::second());
 	globalScope.insert(*BuiltinFunction::minute());
@@ -347,6 +347,23 @@ SemanticVisitor::SemanticVisitor(DiagnosticOutput& diagOut)
 	globalScope.insert(*BuiltinFunction::year());
 	globalScope.insert(*BuiltinFunction::weekday());
 	globalScope.insert(*BuiltinFunction::now());
+}
+
+bool SemanticVisitor::resolveType(Expr& e)
+{
+	if (auto* ep = dynamic_cast<EndpointExpr*>(&e)) {
+		if (!checkEndpointExpr(*ep, false))
+			return false;
+
+		e.type(ep->type());
+		return true;
+	}
+
+	isResolvingType = true;
+	e.accept(*this);
+	isResolvingType = false;
+
+	return !e.isIncomplete();
 }
 
 void SemanticVisitor::declareInCurrentScope(Declaration& decl)
@@ -413,7 +430,11 @@ void SemanticVisitor::visit(TypedLiteral<float>& l) {}
 void SemanticVisitor::visit(CastExpr& c)
 {
 	c.expr().accept(*this);
-	c.isIncomplete(c.expr().isIncomplete());
+
+	if (c.typeSource() && resolveType(*c.typeSource()))
+		c.type(c.typeSource()->type());
+
+	c.isIncomplete((c.typeSource() && c.typeSource()->isIncomplete()) || c.expr().isIncomplete());
 	c.isConstexpr(c.expr().isConstexpr() && isConstexprType(c.type()));
 
 	if (c.isIncomplete())
@@ -683,7 +704,7 @@ Endpoint* SemanticVisitor::checkEndpointExpr(EndpointExpr& e, bool forRead)
 	e.deviceIdIsIncomplete(!dev.second);
 	e.endpointIdIsIncomplete(!ep.second);
 
-	if (forRead && e.device() && e.endpoint() &&
+	if (forRead && e.device() && e.endpoint() && !isResolvingType &&
 			(!liveEndpoint || liveEndpoint->endpoint() != e.endpoint() || liveEndpoint->device() != e.device()))
 		diags.print(endpointNotLive(e));
 
@@ -857,8 +878,14 @@ void SemanticVisitor::visit(BlockStmt& b)
 void SemanticVisitor::visit(DeclarationStmt& d)
 {
 	d.value().accept(*this);
-
 	declareInCurrentScope(d);
+
+	if (d.typeSource()) {
+		if (!resolveType(*d.typeSource()))
+			return;
+
+		d.type(d.typeSource()->type());
+	}
 
 	if (!d.value().isIncomplete() && !isContextuallyConvertibleTo(d.value(), d.type()))
 		diags.print(invalidImplicitConversion(d.sloc(), d.value().type(), d.type()));
@@ -984,6 +1011,13 @@ void SemanticVisitor::visit(MachineClass& m)
 	StackedScope classScope(currentScope);
 
 	for (auto& param : m.parameters()) {
+		if (CPValue* cpv = dynamic_cast<CPValue*>(param.get())) {
+			if (cpv->typeSource()) {
+				if (resolveType(*cpv->typeSource()))
+					cpv->type(cpv->typeSource()->type());
+			}
+		}
+
 		auto res = currentScope->insert(*param);
 		classParams.emplace(param->identifier(), *param);
 
@@ -1048,13 +1082,20 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 			switch ((*param)->kind()) {
 			case ClassParameter::Kind::Value: {
 				auto& cpv = static_cast<CPValue&>(**param);
+				if (cpv.typeSource()) {
+					if (!resolveType(*cpv.typeSource()))
+						continue;
+					cpv.type(cpv.typeSource()->type());
+				}
 				(*arg)->accept(*this);
-				if (!(*arg)->isConstexpr())
+				if (!(*arg)->isConstexpr()) {
 					diags.print(classArgumentInvalid((*arg)->sloc(), cpv));
-				else if (!isContextuallyConvertibleTo(**arg, cpv.type()))
+				} else if (!isContextuallyConvertibleTo(**arg, cpv.type())) {
 					diags.print(invalidImplicitConversion((*arg)->sloc(), (*arg)->type(), cpv.type()));
-				else
+				} else {
 					classParams.insert({ cpv.name(), { cpv, (*arg).get() } });
+					currentScope->insert(**param);
+				}
 				break;
 			}
 
@@ -1063,12 +1104,14 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 					auto se = currentScope->resolve(id->name());
 					auto dev = dynamic_cast<Device*>(se);
 
-					if (!se)
+					if (!se) {
 						diags.print(undeclaredIdentifier(Identifier(id->sloc(), id->name())));
-					else if (!dev)
+					} else if (!dev) {
 						diags.print(identifierIsNoDevice(Identifier(id->sloc(), id->name())));
-					else
+					} else {
 						classParams.insert({ (*param)->name(), { **param, dev } });
+						currentScope->insert(**param);
+					}
 				} else {
 					diags.print(classArgumentInvalid((*arg)->sloc(), **param));
 				}
@@ -1079,12 +1122,14 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 					auto se = currentScope->resolve(id->name());
 					auto ep = dynamic_cast<Endpoint*>(se);
 
-					if (!se)
+					if (!se) {
 						diags.print(undeclaredIdentifier(Identifier(id->sloc(), id->name())));
-					else if (!ep)
+					} else if (!ep) {
 						diags.print(identifierIsNoEndpoint(Identifier(id->sloc(), id->name())));
-					else
+					} else {
 						classParams.insert({ (*param)->name(), { **param, ep } });
+						currentScope->insert(**param);
+					}
 				} else {
 					diags.print(classArgumentInvalid((*arg)->sloc(), **param));
 				}
@@ -1098,9 +1143,6 @@ void SemanticVisitor::visit(MachineInstantiation& m)
 		auto hint = diags.useHint(m.sloc(), "instantiated from here");
 
 		if (diags.errorCount() == previousErrorCount && classParams.size() == mclass->parameters().size()) {
-			for (auto& param : mclass->parameters())
-				currentScope->insert(dynamic_cast<Declaration&>(*param));
-
 			InstantiationVisitor iv(*currentScope);
 			m.accept(iv);
 			checkMachineBody(*m.instantiation());

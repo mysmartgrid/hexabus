@@ -1,0 +1,40 @@
+endpoint ep(1) : bool(write);
+endpoint ep2(2) : bool(write, broadcast);
+
+device dev(::) : ep, ep2;
+
+class c1(typeof(dev.ep) v) {
+	state init {
+		always {
+			dev.ep = v;
+		}
+	}
+};
+machine m1 : c1(true);
+
+class c2(typeof(dev.ep || true) v) { //#expect: error: endpoint ep cannot be read
+	state init {
+		always {
+			dev.ep = v;
+		}
+	}
+};
+
+class c3(typeof(dev.ep2 || true) v) {
+	typeof(1 + now()) time1 = now();
+	typeof(1 + now()) time2 = false; //#expect: error: invalid implicit type conversion from bool to int64
+	state init {
+		always {
+			dev.ep = typeof(dev.ep2 || true)(v);
+		}
+	}
+};
+
+class c4(device d, endpoint e, typeof(d.e) v) {
+	state init {
+		always {
+			d.e = v;
+		}
+	}
+};
+machine m4 : c4(dev, ep, false);

@@ -270,14 +270,19 @@ public:
 
 class CastExpr : public Expr {
 private:
-	ptr_t _expr;
+	ptr_t _expr, _typeSource;
 
 public:
 	CastExpr(const SourceLocation& sloc, Type type, ptr_t expr)
 		: Expr(sloc, type), _expr(std::move(expr))
 	{}
 
+	CastExpr(const SourceLocation& sloc, ptr_t typeSource, ptr_t expr)
+		: Expr(sloc, Type::Int32), _expr(std::move(expr)), _typeSource(std::move(typeSource))
+	{}
+
 	Expr& expr() { return *_expr; }
+	Expr* typeSource() { return _typeSource.get(); }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -583,17 +588,25 @@ class DeclarationStmt : public Stmt, public Declaration {
 private:
 	Type _type;
 	Identifier _name;
-	std::unique_ptr<Expr> _value;
+	std::unique_ptr<Expr> _value, _typeSource;
 
 public:
 	DeclarationStmt(const SourceLocation& sloc, Type type, const Identifier& name, std::unique_ptr<Expr> value)
 		: Stmt(sloc), _type(type), _name(name), _value(std::move(value))
 	{}
 
+	DeclarationStmt(const SourceLocation& sloc, std::unique_ptr<Expr> typeSource, const Identifier& name,
+			std::unique_ptr<Expr> value)
+		: Stmt(sloc), _type(Type::Int32), _name(name), _value(std::move(value)), _typeSource(std::move(typeSource))
+	{}
+
 	const SourceLocation& sloc() const override { return Stmt::sloc(); }
 	Type type() const { return _type; }
 	const Identifier& name() const { return _name; }
 	Expr& value() { return *_value; }
+
+	void type(Type t) { _type = t; }
+	Expr* typeSource() { return _typeSource.get(); }
 
 	const std::string& identifier() const override { return _name.name(); }
 
@@ -846,13 +859,20 @@ public:
 class CPValue : public ClassParameter {
 private:
 	Type _type;
+	std::unique_ptr<Expr> _typeSource;
 
 public:
 	CPValue(const SourceLocation& sloc, const std::string& name, Type type)
 		: ClassParameter(sloc, name, Kind::Value), _type(type)
 	{}
 
+	CPValue(const SourceLocation& sloc, const std::string& name, std::unique_ptr<Expr> typeSource)
+		: ClassParameter(sloc, name, Kind::Value), _type(Type::Int32), _typeSource(std::move(typeSource))
+	{}
+
 	Type type() const { return _type; }
+	void type(Type t) { _type = t; }
+	Expr* typeSource() { return _typeSource.get(); }
 };
 
 class CPDevice : public ClassParameter {

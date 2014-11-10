@@ -110,6 +110,7 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 		add(word.periodic = "periodic");
 		add(word.always = "always");
 		add(word.update = "update");
+		add(word.typeof = "typeof");
 
 		add(lit.bool_ = "true|false");
 		add(string = R"(\"[^\r\n"]*\")");
@@ -151,7 +152,7 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 	struct {
 		boost::spirit::lex::token_def<>
 			machine, device, endpoint, include, read, write, global_write, broadcast, class_, state, on, if_, else_,
-			switch_, case_, default_, goto_, from, entry, exit, periodic, always, update;
+			switch_, case_, default_, goto_, from, entry, exit, periodic, always, update, typeof;
 	} word;
 };
 
@@ -347,8 +348,11 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> omit[tok.lparen | expected("(")]
 				> expr
 				> omit[tok.rparen | expected(")")]
-			)[fwd >= [this] (locd<Type>* dt, ptr<Expr>& e) {
-				return new CastExpr(std::move(dt->loc), dt->val, e);
+			)[fwd >= [this] (locd<std::pair<Type, ptr<Expr>>>* dt, ptr<Expr>& e) {
+				if (dt->val.second)
+					return new CastExpr(std::move(dt->loc), dt->val.second, e);
+				else
+					return new CastExpr(std::move(dt->loc), dt->val.first, e);
 			}]
 			| (
 				identifier
@@ -605,8 +609,11 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> omit[tok.op.assign | expected("=")]
 				> expr
 				> omit[tok.semicolon | expected(";")]
-			)[fwd >= [this] (locd<Type>* dt, Identifier* id, ptr<Expr>& e) {
-				return new DeclarationStmt(std::move(dt->loc), dt->val, std::move(*id), e);
+			)[fwd >= [this] (locd<std::pair<Type, ptr<Expr>>>* dt, Identifier* id, ptr<Expr>& e) {
+				if (dt->val.second)
+					return new DeclarationStmt(std::move(dt->loc), dt->val.second, std::move(*id), e);
+				else
+					return new DeclarationStmt(std::move(dt->loc), dt->val.first, std::move(*id), e);
 			}];
 
 		s.goto_.name("goto statement");
@@ -672,8 +679,11 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			| (tok.word.endpoint > tok.ident)[fwd >= [this] (range& r, range& id) {
 				return new CPEndpoint(locOf(r), str(id));
 			}]
-			| (datatype > tok.ident)[fwd >= [this] (locd<Type>* t, range& id) {
-				return new CPValue(t->loc, str(id), t->val);
+			| (datatype > tok.ident)[fwd >= [this] (locd<std::pair<Type, ptr<Expr>>>* t, range& id) {
+				if (t->val.second)
+					return new CPValue(t->loc, str(id), t->val.second);
+				else
+					return new CPValue(t->loc, str(id), t->val.first);
 			}];
 
 		machine_class =
@@ -747,10 +757,11 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 					(tok.rparen | expected("endpoint access specification"))
 					> (tok.semicolon | expected(";"))
 				]
-			)[fwd >= [this] (range& r, Identifier* name, range& eid, locd<Type>* dt, EndpointAccess access, bool& pass) {
+			)[fwd >= [this] (range& r, Identifier* name, range& eid, locd<std::pair<Type, ptr<Expr>>>* dt, EndpointAccess access,
+					bool& pass) {
 				uint32_t eidVal;
 				pass = qi::parse(eid.begin(), eid.end(), qi::uint_parser<uint32_t, 10, 1, 99>(), eidVal);
-				return new Endpoint(locOf(r), *name, eidVal, dt->val, access);
+				return new Endpoint(locOf(r), *name, eidVal, dt->val.first, access);
 			}];
 
 		device =
@@ -809,7 +820,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 		auto dt = [this] (Type t) {
 			return [this, t] (range& r) {
-				return locd<Type>{locOf(r), t};
+				return locd<std::pair<Type, ptr<Expr>>>{locOf(r), {t, nullptr}};
 			};
 		};
 		datatype.name("datatype");
@@ -823,7 +834,15 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			| tok.type.int16_[fwd >= dt(Type::Int16)]
 			| tok.type.int32_[fwd >= dt(Type::Int32)]
 			| tok.type.int64_[fwd >= dt(Type::Int64)]
-			| tok.type.float_[fwd >= dt(Type::Float)];
+			| tok.type.float_[fwd >= dt(Type::Float)]
+			| (
+				tok.word.typeof
+				>> omit[tok.lparen | expected("(")]
+				>> expr
+				>> omit[tok.rparen | expected(")")]
+			)[fwd >= [this] (range& r, ptr<Expr>& src) {
+				return locd<std::pair<Type, ptr<Expr>>>{locOf(r), {Type::Int32, src}};
+			}];
 
 		identifier.name("identifier");
 		identifier =
@@ -878,7 +897,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 	rule<std::array<uint8_t, 16>()> ip_addr;
 	rule<EndpointAccess()> endpoint_access;
-	rule<opt<locd<Type>>()> datatype;
+	rule<opt<locd<std::pair<Type, ptr<Expr>>>>()> datatype;
 	rule<opt<Identifier>()> identifier;
 	rule<ptr<ClassParameter>()> classParam;
 

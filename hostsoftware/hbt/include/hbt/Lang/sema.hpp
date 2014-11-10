@@ -61,10 +61,13 @@ private:
 
 	const char* gotoExclusionScope;
 
+	bool isResolvingType;
+
 	void declareInCurrentScope(Declaration& decl);
 
 	void checkState(State& s);
 	void checkMachineBody(MachineBody& m);
+	bool resolveType(Expr& e);
 
 	std::pair<Declaration*, Device*> resolveDeviceInScope(const Identifier& device);
 	std::pair<Declaration*, Endpoint*> resolveEndpointInScope(const Identifier& endpoint);
