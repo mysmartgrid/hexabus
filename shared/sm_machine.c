@@ -2,6 +2,16 @@
 # error Signed overflows in this file depend on GCC/clang behaviour. Check validity.
 #endif
 
+#ifdef __cplusplus
+#include <cmath>
+#define isNaN std::isnan
+#define isFinite std::isfinite
+#else
+#include <math.h>
+#define isNaN isnan
+#define isFinite isfinite
+#endif
+
 #define be8toh(be) (be)
 
 #ifdef __AVR__
@@ -251,6 +261,15 @@ static int sm_convert(hxb_sm_value_t* val, uint8_t to_type)
 		return -HSE_INVALID_OPERATION;
 	}
 
+	val->type = to_type;
+
+	if (to_type == HXB_DTYPE_BOOL && val->type == HXB_DTYPE_FLOAT) {
+		val->v_uint = isNaN(val->v_float) && val->v_float != 0;
+		return 0;
+	}
+	if (val->type == HXB_DTYPE_FLOAT && !isFinite(val->v_float))
+		return -HSE_INVALID_OPERATION;
+
 #define CONVERT_ANY(from) \
 	do { \
 		switch (to_type) { \
@@ -276,8 +295,6 @@ static int sm_convert(hxb_sm_value_t* val, uint8_t to_type)
 	}
 
 #undef CONVERT_ANY
-
-	val->type = to_type;
 
 	return 0;
 }
@@ -1130,3 +1147,5 @@ fail:
 }
 
 #undef be8toh
+#undef isNaN
+#undef isFinite
