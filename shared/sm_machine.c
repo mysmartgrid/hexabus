@@ -261,10 +261,10 @@ static int sm_convert(hxb_sm_value_t* val, uint8_t to_type)
 		return -HSE_INVALID_OPERATION;
 	}
 
-	val->type = to_type;
 
 	if (to_type == HXB_DTYPE_BOOL && val->type == HXB_DTYPE_FLOAT) {
 		val->v_uint = isNaN(val->v_float) && val->v_float != 0;
+		val->type = HXB_DTYPE_BOOL;
 		return 0;
 	}
 	if (val->type == HXB_DTYPE_FLOAT && !isFinite(val->v_float))
@@ -295,6 +295,8 @@ static int sm_convert(hxb_sm_value_t* val, uint8_t to_type)
 	}
 
 #undef CONVERT_ANY
+
+	val->type = to_type;
 
 	return 0;
 }
