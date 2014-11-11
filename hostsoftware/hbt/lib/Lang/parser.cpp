@@ -750,21 +750,17 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 					(tok.rparen | expected(")"))
 					> (tok.colon | expected(":"))
 				]
-				> (
-					datatype[fwd > [] (locd<std::pair<Type, ptr<Expr>>>* dt, bool& pass) { pass = !dt->val.second; }]
-					| expected("literal type")
-				)
+				> literal_type
 				> omit[tok.lparen | expected("(")]
 				> endpoint_access
 				> omit[
 					(tok.rparen | expected("endpoint access specification"))
 					> (tok.semicolon | expected(";"))
 				]
-			)[fwd >= [this] (range& r, Identifier* name, range& eid, opt<locd<std::pair<Type, ptr<Expr>>>>* dt,
-					EndpointAccess access, bool& pass) {
+			)[fwd >= [this] (range& r, Identifier* name, range& eid, locd<Type>* dt, EndpointAccess access, bool& pass) {
 				uint32_t eidVal;
 				pass = qi::parse(eid.begin(), eid.end(), qi::uint_parser<uint32_t, 10, 1, 99>(), eidVal);
-				return new Endpoint(locOf(r), *name, eidVal, (*dt)->val.first, access);
+				return new Endpoint(locOf(r), *name, eidVal, dt->val, access);
 			}];
 
 		device =
@@ -823,11 +819,11 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 		auto dt = [this] (Type t) {
 			return [this, t] (range& r) {
-				return locd<std::pair<Type, ptr<Expr>>>{locOf(r), {t, nullptr}};
+				return locd<Type>{locOf(r), t};
 			};
 		};
-		datatype.name("datatype");
-		datatype =
+		literal_type.name("literal type");
+		literal_type =
 			tok.type.bool_[fwd >= dt(Type::Bool)]
 			| tok.type.uint8_[fwd >= dt(Type::UInt8)]
 			| tok.type.uint16_[fwd >= dt(Type::UInt16)]
@@ -837,8 +833,13 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			| tok.type.int16_[fwd >= dt(Type::Int16)]
 			| tok.type.int32_[fwd >= dt(Type::Int32)]
 			| tok.type.int64_[fwd >= dt(Type::Int64)]
-			| tok.type.float_[fwd >= dt(Type::Float)]
-			| (
+			| tok.type.float_[fwd >= dt(Type::Float)];
+
+		datatype.name("datatype");
+		datatype =
+			literal_type[fwd >= [this] (locd<Type>* dt) {
+				return locd<std::pair<Type, ptr<Expr>>>{dt->loc, {dt->val, nullptr}};
+			}] | (
 				tok.word.typeof
 				>> omit[tok.lparen | expected("(")]
 				>> expr
@@ -900,6 +901,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 	rule<std::array<uint8_t, 16>()> ip_addr;
 	rule<EndpointAccess()> endpoint_access;
+	rule<opt<locd<Type>>()> literal_type;
 	rule<opt<locd<std::pair<Type, ptr<Expr>>>>()> datatype;
 	rule<opt<Identifier>()> identifier;
 	rule<ptr<ClassParameter>()> classParam;
