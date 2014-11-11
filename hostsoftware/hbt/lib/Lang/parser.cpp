@@ -750,18 +750,21 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 					(tok.rparen | expected(")"))
 					> (tok.colon | expected(":"))
 				]
-				> datatype
+				> (
+					datatype[fwd > [] (locd<std::pair<Type, ptr<Expr>>>* dt, bool& pass) { pass = !dt->val.second; }]
+					| expected("literal type")
+				)
 				> omit[tok.lparen | expected("(")]
 				> endpoint_access
 				> omit[
 					(tok.rparen | expected("endpoint access specification"))
 					> (tok.semicolon | expected(";"))
 				]
-			)[fwd >= [this] (range& r, Identifier* name, range& eid, locd<std::pair<Type, ptr<Expr>>>* dt, EndpointAccess access,
-					bool& pass) {
+			)[fwd >= [this] (range& r, Identifier* name, range& eid, opt<locd<std::pair<Type, ptr<Expr>>>>* dt,
+					EndpointAccess access, bool& pass) {
 				uint32_t eidVal;
 				pass = qi::parse(eid.begin(), eid.end(), qi::uint_parser<uint32_t, 10, 1, 99>(), eidVal);
-				return new Endpoint(locOf(r), *name, eidVal, dt->val.first, access);
+				return new Endpoint(locOf(r), *name, eidVal, (*dt)->val.first, access);
 			}];
 
 		device =
