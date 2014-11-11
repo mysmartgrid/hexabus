@@ -1,11 +1,24 @@
 'use strict';
 
+/*
+ * The code in this file can be run inside nodejs
+ * as well as inside the browser.
+ *
+ * Therefore special wrapper pattern is requried.
+ * See: http://caolanmcmahon.com/posts/writing_for_node_and_the_browser/
+ */
+
 var moduleWrapper = function(globalScope) {
 
 	var inherits, EventEmitter, uuid;
 	var isServerDeviceTree;
 
-	if(typeof require == 'function') {
+	/*
+	 * Check the type of require because if we have a require function, 
+	 * we can be quite certain that this is nodejs
+	 */
+	 if(typeof require == 'function') {
+		//Nodejs specific code
 		inherits = require('util').inherits;
 		EventEmitter = require('events').EventEmitter;
 		uuid = require('node-uuid');
@@ -13,6 +26,7 @@ var moduleWrapper = function(globalScope) {
 		isServerDeviceTree = true;
 	}
 	else {
+		// Browser specific code
 		inherits = globalScope.inherits;
 		EventEmitter = globalScope.EventEmitter;
 		uuid = globalScope.uuid;
@@ -20,6 +34,10 @@ var moduleWrapper = function(globalScope) {
 		isServerDeviceTree = false;
 	}
 
+	/*
+	 * Decorator that marks a function unaviable on the browserside
+	 * Example: this.doServerStuff = onServer(function(foo, barz) { });
+	 */
 	var onServer = function(fun) {
 		if(isServerDeviceTree) {
 			return fun;
@@ -34,6 +52,9 @@ var moduleWrapper = function(globalScope) {
 		return Math.round(new Date() / 1000);
 	};
 
+	/*
+	 * Check if the object is {}
+	 */ 
 	var isEmptyObject = function(obj) {
 		return (Object.keys(obj).length === 0);
 	};
@@ -61,6 +82,13 @@ var moduleWrapper = function(globalScope) {
 	var Device = function(ip, name, emitter, last_update) {
 		var endpoints = {};
 
+		/*
+		 * This function propagates the a update of this device on level up in the devicetree.
+		 * It can be used in two ways:
+		 * 1. propagateUpdate()
+		 * In this 
+		 *
+		 */
 		this.propagateUpdate = function(endpointUpdate) {
 			var update = {};
 			update.devices = {};
