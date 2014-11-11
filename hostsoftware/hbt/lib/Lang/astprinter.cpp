@@ -7,6 +7,17 @@
 namespace hbt {
 namespace lang {
 
+void ASTPrinter::printType(Type t, Expr* source)
+{
+	if (source) {
+		out << "typeof(";
+		source->accept(*this);
+		out << ")";
+	} else {
+		out << typeName(t);
+	}
+}
+
 void ASTPrinter::indent()
 {
 	if (!_skipIndent)
@@ -74,7 +85,8 @@ void ASTPrinter::visit(TypedLiteral<float>& l)
 
 void ASTPrinter::visit(CastExpr& c)
 {
-	out << typeName(c.type()) << "(";
+	printType(c.type(), c.typeSource());
+	out << "(";
 	c.expr().accept(*this);
 	out << ")";
 }
@@ -332,7 +344,8 @@ void ASTPrinter::visit(DeclarationStmt& d)
 {
 	indent();
 
-	out << typeName(d.type()) << " " << d.name().name() << " = ";
+	printType(d.type(), d.typeSource());
+	out << " " << d.name().name() << " = ";
 	d.value().accept(*this);
 	out << ";";
 }
@@ -458,6 +471,8 @@ void ASTPrinter::printState(State& s)
 		out << "\n";
 
 	if (s.always()) {
+		out << "\n";
+		indent();
 		out << "always ";
 		_skipIndent = true;
 		s.always()->accept(*this);
@@ -465,7 +480,6 @@ void ASTPrinter::printState(State& s)
 
 	_indent--;
 
-	out << "\n";
 	indent();
 	out << "}";
 }
@@ -500,7 +514,13 @@ void ASTPrinter::visit(MachineClass& m)
 		if (count++)
 			out << ", ";
 		switch (p->kind()) {
-		case ClassParameter::Kind::Value: out << typeName(static_cast<CPValue&>(*p).type()) << " "; break;
+		case ClassParameter::Kind::Value: {
+			auto& cpv = static_cast<CPValue&>(*p);
+			printType(cpv.type(), cpv.typeSource());
+			out << " ";
+			break;
+		}
+
 		case ClassParameter::Kind::Device: out << "device "; break;
 		case ClassParameter::Kind::Endpoint: out << "endpoint "; break;
 		}

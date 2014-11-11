@@ -18,6 +18,7 @@ private:
 
 	void indent();
 
+	void printType(Type t, Expr* source);
 	void printState(State& s);
 	void printOnBlockBody(OnBlock& o);
 	void printMachineBody(MachineBody& m);
