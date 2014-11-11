@@ -502,7 +502,8 @@ int main(int argc, char** argv) {
 	hexabus::Socket socket(io);
 
 	if (interface.size()) {
-		std::cout << "Using interface " << interface[0] << std::endl;
+		if (!json)
+			std::cout << "Using interface " << interface[0] << std::endl;
 
 		try {
 			socket.mcast_from(interface[0]);
@@ -513,12 +514,15 @@ int main(int argc, char** argv) {
 	}
 
 	if (command == C_LISTEN) {
-		std::cout << "Entering listen mode on";
+		std::stringstream tmp;
+		std::ostream& lbuf = json ? tmp : std::cout;
+
+		lbuf << "Entering listen mode on";
 
 		for (std::vector<std::string>::const_iterator it = interface.begin(), end = interface.end();
 				it != end;
 				it++) {
-			std::cout << " " << *it;
+			lbuf << " " << *it;
 			try {
 				listener.listen(*it);
 			} catch (const hexabus::NetworkException& e) {
@@ -526,7 +530,7 @@ int main(int argc, char** argv) {
 				return ERR_NETWORK;
 			}
 		}
-		std::cout << std::endl;
+		lbuf << std::endl;
 
 		while (true) {
 			std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
