@@ -64,6 +64,7 @@ public:
 	Declaration* resolve(const std::string& name);
 
 	std::pair<Declaration*, bool> insert(Declaration& decl);
+	std::pair<Declaration*, bool> insert(const std::string& name, Declaration& decl);
 };
 
 }

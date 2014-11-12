@@ -25,7 +25,10 @@ private:
 		union {
 			Expr* value;
 			Device* device;
-			Endpoint* endpoint;
+			struct {
+				Declaration* behaviour;
+				EndpointDeclaration* endpoint;
+			} ep;
 		};
 
 		ClassParamInstance(ClassParameter& cp)
@@ -40,8 +43,8 @@ private:
 			: parameter(cp), hasValue(true), device(device), used(false)
 		{}
 
-		ClassParamInstance(ClassParameter& cp, Endpoint* ep)
-			: parameter(cp), hasValue(true), endpoint(ep), used(false)
+		ClassParamInstance(ClassParameter& cp, Declaration* behaviour, EndpointDeclaration* ep)
+			: parameter(cp), hasValue(true), ep{behaviour, ep}, used(false)
 		{}
 	};
 
@@ -60,19 +63,25 @@ private:
 	EndpointExpr* liveEndpoint;
 
 	const char* gotoExclusionScope;
+	Device* behaviourDevice;
 
-	bool isResolvingType;
+	bool isResolvingType, inBehaviour;
 
 	void declareInCurrentScope(Declaration& decl);
 
 	void checkState(State& s);
 	void checkMachineBody(MachineBody& m);
+	bool checkBehaviourBody(Behaviour& b, Device* dev);
 	bool resolveType(Expr& e);
 
-	std::pair<Declaration*, Device*> resolveDeviceInScope(const Identifier& device);
-	std::pair<Declaration*, Endpoint*> resolveEndpointInScope(const Identifier& endpoint);
+	Declaration* resolveDevice(EndpointExpr& e);
+	Declaration* resolveEndpointExpr(EndpointExpr& e, bool incompletePath);
 
-	Endpoint* checkEndpointExpr(EndpointExpr& e, bool forRead);
+	EndpointDeclaration* checkEndpointExpr(EndpointExpr& e, bool forRead);
+
+	bool declareClassParams(std::vector<std::unique_ptr<ClassParameter>>& params, bool forbidContextualIdentifiers);
+	bool instantiateClassParams(const SourceLocation& sloc, const Identifier& className,
+			std::vector<std::unique_ptr<ClassParameter>>& params, std::vector<std::unique_ptr<Expr>>& args);
 
 public:
 	SemanticVisitor(DiagnosticOutput& diagOut);
@@ -112,6 +121,9 @@ public:
 	virtual void visit(MachineClass& m) override;
 	virtual void visit(MachineDefinition& m) override;
 	virtual void visit(MachineInstantiation& m) override;
+	virtual void visit(BehaviourClass& m) override;
+	virtual void visit(BehaviourDefinition& m) override;
+	virtual void visit(BehaviourInstantiation& m) override;
 	virtual void visit(IncludeLine& i) override;
 	virtual void visit(TranslationUnit& t) override;
 };

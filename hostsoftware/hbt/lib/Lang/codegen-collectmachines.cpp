@@ -46,6 +46,9 @@ struct CollectVisitor : ASTVisitor {
 	virtual void visit(MachineClass&) override {}
 	virtual void visit(MachineDefinition&) override;
 	virtual void visit(MachineInstantiation&) override;
+	virtual void visit(BehaviourClass&) override {}
+	virtual void visit(BehaviourDefinition&) override {}
+	virtual void visit(BehaviourInstantiation&) override {}
 	virtual void visit(IncludeLine&) override {}
 	virtual void visit(TranslationUnit&) override;
 };
@@ -96,9 +99,6 @@ void CollectVisitor::visit(MachineDefinition& m)
 	for (auto& state : m.states()) {
 		for (auto& ob : state.onBlocks())
 			ob->accept(*this);
-
-		if (state.always())
-			state.always()->accept(*this);
 	}
 }
 
@@ -120,7 +120,7 @@ std::map<const Device*, std::set<MachineDefinition*>> collectMachines(Translatio
 	CollectVisitor cv;
 
 	tu.accept(cv);
-	return std::move(cv.machines);
+	return cv.machines;
 }
 
 }

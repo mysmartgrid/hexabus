@@ -22,6 +22,8 @@ private:
 	void printState(State& s);
 	void printOnBlockBody(OnBlock& o);
 	void printMachineBody(MachineBody& m);
+	void printBehaviourBody(Behaviour& m);
+	void printClassParams(std::vector<std::unique_ptr<ClassParameter>>& params);
 
 public:
 	ASTPrinter(std::ostream& out)
@@ -63,6 +65,9 @@ public:
 	virtual void visit(MachineClass& m) override;
 	virtual void visit(MachineDefinition& m) override;
 	virtual void visit(MachineInstantiation& m) override;
+	virtual void visit(BehaviourClass& m) override;
+	virtual void visit(BehaviourDefinition& m) override;
+	virtual void visit(BehaviourInstantiation& m) override;
 	virtual void visit(IncludeLine& i) override;
 	virtual void visit(TranslationUnit& t) override;
 };

@@ -3,7 +3,9 @@
 
 #include <algorithm>
 #include <array>
+#include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -75,6 +77,10 @@ class Device;
 class MachineClass;
 class MachineDefinition;
 class MachineInstantiation;
+class Behaviour;
+class BehaviourClass;
+class BehaviourDefinition;
+class BehaviourInstantiation;
 class IncludeLine;
 class TranslationUnit;
 class State;
@@ -129,6 +135,9 @@ struct ASTVisitor {
 	virtual void visit(MachineClass&) = 0;
 	virtual void visit(MachineDefinition&) = 0;
 	virtual void visit(MachineInstantiation&) = 0;
+	virtual void visit(BehaviourClass&) = 0;
+	virtual void visit(BehaviourDefinition&) = 0;
+	virtual void visit(BehaviourInstantiation&) = 0;
 	virtual void visit(IncludeLine&) = 0;
 	virtual void visit(TranslationUnit&) = 0;
 };
@@ -203,16 +212,19 @@ class IdentifierExpr : public Expr {
 private:
 	std::string _name;
 	Declaration* _target;
+	Expr* _value;
 
 public:
 	IdentifierExpr(const SourceLocation& sloc, std::string name, Type type)
-		: Expr(sloc, type), _name(std::move(name)), _target(nullptr)
+		: Expr(sloc, type), _name(std::move(name)), _target(nullptr), _value(nullptr)
 	{}
 
 	const std::string& name() const { return _name; }
 	Declaration* target() { return _target; }
+	Expr* value() { return _value; }
 
 	void target(Declaration* i) { _target = i; }
+	void value(Expr* v) { _value = v; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -378,26 +390,28 @@ public:
 
 class EndpointExpr : public Expr {
 private:
-	Identifier _deviceId;
-	Identifier _endpointId;
+	std::vector<Identifier> _path;
 	bool _deviceIdIsIncomplete, _endpointIdIsIncomplete;
 	Declaration* _device;
+	Declaration* _behaviour;
 	Declaration* _endpoint;
 
 public:
-	EndpointExpr(const SourceLocation& sloc, const Identifier& deviceId, const Identifier& endpointId, Type type)
-		: Expr(sloc, type), _deviceId(deviceId), _endpointId(endpointId), _deviceIdIsIncomplete(false),
-		  _endpointIdIsIncomplete(false), _device(nullptr), _endpoint(nullptr)
+	EndpointExpr(const SourceLocation& sloc, std::vector<Identifier> path, Type type)
+		: Expr(sloc, type), _path(std::move(path)), _deviceIdIsIncomplete(false),
+		  _endpointIdIsIncomplete(false), _device(nullptr), _behaviour(nullptr),
+		  _endpoint(nullptr)
 	{}
 
-	const Identifier& deviceId() const { return _deviceId; }
-	const Identifier& endpointId() const { return _endpointId; }
+	const std::vector<Identifier>& path() const { return _path; }
 	bool deviceIdIsIncomplete() const { return _deviceIdIsIncomplete; }
 	bool endpointIdIsIncomplete() const { return _endpointIdIsIncomplete; }
 	Declaration* device() { return _device; }
+	Declaration* behaviour() { return _behaviour; }
 	Declaration* endpoint() { return _endpoint; }
 
 	void device(Declaration* d) { _device = d; }
+	void behaviour(Declaration* b) { _behaviour = b; }
 	void endpoint(Declaration* e) { _endpoint = e; }
 
 	void deviceIdIsIncomplete(bool b)
@@ -658,6 +672,7 @@ enum class OnSimpleTrigger {
 	Entry,
 	Exit,
 	Periodic,
+	Always,
 };
 
 class OnSimpleBlock : public OnBlock {
@@ -717,23 +732,20 @@ class State {
 private:
 	SourceLocation _sloc;
 	Identifier _name;
-	std::vector<DeclarationStmt> _variables;
+	std::vector<std::unique_ptr<DeclarationStmt>> _variables;
 	std::vector<std::unique_ptr<OnBlock>> _onBlocks;
-	std::unique_ptr<BlockStmt> _always;
 	unsigned _id;
 
 public:
-	State(const SourceLocation& sloc, const Identifier& name, std::vector<DeclarationStmt> variables,
-			decltype(_onBlocks) onBlocks, decltype(_always) always)
-		: _sloc(sloc), _name(name), _variables(std::move(variables)),
-		  _onBlocks(std::move(onBlocks)), _always(std::move(always))
+	State(const SourceLocation& sloc, const Identifier& name, std::vector<std::unique_ptr<DeclarationStmt>> variables,
+			decltype(_onBlocks) onBlocks)
+		: _sloc(sloc), _name(name), _variables(std::move(variables)), _onBlocks(std::move(onBlocks))
 	{}
 
 	const SourceLocation& sloc() const { return _sloc; }
 	const Identifier& name() const { return _name; }
-	std::vector<DeclarationStmt>& variables() { return _variables; }
+	const std::vector<std::unique_ptr<DeclarationStmt>>& variables() const { return _variables; }
 	std::vector<std::unique_ptr<OnBlock>>& onBlocks() { return _onBlocks; }
-	BlockStmt* always() { return _always.get(); }
 	unsigned id() const { return _id; }
 
 	void id(unsigned u) { _id = u; }
@@ -755,7 +767,13 @@ public:
 
 
 
-class Endpoint : public ProgramPart, public Declaration {
+class EndpointDeclaration : public Declaration {
+public:
+	virtual Type type() const = 0;
+	virtual const Identifier& name() const = 0;
+};
+
+class Endpoint : public ProgramPart, public EndpointDeclaration {
 private:
 	Identifier _name;
 	uint32_t _eid;
@@ -768,9 +786,9 @@ public:
 	{}
 
 	const SourceLocation& sloc() const override { return ProgramPart::sloc(); }
-	const Identifier& name() const { return _name; }
+	const Identifier& name() const override { return _name; }
 	uint32_t eid() const { return _eid; }
-	Type type() const { return _type; }
+	Type type() const override { return _type; }
 	EndpointAccess access() const { return _access; }
 
 	const std::string& identifier() const override { return _name.name(); }
@@ -781,26 +799,60 @@ public:
 	}
 };
 
+class SyntheticEndpoint : public EndpointDeclaration {
+private:
+	SourceLocation _sloc;
+	Identifier _name;
+	Type _type;
+	std::unique_ptr<BlockStmt> _readBlock, _write;
+	std::unique_ptr<Expr> _readValue;
+
+public:
+	SyntheticEndpoint(const SourceLocation& sloc, const Identifier& name, Type type, std::unique_ptr<BlockStmt> readBlock,
+			std::unique_ptr<Expr> readValue, std::unique_ptr<BlockStmt> write)
+		: _sloc(sloc), _name(name), _type(type), _readBlock(std::move(readBlock)), _readValue(std::move(readValue)),
+		  _write(std::move(write))
+	{}
+
+	const Identifier& name() const override { return _name; }
+	Type type() const override { return _type; }
+	BlockStmt* readBlock() { return _readBlock.get(); }
+	Expr* readValue() { return _readValue.get(); }
+	BlockStmt* write() { return _write.get(); }
+
+	const SourceLocation& sloc() const override { return _sloc; }
+	const std::string& identifier() const override { return _name.name(); }
+};
+
 
 
 class Device : public ProgramPart, public Declaration {
 private:
 	Identifier _name;
 	std::array<uint8_t, 16> _address;
-	std::vector<Identifier> _endpoints;
+	std::vector<Identifier> _endpointNames;
+	std::map<std::string, Endpoint*> _endpoints;
+	std::set<BehaviourDefinition*> _behaviours;
+	std::multimap<BehaviourClass*, BehaviourDefinition*> _behaviourClasses;
 
 public:
 	Device(const SourceLocation& sloc, const Identifier& name, const std::array<uint8_t, 16>& address,
-			std::vector<Identifier> endpoints)
-		: ProgramPart(sloc), _name(name), _address(address), _endpoints(std::move(endpoints))
+			std::vector<Identifier> endpointNames)
+		: ProgramPart(sloc), _name(name), _address(address), _endpointNames(std::move(endpointNames))
 	{}
 
 	const SourceLocation& sloc() const override { return ProgramPart::sloc(); }
 	const Identifier& name() const { return _name; }
 	const std::array<uint8_t, 16>& address() const { return _address; }
-	const std::vector<Identifier>& endpoints() const { return _endpoints; }
+	const std::vector<Identifier>& endpointNames() const { return _endpointNames; }
+	const std::set<BehaviourDefinition*>& behaviours() const { return _behaviours; }
+	const std::multimap<BehaviourClass*, BehaviourDefinition*>& behaviourClasses() const { return _behaviourClasses; }
 
 	const std::string& identifier() const override { return _name.name(); }
+
+	std::map<std::string, Endpoint*>& endpoints() { return _endpoints; }
+	std::set<BehaviourDefinition*>& behaviours() { return _behaviours; }
+	std::multimap<BehaviourClass*, BehaviourDefinition*>& behaviourClasses() { return _behaviourClasses; }
 
 	virtual void accept(ASTVisitor& v)
 	{
@@ -809,25 +861,6 @@ public:
 };
 
 
-
-class MachineBody {
-private:
-	Identifier _name;
-	std::vector<std::unique_ptr<DeclarationStmt>> _variables;
-	std::vector<State> _states;
-
-protected:
-	MachineBody(const Identifier& name, std::vector<std::unique_ptr<DeclarationStmt>> variables, std::vector<State> states)
-		: _name(name), _variables(std::move(variables)), _states(std::move(states))
-	{}
-
-public:
-	virtual ~MachineBody() {}
-
-	const Identifier& name() const { return _name; }
-	std::vector<std::unique_ptr<DeclarationStmt>>& variables() { return _variables; }
-	std::vector<State>& states() { return _states; }
-};
 
 class ClassParameter : public Declaration {
 public:
@@ -887,6 +920,27 @@ public:
 	CPEndpoint(const SourceLocation& sloc, const std::string& name)
 		: ClassParameter(sloc, name, Kind::Endpoint)
 	{}
+};
+
+
+
+class MachineBody {
+private:
+	Identifier _name;
+	std::vector<std::unique_ptr<DeclarationStmt>> _variables;
+	std::vector<State> _states;
+
+protected:
+	MachineBody(const Identifier& name, std::vector<std::unique_ptr<DeclarationStmt>> variables, std::vector<State> states)
+		: _name(name), _variables(std::move(variables)), _states(std::move(states))
+	{}
+
+public:
+	virtual ~MachineBody() {}
+
+	const Identifier& name() const { return _name; }
+	std::vector<std::unique_ptr<DeclarationStmt>>& variables() { return _variables; }
+	std::vector<State>& states() { return _states; }
 };
 
 class MachineClass : public MachineBody, public ProgramPart, public Declaration {
@@ -955,6 +1009,116 @@ public:
 
 	void baseClass(MachineClass* m) { _class = m; }
 	void instantiation(std::unique_ptr<MachineDefinition> u) { _instantiation = std::move(u); }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
+};
+
+
+
+class Behaviour {
+private:
+	Identifier _name;
+	std::vector<std::unique_ptr<DeclarationStmt>> _variables;
+	std::vector<std::unique_ptr<SyntheticEndpoint>> _endpoints;
+	std::vector<std::unique_ptr<OnBlock>> _onBlocks;
+
+protected:
+	Behaviour(const Identifier& name, std::vector<std::unique_ptr<DeclarationStmt>> variables,
+			std::vector<std::unique_ptr<SyntheticEndpoint>> endpoints, std::vector<std::unique_ptr<OnBlock>> onBlocks)
+		: _name(name), _variables(std::move(variables)), _endpoints(std::move(endpoints)), _onBlocks(std::move(onBlocks))
+	{}
+
+public:
+	Behaviour(Behaviour&&) = default;
+	Behaviour& operator=(Behaviour&&) = default;
+
+	virtual ~Behaviour() {}
+
+	const Identifier& name() const { return _name; }
+	const std::vector<std::unique_ptr<DeclarationStmt>>& variables() { return _variables; }
+	const std::vector<std::unique_ptr<SyntheticEndpoint>>& endpoints() { return _endpoints; }
+	const std::vector<std::unique_ptr<OnBlock>>& onBlocks() { return _onBlocks; }
+};
+
+class BehaviourClass : public Behaviour, public ProgramPart, public Declaration {
+private:
+	std::vector<std::unique_ptr<ClassParameter>> _parameters;
+
+public:
+	BehaviourClass(const SourceLocation& sloc, const Identifier& name, std::vector<std::unique_ptr<ClassParameter>> parameters,
+			std::vector<std::unique_ptr<DeclarationStmt>> variables, std::vector<std::unique_ptr<SyntheticEndpoint>> endpoints,
+			std::vector<std::unique_ptr<OnBlock>> onBlocks)
+		: Behaviour(name, std::move(variables), std::move(endpoints), std::move(onBlocks)),
+		  ProgramPart(sloc), _parameters(std::move(parameters))
+	{}
+
+	std::vector<std::unique_ptr<ClassParameter>>& parameters() { return _parameters; }
+
+	const std::string& identifier() const override { return name().name(); }
+	const SourceLocation& sloc() const override { return ProgramPart::sloc(); }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
+};
+
+class BehaviourDefinition : public Behaviour, public ProgramPart, public Declaration {
+private:
+	Identifier _device;
+
+public:
+	BehaviourDefinition(const SourceLocation& sloc, const Identifier& name, const Identifier& device,
+			std::vector<std::unique_ptr<DeclarationStmt>> variables, std::vector<std::unique_ptr<SyntheticEndpoint>> endpoints,
+			std::vector<std::unique_ptr<OnBlock>> onBlocks)
+		: Behaviour(name, std::move(variables), std::move(endpoints), std::move(onBlocks)),
+		  ProgramPart(sloc), _device(device)
+	{}
+
+	const Identifier& device() const { return _device; }
+
+	const std::string& identifier() const override { return name().name(); }
+	const SourceLocation& sloc() const override { return ProgramPart::sloc(); }
+
+	virtual void accept(ASTVisitor& v)
+	{
+		v.visit(*this);
+	}
+};
+
+class BehaviourInstantiation : public ProgramPart, public Declaration {
+private:
+	Identifier _name;
+	Identifier _device;
+	Identifier _instanceOf;
+	std::vector<std::unique_ptr<Expr>> _arguments;
+
+	BehaviourClass* _class;
+	std::unique_ptr<BehaviourDefinition> _instantiation;
+
+public:
+	BehaviourInstantiation(const SourceLocation& sloc, const Identifier& name, const Identifier& device,
+			const Identifier& instanceOf, std::vector<std::unique_ptr<Expr>> arguments)
+		: ProgramPart(sloc), _name(name), _device(device), _instanceOf(instanceOf),
+		  _arguments(std::move(arguments)), _class(nullptr)
+	{}
+
+	const Identifier& name() const { return _name; }
+	const Identifier& device() const { return _device; }
+	const Identifier& instanceOf() const { return _instanceOf; }
+	std::vector<std::unique_ptr<Expr>>& arguments() { return _arguments; }
+
+	const std::string& identifier() const override { return name().name(); }
+	const SourceLocation& sloc() const override { return ProgramPart::sloc(); }
+
+	BehaviourClass* baseClass() { return _class; }
+	BehaviourDefinition* instantiation() { return _instantiation.get(); }
+
+	void baseClass(BehaviourClass* b) { _class = b; }
+	void instantiation(std::unique_ptr<BehaviourDefinition> u) { _instantiation = std::move(u); }
 
 	virtual void accept(ASTVisitor& v)
 	{

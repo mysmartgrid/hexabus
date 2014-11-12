@@ -1,0 +1,85 @@
+endpoint ep0(0) : bool (write, broadcast); //#expect: hint: declared here
+
+device dev0(::) : ep0; //#expect: hint: declared here
+                       //#expect+: hint: declared here
+device dev1(::) : ep0;
+
+behaviour b_this on dev0 {
+	always {
+		dev0.ep0 = true; //#expect: error: 'dev0' may not be used here
+		this.ep0 = true;
+	}
+};
+behaviour class bc_this() {
+	always {
+		dev0.ep0 = true; //#expect: error: 'dev0' may not be used here
+		this.ep0 = true;
+	}
+};
+
+behaviour class bc_ambig() {
+	endpoint X : bool {
+		write { }
+	}
+};
+behaviour bi_ambig0 on dev0 : bc_ambig();
+behaviour bi_ambig1 on dev0 : bc_ambig();
+machine m_ambig_resolve {
+	state init {
+		always {
+			dev0.bc_ambig.X = true; //#expect: error: endpoint dev0.bc_ambig.X is ambiguous
+			dev1.bi_ambig0.X = true; //#expect: error: device dev1 does not implement endpoint bi_ambig0.X
+		}
+	}
+};
+
+machine class mc_class_resolve(endpoint ep) {
+	state init {
+		always { dev0.ep = true; }
+	}
+};
+machine m_class_resolve0 : mc_class_resolve(dev0.X); //#expect: error: identifier 'dev0' does not name a behaviour
+machine m_class_resolve1 : mc_class_resolve(bi_ambig0.Y); //#expect: error: use of undeclared identifier 'Y'
+
+behaviour b_read on dev0 {
+	endpoint X : bool { read { true } }
+};
+behaviour b_write on dev0 {
+	endpoint X : bool { write { } }
+};
+machine syn_ep_access_check {
+	state init {
+		always {
+			dev0.b_write.X = dev0.b_read.X;
+			dev0.b_read.X = dev0.b_write.X; //#expect: error: endpoint b_write.X cannot be read
+			                                //#expect+: error: endpoint b_read.X cannot be written
+		}
+	}
+};
+
+behaviour b_blocks on dev0 {
+	on exit { } //#expect: error: on exit block not allowed here
+	on entry { goto foo; } //#expect: error: invalid use of goto in behaviours
+	on periodic { goto foo; } //#expect: error: invalid use of goto in behaviours
+	on update from this.ep0 { goto foo; } //#expect: error: invalid use of goto in behaviours
+	on (true) { goto foo; } //#expect: error: invalid use of goto in behaviours
+};
+
+behaviour class bc_reserved_here0(bool this) {}; //#expect: error: 'this' is a reserved word in this context
+
+behaviour ep_redecl on dev0 {
+	endpoint X : bool { write {} } //#expect: hint: previously declared here
+	endpoint X : bool { write {} } //#expect: error: redeclaration of 'X'
+	endpoint ep0 : bool { write {} }
+};
+
+behaviour invalid_read on dev0 {
+	endpoint ep : bool { read { 1. } } //#expect: error: invalid implicit type conversion from float to bool
+};
+
+behaviour class cp_unusued(bool b) {}; //#expect: warning: unused class parameter b
+
+behaviour bi_nodev on dev : X(); //#expect: error: use of undeclared identifier 'dev'
+behaviour bi_noclass on dev0 : X(); //#expect: error: use of undeclared identifier 'X'
+behaviour bi_isnodev on ep0 : dev0(); //#expect: error: identifier 'ep0' does not name a device
+behaviour bi_isnoclass on dev0 : dev0(); //#expect: error: identifier 'dev0' does not name a behaviour class

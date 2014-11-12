@@ -16,24 +16,21 @@ private:
 	std::unique_ptr<Stmt> _stmt;
 	std::unique_ptr<OnBlock> _onBlock;
 
-	std::map<Declaration*, Expr*> cpValues;
-	std::map<Declaration*, Device*> cpDevices;
-	std::map<Declaration*, Endpoint*> cpEndpoints;
-
 	std::map<Declaration*, DeclarationStmt*> declClones;
-
-	Scope& scope;
 
 	std::unique_ptr<Expr> clone(Expr& e);
 	std::unique_ptr<Stmt> clone(Stmt& e);
 	std::unique_ptr<OnBlock> clone(OnBlock& e);
 	State clone(State& e);
 
-public:
-	InstantiationVisitor(Scope& scope)
-		: scope(scope)
-	{}
+	template<typename To, typename From>
+	std::unique_ptr<To> cloneCast(From& d)
+	{
+		auto tmp = clone(d);
+		return std::unique_ptr<To>(static_cast<To*>(tmp.release()));
+	}
 
+public:
 	virtual void visit(IdentifierExpr&) override;
 	virtual void visit(TypedLiteral<bool>&) override;
 	virtual void visit(TypedLiteral<uint8_t>&) override;
@@ -69,6 +66,9 @@ public:
 	virtual void visit(MachineClass&) override;
 	virtual void visit(MachineDefinition&) override;
 	virtual void visit(MachineInstantiation&) override;
+	virtual void visit(BehaviourClass&) override;
+	virtual void visit(BehaviourDefinition&) override;
+	virtual void visit(BehaviourInstantiation&) override;
 	virtual void visit(IncludeLine&) override;
 	virtual void visit(TranslationUnit&) override;
 };

@@ -1,4 +1,4 @@
-machine class c() { //#expect: error: class c has no parameters
+machine class c() { //#expect: error: machine class c has no parameters
 	state init {
 	}
 };

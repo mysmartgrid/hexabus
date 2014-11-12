@@ -111,6 +111,7 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 		add(word.always = "always");
 		add(word.update = "update");
 		add(word.typeof = "typeof");
+		add(word.behaviour = "behaviour");
 
 		add(lit.bool_ = "true|false");
 		add(string = R"(\"[^\r\n"]*\")");
@@ -152,7 +153,7 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 	struct {
 		boost::spirit::lex::token_def<>
 			machine, device, endpoint, include, read, write, global_write, broadcast, class_, state, on, if_, else_,
-			switch_, case_, default_, goto_, from, entry, exit, periodic, always, update, typeof;
+			switch_, case_, default_, goto_, from, entry, exit, periodic, always, update, typeof, behaviour;
 	} word;
 };
 
@@ -320,6 +321,8 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			*(
 				machine_class[push_back(_val, _1)]
 				| machine_spec[push_back(_val, _1)]
+				| behaviour_class[push_back(_val, _1)]
+				| behaviour_spec[push_back(_val, _1)]
 				| endpoint[push_back(_val, _1)]
 				| device[push_back(_val, _1)]
 				| include[push_back(_val, _1)]
@@ -328,8 +331,21 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 		e.endpoint.name("endpoint");
 		e.endpoint =
-			(identifier >> omit[tok.dot] > identifier)[fwd >= [this] (Identifier* dev, Identifier* ep) {
-				return new EndpointExpr(dev->sloc(), *dev, *ep, Type::Int32);
+			(
+				identifier
+				>> omit[tok.dot]
+				>> identifier
+				>> omit[tok.dot]
+				> identifier
+			)[fwd >= [this] (Identifier* i1, Identifier* i2, Identifier* i3) {
+				return new EndpointExpr(i1->sloc(), { *i1, *i2, *i3 }, Type::Int32);
+			}]
+			| (
+				identifier
+				>> omit[tok.dot]
+				> identifier
+			)[fwd >= [this] (Identifier* i1, Identifier* i2) {
+				return new EndpointExpr(i1->sloc(), { *i1, *i2 }, Type::Int32);
 			}];
 
 		e.primary.name("expression");
@@ -528,15 +544,12 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				return new AssignStmt(locOf(r), std::move(*id), e);
 			}]
 			| (
-				identifier
-				> omit[tok.dot | expected(". or =")]
-				> identifier
-				> &omit[tok.op.assign | expected("=")]
-				> tok.op.assign
+				e.endpoint
+				>> tok.op.assign
 				> expr
 				> omit[tok.semicolon | expected(";")]
-			)[fwd >= [this] (Identifier* dev, Identifier* ep, range& r, ptr<Expr>& e) {
-				return new WriteStmt(locOf(r), EndpointExpr(locOf(r), *dev, *ep, Type::Int32), e);
+			)[fwd >= [this] (ptr<EndpointExpr>& ep, range& r, ptr<Expr>& e) {
+				return new WriteStmt(locOf(r), *ep, e);
 			}];
 
 		s.if_.name("if statement");
@@ -668,7 +681,11 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> omit[tok.rbrace | expected("}")]
 			)[fwd >= [this] (range& r, Identifier* id, std::vector<ptr<DeclarationStmt>>& decls,
 					std::vector<ptr<OnBlock>>& onBlocks, ptr<BlockStmt>* always) {
-				return new State(locOf(r), std::move(*id), unpack(decls), move(onBlocks), always ? *always : nullptr);
+				if (always) {
+					auto sloc = (*always)->sloc();
+					onBlocks.push_back(ptr<OnBlock>(new OnSimpleBlock(sloc, OnSimpleTrigger::Always, *always)));
+				}
+				return new State(locOf(r), std::move(*id), move(decls), move(onBlocks));
 			}];
 
 		classParam.name("class parameter");
@@ -703,10 +720,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				]
 			)[fwd >= [this] (range& r, Identifier* id, std::vector<ptr<ClassParameter>>* params,
 					std::vector<ptr<DeclarationStmt>>& decls, std::vector<ptr<State>>& states) {
-				if (params)
-					return new MachineClass(locOf(r), std::move(*id), move(*params), move(decls), unpack(states));
-				else
-					return new MachineClass(locOf(r), std::move(*id), {}, move(decls), unpack(states));
+				return new MachineClass(locOf(r), std::move(*id), move(params), move(decls), unpack(states));
 			}];
 
 		machine_spec =
@@ -740,6 +754,69 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				return new MachineDefinition(locOf(r), std::move(*id), move(decls), unpack(states));
 			}];
 
+		behaviour_class =
+			(
+				tok.word.behaviour
+				>> omit[tok.word.class_]
+				> identifier
+				> omit[tok.lparen | expected("(")]
+				> -(classParam % tok.comma)
+				> omit[tok.rparen | expected(")")]
+				> omit[tok.lbrace | expected("{")]
+				> *s.decl
+				> *synthetic_endpoint
+				> *on_block
+				> -(omit[tok.word.always] > s.block)
+				> omit[tok.rbrace | expected("}")]
+				> omit[tok.semicolon | expected(";")]
+			)[fwd >= [this] (range& r, Identifier* name, std::vector<ptr<ClassParameter>>* params,
+				std::vector<ptr<DeclarationStmt>>& decls, std::vector<ptr<SyntheticEndpoint>>& endpoints,
+				std::vector<ptr<OnBlock>>& onBlocks, ptr<BlockStmt>* always) {
+				if (always) {
+					auto sloc = (*always)->sloc();
+					onBlocks.push_back(ptr<OnBlock>(new OnSimpleBlock(sloc, OnSimpleTrigger::Always, *always)));
+				}
+				return new BehaviourClass(locOf(r), *name, move(params), move(decls), move(endpoints), move(onBlocks));
+			}];
+
+		behaviour_spec =
+			(
+				tok.word.behaviour
+				>> identifier
+				>> omit[tok.word.on]
+				>> identifier
+				>> !tok.lbrace
+				>> omit[tok.colon | expected(":")]
+				> identifier
+				> omit[tok.lparen | expected("(")]
+				> -(expr % tok.comma)
+				> omit[tok.rparen | expected(")")]
+				> omit[tok.semicolon | expected(";")]
+			)[fwd >= [this] (range& r, Identifier* name, Identifier* dev, Identifier* class_,
+					std::vector<ptr<Expr>>* args) {
+				return new BehaviourInstantiation(locOf(r), *name, *dev, *class_, move(args));
+			}]
+			| (
+				tok.word.behaviour
+				>> identifier
+				> omit[tok.word.on]
+				>> identifier
+				> omit[tok.lbrace | expected("{")]
+				> *s.decl
+				> *synthetic_endpoint
+				> *on_block
+				> -(omit[tok.word.always] > s.block)
+				> omit[tok.rbrace | expected("]")]
+				> omit[tok.semicolon | expected(";")]
+			)[fwd >= [this] (range& r, Identifier* name, Identifier* dev, std::vector<ptr<DeclarationStmt>>& decls,
+					std::vector<ptr<SyntheticEndpoint>>& endpoints, std::vector<ptr<OnBlock>>& onBlocks, ptr<BlockStmt>* always) {
+				if (always) {
+					auto sloc = (*always)->sloc();
+					onBlocks.push_back(ptr<OnBlock>(new OnSimpleBlock(sloc, OnSimpleTrigger::Always, *always)));
+				}
+				return new BehaviourDefinition(locOf(r), *name, *dev, move(decls), move(endpoints), move(onBlocks));
+			}];
+
 		endpoint =
 			(
 				tok.word.endpoint
@@ -762,6 +839,40 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				uint32_t eidVal;
 				pass = qi::parse(eid.begin(), eid.end(), qi::uint_parser<uint32_t, 10, 1, 99>(), eidVal);
 				return new Endpoint(locOf(r), *name, eidVal, dt->val, access);
+			}];
+
+		synthetic_endpoint_read =
+			(
+				omit[tok.word.read]
+				> tok.lbrace
+				> *statement
+				> expr
+				> omit[tok.rbrace | expected("}")]
+			)[fwd >= [this] (range& r, std::vector<ptr<Stmt>>& block, ptr<Expr>& value) {
+				return std::make_pair(
+					ptr<BlockStmt>(new BlockStmt(locOf(r), move(block))),
+					ptr<Expr>(value));
+			}];
+
+		synthetic_endpoint =
+			(
+				tok.word.endpoint
+				> identifier
+				> omit[tok.colon | expected(":")]
+				> literal_type
+				> omit[tok.lbrace | expected("{")]
+				> -synthetic_endpoint_read
+				> -(
+					omit[tok.word.write]
+					> s.block
+				)
+				> omit[tok.rbrace | expected("}")]
+			)[fwd >= [this] (range& r, Identifier* name, locd<Type>* type,
+				std::pair<ptr<BlockStmt>, ptr<Expr>>* read, ptr<BlockStmt>* write) {
+				return new SyntheticEndpoint(locOf(r), *name, type->val,
+					read ? std::unique_ptr<BlockStmt>(read->first) : nullptr,
+					read ? std::unique_ptr<Expr>(read->second) : nullptr,
+					write ? std::unique_ptr<BlockStmt>(*write) : nullptr);
 			}];
 
 		device =
@@ -894,8 +1005,13 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 	rule<ptr<State>()> state;
 
+	rule<ptr<SyntheticEndpoint>()> synthetic_endpoint;
+	rule<std::pair<ptr<BlockStmt>, ptr<Expr>>()> synthetic_endpoint_read;
+
 	rule<ptr<ProgramPart>()> machine_class;
 	rule<ptr<ProgramPart>()> machine_spec;
+	rule<ptr<ProgramPart>()> behaviour_class;
+	rule<ptr<ProgramPart>()> behaviour_spec;
 	rule<ptr<ProgramPart>()> endpoint;
 	rule<ptr<ProgramPart>()> device;
 	rule<ptr<ProgramPart>()> include;

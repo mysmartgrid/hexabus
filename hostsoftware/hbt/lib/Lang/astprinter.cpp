@@ -207,7 +207,12 @@ void ASTPrinter::visit(ConditionalExpr& c)
 
 void ASTPrinter::visit(EndpointExpr& e)
 {
-	out << e.deviceId().name() << "." << e.endpointId().name();
+	unsigned count = 0;
+	for (auto& id : e.path()) {
+		if (count++)
+			out << '.';
+		out << id.name();
+	}
 }
 
 void ASTPrinter::visit(CallExpr& c)
@@ -374,11 +379,11 @@ void ASTPrinter::visit(OnSimpleBlock& o)
 {
 	indent();
 
-	out << "on ";
 	switch (o.trigger()) {
-	case OnSimpleTrigger::Entry:    out << "entry "; break;
-	case OnSimpleTrigger::Exit:     out << "exit "; break;
-	case OnSimpleTrigger::Periodic: out << "periodic "; break;
+	case OnSimpleTrigger::Entry:    out << "on entry "; break;
+	case OnSimpleTrigger::Exit:     out << "on exit "; break;
+	case OnSimpleTrigger::Periodic: out << "on periodic "; break;
+	case OnSimpleTrigger::Always:   out << "always "; break;
 	default: throw "unknown trigger";
 	}
 	out << "{";
@@ -438,7 +443,7 @@ void ASTPrinter::visit(Device& d)
 	out << boost::asio::ip::address_v6(bytes) << ") : ";
 
 	unsigned count = 0;
-	for (auto& ep : d.endpoints()) {
+	for (auto& ep : d.endpointNames()) {
 		if (count++)
 			out << ", ";
 		out << ep.name();
@@ -456,7 +461,7 @@ void ASTPrinter::printState(State& s)
 
 	for (auto& v : s.variables()) {
 		out << "\n";
-		v.accept(*this);
+		v->accept(*this);
 	}
 
 	if (s.variables().size())
@@ -469,14 +474,6 @@ void ASTPrinter::printState(State& s)
 
 	if (s.onBlocks().size())
 		out << "\n";
-
-	if (s.always()) {
-		out << "\n";
-		indent();
-		out << "always ";
-		_skipIndent = true;
-		s.always()->accept(*this);
-	}
 
 	_indent--;
 
@@ -505,12 +502,10 @@ void ASTPrinter::printMachineBody(MachineBody& m)
 	out << "\n};";
 }
 
-void ASTPrinter::visit(MachineClass& m)
+void ASTPrinter::printClassParams(std::vector<std::unique_ptr<ClassParameter>>& params)
 {
-	out << "machine class " << m.name().name() << "(";
-
 	unsigned count = 0;
-	for (auto& p : m.parameters()) {
+	for (auto& p : params) {
 		if (count++)
 			out << ", ";
 		switch (p->kind()) {
@@ -526,7 +521,12 @@ void ASTPrinter::visit(MachineClass& m)
 		}
 		out << p->name();
 	}
+}
 
+void ASTPrinter::visit(MachineClass& m)
+{
+	out << "machine class " << m.name().name() << "(";
+	printClassParams(m.parameters());
 	out << ") {";
 	printMachineBody(m);
 }
@@ -543,6 +543,86 @@ void ASTPrinter::visit(MachineInstantiation& m)
 
 	unsigned count = 0;
 	for (auto& arg : m.arguments()) {
+		if (count++)
+			out << ", ";
+		arg->accept(*this);
+	}
+
+	out << ");";
+}
+
+void ASTPrinter::printBehaviourBody(Behaviour& b)
+{
+	_indent++;
+
+	for (auto& v : b.variables()) {
+		out << "\n";
+		v->accept(*this);
+	}
+
+	if (b.variables().size())
+		out << "\n";
+
+	for (auto& ep : b.endpoints()) {
+		out << "\nendpoint " << ep->name().name() << " : ";
+		printType(ep->type(), nullptr);
+		out << " {\n";
+		_indent++;
+		if (ep->readBlock()) {
+			out << "read {";
+			_indent++;
+			for (auto& s : ep->readBlock()->statements()) {
+				out << "\n";
+				s->accept(*this);
+			}
+			out << "\n";
+			ep->readValue()->accept(*this);
+			_indent--;
+			out << "\n}";
+		}
+		if (ep->write()) {
+			out << "write ";
+			_indent++;
+			_skipIndent = true;
+			ep->write()->accept(*this);
+			_indent--;
+		}
+		_indent--;
+		out << "}";
+	}
+
+	if (b.endpoints().size())
+		out << "\n";
+
+	for (auto& o : b.onBlocks()) {
+		out << "\n";
+		o->accept(*this);
+	}
+
+	_indent--;
+	out << "\n};";
+}
+
+void ASTPrinter::visit(BehaviourClass& b)
+{
+	out << "behaviour class " << b.name().name() << "(";
+	printClassParams(b.parameters());
+	out << ") {";
+	printBehaviourBody(b);
+}
+
+void ASTPrinter::visit(BehaviourDefinition& b)
+{
+	out << "behaviour " << b.name().name() << " on " << b.device().name() << " {";
+	printBehaviourBody(b);
+}
+
+void ASTPrinter::visit(BehaviourInstantiation& b)
+{
+	out << "behaviour " << b.name().name() << " on " << b.device().name() << ": " << b.instanceOf().name() << "(";
+
+	unsigned count = 0;
+	for (auto& arg : b.arguments()) {
 		if (count++)
 			out << ", ";
 		arg->accept(*this);

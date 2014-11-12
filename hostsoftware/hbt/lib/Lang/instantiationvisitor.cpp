@@ -29,13 +29,14 @@ std::unique_ptr<OnBlock> InstantiationVisitor::clone(OnBlock& o)
 
 void InstantiationVisitor::visit(IdentifierExpr& i)
 {
-	if (cpValues.count(i.target())) {
-		_expr = clone(*cpValues.at(i.target()));
-		_expr->type(static_cast<CPValue*>(i.target())->type());
+	if (i.value()) {
+		_expr = clone(*i.value());
+	} else if (auto* decl = dynamic_cast<DeclarationStmt*>(i.target())) {
+		std::unique_ptr<IdentifierExpr> ic(new auto(i));
+		ic->target(declClones.at(decl));
+		_expr = std::move(ic);
 	} else {
-		std::unique_ptr<IdentifierExpr> c(new auto(i));
-		c->target(declClones.at(i.target()));
-		_expr = std::move(c);
+		_expr.reset(new auto(i));
 	}
 }
 
@@ -75,16 +76,7 @@ void InstantiationVisitor::visit(ConditionalExpr& c)
 
 void InstantiationVisitor::visit(EndpointExpr& e)
 {
-	auto devId = cpDevices.count(e.device()) ? cpDevices.at(e.device())->name() : e.deviceId();
-	auto epId = cpEndpoints.count(e.endpoint()) ? cpEndpoints.at(e.endpoint())->name() : e.endpointId();
-
-	auto dev = cpDevices.count(e.device()) ? cpDevices.at(e.device()) : e.device();
-	auto ep = cpEndpoints.count(e.endpoint()) ? cpEndpoints.at(e.endpoint()) : e.endpoint();
-
-	std::unique_ptr<EndpointExpr> ec(new EndpointExpr(e.sloc(), devId, epId, e.type()));
-	ec->device(dev);
-	ec->endpoint(ep);
-	_expr = std::move(ec);
+	_expr.reset(new auto(e));
 }
 
 void InstantiationVisitor::visit(CallExpr& c)
@@ -100,7 +92,9 @@ void InstantiationVisitor::visit(CallExpr& c)
 
 void InstantiationVisitor::visit(AssignStmt& a)
 {
-	_stmt.reset(new AssignStmt(a.sloc(), a.target(), clone(a.value())));
+	std::unique_ptr<AssignStmt> ac(new AssignStmt(a.sloc(), a.target(), clone(a.value())));
+	ac->targetDecl(declClones.at(a.targetDecl()));
+	_stmt = std::move(ac);
 }
 
 void InstantiationVisitor::visit(WriteStmt& w)
@@ -161,7 +155,10 @@ void InstantiationVisitor::visit(DeclarationStmt& d)
 	_stmt = std::move(dc);
 }
 
-void InstantiationVisitor::visit(GotoStmt& g) { _stmt.reset(new auto(g)); }
+void InstantiationVisitor::visit(GotoStmt& g)
+{
+	_stmt.reset(new auto(g));
+}
 
 void InstantiationVisitor::visit(OnSimpleBlock& o)
 {
@@ -187,19 +184,17 @@ void InstantiationVisitor::visit(Device&) {}
 
 State InstantiationVisitor::clone(State& s)
 {
-	std::vector<DeclarationStmt> decls;
+	std::vector<std::unique_ptr<DeclarationStmt>> decls;
 	std::vector<std::unique_ptr<OnBlock>> onBlocks;
-	std::unique_ptr<BlockStmt> always;
 
 	for (auto& decl : s.variables())
-		decls.push_back(std::move(static_cast<DeclarationStmt&>(*clone(decl))));
+		decls.emplace_back(cloneCast<DeclarationStmt>(*decl));
 	for (auto& on : s.onBlocks())
 		onBlocks.push_back(clone(*on));
 
-	if (s.always())
-		always.reset(static_cast<BlockStmt*>(clone(*s.always()).release()));
-
-	return { s.sloc(), s.name(), std::move(decls), std::move(onBlocks), std::move(always) };
+	State res(s.sloc(), s.name(), std::move(decls), std::move(onBlocks));
+	res.id(s.id());
+	return res;
 }
 
 void InstantiationVisitor::visit(MachineClass&) {}
@@ -210,38 +205,8 @@ void InstantiationVisitor::visit(MachineInstantiation& m)
 	std::vector<std::unique_ptr<DeclarationStmt>> decls;
 	std::vector<State> states;
 
-	cpValues.clear();
-	cpDevices.clear();
-	cpEndpoints.clear();
-	declClones.clear();
-
-	for (size_t i = 0; i < m.arguments().size(); i++) {
-		auto& param = *m.baseClass()->parameters()[i];
-		auto& arg = *m.arguments()[i];
-
-		switch (param.kind()) {
-		case ClassParameter::Kind::Value:
-			cpValues.insert({ &static_cast<CPValue&>(param), &arg });
-			break;
-
-		case ClassParameter::Kind::Device:
-			cpDevices.insert({
-				&static_cast<CPDevice&>(param),
-				static_cast<Device*>(scope.resolve(static_cast<IdentifierExpr&>(arg).name()))
-			});
-			break;
-
-		case ClassParameter::Kind::Endpoint:
-			cpEndpoints.insert({
-				&static_cast<CPEndpoint&>(param),
-				static_cast<Endpoint*>(scope.resolve(static_cast<IdentifierExpr&>(arg).name()))
-			});
-			break;
-		}
-	}
-
 	for (auto& decl : m.baseClass()->variables())
-		decls.emplace_back(static_cast<DeclarationStmt*>(clone(*decl).release()));
+		decls.emplace_back(cloneCast<DeclarationStmt>(*decl));
 
 	for (auto& state : m.baseClass()->states())
 		states.emplace_back(clone(state));
@@ -249,6 +214,38 @@ void InstantiationVisitor::visit(MachineInstantiation& m)
 	m.instantiation(
 		std::unique_ptr<MachineDefinition>(
 			new MachineDefinition(m.sloc(), m.name(), std::move(decls), std::move(states))));
+}
+
+void InstantiationVisitor::visit(BehaviourClass&) {}
+void InstantiationVisitor::visit(BehaviourDefinition&) {}
+
+void InstantiationVisitor::visit(BehaviourInstantiation& b)
+{
+	std::vector<std::unique_ptr<DeclarationStmt>> decls;
+	std::vector<std::unique_ptr<SyntheticEndpoint>> endpoints;
+	std::vector<std::unique_ptr<OnBlock>> onBlocks;
+
+	for (auto& decl : b.baseClass()->variables())
+		decls.emplace_back(cloneCast<DeclarationStmt>(*decl));
+
+	for (auto& ep : b.baseClass()->endpoints()) {
+		auto readBlock = ep->readBlock() ? cloneCast<BlockStmt>(*ep->readBlock()) : nullptr;
+		auto readValue = ep->readValue() ? clone(*ep->readValue()) : nullptr;
+		auto write = ep->write() ? cloneCast<BlockStmt>(*ep->write()) : nullptr;
+
+		std::unique_ptr<SyntheticEndpoint> cloned(
+			new SyntheticEndpoint(
+				ep->sloc(), ep->name(), ep->type(), std::move(readBlock), std::move(readValue), std::move(write)));
+		endpoints.emplace_back(std::move(cloned));
+	}
+
+	for (auto& on : b.baseClass()->onBlocks())
+		onBlocks.emplace_back(clone(*on));
+
+	b.instantiation(
+		std::unique_ptr<BehaviourDefinition>(
+			new BehaviourDefinition(
+				b.sloc(), b.name(), b.device(), std::move(decls), std::move(endpoints), std::move(onBlocks))));
 }
 
 void InstantiationVisitor::visit(IncludeLine&) {}

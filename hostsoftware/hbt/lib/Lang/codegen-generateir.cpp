@@ -205,6 +205,9 @@ protected:
 	virtual void visit(MachineClass&) override {}
 	virtual void visit(MachineDefinition&) override {}
 	virtual void visit(MachineInstantiation&) override {}
+	virtual void visit(BehaviourClass&) override {}
+	virtual void visit(BehaviourDefinition&) override {}
+	virtual void visit(BehaviourInstantiation&) override {}
 	virtual void visit(IncludeLine&) override {}
 	virtual void visit(TranslationUnit&) override {}
 
@@ -242,14 +245,123 @@ public:
 	const ir::Value* finalValue() { return _value; }
 };
 
+class StmtCG : public ASTVisitor {
+private:
+	CGContext& cgc;
+
+	ir::BasicBlock* _inBlock;
+
+	const ir::Value* eval(Expr& e, Type target)
+	{
+		auto val = ExprCG::run(cgc, _inBlock, e, target);
+		_inBlock = val.finalBlock();
+		return val.finalValue();
+	}
+
+	void unifyIncomingUpdates(const std::map<const Declaration*, const ir::Value*>& preForkValues,
+			const std::map<const ir::BasicBlock*, std::map<const Declaration*, const ir::Value*>>& maps)
+	{
+		std::map<const Declaration*, const ir::Value*> result;
+		std::set<const Declaration*> updatedDecls;
+
+		for (auto& map : maps)
+			for (auto& pair : map.second)
+				updatedDecls.insert(pair.first);
+
+		for (auto* decl : updatedDecls) {
+			ir::PhiInsn::sources_type sources;
+			bool valueChanged = false;
+
+			for (auto& map : maps) {
+				if (map.second.count(decl)) {
+					sources.insert({ map.first, map.second.at(decl) });
+					valueChanged |= map.second.at(decl) != preForkValues.at(decl);
+				} else {
+					sources.insert({ map.first, preForkValues.at(decl) });
+				}
+			}
+
+			if (!valueChanged)
+				continue;
+
+			auto type = dynamic_cast<const DeclarationStmt&>(*decl).type();
+			cgc.valueForDecl[decl] = _inBlock->append(
+				ir::PhiInsn(
+					cgc.newName(), irtypeFor(type), std::move(sources)));
+		}
+	}
+
+protected:
+	StmtCG(CGContext& cgc, ir::BasicBlock* block)
+		: cgc(cgc), _inBlock(block)
+	{}
+
+	virtual void visit(IdentifierExpr&) override {}
+	virtual void visit(TypedLiteral<bool>&) override {}
+	virtual void visit(TypedLiteral<uint8_t>&) override {}
+	virtual void visit(TypedLiteral<uint16_t>&) override {}
+	virtual void visit(TypedLiteral<uint32_t>&) override {}
+	virtual void visit(TypedLiteral<uint64_t>&) override {}
+	virtual void visit(TypedLiteral<int8_t>&) override {}
+	virtual void visit(TypedLiteral<int16_t>&) override {}
+	virtual void visit(TypedLiteral<int32_t>&) override {}
+	virtual void visit(TypedLiteral<int64_t>&) override {}
+	virtual void visit(TypedLiteral<float>&) override {}
+	virtual void visit(CastExpr&) override {}
+	virtual void visit(UnaryExpr&) override {}
+	virtual void visit(BinaryExpr&) override {}
+	virtual void visit(ConditionalExpr&) override {}
+	virtual void visit(EndpointExpr&) override {}
+	virtual void visit(CallExpr&) override {}
+
+	virtual void visit(AssignStmt&) override;
+	virtual void visit(WriteStmt&) override;
+	virtual void visit(IfStmt&) override;
+	virtual void visit(SwitchStmt&) override;
+	virtual void visit(BlockStmt&) override;
+	virtual void visit(DeclarationStmt&) override;
+	virtual void visit(GotoStmt&) override;
+
+	virtual void visit(OnSimpleBlock&) override {}
+	virtual void visit(OnExprBlock&) override {}
+	virtual void visit(OnUpdateBlock&) override {}
+
+	virtual void visit(Endpoint&) override {}
+	virtual void visit(Device&) override {}
+	virtual void visit(MachineClass&) override {}
+	virtual void visit(MachineDefinition&) override {}
+	virtual void visit(MachineInstantiation&) override {}
+	virtual void visit(BehaviourClass&) override {}
+	virtual void visit(BehaviourDefinition&) override {}
+	virtual void visit(BehaviourInstantiation&) override {}
+	virtual void visit(IncludeLine&) override {}
+	virtual void visit(TranslationUnit&) override {}
+
+public:
+	static StmtCG run(CGContext& cgc, ir::BasicBlock* block, Stmt& s)
+	{
+		StmtCG cg(cgc, block);
+
+		s.accept(cg);
+		return cg;
+	}
+
+	ir::BasicBlock* finalBlock() { return _inBlock; }
+	bool terminated() { return !_inBlock; }
+};
+
 void ExprCG::visit(IdentifierExpr& i)
 {
-	auto* decl = static_cast<const DeclarationStmt*>(i.target());
+	if (auto* stmt = dynamic_cast<DeclarationStmt*>(i.target())) {
+		if (cgc.memMap.has(stmt))
+			_value = _inBlock->append(ir::LoadInsn(cgc.newName(), irtypeFor(stmt->type()), cgc.memMap.addressOf(stmt)));
+		else
+			_value = cgc.valueForDecl.at(stmt);
+		return;
+	}
 
-	if (cgc.memMap.has(decl))
-		_value = _inBlock->append(ir::LoadInsn(cgc.newName(), irtypeFor(decl->type()), cgc.memMap.addressOf(decl)));
-	else
-		_value = cgc.valueForDecl.at(i.target());
+	auto& val = dynamic_cast<const SyntheticEndpoint&>(*i.target());
+	_value = cgc.valueForDecl.at(&val);
 }
 
 void ExprCG::visit(TypedLiteral<bool>& l) { loadInt<uint64_t>(l); }
@@ -423,9 +535,15 @@ void ExprCG::visit(ConditionalExpr& c)
 
 void ExprCG::visit(EndpointExpr& e)
 {
-	Endpoint* ep = static_cast<Endpoint*>(e.endpoint());
+	if (auto* ep = dynamic_cast<Endpoint*>(e.endpoint())) {
+		_value = _inBlock->append(ir::LoadSpecialInsn(cgc.newName(), irtypeFor(ep->type()), ir::SpecialVal::SourceVal));
+		return;
+	}
 
-	_value = _inBlock->append(ir::LoadSpecialInsn(cgc.newName(), irtypeFor(ep->type()), ir::SpecialVal::SourceVal));
+	auto& sep = dynamic_cast<SyntheticEndpoint&>(*e.endpoint());
+	auto stmt = StmtCG::run(cgc, _inBlock, *sep.readBlock());
+	_inBlock = stmt.finalBlock();
+	sep.readValue()->accept(*this);
 }
 
 void ExprCG::visit(CallExpr& c)
@@ -462,107 +580,7 @@ void ExprCG::visit(CallExpr& c)
 		throw CodegenCantDo("unknown builtins");
 }
 
-class StmtCG : public ASTVisitor {
-private:
-	CGContext& cgc;
 
-	ir::BasicBlock* _inBlock;
-
-	const ir::Value* eval(Expr& e, Type target)
-	{
-		auto val = ExprCG::run(cgc, _inBlock, e, target);
-		_inBlock = val.finalBlock();
-		return val.finalValue();
-	}
-
-	void unifyIncomingUpdates(const std::map<const Declaration*, const ir::Value*>& preForkValues,
-			const std::map<const ir::BasicBlock*, std::map<const Declaration*, const ir::Value*>>& maps)
-	{
-		std::map<const Declaration*, const ir::Value*> result;
-		std::set<const Declaration*> updatedDecls;
-
-		for (auto& map : maps)
-			for (auto& pair : map.second)
-				updatedDecls.insert(pair.first);
-
-		for (auto* decl : updatedDecls) {
-			ir::PhiInsn::sources_type sources;
-			bool valueChanged = false;
-
-			for (auto& map : maps) {
-				if (map.second.count(decl)) {
-					sources.insert({ map.first, map.second.at(decl) });
-					valueChanged |= map.second.at(decl) != preForkValues.at(decl);
-				} else {
-					sources.insert({ map.first, preForkValues.at(decl) });
-				}
-			}
-
-			if (!valueChanged)
-				continue;
-
-			auto type = dynamic_cast<const DeclarationStmt&>(*decl).type();
-			cgc.valueForDecl[decl] = _inBlock->append(
-				ir::PhiInsn(
-					cgc.newName(), irtypeFor(type), std::move(sources)));
-		}
-	}
-
-protected:
-	StmtCG(CGContext& cgc, ir::BasicBlock* block)
-		: cgc(cgc), _inBlock(block)
-	{}
-
-	virtual void visit(IdentifierExpr&) override {}
-	virtual void visit(TypedLiteral<bool>&) override {}
-	virtual void visit(TypedLiteral<uint8_t>&) override {}
-	virtual void visit(TypedLiteral<uint16_t>&) override {}
-	virtual void visit(TypedLiteral<uint32_t>&) override {}
-	virtual void visit(TypedLiteral<uint64_t>&) override {}
-	virtual void visit(TypedLiteral<int8_t>&) override {}
-	virtual void visit(TypedLiteral<int16_t>&) override {}
-	virtual void visit(TypedLiteral<int32_t>&) override {}
-	virtual void visit(TypedLiteral<int64_t>&) override {}
-	virtual void visit(TypedLiteral<float>&) override {}
-	virtual void visit(CastExpr&) override {}
-	virtual void visit(UnaryExpr&) override {}
-	virtual void visit(BinaryExpr&) override {}
-	virtual void visit(ConditionalExpr&) override {}
-	virtual void visit(EndpointExpr&) override {}
-	virtual void visit(CallExpr&) override {}
-
-	virtual void visit(AssignStmt&) override;
-	virtual void visit(WriteStmt&) override;
-	virtual void visit(IfStmt&) override;
-	virtual void visit(SwitchStmt&) override;
-	virtual void visit(BlockStmt&) override;
-	virtual void visit(DeclarationStmt&) override;
-	virtual void visit(GotoStmt&) override;
-
-	virtual void visit(OnSimpleBlock&) override {}
-	virtual void visit(OnExprBlock&) override {}
-	virtual void visit(OnUpdateBlock&) override {}
-
-	virtual void visit(Endpoint&) override {}
-	virtual void visit(Device&) override {}
-	virtual void visit(MachineClass&) override {}
-	virtual void visit(MachineDefinition&) override {}
-	virtual void visit(MachineInstantiation&) override {}
-	virtual void visit(IncludeLine&) override {}
-	virtual void visit(TranslationUnit&) override {}
-
-public:
-	static StmtCG run(CGContext& cgc, ir::BasicBlock* block, Stmt& s)
-	{
-		StmtCG cg(cgc, block);
-
-		s.accept(cg);
-		return cg;
-	}
-
-	ir::BasicBlock* finalBlock() { return _inBlock; }
-	bool terminated() { return !_inBlock; }
-};
 
 void StmtCG::visit(AssignStmt& a)
 {
@@ -579,10 +597,16 @@ void StmtCG::visit(WriteStmt& w)
 	if (w.target().device() != cgc.forDev)
 		return;
 
-	auto* ep = static_cast<Endpoint*>(w.target().endpoint());
+	if (auto* ep = dynamic_cast<Endpoint*>(w.target().endpoint())) {
+		auto* val = eval(w.value(), ep->type());
+		_inBlock->append(ir::WriteInsn(ep->eid(), val));
+		return;
+	}
 
-	auto* val = eval(w.value(), ep->type());
-	_inBlock->append(ir::WriteInsn(ep->eid(), val));
+	auto& sep = dynamic_cast<SyntheticEndpoint&>(*w.target().endpoint());
+	CGContext nested = cgc;
+	nested.valueForDecl[&sep] = eval(w.value(), sep.type());
+	_inBlock = StmtCG::run(nested, _inBlock, *sep.write()).finalBlock();
 }
 
 void StmtCG::visit(IfStmt& i)
@@ -706,7 +730,7 @@ void StmtCG::visit(GotoStmt& g)
 
 
 
-static MemoryMap initialMemoryMapFor(std::vector<MachineDefinition*> machines)
+static MemoryMap initialMemoryMapFor(std::vector<MachineDefinition*> machines, const Device& dev)
 {
 	MemoryMap memMap;
 
@@ -716,7 +740,12 @@ static MemoryMap initialMemoryMapFor(std::vector<MachineDefinition*> machines)
 
 		for (auto& state : machine->states())
 			for (auto& var : state.variables())
-				memMap.declare(&var);
+				memMap.declare(var.get());
+	}
+
+	for (auto& b : dev.behaviours()) {
+		for (auto& var : b->variables())
+			memMap.declare(var.get());
 	}
 
 	return memMap;
@@ -726,6 +755,62 @@ struct IRBlock {
 	ir::BasicBlock* entry;
 	ir::BasicBlock* exitStay;
 };
+
+static ir::BasicBlock* emitOnBlock(CGContext& cgc, OnSimpleBlock* on, ir::BasicBlock* block)
+{
+	return StmtCG::run(cgc, block, on->block()).finalBlock();
+}
+
+static ir::BasicBlock* emitOnBlock(CGContext& cgc, OnExprBlock* on, ir::BasicBlock* block)
+{
+	auto guard = cgc.newBlock();
+	auto content = cgc.newBlock();
+	auto next = cgc.newBlock();
+
+	auto condCG = ExprCG::run(cgc, guard, on->condition(), Type::Bool, next);
+	condCG.finalBlock()->append(ir::SwitchInsn(condCG.finalValue(), { { 1, content } }, next));
+
+	auto blockCG = StmtCG::run(cgc, content, on->block());
+
+	if (blockCG.terminated()) {
+		block->append(ir::JumpInsn(guard));
+	} else {
+		auto guardVal = block->append(ir::LoadInsn(cgc.newName(), ir::Type::Bool, cgc.memMap.guardFor(on)));
+		block->append(ir::SwitchInsn(guardVal, { { 0, guard } }, next));
+
+		auto pos = content->instructions().cbegin();
+		auto one = content->insert(pos, ir::LoadIntInsn(cgc.newName(), ir::Type::Bool, 1));
+		content->insert(pos, ir::StoreInsn(cgc.memMap.guardFor(on), one));
+
+		blockCG.finalBlock()->append(ir::JumpInsn(next));
+	}
+
+	return next;
+}
+
+static ir::BasicBlock* emitOnBlock(CGContext& cgc, OnUpdateBlock* on, ir::BasicBlock* block)
+{
+	const Device* dev = static_cast<Device*>(on->endpoint().device());
+	const Endpoint* ep = static_cast<Endpoint*>(on->endpoint().endpoint());
+
+	auto* matches = cgc.newBlock();
+	auto* cont = cgc.newBlock();
+
+	auto* cmpIP = dev == cgc.forDev
+		? block->append(ir::CompareIPInsn(cgc.newName(), 0, 16, {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}))
+		: block->append(ir::CompareIPInsn(cgc.newName(), 0, 16, dev->address()));
+	auto* eid = block->append(ir::LoadIntInsn(cgc.newName(), ir::Type::UInt32, ep->eid()));
+	auto* srcEID = block->append(ir::LoadSpecialInsn(cgc.newName(), ir::Type::UInt32, ir::SpecialVal::SourceEID));
+	auto* cmpEID = block->append(ir::ArithmeticInsn(cgc.newName(), ir::Type::Bool, ir::ArithOp::Eq, eid, srcEID));
+	auto* cmp = block->append(ir::ArithmeticInsn(cgc.newName(), ir::Type::Bool, ir::ArithOp::And, cmpIP, cmpEID));
+	block->append(ir::SwitchInsn(cmp, ir::SwitchInsn::labels_type{ { 1, matches } }, cont));
+
+	auto cg = StmtCG::run(cgc, matches, on->block());
+	if (!cg.terminated())
+		cg.finalBlock()->append(ir::JumpInsn(cont));
+
+	return cont;
+}
 
 class StateCG {
 private:
@@ -737,7 +822,7 @@ private:
 	State& _state;
 	std::string prefix;
 
-	std::vector<OnSimpleBlock*> onEntryBlocks, onExitBlocks, onPeriodicBlocks;
+	std::vector<OnSimpleBlock*> onEntryBlocks, onExitBlocks, onPeriodicBlocks, alwaysBlocks;
 	std::vector<OnExprBlock*> onExprBlocks;
 	std::vector<OnUpdateBlock*> onUpdateBlocks;
 
@@ -750,12 +835,7 @@ private:
 	template<typename Block>
 	void emitOnBlocks(IRBlock& irDesc, std::vector<Block*>& blocks, std::string id);
 
-	ir::BasicBlock* emitOnBlock(CGContext& cgc, OnSimpleBlock* on, ir::BasicBlock* block);
-	ir::BasicBlock* emitOnBlock(CGContext& cgc, OnExprBlock* on, ir::BasicBlock* block);
-	ir::BasicBlock* emitOnBlock(CGContext& cgc, OnUpdateBlock* on, ir::BasicBlock* block);
-
 	void emitOnEntry();
-	void emitAlways();
 	void emitOnExit();
 
 	void run();
@@ -795,6 +875,7 @@ void StateCG::collectOnBlocks()
 			case OnSimpleTrigger::Entry: onEntryBlocks.push_back(simple); break;
 			case OnSimpleTrigger::Exit: onExitBlocks.push_back(simple); break;
 			case OnSimpleTrigger::Periodic: onPeriodicBlocks.push_back(simple); break;
+			case OnSimpleTrigger::Always: alwaysBlocks.push_back(simple); break;
 			}
 			continue;
 		}
@@ -827,62 +908,6 @@ void StateCG::emitOnBlocks(IRBlock& irDesc, std::vector<Block*>& blocks, std::st
 	nextStatesByOrigin.insert(cgc.nextStatesByOrigin.begin(), cgc.nextStatesByOrigin.end());
 }
 
-ir::BasicBlock* StateCG::emitOnBlock(CGContext& cgc, OnSimpleBlock* on, ir::BasicBlock* block)
-{
-	return StmtCG::run(cgc, block, on->block()).finalBlock();
-}
-
-ir::BasicBlock* StateCG::emitOnBlock(CGContext& cgc, OnExprBlock* on, ir::BasicBlock* block)
-{
-	auto guard = cgc.newBlock();
-	auto content = cgc.newBlock();
-	auto next = cgc.newBlock();
-
-	auto condCG = ExprCG::run(cgc, guard, on->condition(), Type::Bool, next);
-	condCG.finalBlock()->append(ir::SwitchInsn(condCG.finalValue(), { { 1, content } }, next));
-
-	auto blockCG = StmtCG::run(cgc, content, on->block());
-
-	if (blockCG.terminated()) {
-		block->append(ir::JumpInsn(guard));
-	} else {
-		auto guardVal = block->append(ir::LoadInsn(cgc.newName(), ir::Type::Bool, cgc.memMap.guardFor(on)));
-		block->append(ir::SwitchInsn(guardVal, { { 0, guard } }, next));
-
-		auto pos = content->instructions().cbegin();
-		auto one = content->insert(pos, ir::LoadIntInsn(cgc.newName(), ir::Type::Bool, 1));
-		content->insert(pos, ir::StoreInsn(cgc.memMap.guardFor(on), one));
-
-		blockCG.finalBlock()->append(ir::JumpInsn(next));
-	}
-
-	return next;
-}
-
-ir::BasicBlock* StateCG::emitOnBlock(CGContext& cgc, OnUpdateBlock* on, ir::BasicBlock* block)
-{
-	const Device* dev = static_cast<Device*>(on->endpoint().device());
-	const Endpoint* ep = static_cast<Endpoint*>(on->endpoint().endpoint());
-
-	auto* matches = cgc.newBlock();
-	auto* cont = cgc.newBlock();
-
-	auto* cmpIP = dev == cgc.forDev
-		? block->append(ir::CompareIPInsn(cgc.newName(), 0, 16, {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}))
-		: block->append(ir::CompareIPInsn(cgc.newName(), 0, 16, dev->address()));
-	auto* eid = block->append(ir::LoadIntInsn(cgc.newName(), ir::Type::UInt32, ep->eid()));
-	auto* srcEID = block->append(ir::LoadSpecialInsn(cgc.newName(), ir::Type::UInt32, ir::SpecialVal::SourceEID));
-	auto* cmpEID = block->append(ir::ArithmeticInsn(cgc.newName(), ir::Type::Bool, ir::ArithOp::Eq, eid, srcEID));
-	auto* cmp = block->append(ir::ArithmeticInsn(cgc.newName(), ir::Type::Bool, ir::ArithOp::And, cmpIP, cmpEID));
-	block->append(ir::SwitchInsn(cmp, ir::SwitchInsn::labels_type{ { 1, matches } }, cont));
-
-	auto cg = StmtCG::run(cgc, matches, on->block());
-	if (!cg.terminated())
-		cg.finalBlock()->append(ir::JumpInsn(cont));
-
-	return cont;
-}
-
 void StateCG::emitOnEntry()
 {
 	emitOnBlocks(_onEntryIR, onEntryBlocks, "entry");
@@ -893,24 +918,10 @@ void StateCG::emitOnEntry()
 	auto stateInitHead = cgc.newBlock();
 	auto stateInit = stateInitHead;
 	for (auto& var : _state.variables())
-		stateInit = StmtCG::run(cgc, stateInit, var).finalBlock();
+		stateInit = StmtCG::run(cgc, stateInit, *var).finalBlock();
 
 	stateInit->append(ir::JumpInsn(_onEntryIR.entry));
 	_onEntryIR.entry = stateInitHead;
-}
-
-void StateCG::emitAlways()
-{
-	NameGenerator ng(prefix + ".always");
-	CGContext cgc{mb, memMap, ng, dev, exitChange};
-
-	_alwaysIR.entry = cgc.newBlock();
-	if (_state.always())
-		_alwaysIR.exitStay = StmtCG::run(cgc, _alwaysIR.entry, *_state.always()).finalBlock();
-	else
-		_alwaysIR.exitStay = _alwaysIR.entry;
-
-	nextStatesByOrigin.insert(cgc.nextStatesByOrigin.begin(), cgc.nextStatesByOrigin.end());
 }
 
 void StateCG::emitOnExit()
@@ -934,7 +945,7 @@ void StateCG::run()
 	emitOnBlocks(_onPeriodicIR, onPeriodicBlocks, "periodic");
 	emitOnBlocks(_onExprIR, onExprBlocks, "expr");
 	emitOnBlocks(_onUpdateIR, onUpdateBlocks, "update");
-	emitAlways();
+	emitOnBlocks(_alwaysIR, alwaysBlocks, "always");
 	emitOnExit();
 }
 
@@ -964,7 +975,7 @@ private:
 private:
 	MachineCG(ir::ModuleBuilder& mb, MemoryMap& memMap, const Device* dev, MachineDefinition* machine,
 			const ir::Value* isPeriodicCheck)
-		: mb(mb), memMap(memMap), dev(dev), machine(machine), prefix(machine->name().name()),
+		: mb(mb), memMap(memMap), dev(dev), machine(machine), prefix("machine." + machine->name().name()),
 		  isPeriodicCheck(isPeriodicCheck)
 	{}
 
@@ -995,13 +1006,16 @@ void MachineCG::emitOnInit()
 		_onInit.exitStay = StmtCG::run(cgc, _onInit.exitStay, *var).finalBlock();
 	if (machine->states().size())
 		for (auto& var : machine->states()[0].variables())
-			_onInit.exitStay = StmtCG::run(cgc, _onInit.exitStay, var).finalBlock();
+			_onInit.exitStay = StmtCG::run(cgc, _onInit.exitStay, *var).finalBlock();
+
+	for (auto& b : dev->behaviours()) {
+		for (auto& var : b->variables())
+			_onInit.exitStay = StmtCG::run(cgc, _onInit.exitStay, *var).finalBlock();
+	}
 }
 
 void MachineCG::emitStateGlue()
 {
-	_machineHead = mb.newBlock(prefix + ".head");
-	_machineTail = mb.newBlock(prefix + ".tail");
 	auto changeAfterExit = mb.newBlock(prefix + ".changeState2");
 
 	ir::SwitchInsn::labels_type stateLabels, stateEntryLabels, stateExitLabels;
@@ -1052,6 +1066,8 @@ void MachineCG::emitStateGlue()
 
 void MachineCG::run()
 {
+	_machineHead = mb.newBlock(prefix + ".head");
+	_machineTail = mb.newBlock(prefix + ".tail");
 	exitChange = mb.newBlock(prefix + ".changeState");
 
 	for (auto& state : machine->states())
@@ -1059,6 +1075,96 @@ void MachineCG::run()
 
 	emitOnInit();
 	emitStateGlue();
+}
+
+
+
+class BehaviourCG {
+private:
+	ir::ModuleBuilder& mb;
+	MemoryMap& memMap;
+
+	const Device* dev;
+	const ir::Value* isPeriodicCheck;
+
+	IRBlock _onInit, _onEvent;
+
+	void run();
+
+	BehaviourCG(ir::ModuleBuilder& mb, MemoryMap& memMap, const Device* dev, const ir::Value* isPeriodicCheck)
+		: mb(mb), memMap(memMap), dev(dev), isPeriodicCheck(isPeriodicCheck)
+	{}
+
+public:
+	static BehaviourCG run(ir::ModuleBuilder& mb, MemoryMap& memMap, const Device* dev, const ir::Value* isPeriodicCheck)
+	{
+		BehaviourCG cg(mb, memMap, dev, isPeriodicCheck);
+
+		cg.run();
+		return cg;
+	}
+
+	IRBlock onInit() { return _onInit; }
+	IRBlock onEvent() { return _onEvent; }
+};
+
+void BehaviourCG::run()
+{
+	NameGenerator ng("behaviour.");
+	CGContext cgc{mb, memMap, ng, dev, nullptr};
+
+	_onInit.entry = mb.newBlock("behaviour.onInit");
+	_onInit.exitStay = _onInit.entry;
+
+	_onEvent.entry = mb.newBlock("behaviour.onEvent");
+	_onEvent.exitStay = cgc.newBlock();
+
+	auto* onPacket = cgc.newBlock();
+	auto* onPeriodic = cgc.newBlock();
+	auto* always = cgc.newBlock();
+	auto* alwaysHead = always;
+
+	_onEvent.entry->append(ir::SwitchInsn(isPeriodicCheck, { {0, onPacket}, {1, onPeriodic} }, nullptr));
+
+	for (auto& b : dev->behaviours()) {
+		for (auto& var : b->variables())
+			_onInit.exitStay = StmtCG::run(cgc, _onInit.exitStay, *var).finalBlock();
+
+		for (auto& o : b->onBlocks()) {
+			if (auto* simple = dynamic_cast<OnSimpleBlock*>(o.get())) {
+				switch (simple->trigger()) {
+				case OnSimpleTrigger::Entry:
+					_onInit.exitStay = emitOnBlock(cgc, simple, _onInit.exitStay);
+					break;
+
+				case OnSimpleTrigger::Periodic:
+					onPeriodic = emitOnBlock(cgc, simple, onPeriodic);
+					break;
+
+				case OnSimpleTrigger::Always:
+					always = emitOnBlock(cgc, simple, always);
+					break;
+
+				default:
+					throw CodegenCantDo("on !(entry|periodic) in behaviours");
+				}
+				continue;
+			}
+
+			if (auto* update = dynamic_cast<OnUpdateBlock*>(o.get())) {
+				onPacket = emitOnBlock(cgc, update, onPacket);
+				continue;
+			}
+
+			auto& expr = dynamic_cast<OnExprBlock&>(*o);
+			always = emitOnBlock(cgc, &expr, always);
+		}
+	}
+
+	onPacket->append(ir::JumpInsn(alwaysHead));
+	onPeriodic->append(ir::JumpInsn(alwaysHead));
+
+	always->append(ir::JumpInsn(_onEvent.exitStay));
 }
 
 }
@@ -1071,7 +1177,7 @@ std::unique_ptr<ir::ModuleBuilder> generateIR(const Device* dev, std::set<Machin
 	});
 
 	std::unique_ptr<ir::ModuleBuilder> moduleBuilder(new ir::ModuleBuilder(0));
-	MemoryMap memMap(initialMemoryMapFor(sortedMachines));
+	MemoryMap memMap(initialMemoryMapFor(sortedMachines, *dev));
 
 	ir::BasicBlock* onInit = moduleBuilder->newBlock("onInit");
 	ir::BasicBlock* onPacket = moduleBuilder->newBlock("onPacket");
@@ -1092,6 +1198,12 @@ std::unique_ptr<ir::ModuleBuilder> generateIR(const Device* dev, std::set<Machin
 		"isPeriodicCheck",
 		ir::Type::Bool,
 		ir::PhiInsn::sources_type{ {onPacket, inPacket}, {onPeriodic, inPeriodic} }));
+
+	BehaviourCG behaviourIR = BehaviourCG::run(*moduleBuilder, memMap, dev, isPeriodicCheck);
+	onInit->append(ir::JumpInsn(behaviourIR.onInit().entry));
+	onInit = behaviourIR.onInit().exitStay;
+	onEvent->append(ir::JumpInsn(behaviourIR.onEvent().entry));
+	onEvent = behaviourIR.onEvent().exitStay;
 
 	std::vector<MachineCG> machineIR;
 	for (auto machine : sortedMachines)

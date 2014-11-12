@@ -29,7 +29,12 @@ Declaration* Scope::resolve(const std::string& name)
 
 std::pair<Declaration*, bool> Scope::insert(Declaration& decl)
 {
-	auto res = _entries.insert({ decl.identifier(), &decl });
+	return insert(decl.identifier(), decl);
+}
+
+std::pair<Declaration*, bool> Scope::insert(const std::string& name, Declaration& decl)
+{
+	auto res = _entries.insert({ name, &decl });
 	return { res.first->second, res.second };
 }
 
