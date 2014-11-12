@@ -1,4 +1,4 @@
-class c(int64 arg) {
+machine class c(int64 arg) {
 	state init {
 		always {
 			switch (1) {

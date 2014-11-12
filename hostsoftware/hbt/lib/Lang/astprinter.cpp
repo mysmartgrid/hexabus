@@ -507,7 +507,7 @@ void ASTPrinter::printMachineBody(MachineBody& m)
 
 void ASTPrinter::visit(MachineClass& m)
 {
-	out << "class " << m.name().name() << "(";
+	out << "machine class " << m.name().name() << "(";
 
 	unsigned count = 0;
 	for (auto& p : m.parameters()) {

@@ -1,4 +1,4 @@
-class c(int8 x) { //#expect: warning: unused class parameter x
+machine class c(int8 x) { //#expect: warning: unused class parameter x
 	state init {
 	}
 };

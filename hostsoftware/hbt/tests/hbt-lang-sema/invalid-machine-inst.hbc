@@ -1,4 +1,4 @@
-class c(int8 x) {
+machine class c(int8 x) {
 	state init {
 		always {
 			if (x > 0)

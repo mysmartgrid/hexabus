@@ -1,4 +1,4 @@
-class c(bool b) {
+machine class c(bool b) {
 	state x {
 		always {
 			switch (b) {

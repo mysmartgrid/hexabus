@@ -1,4 +1,4 @@
-class c(uint8 a) { //#expect: error: class c has no states
+machine class c(uint8 a) { //#expect: error: class c has no states
 	uint8 x = a;
 };
 

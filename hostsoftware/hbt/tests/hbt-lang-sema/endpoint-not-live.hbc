@@ -9,7 +9,7 @@ machine m {
 	}
 };
 
-class c(device d, endpoint e) {
+machine class c(device d, endpoint e) {
 	state s {
 		on (d.e) { //#expect: error: endpoint d.e is not live
 		           //#expect+: error: invalid implicit type conversion from int32 to bool

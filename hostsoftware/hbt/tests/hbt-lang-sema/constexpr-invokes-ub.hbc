@@ -1,4 +1,4 @@
-class c(int8 div, int8 inval) {
+machine class c(int8 div, int8 inval) {
 	state init {
 		always {
 			uint32 val = 42 + (inval != 0 ? 0 : 0);

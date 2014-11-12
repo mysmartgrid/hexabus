@@ -13,7 +13,7 @@ machine m {
 	}
 };
 
-class c (device dev, endpoint ep) {
+machine class c (device dev, endpoint ep) {
 	state init {
 		on update from D.ep { //#expect: error: use of undeclared identifier 'D'
 		}

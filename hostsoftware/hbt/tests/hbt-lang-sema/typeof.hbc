@@ -3,7 +3,7 @@ endpoint ep2(2) : bool(write, broadcast);
 
 device dev(::) : ep, ep2;
 
-class c1(typeof(dev.ep) v) {
+machine class c1(typeof(dev.ep) v) {
 	state init {
 		always {
 			dev.ep = v;
@@ -12,7 +12,7 @@ class c1(typeof(dev.ep) v) {
 };
 machine m1 : c1(true);
 
-class c2(typeof(dev.ep || true) v) { //#expect: error: endpoint ep cannot be read
+machine class c2(typeof(dev.ep || true) v) { //#expect: error: endpoint ep cannot be read
 	state init {
 		always {
 			dev.ep = v;
@@ -20,7 +20,7 @@ class c2(typeof(dev.ep || true) v) { //#expect: error: endpoint ep cannot be rea
 	}
 };
 
-class c3(typeof(dev.ep2 || true) v) {
+machine class c3(typeof(dev.ep2 || true) v) {
 	typeof(v) time1 = now(); //#expect: error: invalid implicit type conversion from int64 to bool
 	int64 time2 = false; //#expect: error: invalid implicit type conversion from bool to int64
 	                     //#expect+: error: invalid implicit type conversion from bool to int64
@@ -33,7 +33,7 @@ class c3(typeof(dev.ep2 || true) v) {
 machine m3 : c3(false); //#expect: hint: instantiated from here
                         //#expect+: hint: instantiated from here
 
-class c4(device d, endpoint e, typeof(d.e) v) {
+machine class c4(device d, endpoint e, typeof(d.e) v) {
 	state init {
 		always {
 			d.e = typeof(typeof(v)(0))(v);

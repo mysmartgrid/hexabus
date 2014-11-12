@@ -688,7 +688,8 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 		machine_class =
 			(
-				tok.word.class_
+				tok.word.machine
+				>> omit[tok.word.class_]
 				> identifier
 				> omit[tok.lparen | expected("(")]
 				> -(classParam % tok.comma)

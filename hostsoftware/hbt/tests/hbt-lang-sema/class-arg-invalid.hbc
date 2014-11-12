@@ -1,4 +1,4 @@
-class c(device dev, endpoint ep, bool v) {
+machine class c(device dev, endpoint ep, bool v) {
 	state init {
 		always {
 			dev.ep = v;

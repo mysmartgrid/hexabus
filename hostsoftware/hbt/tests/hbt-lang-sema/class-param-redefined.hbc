@@ -1,4 +1,4 @@
-class c(bool x, bool x) { //#expect: error: redefinition of class parameter x
+machine class c(bool x, bool x) { //#expect: error: redefinition of class parameter x
                           //#expect+: previously declared here
 	state init {
 		always {

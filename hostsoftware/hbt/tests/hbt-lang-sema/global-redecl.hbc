@@ -8,9 +8,9 @@ device d(::) : e; //#expect: error: redeclaration of 'd'
 device minute(::) : e; //#expect: error: redeclaration of 'minute'
 		               //#expect+: @<builtin>hint: previously declared here
 
-class c(bool x) { bool b = x; state s {} }; //#expect: previously declared here
-class c(bool x) { bool b = x; state s {} }; //#expect: error: redeclaration of 'c'
-class second(bool x) { bool b0 = x; state s{} }; //#expect: error: redeclaration of 'second'
+machine class c(bool x) { bool b = x; state s {} }; //#expect: previously declared here
+machine class c(bool x) { bool b = x; state s {} }; //#expect: error: redeclaration of 'c'
+machine class second(bool x) { bool b0 = x; state s{} }; //#expect: error: redeclaration of 'second'
 		                                         //#expect+: @<builtin>hint: previously declared here
 
 machine mdef { state s {} }; //#expect: previously declared here

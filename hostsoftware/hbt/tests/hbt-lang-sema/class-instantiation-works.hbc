@@ -3,7 +3,7 @@ endpoint ep(0) : uint8 (write);
 device d1(::1) : ep;
 device d2(::2) : ep;
 
-class c(device dev, endpoint e, uint8 a) {
+machine class c(device dev, endpoint e, uint8 a) {
 	state init {
 		always {
 			dev.e = a;
