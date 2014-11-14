@@ -53,6 +53,9 @@
 
 #define UDP_IP_BUF ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
+//TODO stats
+uint32_t pinfo_cnt = 0;
+
 static struct uip_udp_conn *udpconn;
 static struct etimer udp_unreachable_timer;
 static udp_handler_event_t state;
@@ -99,14 +102,16 @@ static float htonf(float f)
 	return fconv.f;
 }
 
-static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t* toaddr)
+static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t* toaddr, uint16_t toport)
 {
 	size_t len;
 
 	strncpy(packet->header.magic, HXB_HEADER, strlen(HXB_HEADER));
 	if((packet->header.sequence_number) == 0) {
-		packet->header.sequence_number = uip_htons(next_sequence_number(toaddr));
+		packet->header.sequence_number = get_sequence_number(toaddr, toport);
 	}
+
+	packet->header.sequence_number = uip_htons(packet->header.sequence_number);
 
 	switch ((enum hxb_packet_type) packet->header.type) {
 		case HXB_PTYPE_INFO:
@@ -278,7 +283,7 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 
 void do_udp_send(const uip_ipaddr_t* toaddr, uint16_t toport, union hxb_packet_any* packet)
 {
-	size_t len = prepare_for_send(packet, toaddr);
+	size_t len = prepare_for_send(packet, toaddr, toport);
 
 	if (len == 0) {
 		syslog(LOG_ERR, "Attempted to send invalid packet");
@@ -290,13 +295,6 @@ void do_udp_send(const uip_ipaddr_t* toaddr, uint16_t toport, union hxb_packet_a
 		return;
 	}
 
-	if (!toaddr) {
-		toaddr = &hxb_group;
-	}
-
-	if (!toport) {
-		toport = HXB_PORT;
-	}
 
 	uip_udp_packet_sendto(udpconn, packet, len, toaddr, UIP_HTONS(toport));
 }
@@ -305,6 +303,14 @@ enum hxb_error_code udp_handler_send_generated(const uip_ipaddr_t* toaddr, uint1
 {
 	enum hxb_error_code err;
 	union hxb_packet_any send_buffer;
+
+	if (!toaddr) {
+		toaddr = &hxb_group;
+	}
+
+	if (!toport) {
+		toport = HXB_PORT;
+	}
 
 	send_buffer.header.sequence_number = 0;
 	send_buffer.header.flags = HXB_FLAG_NONE;
@@ -329,6 +335,14 @@ enum hxb_error_code udp_handler_send_generated_reliable(const uip_ipaddr_t* toad
 {
 	enum hxb_error_code err;
 	union hxb_packet_any send_buffer;
+
+	if (!toaddr) {
+		toaddr = &hxb_group;
+	}
+
+	if (!toport) {
+		toport = HXB_PORT;
+	}
 
 	send_buffer.header.sequence_number = 0;
 	send_buffer.header.flags = HXB_FLAG_WANT_ACK;
@@ -717,12 +731,16 @@ void udp_handler_handle_incoming(struct hxb_queue_packet* R) {
 			break;
 		case HXB_PTYPE_PINFO:
 			if(uip_ipaddr_cmp(&(R->ip), &udp_master_addr)) {
+				syslog(LOG_DEBUG, "Broadcasts received: %lu", pinfo_cnt++);
+				ul_send_ack(&(R->ip), R->port, uip_ntohs(packet->header.sequence_number));
 				err = handle_info(packet);
 			} else {
 				err = HXB_ERR_UNEXPECTED_PACKET;
 			}
 			break;
 		case HXB_PTYPE_ACK:
+			syslog(LOG_DEBUG, "Received ACK for %u", uip_ntohs(packet->p_ack.cause_sequence_number));
+			ul_ack_received(&hxb_group, HXB_PORT, uip_ntohs(packet->p_ack.cause_sequence_number));
 			err = HXB_ERR_SUCCESS;
 			break;
 

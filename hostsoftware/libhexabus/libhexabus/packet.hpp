@@ -36,7 +36,8 @@ namespace hexabus {
 
 			enum Flags {
 				want_ack = HXB_FLAG_WANT_ACK,
-				want_ul_ack = HXB_FLAG_WANT_UL_ACK
+				want_ul_ack = HXB_FLAG_WANT_UL_ACK,
+				reliable = HXB_FLAG_RELIABLE
 			};
 
 		private:
@@ -54,6 +55,7 @@ namespace hexabus {
 
 			uint8_t type() const { return _type; }
 			uint8_t flags() const { return _flags; }
+			void setFlags(uint8_t flags) { this->_flags = flags; }
 			uint16_t sequenceNumber() const { return _sequenceNumber; }
 
 			virtual void accept(PacketVisitor& visitor) const = 0;

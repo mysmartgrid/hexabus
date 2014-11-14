@@ -48,7 +48,8 @@ enum hxb_datatype {
 enum hxb_flags {
 	HXB_FLAG_NONE       	= 0x00, // No flags set
 	HXB_FLAG_WANT_ACK   	= 0x01, // sending node requires acknowledgement
-	HXB_FLAG_WANT_UL_ACK	= 0x02, //TODO additonal flag for state machine changes?
+	HXB_FLAG_WANT_UL_ACK	= 0x02, // additonal flag for state machine changes
+	HXB_FLAG_RELIABLE			= 0x04, // packet was sent through reliability layer
 };
 
 // Error codes

@@ -13,6 +13,7 @@
 #include "state_machine.h"
 #include "endpoint_registry.h"
 #include "endpoints.h"
+#include "reliability.h"
 
 #if HEXABUS_BOOTSTRAP_DEBUG
 #include <stdio.h>
@@ -178,6 +179,8 @@ static void hexabus_bootstrap_start_processes()
 	ENDPOINT_PROPERTY_REGISTER(prop_devname_name);
 
 	process_start(&udp_handler_process, NULL);
+
+	process_start(&reliability_send_process, NULL);
 
   /* Process for periodic sending of HEXABUS data */
 #if VALUE_BROADCAST_ENABLE && VALUE_BROADCAST_AUTO_INTERVAL

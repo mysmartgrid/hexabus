@@ -83,8 +83,6 @@ namespace hexabus {
 	class Socket : public SocketBase {
 		public:
 			typedef boost::function<void (const Packet& packet, const boost::asio::ip::udp::endpoint& from, bool transmissionFailed)> on_packet_transmitted_callback_t;
-		private:
-			void configureSocket();
 
 			struct Association {
 				Association(boost::asio::io_service& io) : timeout_timer(io) {}
@@ -92,13 +90,18 @@ namespace hexabus {
 				boost::posix_time::ptime lastUpdate;
 				uint16_t seqNum;
 				uint16_t rSeqNum;
-				std::queue< std::pair <boost::shared_ptr<const Packet>, on_packet_transmitted_callback_t> > sendQueue;
+				std::queue< std::pair <boost::shared_ptr<Packet>, on_packet_transmitted_callback_t> > sendQueue;
 				uint16_t retrans_count;
 				uint16_t want_ack_for;
 				bool isUlAck;
+				uint16_t UlAckState;
 				boost::asio::deadline_timer timeout_timer;
-				std::pair<boost::shared_ptr<const Packet>, on_packet_transmitted_callback_t> currentPacket;
+				std::pair<boost::shared_ptr<Packet>, on_packet_transmitted_callback_t> currentPacket;
 			};
+
+		private:
+			void configureSocket();
+
 
 			on_packet_transmitted_callback_t transmittedPacket;
 			uint16_t retrans_limit;
@@ -142,7 +145,7 @@ namespace hexabus {
 
 			uint16_t send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest)
 			{
-				return send(packet, dest, generateSequenceNumber(dest));
+				return send(packet, dest, getSequenceNumber(dest));
 			}
 
 			void onPacketTransmitted(
@@ -151,9 +154,11 @@ namespace hexabus {
 
 			void filterAckReplys(const filter_t& filter = filtering::any());
 
-			void acknowledgePacket(const boost::asio::ip::udp::endpoint& dest, const uint16_t seqNum);
+			void upperLayerAckReceived(const boost::asio::ip::udp::endpoint& dest, const uint16_t seqNum);
+			void sendUpperLayerAck(const boost::asio::ip::udp::endpoint& dest, const uint16_t seqNum);
 
 			uint16_t generateSequenceNumber(const boost::asio::ip::udp::endpoint& target);
+			uint16_t getSequenceNumber(const boost::asio::ip::udp::endpoint& target);
 			Association& getAssociation(const boost::asio::ip::udp::endpoint& target);
 	};
 }

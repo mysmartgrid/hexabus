@@ -14,7 +14,8 @@ PROCESS_NAME(reliability_send_process);
 
 enum hxb_error_code enqueue_packet(const uip_ipaddr_t* toaddr, uint16_t toport, union hxb_packet_any* packet);
 enum hxb_error_code receive_packet(struct hxb_queue_packet* packet);
-enum hxb_error_code acknowledge_packet(const uip_ipaddr_t* toaddr, uint16_t seq_num);
+enum hxb_error_code ul_ack_received(const uip_ipaddr_t* toaddr, uint16_t port, uint16_t seq_num);
+enum hxb_error_code ul_send_ack(const uip_ipaddr_t* toaddr, uint16_t port, uint16_t seq_num);
 void reset_reliability_layer();
 
 #endif
