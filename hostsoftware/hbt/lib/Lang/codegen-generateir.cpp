@@ -524,6 +524,10 @@ void ExprCG::visit(ConditionalExpr& c)
 	condCG.finalBlock()->append(ir::SwitchInsn(condCG.finalValue(), { {1, leftEntry} }, rightEntry));
 
 	_inBlock = cgc.newBlock();
+
+	leftCG.finalBlock()->append(ir::JumpInsn(_inBlock));
+	rightCG.finalBlock()->append(ir::JumpInsn(_inBlock));
+
 	_value = _inBlock->append(
 		ir::PhiInsn(
 			cgc.newName(), irtypeFor(common),
