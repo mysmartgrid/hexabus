@@ -344,7 +344,19 @@ int Driver::runIRGen(TranslationUnit& tu)
 
 		auto irb = generateIR(machine.first, machine.second);
 
-		deviceModules.emplace(machine.first, irb->finish());
+		std::string verifierMsg;
+		auto irm = irb->finish(&verifierMsg);
+
+		if (!irm) {
+			std::cerr
+				<< "MODULE FAILED VERIFICATION\n\n"
+				<< verifierMsg
+				<< "\n\nModule text:\n\n"
+				<< hbt::ir::prettyPrint(*irb) << '\n';
+			return 1;
+		}
+
+		deviceModules.emplace(machine.first, std::move(irm));
 	}
 
 	return 0;
