@@ -123,14 +123,8 @@ void SolarCalculator::visit(const hexabus::EndpointInfoPacket& endpointInfo)
       case hexabus::HXB_DTYPE_UINT32:
         std::cout << "UInt32";
         break;
-      case hexabus::HXB_DTYPE_DATETIME:
-        std::cout << "Datetime";
-        break;
       case hexabus::HXB_DTYPE_FLOAT:
         std::cout << "Float";
-        break;
-      case hexabus::HXB_DTYPE_TIMESTAMP:
-        std::cout << "Timestamp";
         break;
       case hexabus::HXB_DTYPE_128STRING:
         std::cout << "String";

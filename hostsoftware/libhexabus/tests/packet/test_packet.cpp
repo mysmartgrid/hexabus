@@ -31,9 +31,9 @@ BOOST_AUTO_TEST_CASE ( check_write_uint8_packet_generation ) {
 		0x04,               // Packet Type: Write
 		0x00,               // Flags: None
 		0, 0, 0, 23,        // Endpoint ID: 23
-		0x02,               // Datatype: Uint8
+		0x01,               // Datatype: Uint8
 		42,                 // Value: 42
-		0xb1, 0x43          // CRC
+		0x9b, 0x2b          // CRC
 	};
 
 	hexabus::WritePacket<uint8_t> p(23, 42, 0);
@@ -59,9 +59,9 @@ BOOST_AUTO_TEST_CASE ( check_write_bool_packet_generation ) {
 		0x04,               // Packet Type: Write
 		0x00,               // Flags: None
 		0, 0, 0, 23,        // Endpoint ID: 23
-		0x01,               // Datatype: Boolean
+		0x00,               // Datatype: Boolean
 		0x01,               // Value: true
-		0x04, 0xfa          // CRC
+		0x1d, 0x22          // CRC
 	};
 
 	hexabus::WritePacket<bool> p(23, true, 0);
@@ -115,9 +115,9 @@ BOOST_AUTO_TEST_CASE ( check_write_float_packet_generation ) {
 		0x04,               // Packet Type: Write
 		0x00,               // Flags: None
 		0, 0, 0, 42,        // Endpoint ID: 42
-		0x05,               // Datatype: Uint32
+		0x09,               // Datatype: Uint32
 		0x41, 0xbb, 0x5c, 0x29, // Value 23.42
-		0x34, 0xf6          // CRC
+		0x43, 0xc6          // CRC
 	};
 
 	hexabus::WritePacket<float> p(42, 23.42, 0);
