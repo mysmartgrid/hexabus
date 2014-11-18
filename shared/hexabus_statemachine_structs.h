@@ -3,6 +3,10 @@
 
 #include "hexabus_types.h"
 
+#ifdef __cplusplus
+namespace hexabus {
+#endif
+
 // these structs implement a simple table layout
 
 // op for datetime: bits 0..6 denote dependency on hour, minute, second, ...; bit 7 sets whether to check for >= or <.
@@ -41,6 +45,10 @@ struct transition {
 #define TRUE_COND_INDEX 255
 
 #define EE_STATEMACHINE_CHUNK_SIZE 64
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

@@ -15,7 +15,7 @@ using namespace boost::network;
 
 bool is_info(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint&)
 {
-	return packet.type() == HXB_PTYPE_INFO;
+	return packet.type() == hexabus::HXB_PTYPE_INFO;
 }
 
 int main (int argc, char const* argv[]) {

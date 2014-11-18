@@ -40,6 +40,7 @@ if(CMAKE_TOOLCHAIN_FILE)
   list(APPEND CMAKE_FIND_ROOT_PATH ${LIBKLIO_HOME})
 endif()
 
+include ( ProjectInfo )
 include ( CompilerFlags )
 include (UseCodeCoverage)
 
@@ -85,6 +86,11 @@ if( LIBKLIO_FOUND )
     include(FindGnutls)
   endif(WIN32)
 endif( LIBKLIO_FOUND )
+
+configure_file("../../shared/hexabus_types.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" @COPY_ONLY)
+configure_file("../../shared/hexabus_statemachine_structs.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" @COPY_ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" DESTINATION include/libhexabus)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" DESTINATION include/libhexabus)
 
 # Reflect the package structure
 add_subdirectory(libhexabus)

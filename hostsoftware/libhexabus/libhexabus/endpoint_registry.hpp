@@ -8,7 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 
-#include "../../../shared/hexabus_types.h"
+#include <libhexabus/hexabus_types.h>
 
 namespace hexabus {
 
