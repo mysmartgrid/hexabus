@@ -367,21 +367,33 @@ enum Command {
 	C_DEVINFO
 };
 
+
+inline std::string shortDatatypeName(hxb_datatype type)
+{
+	switch (type) {
+		case HXB_DTYPE_BOOL: return "b";
+		case HXB_DTYPE_UINT8: return "u8";
+		case HXB_DTYPE_UINT16: return "u16";
+		case HXB_DTYPE_UINT32: return "u32";
+		case HXB_DTYPE_UINT64: return "u65";
+		case HXB_DTYPE_SINT8: return "s8";
+		case HXB_DTYPE_SINT16: return "s16";
+		case HXB_DTYPE_SINT32: return "s32";
+		case HXB_DTYPE_SINT64: return "s64";
+		case HXB_DTYPE_FLOAT: return "f";
+		case HXB_DTYPE_128STRING: return "s";
+		default: return "(unknown)";
+	}
+}
+
 int dtypeStrToDType(const std::string& s)
 {
-	return
-		s == "u8" ? HXB_DTYPE_UINT8 :
-		s == "u16" ? HXB_DTYPE_UINT16 :
-		s == "u32" ? HXB_DTYPE_UINT32 :
-		s == "u64" ? HXB_DTYPE_UINT64 :
-		s == "s8" ? HXB_DTYPE_SINT8 :
-		s == "s16" ? HXB_DTYPE_SINT16 :
-		s == "s32" ? HXB_DTYPE_SINT32 :
-		s == "s64" ? HXB_DTYPE_SINT64 :
-		s == "b" ? HXB_DTYPE_BOOL :
-		s == "f" ? HXB_DTYPE_FLOAT :
-		s == "s" ? HXB_DTYPE_128STRING :
-		-1;
+	for(hxb_datatype  type = HXB_DTYPE_BOOL; type <= HXB_DTYPE_128STRING; type = hxb_datatype(type + 1)) {
+		if(shortDatatypeName(type) == s || datatypeName(type) == s) {
+			return type;
+		}
+	}
+	return -1;
 }
 
 int main(int argc, char** argv) {
@@ -397,7 +409,7 @@ int main(int argc, char** argv) {
     ("bind,b", po::value<std::string>(), "local IP address to use")
     ("interface,I", po::value<std::vector<std::string> >(), "for listen: interface to listen on. otherwise: outgoing interface for multicasts")
     ("eid,e", po::value<uint32_t>(), "Endpoint ID (EID)")
-    ("datatype,d", po::value<std::string>(), "{u8|u16|u32|u64|s8|s16|s32|s64|f(loat)|s(tring)|b(ool)}")
+    ("datatype,d", po::value<std::string>(), "{u8|UInt8|u16|UInt16|u32|UInt32|u64|UInt64|s8|Int8|s16|Int16|s32|Int32|s64|Int64|f|Float|s|String|b|Bool}")
     ("value,v", po::value<std::string>(), "Value")
     ("reliable,r", po::bool_switch(), "Reliable initialization of network access (adds delay, only needed for broadcasts)")
     ("oneline", po::bool_switch(), "Print each receive packet on one line")
