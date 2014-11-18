@@ -19,7 +19,7 @@
 		</li>
 	</ul>
 	<div class="tab-content">
-		<h2 class="text-center" data-localize="dashboard.all-sensors" id="view-name">All sensors</h2>
+		<h2 class="text-center"  id="view-name">{{current_view.name}}</h2>
 		<div class="alert alert-danger" role="alert" data-ng-show="errorMessage != ''">
 			<button type="button" data-ng-click="errorMessage = ''" class="close">&times;</button>
 			{{ errorMessage }}
