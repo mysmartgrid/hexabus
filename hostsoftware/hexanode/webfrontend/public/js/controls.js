@@ -415,7 +415,7 @@ angular.module('controls', [
 				'</div>' +
 				'<div data-ng-switch-when="actor">' +
 					'<div data-ng-switch="endpoint.type">' +
-						'<div data-ng-switch-when="1">' +
+						'<div data-ng-switch-when="Bool">' +
 							'<div data-vis-bool-switch="vis-bool-switch" ' +
 								'data-endpoint="endpoint" ' +
 								'data-enable-edit="enableEdit" ' +

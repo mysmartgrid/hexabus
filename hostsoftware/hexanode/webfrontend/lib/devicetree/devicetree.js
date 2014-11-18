@@ -63,12 +63,13 @@ var moduleWrapper = function(globalScope) {
 	 * Constructor for objects representing a hexabus device
 	 *
 	 * This Constructor can be used in two ways
-	 *	1. new Device(ip, name, emitter, rest)
+	 *	1. new Device(ip, name, sm_name, emitter, rest)
 	 *  2. new Device(jsonRepresentation)
 	 *
 	 * Members:
 	 * ip 					ipv6 address of the device
-	 * name 				name of the device (a provided by hexinfo)
+	 * name 				name of the device (as provided by hexinfo)
+	 * sm_name				unique device name (as provided by hexinfo)
 	 * endpoints			list of endpoints for this device (see Endpoint constructor)
 	 * last_update			unix timestamp of the last time update() was called
 	 * age					time in seconds since last_update
@@ -79,7 +80,7 @@ var moduleWrapper = function(globalScope) {
 	 *						May also be called externally e.g. if hexinfo has seen the device.
 	 * forEachEndpoint(cb)	Calls cb(endpoint) for each endpoint of the device
 	 */
-	var Device = function(ip, name, emitter, last_update) {
+	var Device = function(ip, name, sm_name, emitter, last_update) {
 		var endpoints = {};
 
 		/*
@@ -195,6 +196,10 @@ var moduleWrapper = function(globalScope) {
 					emitter.emit('device_renamed', this);
 				})
 			},
+			'sm_name': {
+				enumerable: true,
+				get: function() { return sm_name; }
+			},
 			'endpoints': {
 				value: endpoints,
 				enumerable: true
@@ -212,6 +217,7 @@ var moduleWrapper = function(globalScope) {
 			return {
 				'ip': ip,
 				'name': name,
+				'sm_name' : sm_name,
 				'last_update': last_update,
 				'endpoints': endpoints
 			};
@@ -238,6 +244,7 @@ var moduleWrapper = function(globalScope) {
 
 			ip = obj.dev.ip;
 			name = obj.dev.name;
+			sm_name = obj.dev.sm_name;
 			last_update = obj.dev.last_update;
 
 			for (var ep_id in obj.dev.endpoints) {
@@ -256,6 +263,9 @@ var moduleWrapper = function(globalScope) {
 			throw "Required parameter: ip";
 		if (name === undefined)
 			throw "Required parameter: name";
+		if (sm_name === undefined)
+			throw "Required parameter: sm_name";
+
 	};
 
 
@@ -367,12 +377,12 @@ var moduleWrapper = function(globalScope) {
 			},
 			'timeout': {
 				get: function() {
-					return this.age > 60;
+					return this.age > 600;
 				}
 			}
 		});
 
-		var endpointKeys = ["type", "description", "function"];
+		var endpointKeys = ["sm_name", "type", "description", "function"];
 		var functionKeys = {
 			'sensor': {
 				'minvalue': {
@@ -438,6 +448,11 @@ var moduleWrapper = function(globalScope) {
 					params.maxvalue = 35;
 					break;
 
+				case 4: //internal button
+					params.minvalue = 0;
+					params.maxvalue = 1;
+					break;
+
 				case 5: // humidity sensor
 					params.minvalue = 0;
 					params.maxvalue = 100;
@@ -473,13 +488,15 @@ var moduleWrapper = function(globalScope) {
 
 		if (eid === undefined)
 			throw "Required parameter: eid";
-		eid = parseInt(eid);
-		if (isNaN(eid))
-			throw "Invalid: eid. Expected: int";
 
-		if(typeof params.type != "number") {
+		eid = parseInt(eid);
+		if (isNaN(eid)) {
+			throw "Invalid: eid. Expected: int";
+		}
+
+		if(typeof params.type != "string") {
 			console.trace("Field type is:" + params.type);
-			throw "Field type is supposed to be a number.";
+			throw "Field type is supposed to be a string.";
 		}
 
 		setMinMaxValues();
@@ -579,6 +596,7 @@ var moduleWrapper = function(globalScope) {
 						var newDevice = update.devices[ip];
 						devices[ip] = new Device(ip,
 												newDevice.name,
+												newDevice.sm_name,
 												this,
 												newDevice.last_update);
 					}
@@ -644,12 +662,12 @@ var moduleWrapper = function(globalScope) {
 			this.propagateDeletion(deletion);
 		};
 
-		this.addDevice = onServer(function(ip, name) {
+		this.addDevice = onServer(function(ip, name, sm_name) {
 			if(devices[ip] !== undefined) {
 				throw "Device does already exist";
 			}
 
-			var device = new Device(ip, name, this);
+			var device = new Device(ip, name, sm_name, this);
 			devices[ip] = device;
 
 			device.propagateUpdate();
@@ -796,7 +814,6 @@ if(typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
 }
 else {
 	/* jshint -W040 */
-	//this.DeviceTree = {};
 	moduleWrapper(this);
 	/* jshint +W040 */
 	console.log('Sucessfully initialized the devicetree module');

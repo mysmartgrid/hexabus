@@ -74,6 +74,7 @@ var enumerate_network = function() {
 enumerate_network();
 setInterval(enumerate_network, 60 * 60 * 1000);
 
+hexabus.updateEndpointValues(devicetree);
 
 // Setup timer to regularily save the devictree to disk (just in case)
 var save_devicetree = function(cb) {
@@ -118,7 +119,6 @@ app.configure(function () {
 /*
  * Initialize the different controllers.
  */
-ApiController.expressSetup(app, nconf, hexabus, devicetree);
 WizardController.expressSetup(app, nconf, hexabus, devicetree);
 ViewsController.expressSetup(app, nconf, hexabus, devicetree);
 StatemachineController.expressSetup(app, nconf, hexabus, devicetree);

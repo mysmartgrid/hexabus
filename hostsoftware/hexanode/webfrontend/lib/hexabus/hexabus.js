@@ -7,6 +7,8 @@ var fs = require('fs');
 var nconf = require('nconf');
 var async = require('async');
 var ejs = require('ejs');
+var es = require('event-stream');
+var net = require('net');
 
 var hexabus = function() {
 	this.rename_device = function(addr, newName, cb) {
@@ -99,16 +101,18 @@ var hexabus = function() {
 		});
 	};
 
+	var hexinfo_lock = false;
+
 	this.enumerate_network = function(deviceCb) {
 		deviceCb = deviceCb || Object;
 		
 		var enumerateInterface = function(iface, cb) {
-			exec("hexinfo --discover --interface " + iface + " --json --devfile -", function(error, stdout, stderr) {
+			exec("hexinfo --discover --interface " + iface + " --json -", function(error, stdout, stderr) {
 				if (error) {
 					cb({ error: error });
 				} else {
 					var devices = JSON.parse(stdout).devices;
-					console.log('Hexinfo:');
+					console.log('Hexinfo ' +iface + ':');
 					console.log(devices);
 					devices.forEach(function(dev) {
 						deviceCb({ device: dev });
@@ -117,39 +121,54 @@ var hexabus = function() {
 				}
 			});
 		};
+
+		if(hexinfo_lock) {
+			deviceCb({'error' : 'Hexinfo is already running, try agaian later ...'});
+		}
 		
+		hexinfo_lock = true;
+
 		var interfaces = (nconf.get("debug-hxb-ifaces") || "eth0,usb0").split(",");
 		async.each(interfaces, enumerateInterface, function(error) {
 			if(error !== undefined) {
-				deviceCb(error);
+				hexinfo_lock = false;
+				deviceCb({'error' : error});
 			}
 			else {
+				hexinfo_lock = false;
 				deviceCb({'done' : true});
 			}
 		});
 	};
 
-	this.is_ignored_endpoint = function(ip, eid) {
+	this.is_ignored_endpoint = function(eid) {
 		return eid >= 7 && eid <= 12;
 	};
 
 	this.update_devicetree = function(devicetree, cb) {
 		this.enumerate_network(function(dev) {
-			if (dev.done) {
+			if (dev.done !== undefined) {
 				cb();
-			} else if (dev.error) {
+			} else if (dev.error !== undefined) {
 				console.log(dev.error);
 				cb(dev.error);
 			} else {
 				dev = dev.device;
-				for (var key in dev.endpoints) {
-					var ep = dev.endpoints[key];
-					ep.name = ep.name || dev.name;
-					if ((!devicetree.devices[dev.ip] || !devicetree.devices[dev.ip].endpoints[ep.eid]) && !this.is_ignored_endpoint(dev.ip, ep.eid)) {
-						devicetree.add_endpoint(dev.ip, ep.eid, ep);
+
+				//Create the device if it does not exist
+				if(devicetree.devices[dev.ip] === undefined) {
+					devicetree.addDevice(dev.ip, dev.name, dev.sm_name);
+				}
+				else {
+					if(devicetree.devices[dev.ip].name !== dev.name) {
+						devicetree.devices[dev.ip].name = dev.name;
 					}
-					else if(devicetree.devices[dev.ip] && devicetree.devices[dev.ip].endpoints[ep.eid] && !this.is_ignored_endpoint(dev.ip, ep.eid)) {
-						devicetree.devices[dev.ip].endpoints[ep.eid].update();
+				}
+
+				for(var index in dev.endpoints) {
+					var ep = dev.endpoints[index];
+					if(devicetree.devices[dev.ip].endpoints[ep.eid] === undefined) {
+						devicetree.devices[dev.ip].addEndpoint(ep.eid, ep); 
 					}
 				}
 			}
@@ -172,6 +191,60 @@ var hexabus = function() {
 		exec(command, function(error, stdout, stderr) {
 			cb(error);
 		});
+	};
+
+	this.listen = function(iface, cb) {
+		var hexaswitchServer = net.createServer(function(connection) {
+			connection
+			.pipe(es.split())
+			.pipe(es.map(function(packet, mapCb) {
+				try {
+					var json = JSON.parse(packet);
+					cb(json);
+				}
+				catch(ex) {
+					console.log('Exception while parsing json: ' + ex);
+					console.log(ex.stack);
+				}
+				mapCb();
+			}));
+		});
+
+		if(fs.existsSync('/tmp/hexaswitch.sock')) {
+			fs.unlinkSync('/tmp/hexaswitch.sock');
+		}
+
+		hexaswitchServer.listen('/tmp/hexaswitch.sock', function() {
+			process.on('exit', function() {
+				console.log('Closing socket');
+				hexaswitchServer.close();
+			});
+		});
+
+	};
+
+	this.updateEndpointValues = function(devicetree) {
+
+		this.listen('usb0', function(packet) {
+			//console.log(packet);
+			if(packet.type == 'Info') {
+				if(devicetree.devices[packet.from] === undefined ||
+					devicetree.devices[packet.from].endpoints[packet.eid] === undefined) {
+
+					console.log('Unknown device or endpoint:' + packet.from + ' ' + packet.eid);
+
+					this.update_devicetree(devicetree,function(error) {
+						if(error !== undefined) {
+							console.log(error);
+							console.log('Could not update device tree ...');
+						}
+					});
+				}
+				else {
+					devicetree.devices[packet.from].endpoints[packet.eid].last_value = packet.value;
+				}
+			}
+		}.bind(this));
 	};
 };
 
