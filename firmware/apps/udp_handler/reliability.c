@@ -229,9 +229,7 @@ static void run_send_state_machine(uint8_t rs) {
 				syslog(LOG_WARN, "Resetting...");
 				rstates[rs].reset_cnt++;
 				process_post(PROCESS_BROADCAST, udp_handler_event, UDP_HANDLER_UP);
-				sm_restart();
 				fail = 0;
-				reset_reliability_layer();
 				rstates[rs].send_state = SINIT;
 			}
 			break;
