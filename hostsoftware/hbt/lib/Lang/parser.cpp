@@ -1165,8 +1165,7 @@ std::list<std::unique_ptr<ProgramPart>> Parser::parseFile(const FileData& fileDa
 		if (!inc)
 			continue;
 
-		++it;
-		parsed.splice(it, parseRecursive(*inc, &boost::filesystem::path(fileData.fullPath).parent_path().native()));
+		parsed.splice(std::next(it), parseRecursive(*inc, &boost::filesystem::path(fileData.fullPath).parent_path().native()));
 	}
 
 	return parsed;
