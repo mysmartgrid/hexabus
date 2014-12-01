@@ -72,7 +72,7 @@ if( LIBKLIO_FOUND )
   add_definitions ("-DBOOST_FILESYSTEM_VERSION=3")
 
   # libjson
-  include(FindJson)
+  include(FindJsonCpp)
   if( NOT JSON_FOUND)
     message(FATAL_ERROR "libjson ist required. Install json or call cmake -DJSON_HOME=path_to_json_install")
   endif( NOT JSON_FOUND)
