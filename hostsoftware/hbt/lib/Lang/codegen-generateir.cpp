@@ -1040,7 +1040,9 @@ void MachineCG::emitStateGlue()
 		state.onPeriodicIR().exitStay->append(ir::JumpInsn(state.onExprIR().entry));
 		state.onExprIR().exitStay->append(ir::JumpInsn(state.alwaysIR().entry));
 		state.onUpdateIR().exitStay->append(ir::JumpInsn(state.alwaysIR().entry));
-		state.alwaysIR().exitStay->append(ir::JumpInsn(_machineTail));
+		//state.alwaysIR().exitStay == nullptr means all paths contain a goto to a new state
+		if(state.alwaysIR().exitStay != nullptr)
+			state.alwaysIR().exitStay->append(ir::JumpInsn(_machineTail));
 
 		stateEntryLabels.insert({ state.state().id(), state.onEntryIR().entry });
 		stateExitLabels.insert({ state.state().id(), state.onExitIR().entry });
