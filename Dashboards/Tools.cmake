@@ -178,3 +178,41 @@ function(ctest_push_files packageDir distFile)
     )
 endfunction(ctest_push_files)
 
+function(check_Boost BOOST_VERSION BOOST_LIB_VERSION)
+  message("======> check Boost:  <===")
+  #//string(REGEX REPLACE "[ /:\\.]" "_" _tmpDir ${_CTEST_VCS_REPOSITORY})
+  #//set(_tmpDir "${_CTEST_DASHBOARD_DIR}/tmp/${_tmpDir}")
+  set(_tmpDir ${BUILD_TMP_DIR}/blah)
+  file (MAKE_DIRECTORY "${_tmpDir}")
+  set(_cmakefile ${_tmpDir}/CMakeLists.txt)
+  file(WRITE ${_cmakefile}
+    "project(testboost)
+cmake_minimum_required(VERSION \"2.6\" FATAL_ERROR)
+
+set(CMAKE_MODULE_PATH ${_currentDir}/../modules ${CMAKE_SOURCE_DIR}/../cmake_modules ${CMAKE_MODULE_PATH})
+set(Boost_USE_STATIC_LIBS ON)
+set(Boost_DETAILED_FAILURE_MSG true)
+find_package(Boost 1.46.1 COMPONENTS thread)
+"
+    )
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} .
+    WORKING_DIRECTORY ${_tmpDir}
+    RESULT_VARIABLE INSTALL_ERRORS
+    )
+  file(READ "${_tmpDir}/CMakeCache.txt" _data )
+  string(REGEX MATCH "Boost_LIB_VERSION:INTERNAL=[0-9_]+" _dummy ${_data})
+
+  if( "x${_dummy}" STREQUAL "x")
+    set(${BOOST_LIB_VERSION} "0_00" PARENT_SCOPE)
+    set(${BOOST_VERSION} "000000" PARENT_SCOPE)
+  else()
+    string(REGEX MATCH "Boost_LIB_VERSION:INTERNAL=[0-9_]+" _dummy ${_data})
+    string(REGEX REPLACE "Boost_LIB_VERSION:INTERNAL=(.*)" "\\1" _BOOST_LIB_VERSION ${_dummy})
+    string(REGEX MATCH "Boost_VERSION:INTERNAL=[0-9_]+" _dummy ${_data})
+    string(REGEX REPLACE "Boost_VERSION:INTERNAL=(.*)" "\\1" _BOOST_VERSION ${_dummy})
+    set(${BOOST_LIB_VERSION} ${_BOOST_LIB_VERSION} PARENT_SCOPE)
+    set(${BOOST_VERSION} ${_BOOST_VERSION} PARENT_SCOPE)
+  endif()
+
+endfunction()
