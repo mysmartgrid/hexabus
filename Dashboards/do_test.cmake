@@ -132,7 +132,7 @@ set (CTEST_INSTALL_DIRECTORY "${CTEST_BASE_DIRECTORY}/install-${CTEST_BUILD_NAME
 if (${TESTING_MODEL} STREQUAL "Nightly")
   set (CMAKE_BUILD_TYPE "Release")
 elseif (${TESTING_MODEL} STREQUAL "Continuous")
-  set (CMAKE_BUILD_TYPE "Release")
+  set (CMAKE_BUILD_TYPE "Debug")
 elseif (${TESTING_MODEL} STREQUAL "Coverage")
   set (CMAKE_BUILD_TYPE "Profile")
   set (ENABLE_CODECOVERAGE 1)
@@ -155,6 +155,7 @@ list(APPEND CTEST_PROJECT_SUBPROJECTS "libhexabus")
 #endforeach()
 list(APPEND CTEST_PROJECT_SUBPROJECTS "hba")
 list(APPEND CTEST_PROJECT_SUBPROJECTS "hbc")
+list(APPEND CTEST_PROJECT_SUBPROJECTS "hbt")
 list(APPEND CTEST_PROJECT_SUBPROJECTS "hexinfo")
 list(APPEND CTEST_PROJECT_SUBPROJECTS "network-autoconfig")
 list(APPEND CTEST_PROJECT_SUBPROJECTS "hexanode")
@@ -204,12 +205,15 @@ if( NOT CMAKE_TOOLCHAIN_FILE )
   set_if_exists (CPPNETLIB_HOME ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION}/)
   set_if_exists (GRAPHVIZ_HOME ${EXTERNAL_SOFTWARE}/graphviz/2.24)
   set_if_exists (ALSA_HOME ${EXTERNAL_SOFTWARE}/alsa/1.0.25)
+  set_if_exists (SQLITE3_HOME ${EXTERNAL_SOFTWARE}/sqlite/3.8.5)
 else()
   message("=== Cross env Name: ${CrossName}")
   set_if_exists (EXTERNAL_SOFTWARE "${_baseDir}/opt")
   set_if_exists (BOOST_ROOT ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION})
   set_if_exists (ALSA_HOME ${_baseDir}/usr)
+  set_if_exists (CLN_HOME ${_baseDir}/usr)
   set_if_exists (CPPNETLIB_HOME ${EXTERNAL_SOFTWARE}/cpp-netlib_boost/${BOOST_VERSION}/)
+  set_if_exists (SQLITE3_HOME ${EXTERNAL_SOFTWARE}/sqlite/3.8.5)
 
 endif()
 set_if_exists (LIBKLIO_HOME "${BUILD_TMP_DIR}/libklio/${TESTING_MODEL}/install-${CTEST_BUILD_NAME}")
@@ -269,6 +273,7 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
 
   set_if_exists (HXB_HOME ${CTEST_INSTALL_DIRECTORY})
   set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY})
+  set_if_exists (HBT_HOME ${CTEST_INSTALL_DIRECTORY})
   if(${subproject} STREQUAL "hexanode")
     set(CTEST_SUBPROJECT_SOURCE_DIR  ${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject}/backend )
   else()
@@ -302,11 +307,14 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
       LIBKLIO_HOME
       HXB_HOME
       HBC_HOME
+      HBT_HOME
       CPPNETLIB_HOME 
       ALSA_HOME 
+      CLN_HOME 
 
       BOOST_ROOT
       GRAPHVIZ_HOME
+      SQLITE3_HOME
 
       )
     if (DEFINED ${VARIABLE_NAME})
