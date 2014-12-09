@@ -947,8 +947,8 @@ void StateCG::run()
 	collectOnBlocks();
 	emitOnEntry();
 	emitOnBlocks(_onPeriodicIR, onPeriodicBlocks, "periodic");
-	emitOnBlocks(_onExprIR, onExprBlocks, "expr");
 	emitOnBlocks(_onUpdateIR, onUpdateBlocks, "update");
+	emitOnBlocks(_onExprIR, onExprBlocks, "expr");
 	emitOnBlocks(_alwaysIR, alwaysBlocks, "always");
 	emitOnExit();
 }
@@ -1037,11 +1037,19 @@ void MachineCG::emitStateGlue()
 			},
 			nullptr));
 
-		state.onPeriodicIR().exitStay->append(ir::JumpInsn(state.onExprIR().entry));
+		// exitStay is nullptr means all paths contain a goto to a new state => all blocks are terminated
+		if (state.onPeriodicIR().exitStay)
+			state.onPeriodicIR().exitStay->append(ir::JumpInsn(state.onExprIR().entry));
+
+		// Can not be terminated by a goto, since update blocks are checked for each incoming
+		// packet and the exitStay jump is taken if no update block matches the packet
+		state.onUpdateIR().exitStay->append(ir::JumpInsn(state.onExprIR().entry));
+
+		// Some as updateIR
 		state.onExprIR().exitStay->append(ir::JumpInsn(state.alwaysIR().entry));
-		state.onUpdateIR().exitStay->append(ir::JumpInsn(state.alwaysIR().entry));
-		//state.alwaysIR().exitStay == nullptr means all paths contain a goto to a new state
-		if(state.alwaysIR().exitStay != nullptr)
+
+		// same as onPeriodicIR
+		if (state.alwaysIR().exitStay)
 			state.alwaysIR().exitStay->append(ir::JumpInsn(_machineTail));
 
 		stateEntryLabels.insert({ state.state().id(), state.onEntryIR().entry });

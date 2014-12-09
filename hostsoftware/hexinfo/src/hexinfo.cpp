@@ -367,18 +367,18 @@ static bool fileExists(const std::string& path)
 
 
 static bool hasHbtType(hexabus::hxb_datatype type) {
-	switch(type) {
-		case hexabus::HXB_DTYPE_BOOL:
-		case hexabus::HXB_DTYPE_UINT8:
-		case hexabus::HXB_DTYPE_UINT16:
-		case hexabus::HXB_DTYPE_UINT32:
-		case hexabus::HXB_DTYPE_UINT64:
-		case hexabus::HXB_DTYPE_SINT8:
-		case hexabus::HXB_DTYPE_SINT16:
-		case hexabus::HXB_DTYPE_SINT32:
-		case hexabus::HXB_DTYPE_SINT64:
-		case hexabus::HXB_DTYPE_FLOAT: return true; break;
-		default: return false;
+	switch (type) {
+	case hexabus::HXB_DTYPE_BOOL:
+	case hexabus::HXB_DTYPE_UINT8:
+	case hexabus::HXB_DTYPE_UINT16:
+	case hexabus::HXB_DTYPE_UINT32:
+	case hexabus::HXB_DTYPE_UINT64:
+	case hexabus::HXB_DTYPE_SINT8:
+	case hexabus::HXB_DTYPE_SINT16:
+	case hexabus::HXB_DTYPE_SINT32:
+	case hexabus::HXB_DTYPE_SINT64:
+	case hexabus::HXB_DTYPE_FLOAT: return true; break;
+	default: return false;
 	}
 }
 
@@ -399,24 +399,23 @@ static void updateEPFile(const std::string& path, const std::vector<DiscoveredDe
 
 	for (auto& dev : devices) {
 		for (auto& ep : dev.endpoints) {
-			if(!hasHbtType(ep.type)) {
+			if (!hasHbtType(ep.type))
 				continue;
-			}
 
 			hbt::lang::Type type;
 
 			switch (ep.type) {
-				case hexabus::HXB_DTYPE_BOOL: type = hbt::lang::Type::Bool; break;
-				case hexabus::HXB_DTYPE_UINT8: type = hbt::lang::Type::UInt8; break;
-				case hexabus::HXB_DTYPE_UINT16: type = hbt::lang::Type::UInt16; break;
-				case hexabus::HXB_DTYPE_UINT32: type = hbt::lang::Type::UInt32; break;
-				case hexabus::HXB_DTYPE_UINT64: type = hbt::lang::Type::UInt64; break;
-				case hexabus::HXB_DTYPE_SINT8: type = hbt::lang::Type::Int8; break;
-				case hexabus::HXB_DTYPE_SINT16: type = hbt::lang::Type::Int16; break;
-				case hexabus::HXB_DTYPE_SINT32: type = hbt::lang::Type::Int32; break;
-				case hexabus::HXB_DTYPE_SINT64: type = hbt::lang::Type::Int64; break;
-				case hexabus::HXB_DTYPE_FLOAT: type = hbt::lang::Type::Float; break;
-				default: break;
+			case hexabus::HXB_DTYPE_BOOL: type = hbt::lang::Type::Bool; break;
+			case hexabus::HXB_DTYPE_UINT8: type = hbt::lang::Type::UInt8; break;
+			case hexabus::HXB_DTYPE_UINT16: type = hbt::lang::Type::UInt16; break;
+			case hexabus::HXB_DTYPE_UINT32: type = hbt::lang::Type::UInt32; break;
+			case hexabus::HXB_DTYPE_UINT64: type = hbt::lang::Type::UInt64; break;
+			case hexabus::HXB_DTYPE_SINT8: type = hbt::lang::Type::Int8; break;
+			case hexabus::HXB_DTYPE_SINT16: type = hbt::lang::Type::Int16; break;
+			case hexabus::HXB_DTYPE_SINT32: type = hbt::lang::Type::Int32; break;
+			case hexabus::HXB_DTYPE_SINT64: type = hbt::lang::Type::Int64; break;
+			case hexabus::HXB_DTYPE_FLOAT: type = hbt::lang::Type::Float; break;
+			default: break;
 			}
 			epsInFile.emplace(
 				ep.eid,
