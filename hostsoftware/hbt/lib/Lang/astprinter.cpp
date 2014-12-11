@@ -141,8 +141,9 @@ void ASTPrinter::visit(BinaryExpr& b)
 
 		case BinaryOperator::BoolAnd:
 			return 2;
-
+		//Keep g++ from complaining about reaching the end of non-void function
 		case BinaryOperator::BoolOr:
+		default:
 			return 1;
 		}
 	};

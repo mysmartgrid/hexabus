@@ -110,7 +110,7 @@ private:
 
 public:
 	ArithmeticInsn(std::string name, Type type, ArithOp op, const Value* left, const Value* right)
-		: Instruction(InsnType::Arithmetic), _op(op), Value(type, std::move(name)), _left(left), _right(right)
+		: Instruction(InsnType::Arithmetic), Value(type, std::move(name)), _op(op), _left(left), _right(right)
 	{}
 
 	ArithOp op() const { return _op; }

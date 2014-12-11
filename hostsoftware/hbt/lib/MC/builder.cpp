@@ -7,7 +7,7 @@ namespace hbt {
 namespace mc {
 
 Builder::Builder(uint8_t version)
-	: _labelMax(0), _version(version), _insertPos(_instructions.end())
+	: _labelMax(0), _insertPos(_instructions.end()), _version(version)
 {
 	if (version != 0)
 		throw std::invalid_argument("version");
@@ -18,8 +18,8 @@ Builder::Builder(Program&& p)
 	  _instructions(
 		std::make_move_iterator(p._instructions.begin()),
 		std::make_move_iterator(p._instructions.end())),
-	  _insertPos(_instructions.end()), _version(p.version()),
-	  _on_packet(p._on_packet), _on_periodic(p._on_periodic), _on_init(p._on_init)
+		 _insertPos(_instructions.end()) ,_version(p.version()),
+		_on_packet(p._on_packet), _on_periodic(p._on_periodic), _on_init(p._on_init)
 {
 	for (auto* i : instructions())
 		if (i->label())

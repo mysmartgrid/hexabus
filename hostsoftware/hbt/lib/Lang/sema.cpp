@@ -35,10 +35,6 @@ static Diagnostic declaredHere(const SourceLocation& sloc)
 	return { DiagnosticKind::Hint, &sloc, "declared here" };
 }
 
-static Diagnostic classParameterTypeError(const SourceLocation& sloc, const std::string& name)
-{
-	return { DiagnosticKind::Error, &sloc, str(format("class parameter '%1%' used in incompatible contexts") % name) };
-}
 
 static Diagnostic undeclaredIdentifier(const Identifier& id)
 {
@@ -229,18 +225,6 @@ static Diagnostic classParamRedefined(const ClassParameter& cp)
 	return { DiagnosticKind::Error, &cp.sloc(), str(format("redefinition of class parameter %1%") % cp.name()) };
 }
 
-static Diagnostic invalidClassArgCount(MachineInstantiation& m, unsigned expected)
-{
-	return {
-		DiagnosticKind::Error,
-		&m.sloc(),
-		str(format("too %1% arguments in instantiation of class %2% (expected %3%, got %4%)")
-			% (m.arguments().size() < expected ? "few" : "many")
-			% m.instanceOf().name()
-			% expected
-			% m.arguments().size())
-	};
-}
 
 static Diagnostic invalidClassArgCount(const SourceLocation& sloc, const Identifier& name, unsigned got, unsigned expected)
 {
@@ -336,11 +320,6 @@ static Diagnostic machineWithoutStates(const MachineDefinition& m)
 static Diagnostic onExitNotAllowed(const OnSimpleBlock& o)
 {
 	return { DiagnosticKind::Error, &o.sloc(), "on exit block not allowed here" };
-}
-
-static Diagnostic onExprNotAllowed(const OnExprBlock& o)
-{
-	return { DiagnosticKind::Error, &o.sloc(), "on (expr) block not allowed here" };
 }
 
 static Diagnostic wordIsReservedHere(const SourceLocation& sloc, const std::string& name)

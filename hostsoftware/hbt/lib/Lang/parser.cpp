@@ -1153,7 +1153,7 @@ Parser::FileData Parser::loadFile(const std::string& file, const std::string* ex
 			return { std::move(*buf), beneathExtraDir };
 	}
 
-	return {};
+	return FileData();
 }
 
 std::list<std::unique_ptr<ProgramPart>> Parser::parseFile(const FileData& fileData, const std::string* pathPtr,

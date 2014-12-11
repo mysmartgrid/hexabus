@@ -35,7 +35,9 @@ static ir::Type irtypeFor(Type t)
 	case Type::Int16: return ir::Type::Int16;
 	case Type::Int32: return ir::Type::Int32;
 	case Type::Int64: return ir::Type::Int64;
-	case Type::Float: return ir::Type::Float;
+	// Silence g++ warning about reaching the end of a non void function
+	case Type::Float:
+	default:		return ir::Type::Float;
 	}
 }
 
@@ -59,7 +61,9 @@ static ir::ArithOp arithOpFor(BinaryOperator binop)
 	case BinaryOperator::GreaterThan: return ir::ArithOp::Gt;
 	case BinaryOperator::GreaterOrEqual: return ir::ArithOp::Ge;
 	case BinaryOperator::ShiftLeft: return ir::ArithOp::Shl;
-	case BinaryOperator::ShiftRight: return ir::ArithOp::Shr;
+	// Silence g++ warning about reaching the end of a non void function
+	case BinaryOperator::ShiftRight:
+	default:						return ir::ArithOp::Shr;
 	}
 }
 
@@ -131,7 +135,7 @@ private:
 
 public:
 	NameGenerator(std::string prefix)
-		: prefix(std::move(prefix)), valueCount(0), labelCount(0)
+		: valueCount(0), labelCount(0), prefix(std::move(prefix))
 	{}
 
 	std::string newName()
@@ -146,8 +150,13 @@ public:
 };
 
 
-
-struct CGContext {
+/*
+ * Using a class instead of struct,
+ * so a constructor can be used instead of an initializer list
+ * to avoid false g++ warnings
+ */
+class CGContext {
+public:
 	ir::ModuleBuilder& mb;
 	MemoryMap& memMap;
 	NameGenerator& ng;
@@ -159,6 +168,10 @@ struct CGContext {
 
 	ir::BasicBlock* newBlock() { return mb.newBlock(ng.newLabel()); }
 	std::string newName() { return ng.newName(); }
+
+	CGContext(ir::ModuleBuilder& mb, MemoryMap& memMap, NameGenerator& ng, const Device* forDev, const ir::BasicBlock* exitChange)
+	: mb(mb), memMap(memMap), ng(ng), forDev(forDev), exitChange(exitChange)
+	{};
 };
 
 class ExprCG : public ASTVisitor {
@@ -917,7 +930,7 @@ void StateCG::emitOnEntry()
 	emitOnBlocks(_onEntryIR, onEntryBlocks, "entry");
 
 	NameGenerator ng(prefix + ".entryVarSet");
-	CGContext cgc{mb, memMap, ng, dev, exitChange};
+	CGContext cgc(mb, memMap, ng, dev, exitChange);
 
 	auto stateInitHead = cgc.newBlock();
 	auto stateInit = stateInitHead;
@@ -933,8 +946,7 @@ void StateCG::emitOnExit()
 	emitOnBlocks(_onExitIR, onExitBlocks, "exit");
 
 	NameGenerator ng(prefix + ".exit");
-	CGContext cgc{mb, memMap, ng, dev, exitChange};
-
+	CGContext cgc(mb, memMap, ng, dev, exitChange);
 	auto* zero = _onExitIR.exitStay->append(ir::LoadIntInsn(cgc.newName(), ir::Type::Bool, 0));
 	for (auto o : onExprBlocks) {
 		if (memMap.hasGuardFor(o))
@@ -1001,7 +1013,11 @@ public:
 void MachineCG::emitOnInit()
 {
 	NameGenerator ng(prefix + ".init");
-	CGContext cgc{mb, memMap, ng, dev, nullptr};
+	CGContext cgc{mb,
+				memMap,
+				ng,
+				dev,
+				nullptr};
 
 	_onInit.entry = cgc.newBlock();
 	_onInit.exitStay = _onInit.entry;

@@ -34,7 +34,8 @@ struct Testcase {
 	{
 		this->lines.reserve(lines.size());
 		for (auto line : lines)
-			this->lines.push_back({ line });
+			// Silence g++ warning about missing initializer
+			this->lines.push_back({ line, std::vector<uint8_t>(), false});
 	}
 
 	operator const std::vector<AssemblerLine>&() const

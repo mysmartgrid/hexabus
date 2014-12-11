@@ -20,7 +20,8 @@ static void printInstruction(const Instruction* insn, std::ostream& out)
 		case hbt::ir::Type::Int16: return "s16";
 		case hbt::ir::Type::Int32: return "s32";
 		case hbt::ir::Type::Int64: return "s64";
-		case hbt::ir::Type::Float: return "float";
+		case hbt::ir::Type::Float:
+		default:					return "float";
 		}
 	};
 
@@ -103,7 +104,7 @@ static void printInstruction(const Instruction* insn, std::ostream& out)
 	case InsnType::CompareIP: {
 		auto* c = static_cast<const CompareIPInsn*>(insn);
 		out << c->name() << " = cmpip " << c->start() << " (";
-		for (int i = c->start(); i < c->start() + c->length(); i++) {
+		for (unsigned int i = c->start(); i < c->start() + c->length(); i++) {
 			if (i != c->start())
 				out << " ";
 			out << unsigned(c->block()[i]);
