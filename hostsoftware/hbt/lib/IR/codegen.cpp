@@ -6,6 +6,7 @@
 #include "hbt/IR/basicblock.hpp"
 #include "hbt/IR/module.hpp"
 #include "hbt/MC/builder.hpp"
+#include "hbt/Util/fatal.hpp"
 #include "hbt/Util/toposort.hpp"
 
 namespace hbt {
@@ -31,9 +32,10 @@ static mc::MemType memtypeForType(Type t)
 	case Type::Int16:  return mc::MemType::S16;
 	case Type::Int32:  return mc::MemType::S32;
 	case Type::Int64:  return mc::MemType::S64;
-	case Type::Float:
-	default:			return mc::MemType::Float;
+	case Type::Float:  return mc::MemType::Float;
 	}
+
+	hbt_unreachable();
 }
 
 static mc::Opcode arithOpToOpcode(ArithOp op)
@@ -54,9 +56,10 @@ static mc::Opcode arithOpToOpcode(ArithOp op)
 	case ArithOp::Gt:  return mc::Opcode::CMP_GT;
 	case ArithOp::Ge:  return mc::Opcode::CMP_GE;
 	case ArithOp::Eq:  return mc::Opcode::CMP_EQ;
-	case ArithOp::Neq:
-	default:			return mc::Opcode::CMP_NEQ;
+	case ArithOp::Neq: return mc::Opcode::CMP_NEQ;
 	}
+
+	hbt_unreachable();
 }
 
 static mc::Opcode conversionForType(Type t)
@@ -71,9 +74,10 @@ static mc::Opcode conversionForType(Type t)
 	case Type::Int16:  return mc::Opcode::CONV_S16;
 	case Type::Int32:  return mc::Opcode::CONV_S32;
 	case Type::Int64:  return mc::Opcode::CONV_S64;
-	case Type::Float:
-	default:			return mc::Opcode::CONV_F;
+	case Type::Float:  return mc::Opcode::CONV_F;
 	}
+
+	hbt_unreachable();
 }
 
 static mc::DTMask datePartToDTMask(DatePart part)
@@ -85,9 +89,10 @@ static mc::DTMask datePartToDTMask(DatePart part)
 	case DatePart::Day:     return mc::DTMask::day;
 	case DatePart::Month:   return mc::DTMask::month;
 	case DatePart::Year:    return mc::DTMask::year;
-	case DatePart::Weekday:
-	default:				return mc::DTMask::weekday;
+	case DatePart::Weekday: return mc::DTMask::weekday;
 	}
+
+	hbt_unreachable();
 }
 
 

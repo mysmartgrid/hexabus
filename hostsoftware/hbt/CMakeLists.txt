@@ -42,6 +42,13 @@ include (UseCodeCoverage)
 
 set(CMAKE_CXX_FLAGS "${CXXFLAGS} -std=c++11")
 
+if (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
+	# g++ fails to produce sensible warnings about missng field initializers in C++11 mode
+	# because it warns *way* too much about code that is in no way incorrect
+	# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=36750#c11
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers")
+endif()
+
 set(Boost_USE_STATIC_LIBS ON)
 SET(Boost_DETAILED_FAILURE_MSG true)
 FIND_PACKAGE(Boost 1.54 REQUIRED COMPONENTS test_exec_monitor program_options filesystem regex system)

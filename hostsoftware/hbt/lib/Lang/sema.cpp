@@ -35,7 +35,6 @@ static Diagnostic declaredHere(const SourceLocation& sloc)
 	return { DiagnosticKind::Hint, &sloc, "declared here" };
 }
 
-
 static Diagnostic undeclaredIdentifier(const Identifier& id)
 {
 	return { DiagnosticKind::Error, &id.sloc(), str(format("use of undeclared identifier '%1%'") % id.name()) };
@@ -224,7 +223,6 @@ static Diagnostic classParamRedefined(const ClassParameter& cp)
 {
 	return { DiagnosticKind::Error, &cp.sloc(), str(format("redefinition of class parameter %1%") % cp.name()) };
 }
-
 
 static Diagnostic invalidClassArgCount(const SourceLocation& sloc, const Identifier& name, unsigned got, unsigned expected)
 {

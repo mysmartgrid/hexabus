@@ -1,5 +1,7 @@
 #include "hbt/Lang/astprinter.hpp"
 
+#include "hbt/Util/fatal.hpp"
+
 #include <sstream>
 
 #include "boost/asio/ip/address_v6.hpp"
@@ -141,11 +143,12 @@ void ASTPrinter::visit(BinaryExpr& b)
 
 		case BinaryOperator::BoolAnd:
 			return 2;
-		//Keep g++ from complaining about reaching the end of non-void function
+
 		case BinaryOperator::BoolOr:
-		default:
 			return 1;
 		}
+
+		hbt_unreachable();
 	};
 
 	auto wantParens = [&b, precedence] (Expr& other) {

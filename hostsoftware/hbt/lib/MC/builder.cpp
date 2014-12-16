@@ -18,8 +18,8 @@ Builder::Builder(Program&& p)
 	  _instructions(
 		std::make_move_iterator(p._instructions.begin()),
 		std::make_move_iterator(p._instructions.end())),
-		 _insertPos(_instructions.end()) ,_version(p.version()),
-		_on_packet(p._on_packet), _on_periodic(p._on_periodic), _on_init(p._on_init)
+	  _insertPos(_instructions.end()), _version(p.version()),
+	  _on_packet(p._on_packet), _on_periodic(p._on_periodic), _on_init(p._on_init)
 {
 	for (auto* i : instructions())
 		if (i->label())
