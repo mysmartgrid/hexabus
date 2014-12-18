@@ -1,3 +1,7 @@
+# -*- mode: cmake; -*-
+
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+
 file(GLOB_RECURSE h_files "*.hpp,*.h")
 file(GLOB_RECURSE cpp_files "*.cpp")
 set(hbc_src "hbc.cpp")
