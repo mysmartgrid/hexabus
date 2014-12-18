@@ -1207,8 +1207,8 @@ std::unique_ptr<ir::ModuleBuilder> generateIR(const Device* dev, std::set<Machin
 	moduleBuilder->onPacket(onPacket);
 	moduleBuilder->onPeriodic(onPeriodic);
 
-	auto* inPacket = onPacket->append(ir::LoadIntInsn("isPeriodic0", ir::Type::Bool, 0L));
-	auto* inPeriodic = onPeriodic->append(ir::LoadIntInsn("isPeriodic1", ir::Type::Bool, 1L));
+	auto* inPacket = onPacket->append(ir::LoadIntInsn("isPeriodic0", ir::Type::Bool, uint32_t(0L)));
+	auto* inPeriodic = onPeriodic->append(ir::LoadIntInsn("isPeriodic1", ir::Type::Bool, uint32_t(1L)));
 
 	onPacket->append(ir::JumpInsn(onEvent));
 	onPeriodic->append(ir::JumpInsn(onEvent));
