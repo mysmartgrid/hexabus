@@ -1,3 +1,8 @@
+# -*- mode: cmake; -*-
+
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+include_directories(${CLN_INCLUDE_DIR})
+
 file(GLOB IR_src *.cpp *.hpp)
 add_library(HBTIR ${IR_src})
 

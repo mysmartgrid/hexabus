@@ -53,16 +53,16 @@ set(Boost_USE_STATIC_LIBS ON)
 SET(Boost_DETAILED_FAILURE_MSG true)
 FIND_PACKAGE(Boost 1.54 REQUIRED COMPONENTS test_exec_monitor program_options filesystem regex system)
 
+# enable unit testing
+include(CTest)
+enable_testing()
+
 # Reflect the package structure
 include_directories(${CMAKE_SOURCE_DIR}/include)
 add_subdirectory(include)
 add_subdirectory(lib)
 add_subdirectory(src)
 add_subdirectory(tests)
-
-# enable unit testing
-include(CTest)
-enable_testing()
 
 set(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Hexabus compiler toolkit")
