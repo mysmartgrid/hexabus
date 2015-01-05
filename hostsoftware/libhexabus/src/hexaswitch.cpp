@@ -375,7 +375,7 @@ inline std::string shortDatatypeName(hxb_datatype type)
 	case HXB_DTYPE_UINT8: return "u8";
 	case HXB_DTYPE_UINT16: return "u16";
 	case HXB_DTYPE_UINT32: return "u32";
-	case HXB_DTYPE_UINT64: return "u65";
+	case HXB_DTYPE_UINT64: return "u64";
 	case HXB_DTYPE_SINT8: return "s8";
 	case HXB_DTYPE_SINT16: return "s16";
 	case HXB_DTYPE_SINT32: return "s32";
