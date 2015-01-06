@@ -1,4 +1,4 @@
-# -*- mode: cmake; -*-
+
 # bernd.loerwald@itwm.fraunhofer.de
 # update by kai.krueger@itwm.fraunhofer.de
 
@@ -48,17 +48,17 @@ if (NOT GIT_BRANCH)
   set (GIT_BRANCH "develop")
 endif()
 
-# check for boost and default to version 1.49 if directory does not exists
+# check for boost and default to version 1.54 if directory does not exists
 if (NOT BOOST_VERSION)
-  set (BOOST_VERSION "1.49")
+  set (BOOST_VERSION "1.54")
 else()
   if( NOT CMAKE_TOOLCHAIN_FILE )
     set (EXTERNAL_SOFTWARE "$ENV{HOME}/external_software")
     if (EXISTS ${EXTERNAL_SOFTWARE}/boost/${BOOST_VERSION})
       message("====> Path for boost ${BOOST_VERSION} found.")
     else()
-      message("====> Path for boost ${BOOST_VERSION} does not exists, defaulting to 1.49")
-      set (BOOST_VERSION "1.49")
+      message("====> Path for boost ${BOOST_VERSION} does not exists, defaulting to 1.54")
+      set (BOOST_VERSION "1.54")
     endif()
   endif()
 endif()
@@ -123,6 +123,8 @@ else()
 endif()
 
 set (CTEST_BUILD_NAME "${CMAKE_SYSTEM_PROCESSOR}-${_compiler_str}${_boost_str}-${GIT_BRANCH}")
+set (CTEST_BUILD_NAME_DEVEL  "${CMAKE_SYSTEM_PROCESSOR}-${_compiler_str}${_boost_str}-development")
+set (CTEST_BUILD_NAME_MASTER "${CMAKE_SYSTEM_PROCESSOR}-${_compiler_str}${_boost_str}-master")
 
 set (CTEST_BASE_DIRECTORY   "${BUILD_TMP_DIR}/${CTEST_PROJECT_NAME}/${TESTING_MODEL}")
 set (CTEST_SOURCE_DIRECTORY "${CTEST_BASE_DIRECTORY}/src-${GIT_BRANCH}-${CMAKE_SYSTEM_PROCESSOR}" )
@@ -191,10 +193,10 @@ endif()
 macro (set_if_exists NAME PATH)
   if (EXISTS ${PATH})
     set (${NAME} ${PATH})
-    set ($ENV{Name} ${PATH})
+    set (ENV{${NAME}} ${PATH})
     message("====> Path ${NAME}=${PATH} found.")
   else()
-    message("====> Path ${PATH} does not exists.")
+    message("====> Path '${PATH}' does not exists.")
   endif()
 endmacro()
 
@@ -217,6 +219,12 @@ else()
 
 endif()
 set_if_exists (LIBKLIO_HOME "${BUILD_TMP_DIR}/libklio/${TESTING_MODEL}/install-${CTEST_BUILD_NAME}")
+if(NOT LIBKLIO_HOME)
+  set_if_exists (LIBKLIO_HOME "${BUILD_TMP_DIR}/libklio/${TESTING_MODEL}/install-${CTEST_BUILD_NAME_DEVEL}")
+endif()
+if(NOT LIBKLIO_HOME)
+  set_if_exists (LIBKLIO_HOME "${BUILD_TMP_DIR}/libklio/${TESTING_MODEL}/install-${CTEST_BUILD_NAME_MASTER}")
+endif()
 
 
 # cmake options ####################################################################
@@ -368,12 +376,12 @@ foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
 
       if( NOT CMAKE_TOOLCHAIN_FILE )
 	if (PROPERLY_BUILT_AND_INSTALLED)
-	  ctest_test (BUILD "${CTEST_BINARY_DIRECTORY}"
-	    INCLUDE_LABEL "${subproject}"
+	  ctest_test (BUILD "${CTEST_BINARY_DIRECTORY}/${subproject}"
+#	    INCLUDE_LABEL "${subproject}"
 	    SCHEDULE_RANDOM true RETURN_VALUE LAST_RETURN_VALUE PARALLEL_LEVEL ${PARALLEL_JOBS})
 	else()
-	  ctest_test (BUILD "${CTEST_BINARY_DIRECTORY}"
-	    INCLUDE_LABEL "${subproject}"
+	  ctest_test (BUILD "${CTEST_BINARY_DIRECTORY}/${subproject}"
+#	    INCLUDE_LABEL "${subproject}"
 	    SCHEDULE_RANDOM true EXCLUDE_LABEL "requires_installation"
 	    RETURN_VALUE LAST_RETURN_VALUE)
 	endif()
