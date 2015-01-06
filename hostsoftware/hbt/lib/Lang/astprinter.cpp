@@ -460,20 +460,20 @@ void ASTPrinter::printState(State& s)
 {
 	indent();
 
-	out << "state " << s.name().name() << " {";
+	out << "state " << s.name().name() << " {\n";
 	_indent++;
 
 	for (auto& v : s.variables()) {
-		out << "\n";
 		v->accept(*this);
+		out << "\n";
 	}
 
 	if (s.variables().size())
 		out << "\n";
 
 	for (auto& o : s.onBlocks()) {
-		out << "\n";
 		o->accept(*this);
+		out << "\n";
 	}
 
 	if (s.onBlocks().size())
@@ -568,11 +568,14 @@ void ASTPrinter::printBehaviourBody(Behaviour& b)
 		out << "\n";
 
 	for (auto& ep : b.endpoints()) {
-		out << "\nendpoint " << ep->name().name() << " : ";
+		out << '\n';
+		indent();
+		out << "endpoint " << ep->name().name() << " : ";
 		printType(ep->type(), nullptr);
 		out << " {\n";
 		_indent++;
 		if (ep->readBlock()) {
+			indent();
 			out << "read {";
 			_indent++;
 			for (auto& s : ep->readBlock()->statements()) {
@@ -585,14 +588,15 @@ void ASTPrinter::printBehaviourBody(Behaviour& b)
 			out << "\n}";
 		}
 		if (ep->write()) {
+			indent();
 			out << "write ";
-			_indent++;
 			_skipIndent = true;
 			ep->write()->accept(*this);
-			_indent--;
 		}
 		_indent--;
-		out << "}";
+		out << '\n';
+		indent();
+		out << '}';
 	}
 
 	if (b.endpoints().size())
@@ -604,6 +608,7 @@ void ASTPrinter::printBehaviourBody(Behaviour& b)
 	}
 
 	_indent--;
+	indent();
 	out << "\n};";
 }
 
