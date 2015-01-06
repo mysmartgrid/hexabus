@@ -23,5 +23,4 @@ target_link_libraries(hexinfo
   ${HXB_LIBRARIES}
   ${HBT_LIBRARIES}
   ${Boost_LIBRARIES}
-  ${CLN_LIBRARIES}
 )

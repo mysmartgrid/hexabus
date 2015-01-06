@@ -1,7 +1,6 @@
 # -*- mode: cmake; -*-
 
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-include_directories(${CLN_INCLUDE_DIR})
 
 file(GLOB_RECURSE h_files "*.hpp,*.h")
 file(GLOB_RECURSE cpp_files "*.cpp")
@@ -20,7 +19,7 @@ add_executable(hbc ${hbc_src})
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/hbc DESTINATION bin)
 target_link_libraries(hbc
 	HBTLang HBTMC HBTIR HBTUtil
-	${Boost_LIBRARIES} ${CLN_LIBRARIES}
+	${Boost_LIBRARIES}
 )
 
 add_executable(hbt-dis ${hbt_dis_src})

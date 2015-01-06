@@ -1,7 +1,6 @@
 # -*- mode: cmake; -*-
 
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-include_directories(${CLN_INCLUDE_DIR})
 
 file(GLOB Util_src *.cpp *.hpp)
 add_library(HBTUtil ${Util_src})
