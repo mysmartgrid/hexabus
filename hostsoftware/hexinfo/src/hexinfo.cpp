@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <boost/program_options.hpp>
 #include <boost/program_options/positional_options.hpp>
 #include <boost/foreach.hpp>
@@ -106,21 +107,22 @@ struct NameSanitizer {
 
 	std::string sanitizeString(const std::string& name)
 	{
-		std::string result;
+		std::stringstream result;
+		bool empty = true;
 
 		for (auto c : name) {
-			if (isalnum(c) && (!result.empty() || isalpha(c))) {
-				result += c;
+			if (isalnum(c) && (empty || isalpha(c))) {
+				result << c;
+				empty = false;
 				continue;
 			}
 
-			result += '_';
-			char buf[10];
-			sprintf(buf, "%02x", c);
-			result += buf;
+			result << '_';
+			result << std::setw(2) << std::hex << int((unsigned char)c);
+			empty = false;
 		}
 
-		return result;
+		return result.str();
 	}
 
 	std::string sanitizeName(const DiscoveredEP& ep)
@@ -128,7 +130,10 @@ struct NameSanitizer {
 		if (forHumans)
 			return sanitizeString(ep.name) + "_EP";
 
-		return "ep_" + std::to_string(ep.eid);
+		std::stringstream result;
+		result << "ep_" << ep.eid;
+
+		return result.str();
 	}
 
 	std::string sanitizeName(const DiscoveredDev& dev)
