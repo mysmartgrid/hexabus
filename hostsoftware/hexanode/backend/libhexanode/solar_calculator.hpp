@@ -112,10 +112,14 @@ namespace hexanode {
       virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo);
       virtual void visit(const hexabus::InfoPacket<bool>& info) { printValuePacket(info, "Bool"); }
       virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { printValuePacket(info, "UInt8"); }
+      virtual void visit(const hexabus::InfoPacket<uint16_t>& info) { printValuePacket(info, "UInt16"); }
       virtual void visit(const hexabus::InfoPacket<uint32_t>& info) { printValuePacket(info, "UInt32"); }
+      virtual void visit(const hexabus::InfoPacket<uint64_t>& info) { printValuePacket(info, "UInt64"); }
+      virtual void visit(const hexabus::InfoPacket<int8_t>& info) { printValuePacket(info, "Int8"); }
+      virtual void visit(const hexabus::InfoPacket<int16_t>& info) { printValuePacket(info, "Int16"); }
+      virtual void visit(const hexabus::InfoPacket<int32_t>& info) { printValuePacket(info, "Int32"); }
+      virtual void visit(const hexabus::InfoPacket<int64_t>& info) { printValuePacket(info, "Int64"); }
       virtual void visit(const hexabus::InfoPacket<float>& info) { printValuePacket(info, "Float"); }
-      virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) { printValuePacket(info, "Datetime"); }
-      virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info) { printValuePacket(info, "Timestamp"); }
       virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "String"); }
       virtual void visit(const hexabus::InfoPacket<boost::array<char, 16> >& info) { printValuePacket(info, "Binary (16 bytes)"); }
       virtual void visit(const hexabus::InfoPacket<boost::array<char, 65> >& info) { printValuePacket(info, "Binary (65 bytes)"); }
@@ -124,10 +128,14 @@ namespace hexanode {
        */
       virtual void visit(const hexabus::WritePacket<bool>& write) {}
       virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
+      virtual void visit(const hexabus::WritePacket<uint16_t>& write) {}
       virtual void visit(const hexabus::WritePacket<uint32_t>& write) {}
+      virtual void visit(const hexabus::WritePacket<uint64_t>& write) {}
+      virtual void visit(const hexabus::WritePacket<int8_t>& write) {}
+      virtual void visit(const hexabus::WritePacket<int16_t>& write) {}
+      virtual void visit(const hexabus::WritePacket<int32_t>& write) {}
+      virtual void visit(const hexabus::WritePacket<int64_t>& write) {}
       virtual void visit(const hexabus::WritePacket<float>& write) {}
-      virtual void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) {}
-      virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) {}
       virtual void visit(const hexabus::WritePacket<std::string>& write) {}
       virtual void visit(const hexabus::WritePacket<boost::array<char, 16> >& write) {}
       virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& write) {}

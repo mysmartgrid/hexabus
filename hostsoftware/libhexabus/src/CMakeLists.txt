@@ -45,6 +45,7 @@ add_executable(hexaswitch ${hexaswitch_src})
 target_link_libraries(hexaswitch
   hexabus
   pthread
+	rt
   ${Boost_LIBRARIES}
 )
 
@@ -53,6 +54,7 @@ add_executable(hexaupload ${hexaupload_src})
 target_link_libraries(hexaupload
   hexabus
   pthread
+	rt
   ${Boost_LIBRARIES}
 )
 
@@ -61,6 +63,7 @@ add_executable(hexapair ${hexapair_src})
 target_link_libraries(hexapair
   hexabus
   pthread
+	rt
   ${Boost_LIBRARIES}
 )
 
@@ -69,8 +72,12 @@ add_executable(hexatimed ${hexatimed_src})
 target_link_libraries(hexatimed
   hexabus
   pthread
+	rt
   ${Boost_LIBRARIES}
 )
+
+add_executable(hexasm "hexasm.cpp")
+target_link_libraries(hexasm hexabus pthread ${Boost_LIBRARIES})
 
 if(LIBKLIO_FOUND)
   add_executable(hexalog ${hexalog_src})
@@ -86,6 +93,7 @@ if(LIBKLIO_FOUND)
     pthread
     ${ROCKSDB_LIBRARY}
     ${OPENSSL_CRYPTO_LIBRARY}
+		rt
 #    gcrypt
   )
 

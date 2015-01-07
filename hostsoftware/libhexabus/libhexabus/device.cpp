@@ -88,12 +88,12 @@ Device::Device(boost::asio::io_service& io, const std::vector<std::string>& inte
 
 	_handle_broadcasts(boost::system::error_code());
 
-	TypedEndpointFunctions<uint8_t>::Ptr smcontrolEP(new TypedEndpointFunctions<uint8_t>(EP_SM_CONTROL, "Statemachine control"));
+	TypedEndpointFunctions<uint8_t>::Ptr smcontrolEP(new TypedEndpointFunctions<uint8_t>(EP_SM_CONTROL, "Statemachine control", false));
 	smcontrolEP->onRead(boost::bind(&Device::_handle_smcontrolquery, this));
 	smcontrolEP->onWrite(boost::bind(&Device::_handle_smcontrolwrite, this, _1));
 	addEndpoint(smcontrolEP);
 	//dummy endpoint to let _handle_descquery knows we can handle statemachine upload
-	TypedEndpointFunctions<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >::Ptr smupreceiverEP(new TypedEndpointFunctions<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, "Statemachine upload receiver"));
+	TypedEndpointFunctions<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >::Ptr smupreceiverEP(new TypedEndpointFunctions<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, "Statemachine upload receiver", false));
 	smupreceiverEP->onWrite(&dummy_write_handler);
 	addEndpoint(smupreceiverEP);
 }
@@ -338,6 +338,9 @@ void Device::_handle_broadcasts(const boost::system::error_code& error)
 	{
 		for ( std::map<uint32_t, const EndpointFunctions::Ptr>::iterator epIt = _endpoints.begin(), end = _endpoints.end(); epIt != end; ++epIt )
 		{
+			if ( !epIt->second->is_readable() || !epIt->second->broadcast() )
+				continue;
+
 			try {
 				Packet::Ptr p = epIt->second->handle_query();
 				if ( p && p->type() != HXB_PTYPE_ERROR )
@@ -353,7 +356,13 @@ void Device::_handle_broadcasts(const boost::system::error_code& error)
 						}
 					}
 				} else {
-					throw;
+					std::stringstream oss;
+					oss << "Unable to generate broadcast packet";
+					if (p) {
+						ErrorPacket* pe = (ErrorPacket*) p.get();
+						oss << " (" << (int) pe->code() << ")";
+					}
+					throw hexabus::GenericException(oss.str());
 				}
 			} catch ( const GenericException& error ) {
 				std::stringstream oss;

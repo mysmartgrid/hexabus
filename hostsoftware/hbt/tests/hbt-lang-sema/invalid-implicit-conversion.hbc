@@ -1,0 +1,32 @@
+endpoint ep(0) : bool (write, broadcast);
+endpoint ep2(1) : int64 (write, broadcast);
+device dev(::) : ep, ep2;
+
+machine m {
+	state init {
+		on (7) { //#expect: error: invalid implicit type conversion from int32 to bool
+		}
+		always {
+			dev.ep = 1; //#expect: error: invalid implicit type conversion from int32 to bool
+			dev.ep2 = uint8(111111111111111);
+
+			switch (1.0) { //#expect: error: expected expression of integral or boolean type, got float
+			default: {}
+			case 1.0: {} //#expect: error: expected expression of integral or boolean type, got float
+			}
+
+			switch (true) {
+			case 0: {} //#expect: error: invalid implicit type conversion from int32 to bool
+			}
+			switch (0) {
+			case false: {} //#expect: error: invalid implicit type conversion from bool to int32
+			}
+
+			uint32 u32 = 0;
+			int8 x1 = 1 << (u32 ? 1 : 0); //#expect: error: invalid implicit type conversion from int32 to int8
+			int8 x2 = ~x1; //#expect: error: invalid implicit type conversion from int32 to int8
+			int8 x3 = 1;
+			int8 x4 = 1000; //#expect: error: invalid implicit type conversion from int32 to int8
+		}
+	}
+};

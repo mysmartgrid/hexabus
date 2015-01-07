@@ -44,6 +44,8 @@ include ( ProjectInfo )
 include ( CompilerFlags )
 include (UseCodeCoverage)
 
+set(CMAKE_CXX_FLAGS "${CXXFLAGS} -std=c++11")
+
 #set(CMAKE_CXX_FLAGS_EXPERIMENTAL "${CMAKE_CXX_FLAGS_EXPERIMENTAL} -Wunused-function")
 #set(CMAKE_CXX_FLAGS_EXPERIMENTAL "${CMAKE_CXX_FLAGS_EXPERIMENTAL} -Wunused -Woverloaded-virtual")
 
@@ -70,10 +72,10 @@ if( LIBKLIO_FOUND )
   add_definitions ("-DBOOST_FILESYSTEM_VERSION=3")
 
   # libjson
-  include(FindJson)
-  if( NOT JSON_FOUND)
+  include(FindJsonCpp)
+  if( NOT JSONCPP_FOUND)
     message(FATAL_ERROR "libjson ist required. Install json or call cmake -DJSON_HOME=path_to_json_install")
-  endif( NOT JSON_FOUND)
+  endif( NOT JSONCPP_FOUND)
   include_directories(${JSON_INCLUDE_DIR})
 
   # check for curl
@@ -86,24 +88,6 @@ if( LIBKLIO_FOUND )
     include(FindGnutls)
   endif(WIN32)
 endif( LIBKLIO_FOUND )
-
-configure_file("../../shared/hexabus_types.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" @COPY_ONLY)
-configure_file("../../shared/hexabus_statemachine_structs.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" @COPY_ONLY)
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" DESTINATION include/libhexabus)
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" DESTINATION include/libhexabus)
-
-# Reflect the package structure
-add_subdirectory(libhexabus)
-add_subdirectory(src)
-add_subdirectory(tests)
-
-# enable unit testing
-include(CTest)
-enable_testing()
-
-# add some files to the installation target
-INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
-INSTALL(FILES share/endpoint_registry DESTINATION share/libhexabus)
 
 if( NOT WITHOUT_CPACK )
   # CPACK packaging
@@ -127,6 +111,29 @@ if( NOT WITHOUT_CPACK )
   set(CPACK_SECTION "net")
   include(CPackTools)
 endif()
+
+
+set(HXB_SHARED "${CMAKE_SOURCE_DIR}/../../shared")
+message(STATUS "HXB_SHARED:  ${HXB_SHARED}")
+configure_file("${HXB_SHARED}/hexabus_types.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" @COPY_ONLY)
+configure_file("${HXB_SHARED}/hexabus_statemachine_structs.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" @COPY_ONLY)
+configure_file("${HXB_SHARED}/sm_types.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/sm/sm_types.h" @COPY_ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" DESTINATION include/libhexabus)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" DESTINATION include/libhexabus)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/sm/sm_types.h" DESTINATION include/libhexabus/sm)
+
+# Reflect the package structure
+add_subdirectory(libhexabus)
+add_subdirectory(src)
+add_subdirectory(tests)
+
+# enable unit testing
+include(CTest)
+enable_testing()
+
+# add some files to the installation target
+INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
+INSTALL(FILES share/endpoint_registry DESTINATION share/libhexabus)
 
 ### print some output for the user
 message("")

@@ -19,6 +19,6 @@ APPDIRS += ../apps
 
 include $(CONTIKI)/Makefile.include
 
-CFLAGS += -Wall -Werror -Wno-unused -Wswitch-enum -std=gnu99 -I../../shared
+CFLAGS += -Wall -Werror -Wno-unused -Wswitch -std=gnu99 -I../../shared
 
 CFLAGS += -D'__SHORT_FILE__="$(notdir $<)"'

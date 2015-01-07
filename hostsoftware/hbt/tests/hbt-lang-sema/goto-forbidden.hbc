@@ -1,0 +1,10 @@
+machine m {
+	state s {
+		on entry {
+			goto s; //#expect: error: invalid use of goto in on entry block
+		}
+		on exit {
+			goto s; //#expect: error: invalid use of goto in on exit block
+		}
+	}
+};

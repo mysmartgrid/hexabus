@@ -2,7 +2,7 @@
 
 function (get_revision_info REV_INFO)
   execute_process (
-    COMMAND git rev-list origin/master..HEAD
+    COMMAND git rev-list HEAD
     COMMAND wc -l
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE _out_git
@@ -40,6 +40,7 @@ endif()
 
 if(NOT CPACK_INSTALL_PREFIX)
 	set(CPACK_INSTALL_PREFIX "/usr")
+	set(CMAKE_INSTALL_PREFIX "${CPACK_INSTALL_PREFIX}")
 endif()
 
 set(CPACK_SET_DESTDIR On)

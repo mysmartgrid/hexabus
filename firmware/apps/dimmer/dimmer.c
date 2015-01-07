@@ -123,7 +123,7 @@ static ENDPOINT_DESCRIPTOR endpoint_type = {
 
 static enum hxb_error_code read_brightness(struct hxb_value* v)
 {
-	v->v_u8 = brightness_pct;
+	v->v_float = brightness_pct / 100.0f;
 	return HXB_ERR_SUCCESS;
 }
 

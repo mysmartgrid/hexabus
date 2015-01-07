@@ -1,0 +1,12 @@
+endpoint ep(0) : bool (write);
+device dev(::) : ep;
+
+machine m { //#expect: hint: declared here
+            //#expect+: hint: declared here
+	state init {
+		always {
+			m.ep = false; //#expect: error: identifier 'm' does not name a device
+			dev.m = false; //#expect: error: identifier 'm' does not name an endpoint
+		}
+	}
+};
