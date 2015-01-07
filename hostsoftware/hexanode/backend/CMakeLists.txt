@@ -62,7 +62,7 @@ else()
   #    set(ROCKSDB_INCLUDE_DIR "")
   #    message(STATUS "RocksDB support is disabled because the library is not found. Install RocksDB or call cmake -DROCKSDB_HOME=path_to_rocksdb_install in order to enable it.")
   #  endif(ROCKSDB_FOUND)
-  #qendif()
+  #endif()
 endif( NOT LIBKLIO_FOUND)
 
 FIND_PACKAGE(OpenSSL REQUIRED)
@@ -95,10 +95,6 @@ add_subdirectory(src)
 INSTALL(FILES 
   README.md LICENSE.txt 
   DESTINATION share/doc/hexanode)
-
-INSTALL(FILES
-  etc/simulation.ini
-  DESTINATION share/doc/hexanode/simulation.ini)
 
 INSTALL(PROGRAMS etc/init.d/reverse-ssh DESTINATION /etc/init.d)
 INSTALL(FILES etc/reverse-ssh DESTINATION /etc)
