@@ -20,7 +20,7 @@ SET(ENABLE_LOGGING 1)
 #ENABLE_TESTING()
 
 set(V_MAJOR 0)
-set(V_MINOR 2)
+set(V_MINOR 3)
 set(V_PATCH 0)
 
 # add a path where some libraries might be stored
@@ -62,13 +62,11 @@ else()
   #    set(ROCKSDB_INCLUDE_DIR "")
   #    message(STATUS "RocksDB support is disabled because the library is not found. Install RocksDB or call cmake -DROCKSDB_HOME=path_to_rocksdb_install in order to enable it.")
   #  endif(ROCKSDB_FOUND)
-  #qendif()
+  #endif()
 endif( NOT LIBKLIO_FOUND)
 
 FIND_PACKAGE(OpenSSL REQUIRED)
-FIND_PACKAGE(CppNetlib REQUIRED)
 FIND_PACKAGE(LibHexabus REQUIRED)
-#FIND_PACKAGE(Libklio REQUIRED)
 FIND_PACKAGE(Sqlite REQUIRED)
 include(FindJson)
 include(FindCurl)
@@ -98,10 +96,6 @@ INSTALL(FILES
   README.md LICENSE.txt 
   DESTINATION share/doc/hexanode)
 
-INSTALL(FILES
-  etc/simulation.ini
-  DESTINATION share/doc/hexanode/simulation.ini)
-
 INSTALL(PROGRAMS etc/init.d/reverse-ssh DESTINATION /etc/init.d)
 INSTALL(FILES etc/reverse-ssh DESTINATION /etc)
 INSTALL(FILES etc/cron.d/hexabus_msg_heartbeat DESTINATION /etc/cron.d)
@@ -109,16 +103,13 @@ INSTALL(FILES msg_CA.crt DESTINATION /usr/local/share/ca-certificates)
 INSTALL(PROGRAMS src/hexabus_msg_heartbeat DESTINATION bin)
 INSTALL(PROGRAMS etc/service/hexabus_msg_bridge/run DESTINATION /etc/service/hexabus_msg_bridge)
 INSTALL(PROGRAMS etc/service/hexabus_msg_bridge/log/run DESTINATION /etc/service/hexabus_msg_bridge/log)
-INSTALL(PROGRAMS etc/service/hexanode-backend/run DESTINATION /etc/service/hexanode-backend)
-INSTALL(PROGRAMS etc/service/hexanode-backend/log/run DESTINATION /etc/service/hexanode-backend/log)
-
 
 # CPACK packaging
 include(InstallRequiredSystemLibraries)
 set(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
 set(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
 set(CPACK_PACKAGE_CONTACT "Fraunhofer ITWM <support@mysmartgrid.de>")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Backend utilities for a virtual hexabus device")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Utilities for a virtual hexabus device")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
@@ -128,9 +119,9 @@ set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13), libsqlite3-0 (>= 3.7), libgnutls26 (>= 2.12), libssl1.0.0, libasound2, python3 (>= 3.2), libhexabus (>= 0.6.0.200), ca-certificates")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/conffiles;${CMAKE_CURRENT_SOURCE_DIR}/debian/preinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
 
-set(CPACK_PACKAGE_EXECUTABLES "hexanode" "A virtual hexabus device.")
+set(CPACK_PACKAGE_EXECUTABLES "" "")
 set(CPACK_SOURCE_STRIP_FILES "")
-set(CPACK_STRIP_FILES "bin/hexanode")
+set(CPACK_STRIP_FILES "")
 set(CPACK_SECTION "net")
 include(CPackTools)
 

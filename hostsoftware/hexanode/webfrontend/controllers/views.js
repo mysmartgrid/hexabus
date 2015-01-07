@@ -1,8 +1,22 @@
 'use strict';
 var View = require('../lib/devicetree').View;
 
+/*
+ * Controller for creating, updating an deleting devicetree view.
+ *
+ * Devicetree views provide a basic mechanism for allowing users to group endpoints together for display.
+ * On the browserside devicetree views are displayed as different tabs on the overview page.
+ */
+
+
 module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 
+	/*
+	 * Create new devicetree view.
+	 *
+	 * The new devicetree view is always called "Unnamed View".
+	 * The browser will be redirected to the edit page for the freshly created devicetree view.
+	 */
 	app.get('/view/new', function(req, res) {
 		var count = Object.keys(devicetree.views).length; 
 
@@ -11,6 +25,10 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 		res.redirect('/view/edit/' + view.id);
 	});
 
+
+	/*
+	 * Display the edit page for a devicetree view.
+	 */
 	app.get('/view/edit/:id', function(req, res) {
 		var view = devicetree.views[req.params.id];
 
@@ -19,31 +37,20 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 			return;
 		}
 
-		var devices = {};
-		var used = view.devices;
-
-		devicetree.forEach(function(device) {
-			var entry = devices[device.ip] = { name: device.name, ip: device.ip, eids: [] };
-
-			device.forEachEndpoint(function(ep) {
-				if (ep.function != "infrastructure") {
-					entry.eids.push(ep);
-				}
-			});
-			entry.eids.sort(function(a, b) {
-				return b.eid - a.eid;
-			});
-		});
-
 		res.render('view/edit.ejs', {
 			active_nav: 'configuration',
-			known_devices: devices,
-			used_devices: used,
 			view_name: view.name,
 			view_id: req.params.id
 		});
 	});
 
+
+	/*
+	 * Update the enpoint list for a devicetree view.
+	 *
+	 * The endpoint list has be provided as json inside the
+	 * post parameter named 'endpoint_order'.
+	 */
 	app.post('/view/edit/:id', function(req, res) {
 		var view = devicetree.views[req.params.id];
 
@@ -52,16 +59,16 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 			return;
 		}
 
-		view.devices = JSON.parse(req.body.device_order);
+		view.endpoints = JSON.parse(req.body.endpoint_order);
 		view.name = req.body.view_name;
-
-		var devicetree_file = nconf.get('config') + '/devicetree.json';
-		devicetree.save(devicetree_file);
 
 		res.redirect('/');
 	});
 
 
+	/*
+	 * Deletes a devicetree view.
+	 */
 	app.get('/view/delete/:id', function(req, res) {
 
 		if (!devicetree.views[req.params.id]) {
@@ -70,9 +77,6 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 		}
 		
 		devicetree.removeView(req.params.id);
-		
-		var devicetree_file = nconf.get('config') + '/devicetree.json';
-		devicetree.save(devicetree_file);
 
 		res.redirect('/');
 	});

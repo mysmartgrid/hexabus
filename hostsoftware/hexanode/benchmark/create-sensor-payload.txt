@@ -1,8 +1,0 @@
-{
-    "name": "benchmark [n/a]",
-    "value": "n/a",
-    "minvalue": 0,
-    "maxvalue": 254,
-    "displaytype": "dash"
-}
-

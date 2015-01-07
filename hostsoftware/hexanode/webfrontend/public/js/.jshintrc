@@ -1,0 +1,10 @@
+{
+	"eqeqeq" : false,
+	"eqnull" : true,
+	"undef" : true,
+	"sub" : true,
+	"browser" : true,
+	"jquery" : true,
+	"devel" : true,
+	"predef": ["angular", "gauges" ]
+}
