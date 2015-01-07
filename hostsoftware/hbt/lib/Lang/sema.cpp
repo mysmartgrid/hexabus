@@ -1,6 +1,7 @@
 #include "hbt/Lang/sema.hpp"
 
 #include "instantiationvisitor.hpp"
+#include "hbt/Util/fatal.hpp"
 #include "hbt/Util/range.hpp"
 
 #include <boost/format.hpp>
@@ -328,6 +329,41 @@ static Diagnostic wordIsReservedHere(const SourceLocation& sloc, const std::stri
 static Diagnostic notAllowedHere(const Identifier& id)
 {
 	return { DiagnosticKind::Error, &id.sloc(), str(format("'%1%' may not be used here") % id.name()) };
+}
+
+static Diagnostic entryBlockNotAllowedHere(const OnBlock& block)
+{
+	return { DiagnosticKind::Error, &block.sloc(), "on entry must be the first block of the state" };
+}
+
+static Diagnostic multipleExitBlocksNotAllowed(const OnBlock& block)
+{
+	return { DiagnosticKind::Error, &block.sloc(), "multiple exit blocks are not allowed" };
+}
+
+static Diagnostic multipleAlwaysBlocksNotAllowed(const OnBlock& block)
+{
+	return { DiagnosticKind::Error, &block.sloc(), "multiple always blocks are not allowed" };
+}
+
+static Diagnostic periodicBlockNotAllowedHere(const OnBlock& block)
+{
+	return { DiagnosticKind::Error, &block.sloc(), "periodic block not allowed after expression, always or exit blocks" };
+}
+
+static Diagnostic updateBlockNotAllowedHere(const OnBlock& block)
+{
+	return { DiagnosticKind::Error, &block.sloc(), "update block not allowed after expression, always or exit blocks" };
+}
+
+static Diagnostic alwaysBlockNotAllowedHere(const OnBlock& block)
+{
+	return { DiagnosticKind::Error, &block.sloc(), "always block not allowed after exit block" };
+}
+
+static Diagnostic exprBlockNotAllowedHere(const OnBlock& block)
+{
+	return { DiagnosticKind::Error, &block.sloc(), "on (expr) block not allowed after always or exit blocks" };
 }
 
 
@@ -1169,8 +1205,65 @@ void SemanticVisitor::checkState(State& s)
 
 	for (auto& var : s.variables())
 		var->accept(*this);
-	for (auto& on : s.onBlocks())
+
+	enum BlockOrderState {
+		BOS_INIT,
+		BOS_ENTRY,
+		BOS_PERIODIC_UPDATE,
+		BOS_EXPR,
+		BOS_ALWAYS,
+		BOS_EXIT,
+		BOS_DONE,
+	} blockOrderState = BOS_INIT;
+
+	auto checkBlockOrder = [&] (const std::unique_ptr<OnBlock>& block) {
+		auto transitionOrDiagnose = [&] (BlockOrderState limit, const Diagnostic& diag, BlockOrderState next) {
+			if (blockOrderState > limit)
+				diags.print(diag);
+			else
+				blockOrderState = next;
+		};
+
+		if (auto* simple = dynamic_cast<OnSimpleBlock*>(block.get())) {
+			switch (simple->trigger()) {
+			case OnSimpleTrigger::Entry:
+				transitionOrDiagnose(BOS_ENTRY, entryBlockNotAllowedHere(*block), BOS_PERIODIC_UPDATE);
+				return;
+
+			case OnSimpleTrigger::Exit:
+				transitionOrDiagnose(BOS_EXIT, multipleExitBlocksNotAllowed(*block), BOS_DONE);
+				return;
+
+			case OnSimpleTrigger::Periodic:
+				transitionOrDiagnose(BOS_PERIODIC_UPDATE, periodicBlockNotAllowedHere(*block), BOS_PERIODIC_UPDATE);
+				return;
+
+			case OnSimpleTrigger::Always:
+				if (blockOrderState == BOS_ALWAYS)
+					diags.print(multipleAlwaysBlocksNotAllowed(*block));
+				else
+					transitionOrDiagnose(BOS_ALWAYS, alwaysBlockNotAllowedHere(*block), BOS_ALWAYS);
+				return;
+			}
+		}
+
+		if (auto* expr = dynamic_cast<OnExprBlock*>(block.get())) {
+			transitionOrDiagnose(BOS_EXPR, exprBlockNotAllowedHere(*block), BOS_EXPR);
+			return;
+		}
+
+		if (auto* update = dynamic_cast<OnUpdateBlock*>(block.get())) {
+			transitionOrDiagnose(BOS_PERIODIC_UPDATE, updateBlockNotAllowedHere(*block), BOS_PERIODIC_UPDATE);
+			return;
+		}
+
+		hbt_unreachable();
+	};
+
+	for (auto& on : s.onBlocks()) {
+		checkBlockOrder(on);
 		on->accept(*this);
+	}
 }
 
 void SemanticVisitor::checkMachineBody(MachineBody& m)

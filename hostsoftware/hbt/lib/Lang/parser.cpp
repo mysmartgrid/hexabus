@@ -648,6 +648,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 			(tok.word.on >> omit[tok.word.entry] > s.block)[fwd >= onSimple(OnSimpleTrigger::Entry)]
 			| (tok.word.on >> omit[tok.word.exit] > s.block)[fwd >= onSimple(OnSimpleTrigger::Exit)]
 			| (tok.word.on >> omit[tok.word.periodic] > s.block)[fwd >= onSimple(OnSimpleTrigger::Periodic)]
+			| (tok.word.always > s.block)[fwd >= onSimple(OnSimpleTrigger::Always)]
 			| (
 				tok.word.on
 				>> omit[
@@ -677,14 +678,9 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> omit[tok.lbrace | expected("{")]
 				> *s.decl
 				> *on_block
-				> -(omit[tok.word.always] > s.block)
 				> omit[tok.rbrace | expected("}")]
 			)[fwd >= [this] (range& r, Identifier* id, std::vector<ptr<DeclarationStmt>>& decls,
-					std::vector<ptr<OnBlock>>& onBlocks, ptr<BlockStmt>* always) {
-				if (always) {
-					auto sloc = (*always)->sloc();
-					onBlocks.push_back(ptr<OnBlock>(new OnSimpleBlock(sloc, OnSimpleTrigger::Always, *always)));
-				}
+					std::vector<ptr<OnBlock>>& onBlocks) {
 				return new State(locOf(r), std::move(*id), move(decls), move(onBlocks));
 			}];
 

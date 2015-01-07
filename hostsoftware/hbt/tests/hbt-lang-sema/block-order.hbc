@@ -1,0 +1,22 @@
+endpoint e(1) : bool (broadcast);
+device d(::) : e;
+
+machine m1 {
+	state s1 {
+		always {}
+		always {} //#expect: error: multiple always blocks are not allowed
+		on (true) {} //#expect: error: on (expr) block not allowed after always or exit blocks
+		on entry {} //#expect: error: on entry must be the first block of the state
+	}
+	state s2 {
+		on exit {}
+		on exit {} //#expect: error: multiple exit blocks are not allowed
+		on (true) {} //#expect: error: on (expr) block not allowed after always or exit blocks
+		always {} //#expect: error: always block not allowed after exit block
+	}
+	state s3 {
+		on exit {}
+		on periodic {} //#expect: error: periodic block not allowed after expression, always or exit blocks
+		on update from d.e {} //#expect: error: update block not allowed after expression, always or exit blocks
+	}
+};

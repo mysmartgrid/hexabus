@@ -36,6 +36,7 @@ private:
 	std::string input;
 	std::string output = "%d";
 	bool syntaxOnly = false;
+	bool warningsAreErrors = false;
 	unsigned tabWidth = 4;
 	TargetFormat targetFormat = TargetFormat::Object;
 	std::vector<std::string> includePaths;
@@ -88,6 +89,7 @@ Options:
     rm-unreachable
     codemotion        replace jumps with targets of jumps, if possible (implies
                       jumpthreading, rm-unreachable)
+  -Werror           turn warnings into errors
 )";
 }
 
@@ -146,6 +148,8 @@ void Driver::parseArgs(int argc, char* argv[])
 			}
 		} else if (arg == "-o") {
 			output = getNextArg();
+		} else if (arg == "-Werror") {
+			warningsAreErrors = true;
 		} else {
 			if ((!input.empty() && arg[0] == '-') || (input.empty() && arg[0] == '-' && arg != "-")) {
 				std::cerr << "superfluous argument '" << arg << "'\n";
@@ -395,7 +399,7 @@ int Driver::run(int argc, char* argv[])
 	DiagnosticOutput diag(std::cout);
 	SemanticVisitor(diag).visit(*tu);
 
-	if (diag.warningCount() || diag.errorCount()) {
+	if ((diag.warningCount() && warningsAreErrors) || diag.errorCount()) {
 		std::cout << "\n";
 		if (diag.errorCount())
 			std::cout << "got " << diag.errorCount() << " errors";
@@ -405,6 +409,8 @@ int Driver::run(int argc, char* argv[])
 			else
 				std::cout << "got ";
 			std::cout << diag.warningCount() << " warnings";
+			if (warningsAreErrors)
+				std::cout << " (treated as errors)";
 		}
 		std::cout << "\n";
 		return 1;
