@@ -1,50 +1,16 @@
 # -*- mode: cmake; -*-
 project(hexinfo)
-cmake_minimum_required(VERSION "2.8" FATAL_ERROR)
-if(POLICY CMP0011)
-  cmake_policy(SET CMP0011 NEW)
-endif(POLICY CMP0011)
-
-if( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-   message(STATUS "Do not run cmake in the source directory")
-   message(STATUS "create an extra binary directory")
-   message(FATAL_ERROR "Exiting cmake here.")
-endif( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-
-# have the full monty in makefiles
-set(CMAKE_VERBOSE_MAKEFILE true)
-
-SET(ENABLE_LOGGING 1)
-
-set(V_MAJOR 0)
-set(V_MINOR 2)
-set(V_PATCH 0)
-
-# add a path where some libraries might be stored
-set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where many locally installed libraries can be found")
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_SOURCE_DIR}/../cmake_modules ${CMAKE_MODULE_PATH})
+include(HexabusCommon)
 
 ###################################################################################################
 # No user settings below
 ###################################################################################################
 
-# Where are the additional libraries installed? Note: provide includes
-# path here, subsequent checks will resolve everything else
-set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
-set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_SOURCE_DIR}/../cmake_modules ${CMAKE_MODULE_PATH})
-
 if(CMAKE_TOOLCHAIN_FILE)
   list(APPEND CMAKE_FIND_ROOT_PATH ${HXB_HOME})
   list(APPEND CMAKE_FIND_ROOT_PATH ${HBC_HOME})
 endif()
-
-include ( CompilerFlags )
-include (UseCodeCoverage)
-
-set(CMAKE_CXX_FLAGS "${CXXFLAGS} -std=c++11")
-
-# Check for some compiler stuff
-include(CMakeBackwardCompatibilityCXX)
 
 FIND_PACKAGE(HBT)
 FIND_PACKAGE(LibHexabus)
