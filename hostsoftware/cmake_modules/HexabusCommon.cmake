@@ -2,7 +2,6 @@
 # Common setting for Hexabus packages
 #
 
-cmake_minimum_required(VERSION "2.8" FATAL_ERROR)
 
 #
 if(POLICY CMP0011)
