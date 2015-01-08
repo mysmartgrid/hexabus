@@ -2,6 +2,7 @@
 	"name": "hexabus",
 	"main": "hexabus.js",
 	"dependencies": {
-		"ipv6": "*"
+		"ipv6": "*",
+		"netroute" : "*"
 	}
 }
