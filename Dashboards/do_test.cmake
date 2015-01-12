@@ -16,6 +16,8 @@ set(CTEST_DROP_LOCATION   "/submit.php?project=${CTEST_PROJECT_NAME}")
 set(CTEST_DROP_SITE_CDASH TRUE)
 set(CTEST_USE_LAUNCHERS   0)
 set(CTEST_TEST_TIMEOUT   180)
+set(CTEST_CONTINUOUS_RUN_TIME 36000)
+set(CTEST_CONTINUOUS_SLEEP   120)
 
 set(CTEST_PACKAGE_SITE "msgrid@packages.mysmartgrid.de")
 
@@ -79,24 +81,33 @@ if (NOT BUILD_TMP_DIR)
   set (BUILD_TMP_DIR "/tmp/$ENV{USER}")
 endif ()
 
-if (${COMPILER} STREQUAL "gcc")
-  set (CMAKE_C_COMPILER "gcc")
-  set (CMAKE_CXX_COMPILER "g++")
-elseif( ${COMPILER} STREQUAL "clang" )
-  set (CMAKE_C_COMPILER "clang")
-  set (CMAKE_CXX_COMPILER "clang++")
-elseif (${COMPILER} STREQUAL "intel")
-  set (CMAKE_C_COMPILER "icc")
-  set (CMAKE_CXX_COMPILER "icpc")
+if(NOT CMAKE_TOOLCHAIN_FILE)
+  if (${COMPILER} STREQUAL "gcc")
+    set (CMAKE_C_COMPILER "gcc")
+    set (CMAKE_CXX_COMPILER "g++")
+  elseif( ${COMPILER} STREQUAL "clang" )
+    set (CMAKE_C_COMPILER "clang")
+    set (CMAKE_CXX_COMPILER "clang++")
+  elseif (${COMPILER} STREQUAL "intel")
+    set (CMAKE_C_COMPILER "icc")
+    set (CMAKE_CXX_COMPILER "icpc")
+  else()
+    message (FATAL_ERROR "unknown compiler '${COMPILER}'")
+  endif()
+  find_program( COMPILER_CC ${CMAKE_C_COMPILER} )
+  find_program( COMPILER_CXX ${CMAKE_CXX_COMPILER} )
+  if( ${COMPILER_CC} STREQUAL "COMPILER_CC-NOTFOUND" OR ${COMPILER_CXX} STREQUAL "COMPILER_CXX-NOTFOUND")
+    message(FATAL_ERROR "Compiler not found. Stopping here.")
+    return(1)
+  endif()
 else()
-  message (FATAL_ERROR "unknown compiler '${COMPILER}'")
+  set(COMPILER gcc)
 endif()
-find_program( COMPILER_CC ${CMAKE_C_COMPILER} )
-find_program( COMPILER_CXX ${CMAKE_CXX_COMPILER} )
-if( ${COMPILER_CC} STREQUAL "COMPILER_CC-NOTFOUND" OR ${COMPILER_CXX} STREQUAL "COMPILER_CXX-NOTFOUND")
-  message(FATAL_ERROR "Compiler not found. Stopping here.")
-  return(1)
-endif()
+message("=========== Compiler: ${COMPILER}")
+message("=========== Compiler: ${COMPILER_CC}")
+message("=========== Compiler: ${COMPILER_CXX}")
+message("=========== Compiler: ${CMAKE_C_COMPILER}")
+message("=========== Compiler: ${CMAKE_CXX_COMPILER}")
 
 set (ENV{CC} ${CMAKE_C_COMPILER})
 set (ENV{CXX} ${CMAKE_CXX_COMPILER})
@@ -122,14 +133,15 @@ else()
   set(_compiler_str "${COMPILER}")
 endif()
 
-set (CTEST_BUILD_NAME "${CMAKE_SYSTEM_PROCESSOR}-${_compiler_str}${_boost_str}-${GIT_BRANCH}")
+set (CTEST_BUILD_NAME_BASE   "${CMAKE_SYSTEM_PROCESSOR}-${_compiler_str}${_boost_str}-${GIT_BRANCH}")
 set (CTEST_BUILD_NAME_DEVEL  "${CMAKE_SYSTEM_PROCESSOR}-${_compiler_str}${_boost_str}-development")
 set (CTEST_BUILD_NAME_MASTER "${CMAKE_SYSTEM_PROCESSOR}-${_compiler_str}${_boost_str}-master")
+set (CTEST_BUILD_NAME        "${CTEST_BUILD_NAME_BASE}")
 
 set (CTEST_BASE_DIRECTORY   "${BUILD_TMP_DIR}/${CTEST_PROJECT_NAME}/${TESTING_MODEL}")
-set (CTEST_SOURCE_DIRECTORY "${CTEST_BASE_DIRECTORY}/src-${GIT_BRANCH}-${CMAKE_SYSTEM_PROCESSOR}" )
-set (CTEST_BINARY_DIRECTORY "${CTEST_BASE_DIRECTORY}/build-${CTEST_BUILD_NAME}")
-set (CTEST_INSTALL_DIRECTORY "${CTEST_BASE_DIRECTORY}/install-${CTEST_BUILD_NAME}")
+set (CTEST_SOURCE_DIRECTORY "${CTEST_BASE_DIRECTORY}/src-${CTEST_BUILD_NAME_BASE}")
+set (CTEST_BINARY_DIRECTORY "${CTEST_BASE_DIRECTORY}/build-${CTEST_BUILD_NAME_BASE}")
+set (CTEST_INSTALL_DIRECTORY "${CTEST_BASE_DIRECTORY}/install-${CTEST_BUILD_NAME_BASE}")
 
 if (${TESTING_MODEL} STREQUAL "Nightly")
   set (CMAKE_BUILD_TYPE "Release")
@@ -148,15 +160,8 @@ endif()
 # find and submit subproject list ##################################################
 set(CTEST_PROJECT_SUBPROJECTS)
 list(APPEND CTEST_PROJECT_SUBPROJECTS "libhexabus")
-#file(GLOB _dummy ${CTEST_SOURCE_DIRECTORY}/hostsoftware/*/CMakeLists.txt)
-#foreach ( line ${_dummy})
-#  get_filename_component(_currentDir "${line}" PATH)
-#  get_filename_component(_item "${_currentDir}" NAME)
-#  message("====>${line}<====${_currentDir}===${_item}")
-#  list(APPEND CTEST_PROJECT_SUBPROJECTS ${_item})
-#endforeach()
-list(APPEND CTEST_PROJECT_SUBPROJECTS "hba")
-list(APPEND CTEST_PROJECT_SUBPROJECTS "hbc")
+#list(APPEND CTEST_PROJECT_SUBPROJECTS "hba")
+#list(APPEND CTEST_PROJECT_SUBPROJECTS "hbc")
 list(APPEND CTEST_PROJECT_SUBPROJECTS "hbt")
 list(APPEND CTEST_PROJECT_SUBPROJECTS "hexinfo")
 list(APPEND CTEST_PROJECT_SUBPROJECTS "network-autoconfig")
@@ -218,7 +223,7 @@ else()
   set_if_exists (SQLITE3_HOME ${EXTERNAL_SOFTWARE}/sqlite/3.8.5)
 
 endif()
-set_if_exists (LIBKLIO_HOME "${BUILD_TMP_DIR}/libklio/${TESTING_MODEL}/install-${CTEST_BUILD_NAME}")
+set_if_exists (LIBKLIO_HOME "${BUILD_TMP_DIR}/libklio/${TESTING_MODEL}/install-${CTEST_BUILD_NAME_BASE}")
 if(NOT LIBKLIO_HOME)
   set_if_exists (LIBKLIO_HOME "${BUILD_TMP_DIR}/libklio/${TESTING_MODEL}/install-${CTEST_BUILD_NAME_DEVEL}")
 endif()
@@ -258,194 +263,218 @@ if(FORCE_CONTINUOUS)
 endif()
 
 # do testing #######################################################################
+macro(run_build)
+  message("========== ========== RUN BUILD ========== ==========")
+  # start loop over all subprojects  #################################################
+  foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
+    message("====>  build ${subproject}")
+    #set (CTEST_BUILD_NAME "${CTEST_BUILD_NAME_BASE}-${subproject}")
 
-set (UPDATE_RETURN_VALUE 0)
+    set_property(GLOBAL PROPERTY SubProject ${subproject})
+    set_property (GLOBAL PROPERTY Label ${subproject})
+    set (CMAKE_INSTALL_PREFIX "/usr")
 
-ctest_start (${TESTING_MODEL})
-
-ctest_update (RETURN_VALUE UPDATE_RETURN_VALUE)
-message("Update returned: ${UPDATE_RETURN_VALUE}")
-
-if ("${TESTING_MODEL}" STREQUAL "Continuous" AND first_checkout EQUAL 0 AND FORCE_CONTINUOUS EQUAL 0)
-  if (UPDATE_RETURN_VALUE EQUAL 0)
-    return()
-  endif ()
-endif ()
-
-# start loop over all subprojects  #################################################
-foreach(subproject ${CTEST_PROJECT_SUBPROJECTS})
-  message("====>  build ${subproject}")
-  set_property(GLOBAL PROPERTY SubProject ${subproject})
-  set_property (GLOBAL PROPERTY Label ${subproject})
-  set (CMAKE_INSTALL_PREFIX "/usr")
-
-  set_if_exists (HXB_HOME ${CTEST_INSTALL_DIRECTORY})
-  set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY})
-  set_if_exists (HBT_HOME ${CTEST_INSTALL_DIRECTORY})
-  if(${subproject} STREQUAL "hexanode")
-    set(CTEST_SUBPROJECT_SOURCE_DIR  ${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject}/backend )
-  else()
-    set(CTEST_SUBPROJECT_SOURCE_DIR  ${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject} )
-  endif()
-  if(${subproject} STREQUAL "hexanode-webfrontend")
-    set(CTEST_SUBPROJECT_SOURCE_DIR  ${CTEST_SOURCE_DIRECTORY}/hostsoftware/hexanode/webfrontend)
-  endif()
-
-  # write CMakeCache file here
-  file (WRITE "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt"
-    "# Automatically generated in ctest script (write_initial_cache())\n\n")
-
-  foreach (VARIABLE_NAME
-      CMAKE_BUILD_TYPE
-      CMAKE_INSTALL_PREFIX
-      CMAKE_TOOLCHAIN_FILE
-      CMAKE_CXX_COMPILER
-      CMAKE_C_COMPILER
-      CMAKE_SYSTEM_PROCESSOR
-      #    OS_NAME
-      #    OS_VERSION
-      
-
-      CTEST_TIMEOUT
-      CTEST_USE_LAUNCHERS
-
-      ENABLE_CODECOVERAGE
-
-
-      LIBKLIO_HOME
-      HXB_HOME
-      HBC_HOME
-      HBT_HOME
-      CPPNETLIB_HOME 
-      ALSA_HOME 
-      CLN_HOME 
-
-      BOOST_ROOT
-      GRAPHVIZ_HOME
-      SQLITE3_HOME
-
-      )
-    if (DEFINED ${VARIABLE_NAME})
-      file (APPEND "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt" "${VARIABLE_NAME}:STRING=${${VARIABLE_NAME}}\n")
+    set_if_exists (HXB_HOME ${CTEST_INSTALL_DIRECTORY})
+    set_if_exists (HBC_HOME ${CTEST_INSTALL_DIRECTORY})
+    set_if_exists (HBT_HOME ${CTEST_INSTALL_DIRECTORY})
+    if(${subproject} STREQUAL "hexanode")
+      set(CTEST_SUBPROJECT_SOURCE_DIR  ${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject}/backend )
+    else()
+      set(CTEST_SUBPROJECT_SOURCE_DIR  ${CTEST_SOURCE_DIRECTORY}/hostsoftware/${subproject} )
     endif()
-  endforeach()
-  foreach (VARIABLE_NAME
-      CMAKE_ADDITIONAL_PATH
-      )
-    if (DEFINED ${VARIABLE_NAME})
-      file (APPEND "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt" "${VARIABLE_NAME}:PATH=${${VARIABLE_NAME}}\n")
+    if(${subproject} STREQUAL "hexanode-webfrontend")
+      set(CTEST_SUBPROJECT_SOURCE_DIR  ${CTEST_SOURCE_DIRECTORY}/hostsoftware/hexanode/webfrontend)
     endif()
-  endforeach()
 
-  set(CONFIGURE_RETURN_VALUE 0)
-  if( EXISTS ${CTEST_SUBPROJECT_SOURCE_DIR} )
-    file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}/${subproject}")
+    # write CMakeCache file here
+    file (WRITE "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt"
+      "# Automatically generated in ctest script (write_initial_cache())\n\n")
 
-    ctest_configure (BUILD ${CTEST_BINARY_DIRECTORY}/${subproject} 
-      SOURCE ${CTEST_SUBPROJECT_SOURCE_DIR} 
-      APPEND RETURN_VALUE CONFIGURE_RETURN_VALUE
-      )
+    foreach (VARIABLE_NAME
+	CMAKE_BUILD_TYPE
+	CMAKE_INSTALL_PREFIX
+	CMAKE_TOOLCHAIN_FILE
+	CMAKE_CXX_COMPILER
+	CMAKE_C_COMPILER
+	CMAKE_SYSTEM_PROCESSOR
+	#    OS_NAME
+	#    OS_VERSION
 
-    if( STAGING_DIR)
-      include(${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt)
-      set(ENV{STAGING_DIR}     ${OPENWRT_STAGING_DIR})
-    endif( STAGING_DIR)
 
-    if (${CONFIGURE_RETURN_VALUE} EQUAL 0)
-      ctest_build (BUILD ${CTEST_BINARY_DIRECTORY}/${subproject} 
-	APPEND  RETURN_VALUE BUILD_RETURN_VALUE
-	NUMBER_ERRORS BUILD_ERRORS
+	CTEST_TIMEOUT
+	CTEST_USE_LAUNCHERS
+
+	ENABLE_CODECOVERAGE
+
+
+	LIBKLIO_HOME
+	HXB_HOME
+	HBC_HOME
+	HBT_HOME
+	CPPNETLIB_HOME 
+	ALSA_HOME 
+	CLN_HOME 
+
+	BOOST_ROOT
+	GRAPHVIZ_HOME
+	SQLITE3_HOME
+
+	)
+      if (DEFINED ${VARIABLE_NAME})
+	file (APPEND "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt" "${VARIABLE_NAME}:STRING=${${VARIABLE_NAME}}\n")
+      endif()
+    endforeach()
+    foreach (VARIABLE_NAME
+	CMAKE_ADDITIONAL_PATH
+	)
+      if (DEFINED ${VARIABLE_NAME})
+	file (APPEND "${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt" "${VARIABLE_NAME}:PATH=${${VARIABLE_NAME}}\n")
+      endif()
+    endforeach()
+
+    set(CONFIGURE_RETURN_VALUE 0)
+    if( EXISTS ${CTEST_SUBPROJECT_SOURCE_DIR} )
+      file(MAKE_DIRECTORY "${CTEST_BINARY_DIRECTORY}/${subproject}")
+
+      ctest_configure (BUILD ${CTEST_BINARY_DIRECTORY}/${subproject} 
+	SOURCE ${CTEST_SUBPROJECT_SOURCE_DIR} 
+	APPEND RETURN_VALUE CONFIGURE_RETURN_VALUE
 	)
 
-      message("======> run Install:  <===")
-      execute_process(
-	COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX=${CTEST_INSTALL_DIRECTORY} -P cmake_install.cmake
-	WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject} 
-	RESULT_VARIABLE INSTALL_ERRORS
-	)
-      message("======> Install: ${INSTALL_ERRORS} <===")
-
-      if (${BUILD_ERRORS} EQUAL 0 AND ${INSTALL_ERRORS} EQUAL 0)
-	set (PROPERLY_BUILT_AND_INSTALLED TRUE)
-      endif()
-
-      if (${TESTING_MODEL} STREQUAL "Coverage")
-	ctest_coverage (RETURN_VALUE LAST_RETURN_VALUE)
-	ctest_memcheck (RETURN_VALUE LAST_RETURN_VALUE)
-      endif()
-
-      if( NOT CMAKE_TOOLCHAIN_FILE )
-	if (PROPERLY_BUILT_AND_INSTALLED)
-	  ctest_test (BUILD "${CTEST_BINARY_DIRECTORY}/${subproject}"
-#	    INCLUDE_LABEL "${subproject}"
-	    SCHEDULE_RANDOM true RETURN_VALUE LAST_RETURN_VALUE PARALLEL_LEVEL ${PARALLEL_JOBS})
-	else()
-	  ctest_test (BUILD "${CTEST_BINARY_DIRECTORY}/${subproject}"
-#	    INCLUDE_LABEL "${subproject}"
-	    SCHEDULE_RANDOM true EXCLUDE_LABEL "requires_installation"
-	    RETURN_VALUE LAST_RETURN_VALUE)
-	endif()
-      endif( NOT CMAKE_TOOLCHAIN_FILE )
-    endif()
-
-    if(doSubmit)
-      ctest_submit (RETURN_VALUE ${LAST_RETURN_VALUE})
-    endif()
-
-    # todo: create package, upload to distribution server
-    # do the packing only if switch is on and
-    if( (${UPDATE_RETURN_VALUE} GREATER 0 AND PROPERLY_BUILT_AND_INSTALLED) OR ${first_checkout})
-      include(${CTEST_BINARY_DIRECTORY}/${subproject}/CPackConfig.cmake)
       if( STAGING_DIR)
-	set(ENV{PATH}            ${OPENWRT_STAGING_DIR}/host/bin:$ENV{PATH})
+	include(${CTEST_BINARY_DIRECTORY}/${subproject}/CMakeCache.txt)
+	set(ENV{STAGING_DIR}     ${OPENWRT_STAGING_DIR})
       endif( STAGING_DIR)
-      # do the packaging
-      execute_process(
-	COMMAND cpack -G DEB
-	WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
-	RESULT_VARIABLE COMMAND_ERRORS
-	)
-      message("cpack returned: ${COMMAND_ERRORS}")
 
-      # upload files
-      if( ${CTEST_PUSH_PACKAGES})
-	message( "OS_NAME .....: ${OS_NAME}")
-	message( "OS_VERSION ..: ${OS_VERSION}")
-	message( "CMAKE_SYSTEM_PROCESSOR ..: ${CMAKE_SYSTEM_PROCESSOR}")
-
-	if(CPACK_ARCHITECTUR)
-	  set(OPKG_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CPACK_ARCHITECTUR}")
-	  set(_package_file "${OPKG_FILE_NAME}.ipk")
-	else(CPACK_ARCHITECTUR)
-	  set(_package_file "${CPACK_PACKAGE_FILE_NAME}.deb")
-	endif(CPACK_ARCHITECTUR)
-	message("==> Upload packages - ${_package_file}")
-	set(_export_host ${CTEST_PACKAGE_SITE})
-	set(_remote_dir "packages/${OS_NAME}/${OS_VERSION}/${CMAKE_SYSTEM_PROCESSOR}")
-	if( NOT ${GIT_BRANCH} STREQUAL "master")
-	  set(_remote_dir "packages/${OS_NAME}/${OS_VERSION}/${CMAKE_SYSTEM_PROCESSOR}/${GIT_BRANCH}")
-	endif()
-	message("Execute: ssh ${_export_host} mkdir -p ${_remote_dir}")
-	execute_process(
-	  COMMAND ssh ${_export_host} mkdir -p ${_remote_dir}
+      if (${CONFIGURE_RETURN_VALUE} EQUAL 0)
+	ctest_build (BUILD ${CTEST_BINARY_DIRECTORY}/${subproject} 
+	  APPEND  RETURN_VALUE BUILD_RETURN_VALUE
+	  NUMBER_ERRORS BUILD_ERRORS
 	  )
-	message("Execute scp -p ${_package_file} ${_export_host}:${_remote_dir}/${_package_file}")
+
+	message("======> run Install:  <===")
 	execute_process(
-	  COMMAND scp -p ${_package_file} ${_export_host}:${_remote_dir}/${_package_file}
+	  COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX=${CTEST_INSTALL_DIRECTORY} -P cmake_install.cmake
+	  WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject} 
+	  RESULT_VARIABLE INSTALL_ERRORS
+	  )
+	message("======> Install: ${INSTALL_ERRORS} <===")
+
+	if (${BUILD_ERRORS} EQUAL 0 AND ${INSTALL_ERRORS} EQUAL 0)
+	  set (PROPERLY_BUILT_AND_INSTALLED TRUE)
+	endif()
+
+	if (${TESTING_MODEL} STREQUAL "Coverage")
+	  ctest_coverage (RETURN_VALUE LAST_RETURN_VALUE)
+	  ctest_memcheck (RETURN_VALUE LAST_RETURN_VALUE)
+	endif()
+
+	if( NOT CMAKE_TOOLCHAIN_FILE )
+	  if (PROPERLY_BUILT_AND_INSTALLED)
+	    ctest_test (BUILD "${CTEST_BINARY_DIRECTORY}/${subproject}"
+	      #	    INCLUDE_LABEL "${subproject}"
+	      SCHEDULE_RANDOM true RETURN_VALUE LAST_RETURN_VALUE PARALLEL_LEVEL ${PARALLEL_JOBS})
+	  else()
+	    ctest_test (BUILD "${CTEST_BINARY_DIRECTORY}/${subproject}"
+	      #	    INCLUDE_LABEL "${subproject}"
+	      SCHEDULE_RANDOM true EXCLUDE_LABEL "requires_installation"
+	      RETURN_VALUE LAST_RETURN_VALUE)
+	  endif()
+	endif( NOT CMAKE_TOOLCHAIN_FILE )
+      endif()
+
+      if(doSubmit)
+	ctest_submit (RETURN_VALUE ${LAST_RETURN_VALUE})
+      endif()
+
+      # todo: create package, upload to distribution server
+      # do the packing only if switch is on and
+      if( (${UPDATE_RETURN_VALUE} GREATER 0 AND PROPERLY_BUILT_AND_INSTALLED) OR ${first_checkout})
+	include(${CTEST_BINARY_DIRECTORY}/${subproject}/CPackConfig.cmake)
+	if( STAGING_DIR)
+	  set(ENV{PATH}            ${OPENWRT_STAGING_DIR}/host/bin:$ENV{PATH})
+	endif( STAGING_DIR)
+	# do the packaging
+	execute_process(
+	  COMMAND cpack -G DEB
 	  WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
 	  RESULT_VARIABLE COMMAND_ERRORS
 	  )
-	message("scp returned: ${COMMAND_ERRORS}")
+	message("cpack returned: ${COMMAND_ERRORS}")
+
+	# upload files
+	if( ${CTEST_PUSH_PACKAGES})
+	  message( "OS_NAME .....: ${OS_NAME}")
+	  message( "OS_VERSION ..: ${OS_VERSION}")
+	  message( "CMAKE_SYSTEM_PROCESSOR ..: ${CMAKE_SYSTEM_PROCESSOR}")
+
+	  if(CPACK_ARCHITECTUR)
+	    set(OPKG_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CPACK_ARCHITECTUR}")
+	    set(_package_file "${OPKG_FILE_NAME}.ipk")
+	  else(CPACK_ARCHITECTUR)
+	    set(_package_file "${CPACK_PACKAGE_FILE_NAME}.deb")
+	  endif(CPACK_ARCHITECTUR)
+	  message("==> Upload packages - ${_package_file}")
+	  set(_export_host ${CTEST_PACKAGE_SITE})
+	  set(_remote_dir "packages/${OS_NAME}/${OS_VERSION}/${CMAKE_SYSTEM_PROCESSOR}")
+	  if( NOT ${GIT_BRANCH} STREQUAL "master")
+	    set(_remote_dir "packages/${OS_NAME}/${OS_VERSION}/${CMAKE_SYSTEM_PROCESSOR}/${GIT_BRANCH}")
+	  endif()
+	  message("Execute: ssh ${_export_host} mkdir -p ${_remote_dir}")
+	  execute_process(
+	    COMMAND ssh ${_export_host} mkdir -p ${_remote_dir}
+	    )
+	  message("Execute scp -p ${_package_file} ${_export_host}:${_remote_dir}/${_package_file}")
+	  execute_process(
+	    COMMAND scp -p ${_package_file} ${_export_host}:${_remote_dir}/${_package_file}
+	    WORKING_DIRECTORY ${CTEST_BINARY_DIRECTORY}/${subproject}
+	    RESULT_VARIABLE COMMAND_ERRORS
+	    )
+	  message("scp returned: ${COMMAND_ERRORS}")
+	endif()
+
       endif()
 
+    else()
+      message("====>Skipping ${subproject}")
     endif()
 
-  else()
-    message("====>Skipping ${subproject}")
-  endif()
+  endforeach()
+  # end loop over all subprojects  ###################################################
+endmacro()
 
-endforeach()
-# end loop over all subprojects  ###################################################
+# do testing #######################################################################
+set (UPDATE_RETURN_VALUE 0)
+set(firstLoop TRUE)
+
+if("${TESTING_MODEL}" STREQUAL "Continuous")
+  while (${CTEST_ELAPSED_TIME} LESS ${CTEST_CONTINUOUS_RUN_TIME})
+    message("========== ========== RUN BUILD ========== ==========")
+    message("Running next loop...")
+
+    ctest_start (${TESTING_MODEL})
+
+    ctest_update (RETURN_VALUE UPDATE_RETURN_VALUE)
+    message("Update returned: ${UPDATE_RETURN_VALUE}")
+
+
+    if ("${UPDATE_RETURN_VALUE}" GREATER 0  OR  firstLoop OR first_checkout)
+      run_build()
+      set(firstLoop FALSE)
+      set(first_checkout 0)
+    endif()
+
+    ctest_sleep( ${CTEST_CONTINUOUS_SLEEP} ) # ${START_TIME} 300 ${CTEST_ELAPSED_TIME})
+  endwhile()
+else()
+  ctest_start (${TESTING_MODEL})
+
+  ctest_update (RETURN_VALUE UPDATE_RETURN_VALUE)
+  message("Update returned: ${UPDATE_RETURN_VALUE}")
+
+  run_build()
+endif()
+
 
 #file (REMOVE_RECURSE "${CTEST_INSTALL_DIRECTORY}")
 #if (NOT "${TESTING_MODEL}" STREQUAL "Continuous")
