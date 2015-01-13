@@ -697,7 +697,8 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 					return new CPValue(t->loc, str(id), t->val.second);
 				else
 					return new CPValue(t->loc, str(id), t->val.first);
-			}];
+			}]
+			| expected("class parameter");
 
 		machine_class =
 			(
