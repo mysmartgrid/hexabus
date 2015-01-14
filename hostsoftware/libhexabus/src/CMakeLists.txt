@@ -79,6 +79,12 @@ target_link_libraries(hexatimed
 add_executable(hexasm "hexasm.cpp")
 target_link_libraries(hexasm hexabus pthread ${Boost_LIBRARIES})
 
+add_executable(hexalisten "hexalisten.cpp")
+target_link_libraries(hexalisten hexabus pthread ${Boost_LIBRARIES})
+
+add_executable(hexasend "hexasend.cpp" ${common_lib})
+target_link_libraries(hexasend hexabus pthread ${Boost_LIBRARIES})
+
 if(LIBKLIO_FOUND)
   add_executable(hexalog ${hexalog_src})
   target_link_libraries(hexalog
