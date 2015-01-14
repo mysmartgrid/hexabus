@@ -18,7 +18,7 @@ namespace po = boost::program_options;
 
 #include "../../../shared/endpoints.h"
 #include "../../../shared/hexabus_definitions.h"
-#include "resolv.hpp"
+#include "shared.hpp"
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
@@ -37,28 +37,6 @@ enum ErrorCode {
 
 	ERR_OTHER = 127
 };
-
-static std::string errcodeStr(uint8_t code)
-{
-	switch ((hxb_error_code) code) {
-	case HXB_ERR_SUCCESS: return "Success";
-	case HXB_ERR_UNKNOWNEID: return "Unknown EID";
-	case HXB_ERR_WRITEREADONLY: return "Write on readonly endpoint";
-	case HXB_ERR_CRCFAILED: return "CRC failed";
-	case HXB_ERR_DATATYPE: return "Datatype mismatch";
-	case HXB_ERR_INVALID_VALUE: return "Invalid value";
-
-	case HXB_ERR_MALFORMED_PACKET: return "(malformaed packet)";
-	case HXB_ERR_UNEXPECTED_PACKET: return "(unexpected packet)";
-	case HXB_ERR_NO_VALUE: return "(no value)";
-	case HXB_ERR_INVALID_WRITE: return "(invalid write)";
-	}
-
-	std::stringstream ss;
-
-	ss << "(error " << unsigned(code) << ")";
-	return ss.str();
-}
 
 enum FieldName {
 	F_FROM,
@@ -415,34 +393,6 @@ enum Command {
 	C_POWER,
 	C_DEVINFO
 };
-
-
-inline std::string shortDatatypeName(hxb_datatype type)
-{
-	switch (type) {
-	case HXB_DTYPE_BOOL: return "b";
-	case HXB_DTYPE_UINT8: return "u8";
-	case HXB_DTYPE_UINT16: return "u16";
-	case HXB_DTYPE_UINT32: return "u32";
-	case HXB_DTYPE_UINT64: return "u64";
-	case HXB_DTYPE_SINT8: return "s8";
-	case HXB_DTYPE_SINT16: return "s16";
-	case HXB_DTYPE_SINT32: return "s32";
-	case HXB_DTYPE_SINT64: return "s64";
-	case HXB_DTYPE_FLOAT: return "f";
-	case HXB_DTYPE_128STRING: return "s";
-	default: return "(unknown)";
-	}
-}
-
-int dtypeStrToDType(const std::string& s)
-{
-	for (hxb_datatype  type = HXB_DTYPE_BOOL; type <= HXB_DTYPE_128STRING; type = hxb_datatype(type + 1))
-		if (shortDatatypeName(type) == s || datatypeName(type) == s)
-			return type;
-
-	return -1;
-}
 
 int main(int argc, char** argv) {
 

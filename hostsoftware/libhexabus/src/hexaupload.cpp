@@ -19,7 +19,7 @@ namespace po = boost::program_options;
 #include "../../../shared/hexabus_definitions.h"
 #include "../../../shared/hexabus_statemachine_structs.h"
 #include "../../../shared/endpoints.h"
-#include "resolv.hpp"
+#include "shared.hpp"
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 

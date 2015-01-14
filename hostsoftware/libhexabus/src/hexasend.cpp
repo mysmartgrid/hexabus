@@ -6,8 +6,6 @@
 
 #include "shared.hpp"
 
-#include "resolv.hpp"
-
 using namespace hexabus;
 namespace po = boost::program_options;
 

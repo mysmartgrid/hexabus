@@ -38,7 +38,7 @@ namespace po = boost::program_options;
 
 #include <libhexabus/logger/logger.hpp>
 
-#include "resolv.hpp"
+#include "shared.hpp"
 using boost::format;
 using boost::io::group;
 
