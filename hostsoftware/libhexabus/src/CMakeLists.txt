@@ -79,6 +79,9 @@ target_link_libraries(hexalisten hexabus pthread ${Boost_LIBRARIES})
 add_executable(hexasend "hexasend.cpp")
 target_link_libraries(hexasend hexabus pthread ${Boost_LIBRARIES})
 
+add_executable(hexajuice "hexajuice.cpp")
+target_link_libraries(hexajuice hexabus pthread ${Boost_LIBRARIES})
+
 if(LIBKLIO_FOUND)
   add_executable(hexalog ${hexalog_src})
   target_link_libraries(hexalog
