@@ -32,7 +32,7 @@ struct is_placeholder<boost::arg<Arg>> : integral_constant<int, Arg> {
 
 namespace {
 
-class StdinAsioWrapper {
+class FiledescLineWrapper {
 private:
 	ba::io_service& io;
 	ba::posix::stream_descriptor stream;
@@ -75,28 +75,46 @@ private:
 		buffer.resize(buffer.capacity());
 		stream.async_read_some(
 			ba::buffer(&buffer[0], buffer.size()),
-			std::bind(&StdinAsioWrapper::readSome, this, _1, _2));
+			std::bind(&FiledescLineWrapper::readSome, this, _1, _2));
 	}
 
 	void beginRead()
 	{
 		incompleteLine.erase();
 		if (!processBuffer())
-		continueRead();
+			continueRead();
 	}
 
 public:
-	StdinAsioWrapper(ba::io_service& io)
-		: io(io), stream(io)
+	FiledescLineWrapper(ba::io_service& io, const ba::posix::stream_descriptor::native_handle_type& handle)
+		: io(io), stream(io, handle)
 	{
 		buffer.reserve(4096);
-		stream.assign(STDIN_FILENO);
+	}
+
+	~FiledescLineWrapper()
+	{
+		stream.release();
 	}
 
 	void asyncGetline(std::function<void (const std::string&, bool)> handler)
 	{
 		this->handler = handler;
 		beginRead();
+	}
+
+	static bool canWrap(const ba::posix::stream_descriptor::native_handle_type& handle)
+	{
+		ba::io_service io;
+		ba::posix::stream_descriptor desc(io);
+		boost::system::error_code err;
+
+		desc.assign(handle, err);
+		if (err)
+			return false;
+
+		desc.release();
+		return true;
 	}
 };
 
@@ -326,7 +344,7 @@ public:
 class Hexajuice {
 private:
 	ba::io_service& io;
-	StdinAsioWrapper input;
+	FiledescLineWrapper& input;
 
 	Listener listener;
 	Socket socket;
@@ -433,13 +451,7 @@ private:
 			return *child;
 		};
 
-		auto reportSuccess = [] () {
-			std::cout << jobject({
-					{ "success", jvalue(true) }
-				});
-		};
-
-		auto parseAddress = [&] (const std::string& prefix) -> ba::ip::udp::endpoint {
+		auto parseAddress = [&] (const std::string& prefix, uint16_t defaultPort) -> ba::ip::udp::endpoint {
 			boost::system::error_code err;
 			auto& addr = requiredField(prefix);
 
@@ -448,7 +460,7 @@ private:
 				if (err)
 					throw boost::system::system_error(err);
 
-				return {result, 0};
+				return {result, defaultPort};
 			} else {
 				auto ip = resolve(io, requiredField(prefix + ".ip").data(), err);
 				auto port = cast<uint16_t>(prefix + ".port", requiredField(prefix + ".port").data());
@@ -521,27 +533,22 @@ private:
 		if (command == "listen") {
 			auto& iface = requiredField("interface");
 			listener.listen(iface.data());
-			reportSuccess();
 		} else if (command == "ignore") {
 			auto& iface = requiredField("interface");
 			listener.ignore(iface.data());
-			reportSuccess();
 		} else if (command == "mcast_from") {
 			auto& iface = requiredField("interface");
 			socket.mcast_from(iface.data());
-			reportSuccess();
 		} else if (command == "bind") {
-			socket.bind(parseAddress("address"));
-			reportSuccess();
+			socket.bind(parseAddress("address", 0));
 		} else if (command == "send") {
 			auto packet = parsePacket();
 			ba::ip::udp::endpoint target{Socket::GroupAddress, 61616};
 
 			if (json.get_child_optional("to"))
-				target = parseAddress("to");
+				target = parseAddress("to", 61616);
 
 			socket.send(*packet, target);
-			reportSuccess();
 		} else if (command == "quit") {
 			exit(0);
 		}
@@ -623,11 +630,12 @@ private:
 	}
 
 public:
-	Hexajuice(ba::io_service& io)
-		: io(io), input(io), listener(io), socket(io)
+	Hexajuice(ba::io_service& io, FiledescLineWrapper& input)
+		: io(io), input(input), listener(io), socket(io)
 	{
 		allowNextCommand();
 		listener.onPacketReceived(std::bind(&Hexajuice::processPacket, this, _1, _2));
+		socket.onPacketReceived(std::bind(&Hexajuice::processPacket, this, _1, _2));
 	}
 };
 
@@ -635,8 +643,29 @@ public:
 
 int main(int argc, char* argv[])
 {
-	ba::io_service io;
-	Hexajuice juice(io);
+	if (argc != 1) {
+		std::cout << R"(Usage: hexajuice)" << std::endl;
+		return 0;
+	}
 
-	io.run();
+	if (!FiledescLineWrapper::canWrap(STDIN_FILENO)) {
+		std::cerr << "stdin is not a stream" << std::endl;
+		return 1;
+	}
+
+	try {
+		ba::io_service io;
+		FiledescLineWrapper input(io, STDIN_FILENO);
+		Hexajuice juice(io, input);
+
+		io.run();
+	} catch (const std::exception& e) {
+		std::cerr << "error: " << e.what() << std::endl;
+		return 1;
+	} catch (...) {
+		std::cerr << "unknown error occured" << std::endl;
+		return 1;
+	}
+
+	return 0;
 }
