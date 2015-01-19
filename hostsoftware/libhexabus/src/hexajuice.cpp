@@ -327,12 +327,14 @@ private:
 	virtual void visit(const WritePacket<boost::array<char, 65> >& write) { printValuePacket("write", write); }
 
 public:
-	void print(const Packet& packet, const boost::asio::ip::udp::endpoint& from)
+	void print(const Packet& packet, const boost::asio::ip::udp::endpoint& from, const std::string* socket)
 	{
 		keys.insert({ "from", jobject({
 				{ "ip", jvalue(from.address().to_string()) },
 				{ "port", jvalue(from.port()) }
 			}) });
+		if (socket)
+			keys.insert({ "socket", jvalue(*socket) });
 		packet.accept(*this);
 		std::cout << jobject({
 			{ "packet", jobject(std::move(keys)) }
@@ -346,8 +348,11 @@ private:
 	ba::io_service& io;
 	FiledescLineWrapper& input;
 
-	Listener listener;
-	Socket socket;
+	std::unique_ptr<Listener> listener;
+	std::set<std::string> listeningOn;
+
+	std::map<std::string, std::unique_ptr<Socket>> sockets;
+	std::map<Socket*, std::string> socketNames;
 
 	struct bad_cast {
 		std::string field;
@@ -431,10 +436,20 @@ private:
 		return nullptr;
 	}
 
-	void processPacket(const Packet& packet, const boost::asio::ip::udp::endpoint& from)
+	void processPacket(const Packet& packet, const boost::asio::ip::udp::endpoint& from, Socket* socket)
 	{
-		PacketFormatter().print(packet, from);
+		const auto* socketName = socketNames.count(socket) ? &socketNames.at(socket) : nullptr;
+		PacketFormatter().print(packet, from, socketName);
 	}
+
+	Socket& openSocket(const std::string& name)
+	{
+		std::unique_ptr<Socket> sock(new Socket(io));
+		sock->onPacketReceived(std::bind(&Hexajuice::processPacket, this, _1, _2, sock.get()));
+		auto it = sockets.emplace(name, std::move(sock)).first;
+		socketNames.insert({ it->second.get(), name });
+		return *it->second;
+	};
 
 	void processCommand(const bp::ptree& json)
 	{
@@ -470,6 +485,35 @@ private:
 
 				return {ip, port};
 			}
+		};
+
+		auto parseSocket = [&] () -> Socket& {
+			auto socket = json.get_child_optional("socket");
+
+			if (!socket) {
+				if (!sockets.size())
+					return openSocket("");
+				if (sockets.size() == 1)
+					return *sockets.begin()->second;
+			} else {
+				auto resolved = sockets.find(socket->data());
+				if (resolved != sockets.end())
+					return *resolved->second;
+				else
+					throw jobject({
+						{ "error", jobject({
+								{ "type", jvalue("invalid input") },
+								{ "diag", jvalue("unknown socket") }
+							}) }
+					});
+			}
+
+			throw jobject({
+				{ "error", jobject({
+						{ "type", jvalue("invalid input") },
+						{ "diag", jvalue("socket not specified") }
+					}) }
+			});
 		};
 
 		auto parsePacket = [&] () {
@@ -532,15 +576,45 @@ private:
 
 		if (command == "listen") {
 			auto& iface = requiredField("interface");
-			listener.listen(iface.data());
+			if (!listener) {
+				listener.reset(new Listener(io));
+				listener->onPacketReceived(std::bind(&Hexajuice::processPacket, this, _1, _2, nullptr));
+			}
+			listeningOn.insert(iface.data());
+			listener->listen(iface.data());
 		} else if (command == "ignore") {
 			auto& iface = requiredField("interface");
-			listener.ignore(iface.data());
+			listener->ignore(iface.data());
+			listeningOn.erase(iface.data());
+			if (!listeningOn.size())
+				listener.reset();
+		} else if (command == "open") {
+			auto name = requiredField("socket").data();
+			if (sockets.count(name))
+				throw jobject({
+					{ "error", jobject({
+						{ "type", jvalue("invalid input") },
+						{ "diag", jvalue("socket name already used") }
+					}) }
+				});
+			openSocket(name);
+		} else if (command == "close") {
+			auto name = requiredField("socket").data();
+			auto it = sockets.find(name);
+			if (it == sockets.end())
+				throw jobject({
+					{ "error", jobject({
+						{ "type", jvalue("invalid input") },
+						{ "diag", jvalue("unknown socket") }
+					}) }
+				});
+			socketNames.erase(it->second.get());
+			sockets.erase(it);
 		} else if (command == "mcast_from") {
 			auto& iface = requiredField("interface");
-			socket.mcast_from(iface.data());
+			parseSocket().mcast_from(iface.data());
 		} else if (command == "bind") {
-			socket.bind(parseAddress("address", 0));
+			parseSocket().bind(parseAddress("address", 0));
 		} else if (command == "send") {
 			auto packet = parsePacket();
 			ba::ip::udp::endpoint target{Socket::GroupAddress, 61616};
@@ -548,7 +622,7 @@ private:
 			if (json.get_child_optional("to"))
 				target = parseAddress("to", 61616);
 
-			socket.send(*packet, target);
+			parseSocket().send(*packet, target);
 		} else if (command == "quit") {
 			exit(0);
 		}
@@ -631,11 +705,9 @@ private:
 
 public:
 	Hexajuice(ba::io_service& io, FiledescLineWrapper& input)
-		: io(io), input(input), listener(io), socket(io)
+		: io(io), input(input)
 	{
 		allowNextCommand();
-		listener.onPacketReceived(std::bind(&Hexajuice::processPacket, this, _1, _2));
-		socket.onPacketReceived(std::bind(&Hexajuice::processPacket, this, _1, _2));
 	}
 };
 
