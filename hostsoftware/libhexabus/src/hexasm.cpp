@@ -59,8 +59,8 @@ private:
 	virtual void visit(const hexabus::InfoPacket<int64_t>& info) { run<int64_t, &hxb_sm_value_t::v_sint64>(info); }
 	virtual void visit(const hexabus::InfoPacket<float>& info) { run<float, &hxb_sm_value_t::v_float>(info); }
 	virtual void visit(const hexabus::InfoPacket<std::string>& info) {}
-	virtual void visit(const hexabus::InfoPacket<boost::array<char, 16> >& info) {}
-	virtual void visit(const hexabus::InfoPacket<boost::array<char, 65> >& info) {}
+	virtual void visit(const hexabus::InfoPacket<boost::array<uint8_t, 16> >& info) {}
+	virtual void visit(const hexabus::InfoPacket<boost::array<uint8_t, 65> >& info) {}
 
 	virtual void visit(const hexabus::WritePacket<bool>& write) {}
 	virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
@@ -73,8 +73,8 @@ private:
 	virtual void visit(const hexabus::WritePacket<int64_t>& write) {}
 	virtual void visit(const hexabus::WritePacket<float>& write) {}
 	virtual void visit(const hexabus::WritePacket<std::string>& write) {}
-	virtual void visit(const hexabus::WritePacket<boost::array<char, 16> >& write) {}
-	virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& write) {}
+	virtual void visit(const hexabus::WritePacket<boost::array<uint8_t, 16> >& write) {}
+	virtual void visit(const hexabus::WritePacket<boost::array<uint8_t, 65> >& write) {}
 };
 
 class SimulatedMachine {

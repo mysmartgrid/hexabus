@@ -79,8 +79,8 @@ namespace hexabus {
 			virtual void visit(const InfoPacket<int64_t>& info) = 0;
 			virtual void visit(const InfoPacket<float>& info) = 0;
 			virtual void visit(const InfoPacket<std::string>& info) = 0;
-			virtual void visit(const InfoPacket<boost::array<char, 16> >& info) = 0;
-			virtual void visit(const InfoPacket<boost::array<char, 65> >& info) = 0;
+			virtual void visit(const InfoPacket<boost::array<uint8_t, 16> >& info) = 0;
+			virtual void visit(const InfoPacket<boost::array<uint8_t, 65> >& info) = 0;
 
 			virtual void visit(const WritePacket<bool>& write) = 0;
 			virtual void visit(const WritePacket<uint8_t>& write) = 0;
@@ -93,8 +93,8 @@ namespace hexabus {
 			virtual void visit(const WritePacket<int64_t>& write) = 0;
 			virtual void visit(const WritePacket<float>& write) = 0;
 			virtual void visit(const WritePacket<std::string>& write) = 0;
-			virtual void visit(const WritePacket<boost::array<char, 16> >& write) = 0;
-			virtual void visit(const WritePacket<boost::array<char, 65> >& write) = 0;
+			virtual void visit(const WritePacket<boost::array<uint8_t, 16> >& write) = 0;
+			virtual void visit(const WritePacket<boost::array<uint8_t, 65> >& write) = 0;
 
 			virtual void visitPacket(const Packet& packet)
 			{
@@ -181,8 +181,8 @@ namespace hexabus {
 					|| boost::is_same<TValue, int32_t>::value
 					|| boost::is_same<TValue, int64_t>::value
 					|| boost::is_same<TValue, float>::value
-					|| boost::is_same<TValue, boost::array<char, 16> >::value
-					|| boost::is_same<TValue, boost::array<char, 65> >::value),
+					|| boost::is_same<TValue, boost::array<uint8_t, 16> >::value
+					|| boost::is_same<TValue, boost::array<uint8_t, 65> >::value),
 				"I don't know how to handle that type");
 
 			static uint8_t calculateDatatype()
@@ -198,7 +198,7 @@ namespace hexabus {
 					boost::is_same<TValue, int32_t>::value ? HXB_DTYPE_SINT32 :
 					boost::is_same<TValue, int64_t>::value ? HXB_DTYPE_SINT64 :
 					boost::is_same<TValue, float>::value ? HXB_DTYPE_FLOAT :
-					boost::is_same<TValue, boost::array<char, 16> >::value ? HXB_DTYPE_16BYTES : HXB_DTYPE_65BYTES;
+					boost::is_same<TValue, boost::array<uint8_t, 16> >::value ? HXB_DTYPE_16BYTES : HXB_DTYPE_65BYTES;
 			}
 
 			TValue _value;
