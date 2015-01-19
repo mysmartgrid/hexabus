@@ -42,7 +42,10 @@ boost::array<char, Len> parseBinary(std::string value)
 	for (unsigned pos = 0; pos < value.size(); pos += 2, ++target) {
 		if (!std::isxdigit(value[pos]) || !std::isxdigit(value[pos + 1]))
 			throw std::bad_cast();
-		*target = std::stoul(value.substr(pos, 2), nullptr, 16);
+		std::istringstream iss(value.substr(pos, 2));
+		unsigned u;
+		iss >> std::hex >> u;
+		*target = u;
 	}
 
 	return result;
