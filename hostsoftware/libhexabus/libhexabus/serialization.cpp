@@ -12,6 +12,9 @@
 
 using namespace hexabus;
 
+static_assert(std::numeric_limits<float>::is_iec559, "invalid float");
+static_assert(sizeof(char) == sizeof(uint8_t), "invalid char");
+
 // {{{ Binary serialization visitor
 
 class BinarySerializer : public PacketVisitor {
@@ -36,8 +39,6 @@ class BinarySerializer : public PacketVisitor {
 
 		static uint32_t floatToBits(float val)
 		{
-			BOOST_STATIC_ASSERT(sizeof(uint32_t) == sizeof(float));
-
 			uint32_t result;
 			memcpy(&result, &val, sizeof(val));
 			return result;
@@ -68,8 +69,8 @@ class BinarySerializer : public PacketVisitor {
 		void appendValue(const ValuePacket<int64_t>& value);
 		void appendValue(const ValuePacket<float>& value);
 		void appendValue(const ValuePacket<std::string>& value);
-		void appendValue(const ValuePacket<boost::array<uint8_t, 65> >& value);
-		void appendValue(const ValuePacket<boost::array<uint8_t, 16> >& value);
+		void appendValue(const ValuePacket<std::array<uint8_t, 65> >& value);
+		void appendValue(const ValuePacket<std::array<uint8_t, 16> >& value);
 
 		void appendCRC();
 
@@ -92,8 +93,8 @@ class BinarySerializer : public PacketVisitor {
 		virtual void visit(const InfoPacket<int64_t>& info) { appendValue(info); }
 		virtual void visit(const InfoPacket<float>& info) { appendValue(info); }
 		virtual void visit(const InfoPacket<std::string>& info) { appendValue(info); }
-		virtual void visit(const InfoPacket<boost::array<uint8_t, 16> >& info) { appendValue(info); }
-		virtual void visit(const InfoPacket<boost::array<uint8_t, 65> >& info) { appendValue(info); }
+		virtual void visit(const InfoPacket<std::array<uint8_t, 16> >& info) { appendValue(info); }
+		virtual void visit(const InfoPacket<std::array<uint8_t, 65> >& info) { appendValue(info); }
 
 		virtual void visit(const WritePacket<bool>& write) { appendValue(write); }
 		virtual void visit(const WritePacket<uint8_t>& write) { appendValue(write); }
@@ -106,8 +107,8 @@ class BinarySerializer : public PacketVisitor {
 		virtual void visit(const WritePacket<int64_t>& write) { appendValue(write); }
 		virtual void visit(const WritePacket<float>& write) { appendValue(write); }
 		virtual void visit(const WritePacket<std::string>& write) { appendValue(write); }
-		virtual void visit(const WritePacket<boost::array<uint8_t, 65> >& write) { appendValue(write); }
-		virtual void visit(const WritePacket<boost::array<uint8_t, 16> >& write) { appendValue(write); }
+		virtual void visit(const WritePacket<std::array<uint8_t, 65> >& write) { appendValue(write); }
+		virtual void visit(const WritePacket<std::array<uint8_t, 16> >& write) { appendValue(write); }
 };
 
 BinarySerializer::BinarySerializer(std::vector<char>& target)
@@ -193,22 +194,20 @@ void BinarySerializer::appendValue(const ValuePacket<std::string>& value)
 	appendCRC();
 }
 
-void BinarySerializer::appendValue(const ValuePacket<boost::array<uint8_t, 16> >& value)
+void BinarySerializer::appendValue(const ValuePacket<std::array<uint8_t, 16> >& value)
 {
 	appendValueHeader(value);
 
-	static_assert(sizeof(char) == sizeof(uint8_t), "");
 	_target.resize(_target.size() + value.value().size());
 	std::memcpy(&_target[_target.size() - value.value().size()], &value.value()[0], value.value().size());
 
 	appendCRC();
 }
 
-void BinarySerializer::appendValue(const ValuePacket<boost::array<uint8_t, 65> >& value)
+void BinarySerializer::appendValue(const ValuePacket<std::array<uint8_t, 65> >& value)
 {
 	appendValueHeader(value);
 
-	static_assert(sizeof(char) == sizeof(uint8_t), "");
 	_target.resize(_target.size() + value.value().size());
 	std::memcpy(&_target[_target.size() - value.value().size()], &value.value()[0], value.value().size());
 
@@ -259,8 +258,6 @@ class BinaryDeserializer {
 
 		static float floatFromBits(uint32_t val)
 		{
-			BOOST_STATIC_ASSERT(sizeof(uint32_t) == sizeof(float));
-
 			float result;
 			memcpy(&result, &val, sizeof(val));
 			return result;
@@ -277,7 +274,7 @@ class BinaryDeserializer {
 		float read_float() { return floatFromBits(read_u32()); }
 
 		template<size_t L>
-		boost::array<uint8_t, L> read_bytes();
+		std::array<uint8_t, L> read_bytes();
 		std::string read_string();
 
 		template<typename T>
@@ -314,11 +311,11 @@ void BinaryDeserializer::readHeader()
 }
 
 template<size_t L>
-boost::array<uint8_t, L> BinaryDeserializer::read_bytes()
+std::array<uint8_t, L> BinaryDeserializer::read_bytes()
 {
 	checkLength(L);
 
-	boost::array<uint8_t, L> result;
+	std::array<uint8_t, L> result;
 	std::memcpy(&result[0], _packet + _offset, L);
 	_offset += L;
 
@@ -392,8 +389,8 @@ Packet::Ptr BinaryDeserializer::deserialize()
 					case HXB_DTYPE_SINT64: return checkInfo<int64_t>(info, eid, read_s64(), flags);
 					case HXB_DTYPE_FLOAT: return checkInfo<float>(info, eid, read_float(), flags);
 					case HXB_DTYPE_128STRING: return checkInfo<std::string>(info, eid, read_string(), flags);
-					case HXB_DTYPE_16BYTES: return checkInfo<boost::array<uint8_t, 16> >(info, eid, read_bytes<16>(), flags);
-					case HXB_DTYPE_65BYTES: return checkInfo<boost::array<uint8_t, 65> >(info, eid, read_bytes<65>(), flags);
+					case HXB_DTYPE_16BYTES: return checkInfo<std::array<uint8_t, 16> >(info, eid, read_bytes<16>(), flags);
+					case HXB_DTYPE_65BYTES: return checkInfo<std::array<uint8_t, 65> >(info, eid, read_bytes<65>(), flags);
 
 					default:
 						throw BadPacketException("Invalid datatype");

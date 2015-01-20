@@ -20,6 +20,8 @@
 #ifndef LIBHEXABUS_DEVICE_HPP
 #define LIBHEXABUS_DEVICE_HPP 1
 
+#include <functional>
+
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/deadline_timer.hpp>
 
@@ -30,7 +32,7 @@
 namespace hexabus {
 	class EndpointFunctions {
 		public:
-			typedef std::tr1::shared_ptr<EndpointFunctions> Ptr;
+			typedef std::shared_ptr<EndpointFunctions> Ptr;
 			uint32_t eid() const { return _eid; }
 			std::string name() const { return _name; }
 			uint8_t datatype() const { return _datatype; }
@@ -59,9 +61,9 @@ namespace hexabus {
 	template<typename TValue>
 	class TypedEndpointFunctions : public EndpointFunctions {
 		public:
-			typedef std::tr1::shared_ptr<TypedEndpointFunctions<TValue> > Ptr;
-			typedef boost::function<TValue ()> endpoint_read_fn_t;
-			typedef boost::function<bool (const TValue& value)> endpoint_write_fn_t;
+			typedef std::shared_ptr<TypedEndpointFunctions<TValue> > Ptr;
+			typedef std::function<TValue ()> endpoint_read_fn_t;
+			typedef std::function<bool (const TValue& value)> endpoint_write_fn_t;
 			TypedEndpointFunctions(uint32_t eid, const std::string& name, bool broadcast = true)
 				: EndpointFunctions(eid, name, calculateDatatype(), broadcast)
 			{}
@@ -136,9 +138,9 @@ namespace hexabus {
 
 	class Device {
 		public:
-			typedef boost::function<std::string ()> read_name_fn_t;
-			typedef boost::function<void (const std::string& name)> write_name_fn_t;
-			typedef boost::function<void (const GenericException& error)> async_error_fn_t;
+			typedef std::function<std::string ()> read_name_fn_t;
+			typedef std::function<void (const std::string& name)> write_name_fn_t;
+			typedef std::function<void (const GenericException& error)> async_error_fn_t;
 			Device(boost::asio::io_service& io, const std::vector<std::string>& interfaces, const std::vector<std::string>& addresses, int interval = 60);
 			~Device();
 			void addEndpoint(const EndpointFunctions::Ptr ep);

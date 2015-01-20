@@ -20,7 +20,6 @@
 #include "device.hpp"
 
 #include <boost/lexical_cast.hpp>
-#include <boost/ref.hpp>
 
 #include <libhexabus/filtering.hpp>
 
@@ -35,7 +34,7 @@ bool isWrite(const Packet& packet, const boost::asio::ip::udp::endpoint& from)
 	return packet.type() == HXB_PTYPE_WRITE;
 }
 
-bool dummy_write_handler(const boost::array<uint8_t, 65>& value)
+bool dummy_write_handler(const std::array<uint8_t, 65>& value)
 {
 	return true;
 }
@@ -93,7 +92,7 @@ Device::Device(boost::asio::io_service& io, const std::vector<std::string>& inte
 	smcontrolEP->onWrite(boost::bind(&Device::_handle_smcontrolwrite, this, _1));
 	addEndpoint(smcontrolEP);
 	//dummy endpoint to let _handle_descquery knows we can handle statemachine upload
-	TypedEndpointFunctions<boost::array<uint8_t, 65> >::Ptr smupreceiverEP(new TypedEndpointFunctions<boost::array<uint8_t, 65> >(EP_SM_UP_RECEIVER, "Statemachine upload receiver", false));
+	TypedEndpointFunctions<std::array<uint8_t, 65> >::Ptr smupreceiverEP(new TypedEndpointFunctions<std::array<uint8_t, 65> >(EP_SM_UP_RECEIVER, "Statemachine upload receiver", false));
 	smupreceiverEP->onWrite(&dummy_write_handler);
 	addEndpoint(smupreceiverEP);
 }
@@ -292,7 +291,7 @@ bool Device::_handle_smcontrolwrite(uint8_t value)
 
 void Device::_handle_smupload(hexabus::Socket* socket, const Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
-	const WritePacket<boost::array<uint8_t, 65> >* write = dynamic_cast<const WritePacket<boost::array<uint8_t, 65> >*>(&p);
+	const WritePacket<std::array<uint8_t, 65> >* write = dynamic_cast<const WritePacket<std::array<uint8_t, 65> >*>(&p);
 	if ( !write ) {
 		try {
 			socket->send(InfoPacket<bool>(EP_SM_UP_ACKNAK, false), from);
@@ -303,7 +302,7 @@ void Device::_handle_smupload(hexabus::Socket* socket, const Packet& p, const bo
 		}
 		return;
 	}
-	const boost::array<uint8_t, 65> data = write->value();
+	const std::array<uint8_t, 65> data = write->value();
 	if ( data[0] == 0 )
 	{
 		std::string name = "";

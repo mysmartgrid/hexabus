@@ -233,14 +233,14 @@ class ChunkSender : protected RetryingPacketSender {
 			replyHandler.disconnect();
 		}
 
-		ErrorCode sendChunk(uint8_t chunkId, const boost::array<uint8_t, UploadChunkSize>& chunk)
+		ErrorCode sendChunk(uint8_t chunkId, const std::array<uint8_t, UploadChunkSize>& chunk)
 		{
-			boost::array<uint8_t, 65> packet_data;
+			std::array<uint8_t, 65> packet_data;
 
 			packet_data[0] = chunkId;
 			std::copy(chunk.begin(), chunk.end(), packet_data.begin() + 1);
 
-			return send(hexabus::WritePacket<boost::array<uint8_t, 65> >(EP_SM_UP_RECEIVER, packet_data));
+			return send(hexabus::WritePacket<std::array<uint8_t, 65> >(EP_SM_UP_RECEIVER, packet_data));
 		}
 };
 
@@ -318,7 +318,7 @@ int main(int argc, char** argv) {
 		return ERR_PARAMETER_FORMAT;
 	}
 
-	std::vector<boost::array<uint8_t, UploadChunkSize> > chunks;
+	std::vector<std::array<uint8_t, UploadChunkSize> > chunks;
 
 	if (vm.count("program")) {
 		std::basic_ifstream<uint8_t> in(vm["program"].as<std::string>().c_str(),
@@ -333,14 +333,14 @@ int main(int argc, char** argv) {
 		size_t size = in.tellg();
 		in.seekg(0, std::ios::beg);
 
-		chunks.push_back(boost::array<uint8_t, UploadChunkSize>());
-		chunks.back().assign(0);
+		chunks.push_back(std::array<uint8_t, UploadChunkSize>());
+		chunks.back().fill(0);
 
 		while (in && !in.eof()) {
-			boost::array<uint8_t, UploadChunkSize> chunk;
-			chunk.assign(0);
+			std::array<uint8_t, UploadChunkSize> chunk;
+			chunk.fill(0);
 
-			in.read(chunk.c_array(), chunk.size());
+			in.read(chunk.data(), chunk.size());
 			if (in || in.eof()) {
 				chunks.push_back(chunk);
 			} else {
@@ -349,9 +349,9 @@ int main(int argc, char** argv) {
 			}
 		}
 	} else if (vm.count("rename")) {
-		boost::array<uint8_t, UploadChunkSize> chunk;
+		std::array<uint8_t, UploadChunkSize> chunk;
 
-		chunk.assign(0);
+		chunk.fill(0);
 		std::string new_name = vm["rename"].as<std::string>();
 		std::copy(new_name.begin(), new_name.end(), chunk.begin());
 
@@ -389,8 +389,8 @@ int main(int argc, char** argv) {
 		 *    maxtry reached.
 		 */
 		if (vm.count("clear")) {
-			boost::array<uint8_t, UploadChunkSize> chunk;
-			chunk.assign('\xff');
+			std::array<uint8_t, UploadChunkSize> chunk;
+			chunk.fill('\xff');
 
 			for (chunkId = 1; chunkId < PROG_DEFAULT_LENGTH / EE_STATEMACHINE_CHUNK_SIZE; chunkId++) {
 				err = sender.sendChunk(chunkId, chunk);

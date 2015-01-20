@@ -1,12 +1,13 @@
 #ifndef LIBHEXABUS_SOCKET_HPP
 #define LIBHEXABUS_SOCKET_HPP 1
 
-#include <boost/asio.hpp>
-#include <boost/thread.hpp>
-#include <boost/function.hpp>
 #include <string>
+#include <functional>
+
+#include <boost/asio.hpp>
 #include <boost/signals2.hpp>
 #include <boost/date_time.hpp>
+
 #include "error.hpp"
 #include "packet.hpp"
 #include "filtering.hpp"
@@ -14,8 +15,8 @@
 namespace hexabus {
 	class SocketBase {
 		public:
-			typedef boost::function<bool (const Packet& packet, const boost::asio::ip::udp::endpoint& from)> filter_t;
-			typedef boost::function<void (const Packet& packet, const boost::asio::ip::udp::endpoint& from)> on_packet_received_slot_t;
+			typedef std::function<bool (const Packet& packet, const boost::asio::ip::udp::endpoint& from)> filter_t;
+			typedef std::function<void (const Packet& packet, const boost::asio::ip::udp::endpoint& from)> on_packet_received_slot_t;
 
 			typedef boost::signals2::signal<void (const GenericException& error)> on_async_error_t;
 			typedef on_async_error_t::slot_type on_async_error_slot_t;

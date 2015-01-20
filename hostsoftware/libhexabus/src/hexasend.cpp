@@ -22,7 +22,7 @@ void sendPacket(Socket& net, const boost::asio::ip::address_v6& addr, const Pack
 }
 
 template<size_t Len>
-boost::array<uint8_t, Len> parseBinary(std::string value)
+std::array<uint8_t, Len> parseBinary(std::string value)
 {
 	if (value.size() < 3 ||
 			value.size() > 2 + 2 * Len ||
@@ -34,9 +34,9 @@ boost::array<uint8_t, Len> parseBinary(std::string value)
 	if (value.size() % 2)
 		value = "0" + value;
 
-	boost::array<uint8_t, Len> result;
+	std::array<uint8_t, Len> result;
 
-	result.assign(0);
+	result.fill(0);
 
 	auto target = result.begin() + (Len - value.size() / 2);
 	for (unsigned pos = 0; pos < value.size(); pos += 2, ++target) {
@@ -67,8 +67,8 @@ std::unique_ptr<Packet> parsePacket(hxb_datatype dt, uint32_t eid, const std::st
 		case HXB_DTYPE_SINT64: return pptr(new PClass<int64_t>(eid, boost::lexical_cast<int64_t>(value)));
 		case HXB_DTYPE_FLOAT: return pptr(new PClass<float>(eid, boost::lexical_cast<float>(value)));
 		case HXB_DTYPE_128STRING: return pptr(new PClass<std::string>(eid, value));
-		case HXB_DTYPE_65BYTES: return pptr(new PClass<boost::array<uint8_t, 65>>(eid, parseBinary<65>(value)));
-		case HXB_DTYPE_16BYTES: return pptr(new PClass<boost::array<uint8_t, 16>>(eid, parseBinary<16>(value)));
+		case HXB_DTYPE_65BYTES: return pptr(new PClass<std::array<uint8_t, 65>>(eid, parseBinary<65>(value)));
+		case HXB_DTYPE_16BYTES: return pptr(new PClass<std::array<uint8_t, 16>>(eid, parseBinary<16>(value)));
 
 		case HXB_DTYPE_UINT8: {
 			auto parsed = boost::lexical_cast<unsigned>(value);

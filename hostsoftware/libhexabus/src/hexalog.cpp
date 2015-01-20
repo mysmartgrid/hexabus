@@ -294,7 +294,7 @@ int main(int argc, char** argv)
 
 		network.bind(addr);
 		listener.listen(interface);
-		listener.onPacketReceived(boost::ref(logger));
+		listener.onPacketReceived(std::ref(logger));
 
 		boost::asio::signal_set rotate_handler(io, SIGHUP);
 		boost::asio::signal_set terminate_handler(io, SIGTERM);

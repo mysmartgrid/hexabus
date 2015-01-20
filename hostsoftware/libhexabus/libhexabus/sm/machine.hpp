@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <boost/signals2.hpp>
+#include <boost/variant.hpp>
 
 #include "libhexabus/sm/types.hpp"
 

@@ -1,8 +1,6 @@
-#include <iostream>
 #include <functional>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
+#include <iostream>
+#include <set>
 
 #include <libhexabus/socket.hpp>
 
@@ -11,8 +9,6 @@
 #include <boost/format.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
-
-#include <pthread.h>
 
 #include "shared.hpp"
 
@@ -228,7 +224,7 @@ JsonValue::Ptr jvalue(const T& value)
 }
 
 template<size_t Len>
-JsonValue::Ptr jvalue(const boost::array<uint8_t, Len>& array)
+JsonValue::Ptr jvalue(const std::array<uint8_t, Len>& array)
 {
 	std::vector<JsonValue::Ptr> values;
 	for (auto c : array)
@@ -309,8 +305,8 @@ private:
 	virtual void visit(const InfoPacket<int64_t>& info) { printValuePacket("info", info); }
 	virtual void visit(const InfoPacket<float>& info) { printValuePacket("info", info); }
 	virtual void visit(const InfoPacket<std::string>& info) { printValuePacket("info", info); }
-	virtual void visit(const InfoPacket<boost::array<uint8_t, 16> >& info) { printValuePacket("info", info); }
-	virtual void visit(const InfoPacket<boost::array<uint8_t, 65> >& info) { printValuePacket("info", info); }
+	virtual void visit(const InfoPacket<std::array<uint8_t, 16> >& info) { printValuePacket("info", info); }
+	virtual void visit(const InfoPacket<std::array<uint8_t, 65> >& info) { printValuePacket("info", info); }
 
 	virtual void visit(const WritePacket<bool>& write) { printValuePacket("write", write); }
 	virtual void visit(const WritePacket<uint8_t>& write) { printValuePacket("write", write); }
@@ -323,8 +319,8 @@ private:
 	virtual void visit(const WritePacket<int64_t>& write) { printValuePacket("write", write); }
 	virtual void visit(const WritePacket<float>& write) { printValuePacket("write", write); }
 	virtual void visit(const WritePacket<std::string>& write) { printValuePacket("write", write); }
-	virtual void visit(const WritePacket<boost::array<uint8_t, 16> >& write) { printValuePacket("write", write); }
-	virtual void visit(const WritePacket<boost::array<uint8_t, 65> >& write) { printValuePacket("write", write); }
+	virtual void visit(const WritePacket<std::array<uint8_t, 16> >& write) { printValuePacket("write", write); }
+	virtual void visit(const WritePacket<std::array<uint8_t, 65> >& write) { printValuePacket("write", write); }
 
 public:
 	void print(const Packet& packet, const boost::asio::ip::udp::endpoint& from, const std::string* socket)
@@ -372,9 +368,9 @@ private:
 	}
 
 	template<size_t Len>
-	static boost::array<uint8_t, Len> parseBinary(const bp::ptree& value)
+	static std::array<uint8_t, Len> parseBinary(const bp::ptree& value)
 	{
-		boost::array<uint8_t, Len> result;
+		std::array<uint8_t, Len> result;
 
 		if (value.size() != Len)
 			throw bad_cast{"packet.value"};
@@ -426,10 +422,10 @@ private:
 				throw bad_cast{"packet.value"};
 			return std::unique_ptr<Packet>(new TPacket<std::string>(eid, value.data(), flags));
 		case HXB_DTYPE_65BYTES:
-			return std::unique_ptr<Packet>(new TPacket<boost::array<uint8_t, 65>>(eid,
+			return std::unique_ptr<Packet>(new TPacket<std::array<uint8_t, 65>>(eid,
 					parseBinary<65>(value), flags));
 		case HXB_DTYPE_16BYTES:
-			return std::unique_ptr<Packet>(new TPacket<boost::array<uint8_t, 16>>(eid,
+			return std::unique_ptr<Packet>(new TPacket<std::array<uint8_t, 16>>(eid,
 					parseBinary<16>(value), flags));
 		}
 

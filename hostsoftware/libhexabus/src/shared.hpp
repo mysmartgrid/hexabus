@@ -115,7 +115,7 @@ private:
 	}
 
 	template<size_t L>
-	void addField(FieldName name, const boost::array<uint8_t, L>& value)
+	void addField(FieldName name, const std::array<uint8_t, L>& value)
 	{
 		beginField(name);
 
@@ -179,8 +179,8 @@ private:
 	virtual void visit(const hexabus::InfoPacket<int64_t>& info) { printValuePacket(info, "Info"); }
 	virtual void visit(const hexabus::InfoPacket<float>& info) { printValuePacket(info, "Info"); }
 	virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<boost::array<uint8_t, 16> >& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<boost::array<uint8_t, 65> >& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 16> >& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 65> >& info) { printValuePacket(info, "Info"); }
 
 	virtual void visit(const hexabus::WritePacket<bool>& write) { printValuePacket(write, "Write"); }
 	virtual void visit(const hexabus::WritePacket<uint8_t>& write) { printValuePacket(write, "Write"); }
@@ -193,8 +193,8 @@ private:
 	virtual void visit(const hexabus::WritePacket<int64_t>& write) { printValuePacket(write, "Write"); }
 	virtual void visit(const hexabus::WritePacket<float>& write) { printValuePacket(write, "Write"); }
 	virtual void visit(const hexabus::WritePacket<std::string>& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<boost::array<uint8_t, 16> >& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<boost::array<uint8_t, 65> >& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 16> >& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 65> >& write) { printValuePacket(write, "Write"); }
 
 public:
 	PacketPrinter(bool oneline)
