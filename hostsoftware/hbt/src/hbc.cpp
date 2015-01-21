@@ -413,7 +413,7 @@ int Driver::run(int argc, char* argv[])
 				std::cout << " (treated as errors)";
 		}
 		std::cout << "\n";
-		if (diag.errorCount() || diag.warningCount() && warningsAreErrors)
+		if (diag.errorCount() || (diag.warningCount() && warningsAreErrors))
 			return 1;
 	}
 
