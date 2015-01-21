@@ -7,7 +7,7 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * libhexabus is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -141,9 +141,9 @@ void Device::_handle_query(hexabus::Socket* socket, const Packet& p, const boost
 	std::map<uint32_t, const EndpointFunctions::Ptr>::iterator it = _endpoints.find(query->eid());
 	try {
 		if ( it != _endpoints.end() ) {
-			socket->send(*(it->second->handle_query()), from);
+			socket->send(*(it->second->handle_query(query->sequenceNumber())), from);
 		} else {
-			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
+			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID, query->sequenceNumber()), from);
 		}
 	} catch ( const NetworkException& error ) {
 		std::stringstream oss;
@@ -171,10 +171,10 @@ void Device::_handle_write(hexabus::Socket* socket, const Packet& p, const boost
 				std::stringstream oss;
 				oss << "An error occured when handling a write packet for eid " << write->eid();
 				_asyncError(GenericException(oss.str()));
-				socket->send(ErrorPacket(res), from);
+				socket->send(ErrorPacket(res, write->sequenceNumber()), from);
 			}
 		} else {
-			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
+			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID, write->sequenceNumber()), from);
 		}
 	} catch ( const NetworkException& error ) {
 		std::stringstream oss;
@@ -207,7 +207,7 @@ void Device::_handle_epquery(hexabus::Socket* socket, const Packet& p, const boo
 		if ( it != _endpoints.end() ) {
 			socket->send(EndpointInfoPacket(query->eid(), it->second->datatype(), it->second->name()), from);
 		} else {
-			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID), from);
+			socket->send(ErrorPacket(HXB_ERR_UNKNOWNEID, query->sequenceNumber()), from);
 		}
 	} catch ( const NetworkException& error ) {
 		std::stringstream oss;
@@ -342,7 +342,7 @@ void Device::_handle_broadcasts(const boost::system::error_code& error)
 				continue;
 
 			try {
-				Packet::Ptr p = epIt->second->handle_query();
+				Packet::Ptr p = epIt->second->handle_query(0);
 				if ( p && p->type() != HXB_PTYPE_ERROR )
 				{
 					for ( std::vector<hexabus::Socket*>::const_iterator sIt = _sockets.begin(), sEnd = _sockets.end(); sIt != sEnd; ++sIt )

@@ -16,13 +16,9 @@ _DEBUG options should be set to:
 #include <stdbool.h>
 
 // options common to all incarnations of Hexabus devices
-
-#define UDP_HANDLER_DEBUG 0
+#define UDP_HANDLER_DEBUG LOG_DEBUG
 
 #define ENDPOINT_REGISTRY_DEBUG 0
-
-// WebServer
-#define WEBSERVER_DEBUG 0
 
 // Memory debugger process
 #define MEMORY_DEBUGGER_ENABLE 0
@@ -42,7 +38,7 @@ _DEBUG options should be set to:
 #define DATETIME_SERVICE_DEBUG 0
 
 // state_machine
-#define STATE_MACHINE_ENABLE 1
+#define STATE_MACHINE_ENABLE 0
 #define STATE_MACHINE_DEBUG 0
 
 // state machine uploading via Hexabus packets
@@ -105,7 +101,7 @@ _DEBUG options should be set to:
 #define METERING_IMMEDIATE_BROADCAST_MINIMUM_TIMEOUT 1 // minimum number of seconds between two broadcasts, to prevent flooding the network
 #define METERING_ENERGY (HAVE(PLUGPLUS))
 // CAUTION: METERING_ENERGY_PERSISTENT needs external power-down detection circuit. Refer to the Wiki!
-#define METERING_ENERGY_PERSISTENT 0 // Persistently store energy value (number of pulses) in EEPROM. 
+#define METERING_ENERGY_PERSISTENT 0 // Persistently store energy value (number of pulses) in EEPROM.
 #define S0_ENABLE 0 //S0 meter instead of internal meter.
 
 //i2c master

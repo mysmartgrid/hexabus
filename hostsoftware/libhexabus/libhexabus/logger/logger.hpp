@@ -57,6 +57,8 @@ class Logger : private PacketVisitor {
 		virtual void visit(const hexabus::QueryPacket& query) {}
 		virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery) {}
 		virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo) {}
+		virtual void visit(const hexabus::AckPacket& ack) {}
+		virtual void visit(const hexabus::PropertyQueryPacket& propertyQuery) {}
 
 		virtual void visit(const hexabus::WritePacket<bool>& info) {}
 		virtual void visit(const hexabus::WritePacket<uint8_t>& info) {}
@@ -71,6 +73,34 @@ class Logger : private PacketVisitor {
 		virtual void visit(const hexabus::WritePacket<std::string>& info) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, 16> >& info) {}
 		virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& info) {}
+
+		virtual void visit(const hexabus::PropertyWritePacket<bool>& info) {}
+		virtual void visit(const hexabus::PropertyWritePacket<uint8_t>& info) {}
+		virtual void visit(const hexabus::PropertyWritePacket<uint16_t>& info) {}
+		virtual void visit(const hexabus::PropertyWritePacket<uint32_t>& info) {}
+		virtual void visit(const hexabus::PropertyWritePacket<uint64_t>& info) {}
+		virtual void visit(const hexabus::PropertyWritePacket<int8_t>& info) {}
+		virtual void visit(const hexabus::PropertyWritePacket<int16_t>& info) {}
+		virtual void visit(const hexabus::PropertyWritePacket<int32_t>& info) {}
+		virtual void visit(const hexabus::PropertyWritePacket<int64_t>& info) {}
+		virtual void visit(const hexabus::PropertyWritePacket<float>& info) {}
+		virtual void visit(const hexabus::PropertyWritePacket<std::string>& info) {}
+		virtual void visit(const hexabus::PropertyWritePacket<boost::array<char, 16> >& info) {}
+		virtual void visit(const hexabus::PropertyWritePacket<boost::array<char, 65> >& info) {}
+
+		virtual void visit(const hexabus::PropertyReportPacket<bool>& info) {}
+		virtual void visit(const hexabus::PropertyReportPacket<uint8_t>& info) {}
+		virtual void visit(const hexabus::PropertyReportPacket<uint16_t>& info) {}
+		virtual void visit(const hexabus::PropertyReportPacket<uint32_t>& info) {}
+		virtual void visit(const hexabus::PropertyReportPacket<uint64_t>& info) {}
+		virtual void visit(const hexabus::PropertyReportPacket<int8_t>& info) {}
+		virtual void visit(const hexabus::PropertyReportPacket<int16_t>& info) {}
+		virtual void visit(const hexabus::PropertyReportPacket<int32_t>& info) {}
+		virtual void visit(const hexabus::PropertyReportPacket<int64_t>& info) {}
+		virtual void visit(const hexabus::PropertyReportPacket<float>& info) {}
+		virtual void visit(const hexabus::PropertyReportPacket<std::string>& info) {}
+		virtual void visit(const hexabus::PropertyReportPacket<boost::array<char, 16> >& info) {}
+		virtual void visit(const hexabus::PropertyReportPacket<boost::array<char, 65> >& info) {}
 
 	protected:
 		virtual void record_reading(klio::Sensor::Ptr sensor, klio::timestamp_t ts, double value) = 0;

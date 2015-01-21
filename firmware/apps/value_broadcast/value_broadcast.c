@@ -74,6 +74,7 @@ static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, voi
 	buffer->value_header.type = HXB_PTYPE_INFO;
 	buffer->value_header.eid = eid;
 	buffer->value_header.datatype = val.datatype;
+	buffer->value_header.flags = HXB_FLAG_WANT_UL_ACK;
 
 	broadcast_to_self(&val, eid);
 
@@ -113,7 +114,7 @@ static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, voi
 
 void broadcast_value(uint32_t eid)
 {
-	udp_handler_send_generated(NULL, 0, &broadcast_generator, &eid);
+	udp_handler_send_generated_reliable(NULL, 0, &broadcast_generator, &eid);
 }
 /*---------------------------------------------------------------------------*/
 static void

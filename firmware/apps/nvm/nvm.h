@@ -39,7 +39,9 @@ struct hxb_nvm_layout {
 	struct hxb_sm_nvm_layout sm;
 
 	/* pad by SIZE - trailer - leader to fill EEP_SIZE exactly */
-	uint8_t __padding[EEP_SIZE - 8 - (70 + sizeof(struct hxb_sm_nvm_layout))];
+	uint8_t __padding[EEP_SIZE - 1544 - (70 + sizeof(struct hxb_sm_nvm_layout))];
+
+	uint8_t endpoint_properties[1536];
 
 	uint32_t energy_metering_pulses;
 	uint32_t energy_metering_pulses_total;

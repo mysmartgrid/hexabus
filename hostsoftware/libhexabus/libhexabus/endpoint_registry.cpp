@@ -44,7 +44,7 @@ static std::string single_child(const boost::property_tree::ptree& tree, const s
 				o << "Key '" << key << "' not found for EID " << eid;
 				throw GenericException(o.str());
 			}
-		
+
 		case 1:
 			break;
 

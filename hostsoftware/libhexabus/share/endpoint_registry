@@ -33,6 +33,12 @@
 ;         Actors may also broadcast their current state
 ;     * infrastructure: used for internal purposes only and should be disregarded in most applications
 
+eid 0 {
+	type 128STRING
+	description "Device information"
+	access R
+	function infrastructure
+}
 
 eid 1 {
 	type BOOL
@@ -121,6 +127,13 @@ eid 12 {
 	type 16BYTES
 	description "Statemachine emergency reset ID"
 	access R
+	function infrastructure
+}
+
+eid 13 {
+	type BOOL
+	description "Relay default state config"
+	access RW
 	function infrastructure
 }
 

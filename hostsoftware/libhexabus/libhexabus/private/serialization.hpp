@@ -7,7 +7,7 @@
 #include <libhexabus/packet.hpp>
 
 namespace hexabus {
-	std::vector<char> serialize(const Packet& packet);
+	std::vector<char> serialize(const Packet& packet, uint16_t seqNum, uint8_t flags);
 
 	void deserialize(const void* packet, size_t size, PacketVisitor& handler);
 	Packet::Ptr deserialize(const void* packet, size_t size);

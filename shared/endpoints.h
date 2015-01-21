@@ -1,5 +1,6 @@
 #ifndef ENDPOINTS_H_
 
+//Endpoint IDs
 #define EP_DEVICE_DESCRIPTOR       0UL
 #define EP_POWER_SWITCH            1UL
 #define EP_POWER_METER             2UL
@@ -13,6 +14,7 @@
 #define EP_SM_UP_RECEIVER          10UL
 #define EP_SM_UP_ACKNAK            11UL
 #define EP_SM_RESET_ID             12UL
+#define EP_POWER_DEFAULT_STATE	   13UL
 #define EP_ANALOGREAD              22UL
 #define EP_SHUTTER                 23UL
 #define EP_HEXAPUSH_PRESSED        24UL
@@ -79,6 +81,9 @@
 
 #define EP_LOCALTIME               129L
 
-
+//Property IDs
+#define EP_PROP_NAME               1UL
+#define EP_PROP_MIN                2UL
+#define EP_PROP_MAX                3UL
 
 #endif // ENDPOINTS_H_

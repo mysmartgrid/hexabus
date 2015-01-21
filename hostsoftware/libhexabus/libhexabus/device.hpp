@@ -7,7 +7,7 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * libhexabus is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -36,7 +36,7 @@ namespace hexabus {
 			uint8_t datatype() const { return _datatype; }
 			bool broadcast() const { return _broadcast; }
 
-			virtual hexabus::Packet::Ptr handle_query() const = 0;
+			virtual hexabus::Packet::Ptr handle_query(uint16_t cause) const = 0;
 			virtual uint8_t handle_write(const hexabus::Packet& p) const = 0;
 			virtual bool is_readable() const = 0;
 			virtual bool is_writable() const = 0;
@@ -87,9 +87,9 @@ namespace hexabus {
 				return _write.num_slots() > 0;
 			}
 
-			virtual hexabus::Packet::Ptr handle_query() const {
-				if ( !is_readable() )
-					return Packet::Ptr(new ErrorPacket(HXB_ERR_UNKNOWNEID));
+			virtual hexabus::Packet::Ptr handle_query(uint16_t cause) const {
+				if ( _read.num_slots() < 1 )
+					return Packet::Ptr(new ErrorPacket(HXB_ERR_UNKNOWNEID, cause));
 
 				boost::optional<TValue> value = _read();
 				if ( !value ) {

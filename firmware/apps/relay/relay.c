@@ -145,6 +145,12 @@ void set_relay_default(bool d_value)
 	}
 }
 
+bool
+get_relay_default(void)
+{
+  return relay_default_state;
+}
+
 static enum hxb_error_code read(struct hxb_value* value)
 {
 	value->v_bool = relay_get_state() == 0;
@@ -170,6 +176,39 @@ ENDPOINT_DESCRIPTOR endpoint_relay = {
 	.write = write
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_relay_name = {
+    .datatype = HXB_DTYPE_128STRING,
+    .eid = EP_POWER_SWITCH,
+    .propid = EP_PROP_NAME,
+};
+
+static enum hxb_error_code read_default(struct hxb_value* value)
+{
+  value->v_bool = get_relay_default();
+  return HXB_ERR_SUCCESS;
+}
+
+static enum hxb_error_code write_default(const struct hxb_envelope* env)
+{
+  set_relay_default(!(env->value.v_bool));
+  return HXB_ERR_SUCCESS;
+}
+
+static const char ep_conf_name[] PROGMEM = "Default relay state config";
+ENDPOINT_DESCRIPTOR endpoint_relay_config = {
+  .datatype = HXB_DTYPE_BOOL,
+  .eid = EP_POWER_DEFAULT_STATE,
+  .name = ep_conf_name,
+  .read = read_default,
+  .write = write_default
+};
+
+ENDPOINT_PROPERTY_DESCRIPTOR prop_relay_config_name = {
+    .datatype = HXB_DTYPE_128STRING,
+    .eid = EP_POWER_DEFAULT_STATE,
+    .propid = EP_PROP_NAME,
+};
+
 void relay_init(void)
 {
 #if RELAY_ENABLE
@@ -191,6 +230,9 @@ void relay_init(void)
 	//set default state according to eeprom value
 	relay_default();
 #endif
-	ENDPOINT_REGISTER(endpoint_relay);
+  ENDPOINT_REGISTER(endpoint_relay);
+  ENDPOINT_PROPERTY_REGISTER(prop_relay_name);
+  ENDPOINT_REGISTER(endpoint_relay_config);
+  ENDPOINT_PROPERTY_REGISTER(prop_relay_config_name);
 #endif
 }

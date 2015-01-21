@@ -2,7 +2,6 @@
 #include <fstream>
 #include <string.h>
 #include <libhexabus/common.hpp>
-#include <libhexabus/crc.hpp>
 #include <time.h>
 #include <libhexabus/packet.hpp>
 #include <boost/program_options.hpp>

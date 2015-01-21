@@ -46,6 +46,12 @@ ENDPOINT_DESCRIPTOR endpoint_sysbutton = {
 	.write = 0
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_sysbutton_name = {
+	.datatype = HXB_DTYPE_128STRING,
+	.eid = EP_BUTTON,
+	.propid = EP_PROP_NAME,
+};
+
 static void broadcast_button()
 {
 	button_pushed = 1;
@@ -101,5 +107,6 @@ void button_handlers_init()
 	BUTTON_REGISTER(buttons_system, 1);
 #if BUTTON_HAS_EID
 	ENDPOINT_REGISTER(endpoint_sysbutton);
+	ENDPOINT_PROPERTY_REGISTER(prop_sysbutton_name);
 #endif
 }

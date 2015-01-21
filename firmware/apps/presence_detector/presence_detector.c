@@ -49,7 +49,7 @@
 #include "syslog.h"
 
 #if PRESENCE_DETECTOR_SERVER
-static struct ctimer pd_timeout; 
+static struct ctimer pd_timeout;
 #endif
 #if PRESENCE_DETECTOR_CLIENT
 static struct ctimer pd_keep_alive;
@@ -134,6 +134,12 @@ ENDPOINT_DESCRIPTOR endpoint_presence_detector = {
 	.write = write
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_presence_name = {
+    .datatype = HXB_DTYPE_128STRING,
+    .eid = EP_PRESENCE_DETECTOR,
+    .propid = EP_PROP_NAME,
+};
+
 void presence_detector_init() {
     global_presence = NO_PRESENCE;
 #if PRESENCE_DETECTOR_SERVER
@@ -148,5 +154,6 @@ void presence_detector_init() {
     }
 #endif
 	ENDPOINT_REGISTER(endpoint_presence_detector);
+    ENDPOINT_PROPERTY_REGISTER(prop_presence_name);
 }
 

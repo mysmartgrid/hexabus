@@ -7,6 +7,8 @@
 #include <string>
 #include <boost/signals2.hpp>
 #include <boost/date_time.hpp>
+#include <boost/shared_ptr.hpp>
+#include <queue>
 #include "error.hpp"
 #include "packet.hpp"
 #include "filtering.hpp"
@@ -37,6 +39,10 @@ namespace hexabus {
 
 			void beginReceive();
 			void packetReceivedHandler(const boost::system::error_code& error, size_t size);
+
+			virtual bool packetPrereceive(const Packet::Ptr& packet, const boost::asio::ip::udp::endpoint& from) {
+				return true;
+			}
 
 		public:
 			SocketBase(boost::asio::io_service& io);
@@ -79,14 +85,53 @@ namespace hexabus {
 	};
 
 	class Socket : public SocketBase {
+		public:
+			typedef boost::function<void (const Packet& packet, const boost::asio::ip::udp::endpoint& from, bool transmissionFailed)> on_packet_transmitted_callback_t;
+
+			struct Association {
+				Association(boost::asio::io_service& io) : timeout_timer(io) {}
+
+				boost::posix_time::ptime lastUpdate;
+				uint16_t seqNum;
+				uint16_t rSeqNum;
+				std::queue< std::pair<boost::shared_ptr<const Packet>, on_packet_transmitted_callback_t> > sendQueue;
+				uint16_t retrans_count;
+				uint16_t want_ack_for;
+				bool isUlAck;
+				uint16_t UlAckState;
+				boost::asio::deadline_timer timeout_timer;
+				std::pair<boost::shared_ptr<const Packet>, on_packet_transmitted_callback_t> currentPacket;
+			};
+
 		private:
 			void configureSocket();
 
+
+			on_packet_transmitted_callback_t transmittedPacket;
+			uint16_t retrans_limit;
+			std::map<boost::asio::ip::udp::endpoint, boost::shared_ptr<Association> > _associations;
+			boost::asio::deadline_timer _association_gc_timer;
+			boost::signals2::connection ack_reply;
+			filter_t ackfilter;
+
+			void associationGCTimeout(const boost::system::error_code& error);
+			void scheduleAssociationGC();
+
+			void beginSend(const boost::asio::ip::udp::endpoint& to);
+			void onSendTimeout(const boost::system::error_code& error, const boost::asio::ip::udp::endpoint& to);
+
+			uint16_t send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest, uint16_t seqNum, uint8_t flags);
+			bool packetPrereceive(const Packet::Ptr& packet, const boost::asio::ip::udp::endpoint& from);
+
 		public:
-			Socket(boost::asio::io_service& io)
-				: SocketBase(io)
+			Socket(boost::asio::io_service& io, uint16_t retrans_limit = 2)
+				: SocketBase(io), retrans_limit(retrans_limit), _association_gc_timer(io)
 			{
+				static on_packet_received_slot_t nullCallback;
+
 				configureSocket();
+				onPacketReceived(nullCallback, filtering::any());
+				filterAckReplys();
 			}
 
 			void mcast_from(const std::string& dev);
@@ -97,11 +142,28 @@ namespace hexabus {
 			}
 			void bind(const boost::asio::ip::udp::endpoint& ep);
 
-			void send(const Packet& packet, const boost::asio::ip::address_v6& dest = GroupAddress)
+			uint16_t send(const Packet& packet, const boost::asio::ip::address_v6& dest = GroupAddress)
 			{
-				send(packet, boost::asio::ip::udp::endpoint(dest, 61616));
+				return send(packet, boost::asio::ip::udp::endpoint(dest, 61616));
 			}
-			void send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest);
+
+			uint16_t send(const Packet& packet, const boost::asio::ip::udp::endpoint& dest)
+			{
+				return send(packet, dest, getSequenceNumber(dest), packet.flags());
+			}
+
+			void onPacketTransmitted(
+					const on_packet_transmitted_callback_t& callback, const Packet& packet,
+					const boost::asio::ip::udp::endpoint& dest);
+
+			void filterAckReplys(const filter_t& filter = filtering::any());
+
+			void upperLayerAckReceived(const boost::asio::ip::udp::endpoint& dest, const uint16_t seqNum);
+			void sendUpperLayerAck(const boost::asio::ip::udp::endpoint& dest, const uint16_t seqNum);
+
+			uint16_t generateSequenceNumber(const boost::asio::ip::udp::endpoint& target);
+			uint16_t getSequenceNumber(const boost::asio::ip::udp::endpoint& target);
+			Association& getAssociation(const boost::asio::ip::udp::endpoint& target);
 	};
 }
 

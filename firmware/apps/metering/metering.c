@@ -111,6 +111,12 @@ ENDPOINT_DESCRIPTOR endpoint_power = {
 	.write = 0
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_power_name = {
+  .datatype = HXB_DTYPE_128STRING,
+  .eid = EP_POWER_METER,
+  .propid = EP_PROP_NAME,
+};
+
 #if METERING_ENERGY
 static enum hxb_error_code read_energy_total(struct hxb_value* value)
 {
@@ -125,6 +131,12 @@ ENDPOINT_DESCRIPTOR endpoint_energy_total = {
 	.name = ep_energy_total_name,
 	.read = read_energy_total,
 	.write = 0
+};
+
+ENDPOINT_PROPERTY_DESCRIPTOR prop_energy_total_name = {
+  .datatype = HXB_DTYPE_128STRING,
+  .eid = EP_ENERGY_METER_TOTAL,
+  .propid = EP_PROP_NAME,
 };
 
 static enum hxb_error_code read_energy(struct hxb_value* value)
@@ -146,6 +158,12 @@ ENDPOINT_DESCRIPTOR endpoint_energy = {
 	.name = ep_energy_name,
 	.read = read_energy,
 	.write = write_energy
+};
+
+ENDPOINT_PROPERTY_DESCRIPTOR prop_energy_meter_name = {
+  .datatype = HXB_DTYPE_128STRING,
+  .eid = EP_ENERGY_METER,
+  .propid = EP_PROP_NAME,
 };
 #endif
 
@@ -178,10 +196,13 @@ metering_init(void)
 
 #if METERING_POWER
 	ENDPOINT_REGISTER(endpoint_power);
+  ENDPOINT_PROPERTY_REGISTER(prop_power_name);
 #endif
 #if METERING_ENERGY
 	ENDPOINT_REGISTER(endpoint_energy_total);
+  ENDPOINT_PROPERTY_REGISTER(prop_energy_total_name);
 	ENDPOINT_REGISTER(endpoint_energy);
+  ENDPOINT_PROPERTY_REGISTER(prop_energy_meter_name);
 #endif
 }
 

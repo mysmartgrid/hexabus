@@ -65,6 +65,12 @@ ENDPOINT_DESCRIPTOR endpoint_temperature = {
 	.write = 0
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_temperature_name = {
+    .datatype = HXB_DTYPE_128STRING,
+    .eid = EP_TEMPERATURE,
+    .propid = EP_PROP_NAME,
+};
+
 /*---------------------------------------------------------------------------*/
 static void
 pollhandler(void) {
@@ -94,6 +100,7 @@ temperature_init(void)
   // PRINTF("Current temp: %s deg C\r\n", temperature_string_buffer);
 #endif
 	ENDPOINT_REGISTER(endpoint_temperature);
+  ENDPOINT_PROPERTY_REGISTER(prop_temperature_name);
 }
 
 static void

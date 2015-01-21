@@ -72,8 +72,15 @@ ENDPOINT_DESCRIPTOR endpoint_pressure = {
 	.write = 0
 };
 
+ENDPOINT_PROPERTY_DESCRIPTOR prop_pressure_name = {
+    .datatype = HXB_DTYPE_128STRING,
+    .eid = EP_PRESSURE,
+    .propid = EP_PROP_NAME,
+};
+
 void pressure_init() {
   ENDPOINT_REGISTER(endpoint_pressure);
+  ENDPOINT_PROPERTY_REGISTER(prop_pressure_name);
   ac1 = pressure_read16(AC1_ADDR);
   ac2 = pressure_read16(AC2_ADDR);
   ac3 = pressure_read16(AC3_ADDR);

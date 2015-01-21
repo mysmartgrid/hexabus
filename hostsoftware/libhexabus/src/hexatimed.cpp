@@ -100,7 +100,7 @@ int main(int argc, char** argv)
 	//Setup interface
 	ba::io_service io;
 	ba::ip::address_v6 hxb_broadcast_address = ba::ip::address_v6::from_string(HXB_GROUP);
-	
+
 	hexabus::Socket network(io);
 	try {
 		network.mcast_from(vm["interface"].as<std::string>());

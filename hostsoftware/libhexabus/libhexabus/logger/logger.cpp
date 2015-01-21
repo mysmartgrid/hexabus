@@ -29,7 +29,7 @@ void Logger::on_sensor_name_received(const std::string& sensor_id, const boost::
   double msecs1;
   double msecs2;
   double mdiff;
-      
+
   struct timeval tv1;
   struct timeval tv2;
 
@@ -63,7 +63,7 @@ void Logger::on_sensor_error(const std::string& sensor_id, const hexabus::Generi
 {
 	std::cerr
 		<< "Error getting device name: " << err.what() << ", "
-		<< "dropping " << new_sensor_backlog[sensor_id].second.size() 
+		<< "dropping " << new_sensor_backlog[sensor_id].second.size()
 		<< " readings from " << sensor_id << std::endl;
 
 	new_sensor_backlog.erase(sensor_id);
@@ -81,7 +81,7 @@ void Logger::accept_packet(double value, uint32_t eid)
   double msecs1;
   double msecs2;
   double mdiff;
-      
+
   struct timeval tv1;
   struct timeval tv2;
 

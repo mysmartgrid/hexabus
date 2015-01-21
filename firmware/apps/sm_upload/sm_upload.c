@@ -54,27 +54,13 @@ static enum hxb_error_code read_receiver(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static enum hxb_error_code send_acknack(union hxb_packet_any* packet, void* data)
-{
-	packet->p_u8.type = HXB_PTYPE_INFO;
-	packet->p_u8.datatype = HXB_DTYPE_BOOL;
-	packet->p_u8.eid = EP_SM_UP_ACKNAK;
-	packet->p_u8.value = *((bool*) data);
-	return HXB_ERR_SUCCESS;
-}
-
 static enum hxb_error_code write_receiver(const struct hxb_envelope* env)
 {
 	char* payload = env->value.v_binary;
 	uint8_t chunk_id = (uint8_t) payload[0];
 	syslog(LOG_DEBUG, "SM: Attempting to write new chunk %i to EEPROM", chunk_id);
 	bool result = sm_write_chunk(chunk_id, payload + 1);
-	if (result) {
-		syslog(LOG_DEBUG, "SENDING ACK");
-	} else {
-		syslog(LOG_DEBUG, "SENDING NACK");
-	}
-	udp_handler_send_generated(&env->src_ip, env->src_port, &send_acknack, &result);
+
 	return result
 		? HXB_ERR_SUCCESS
 		: HXB_ERR_INVALID_VALUE;
@@ -95,18 +81,8 @@ static enum hxb_error_code read_acknack(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_acknack_name[] RODATA = "Statemachine Upload ACK/NAK";
-ENDPOINT_DESCRIPTOR endpoint_sm_upload_acknack = {
-	.datatype = HXB_DTYPE_BOOL,
-	.eid = EP_SM_UP_ACKNAK,
-	.name = ep_acknack_name,
-	.read = read_acknack,
-	.write = 0
-};
-
 void sm_upload_init()
 {
 	ENDPOINT_REGISTER(endpoint_sm_upload_control);
 	ENDPOINT_REGISTER(endpoint_sm_upload_receiver);
-	ENDPOINT_REGISTER(endpoint_sm_upload_acknack);
 }

@@ -1,4 +1,0 @@
-%!: /header.html
-<h1>Socket Status</h1><br>
-%! socket_stat
-%! file-stats .

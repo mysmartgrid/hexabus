@@ -4,7 +4,6 @@
 #include <set>
 #include <string.h>
 #include <libhexabus/common.hpp>
-#include <libhexabus/crc.hpp>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/socket.hpp>
 #include <libhexabus/device_interrogator.hpp>
@@ -54,7 +53,7 @@ private:
   klio::Sensor::Ptr lookup_sensor(const std::string& id)
 		{
 			std::vector<klio::Sensor::Ptr> sensors = store->get_sensors_by_external_id(id);
-			
+
 			if (!sensors.size())
 				return klio::Sensor::Ptr();
       return sensors[0];
@@ -75,7 +74,7 @@ private:
       double msecs1;
       double msecs2;
       double mdiff;
-      
+
       struct timeval tv1;
       struct timeval tv2;
 #if KLIO_AUTOCOMMIT
@@ -97,7 +96,7 @@ private:
         gettimeofday(&tv2, NULL) ;
         msecs2=(double)tv2.tv_sec + ((double)tv2.tv_usec/1000000);
         mdiff = msecs2 - msecs1;
-        
+
 				std::cout << "Added reading " << value << " to sensor " << sensor->name() << " ("<<sensor->external_id()<< ")" << "t="<< ts << " diff=" <<mdiff << std::endl;
 			} catch (klio::StoreException const& ex) {
         gettimeofday(&tv2, NULL) ;
@@ -155,7 +154,7 @@ public:
       std::string name(store_file.string());
       name+=".";
       name+=s;
-      
+
       bfs::path dbname(name);
       std::cout << "===> renaming to: "<< name<<std::endl;
       fflush(stdout);
@@ -164,7 +163,7 @@ public:
 			} catch (klio::StoreException const& ex) {
 				std::cout << "Failed to rotate the klio-databse : " << ex.what() << std::endl;
       }
-      
+
 
 #if KLIO_AUTOCOMMIT
       store->start_transaction();
@@ -256,8 +255,8 @@ int main(int argc, char** argv)
 	}
 
 	try {
-		klio::StoreFactory store_factory; 
-    klio::SQLite3Store::Ptr store;
+		klio::StoreFactory store_factory;
+		klio::Store::Ptr store;
 
 		std::string storefile(vm["storefile"].as<std::string>());
 		bfs::path db(storefile);
@@ -273,10 +272,10 @@ int main(int argc, char** argv)
 		store = store_factory.open_sqlite3_store(db, true, true, 30, klio::SQLite3Store::OS_SYNC_OFF);
 #endif
 
-		std::string sensor_timezone("Europe/Berlin"); 
+		std::string sensor_timezone("Europe/Berlin");
 		if (! vm.count("timezone")) {
-			std::cerr << "Using default timezone " << sensor_timezone 
-                << ", change with -t <NEW_TIMEZONE>" << std::endl;
+			std::cerr << "Using default timezone " << sensor_timezone
+			<< ", change with -t <NEW_TIMEZONE>" << std::endl;
 		} else {
 			sensor_timezone=vm["timezone"].as<std::string>();
 		}
@@ -324,7 +323,7 @@ int main(int argc, char** argv)
     store->flush(true);
     store->close();
     fflush(stdout);
-    
+
 	} catch (const hexabus::NetworkException& e) {
 		std::cerr << "Network error: " << e.code().message() << std::endl;
 		return ERR_NETWORK;
