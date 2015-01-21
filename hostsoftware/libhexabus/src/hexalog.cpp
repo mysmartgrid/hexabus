@@ -37,7 +37,7 @@ namespace po = boost::program_options;
 
 #include <libhexabus/logger/logger.hpp>
 
-#include "resolv.hpp"
+#include "shared.hpp"
 using boost::format;
 using boost::io::group;
 
@@ -293,7 +293,7 @@ int main(int argc, char** argv)
 
 		network.bind(addr);
 		listener.listen(interface);
-		listener.onPacketReceived(boost::ref(logger));
+		listener.onPacketReceived(std::ref(logger));
 
 		boost::asio::signal_set rotate_handler(io, SIGHUP);
 		boost::asio::signal_set terminate_handler(io, SIGTERM);

@@ -11,6 +11,7 @@
 #include "hbt/IR/module.hpp"
 #include "hbt/Lang/ast.hpp"
 #include "hbt/Lang/sema-scope.hpp"
+#include "hbt/Util/fatal.hpp"
 
 namespace hbt {
 namespace lang {
@@ -37,6 +38,8 @@ static ir::Type irtypeFor(Type t)
 	case Type::Int64: return ir::Type::Int64;
 	case Type::Float: return ir::Type::Float;
 	}
+
+	hbt_unreachable();
 }
 
 static ir::ArithOp arithOpFor(BinaryOperator binop)
@@ -61,6 +64,8 @@ static ir::ArithOp arithOpFor(BinaryOperator binop)
 	case BinaryOperator::ShiftLeft: return ir::ArithOp::Shl;
 	case BinaryOperator::ShiftRight: return ir::ArithOp::Shr;
 	}
+
+	hbt_unreachable();
 }
 
 
@@ -131,7 +136,7 @@ private:
 
 public:
 	NameGenerator(std::string prefix)
-		: prefix(std::move(prefix)), valueCount(0), labelCount(0)
+		: valueCount(0), labelCount(0), prefix(std::move(prefix))
 	{}
 
 	std::string newName()
@@ -947,8 +952,8 @@ void StateCG::run()
 	collectOnBlocks();
 	emitOnEntry();
 	emitOnBlocks(_onPeriodicIR, onPeriodicBlocks, "periodic");
-	emitOnBlocks(_onExprIR, onExprBlocks, "expr");
 	emitOnBlocks(_onUpdateIR, onUpdateBlocks, "update");
+	emitOnBlocks(_onExprIR, onExprBlocks, "expr");
 	emitOnBlocks(_alwaysIR, alwaysBlocks, "always");
 	emitOnExit();
 }
@@ -1037,10 +1042,20 @@ void MachineCG::emitStateGlue()
 			},
 			nullptr));
 
-		state.onPeriodicIR().exitStay->append(ir::JumpInsn(state.onExprIR().entry));
+		// exitStay is nullptr means all paths contain a goto to a new state => all blocks are terminated
+		if (state.onPeriodicIR().exitStay)
+			state.onPeriodicIR().exitStay->append(ir::JumpInsn(state.onExprIR().entry));
+
+		// Can not be terminated by a goto, since update blocks are checked for each incoming
+		// packet and the exitStay jump is taken if no update block matches the packet
+		state.onUpdateIR().exitStay->append(ir::JumpInsn(state.onExprIR().entry));
+
+		// Some as updateIR
 		state.onExprIR().exitStay->append(ir::JumpInsn(state.alwaysIR().entry));
-		state.onUpdateIR().exitStay->append(ir::JumpInsn(state.alwaysIR().entry));
-		state.alwaysIR().exitStay->append(ir::JumpInsn(_machineTail));
+
+		// same as onPeriodicIR
+		if (state.alwaysIR().exitStay)
+			state.alwaysIR().exitStay->append(ir::JumpInsn(_machineTail));
 
 		stateEntryLabels.insert({ state.state().id(), state.onEntryIR().entry });
 		stateExitLabels.insert({ state.state().id(), state.onExitIR().entry });
@@ -1192,8 +1207,8 @@ std::unique_ptr<ir::ModuleBuilder> generateIR(const Device* dev, std::set<Machin
 	moduleBuilder->onPacket(onPacket);
 	moduleBuilder->onPeriodic(onPeriodic);
 
-	auto* inPacket = onPacket->append(ir::LoadIntInsn("isPeriodic0", ir::Type::Bool, 0L));
-	auto* inPeriodic = onPeriodic->append(ir::LoadIntInsn("isPeriodic1", ir::Type::Bool, 1L));
+	auto* inPacket = onPacket->append(ir::LoadIntInsn("isPeriodic0", ir::Type::Bool, uint32_t(0L)));
+	auto* inPeriodic = onPeriodic->append(ir::LoadIntInsn("isPeriodic1", ir::Type::Bool, uint32_t(1L)));
 
 	onPacket->append(ir::JumpInsn(onEvent));
 	onPeriodic->append(ir::JumpInsn(onEvent));

@@ -319,6 +319,7 @@ bool ModuleVerifier::buildValueLivenessMap()
 
 	for (auto* block : blockQueue) {
 		if (!predecessors[block].size()) {
+			// No Predecessors
 			availableValues.insert({ block, {} });
 		} else {
 			availableValues[block] = availableValues[*predecessors[block].begin()];
@@ -339,7 +340,7 @@ bool ModuleVerifier::buildValueLivenessMap()
 
 			auto use = [&] (const Value* v, const BasicBlock* usedFrom = nullptr) {
 				if (!availableValues[usedFrom ? usedFrom : block].count(v))
-					insnError(*block, "used value isn't live");
+					insnError(*block, "used value " + v->name() + " isn't live");
 
 				if (usedFrom && !valueUses[block].count(v)) {
 					phisInSuccessors[usedFrom].insert(v);

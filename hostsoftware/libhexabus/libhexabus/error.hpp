@@ -3,45 +3,43 @@
 
 #include <string>
 #include <exception>
-#include <tr1/memory>
+#include <memory>
 #include <boost/system/error_code.hpp>
 
 namespace hexabus {
-  class GenericException : public std::exception {
-    public:
-      typedef std::tr1::shared_ptr<GenericException> Ptr;
-      GenericException (const std::string reason) : _reason(reason) {};
-      virtual ~GenericException() throw() {};
-      virtual const char* what() const throw() { return reason().c_str(); }
-      virtual const std::string& reason() const { return _reason; }
 
-    private:
-      std::string _reason;
-  };
+class GenericException : public std::exception {
+public:
+	GenericException(std::string reason)
+		: _reason(std::move(reason))
+	{
+	}
 
-  class NetworkException : public GenericException {
-    public:
-      typedef std::tr1::shared_ptr<NetworkException> Ptr;
-      NetworkException (const std::string reason, const boost::system::error_code& code) :
-        hexabus::GenericException(reason), _code(code) {};
-      virtual ~NetworkException() throw() {};
+	virtual ~GenericException() {};
 
-      boost::system::error_code code() const { return _code; }
+	virtual const char* what() const noexcept { return reason().c_str(); }
 
-    private:
-      boost::system::error_code _code;
-  };
+	virtual const std::string& reason() const { return _reason; }
 
-	class BadPacketException : public GenericException {
-		public:
-			typedef std::tr1::shared_ptr<BadPacketException> Ptr;
+private:
+	std::string _reason;
+};
 
-			BadPacketException (const std::string reason)
-				: hexabus::GenericException(reason)
-			{}
+class NetworkException : public GenericException {
+public:
+	NetworkException (const std::string reason, const boost::system::error_code& code) :
+		hexabus::GenericException(reason), _code(code) {};
 
-			virtual ~BadPacketException() throw() {};
-	};
+	boost::system::error_code code() const { return _code; }
+
+private:
+	boost::system::error_code _code;
+};
+
+class BadPacketException : public GenericException {
+public:
+	using GenericException::GenericException;
+};
 
 }
 

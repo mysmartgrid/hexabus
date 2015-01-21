@@ -1,52 +1,13 @@
 # -*- mode: cmake; -*-
 project(hbt)
 cmake_minimum_required(VERSION "2.8" FATAL_ERROR)
-if(POLICY CMP0011)
-  cmake_policy(SET CMP0011 NEW)
-endif(POLICY CMP0011)
 
-if( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-   message(STATUS "Do not run cmake in the source directory")
-   message(STATUS "create an extra binary directory")
-   message(FATAL_ERROR "Exiting cmake here.")
-endif( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-
-# have the full monty in makefiles
-set(CMAKE_VERBOSE_MAKEFILE true)
-
-SET(ENABLE_LOGGING 1)
-
-# use ctest
-ENABLE_TESTING()
-
-set(V_MAJOR 0)
-set(V_MINOR 2)
-set(V_PATCH 0)
-
-# add a path where some libraries might be stored
-set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where many locally installed libraries can be found")
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_SOURCE_DIR}/../cmake_modules ${CMAKE_MODULE_PATH})
+include(HexabusCommon)
 
 ###################################################################################################
 # No user settings below
 ###################################################################################################
-
-# Where are the additional libraries installed? Note: provide includes
-# path here, subsequent checks will resolve everything else
-set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
-set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_SOURCE_DIR}/../cmake_modules ${CMAKE_MODULE_PATH})
-
-include ( ProjectInfo )
-include ( CompilerFlags )
-include (UseCodeCoverage)
-
-set(CMAKE_CXX_FLAGS "${CXXFLAGS} -std=c++11")
-
-set(Boost_USE_STATIC_LIBS ON)
-SET(Boost_DETAILED_FAILURE_MSG true)
-FIND_PACKAGE(Boost 1.54 REQUIRED COMPONENTS test_exec_monitor program_options filesystem regex system)
-
-find_package(CLN)
 
 # Reflect the package structure
 include_directories(${CMAKE_SOURCE_DIR}/include)
@@ -55,10 +16,6 @@ add_subdirectory(lib)
 add_subdirectory(src)
 add_subdirectory(tests)
 
-# enable unit testing
-include(CTest)
-enable_testing()
-
 set(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Hexabus compiler toolkit")
 set(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
@@ -66,7 +23,7 @@ set(CPACK_PACKAGE_CONTACT "Fraunhofer ITWM <support@mysmartgrid.de>")
 set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.8.0), libc6 (>= 2.13), libcln6 (>= 1.3.3)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.7.0), libc6 (>= 2.13)")
 set(CPACK_PACKAGE_EXECUTABLES "hbc" "Hexabus statemachine compiler")
 set(CPACK_PACKAGE_EXECUTABLES "hbt-as" "Hexabus assembler")
 set(CPACK_PACKAGE_EXECUTABLES "hbt-dis" "Hexabus disassembler")

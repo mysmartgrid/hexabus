@@ -7,7 +7,7 @@ namespace hbt {
 namespace mc {
 
 Builder::Builder(uint8_t version)
-	: _labelMax(0), _version(version), _insertPos(_instructions.end())
+	: _labelMax(0), _insertPos(_instructions.end()), _version(version)
 {
 	if (version != 0)
 		throw std::invalid_argument("version");

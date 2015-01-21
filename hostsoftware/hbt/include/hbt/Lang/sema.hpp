@@ -36,15 +36,15 @@ private:
 		{}
 
 		ClassParamInstance(ClassParameter& cp, Expr* value)
-			: parameter(cp), hasValue(true), value(value), used(false)
+			: parameter(cp), hasValue(true), used(false), value(value)
 		{}
 
 		ClassParamInstance(ClassParameter& cp, Device* device)
-			: parameter(cp), hasValue(true), device(device), used(false)
+			: parameter(cp), hasValue(true), used(false), device(device)
 		{}
 
 		ClassParamInstance(ClassParameter& cp, Declaration* behaviour, EndpointDeclaration* ep)
-			: parameter(cp), hasValue(true), ep{behaviour, ep}, used(false)
+			: parameter(cp), hasValue(true), used(false), ep{behaviour, ep}
 		{}
 	};
 

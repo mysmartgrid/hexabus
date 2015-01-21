@@ -1,3 +1,7 @@
+# -*- mode: cmake; -*-
+
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+
 file(GLOB Lang_src *.cpp *.hpp)
 add_library(HBTLang ${Lang_src})
 

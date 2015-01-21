@@ -169,15 +169,15 @@ public:
 				distribution_queue.push(boost::shared_ptr<const Packet>(pinfo.clone()));
 				break;
 			}
-			const InfoPacket<boost::array<char, 16> >* info_16b = dynamic_cast<const InfoPacket<boost::array<char, 16> >* >(&packet);
+			const InfoPacket<std::array<uint8_t, 16> >* info_16b = dynamic_cast<const InfoPacket<std::array<uint8_t, 16> >* >(&packet);
 			if(info_16b !=NULL) {
-				ProxyInfoPacket<boost::array<char, 16> > pinfo(asio_ep.address().to_v6(), info_16b->eid(), info_16b->value(), HXB_FLAG_WANT_UL_ACK);
+				ProxyInfoPacket<std::array<uint8_t, 16> > pinfo(asio_ep.address().to_v6(), info_16b->eid(), info_16b->value(), HXB_FLAG_WANT_UL_ACK);
 				distribution_queue.push(boost::shared_ptr<const Packet>(pinfo.clone()));
 				break;
 			}
-			const InfoPacket<boost::array<char, 65> >* info_65b = dynamic_cast<const InfoPacket<boost::array<char, 65> >* >(&packet);
+			const InfoPacket<std::array<uint8_t, 65> >* info_65b = dynamic_cast<const InfoPacket<std::array<uint8_t, 65> >* >(&packet);
 			if(info_65b !=NULL) {
-				ProxyInfoPacket<boost::array<char, 65> > pinfo(asio_ep.address().to_v6(), info_65b->eid(), info_65b->value(), HXB_FLAG_WANT_UL_ACK);
+				ProxyInfoPacket<std::array<uint8_t, 65> > pinfo(asio_ep.address().to_v6(), info_65b->eid(), info_65b->value(), HXB_FLAG_WANT_UL_ACK);
 				distribution_queue.push(boost::shared_ptr<const Packet>(pinfo.clone()));
 				break;
 			}
@@ -286,8 +286,8 @@ int main(int argc, char** argv)
 		filtering::isInfo<int64_t>() ||
 		filtering::isInfo<float>() ||
 		filtering::isInfo<std::string>() ||
-		filtering::isInfo<boost::array<char, 16> >() ||
-		filtering::isInfo<boost::array<char, 65> >());
+		filtering::isInfo<std::array<uint8_t, 16> >() ||
+		filtering::isInfo<std::array<uint8_t, 65> >());
 	//boost::signals2::connection c5 = network->onAsyncError(errorCallback);
 	boost::signals2::connection c6 = network->onPacketReceived(boost::bind(&PacketSender::ackCallback, &sender, _1, _2), filtering::isAck());
 

@@ -499,7 +499,7 @@ struct as_grammar : qi::grammar<It, ir_program(), asm_ws<It>> {
 	static std::vector<uint8_t> make_block(const std::vector<uint8_t>& vec)
 	{
 		std::vector<uint8_t> result;
-		int offset = 0;
+		unsigned offset = 0;
 
 		if (vec.size() % 2) {
 			result.push_back(vec.front());
@@ -585,15 +585,6 @@ bool parseToList(Iterator first, Iterator last, ir_program& program, std::string
 	bool result = qi::phrase_parse(first, last, g, asm_ws<Iterator>(), program);
 
 	return result && first == last;
-}
-
-std::array<uint8_t, 16> toMachineID(const std::vector<uint8_t>& vec)
-{
-	std::array<uint8_t, 16> result;
-
-	result.fill(0);
-	std::copy(vec.begin(), vec.end(), result.begin() + 16 - vec.size());
-	return result;
 }
 
 std::map<std::string, Label> makeLabelMap(const ir_program& program, Builder& builder)

@@ -5,6 +5,7 @@ var v6 = require('ipv6').v6;
 var os = require('os');
 var fs = require('fs');
 var nconf = require('nconf');
+var netroute = require('netroute');
 
 var hexabus = function() {
 	this.rename_device = function(addr, newName, cb) {
@@ -26,11 +27,26 @@ var hexabus = function() {
 	this.read_current_config = function() {
 		var ifaces = os.networkInterfaces();
 
+		var gateway = netroute.getGateway();
+
+		var nameservers = [];
+		var resolvConf = fs.readFileSync("/etc/resolv.conf").toString();
+		var lines = resolvConf.split("\n");
+		for(var index in lines) {
+			var line = lines[index].trim();
+			if(line.indexOf("nameserver") === 0) {
+				var nameserver = line.split(" ")[1];
+				nameservers.push(nameserver);
+			}
+		}
+
 		var config = {
+			gateway: gateway,
+			nameservers: nameservers,
 			addrs: {
 				lan: {
 					v4: [],
-					v6: []
+					v6: [],
 				},
 
 				hxb: {

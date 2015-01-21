@@ -62,8 +62,8 @@ private:
 	virtual void visit(const hexabus::InfoPacket<int64_t>& info) { run<int64_t, &hxb_sm_value_t::v_sint64>(info); }
 	virtual void visit(const hexabus::InfoPacket<float>& info) { run<float, &hxb_sm_value_t::v_float>(info); }
 	virtual void visit(const hexabus::InfoPacket<std::string>& info) {}
-	virtual void visit(const hexabus::InfoPacket<boost::array<char, 16> >& info) {}
-	virtual void visit(const hexabus::InfoPacket<boost::array<char, 65> >& info) {}
+	virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 16> >& info) {}
+	virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 65> >& info) {}
 
 	virtual void visit(const hexabus::WritePacket<bool>& write) {}
 	virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
@@ -76,8 +76,8 @@ private:
 	virtual void visit(const hexabus::WritePacket<int64_t>& write) {}
 	virtual void visit(const hexabus::WritePacket<float>& write) {}
 	virtual void visit(const hexabus::WritePacket<std::string>& write) {}
-	virtual void visit(const hexabus::WritePacket<boost::array<char, 16> >& write) {}
-	virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& write) {}
+	virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 16> >& write) {}
+	virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 65> >& write) {}
 
 	virtual void visit(const hexabus::ReportPacket<bool>& report) {}
 	virtual void visit(const hexabus::ReportPacket<uint8_t>& report) {}
@@ -90,8 +90,8 @@ private:
 	virtual void visit(const hexabus::ReportPacket<int64_t>& report) {}
 	virtual void visit(const hexabus::ReportPacket<float>& report) {}
 	virtual void visit(const hexabus::ReportPacket<std::string>& report) {}
-	virtual void visit(const hexabus::ReportPacket<boost::array<char, 16> >& report) {}
-	virtual void visit(const hexabus::ReportPacket<boost::array<char, 65> >& report) {}
+	virtual void visit(const hexabus::ReportPacket<std::array<uint8_t, 16> >& report) {}
+	virtual void visit(const hexabus::ReportPacket<std::array<uint8_t, 65> >& report) {}
 
 	virtual void visit(const hexabus::ProxyInfoPacket<bool>& proxyInfo) {}
 	virtual void visit(const hexabus::ProxyInfoPacket<uint8_t>& proxyInfo) {}
@@ -104,8 +104,8 @@ private:
 	virtual void visit(const hexabus::ProxyInfoPacket<int64_t>& proxyInfo) {}
 	virtual void visit(const hexabus::ProxyInfoPacket<float>& proxyInfo) {}
 	virtual void visit(const hexabus::ProxyInfoPacket<std::string>& proxyInfo) {}
-	virtual void visit(const hexabus::ProxyInfoPacket<boost::array<char, 16> >& proxyInfo) {}
-	virtual void visit(const hexabus::ProxyInfoPacket<boost::array<char, 65> >& proxyInfo) {}
+	virtual void visit(const hexabus::ProxyInfoPacket<std::array<uint8_t, 16> >& proxyInfo) {}
+	virtual void visit(const hexabus::ProxyInfoPacket<std::array<uint8_t, 65> >& proxyInfo) {}
 
 	virtual void visit(const hexabus::PropertyWritePacket<bool>& propertyWrite) {}
 	virtual void visit(const hexabus::PropertyWritePacket<uint8_t>& propertyWrite) {}
@@ -118,8 +118,8 @@ private:
 	virtual void visit(const hexabus::PropertyWritePacket<int64_t>& propertyWrite) {}
 	virtual void visit(const hexabus::PropertyWritePacket<float>& propertyWrite) {}
 	virtual void visit(const hexabus::PropertyWritePacket<std::string>& propertyWrite) {}
-	virtual void visit(const hexabus::PropertyWritePacket<boost::array<char, 16> >& propertyWrite) {}
-	virtual void visit(const hexabus::PropertyWritePacket<boost::array<char, 65> >& propertyWrite) {}
+	virtual void visit(const hexabus::PropertyWritePacket<std::array<uint8_t, 16> >& propertyWrite) {}
+	virtual void visit(const hexabus::PropertyWritePacket<std::array<uint8_t, 65> >& propertyWrite) {}
 
 	virtual void visit(const hexabus::PropertyReportPacket<bool>& propertyReport) {}
 	virtual void visit(const hexabus::PropertyReportPacket<uint8_t>& propertyReport) {}
@@ -132,8 +132,8 @@ private:
 	virtual void visit(const hexabus::PropertyReportPacket<int64_t>& propertyReport) {}
 	virtual void visit(const hexabus::PropertyReportPacket<float>& propertyReport) {}
 	virtual void visit(const hexabus::PropertyReportPacket<std::string>& propertyReport) {}
-	virtual void visit(const hexabus::PropertyReportPacket<boost::array<char, 16> >& propertyReport) {}
-	virtual void visit(const hexabus::PropertyReportPacket<boost::array<char, 65> >& propertyReport) {}
+	virtual void visit(const hexabus::PropertyReportPacket<std::array<uint8_t, 16> >& propertyReport) {}
+	virtual void visit(const hexabus::PropertyReportPacket<std::array<uint8_t, 65> >& propertyReport) {}
 };
 
 class SimulatedMachine {

@@ -12,7 +12,7 @@ include_directories(
 )
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 include_directories(
-  ${HBX_INCLUDE_DIR}
+  ${HXB_INCLUDE_DIR}
   ${HBC_INCLUDE_DIR}
 )
 
@@ -23,5 +23,4 @@ target_link_libraries(hexinfo
   ${HXB_LIBRARIES}
   ${HBT_LIBRARIES}
   ${Boost_LIBRARIES}
-  ${CLN_LIBRARIES}
 )
