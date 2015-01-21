@@ -41,7 +41,7 @@
 #include "endpoints.h"
 #include "endpoint_registry.h"
 #include "nvm.h"
-
+#include "hexabus_types.h"
 
 /** \brief This is a file internal variable that contains the default state of the relay.
  *
@@ -137,20 +137,6 @@ relay_default(void)
     }
 }
 
-void set_relay_default(bool d_value)
-{
-	if (relay_default_state != d_value) {
-		nvm_write_u8(relay_default, d_value);
-		relay_default_state = d_value;
-	}
-}
-
-bool
-get_relay_default(void)
-{
-  return relay_default_state;
-}
-
 static enum hxb_error_code read(struct hxb_value* value)
 {
 	value->v_bool = relay_get_state() == 0;
@@ -182,57 +168,43 @@ ENDPOINT_PROPERTY_DESCRIPTOR prop_relay_name = {
     .propid = EP_PROP_NAME,
 };
 
-static enum hxb_error_code read_default(struct hxb_value* value)
-{
-  value->v_bool = get_relay_default();
-  return HXB_ERR_SUCCESS;
-}
-
-static enum hxb_error_code write_default(const struct hxb_envelope* env)
-{
-  set_relay_default(!(env->value.v_bool));
-  return HXB_ERR_SUCCESS;
-}
-
-static const char ep_conf_name[] PROGMEM = "Default relay state config";
-ENDPOINT_DESCRIPTOR endpoint_relay_config = {
-  .datatype = HXB_DTYPE_BOOL,
-  .eid = EP_POWER_DEFAULT_STATE,
-  .name = ep_conf_name,
-  .read = read_default,
-  .write = write_default
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_relay_config_name = {
-    .datatype = HXB_DTYPE_128STRING,
-    .eid = EP_POWER_DEFAULT_STATE,
-    .propid = EP_PROP_NAME,
+ENDPOINT_PROPERTY_DESCRIPTOR prop_relay_default = {
+    .datatype = HXB_DTYPE_BOOL,
+    .eid = EP_POWER_SWITCH,
+    .propid = EP_PROP_DEFAULT_SATE,
 };
 
 void relay_init(void)
 {
 #if RELAY_ENABLE
-#if ! METERING_ENERGY_PERSISTENT
-	/* Load reference values from EEPROM */
-	relay_default_state = nvm_read_u8(relay_default);
-
-	/*PWM Specific Initialization.*/
-#if RELAY_POWER_SAVING
-	SET_RELAY_TCCRxA();
-	SET_RELAY_TCCRxB();
-#else
-	DDRB |= (1 << PB3);
-#endif
-
-	//relay is off at init
-	relay_state = 0;
-
-	//set default state according to eeprom value
-	relay_default();
-#endif
   ENDPOINT_REGISTER(endpoint_relay);
   ENDPOINT_PROPERTY_REGISTER(prop_relay_name);
-  ENDPOINT_REGISTER(endpoint_relay_config);
-  ENDPOINT_PROPERTY_REGISTER(prop_relay_config_name);
+  ENDPOINT_PROPERTY_REGISTER(prop_relay_default);
+#if ! METERING_ENERGY_PERSISTENT
+  /* Load reference values from EEPROM */
+  struct hxb_value default_value;
+  enum hxb_error_code err = endpoint_property_read(EP_POWER_SWITCH, EP_PROP_DEFAULT_SATE, &default_value);
+
+  if(err) {
+    relay_default_state = false;
+  } else {
+    relay_default_state = default_value.v_bool;
+  }
+
+
+  /*PWM Specific Initialization.*/
+#if RELAY_POWER_SAVING
+  SET_RELAY_TCCRxA();
+  SET_RELAY_TCCRxB();
+#else
+  DDRB |= (1 << PB3);
+#endif
+
+  //relay is off at init
+  relay_state = 0;
+
+  //set default state according to eeprom value
+  relay_default();
+#endif
 #endif
 }
