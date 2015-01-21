@@ -399,7 +399,7 @@ int Driver::run(int argc, char* argv[])
 	DiagnosticOutput diag(std::cout);
 	SemanticVisitor(diag).visit(*tu);
 
-	if ((diag.warningCount() && warningsAreErrors) || diag.errorCount()) {
+	if (diag.warningCount() || diag.errorCount()) {
 		std::cout << "\n";
 		if (diag.errorCount())
 			std::cout << "got " << diag.errorCount() << " errors";
@@ -413,7 +413,8 @@ int Driver::run(int argc, char* argv[])
 				std::cout << " (treated as errors)";
 		}
 		std::cout << "\n";
-		return 1;
+		if (diag.errorCount() || diag.warningCount() && warningsAreErrors)
+			return 1;
 	}
 
 	if (targetFormat == TargetFormat::AST) {
