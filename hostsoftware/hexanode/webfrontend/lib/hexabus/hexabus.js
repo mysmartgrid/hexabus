@@ -1,14 +1,17 @@
 'use strict';
 
 var exec = require('child_process').exec;
+var execFile = require('child_process').execFile;
 var v6 = require('ipv6').v6;
 var os = require('os');
-var fs = require('fs');
+var fs = require('fs-extra');
+var path = require('path');
 var nconf = require('nconf');
 var async = require('async');
 var ejs = require('ejs');
 var es = require('event-stream');
 var net = require('net');
+var makeTempFile = require('mktemp').createFileSync;
 
 var hexabus = function() {
 	this.rename_device = function(addr, newName, cb) {
@@ -105,9 +108,30 @@ var hexabus = function() {
 
 	this.enumerate_network = function(deviceCb) {
 		deviceCb = deviceCb || Object;
+
+		if(hexinfo_lock) {
+			deviceCb({'error' : 'Hexinfo is already running, try again later ...'});
+			return;
+		}
+
+		hexinfo_lock = true;
+
+		var tmpEpFile = makeTempFile("/tmp/XXXXXX_epfile.tmp");
+		var tmpDevFile = makeTempFile("/tmp/XXXXXX_devfile.tmp");
+		fs.copySync(path.join(nconf.get("data"), 'endpoints.hbh'), tmpEpFile);
+		fs.copySync(path.join(nconf.get("data"), 'devices.hbh'), tmpDevFile);
+
+		console.log(tmpEpFile);
+		console.log(tmpDevFile);
 		
 		var enumerateInterface = function(iface, cb) {
-			exec("hexinfo --discover --interface " + iface + " --json -", function(error, stdout, stderr) {
+			execFile("hexinfo",
+					["--discover",
+					"--interface", iface,
+					"--json", "-",
+					"--epfile", tmpEpFile,
+					"--devfile", tmpDevFile],
+					function(error, stdout, stderr) {
 				if (error) {
 					cb({ error: error });
 				} else {
@@ -122,20 +146,18 @@ var hexabus = function() {
 			});
 		};
 
-		if(hexinfo_lock) {
-			deviceCb({'error' : 'Hexinfo is already running, try agaian later ...'});
-		}
-		
-		hexinfo_lock = true;
-
 		var interfaces = (nconf.get("debug-hxb-ifaces") || "eth0,usb0").split(",");
 		async.each(interfaces, enumerateInterface, function(error) {
+			hexinfo_lock = false;
+
 			if(error !== undefined) {
-				hexinfo_lock = false;
+				fs.unlinkSync(tmpEpFile);
+				fs.unlinkSync(tmpDevFile);
 				deviceCb({'error' : error});
 			}
 			else {
-				hexinfo_lock = false;
+				fs.renameSync(tmpEpFile, path.join(nconf.get("data"), 'endpoints.hbh'));
+				fs.renameSync(tmpDevFile, path.join(nconf.get("data"), 'devices.hbh'));
 				deviceCb({'done' : true});
 			}
 		});

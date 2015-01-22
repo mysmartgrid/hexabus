@@ -105,8 +105,8 @@ var HexabusServer = function(socket, devicetree) {
 		}
 
 		hexabus.write_endpoint(ep.ip, ep.eid, ep.type, data.value, function(error) {
-			console.log(error);
 			if(error) {
+				console.log(error);
 				cb({'success' : false, 'error' : error.toString()});
 			}
 			else {

@@ -24,7 +24,7 @@ nconf.env().argv().file({file: 'config.json'});
 // Setting default values
 nconf.defaults({
   'port': '3000',
-	'config': '.'
+	'data': 'data'
 });
 server.listen(nconf.get('port'));
 
@@ -44,8 +44,8 @@ if (nconf.get('uid')) {
 
 
 // Load Devicetree
-var configDir = nconf.get('config');
-var devicetree_file = configDir + '/devicetree.json';
+var dataDir = nconf.get('data');
+var devicetree_file = path.join(dataDir,'devicetree.json');
 
 var devicetree;
 try {

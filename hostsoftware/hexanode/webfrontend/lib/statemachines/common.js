@@ -62,7 +62,7 @@ exports.StatemachineBuilder = function() {
 	this.setupBuildDir = function(callback) {
 		fs.mkdir(this.sm_build,function(err) {
 			if(err && err.code != 'EEXIST') {
-				callback(this.localizeError('creatin-builddir-failed',err));
+				callback(this.localizeError('creating-builddir-failed',err));
 			}
 			else {
 				callback();

@@ -75,6 +75,48 @@
       "from": "ejs@0.8.5",
       "resolved": "https://registry.npmjs.org/ejs/-/ejs-0.8.5.tgz"
     },
+    "event-stream": {
+      "version": "3.1.7",
+      "from": "event-stream@",
+      "resolved": "https://registry.npmjs.org/event-stream/-/event-stream-3.1.7.tgz",
+      "dependencies": {
+        "through": {
+          "version": "2.3.6",
+          "from": "through@~2.3.1",
+          "resolved": "https://registry.npmjs.org/through/-/through-2.3.6.tgz"
+        },
+        "duplexer": {
+          "version": "0.1.1",
+          "from": "duplexer@~0.1.1",
+          "resolved": "https://registry.npmjs.org/duplexer/-/duplexer-0.1.1.tgz"
+        },
+        "from": {
+          "version": "0.1.3",
+          "from": "from@~0",
+          "resolved": "https://registry.npmjs.org/from/-/from-0.1.3.tgz"
+        },
+        "map-stream": {
+          "version": "0.1.0",
+          "from": "map-stream@~0.1.0",
+          "resolved": "https://registry.npmjs.org/map-stream/-/map-stream-0.1.0.tgz"
+        },
+        "pause-stream": {
+          "version": "0.0.11",
+          "from": "pause-stream@0.0.11",
+          "resolved": "https://registry.npmjs.org/pause-stream/-/pause-stream-0.0.11.tgz"
+        },
+        "split": {
+          "version": "0.2.10",
+          "from": "split@0.2",
+          "resolved": "https://registry.npmjs.org/split/-/split-0.2.10.tgz"
+        },
+        "stream-combiner": {
+          "version": "0.0.4",
+          "from": "stream-combiner@~0.0.4",
+          "resolved": "https://registry.npmjs.org/stream-combiner/-/stream-combiner-0.0.4.tgz"
+        }
+      }
+    },
     "express": {
       "version": "3.4.8",
       "from": "express@3.4.8",
@@ -205,6 +247,28 @@
         }
       }
     },
+    "fs-extra": {
+      "version": "0.15.0",
+      "from": "fs-extra@*",
+      "resolved": "https://registry.npmjs.org/fs-extra/-/fs-extra-0.15.0.tgz",
+      "dependencies": {
+        "graceful-fs": {
+          "version": "3.0.5",
+          "from": "graceful-fs@^3.0.5",
+          "resolved": "https://registry.npmjs.org/graceful-fs/-/graceful-fs-3.0.5.tgz"
+        },
+        "jsonfile": {
+          "version": "2.0.0",
+          "from": "jsonfile@^2.0.0",
+          "resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-2.0.0.tgz"
+        },
+        "rimraf": {
+          "version": "2.2.8",
+          "from": "rimraf@^2.2.8",
+          "resolved": "https://registry.npmjs.org/rimraf/-/rimraf-2.2.8.tgz"
+        }
+      }
+    },
     "ipv6": {
       "version": "3.1.1",
       "from": "ipv6@3.1.1",
@@ -304,6 +368,11 @@
       "version": "0.0.1",
       "from": "isarray@0.0.1",
       "resolved": "https://registry.npmjs.org/isarray/-/isarray-0.0.1.tgz"
+    },
+    "mktemp": {
+      "version": "0.3.5",
+      "from": "mktemp@*",
+      "resolved": "https://registry.npmjs.org/mktemp/-/mktemp-0.3.5.tgz"
     },
     "ms": {
       "version": "0.6.2",
@@ -640,15 +709,15 @@
           "from": "component-emitter@1.1.2",
           "resolved": "https://registry.npmjs.org/component-emitter/-/component-emitter-1.1.2.tgz"
         },
-        "indexof": {
-          "version": "0.0.1",
-          "from": "indexof@0.0.1",
-          "resolved": "https://registry.npmjs.org/indexof/-/indexof-0.0.1.tgz"
-        },
         "json3": {
           "version": "3.2.6",
           "from": "json3@3.2.6",
           "resolved": "https://registry.npmjs.org/json3/-/json3-3.2.6.tgz"
+        },
+        "indexof": {
+          "version": "0.0.1",
+          "from": "indexof@0.0.1",
+          "resolved": "https://registry.npmjs.org/indexof/-/indexof-0.0.1.tgz"
         },
         "engine.io-parser": {
           "version": "1.1.0",
