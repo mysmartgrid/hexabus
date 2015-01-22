@@ -94,6 +94,9 @@ install(DIRECTORY ${CMAKE_BINARY_DIR}/views DESTINATION /home/hexanode/)
 
 INSTALL(PROGRAMS etc/service/hexanode-webfrontend/run DESTINATION /etc/service/hexanode-webfrontend)
 INSTALL(PROGRAMS etc/service/hexanode-webfrontend/log/run DESTINATION /etc/service/hexanode-webfrontend/log)
+INSTALL(PROGRAMS etc/service/hexanode-hexaswitch/run DESTINATION /etc/service/hexanode-hexaswitch)
+INSTALL(PROGRAMS etc/service/hexanode-hexaswitch/log/run DESTINATION /etc/service/hexanode-hexaswitch/log)
+
 
 # CPACK packaging
 include(InstallRequiredSystemLibraries)
@@ -107,7 +110,7 @@ set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "nodejs (>= 0.10), npm (>= 1.2)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "nodejs (>= 0.10), npm (>= 1.2), netcat")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/preinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/prerm;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
 
