@@ -17,7 +17,6 @@
 namespace po = boost::program_options;
 
 #include "../../../shared/hexabus_definitions.h"
-#include "../../../shared/hexabus_statemachine_structs.h"
 #include "../../../shared/endpoints.h"
 #include "shared.hpp"
 
@@ -201,7 +200,7 @@ class RemoteStateMachine : protected RetryingPacketSender {
 		}
 };
 
-static const size_t UploadChunkSize = EE_STATEMACHINE_CHUNK_SIZE;
+static const size_t UploadChunkSize = 64;
 
 class ChunkSender : protected RetryingPacketSender {
 	private:
@@ -392,7 +391,7 @@ int main(int argc, char** argv) {
 			std::array<uint8_t, UploadChunkSize> chunk;
 			chunk.fill('\xff');
 
-			for (chunkId = 1; chunkId < PROG_DEFAULT_LENGTH / EE_STATEMACHINE_CHUNK_SIZE; chunkId++) {
+			for (chunkId = 1; chunkId < PROG_DEFAULT_LENGTH / UploadChunkSize; chunkId++) {
 				err = sender.sendChunk(chunkId, chunk);
 				if (err) {
 					break;

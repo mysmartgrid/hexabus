@@ -1,11 +1,12 @@
 #include "state_machine_eeprom.h"
 
 #include "nvm.h"
-#include "hexabus_statemachine_structs.h"
 #include "sm_types.h"
 
 #include <string.h>
 #include "uip.h"
+
+#define CHUNK_SIZE 64
 
 bool sm_write_chunk(uint8_t chunk_id, char* data) {
 	// check where the chunk goes: the first chunk goes to the domain_name area of the eeprom
@@ -18,10 +19,10 @@ bool sm_write_chunk(uint8_t chunk_id, char* data) {
 
 		return true;
 	} else {
-		if (chunk_id * EE_STATEMACHINE_CHUNK_SIZE > sizeof(struct hxb_sm_nvm_layout))
+		if (chunk_id * CHUNK_SIZE > sizeof(struct hxb_sm_nvm_layout))
 			return false;
 
-		nvm_write_block_at(nvm_addr(sm) + (chunk_id - 1) * EE_STATEMACHINE_CHUNK_SIZE, data, EE_STATEMACHINE_CHUNK_SIZE);
+		nvm_write_block_at(nvm_addr(sm) + (chunk_id - 1) * CHUNK_SIZE, data, CHUNK_SIZE);
 
 		return true;
 	}
