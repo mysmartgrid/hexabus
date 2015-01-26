@@ -19,16 +19,6 @@ static bool time_valid;
 
 static struct etimer update_timer;
 
-void updateDatetime(struct hxb_envelope* envelope)
-{
-	syslog(LOG_DEBUG, "Time: Got update.");
-
-	current_dt = envelope->value.v_u64;
-	time_valid = true;
-
-	etimer_restart(&update_timer);
-}
-
 int getDatetime(int64_t* dt)
 {
 	*dt = current_dt;
@@ -78,9 +68,7 @@ PROCESS_THREAD(datetime_service_process, ev, data)
 		PROCESS_WAIT_EVENT();
 
 		if (ev == PROCESS_EVENT_TIMER) {
-			syslog(LOG_INFO, "Time: %d:%d:%d\t%d.%d.%d Day: %d Valid: %d",
-					current_dt.hour, current_dt.minute, current_dt.second,
-					current_dt.day, current_dt.month, current_dt.year, current_dt.weekday, time_valid);
+			syslog(LOG_INFO, "Timestamp %lu", (uint32_t)current_dt);
 
 			if (!etimer_expired(&update_timer))
 				continue;
