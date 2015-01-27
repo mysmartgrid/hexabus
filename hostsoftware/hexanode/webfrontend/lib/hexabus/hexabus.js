@@ -14,6 +14,7 @@ var net = require('net');
 var makeTempFile = require('mktemp').createFileSync;
 var inherits = require('util').inherits;
 var EventEmitter = require('events').EventEmitter;
+var netroute = require('netroute');
 
 var Hexabus = function() {
 	this.rename_device = function(addr, newName, cb) {
@@ -35,11 +36,26 @@ var Hexabus = function() {
 	this.read_current_config = function() {
 		var ifaces = os.networkInterfaces();
 
+		var gateway = netroute.getGateway();
+
+		var nameservers = [];
+		var resolvConf = fs.readFileSync("/etc/resolv.conf").toString();
+		var lines = resolvConf.split("\n");
+		for(var index in lines) {
+			var line = lines[index].trim();
+			if(line.indexOf("nameserver") === 0) {
+				var nameserver = line.split(" ")[1];
+				nameservers.push(nameserver);
+			}
+		}
+
 		var config = {
+			gateway: gateway,
+			nameservers: nameservers,
 			addrs: {
 				lan: {
 					v4: [],
-					v6: []
+					v6: [],
 				},
 
 				hxb: {
@@ -236,6 +252,7 @@ var Hexabus = function() {
 						var json = JSON.parse(packet);
 						if(json.error === undefined) {
 							this.emit('packet', json);
+							console.log(json);
 						}
 						else {
 							console.log(json);

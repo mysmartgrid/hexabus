@@ -1,8 +1,8 @@
 #ifndef LIBHEXABUS_CRC_HPP
 #define LIBHEXABUS_CRC_HPP 1
 
-#include <libhexabus/common.hpp>
-#include <stdlib.h>
+#include <cstddef>
+#include <cstdint>
 
 namespace hexabus {
 	uint16_t crc(const void* input, size_t size);

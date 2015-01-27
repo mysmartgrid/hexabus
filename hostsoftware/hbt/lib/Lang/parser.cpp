@@ -706,7 +706,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> identifier
 				> omit[tok.lparen | expected("(")]
 				> -(classParam % tok.comma)
-				> omit[tok.rparen | expected(")")]
+				> omit[tok.rparen | expected("class parameter")]
 				> omit[tok.lbrace | expected("{")]
 				> *s.decl
 				> *state
@@ -757,7 +757,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				> identifier
 				> omit[tok.lparen | expected("(")]
 				> -(classParam % tok.comma)
-				> omit[tok.rparen | expected(")")]
+				> omit[tok.rparen | expected("class parameter")]
 				> omit[tok.lbrace | expected("{")]
 				> *s.decl
 				> *synthetic_endpoint

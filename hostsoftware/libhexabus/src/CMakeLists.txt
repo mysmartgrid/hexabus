@@ -1,16 +1,10 @@
 # -*- mode: cmake; -*-
 
-file(GLOB_RECURSE h_files "*.hpp,*.h")
-file(GLOB_RECURSE cpp_files "*.cpp")
-file(GLOB_RECURSE c_files "*.c")
-set(common_lib "resolv.cpp")
-
-set(hexaswitch_src "hexaswitch.cpp" ${common_lib})
-set(hexalog_src "hexalog.cpp" ${common_lib})
-set(hexaupload_src "hexaupload.cpp" ${common_lib})
-set(hexapost_src "hexapost.cpp" ${common_lib})
-set(hexapair_src "hexapair.cpp" ${common_lib})
-set(hexatimed_src "hexatimed.cpp" ${common_lib})
+set(hexaswitch_src "hexaswitch.cpp")
+set(hexalog_src "hexalog.cpp")
+set(hexaupload_src "hexaupload.cpp")
+set(hexapair_src "hexapair.cpp")
+set(hexatimed_src "hexatimed.cpp")
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
@@ -79,6 +73,15 @@ target_link_libraries(hexatimed
 add_executable(hexasm "hexasm.cpp")
 target_link_libraries(hexasm hexabus pthread ${Boost_LIBRARIES})
 
+add_executable(hexalisten "hexalisten.cpp")
+target_link_libraries(hexalisten hexabus pthread ${Boost_LIBRARIES})
+
+add_executable(hexasend "hexasend.cpp")
+target_link_libraries(hexasend hexabus pthread ${Boost_LIBRARIES})
+
+add_executable(hexajuice "hexajuice.cpp")
+target_link_libraries(hexajuice hexabus pthread ${Boost_LIBRARIES})
+
 if(LIBKLIO_FOUND)
   add_executable(hexalog ${hexalog_src})
   target_link_libraries(hexalog
@@ -105,6 +108,10 @@ INSTALL(PROGRAMS
   ${CMAKE_CURRENT_BINARY_DIR}/hexaupload
   ${CMAKE_CURRENT_BINARY_DIR}/hexapair
   ${CMAKE_CURRENT_BINARY_DIR}/hexatimed
+  ${CMAKE_CURRENT_BINARY_DIR}/hexasm
+  ${CMAKE_CURRENT_BINARY_DIR}/hexalisten
+  ${CMAKE_CURRENT_BINARY_DIR}/hexasend
+  ${CMAKE_CURRENT_BINARY_DIR}/hexajuice
   DESTINATION bin)
 
 if(LIBKLIO_FOUND)

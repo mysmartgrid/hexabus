@@ -1,14 +1,13 @@
 #ifndef LIBHEXABUS_DEVICE__INTERROGATOR_HPP
 #define LIBHEXABUS_DEVICE__INTERROGATOR_HPP 1
 
+#include <functional>
 #include <string>
 #include <vector>
 
 #include "error.hpp"
 
-#include <boost/smart_ptr.hpp>
 #include <boost/asio.hpp>
-#include <boost/function.hpp>
 #include <boost/signals2.hpp>
 #include <libhexabus/socket.hpp>
 
@@ -26,8 +25,8 @@ class DeviceInterrogator {
 			Packet::Ptr packet;
 			Socket::filter_t filter;
 
-			boost::function<void (const Packet&)> response;
-			boost::function<void (const GenericException&)> failure;
+			std::function<void (const Packet&)> response;
+			std::function<void (const GenericException&)> failure;
 
 			bool operator<(const base_query& other) { return other.deadline < deadline; }
 		};
@@ -50,8 +49,8 @@ class DeviceInterrogator {
 				const boost::asio::ip::address_v6& device,
 				const Packet::Ptr& packet,
 				const Socket::filter_t& filter,
-				const boost::function<void (const Packet&)>& response_cb,
-				const boost::function<void (const GenericException&)>& failure_cb,
+				const std::function<void (const Packet&)>& response_cb,
+				const std::function<void (const GenericException&)>& failure_cb,
 				int max_tries);
 
 	public:
@@ -62,8 +61,8 @@ class DeviceInterrogator {
 				const boost::asio::ip::address_v6& device,
 				const Packet packet,
 				const Filter filter,
-				const boost::function<void (const hexabus::Packet&)>& response_cb,
-				const boost::function<void (const GenericException&)>& failure_cb,
+				const std::function<void (const hexabus::Packet&)>& response_cb,
+				const std::function<void (const GenericException&)>& failure_cb,
 				int max_tries = 5)
 		{
 			queue_query(
