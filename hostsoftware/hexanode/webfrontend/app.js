@@ -74,6 +74,11 @@ var enumerate_network = function() {
 enumerate_network();
 setInterval(enumerate_network, 60 * 60 * 1000);
 
+hexabus.connect(function() {
+	console.log('Got connection, trying to listen');
+	hexabus.listen('usb0');
+	hexabus.listen('eth0');
+});
 hexabus.updateEndpointValues(devicetree);
 
 // Setup timer to regularily save the devictree to disk (just in case)
@@ -100,7 +105,7 @@ process.on('SIGTERM', function() {
 
 console.log("Using configuration: ");
 console.log(" - port: " + nconf.get('port'));
-console.log(" - config dir: " + nconf.get('config'));
+console.log(" - data dir: " + nconf.get('data'));
 
 // see http://stackoverflow.com/questions/4600952/node-js-ejs-example
 // for EJS
@@ -188,7 +193,7 @@ io.on('connection', function (socket) {
 	var emit = socket.emit.bind(socket);
 
 	// A hexabusserver to handle hexabus_... messages
-	var hexabusServer = new HexabusServer(socket, devicetree);
+	var hexabusServer = new HexabusServer(socket, hexabus, devicetree);
 
 	// Setup handlers for statemachine messages
 	StatemachineController.socketioSetup(emit, on, hexabus, devicetree);

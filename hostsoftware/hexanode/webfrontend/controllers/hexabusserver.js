@@ -8,11 +8,7 @@
  */
 
 
-var Hexabus = require("../lib/hexabus");
-
-var HexabusServer = function(socket, devicetree) {
-
-	var hexabus = new Hexabus();
+var HexabusServer = function(socket, hexabus, devicetree) {
 
 	// Wrapper for socket.on with improved exception handling.
 	var on = function(ev, cb) {
