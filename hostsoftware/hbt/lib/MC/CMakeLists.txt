@@ -1,3 +1,7 @@
+# -*- mode: cmake; -*-
+
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+
 file(GLOB MC_src *.cpp *.hpp)
 add_library(HBTMC ${MC_src})
 

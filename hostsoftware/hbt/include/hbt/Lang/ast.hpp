@@ -810,8 +810,8 @@ private:
 public:
 	SyntheticEndpoint(const SourceLocation& sloc, const Identifier& name, Type type, std::unique_ptr<BlockStmt> readBlock,
 			std::unique_ptr<Expr> readValue, std::unique_ptr<BlockStmt> write)
-		: _sloc(sloc), _name(name), _type(type), _readBlock(std::move(readBlock)), _readValue(std::move(readValue)),
-		  _write(std::move(write))
+		: _sloc(sloc), _name(name), _type(type), _readBlock(std::move(readBlock)), _write(std::move(write)),
+		  _readValue(std::move(readValue))
 	{}
 
 	const Identifier& name() const override { return _name; }

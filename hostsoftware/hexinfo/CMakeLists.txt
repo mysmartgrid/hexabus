@@ -46,7 +46,6 @@ set(CMAKE_CXX_FLAGS "${CXXFLAGS} -std=c++11")
 # Check for some compiler stuff
 include(CMakeBackwardCompatibilityCXX)
 
-FIND_PACKAGE(CLN)
 FIND_PACKAGE(HBT)
 FIND_PACKAGE(LibHexabus)
 set(Boost_USE_STATIC_LIBS ON)
@@ -75,7 +74,7 @@ set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.8.0), libc6 (>= 2.13), libcln6 (>= 1.3.3)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.8.0), libc6 (>= 2.13)")
 
 set(CPACK_PACKAGE_EXECUTABLES "hexinfo" "Hexabus device discovery and info tool")
 set(CPACK_SOURCE_STRIP_FILES "")

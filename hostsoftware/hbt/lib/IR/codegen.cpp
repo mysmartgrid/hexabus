@@ -6,6 +6,7 @@
 #include "hbt/IR/basicblock.hpp"
 #include "hbt/IR/module.hpp"
 #include "hbt/MC/builder.hpp"
+#include "hbt/Util/fatal.hpp"
 #include "hbt/Util/toposort.hpp"
 
 namespace hbt {
@@ -33,6 +34,8 @@ static mc::MemType memtypeForType(Type t)
 	case Type::Int64:  return mc::MemType::S64;
 	case Type::Float:  return mc::MemType::Float;
 	}
+
+	hbt_unreachable();
 }
 
 static mc::Opcode arithOpToOpcode(ArithOp op)
@@ -55,6 +58,8 @@ static mc::Opcode arithOpToOpcode(ArithOp op)
 	case ArithOp::Eq:  return mc::Opcode::CMP_EQ;
 	case ArithOp::Neq: return mc::Opcode::CMP_NEQ;
 	}
+
+	hbt_unreachable();
 }
 
 static mc::Opcode conversionForType(Type t)
@@ -71,6 +76,8 @@ static mc::Opcode conversionForType(Type t)
 	case Type::Int64:  return mc::Opcode::CONV_S64;
 	case Type::Float:  return mc::Opcode::CONV_F;
 	}
+
+	hbt_unreachable();
 }
 
 static mc::DTMask datePartToDTMask(DatePart part)
@@ -84,6 +91,8 @@ static mc::DTMask datePartToDTMask(DatePart part)
 	case DatePart::Year:    return mc::DTMask::year;
 	case DatePart::Weekday: return mc::DTMask::weekday;
 	}
+
+	hbt_unreachable();
 }
 
 
@@ -202,14 +211,14 @@ void MachineBlockWithStack::materializeLoadInt(const LoadIntInsn& l)
 {
 	switch (l.type()) {
 	case Type::Bool:   append(l.value() == 0 ? mc::Opcode::LD_FALSE : mc::Opcode::LD_TRUE); break;
-	case Type::UInt8:  append(mc::Opcode::LD_U8, uint8_t(l.value().toU64())); break;
-	case Type::UInt16: append(mc::Opcode::LD_U16, uint16_t(l.value().toU64())); break;
-	case Type::UInt32: append(mc::Opcode::LD_U32, uint32_t(l.value().toU64())); break;
-	case Type::UInt64: append(mc::Opcode::LD_U64, uint64_t(l.value().toU64())); break;
-	case Type::Int8:   append(mc::Opcode::LD_S8, int8_t(l.value().toS64())); break;
-	case Type::Int16:  append(mc::Opcode::LD_S16, int16_t(l.value().toS64())); break;
-	case Type::Int32:  append(mc::Opcode::LD_S32, int32_t(l.value().toS64())); break;
-	case Type::Int64:  append(mc::Opcode::LD_S64, int64_t(l.value().toS64())); break;
+	case Type::UInt8:  append(mc::Opcode::LD_U8, uint8_t(l.value().convertTo<uint64_t>())); break;
+	case Type::UInt16: append(mc::Opcode::LD_U16, uint16_t(l.value().convertTo<uint64_t>())); break;
+	case Type::UInt32: append(mc::Opcode::LD_U32, uint32_t(l.value().convertTo<uint64_t>())); break;
+	case Type::UInt64: append(mc::Opcode::LD_U64, uint64_t(l.value().convertTo<uint64_t>())); break;
+	case Type::Int8:   append(mc::Opcode::LD_S8, int8_t(l.value().convertTo<int64_t>())); break;
+	case Type::Int16:  append(mc::Opcode::LD_S16, int16_t(l.value().convertTo<int64_t>())); break;
+	case Type::Int32:  append(mc::Opcode::LD_S32, int32_t(l.value().convertTo<int64_t>())); break;
+	case Type::Int64:  append(mc::Opcode::LD_S64, int64_t(l.value().convertTo<int64_t>())); break;
 	case Type::Float:  break;
 	}
 }
@@ -509,9 +518,9 @@ void Codegen::emitBlock(const BasicBlock* block)
 				e64done++;
 				mb.loadForUser(s.value(), &s, more || e64done != entries64.size());
 				if (isSigned)
-					mb.append(mc::Opcode::LD_S64, e.first.toS64());
+					mb.append(mc::Opcode::LD_S64, e.first.convertTo<int64_t>());
 				else
-					mb.append(mc::Opcode::LD_U64, e.first.toU64());
+					mb.append(mc::Opcode::LD_U64, e.first.convertTo<uint64_t>());
 				mb.append(mc::Opcode::CMP_EQ);
 				auto& glue = entryBlockForJumpTo(e.second);
 				mb.append(mc::Opcode::JNZ, glue.label());
@@ -545,9 +554,9 @@ void Codegen::emitBlock(const BasicBlock* block)
 				for (auto& e : parts) {
 					auto& glue = entryBlockForJumpTo(e.second);
 					if (isSigned)
-						entries.push_back({ mask & uint32_t(e.first.toS32()), glue.label() });
+						entries.push_back({ mask & uint32_t(e.first.convertTo<int32_t>()), glue.label() });
 					else
-						entries.push_back({ mask & e.first.toU32(), glue.label() });
+						entries.push_back({ mask & e.first.convertTo<uint32_t>(), glue.label() });
 
 					if (entries.size() == 255)
 						flush();

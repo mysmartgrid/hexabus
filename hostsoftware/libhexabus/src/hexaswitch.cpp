@@ -371,28 +371,27 @@ enum Command {
 inline std::string shortDatatypeName(hxb_datatype type)
 {
 	switch (type) {
-		case HXB_DTYPE_BOOL: return "b";
-		case HXB_DTYPE_UINT8: return "u8";
-		case HXB_DTYPE_UINT16: return "u16";
-		case HXB_DTYPE_UINT32: return "u32";
-		case HXB_DTYPE_UINT64: return "u65";
-		case HXB_DTYPE_SINT8: return "s8";
-		case HXB_DTYPE_SINT16: return "s16";
-		case HXB_DTYPE_SINT32: return "s32";
-		case HXB_DTYPE_SINT64: return "s64";
-		case HXB_DTYPE_FLOAT: return "f";
-		case HXB_DTYPE_128STRING: return "s";
-		default: return "(unknown)";
+	case HXB_DTYPE_BOOL: return "b";
+	case HXB_DTYPE_UINT8: return "u8";
+	case HXB_DTYPE_UINT16: return "u16";
+	case HXB_DTYPE_UINT32: return "u32";
+	case HXB_DTYPE_UINT64: return "u64";
+	case HXB_DTYPE_SINT8: return "s8";
+	case HXB_DTYPE_SINT16: return "s16";
+	case HXB_DTYPE_SINT32: return "s32";
+	case HXB_DTYPE_SINT64: return "s64";
+	case HXB_DTYPE_FLOAT: return "f";
+	case HXB_DTYPE_128STRING: return "s";
+	default: return "(unknown)";
 	}
 }
 
 int dtypeStrToDType(const std::string& s)
 {
-	for(hxb_datatype  type = HXB_DTYPE_BOOL; type <= HXB_DTYPE_128STRING; type = hxb_datatype(type + 1)) {
-		if(shortDatatypeName(type) == s || datatypeName(type) == s) {
+	for (hxb_datatype  type = HXB_DTYPE_BOOL; type <= HXB_DTYPE_128STRING; type = hxb_datatype(type + 1))
+		if (shortDatatypeName(type) == s || datatypeName(type) == s)
 			return type;
-		}
-	}
+
 	return -1;
 }
 

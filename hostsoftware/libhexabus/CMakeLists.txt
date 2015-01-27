@@ -72,10 +72,10 @@ if( LIBKLIO_FOUND )
   add_definitions ("-DBOOST_FILESYSTEM_VERSION=3")
 
   # libjson
-  include(FindJson)
-  if( NOT JSON_FOUND)
+  include(FindJsonCpp)
+  if( NOT JSONCPP_FOUND)
     message(FATAL_ERROR "libjson ist required. Install json or call cmake -DJSON_HOME=path_to_json_install")
-  endif( NOT JSON_FOUND)
+  endif( NOT JSONCPP_FOUND)
   include_directories(${JSON_INCLUDE_DIR})
 
   # check for curl
@@ -112,9 +112,12 @@ if( NOT WITHOUT_CPACK )
   include(CPackTools)
 endif()
 
-configure_file("../../shared/hexabus_types.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" @COPY_ONLY)
-configure_file("../../shared/hexabus_statemachine_structs.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" @COPY_ONLY)
-configure_file("../../shared/sm_types.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/sm/sm_types.h" @COPY_ONLY)
+
+set(HXB_SHARED "${CMAKE_SOURCE_DIR}/../../shared")
+message(STATUS "HXB_SHARED:  ${HXB_SHARED}")
+configure_file("${HXB_SHARED}/hexabus_types.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" @COPY_ONLY)
+configure_file("${HXB_SHARED}/hexabus_statemachine_structs.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" @COPY_ONLY)
+configure_file("${HXB_SHARED}/sm_types.h" "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/sm/sm_types.h" @COPY_ONLY)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_types.h" DESTINATION include/libhexabus)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/hexabus_statemachine_structs.h" DESTINATION include/libhexabus)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libhexabus/sm/sm_types.h" DESTINATION include/libhexabus/sm)

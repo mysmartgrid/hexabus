@@ -42,11 +42,20 @@ include (UseCodeCoverage)
 
 set(CMAKE_CXX_FLAGS "${CXXFLAGS} -std=c++11")
 
+if (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
+	# g++ fails to produce sensible warnings about missng field initializers in C++11 mode
+	# because it warns *way* too much about code that is in no way incorrect
+	# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=36750#c11
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers")
+endif()
+
 set(Boost_USE_STATIC_LIBS ON)
 SET(Boost_DETAILED_FAILURE_MSG true)
 FIND_PACKAGE(Boost 1.54 REQUIRED COMPONENTS test_exec_monitor program_options filesystem regex system)
 
-find_package(CLN)
+# enable unit testing
+include(CTest)
+enable_testing()
 
 # Reflect the package structure
 include_directories(${CMAKE_SOURCE_DIR}/include)
@@ -55,10 +64,6 @@ add_subdirectory(lib)
 add_subdirectory(src)
 add_subdirectory(tests)
 
-# enable unit testing
-include(CTest)
-enable_testing()
-
 set(CPACK_GENERATOR "DEB" "STGZ" "TGZ" "TBZ2")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Hexabus compiler toolkit")
 set(CPACK_PACKAGE_VENDOR "Fraunhofer ITWM")
@@ -66,7 +71,7 @@ set(CPACK_PACKAGE_CONTACT "Fraunhofer ITWM <support@mysmartgrid.de>")
 set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.8.0), libc6 (>= 2.13), libcln6 (>= 1.3.3)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.8.0), libc6 (>= 2.13)")
 set(CPACK_PACKAGE_EXECUTABLES "hbc" "Hexabus statemachine compiler")
 set(CPACK_PACKAGE_EXECUTABLES "hbt-as" "Hexabus assembler")
 set(CPACK_PACKAGE_EXECUTABLES "hbt-dis" "Hexabus disassembler")
