@@ -14,7 +14,6 @@ var net = require('net');
 var makeTempFile = require('mktemp').createFileSync;
 var inherits = require('util').inherits;
 var EventEmitter = require('events').EventEmitter;
-var netroute = require('netroute');
 
 var Hexabus = function() {
 	this.rename_device = function(addr, newName, cb) {
@@ -33,10 +32,9 @@ var Hexabus = function() {
 		}
 	};
 
-	this.read_current_config = function() {
+	this.read_current_config = function(callback) {
+		
 		var ifaces = os.networkInterfaces();
-
-		var gateway = netroute.getGateway();
 
 		var nameservers = [];
 		var resolvConf = fs.readFileSync("/etc/resolv.conf").toString();
@@ -50,8 +48,8 @@ var Hexabus = function() {
 		}
 
 		var config = {
-			gateway: gateway,
 			nameservers: nameservers,
+			gateway: 'error',
 			addrs: {
 				lan: {
 					v4: [],
@@ -90,7 +88,12 @@ var Hexabus = function() {
 			});
 		}
 
-		return config;
+		exec("ip route list | grep default | cut -f 3  -d ' '", function(error, stdout, stderr) {
+			if(error !== undefined) {
+				config.gateway = stdout;
+			}
+			callback(config);
+		});
 	};
 
 	this.get_activation_code = function(cb) {

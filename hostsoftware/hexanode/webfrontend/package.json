@@ -21,7 +21,6 @@
 	"node-uuid" : "*",
 	"event-stream" : "*",
 	"mktemp" : "*",
-	"fs-extra" : "*",
-	"netroute" : "*"
+	"fs-extra" : "*"
   }
 }

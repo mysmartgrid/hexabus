@@ -13,26 +13,27 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 	});
 
 	app.get('/wizard/current', function(req, res) {
-		var config = hexabus.read_current_config();
-		hexabus.get_activation_code(function(err, activation_code) {
-			config.activation_code = activation_code;
+		hexabus.read_current_config(function(config) {
+			hexabus.get_activation_code(function(err, activation_code) {
+				config.activation_code = activation_code;
 
-			hexabus.get_heartbeat_state(function(err, state) {
-				config.active_nav = 'configuration';
+				hexabus.get_heartbeat_state(function(err, state) {
+					config.active_nav = 'configuration';
 
-				if (err) {
-					config.heartbeat_ok = false;
-					config.heartbeat_code = 0;
-					config.heartbeat_messages = [err];
-					config.heartbeat_state = "";
-				} else {
-					config.heartbeat_ok = state.code === 0;
-					config.heartbeat_code = state.code;
-					config.heartbeat_messages = state.messages;
-					config.heartbeat_state = state;
-				}
+					if (err) {
+						config.heartbeat_ok = false;
+						config.heartbeat_code = 0;
+						config.heartbeat_messages = [err];
+						config.heartbeat_state = "";
+					} else {
+						config.heartbeat_ok = state.code === 0;
+						config.heartbeat_code = state.code;
+						config.heartbeat_messages = state.messages;
+						config.heartbeat_state = state;
+					}
 
-				res.render('wizard/current.ejs', config);
+					res.render('wizard/current.ejs', config);
+				});
 			});
 		});
 	});
