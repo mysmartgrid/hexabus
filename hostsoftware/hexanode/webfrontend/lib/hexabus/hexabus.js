@@ -5,7 +5,7 @@ var v6 = require('ipv6').v6;
 var os = require('os');
 var fs = require('fs');
 var nconf = require('nconf');
-var netroute = require('netroute');
+var net = require('net');
 
 var hexabus = function() {
 	this.rename_device = function(addr, newName, cb) {
@@ -24,10 +24,9 @@ var hexabus = function() {
 		}
 	};
 
-	this.read_current_config = function() {
-		var ifaces = os.networkInterfaces();
+	this.read_current_config = function(callback) {
 
-		var gateway = netroute.getGateway();
+		var ifaces = os.networkInterfaces();
 
 		var nameservers = [];
 		var resolvConf = fs.readFileSync("/etc/resolv.conf").toString();
@@ -41,8 +40,8 @@ var hexabus = function() {
 		}
 
 		var config = {
-			gateway: gateway,
 			nameservers: nameservers,
+			gateway: 'error',
 			addrs: {
 				lan: {
 					v4: [],
@@ -81,7 +80,12 @@ var hexabus = function() {
 			});
 		}
 
-		return config;
+		exec("ip route list | grep default | cut -f 3  -d ' '", function(error, stdout, stderr) {
+			if(error !== undefined) {
+				config.gateway = stdout;
+			}
+			callback(config);
+		});
 	};
 
 	this.get_activation_code = function(cb) {
