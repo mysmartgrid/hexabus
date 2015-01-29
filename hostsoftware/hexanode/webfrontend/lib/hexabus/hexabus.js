@@ -169,7 +169,7 @@ var Hexabus = function() {
 			});
 		};
 
-		var interfaces = (nconf.get("debug-hxb-ifaces") || "eth0,usb0").split(",");
+		var interfaces = nconf.get("hxb-interfaces").split(",");
 		async.each(interfaces, enumerateInterface, function(error) {
 			hexinfo_lock = false;
 
@@ -195,7 +195,7 @@ var Hexabus = function() {
 			if (dev.done !== undefined) {
 				cb();
 			} else if (dev.error !== undefined) {
-				console.log(dev.error);
+				//console.log(dev.error);
 				cb(dev.error);
 			} else {
 				dev = dev.device;

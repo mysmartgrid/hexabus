@@ -23,8 +23,9 @@ nconf.env().argv().file({file: 'config.json'});
 
 // Setting default values
 nconf.defaults({
-  'port': '3000',
-	'data': 'data'
+	'port': '3000',
+	'data': 'data',
+	'hxb-interfaces' : 'usb0,eth0'
 });
 server.listen(nconf.get('port'));
 
@@ -67,6 +68,7 @@ catch(e) {
 var enumerate_network = function() {
 	hexabus.update_devicetree(devicetree, function(error) {
 		if(error !== undefined) {
+			console.log('Error updating devicetree');
 			console.log(error);
 		}
 	});
@@ -76,8 +78,7 @@ setInterval(enumerate_network, 60 * 60 * 1000);
 
 hexabus.connect(function() {
 	console.log('Got connection, trying to listen');
-	hexabus.listen('usb0');
-	hexabus.listen('eth0');
+	nconf.get('hxb-interfaces').split(',').forEach(hexabus.listen.bind(hexabus));
 });
 hexabus.updateEndpointValues(devicetree);
 
@@ -106,6 +107,8 @@ process.on('SIGTERM', function() {
 console.log("Using configuration: ");
 console.log(" - port: " + nconf.get('port'));
 console.log(" - data dir: " + nconf.get('data'));
+console.log(" - hxb-interfaces: " + nconf.get('hxb-interfaces'));
+
 
 // see http://stackoverflow.com/questions/4600952/node-js-ejs-example
 // for EJS
