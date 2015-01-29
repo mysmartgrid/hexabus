@@ -97,6 +97,7 @@ var moduleWrapper = function(globalScope) {
 			if(endpointUpdate === undefined) {
 				update.devices[ip] = {
 					'name': name,
+					'sm_name' : sm_name,
 					'last_update' : last_update
 				};
 			}
@@ -262,7 +263,7 @@ var moduleWrapper = function(globalScope) {
 		if (ip === undefined)
 			throw "Required parameter: ip";
 		if (name === undefined)
-			throw "Required parameter: name";
+			throw "Required parameter for device: name";
 		if (sm_name === undefined)
 			throw "Required parameter: sm_name";
 
@@ -458,6 +459,19 @@ var moduleWrapper = function(globalScope) {
 					params.maxvalue = 100;
 					break;
 
+				case 33:
+				case 34:
+				case 35:
+				case 36:
+				case 37:
+				case 38:
+				case 39:
+				case 40:
+					params.minvalue = 0;
+					params.maxvalue = 256;
+					break;
+
+
 				case 44: // pt100 sensors for heater inflow/outflow
 				case 45:
 					params.minvalue = 0;
@@ -566,7 +580,7 @@ var moduleWrapper = function(globalScope) {
 		});
 
 		if(name === undefined) {
-			throw "Required parameter: name";
+			throw "Required parameter for view: name";
 		}
 
 		endpoints = endpoints || [];

@@ -3,5 +3,5 @@
 set -e
 
 svc -d /etc/service/hexanode-webfrontend
-svc -d /etc/service/hexanode-hexaswitch
+svc -d /etc/service/hexanode-hexajuice
 

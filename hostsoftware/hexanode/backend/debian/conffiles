@@ -1,5 +1,2 @@
-/etc/service/hexabus_msg_bridge/run
-/etc/service/hexabus_msg_bridge/log/run
 /etc/hexabus_msg_bridge.conf
-/etc/init.d/reverse-ssh
 /etc/reverse-ssh

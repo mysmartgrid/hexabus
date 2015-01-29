@@ -139,8 +139,10 @@ var Hexabus = function() {
 
 		var tmpEpFile = makeTempFile("/tmp/XXXXXX_epfile.tmp");
 		var tmpDevFile = makeTempFile("/tmp/XXXXXX_devfile.tmp");
-		fs.copySync(path.join(nconf.get("data"), 'endpoints.hbh'), tmpEpFile);
-		fs.copySync(path.join(nconf.get("data"), 'devices.hbh'), tmpDevFile);
+		if(fs.existsSync(path.join(nconf.get("data"), 'endpoints.hbh')) && fs.existsSync(path.join(nconf.get("data"), 'devices.hbh'))) {
+			fs.copySync(path.join(nconf.get("data"), 'endpoints.hbh'), tmpEpFile);
+			fs.copySync(path.join(nconf.get("data"), 'devices.hbh'), tmpDevFile);
+		}
 
 		console.log(tmpEpFile);
 		console.log(tmpDevFile);
@@ -206,6 +208,7 @@ var Hexabus = function() {
 					if(devicetree.devices[dev.ip].name !== dev.name) {
 						devicetree.devices[dev.ip].name = dev.name;
 					}
+					devicetree.devices[dev.ip].update();
 				}
 
 				for(var index in dev.endpoints) {
@@ -255,7 +258,7 @@ var Hexabus = function() {
 						var json = JSON.parse(packet);
 						if(json.error === undefined) {
 							this.emit('packet', json);
-							console.log(json);
+							//console.log(json);
 						}
 						else {
 							console.log(json);
@@ -306,12 +309,11 @@ var Hexabus = function() {
 				if(devicetree.devices[packet.from.ip] === undefined ||
 					devicetree.devices[packet.from.ip].endpoints[packet.eid] === undefined) {
 
-					console.log('Unknown device or endpoint:' + packet.from + ' ' + packet.eid);
+					console.log('Unknown device or endpoint:' + packet.from.ip + ' ' + packet.eid);
 
 					this.update_devicetree(devicetree,function(error) {
 						if(error !== undefined) {
-							console.log(error);
-							console.log('Could not update device tree ...');
+							console.log('Could not update device tree: ' + error.toString());
 						}
 					});
 				}
