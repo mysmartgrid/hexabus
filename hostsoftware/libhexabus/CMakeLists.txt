@@ -51,7 +51,7 @@ if( NOT WITHOUT_CPACK )
   set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
   set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
   set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
-  SET(CPACK_PACKAGE_EXECUTABLES "hexaswitch;Hexabus node interrogation utility" "hexalog;Hexabus logging utility" "hexaupload;Hexabus statemachine upload utility" "hexapair;Hexabus device pairing utility" "hexatimed;Hexabus datetime broadcasting daemon")
+  SET(CPACK_PACKAGE_EXECUTABLES  "hexalog;Hexabus logging utility" "hexaupload;Hexabus statemachine upload utility" "hexapair;Hexabus device pairing utility" "hexatimed;Hexabus datetime broadcasting daemon")
   SET(CPACK_STRIP_FILES ON)
 
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.6.0), libc6 (>= 2.13)")
@@ -82,7 +82,6 @@ include(CTest)
 enable_testing()
 
 # add some files to the installation target
-INSTALL(FILES README.md LICENSE.txt DESTINATION share/doc/hexaswitch)
 INSTALL(FILES share/endpoint_registry DESTINATION share/libhexabus)
 
 ### print some output for the user

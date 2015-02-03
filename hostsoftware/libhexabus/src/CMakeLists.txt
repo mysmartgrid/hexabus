@@ -1,6 +1,5 @@
 # -*- mode: cmake; -*-
 
-set(hexaswitch_src "hexaswitch.cpp")
 set(hexalog_src "hexalog.cpp")
 set(hexaupload_src "hexaupload.cpp")
 set(hexapair_src "hexapair.cpp")
@@ -33,15 +32,6 @@ if(LIBKLIO_FOUND)
     set_source_files_properties(${hexalog_src} COMPILE_FLAGS "-std=gnu++11")
   endif()
 endif(LIBKLIO_FOUND)
-
-add_executable(hexaswitch ${hexaswitch_src})
-# Link the executables
-target_link_libraries(hexaswitch
-  hexabus
-  pthread
-	rt
-  ${Boost_LIBRARIES}
-)
 
 add_executable(hexaupload ${hexaupload_src})
 # Link the executables
@@ -104,7 +94,6 @@ endif(LIBKLIO_FOUND)
 
 # add programs to the install target
 INSTALL(PROGRAMS
-  ${CMAKE_CURRENT_BINARY_DIR}/hexaswitch
   ${CMAKE_CURRENT_BINARY_DIR}/hexaupload
   ${CMAKE_CURRENT_BINARY_DIR}/hexapair
   ${CMAKE_CURRENT_BINARY_DIR}/hexatimed
