@@ -68,7 +68,7 @@ angular.module('hexanode')
 				if(!data.success) {
 					$scope.errorMessage = Lang.pack["rename-error"]["template"].replace("{reason}", Lang.pack["rename-error"]["timeout"]);
 				}
-				entry.control.uncover();
+				entry.control.uncoverClass();
 			});
 		}
 		pendingUpdateControl = null;
