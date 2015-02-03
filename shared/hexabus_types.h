@@ -58,7 +58,6 @@ enum hxb_error_code {
 	HXB_ERR_CRCFAILED      = 0x03, // A packet failed the CRC check -- TODO How can we find out what information was lost?
 	HXB_ERR_DATATYPE       = 0x04, // A packet with a datatype that does not fit the endpoint was received
 	HXB_ERR_INVALID_VALUE  = 0x05, // A value was encountered that cannot be interpreted
-	HXB_ERR_RETRANSMISSION = 0x06, // A packet was received more than once
 
 	// internal error values
 	HXB_ERR_INTERNAL         = 0x80, // this is just a threshold. everything above is considered internal to a device and should never reach the network

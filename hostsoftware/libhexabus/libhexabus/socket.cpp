@@ -325,11 +325,11 @@ bool Socket::packetPrereceive(const Packet::Ptr& packet, const boost::asio::ip::
 		if(assoc.want_ack_for && ackfilter(*packet, from) && cpacket) {
 
 			if(cpacket->cause() == assoc.want_ack_for && !assoc.isUlAck) {
+				assoc.timeout_timer.cancel();
+				assoc.currentPacket.second(*assoc.currentPacket.first, assoc.want_ack_for, from, false);
 				assoc.want_ack_for = 0;
 				assoc.retrans_count = 0;
 				assoc.currentPacket.first.reset();
-				assoc.timeout_timer.cancel();
-				assoc.currentPacket.second(*packet, from, false);
 				beginSend(from);
 			}
 		}
@@ -348,7 +348,7 @@ void Socket::onSendTimeout(const boost::system::error_code& error, const boost::
 		Association& assoc = getAssociation(to);
 
 		if(assoc.retrans_count >= retrans_limit) {
-			assoc.currentPacket.second(*assoc.currentPacket.first, to, true);
+			assoc.currentPacket.second(*assoc.currentPacket.first, assoc.want_ack_for, to, true);
 			assoc.currentPacket.first.reset();
 			assoc.retrans_count = 0;
 			assoc.want_ack_for = 0;
@@ -379,7 +379,7 @@ void Socket::beginSend(const boost::asio::ip::udp::endpoint& to)
 				assoc.timeout_timer.async_wait(boost::bind(&Socket::onSendTimeout, this, _1, to));
 				beginReceive();
 			} else {
-				assoc.currentPacket.second(*assoc.currentPacket.first, to, false);
+				assoc.currentPacket.second(*assoc.currentPacket.first, assoc.want_ack_for, to, false);
 				assoc.currentPacket.first.reset();
 				assoc.retrans_count = 0;
 				assoc.want_ack_for = 0;
@@ -403,11 +403,11 @@ void Socket::upperLayerAckReceived(const boost::asio::ip::udp::endpoint& dest, c
 	Association& assoc = getAssociation(dest);
 
 	if(seqNum == assoc.want_ack_for) {
+		assoc.timeout_timer.cancel();
+		assoc.currentPacket.second(ErrorPacket(HXB_ERR_SUCCESS, seqNum), assoc.want_ack_for, dest, false);
 		assoc.want_ack_for = 0;
 		assoc.retrans_count = 0;
 		assoc.currentPacket.first.reset();
-		assoc.timeout_timer.cancel();
-		assoc.currentPacket.second(ErrorPacket(HXB_ERR_SUCCESS, seqNum), dest, false);
 		beginSend(dest);
 	}
 }

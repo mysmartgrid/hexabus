@@ -137,8 +137,10 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 
 	strncpy(packet->header.magic, HXB_HEADER, strlen(HXB_HEADER));
 	if((packet->header.sequence_number) == 0) {
-		packet->header.sequence_number = get_sequence_number(toaddr, toport);
+		packet->header.sequence_number = next_sequence_number(toaddr, toport);
 	}
+
+	syslog(LOG_DEBUG, "Sending sequence number %u", packet->header.sequence_number);
 
 	packet->header.sequence_number = uip_htons(packet->header.sequence_number);
 
@@ -208,14 +210,17 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 
 		case HXB_DTYPE_128STRING:
 			len = sizeof(packet->p_report_128string);
+			packet->p_report_128string.cause_sequence_number = uip_htons(packet->p_report_128string.cause_sequence_number);
 			break;
 
 		case HXB_DTYPE_65BYTES:
 			len = sizeof(packet->p_report_65bytes);
+			packet->p_report_65bytes.cause_sequence_number = uip_htons(packet->p_report_65bytes.cause_sequence_number);
 			break;
 
 		case HXB_DTYPE_16BYTES:
 			len = sizeof(packet->p_report_16bytes);
+			packet->p_report_16bytes.cause_sequence_number = uip_htons(packet->p_report_16bytes.cause_sequence_number);
 			break;
 
 		case HXB_DTYPE_UNDEFINED:
@@ -230,6 +235,7 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 			case DTYPE: \
 				len = sizeof(packet->PTYPE); \
 				packet->PTYPE.value = CONV(BITEXTRACT(packet->PTYPE.value)); \
+				packet->PTYPE.next_id = uip_htonl(packet->PTYPE.next_id); \
 				packet->PTYPE.cause_sequence_number = uip_htons(packet->PTYPE.cause_sequence_number); \
 				break;
 
@@ -248,14 +254,20 @@ static size_t prepare_for_send(union hxb_packet_any* packet, const uip_ipaddr_t*
 
 		case HXB_DTYPE_128STRING:
 			len = sizeof(packet->p_preport_128string);
+			packet->p_preport_128string.next_id = uip_htonl(packet->p_preport_128string.next_id);
+			packet->p_preport_128string.cause_sequence_number = uip_htons(packet->p_preport_128string.cause_sequence_number);
 			break;
 
 		case HXB_DTYPE_65BYTES:
 			len = sizeof(packet->p_preport_65bytes);
+			packet->p_preport_65bytes.next_id = uip_htonl(packet->p_preport_65bytes.next_id);
+			packet->p_preport_65bytes.cause_sequence_number = uip_htons(packet->p_preport_65bytes.cause_sequence_number);
 			break;
 
 		case HXB_DTYPE_16BYTES:
 			len = sizeof(packet->p_preport_16bytes);
+			packet->p_preport_16bytes.next_id = uip_htonl(packet->p_preport_16bytes.next_id);
+			packet->p_preport_16bytes.cause_sequence_number = uip_htons(packet->p_preport_16bytes.cause_sequence_number);
 			break;
 
 		case HXB_DTYPE_UNDEFINED:
@@ -564,7 +576,7 @@ static enum hxb_error_code generate_propquery_response(union hxb_packet_any* buf
 	buffer->propreport_header.eid = eid;
 	buffer->propreport_header.next_id = get_next_property(eid, propid);
 
-	syslog(LOG_INFO, "Received prop query for %lu, %lu", eid, propid);
+	syslog(LOG_INFO, "Received prop query for eid %lu propid %lu", eid, propid);
 
 	// point v_binary and v_string to the appropriate buffer in the source packet.
 	// that way we avoid allocating another buffer and unneeded copies

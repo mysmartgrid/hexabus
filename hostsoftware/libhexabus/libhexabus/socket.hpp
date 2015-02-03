@@ -86,7 +86,7 @@ namespace hexabus {
 
 	class Socket : public SocketBase {
 		public:
-			typedef std::function<void (const Packet& packet, const boost::asio::ip::udp::endpoint& from, bool transmissionFailed)> on_packet_transmitted_callback_t;
+			typedef std::function<void (const Packet& packet, uint16_t seqNum, const boost::asio::ip::udp::endpoint& from, bool transmissionFailed)> on_packet_transmitted_callback_t;
 
 			struct Association {
 				Association(boost::asio::io_service& io) : timeout_timer(io) {}
