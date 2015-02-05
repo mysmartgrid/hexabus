@@ -11,13 +11,25 @@ namespace po = boost::program_options;
 
 namespace {
 
+void transmissionCallback(const hexabus::Packet& packet, uint16_t seqNum, const boost::asio::ip::udp::endpoint asio_ep, bool failed)
+{
+	if(failed) {
+		std::cerr << "could not send packet to " << asio_ep.address() << ": Ack timeout" << std::endl;
+		std::exit(1);
+	}
+}
+
 void sendPacket(Socket& net, const boost::asio::ip::address_v6& addr, const Packet& packet)
 {
-	try {
-		net.send(packet, addr);
-	} catch (const NetworkException& e) {
-		std::cerr << "could not send packet to " << addr << ": " << e.code().message() << std::endl;
-		std::exit(1);
+	if(packet.flags()&HXB_FLAG_RELIABLE) {
+		net.onPacketTransmitted(&transmissionCallback, packet, boost::asio::ip::udp::endpoint(addr, 61616));
+	} else {
+		try {
+			net.send(packet, addr);
+		} catch (const NetworkException& e) {
+			std::cerr << "could not send packet to " << addr << ": " << e.code().message() << std::endl;
+			std::exit(1);
+		}
 	}
 }
 
@@ -51,36 +63,37 @@ std::array<uint8_t, Len> parseBinary(std::string value)
 	return result;
 }
 
-template<template<typename TValue> class PClass>
-std::unique_ptr<Packet> parsePacket(hxb_datatype dt, uint32_t eid, const std::string& value)
+template<template<typename TValue> class PClass, typename... Extra>
+std::unique_ptr<Packet> parsePacket(hxb_datatype dt, uint32_t eid, const std::string& value,
+		uint8_t flags, const Extra&... extra)
 {
 	typedef std::unique_ptr<Packet> pptr;
 
 	try {
 		switch (dt) {
-		case HXB_DTYPE_BOOL: return pptr(new PClass<bool>(eid, boost::lexical_cast<bool>(value)));
-		case HXB_DTYPE_UINT16: return pptr(new PClass<uint16_t>(eid, boost::lexical_cast<uint16_t>(value)));
-		case HXB_DTYPE_UINT32: return pptr(new PClass<uint32_t>(eid, boost::lexical_cast<uint32_t>(value)));
-		case HXB_DTYPE_UINT64: return pptr(new PClass<uint64_t>(eid, boost::lexical_cast<uint64_t>(value)));
-		case HXB_DTYPE_SINT16: return pptr(new PClass<int16_t>(eid, boost::lexical_cast<int16_t>(value)));
-		case HXB_DTYPE_SINT32: return pptr(new PClass<int32_t>(eid, boost::lexical_cast<int32_t>(value)));
-		case HXB_DTYPE_SINT64: return pptr(new PClass<int64_t>(eid, boost::lexical_cast<int64_t>(value)));
-		case HXB_DTYPE_FLOAT: return pptr(new PClass<float>(eid, boost::lexical_cast<float>(value)));
-		case HXB_DTYPE_128STRING: return pptr(new PClass<std::string>(eid, value));
-		case HXB_DTYPE_65BYTES: return pptr(new PClass<std::array<uint8_t, 65>>(eid, parseBinary<65>(value)));
-		case HXB_DTYPE_16BYTES: return pptr(new PClass<std::array<uint8_t, 16>>(eid, parseBinary<16>(value)));
+		case HXB_DTYPE_BOOL: return pptr(new PClass<bool>(extra..., eid, boost::lexical_cast<bool>(value), flags));
+		case HXB_DTYPE_UINT16: return pptr(new PClass<uint16_t>(extra..., eid, boost::lexical_cast<uint16_t>(value), flags));
+		case HXB_DTYPE_UINT32: return pptr(new PClass<uint32_t>(extra..., eid, boost::lexical_cast<uint32_t>(value), flags));
+		case HXB_DTYPE_UINT64: return pptr(new PClass<uint64_t>(extra..., eid, boost::lexical_cast<uint64_t>(value), flags));
+		case HXB_DTYPE_SINT16: return pptr(new PClass<int16_t>(extra..., eid, boost::lexical_cast<int16_t>(value), flags));
+		case HXB_DTYPE_SINT32: return pptr(new PClass<int32_t>(extra..., eid, boost::lexical_cast<int32_t>(value), flags));
+		case HXB_DTYPE_SINT64: return pptr(new PClass<int64_t>(extra..., eid, boost::lexical_cast<int64_t>(value), flags));
+		case HXB_DTYPE_FLOAT: return pptr(new PClass<float>(extra..., eid, boost::lexical_cast<float>(value), flags));
+		case HXB_DTYPE_128STRING: return pptr(new PClass<std::string>(extra..., eid, value, flags));
+		case HXB_DTYPE_65BYTES: return pptr(new PClass<std::array<uint8_t, 65>>(extra..., eid, parseBinary<65>(value), flags));
+		case HXB_DTYPE_16BYTES: return pptr(new PClass<std::array<uint8_t, 16>>(extra..., eid, parseBinary<16>(value), flags));
 
 		case HXB_DTYPE_UINT8: {
 			auto parsed = boost::lexical_cast<unsigned>(value);
 			if (parsed > 255)
 				throw boost::bad_lexical_cast();
-			return pptr(new PClass<uint8_t>(eid, parsed));
+			return pptr(new PClass<uint8_t>(extra..., eid, parsed, flags));
 		}
 		case HXB_DTYPE_SINT8: {
 			auto parsed = boost::lexical_cast<int>(value);
 			if (parsed < -128 || parsed > 127)
 				throw boost::bad_lexical_cast();
-			return pptr(new PClass<int8_t>(eid, parsed));
+			return pptr(new PClass<int8_t>(extra..., eid, parsed, flags));
 		}
 
 		case HXB_DTYPE_UNDEFINED:
@@ -102,11 +115,14 @@ int main(int argc, char* argv[])
 	po::options_description desc;
 	desc.add_options()
 		("help,h", "display this message")
-		("command,c", po::value<std::string>(), "packet type to send (query|write|epquery|info)")
+		("command,c", po::value<std::string>(), "packet type to send \n"
+			"  \tvalid types:\n"
+			"     \tquery, write, epquery, info, propwrite, propquery")
 		("ip,i", po::value<std::string>(), "address to send to")
 		("bind,b", po::value<std::string>(), "address to send from")
 		("interface,I", po::value<std::string>(), "interface to send from (only for info packets)")
 		("eid,e", po::value<uint32_t>())
+		("propid,p", po::value<uint32_t>())
 		("datatype,d", po::value<std::string>(), "data type for packet\n"
 			"  \tvalid types:\n"
 			"    \tBool, (U)Int8, (U)Int16, (U)Int32, (U)Int64, Float, String, Binary(16), Binary(65)\n"
@@ -216,6 +232,11 @@ int main(int argc, char* argv[])
 		return vm["value"].as<std::string>();
 	};
 
+	auto propid = [&] () {
+		require("propid");
+		return vm["propid"].as<uint32_t>();
+	};
+
 	auto receiveReply = [&] () {
 		boost::posix_time::time_duration timeout = boost::posix_time::milliseconds(vm["timeout"].as<uint32_t>());
 		if (!timeout.total_milliseconds())
@@ -230,28 +251,42 @@ int main(int argc, char* argv[])
 	};
 
 	if (command == "query") {
-		sendPacket(socket, ip(), QueryPacket(eid()));
+		sendPacket(socket, ip(), QueryPacket(eid(), HXB_FLAG_WANT_ACK|HXB_FLAG_RELIABLE));
 		receiveReply();
 	} else if (command == "info" || command == "write") {
-		auto packet = command == "info"
-			? parsePacket<InfoPacket>(datatype(), eid(), value())
-			: parsePacket<WritePacket>(datatype(), eid(), value());
-
 		auto addr = Socket::GroupAddress;
 		if (vm.count("ip"))
 			addr = ip();
 
-		if (addr.is_multicast())
+		if (addr.is_multicast()) {
 			require("interface");
 
-		try {
-			socket.send(*packet, addr);
-		} catch (const NetworkException& e) {
-			std::cerr << "failed to send packet: " << e.code().message() << std::endl;
-			return 1;
+			auto packet = command == "info"
+				? parsePacket<InfoPacket>(datatype(), eid(), value(), HXB_FLAG_NONE)
+				: parsePacket<WritePacket>(datatype(), eid(), value(), HXB_FLAG_NONE);
+
+			try {
+				socket.send(*packet, addr);
+			} catch (const NetworkException& e) {
+				std::cerr << "failed to send packet: " << e.code().message() << std::endl;
+				return 1;
+			}
+		} else {
+			auto packet = command == "info"
+				? parsePacket<InfoPacket>(datatype(), eid(), value(), HXB_FLAG_WANT_ACK|HXB_FLAG_RELIABLE)
+				: parsePacket<WritePacket>(datatype(), eid(), value(), HXB_FLAG_WANT_ACK|HXB_FLAG_RELIABLE);
+
+			sendPacket(socket, addr, *packet);
+			receiveReply();
 		}
 	} else if (command == "epquery") {
-		sendPacket(socket, ip(), EndpointQueryPacket(eid()));
+		sendPacket(socket, ip(), EndpointQueryPacket(eid(), HXB_FLAG_WANT_ACK|HXB_FLAG_RELIABLE));
+		receiveReply();
+	} else if (command == "propwrite") {
+		sendPacket(socket, ip(), *parsePacket<PropertyWritePacket>(datatype(), eid(), value(), HXB_FLAG_RELIABLE|HXB_FLAG_WANT_ACK, propid()));
+		receiveReply();
+	} else if (command == "propquery") {
+		sendPacket(socket, ip(), PropertyQueryPacket(propid(), eid(), HXB_FLAG_WANT_ACK|HXB_FLAG_RELIABLE));
 		receiveReply();
 	} else {
 		std::cerr << "unknown command " << command << std::endl;

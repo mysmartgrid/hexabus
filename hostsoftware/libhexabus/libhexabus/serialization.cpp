@@ -55,6 +55,24 @@ class BinarySerializer : public PacketVisitor {
 		void append_s64(int64_t value) { append_u64(signedToBits(value)); }
 		void append_float(float value) { append_u32(floatToBits(value)); }
 
+		void append_string(std::string value) {
+			_target.insert(_target.end(), value.begin(), value.end());
+			_target.insert(_target.end(), ValuePacket<std::string>::max_length + 1 - value.size(), '\0');
+		}
+
+		void append_b16(std::array<uint8_t, 16> value)
+		{
+			_target.resize(_target.size() + value.size());
+			std::memcpy(&_target[_target.size() - value.size()], &value[0], value.size());
+
+		}
+
+		void append_b65(std::array<uint8_t, 65> value)
+		{
+			_target.resize(_target.size() + value.size());
+			std::memcpy(&_target[_target.size() - value.size()], &value[0], value.size());
+		}
+
 		void appendHeader(const Packet& packet);
 		void appendEIDHeader(const EIDPacket& packet);
 		void appendValueHeader(const TypedPacket& packet);
@@ -267,6 +285,7 @@ void BinarySerializer::visit(const PropertyQueryPacket& propertyQuery)
 	append_u32(propertyQuery.propid());
 }
 
+#define ARRAY(SIZE) std::array<uint8_t, SIZE>
 #define BS_APPEND_VALUE(TYPE, APPEND) \
 	void BinarySerializer::appendValue(const ValuePacket<TYPE>& value) \
 	{ \
@@ -284,82 +303,58 @@ BS_APPEND_VALUE(int16_t, append_s16)
 BS_APPEND_VALUE(int32_t, append_s32)
 BS_APPEND_VALUE(int64_t, append_s64)
 BS_APPEND_VALUE(float, append_float)
+BS_APPEND_VALUE(std::string, append_string)
+BS_APPEND_VALUE(ARRAY(16), append_b16)
+BS_APPEND_VALUE(ARRAY(65), append_b65)
 
 #undef BS_APPEND_VALUE
 
-void BinarySerializer::appendValue(const ValuePacket<std::string>& value)
-{
-	appendValueHeader(value);
-
-	_target.insert(_target.end(), value.value().begin(), value.value().end());
-	_target.insert(_target.end(), ValuePacket<std::string>::max_length + 1 - value.value().size(), '\0');
-}
-
-void BinarySerializer::appendValue(const ValuePacket<std::array<uint8_t, 16> >& value)
-{
-	appendValueHeader(value);
-
-	_target.resize(_target.size() + value.value().size());
-	std::memcpy(&_target[_target.size() - value.value().size()], &value.value()[0], value.value().size());
-
-}
-
-void BinarySerializer::appendValue(const ValuePacket<std::array<uint8_t, 65> >& value)
-{
-	appendValueHeader(value);
-
-
-	_target.resize(_target.size() + value.value().size());
-	std::memcpy(&_target[_target.size() - value.value().size()], &value.value()[0], value.value().size());
-}
-
-#define ARRAY(SIZE) std::array<uint8_t, SIZE>
-#define BS_APPEND_PROPERTY_WRITE_VALUE(TYPE) \
+#define BS_APPEND_PROPERTY_WRITE_VALUE(TYPE, APPEND) \
 void BinarySerializer::appendPropertyWriteValue(const PropertyWritePacket<TYPE>& propwrite) \
 { \
 	appendValueHeader(propwrite); \
 	append_u32(propwrite.propid()); \
-	appendValue(propwrite); \
+	APPEND(propwrite.value()); \
 }
 
-BS_APPEND_PROPERTY_WRITE_VALUE(bool)
-BS_APPEND_PROPERTY_WRITE_VALUE(uint8_t)
-BS_APPEND_PROPERTY_WRITE_VALUE(uint16_t)
-BS_APPEND_PROPERTY_WRITE_VALUE(uint32_t)
-BS_APPEND_PROPERTY_WRITE_VALUE(uint64_t)
-BS_APPEND_PROPERTY_WRITE_VALUE(int8_t)
-BS_APPEND_PROPERTY_WRITE_VALUE(int16_t)
-BS_APPEND_PROPERTY_WRITE_VALUE(int32_t)
-BS_APPEND_PROPERTY_WRITE_VALUE(int64_t)
-BS_APPEND_PROPERTY_WRITE_VALUE(float)
-BS_APPEND_PROPERTY_WRITE_VALUE(std::string)
-BS_APPEND_PROPERTY_WRITE_VALUE(ARRAY(16))
-BS_APPEND_PROPERTY_WRITE_VALUE(ARRAY(65))
+BS_APPEND_PROPERTY_WRITE_VALUE(bool, append_u8)
+BS_APPEND_PROPERTY_WRITE_VALUE(uint8_t, append_u8)
+BS_APPEND_PROPERTY_WRITE_VALUE(uint16_t, append_u16)
+BS_APPEND_PROPERTY_WRITE_VALUE(uint32_t, append_u32)
+BS_APPEND_PROPERTY_WRITE_VALUE(uint64_t, append_u64)
+BS_APPEND_PROPERTY_WRITE_VALUE(int8_t, append_s8)
+BS_APPEND_PROPERTY_WRITE_VALUE(int16_t, append_s16)
+BS_APPEND_PROPERTY_WRITE_VALUE(int32_t, append_s32)
+BS_APPEND_PROPERTY_WRITE_VALUE(int64_t, append_s64)
+BS_APPEND_PROPERTY_WRITE_VALUE(float, append_float)
+BS_APPEND_PROPERTY_WRITE_VALUE(std::string, append_string)
+BS_APPEND_PROPERTY_WRITE_VALUE(ARRAY(16), append_b16)
+BS_APPEND_PROPERTY_WRITE_VALUE(ARRAY(65), append_b65)
 
 #undef BS_APPEND_PROPERTY_WRITE_VALUE
 
-#define BS_APPEND_PROPERTY_REPORT_VALUE(TYPE) \
+#define BS_APPEND_PROPERTY_REPORT_VALUE(TYPE, APPEND) \
 void BinarySerializer::appendPropertyReportValue(const PropertyReportPacket<TYPE>& propreport) \
 { \
 	appendValueHeader(propreport); \
 	append_u32(propreport.nextid()); \
-	appendValue(propreport); \
+	APPEND(propreport.value()); \
 	appendCause(propreport); \
 }
 
-BS_APPEND_PROPERTY_REPORT_VALUE(bool)
-BS_APPEND_PROPERTY_REPORT_VALUE(uint8_t)
-BS_APPEND_PROPERTY_REPORT_VALUE(uint16_t)
-BS_APPEND_PROPERTY_REPORT_VALUE(uint32_t)
-BS_APPEND_PROPERTY_REPORT_VALUE(uint64_t)
-BS_APPEND_PROPERTY_REPORT_VALUE(int8_t)
-BS_APPEND_PROPERTY_REPORT_VALUE(int16_t)
-BS_APPEND_PROPERTY_REPORT_VALUE(int32_t)
-BS_APPEND_PROPERTY_REPORT_VALUE(int64_t)
-BS_APPEND_PROPERTY_REPORT_VALUE(float)
-BS_APPEND_PROPERTY_REPORT_VALUE(std::string)
-BS_APPEND_PROPERTY_REPORT_VALUE(ARRAY(16))
-BS_APPEND_PROPERTY_REPORT_VALUE(ARRAY(65))
+BS_APPEND_PROPERTY_REPORT_VALUE(bool, append_u8)
+BS_APPEND_PROPERTY_REPORT_VALUE(uint8_t, append_u8)
+BS_APPEND_PROPERTY_REPORT_VALUE(uint16_t, append_u16)
+BS_APPEND_PROPERTY_REPORT_VALUE(uint32_t, append_u32)
+BS_APPEND_PROPERTY_REPORT_VALUE(uint64_t, append_u64)
+BS_APPEND_PROPERTY_REPORT_VALUE(int8_t, append_s8)
+BS_APPEND_PROPERTY_REPORT_VALUE(int16_t, append_s16)
+BS_APPEND_PROPERTY_REPORT_VALUE(int32_t, append_s32)
+BS_APPEND_PROPERTY_REPORT_VALUE(int64_t, append_s64)
+BS_APPEND_PROPERTY_REPORT_VALUE(float, append_float)
+BS_APPEND_PROPERTY_REPORT_VALUE(std::string, append_string)
+BS_APPEND_PROPERTY_REPORT_VALUE(ARRAY(16), append_b16)
+BS_APPEND_PROPERTY_REPORT_VALUE(ARRAY(65), append_b65)
 
 #undef BS_APPEND_PROPERTY_REPORT_VALUE
 #undef ARRAY
