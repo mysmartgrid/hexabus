@@ -6,10 +6,12 @@
 #include <cmath>
 #define isNaN std::isnan
 #define isFinite std::isfinite
+#define isInf std::isinf
 #else
 #include <math.h>
 #define isNaN isnan
 #define isFinite isfinite
+#define isInf isinf
 #endif
 
 #define be8toh(be) (be)
@@ -426,7 +428,7 @@ static int sm_arith_op2(hxb_sm_value_t* v1, hxb_sm_value_t* v2, int op)
 		case HXB_DTYPE_FLOAT:
 			if (op == HSO_OP_DIV)
 				break;
-			if (v2->v_float == 0 || isinf(v2->v_float))
+			if (v2->v_float == 0 || isInf(v2->v_float))
 				return -HSE_DIV_BY_ZERO;
 			break;
 		}
@@ -1151,3 +1153,4 @@ fail:
 #undef be8toh
 #undef isNaN
 #undef isFinite
+#undef isInf

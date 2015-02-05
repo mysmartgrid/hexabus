@@ -2,6 +2,8 @@
 project(hbt)
 cmake_minimum_required(VERSION "2.8" FATAL_ERROR)
 
+set(Boost_Version "1.54")
+
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_SOURCE_DIR}/../cmake_modules ${CMAKE_MODULE_PATH})
 include(HexabusCommon)
 

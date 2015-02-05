@@ -874,7 +874,7 @@ private:
 		} catch (const bad_cast& e) {
 			std::cout << jobject({
 				{ "error", jobject({
-						{ "type", jvalue("system error") },
+						{ "type", jvalue("invalid input") },
 						{ "diag", jvalue("invalid input value") },
 						{ "field", jvalue(e.field) }
 					}) }

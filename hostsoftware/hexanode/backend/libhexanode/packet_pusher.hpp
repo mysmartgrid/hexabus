@@ -95,8 +95,8 @@ namespace hexanode {
 			virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery) { rejectPacket(); }
 			virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo) { rejectPacket(); }
 			virtual void visit(const hexabus::InfoPacket<std::string>& info) { rejectPacket(); }
-			virtual void visit(const hexabus::InfoPacket<boost::array<char, 16> >& info) { rejectPacket(); }
-			virtual void visit(const hexabus::InfoPacket<boost::array<char, 65> >& info) { rejectPacket(); }
+			virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 16> >& info) { rejectPacket(); }
+			virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 65> >& info) { rejectPacket(); }
 			/** 
 			 * not needed.
 			 */
@@ -111,8 +111,8 @@ namespace hexanode {
 			virtual void visit(const hexabus::WritePacket<int64_t>& info) {}
 			virtual void visit(const hexabus::WritePacket<float>& info) {}
 			virtual void visit(const hexabus::WritePacket<std::string>& info) {}
-			virtual void visit(const hexabus::WritePacket<boost::array<char, 16> >& info) {}
-			virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& info) {}
+			virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 16> >& info) {}
+			virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 65> >& info) {}
   };
 
 }

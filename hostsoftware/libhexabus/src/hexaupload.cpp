@@ -16,7 +16,6 @@
 namespace po = boost::program_options;
 
 #include "../../../shared/hexabus_definitions.h"
-#include "../../../shared/hexabus_statemachine_structs.h"
 #include "../../../shared/endpoints.h"
 #include "shared.hpp"
 
@@ -200,7 +199,7 @@ class RemoteStateMachine : protected RetryingPacketSender {
 		}
 };
 
-static const size_t UploadChunkSize = EE_STATEMACHINE_CHUNK_SIZE;
+static const size_t UploadChunkSize = 64;
 
 class ChunkSender : protected RetryingPacketSender {
 	private:
@@ -320,7 +319,7 @@ int main(int argc, char** argv) {
 	std::vector<std::array<uint8_t, UploadChunkSize> > chunks;
 
 	if (vm.count("program")) {
-		std::basic_ifstream<uint8_t> in(vm["program"].as<std::string>().c_str(),
+		std::ifstream in(vm["program"].as<std::string>().c_str(),
 				std::ios_base::in | std::ios::ate | std::ios::binary);
 		if (!in) {
 			std::cerr << "Error: Could not open input file: "
@@ -332,16 +331,17 @@ int main(int argc, char** argv) {
 		size_t size = in.tellg();
 		in.seekg(0, std::ios::beg);
 
-		chunks.push_back(std::array<uint8_t, UploadChunkSize>());
+		chunks.push_back({});
 		chunks.back().fill(0);
 
 		while (in && !in.eof()) {
-			std::array<uint8_t, UploadChunkSize> chunk;
+			std::array<char, UploadChunkSize> chunk;
 			chunk.fill(0);
 
 			in.read(chunk.data(), chunk.size());
 			if (in || in.eof()) {
-				chunks.push_back(chunk);
+				chunks.push_back({});
+				memcpy(&chunks.back()[0], chunk.data(), chunk.size());
 			} else {
 				std::cerr << "Can't read program" << std::endl;
 				return ERR_READ_FAILED;
@@ -391,7 +391,7 @@ int main(int argc, char** argv) {
 			std::array<uint8_t, UploadChunkSize> chunk;
 			chunk.fill('\xff');
 
-			for (chunkId = 1; chunkId < PROG_DEFAULT_LENGTH / EE_STATEMACHINE_CHUNK_SIZE; chunkId++) {
+			for (chunkId = 1; chunkId < PROG_DEFAULT_LENGTH / UploadChunkSize; chunkId++) {
 				err = sender.sendChunk(chunkId, chunk);
 				if (err) {
 					break;
