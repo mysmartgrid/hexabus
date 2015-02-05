@@ -9,6 +9,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <boost/exception/diagnostic_information.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/bind.hpp>
@@ -226,7 +227,7 @@ int main(int argc, char** argv)
   }
   catch (boost::exception& e)
   {
-    std::cerr << "Boost Exception: " << diagnostic_information(e) << std::endl;
+    std::cerr << "Boost Exception: " << boost::diagnostic_information(e) << std::endl;
   }
   catch (std::exception& e)
   {

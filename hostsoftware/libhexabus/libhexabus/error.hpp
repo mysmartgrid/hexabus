@@ -15,8 +15,6 @@ public:
 	{
 	}
 
-	virtual ~GenericException() {};
-
 	virtual const char* what() const noexcept { return reason().c_str(); }
 
 	virtual const std::string& reason() const { return _reason; }
@@ -38,7 +36,10 @@ private:
 
 class BadPacketException : public GenericException {
 public:
-	using GenericException::GenericException;
+	BadPacketException(std::string value)
+		: GenericException::GenericException(value)
+	{
+	}
 };
 
 }
