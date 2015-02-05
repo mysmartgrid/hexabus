@@ -52,10 +52,13 @@ if (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers")
 endif()
 
+if(not ${Boost_Version})
+  set(Boost_Version "1.49")
+endif()
 #
 set(Boost_USE_STATIC_LIBS ON)
 SET(Boost_DETAILED_FAILURE_MSG true)
-FIND_PACKAGE(Boost 1.54 REQUIRED COMPONENTS
+FIND_PACKAGE(Boost ${Boost_Version} REQUIRED COMPONENTS
   test_exec_monitor program_options
   filesystem regex system
   date_time
