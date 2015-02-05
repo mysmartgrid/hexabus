@@ -82,7 +82,7 @@ target_link_libraries(hexasend hexabus pthread ${Boost_LIBRARIES})
 if(NOT WITHOUT_HEXAJUICE)
   add_executable(hexajuice "hexajuice.cpp")
   target_link_libraries(hexajuice hexabus pthread ${Boost_LIBRARIES})
-end()
+endif()
 
 if(LIBKLIO_FOUND)
   add_executable(hexalog ${hexalog_src})
@@ -118,7 +118,7 @@ if(NOT WITHOUT_HEXAJUICE)
   set(HXB_EXECUTABLES "${HXB_EXECUTABLES}
     ${CMAKE_CURRENT_BINARY_DIR}/hexajuice"
   )
-end()
+endif()
 
 if(LIBKLIO_FOUND)
   set(HXB_EXECUTABLES "${HXB_EXECUTABLES}
