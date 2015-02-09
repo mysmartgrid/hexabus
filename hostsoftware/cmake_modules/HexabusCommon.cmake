@@ -52,7 +52,7 @@ if (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers")
 endif()
 
-if(not Boost_Version)
+if(NOT Boost_Version)
   set(Boost_Version "1.49")
 endif()
 #
