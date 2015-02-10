@@ -37,10 +37,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/*if no interrupt happens in this time then the old measurement out of date and therefore discarded and set to 0 Watt
-by reducing this value the accuracy for high power consumptions could be increased but the minimum measurable power consumption increases
-for 80s: P_min = 3W */
-#define OUT_OF_DATE_TIME   240
 
 #define METERING_VECT     INT1_vect //Interrupt for the Metering
 
