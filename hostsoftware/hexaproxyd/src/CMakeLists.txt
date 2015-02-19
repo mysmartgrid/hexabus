@@ -15,9 +15,6 @@ include_directories(
   ${HBX_INCLUDE_DIR}
   ${HBC_INCLUDE_DIR}
 )
-#link_directories(
-#  #  ${SQLITE3_STATIC_LIBRARY_DIRS}
-#  )
 
 add_executable(hexaproxyd ${hexaproxyd_src})
 # Link the executables
