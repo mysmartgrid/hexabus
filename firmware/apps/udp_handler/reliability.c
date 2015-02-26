@@ -48,11 +48,6 @@ struct reliability_state {
 	bool recved_packet;
 	uint16_t rseq_num;
 	struct hxb_queue_packet* P;
-	//TODO stats
-	uint32_t reset_cnt;
-	uint32_t retrans_cnt;
-	uint32_t drop_cnt;
-	//
 };
 
 struct reliability_state rstates[16];
@@ -242,7 +237,6 @@ static void run_send_state_machine(uint8_t rs) {
 			} else if(etimer_expired(&(rstates[rs].timeout_timer))) {
 				if((rstates[rs].retrans)++ <= RETRANS_LIMIT) {
 					syslog(LOG_INFO, "Retransmitting %u (%u tries)", rstates[rs].want_ack_for , rstates[rs].retrans-1);
-					rstates[rs].retrans_cnt++;
 					send_packet((struct hxb_queue_packet *)rstates[rs].P);
 					etimer_set(&(rstates[rs].timeout_timer), RETRANS_TIMEOUT*rstates[rs].retrans);
 				} else {
@@ -256,7 +250,6 @@ static void run_send_state_machine(uint8_t rs) {
 			if(fail == 2) {
 				//syslog(LOG_DEBUG, "Conn: %u Retrans: %lu Drop: %lu Reset: %lu", rs, rstates[rs].retrans_cnt, rstates[rs].drop_cnt, rstates[rs].reset_cnt);
 				syslog(LOG_WARN, "Resetting...");
-				rstates[rs].reset_cnt++;
 				reset_reliability_layer();
 				fail = 0;
 				rstates[rs].send_state = SINIT;
@@ -289,7 +282,6 @@ static void run_recv_state_machine(uint8_t rs) {
 						!allows_implicit_ack(&(R->packet))&&
 						R->packet.header.flags & HXB_FLAG_RELIABLE) {
 					syslog(LOG_INFO, "Dropped duplicate (Got: %u, Current: %u).", uip_ntohs(R->packet.header.sequence_number), rstates[rs].rseq_num);
-					rstates[rs].drop_cnt++;
 					rstates[rs].recv_state = RREADY;
 					break;
 				}
@@ -308,7 +300,6 @@ static void run_recv_state_machine(uint8_t rs) {
 					rstates[rs].recv_state = RREADY;
 				}
 				udp_handler_handle_incoming(R);
-				//syslog(LOG_DEBUG, "Conn: %u Retrans: %lu Drop: %lu Reset: %lu", rs, rstates[rs].retrans_cnt, rstates[rs].drop_cnt, rstates[rs].reset_cnt);
 			}
 			break;
 		case RFAILED:
@@ -369,11 +360,6 @@ PROCESS_THREAD(reliability_send_process, ev, data)
 	reliability_event = process_alloc_event();
 
 	init_reliability_layer();
-
-	for (uint8_t i=0; i<16; ++i)
-	{
-		rstates[i].retrans_cnt = rstates[i].reset_cnt = rstates[i].drop_cnt = 0;
-	}
 
 	while (1) {
 		PROCESS_WAIT_EVENT();

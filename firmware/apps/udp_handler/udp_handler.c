@@ -778,6 +778,7 @@ void udp_handler_handle_incoming(struct hxb_queue_packet* R) {
 				break;
 			}
 
+		case HXB_PTYPE_INFO:
 		case HXB_PTYPE_REPORT:
 		case HXB_PTYPE_EPREPORT:
 			err = handle_info(packet);
@@ -815,7 +816,6 @@ void udp_handler_handle_incoming(struct hxb_queue_packet* R) {
 			}
 
 		case HXB_PTYPE_ERROR:
-		case HXB_PTYPE_INFO:
 		case HXB_PTYPE_EPINFO:
 		case HXB_PTYPE_EP_PROP_REPORT:
 		default:
