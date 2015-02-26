@@ -5,6 +5,7 @@
 #include <boost/program_options/positional_options.hpp>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/variant.hpp>
 #include <libhexabus/common.hpp>
 #include <libhexabus/packet.hpp>
 #include <libhexabus/error.hpp>
@@ -18,10 +19,31 @@ namespace po = boost::program_options;
 
 namespace {
 
+struct DiscoveredProperty {
+	uint32_t propid;
+	hexabus::hxb_datatype type;
+	boost::variant<
+		bool,
+		uint8_t,
+		uint16_t,
+		uint32_t,
+		uint64_t,
+		int8_t,
+		int16_t,
+		int32_t,
+		int64_t,
+		float,
+		std::string
+	> value;
+
+	bool operator<(const DiscoveredProperty& other) const { return propid < other.propid; }
+};
+
 struct DiscoveredEP {
 	uint32_t eid;
 	hexabus::hxb_datatype type;
 	std::string name;
+	std::vector<DiscoveredProperty> properties;
 
 	bool operator<(const DiscoveredEP& other) const { return eid < other.eid; }
 };
@@ -152,95 +174,309 @@ struct NameSanitizer {
 
 }
 
-static std::set<boost::asio::ip::address_v6> enumerateDevices(DiscoverContext& dc)
+static std::set<std::pair<boost::asio::ip::address_v6, std::string> > enumerateDevices(DiscoverContext& dc)
 {
 	namespace hf = hexabus::filtering;
 
-	std::set<boost::asio::ip::address_v6> addresses;
+	std::set<std::pair<boost::asio::ip::address_v6, std::string> > addresses;
 
-	auto response = [&] (const hexabus::Packet&, boost::asio::ip::udp::endpoint ep) {
-		addresses.insert(ep.address().to_v6());
+	auto response = [&] (const hexabus::Packet& packet, boost::asio::ip::udp::endpoint ep) {
+		auto name = static_cast<const hexabus::ValuePacket<std::string>&>(packet).value();
+		addresses.insert(make_pair(ep.address().to_v6(), name));
 		return false;
 	};
 
 	dc.vout() << "Sending discovery packets ";
-	dc.retryPacket(hexabus::QueryPacket(0), dc.socket.GroupAddress, response, hf::isInfo<uint32_t>() && (hf::eid() == 0UL));
+	dc.retryPacket(hexabus::QueryPacket(0), dc.socket.GroupAddress, response, hf::isReport<std::string>() && (hf::eid() == 0UL));
 	dc.vout() << std::endl;
 
 	return addresses;
 }
 
-static void enumerateEndpoints(DiscoverContext& dc, DiscoveredDev& device)
+static std::pair<boost::asio::ip::address_v6, std::string> getDeviceName(DiscoverContext& dc, boost::asio::ip::address_v6 ip)
 {
 	namespace hf = hexabus::filtering;
 
-	std::set<uint32_t> eids;
+	std::pair<boost::asio::ip::address_v6, std::string> address;
+	boost::signals2::scoped_connection sc;
 
-	for (uint32_t epDesc = 0; epDesc < 256; epDesc += 32) {
-		auto response = [&] (const hexabus::Packet& packet, boost::asio::ip::udp::endpoint ep) {
-			uint32_t currentEP = epDesc + 1;
-			uint32_t descValue = static_cast<const hexabus::InfoPacket<uint32_t>&>(packet).value() >> 1;
+	auto transmission_response = [&] (const hexabus::Packet& packet, uint16_t seqNum, const boost::asio::ip::udp::endpoint& from, bool transmissionFailed) {
+		if (transmissionFailed) {
 
-			while (descValue) {
-				if (descValue & 1)
-					eids.insert(currentEP);
-
-				descValue >>= 1;
-				currentEP++;
-			}
-			return true;
-		};
-
-		dc.vout() << "Querying descriptor " << epDesc << ' ';
-		if (dc.retryPacket(hexabus::QueryPacket(epDesc), device.address, response, hf::isInfo<uint32_t>()))
-			dc.vout() << std::endl;
-		else
-			dc.vout() << " no reply" << std::endl;
-	}
-
-	while (!eids.empty()) {
-		uint32_t eid = *eids.begin();
-		eids.erase(eid);
-
-		auto response = [&] (const hexabus::Packet& packet, boost::asio::ip::udp::endpoint ep) {
-			auto& info = static_cast<const hexabus::EndpointInfoPacket&>(packet);
-
-			device.endpoints.push_back({ eid, hexabus::hxb_datatype(info.datatype()), info.value() });
-			return true;
-		};
-
-		dc.vout() << "Querying endpoint " << eid << ' ';
-		if (dc.retryPacket(hexabus::EndpointQueryPacket(eid), device.address, response, hf::isEndpointInfo()))
-			dc.vout() << std::endl;
-		else
-			dc.vout() << " no reponse" << std::endl;
-	}
-}
-
-static boost::optional<DiscoveredDev> queryDevice(DiscoverContext& dc, boost::asio::ip::address_v6 addr)
-{
-	namespace hf = hexabus::filtering;
-
-	DiscoveredDev result;
+			std::cerr << "Reply timeout." << std::endl;
+			sc.disconnect();
+			dc.socket.ioService().stop();
+			exit(1);
+		}
+	};
 
 	auto response = [&] (const hexabus::Packet& packet, boost::asio::ip::udp::endpoint ep) {
-		result = {
-			addr,
-			static_cast<const hexabus::EndpointInfoPacket&>(packet).value(),
-			{}
-		};
+		auto name = static_cast<const hexabus::ValuePacket<std::string>&>(packet).value();
+		address = make_pair(ep.address().to_v6(), name);
+
+		sc.disconnect();
+		dc.socket.ioService().stop();
+	};
+
+	dc.vout() << "Sending discovery packet ";
+	sc = dc.socket.onPacketReceived(response, hf::isReport<std::string>() && (hf::eid() == 0UL));
+	dc.socket.onPacketTransmitted(transmission_response, hexabus::QueryPacket(0, hexabus::HXB_FLAG_WANT_ACK||hexabus::HXB_FLAG_RELIABLE), boost::asio::ip::udp::endpoint(ip, 61616));
+	dc.vout() << std::endl;
+
+	dc.socket.ioService().reset();
+	dc.socket.ioService().run();
+
+	return address;
+}
+
+static uint32_t addProperty(const hexabus::Packet& packet, DiscoveredEP& ep, uint32_t propid)
+{
+	do {
+		const hexabus::PropertyReportPacket<bool>* propertyReport_b = dynamic_cast<const hexabus::PropertyReportPacket<bool>* >(&packet);
+			if(propertyReport_b !=NULL) {
+				ep.properties.push_back ({
+					propid,
+					hexabus::hxb_datatype(propertyReport_b->datatype()),
+					propertyReport_b->value()
+				});
+				return propertyReport_b->nextid();
+			}
+		const hexabus::PropertyReportPacket<uint8_t>* propertyReport_u8 = dynamic_cast<const hexabus::PropertyReportPacket<uint8_t>* >(&packet);
+			if(propertyReport_u8 !=NULL) {
+				ep.properties.push_back ({
+					propid,
+					hexabus::hxb_datatype(propertyReport_u8->datatype()),
+					propertyReport_u8->value()
+				});
+				return propertyReport_u8->nextid();
+			}
+		const hexabus::PropertyReportPacket<uint16_t>* propertyReport_u16 = dynamic_cast<const hexabus::PropertyReportPacket<uint16_t>* >(&packet);
+			if(propertyReport_u16 !=NULL) {
+				ep.properties.push_back ({
+					propid,
+					hexabus::hxb_datatype(propertyReport_u16->datatype()),
+					propertyReport_u16->value()
+				});
+				return propertyReport_u16->nextid();
+			}
+		const hexabus::PropertyReportPacket<uint32_t>* propertyReport_u32 = dynamic_cast<const hexabus::PropertyReportPacket<uint32_t>* >(&packet);
+			if(propertyReport_u32 !=NULL) {
+				ep.properties.push_back ({
+					propid,
+					hexabus::hxb_datatype(propertyReport_u32->datatype()),
+					propertyReport_u32->value()
+				});
+				return propertyReport_u32->nextid();
+			}
+		const hexabus::PropertyReportPacket<uint64_t>* propertyReport_u64 = dynamic_cast<const hexabus::PropertyReportPacket<uint64_t>* >(&packet);
+			if(propertyReport_u64 !=NULL) {
+				ep.properties.push_back ({
+					propid,
+					hexabus::hxb_datatype(propertyReport_u64->datatype()),
+					propertyReport_u64->value()
+				});
+				return propertyReport_u64->nextid();
+			}
+		const hexabus::PropertyReportPacket<int8_t>* propertyReport_s8 = dynamic_cast<const hexabus::PropertyReportPacket<int8_t>* >(&packet);
+			if(propertyReport_s8 !=NULL) {
+				ep.properties.push_back ({
+					propid,
+					hexabus::hxb_datatype(propertyReport_s8->datatype()),
+					propertyReport_s8->value()
+				});
+				return propertyReport_s8->nextid();
+			}
+		const hexabus::PropertyReportPacket<int16_t>* propertyReport_s16 = dynamic_cast<const hexabus::PropertyReportPacket<int16_t>* >(&packet);
+			if(propertyReport_s16 !=NULL) {
+				ep.properties.push_back ({
+					propid,
+					hexabus::hxb_datatype(propertyReport_s16->datatype()),
+					propertyReport_s16->value()
+				});
+				return propertyReport_s16->nextid();
+			}
+		const hexabus::PropertyReportPacket<int32_t>* propertyReport_s32 = dynamic_cast<const hexabus::PropertyReportPacket<int32_t>* >(&packet);
+			if(propertyReport_s32 !=NULL) {
+				ep.properties.push_back ({
+					propid,
+					hexabus::hxb_datatype(propertyReport_s32->datatype()),
+					propertyReport_s32->value()
+				});
+				return propertyReport_s32->nextid();
+			}
+		const hexabus::PropertyReportPacket<int64_t>* propertyReport_s64 = dynamic_cast<const hexabus::PropertyReportPacket<int64_t>* >(&packet);
+			if(propertyReport_s64 !=NULL) {
+				ep.properties.push_back ({
+					propid,
+					hexabus::hxb_datatype(propertyReport_s64->datatype()),
+					propertyReport_s64->value()
+				});
+				return propertyReport_s64->nextid();
+			}
+		const hexabus::PropertyReportPacket<float>* propertyReport_f = dynamic_cast<const hexabus::PropertyReportPacket<float>* >(&packet);
+			if(propertyReport_f !=NULL) {
+				ep.properties.push_back ({
+					propid,
+					hexabus::hxb_datatype(propertyReport_f->datatype()),
+					propertyReport_f->value()
+				});
+				return propertyReport_f->nextid();
+			}
+		const hexabus::PropertyReportPacket<std::string>* propertyReport_str = dynamic_cast<const hexabus::PropertyReportPacket<std::string>* >(&packet);
+			if(propertyReport_str !=NULL) {
+				ep.properties.push_back ({
+					propid,
+					hexabus::hxb_datatype(propertyReport_str->datatype()),
+					propertyReport_str->value()
+				});
+				return propertyReport_str->nextid();
+			}
+		const hexabus::PropertyReportPacket<std::array<uint8_t, 16> >* propertyReport_16b = dynamic_cast<const hexabus::PropertyReportPacket<std::array<uint8_t, 16> >* >(&packet);
+			if(propertyReport_16b !=NULL) {
+				ep.properties.push_back ({
+					propid,
+					hexabus::hxb_datatype(propertyReport_16b->datatype()),
+					std::string(propertyReport_16b->value().begin(), propertyReport_16b->value().end())
+				});
+				return propertyReport_16b->nextid();
+			}
+		const hexabus::PropertyReportPacket<std::array<uint8_t, 65> >* propertyReport_65b = dynamic_cast<const hexabus::PropertyReportPacket<std::array<uint8_t, 65> >* >(&packet);
+			if(propertyReport_65b !=NULL) {
+				ep.properties.push_back ({
+					propid,
+					hexabus::hxb_datatype(propertyReport_65b->datatype()),
+					std::string(propertyReport_65b->value().begin(), propertyReport_65b->value().end())
+				});
+				return propertyReport_65b->nextid();
+			}
+	} while(false);
+
+	return 0;
+}
+
+static uint32_t queryProperty(DiscoverContext& dc, DiscoveredDev& device, uint32_t eid, uint32_t propid)
+{
+	namespace hf = hexabus::filtering;
+
+	uint32_t nextpropid;
+	boost::signals2::scoped_connection sc;
+
+	auto transmission_response = [&] (const hexabus::Packet& packet, uint16_t seqNum, const boost::asio::ip::udp::endpoint& from, bool transmissionFailed) {
+		if (transmissionFailed) {
+
+			std::cerr << "Reply timeout." << std::endl;
+			sc.disconnect();
+			dc.socket.ioService().stop();
+			exit(1);
+		}
+	};
+	auto response = [&] (const hexabus::Packet& packet, boost::asio::ip::udp::endpoint ep) {
+		for (auto& ep : device.endpoints) {
+				if(ep.eid == eid) {
+					nextpropid = addProperty(packet, ep, propid);
+					break;
+				}
+		}
+
+		sc.disconnect();
+		dc.socket.ioService().stop();
 		return true;
 	};
 
-	dc.vout() << "Querying device " << addr << std::endl
-		<< "Sending EPQuery ";
-	if (!dc.retryPacket(hexabus::EndpointQueryPacket(0), addr, response, hf::isEndpointInfo())) {
-		dc.vout() << " no response" << std::endl;
-		return {};
-	}
+	dc.vout() << "Querying Property " << propid << std::endl;
+	sc = dc.socket.onPacketReceived(response,
+		hf::isPropertyReport<bool>() ||
+		hf::isPropertyReport<uint8_t>() ||
+		hf::isPropertyReport<uint16_t>() ||
+		hf::isPropertyReport<uint32_t>() ||
+		hf::isPropertyReport<uint64_t>() ||
+		hf::isPropertyReport<int8_t>() ||
+		hf::isPropertyReport<int16_t>() ||
+		hf::isPropertyReport<int32_t>() ||
+		hf::isPropertyReport<int64_t>() ||
+		hf::isPropertyReport<float>() ||
+		hf::isPropertyReport<std::string>() ||
+		hf::isPropertyReport<std::array<uint8_t, 16> >() ||
+		hf::isPropertyReport<std::array<uint8_t, 65> >()
+	);
+	dc.socket.onPacketTransmitted(transmission_response, hexabus::PropertyQueryPacket(propid, eid, hexabus::HXB_FLAG_WANT_ACK||hexabus::HXB_FLAG_RELIABLE),
+			boost::asio::ip::udp::endpoint(device.address, 61616));
+
+	dc.socket.ioService().reset();
+	dc.socket.ioService().run();
+
+	return nextpropid;
+}
+
+static uint32_t queryEndpoint(DiscoverContext& dc, DiscoveredDev& device, uint32_t eid)
+{
+	namespace hf = hexabus::filtering;
+
+	uint32_t propid = 0;
+	boost::signals2::scoped_connection sc;
+
+	auto transmission_response = [&] (const hexabus::Packet& packet, uint16_t seqNum, const boost::asio::ip::udp::endpoint& from, bool transmissionFailed) {
+		if (transmissionFailed) {
+
+			std::cerr << "Reply timeout." << std::endl;
+			sc.disconnect();
+			dc.socket.ioService().stop();
+			exit(1);
+		}
+	};
+
+	auto response = [&] (const hexabus::Packet& packet, boost::asio::ip::udp::endpoint ep) {
+		auto& report = dynamic_cast<const hexabus::EndpointReportPacket&>(packet);
+
+		device.endpoints.push_back({
+				eid,
+				hexabus::hxb_datatype(report.datatype()),
+				report.value(),
+				{}
+		});
+
+		sc.disconnect();
+		dc.socket.ioService().stop();
+	};
+
+	dc.vout() << "Querying Endpoint " << eid << std::endl;
+	sc = dc.socket.onPacketReceived(response, hf::isEndpointReport());
+	dc.socket.onPacketTransmitted(transmission_response, hexabus::EndpointQueryPacket(eid, hexabus::HXB_FLAG_WANT_ACK||hexabus::HXB_FLAG_RELIABLE),
+			boost::asio::ip::udp::endpoint(device.address, 61616));
+
+	dc.socket.ioService().reset();
+	dc.socket.ioService().run();
+
+	do {
+		propid = queryProperty(dc, device, eid, propid);
+	} while(propid != 0);
 
 	dc.vout() << std::endl;
-	enumerateEndpoints(dc, result);
+
+	if(!device.endpoints.empty() && !device.endpoints.back().properties.empty() &&
+		device.endpoints.back().properties.front().propid==0) {
+
+		return boost::get<uint32_t>(device.endpoints.back().properties.front().value);
+	} else {
+		return 0;
+	}
+}
+
+static boost::optional<DiscoveredDev> queryDevice(DiscoverContext& dc, std::pair<boost::asio::ip::address_v6, std::string> addr)
+{
+	uint32_t eid = 0;
+
+	DiscoveredDev result = {
+		addr.first,
+		addr.second,
+		{}
+	};
+
+	dc.vout() << "Querying device " << addr.first << '\t' << addr.second << std::endl;
+
+	do {
+		eid = queryEndpoint(dc, result, eid);
+	} while(eid != 0);
 
 	return result;
 }
@@ -253,6 +489,14 @@ static void printEndpoint(std::ostream& out, const DiscoveredEP& ep)
 		<< "\tEndpoint ID:\t" << ep.eid << std::endl
 		<< "\tName:       \t" << ep.name << std::endl
 		<< "\tDatatype:   \t" << hexabus::datatypeName(ep.type) << std::endl;
+	out << std::endl;
+}
+
+static void printProperty(std::ostream& out, const DiscoveredProperty& prop)
+{
+	out << "\tProperty information:" << std::endl
+		<< "\t\tProperty ID: \t" << prop.propid << std::endl
+		<< "\t\tDatatype:    \t" << hexabus::datatypeName(prop.type) << std::endl;
 	out << std::endl;
 }
 
@@ -270,6 +514,15 @@ static void printDevice(std::ostream& out, const DiscoveredDev& dev)
 		out << ep.eid;
 	}
 	out << std::endl;
+
+	out << "\tProperties:" << std::endl;
+
+	for (auto& ep : dev.endpoints) {
+		out << "\t\tEndpoint " << ep.eid << ":" << std::endl;
+		for (auto& prop : ep.properties) {
+			out << "\t\t\tID " << prop.propid << ":\t" << prop.value << std::endl;
+		}
+	}
 }
 
 static bool writeDevJSON(std::ostream& out, const DiscoveredDev& dev, NameSanitizer san)
@@ -302,8 +555,6 @@ static bool writeDevJSON(std::ostream& out, const DiscoveredDev& dev, NameSaniti
 
 	unsigned put = 0;
 	for (auto& ep : dev.endpoints) {
-		if (ep.eid % 32 == 0)
-			continue;
 		if (put++)
 			out << ", ";
 
@@ -325,10 +576,28 @@ static bool writeDevJSON(std::ostream& out, const DiscoveredDev& dev, NameSaniti
 			case hexabus::EndpointDescriptor::actor: out << "actor"; break;
 			case hexabus::EndpointDescriptor::infrastructure: out << "infrastructure"; break;
 			}
-			out << R"(")" << std::endl;
-		}
+			out << R"(",)" << std::endl;
+			out
+				<< R"(			"properties": [)" << std::endl
+				<< R"(				)";
 
-		out << "		}";
+			unsigned putp = 0;
+			for(auto& prop : ep.properties) {
+				if (putp++)
+					out << ", ";
+
+				out
+					<< R"({)" << std::endl
+					<< R"(					"propid:": )" << prop.propid << ',' << std::endl
+					<< R"(					"type:": ")" << hexabus::datatypeName(prop.type) << R"(",)"<< std::endl;
+				if(prop.type == hexabus::HXB_DTYPE_128STRING || prop.type == hexabus::HXB_DTYPE_16BYTES || prop.type == hexabus::HXB_DTYPE_65BYTES)
+					out << R"(					"value:": ")" << san.sanitizeString(boost::get<std::string>(prop.value)) << R"(")" << std::endl;
+				else
+					out << R"(					"value:": )" << prop.value << std::endl;
+				out << "				}";
+			}
+		}
+		out << ']' << std::endl << "		}";
 	}
 
 	out << ']' << std::endl << "	}";
@@ -540,11 +809,11 @@ int main(int argc, char** argv)
 
 	try {
 		boost::asio::io_service io;
-		hexabus::Socket socket(io);
-		std::set<boost::asio::ip::address_v6> deviceAddresses;
+		hexabus::Socket socket(io, 5);
+		std::set<std::pair<boost::asio::ip::address_v6, std::string> > deviceAddresses;
 		NameSanitizer san{vm.count("-h") > 0};
 
-		DiscoverContext dc(socket, boost::posix_time::seconds(2), 3, vm.count("verbose"));
+		DiscoverContext dc(socket, boost::posix_time::seconds(2), 5, vm.count("verbose"));
 
 		if (vm.count("interface")) {
 			std::string iface = vm["interface"].as<std::string>();
@@ -567,13 +836,13 @@ int main(int argc, char** argv)
 		}
 
 		if (vm.count("ip")) {
-			deviceAddresses.insert(boost::asio::ip::address_v6::from_string(vm["ip"].as<std::string>()));
+			deviceAddresses.insert(getDeviceName(dc, boost::asio::ip::address_v6::from_string(vm["ip"].as<std::string>())));
 		} else {
 			deviceAddresses = enumerateDevices(dc);
 
 			dc.vout() << "Found devices:" << std::endl;
 			for (auto addr : deviceAddresses)
-				dc.vout() << '\t' << addr << std::endl;
+				dc.vout() << '\t' << addr.first << "\t\t" << addr.second << std::endl;
 		}
 
 		std::vector<DiscoveredDev> devices;
@@ -589,6 +858,10 @@ int main(int argc, char** argv)
 		if (vm.count("print")) {
 			for (auto& ep : endpoints) {
 				printEndpoint(std::cout, ep);
+
+				for(auto& prop : ep.properties) {
+					printProperty(std::cout, prop);
+				}
 				std::cout << std::endl;
 			}
 

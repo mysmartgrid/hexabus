@@ -452,7 +452,6 @@ Socket::Association& Socket::getAssociation(const boost::asio::ip::udp::endpoint
 		_associations[target].reset(new Association(io));
 		boost::shared_ptr<Association> assoc = _associations[target];
 
-		//TODO to constructor
 		assoc->lastUpdate = boost::posix_time::microsec_clock::universal_time();
 		assoc->seqNum = assoc->lastUpdate.time_of_day().total_microseconds() % std::numeric_limits<uint16_t>::max();
 		assoc->retrans_count = 0;
