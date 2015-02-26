@@ -16,7 +16,6 @@ inline std::string errcodeStr(uint8_t code)
 	case HXB_ERR_SUCCESS: return "Success";
 	case HXB_ERR_UNKNOWNEID: return "Unknown EID";
 	case HXB_ERR_WRITEREADONLY: return "Write on readonly endpoint";
-	case HXB_ERR_CRCFAILED: return "CRC failed";
 	case HXB_ERR_DATATYPE: return "Datatype mismatch";
 	case HXB_ERR_INVALID_VALUE: return "Invalid value";
 
