@@ -21,7 +21,7 @@ SET(ENABLE_LOGGING 1)
 
 set(V_MAJOR 0)
 set(V_MINOR 2)
-set(V_PATCH 0)
+set(V_PATCH 2)
 function (get_revision_info REV_INFO)
   execute_process (
     COMMAND git rev-list origin/master..HEAD
