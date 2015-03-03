@@ -17,12 +17,14 @@ var application_root = __dirname,
 	HexabusServer = require("./controllers/hexabusserver"),
 	StatemachineController = require("./controllers/statemachine"),
 	fs = require("fs"),
+	debug = require('./lib/debug'),
 	nconf=require('nconf');
 
 nconf.env().argv().file({file: 'config.json'});
 
 // Setting default values
 nconf.defaults({
+	'debug' : false,
 	'port': '3000',
 	'data': 'data',
 	'hxb-interfaces' : 'usb0,eth0'
@@ -77,7 +79,7 @@ enumerate_network();
 setInterval(enumerate_network, 60 * 60 * 1000);
 
 hexabus.connect(function() {
-	console.log('Got connection, trying to listen');
+	debug('Got connection, trying to listen');
 	nconf.get('hxb-interfaces').split(',').forEach(hexabus.listen.bind(hexabus));
 });
 hexabus.updateEndpointValues(devicetree);
@@ -89,7 +91,7 @@ var save_devicetree = function(cb) {
 			cb(err);
 		}
 	});
-	console.log('Saved Devicetree');
+	debug('Saved Devicetree');
 };
 setInterval(save_devicetree, 2 * 60 * 1000);
 
@@ -108,6 +110,7 @@ console.log("Using configuration: ");
 console.log(" - port: " + nconf.get('port'));
 console.log(" - data dir: " + nconf.get('data'));
 console.log(" - hxb-interfaces: " + nconf.get('hxb-interfaces'));
+console.log(" - debug: " + nconf.get('debug'));
 
 
 // see http://stackoverflow.com/questions/4600952/node-js-ejs-example
@@ -169,7 +172,7 @@ app.get('/commonjs/devicetree.js', function(req, res) {
  * Socket.io setup
  */
 io.on('connection', function (socket) {
-	console.log("Registering new client.");
+	debug("Registering new client.");
 
 	// Simple wrapper around socket.on that provides better exception handling.
 	var on = function(ev, cb) {

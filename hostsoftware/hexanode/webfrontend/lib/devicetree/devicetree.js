@@ -10,11 +10,11 @@
 
 var moduleWrapper = function(globalScope) {
 
-	var inherits, EventEmitter, uuid;
+	var inherits, EventEmitter, uuid, debug;
 	var isServerDeviceTree;
 
 	/*
-	 * Check the type of require because if we have a require function, 
+	 * Check the type of require because if we have a require function,
 	 * we can be quite certain that this is nodejs
 	 */
 	 if(typeof require == 'function') {
@@ -22,7 +22,7 @@ var moduleWrapper = function(globalScope) {
 		inherits = require('util').inherits;
 		EventEmitter = require('events').EventEmitter;
 		uuid = require('node-uuid');
-
+		debug = require('../debug');
 		isServerDeviceTree = true;
 	}
 	else {
@@ -30,7 +30,9 @@ var moduleWrapper = function(globalScope) {
 		inherits = globalScope.inherits;
 		EventEmitter = globalScope.EventEmitter;
 		uuid = globalScope.uuid;
-
+		debug = function() {
+			console.log.apply(console,arguments);
+		};
 		isServerDeviceTree = false;
 	}
 
@@ -631,6 +633,8 @@ var moduleWrapper = function(globalScope) {
 		};
 
 		this.applyDeletion = function(deletion) {
+
+			debug(deletion);
 			if(deletion.views !== undefined) {
 				for(var viewId in deletion.views) {
 					if(isEmptyObject(deletion.views[viewId])) {

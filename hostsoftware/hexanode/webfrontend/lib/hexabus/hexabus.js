@@ -14,6 +14,7 @@ var net = require('net');
 var makeTempFile = require('mktemp').createFileSync;
 var inherits = require('util').inherits;
 var EventEmitter = require('events').EventEmitter;
+var debug = require('../debug');
 
 var Hexabus = function() {
 	this.rename_device = function(addr, newName, cb) {
@@ -159,8 +160,8 @@ var Hexabus = function() {
 					cb({ error: error });
 				} else {
 					var devices = JSON.parse(stdout).devices;
-					console.log('Hexinfo ' +iface + ':');
-					console.log(devices);
+					debug('Hexinfo ' +iface + ':');
+					debug(devices);
 					devices.forEach(function(dev) {
 						deviceCb({ device: dev });
 					});
@@ -261,7 +262,7 @@ var Hexabus = function() {
 							//console.log(json);
 						}
 						else {
-							console.log(json);
+							debug(json);
 						}
 					}
 					catch(ex) {
