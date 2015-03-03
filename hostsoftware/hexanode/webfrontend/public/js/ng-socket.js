@@ -21,7 +21,7 @@ angular.module('ng-socket', []).factory('Socket', ['$rootScope', '$location', fu
 	};
 
 	socket.emit = function(id, message, callback) {
-		connection.emit(id, message, callback);
+		connection.emit(id, message, wrap_message(callback, {}));
 	};
 
 	socket.volatile_emit = function(id, message) {
