@@ -220,7 +220,7 @@ static std::pair<boost::asio::ip::address_v6, std::string> getDeviceName(Discove
 
 	dc.vout() << "Sending discovery packet ";
 	sc = dc.socket.onPacketReceived(response, hf::isReport<std::string>() && (hf::eid() == 0UL));
-	dc.socket.onPacketTransmitted(transmission_response, hexabus::QueryPacket(0, hexabus::HXB_FLAG_WANT_ACK||hexabus::HXB_FLAG_RELIABLE), boost::asio::ip::udp::endpoint(ip, 61616));
+	dc.socket.onPacketTransmitted(transmission_response, hexabus::QueryPacket(0, hexabus::HXB_FLAG_WANT_ACK|hexabus::HXB_FLAG_RELIABLE), boost::asio::ip::udp::endpoint(ip, 61616));
 	dc.vout() << std::endl;
 
 	dc.socket.ioService().reset();
@@ -399,7 +399,7 @@ static uint32_t queryProperty(DiscoverContext& dc, DiscoveredDev& device, uint32
 		hf::isPropertyReport<std::array<uint8_t, 16> >() ||
 		hf::isPropertyReport<std::array<uint8_t, 65> >()
 	);
-	dc.socket.onPacketTransmitted(transmission_response, hexabus::PropertyQueryPacket(propid, eid, hexabus::HXB_FLAG_WANT_ACK||hexabus::HXB_FLAG_RELIABLE),
+	dc.socket.onPacketTransmitted(transmission_response, hexabus::PropertyQueryPacket(propid, eid, hexabus::HXB_FLAG_WANT_ACK|hexabus::HXB_FLAG_RELIABLE),
 			boost::asio::ip::udp::endpoint(device.address, 61616));
 
 	dc.socket.ioService().reset();
@@ -441,7 +441,7 @@ static uint32_t queryEndpoint(DiscoverContext& dc, DiscoveredDev& device, uint32
 
 	dc.vout() << "Querying Endpoint " << eid << std::endl;
 	sc = dc.socket.onPacketReceived(response, hf::isEndpointReport());
-	dc.socket.onPacketTransmitted(transmission_response, hexabus::EndpointQueryPacket(eid, hexabus::HXB_FLAG_WANT_ACK||hexabus::HXB_FLAG_RELIABLE),
+	dc.socket.onPacketTransmitted(transmission_response, hexabus::EndpointQueryPacket(eid, hexabus::HXB_FLAG_WANT_ACK|hexabus::HXB_FLAG_RELIABLE),
 			boost::asio::ip::udp::endpoint(device.address, 61616));
 
 	dc.socket.ioService().reset();
