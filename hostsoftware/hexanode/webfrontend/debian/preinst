@@ -3,6 +3,7 @@
 set -e
 
 svc -d /etc/service/hexanode-webfrontend
+svc -d /etc/service/hexanode-hexajuice
 
 if ! id hexanode >/dev/null 2>&1
 then

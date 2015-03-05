@@ -8,11 +8,7 @@
  */
 
 
-var Hexabus = require("../lib/hexabus");
-
-var HexabusServer = function(socket, devicetree) {
-
-	var hexabus = new Hexabus();
+var HexabusServer = function(socket, hexabus, devicetree) {
 
 	// Wrapper for socket.on with improved exception handling.
 	var on = function(ev, cb) {
@@ -41,7 +37,7 @@ var HexabusServer = function(socket, devicetree) {
 		if(data.endpointId === undefined || data.field === undefined || data.value === undefined) {
 			throw 'Invalid enpoint metadata update';
 		}
-		
+
 		var ep = devicetree.endpoint_by_id(data.endpointId);
 		if(ep === undefined) {
 			throw 'Unknown endpoint';
@@ -81,7 +77,7 @@ var HexabusServer = function(socket, devicetree) {
 		});
 	});
 
-	
+
 	/*
 	 * Write a new value to an endpoint.
 	 *
@@ -94,7 +90,7 @@ var HexabusServer = function(socket, devicetree) {
 	 * }
 	 */
 	on('hexabus_set_endpoint', function(data, cb) {
-		
+
 		if(data.endpointId === undefined || data.value === undefined) {
 			throw 'Invalid set endpoint';
 		}
@@ -105,8 +101,8 @@ var HexabusServer = function(socket, devicetree) {
 		}
 
 		hexabus.write_endpoint(ep.ip, ep.eid, ep.type, data.value, function(error) {
-			console.log(error);
 			if(error) {
+				//console.log(error);
 				cb({'success' : false, 'error' : error.toString()});
 			}
 			else {

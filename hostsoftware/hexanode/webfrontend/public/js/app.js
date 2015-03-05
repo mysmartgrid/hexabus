@@ -10,6 +10,8 @@ angular.module('hexanode', [
 .controller('healthController', ['$scope', 'Socket', function($scope, Socket) {
 	$scope.errorState = false;
 
+	window.socket = Socket;
+
 	Socket.on('health_update', function(state) {
 		$scope.errorState = state;
 	});

@@ -1,13 +1,13 @@
 <form role="form" name="productionThresholdForm" novalidate>
-	<div class="form-group" data-ng-class="{'has-error': productionThresholdForm.producer.$invalid, 'has-success': productionThresholdForm.producer.$valid}">
+	<div class="form-group" data-ng-class="errorClass(productionThresholdForm.producer.$invalid)">
 		<label for="producer" class="control-label" data-localize="wizard.state-machine.choose-producer">Choose production device:</label>
-		<select class="form-control" name="producer" data-ng-model="productionThreshold.producer" 
-			data-ng-options="value.ip as value.name for (key,value) in productionThreshold.producer_devices" data-ng-required="true" >
-		</select>
+		<div data-device-selector="device-selector" class="form-control" name="producer" data-model="productionThreshold.producer" 
+			data-required="true"  data-device-list="productionThreshold.producerDevices">
+		</div>
 	</div>
 
-	<div class="control-group" 
-		data-ng-class="{'has-error': productionThresholdForm.productionThreshold.$invalid, 'has-success': productionThresholdForm.productionThreshold.$valid}">
+	<div class="control-group"
+		data-ng-class="errorClass(productionThresholdForm.productionThreshold.$invalid)">
 		<label for="productionThreshold" class="control-label" data-localize="wizard.state-machine.choose-production-threshold">Choose production threshold:</label>
 		<input class="form-control" type="number" name="productionThreshold" min="1" max="4294967295" data-ng-model="productionThreshold.productionThreshold"
 			data-ng-pattern="/^-?\d+$/" data-ng-required="true">
@@ -28,13 +28,13 @@
 		</p>
 	</div>
 
-	<div class="control-group" data-ng-class="{'has-error': productionThresholdForm.offTimeout.$invalid, 'has-success': productionThresholdForm.offTimeout.$valid}">
+	<div class="control-group" data-ng-class="errorClass(productionThresholdForm.offTimeout.$invalid)">
 		<label class="control-label" for="offTimeout" data-localize="wizard.state-machine.choose-off-timeout">Choose maximum offline time in minutes:</label>
 		<input class="form-control" type="number" name="offTimeout" min="1" max="71582788" data-ng-model="productionThreshold.offTimeout"
 			data-ng-pattern="/^-?\d+$/"  data-ng-required="true">
 		<p class="help-block"
-			data-ng-show="productionThresholdForm.offTimeout.$error.number 
-			|| productionThresholdForm.offTimeout.$error.required 
+			data-ng-show="productionThresholdForm.offTimeout.$error.number
+			|| productionThresholdForm.offTimeout.$error.required
 			|| productionThresholdForm.offTimeout.$error.pattern"
 			data-localize="wizard.state-machine.errors.no-valid-number">
 				Not a valid number.
@@ -49,8 +49,8 @@
 		</p>
 	</div>
 
-	<div class="control-group" 
-		data-ng-class="{'has-error': productionThresholdForm.usageThreshold.$invalid, 'has-success': productionThresholdForm.usageThreshold.$valid}">
+	<div class="control-group"
+		data-ng-class="errorClass(productionThresholdForm.usageThreshold.$invalid)">
 		<label for="productionThreshold" class="control-label" data-localize="wizard.state-machine.choose-usage-threshold">Choose usage threshold:</label>
 		<input class="form-control" type="number" name="usageThreshold" min="1" max="4294967295" data-ng-model="productionThreshold.usageThreshold"
 			data-ng-pattern="/^-?\d+$/" data-ng-required="true">
@@ -71,13 +71,13 @@
 		</p>
 	</div>
 
-	<div class="control-group" data-ng-class="{'has-error': productionThresholdForm.onTimeout.$invalid, 'has-success': productionThresholdForm.onTimeout.$valid}">
+	<div class="control-group" data-ng-class="errorClass(productionThresholdForm.onTimeout.$invalid)">
 		<label class="control-label" for="onTimeout" data-localize="wizard.state-machine.choose-on-timeout">Choose maximum online time in minutes:</label>
 		<input class="form-control" type="number" name="onTimeout" min="1" max="71582788" data-ng-model="productionThreshold.onTimeout"
 			data-ng-pattern="/^-?\d+$/"  data-ng-required="true">
 		<p class="help-block"
-			data-ng-show="productionThresholdForm.onTimeout.$error.number 
-			|| productionThresholdForm.onTimeout.$error.required 
+			data-ng-show="productionThresholdForm.onTimeout.$error.number
+			|| productionThresholdForm.onTimeout.$error.required
 			|| productionThresholdForm.onTimeout.$error.pattern"
 			data-localize="wizard.state-machine.errors.no-valid-number">
 				Not a valid number.
@@ -92,11 +92,11 @@
 		</p>
 	</div>
 
-	<div class="form-group" data-ng-class="{'has-error': productionThresholdForm.consumer.$invalid, 'has-success': productionThresholdForm.consumer.$valid}">
+	<div class="form-group" data-ng-class="errorClass(productionThresholdForm.consumer.$invalid)">
 		<label for="consumer" class="control-label" data-localize="wizard.state-machine.choose-consumer">Choose consumer device:</label>
-		<select class="form-control" name="consumer" data-ng-model="productionThreshold.consumer" 
-			data-ng-options="value.ip as value.name for (key,value) in productionThreshold.consumer_devices" data-ng-required="true" >
-		</select>
+		<div data-device-selector="device-selector" class="form-control" name="consumer" data-model="productionThreshold.consumer" 
+			data-required="true"  data-device-list="productionThreshold.consumerDevices">
+		</div>
 	</div>
 
 

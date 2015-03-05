@@ -1,4 +1,0 @@
-device <%= slavename %> {
-  ip <%= slaveip %>;
-  eids { 1 }
-}

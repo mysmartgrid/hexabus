@@ -10,24 +10,24 @@ var application_root = __dirname,
 	Hexabus = require("./lib/hexabus"),
 	hexabus = new Hexabus(),
 	Wizard = require("./lib/wizard"),
-	statemachines = require("./lib/statemachines"),
-	ApiController = require("./controllers/api"),
 	WizardController = require("./controllers/wizard"),
 	ViewsController = require("./controllers/views"),
 	HexabusServer = require("./controllers/hexabusserver"),
 	StatemachineController = require("./controllers/statemachine"),
 	fs = require("fs"),
+	debug = require('./lib/debug'),
 	nconf=require('nconf');
 
 nconf.env().argv().file({file: 'config.json'});
 
 // Setting default values
 nconf.defaults({
-  'port': '3000',
-	'config': '.'
+	'debug' : false,
+	'port': '3000',
+	'data': 'data',
+	'hxb-interfaces' : 'usb0,eth0'
 });
 server.listen(nconf.get('port'));
-
 
 // drop root if we ever had it, our arguments say so.
 // this includes all supplemental groups, of course
@@ -43,9 +43,15 @@ if (nconf.get('uid')) {
 }
 
 
+
+
 // Load Devicetree
-var configDir = nconf.get('config');
-var devicetree_file = configDir + '/devicetree.json';
+var dataDir = nconf.get('data');
+if(!fs.existsSync(dataDir)) {
+	fs.mkdir(dataDir);
+}
+
+var devicetree_file = path.join(dataDir,'devicetree.json');
 
 var devicetree;
 try {
@@ -67,6 +73,7 @@ catch(e) {
 var enumerate_network = function() {
 	hexabus.update_devicetree(devicetree, function(error) {
 		if(error !== undefined) {
+			console.log('Error updating devicetree');
 			console.log(error);
 		}
 	});
@@ -74,6 +81,10 @@ var enumerate_network = function() {
 enumerate_network();
 setInterval(enumerate_network, 60 * 60 * 1000);
 
+hexabus.connect(function() {
+	debug('Got connection, trying to listen');
+	nconf.get('hxb-interfaces').split(',').forEach(hexabus.listen.bind(hexabus));
+});
 hexabus.updateEndpointValues(devicetree);
 
 // Setup timer to regularily save the devictree to disk (just in case)
@@ -83,7 +94,7 @@ var save_devicetree = function(cb) {
 			cb(err);
 		}
 	});
-	console.log('Saved Devicetree');
+	debug('Saved Devicetree');
 };
 setInterval(save_devicetree, 2 * 60 * 1000);
 
@@ -100,7 +111,10 @@ process.on('SIGTERM', function() {
 
 console.log("Using configuration: ");
 console.log(" - port: " + nconf.get('port'));
-console.log(" - config dir: " + nconf.get('config'));
+console.log(" - data dir: " + nconf.get('data'));
+console.log(" - hxb-interfaces: " + nconf.get('hxb-interfaces'));
+console.log(" - debug: " + nconf.get('debug'));
+
 
 // see http://stackoverflow.com/questions/4600952/node-js-ejs-example
 // for EJS
@@ -161,7 +175,7 @@ app.get('/commonjs/devicetree.js', function(req, res) {
  * Socket.io setup
  */
 io.on('connection', function (socket) {
-	console.log("Registering new client.");
+	debug("Registering new client.");
 
 	// Simple wrapper around socket.on that provides better exception handling.
 	var on = function(ev, cb) {
@@ -188,10 +202,10 @@ io.on('connection', function (socket) {
 	var emit = socket.emit.bind(socket);
 
 	// A hexabusserver to handle hexabus_... messages
-	var hexabusServer = new HexabusServer(socket, devicetree);
+	var hexabusServer = new HexabusServer(socket, hexabus, devicetree);
 
 	// Setup handlers for statemachine messages
-	StatemachineController.socketioSetup(emit, on, hexabus, devicetree);
+	StatemachineController.socketioSetup(socket, hexabus, devicetree);
 
 	// Setup handler needed by the wizzard pages
 	WizardController.socketioSetup(on, emit, hexabus, devicetree);

@@ -1,17 +1,22 @@
 'use strict';
 
 var exec = require('child_process').exec;
+var execFile = require('child_process').execFile;
 var v6 = require('ipv6').v6;
 var os = require('os');
-var fs = require('fs');
+var fs = require('fs-extra');
+var path = require('path');
 var nconf = require('nconf');
 var async = require('async');
 var ejs = require('ejs');
 var es = require('event-stream');
 var net = require('net');
-var netroute = require('netroute');
+var makeTempFile = require('mktemp').createFileSync;
+var inherits = require('util').inherits;
+var EventEmitter = require('events').EventEmitter;
+var debug = require('../debug');
 
-var hexabus = function() {
+var Hexabus = function() {
 	this.rename_device = function(addr, newName, cb) {
 		addr = new v6.Address(addr);
 		if (!addr.valid) {
@@ -28,10 +33,9 @@ var hexabus = function() {
 		}
 	};
 
-	this.read_current_config = function() {
-		var ifaces = os.networkInterfaces();
+	this.read_current_config = function(callback) {
 
-		var gateway = netroute.getGateway();
+		var ifaces = os.networkInterfaces();
 
 		var nameservers = [];
 		var resolvConf = fs.readFileSync("/etc/resolv.conf").toString();
@@ -45,8 +49,8 @@ var hexabus = function() {
 		}
 
 		var config = {
-			gateway: gateway,
 			nameservers: nameservers,
+			gateway: 'error',
 			addrs: {
 				lan: {
 					v4: [],
@@ -85,7 +89,12 @@ var hexabus = function() {
 			});
 		}
 
-		return config;
+		exec("ip route list | grep default | cut -f 3  -d ' '", function(error, stdout, stderr) {
+			if(error !== undefined) {
+				config.gateway = stdout;
+			}
+			callback(config);
+		});
 	};
 
 
@@ -122,15 +131,35 @@ var hexabus = function() {
 
 	this.enumerate_network = function(deviceCb) {
 		deviceCb = deviceCb || Object;
-		
+
+		if(hexinfo_lock) {
+			deviceCb({'error' : 'Hexinfo is already running, try again later ...'});
+			return;
+		}
+
+		hexinfo_lock = true;
+
+		var tmpEpFile = makeTempFile("/tmp/XXXXXX_epfile.tmp");
+		var tmpDevFile = makeTempFile("/tmp/XXXXXX_devfile.tmp");
+		if(fs.existsSync(path.join(nconf.get("data"), 'endpoints.hbh')) && fs.existsSync(path.join(nconf.get("data"), 'devices.hbh'))) {
+			fs.copySync(path.join(nconf.get("data"), 'endpoints.hbh'), tmpEpFile);
+			fs.copySync(path.join(nconf.get("data"), 'devices.hbh'), tmpDevFile);
+		}
+
 		var enumerateInterface = function(iface, cb) {
-			exec("hexinfo --discover --interface " + iface + " --json -", function(error, stdout, stderr) {
+			execFile("hexinfo",
+					["--discover",
+					"--interface", iface,
+					"--json", "-",
+					"--epfile", tmpEpFile,
+					"--devfile", tmpDevFile],
+					function(error, stdout, stderr) {
 				if (error) {
 					cb({ error: error });
 				} else {
 					var devices = JSON.parse(stdout).devices;
-					console.log('Hexinfo ' +iface + ':');
-					console.log(devices);
+					debug('Hexinfo ' +iface + ':');
+					debug(devices);
 					devices.forEach(function(dev) {
 						deviceCb({ device: dev });
 					});
@@ -139,20 +168,18 @@ var hexabus = function() {
 			});
 		};
 
-		if(hexinfo_lock) {
-			deviceCb({'error' : 'Hexinfo is already running, try agaian later ...'});
-		}
-		
-		hexinfo_lock = true;
-
-		var interfaces = (nconf.get("debug-hxb-ifaces") || "eth0,usb0").split(",");
+		var interfaces = nconf.get("hxb-interfaces").split(",");
 		async.each(interfaces, enumerateInterface, function(error) {
+			hexinfo_lock = false;
+
 			if(error !== undefined) {
-				hexinfo_lock = false;
+				fs.unlinkSync(tmpEpFile);
+				fs.unlinkSync(tmpDevFile);
 				deviceCb({'error' : error});
 			}
 			else {
-				hexinfo_lock = false;
+				fs.renameSync(tmpEpFile, path.join(nconf.get("data"), 'endpoints.hbh'));
+				fs.renameSync(tmpDevFile, path.join(nconf.get("data"), 'devices.hbh'));
 				deviceCb({'done' : true});
 			}
 		});
@@ -167,7 +194,7 @@ var hexabus = function() {
 			if (dev.done !== undefined) {
 				cb();
 			} else if (dev.error !== undefined) {
-				console.log(dev.error);
+				//console.log(dev.error);
 				cb(dev.error);
 			} else {
 				dev = dev.device;
@@ -180,6 +207,7 @@ var hexabus = function() {
 					if(devicetree.devices[dev.ip].name !== dev.name) {
 						devicetree.devices[dev.ip].name = dev.name;
 					}
+					devicetree.devices[dev.ip].update();
 				}
 
 				for(var index in dev.endpoints) {
@@ -192,77 +220,108 @@ var hexabus = function() {
 		}.bind(this));
 	};
 
+	this.write_endpoint = function(ip, eid, type, value, callback) {
+		var command = {'command' : 'send',
+						'to' : {
+							'ip' : ip,
+							'port' : 61616,
+						},
+						'packet': {
+							'type' : 'write',
+							'eid' : eid,
+							'datatype' : type,
+							'value' : value
+						}
+					};
 
-	this.read_endpoint = function(ip, eid, cb) {
+		if(juiceConnection !== null) {
+			juiceConnection.write(JSON.stringify(command) + '\n');
+			callback();
+		}
+		else {
+			callback('Not connected to hexajuice');
+		}
 	};
 
-	this.write_endpoint = function(ip, eid, type, value, cb) {
-		var command = "hexaswitch set " + ip + " --eid " + eid + " --datatype " + type + " --value ";
-		// type 1 is bool
-		if (type == 1) {
-			command = command + (value ? "1" : "0");
-		}	else {
-			command = command + value;
+	var juiceConnection = null;
+
+	this.connect = function(callback) {
+		var juiceSocket = '/tmp/hexajuice.sock';
+
+		var hexajuiceServer = net.createServer(function(connection) {
+			if(juiceConnection === null) {
+				connection
+				.pipe(es.split())
+				.pipe(es.map(function(packet, mapCb) {
+					try {
+						var json = JSON.parse(packet);
+						if(json.error === undefined) {
+							this.emit('packet', json);
+							//console.log(json);
+						}
+						else {
+							debug(json);
+						}
+					}
+					catch(ex) {
+						console.log('Exception while parsing json: ' + ex);
+						console.log(ex.stack);
+					}
+					mapCb();
+				}.bind(this)));
+
+				juiceConnection = connection;
+				juiceConnection.on('close', function() {
+					juiceConnection = null;
+				});
+
+				callback();
+			}
+		}.bind(this));
+
+		if(fs.existsSync(juiceSocket)) {
+			fs.unlinkSync(juiceSocket);
 		}
 
-		exec(command, function(error, stdout, stderr) {
-			cb(error);
-		});
-	};
-
-	this.listen = function(iface, cb) {
-		var hexaswitchServer = net.createServer(function(connection) {
-			connection
-			.pipe(es.split())
-			.pipe(es.map(function(packet, mapCb) {
-				try {
-					var json = JSON.parse(packet);
-					cb(json);
-				}
-				catch(ex) {
-					console.log('Exception while parsing json: ' + ex);
-					console.log(ex.stack);
-				}
-				mapCb();
-			}));
-		});
-
-		if(fs.existsSync('/tmp/hexaswitch.sock')) {
-			fs.unlinkSync('/tmp/hexaswitch.sock');
-		}
-
-		hexaswitchServer.listen('/tmp/hexaswitch.sock', function() {
+		hexajuiceServer.listen(juiceSocket, function() {
 			process.on('exit', function() {
 				console.log('Closing socket');
-				hexaswitchServer.close();
+				hexajuiceServer.close();
 			});
 		});
+	};
 
+	this.listen = function(iface) {
+		var command = {'command' : 'listen', 'interface' : iface};
+		if(juiceConnection !== null) {
+			juiceConnection.write(JSON.stringify(command) + '\n');
+		}
 	};
 
 	this.updateEndpointValues = function(devicetree) {
 
-		this.listen('usb0', function(packet) {
+		this.on('packet', function(packet) {
 			//console.log(packet);
-			if(packet.type == 'Info') {
-				if(devicetree.devices[packet.from] === undefined ||
-					devicetree.devices[packet.from].endpoints[packet.eid] === undefined) {
+			packet = packet.packet;
+			if(packet.type == 'info') {
+				if(devicetree.devices[packet.from.ip] === undefined ||
+					devicetree.devices[packet.from.ip].endpoints[packet.eid] === undefined) {
 
-					console.log('Unknown device or endpoint:' + packet.from + ' ' + packet.eid);
+					console.log('Unknown device or endpoint:' + packet.from.ip + ' ' + packet.eid);
 
 					this.update_devicetree(devicetree,function(error) {
 						if(error !== undefined) {
-							console.log(error);
-							console.log('Could not update device tree ...');
+							console.log('Could not update device tree: ' + error.toString());
 						}
 					});
 				}
 				else {
-					devicetree.devices[packet.from].endpoints[packet.eid].last_value = packet.value;
+					devicetree.devices[packet.from.ip].endpoints[packet.eid].last_value = packet.value;
 				}
 			}
 		}.bind(this));
 	};
 };
+inherits(Hexabus, EventEmitter);
 
-module.exports = hexabus;
+module.exports = Hexabus;

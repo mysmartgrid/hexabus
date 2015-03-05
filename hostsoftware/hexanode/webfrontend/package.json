@@ -19,7 +19,8 @@
 	"async": "*",
 	"validator" : "*",
 	"node-uuid" : "*",
-	"netroute" : "*",
-	"event-stream" : "*"
-	}
+	"event-stream" : "*",
+	"mktemp" : "*",
+	"fs-extra" : "*"
+  }
 }

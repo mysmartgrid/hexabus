@@ -1,0 +1,40 @@
+
+machine class MasterSlave(device master, 
+						endpoint powermeter, 
+						typeof(master.powermeter) threshold, 
+						device slave, 
+						endpoint relais) {
+
+	state slave_init {
+		always {
+				goto slave_off;
+		}
+	}
+	
+	
+	state slave_off {
+
+		on entry {
+			slave.relais = false;
+		}
+
+		on update from master.powermeter {
+			if(master.powermeter >= threshold) {
+				goto slave_on;
+			}
+		}
+	}
+
+
+	state slave_on {
+		on entry {
+			slave.relais = true;
+		}
+
+		on update from master.powermeter {
+			if(master.powermeter < threshold) {
+				goto slave_off;
+			}
+		}
+	}
+};
