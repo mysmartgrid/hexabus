@@ -13,13 +13,18 @@
 #include "../../../shared/hexabus_definitions.h"
 #include "../../../shared/hexabus_types.h"
 
+#define DEBUG
+#ifdef DEBUG
+int64_t failcnt = 0;
+int64_t inforcvd = 0;
+#endif
+
 namespace po = boost::program_options;
 
 using namespace hexabus;
 
 bool verbose = false;
 
-int failcnt = 0;
 
 boost::asio::ip::address_v6 hxb_broadcast_address = boost::asio::ip::address_v6::from_string(HXB_GROUP);
 
@@ -49,18 +54,28 @@ public:
 
 	void transmissionCallback(const hexabus::Packet& packet, uint16_t seqNum, const boost::asio::ip::udp::endpoint asio_ep, bool failed) {
 		if(failed) {
-			failcnt++;
-			std::cout << "Info distribution failed! " << "Failed: " << failcnt << std::endl;
 
-			std::cout << "Missing ACKs from:" << std::endl;
-			for(std::set<boost::asio::ip::address_v6>::iterator it = remaining_addresses.begin(); it != remaining_addresses.end(); ++it)
-			{
-				std::cout << "\t" << it->to_string() << std::endl;
+			#ifdef DEBUG
+			failcnt++;
+			#endif
+
+			if(verbose) {
+				std::cout << "Info distribution failed! " << std::endl;
+
+				std::cout << "Missing ACKs from:" << std::endl;
+				for(std::set<boost::asio::ip::address_v6>::iterator it = remaining_addresses.begin(); it != remaining_addresses.end(); ++it)
+				{
+					std::cout << "\t" << it->to_string() << std::endl;
+				}
 			}
 
-		} else {
-			std::cout << "Info distribution successful!" << "Failed: " << failcnt << std::endl;
+		} else if(verbose) {
+			std::cout << "Info distribution successful!" << std::endl;
 		}
+
+		#ifdef DEBUG
+		std::cout << "Failed distributions: " << failcnt << std::endl;
+		#endif
 
 		if(!distribution_queue.empty())
 			distribution_queue.pop();
@@ -94,11 +109,17 @@ public:
 	}
 
 	void infoCallback(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep) {
+
 		if(verbose) {
 			std::cout << "Received Info packet " << packet.sequenceNumber()
 								<< " from " << asio_ep.address().to_v6().to_string() << std::endl;
 
 		}
+
+		#ifdef DEBUG
+			inforcvd++;
+			std::cout << "Total info packets received: " << inforcvd << std::endl;
+		#endif
 
 		addresses.insert(asio_ep.address().to_v6());
 
@@ -263,8 +284,8 @@ int main(int argc, char** argv)
 	PacketSender sender(network);
 	ErrorCallback errorCallback;
 
-	//boost::signals2::connection c3 = listener->onAsyncError(errorCallback);
-	boost::signals2::connection c4 = listener->onPacketReceived(boost::bind(&PacketSender::infoCallback, &sender, _1, _2),
+	boost::signals2::connection c1 = listener->onAsyncError(errorCallback);
+	boost::signals2::connection c2 = listener->onPacketReceived(boost::bind(&PacketSender::infoCallback, &sender, _1, _2),
 		filtering::isInfo<bool>() ||
 		filtering::isInfo<uint8_t>() ||
 		filtering::isInfo<uint16_t>() ||
@@ -278,8 +299,8 @@ int main(int argc, char** argv)
 		filtering::isInfo<std::string>() ||
 		filtering::isInfo<std::array<uint8_t, 16> >() ||
 		filtering::isInfo<std::array<uint8_t, 65> >());
-	//boost::signals2::connection c5 = network->onAsyncError(errorCallback);
-	boost::signals2::connection c6 = network->onPacketReceived(boost::bind(&PacketSender::ackCallback, &sender, _1, _2), filtering::isAck());
+	boost::signals2::connection c3 = network->onAsyncError(errorCallback);
+	boost::signals2::connection c4 = network->onPacketReceived(boost::bind(&PacketSender::ackCallback, &sender, _1, _2), filtering::isAck());
 
 	if(verbose) {
 		std::cout << "Listening for info packets..." << std::endl;
@@ -288,9 +309,9 @@ int main(int argc, char** argv)
 	network->ioService().reset();
 	network->ioService().run();
 
-	//c3.disconnect();
+	c1.disconnect();
+	c2.disconnect();
+	c3.disconnect();
 	c4.disconnect();
-	//c5.disconnect();
-	c6.disconnect();
 }
 
