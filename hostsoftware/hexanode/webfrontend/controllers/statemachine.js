@@ -1,6 +1,9 @@
 'use strict';
 
-var statemachines = require("../lib/statemachines");
+var StatemachineBuilder = require("../lib/statemachines/statemachines").StatemachineBuilder;
+var statemachineFromJson = require("../lib/statemachines/statemachines").statemachineFromJson;
+var findConflictingStatemachines = require("../lib/statemachines/statemachines").findConflictingStatemachines;
+
 
 module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 	app.get('/statemachine', function(req, res) {
@@ -23,53 +26,44 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 	});
 };
 
-module.exports.socketioSetup = function(on, emit, hexabus, devicetree) {
-	
+module.exports.socketioSetup = function(socket, hexabus, devicetree) {
+	var builder = new StatemachineBuilder(devicetree);
 
-	var busy = false;
 
-	var sendError = function(error) {
-		emit('sm_uploaded', {sucess: false, error: error});
+	// Wrapper for socket.on with improved exception handling.
+	var on = function(ev, cb) {
+		socket.on(ev, function(data, ackcb) {
+			try {
+				cb(data, ackcb);
+			} catch (e) {
+				socket.emit('_statemachine_error_', e.toString());
+				console.log('Statemachine error: ');
+				console.log(e);
+				console.log(e.stack);
+			}
+		});
 	};
 
-	var buildStatemachine = function(msg, statemachineModule) {
-		console.log(msg);
-		if(!busy) {			
-			console.log("Validating data");
 
-			var error = statemachineModule.validateInput(msg);
-			console.log(error);
-			if(error) {
-				console.log("Validation failed");
-				console.log(error);
-				sendError(error);
-				return;
+
+	on('update_statemachines', function(statemachineJson, cb) {
+		console.log(statemachineJson);
+
+		for(var machine in statemachineJson) {
+			var statemachine = statemachineFromJson(statemachineJson[machine], devicetree);
+			var conflicts = findConflictingStatemachines(statemachine, devicetree);
+
+			for(var index in conflicts) {
+				console.log('Deleting conflicting statemachine: ' + conflicts[index]);
+				devicetree.removeStatemachine(conflicts[index]);
 			}
 
-			console.log("Data passed validation");
-
-			busy = true;
-			statemachineModule.buildMachine(msg,
-				function(msg) {
-					emit('sm_progress', msg);
-				},
-				function(success, error) {
-					console.log(error);
-					busy = false;
-					emit('sm_uploaded', {success: success, error: error});
-			});
+			statemachine.saveToDevicetree();
 		}
-	};
 
-	on('master_slave_sm', function(msg) {
-		buildStatemachine(msg,statemachines.masterSlave);
-	});
-
-	on('standbykiller_sm', function(msg) {
-		buildStatemachine(msg,statemachines.standbyKiller);
-	});
-
-	on('productionthreshold_sm', function(msg) {
-		buildStatemachine(msg,statemachines.productionThreshold);
+		console.log('Starting builder');
+		builder.build(cb, function(msg) {
+			socket.emit('statemachine_progress', msg);
+		});
 	});
 };

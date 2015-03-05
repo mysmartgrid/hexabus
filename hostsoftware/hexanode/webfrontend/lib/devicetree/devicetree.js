@@ -89,8 +89,7 @@ var moduleWrapper = function(globalScope) {
 		 * This function propagates the a update of this device on level up in the devicetree.
 		 * It can be used in two ways:
 		 * 1. propagateUpdate()
-		 * In this 
-		 *
+		 * 2. propagateUpdate(enpointUpdate)
 		 */
 		this.propagateUpdate = function(endpointUpdate) {
 			var update = {};
@@ -271,8 +270,9 @@ var moduleWrapper = function(globalScope) {
 
 	};
 
-
-
+	/*
+	 * Helper to compute an endpoint id
+	 */
 	var endpoint_id = function(ip, eid) {
 		if (ip === undefined)
 			throw "Required parameter: ip";
@@ -282,6 +282,10 @@ var moduleWrapper = function(globalScope) {
 		return ip + "." + eid;
 	};
 
+
+	/*
+	 * Enpoint constructor
+	 */
 	var Endpoint = function(device, eid, params, emitter, last_value, last_update) {
 
 		this.propagateUpdate = function() {
@@ -524,6 +528,9 @@ var moduleWrapper = function(globalScope) {
 	};
 
 
+	/*
+	 * View constructor
+	 */
 	var View = function(name, endpoints, emitter, id) {
 
 		this.propagateUpdate = function() {
@@ -594,9 +601,69 @@ var moduleWrapper = function(globalScope) {
 		id = id || uuid.v4();
 	};
 
+	/*
+	 * Statemachine constructor
+	 */
+	var Statemachine = function(name, machineClass, config, emitter) {
+
+		Object.defineProperties(this, {
+			'name' : {
+				enumarable: true,
+				get: function() {
+					return name;
+				},
+				set: onServer(function(newName) {
+					name = newName;
+					this.propgateUpdate();
+				})
+			},
+
+			'machineClass' : {
+				enumerable: true,
+				get: function() {
+					return machineClass;
+				}
+			},
+
+			'config' : {
+				enumerable: true,
+				get: function() {
+					return config;
+				}
+			}
+		});
+
+		this.updateConfig = onServer(function(newConfig) {
+			config = newConfig;
+			this.propagateUpdate();
+		});
+
+		this.propagateUpdate = onServer(function() {
+			var update = {};
+			update.statemachines = {};
+			update.statemachines[name] = {
+				'machineClass' : machineClass,
+				'config' : config
+			};
+			emitter.propagateUpdate(update);
+		});
+
+		if(name === undefined ||
+			machineClass === undefined ||
+			config === undefined ||
+			emitter === undefined) {
+			throw "Statemachine constructor needs 4 arguments";
+		}
+	};
+
+
+	/*
+	 * DeviceTree constructor
+	 */
 	var DeviceTree = function(jsonTree) {
 		var devices = {};
 		var views = {};
+		var statemachines = {};
 
 		this.applyUpdate = function(update) {
 			if(update.devices !== undefined) {
@@ -643,6 +710,14 @@ var moduleWrapper = function(globalScope) {
 				}
 			}
 
+			if(deletion.statemachines !== undefined) {
+				for(var machineName in deletion.statemachines) {
+					if(isEmptyObject(deletion.statemachines[machineName])) {
+						delete statemachines[machineName];
+					}
+				}
+			}
+
 			if(deletion.devices !== undefined) {
 				for(var deviceIp in deletion.devices) {
 					if(isEmptyObject(deletion.devices[deviceIp])) {
@@ -666,17 +741,10 @@ var moduleWrapper = function(globalScope) {
 			this.emit('delete', deletion);
 		};
 
-		this.propagateViewDeletion = function(viewId) {
+		this.propagateEntityDeletion = function(key, id) {
 			var deletion = {};
-			deletion.views = {};
-			deletion.views[viewId] = {};
-			this.propagateDeletion(deletion);
-		};
-
-		this.propagateDeviceDeletion = function(ip) {
-			var deletion = {};
-			deletion.devices = {};
-			deletion.devices[ip] = {};
+			deletion[key] = {};
+			deletion[key][id] = {};
 			this.propagateDeletion(deletion);
 		};
 
@@ -699,7 +767,7 @@ var moduleWrapper = function(globalScope) {
 			}
 
 			delete devices[ip];
-			this.propagateDeviceDeletion(ip);
+			this.propagateEntityDeletion('devices',ip);
 		};
 
 		this.add_endpoint = onServer(function(ip, eid, params) {
@@ -733,6 +801,17 @@ var moduleWrapper = function(globalScope) {
 			}
 		};
 
+		this.getDevicesWithEndpoint = function(eids) {
+			var devs = Object.keys(devices).map(function(key) {
+				return devices[key];
+			});
+			return devs.filter(function(dev) {
+				return eids.every(function(eid) {
+					return eid in dev.endpoints;
+				});
+			});
+		};
+
 		this.remove = onServer(function(ip) {
 			//TODO: Refactor all code to use removeDevice instead
 			this.removeDevice(ip);
@@ -753,7 +832,7 @@ var moduleWrapper = function(globalScope) {
 			var view = new View(name, devices, this);
 			views[view.id] = view;
 
-			view.propagateUpdate(view);
+			view.propagateUpdate();
 
 			return view;
 		};
@@ -761,18 +840,35 @@ var moduleWrapper = function(globalScope) {
 		this.removeView = function(id) {
 			if(views[id] !== undefined) {
 				delete views[id];
-				this.propagateViewDeletion(id);
+				this.propagateEntityDeletion('views',id);
 			}
 			else {
 				throw "No such view";
 			}
 		};
 
+		this.addStatemachine = onServer(function(name, machineClass, config) {
+			var machine = new Statemachine(name, machineClass, config, this);
+			statemachines[name] = machine;
+			machine.propagateUpdate();
+		});
+
+
+		this.removeStatemachine = onServer(function(name) {
+			if(statemachines[name] !== undefined) {
+				delete statemachines[name];
+				this.propagateEntityDeletion('statemachines',name);
+			}
+			else {
+				throw "No such statemachine";
+			}
+		});
+
 		this.reset = onServer(function() {
 			for(var ip in devices) {
 				this.removeDevice(ip);
 			}
-		
+
 			for(var id in view) {
 				this.removeView(id);
 			}
@@ -788,17 +884,23 @@ var moduleWrapper = function(globalScope) {
 				get: function() {
 					return views;
 				}
+			},
+			statemachines: {
+				get: function() {
+					return statemachines;
+				}
 			}
 		});
 
 		this.toJSON = function() {
 			var json = {
 				devices: devices,
-				views: views
+				views: views,
+				statemachines: statemachines,
 			};
 			return json;
 		};
-		
+
 		if (jsonTree !== undefined) {
 			for (var key in jsonTree.devices) {
 				devices[key] = new Device({
@@ -810,6 +912,16 @@ var moduleWrapper = function(globalScope) {
 			for(var id in jsonTree.views) {
 				var view = jsonTree.views[id];
 				views[id] = new View(view.name, view.endpoints, this, id);
+			}
+
+			debug(jsonTree.statemachines);
+			for(var machineName in jsonTree.statemachines) {
+				debug('Machine:' + machineName);
+				var machine = jsonTree.statemachines[machineName];
+				statemachines[machineName] = new Statemachine(machineName,
+																machine.machineClass,
+																machine.config,
+																this);
 			}
 		}
 

@@ -34,7 +34,7 @@ var Hexabus = function() {
 	};
 
 	this.read_current_config = function(callback) {
-		
+
 		var ifaces = os.networkInterfaces();
 
 		var nameservers = [];
@@ -145,9 +145,6 @@ var Hexabus = function() {
 			fs.copySync(path.join(nconf.get("data"), 'devices.hbh'), tmpDevFile);
 		}
 
-		console.log(tmpEpFile);
-		console.log(tmpDevFile);
-		
 		var enumerateInterface = function(iface, cb) {
 			execFile("hexinfo",
 					["--discover",
@@ -304,7 +301,7 @@ var Hexabus = function() {
 	this.updateEndpointValues = function(devicetree) {
 
 		this.on('packet', function(packet) {
-			console.log(packet);
+			//console.log(packet);
 			packet = packet.packet;
 			if(packet.type == 'info') {
 				if(devicetree.devices[packet.from.ip] === undefined ||

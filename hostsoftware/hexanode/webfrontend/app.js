@@ -10,7 +10,6 @@ var application_root = __dirname,
 	Hexabus = require("./lib/hexabus"),
 	hexabus = new Hexabus(),
 	Wizard = require("./lib/wizard"),
-	statemachines = require("./lib/statemachines"),
 	WizardController = require("./controllers/wizard"),
 	ViewsController = require("./controllers/views"),
 	HexabusServer = require("./controllers/hexabusserver"),
@@ -201,7 +200,7 @@ io.on('connection', function (socket) {
 	var hexabusServer = new HexabusServer(socket, hexabus, devicetree);
 
 	// Setup handlers for statemachine messages
-	StatemachineController.socketioSetup(emit, on, hexabus, devicetree);
+	StatemachineController.socketioSetup(socket, hexabus, devicetree);
 
 	// Setup handler needed by the wizzard pages
 	WizardController.socketioSetup(on, emit, hexabus, devicetree);

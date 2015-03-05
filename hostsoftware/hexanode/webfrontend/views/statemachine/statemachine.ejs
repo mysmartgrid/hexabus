@@ -8,18 +8,38 @@
 <div class="container" data-ng-controller="stateMachine">
 
 	<div class="alert alert-info" data-ng-show="progressAlert.show">
-		<div class="progress progress-striped active" data-ng-show="progressAlert.percent > 0">
-			<div class="progress-bar" style="width: {{progressAlert.percent}}%"></div>
+		<div class="row">
+			<div class="col-md-2">
+				<img src="img/spinner-large.gif"/>
+			</div>
+			<div class="col-md-10">
+				<br/>
+				<br/>
+				<div class="progress progress-striped active" data-ng-show="progressAlert.percent > 0">
+					<div class="progress-bar" style="width: {{progressAlert.percent}}%"></div>
+				</div>
+				{{progressAlert.text}}
+			</div>
 		</div>
-		{{progressAlert.text}}
 	</div>
 
 	<div class="alert alert-danger" data-ng-show="errorAlert.show">
 		{{errorAlert.text}}
 	</div>
 
-	<div class="alert alert-success" data-ng-show="successAlert.show" data-localize="wizard.state-machine.upload-success">
-		Upload sucessful !
+	<div class="alert alert-success" data-ng-show="successAlert.show">
+		<div class="row">
+			<div class="col-md-2">
+				<img src="img/hexapus_sir.png"/>
+			</div>
+			<div class="col-md-10">
+				<br/>
+				<br/>
+				<br/>
+				<span data-localize="wizard.state-machine.upload-success">Upload sucessfull !</span>
+			</div>
+		</div>
+
 	</div>
 
 

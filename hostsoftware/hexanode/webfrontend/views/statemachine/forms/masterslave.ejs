@@ -1,16 +1,16 @@
 <form role="form" name="masterSlaveForm" novalidate>
-	<div class="form-group" data-ng-class="{'has-error': masterSlaveForm.$error.disjointDevices, 'has-success': !masterSlaveForm.$error.disjointDevices }">
+	<div class="form-group" data-ng-class="errorClass(masterSlaveForm.$error.disjointDevices || masterSlaveForm.master.$invalid)">
 		<label for="master" class="control-label" data-localize="wizard.state-machine.choose-master">Choose master</label>
-		<select class="form-control" name="master" data-ng-model="masterSlave.master" data-ng-options="value.ip as value.name for (key,value) in devices"
-			data-ng-required="true" data-ng-change="masterSlave.validateForm()">
-		</select>
+		<div data-device-selector="device-selector" class="form-control" name="master" data-model="masterSlave.master" 
+			data-required="true" data-change="masterSlave.validateForm()" data-device-list="masterSlave.masterDevices">
+		</div>
 	</div>
-	<div class="form-group" data-ng-class="{'has-error': masterSlaveForm.threshold.$invalid, 'has-success': masterSlaveForm.threshold.$valid }">
+	<div class="form-group" data-ng-class="errorClass(masterSlaveForm.threshold.$invalid)">
 		<label for="treshold" class="control-label" data-localize="wizard.state-machine.choose-threshold">Choose threshold</label>
 		<input class="form-control" type="number" data-ng-pattern="/^-?\d+$/" name="threshold" min="1" max="4294967295"
 			data-ng-model="masterSlave.threshold" data-ng-required="true">
 		<p class="help-block"
-			data-ng-show="masterSlaveForm.threshold.$error.number || masterSlaveForm.threshold.$error.required || masterSlaveForm.threshold.$error.pattern "
+			data-ng-show="masterSlaveForm.threshold.$error.number || masterSlaveForm.threshold.$error.required || masterSlaveForm.threshold.$error.pattern"
 			data-localize="wizard.state-machine.errors.no-valid-number">
 			Not a valid number.
 		</p>
@@ -24,8 +24,7 @@
 		</p>
 	</div>
 	<div class="form-group"
-		data-ng-class="{'has-error': masterSlaveForm.$error.disjointDevices || masterSlave.slaves.length == 0,
-		'has-success': !masterSlaveForm.$error.disjointDevices && masterSlave.slaves.length > 0 }">
+		data-ng-class="errorClass(masterSlaveForm.$error.disjointDevices || masterSlaveForm.$error.undefinedDevices || masterSlave.slaves.length == 0)">
 		<label class="control-label" data-localize="wizard.state-machine.add-slaves">Add slaves</label>
 		<div data-ng-repeat="slave in masterSlave.slaves">
 			<div class="row">
@@ -33,9 +32,9 @@
 				<!-- Just a placeholder -->
 				</div>
 				<div class="col-xs-5">
-					<select class="form-control" data-ng-model="slave.ip" data-ng-options="value.ip as value.name for (key,value) in devices"  data-ng-required="true"
-						data-ng-change="masterSlave.validateForm()">
-					</select>
+					<div data-device-selector="device-selector" class="form-control" data-model="slave.ip" 
+						data-required="true" data-change="masterSlave.validateForm()" data-device-list="masterSlave.slaveDevices">
+					</div>
 				</div>
 				<div class="col-xs-2">
 					<button type="button" class="btn btn-danger" data-ng-click="masterSlave.removeSlave(slave)" data-ng-disabled="busy">
@@ -53,7 +52,7 @@
 		</p>
 	</div>
 	</br>
-	<button data-ng-disabled="busy || (masterSlave.slaves.length >= masterSlave.maxSlaveCount)" class="btn btn-success"
+	<button data-ng-disabled="busy || (masterSlave.slaves.length >= masterSlave.slaveDevices.length - 1)" class="btn btn-success"
 		data-localize="wizard.state-machine.add-slave" data-ng-click="masterSlave.addSlave()">Add Slave</button>
 	<button class="btn btn-success"
 		data-ng-disabled="masterSlaveForm.$invalid || busy || (masterSlave.slaves.length == 0)" 

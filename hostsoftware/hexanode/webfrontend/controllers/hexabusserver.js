@@ -37,7 +37,7 @@ var HexabusServer = function(socket, hexabus, devicetree) {
 		if(data.endpointId === undefined || data.field === undefined || data.value === undefined) {
 			throw 'Invalid enpoint metadata update';
 		}
-		
+
 		var ep = devicetree.endpoint_by_id(data.endpointId);
 		if(ep === undefined) {
 			throw 'Unknown endpoint';
@@ -77,7 +77,7 @@ var HexabusServer = function(socket, hexabus, devicetree) {
 		});
 	});
 
-	
+
 	/*
 	 * Write a new value to an endpoint.
 	 *
@@ -90,7 +90,7 @@ var HexabusServer = function(socket, hexabus, devicetree) {
 	 * }
 	 */
 	on('hexabus_set_endpoint', function(data, cb) {
-		
+
 		if(data.endpointId === undefined || data.value === undefined) {
 			throw 'Invalid set endpoint';
 		}
@@ -102,7 +102,7 @@ var HexabusServer = function(socket, hexabus, devicetree) {
 
 		hexabus.write_endpoint(ep.ip, ep.eid, ep.type, data.value, function(error) {
 			if(error) {
-				console.log(error);
+				//console.log(error);
 				cb({'success' : false, 'error' : error.toString()});
 			}
 			else {

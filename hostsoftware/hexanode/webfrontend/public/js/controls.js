@@ -427,9 +427,51 @@ angular.module('controls', [
 				'</div>' +
 			'</div>',
 		compile: function(element, attrs, transclude) {
-			console.log(attrs);
 			return {
 				post: function(scope, element, attrs, controller) {
+				}
+			};
+		}
+	};
+}])
+.directive('deviceSelector', ['$timeout', function($timeout) {
+	return {
+		restrict: 'A',
+		scope: {
+			deviceList: '=',
+			model: '=',
+			required: '&',
+			change: '&',
+			name: '@',
+			class: '@',
+			id: '@'
+		},
+		replace: true,
+		template:
+			'<select data-ng-model="model" data-ng-required="required" data-ng-options="value.ip as value.name for (key,value) in deviceList">' +
+			'</select>',
+
+		compile: function(element, attrs, transclude) {
+			return {
+				post: function(scope, element, attrs, controller) {
+					scope.$watch('deviceList', function(deviceList) {
+						var inList = deviceList.some(function(dev) {
+							return dev.ip === scope.model;
+						});
+						if(!inList) {
+							scope.model = undefined;
+						}
+					});
+
+					/*
+					 * Make sure we change is called AFTER the parent scope was updated.
+					 * Simply fowarding change to data-ng-change in the template will NOT work !
+					 */
+					scope.$watch('model', function() {
+						if(scope.change !== undefined) {
+							scope.change();
+						}
+					});
 				}
 			};
 		}
