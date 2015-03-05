@@ -1,0 +1,85 @@
+machine class ProductionThreshold(device producer, 
+									endpoint prodMeter,
+									typeof(producer.prodMeter) prodThreshold,
+									device consumer,
+									endpoint conMeter,
+									typeof(consumer.conMeter) conThreshold,
+									endpoint conRelais,
+									endpoint conButton,
+									uint16 onTimeout,
+									uint16 offTimeout) {
+
+	uint8 samplesNeeded = 5;
+
+	state init {
+		always {
+			goto onState;
+		}
+	}
+
+	state onState {
+		uint8 samples = 0;
+		uint64 onSince = now();
+
+		on entry {
+			consumer.conRelais = true;
+		}
+		
+		on update from consumer.conMeter {
+			if(consumer.conMeter >= conThreshold) {
+				samples = 0;
+			}
+			else {
+				samples = samples + 1;
+			}
+			if(samples >= samplesNeeded) {
+				goto offState;
+			}
+		}
+
+		on update from consumer.conButton {
+			goto offState;
+		}
+	
+		on periodic {
+			if(now() - onSince > onTimeout) {
+				goto offState;
+			}
+		}
+	}
+
+	state offState {
+		uint8 samples = 0;
+		uint64 offSince = now();
+		
+		on entry {
+			consumer.conRelais = false;
+		}
+
+		on update from producer.prodMeter {
+			if(producer.prodMeter < prodThreshold) {
+				samples = 0;
+			}
+			else {
+				samples = samples + 1;
+			}
+
+			if(samples >= samplesNeeded) {
+				goto onState;
+			}
+		}
+		
+		on update from consumer.conButton {
+			goto onState;
+		}
+
+		
+		on periodic {
+			if(now() - offSince > offTimeout) {
+				goto onState;
+			}
+		}
+
+	}
+
+};

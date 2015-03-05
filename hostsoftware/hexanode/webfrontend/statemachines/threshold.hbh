@@ -1,0 +1,76 @@
+machine class Threshold(device meterDevice,
+						endpoint meter,
+						typeof(meterDevice.meter) threshold,
+						device switchDevice,
+						endpoint relais,
+						endpoint button,
+						uint16 minOnTime,
+						uint16 minOffTime) {
+
+	uint8 samplesNeeded = 5;
+
+	state init {
+		always {
+			goto offState;
+		}
+	}
+
+
+	state onState {
+		uint64 onSince = now();
+		uint8 samples = 0;
+
+		on entry {
+			switchDevice.relais = true;
+		}
+
+		on update from meterDevice.meter {
+			if(now() - onSince > minOnTime) {
+				if(meterDevice.meter < threshold) {
+					samples = samples + 1;
+				}
+				else {
+					samples = 0;
+				}
+
+				if(samples > samplesNeeded) {
+					goto offState;
+				}
+			}
+		}
+
+		on update from switchDevice.button {
+			goto offState;
+		}
+	}
+
+	state offState {
+		uint64 offSince = now();
+		uint8 samples = 0;
+
+
+		on entry {
+			switchDevice.relais = false;
+		}
+
+		on update from meterDevice.meter {
+			if(now() - offSince > minOffTime) {
+				if(meterDevice.meter >= threshold) {
+					samples = samples + 1;
+				}
+				else {
+					samples = 0;
+				}
+
+				if(samples > samplesNeeded) {
+					goto onState;
+				}
+			}
+		}
+
+		on update from switchDevice.button {
+			goto onState;
+		}
+	}
+
+};
