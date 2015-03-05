@@ -7,6 +7,8 @@
 
 #include <iostream>
 
+#include <boost/date_time.hpp>
+
 namespace hexabus {
 namespace sm {
 

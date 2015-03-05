@@ -18,6 +18,8 @@
     "ipv6": "3.1.1",
 	"async": "*",
 	"validator" : "*",
-	"node-uuid" : "*"
+	"node-uuid" : "*",
+	"netroute" : "*",
+	"event-stream" : "*"
 	}
 }

@@ -1,36 +1,21 @@
 #ifndef LIBHEXABUS_PACKET_HPP
 #define LIBHEXABUS_PACKET_HPP 1
 
-#include <stdint.h>
 #include <iostream>
+#include <memory>
+#include <stdint.h>
 #include <string>
 #include <vector>
-#include <boost/static_assert.hpp>
-#include <boost/type_traits.hpp>
-#include <boost/array.hpp>
+#include <array>
+
 #include <libhexabus/hexabus_types.h>
-
-//#define ENABLE_LOGGING 0
-//#include "config.h"
-#include <libhexabus/config.h>
-
-/* Include TR1 shared ptrs in a portable way. */
-#include <cstddef> // for __GLIBCXX__
-#ifdef __GLIBCXX__
-#  include <tr1/memory>
-#else
-#  ifdef __IBMCPP__
-#    define __IBMCPP_TR1__
-#  endif
-#  include <memory>
-#endif
 
 namespace hexabus {
 	class PacketVisitor;
 
 	class Packet {
 		public:
-			typedef std::tr1::shared_ptr<Packet> Ptr;
+			typedef std::shared_ptr<Packet> Ptr;
 
 		private:
 			uint8_t _type;
@@ -79,8 +64,8 @@ namespace hexabus {
 			virtual void visit(const InfoPacket<int64_t>& info) = 0;
 			virtual void visit(const InfoPacket<float>& info) = 0;
 			virtual void visit(const InfoPacket<std::string>& info) = 0;
-			virtual void visit(const InfoPacket<boost::array<char, 16> >& info) = 0;
-			virtual void visit(const InfoPacket<boost::array<char, 65> >& info) = 0;
+			virtual void visit(const InfoPacket<std::array<uint8_t, 16> >& info) = 0;
+			virtual void visit(const InfoPacket<std::array<uint8_t, 65> >& info) = 0;
 
 			virtual void visit(const WritePacket<bool>& write) = 0;
 			virtual void visit(const WritePacket<uint8_t>& write) = 0;
@@ -93,8 +78,8 @@ namespace hexabus {
 			virtual void visit(const WritePacket<int64_t>& write) = 0;
 			virtual void visit(const WritePacket<float>& write) = 0;
 			virtual void visit(const WritePacket<std::string>& write) = 0;
-			virtual void visit(const WritePacket<boost::array<char, 16> >& write) = 0;
-			virtual void visit(const WritePacket<boost::array<char, 65> >& write) = 0;
+			virtual void visit(const WritePacket<std::array<uint8_t, 16> >& write) = 0;
+			virtual void visit(const WritePacket<std::array<uint8_t, 65> >& write) = 0;
 
 			virtual void visitPacket(const Packet& packet)
 			{
@@ -170,35 +155,35 @@ namespace hexabus {
 	template<typename TValue>
 	class ValuePacket : public TypedPacket {
 		private:
-			BOOST_STATIC_ASSERT_MSG((
-				boost::is_same<TValue, bool>::value
-					|| boost::is_same<TValue, uint8_t>::value
-					|| boost::is_same<TValue, uint16_t>::value
-					|| boost::is_same<TValue, uint32_t>::value
-					|| boost::is_same<TValue, uint64_t>::value
-					|| boost::is_same<TValue, int8_t>::value
-					|| boost::is_same<TValue, int16_t>::value
-					|| boost::is_same<TValue, int32_t>::value
-					|| boost::is_same<TValue, int64_t>::value
-					|| boost::is_same<TValue, float>::value
-					|| boost::is_same<TValue, boost::array<char, 16> >::value
-					|| boost::is_same<TValue, boost::array<char, 65> >::value),
+			static_assert(
+				std::is_same<TValue, bool>::value
+					|| std::is_same<TValue, uint8_t>::value
+					|| std::is_same<TValue, uint16_t>::value
+					|| std::is_same<TValue, uint32_t>::value
+					|| std::is_same<TValue, uint64_t>::value
+					|| std::is_same<TValue, int8_t>::value
+					|| std::is_same<TValue, int16_t>::value
+					|| std::is_same<TValue, int32_t>::value
+					|| std::is_same<TValue, int64_t>::value
+					|| std::is_same<TValue, float>::value
+					|| std::is_same<TValue, std::array<uint8_t, 16>>::value
+					|| std::is_same<TValue, std::array<uint8_t, 65>>::value,
 				"I don't know how to handle that type");
 
 			static uint8_t calculateDatatype()
 			{
 				return
-					boost::is_same<TValue, bool>::value ? HXB_DTYPE_BOOL :
-					boost::is_same<TValue, uint8_t>::value ? HXB_DTYPE_UINT8 :
-					boost::is_same<TValue, uint16_t>::value ? HXB_DTYPE_UINT16 :
-					boost::is_same<TValue, uint32_t>::value ? HXB_DTYPE_UINT32 :
-					boost::is_same<TValue, uint64_t>::value ? HXB_DTYPE_UINT64 :
-					boost::is_same<TValue, int8_t>::value ? HXB_DTYPE_SINT8 :
-					boost::is_same<TValue, int16_t>::value ? HXB_DTYPE_SINT16 :
-					boost::is_same<TValue, int32_t>::value ? HXB_DTYPE_SINT32 :
-					boost::is_same<TValue, int64_t>::value ? HXB_DTYPE_SINT64 :
-					boost::is_same<TValue, float>::value ? HXB_DTYPE_FLOAT :
-					boost::is_same<TValue, boost::array<char, 16> >::value ? HXB_DTYPE_16BYTES : HXB_DTYPE_65BYTES;
+					std::is_same<TValue, bool>::value ? HXB_DTYPE_BOOL :
+					std::is_same<TValue, uint8_t>::value ? HXB_DTYPE_UINT8 :
+					std::is_same<TValue, uint16_t>::value ? HXB_DTYPE_UINT16 :
+					std::is_same<TValue, uint32_t>::value ? HXB_DTYPE_UINT32 :
+					std::is_same<TValue, uint64_t>::value ? HXB_DTYPE_UINT64 :
+					std::is_same<TValue, int8_t>::value ? HXB_DTYPE_SINT8 :
+					std::is_same<TValue, int16_t>::value ? HXB_DTYPE_SINT16 :
+					std::is_same<TValue, int32_t>::value ? HXB_DTYPE_SINT32 :
+					std::is_same<TValue, int64_t>::value ? HXB_DTYPE_SINT64 :
+					std::is_same<TValue, float>::value ? HXB_DTYPE_FLOAT :
+					std::is_same<TValue, std::array<uint8_t, 16>>::value ? HXB_DTYPE_16BYTES : HXB_DTYPE_65BYTES;
 			}
 
 			TValue _value;

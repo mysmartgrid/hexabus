@@ -97,8 +97,8 @@ void DeviceInterrogator::queue_query(
 		const boost::asio::ip::address_v6& device,
 		const Packet::Ptr& packet,
 		const Socket::filter_t& filter,
-		const boost::function<void (const Packet&)>& response_cb,
-		const boost::function<void (const GenericException&)>& failure_cb,
+		const std::function<void (const Packet&)>& response_cb,
+		const std::function<void (const GenericException&)>& failure_cb,
 		int max_tries)
 {
 	base_query query;

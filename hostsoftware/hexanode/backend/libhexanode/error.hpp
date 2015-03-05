@@ -21,14 +21,12 @@
 #ifndef LIBHEXANODE_ERROR_HPP
 #define LIBHEXANODE_ERROR_HPP 1
 
-#include <libhexanode/common.hpp>
 #include <string>
 #include <exception>
 
 namespace hexanode {
   class GenericException : public std::exception {
 	public:
-	  typedef std::tr1::shared_ptr<GenericException> Ptr;
 	  GenericException (const std::string reason) : _reason(reason) {};
     virtual ~GenericException() throw() {};
     virtual const char* what() const throw() { return reason().c_str(); }
@@ -40,7 +38,6 @@ namespace hexanode {
 
   class CommunicationException : public GenericException{
     public:
-      typedef std::tr1::shared_ptr<CommunicationException> Ptr;
       CommunicationException (const std::string reason) :
         hexanode::GenericException(reason) {};
       virtual ~CommunicationException() throw() {};
@@ -49,7 +46,6 @@ namespace hexanode {
 
   class DataFormatException : public GenericException{
     public:
-      typedef std::tr1::shared_ptr<DataFormatException> Ptr;
       DataFormatException (const std::string reason) :
         hexanode::GenericException(reason) {};
       virtual ~DataFormatException() throw() {};
@@ -58,7 +54,6 @@ namespace hexanode {
 
   class MidiException : public GenericException{
     public:
-      typedef std::tr1::shared_ptr<MidiException> Ptr;
       MidiException (const std::string reason) :
         hexanode::GenericException(reason) {};
       virtual ~MidiException() throw() {};
@@ -66,7 +61,6 @@ namespace hexanode {
 
   class NotFoundException : public GenericException{
     public:
-      typedef std::tr1::shared_ptr<NotFoundException> Ptr;
       NotFoundException (const std::string reason) :
         hexanode::GenericException(reason) {};
       virtual ~NotFoundException() throw() {};
@@ -74,7 +68,6 @@ namespace hexanode {
 
   class DuplicateException : public GenericException{
     public:
-      typedef std::tr1::shared_ptr<DuplicateException> Ptr;
       DuplicateException (const std::string reason) :
         hexanode::GenericException(reason) {};
       virtual ~DuplicateException() throw() {};

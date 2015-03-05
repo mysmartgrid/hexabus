@@ -9,6 +9,7 @@ var async = require('async');
 var ejs = require('ejs');
 var es = require('event-stream');
 var net = require('net');
+var netroute = require('netroute');
 
 var hexabus = function() {
 	this.rename_device = function(addr, newName, cb) {
@@ -30,11 +31,26 @@ var hexabus = function() {
 	this.read_current_config = function() {
 		var ifaces = os.networkInterfaces();
 
+		var gateway = netroute.getGateway();
+
+		var nameservers = [];
+		var resolvConf = fs.readFileSync("/etc/resolv.conf").toString();
+		var lines = resolvConf.split("\n");
+		for(var index in lines) {
+			var line = lines[index].trim();
+			if(line.indexOf("nameserver") === 0) {
+				var nameserver = line.split(" ")[1];
+				nameservers.push(nameserver);
+			}
+		}
+
 		var config = {
+			gateway: gateway,
+			nameservers: nameservers,
 			addrs: {
 				lan: {
 					v4: [],
-					v6: []
+					v6: [],
 				},
 
 				hxb: {
@@ -71,6 +87,7 @@ var hexabus = function() {
 
 		return config;
 	};
+
 
 	this.get_activation_code = function(cb) {
 		var program = nconf.get('debug-wizard') ? '../backend/build/src/hexabus_msg_bridge --config bridge.conf -A'

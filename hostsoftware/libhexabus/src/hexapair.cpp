@@ -3,6 +3,7 @@
 #include <boost/program_options.hpp>
 #include <boost/program_options/positional_options.hpp>
 #include <boost/asio.hpp>
+#include <boost/array.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <libhexabus/common.hpp>
 #include <libhexabus/packet.hpp>

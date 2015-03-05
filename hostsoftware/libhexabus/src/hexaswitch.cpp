@@ -18,11 +18,13 @@ namespace po = boost::program_options;
 
 #include "../../../shared/endpoints.h"
 #include "../../../shared/hexabus_definitions.h"
-#include "resolv.hpp"
+#include "shared.hpp"
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
 using namespace hexabus;
+
+namespace {
 
 enum ErrorCode {
 	ERR_NONE = 0,
@@ -36,187 +38,207 @@ enum ErrorCode {
 	ERR_OTHER = 127
 };
 
-static std::string errcodeStr(uint8_t code)
-{
-	switch ((hxb_error_code) code) {
-	case HXB_ERR_SUCCESS: return "Success";
-	case HXB_ERR_UNKNOWNEID: return "Unknown EID";
-	case HXB_ERR_WRITEREADONLY: return "Write on readonly endpoint";
-	case HXB_ERR_CRCFAILED: return "CRC failed";
-	case HXB_ERR_DATATYPE: return "Datatype mismatch";
-	case HXB_ERR_INVALID_VALUE: return "Invalid value";
+enum FieldName {
+	F_FROM,
+	F_VALUE,
+	F_EID,
+	F_DATATYPE,
+	F_TYPE,
+	F_ERROR_CODE,
+	F_ERROR_STR,
+};
 
-	case HXB_ERR_MALFORMED_PACKET: return "(malformaed packet)";
-	case HXB_ERR_UNEXPECTED_PACKET: return "(unexpected packet)";
-	case HXB_ERR_NO_VALUE: return "(no value)";
-	case HXB_ERR_INVALID_WRITE: return "(invalid write)";
-	}
-	return "";
-}
-
-static bool oneline, json;
-
-class PacketPrinter : private hexabus::PacketVisitor {
+class PlaintextBuffer {
 private:
-	enum FieldName {
-		F_FROM,
-		F_VALUE,
-		F_EID,
-		F_DATATYPE,
-		F_TYPE,
-		F_ERROR_CODE,
-		F_ERROR_STR,
-	};
+	std::stringstream buffer;
+	bool oneline;
 
-	struct Field {
-		FieldName name;
-		std::string value;
-		bool unformatted;
-	};
-
-	std::ostream& target;
-	std::vector<Field> fields;
-
-	void flush()
+	void beginField(FieldName fieldName)
 	{
-		if (json)
-			target << '{';
+		if (buffer.tellp())
+			buffer << (oneline ? ';' : '\n');
 
-		unsigned i = 0;
-		for (const auto& field : fields) {
-			if (i++) {
-				if (json)
-					target << ", ";
-				else if (oneline)
-					target << ";";
-				else
-					target << std::endl;
-			}
-
-			std::string name;
-			switch (field.name) {
-			case F_FROM: name = (json ? R"("from")" : "Packet from"); break;
-			case F_VALUE: name = (json ? R"("value")" : "Value"); break;
-			case F_EID: name = (json ? R"("eid")" : "EID"); break;
-			case F_DATATYPE: name = (json ? R"("datatype")" : "Datatype"); break;
-			case F_TYPE: name = (json ? R"("type")" : "Type"); break;
-			case F_ERROR_CODE: name = (json ? R"("error_code")" : "Error code"); break;
-			case F_ERROR_STR: name = (json ? R"("error_str")" : "Error"); break;
-			}
-
-			target << name;
-
-			if (json) {
-				target << ": ";
-			} else if (oneline) {
-				target << ' ';
-			} else {
-				target << ": ";
-				// pad to length of longest field designator and a bit
-				for (int l = 12 - name.size(); l >= 0; --l)
-					target << ' ';
-			}
-
-			if (field.unformatted && json)
-				target << format(field.value);
-			else
-				target << field.value;
+		std::string fieldNameStr;
+		switch (fieldName) {
+		case F_FROM: fieldNameStr = "Packet from"; break;
+		case F_VALUE: fieldNameStr = "Value"; break;
+		case F_EID: fieldNameStr = "EID"; break;
+		case F_DATATYPE: fieldNameStr = "Datatype"; break;
+		case F_TYPE: fieldNameStr = "Type"; break;
+		case F_ERROR_CODE: fieldNameStr = "Error code"; break;
+		case F_ERROR_STR: fieldNameStr = "Error"; break;
 		}
-		fields.clear();
 
-		if (json)
-			target << '}';
-		else if (!oneline)
-			target << std::endl;
-
-		target << std::endl;
+		buffer
+			<< fieldNameStr
+			<< std::string(oneline ? 1 : 12 - fieldNameStr.size(), ' ');
 	}
 
-	static std::string format(const std::string& value)
-	{
-		std::stringstream sbuf;
+public:
+	PlaintextBuffer(bool oneline)
+		: oneline(oneline)
+	{}
 
-		sbuf << '"';
+	template<typename Value>
+	void addField(FieldName name, const Value& value)
+	{
+		beginField(name);
+		buffer << value;
+	}
+
+	void addField(FieldName name, const std::string& value)
+	{
+		beginField(name);
+
 		for (auto c : value) {
-			switch (c) {
-			case '"': sbuf << "\\\""; break;
-			case '\\': sbuf << "\\\\"; break;
-			case '\n': sbuf << "\\n"; break;
-			case '\r': sbuf << "\\r"; break;
-			case '\t': sbuf << "\\t"; break;
-			case '\b': sbuf << "\\b"; break;
-			case '\f': sbuf << "\\f"; break;
-			default: sbuf << c;
-			}
+			if ((oneline && (std::isblank(c) || std::isprint(c)))
+					|| (!oneline && std::isprint(c)))
+				buffer << c;
+			else
+				buffer << "\\x" << std::hex << std::setw(2) << unsigned(int(c));
 		}
-		sbuf << '"';
-		return sbuf.str();
 	}
 
 	template<size_t L>
-	static std::string format(const boost::array<char, L>& value)
+	void addField(FieldName name, const std::array<uint8_t, L>& value)
 	{
-		std::stringstream hexstream;
-		const char* sep = json ? ", 0x" : " ";
+		beginField(name);
 
-		if (json)
-			hexstream << "[0x";
+		unsigned printed = 0;
+		for (auto c : value) {
+			if (printed++)
+				buffer << ", ";
 
-		hexstream << std::hex << std::setfill('0');
-
-		for (size_t i = 0; i < L; ++i)
-			hexstream << (i ? sep : "") << std::setw(2) << (0xFF & (unsigned char)(value[i]));
-
-		if (json)
-			hexstream << ']';
-
-		return hexstream.str();
+			buffer << "0x" << std::hex << std::setw(2) << unsigned(c);
+		}
 	}
 
-	template<typename T>
-	static std::string format(T value)
+	std::string finish()
 	{
-		static_assert(std::is_arithmetic<T>::value, "");
-
-		std::stringstream sbuf;
-		sbuf << value;
-		return sbuf.str();
+		auto result = buffer.str();
+		buffer.str("");
+		return result + (oneline ? "" : "\n");
 	}
+};
+
+class JsonBuffer {
+private:
+	std::stringstream buffer;
+
+	void beginField(FieldName fieldName)
+	{
+		if (buffer.tellp())
+			buffer << ',';
+
+		std::string fieldNameStr;
+		switch (fieldName) {
+		case F_FROM: fieldNameStr = "from"; break;
+		case F_VALUE: fieldNameStr = "value"; break;
+		case F_EID: fieldNameStr = "eid"; break;
+		case F_DATATYPE: fieldNameStr = "datatype"; break;
+		case F_TYPE: fieldNameStr = "type"; break;
+		case F_ERROR_CODE: fieldNameStr = "error_code"; break;
+		case F_ERROR_STR: fieldNameStr = "error_str"; break;
+		}
+
+		buffer << '"' << fieldNameStr << '"' << ':';
+	}
+
+public:
+	template<typename Value>
+	void addField(FieldName name, const Value& value)
+	{
+		beginField(name);
+		buffer << value;
+	}
+
+	void addField(FieldName name, const std::string& value)
+	{
+		beginField(name);
+
+		buffer << '"';
+		for (auto c : value) {
+			if (std::isprint(c) && c != '"')
+				buffer << c;
+			else
+				buffer << "\\x" << std::hex << std::setw(2) << unsigned(int(c));
+		}
+		buffer << '"';
+	}
+
+	template<size_t L>
+	void addField(FieldName name, const std::array<uint8_t, L>& value)
+	{
+		beginField(name);
+
+		buffer << '[';
+
+		unsigned printed = 0;
+		for (auto c : value) {
+			if (printed++)
+				buffer << ", ";
+
+			buffer << "0x" << std::hex << std::setw(2) << unsigned(c);
+		}
+
+		buffer << ']';
+	}
+
+	std::string finish()
+	{
+		auto result = "{" + buffer.str() + "}";
+		buffer.str("");
+		return result;
+	}
+};
+
+struct Printer {
+	virtual void printPacket(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from) = 0;
+	virtual void printPacket(const hexabus::Packet& p) = 0;
+};
+
+template<typename Buffer>
+class BufferedPrinter : public Printer, private hexabus::PacketVisitor {
+private:
+	std::ostream& target;
+	Buffer buffer;
 
 	template<typename T>
 	void printValuePacket(const hexabus::ValuePacket<T>& packet, const char* type)
 	{
-		fields.push_back({ F_TYPE, type, true });
-		fields.push_back({ F_EID, format(packet.eid()), false });
-		fields.push_back({ F_DATATYPE, hexabus::datatypeName((hexabus::hxb_datatype) packet.datatype()), true });
-		fields.push_back({ F_VALUE, format(packet.value()), false });
+		buffer.addField(F_TYPE, type);
+		buffer.addField(F_EID, packet.eid());
+		buffer.addField(F_DATATYPE, hexabus::datatypeName((hexabus::hxb_datatype) packet.datatype()));
+
+		typedef typename std::conditional<sizeof(T) == 1, int, const T&>::type Widened;
+		buffer.addField(F_VALUE, Widened(packet.value()));
 	}
 
 	virtual void visit(const hexabus::ErrorPacket& error)
 	{
-		fields.push_back({ F_TYPE, "Error", true });
-		fields.push_back({ F_ERROR_CODE, format(error.code()), false });
-		fields.push_back({ F_ERROR_STR, errcodeStr(error.code()), true });
+		buffer.addField(F_TYPE, "Error");
+		buffer.addField(F_ERROR_CODE, unsigned(error.code()));
+		buffer.addField(F_ERROR_STR, errcodeStr(error.code()));
 	}
 
 	virtual void visit(const hexabus::QueryPacket& query)
 	{
-		fields.push_back({ F_TYPE, "Query", true });
-		fields.push_back({ F_EID, format(query.eid()), false });
+		buffer.addField(F_TYPE, "Query");
+		buffer.addField(F_EID, query.eid());
 	}
 
 	virtual void visit(const hexabus::EndpointQueryPacket& query)
 	{
-		fields.push_back({ F_TYPE, "EPQuery", true });
-		fields.push_back({ F_EID, format(query.eid()), false });
+		buffer.addField(F_TYPE, "EPQuery");
+		buffer.addField(F_EID, query.eid());
 	}
 
 	virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo)
 	{
-		fields.push_back({ F_TYPE, "EPInfo", true });
-		fields.push_back({ F_EID, format(endpointInfo.eid()), false });
-		fields.push_back({ F_DATATYPE, hexabus::datatypeName((hexabus::hxb_datatype) endpointInfo.datatype()), true });
-		fields.push_back({ F_VALUE, format(endpointInfo.value()), false });
+		buffer.addField(F_TYPE, "EPInfo");
+		buffer.addField(F_EID, endpointInfo.eid());
+		buffer.addField(F_DATATYPE, hexabus::datatypeName((hexabus::hxb_datatype) endpointInfo.datatype()));
+		buffer.addField(F_VALUE, endpointInfo.value());
 	}
 
 	virtual void visit(const hexabus::InfoPacket<bool>& info) { printValuePacket(info, "Info"); }
@@ -230,8 +252,8 @@ private:
 	virtual void visit(const hexabus::InfoPacket<int64_t>& info) { printValuePacket(info, "Info"); }
 	virtual void visit(const hexabus::InfoPacket<float>& info) { printValuePacket(info, "Info"); }
 	virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<boost::array<char, 16> >& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<boost::array<char, 65> >& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 16> >& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 65> >& info) { printValuePacket(info, "Info"); }
 
 	virtual void visit(const hexabus::WritePacket<bool>& write) { printValuePacket(write, "Write"); }
 	virtual void visit(const hexabus::WritePacket<uint8_t>& write) { printValuePacket(write, "Write"); }
@@ -244,33 +266,38 @@ private:
 	virtual void visit(const hexabus::WritePacket<int64_t>& write) { printValuePacket(write, "Write"); }
 	virtual void visit(const hexabus::WritePacket<float>& write) { printValuePacket(write, "Write"); }
 	virtual void visit(const hexabus::WritePacket<std::string>& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<boost::array<char, 16> >& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 16> >& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 65> >& write) { printValuePacket(write, "Write"); }
 
 public:
-	PacketPrinter(std::ostream& target)
-		: target(target)
+	template<typename... Args>
+	BufferedPrinter(std::ostream& target, Args... args)
+		: target(target), buffer(std::forward<Args>(args)...)
 	{}
 
-	void printPacket(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
+	virtual void printPacket(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
 	{
-		fields.push_back({ F_FROM, from.address().to_string(), true });
+		buffer.addField(F_FROM, from.address().to_string());
 		p.accept(*this);
-		flush();
+		target << buffer.finish() << std::endl;
 	}
 
-	void printPacket(const hexabus::Packet& p)
+	virtual void printPacket(const hexabus::Packet& p)
 	{
 		p.accept(*this);
-		flush();
+		target << buffer.finish() << std::endl;
 	}
 };
 
+
+
+static std::unique_ptr<Printer> packetPrinter;
+
+}
+
 void print_packet(const hexabus::Packet& packet)
 {
-	PacketPrinter pp(std::cout);
-
-	pp.printPacket(packet);
+	packetPrinter->printPacket(packet);
 }
 
 ErrorCode send_packet(hexabus::Socket& net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet)
@@ -367,35 +394,8 @@ enum Command {
 	C_DEVINFO
 };
 
-
-inline std::string shortDatatypeName(hxb_datatype type)
-{
-	switch (type) {
-	case HXB_DTYPE_BOOL: return "b";
-	case HXB_DTYPE_UINT8: return "u8";
-	case HXB_DTYPE_UINT16: return "u16";
-	case HXB_DTYPE_UINT32: return "u32";
-	case HXB_DTYPE_UINT64: return "u64";
-	case HXB_DTYPE_SINT8: return "s8";
-	case HXB_DTYPE_SINT16: return "s16";
-	case HXB_DTYPE_SINT32: return "s32";
-	case HXB_DTYPE_SINT64: return "s64";
-	case HXB_DTYPE_FLOAT: return "f";
-	case HXB_DTYPE_128STRING: return "s";
-	default: return "(unknown)";
-	}
-}
-
-int dtypeStrToDType(const std::string& s)
-{
-	for (hxb_datatype  type = HXB_DTYPE_BOOL; type <= HXB_DTYPE_128STRING; type = hxb_datatype(type + 1))
-		if (shortDatatypeName(type) == s || datatypeName(type) == s)
-			return type;
-
-	return -1;
-}
-
 int main(int argc, char** argv) {
+
 
   std::ostringstream oss;
   oss << "Usage: " << argv[0] << " ACTION IP [additional options] ";
@@ -439,8 +439,14 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-	oneline = vm.count("oneline") && vm["oneline"].as<bool>();
-	json = vm.count("json") && vm["json"].as<bool>();
+	bool oneline = vm.count("oneline") && vm["oneline"].as<bool>();
+	bool json = vm.count("json") && vm["json"].as<bool>();
+
+	if (json)
+		packetPrinter.reset(new BufferedPrinter<JsonBuffer>(std::cout));
+	else
+		packetPrinter.reset(new BufferedPrinter<PlaintextBuffer>(std::cout, oneline));
+
 	if (vm.count("interface")) {
 		interface = vm["interface"].as<std::vector<std::string> >();
 	}
@@ -555,7 +561,7 @@ int main(int argc, char** argv) {
 				return ERR_NETWORK;
 			}
 
-			PacketPrinter(std::cout).printPacket(*pair.first, pair.second);
+			packetPrinter->printPacket(*pair.first, pair.second);
 		}
 	}
 

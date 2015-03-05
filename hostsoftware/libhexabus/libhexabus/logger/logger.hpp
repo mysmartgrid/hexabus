@@ -50,8 +50,8 @@ class Logger : private PacketVisitor {
 
 		// FIXME: handle these properly, we should not drop valid info packets
 		virtual void visit(const hexabus::InfoPacket<std::string>& info) {}
-		virtual void visit(const hexabus::InfoPacket<boost::array<char, 16> >& info) {}
-		virtual void visit(const hexabus::InfoPacket<boost::array<char, 65> >& info) {}
+		virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 16> >& info) {}
+		virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 65> >& info) {}
 
 		virtual void visit(const hexabus::ErrorPacket& error) {}
 		virtual void visit(const hexabus::QueryPacket& query) {}
@@ -69,8 +69,8 @@ class Logger : private PacketVisitor {
 		virtual void visit(const hexabus::WritePacket<int64_t>& info) {}
 		virtual void visit(const hexabus::WritePacket<float>& info) {}
 		virtual void visit(const hexabus::WritePacket<std::string>& info) {}
-		virtual void visit(const hexabus::WritePacket<boost::array<char, 16> >& info) {}
-		virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& info) {}
+		virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 16> >& info) {}
+		virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 65> >& info) {}
 
 	protected:
 		virtual void record_reading(klio::Sensor::Ptr sensor, klio::timestamp_t ts, double value) = 0;
