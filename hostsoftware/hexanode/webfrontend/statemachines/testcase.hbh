@@ -1,3 +1,0 @@
-machine class c(u8 u) {
-		state init {}
-};
