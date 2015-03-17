@@ -107,7 +107,7 @@ process.on('SIGTERM', function() {
 	save_devicetree(process.exit);
 });
 
-
+StatemachineController.setup(devicetree);
 
 console.log("Using configuration: ");
 console.log(" - port: " + nconf.get('port'));

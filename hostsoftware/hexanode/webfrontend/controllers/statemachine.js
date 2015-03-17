@@ -4,6 +4,12 @@ var StatemachineBuilder = require("../lib/statemachines/statemachines").Statemac
 var statemachineFromJson = require("../lib/statemachines/statemachines").statemachineFromJson;
 var findConflictingStatemachines = require("../lib/statemachines/statemachines").findConflictingStatemachines;
 
+var builder = {};
+
+module.exports.setup = function(devicetree) {
+	builder = new StatemachineBuilder(devicetree);
+}
+
 
 module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 	app.get('/statemachine', function(req, res) {
@@ -27,8 +33,6 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 };
 
 module.exports.socketioSetup = function(socket, hexabus, devicetree) {
-	var builder = new StatemachineBuilder(devicetree);
-
 
 	// Wrapper for socket.on with improved exception handling.
 	var on = function(ev, cb) {
