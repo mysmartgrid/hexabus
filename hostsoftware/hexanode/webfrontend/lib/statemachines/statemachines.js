@@ -5,6 +5,7 @@ var fs = require('fs');
 var execFile = require('child_process').execFile;
 var nconf = require('nconf');
 
+var debug = require('../debug.js');
 var expectMembers = require('./common').expectMembers;
 
 var SimpleSwitchStatemachine = require('./simpleswitch').SimpleSwitchStatemachine;
@@ -87,7 +88,9 @@ exports.StatemachineBuilder = function(devicetree) {
 
 	var localizeError = function(localization, error, extras) {
 		extras = extras || {};
-		return {'msg': error.toString(), 'localization': localization, 'extras' : extras};
+		var localError = {'msg': error.toString(), 'localization': localization, 'extras' : extras};
+		debug(localError);
+		return localError;
 	};
 
 
@@ -100,7 +103,7 @@ exports.StatemachineBuilder = function(devicetree) {
 	var collectMachines = function(callback) {
 		statemachines = [];
 
-		setProgress('collecting-machines');
+		setProgress('collecting-statemachines');
 
 		try {
 			for(var machineName in devicetree.statemachines) {
@@ -215,7 +218,7 @@ exports.StatemachineBuilder = function(devicetree) {
 
 	this.build = function(callback, progressCb) {
 		if(busy) {
-			callback(localizeError('statemachinebuilder-busy', 'Statemachine builder is already running'));
+			callback({'success' : false, 'error': localizeError('statemachinebuilder-busy', 'Statemachine builder is already running')});
 			return;
 		}
 

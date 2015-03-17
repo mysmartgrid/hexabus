@@ -34,16 +34,19 @@ angular.module('hexanode')
 
 	var localizeMessage = function(data,type) {
 		var localizedMessages = Lang.pack["wizard"]["state-machine"][type] || {};
-		console.log(type);
-		console.log(data);
 		if(data.localization in localizedMessages) {
 			var message = localizedMessages[data.localization];
 			for(var name in data.extras) {
 				console.log(name + ' replace with ' + data.extras[name]);
 				message = message.replace('{' + name + '}', data.extras[name]);
 			}
+			if(data.msg !== undefined) {
+				console.log("Internal message: " + data.msg);
+			}
 			return message;
 		}
+		console.log("Missing translation: " + type + " " + data.localization);
+		console.log(data);
 		return data.msg;
 	};
 
@@ -64,7 +67,6 @@ angular.module('hexanode')
 		hideAlerts();
 		$scope.progressAlert.show = true;
 		$scope.progressAlert.text = localizeMessage(data, 'progress');
-		console.log(data.extra);
 		if('done' in data.extras && 'count' in data.extras) {
 			$scope.progressAlert.percent = data.extras.done / data.extras.count * 100.0;
 		}
