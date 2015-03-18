@@ -1,23 +1,21 @@
 # -*- mode: cmake; -*-
 project(hexanode-backend)
 cmake_minimum_required(VERSION "2.8" FATAL_ERROR)
-
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_SOURCE_DIR}/../../cmake_modules ${CMAKE_MODULE_PATH})
 include(HexabusCommon)
-
-###################################################################################################
-# No user settings below
-###################################################################################################
+include(HexabusCommon)
 
 if(CMAKE_TOOLCHAIN_FILE)
   list(APPEND CMAKE_FIND_ROOT_PATH ${HXB_HOME})
   list(APPEND CMAKE_FIND_ROOT_PATH ${LIBKLIO_HOME})
+  list(APPEND CMAKE_FIND_ROOT_PATH ${LIBMYSMARTGRID_HOME})
 endif()
 
 FIND_PACKAGE(OpenSSL REQUIRED)
 FIND_PACKAGE(CppNetlib REQUIRED)
 FIND_PACKAGE(LibHexabus REQUIRED)
 FIND_PACKAGE(Libklio REQUIRED)
+FIND_PACKAGE(LibMysmartGrid REQUIRED)
 FIND_PACKAGE(Sqlite REQUIRED)
 include(FindJson)
 include(FindCurl)
@@ -27,15 +25,6 @@ find_package(Alsa)
 if (NOT HXB_FOUND)
   message(FATAL_ERROR "libhexabus ist required.")
 endif()
-#FIND_PACKAGE(RtMidi)
-# We depend on boost >= 1.46.1 because of the updated filesystem
-# library.
-SET(Boost_ADDITIONAL_VERSIONS "1.46.1" "1.47" "1.47.1" "1.48.0" "1.48"
-  "1.49.0" "1.49" "1.50.0" "1.50")
-set(Boost_USE_STATIC_LIBS ON)
-SET(Boost_DETAILED_FAILURE_MSG true)
-FIND_PACKAGE(Boost 1.46.1 REQUIRED COMPONENTS 
-  test_exec_monitor program_options filesystem system thread)
 
 # Reflect the package structure
 add_subdirectory(libhexanode)

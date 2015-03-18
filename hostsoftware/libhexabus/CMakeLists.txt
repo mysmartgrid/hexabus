@@ -11,11 +11,13 @@ include(HexabusCommon)
 
 if(CMAKE_TOOLCHAIN_FILE)
   list(APPEND CMAKE_FIND_ROOT_PATH ${LIBKLIO_HOME})
+  list(APPEND CMAKE_FIND_ROOT_PATH ${LIBMYSMARTGRID_HOME})
 endif()
 
 # find libklio
 find_package(Libklio)
 if( LIBKLIO_FOUND )
+  FIND_PACKAGE(LibMysmartGrid REQUIRED)
   FIND_PACKAGE(Sqlite)
   FIND_PACKAGE(OpenSSL REQUIRED)
   FIND_PACKAGE(Gnutls REQUIRED)
