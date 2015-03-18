@@ -1,28 +1,19 @@
 # -*- mode: cmake; -*-
 project(hexanode-backend)
 cmake_minimum_required(VERSION "2.8" FATAL_ERROR)
-
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_SOURCE_DIR}/../../cmake_modules ${CMAKE_MODULE_PATH})
 include(HexabusCommon)
-
+include(HexabusCommon)
 
 if(CMAKE_TOOLCHAIN_FILE)
   list(APPEND CMAKE_FIND_ROOT_PATH ${HXB_HOME})
   list(APPEND CMAKE_FIND_ROOT_PATH ${LIBKLIO_HOME})
 endif()
 
-# Check for some compiler stuff
-include(CMakeBackwardCompatibilityCXX)
-
-# find libklio
-find_package(Libklio)
-if( NOT LIBKLIO_FOUND)
-  message(FATAL_ERROR "libklio is required.You may set LIBKLIO_HOME")
-endif( NOT LIBKLIO_FOUND)
-
 FIND_PACKAGE(OpenSSL REQUIRED)
 FIND_PACKAGE(CppNetlib REQUIRED)
 FIND_PACKAGE(LibHexabus REQUIRED)
+FIND_PACKAGE(Libklio REQUIRED)
 FIND_PACKAGE(Sqlite REQUIRED)
 include(FindJson)
 include(FindCurl)

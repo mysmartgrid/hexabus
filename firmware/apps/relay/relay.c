@@ -83,6 +83,10 @@ relay_toggle(void)
     }
 }
 
+/*
+ * Attention: relay_on means the load is turned OFF,
+ * since the relay has a opening contact
+ */
 void
 relay_on(void)
 {
@@ -101,26 +105,30 @@ relay_on(void)
       PORTB |= (1 << PB3);
 #endif
       relay_state = 1;
-      relay_leds();
       metering_reset();
     }
+	relay_leds();
 #endif
 }
 
+/*
+ * Attention: relay_off means the load is turned ON,
+ * since the relay has a opening contact.
+ */
 void
 relay_off(void)
 {
 #if ! METERING_ENERGY_PERSISTENT
+	if(relay_state) {
 #if RELAY_POWER_SAVING
-  DISABLE_RELAY_PWM();
-  SET_RELAY_PWM(0x00);
+  		DISABLE_RELAY_PWM();
+  		SET_RELAY_PWM(0x00);
 #else
-  PORTB &= ~(1 << PB3);
+  		PORTB &= ~(1 << PB3);
 #endif
-
-  relay_state = 0;
-  relay_leds();
-  metering_reset();
+  		relay_state = 0;
+	}
+	relay_leds();
 #endif
 }
 

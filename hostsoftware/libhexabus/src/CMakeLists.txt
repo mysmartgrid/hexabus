@@ -79,8 +79,10 @@ target_link_libraries(hexalisten hexabus pthread ${Boost_LIBRARIES})
 add_executable(hexasend "hexasend.cpp")
 target_link_libraries(hexasend hexabus pthread ${Boost_LIBRARIES})
 
-add_executable(hexajuice "hexajuice.cpp")
-target_link_libraries(hexajuice hexabus pthread ${Boost_LIBRARIES})
+if(NOT WITHOUT_HEXAJUICE)
+  add_executable(hexajuice "hexajuice.cpp")
+  target_link_libraries(hexajuice hexabus pthread ${Boost_LIBRARIES})
+endif()
 
 if(LIBKLIO_FOUND)
   add_executable(hexalog ${hexalog_src})
@@ -102,16 +104,31 @@ if(LIBKLIO_FOUND)
 
 endif(LIBKLIO_FOUND)
 
-# add programs to the install target
-INSTALL(PROGRAMS
+set(HXB_EXECUTABLES
   ${CMAKE_CURRENT_BINARY_DIR}/hexaswitch
   ${CMAKE_CURRENT_BINARY_DIR}/hexaupload
   ${CMAKE_CURRENT_BINARY_DIR}/hexapair
   ${CMAKE_CURRENT_BINARY_DIR}/hexatimed
-  DESTINATION bin)
+  ${CMAKE_CURRENT_BINARY_DIR}/hexasm
+  ${CMAKE_CURRENT_BINARY_DIR}/hexalisten
+  ${CMAKE_CURRENT_BINARY_DIR}/hexasend
+  )
+
+if(NOT WITHOUT_HEXAJUICE)
+  set(HXB_EXECUTABLES
+    ${HXB_EXECUTABLES}
+    ${CMAKE_CURRENT_BINARY_DIR}/hexajuice
+  )
+endif()
 
 if(LIBKLIO_FOUND)
-  INSTALL(PROGRAMS
+  set(HXB_EXECUTABLES
+  ${HXB_EXECUTABLES}
   ${CMAKE_CURRENT_BINARY_DIR}/hexalog
-  DESTINATION bin)
+  )
 endif(LIBKLIO_FOUND)
+
+# add programs to the install target
+INSTALL(PROGRAMS
+  ${HXB_EXECUTABLES}
+  DESTINATION bin)

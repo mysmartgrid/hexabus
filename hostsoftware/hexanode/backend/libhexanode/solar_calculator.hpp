@@ -79,7 +79,7 @@ namespace hexanode {
 
 
       template<size_t L>
-        void printValuePacket(const hexabus::ValuePacket<boost::array<char, L> >& packet, const char* datatypeStr)
+        void printValuePacket(const hexabus::ValuePacket<std::array<uint8_t, L> >& packet, const char* datatypeStr)
         {
           printValueHeader(packet.eid(), datatypeStr);
 
@@ -121,8 +121,8 @@ namespace hexanode {
       virtual void visit(const hexabus::InfoPacket<int64_t>& info) { printValuePacket(info, "Int64"); }
       virtual void visit(const hexabus::InfoPacket<float>& info) { printValuePacket(info, "Float"); }
       virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "String"); }
-      virtual void visit(const hexabus::InfoPacket<boost::array<char, 16> >& info) { printValuePacket(info, "Binary (16 bytes)"); }
-      virtual void visit(const hexabus::InfoPacket<boost::array<char, 65> >& info) { printValuePacket(info, "Binary (65 bytes)"); }
+      virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 16> >& info) { printValuePacket(info, "Binary (16 bytes)"); }
+      virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 65> >& info) { printValuePacket(info, "Binary (65 bytes)"); }
       /** 
        * not needed.
        */
@@ -137,8 +137,8 @@ namespace hexanode {
       virtual void visit(const hexabus::WritePacket<int64_t>& write) {}
       virtual void visit(const hexabus::WritePacket<float>& write) {}
       virtual void visit(const hexabus::WritePacket<std::string>& write) {}
-      virtual void visit(const hexabus::WritePacket<boost::array<char, 16> >& write) {}
-      virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& write) {}
+      virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 16> >& write) {}
+      virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 65> >& write) {}
 
   };
 };

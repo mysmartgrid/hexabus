@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include <array>
 
 #include <libhexabus/hexabus_types.h>
 

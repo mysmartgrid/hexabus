@@ -18,17 +18,10 @@
  *
  */
 #include "common.hpp"
+#include "config.h"
 #include <sstream>
 
-namespace hexabus {
-
-#define STR2(x) #x
-#define STR(x) STR2(x)
-
-	const char* version()
-	{
-		return STR(LIBHEXABUS_VERSION_MAJOR) "." STR(LIBHEXABUS_VERSION_MINOR) "." STR(LIBHEXABUS_VERSION_PATCH);
-	}
-
+const char* hexabus::version()
+{
+	return LIBHEXABUS_VERSION_MAJOR "." LIBHEXABUS_VERSION_MINOR "." LIBHEXABUS_VERSION_PATCH "-" LIBHEXABUS_PROJECT_REVISION;
 }
-

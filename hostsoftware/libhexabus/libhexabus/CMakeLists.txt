@@ -22,8 +22,6 @@ install(FILES ${sm_hdrs}     DESTINATION include/libhexabus/sm)
 
 configure_file(config.h.in ${CMAKE_BINARY_DIR}/libhexabus/config.h)
 configure_file(private/paths.hpp.in ${CMAKE_BINARY_DIR}/libhexabus/private/paths.hpp)
-install(FILES ${CMAKE_BINARY_DIR}/libhexabus/config.h DESTINATION
-  include/libhexabus)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}

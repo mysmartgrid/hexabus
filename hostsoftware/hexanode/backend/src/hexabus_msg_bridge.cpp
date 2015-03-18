@@ -21,6 +21,7 @@
 #include <libhexabus/endpoint_registry.hpp>
 
 #include <libhexabus/logger/logger.hpp>
+#include <libhexabus/common.hpp>
 
 #include "../../../shared/endpoints.h"
 
@@ -431,7 +432,7 @@ int main(int argc, char** argv)
 				hexabus::EndpointRegistry registry;
 				ReadingLogger logger(io, *tc, *sensor_factory, timezone, interrogator, registry, store);
 
-				listener.onPacketReceived(boost::ref(logger));
+				listener.onPacketReceived(std::ref(logger));
 
 				io.run();
 			} catch (const hexabus::NetworkException& e) {
