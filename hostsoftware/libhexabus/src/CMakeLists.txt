@@ -22,12 +22,14 @@ endforeach()
 
 if(LIBKLIO_FOUND)
   include_directories(
+    ${LIBMYSMARTGRID_INCLUDE_DIR}
     ${LIBKLIO_INCLUDE_DIRS}
     ${SQLITE3_INCLUDE_DIR}
     ${ROCKSDB_INCLUDE_DIR}
   )
   link_directories(
   ${SQLITE3_STATIC_LIBRARY_DIRS}
+  ${LIBMYSMARTGRID_LIBRARY}
   )
   if(LIBKLIO_ENABLE_ROCKSDB)
     set_source_files_properties(${hexalog_src} COMPILE_FLAGS "-std=gnu++11")
