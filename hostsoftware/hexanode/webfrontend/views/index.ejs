@@ -3,12 +3,6 @@
 <script src="/js/raphael.2.1.0.min.js"></script>
 <script src="/js/justgage.1.0.1.js"></script>
 
-<script>
-	all_views = <%- JSON.stringify(views) %>
-</script>
-
-
-
 <div class="container" data-ng-controller="dashboardController">
 	<ul class="nav nav-tabs">
 		<li class="active">
@@ -17,31 +11,52 @@
 		<li>
 			<a href="#" data-ng-click="setView('actors')" data-toggle="tab" data-localize="dashboard.all-actors">All actors</a>
 		</li>
-		<li data-ng-repeat="view in views">
-			<a href="#" data-ng-click="setView(view)" data-toggle="tab">{{view.name}}</a>
+		<li data-ng-repeat="view in devicetree.views">
+			<a href="#" data-ng-click="setView(view.id)" data-toggle="tab">{{view.name}}</a>
+		</li>
+		<li>
+			<a href="/view/new"><span class="glyphicon glyphicon-plus"></span></a>
 		</li>
 	</ul>
 	<div class="tab-content">
-		<h2 class="text-center" data-localize="dashboard.all-sensors" id="view-name">All sensors</h2>
+		<h2 class="text-center"  id="view-name">{{current_view.name}}</h2>
+		<div class="alert alert-danger" role="alert" data-ng-show="errorMessage != ''">
+			<button type="button" data-ng-click="errorMessage = ''" class="close">&times;</button>
+			{{ errorMessage }}
+		</div>
+
+		<div class="row" data-ng-hide="current_view.id == 'sensors' || current_view.id == 'actors'">
+			<div class="col-md-10"></div>
+			<div class="col-md-2">
+				<a href="/view/edit/{{current_view.id}}" class="btn btn-primary btn-md" role="button">
+					<span class="glyphicon glyphicon-pencil"></span>
+				</a>
+				<a href="/view/delete/{{current_view.id}}" class="btn btn-danger btn-md" role="button">
+					<span class="glyphicon glyphicon-remove"></span>
+				</a>
+			</div>
+		</div>
 		<div class="row">
 			<div class="col-md-3">
 				<p><span data-localize="last-update.label">Last update:</span> <span id="last-update-when"></span></p>
 			</div>
 			<div class="col-md-9">
 				<ul class="list-inline">
-					<li data-ng-repeat="ep in current_view.endpoints"
-							data-ng-hide="ep.hide || !ep.ep_desc.unit && hide_unitless">
+					<li data-ng-repeat="ep_id in current_view.endpoints"
+							data-ng-hide="!endpointById(ep_id).unit && hide_unitless">
 						<div data-vis-endpoint=""
-								 data-endpoint="ep"
+								 data-endpoint="endpointById(ep_id)"
 								 data-enable-edit="true"
 								 data-edit-begin="editBegin"
 								 data-edit-done="editDone">
 						</div>
+						<br/>
 					</li>
 				</ul>
 			</div>
 		</div> <!-- all-sensors -->
 	</div>
-</div> 
+
+</div>
 
 <% include footer %>

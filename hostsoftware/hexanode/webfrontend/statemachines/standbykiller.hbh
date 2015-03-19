@@ -1,0 +1,60 @@
+
+machine class Standbykiller(device dev,
+							endpoint meter,
+							endpoint relais,
+							endpoint button,
+							typeof(dev.meter) threshold,
+							int32 timeout) {
+	state init {
+		always {
+			goto onState;
+		}
+	}
+
+	state onState {
+		on entry {
+			dev.relais = true;
+		}
+
+		on update from dev.meter {
+			if(dev.meter < threshold) {
+				goto standbyState;
+			}
+		}
+
+		on update from dev.button {
+			goto offState;
+		}
+	}
+
+	state standbyState {
+		int64 standbySince = now();
+
+
+		on update from dev.meter {
+			if(dev.meter >= threshold) {
+				goto onState;
+			}
+		}
+
+		on periodic {
+			if(now() - standbySince > timeout) {
+				goto offState;
+			}
+		}
+
+		on update from dev.button {
+			goto offState;
+		}
+	}
+
+	state offState {
+		on entry {
+			dev.relais = false;
+		}
+
+		on update from dev.button {
+			goto onState;
+		}
+	}
+};
