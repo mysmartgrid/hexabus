@@ -1,0 +1,23 @@
+machine class SimpleSwitch(device buttonDev, 
+							endpoint button, 
+							device relaisDev, 
+							endpoint relais)   {
+	
+	state init {
+		always {
+			goto toggle;
+		}
+	}
+
+	state toggle {
+		bool relaisState = false;
+		on entry {
+			relaisDev.relais = false;
+		}
+
+		on update from buttonDev.button {
+			relaisState = !relaisState;
+			relaisDev.relais = relaisState;
+		}
+	}
+};

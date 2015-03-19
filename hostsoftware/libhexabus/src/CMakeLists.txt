@@ -21,12 +21,14 @@ endforeach()
 
 if(LIBKLIO_FOUND)
   include_directories(
+    ${LIBMYSMARTGRID_INCLUDE_DIR}
     ${LIBKLIO_INCLUDE_DIRS}
     ${SQLITE3_INCLUDE_DIR}
     ${ROCKSDB_INCLUDE_DIR}
   )
   link_directories(
   ${SQLITE3_STATIC_LIBRARY_DIRS}
+  ${LIBMYSMARTGRID_LIBRARY}
   )
   if(LIBKLIO_ENABLE_ROCKSDB)
     set_source_files_properties(${hexalog_src} COMPILE_FLAGS "-std=gnu++11")
@@ -104,14 +106,16 @@ set(HXB_EXECUTABLES
   )
 
 if(NOT WITHOUT_HEXAJUICE)
-  set(HXB_EXECUTABLES "${HXB_EXECUTABLES}
-    ${CMAKE_CURRENT_BINARY_DIR}/hexajuice"
+  set(HXB_EXECUTABLES
+    ${HXB_EXECUTABLES}
+    ${CMAKE_CURRENT_BINARY_DIR}/hexajuice
   )
 endif()
 
 if(LIBKLIO_FOUND)
-  set(HXB_EXECUTABLES "${HXB_EXECUTABLES}
-  ${CMAKE_CURRENT_BINARY_DIR}/hexalog"
+  set(HXB_EXECUTABLES
+  ${HXB_EXECUTABLES}
+  ${CMAKE_CURRENT_BINARY_DIR}/hexalog
   )
 endif(LIBKLIO_FOUND)
 

@@ -47,21 +47,9 @@
 #include "value_broadcast.h"
 #include "nvm.h"
 
-/** \brief This is a file internal variable that contains the 16 MSB of the
- *         metering pulse period.
- *
- *         The metering pulse period (32-bit) is in METERING_TIMER_RESOLUTION. For the
- *         AVR microcontroller implementation this is solved by using a 16-bit
- *         timer (Timer1) with a clock frequency of 8 MHz and a prescaler of 1/1024.
- *         The metering_pulse_period is incremented when the 16-bit timer
- *         overflows, representing the 16 MSB. The timer value it self (TCNT1)
- *         is then the 16 LSB.
- *
- */
-
 //local variables
-static clock_time_t metering_pulse_period = 0;
 static clock_time_t clock_old;
+static clock_time_t metering_pulse_period = 0;
 static uint16_t   metering_calibration_power;
 static uint16_t   metering_reference_value;
 static uint8_t     metering_calibration_state = 0;
@@ -210,9 +198,9 @@ void
 metering_start(void)
 {
   /*Reset variables used in file.*/
-  metering_pulse_period = 0;
   metering_power = 0;
   clock_old = clock_time();
+  metering_pulse_period = 0;
 
 #if METERING_IMMEDIATE_BROADCAST
   last_broadcast = clock_time();
@@ -231,7 +219,7 @@ metering_stop(void)
 void
 metering_reset(void)
 {
-  metering_power = 0;
+	metering_power = 0;
 	broadcast_value(EP_POWER_METER);
 #if METERING_ENERGY
 	broadcast_value(EP_ENERGY_METER_TOTAL);
@@ -249,7 +237,7 @@ float metering_get_energy(void)
 float metering_get_energy_total(void)
 {
   // metering_reference_value are (wattseconds * CLOCK_SECOND) per pulse
-  // then divide by 3600 * 1000 to geht kilowatthours
+  // then divide by 3600 * 1000 to get kilowatthours
   return (float)(metering_pulses_total * (metering_reference_value / CLOCK_SECOND)) / 3600000;
 }
 
@@ -262,24 +250,28 @@ void metering_reset_energy(void)
 uint16_t
 metering_get_power(void)
 {
-  uint16_t tmp;
-  /*check whether measurement is up to date */
-  if (clock_time() > clock_old)
-    tmp = (clock_time() - clock_old);
-  else
-    tmp = (0xFFFF - clock_old + clock_time() + 1);
+	uint16_t tmp;
 
-  if (tmp > OUT_OF_DATE_TIME * CLOCK_SECOND)
-    metering_power = 0;
+	/*
+	 * Check the time since the last interrupt.
+	 * If there was no interrupt in two times the last pulse period,
+	 * we assume that the load consumes much less power then before,
+	 * or that the load doesn't consume any power at all.
+	 * In both cases it is safe to use the time since the last pulse
+	 * to interpolate an intermediate value.
+	 * If the last interrupt was longer then 240s ago,
+	 * calc_power will output 0.
+	 */
 
-#if S0_ENABLE
-  else if (metering_power != 0 && tmp > 2 * (((uint32_t)metering_reference_value*10) / (uint32_t)metering_power)) //S0 calibration is scaled
-#else
-  else if (metering_power != 0 && tmp > 2 * (metering_reference_value / metering_power))
-#endif
-      metering_power = calc_power(tmp);
+	if (clock_time() > clock_old)
+		tmp = (clock_time() - clock_old);
+	else
+		tmp = (0xFFFF - clock_old + clock_time() + 1);
 
-  return metering_power;
+	if (tmp > metering_pulse_period * 2 && metering_power > 0)
+		metering_power = calc_power(tmp);
+
+	return metering_power;
 }
 
 /* sets calibration value for s0 meters */
@@ -359,7 +351,7 @@ ISR(METERING_VECT)
 
        metering_calibration_state = 0;
        metering_calibration = false;
-			 relay_on();
+       relay_on();
        relay_leds();
      }
    }
@@ -367,6 +359,7 @@ ISR(METERING_VECT)
   //measurement
   else
   {
+
     //get pulse period
     if (clock_time() > clock_old)
       metering_pulse_period = clock_time() - clock_old;
@@ -390,15 +383,13 @@ ISR(METERING_VECT)
 
       if(broadcast_timeout > METERING_IMMEDIATE_BROADCAST_MINIMUM_TIMEOUT * CLOCK_SECOND)
       {
-        // the last argument is a void* that can be used for anything. We use it to tell value_broadcast our EID.
-        // process_post(&value_broadcast_process, immediate_broadcast_event, (void*)2);
         last_broadcast = clock_time();
 
-				static uint32_t last_power = 0xffffffff;
-				if (last_power != metering_power) {
-					broadcast_value(EP_POWER_METER);
-					last_power = metering_power;
-				}
+        static uint32_t last_power = 0xffffffff;
+        if (last_power != metering_power) {
+          broadcast_value(EP_POWER_METER);
+          last_power = metering_power;
+        }
       }
     }
 #endif // METERING_IMMEDIATE_BROADCAST

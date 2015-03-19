@@ -1,46 +1,9 @@
 # -*- mode: cmake; -*-
 project(hexanode-webfrontend)
 cmake_minimum_required(VERSION "2.8" FATAL_ERROR)
-if(POLICY CMP0011)
-  cmake_policy(SET CMP0011 NEW)
-endif(POLICY CMP0011)
 
-if( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-   message(STATUS "Do not run cmake in the source directory")
-   message(STATUS "create an extra binary directory")
-   message(FATAL_ERROR "Exiting cmake here.")
-endif( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-
-# have the full monty in makefiles
-set(CMAKE_VERBOSE_MAKEFILE true)
-
-SET(ENABLE_LOGGING 1)
-
-# use ctest
-#ENABLE_TESTING()
-
-set(V_MAJOR 0)
-set(V_MINOR 2)
-set(V_PATCH 0)
-function (get_revision_info REV_INFO)
-  execute_process (
-    COMMAND git rev-list origin/master..HEAD
-    COMMAND wc -l
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE _out_git
-    ERROR_VARIABLE _err_git
-    RESULT_VARIABLE _res_git
-    )
-  if (${_res_git} EQUAL 0)
-    string (STRIP "${_out_git}" _out_git)
-    set (${REV_INFO} ${_out_git} PARENT_SCOPE)
-  endif()
-endfunction()
-get_revision_info (PROJECT_REVISION)
-set(HXB_VERSION "${V_MAJOR}.${V_MINOR}.${V_PATCH}.${PROJECT_REVISION}")
-
-# add a path where some libraries might be stored
-set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where many locally installed libraries can be found")
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_SOURCE_DIR}/../../cmake_modules ${CMAKE_MODULE_PATH})
+include(HexabusCommon)
 
 ###################################################################################################
 # No user settings below
@@ -48,31 +11,13 @@ set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where m
 
 # Where are the additional libraries installed? Note: provide includes
 # path here, subsequent checks will resolve everything else
-set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
-set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/modules ${CMAKE_SOURCE_DIR}/../../cmake_modules ${CMAKE_MODULE_PATH})
 
-# Detect the system we're compiling on
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  SET(HAS_MACOS 1)
-ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  SET(HAS_MACOS 0)
-ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
-
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  SET(HAS_LINUX 1)
-  SET(__LINUX_ALSA__ 1)
-ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  SET(HAS_LINUX 0)
-ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-
-
-add_custom_target (pack_dir 
+add_custom_target (pack_dir
    	COMMAND mkdir -p  ${CMAKE_BINARY_DIR}/pack
-	COMMAND cp -r *.js *.json lib public views ${CMAKE_BINARY_DIR}/pack/ 
+	COMMAND cp -r *.js *.json lib public views ${CMAKE_BINARY_DIR}/pack/
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} )
 
-add_custom_target (node_modules ALL 
+add_custom_target (node_modules ALL
 	COMMAND npm install
 	COMMAND npm dedup
     DEPENDS pack_dir
@@ -85,6 +30,8 @@ install(FILES app.js DESTINATION /home/hexanode/)
 install(FILES package.json DESTINATION /home/hexanode/)
 install(FILES npm-shrinkwrap.json DESTINATION /home/hexanode/)
 install(DIRECTORY lib DESTINATION /home/hexanode/)
+install(DIRECTORY controllers DESTINATION /home/hexanode/)
+install(DIRECTORY statemachines DESTINATION /home/hexanode/)
 install(DIRECTORY public DESTINATION /home/hexanode/)
 install(DIRECTORY tools DESTINATION /home/hexanode/)
 install(DIRECTORY views DESTINATION /home/hexanode/)
@@ -92,6 +39,9 @@ install(DIRECTORY ${CMAKE_BINARY_DIR}/views DESTINATION /home/hexanode/)
 
 INSTALL(PROGRAMS etc/service/hexanode-webfrontend/run DESTINATION /etc/service/hexanode-webfrontend)
 INSTALL(PROGRAMS etc/service/hexanode-webfrontend/log/run DESTINATION /etc/service/hexanode-webfrontend/log)
+INSTALL(PROGRAMS etc/service/hexanode-hexajuice/run DESTINATION /etc/service/hexanode-hexajuice)
+INSTALL(PROGRAMS etc/service/hexanode-hexajuice/log/run DESTINATION /etc/service/hexanode-hexajuice/log)
+
 
 # CPACK packaging
 include(InstallRequiredSystemLibraries)
@@ -105,7 +55,7 @@ set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "nodejs (>= 0.10), npm (>= 1.2)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "nodejs (>= 0.10), npm (>= 1.2), socat, daemontools")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/preinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/prerm;${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst;${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm")
 
