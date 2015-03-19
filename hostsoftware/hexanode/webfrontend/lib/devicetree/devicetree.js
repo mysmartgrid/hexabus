@@ -339,18 +339,15 @@ var moduleWrapper = function(globalScope) {
 				get: function() { return eid; }
 			},
 			'id': {
-				enumerable: true,
 				get: function() { return endpoint_id(device.ip, eid); }
 			},
 			'ip': {
-				enumerable: true,
 				get: function() { return device.ip; }
 			},
 			'device': {
 				get: function() { return device; }
 			},
 			'name': {
-				enumerable: true,
 				get: function() { return device.name; }
 			},
 			'last_update': {

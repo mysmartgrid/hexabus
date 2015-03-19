@@ -1,4 +1,4 @@
-var application_root = __dirname, 
+var application_root = __dirname,
 	path=require('path'),
 	express=require('express'),
 	connect = require('connect'),
