@@ -87,12 +87,12 @@ extern U8   data_to_transfer;
 //! @retval TRUE if request type is processed
 //!
 Bool usb_user_read_request(U8 type, U8 request)
-{	
+{
 	U16 wLength;
 
 	switch(request)
 	{
-		case SEND_ENCAPSULATED_COMMAND:			
+		case SEND_ENCAPSULATED_COMMAND:
 				Usb_read_byte();
 				Usb_read_byte();
 				Usb_read_byte();//wIndex LSB
@@ -121,10 +121,11 @@ Bool usb_user_read_request(U8 type, U8 request)
       			break;
 
 		case SET_ETHERNET_PACKET_FILTER:
-				if((usb_configuration_nb==USB_CONFIG_ECM) || (usb_configuration_nb==USB_CONFIG_ECM_DEBUG)) {
+				// This breaks support for kernel >=3.16, so we pretend to not support this feature.
+/*				if((usb_configuration_nb==USB_CONFIG_ECM) || (usb_configuration_nb==USB_CONFIG_ECM_DEBUG)) {
 					cdc_ecm_set_ethernet_packet_filter();
 					return TRUE;
-				} else
+				} else*/
 					return FALSE;
 				break;
 
@@ -145,7 +146,7 @@ Bool usb_user_read_request(U8 type, U8 request)
          		break;
 #endif /* USB_CONF_STORAGE */
 
-#if USB_CONF_SERIAL	
+#if USB_CONF_SERIAL
 	/* We don't have a real serial port - so these aren't applicable. We
 	   advertise that we support nothing, so shouldn't get them anyway */
 		case GET_LINE_CODING:
@@ -183,7 +184,7 @@ Bool usb_user_read_request(U8 type, U8 request)
 				break;
 
 	}
-	 
+
   	return FALSE;
 }
 
@@ -198,7 +199,7 @@ Bool usb_user_read_request(U8 type, U8 request)
 //! @retval FALSE
 //!
 Bool usb_user_get_descriptor(U8 type, U8 string)
-{ 
+{
 	switch(type)
 	{
 		case STRING_DESCRIPTOR:
@@ -226,7 +227,7 @@ static char itoh(unsigned char i) {
 const char* usb_user_get_string_sram(U8 string_type) {
 	static char serial[13];
 	uint8_t i;
-	
+
 	switch (string_type)
 	{
 		case USB_STRING_SERIAL:
@@ -234,7 +235,7 @@ const char* usb_user_get_string_sram(U8 string_type) {
 			{
 				uint8_t mac_address[6];
 				usb_eth_get_mac_address(mac_address);
-				
+
 				for(i=0;i<6;i++) {
 					serial[i*2] = itoh(mac_address[i]>>4);
 					serial[i*2+1] = itoh(mac_address[i]);
@@ -245,7 +246,7 @@ const char* usb_user_get_string_sram(U8 string_type) {
 			serial[0] = 0;
 			break;
 	}
-	
+
 	return serial;
 }
 
@@ -283,7 +284,7 @@ PGM_P usb_user_get_string(U8 string_type) {
 			return PSTR("Attached");
 		case USB_STRING_INTERFACE_ECM_DETACHED:
 			return PSTR("Detached");
-*/			
+*/
 #if USB_CONF_STORAGE
 		case USB_STRING_CONFIG_MS:
 		case USB_STRING_INTERFACE_MS:
@@ -327,7 +328,7 @@ void usb_user_endpoint_init(U8 conf_nb)
 		case USB_CONFIG_RNDIS_DEBUG:
 		case USB_CONFIG_RNDIS:
 			rndis_configure_endpoints();
-			break;	
+			break;
 		case USB_CONFIG_EEM:
 			cdc_ecm_configure_endpoints();
 
@@ -358,7 +359,7 @@ void usb_user_endpoint_init(U8 conf_nb)
 			Usb_reset_endpoint(VCP_TX_EP);
 			Usb_reset_endpoint(VCP_RX_EP);
 
-			break;	
+			break;
 #endif
 	}
 	Led0_on();
@@ -428,7 +429,7 @@ void cdc_set_control_line_state (void)
 	usb_endpoint_wait_for_read_control_enabled();
 
 	if(interface == INTERFACE2_NB) {
-		uart_usb_set_control_line_state(controlLineState);		
+		uart_usb_set_control_line_state(controlLineState);
 	}
 }
 #endif /* USB_CONF_SERIAL */
