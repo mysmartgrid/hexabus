@@ -23,11 +23,6 @@ endforeach()
 if(LIBKLIO_FOUND)
   include_directories(
     ${LIBKLIO_INCLUDE_DIRS}
-    ${SQLITE3_INCLUDE_DIR}
-    ${ROCKSDB_INCLUDE_DIR}
-  )
-  link_directories(
-  ${SQLITE3_STATIC_LIBRARY_DIRS}
   )
   if(LIBKLIO_ENABLE_ROCKSDB)
     set_source_files_properties(${hexalog_src} COMPILE_FLAGS "-std=gnu++11")
@@ -88,18 +83,8 @@ if(LIBKLIO_FOUND)
   add_executable(hexalog ${hexalog_src})
   target_link_libraries(hexalog
     hexabus
-    ${LIBKLIO_LIBRARY}
+    ${LIBKLIO_LIBRARIES}
     ${Boost_LIBRARIES}
-    ${Boost_SYSTEM_LIBRARY}
-    ${JSON_LIBRARY}
-    ${CURL_LIBRARIES}
-    ${SQLITE3_LIBRARIES}
-    ${GNUTLS_LIBRARIES}
-    pthread
-    ${ROCKSDB_LIBRARY}
-    ${OPENSSL_CRYPTO_LIBRARY}
-		rt
-#    gcrypt
   )
 
 endif(LIBKLIO_FOUND)
