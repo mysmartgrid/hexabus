@@ -1,0 +1,8 @@
+{
+	"name": "statemachine",
+	"main": "statemachines.js",
+	"dependencies": {
+		"async": "*",
+		"nconf" : "*"
+	}
+}

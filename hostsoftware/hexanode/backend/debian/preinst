@@ -2,7 +2,14 @@
 
 set -e
 
-if [ "x$1" = "xupgrade" ]
-then
+# Remove left over service files from older versions
+if [ -e /etc/service/hexanode-backend ]; then
+	svc -d /etc/service/hexanode-backend
+	rm -rf /etc/service/hexanode-backend
+fi
+
+
+if [ "x$1" = "xupgrade" ]; then
+
 	svc -d /etc/service/hexabus_msg_bridge
 fi

@@ -5,7 +5,7 @@ angular.module('ng-socket', []).factory('Socket', ['$rootScope', '$location', fu
 
 	var wrap_message = function(callback, options) {
 		return function(data) {
-			if ($rootScope.$$phase == "$apply" || options.apply != undefined && !options.apply) {
+			if ($rootScope.$$phase == "$apply" || options.apply !== undefined && !options.apply) {
 				callback(data);
 			} else {
 				$rootScope.$apply(function() {
@@ -18,10 +18,10 @@ angular.module('ng-socket', []).factory('Socket', ['$rootScope', '$location', fu
 	socket.on = function(id, callback, options) {
 		connection.on(id, wrap_message(callback, options || {}));
 		return socket;
-	}
+	};
 
-	socket.emit = function(id, message) {
-		connection.emit(id, message);
+	socket.emit = function(id, message, callback) {
+		connection.emit(id, message, wrap_message(callback, {}));
 	};
 
 	socket.volatile_emit = function(id, message) {
