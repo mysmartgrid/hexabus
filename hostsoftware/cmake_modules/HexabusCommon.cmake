@@ -38,6 +38,22 @@ set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
 
 #
+# expand the root_path if do crosscompiling
+#
+if(CMAKE_TOOLCHAIN_FILE)
+  if( LIBKLIO_HOME ) 
+    list(APPEND CMAKE_FIND_ROOT_PATH ${LIBKLIO_HOME})
+  endif()
+  if ( LIBMYSMARTGRID_HOME )
+    list(APPEND CMAKE_FIND_ROOT_PATH ${LIBMYSMARTGRID_HOME})
+  endif()
+  if ( HXB_HOME )
+    list(APPEND CMAKE_FIND_ROOT_PATH ${HXB_HOME})
+  endif()
+  message(STATUS "Cross-Compiling: set root_path to '${CMAKE_FIND_ROOT_PATH}'")
+endif()
+
+#
 include ( ProjectInfo )
 include ( CompilerFlags )
 include (UseCodeCoverage)
