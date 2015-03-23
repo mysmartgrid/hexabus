@@ -35,6 +35,7 @@ target_link_libraries(midi2hexabus
   rtmidi
   ${HXB_LIBRARIES}
   ${Boost_LIBRARIES}
+  dl rt
 )
 
 target_link_libraries(hexabus_msg_bridge
