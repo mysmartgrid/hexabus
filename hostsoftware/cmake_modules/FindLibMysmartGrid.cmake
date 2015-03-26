@@ -99,7 +99,9 @@ if( NOT libmysmartgrid_IN_CACHE )
   if(EXISTS ${LIBMYSMARTGRID_LIBRARY_DIR}/shared/libmysmartgridConfig.cmake)
     message(STATUS "    Include LIBMYSMARTGRID dependencies.")
     include(${LIBMYSMARTGRID_LIBRARY_DIR}/shared/libmysmartgridConfig.cmake)
-    set(LIBMYSMARTGRID_LIBRARY mysmartgrid )
+    # use target mysmartgrid for libmysmartgrid.a 
+    # remember to use target_link_libraries() for linking targets
+    set(LIBMYSMARTGRID_LIBRARY mysmartgrid)
     set(LIBMYSMARTGRID_INCLUDE_DIRS ${LIBMYSMARTGRID_INCLUDE_DIRS} )
   endif(EXISTS ${LIBMYSMARTGRID_LIBRARY_DIR}/shared/libmysmartgridConfig.cmake)
 else( NOT libmysmartgrid_IN_CACHE )

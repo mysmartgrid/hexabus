@@ -45,11 +45,11 @@ target_link_libraries(hexabus_msg_bridge
   ${LIBMYSMARTGRID_LIBRARY}
   ${Boost_LIBRARIES}
   ${Boost_SYSTEM_LIBRARY}
-  ${JSON_LIBRARY}
-  ${CURL_LIBRARIES}
-  ${SQLITE3_LIBRARIES}
-  ${GNUTLS_LIBRARIES}
-  ${OPENSSL_CRYPTO_LIBRARY}
+#  ${JSON_LIBRARY}
+#  ${CURL_LIBRARIES}
+#  ${SQLITE3_LIBRARIES}
+#  ${GNUTLS_LIBRARIES}
+#  ${OPENSSL_CRYPTO_LIBRARY}
   pthread
 )
 target_link_libraries(hexabus_msg_bridge ${ROCKSDB_LIBRARY})
