@@ -38,6 +38,20 @@
 					<% } %>
 				</td>
 			</tr>
+			<tr>
+				<th class="span2">Default Gateway</th>
+				<td class="span4">
+					<div><%= gateway %></div>
+				</td>
+			</tr>
+			<tr>
+				<th class="span2">Nameservers</th>
+				<td class="span4">
+					<% for (var nameserver in nameservers) { %>
+					<div><%= nameservers[nameserver] %></div>
+					<% } %>
+				</td>
+			</tr>	
 		</table>
 
 		<h3 data-localize="wizard.current.hxb-addrs">Hexabus network</h3>

@@ -3,7 +3,6 @@
 
 #include <vector>
 
-#include <libhexabus/config.h>
 #include <libhexabus/packet.hpp>
 
 namespace hexabus {

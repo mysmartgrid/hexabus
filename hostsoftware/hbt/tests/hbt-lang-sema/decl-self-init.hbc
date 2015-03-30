@@ -1,0 +1,5 @@
+machine m {
+	bool b = b; //#expect: error: use of undeclared identifier 'b'
+
+	state s {}
+};

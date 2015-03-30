@@ -13,6 +13,7 @@
 #include "../../../shared/hexabus_definitions.h"
 
 #include "endpoints.h"
+#include "configure.h"
 
 #ifdef UCI_FOUND
 extern "C" {
@@ -40,6 +41,7 @@ void HexabusServer::_init() {
 
 	_device.onReadName(boost::bind(&HexabusServer::loadDeviceName, this));
 	_device.onWriteName(boost::bind(&HexabusServer::saveDeviceName, this, _1));
+	_device.onAsyncError(boost::bind(&HexabusServer::handleAsyncError, this, _1));
 
 	hexabus::EndpointRegistry ep_registry;
 	hexabus::EndpointRegistry::const_iterator ep_it;
@@ -108,7 +110,7 @@ unsigned long endpoints[6] = {
 uint32_t HexabusServer::get_sensor(int map_idx)
 {
 	updateFluksoValues();
-	std::cout << "Reading value for " << entry_names[map_idx] << std::endl;
+	_debug && std::cout << "Reading value for " << entry_names[map_idx] << std::endl;
 	return _flukso_values[_sensor_mapping[map_idx]];
 }
 
@@ -117,23 +119,9 @@ uint32_t HexabusServer::get_sum()
 	updateFluksoValues();
 	int result = 0;
 
-	for ( std::map<std::string, uint32_t>::iterator it = _flukso_values.begin(); it != _flukso_values.end(); it++ )
-		result += it->second;
-
-	return result;
-}
-
-int HexabusServer::getFluksoValue()
-{
-	updateFluksoValues();
-	int result = 0;
-
-  result += _flukso_values[_sensor_mapping[1]];
-  result += _flukso_values[_sensor_mapping[2]];
-  result += _flukso_values[_sensor_mapping[3]];
-  
-	//for ( std::map<std::string, uint32_t>::iterator it = _flukso_values.begin(); it != _flukso_values.end(); it++ )
-  //		result += it->second;
+	result += _flukso_values[_sensor_mapping[1]];
+	result += _flukso_values[_sensor_mapping[2]];
+	result += _flukso_values[_sensor_mapping[3]];
 
 	return result;
 }
@@ -147,17 +135,14 @@ void HexabusServer::updateFluksoValues()
 		for ( bf::directory_iterator sensors(p); sensors != bf::directory_iterator(); sensors++ )
 		{
 			std::string filename = (*sensors).path().filename().string();
-			_debug && std::cout << "Parsing file: " << filename << std::endl;
-
-			//convert hash from hex to binary
-			boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> data;
-			unsigned short hash;
-			for ( unsigned int pos = 0; pos < 16; pos++ )
-			{
-				std::stringstream ss(filename.substr(2*pos, 2));
-				ss >> std::hex >> hash;
-				data[pos] = hash;
+			boost::regex hex32("^[0-9a-f]{32}$");
+			boost::match_results<std::string::const_iterator> what;
+			if ( !boost::regex_match(filename, what, hex32) ) {
+				_debug && std::cout << "Ignoring file: " << filename << std::endl;
+				continue;
 			}
+
+			_debug && std::cout << "Parsing file: " << filename << std::endl;
 
 			std::ifstream file;
 			file.open((*sensors).path().string().c_str());
@@ -169,27 +154,25 @@ void HexabusServer::updateFluksoValues()
 			file.close();
 			//extract last value != "nan" from the json array
 			boost::regex r("^\\[(?:\\[[[:digit:]]*,[[:digit:]]*\\],)*\\[[[:digit:]]*,([[:digit:]]*)\\](?:,\\[[[:digit:]]*,\"nan\"\\])*\\]$");
-			boost::match_results<std::string::const_iterator> what;
 
-			uint32_t value = 0;
-			if ( boost::regex_search(flukso_data, what, r))
-				value = boost::lexical_cast<uint32_t>(std::string(what[1].first, what[1].second));
-
-			_flukso_values[filename] = value;
-			_debug && std::cout << "Updating _flukso_values[" << filename << "] = " << value << std::endl;
-
-			union {
-				uint32_t u32;
-				char raw[sizeof(value)];
-			} c = { htonl(value) };
-			for ( unsigned int pos = 0; pos < sizeof(value); pos++ )
-			{
-				data[16+pos] = c.raw[pos];
+			if ( boost::regex_search(flukso_data, what, r) ) {
+				try {
+					uint32_t value = boost::lexical_cast<uint32_t>(std::string(what[1].first, what[1].second));
+					_flukso_values[filename] = value;
+					_debug && std::cout << "Updating _flukso_values[" << filename << "] = " << value << std::endl;
+				} catch ( const boost::bad_lexical_cast & ) {
+					std::cerr << "Error parsing value " << std::string(what[1].first, what[1].second) << std::endl;
+				}
+			} else {
+        boost::regex r0("^\\[(?:\\[[[:digit:]]*,\"nan\"\\],)*\\[[[:digit:]]*,\"nan\"\\]\\]$");
+        if ( boost::regex_search(flukso_data, what, r0) ) {
+          _debug && std::cerr << "No Values " << filename << std::endl;
+					_flukso_values[filename] = 0;
+				} else {
+          std::cerr << "Error parsing " << filename << std::endl;
+          _debug && std::cout << "Content of " << filename << ": \'" << flukso_data << "\'" << std::endl;
+        }
 			}
-
-			//pad array with zeros
-			for ( unsigned int pos = 16 + sizeof(value); pos < HXB_65BYTES_PACKET_BUFFER_LENGTH; pos++ )
-				data[pos] = 0;
 		}
 	}
 }
@@ -254,6 +237,8 @@ void HexabusServer::loadSensorMapping()
 		_sensor_mapping[port] = id;
 	}
 	uci_free_context(ctx);
+#else /* UCI_FOUND */
+	_debug && std::cout << "UCI disabled. NO sensors loaded!" << std::endl;
 #endif /* UCI_FOUND */
 	_debug && std::cout << "sensor mapping loaded" << std::endl;
 }
@@ -339,4 +324,9 @@ void HexabusServer::saveDeviceName(const std::string& name)
 #else /* UCI_FOUND */
 	_device_name = name;
 #endif /* UCI_FOUND */
+}
+
+void HexabusServer::handleAsyncError(const hexabus::GenericException& error)
+{
+	_debug && std::cerr << "Asynchronous error occured: " << error.reason() << std::endl;
 }

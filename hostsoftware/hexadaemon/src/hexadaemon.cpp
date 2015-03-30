@@ -3,21 +3,19 @@
 // ~~~~~~~~~~
 //
 // Copyright (c) 2003-2011 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+// Copyright (c) 2013-2014 Stephan Platz (platz at itwm dot fraunhofer dot de)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
+#include <boost/exception/diagnostic_information.hpp>
 #include <boost/asio/io_service.hpp>
-//#include <boost/asio/ip/udp.hpp>
 #include <boost/asio/signal_set.hpp>
-//#include <boost/array.hpp>
 #include <boost/bind.hpp>
 #include <boost/program_options.hpp>
-//#include <ctime>
 #include <iostream>
 #include <syslog.h>
-//#include <unistd.h>
 
 namespace po = boost::program_options;
 
@@ -229,7 +227,7 @@ int main(int argc, char** argv)
   }
   catch (boost::exception& e)
   {
-    std::cerr << "Boost Exception: " << diagnostic_information(e) << std::endl;
+    std::cerr << "Boost Exception: " << boost::diagnostic_information(e) << std::endl;
   }
   catch (std::exception& e)
   {

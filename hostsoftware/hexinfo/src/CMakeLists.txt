@@ -12,24 +12,15 @@ include_directories(
 )
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 include_directories(
-  ${HBX_INCLUDE_DIR}
+  ${HXB_INCLUDE_DIR}
   ${HBC_INCLUDE_DIR}
 )
-#link_directories(
-#  #  ${SQLITE3_STATIC_LIBRARY_DIRS}
-#  )
 
 add_executable(hexinfo ${hexinfo_src})
-# Link the executables
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/hexinfo DESTINATION bin)
 target_link_libraries(hexinfo
   pthread
   ${HXB_LIBRARIES}
-  ${HBC_LIBRARIES}
+  ${HBT_LIBRARIES}
   ${Boost_LIBRARIES}
 )
-
-# add programs to the install target 
-INSTALL(PROGRAMS
-  ${CMAKE_CURRENT_BINARY_DIR}/hexinfo
-  DESTINATION bin)
-

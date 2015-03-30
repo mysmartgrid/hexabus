@@ -12,31 +12,6 @@ void Logger::operator()(const hexabus::Packet& packet, const boost::asio::ip::ud
 	visitPacket(packet);
 }
 
-void Logger::visit(const hexabus::InfoPacket<bool>& info)
-{
-	accept_packet(info.value(), info.eid());
-}
-
-void Logger::visit(const hexabus::InfoPacket<uint8_t>& info)
-{
-	accept_packet(info.value(), info.eid());
-}
-
-void Logger::visit(const hexabus::InfoPacket<uint32_t>& info)
-{
-	accept_packet(info.value(), info.eid());
-}
-
-void Logger::visit(const hexabus::InfoPacket<float>& info)
-{
-	accept_packet(info.value(), info.eid());
-}
-
-void Logger::visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info)
-{
-	accept_packet(info.value().total_seconds(), info.eid());
-}
-
 const char* Logger::eid_to_unit(uint32_t eid)
 {
 	hexabus::EndpointRegistry::const_iterator it;

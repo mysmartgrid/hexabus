@@ -37,32 +37,40 @@ class Logger : private PacketVisitor {
 
 		void accept_packet(double value, uint32_t eid);
 
-		virtual void visit(const hexabus::InfoPacket<bool>& info);
-		virtual void visit(const hexabus::InfoPacket<uint8_t>& info);
-		virtual void visit(const hexabus::InfoPacket<uint32_t>& info);
-		virtual void visit(const hexabus::InfoPacket<float>& info);
-		virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info);
+		virtual void visit(const hexabus::InfoPacket<bool>& info) { accept_packet(info.value(), info.eid()); }
+		virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { accept_packet(info.value(), info.eid()); }
+		virtual void visit(const hexabus::InfoPacket<uint16_t>& info) { accept_packet(info.value(), info.eid()); }
+		virtual void visit(const hexabus::InfoPacket<uint32_t>& info) { accept_packet(info.value(), info.eid()); }
+		virtual void visit(const hexabus::InfoPacket<uint64_t>& info) { accept_packet(info.value(), info.eid()); }
+		virtual void visit(const hexabus::InfoPacket<int8_t>& info) { accept_packet(info.value(), info.eid()); }
+		virtual void visit(const hexabus::InfoPacket<int16_t>& info) { accept_packet(info.value(), info.eid()); }
+		virtual void visit(const hexabus::InfoPacket<int32_t>& info) { accept_packet(info.value(), info.eid()); }
+		virtual void visit(const hexabus::InfoPacket<int64_t>& info) { accept_packet(info.value(), info.eid()); }
+		virtual void visit(const hexabus::InfoPacket<float>& info) { accept_packet(info.value(), info.eid()); }
 
 		// FIXME: handle these properly, we should not drop valid info packets
-		virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) {} 
-		virtual void visit(const hexabus::InfoPacket<std::string>& info) {} 
-		virtual void visit(const hexabus::InfoPacket<boost::array<char, 16> >& info) {}
-		virtual void visit(const hexabus::InfoPacket<boost::array<char, 65> >& info) {}
+		virtual void visit(const hexabus::InfoPacket<std::string>& info) {}
+		virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 16> >& info) {}
+		virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 65> >& info) {}
 
 		virtual void visit(const hexabus::ErrorPacket& error) {}
 		virtual void visit(const hexabus::QueryPacket& query) {}
 		virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery) {}
 		virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo) {}
 
-		virtual void visit(const hexabus::WritePacket<bool>& write) {}
-		virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
-		virtual void visit(const hexabus::WritePacket<uint32_t>& write) {}
-		virtual void visit(const hexabus::WritePacket<float>& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) {}
-		virtual void visit(const hexabus::WritePacket<std::string>& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::array<char, 16> >& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::array<char, 65> >& write) {}
+		virtual void visit(const hexabus::WritePacket<bool>& info) {}
+		virtual void visit(const hexabus::WritePacket<uint8_t>& info) {}
+		virtual void visit(const hexabus::WritePacket<uint16_t>& info) {}
+		virtual void visit(const hexabus::WritePacket<uint32_t>& info) {}
+		virtual void visit(const hexabus::WritePacket<uint64_t>& info) {}
+		virtual void visit(const hexabus::WritePacket<int8_t>& info) {}
+		virtual void visit(const hexabus::WritePacket<int16_t>& info) {}
+		virtual void visit(const hexabus::WritePacket<int32_t>& info) {}
+		virtual void visit(const hexabus::WritePacket<int64_t>& info) {}
+		virtual void visit(const hexabus::WritePacket<float>& info) {}
+		virtual void visit(const hexabus::WritePacket<std::string>& info) {}
+		virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 16> >& info) {}
+		virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 65> >& info) {}
 
 	protected:
 		virtual void record_reading(klio::Sensor::Ptr sensor, klio::timestamp_t ts, double value) = 0;

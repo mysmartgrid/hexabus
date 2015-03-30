@@ -3,45 +3,44 @@
 
 #include <string>
 #include <exception>
-#include <tr1/memory>
+#include <memory>
 #include <boost/system/error_code.hpp>
 
 namespace hexabus {
-  class GenericException : public std::exception {
-    public:
-      typedef std::tr1::shared_ptr<GenericException> Ptr;
-      GenericException (const std::string reason) : _reason(reason) {};
-      virtual ~GenericException() throw() {};
-      virtual const char* what() const throw() { return reason().c_str(); }
-      virtual const std::string& reason() const { return _reason; }
 
-    private:
-      std::string _reason;
-  };
+class GenericException : public std::exception {
+public:
+	GenericException(std::string reason)
+		: _reason(std::move(reason))
+	{
+	}
 
-  class NetworkException : public GenericException {
-    public:
-      typedef std::tr1::shared_ptr<NetworkException> Ptr;
-      NetworkException (const std::string reason, const boost::system::error_code& code) :
-        hexabus::GenericException(reason), _code(code) {};
-      virtual ~NetworkException() throw() {};
+	virtual const char* what() const noexcept { return reason().c_str(); }
 
-      boost::system::error_code code() const { return _code; }
+	virtual const std::string& reason() const { return _reason; }
 
-    private:
-      boost::system::error_code _code;
-  };
+private:
+	std::string _reason;
+};
 
-	class BadPacketException : public GenericException {
-		public:
-			typedef std::tr1::shared_ptr<BadPacketException> Ptr;
+class NetworkException : public GenericException {
+public:
+	NetworkException (const std::string reason, const boost::system::error_code& code) :
+		hexabus::GenericException(reason), _code(code) {};
 
-			BadPacketException (const std::string reason)
-				: hexabus::GenericException(reason)
-			{}
+	boost::system::error_code code() const { return _code; }
 
-			virtual ~BadPacketException() throw() {};
-	};
+private:
+	boost::system::error_code _code;
+};
+
+class BadPacketException : public GenericException {
+public:
+	BadPacketException(std::string value)
+		: GenericException::GenericException(value)
+	{
+	}
+};
 
 }
 

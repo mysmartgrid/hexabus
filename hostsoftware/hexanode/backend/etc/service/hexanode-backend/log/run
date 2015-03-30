@@ -1,3 +1,0 @@
-#!/bin/sh
-
-exec multilog t /var/log/hexanode-backend
