@@ -28,7 +28,7 @@ set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "all")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "python3 (>= 3.2.3), radvd, mrd6")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "python3 (>= 3.2.3), radvd, mrd6, ndisc6")
 
 set(CPACK_SECTION "net")
 include(CPackTools)
