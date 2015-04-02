@@ -31,7 +31,8 @@ case "$1" in
 		cp /etc/network/interfaces /etc/network/.interfaces-pre-autoconfig
 		python3 /usr/lib/hxb-net-autoconf/hxb-net-autoconf.py eth0 usb0 || exit 2
 
-		service networking restart || exit 3
+		(ifdown eth0; ifup eth0) || exit 3
+		(ifdown usb0; ifup usb0) || exit 3
 		service radvd restart || exit 4
 		service mrd6 restart || exit 5
 		;;
@@ -41,7 +42,8 @@ case "$1" in
 		service mrd6 stop
 		rm /etc/radvd.conf
 		cp /etc/network/.interfaces-pre-autoconfig /etc/network/interfaces
-		service networking restart
+		ifdown eth0; ifup eth0
+		ifdown usb0; ifup usb0
 		;;
 
 	*)
