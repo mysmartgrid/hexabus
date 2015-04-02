@@ -13,7 +13,8 @@ include(HexabusCommon)
 # path here, subsequent checks will resolve everything else
 
 add_custom_target (pack_dir
-   	COMMAND mkdir -p  ${CMAKE_BINARY_DIR}/pack
+	COMMAND rm -rf ${CMAKE_BINARY_DIR}/pack
+	COMMAND mkdir -p  ${CMAKE_BINARY_DIR}/pack
 	COMMAND cp -r *.js *.json lib public views ${CMAKE_BINARY_DIR}/pack/
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} )
 
