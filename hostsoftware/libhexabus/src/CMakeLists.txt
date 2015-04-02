@@ -22,13 +22,18 @@ endforeach()
 
 if(LIBKLIO_FOUND)
   include_directories(
+    ${LIBMYSMARTGRID_INCLUDE_DIR}
+    ${LIBMYSMARTGRID_INCLUDE_DIRS}
     ${LIBKLIO_INCLUDE_DIRS}
     ${SQLITE3_INCLUDE_DIR}
     ${ROCKSDB_INCLUDE_DIR}
   )
-  link_directories(
-  ${SQLITE3_STATIC_LIBRARY_DIRS}
-  )
+#  link_directories(
+#  ${SQLITE3_STATIC_LIBRARY_DIRS}
+#  )
+#    link_directories(
+#  ${LIBMYSMARTGRID_LIBRARY}
+#  )
   if(LIBKLIO_ENABLE_ROCKSDB)
     set_source_files_properties(${hexalog_src} COMPILE_FLAGS "-std=gnu++11")
   endif()
@@ -91,13 +96,14 @@ if(LIBKLIO_FOUND)
     ${LIBKLIO_LIBRARY}
     ${Boost_LIBRARIES}
     ${Boost_SYSTEM_LIBRARY}
-    ${JSON_LIBRARY}
-    ${CURL_LIBRARIES}
-    ${SQLITE3_LIBRARIES}
-    ${GNUTLS_LIBRARIES}
+#    ${JSON_LIBRARY}
+#    ${CURL_LIBRARIES}
+#    ${SQLITE3_LIBRARIES}
+#    ${GNUTLS_LIBRARIES}
     pthread
-    ${ROCKSDB_LIBRARY}
-    ${OPENSSL_CRYPTO_LIBRARY}
+#    ${ROCKSDB_LIBRARY}
+#    ${OPENSSL_CRYPTO_LIBRARY}
+    ${LIBMYSMARTGRID_LIBRARY}
 		rt
 #    gcrypt
   )

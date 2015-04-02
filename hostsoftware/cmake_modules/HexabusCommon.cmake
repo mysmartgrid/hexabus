@@ -38,9 +38,42 @@ set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_ADDITIONAL_PATH}/include)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_ADDITIONAL_PATH}/lib)
 
 #
+# expand the root_path if do crosscompiling
+#
+if(CMAKE_TOOLCHAIN_FILE)
+#  set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_TOOLCHAIN_DIRECTORY}/usr/include)
+#  set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_TOOLCHAIN_DIRECTORY}/usr/lib)
+
+  if( LIBKLIO_HOME ) 
+    list(APPEND CMAKE_FIND_ROOT_PATH ${LIBKLIO_HOME})
+  endif()
+  if ( LIBMYSMARTGRID_HOME )
+    list(APPEND CMAKE_FIND_ROOT_PATH ${LIBMYSMARTGRID_HOME})
+  endif()
+  if ( HXB_HOME )
+    list(APPEND CMAKE_FIND_ROOT_PATH ${HXB_HOME})
+  endif()
+  message(STATUS "Cross-Compiling: set root_path to '${CMAKE_FIND_ROOT_PATH}'")
+endif()
+
+#
 include ( ProjectInfo )
 include ( CompilerFlags )
 include (UseCodeCoverage)
+
+# Detect the system we're compiling on
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  set(HAS_MACOS 1)
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  set(HAS_MACOS 0)
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  set(HAS_LINUX 1)
+  set(__LINUX_ALSA__ 1)
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  set(HAS_LINUX 0)
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 #
 set(CMAKE_CXX_FLAGS "${CXXFLAGS} -std=c++11")
