@@ -12,7 +12,7 @@ exports.expectMembers = function(obj, members) {
 	}
 };
 
-exports.Statemachine = function(name, machineClass, config, devicetree) {
+exports.Statemachine = function(name, machineClass, comment, config, devicetree) {
 
 	Object.defineProperties(this, {
 		'name': {
@@ -70,7 +70,7 @@ exports.Statemachine = function(name, machineClass, config, devicetree) {
 
 	this.saveToDevicetree = function() {
 		if(devicetree.statemachines[name] === undefined) {
-			devicetree.addStatemachine(name, this.machineClass, config);
+			devicetree.addStatemachine(name, this.machineClass, comment, config);
 		}
 		else {
 			devicetree.statemachines[name].updateConfig(config);

@@ -4,8 +4,8 @@ var Statemachine = require('./common').Statemachine;
 var expectMembers = require('./common').expectMembers;
 var setMachineClass = require('./common').setMachineClass;
 
-exports.StandbyKillerStatemachine = function(name, config, devicetree) {
-	Statemachine.call(this, name, 'Standbykiller', config, devicetree);
+exports.StandbyKillerStatemachine = function(name, comment, config, devicetree) {
+	Statemachine.call(this, name, 'Standbykiller', comment, config, devicetree);
 
 	expectMembers(this.config, ['dev',
 								'meter',

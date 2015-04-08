@@ -3,8 +3,8 @@
 var Statemachine = require('./common').Statemachine;
 var expectMembers = require('./common').expectMembers;
 
-exports.ProductionThresholdStatemachine = function(name, config, devicetree) {
-	Statemachine.call(this, name, 'ProductionThreshold', config, devicetree);
+exports.ProductionThresholdStatemachine = function(name, comment, config, devicetree) {
+	Statemachine.call(this, name, 'ProductionThreshold', comment, config, devicetree);
 
 	expectMembers(this.config, ['producer',
 								'prodMeter',

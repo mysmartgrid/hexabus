@@ -601,7 +601,7 @@ var moduleWrapper = function(globalScope) {
 	/*
 	 * Statemachine constructor
 	 */
-	var Statemachine = function(name, machineClass, config, emitter) {
+	var Statemachine = function(name, machineClass, comment, config, emitter) {
 
 		Object.defineProperties(this, {
 			'name' : {
@@ -622,6 +622,17 @@ var moduleWrapper = function(globalScope) {
 				}
 			},
 
+			'comment' : {
+				enumerable: true,
+				get: function() {
+					return comment;
+				},
+				set: onServer(function(newComment) {
+					comment = newComment;
+					this.propgateUpdate();
+				})
+			},
+
 			'config' : {
 				enumerable: true,
 				get: function() {
@@ -640,16 +651,18 @@ var moduleWrapper = function(globalScope) {
 			update.statemachines = {};
 			update.statemachines[name] = {
 				'machineClass' : machineClass,
-				'config' : config
+				'config' : config,
+				'comment' : comment
 			};
 			emitter.propagateUpdate(update);
 		});
 
 		if(name === undefined ||
 			machineClass === undefined ||
+			comment === undefined ||
 			config === undefined ||
 			emitter === undefined) {
-			throw "Statemachine constructor needs 4 arguments";
+			throw "Statemachine constructor needs 5 arguments";
 		}
 	};
 
@@ -844,8 +857,8 @@ var moduleWrapper = function(globalScope) {
 			}
 		};
 
-		this.addStatemachine = onServer(function(name, machineClass, config) {
-			var machine = new Statemachine(name, machineClass, config, this);
+		this.addStatemachine = onServer(function(name, machineClass, comment, config) {
+			var machine = new Statemachine(name, machineClass, comment, config, this);
 			statemachines[name] = machine;
 			machine.propagateUpdate();
 		});
@@ -868,6 +881,10 @@ var moduleWrapper = function(globalScope) {
 
 			for(var id in view) {
 				this.removeView(id);
+			}
+
+			for(var name in statemachines) {
+				this.removeStatemachine(name);
 			}
 		});
 
@@ -917,6 +934,7 @@ var moduleWrapper = function(globalScope) {
 				var machine = jsonTree.statemachines[machineName];
 				statemachines[machineName] = new Statemachine(machineName,
 																machine.machineClass,
+																machine.comment,
 																machine.config,
 																this);
 			}

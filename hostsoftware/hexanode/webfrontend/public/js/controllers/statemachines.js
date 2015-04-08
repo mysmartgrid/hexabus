@@ -157,6 +157,7 @@ angular.module('hexanode')
 			var statemachine = {
 				name: generateRandomName(),
 				machineClass: 'MasterSlave',
+				comment: 'No comment',
 				config: {
 					master: $scope.masterSlave.master,
 					meter: 2,
@@ -186,6 +187,7 @@ angular.module('hexanode')
 		var statemachine = [{
 			name: generateRandomName(),
 			machineClass: 'Standbykiller',
+			comment: 'No comment',
 			config: {
 				dev: $scope.standbyKiller.device,
 				meter: 2,
@@ -234,6 +236,7 @@ angular.module('hexanode')
 			var statemachine = [{
 			name: generateRandomName(),
 			machineClass: 'ProductionThreshold',
+			comment: 'No comment',
 			config: {
 				producer: $scope.productionThreshold.producer,
 				prodMeter: 2,
@@ -276,6 +279,7 @@ angular.module('hexanode')
 		var statemachine = [{
 			name: generateRandomName(),
 			machineClass: 'Threshold',
+			comment: 'No comment',
 			config: {
 				meterDev: $scope.threshold.meterDevice,
 				meter: 2,

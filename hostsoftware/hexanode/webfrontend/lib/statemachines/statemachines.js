@@ -40,13 +40,15 @@ var statemachineFromDevicetree = function(name, devicetree) {
 	}
 
 	var config = devicetree.statemachines[name].config;
+	var comment = devicetree.statemachines[name].comment;
 
-	return new machineTypes[machineClass](name, config, devicetree);
+	return new machineTypes[machineClass](name, comment, config, devicetree);
 };
 
 exports.statemachineFromJson = function(json, devicetree) {
 	expectMembers(json, ['name',
 						'machineClass',
+						'comment',
 						'config']);
 
 	if(devicetree === undefined) {
@@ -57,7 +59,7 @@ exports.statemachineFromJson = function(json, devicetree) {
 		throw new Error("Unknown machine class " + json.machineClass);
 	}
 
-	return new machineTypes[json.machineClass](json.name, json.config, devicetree);
+	return new machineTypes[json.machineClass](json.name, json.comment, json.config, devicetree);
 };
 
 
