@@ -771,14 +771,14 @@ var moduleWrapper = function(globalScope) {
 			return device;
 		});
 
-		this.removeDevice = function(ip) {
+		this.removeDevice = onServer(function(ip) {
 			if(devices[ip] === undefined) {
 				throw "Device not found";
 			}
 
 			delete devices[ip];
 			this.propagateEntityDeletion('devices',ip);
-		};
+		});
 
 		this.add_endpoint = onServer(function(ip, eid, params) {
 			var device, endpoint;

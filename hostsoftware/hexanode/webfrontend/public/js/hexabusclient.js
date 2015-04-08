@@ -7,6 +7,11 @@ window.HexabusClient = function(socket) {
 		socket.emit('hexabus_rename_device', {'deviceIp' : device.ip, 'name' : name}, cb);
 	};
 
+	this.removeDevice  = function(device) {
+		socket.emit('hexabus_remove_device', {'deviceIp' : device.ip});
+	};
+
+
 	this.setEndpoint = function(endpoint, value, cb) {
 		socket.emit('hexabus_set_endpoint', {'endpointId' : endpoint.id, 'value' : value}, cb);
 	};

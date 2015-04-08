@@ -45,6 +45,7 @@ var statemachineFromDevicetree = function(name, devicetree) {
 
 	return new machineTypes[machineClass](name, comment, config, devicetree);
 };
+exports.statemachineFromDevicetree = statemachineFromDevicetree;
 
 exports.statemachineFromJson = function(json, devicetree) {
 	expectMembers(json, ['name',

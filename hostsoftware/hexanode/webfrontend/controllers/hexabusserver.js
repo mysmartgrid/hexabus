@@ -1,4 +1,7 @@
 'use strict';
+var statemachineFromDevicetree = require("../lib/statemachines/statemachines").statemachineFromDevicetree;
+var debug = require('../lib/debug.js');
+
 
 /*
  * A Serverobject that exposes some hexabus functions via socket io.
@@ -6,8 +9,6 @@
  * The browser side code uses the functions exposed by this object to
  * perform various interaction with hexbus devices.
  */
-
-
 var HexabusServer = function(socket, hexabus, devicetree) {
 
 	// Wrapper for socket.on with improved exception handling.
@@ -75,6 +76,31 @@ var HexabusServer = function(socket, hexabus, devicetree) {
 				cb({'success' : true});
 			}
 		});
+	});
+
+	/*
+	 * Remove a hexabus device.
+	 * Also removes any statemachines using the device.
+	 *
+	 * Expected format for the incoming socket.io message:
+	 * {
+	 *	 deviceIp: "<IpOfTheDevice>"
+	 * }
+	 */
+	on('hexabus_remove_device', function(data) {
+		if(data.deviceIp === undefined) {
+			throw 'Invalid remove';
+		}
+
+		for(var name in devicetree.statemachines) {
+			var machine = statemachineFromDevicetree(name, devicetree);
+			if(machine.getUsedDevices().indexOf(data.deviceIp) > -1) {
+				debug('Deleting ' + name + ' along with ' + data.deviceIp);
+				devicetree.removeStatemachine(name);
+			}
+		}
+
+		devicetree.removeDevice(data.deviceIp);
 	});
 
 

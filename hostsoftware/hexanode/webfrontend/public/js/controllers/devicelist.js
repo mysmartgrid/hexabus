@@ -7,7 +7,7 @@ angular.module('hexanode')
 	$scope.show_rename = function(device) {
 		device.rename = true;
 	};
-	
+
 	$scope.rename_device = function(device) {
 		device.renaming = true;
 		hexabusclient.renameDevice(device, device.new_name, function(data) {
@@ -37,10 +37,10 @@ angular.module('hexanode')
 
 		message = message.replace("{device}", device.name);
 		if (confirm(message)) {
-			$scope.devicetree.removeDevice(device.ip);	
+			hexabusclient.removeDevice(device);
 		}
 	};
-	
+
 	Socket.on('devicetree_init', function(json) {
 		$scope.devicetree = new window.DeviceTree(json);
 
