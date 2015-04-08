@@ -148,6 +148,7 @@
 				"number-max-u32-minutes": "Der Wert muss kleiner als 71582788 sein.",
 				"disjoint-devices" : "Jedes Gerät kann nur in einer Funktion verwenden werden.",
 				"no-slaves": "Es muss mindestens ein Gerät als slave ausgewählt werden.",
+				"headers-missing": "Gerätedefinitionen fehlen. Das kann daran liegen, dass das Netzwerk noch nicht vollständig nach Geräten durchsucht werden konnte. Bitte später noch einmal versuchen.",
 				"creating-intance-file-failed": "Die Schaltprogrammdatei konnte nicht geschrieben werden.",
 				"compiling-failed": "Die Statemachine konnte nicht kompiliert werden.",
 				"uploading-failed": "Das Hochladen des Schaltprogramms auf {device} ist fehlgeschlagen.",

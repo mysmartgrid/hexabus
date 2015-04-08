@@ -132,6 +132,8 @@ var Hexabus = function() {
 	this.enumerate_network = function(deviceCb) {
 		deviceCb = deviceCb || Object;
 
+		debug('Enumerating network');
+
 		if(hexinfo_lock) {
 			deviceCb({'error' : 'Hexinfo is already running, try again later ...'});
 			return;
@@ -139,14 +141,16 @@ var Hexabus = function() {
 
 		hexinfo_lock = true;
 
-		var tmpEpFile = makeTempFile("/tmp/XXXXXX_epfile.tmp");
-		var tmpDevFile = makeTempFile("/tmp/XXXXXX_devfile.tmp");
-		if(fs.existsSync(path.join(nconf.get("data"), 'endpoints.hbh')) && fs.existsSync(path.join(nconf.get("data"), 'devices.hbh'))) {
-			fs.copySync(path.join(nconf.get("data"), 'endpoints.hbh'), tmpEpFile);
-			fs.copySync(path.join(nconf.get("data"), 'devices.hbh'), tmpDevFile);
-		}
-
 		var enumerateInterface = function(iface, cb) {
+			debug('Running hexinfo on ' + iface);
+
+			var tmpEpFile = makeTempFile("/tmp/XXXXXX_epfile.tmp");
+			var tmpDevFile = makeTempFile("/tmp/XXXXXX_devfile.tmp");
+			if(fs.existsSync(path.join(nconf.get("data"), 'endpoints.hbh')) && fs.existsSync(path.join(nconf.get("data"), 'devices.hbh'))) {
+				fs.copySync(path.join(nconf.get("data"), 'endpoints.hbh'), tmpEpFile);
+				fs.copySync(path.join(nconf.get("data"), 'devices.hbh'), tmpDevFile);
+			}
+
 			execFile("hexinfo",
 					["--discover",
 					"--interface", iface,
@@ -154,32 +158,33 @@ var Hexabus = function() {
 					"--epfile", tmpEpFile,
 					"--devfile", tmpDevFile],
 					function(error, stdout, stderr) {
-				if (error) {
-					cb({ error: error });
-				} else {
-					var devices = JSON.parse(stdout).devices;
-					debug('Hexinfo ' +iface + ':');
-					debug(devices);
-					devices.forEach(function(dev) {
-						deviceCb({ device: dev });
+						if (error) {
+							fs.unlinkSync(tmpEpFile);
+							fs.unlinkSync(tmpDevFile);
+
+							cb({ error: error });
+						} else {
+							fs.renameSync(tmpEpFile, path.join(nconf.get("data"), 'endpoints.hbh'));
+							fs.renameSync(tmpDevFile, path.join(nconf.get("data"), 'devices.hbh'));
+
+							var devices = JSON.parse(stdout).devices;
+							debug('Hexinfo ' +iface + ':');
+							debug(devices);
+							devices.forEach(function(dev) {
+								deviceCb({ device: dev });
+							});
+							cb();
+						}
 					});
-					cb();
-				}
-			});
 		};
 
 		var interfaces = nconf.get("hxb-interfaces").split(",");
-		async.each(interfaces, enumerateInterface, function(error) {
+		async.eachSeries(interfaces, enumerateInterface, function(error) {
 			hexinfo_lock = false;
-
 			if(error !== undefined) {
-				fs.unlinkSync(tmpEpFile);
-				fs.unlinkSync(tmpDevFile);
 				deviceCb({'error' : error});
 			}
 			else {
-				fs.renameSync(tmpEpFile, path.join(nconf.get("data"), 'endpoints.hbh'));
-				fs.renameSync(tmpDevFile, path.join(nconf.get("data"), 'devices.hbh'));
 				deviceCb({'done' : true});
 			}
 		});

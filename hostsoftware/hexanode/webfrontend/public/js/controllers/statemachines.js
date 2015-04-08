@@ -46,7 +46,6 @@ angular.module('hexanode')
 			return message;
 		}
 		console.log("Missing translation: " + type + " " + data.localization);
-		console.log(data);
 		return data.msg;
 	};
 

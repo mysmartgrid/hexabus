@@ -4,6 +4,7 @@ var async = require('async');
 var fs = require('fs');
 var execFile = require('child_process').execFile;
 var nconf = require('nconf');
+var path = require('path');
 
 var debug = require('../debug.js');
 var expectMembers = require('./common').expectMembers;
@@ -101,6 +102,15 @@ exports.StatemachineBuilder = function(devicetree) {
 		progressCallback({'localization' : localization, 'extras' : extras});
 	};
 
+
+	var checkHeaders = function(callback) {
+		if(!fs.existsSync(path.join(nconf.get("data"), 'endpoints.hbh')) || !fs.existsSync(path.join(nconf.get("data"), 'devices.hbh'))) {
+			callback(localizeError('headers-missing', 'devices.hbh and endpoints.hbh are missing.'));
+		}
+		else {
+			callback();
+		}
+	}
 
 	var collectMachines = function(callback) {
 		statemachines = [];
@@ -227,7 +237,9 @@ exports.StatemachineBuilder = function(devicetree) {
 		busy = true;
 
 		progressCallback = progressCb || console.log;
-		async.series([collectMachines,
+		async.series([
+			checkHeaders,
+			collectMachines,
 			collectDevices,
 			generateInstanceFile,
 			compileStatemachines,
