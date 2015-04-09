@@ -605,7 +605,6 @@ var moduleWrapper = function(globalScope) {
 
 		Object.defineProperties(this, {
 			'name' : {
-				enumarable: true,
 				get: function() {
 					return name;
 				},
@@ -692,6 +691,22 @@ var moduleWrapper = function(globalScope) {
 												newDevice.sm_name,
 												this,
 												newDevice.last_update);
+					}
+				}
+			}
+
+			if(update.statemachines !== undefined) {
+				for(var machineId in update.statemachines) {
+					if(statemachines[machineId] !== undefined) {
+						statemachines[machineId].applyUpdate(update.statemachines[machineId]);
+					}
+					else {
+						var machine = update.statemachines[machineId];
+						statemachines[machineId] = new Statemachine(machineId,
+																	machine.machineClass,
+																	machine.comment,
+																	machine.config,
+																	this);
 					}
 				}
 			}
