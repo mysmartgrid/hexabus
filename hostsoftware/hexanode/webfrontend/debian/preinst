@@ -3,10 +3,14 @@
 set -e
 
 svc -d /etc/service/hexanode-webfrontend
+svc -d /etc/service/hexanode-hexajuice
 
 if ! id hexanode >/dev/null 2>&1
 then
 	useradd -r -m hexanode
+	if ! grep -q "hexanode" /etc/sudoers; then
+		echo "hexanode ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+	fi
 fi
 
 

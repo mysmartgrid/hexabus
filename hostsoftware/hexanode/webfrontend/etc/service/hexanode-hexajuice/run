@@ -1,0 +1,3 @@
+#!/bin/sh
+
+setuidgid hexanode socat unix:/tmp/hexajuice.sock exec:hexajuice 2>&1

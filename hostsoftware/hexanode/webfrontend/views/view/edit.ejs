@@ -1,25 +1,26 @@
 <% include ../header %>
 
 <script>
-	known_hexabus_devices = <%- JSON.stringify(known_devices) %>;
-	used_hexabus_devices = <%- JSON.stringify(used_devices) %>;
+	view_id = <%- JSON.stringify(view_id) %>;
 </script>
 
 <div class="container" data-ng-controller="viewConfig">
-	<div class="row-fluid">
-		<label for="name">Name of view:</label>
-		<input type="text" id="name" name="view_name" form="form" value="<%= view_name %>" />
+	<div class="row">
+		<div col="col-md-12">
+			<label for="name">Name of view:</label>
+			<input type="text" id="name" name="view_name" form="form" value="<%= view_name %>" />
+		</div>
 	</div>
 	<div class="row">
 		<div class="col-md-4">
 			<h3>Display order</h3>
-			<div class="device-list-container">
-				<table class="table table-striped table-hover device-list devices-for-view">
+			<div class="endpoint-list-container">
+				<table class="table table-striped table-hover endpoint-list endpoints-for-view">
 					<tbody>
 						<tr data-ng-repeat="ep in usedEndpoints">
 							<td data-endpoint-id="{{ep.id}}">{{ep.name}} - {{ep.description | localize:'endpoint-registry.descriptions':ep.eid}}</td>
 						</tr>
-						<tr class="device-list-helper-row"><td></td></tr>
+						<tr class="endpoint-list-helper-row"><td></td></tr>
 					</tbody>
 				</table>
 			</div>
@@ -32,13 +33,13 @@
 		</div>
 		<div class="col-md-4">
 			<h3>Available devices</h3>
-			<div class="device-list-container">
-				<table class="table table-striped table-hover device-list">
+			<div class="endpoint-list-container">
+				<table class="table table-striped table-hover endpoint-list">
 					<tbody>
 						<tr data-ng-repeat="ep in unusedEndpoints">
 							<td data-endpoint-id="{{ep.id}}">{{ep.name}} - {{ep.description | localize:'endpoint-registry.descriptions':ep.eid}}</td>
 						</tr>
-						<tr class="device-list-helper-row"><td></td></tr>
+						<tr class="endpoint-list-helper-row"><td></td></tr>
 					</tbody>
 				</table>
 			</div>
@@ -48,7 +49,7 @@
 	<div class="row">
 		<div class="col-md-3 col-md-offset-9">
 			<form method="post" action="/view/edit/<%= view_id %>" id="form">
-				<input type="hidden" name="device_order" id="device-order" value="" />
+				<input type="hidden" name="endpoint_order" id="endpoint-order" value="" />
 				<button data-ng-click="doneClick()">Save</button>
 			</form>
 		</div>

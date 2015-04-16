@@ -18,11 +18,13 @@ namespace po = boost::program_options;
 
 #include "../../../shared/endpoints.h"
 #include "../../../shared/hexabus_definitions.h"
-#include "resolv.hpp"
+#include "shared.hpp"
 
 #pragma GCC diagnostic warning "-Wstrict-aliasing"
 
 using namespace hexabus;
+
+namespace {
 
 enum ErrorCode {
 	ERR_NONE = 0,
@@ -36,193 +38,266 @@ enum ErrorCode {
 	ERR_OTHER = 127
 };
 
-static bool oneline = false;
-
-struct PacketPrinter : public hexabus::PacketVisitor {
-	private:
-		std::ostream& target;
-
-		void printValueHeader(uint32_t eid, const char* datatypeStr)
-		{
-			if (oneline) {
-				target << "Info;EID " << eid << ";Datatype " << datatypeStr << ";";
-			} else {
-				target << "Info" << std::endl
-					<< "Endpoint ID:\t" << eid << std::endl
-					<< "Datatype:\t" << datatypeStr << std::endl;
-			}
-		}
-
-		template<typename T>
-		void printValuePacket(const hexabus::ValuePacket<T>& packet, const char* datatypeStr)
-		{
-			printValueHeader(packet.eid(), datatypeStr);
-			if (oneline) {
-				target << "Value " << packet.value();
-			} else {
-				target << "Value:\t" << packet.value() << std::endl;
-			}
-			target << std::endl;
-		}
-
-		void printValuePacket(const hexabus::ValuePacket<uint8_t>& packet, const char* datatypeStr)
-		{
-			printValueHeader(packet.eid(), datatypeStr);
-			if (oneline) {
-				target << "Value " << (int) packet.value();
-			} else {
-				target << "Value:\t" << (int) packet.value() << std::endl;
-			}
-			target << std::endl;
-		}
-
-		template<size_t L>
-		void printValuePacket(const hexabus::ValuePacket<boost::array<char, L> >& packet, const char* datatypeStr)
-		{
-			printValueHeader(packet.eid(), datatypeStr);
-
-			std::stringstream hexstream;
-
-			hexstream << std::hex << std::setfill('0');
-
-			for (size_t i = 0; i < L; ++i) {
-				hexstream << std::setw(2) << (0xFF & packet.value()[i]) << " ";
-			}
-
-			std::cout << std::endl << std::endl;
-
-			if (oneline) {
-				target << "Value " << hexstream.str();
-			} else {
-				target << "Value:\t" << hexstream.str() << std::endl; 
-			}
-			target << std::endl;
-		}
-
-	public:
-		PacketPrinter(std::ostream& target)
-			: target(target)
-		{}
-
-		virtual void visit(const hexabus::ErrorPacket& error)
-		{
-			if (oneline) {
-				target << "Error;Error Code ";
-			} else {
-				target << "Error" << std::endl
-					<< "Error code:\t";
-			}
-			switch (error.code()) {
-				case HXB_ERR_UNKNOWNEID:
-					target << "Unknown EID";
-					break;
-				case HXB_ERR_WRITEREADONLY:
-					target << "Write on readonly endpoint";
-					break;
-				case HXB_ERR_CRCFAILED:
-					target << "CRC failed";
-					break;
-				case HXB_ERR_DATATYPE:
-					target << "Datatype mismatch";
-					break;
-				case HXB_ERR_INVALID_VALUE:
-					target << "Invalid value";
-					break;
-				default:
-					target << "(unknown: " <<  static_cast<unsigned int>(error.code()) << ")";
-					break;
-			}
-			target << std::endl;
-		}
-
-		virtual void visit(const hexabus::QueryPacket& query) {}
-		virtual void visit(const hexabus::EndpointQueryPacket& endpointQuery) {}
-
-		virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo)
-		{
-			if (endpointInfo.eid() == 0) {
-				if (oneline) {
-					target << "Device Info;Device Name " << endpointInfo.value();
-				} else {
-					target << "Device Info" << std::endl
-						<< "Device Name:\t" << endpointInfo.value() << std::endl;
-				}
-			} else {
-				if (oneline) {
-					target << "Endpoint Info;EID " << endpointInfo.eid() << ";Datatype ";
-				} else {
-					target << "Endpoint Info\n"
-						<< "Endpoint ID:\t" << endpointInfo.eid() << std::endl
-						<< "EP Datatype:\t";
-				}
-				switch(endpointInfo.datatype()) {
-					case HXB_DTYPE_BOOL:
-						target << "Bool";
-						break;
-					case HXB_DTYPE_UINT8:
-						target << "UInt8";
-						break;
-					case HXB_DTYPE_UINT32:
-						target << "UInt32";
-						break;
-					case HXB_DTYPE_DATETIME:
-						target << "Datetime";
-						break;
-					case HXB_DTYPE_FLOAT:
-						target << "Float";
-						break;
-					case HXB_DTYPE_TIMESTAMP:
-						target << "Timestamp";
-						break;
-					case HXB_DTYPE_128STRING:
-						target << "String";
-						break;
-					case HXB_DTYPE_16BYTES:
-						target << "Binary (16bytes)";
-						break;
-					case HXB_DTYPE_65BYTES:
-						target << "Binary (65bytes)";
-						break;
-					default:
-						target << "(unknown)";
-						break;
-				}
-				if (oneline) {
-					target << ";Name " << endpointInfo.value();
-				} else {
-					target << std::endl;
-					target << "EP Name:\t" << endpointInfo.value() << std::endl;
-				}
-			}
-			target << std::endl;
-		}
-
-		virtual void visit(const hexabus::InfoPacket<bool>& info) { printValuePacket(info, "Bool"); }
-		virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { printValuePacket(info, "UInt8"); }
-		virtual void visit(const hexabus::InfoPacket<uint32_t>& info) { printValuePacket(info, "UInt32"); }
-		virtual void visit(const hexabus::InfoPacket<float>& info) { printValuePacket(info, "Float"); }
-		virtual void visit(const hexabus::InfoPacket<boost::posix_time::ptime>& info) { printValuePacket(info, "Datetime"); }
-		virtual void visit(const hexabus::InfoPacket<boost::posix_time::time_duration>& info) { printValuePacket(info, "Timestamp"); }
-		virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "String"); }
-		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (16 bytes)"); }
-		virtual void visit(const hexabus::InfoPacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& info) { printValuePacket(info, "Binary (65 bytes)"); }
-
-		virtual void visit(const hexabus::WritePacket<bool>& write) {}
-		virtual void visit(const hexabus::WritePacket<uint8_t>& write) {}
-		virtual void visit(const hexabus::WritePacket<uint32_t>& write) {}
-		virtual void visit(const hexabus::WritePacket<float>& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::posix_time::ptime>& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::posix_time::time_duration>& write) {}
-		virtual void visit(const hexabus::WritePacket<std::string>& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_16BYTES_PACKET_BUFFER_LENGTH> >& write) {}
-		virtual void visit(const hexabus::WritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >& write) {}
+enum FieldName {
+	F_FROM,
+	F_VALUE,
+	F_EID,
+	F_DATATYPE,
+	F_TYPE,
+	F_ERROR_CODE,
+	F_ERROR_STR,
 };
+
+class PlaintextBuffer {
+private:
+	std::stringstream buffer;
+	bool oneline;
+
+	void beginField(FieldName fieldName)
+	{
+		if (buffer.tellp())
+			buffer << (oneline ? ';' : '\n');
+
+		std::string fieldNameStr;
+		switch (fieldName) {
+		case F_FROM: fieldNameStr = "Packet from"; break;
+		case F_VALUE: fieldNameStr = "Value"; break;
+		case F_EID: fieldNameStr = "EID"; break;
+		case F_DATATYPE: fieldNameStr = "Datatype"; break;
+		case F_TYPE: fieldNameStr = "Type"; break;
+		case F_ERROR_CODE: fieldNameStr = "Error code"; break;
+		case F_ERROR_STR: fieldNameStr = "Error"; break;
+		}
+
+		buffer
+			<< fieldNameStr
+			<< std::string(oneline ? 1 : 12 - fieldNameStr.size(), ' ');
+	}
+
+public:
+	PlaintextBuffer(bool oneline)
+		: oneline(oneline)
+	{}
+
+	template<typename Value>
+	void addField(FieldName name, const Value& value)
+	{
+		beginField(name);
+		buffer << value;
+	}
+
+	void addField(FieldName name, const std::string& value)
+	{
+		beginField(name);
+
+		for (auto c : value) {
+			if ((oneline && (std::isblank(c) || std::isprint(c)))
+					|| (!oneline && std::isprint(c)))
+				buffer << c;
+			else
+				buffer << "\\x" << std::hex << std::setw(2) << unsigned(int(c));
+		}
+	}
+
+	template<size_t L>
+	void addField(FieldName name, const std::array<uint8_t, L>& value)
+	{
+		beginField(name);
+
+		unsigned printed = 0;
+		for (auto c : value) {
+			if (printed++)
+				buffer << ", ";
+
+			buffer << "0x" << std::hex << std::setw(2) << unsigned(c);
+		}
+	}
+
+	std::string finish()
+	{
+		auto result = buffer.str();
+		buffer.str("");
+		return result + (oneline ? "" : "\n");
+	}
+};
+
+class JsonBuffer {
+private:
+	std::stringstream buffer;
+
+	void beginField(FieldName fieldName)
+	{
+		if (buffer.tellp())
+			buffer << ',';
+
+		std::string fieldNameStr;
+		switch (fieldName) {
+		case F_FROM: fieldNameStr = "from"; break;
+		case F_VALUE: fieldNameStr = "value"; break;
+		case F_EID: fieldNameStr = "eid"; break;
+		case F_DATATYPE: fieldNameStr = "datatype"; break;
+		case F_TYPE: fieldNameStr = "type"; break;
+		case F_ERROR_CODE: fieldNameStr = "error_code"; break;
+		case F_ERROR_STR: fieldNameStr = "error_str"; break;
+		}
+
+		buffer << '"' << fieldNameStr << '"' << ':';
+	}
+
+public:
+	template<typename Value>
+	void addField(FieldName name, const Value& value)
+	{
+		beginField(name);
+		buffer << value;
+	}
+
+	void addField(FieldName name, const std::string& value)
+	{
+		beginField(name);
+
+		buffer << '"';
+		for (auto c : value) {
+			if (std::isprint(c) && c != '"')
+				buffer << c;
+			else
+				buffer << "\\x" << std::hex << std::setw(2) << unsigned(int(c));
+		}
+		buffer << '"';
+	}
+
+	template<size_t L>
+	void addField(FieldName name, const std::array<uint8_t, L>& value)
+	{
+		beginField(name);
+
+		buffer << '[';
+
+		unsigned printed = 0;
+		for (auto c : value) {
+			if (printed++)
+				buffer << ", ";
+
+			buffer << "0x" << std::hex << std::setw(2) << unsigned(c);
+		}
+
+		buffer << ']';
+	}
+
+	std::string finish()
+	{
+		auto result = "{" + buffer.str() + "}";
+		buffer.str("");
+		return result;
+	}
+};
+
+struct Printer {
+	virtual void printPacket(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from) = 0;
+	virtual void printPacket(const hexabus::Packet& p) = 0;
+};
+
+template<typename Buffer>
+class BufferedPrinter : public Printer, private hexabus::PacketVisitor {
+private:
+	std::ostream& target;
+	Buffer buffer;
+
+	template<typename T>
+	void printValuePacket(const hexabus::ValuePacket<T>& packet, const char* type)
+	{
+		buffer.addField(F_TYPE, type);
+		buffer.addField(F_EID, packet.eid());
+		buffer.addField(F_DATATYPE, hexabus::datatypeName((hexabus::hxb_datatype) packet.datatype()));
+
+		typedef typename std::conditional<sizeof(T) == 1, int, const T&>::type Widened;
+		buffer.addField(F_VALUE, Widened(packet.value()));
+	}
+
+	virtual void visit(const hexabus::ErrorPacket& error)
+	{
+		buffer.addField(F_TYPE, "Error");
+		buffer.addField(F_ERROR_CODE, unsigned(error.code()));
+		buffer.addField(F_ERROR_STR, errcodeStr(error.code()));
+	}
+
+	virtual void visit(const hexabus::QueryPacket& query)
+	{
+		buffer.addField(F_TYPE, "Query");
+		buffer.addField(F_EID, query.eid());
+	}
+
+	virtual void visit(const hexabus::EndpointQueryPacket& query)
+	{
+		buffer.addField(F_TYPE, "EPQuery");
+		buffer.addField(F_EID, query.eid());
+	}
+
+	virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo)
+	{
+		buffer.addField(F_TYPE, "EPInfo");
+		buffer.addField(F_EID, endpointInfo.eid());
+		buffer.addField(F_DATATYPE, hexabus::datatypeName((hexabus::hxb_datatype) endpointInfo.datatype()));
+		buffer.addField(F_VALUE, endpointInfo.value());
+	}
+
+	virtual void visit(const hexabus::InfoPacket<bool>& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<uint16_t>& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<uint32_t>& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<uint64_t>& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<int8_t>& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<int16_t>& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<int32_t>& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<int64_t>& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<float>& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 16> >& info) { printValuePacket(info, "Info"); }
+	virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 65> >& info) { printValuePacket(info, "Info"); }
+
+	virtual void visit(const hexabus::WritePacket<bool>& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<uint8_t>& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<uint16_t>& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<uint32_t>& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<uint64_t>& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<int8_t>& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<int16_t>& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<int32_t>& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<int64_t>& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<float>& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<std::string>& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 16> >& write) { printValuePacket(write, "Write"); }
+	virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 65> >& write) { printValuePacket(write, "Write"); }
+
+public:
+	template<typename... Args>
+	BufferedPrinter(std::ostream& target, Args... args)
+		: target(target), buffer(std::forward<Args>(args)...)
+	{}
+
+	virtual void printPacket(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
+	{
+		buffer.addField(F_FROM, from.address().to_string());
+		p.accept(*this);
+		target << buffer.finish() << std::endl;
+	}
+
+	virtual void printPacket(const hexabus::Packet& p)
+	{
+		p.accept(*this);
+		target << buffer.finish() << std::endl;
+	}
+};
+
+
+
+static std::unique_ptr<Printer> packetPrinter;
+
+}
 
 void print_packet(const hexabus::Packet& packet)
 {
-	PacketPrinter pp(std::cout);
-
-	pp.visitPacket(packet);
+	packetPrinter->printPacket(packet);
 }
 
 ErrorCode send_packet(hexabus::Socket& net, const boost::asio::ip::address_v6& addr, const hexabus::Packet& packet)
@@ -262,51 +337,46 @@ ErrorCode send_packet_wait(hexabus::Socket& net, const boost::asio::ip::address_
 	return ERR_NONE;
 }
 
-template<template<typename TValue> class ValuePacket>
-ErrorCode send_value_packet(hexabus::Socket& net, const boost::asio::ip::address_v6& ip, uint32_t eid, uint8_t datatype, const std::string& value)
+template<template<typename TValue> class Packet, typename Content, typename Out>
+ErrorCode send_parsed_value(hexabus::Socket& sock, const boost::asio::ip::address_v6& ip, uint32_t eid, const std::string& valueStr)
 {
-	try { // handle errors in value lexical_cast
-		switch (datatype) {
-			case HXB_DTYPE_BOOL:
-				{
-					bool b = boost::lexical_cast<unsigned int>(value);
-					std::cout << "Sending value " << b << std::endl;
-					return send_packet(net, ip, ValuePacket<bool>(eid, b));
-				}
+	Content value = boost::lexical_cast<Content>(valueStr);
 
-			case HXB_DTYPE_UINT8:
-				{
-					uint8_t u8 = boost::lexical_cast<unsigned int>(value);
-					std::cout << "Sending value " << (unsigned int) u8 << std::endl;
-					return send_packet(net, ip, ValuePacket<uint8_t>(eid, u8));
-				}
+	std::cout << "Sending value " << Out(value) << std::endl;
+	return send_packet(sock, ip, Packet<Content>(eid, value));
+}
 
-			case HXB_DTYPE_UINT32:
-				{
-					uint32_t u32 = boost::lexical_cast<uint32_t>(value);
-					std::cout << "Sending value " << u32 << std::endl;
-					return send_packet(net, ip, ValuePacket<uint32_t>(eid, u32));
-				}
+template<template<typename TValue> class ValuePacket>
+ErrorCode send_value_packet(hexabus::Socket& net, const boost::asio::ip::address_v6& ip, uint32_t eid, uint8_t dt,
+		const std::string& value)
+{
+	try {
+		switch ((hxb_datatype) dt) {
+		case HXB_DTYPE_BOOL: return send_parsed_value<ValuePacket, bool, bool>(net, ip, eid, value);
+		case HXB_DTYPE_UINT8: return send_parsed_value<ValuePacket, uint8_t, unsigned>(net, ip, eid, value);
+		case HXB_DTYPE_UINT16: return send_parsed_value<ValuePacket, uint16_t, uint16_t>(net, ip, eid, value);
+		case HXB_DTYPE_UINT32: return send_parsed_value<ValuePacket, uint32_t, uint32_t>(net, ip, eid, value);
+		case HXB_DTYPE_UINT64: return send_parsed_value<ValuePacket, uint64_t, uint64_t>(net, ip, eid, value);
+		case HXB_DTYPE_SINT8: return send_parsed_value<ValuePacket, int8_t, int>(net, ip, eid, value);
+		case HXB_DTYPE_SINT16: return send_parsed_value<ValuePacket, int16_t, int16_t>(net, ip, eid, value);
+		case HXB_DTYPE_SINT32: return send_parsed_value<ValuePacket, int32_t, int32_t>(net, ip, eid, value);
+		case HXB_DTYPE_SINT64: return send_parsed_value<ValuePacket, int64_t, int32_t>(net, ip, eid, value);
+		case HXB_DTYPE_FLOAT: return send_parsed_value<ValuePacket, float, float>(net, ip, eid, value);
+		case HXB_DTYPE_128STRING:
+			std::cout << "Sending value " << value << std::endl;
+			return send_packet(net, ip, ValuePacket<std::string>(eid, value));
 
-			case HXB_DTYPE_FLOAT:
-				{
-					float f = boost::lexical_cast<float>(value);
-					std::cout << "Sending value " << f << std::endl;
-					return send_packet(net, ip, ValuePacket<float>(eid, f));
-				}
+		case HXB_DTYPE_65BYTES:
+		case HXB_DTYPE_16BYTES:
+			std::cerr << "can't send binary data" << std::endl;
+			return ERR_PARAMETER_VALUE_INVALID;
 
-			case HXB_DTYPE_128STRING:
-				{
-					std::cout << "Sending value " << value << std::endl;
-					return send_packet(net, ip, ValuePacket<std::string>(eid, value));
-				}
-
-			default:
-				std::cout << "Unknown data type " << datatype << std::endl;
-				return ERR_PARAMETER_VALUE_INVALID;
+		case HXB_DTYPE_UNDEFINED:
+			std::cerr << "unknown datatype" << std::endl;
+			return ERR_PARAMETER_VALUE_INVALID;
 		}
-	} catch (boost::bad_lexical_cast& e) {
-		std::cerr << "Error while converting value: " << e.what() << std::endl;
+	} catch (const boost::bad_lexical_cast& e) {
+		std::cerr << "Error while reading value: " << e.what() << std::endl;
 		return ERR_PARAMETER_VALUE_INVALID;
 	}
 }
@@ -326,6 +396,7 @@ enum Command {
 
 int main(int argc, char** argv) {
 
+
   std::ostringstream oss;
   oss << "Usage: " << argv[0] << " ACTION IP [additional options] ";
   po::options_description desc(oss.str());
@@ -337,10 +408,11 @@ int main(int argc, char** argv) {
     ("bind,b", po::value<std::string>(), "local IP address to use")
     ("interface,I", po::value<std::vector<std::string> >(), "for listen: interface to listen on. otherwise: outgoing interface for multicasts")
     ("eid,e", po::value<uint32_t>(), "Endpoint ID (EID)")
-    ("datatype,d", po::value<unsigned int>(), "{1: Bool | 2: UInt8 | 3: UInt32 | 4: HexaTime | 5: Float | 6: String}")
+    ("datatype,d", po::value<std::string>(), "{u8|UInt8|u16|UInt16|u32|UInt32|u64|UInt64|s8|Int8|s16|Int16|s32|Int32|s64|Int64|f|Float|s|String|b|Bool}")
     ("value,v", po::value<std::string>(), "Value")
     ("reliable,r", po::bool_switch(), "Reliable initialization of network access (adds delay, only needed for broadcasts)")
     ("oneline", po::bool_switch(), "Print each receive packet on one line")
+    ("json", po::bool_switch(), "Print packet data as JSON, one packet per line")
     ;
   po::positional_options_description p;
   p.add("command", 1);
@@ -367,7 +439,14 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-	oneline = vm.count("oneline") && vm["oneline"].as<bool>();
+	bool oneline = vm.count("oneline") && vm["oneline"].as<bool>();
+	bool json = vm.count("json") && vm["json"].as<bool>();
+
+	if (json)
+		packetPrinter.reset(new BufferedPrinter<JsonBuffer>(std::cout));
+	else
+		packetPrinter.reset(new BufferedPrinter<PlaintextBuffer>(std::cout, oneline));
+
 	if (vm.count("interface")) {
 		interface = vm["interface"].as<std::vector<std::string> >();
 	}
@@ -440,7 +519,8 @@ int main(int argc, char** argv) {
 	hexabus::Socket socket(io);
 
 	if (interface.size()) {
-		std::cout << "Using interface " << interface[0] << std::endl;
+		if (!json)
+			std::cout << "Using interface " << interface[0] << std::endl;
 
 		try {
 			socket.mcast_from(interface[0]);
@@ -451,12 +531,15 @@ int main(int argc, char** argv) {
 	}
 
 	if (command == C_LISTEN) {
-		std::cout << "Entering listen mode on";
+		std::stringstream tmp;
+		std::ostream& lbuf = json ? tmp : std::cout;
+
+		lbuf << "Entering listen mode on";
 
 		for (std::vector<std::string>::const_iterator it = interface.begin(), end = interface.end();
 				it != end;
 				it++) {
-			std::cout << " " << *it;
+			lbuf << " " << *it;
 			try {
 				listener.listen(*it);
 			} catch (const hexabus::NetworkException& e) {
@@ -464,7 +547,7 @@ int main(int argc, char** argv) {
 				return ERR_NETWORK;
 			}
 		}
-		std::cout << std::endl;
+		lbuf << std::endl;
 
 		while (true) {
 			std::pair<hexabus::Packet::Ptr, boost::asio::ip::udp::endpoint> pair;
@@ -478,12 +561,7 @@ int main(int argc, char** argv) {
 				return ERR_NETWORK;
 			}
 
-			if (oneline) {
-				std::cout << "From " << pair.second << ";";
-			} else {
-				std::cout << "Received packet from " << pair.second << std::endl;
-			}
-			print_packet(*pair.first);
+			packetPrinter->printPacket(*pair.first, pair.second);
 		}
 	}
 
@@ -551,8 +629,13 @@ int main(int argc, char** argv) {
 
 				try {
 					uint32_t eid = vm["eid"].as<uint32_t>();
-					unsigned int dtype = vm["datatype"].as<unsigned int>();
+					int dtype = dtypeStrToDType(vm["datatype"].as<std::string>());
 					std::string value = vm["value"].as<std::string>();
+
+					if (dtype < 0) {
+						std::cerr << "unknown datatype " << vm["datatype"].as<std::string>() << std::endl;
+						return ERR_PARAMETER_VALUE_INVALID;
+					}
 
 					if (command == C_SET) {
 						return send_value_packet<hexabus::WritePacket>(socket, *ip, eid, dtype, value);

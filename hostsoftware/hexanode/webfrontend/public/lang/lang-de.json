@@ -4,6 +4,7 @@
 	"navbar": {
 		"console": "HexaBus-Basisstation",
 		"main": "Übersicht",
+		"statemachines": "Schaltprogramme",
 		"configuration": "Einrichten",
 		"about": "Über Hexabus",
 		"network-status": "Netzwerkstatus",
@@ -127,6 +128,49 @@
 			"forget-device": "Gerät entfernen",
 			"forget-dialog": "Möchten Sie das Gerät {device} wirklich entfernen?",
 			"scanning": "Suche nach Geräten im Netzwerk"
+		},
+		"state-machine": {
+			"new": "Neues Schaltprogramm",
+			"upload": "Hochladen",
+			"upload-success": "Hochladen erfolgreich abgeschlossen.",
+			"progress": {
+				"collecting-statemachines": "Bereite Schaltprogrammliste vor",
+				"collecting-devices": "Bereite Geräteliste vor",
+				"generating-instance": "Erzeuge Schaltprogram {done} von {count}: {machine}",
+				"compiling-statemachines": "Kompilere Schaltprograme",
+				"uploading": "Hochladen des Schaltprogramms {done} von {count} : {device}.",
+				"deleting-temporary-files": "Lösche temporäre Dateien"
+			},
+			"errors": {
+				"no-valid-number": "Eingabe ist keine gültige Zahl.",
+				"number-min-u32": "Der Wert muss größer als 0 sein.",
+				"number-max-u32": "Der Wert muss kleiner als 4294967295 sein.",
+				"number-max-u32-minutes": "Der Wert muss kleiner als 71582788 sein.",
+				"disjoint-devices" : "Jedes Gerät kann nur in einer Funktion verwenden werden.",
+				"no-slaves": "Es muss mindestens ein Gerät als slave ausgewählt werden.",
+				"creating-intance-file-failed": "Die Schaltprogrammdatei konnte nicht geschrieben werden.",
+				"compiling-failed": "Die Statemachine konnte nicht kompiliert werden.",
+				"uploading-failed": "Das Hochladen des Schaltprogramms auf {device} ist fehlgeschlagen.",
+				"deleting-temporary-files-failed": "Die temporäre Datei {file} konnte nicht gelöscht werden.",
+				"statemachinebuilder-busy": "Es wird bereits ein anderes Schaltprogramm hochgeladen."
+			},
+			"choose": "Bitte wählen Sie eine Vorlage aus.",
+			"choose-master": "Bitte wählen Sie das Master-Gerät aus.",
+			"choose-threshold": "Bitte wählen Sie einen Schwellwert aus.",
+			"add-slaves": "Bitte wählen Sie die Slave-Geräte aus.",
+			"add-slave": "Slave-Gerät hinzufügen",
+			"choose-device": "Bitte wählen Sie ein Gerät aus.",
+			"choose-timeout": "Bitte wählen Sie eine Zeitbeschränkung aus.",
+			"choose-producer": "Bitte das Produktions-Messgerät auswählen.",
+			"choose-production-threshold": "Bitte den Produktionsschwellwert auswählen.",
+			"choose-off-timeout": "Bitte die maximale Zeitspanne in Minuten die das Gerät ausgeschaltet sein soll eingeben.",
+			"choose-usage-threshold": "Bitte den Verbrauchschwellwert auswählen.",
+			"choose-on-timeout": "Bitte die maximale Zeitspanne in Minuten die das Gerät angeschaltet sein soll eingeben.",
+			"choose-consumer": "Bitte den zu schaltenden Vebraucher auswählen.",
+			"choose-on-delay": "Bitte die minimale Zeitspanne in Minuten die das Gerät angeschaltet sein soll eingeben.",
+			"choose-off-delay": "Bitte die minimale Zeitspanne in Minuten die das Gerät ausgeschaltet sein soll eingeben.",
+			"choose-switch-device": "Bitte den zu schaltenden Vebraucher auswählen.",
+			"choose-meter-device": "Bitte das Messgerät auswählen."
 		}
 	},
 	"upgrade": {

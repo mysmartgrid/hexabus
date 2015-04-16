@@ -48,31 +48,24 @@ struct hxb_valuepacket_header {
 	HXB_VALUEPACKET_HEADER
 } __attribute__((packed));
 
-// used for BOOL und UINT(
-struct hxb_packet_u8 {
-	HXB_VALUEPACKET_HEADER
-	uint8_t value;
-	HXB_PACKET_FOOTER
-} __attribute__((packed));
+#define HXB_VALPACKET(suffix, type) \
+	struct hxb_packet_##suffix { \
+		HXB_VALUEPACKET_HEADER \
+		type value; \
+		HXB_PACKET_FOOTER \
+	} __attribute__((packed));
 
-// used for UINT32 and TIMESTAMP
-struct hxb_packet_u32 {
-	HXB_VALUEPACKET_HEADER
-	uint32_t value;
-	HXB_PACKET_FOOTER
-} __attribute__((packed));
+HXB_VALPACKET(u8, uint8_t)
+HXB_VALPACKET(u16, uint16_t)
+HXB_VALPACKET(u32, uint32_t)
+HXB_VALPACKET(u64, uint64_t)
+HXB_VALPACKET(s8, int8_t)
+HXB_VALPACKET(s16, int16_t)
+HXB_VALPACKET(s32, int32_t)
+HXB_VALPACKET(s64, int64_t)
+HXB_VALPACKET(float, float)
 
-struct hxb_packet_datetime {
-	HXB_VALUEPACKET_HEADER
-	struct hxb_datetime value;
-	HXB_PACKET_FOOTER
-} __attribute__((packed));
-
-struct hxb_packet_float {
-	HXB_VALUEPACKET_HEADER
-	float value;
-	HXB_PACKET_FOOTER
-} __attribute__((packed));
+#undef HXB_VALPACKET
 
 struct hxb_packet_128string {
 	HXB_VALUEPACKET_HEADER
@@ -102,8 +95,13 @@ union hxb_packet_any {
 	struct hxb_packet_error p_error;
 	struct hxb_packet_query p_query;
 	struct hxb_packet_u8 p_u8;
+	struct hxb_packet_u16 p_u16;
 	struct hxb_packet_u32 p_u32;
-	struct hxb_packet_datetime p_datetime;
+	struct hxb_packet_u64 p_u64;
+	struct hxb_packet_s8 p_s8;
+	struct hxb_packet_s16 p_s16;
+	struct hxb_packet_s32 p_s32;
+	struct hxb_packet_s64 p_s64;
 	struct hxb_packet_float p_float;
 	struct hxb_packet_128string p_128string;
 	struct hxb_packet_65bytes p_65bytes;

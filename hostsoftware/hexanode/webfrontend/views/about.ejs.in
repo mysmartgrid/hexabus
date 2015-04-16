@@ -1,7 +1,7 @@
 <% include header %>
 
 <div class="container" data-ng-controller="currentController">
-	<p>Version: @HXB_VERSION@</p>
+	<p>Version: @V_MAJOR@.@V_MINOR@.@V_PATCH@ @PROJECT_REVISION_HASH@</p>
 		<button class="btn btn-success" data-localize="upgrade.upgrade" data-ng-hide="upgrading" data-ng-click="upgrade()">Upgrade</button>
 	<p data-ng-show="upgrading" class="lead"><img src="/img/spinner-small.gif" alt="" /><span data-localize="upgrade.upgrading">Upgrading the system...</span></p>
 	<p data-ng-show="upgraded" data-localize="upgrade.success" class="lead"><span >Upgraded successfully</span></p>

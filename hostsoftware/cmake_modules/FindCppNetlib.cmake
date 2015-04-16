@@ -78,29 +78,65 @@ find_path(CPPNETLIB_INCLUDE_DIR  boost/network/version.hpp
 )
 
 # locate the library
-find_library(CPPNETLIB_CLIENT_CON
+find_library(CPPNETLIB_STATIC_CLIENT_CON
   NAMES libcppnetlib-client-connections.a
   HINTS
     ${_cppnetlib_LIBRARIES_SEARCH_DIRS}
     ${PC_CPPNETLIB_LIBDIR}
     ${PC_CPPNETLIB_LIBRARY_DIRS}
 )
+if(NOT ${CPPNETLIB_STATIC_CLIENT_CON})
+  find_library(CPPNETLIB_SHARED_CLIENT_CON
+    NAMES libcppnetlib-client-connections.so
+    HINTS
+    ${_cppnetlib_LIBRARIES_SEARCH_DIRS}
+    ${PC_CPPNETLIB_LIBDIR}
+    ${PC_CPPNETLIB_LIBRARY_DIRS}
+    )
+  set(CPPNETLIB_CLIENT_CON ${CPPNETLIB_SHARED_CLIENT_CON})
+else()
+  set(CPPNETLIB_CLIENT_CON ${CPPNETLIB_STATIC_CLIENT_CON})
+endif()
 
-find_library ( CPPNETLIB_SERVER_PARSER
+find_library ( CPPNETLIB_STATIC_SERVER_PARSER
   NAMES libcppnetlib-server-parsers.a
   HINTS
     ${_cppnetlib_LIBRARIES_SEARCH_DIRS}
     ${PC_CPPNETLIB_LIBDIR}
     ${PC_CPPNETLIB_LIBRARY_DIRS}
 )
+if(NOT ${CPPNETLIB_STATIC_SERVER_PARSER})
+  find_library ( CPPNETLIB_SHARED_SERVER_PARSER
+    NAMES libcppnetlib-server-parsers.so
+    HINTS
+    ${_cppnetlib_LIBRARIES_SEARCH_DIRS}
+    ${PC_CPPNETLIB_LIBDIR}
+    ${PC_CPPNETLIB_LIBRARY_DIRS}
+    )
+  set(CPPNETLIB_SERVER_PARSER ${CPPNETLIB_SHARED_SERVER_PARSER})
+else()
+  set(CPPNETLIB_SERVER_PARSER ${CPPNETLIB_STATIC_SERVER_PARSER})
+endif()
 
-find_library ( CPPNETLIB_URI
+find_library ( CPPNETLIB_STATIC_URI
   NAMES libcppnetlib-uri.a
   HINTS
     ${_cppnetlib_LIBRARIES_SEARCH_DIRS}
     ${PC_CPPNETLIB_LIBDIR}
     ${PC_CPPNETLIB_LIBRARY_DIRS}
 )
+if(NOT ${CPPNETLIB_STATIC_URI})
+  find_library ( CPPNETLIB_SHARED_URI
+    NAMES libcppnetlib-uri.so
+    HINTS
+    ${_cppnetlib_LIBRARIES_SEARCH_DIRS}
+    ${PC_CPPNETLIB_LIBDIR}
+    ${PC_CPPNETLIB_LIBRARY_DIRS}
+    )
+  set(CPPNETLIB_URI ${CPPNETLIB_SHARED_URI})
+else()
+  set(CPPNETLIB_URI ${CPPNETLIB_STATIC_URI})
+endif()
 
 set(CPPNETLIB_LIBRARIES 
   ${CPPNETLIB_CLIENT_CON} 

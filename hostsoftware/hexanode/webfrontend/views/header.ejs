@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-ng-app="dashboard">
+<html lang="en" data-ng-app="hexanode">
   <head>
 		<title data-localize="title">Hexabus Console</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -19,6 +19,7 @@
     <link rel="apple-touch-icon-precomposed" href="../assets/ico/apple-touch-icon-57-precomposed.png" />
     <link rel="shortcut icon" href="../assets/ico/favicon.png" />
 
+			
 		<script src="/js/jquery-1.10.2.min.js"></script>
 		<script src="/js/angular-1.0.8.js"></script>
 		<script src="/socket.io/socket.io.js"></script>
@@ -30,7 +31,22 @@
 		<script src="/js/ng-socket.js"></script>
 		<script src="/js/gauges.js"></script>
 		<script src="/js/controls.js"></script>
+
+		<script src="/js/uuid.js"></script>
+		<script src="/js/EventEmitter.min.js"></script>
+		<script src="/js/inherits.js"></script>
+		<script src="/commonjs/devicetree.js"></script>
+
+		<script src="/js/hexabusclient.js"></script>
+
 		<script src="/js/app.js"></script>
+		<script src="/js/controllers/dashboard.js"></script>
+		<script src="/js/controllers/views.js"></script>		
+		<script src="/js/controllers/wizard.js"></script>
+		<script src="/js/controllers/devicelist.js"></script>
+		<script src="/js/controllers/statemachines.js"></script>
+
+	
 	</head>
 	<body>
 		<div class="navbar navbar-inverse navbar-fixed-top">
@@ -44,7 +60,19 @@
 			</div>
 			<div class="collapse navbar-collapse" id="main-navbar-collapsible">
 				<ul class="nav navbar-nav">
-					<li class="<%= active_nav == 'dashboard' ? 'active' : '' %>"><a href="/" data-localize="navbar.main">Main</a></li>
+					<li class="<%= active_nav == 'dashboard' ? 'active' : '' %>">
+						<a href="/" data-localize="navbar.main">Main</a>
+					</li>
+					<li class="<%= active_nav == 'statemachines' ? 'active' : '' %>">
+						<a href="/statemachine" data-localize="navbar.statemachines">Statemachines</a>
+					</li>
+				</ul>
+				<ul class="nav navbar-nav pull-right">
+					<li data-ng-controller="healthController">
+						<a class="btn-danger btn" data-ng-show="errorState" href="/wizard/current" role="button">
+							<span class="glyphicon glyphicon-warning-sign"><span>
+						</a>
+					</li>
 					<li class="dropdown <%= active_nav == 'configuration' ? 'active' : '' %>">
 						<a class="dropdown-toggle" data-toggle="dropdown" data-localize="navbar.configuration">Configuration<b class="caret"></b></a>
 						<ul class="dropdown-menu">
@@ -53,13 +81,6 @@
 							<li class="divider"></li>
 							<li><a href="/wizard/reset" class="btn btn-danger" data-localize="navbar.reset-device">Reset device</a></li>
 						</ul>
-					</li>
-				</ul>
-				<ul class="nav navbar-nav pull-right">
-					<li data-ng-controller="healthController">
-						<span class="btn-danger btn" data-ng-show="errorState">
-							<a class="glyphicon glyphicon-warning-sign" href="/wizard/current"></a>
-						</span>
 					</li>
 					<li class="<%= active_nav == 'about' ? 'active' : '' %>">
 						<a class="pull-right" href="/about" data-localize="navbar.about">About</a>

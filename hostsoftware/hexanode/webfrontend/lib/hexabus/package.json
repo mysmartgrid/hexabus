@@ -3,6 +3,6 @@
 	"main": "hexabus.js",
 	"dependencies": {
 		"ipv6": "*",
-		"netroute" : "*"
+		"event-stream" : "*"
 	}
 }
