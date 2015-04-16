@@ -17,6 +17,7 @@ include_directories(
   ${RTMIDI_INCLUDE_DIR}
   ${HXB_INCLUDE_DIR}
   ${LIBMYSMARTGRID_INCLUDE_DIR}
+  ${LIBMYSMARTGRID_INCLUDE_DIRS}
   ${LIBKLIO_INCLUDE_DIRS}
   ${SQLITE3_INCLUDE_DIR}
   ${CURL_INCLUDE_DIR}
@@ -35,6 +36,7 @@ target_link_libraries(midi2hexabus
   rtmidi
   ${HXB_LIBRARIES}
   ${Boost_LIBRARIES}
+  dl rt
 )
 
 target_link_libraries(hexabus_msg_bridge
@@ -44,11 +46,11 @@ target_link_libraries(hexabus_msg_bridge
   ${LIBMYSMARTGRID_LIBRARY}
   ${Boost_LIBRARIES}
   ${Boost_SYSTEM_LIBRARY}
-  ${JSON_LIBRARY}
-  ${CURL_LIBRARIES}
-  ${SQLITE3_LIBRARIES}
-  ${GNUTLS_LIBRARIES}
-  ${OPENSSL_CRYPTO_LIBRARY}
+#  ${JSON_LIBRARY}
+#  ${CURL_LIBRARIES}
+#  ${SQLITE3_LIBRARIES}
+#  ${GNUTLS_LIBRARIES}
+#  ${OPENSSL_CRYPTO_LIBRARY}
   pthread
 )
 target_link_libraries(hexabus_msg_bridge ${ROCKSDB_LIBRARY})

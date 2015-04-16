@@ -111,6 +111,8 @@ if( NOT libklio_IN_CACHE )
   if(EXISTS ${LIBKLIO_LIBRARY_DIR}/shared/libklioConfig.cmake)
     message(STATUS "    Include LIBKLIO dependencies.")
     include(${LIBKLIO_LIBRARY_DIR}/shared/libklioConfig.cmake)
+    # use target klio for libklio.a
+    # remember to use target_link_libraries() for linking targets
     set(LIBKLIO_LIBRARY klio )
     set(LIBKLIO_INCLUDE_DIRS ${LIBKLIO_INCLUDE_DIRS} )
   endif(EXISTS ${LIBKLIO_LIBRARY_DIR}/shared/libklioConfig.cmake)
