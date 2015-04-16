@@ -222,7 +222,7 @@ namespace hexabus {
 
 		public:
 			const std::string& value() const { return _value; }
-			static const int max_length = 127;
+			static const unsigned int max_length = 127;
 	};
 
 	template<typename TValue>

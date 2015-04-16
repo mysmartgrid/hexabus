@@ -21,7 +21,7 @@ SET(ENABLE_LOGGING 1)
 
 set(V_MAJOR 0)
 set(V_MINOR 2)
-set(V_PATCH 0)
+set(V_PATCH 2)
 
 # add a path where some libraries might be stored
 set(CMAKE_ADDITIONAL_PATH "$ENV{CMAKE_ADDITIONAL_PATH}" CACHE PATH "Path where many locally installed libraries can be found")

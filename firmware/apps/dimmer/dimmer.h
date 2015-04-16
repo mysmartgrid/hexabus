@@ -1,0 +1,6 @@
+#ifndef APPS_DIMMER_DIMMER_H_E630EC8F5C4E2CE6
+#define APPS_DIMMER_DIMMER_H_E630EC8F5C4E2CE6
+
+void dimmer_init(void);
+
+#endif

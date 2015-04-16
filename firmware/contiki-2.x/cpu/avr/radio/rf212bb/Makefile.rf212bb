@@ -1,2 +1,0 @@
-CONTIKI_CPU_DIRS           += radio/rf212bb
-CONTIKI_TARGET_SOURCEFILES += rf212bb.c halbb.c
