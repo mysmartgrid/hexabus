@@ -68,6 +68,7 @@ _DEBUG options should be set to:
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 0
+#define VALUE_BROADCAST_RELIABLE 0
 #define VALUE_BROADCAST_AUTO_INTERVAL 20 // Timeout in seconds
 #if HAVE(PLUG)
  #define VALUE_BROADCAST_AUTO_EIDS EP_POWER_SWITCH

@@ -114,7 +114,11 @@ static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, voi
 
 void broadcast_value(uint32_t eid)
 {
+#if VALUE_BROADCAST_RELIABLE
 	udp_handler_send_generated_reliable(NULL, 0, &broadcast_generator, &eid);
+#else
+	udp_handler_send_generated(NULL, 0, &broadcast_generator, &eid);
+#endif
 }
 /*---------------------------------------------------------------------------*/
 static void
