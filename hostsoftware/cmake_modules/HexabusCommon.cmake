@@ -18,7 +18,7 @@ endif( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 # Version settings
 set(V_MAJOR 0)
 set(V_MINOR 7)
-set(V_PATCH 0)
+set(V_PATCH 99)
 
 # have the full monty in makefiles
 set(CMAKE_VERBOSE_MAKEFILE true)
@@ -44,7 +44,7 @@ if(CMAKE_TOOLCHAIN_FILE)
 #  set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${CMAKE_TOOLCHAIN_DIRECTORY}/usr/include)
 #  set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${CMAKE_TOOLCHAIN_DIRECTORY}/usr/lib)
 
-  if( LIBKLIO_HOME ) 
+  if( LIBKLIO_HOME )
     list(APPEND CMAKE_FIND_ROOT_PATH ${LIBKLIO_HOME})
   endif()
   if ( LIBMYSMARTGRID_HOME )
@@ -66,7 +66,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set(HAS_MACOS 1)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set(HAS_MACOS 0)
-endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set(HAS_LINUX 1)
