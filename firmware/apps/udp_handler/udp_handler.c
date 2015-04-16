@@ -57,7 +57,6 @@
 static struct uip_udp_conn *udpconn;
 static struct etimer udp_unreachable_timer;
 static udp_handler_event_t state;
-uip_ipaddr_t udp_master_addr;
 
 static void reset_unreachable_timer()
 {
@@ -923,7 +922,7 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   print_local_addresses();
 
   //find master address
-  	uip_ip6addr(&udp_master_addr, 0xfe80,0,0,0,0,0,0,1);
+  uip_ip6addr(&udp_master_addr, 0xfe80,0,0,0,0,0,0,1);
 	for (int i = 0; i < UIP_DS6_ADDR_NB; i++) {
 		if (uip_ds6_if.addr_list[i].isused && uip_ds6_if.addr_list[i].ipaddr.u16[0]!=0xfe80) {
 				udp_master_addr.u16[0] = uip_ds6_if.addr_list[i].ipaddr.u16[0];

@@ -99,6 +99,7 @@ namespace hexabus {
 				uint16_t want_ack_for;
 				bool isUlAck;
 				uint16_t UlAckState;
+				bool doReset;
 				boost::asio::deadline_timer timeout_timer;
 				std::pair<boost::shared_ptr<const Packet>, on_packet_transmitted_callback_t> currentPacket;
 			};

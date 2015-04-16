@@ -48,6 +48,7 @@ enum hxb_flags {
 	HXB_FLAG_WANT_ACK			= 0x01, // sending node requires acknowledgement
 	HXB_FLAG_WANT_UL_ACK	= 0x02, // additonal flag for state machine changes
 	HXB_FLAG_RELIABLE			= 0x04, // packet was sent through reliability layer
+	HXB_FLAG_CONN_RESET		= 0x08, // indecates that the sender has reset the connection
 };
 
 // Error codes

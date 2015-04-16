@@ -39,16 +39,33 @@ struct ErrorCallback {
 class PacketSender {
 private:
 	hexabus::Socket* network;
+	hexabus::Socket* reset_network;
 	std::set<boost::asio::ip::address_v6> addresses;
 
-	std::queue<boost::shared_ptr<const Packet> > distribution_queue;
+	std::queue<Packet::Ptr> distribution_queue;
 	std::set<boost::asio::ip::address_v6> remaining_addresses;
 
 	bool ongoing_transmission;
 
+	void doReset() {
+		ongoing_transmission = false;
+
+		remaining_addresses.clear();
+		std::queue<Packet::Ptr> empty;
+		std::swap(distribution_queue, empty);
+
+		distribution_queue.push(Packet::Ptr(new WritePacket<uint8_t>(EP_SM_CONTROL, STM_STATE_RUNNING, HXB_FLAG_WANT_ACK|HXB_FLAG_RELIABLE)));
+
+		if(verbose)
+			std::cout << "Broadcasting reset..." << std::endl;
+
+		send();
+	}
+
 public:
-	PacketSender(hexabus::Socket* network) {
+	PacketSender(hexabus::Socket* network, hexabus::Socket* reset_network) {
 		this->network = network;
+		this->reset_network = reset_network;
 		this->ongoing_transmission = false;
 	}
 
@@ -69,22 +86,34 @@ public:
 				}
 			}
 
-		} else if(verbose) {
-			std::cout << "Info distribution successful!" << std::endl;
+			doReset();
+
+		} else {
+			if(verbose)
+				std::cout << "Info distribution successful!" << std::endl;
+
+			if(!distribution_queue.empty())
+				distribution_queue.pop();
+
+			ongoing_transmission = false;
+			remaining_addresses = std::set<boost::asio::ip::address_v6>(addresses);
+
+			send();
 		}
 
 		#ifdef DEBUG
 		std::cout << "Failed distributions: " << failcnt << std::endl;
 		#endif
+	}
 
-		if(!distribution_queue.empty())
-			distribution_queue.pop();
+	void resetCallback(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep) {
 
-		ongoing_transmission = false;
+		if(verbose)
+			std::cout << "Received reset request from " << asio_ep.address().to_v6().to_string() << std::endl;
 
-		remaining_addresses = std::set<boost::asio::ip::address_v6>(addresses);
+		reset_network->send(AckPacket(packet.sequenceNumber()), asio_ep);
 
-		send();
+		doReset();
 	}
 
 	void ackCallback(const hexabus::Packet& packet, const boost::asio::ip::udp::endpoint asio_ep) {
@@ -129,67 +158,67 @@ public:
 			const InfoPacket<bool>* info_b = dynamic_cast<const InfoPacket<bool>* >(&packet);
 			if(info_b !=NULL) {
 				ProxyInfoPacket<bool> pinfo(asio_ep.address().to_v6(), info_b->eid(), info_b->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-				distribution_queue.push(boost::shared_ptr<const Packet>(pinfo.clone()));
+				distribution_queue.push(Packet::Ptr(pinfo.clone()));
 				break;
 			}
 			const InfoPacket<uint8_t>* info_u8 = dynamic_cast<const InfoPacket<uint8_t>* >(&packet);
 			if(info_u8 !=NULL) {
 				ProxyInfoPacket<uint8_t> pinfo(asio_ep.address().to_v6(), info_u8->eid(), info_u8->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-				distribution_queue.push(boost::shared_ptr<const Packet>(pinfo.clone()));
+				distribution_queue.push(Packet::Ptr(pinfo.clone()));
 				break;
 			}
 			const InfoPacket<uint32_t>* info_u32 = dynamic_cast<const InfoPacket<uint32_t>* >(&packet);
 			if(info_u32 !=NULL) {
 				ProxyInfoPacket<uint32_t> pinfo(asio_ep.address().to_v6(), info_u32->eid(), info_u32->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-				distribution_queue.push(boost::shared_ptr<const Packet>(pinfo.clone()));
+				distribution_queue.push(Packet::Ptr(pinfo.clone()));
 				break;
 			}
 			const InfoPacket<uint64_t>* info_u64 = dynamic_cast<const InfoPacket<uint64_t>* >(&packet);
 			if(info_u64 !=NULL) {
 				ProxyInfoPacket<uint64_t> pinfo(asio_ep.address().to_v6(), info_u64->eid(), info_u64->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-				distribution_queue.push(boost::shared_ptr<const Packet>(pinfo.clone()));
+				distribution_queue.push(Packet::Ptr(pinfo.clone()));
 				break;
 			}
 			const InfoPacket<int8_t>* info_s8 = dynamic_cast<const InfoPacket<int8_t>* >(&packet);
 			if(info_s8 !=NULL) {
 				ProxyInfoPacket<int8_t> pinfo(asio_ep.address().to_v6(), info_s8->eid(), info_s8->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-				distribution_queue.push(boost::shared_ptr<const Packet>(pinfo.clone()));
+				distribution_queue.push(Packet::Ptr(pinfo.clone()));
 				break;
 			}
 			const InfoPacket<int32_t>* info_s32 = dynamic_cast<const InfoPacket<int32_t>* >(&packet);
 			if(info_s32 !=NULL) {
 				ProxyInfoPacket<int32_t> pinfo(asio_ep.address().to_v6(), info_s32->eid(), info_s32->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-				distribution_queue.push(boost::shared_ptr<const Packet>(pinfo.clone()));
+				distribution_queue.push(Packet::Ptr(pinfo.clone()));
 				break;
 			}
 			const InfoPacket<int64_t>* info_s64 = dynamic_cast<const InfoPacket<int64_t>* >(&packet);
 			if(info_s64 !=NULL) {
 				ProxyInfoPacket<uint64_t> pinfo(asio_ep.address().to_v6(), info_s64->eid(), info_s64->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-				distribution_queue.push(boost::shared_ptr<const Packet>(pinfo.clone()));
+				distribution_queue.push(Packet::Ptr(pinfo.clone()));
 				break;
 			}
 			const InfoPacket<float>* info_f = dynamic_cast<const InfoPacket<float>* >(&packet);
 			if(info_f !=NULL) {
 				ProxyInfoPacket<float> pinfo(asio_ep.address().to_v6(), info_f->eid(), info_f->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-				distribution_queue.push(boost::shared_ptr<const Packet>(pinfo.clone()));
+				distribution_queue.push(Packet::Ptr(pinfo.clone()));
 				break;
 			}
 			const InfoPacket<std::string>* info_s = dynamic_cast<const InfoPacket<std::string>* >(&packet);
 			if(info_s !=NULL) {
 				ProxyInfoPacket<std::string> pinfo(asio_ep.address().to_v6(), info_s->eid(), info_s->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-				distribution_queue.push(boost::shared_ptr<const Packet>(pinfo.clone()));
+				distribution_queue.push(Packet::Ptr(pinfo.clone()));
 				break;
 			}
 			const InfoPacket<std::array<uint8_t, 16> >* info_16b = dynamic_cast<const InfoPacket<std::array<uint8_t, 16> >* >(&packet);
 			if(info_16b !=NULL) {
 				ProxyInfoPacket<std::array<uint8_t, 16> > pinfo(asio_ep.address().to_v6(), info_16b->eid(), info_16b->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-				distribution_queue.push(boost::shared_ptr<const Packet>(pinfo.clone()));
+				distribution_queue.push(Packet::Ptr(pinfo.clone()));
 				break;
 			}
 			const InfoPacket<std::array<uint8_t, 65> >* info_65b = dynamic_cast<const InfoPacket<std::array<uint8_t, 65> >* >(&packet);
 			if(info_65b !=NULL) {
 				ProxyInfoPacket<std::array<uint8_t, 65> > pinfo(asio_ep.address().to_v6(), info_65b->eid(), info_65b->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-				distribution_queue.push(boost::shared_ptr<const Packet>(pinfo.clone()));
+				distribution_queue.push(Packet::Ptr(pinfo.clone()));
 				break;
 			}
 		} while(false);
@@ -219,6 +248,7 @@ int main(int argc, char** argv)
 		("help,h", "produce help message")
 		("version", "print version and exit")
 		("interface,I", po::value<std::string>(), "Interface to send multicast from")
+		("ip,i", po::value<std::string>(), "IP address to listen on")
 		("verbose,V", "print more status information")
 		;
 
@@ -253,6 +283,7 @@ int main(int argc, char** argv)
 
 	boost::asio::io_service io;
 	hexabus::Socket* network = new hexabus::Socket(io, 10);
+	hexabus::Socket* reset_network = new hexabus::Socket(io, 10);
 	hexabus::Listener* listener = new hexabus::Listener(io);
 
 	boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
@@ -271,7 +302,16 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	if(!vm.count("ip")) {
+		std::cerr << "Please specific an ip address to listen on." << std::endl;
+		return 1;
+	}
+
 	network->bind(bind_addr);
+	reset_network->bind(boost::asio::ip::udp::endpoint(
+		boost::asio::ip::address_v6::from_string(vm["ip"].as<std::string>()),
+		61616
+	));
 
 	try {
 		listener->listen(vm["interface"].as<std::string>());
@@ -281,7 +321,7 @@ int main(int argc, char** argv)
 	}
 
 
-	PacketSender sender(network);
+	PacketSender sender(network, reset_network);
 	ErrorCallback errorCallback;
 
 	boost::signals2::connection c1 = listener->onAsyncError(errorCallback);
@@ -299,8 +339,10 @@ int main(int argc, char** argv)
 		filtering::isInfo<std::string>() ||
 		filtering::isInfo<std::array<uint8_t, 16> >() ||
 		filtering::isInfo<std::array<uint8_t, 65> >());
-	boost::signals2::connection c3 = network->onAsyncError(errorCallback);
-	boost::signals2::connection c4 = network->onPacketReceived(boost::bind(&PacketSender::ackCallback, &sender, _1, _2), filtering::isAck());
+	boost::signals2::connection c3 = network->onPacketReceived(boost::bind(&PacketSender::ackCallback, &sender, _1, _2), filtering::isAck());
+	boost::signals2::connection c4 = reset_network->onPacketReceived(boost::bind(&PacketSender::resetCallback, &sender, _1, _2),
+		filtering::isWrite<uint8_t>() &&
+		filtering::eid() == EP_SM_CONTROL);
 
 	if(verbose) {
 		std::cout << "Listening for info packets..." << std::endl;

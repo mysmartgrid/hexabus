@@ -9,11 +9,14 @@
 #include "sequence_numbers.h"
 #include "udp_handler.h"
 #include "state_machine.h"
+#include "endpoints.h"
 
 #define LOG_LEVEL UDP_HANDLER_DEBUG
 #include "syslog.h"
 
 #define MAX(a,b) (seqnumIsLessEqual((a),(b))?(b):(a))
+
+extern uip_ipaddr_t udp_master_addr;
 
 enum hxb_send_state_t {
 	SINIT		= 0,
@@ -46,6 +49,7 @@ struct reliability_state {
 	uint16_t ul_ack_state;
 	struct etimer timeout_timer;
 	bool recved_packet;
+	bool do_reset;
 	uint16_t rseq_num;
 	struct hxb_queue_packet* P;
 };
@@ -65,6 +69,11 @@ void send_packet(struct hxb_queue_packet* data) {
 
 	data->packet.header.flags |= HXB_FLAG_RELIABLE;
 
+	if(rstates[hash].do_reset) {
+		syslog(LOG_DEBUG, "Sending connection reset to " LOG_6ADDR_FMT , LOG_6ADDR_VAL(data->ip));
+		data->packet.header.flags |= HXB_FLAG_CONN_RESET;
+	}
+
 	if(data->packet.header.sequence_number == 0) {
 		rstates[hash].want_ack_for = data->packet.header.sequence_number = next_sequence_number(&(data->ip), data->port);
 	}
@@ -77,6 +86,9 @@ void send_packet(struct hxb_queue_packet* data) {
 enum hxb_error_code enqueue_packet(const uip_ipaddr_t* toaddr, uint16_t toport, union hxb_packet_any* packet) {
 
 	struct hxb_queue_packet* queue_entry = malloc(sizeof(struct hxb_queue_packet));
+
+	if(queue_entry == NULL)
+		return HXB_ERR_OUT_OF_MEMORY;
 
 	queue_entry->port = toport;
 	memcpy(&(queue_entry->ip), toaddr, sizeof(uip_ipaddr_t));
@@ -92,6 +104,18 @@ enum hxb_error_code enqueue_packet(const uip_ipaddr_t* toaddr, uint16_t toport, 
 	}
 
 	return HXB_ERR_SUCCESS;
+}
+
+void enqueue_sm_reset() {
+	union hxb_packet_any packet_sm_control = {
+		.p_u8.type = HXB_PTYPE_WRITE,
+		.p_u8.flags = HXB_FLAG_WANT_ACK,
+		.p_u8.eid = EP_SM_CONTROL,
+		.p_u8.datatype = HXB_DTYPE_UINT8,
+		.p_u8.value = STM_STATE_RUNNING
+	};
+
+	enqueue_packet(&udp_master_addr, HXB_PORT, (union hxb_packet_any*) &packet_sm_control);
 }
 
 enum hxb_error_code ul_ack_received(const uip_ipaddr_t* toaddr, uint16_t port, uint16_t seq_num) {
@@ -212,6 +236,7 @@ static void run_send_state_machine(uint8_t rs) {
 			rstates[rs].retrans = 0;
 			rstates[rs].send_state = SREADY;
 			rstates[rs].P = NULL;
+			rstates[rs].do_reset = true;
 			break;
 		case SREADY:
 			if (packetqueue_len(&send_queue) > 0) {
@@ -219,7 +244,7 @@ static void run_send_state_machine(uint8_t rs) {
 					rstates[rs].P = (struct hxb_queue_packet *)(packetqueue_first(&send_queue)->ptr);
 					packetqueue_dequeue(&send_queue);
 
-					send_packet((struct hxb_queue_packet *)rstates[rs].P);
+					send_packet(rstates[rs].P);
 					rstates[rs].retrans = 0;
 					rstates[rs].ack = false;
 					rstates[rs].isUlAck = (rstates[rs].P->packet.header.flags)&HXB_FLAG_WANT_UL_ACK;
@@ -231,6 +256,7 @@ static void run_send_state_machine(uint8_t rs) {
 		case SWAIT_ACK:
 			if(rstates[rs].ack) {
 				rstates[rs].want_ack_for = 0;
+				rstates[rs].do_reset = false;
 				free(rstates[rs].P);
 				rstates[rs].P = NULL;
 				rstates[rs].send_state = SREADY;
@@ -248,8 +274,7 @@ static void run_send_state_machine(uint8_t rs) {
 			break;
 		case SFAILED:
 			if(fail == 2) {
-				//syslog(LOG_DEBUG, "Conn: %u Retrans: %lu Drop: %lu Reset: %lu", rs, rstates[rs].retrans_cnt, rstates[rs].drop_cnt, rstates[rs].reset_cnt);
-				syslog(LOG_WARN, "Resetting...");
+				syslog(LOG_WARN, "Recovery...");
 				reset_reliability_layer();
 				fail = 0;
 				rstates[rs].send_state = SINIT;
@@ -271,6 +296,11 @@ static void run_recv_state_machine(uint8_t rs) {
 			if(fail!=0) {
 				rstates[rs].recv_state = RFAILED;
 			} else if(rstates[rs].recved_packet){
+				if(R->packet.header.flags & HXB_FLAG_CONN_RESET) {
+					syslog(LOG_DEBUG, "Received reset from " LOG_6ADDR_FMT , LOG_6ADDR_VAL(R->ip));
+					rstates[rs].rseq_num=0;
+				}
+
 				if(((R->packet.header.flags & HXB_FLAG_WANT_ACK) && !allows_implicit_ack(&(R->packet))) ||
 						((R->packet.header.flags & HXB_FLAG_WANT_UL_ACK) && rstates[rs].ul_ack_state==uip_ntohs(R->packet.header.sequence_number))) {
 						syslog(LOG_DEBUG, "Sending ack for %u.", uip_ntohs(R->packet.header.sequence_number));
@@ -303,10 +333,11 @@ static void run_recv_state_machine(uint8_t rs) {
 			}
 			break;
 		case RFAILED:
-			//if(uip_ipaddr_cmp(&(R->ip), &udp_master_addr)) {
+			if(fail == 0) {
+				rstates[rs].recv_state = RINIT ;
+			} else { //if(uip_ipaddr_cmp(&(R->ip), &udp_master_addr)) {
 				fail = 2;
-				rstates[rs].recv_state = RINIT;
-			//}
+			}
 			break;
 	}
 }
@@ -315,7 +346,7 @@ enum hxb_error_code receive_packet(struct hxb_queue_packet* packet) {
 
 	uint8_t hash = hash_ip(&(packet->ip), packet->port);
 
-	syslog(LOG_DEBUG, "Received packet %u from %u.", uip_ntohs(packet->packet.header.sequence_number), hash);
+	syslog(LOG_DEBUG, "Received packet %u from " LOG_6ADDR_FMT , uip_ntohs(packet->packet.header.sequence_number), LOG_6ADDR_VAL(packet->ip));
 
 	R = packet;
 	rstates[hash].recved_packet = true;
@@ -334,6 +365,7 @@ void init_reliability_layer() {
 		rstates[i].send_state = SINIT;
 	}
 	packetqueue_init(&send_queue);
+	enqueue_sm_reset();
 	fail = 0;
 }
 

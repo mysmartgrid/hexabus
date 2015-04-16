@@ -22,7 +22,8 @@ namespace hexabus {
 			enum Flags {
 				want_ack = HXB_FLAG_WANT_ACK,
 				want_ul_ack = HXB_FLAG_WANT_UL_ACK,
-				reliable = HXB_FLAG_RELIABLE
+				reliable = HXB_FLAG_RELIABLE,
+				conn_reset = HXB_FLAG_CONN_RESET
 			};
 
 		private:

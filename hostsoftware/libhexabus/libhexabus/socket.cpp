@@ -302,6 +302,9 @@ static bool allows_implicit_ack(const Packet &packet) {
 bool Socket::packetPrereceive(const Packet::Ptr& packet, const boost::asio::ip::udp::endpoint& from) {
 	Socket::Association& assoc = getAssociation(from);
 
+	if(packet->flags()&Packet::conn_reset)
+		assoc.rSeqNum = 0;
+
 	if(((packet->flags()&Packet::want_ack) && !allows_implicit_ack(*packet)) ||
 		((packet->flags()&Packet::want_ul_ack) && (packet->sequenceNumber()==assoc.UlAckState))) {
 		send(AckPacket(packet->sequenceNumber()), from);
@@ -330,6 +333,7 @@ bool Socket::packetPrereceive(const Packet::Ptr& packet, const boost::asio::ip::
 				assoc.want_ack_for = 0;
 				assoc.retrans_count = 0;
 				assoc.currentPacket.first.reset();
+				assoc.doReset = false;
 				beginSend(from);
 			}
 		}
@@ -355,7 +359,14 @@ void Socket::onSendTimeout(const boost::system::error_code& error, const boost::
 			beginSend(to);
 		} else if(assoc.currentPacket.first.use_count()) {
 			assoc.retrans_count++;
-			send(*assoc.currentPacket.first, to, assoc.want_ack_for, assoc.currentPacket.first->flags() | Packet::reliable);
+
+			uint8_t flags;
+			if(assoc.doReset)
+				flags = Packet::reliable | Packet::conn_reset;
+			else
+				flags = Packet::reliable;
+
+			send(*assoc.currentPacket.first, to, assoc.want_ack_for, assoc.currentPacket.first->flags() | flags);
 			assoc.timeout_timer.expires_from_now(boost::posix_time::milliseconds(500*assoc.retrans_count));
 			assoc.timeout_timer.async_wait(boost::bind(&Socket::onSendTimeout, this, _1, to));
 		}
@@ -373,7 +384,14 @@ void Socket::beginSend(const boost::asio::ip::udp::endpoint& to)
 			assoc.want_ack_for = generateSequenceNumber(to);
 			assoc.isUlAck = assoc.currentPacket.first->flags()&Packet::want_ul_ack;
 			assoc.sendQueue.pop();
-			send(*assoc.currentPacket.first, to, assoc.want_ack_for, assoc.currentPacket.first->flags() | Packet::reliable);
+
+			uint8_t flags;
+			if(assoc.doReset)
+				flags = Packet::reliable | Packet::conn_reset;
+			else
+				flags = Packet::reliable;
+
+			send(*assoc.currentPacket.first, to, assoc.want_ack_for, assoc.currentPacket.first->flags() | flags);
 			if(assoc.currentPacket.first->flags()&Packet::want_ul_ack || assoc.currentPacket.first->flags()&Packet::want_ack) {
 				assoc.timeout_timer.expires_from_now(boost::posix_time::seconds(1));
 				assoc.timeout_timer.async_wait(boost::bind(&Socket::onSendTimeout, this, _1, to));
@@ -408,6 +426,7 @@ void Socket::upperLayerAckReceived(const boost::asio::ip::udp::endpoint& dest, c
 		assoc.want_ack_for = 0;
 		assoc.retrans_count = 0;
 		assoc.currentPacket.first.reset();
+		assoc.doReset = false;
 		beginSend(dest);
 	}
 }
@@ -459,6 +478,7 @@ Socket::Association& Socket::getAssociation(const boost::asio::ip::udp::endpoint
 		assoc->rSeqNum = 0;
 		assoc->isUlAck = false;
 		assoc->UlAckState = 0;
+		assoc->doReset = true;
 
 		boost::asio::ip::address_v6::bytes_type bytes = target.address().to_v6().to_bytes();
 		for (uint32_t i = 0; i < 16; i += 2) {
