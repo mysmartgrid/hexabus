@@ -12,9 +12,14 @@ exports.expectMembers = function(obj, members) {
 	}
 };
 
-exports.Statemachine = function(name, machineClass, comment, config, devicetree) {
+exports.Statemachine = function(id, name, machineClass, comment, config, devicetree) {
 
 	Object.defineProperties(this, {
+		'id': {
+			get: function() { return id; },
+			enumerable: true
+		},
+
 		'name': {
 			get: function() { return name; },
 			enumerable: true
@@ -60,8 +65,9 @@ exports.Statemachine = function(name, machineClass, comment, config, devicetree)
 
 
 	this.generateInstanceLine = function(parameters) {
+		var id = 'sm_' + this.id.replace(/-/g,'_');
 		var parameterList = parameters.join(', ');
-		return 'machine ' + this.name + ': ' + this.machineClass + '(' + parameterList + ');';
+		return 'machine ' + id + ': ' + this.machineClass + '(' + parameterList + ');';
 	};
 
 	this.getInstanceLine = function() {
@@ -69,11 +75,11 @@ exports.Statemachine = function(name, machineClass, comment, config, devicetree)
 	};
 
 	this.saveToDevicetree = function() {
-		if(devicetree.statemachines[name] === undefined) {
+		if(devicetree.statemachines[id] === undefined) {
 			devicetree.addStatemachine(name, this.machineClass, comment, config);
 		}
 		else {
-			devicetree.statemachines[name].updateConfig(config);
+			devicetree.statemachines[id].updateConfig(config);
 		}
 	};
 };

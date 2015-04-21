@@ -3,8 +3,8 @@
 var Statemachine = require('./common').Statemachine;
 var expectMembers = require('./common').expectMembers;
 
-exports.SimpleSwitchStatemachine = function(name, comment, config, devicetree) {
-	Statemachine.call(this, name, 'SimpleSwitch', comment, config, devicetree);
+exports.SimpleSwitchStatemachine = function(id, name, comment, config, devicetree) {
+	Statemachine.call(this, id, name, 'SimpleSwitch', comment, config, devicetree);
 
 	expectMembers(this.config, ['buttonDev', 'button', 'relaisDev', 'relais']);
 

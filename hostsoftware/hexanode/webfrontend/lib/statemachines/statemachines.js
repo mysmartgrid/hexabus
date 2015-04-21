@@ -5,6 +5,7 @@ var fs = require('fs');
 var execFile = require('child_process').execFile;
 var nconf = require('nconf');
 var path = require('path');
+var uuid = require('node-uuid');
 
 var debug = require('../debug.js');
 var expectMembers = require('./common').expectMembers;
@@ -25,33 +26,34 @@ var machineTypes = {
 };
 
 
-var statemachineFromDevicetree = function(name, devicetree) {
+var statemachineFromDevicetree = function(id, devicetree) {
 
 	if(devicetree === undefined) {
 		throw new Error("devicetree parameter is missing");
 	}
 
-	if(devicetree.statemachines[name] === undefined) {
-		throw new Error("Statemachine " + name + " does not exist in devicetree");
+	if(devicetree.statemachines[id] === undefined) {
+		throw new Error("Statemachine " + id + " does not exist in devicetree");
 	}
 
-	var machineClass = devicetree.statemachines[name].machineClass;
+	var machineClass = devicetree.statemachines[id].machineClass;
 	if(machineTypes[machineClass] === undefined) {
 		throw new Error("Unknown machine class " + machineClass);
 	}
 
-	var config = devicetree.statemachines[name].config;
-	var comment = devicetree.statemachines[name].comment;
+	var machine = devicetree.statemachines[id];
 
-	return new machineTypes[machineClass](name, comment, config, devicetree);
+	return new machineTypes[machineClass](id, machine.name, machine.comment, machine.config, devicetree);
 };
 exports.statemachineFromDevicetree = statemachineFromDevicetree;
 
 exports.statemachineFromJson = function(json, devicetree) {
-	expectMembers(json, ['name',
+	expectMembers(json, ['id',
+						'name',
 						'machineClass',
 						'comment',
 						'config']);
+
 
 	if(devicetree === undefined) {
 		throw new Error("devicetree parameter is missing");
@@ -61,7 +63,11 @@ exports.statemachineFromJson = function(json, devicetree) {
 		throw new Error("Unknown machine class " + json.machineClass);
 	}
 
-	return new machineTypes[json.machineClass](json.name, json.comment, json.config, devicetree);
+	if(json.id === null) {
+		json.id = uuid.v4();
+	}
+
+	return new machineTypes[json.machineClass](json.id, json.name, json.comment, json.config, devicetree);
 };
 
 
@@ -69,11 +75,11 @@ exports.findConflictingStatemachines = function(statemachine, devicetree) {
 	var conflicts = [];
 	var endpoints  = statemachine.getWrittenEndpoints();
 
-	for(var name in devicetree.statemachines) {
-		var otherEndpoints = statemachineFromDevicetree(name, devicetree).getWrittenEndpoints();
+	for(var id in devicetree.statemachines) {
+		var otherEndpoints = statemachineFromDevicetree(id, devicetree).getWrittenEndpoints();
 		for(var index in endpoints) {
 			if(otherEndpoints.indexOf(endpoints[index]) !== -1) {
-				conflicts.push(name);
+				conflicts.push(id);
 			}
 		}
 	}
@@ -111,7 +117,7 @@ exports.StatemachineBuilder = function(devicetree) {
 		else {
 			callback();
 		}
-	}
+	};
 
 	var collectMachines = function(callback) {
 		statemachines = [];
@@ -119,8 +125,8 @@ exports.StatemachineBuilder = function(devicetree) {
 		setProgress('collecting-statemachines');
 
 		try {
-			for(var machineName in devicetree.statemachines) {
-				statemachines.push(statemachineFromDevicetree(machineName, devicetree));
+			for(var machineId in devicetree.statemachines) {
+				statemachines.push(statemachineFromDevicetree(machineId, devicetree));
 			}
 			callback();
 		}

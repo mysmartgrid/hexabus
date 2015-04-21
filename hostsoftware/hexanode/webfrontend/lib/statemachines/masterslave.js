@@ -3,8 +3,8 @@
 var Statemachine = require('./common').Statemachine;
 var expectMembers = require('./common').expectMembers;
 
-exports.MasterSlaveStatemachine = function(name, comment, config, devicetree) {
-	Statemachine.call(this, name, 'MasterSlave', comment, config, devicetree);
+exports.MasterSlaveStatemachine = function(id, name, comment, config, devicetree) {
+	Statemachine.call(this, id, name, 'MasterSlave', comment, config, devicetree);
 
 	expectMembers(this.config, ['master',
 								'meter',

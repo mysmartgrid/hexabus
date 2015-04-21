@@ -601,10 +601,16 @@ var moduleWrapper = function(globalScope) {
 	/*
 	 * Statemachine constructor
 	 */
-	var Statemachine = function(name, machineClass, comment, config, emitter) {
+	var Statemachine = function(id, name, machineClass, comment, config, emitter) {
 
 		Object.defineProperties(this, {
+			'id' : {
+				get: function() {
+					return id;
+				}
+			},
 			'name' : {
+				enumerable: true,
 				get: function() {
 					return name;
 				},
@@ -648,7 +654,8 @@ var moduleWrapper = function(globalScope) {
 		this.propagateUpdate = onServer(function() {
 			var update = {};
 			update.statemachines = {};
-			update.statemachines[name] = {
+			update.statemachines[id] = {
+				'name' : name,
 				'machineClass' : machineClass,
 				'config' : config,
 				'comment' : comment
@@ -656,7 +663,8 @@ var moduleWrapper = function(globalScope) {
 			emitter.propagateUpdate(update);
 		});
 
-		if(name === undefined ||
+		if(id === undefined ||
+			name === undefined ||
 			machineClass === undefined ||
 			comment === undefined ||
 			config === undefined ||
@@ -703,6 +711,7 @@ var moduleWrapper = function(globalScope) {
 					else {
 						var machine = update.statemachines[machineId];
 						statemachines[machineId] = new Statemachine(machineId,
+																	machine.name,
 																	machine.machineClass,
 																	machine.comment,
 																	machine.config,
@@ -736,9 +745,9 @@ var moduleWrapper = function(globalScope) {
 			}
 
 			if(deletion.statemachines !== undefined) {
-				for(var machineName in deletion.statemachines) {
-					if(isEmptyObject(deletion.statemachines[machineName])) {
-						delete statemachines[machineName];
+				for(var machineId in deletion.statemachines) {
+					if(isEmptyObject(deletion.statemachines[machineId])) {
+						delete statemachines[machineId];
 					}
 				}
 			}
@@ -873,19 +882,20 @@ var moduleWrapper = function(globalScope) {
 		};
 
 		this.addStatemachine = onServer(function(name, machineClass, comment, config) {
-			var machine = new Statemachine(name, machineClass, comment, config, this);
-			statemachines[name] = machine;
+			var id = uuid.v4();
+			var machine = new Statemachine(id, name, machineClass, comment, config, this);
+			statemachines[id] = machine;
 			machine.propagateUpdate();
 		});
 
 
-		this.removeStatemachine = onServer(function(name) {
-			if(statemachines[name] !== undefined) {
-				delete statemachines[name];
-				this.propagateEntityDeletion('statemachines',name);
+		this.removeStatemachine = onServer(function(id) {
+			if(statemachines[id] !== undefined) {
+				delete statemachines[id];
+				this.propagateEntityDeletion('statemachines', id);
 			}
 			else {
-				throw "No such statemachine";
+				throw "No such statemachine " + id;
 			}
 		});
 
@@ -944,14 +954,15 @@ var moduleWrapper = function(globalScope) {
 			}
 
 			debug(jsonTree.statemachines);
-			for(var machineName in jsonTree.statemachines) {
-				debug('Machine:' + machineName);
-				var machine = jsonTree.statemachines[machineName];
-				statemachines[machineName] = new Statemachine(machineName,
-																machine.machineClass,
-																machine.comment,
-																machine.config,
-																this);
+			for(var machineId in jsonTree.statemachines) {
+				debug('Machine:' + machineId);
+				var machine = jsonTree.statemachines[machineId];
+				statemachines[machineId] = new Statemachine(machineId,
+															machine.name,
+															machine.machineClass,
+															machine.comment,
+															machine.config,
+															this);
 			}
 		}
 

@@ -1,6 +1,6 @@
 angular.module('hexanode')
 .controller('stateMachine', ['$scope', 'Socket', 'Lang', function($scope, Socket, Lang) {
-	$scope.devices = window.known_hexabus_devices;
+	var uuid = window.uuid;
 
 	$scope.errorClass = function(error) {
 		return error ? 'has-error' : 'has-success';
@@ -154,6 +154,7 @@ angular.module('hexanode')
 
 		for(var slave in $scope.masterSlave.slaves) {
 			var statemachine = {
+				id: null,
 				name: generateRandomName(),
 				machineClass: 'MasterSlave',
 				comment: 'No comment',
@@ -184,6 +185,7 @@ angular.module('hexanode')
 
 	$scope.standbyKiller.upload = function() {
 		var statemachine = [{
+			id: null,
 			name: generateRandomName(),
 			machineClass: 'Standbykiller',
 			comment: 'No comment',
@@ -233,6 +235,7 @@ angular.module('hexanode')
 
 	$scope.productionThreshold.upload = function() {
 			var statemachine = [{
+			id: null,
 			name: generateRandomName(),
 			machineClass: 'ProductionThreshold',
 			comment: 'No comment',
@@ -276,6 +279,7 @@ angular.module('hexanode')
 
 	$scope.threshold.upload = function() {
 		var statemachine = [{
+			id: null,
 			name: generateRandomName(),
 			machineClass: 'Threshold',
 			comment: 'No comment',
