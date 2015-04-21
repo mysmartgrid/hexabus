@@ -745,8 +745,7 @@ void udp_handler_handle_incoming(struct hxb_queue_packet* R) {
 	union hxb_packet_any* packet = &(R->packet);
 
 	// don't send error packets for broadcasts
-	bool is_broadcast = packet->header.type == HXB_PTYPE_INFO
-		&& uip_ipaddr_cmp(&UDP_IP_BUF->destipaddr, &hxb_group);
+	bool is_broadcast = uip_ipaddr_cmp(&UDP_IP_BUF->destipaddr, &hxb_group);
 
 	syslog(LOG_DEBUG, "Handling packet of type %x", packet->header.type);
 
@@ -925,9 +924,11 @@ PROCESS_THREAD(udp_handler_process, ev, data) {
   uip_ip6addr(&udp_master_addr, 0xfe80,0,0,0,0,0,0,1);
 	for (int i = 0; i < UIP_DS6_ADDR_NB; i++) {
 		if (uip_ds6_if.addr_list[i].isused && uip_ds6_if.addr_list[i].ipaddr.u16[0]!=0xfe80) {
-				udp_master_addr.u16[0] = uip_ds6_if.addr_list[i].ipaddr.u16[0];
-				udp_master_addr.u16[1] = uip_ds6_if.addr_list[i].ipaddr.u16[1];
-				break;
+			udp_master_addr.u16[0] = uip_ds6_if.addr_list[i].ipaddr.u16[0];
+			udp_master_addr.u16[1] = uip_ds6_if.addr_list[i].ipaddr.u16[1];
+			udp_master_addr.u16[2] = uip_ds6_if.addr_list[i].ipaddr.u16[2];
+			udp_master_addr.u16[3] = uip_ds6_if.addr_list[i].ipaddr.u16[3];
+			break;
 		}
 	}
 	syslog(LOG_INFO, "Setting master address to " LOG_6ADDR_FMT, LOG_6ADDR_VAL(udp_master_addr));
