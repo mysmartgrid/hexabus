@@ -223,13 +223,18 @@ void _property_register(const struct endpoint_property_descriptor* epp, struct e
 			next_nvm_addr+=HXB_PROPERTY_STRING_LENGTH+1;
 			break;
 		case HXB_DTYPE_65BYTES:
-			next_nvm_addr+=sizeof(65);
+			next_nvm_addr+=65;
 			break;
 		case HXB_DTYPE_16BYTES:
-			next_nvm_addr+=sizeof(16);
+			next_nvm_addr+=16;
 			break;
 		default:
 			return;
+	}
+
+	if((next_nvm_addr-nvm_addr(endpoint_properties)) > nvm_size(endpoint_properties)) {
+		syslog(LOG_ERR, "Could not register property: Not enough memory.");
+		return;
 	}
 
 	chain_link->descriptor = epp;
