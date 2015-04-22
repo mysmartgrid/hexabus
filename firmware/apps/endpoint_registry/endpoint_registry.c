@@ -48,24 +48,24 @@ void _endpoint_register(const struct endpoint_descriptor* ep, struct endpoint_re
 	}
 
 	switch (ep_copy.datatype) {
-		HXB_DTYPE_BOOL:
-		HXB_DTYPE_UINT8:
-		HXB_DTYPE_UINT16:
-		HXB_DTYPE_UINT32:
-		HXB_DTYPE_UINT64:
-		HXB_DTYPE_SINT8:
-		HXB_DTYPE_SINT16:
-		HXB_DTYPE_SINT32:
-		HXB_DTYPE_SINT64:
-		HXB_DTYPE_FLOAT:
-		HXB_DTYPE_128STRING:
-		HXB_DTYPE_65BYTES:
-		HXB_DTYPE_16BYTES:
-			break;
+	case HXB_DTYPE_BOOL:
+	case HXB_DTYPE_UINT8:
+	case HXB_DTYPE_UINT16:
+	case HXB_DTYPE_UINT32:
+	case HXB_DTYPE_UINT64:
+	case HXB_DTYPE_SINT8:
+	case HXB_DTYPE_SINT16:
+	case HXB_DTYPE_SINT32:
+	case HXB_DTYPE_SINT64:
+	case HXB_DTYPE_FLOAT:
+	case HXB_DTYPE_128STRING:
+	case HXB_DTYPE_65BYTES:
+	case HXB_DTYPE_16BYTES:
+		break;
 
-		default:
-			syslog(LOG_DEBUG, "Endpoint %lu has no correct datatype, ignoring", ep_copy.eid);
-			return;
+	default:
+		syslog(LOG_DEBUG, "Endpoint %lu has no correct datatype, ignoring", ep_copy.eid);
+		return;
 	}
 #endif
 
@@ -181,12 +181,40 @@ static uint32_t property_id(struct endpoint_property_registry_entry* entry)
 
 void _property_register(const struct endpoint_property_descriptor* epp, struct endpoint_property_registry_entry* chain_link)
 {
-#if ENDPOINT_REGISTRY_DEBUG
-	//TODO
-#endif
 	struct endpoint_property_descriptor epp_copy;
 	memcpy_from_rodata(&epp_copy, epp, sizeof(epp_copy));
-	syslog(LOG_DEBUG, "Registering Type %u on EID %lu with PropID %lu\n", epp_copy.datatype, epp_copy.eid, epp_copy.propid);
+
+#if ENDPOINT_REGISTRY_DEBUG
+	syslog(LOG_DEBUG, "Register property %lu on endpoint %lu", epp_copy.propid, epp_copy.eid);
+
+	for (struct endpoint_property_registry_entry* head = _endpoint_property_chain; head; head = head->next) {
+		if (property_id(head) == epp_copy.propid && property_eid(head) == epp_copy.eid) {
+			syslog(LOG_DEBUG, "Property descriptor %p re-registers PropID %lu on EID %lu, ignoring", epp, epp_copy.propid, epp_copy.eid);
+			return;
+		}
+	}
+
+	switch (epp_copy.datatype) {
+	case HXB_DTYPE_BOOL:
+	case HXB_DTYPE_UINT8:
+	case HXB_DTYPE_UINT16:
+	case HXB_DTYPE_UINT32:
+	case HXB_DTYPE_UINT64:
+	case HXB_DTYPE_SINT8:
+	case HXB_DTYPE_SINT16:
+	case HXB_DTYPE_SINT32:
+	case HXB_DTYPE_SINT64:
+	case HXB_DTYPE_FLOAT:
+	case HXB_DTYPE_128STRING:
+	case HXB_DTYPE_65BYTES:
+	case HXB_DTYPE_16BYTES:
+		break;
+
+	default:
+		syslog(LOG_DEBUG, "Property %lu on endpoint %lu has no correct datatype, ignoring", epp_copy.propid, epp_copy.eid);
+		return;
+	}
+#endif
 
 	chain_link->value = next_nvm_addr;
 
