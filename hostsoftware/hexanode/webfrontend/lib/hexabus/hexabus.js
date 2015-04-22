@@ -144,8 +144,8 @@ var Hexabus = function() {
 		var enumerateInterface = function(iface, cb) {
 			debug('Running hexinfo on ' + iface);
 
-			var tmpEpFile = makeTempFile("/tmp/XXXXXX_epfile.tmp");
-			var tmpDevFile = makeTempFile("/tmp/XXXXXX_devfile.tmp");
+			var tmpEpFile = makeTempFile(path.join(nconf.get("data"),"XXXXXX_epfile.tmp"));
+			var tmpDevFile = makeTempFile(path.join(nconf.get("data"),"XXXXXX_devfile.tmp"));
 			if(fs.existsSync(path.join(nconf.get("data"), 'endpoints.hbh')) && fs.existsSync(path.join(nconf.get("data"), 'devices.hbh'))) {
 				fs.copySync(path.join(nconf.get("data"), 'endpoints.hbh'), tmpEpFile);
 				fs.copySync(path.join(nconf.get("data"), 'devices.hbh'), tmpDevFile);
@@ -306,22 +306,23 @@ var Hexabus = function() {
 	this.updateEndpointValues = function(devicetree) {
 
 		this.on('packet', function(packet) {
-			//console.log(packet);
-			packet = packet.packet;
-			if(packet.type == 'info') {
-				if(devicetree.devices[packet.from.ip] === undefined ||
-					devicetree.devices[packet.from.ip].endpoints[packet.eid] === undefined) {
+			if(packet.packet !== undefined) {
+				packet = packet.packet;
+				if(packet.type == 'info') {
+					if(devicetree.devices[packet.from.ip] === undefined ||
+						devicetree.devices[packet.from.ip].endpoints[packet.eid] === undefined) {
 
-					console.log('Unknown device or endpoint:' + packet.from.ip + ' ' + packet.eid);
+						console.log('Unknown device or endpoint:' + packet.from.ip + ' ' + packet.eid);
 
-					this.update_devicetree(devicetree,function(error) {
-						if(error !== undefined) {
-							console.log('Could not update device tree: ' + error.toString());
-						}
-					});
-				}
-				else {
-					devicetree.devices[packet.from.ip].endpoints[packet.eid].last_value = packet.value;
+						this.update_devicetree(devicetree,function(error) {
+							if(error !== undefined) {
+								console.log('Could not update device tree: ' + error.toString());
+							}
+						});
+					}
+					else {
+						devicetree.devices[packet.from.ip].endpoints[packet.eid].last_value = packet.value;
+					}
 				}
 			}
 		}.bind(this));
