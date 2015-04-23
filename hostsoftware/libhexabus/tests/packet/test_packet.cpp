@@ -61,6 +61,20 @@ static bool compare(const std::vector<unsigned char>& expect, const std::vector<
 	return false;
 }
 
+#define CHECK_COMMON_FIELDS(packet, deser) \
+	do { \
+		BOOST_CHECK(packet.type() == deser.type()); \
+		BOOST_CHECK(packet.flags() == deser.flags()); \
+		BOOST_CHECK(packet.sequenceNumber() == deser.sequenceNumber()); \
+	} while (0)
+
+#define CHECK_EID_COMMON_FIELDS(packet, deser) \
+	do { \
+		CHECK_COMMON_FIELDS(packet, deser); \
+		BOOST_CHECK(packet.eid() == deser.eid()); \
+		BOOST_CHECK(packet.value() == deser.value()); \
+	} while (0)
+
 BOOST_AUTO_TEST_CASE(check_error_packet)
 {
 	std::cout << "Checking Error out\n";
@@ -79,9 +93,7 @@ BOOST_AUTO_TEST_CASE(check_error_packet)
 	std::cout << "Checking Error in\n";
 
 	auto deser = deserialize<hexabus::ErrorPacket>(bytes);
-	BOOST_CHECK(packet.type() == deser.type());
-	BOOST_CHECK(packet.flags() == deser.flags());
-	BOOST_CHECK(packet.sequenceNumber() == deser.sequenceNumber());
+	CHECK_COMMON_FIELDS(packet, deser);
 	BOOST_CHECK(packet.cause() == deser.cause());
 	BOOST_CHECK(packet.code() == deser.code());
 }
@@ -104,9 +116,7 @@ BOOST_AUTO_TEST_CASE(check_ack_packet)
 	std::cout << "Checking Ack in\n";
 
 	auto deser = deserialize<hexabus::AckPacket>(bytes);
-	BOOST_CHECK(packet.type() == deser.type());
-	BOOST_CHECK(packet.flags() == deser.flags());
-	BOOST_CHECK(packet.sequenceNumber() == deser.sequenceNumber());
+	CHECK_COMMON_FIELDS(packet, deser);
 	BOOST_CHECK(packet.cause() == deser.cause());
 }
 
@@ -128,9 +138,7 @@ BOOST_AUTO_TEST_CASE(check_query_packet)
 	std::cout << "Checking Query in\n";
 
 	auto deser = deserialize<hexabus::QueryPacket>(bytes);
-	BOOST_CHECK(packet.type() == deser.type());
-	BOOST_CHECK(packet.flags() == deser.flags());
-	BOOST_CHECK(packet.sequenceNumber() == deser.sequenceNumber());
+	CHECK_COMMON_FIELDS(packet, deser);
 	BOOST_CHECK(packet.eid() == deser.eid());
 }
 
@@ -152,9 +160,7 @@ BOOST_AUTO_TEST_CASE(check_epquery_packet)
 	std::cout << "Checking EPQuery in\n";
 
 	auto deser = deserialize<hexabus::QueryPacket>(bytes);
-	BOOST_CHECK(packet.type() == deser.type());
-	BOOST_CHECK(packet.flags() == deser.flags());
-	BOOST_CHECK(packet.sequenceNumber() == deser.sequenceNumber());
+	CHECK_COMMON_FIELDS(packet, deser);
 	BOOST_CHECK(packet.eid() == deser.eid());
 }
 
@@ -176,10 +182,9 @@ BOOST_AUTO_TEST_CASE(check_propquery_packet)
 	std::cout << "Checking PropQuery in\n";
 
 	auto deser = deserialize<hexabus::PropertyQueryPacket>(bytes);
-	BOOST_CHECK(packet.type() == deser.type());
-	BOOST_CHECK(packet.flags() == deser.flags());
-	BOOST_CHECK(packet.sequenceNumber() == deser.sequenceNumber());
+	CHECK_COMMON_FIELDS(packet, deser);
 	BOOST_CHECK(packet.eid() == deser.eid());
+	BOOST_CHECK(packet.propid() == deser.propid());
 }
 
 BOOST_AUTO_TEST_CASE(check_epinfo_packet)
@@ -199,11 +204,7 @@ BOOST_AUTO_TEST_CASE(check_epinfo_packet)
 	std::cout << "Checking EPInfo in\n";
 
 	auto deser = deserialize<hexabus::EndpointInfoPacket>(bytes);
-	BOOST_CHECK(packet.type() == deser.type());
-	BOOST_CHECK(packet.flags() == deser.flags());
-	BOOST_CHECK(packet.sequenceNumber() == deser.sequenceNumber());
-	BOOST_CHECK(packet.eid() == deser.eid());
-	BOOST_CHECK(packet.value() == deser.value());
+	CHECK_EID_COMMON_FIELDS(packet, deser);
 }
 
 BOOST_AUTO_TEST_CASE(check_epreport_packet)
@@ -224,11 +225,7 @@ BOOST_AUTO_TEST_CASE(check_epreport_packet)
 	std::cout << "Checking EPReport in\n";
 
 	auto deser = deserialize<hexabus::EndpointReportPacket>(bytes);
-	BOOST_CHECK(packet.type() == deser.type());
-	BOOST_CHECK(packet.flags() == deser.flags());
-	BOOST_CHECK(packet.sequenceNumber() == deser.sequenceNumber());
-	BOOST_CHECK(packet.eid() == deser.eid());
-	BOOST_CHECK(packet.value() == deser.value());
+	CHECK_EID_COMMON_FIELDS(packet, deser);
 	BOOST_CHECK(packet.cause() == deser.cause());
 }
 
@@ -267,20 +264,6 @@ typedef std::array<uint8_t, 65> array_65;
 		TEST_ONE_SPEC(array_16, {{PACK_16B}}, PACK_16B); \
 		TEST_ONE_SPEC(array_65, {{PACK_65B}}, PACK_65B); \
 		TEST_ONE_SPEC(std::string, PACK_STR_S, PACK_STR_B); \
-	} while (0)
-
-#define CHECK_COMMON_FIELDS(packet, deser) \
-	do { \
-		BOOST_CHECK(packet.type() == deser.type()); \
-		BOOST_CHECK(packet.flags() == deser.flags()); \
-		BOOST_CHECK(packet.sequenceNumber() == deser.sequenceNumber()); \
-	} while (0)
-
-#define CHECK_EID_COMMON_FIELDS(packet, deser) \
-	do { \
-		CHECK_COMMON_FIELDS(packet, deser); \
-		BOOST_CHECK(packet.eid() == deser.eid()); \
-		BOOST_CHECK(packet.value() == deser.value()); \
 	} while (0)
 
 BOOST_AUTO_TEST_CASE(check_info_packet)
