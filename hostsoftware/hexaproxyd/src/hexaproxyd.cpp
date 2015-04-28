@@ -38,7 +38,6 @@ struct ErrorCallback {
 class PacketSender {
 private:
 	hexabus::Socket* network;
-	hexabus::Socket* reset_network;
 	std::set<boost::asio::ip::address_v6> addresses;
 
 	std::queue<Packet::Ptr> distribution_queue;
@@ -62,9 +61,8 @@ private:
 	}
 
 public:
-	PacketSender(hexabus::Socket* network, hexabus::Socket* reset_network) {
+	PacketSender(hexabus::Socket* network) {
 		this->network = network;
-		this->reset_network = reset_network;
 		this->ongoing_transmission = false;
 	}
 
@@ -110,7 +108,7 @@ public:
 		if(verbose)
 			std::cout << "Received reset request from " << asio_ep.address().to_v6().to_string() << std::endl;
 
-		reset_network->send(AckPacket(packet.sequenceNumber()), asio_ep);
+		network->send(AckPacket(packet.sequenceNumber()), asio_ep);
 
 		doReset();
 	}
@@ -285,7 +283,6 @@ int main(int argc, char** argv)
 
 	boost::asio::io_service io;
 	hexabus::Socket* network = new hexabus::Socket(io, 10);
-	hexabus::Socket* reset_network = new hexabus::Socket(io, 10);
 	hexabus::Listener* listener = new hexabus::Listener(io);
 
 	boost::asio::ip::address_v6 bind_addr(boost::asio::ip::address_v6::any());
@@ -309,8 +306,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	network->bind(bind_addr);
-	reset_network->bind(boost::asio::ip::udp::endpoint(
+	network->bind(boost::asio::ip::udp::endpoint(
 		boost::asio::ip::address_v6::from_string(vm["ip"].as<std::string>()),
 		61616
 	));
@@ -323,7 +319,7 @@ int main(int argc, char** argv)
 	}
 
 
-	PacketSender sender(network, reset_network);
+	PacketSender sender(network);
 	ErrorCallback errorCallback;
 
 	boost::signals2::connection c1 = listener->onAsyncError(errorCallback);
@@ -342,7 +338,7 @@ int main(int argc, char** argv)
 		filtering::isInfo<std::array<uint8_t, 16> >() ||
 		filtering::isInfo<std::array<uint8_t, 65> >());
 	boost::signals2::connection c3 = network->onPacketReceived(boost::bind(&PacketSender::ackCallback, &sender, _1, _2), filtering::isAck());
-	boost::signals2::connection c4 = reset_network->onPacketReceived(boost::bind(&PacketSender::resetCallback, &sender, _1, _2),
+	boost::signals2::connection c4 = network->onPacketReceived(boost::bind(&PacketSender::resetCallback, &sender, _1, _2),
 		filtering::isWrite<uint8_t>() &&
 		filtering::eid() == EP_SM_CONTROL);
 
