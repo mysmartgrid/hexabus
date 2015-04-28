@@ -704,7 +704,7 @@ static enum hxb_error_code handle_pinfo(union hxb_packet_any* packet)
 	switch ((enum hxb_datatype) envelope.value.datatype) {
 	#define EXTRACT_ORIGIN(DTYPE, PTYPE) \
 		case DTYPE: \
-			uip_ipaddr_copy(&envelope.src_ip, &packet->PTYPE.origin); \
+			memcpy(&envelope.src_ip.u8, &packet->PTYPE.origin, 16); \
 			break;
 
 	EXTRACT_ORIGIN(HXB_DTYPE_BOOL, p_proxy_u8)

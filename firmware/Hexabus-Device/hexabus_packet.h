@@ -102,7 +102,7 @@ struct hxb_packet_16bytes {
 	struct hxb_proxy_packet_##suffix { \
 		HXB_VALUEPACKET_HEADER \
 		type value; \
-		uip_ipaddr_t origin; \
+		char origin[16]; \
 	} __attribute__((packed));
 
 HXB_PROXYPACKET(u8, uint8_t)
@@ -120,21 +120,21 @@ HXB_PROXYPACKET(float, float)
 struct hxb_proxy_packet_128string {
 	HXB_VALUEPACKET_HEADER
 	char value[HXB_STRING_PACKET_BUFFER_LENGTH + 1];
-	uip_ipaddr_t origin;
+	char origin[16];
 
 } __attribute__((packed));
 
 struct hxb_proxy_packet_65bytes {
 	HXB_VALUEPACKET_HEADER
 	char value[HXB_65BYTES_PACKET_BUFFER_LENGTH];
-	uip_ipaddr_t origin;
+	char origin[16];
 
 } __attribute__((packed));
 
 struct hxb_proxy_packet_16bytes {
 	HXB_VALUEPACKET_HEADER
 	char value[HXB_16BYTES_PACKET_BUFFER_LENGTH];
-	uip_ipaddr_t origin;
+	char origin[16];
 
 } __attribute__((packed));
 
