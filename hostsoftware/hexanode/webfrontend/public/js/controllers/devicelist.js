@@ -1,9 +1,9 @@
 angular.module('hexanode')
-.controller('devicesList', ['$scope', '$timeout', 'Socket', 'HexabusClient', 'Lang', function($scope, $timeout, Socket, hexabusclient, Lang) {
+.controller('devicesList', ['$scope', '$timeout', 'Socket', 'DeviceTree', 'HexabusClient', 'Lang', function($scope, $timeout, Socket, DeviceTree, hexabusclient, Lang) {
 	$scope.Lang = Lang;
 
-	$scope.devicetree = new window.DeviceTree();
-	
+	$scope.devicetree = DeviceTree;
+
 	$scope.show_rename = function(device) {
 		device.rename = true;
 	};
@@ -41,27 +41,6 @@ angular.module('hexanode')
 		}
 	};
 
-	Socket.on('devicetree_init', function(json) {
-		$scope.devicetree = new window.DeviceTree(json);
-
-		$scope.devicetree.on('update', function(update) {
-			Socket.emit('devicetree_update', update);
-		});
-
-		$scope.devicetree.on('delete', function(deletion) {
-			Socket.emit('devicetree_delete', deletion);
-		});
-	});
-
-	Socket.on('devicetree_update', function(update) {
-		$scope.devicetree.applyUpdate(update);
-	});
-
-	Socket.on('devicetree_delete', function(deletion) {
-		$scope.devicetree.applyDeletion(deletion);
-	});
-
-	Socket.emit('devicetree_request_init');
 
 	hexabusclient.enumerateNetwork(function(data) {
 		//TODO: handle hexinfo errors

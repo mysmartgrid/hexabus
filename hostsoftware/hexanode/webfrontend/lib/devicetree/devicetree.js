@@ -56,7 +56,7 @@ var moduleWrapper = function(globalScope) {
 
 	/*
 	 * Check if the object is {}
-	 */ 
+	 */
 	var isEmptyObject = function(obj) {
 		return (Object.keys(obj).length === 0);
 	};
@@ -137,6 +137,7 @@ var moduleWrapper = function(globalScope) {
 					}
 				}
 			}
+
 		};
 
 		this.propagateDeletion = function(childDeletion) {
@@ -731,6 +732,7 @@ var moduleWrapper = function(globalScope) {
 					}
 				}
 			}
+			this.emit('changeApplied');
 		};
 
 		this.applyDeletion = function(deletion) {
@@ -765,6 +767,7 @@ var moduleWrapper = function(globalScope) {
 					}
 				}
 			}
+			this.emit('changeApplied');
 		};
 
 		this.propagateUpdate = function(update) {
@@ -899,20 +902,6 @@ var moduleWrapper = function(globalScope) {
 			}
 		});
 
-		this.reset = onServer(function() {
-			for(var ip in devices) {
-				this.removeDevice(ip);
-			}
-
-			for(var id in view) {
-				this.removeView(id);
-			}
-
-			for(var name in statemachines) {
-				this.removeStatemachine(name);
-			}
-		});
-
 		Object.defineProperties(this, {
 			devices: {
 				get: function() {
@@ -940,23 +929,27 @@ var moduleWrapper = function(globalScope) {
 			return json;
 		};
 
-		if (jsonTree !== undefined) {
-			for (var key in jsonTree.devices) {
+		this.fromJSON = function(json) {
+			devices = {};
+			views = {};
+			statemachines = {};
+
+			for (var key in json.devices) {
 				devices[key] = new Device({
 					emitter: this,
-					dev: jsonTree.devices[key]
+					dev: json.devices[key]
 				});
 			}
 
-			for(var id in jsonTree.views) {
-				var view = jsonTree.views[id];
+			for(var id in json.views) {
+				var view = json.views[id];
 				views[id] = new View(view.name, view.endpoints, this, id);
 			}
 
-			debug(jsonTree.statemachines);
-			for(var machineId in jsonTree.statemachines) {
+			debug(json.statemachines);
+			for(var machineId in json.statemachines) {
 				debug('Machine:' + machineId);
-				var machine = jsonTree.statemachines[machineId];
+				var machine = json.statemachines[machineId];
 				statemachines[machineId] = new Statemachine(machineId,
 															machine.name,
 															machine.machineClass,
@@ -964,8 +957,13 @@ var moduleWrapper = function(globalScope) {
 															machine.config,
 															this);
 			}
-		}
 
+			this.emit('changeApplied');
+		};
+
+		if (jsonTree !== undefined) {
+			this.fromJSON(jsonTree);
+		}
 	};
 
 

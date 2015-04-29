@@ -1,5 +1,5 @@
 angular.module('hexanode')
-.controller('stateMachine', ['$scope', 'Socket', 'Lang', function($scope, Socket, Lang) {
+.controller('stateMachine', ['$scope', 'Socket', 'DeviceTree', 'Lang', function($scope, Socket, DeviceTree, Lang) {
 	var uuid = window.uuid;
 
 	$scope.errorClass = function(error) {
@@ -30,6 +30,7 @@ angular.module('hexanode')
 		for(var i in stateMachineForms) {
 			stateMachineForms[i].updateDevices();
 		}
+		console.log('Updated devicelists');
 	};
 
 	var localizeMessage = function(data,type) {
@@ -298,33 +299,7 @@ angular.module('hexanode')
 	};
 	stateMachineForms.push($scope.threshold);
 
-
-	Socket.on('devicetree_init', function(json) {
-		$scope.devicetree = new window.DeviceTree(json);
-
-		$scope.devicetree.on('update', function(update) {
-			Socket.emit('devicetree_update', update);
-			console.log(update);
-		});
-
-		$scope.devicetree.on('delete', function(deletion) {
-			Socket.emit('devicetree_delete', deletion);
-		});
-
-		$scope.updateDevices();
-	});
-
-	Socket.on('devicetree_update', function(update) {
-		$scope.devicetree.applyUpdate(update);
-		$scope.updateDevices();
-	});
-
-	Socket.on('devicetree_delete', function(deletion) {
-		$scope.devicetree.applyDeletion(deletion);
-		$scope.updateDevices();
-	});
-
-	$scope.devicetree = new window.DeviceTree();
-	Socket.emit('devicetree_request_init');
+	$scope.devicetree = DeviceTree;
+	DeviceTree.on('changeApplied', 	$scope.updateDevices);
 }]);
 
