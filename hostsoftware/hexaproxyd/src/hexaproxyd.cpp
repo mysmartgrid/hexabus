@@ -15,6 +15,7 @@
 
 #ifdef DEBUG
 int64_t failcnt = 0;
+int64_t resetcnt = 0;
 int64_t inforcvd = 0;
 #endif
 
@@ -56,6 +57,10 @@ private:
 
 		if(verbose)
 			std::cout << "Broadcasting reset..." << std::endl;
+
+		#ifdef DEBUG
+			resetcnt++;
+		#endif
 
 		send();
 	}
@@ -99,7 +104,7 @@ public:
 		}
 
 		#ifdef DEBUG
-		std::cout << "Failed distributions: " << failcnt << std::endl;
+		std::cout << "Failed distributions: " << failcnt << " (" << resetcnt << " resets)" << std::endl;
 		#endif
 	}
 
@@ -149,78 +154,48 @@ public:
 				std::cout << "Total info packets received: " << inforcvd << std::endl;
 			#endif
 
-			addresses.insert(asio_ep.address().to_v6());
-
 			network->sendUpperLayerAck(boost::asio::ip::udp::endpoint(hxb_broadcast_address, 61616), packet.sequenceNumber());
 
-			do {
-				const InfoPacket<bool>* info_b = dynamic_cast<const InfoPacket<bool>* >(&packet);
-				if(info_b !=NULL) {
-					ProxyInfoPacket<bool> pinfo(asio_ep.address().to_v6(), info_b->eid(), info_b->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-					distribution_queue.push(Packet::Ptr(pinfo.clone()));
-					break;
-				}
-				const InfoPacket<uint8_t>* info_u8 = dynamic_cast<const InfoPacket<uint8_t>* >(&packet);
-				if(info_u8 !=NULL) {
-					ProxyInfoPacket<uint8_t> pinfo(asio_ep.address().to_v6(), info_u8->eid(), info_u8->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-					distribution_queue.push(Packet::Ptr(pinfo.clone()));
-					break;
-				}
-				const InfoPacket<uint32_t>* info_u32 = dynamic_cast<const InfoPacket<uint32_t>* >(&packet);
-				if(info_u32 !=NULL) {
-					ProxyInfoPacket<uint32_t> pinfo(asio_ep.address().to_v6(), info_u32->eid(), info_u32->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-					distribution_queue.push(Packet::Ptr(pinfo.clone()));
-					break;
-				}
-				const InfoPacket<uint64_t>* info_u64 = dynamic_cast<const InfoPacket<uint64_t>* >(&packet);
-				if(info_u64 !=NULL) {
-					ProxyInfoPacket<uint64_t> pinfo(asio_ep.address().to_v6(), info_u64->eid(), info_u64->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-					distribution_queue.push(Packet::Ptr(pinfo.clone()));
-					break;
-				}
-				const InfoPacket<int8_t>* info_s8 = dynamic_cast<const InfoPacket<int8_t>* >(&packet);
-				if(info_s8 !=NULL) {
-					ProxyInfoPacket<int8_t> pinfo(asio_ep.address().to_v6(), info_s8->eid(), info_s8->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-					distribution_queue.push(Packet::Ptr(pinfo.clone()));
-					break;
-				}
-				const InfoPacket<int32_t>* info_s32 = dynamic_cast<const InfoPacket<int32_t>* >(&packet);
-				if(info_s32 !=NULL) {
-					ProxyInfoPacket<int32_t> pinfo(asio_ep.address().to_v6(), info_s32->eid(), info_s32->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-					distribution_queue.push(Packet::Ptr(pinfo.clone()));
-					break;
-				}
-				const InfoPacket<int64_t>* info_s64 = dynamic_cast<const InfoPacket<int64_t>* >(&packet);
-				if(info_s64 !=NULL) {
-					ProxyInfoPacket<uint64_t> pinfo(asio_ep.address().to_v6(), info_s64->eid(), info_s64->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-					distribution_queue.push(Packet::Ptr(pinfo.clone()));
-					break;
-				}
-				const InfoPacket<float>* info_f = dynamic_cast<const InfoPacket<float>* >(&packet);
-				if(info_f !=NULL) {
-					ProxyInfoPacket<float> pinfo(asio_ep.address().to_v6(), info_f->eid(), info_f->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-					distribution_queue.push(Packet::Ptr(pinfo.clone()));
-					break;
-				}
-				const InfoPacket<std::string>* info_s = dynamic_cast<const InfoPacket<std::string>* >(&packet);
-				if(info_s !=NULL) {
-					ProxyInfoPacket<std::string> pinfo(asio_ep.address().to_v6(), info_s->eid(), info_s->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-					distribution_queue.push(Packet::Ptr(pinfo.clone()));
-					break;
-				}
-				const InfoPacket<std::array<uint8_t, 16> >* info_16b = dynamic_cast<const InfoPacket<std::array<uint8_t, 16> >* >(&packet);
-				if(info_16b !=NULL) {
-					ProxyInfoPacket<std::array<uint8_t, 16> > pinfo(asio_ep.address().to_v6(), info_16b->eid(), info_16b->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-					distribution_queue.push(Packet::Ptr(pinfo.clone()));
-					break;
-				}
-				const InfoPacket<std::array<uint8_t, 65> >* info_65b = dynamic_cast<const InfoPacket<std::array<uint8_t, 65> >* >(&packet);
-				if(info_65b !=NULL) {
-					ProxyInfoPacket<std::array<uint8_t, 65> > pinfo(asio_ep.address().to_v6(), info_65b->eid(), info_65b->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
-					distribution_queue.push(Packet::Ptr(pinfo.clone()));
-					break;
-				}
-			} while(false);
+			if (auto* info_b = dynamic_cast<const InfoPacket<bool>* >(&packet)) {
+				ProxyInfoPacket<bool> pinfo(asio_ep.address().to_v6(), info_b->eid(), info_b->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
+				distribution_queue.push(Packet::Ptr(new auto(pinfo)));
+			} else if(auto* info_u8 = dynamic_cast<const InfoPacket<uint8_t>* >(&packet)) {
+				ProxyInfoPacket<uint8_t> pinfo(asio_ep.address().to_v6(), info_u8->eid(), info_u8->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
+				distribution_queue.push(Packet::Ptr(new auto(pinfo)));
+			} else if(auto* info_u32 = dynamic_cast<const InfoPacket<uint32_t>* >(&packet)) {
+				ProxyInfoPacket<uint32_t> pinfo(asio_ep.address().to_v6(), info_u32->eid(), info_u32->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
+				distribution_queue.push(Packet::Ptr(new auto(pinfo)));
+			} else if(auto* info_u64 = dynamic_cast<const InfoPacket<uint64_t>* >(&packet)) {
+				ProxyInfoPacket<uint64_t> pinfo(asio_ep.address().to_v6(), info_u64->eid(), info_u64->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
+				distribution_queue.push(Packet::Ptr(new auto(pinfo)));
+			} else if(auto* info_s8 = dynamic_cast<const InfoPacket<int8_t>* >(&packet)) {
+				ProxyInfoPacket<int8_t> pinfo(asio_ep.address().to_v6(), info_s8->eid(), info_s8->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
+				distribution_queue.push(Packet::Ptr(new auto(pinfo)));
+			} else if(auto* info_s32 = dynamic_cast<const InfoPacket<int32_t>* >(&packet)) {
+				ProxyInfoPacket<int32_t> pinfo(asio_ep.address().to_v6(), info_s32->eid(), info_s32->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
+				distribution_queue.push(Packet::Ptr(new auto(pinfo)));
+			} else if(auto* info_s64 = dynamic_cast<const InfoPacket<int64_t>* >(&packet)) {
+				ProxyInfoPacket<uint64_t> pinfo(asio_ep.address().to_v6(), info_s64->eid(), info_s64->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
+				distribution_queue.push(Packet::Ptr(new auto(pinfo)));
+			} else if(auto* info_f = dynamic_cast<const InfoPacket<float>* >(&packet)) {
+				ProxyInfoPacket<float> pinfo(asio_ep.address().to_v6(), info_f->eid(), info_f->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
+				distribution_queue.push(Packet::Ptr(new auto(pinfo)));
+			} else if(auto* info_s = dynamic_cast<const InfoPacket<std::string>* >(&packet)) {
+				ProxyInfoPacket<std::string> pinfo(asio_ep.address().to_v6(), info_s->eid(), info_s->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
+				distribution_queue.push(Packet::Ptr(new auto(pinfo)));
+			} else if(auto* info_16b = dynamic_cast<const InfoPacket<std::array<uint8_t, 16> >* >(&packet)) {
+				ProxyInfoPacket<std::array<uint8_t, 16> > pinfo(asio_ep.address().to_v6(), info_16b->eid(), info_16b->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
+				distribution_queue.push(Packet::Ptr(new auto(pinfo)));
+			} else if(auto* info_65b = dynamic_cast<const InfoPacket<std::array<uint8_t, 65> >* >(&packet)) {
+				ProxyInfoPacket<std::array<uint8_t, 65> > pinfo(asio_ep.address().to_v6(), info_65b->eid(), info_65b->value(), HXB_FLAG_WANT_UL_ACK|HXB_FLAG_RELIABLE);
+				distribution_queue.push(Packet::Ptr(new auto(pinfo)));
+			} else {
+				if(verbose)
+					std::cout << "Unknown data type, ignoring." << std::endl;
+				return;
+			}
+
+			addresses.insert(asio_ep.address().to_v6());
 
 			send();
 		}
