@@ -37,41 +37,11 @@ static enum hxb_error_code write_set(const struct hxb_envelope* env)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_set_name[] PROGMEM = "Hexonoff, your friendly output setter.";
-ENDPOINT_DESCRIPTOR endpoint_hexonoff_set = {
-	.datatype = HXB_DTYPE_UINT8,
-	.eid = EP_HEXONOFF_SET,
-	.name = ep_set_name,
-	.read = read,
-	.write = write_set
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_hexonoff_set_name = {
-    .datatype = HXB_DTYPE_128STRING,
-    .eid = EP_HEXONOFF_SET,
-    .propid = EP_PROP_NAME,
-};
-
 static enum hxb_error_code write_toggle(const struct hxb_envelope* env)
 {
 	toggle_outputs(env->value.v_u8);
 	return HXB_ERR_SUCCESS;
 }
-
-static const char ep_toggle_name[] PROGMEM = "Hexonoff, your friendly output toggler.";
-ENDPOINT_DESCRIPTOR endpoint_hexonoff_toggle = {
-	.datatype = HXB_DTYPE_UINT8,
-	.eid = EP_HEXONOFF_TOGGLE,
-	.name = ep_toggle_name,
-	.read = read,
-	.write = write_toggle
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_hexonoff_toggle_name = {
-    .datatype = HXB_DTYPE_128STRING,
-    .eid = EP_HEXONOFF_TOGGLE,
-    .propid = EP_PROP_NAME,
-};
 
 void hexonoff_init(void) {
     output_vector = 0;
@@ -105,8 +75,6 @@ void hexonoff_init(void) {
     HEXONOFF_PORT &= ~output_vector;
     set_outputs(HEXONOFF_INITIAL_VALUE);
 
-	ENDPOINT_REGISTER(endpoint_hexonoff_set);
-    ENDPOINT_PROPERTY_REGISTER(prop_hexonoff_set_name);
-	ENDPOINT_REGISTER(endpoint_hexonoff_toggle);
-    ENDPOINT_PROPERTY_REGISTER(prop_hexonoff_toggle_name);
+	ENDPOINT_REGISTER(HXB_DTYPE_UINT8, EP_HEXONOFF_SET, "Hexonoff, your friendly output setter.", read, write_set);
+	ENDPOINT_REGISTER(HXB_DTYPE_UINT8, EP_HEXONOFF_TOGGLE, "Hexonoff, your friendly output toggler.", read, write_toggle);
 }

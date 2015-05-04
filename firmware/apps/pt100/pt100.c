@@ -97,42 +97,10 @@ static enum hxb_error_code read_cold(struct hxb_value* value)
 	return err;
 }
 
-static const char ep_hot[] PROGMEM = "Heater inflow temperature";
-ENDPOINT_DESCRIPTOR endpoint_heater_hot = {
-	.datatype = HXB_DTYPE_FLOAT,
-	.eid = EP_HEATER_HOT,
-	.name = ep_hot,
-	.read = read_hot,
-	.write = 0
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_heater_hot_name = {
-    .datatype = HXB_DTYPE_128STRING,
-    .eid = EP_HEATER_HOT,
-    .propid = EP_PROP_NAME,
-};
-
-static const char ep_cold[] PROGMEM = "Heater outflow temperature";
-ENDPOINT_DESCRIPTOR endpoint_heater_cold = {
-	.datatype = HXB_DTYPE_FLOAT,
-	.eid = EP_HEATER_COLD,
-	.name = ep_cold,
-	.read = read_cold,
-	.write = 0
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_heater_cold_name = {
-    .datatype = HXB_DTYPE_128STRING,
-    .eid = EP_HEATER_COLD,
-    .propid = EP_PROP_NAME,
-};
-
 void pt100_init()
 {
-	ENDPOINT_REGISTER(endpoint_heater_hot);
-	ENDPOINT_PROPERTY_REGISTER(prop_heater_hot_name);
-	ENDPOINT_REGISTER(endpoint_heater_cold);
-	ENDPOINT_PROPERTY_REGISTER(prop_heater_cold_name);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_HEATER_HOT, "Heater inflow temperature", read_hot, 0);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_HEATER_COLD, "Heater outflow temperature", read_cold, 0);
 
 	adc_init();
 }

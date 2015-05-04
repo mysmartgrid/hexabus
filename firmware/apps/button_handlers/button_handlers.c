@@ -37,21 +37,6 @@ static enum hxb_error_code read(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_name[] RODATA = "Hexabus Socket Pushbutton";
-ENDPOINT_DESCRIPTOR endpoint_sysbutton = {
-	.datatype = HXB_DTYPE_BOOL,
-	.eid = EP_BUTTON,
-	.name = ep_name,
-	.read = read,
-	.write = 0
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_sysbutton_name = {
-	.datatype = HXB_DTYPE_128STRING,
-	.eid = EP_BUTTON,
-	.propid = EP_PROP_NAME,
-};
-
 static void broadcast_button()
 {
 	button_pushed = 1;
@@ -106,7 +91,6 @@ void button_handlers_init()
 {
 	BUTTON_REGISTER(buttons_system, 1);
 #if BUTTON_HAS_EID
-	ENDPOINT_REGISTER(endpoint_sysbutton);
-	ENDPOINT_PROPERTY_REGISTER(prop_sysbutton_name);
+	ENDPOINT_REGISTER(HXB_DTYPE_BOOL, EP_BUTTON, "Hexabus Socket Pushbutton", read, 0);
 #endif
 }

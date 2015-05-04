@@ -125,21 +125,6 @@ static enum hxb_error_code write(const struct hxb_envelope* env)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_name[] PROGMEM = "Presence Detector";
-ENDPOINT_DESCRIPTOR endpoint_presence_detector = {
-	.datatype = HXB_DTYPE_UINT8,
-	.eid = EP_PRESENCE_DETECTOR,
-	.name = ep_name,
-	.read = read,
-	.write = write
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_presence_name = {
-    .datatype = HXB_DTYPE_128STRING,
-    .eid = EP_PRESENCE_DETECTOR,
-    .propid = EP_PROP_NAME,
-};
-
 void presence_detector_init() {
     global_presence = NO_PRESENCE;
 #if PRESENCE_DETECTOR_SERVER
@@ -153,7 +138,6 @@ void presence_detector_init() {
         ctimer_stop(&pd_keep_alive);
     }
 #endif
-	ENDPOINT_REGISTER(endpoint_presence_detector);
-    ENDPOINT_PROPERTY_REGISTER(prop_presence_name);
+	ENDPOINT_REGISTER(HXB_DTYPE_UINT8, EP_PRESENCE_DETECTOR, "Presence Detector", read, write);
 }
 

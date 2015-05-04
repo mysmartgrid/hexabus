@@ -38,23 +38,6 @@ static enum hxb_error_code write(const struct hxb_envelope* env)
 
 
 
-static const char ep_name[] PROGMEM = "Window Shutter";
-ENDPOINT_DESCRIPTOR endpoint_shutter = {
-	.datatype = HXB_DTYPE_UINT8,
-	.eid = EP_SHUTTER,
-	.name = ep_name,
-	.read = read,
-	.write = write
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_shutter_name = {
-    .datatype = HXB_DTYPE_128STRING,
-    .eid = EP_SHUTTER,
-    .propid = EP_PROP_NAME,
-};
-
-
-
 void shutter_init(void) {
     syslog(LOG_DEBUG, "Shutter init");
     SHUTTER_DDR |= ( 0x00 | (1<<SHUTTER_OUT_UP) | (1<<SHUTTER_OUT_DOWN) );
@@ -74,8 +57,7 @@ void shutter_init(void) {
     shutter_pos = SHUTTER_MAX_BOUND/2;
     shutter_upperbound = SHUTTER_MAX_BOUND;
 
-	ENDPOINT_REGISTER(endpoint_shutter);
-    ENDPOINT_PROPERTY_REGISTER(prop_shutter_name);
+	ENDPOINT_REGISTER(HXB_DTYPE_UINT8, EP_SHUTTER, "Window Shutter", read, write);
 }
 
 static void shutter_open(void) {

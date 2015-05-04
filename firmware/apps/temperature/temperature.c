@@ -56,21 +56,6 @@ static enum hxb_error_code read(struct hxb_value* value)
 #endif
 }
 
-static const char ep_name[] PROGMEM = "Temperature Sensor";
-ENDPOINT_DESCRIPTOR endpoint_temperature = {
-	.datatype = HXB_DTYPE_FLOAT,
-	.eid = EP_TEMPERATURE,
-	.name = ep_name,
-	.read = read,
-	.write = 0
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_temperature_name = {
-    .datatype = HXB_DTYPE_128STRING,
-    .eid = EP_TEMPERATURE,
-    .propid = EP_PROP_NAME,
-};
-
 /*---------------------------------------------------------------------------*/
 static void
 pollhandler(void) {
@@ -99,8 +84,7 @@ temperature_init(void)
   _update_temp_string();
   // PRINTF("Current temp: %s deg C\r\n", temperature_string_buffer);
 #endif
-	ENDPOINT_REGISTER(endpoint_temperature);
-  ENDPOINT_PROPERTY_REGISTER(prop_temperature_name);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_TEMPERATURE, "Temperature Sensor", read, 0);
 }
 
 static void

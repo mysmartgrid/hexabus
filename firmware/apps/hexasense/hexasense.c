@@ -12,27 +12,11 @@
 
 static uint8_t button_state = 0;
 
-static const char ep_state[] PROGMEM = "HexaSense button state";
-
 enum hxb_error_code read_state(struct hxb_value* value)
 {
 	value->v_u8 = button_state;
 	return HXB_ERR_SUCCESS;
 }
-
-ENDPOINT_DESCRIPTOR endpoint_hexasense_state = {
-	.datatype = HXB_DTYPE_UINT8,
-	.eid = EP_HEXASENSE_BUTTON_STATE,
-	.name = ep_state,
-	.read = read_state,
-	.write = 0
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_hexasense_state_name = {
-	.datatype = HXB_DTYPE_128STRING,
-	.eid = EP_HEXASENSE_BUTTON_STATE,
-	.propid = EP_PROP_NAME,
-};
 
 static void button1_pressed(uint8_t button, uint8_t released, uint16_t pressed_ticks)
 {
@@ -127,9 +111,7 @@ void hexasense_init()
 	BUTTON_REGISTER(buttons_hexasense1, 1);
 	BUTTON_REGISTER(buttons_hexasense2, 1);
 
-	ENDPOINT_REGISTER(endpoint_hexasense_state);
-	ENDPOINT_PROPERTY_REGISTER(prop_hexasense_state_name);
-
+	ENDPOINT_REGISTER(HXB_DTYPE_UINT8, EP_HEXASENSE_BUTTON_STATE, "HexaSense button state", read_state, 0);
 	process_start(&hexasense_feedback_process, NULL);
 }
 

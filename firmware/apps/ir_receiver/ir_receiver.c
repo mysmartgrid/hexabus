@@ -34,21 +34,6 @@ static enum hxb_error_code read(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_name[] PROGMEM = "IR remote control receiver";
-ENDPOINT_DESCRIPTOR endpoint_ir_receiver = {
-	.datatype = HXB_DTYPE_UINT32,
-	.eid = EP_IR_RECEIVER,
-	.name = ep_name,
-	.read = read,
-	.write = 0
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_ir_reciever_name = {
-    .datatype = HXB_DTYPE_128STRING,
-    .eid = EP_IR_RECEIVER,
-    .propid = EP_PROP_NAME,
-};
-
 void ir_receiver_init() {
 
     ir_time = 0;
@@ -78,8 +63,7 @@ void ir_receiver_init() {
 
     sei();
 
-	ENDPOINT_REGISTER(endpoint_ir_receiver);
-    ENDPOINT_PROPERTY_REGISTER(prop_ir_reciever_name);
+	ENDPOINT_REGISTER(HXB_DTYPE_UINT32, EP_IR_RECEIVER, "IR remote control receiver", read, 0);
 }
 
 void ir_receiver_reset() {

@@ -161,33 +161,11 @@ static enum hxb_error_code write(const struct hxb_envelope* env)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_name[] PROGMEM = "Main Switch";
-ENDPOINT_DESCRIPTOR endpoint_relay = {
-	.datatype = HXB_DTYPE_BOOL,
-	.eid = EP_POWER_SWITCH,
-	.name = ep_name,
-	.read = read,
-	.write = write
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_relay_name = {
-    .datatype = HXB_DTYPE_128STRING,
-    .eid = EP_POWER_SWITCH,
-    .propid = EP_PROP_NAME,
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_relay_default = {
-    .datatype = HXB_DTYPE_BOOL,
-    .eid = EP_POWER_SWITCH,
-    .propid = EP_PROP_DEFAULT_SATE,
-};
-
 void relay_init(void)
 {
 #if RELAY_ENABLE
-  ENDPOINT_REGISTER(endpoint_relay);
-  ENDPOINT_PROPERTY_REGISTER(prop_relay_name);
-  ENDPOINT_PROPERTY_REGISTER(prop_relay_default);
+  ENDPOINT_REGISTER(HXB_DTYPE_BOOL, EP_POWER_SWITCH, "Main Switch", read, write);
+  ENDPOINT_PROPERTY_REGISTER(HXB_DTYPE_BOOL, EP_POWER_SWITCH, EP_PROP_DEFAULT_SATE);
 #if ! METERING_ENERGY_PERSISTENT
   /* Load reference values from EEPROM */
   struct hxb_value default_value;

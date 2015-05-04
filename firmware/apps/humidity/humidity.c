@@ -72,23 +72,7 @@ static enum hxb_error_code read(struct hxb_value* value)
 	}
 }
 
-static const char ep_name[] PROGMEM = "Humidity sensor";
-ENDPOINT_DESCRIPTOR endpoint_humidity = {
-	.datatype = HXB_DTYPE_FLOAT,
-	.eid = EP_HUMIDITY,
-	.name = ep_name,
-	.read = read,
-	.write = 0
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_humidity_name = {
-	.datatype = HXB_DTYPE_128STRING,
-	.eid = EP_HUMIDITY,
-	.propid = EP_PROP_NAME,
-};
-
 void humidity_init(void)
 {
-	ENDPOINT_REGISTER(endpoint_humidity);
-	ENDPOINT_PROPERTY_REGISTER(prop_humidity_name);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_HUMIDITY, "Humidity sensor", read, 0);
 }

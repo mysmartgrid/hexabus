@@ -63,24 +63,8 @@ static enum hxb_error_code read(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_name[] PROGMEM = "Barometric pressure sensor";
-ENDPOINT_DESCRIPTOR endpoint_pressure = {
-	.datatype = HXB_DTYPE_FLOAT,
-	.eid = EP_PRESSURE,
-	.name = ep_name,
-	.read = read,
-	.write = 0
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_pressure_name = {
-    .datatype = HXB_DTYPE_128STRING,
-    .eid = EP_PRESSURE,
-    .propid = EP_PROP_NAME,
-};
-
 void pressure_init() {
-  ENDPOINT_REGISTER(endpoint_pressure);
-  ENDPOINT_PROPERTY_REGISTER(prop_pressure_name);
+  ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_PRESSURE, "Barometric pressure sensor", read, 0);
   ac1 = pressure_read16(AC1_ADDR);
   ac2 = pressure_read16(AC2_ADDR);
   ac3 = pressure_read16(AC3_ADDR);

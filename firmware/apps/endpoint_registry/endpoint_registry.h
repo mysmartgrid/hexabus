@@ -20,8 +20,6 @@ struct endpoint_descriptor {
 	endpoint_write_fn write;
 };
 
-#define ENDPOINT_DESCRIPTOR const struct endpoint_descriptor RODATA
-
 struct endpoint_property_descriptor {
 	uint8_t datatype;
 	uint32_t eid;
@@ -32,8 +30,6 @@ struct endpoint_property_value_descriptor {
 	struct endpoint_property_descriptor desc;
 	uintptr_t value;
 };
-
-#define ENDPOINT_PROPERTY_DESCRIPTOR const struct endpoint_property_descriptor RODATA
 
 struct endpoint_registry_entry {
 	const struct endpoint_descriptor* descriptor;
@@ -52,16 +48,35 @@ extern struct endpoint_property_registry_entry* _endpoint_property_chain;
 void _endpoint_register(const struct endpoint_descriptor* ep, struct endpoint_registry_entry* chain_link);
 void _property_register(const struct endpoint_property_descriptor* epp, struct endpoint_property_registry_entry* chain_link);
 
-#define ENDPOINT_REGISTER(DESC) \
+#define ENDPOINT_REGISTER(DATATYPE, EID, NAME, READ_FN, WRITE_FN) \
 	do { \
 		static struct endpoint_registry_entry _endpoint_entry = { 0 }; \
-		_endpoint_register(&DESC, &_endpoint_entry); \
+		\
+		static const char name[] RODATA = NAME; \
+		\
+		static const struct endpoint_descriptor ep_descriptor RODATA = { \
+			.datatype = DATATYPE, \
+			.eid = EID, \
+			.name = name, \
+			.read = READ_FN, \
+			.write = WRITE_FN, \
+		}; \
+		\
+		_endpoint_register(&ep_descriptor, &_endpoint_entry); \
+		\
+		ENDPOINT_PROPERTY_REGISTER(HXB_DTYPE_128STRING, EID, EP_PROP_NAME); \
 	} while (0)
 
-#define ENDPOINT_PROPERTY_REGISTER(DESC) \
+#define ENDPOINT_PROPERTY_REGISTER(DATATYPE, EID, PROPID) \
 	do { \
 		static struct endpoint_property_registry_entry _property_entry = { 0 }; \
-		_property_register(&DESC, &_property_entry); \
+		\
+		static const struct endpoint_property_descriptor prop_descriptor RODATA = { \
+			.datatype = DATATYPE, \
+			.eid = EID, \
+			.propid = PROPID, \
+		}; \
+		_property_register(&prop_descriptor, &_property_entry); \
 	} while (0)
 
 enum hxb_datatype endpoint_get_datatype(uint32_t eid);

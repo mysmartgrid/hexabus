@@ -20,41 +20,11 @@ static enum hxb_error_code read_analog(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_analogread_name[] PROGMEM = "Analog reader";
-ENDPOINT_DESCRIPTOR endpoint_analogread = {
-	.datatype = HXB_DTYPE_FLOAT,
-	.eid = EP_ANALOGREAD,
-	.name = ep_analogread_name,
-	.read = read_analog,
-	.write = 0
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_analogread_name = {
-	.datatype = HXB_DTYPE_128STRING,
-	.eid = EP_ANALOGREAD,
-	.propid = EP_PROP_NAME,
-};
-
 static enum hxb_error_code read_lightsensor(struct hxb_value* value)
 {
 	value->v_float = get_lightvalue();
 	return HXB_ERR_SUCCESS;
 }
-
-static const char ep_lightsensor_name[] PROGMEM = "Lightsensor";
-ENDPOINT_DESCRIPTOR endpoint_lightsensor = {
-	.datatype = HXB_DTYPE_FLOAT,
-	.eid = EP_LIGHTSENSOR,
-	.name = ep_lightsensor_name,
-	.read = read_lightsensor,
-	.write = 0
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_lightsensor_name = {
-	.datatype = HXB_DTYPE_128STRING,
-	.eid = EP_LIGHTSENSOR,
-	.propid = EP_PROP_NAME,
-};
 
 void analogread_init() {
     ADMUX = (0<<REFS1) | (1<<REFS0); // AVCC as reference
@@ -64,12 +34,10 @@ void analogread_init() {
     ADCSRA |= (1<<ADEN); //enable ADC
 
 #if ANALOGREAD_ENABLE
-		ENDPOINT_REGISTER(endpoint_analogread);
-		ENDPOINT_PROPERTY_REGISTER(prop_analogread_name);
+		ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_ANALOGREAD, "Analog reader", read_analog, 0);
 #endif
 #if LIGHTSENSOR_ENABLE
-		ENDPOINT_REGISTER(endpoint_lightsensor);
-		ENDPOINT_PROPERTY_REGISTER(prop_lightsensor_name);
+		ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_LIGHTSENSOR, "Lightsensor", read_lightsensor, 0);
 #endif
 }
 

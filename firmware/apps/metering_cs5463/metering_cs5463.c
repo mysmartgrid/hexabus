@@ -39,7 +39,7 @@ static void spi_init(void)
 	MODIFY_PART(SPI_PORT->MODER, 2 * SPI_PIN_SCK,  GPIO_MODER_MODER0, GPIO_Mode_AF);
 	MODIFY_PART(SPI_PORT->MODER, 2 * SPI_PIN_MISO, GPIO_MODER_MODER0, GPIO_Mode_AF);
 	MODIFY_PART(SPI_PORT->MODER, 2 * SPI_PIN_MOSI, GPIO_MODER_MODER0, GPIO_Mode_AF);
-	
+
 	MODIFY_PART(SPI_PORT->OTYPER, SPI_PIN_SS,   GPIO_OTYPER_OT_0, GPIO_OType_PP);
 	MODIFY_PART(SPI_PORT->OTYPER, SPI_PIN_SCK,  GPIO_OTYPER_OT_0, GPIO_OType_PP);
 	MODIFY_PART(SPI_PORT->OTYPER, SPI_PIN_MOSI, GPIO_OTYPER_OT_0, GPIO_OType_PP);
@@ -218,35 +218,6 @@ static float apparent_power;
 static float fundamental_active_power;
 static float fundamental_reactive_power;
 
-#define METER_EP(ep_name, ep_id, desc) \
-	static enum hxb_error_code read_ ## ep_name(struct hxb_value* value) \
-	{ \
-		value->v_float = ep_name; \
-		return HXB_ERR_SUCCESS; \
-	} \
-	\
-	static const char ep_ ## ep_name[] RODATA = desc; \
-	static ENDPOINT_DESCRIPTOR endpoint_ ## ep_name = { \
-		.datatype = HXB_DTYPE_FLOAT, \
-		.eid = ep_id, \
-		.name = ep_ ## ep_name, \
-		.read = read_ ## ep_name, \
-		.write = 0 \
-	};
-
-METER_EP(active_power, EP_POWER_METER, "Active power")
-METER_EP(rms_current, EP_METERING_RMS_CURRENT, "RMS current")
-METER_EP(rms_voltage, EP_METERING_RMS_VOLTAGE, "RMS voltage")
-METER_EP(frequency, EP_METERING_FREQUENCY, "Frequency")
-METER_EP(temperature, EP_TEMPERATURE, "Temperature")
-METER_EP(reactive_power, EP_METERING_REACTIVE_POWER, "Reactive power")
-METER_EP(power_factor, EP_METERING_POWER_FACTOR, "Power factor")
-METER_EP(apparent_power, EP_METERING_APPARENT_POWER, "Apparent power")
-METER_EP(fundamental_active_power, EP_METERING_FUNDAMENTAL_ACTIVE_POWER, "Fundamental active power")
-METER_EP(fundamental_reactive_power, EP_METERING_FUNDAMENTAL_REACTIVE_POWER, "Fundamental reactive power")
-
-
-
 void IRQ_HANDLER_PM(void)
 {
 	EXTI->PR |= EXTI_PR_PR0 << IRQ_PIN_PM;
@@ -282,16 +253,16 @@ void metering_cs5463_init()
 	interrupt_init();
 	cs5463_init();
 
-	ENDPOINT_REGISTER(endpoint_active_power);
-	ENDPOINT_REGISTER(endpoint_rms_current);
-	ENDPOINT_REGISTER(endpoint_rms_voltage);
-	ENDPOINT_REGISTER(endpoint_frequency);
-	ENDPOINT_REGISTER(endpoint_temperature);
-	ENDPOINT_REGISTER(endpoint_reactive_power);
-	ENDPOINT_REGISTER(endpoint_power_factor);
-	ENDPOINT_REGISTER(endpoint_apparent_power);
-	ENDPOINT_REGISTER(endpoint_fundamental_active_power);
-	ENDPOINT_REGISTER(endpoint_fundamental_reactive_power);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_POWER_METER, "Active power", read_active_power, 0);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_METERING_RMS_CURRENT, "RMS current", read_rms_current, 0);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_METERING_RMS_VOLTAGE, "RMS voltage", read_rms_voltage, 0);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_METERING_FREQUENCY, "Frequency", read_frequency, 0);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_TEMPERATURE, "Temperature", read_temperature, 0);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_METERING_REACTIVE_POWER, "Reactive power", read_reactive_power, 0);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_METERING_POWER_FACTOR, "Power factor", read_power_factor, 0);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_METERING_APPARENT_POWER, "Apparent power", read_apparent_power, 0);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_METERING_FUNDAMENTAL_ACTIVE_POWER, "Fundamental active power", read_fundamental_active_power, 0);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_METERING_FUNDAMENTAL_REACTIVE_POWER, "Fundamental reactive power", read_fundamental_reactive_power, 0);
 }
 
 __attribute__((weak))

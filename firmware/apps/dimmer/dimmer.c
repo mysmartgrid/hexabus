@@ -112,15 +112,6 @@ static enum hxb_error_code write_type(const struct hxb_envelope* env)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_type[] RODATA = "Dimmer type";
-static ENDPOINT_DESCRIPTOR endpoint_type = {
-	.datatype = HXB_DTYPE_UINT8,
-	.eid = EP_DIMMER_MODE,
-	.name = ep_type,
-	.read = read_type,
-	.write = write_type
-};
-
 static enum hxb_error_code read_brightness(struct hxb_value* v)
 {
 	v->v_float = brightness_pct / 100.0f;
@@ -137,20 +128,11 @@ static enum hxb_error_code write_brightness(const struct hxb_envelope* env)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_brightness[] RODATA = "Dimmer brightness";
-static ENDPOINT_DESCRIPTOR endpoint_brightness = {
-	.datatype = HXB_DTYPE_FLOAT,
-	.eid = EP_DIMMER_BRIGHTNESS,
-	.name = ep_brightness,
-	.read = read_brightness,
-	.write = write_brightness
-};
-
 void dimmer_init(void)
 {
 	init_pins();
 	init_timer();
 
-	ENDPOINT_REGISTER(endpoint_type);
-	ENDPOINT_REGISTER(endpoint_brightness);
+	ENDPOINT_REGISTER(HXB_DTYPE_UINT8, EP_DIMMER_MODE, "Dimmer type", read_type, write_type);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_DIMMER_BRIGHTNESS, "Dimmer brightness", read_brightness, write_brightness);
 }

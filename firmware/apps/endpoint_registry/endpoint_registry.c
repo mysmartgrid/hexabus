@@ -4,6 +4,7 @@
 
 #include "hexabus_config.h"
 #include "nvm.h"
+#include "endpoints.h"
 
 #define LOG_LEVEL ENDPOINT_REGISTRY_DEBUG
 #include "syslog.h"
@@ -24,9 +25,10 @@ static uint32_t descriptor_eid(struct endpoint_registry_entry* entry)
 
 void _endpoint_register(const struct endpoint_descriptor* ep, struct endpoint_registry_entry* chain_link)
 {
-#if ENDPOINT_REGISTRY_DEBUG
 	struct endpoint_descriptor ep_copy;
 	memcpy_from_rodata(&ep_copy, ep, sizeof(ep_copy));
+
+#if ENDPOINT_REGISTRY_DEBUG
 
 	syslog(LOG_DEBUG, "Register endpoint %lu", ep_copy.eid);
 

@@ -39,15 +39,6 @@ static enum hxb_error_code write_control(const struct hxb_envelope* env)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_control_name[] RODATA = "Statemachine Control";
-ENDPOINT_DESCRIPTOR endpoint_sm_upload_control = {
-	.datatype = HXB_DTYPE_UINT8,
-	.eid = EP_SM_CONTROL,
-	.name = ep_control_name,
-	.read = read_control,
-	.write = write_control
-};
-
 static enum hxb_error_code read_receiver(struct hxb_value* value)
 {
 	syslog(LOG_DEBUG, "READ on SM_UP_RECEIVER EP occurred");
@@ -66,15 +57,6 @@ static enum hxb_error_code write_receiver(const struct hxb_envelope* env)
 		: HXB_ERR_INVALID_VALUE;
 }
 
-static const char ep_receiver_name[] RODATA = "Statemachine Upload Receiver";
-ENDPOINT_DESCRIPTOR endpoint_sm_upload_receiver = {
-	.datatype = HXB_DTYPE_65BYTES,
-	.eid = EP_SM_UP_RECEIVER,
-	.name = ep_receiver_name,
-	.read = read_receiver,
-	.write = write_receiver
-};
-
 static enum hxb_error_code read_acknack(struct hxb_value* value)
 {
 	syslog(LOG_DEBUG, "READ on SM_UP_ACKNAK EP occurred");
@@ -83,6 +65,6 @@ static enum hxb_error_code read_acknack(struct hxb_value* value)
 
 void sm_upload_init()
 {
-	ENDPOINT_REGISTER(endpoint_sm_upload_control);
-	ENDPOINT_REGISTER(endpoint_sm_upload_receiver);
+	ENDPOINT_REGISTER(HXB_DTYPE_UINT8, EP_SM_CONTROL, "Statemachine Control", read_control, write_control);
+	ENDPOINT_REGISTER(HXB_DTYPE_65BYTES, EP_SM_UP_RECEIVER, "Statemachine Upload Receiver", read_receiver, write_receiver);
 }

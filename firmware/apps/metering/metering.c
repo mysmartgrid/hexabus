@@ -90,42 +90,12 @@ static enum hxb_error_code read_power(struct hxb_value* value)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_power_name[] PROGMEM = "Power Meter";
-ENDPOINT_DESCRIPTOR endpoint_power = {
-	.datatype = HXB_DTYPE_UINT32,
-	.eid = EP_POWER_METER,
-	.name = ep_power_name,
-	.read = read_power,
-	.write = 0
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_power_name = {
-  .datatype = HXB_DTYPE_128STRING,
-  .eid = EP_POWER_METER,
-  .propid = EP_PROP_NAME,
-};
-
 #if METERING_ENERGY
 static enum hxb_error_code read_energy_total(struct hxb_value* value)
 {
 	value->v_float = metering_get_energy_total();
 	return HXB_ERR_SUCCESS;
 }
-
-static const char ep_energy_total_name[] PROGMEM = "Energy Meter Total";
-ENDPOINT_DESCRIPTOR endpoint_energy_total = {
-	.datatype = HXB_DTYPE_FLOAT,
-	.eid = EP_ENERGY_METER_TOTAL,
-	.name = ep_energy_total_name,
-	.read = read_energy_total,
-	.write = 0
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_energy_total_name = {
-  .datatype = HXB_DTYPE_128STRING,
-  .eid = EP_ENERGY_METER_TOTAL,
-  .propid = EP_PROP_NAME,
-};
 
 static enum hxb_error_code read_energy(struct hxb_value* value)
 {
@@ -138,21 +108,6 @@ static enum hxb_error_code write_energy(const struct hxb_envelope* value)
 	metering_reset_energy();
 	return HXB_ERR_SUCCESS;
 }
-
-static const char ep_energy_name[] PROGMEM = "Energy Meter";
-ENDPOINT_DESCRIPTOR endpoint_energy = {
-	.datatype = HXB_DTYPE_FLOAT,
-	.eid = EP_ENERGY_METER,
-	.name = ep_energy_name,
-	.read = read_energy,
-	.write = write_energy
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_energy_meter_name = {
-  .datatype = HXB_DTYPE_128STRING,
-  .eid = EP_ENERGY_METER,
-  .propid = EP_PROP_NAME,
-};
 #endif
 
 void
@@ -183,14 +138,11 @@ metering_init(void)
   metering_start();
 
 #if METERING_POWER
-	ENDPOINT_REGISTER(endpoint_power);
-  ENDPOINT_PROPERTY_REGISTER(prop_power_name);
+	ENDPOINT_REGISTER(HXB_DTYPE_UINT32, EP_POWER_METER, "Power Meter", read_power, 0);
 #endif
 #if METERING_ENERGY
-	ENDPOINT_REGISTER(endpoint_energy_total);
-  ENDPOINT_PROPERTY_REGISTER(prop_energy_total_name);
-	ENDPOINT_REGISTER(endpoint_energy);
-  ENDPOINT_PROPERTY_REGISTER(prop_energy_meter_name);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_ENERGY_METER_TOTAL, "Energy Meter Total", read_energy_total, 0);
+	ENDPOINT_REGISTER(HXB_DTYPE_FLOAT, EP_ENERGY_METER, "Energy Meter", read_energy, write_energy);
 #endif
 }
 

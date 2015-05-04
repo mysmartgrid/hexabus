@@ -166,17 +166,9 @@ static void hexabus_bootstrap_init_apps()
 	init_stm_apps();
 }
 
-ENDPOINT_PROPERTY_DESCRIPTOR prop_devname_name = {
-	.datatype = HXB_DTYPE_128STRING,
-	.eid = EP_DEVICE_DESCRIPTOR,
-	.propid = EP_PROP_NAME,
-};
-
 static void hexabus_bootstrap_start_processes()
 {
 	PRINTF("Starting processes...\n");
-
-	ENDPOINT_PROPERTY_REGISTER(prop_devname_name);
 
 	process_start(&udp_handler_process, NULL);
 

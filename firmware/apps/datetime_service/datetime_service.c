@@ -43,15 +43,6 @@ static enum hxb_error_code write(const struct hxb_envelope* env)
 	return HXB_ERR_SUCCESS;
 }
 
-static const char ep_name[] RODATA = "Local time";
-static ENDPOINT_DESCRIPTOR endpoint_systime = {
-	.datatype = HXB_DTYPE_SINT64,
-	.eid = EP_LOCALTIME,
-	.name = ep_name,
-	.read = read,
-	.write = write
-};
-
 PROCESS(datetime_service_process, "Keeps the Date and Time up-to-date\n");
 
 PROCESS_THREAD(datetime_service_process, ev, data)
@@ -62,7 +53,7 @@ PROCESS_THREAD(datetime_service_process, ev, data)
 
 	etimer_set(&update_timer, CLOCK_SECOND);
 
-	ENDPOINT_REGISTER(endpoint_systime);
+	ENDPOINT_REGISTER(HXB_DTYPE_SINT64, EP_LOCALTIME, "Local time", read, write);
 
 	while(1) {
 		PROCESS_WAIT_EVENT();

@@ -17,9 +17,6 @@
 static uint8_t pressed_vector = 0;
 static uint8_t clicked_vector = 0;
 
-static const char ep_pressed[] PROGMEM = "Pressed Hexapush buttons";
-static const char ep_clicked[] PROGMEM = "Clicked Hexapush buttons";
-
 enum hxb_error_code read_pressed(struct hxb_value* value)
 {
 	value->v_u8 = pressed_vector;
@@ -31,35 +28,6 @@ enum hxb_error_code read_clicked(struct hxb_value* value)
 	value->v_u8 = clicked_vector;
 	return HXB_ERR_SUCCESS;
 }
-
-ENDPOINT_DESCRIPTOR endpoint_hexapush_pressed = {
-	.datatype = HXB_DTYPE_UINT8,
-	.eid = EP_HEXAPUSH_PRESSED,
-	.name = ep_pressed,
-	.read = read_pressed,
-	.write = 0
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_hexapush_pressed_name = {
-	.datatype = HXB_DTYPE_128STRING,
-	.eid = EP_HEXAPUSH_PRESSED,
-	.propid = EP_PROP_NAME,
-};
-
-ENDPOINT_DESCRIPTOR endpoint_hexapush_clicked = {
-	.datatype = HXB_DTYPE_UINT8,
-	.eid = EP_HEXAPUSH_CLICKED,
-	.name = ep_clicked,
-	.read = read_clicked,
-	.write = 0
-};
-
-ENDPOINT_PROPERTY_DESCRIPTOR prop_hexapush_clicked_name = {
-	.datatype = HXB_DTYPE_128STRING,
-	.eid = EP_HEXAPUSH_CLICKED,
-	.propid = EP_PROP_NAME,
-};
-
 
 static void button_clicked(uint8_t button)
 {
@@ -113,9 +81,7 @@ void hexapush_init()
 
 	BUTTON_REGISTER(buttons_hexapush, HEXAPUSH_BUTTON_COUNT);
 
-	ENDPOINT_REGISTER(endpoint_hexapush_pressed);
-	ENDPOINT_PROPERTY_REGISTER(prop_hexapush_pressed_name);
-	ENDPOINT_REGISTER(endpoint_hexapush_clicked);
-	ENDPOINT_PROPERTY_REGISTER(prop_hexapush_clicked_name);
+	ENDPOINT_REGISTER(HXB_DTYPE_UINT8, EP_HEXAPUSH_PRESSED, "Pressed Hexapush buttons", read_pressed, 0);
+	ENDPOINT_REGISTER(HXB_DTYPE_UINT8, EP_HEXAPUSH_CLICKED, "Clicked Hexapush buttons", read_clicked, 0);
 }
 
