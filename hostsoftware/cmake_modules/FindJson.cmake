@@ -70,7 +70,7 @@ ENDIF( JSON_HOME )
 
 message("Jsoon search: '${_json_INCLUDE_SEARCH_DIRS}' ${CMAKE_INCLUDE_PATH}")
 # find the include files
-FIND_PATH(JSON_INCLUDE_DIR json/json.h
+FIND_PATH(JSON_INCLUDE_DIR jsoncpp/json/json.h
    HINTS
      ${_json_INCLUDE_SEARCH_DIRS}
      ${PC_JSON_INCLUDEDIR}

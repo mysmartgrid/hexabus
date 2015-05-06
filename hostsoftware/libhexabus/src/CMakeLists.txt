@@ -31,6 +31,7 @@ if(LIBKLIO_FOUND)
     ${LIBKLIO_INCLUDE_DIRS}
     ${SQLITE3_INCLUDE_DIR}
     ${ROCKSDB_INCLUDE_DIR}
+    ${LIBMYSMARTGRID_INCLUDE_DIR}
   )
   link_directories(
   ${SQLITE3_STATIC_LIBRARY_DIRS}
@@ -86,6 +87,7 @@ if(LIBKLIO_FOUND)
     pthread
     ${ROCKSDB_LIBRARY}
     ${OPENSSL_CRYPTO_LIBRARY}
+    gmp
 #    gcrypt
   )
 
