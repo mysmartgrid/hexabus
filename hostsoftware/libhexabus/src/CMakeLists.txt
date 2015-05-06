@@ -39,13 +39,15 @@ if(LIBKLIO_FOUND)
   if(LIBKLIO_ENABLE_ROCKSDB)
     set_source_files_properties(${hexalog_src} COMPILE_FLAGS "-std=gnu++11")
   endif()
+  set_source_files_properties(hexalog.cpp COMPILE_FLAGS "-std=gnu++11")
+
 endif(LIBKLIO_FOUND)
 
 add_executable(hexaswitch ${hexaswitch_src})
 # Link the executables
 target_link_libraries(hexaswitch
   hexabus
-  pthread
+  pthread rt
   ${Boost_LIBRARIES}
 )
 
@@ -53,7 +55,7 @@ add_executable(hexaupload ${hexaupload_src})
 # Link the executables
 target_link_libraries(hexaupload
   hexabus
-  pthread
+  pthread rt
   ${Boost_LIBRARIES}
 )
 
@@ -61,7 +63,7 @@ add_executable(hexapair ${hexapair_src})
 # Link the executables
 target_link_libraries(hexapair
   hexabus
-  pthread
+  pthread rt
   ${Boost_LIBRARIES}
 )
 
@@ -69,7 +71,7 @@ add_executable(hexatimed ${hexatimed_src})
 # Link the executables
 target_link_libraries(hexatimed
   hexabus
-  pthread
+  pthread rt
   ${Boost_LIBRARIES}
 )
 
@@ -84,6 +86,7 @@ if(LIBKLIO_FOUND)
     ${CURL_LIBRARIES}
     ${SQLITE3_LIBRARIES}
     ${GNUTLS_LIBRARIES}
+    rt
     pthread
     ${ROCKSDB_LIBRARY}
     ${OPENSSL_CRYPTO_LIBRARY}

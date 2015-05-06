@@ -77,17 +77,29 @@ find_path (ALSA_INCLUDE_DIR alsa/asoundlib.h
     ${CMAKE_INCLUDE_PATH}
 )
 
-find_library (ALSA_LIBRARIES NAMES libasound.so
+find_library (ALSA_STATIC_LIBRARIES NAMES libasound.a
+  HINTS
+    ${_alsa_LIBRARIES_SEARCH_DIRS}
+    ${PC_ALSA_LIBDIR}
+    ${PC_ALSA_LIBRARY_DIRS}
+  )
+find_library (ALSA_SHARED_LIBRARIES NAMES libasound.so
   HINTS
     ${_alsa_LIBRARIES_SEARCH_DIRS}
     ${PC_ALSA_LIBDIR}
     ${PC_ALSA_LIBRARY_DIRS}
   )
 
+if(NOT ${ALSA_STATIC_LIBRARIES} STREQUAL "ALSA_STATIC_LIBRARIES-NOTFOUND")
+  set(ALSA_LIBRARIES ${ALSA_STATIC_LIBRARIES})
+else()
+  set(ALSA_LIBRARIES ${ALSA_SHARED_LIBRARIES})
+endif()
+
 # handle the QUIETLY and REQUIRED arguments and set ALSA_FOUND to TRUE if
 # all listed variables are TRUE
 include (FindPackageHandleStandardArgs)
-find_package_handle_standard_args (ALSA DEFAULT_MSG ALSA_LIBRARIES ALSA_INCLUDE_DIR)
+find_package_handle_standard_args (ALSA DEFAULT_MSG ALSA_LIBRARIES  ALSA_INCLUDE_DIR)
 
 # if the include and the program are found then we have it
 IF(ALSA_INCLUDE_DIR AND ALSA_LIBRARIES)

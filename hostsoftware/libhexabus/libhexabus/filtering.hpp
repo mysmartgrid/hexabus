@@ -278,7 +278,7 @@ namespace filtering {
 				typedef OpClass<typename boost::common_type<typename Left::value_type, typename Right::value_type>::type> Op;
 
 			public:
-				typedef typename boost::result_of<Op(Left, Right)>::type value_type;
+				typedef typename boost::result_of<Op(typename Left::value_type, typename Right::value_type)>::type value_type;
 				typedef boost::optional<value_type> result_type;
 
 				BinaryExpression(const Left& left, const Right& right)

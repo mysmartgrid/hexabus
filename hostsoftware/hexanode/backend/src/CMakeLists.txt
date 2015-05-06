@@ -34,22 +34,22 @@ add_executable(hexabus_webbackend ${hexabus_webbackend_src})
 add_executable(hexabus_msg_bridge ${hexabus_msg_bridge_src})
 add_executable(simulate_energyflows ${simulate_energyflows_src})
 
-if(LIBKLIO_ENABLE_ROCKSDB)
+#if(LIBKLIO_ENABLE_ROCKSDB)
     set_source_files_properties(${hexabus_msg_bridge_src} COMPILE_FLAGS "-std=gnu++11")
-endif()
+#endif()
 
 # Link the executables
 target_link_libraries(midi2hexabus 
   hexanode
   pthread
-  rtmidi
+  rtmidi rt dl
   ${HXB_LIBRARIES}
   ${Boost_LIBRARIES}
 )
 
 target_link_libraries(hexabus_webbackend
   hexanode
-  pthread
+  pthread rt
   ${CPPNETLIB_LIBRARIES}
   ${OPENSSL_LIBRARIES}
   ${HXB_LIBRARIES}
@@ -73,7 +73,7 @@ target_link_libraries(hexabus_msg_bridge ${ROCKSDB_LIBRARY})
 
 target_link_libraries(simulate_energyflows
   hexanode
-  pthread
+  pthread rt
   ${CPPNETLIB_LIBRARIES}
   ${OPENSSL_LIBRARIES}
   ${HXB_LIBRARIES}
