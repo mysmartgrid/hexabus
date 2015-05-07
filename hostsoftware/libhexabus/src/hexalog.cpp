@@ -256,7 +256,7 @@ int main(int argc, char** argv)
 
 	try {
 		klio::StoreFactory store_factory;
-		klio::Store::Ptr store;
+		klio::SQLite3Store::Ptr store;
 
 		std::string storefile(vm["storefile"].as<std::string>());
 		bfs::path db(storefile);
