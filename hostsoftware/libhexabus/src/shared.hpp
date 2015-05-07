@@ -58,7 +58,7 @@ inline int dtypeStrToDType(const std::string& s)
 	return -1;
 }
 
-class PacketPrinter : private hexabus::PacketVisitor {
+class PacketPrinter {
 private:
 	enum FieldName {
 		F_FROM,
@@ -180,26 +180,27 @@ private:
 		addField(F_CAUSE, packet.cause());
 	}
 
-	virtual void visit(const hexabus::ErrorPacket& error)
+public:
+	void operator()(const hexabus::ErrorPacket& error)
 	{
 		addField(F_TYPE, "Error");
 		addField(F_ERROR_CODE, unsigned(error.code()));
 		addField(F_ERROR_STR, errcodeStr(error.code()));
 	}
 
-	virtual void visit(const hexabus::QueryPacket& query)
+	void operator()(const hexabus::QueryPacket& query)
 	{
 		addField(F_TYPE, "Query");
 		addField(F_EID, query.eid());
 	}
 
-	virtual void visit(const hexabus::EndpointQueryPacket& query)
+	void operator()(const hexabus::EndpointQueryPacket& query)
 	{
 		addField(F_TYPE, "EPQuery");
 		addField(F_EID, query.eid());
 	}
 
-	virtual void visit(const hexabus::EndpointInfoPacket& endpointInfo)
+	void operator()(const hexabus::EndpointInfoPacket& endpointInfo)
 	{
 		addField(F_TYPE, "EPInfo");
 		addField(F_EID, endpointInfo.eid());
@@ -207,7 +208,7 @@ private:
 		addField(F_VALUE, endpointInfo.value());
 	}
 
-	virtual void visit(const hexabus::EndpointReportPacket& endpointReport)
+	void operator()(const hexabus::EndpointReportPacket& endpointReport)
 	{
 		addField(F_TYPE, "EPReport");
 		addField(F_EID, endpointReport.eid());
@@ -216,102 +217,36 @@ private:
 		addField(F_CAUSE, endpointReport.cause());
 	}
 
-	virtual void visit(const hexabus::AckPacket& ack)
+	void operator()(const hexabus::AckPacket& ack)
 	{
 		addField(F_TYPE, "Ack");
 		addField(F_CAUSE, ack.cause());
 	}
 
-	virtual void visit(const hexabus::PropertyQueryPacket& propertyQuery)
+	void operator()(const hexabus::PropertyQueryPacket& propertyQuery)
 	{
 		addField(F_TYPE, "PropQuery");
 		addField(F_EID, propertyQuery.eid());
 		addField(F_PROPID, propertyQuery.propid());
 	}
 
-	virtual void visit(const hexabus::InfoPacket<bool>& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<uint8_t>& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<uint16_t>& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<uint32_t>& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<uint64_t>& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<int8_t>& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<int16_t>& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<int32_t>& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<int64_t>& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<float>& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<std::string>& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 16> >& info) { printValuePacket(info, "Info"); }
-	virtual void visit(const hexabus::InfoPacket<std::array<uint8_t, 65> >& info) { printValuePacket(info, "Info"); }
+	template<typename T>
+	void operator()(const hexabus::InfoPacket<T>& packet) { printValuePacket(packet, "Info"); }
 
-	virtual void visit(const hexabus::WritePacket<bool>& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<uint8_t>& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<uint16_t>& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<uint32_t>& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<uint64_t>& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<int8_t>& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<int16_t>& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<int32_t>& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<int64_t>& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<float>& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<std::string>& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 16> >& write) { printValuePacket(write, "Write"); }
-	virtual void visit(const hexabus::WritePacket<std::array<uint8_t, 65> >& write) { printValuePacket(write, "Write"); }
+	template<typename T>
+	void operator()(const hexabus::WritePacket<T>& packet) { printValuePacket(packet, "Write"); }
 
-	virtual void visit(const hexabus::ReportPacket<bool>& report) { printReportPacket(report); }
-	virtual void visit(const hexabus::ReportPacket<uint8_t>& report) { printReportPacket(report); }
-	virtual void visit(const hexabus::ReportPacket<uint16_t>& report) { printReportPacket(report); }
-	virtual void visit(const hexabus::ReportPacket<uint32_t>& report) { printReportPacket(report); }
-	virtual void visit(const hexabus::ReportPacket<uint64_t>& report) { printReportPacket(report); }
-	virtual void visit(const hexabus::ReportPacket<int8_t>& report) { printReportPacket(report); }
-	virtual void visit(const hexabus::ReportPacket<int16_t>& report) { printReportPacket(report); }
-	virtual void visit(const hexabus::ReportPacket<int32_t>& report) { printReportPacket(report); }
-	virtual void visit(const hexabus::ReportPacket<int64_t>& report) { printReportPacket(report); }
-	virtual void visit(const hexabus::ReportPacket<float>& report) { printReportPacket(report); }
-	virtual void visit(const hexabus::ReportPacket<std::string>& report) { printReportPacket(report); }
-	virtual void visit(const hexabus::ReportPacket<std::array<uint8_t, 16> >& report) { printReportPacket(report); }
-	virtual void visit(const hexabus::ReportPacket<std::array<uint8_t, 65> >& report) { printReportPacket(report); }
+	template<typename T>
+	void operator()(const hexabus::ReportPacket<T>& packet) { printReportPacket(packet); }
 
-	virtual void visit(const hexabus::ProxyInfoPacket<bool>& pinfo) { printProxyInfoPacket(pinfo); }
-	virtual void visit(const hexabus::ProxyInfoPacket<uint8_t>& pinfo) { printProxyInfoPacket(pinfo); }
-	virtual void visit(const hexabus::ProxyInfoPacket<uint16_t>& pinfo) { printProxyInfoPacket(pinfo); }
-	virtual void visit(const hexabus::ProxyInfoPacket<uint32_t>& pinfo) { printProxyInfoPacket(pinfo); }
-	virtual void visit(const hexabus::ProxyInfoPacket<uint64_t>& pinfo) { printProxyInfoPacket(pinfo); }
-	virtual void visit(const hexabus::ProxyInfoPacket<int8_t>& pinfo) { printProxyInfoPacket(pinfo); }
-	virtual void visit(const hexabus::ProxyInfoPacket<int16_t>& pinfo) { printProxyInfoPacket(pinfo); }
-	virtual void visit(const hexabus::ProxyInfoPacket<int32_t>& pinfo) { printProxyInfoPacket(pinfo); }
-	virtual void visit(const hexabus::ProxyInfoPacket<int64_t>& pinfo) { printProxyInfoPacket(pinfo); }
-	virtual void visit(const hexabus::ProxyInfoPacket<float>& pinfo) { printProxyInfoPacket(pinfo); }
-	virtual void visit(const hexabus::ProxyInfoPacket<std::string>& pinfo) { printProxyInfoPacket(pinfo); }
-	virtual void visit(const hexabus::ProxyInfoPacket<std::array<uint8_t, 16> >& pinfo) { printProxyInfoPacket(pinfo); }
-	virtual void visit(const hexabus::ProxyInfoPacket<std::array<uint8_t, 65> >& pinfo) { printProxyInfoPacket(pinfo); }
+	template<typename T>
+	void operator()(const hexabus::ProxyInfoPacket<T>& packet) { printProxyInfoPacket(packet); }
 
-	virtual void visit(const hexabus::PropertyWritePacket<bool>& propwrite) { printPropertyWritePacket(propwrite); }
-	virtual void visit(const hexabus::PropertyWritePacket<uint8_t>& propwrite) { printPropertyWritePacket(propwrite); }
-	virtual void visit(const hexabus::PropertyWritePacket<uint16_t>& propwrite) { printPropertyWritePacket(propwrite); }
-	virtual void visit(const hexabus::PropertyWritePacket<uint32_t>& propwrite) { printPropertyWritePacket(propwrite); }
-	virtual void visit(const hexabus::PropertyWritePacket<uint64_t>& propwrite) { printPropertyWritePacket(propwrite); }
-	virtual void visit(const hexabus::PropertyWritePacket<int8_t>& propwrite) { printPropertyWritePacket(propwrite); }
-	virtual void visit(const hexabus::PropertyWritePacket<int16_t>& propwrite) { printPropertyWritePacket(propwrite); }
-	virtual void visit(const hexabus::PropertyWritePacket<int32_t>& propwrite) { printPropertyWritePacket(propwrite); }
-	virtual void visit(const hexabus::PropertyWritePacket<int64_t>& propwrite) { printPropertyWritePacket(propwrite); }
-	virtual void visit(const hexabus::PropertyWritePacket<float>& propwrite) { printPropertyWritePacket(propwrite); }
-	virtual void visit(const hexabus::PropertyWritePacket<std::string>& propwrite) { printPropertyWritePacket(propwrite); }
-	virtual void visit(const hexabus::PropertyWritePacket<std::array<uint8_t, 16> >& propwrite) { printPropertyWritePacket(propwrite); }
-	virtual void visit(const hexabus::PropertyWritePacket<std::array<uint8_t, 65> >& propwrite) { printPropertyWritePacket(propwrite); }
+	template<typename T>
+	void operator()(const hexabus::PropertyWritePacket<T>& packet) { printPropertyWritePacket(packet); }
 
-	virtual void visit(const hexabus::PropertyReportPacket<bool>& propreport) { printPropertyReportPacket(propreport); }
-	virtual void visit(const hexabus::PropertyReportPacket<uint8_t>& propreport) { printPropertyReportPacket(propreport); }
-	virtual void visit(const hexabus::PropertyReportPacket<uint16_t>& propreport) { printPropertyReportPacket(propreport); }
-	virtual void visit(const hexabus::PropertyReportPacket<uint32_t>& propreport) { printPropertyReportPacket(propreport); }
-	virtual void visit(const hexabus::PropertyReportPacket<uint64_t>& propreport) { printPropertyReportPacket(propreport); }
-	virtual void visit(const hexabus::PropertyReportPacket<int8_t>& propreport) { printPropertyReportPacket(propreport); }
-	virtual void visit(const hexabus::PropertyReportPacket<int16_t>& propreport) { printPropertyReportPacket(propreport); }
-	virtual void visit(const hexabus::PropertyReportPacket<int32_t>& propreport) { printPropertyReportPacket(propreport); }
-	virtual void visit(const hexabus::PropertyReportPacket<int64_t>& propreport) { printPropertyReportPacket(propreport); }
-	virtual void visit(const hexabus::PropertyReportPacket<float>& propreport) { printPropertyReportPacket(propreport); }
-	virtual void visit(const hexabus::PropertyReportPacket<std::string>& propreport) { printPropertyReportPacket(propreport); }
-	virtual void visit(const hexabus::PropertyReportPacket<std::array<uint8_t, 16> >& propreport) { printPropertyReportPacket(propreport); }
-	virtual void visit(const hexabus::PropertyReportPacket<std::array<uint8_t, 65> >& propreport) { printPropertyReportPacket(propreport); }
+	template<typename T>
+	void operator()(const hexabus::PropertyReportPacket<T>& packet) { printPropertyReportPacket(packet); }
 
 public:
 	PacketPrinter(bool oneline)
@@ -321,7 +256,7 @@ public:
 	void operator()(const hexabus::Packet& p, const boost::asio::ip::udp::endpoint& from)
 	{
 		addField(F_FROM, from);
-		p.accept(*this);
+		hexabus::dispatchAll(p, *this);
 		std::cout << buffer.str() << std::endl;
 		if (!oneline)
 			std::cout << std::endl;

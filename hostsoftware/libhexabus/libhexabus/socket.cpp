@@ -412,7 +412,7 @@ void Socket::onPacketTransmitted(
 		const boost::asio::ip::udp::endpoint& dest)
 {
 	Association& assoc = getAssociation(dest);
-	assoc.sendQueue.push(std::make_pair(boost::shared_ptr<hexabus::Packet>(packet.clone()), callback));
+	assoc.sendQueue.emplace(clone(packet), callback);
 	beginSend(dest);
 }
 

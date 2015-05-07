@@ -44,7 +44,6 @@ namespace hexabus {
 			uint16_t sequenceNumber() const { return _sequenceNumber; }
 
 			virtual void accept(PacketVisitor& visitor) const = 0;
-			virtual Packet* clone() const = 0;
 	};
 
 	class ErrorPacket;
@@ -196,10 +195,6 @@ namespace hexabus {
 			{
 				visitor.visit(*this);
 			}
-
-			Packet* clone() const {
-				return new ErrorPacket(*this);
-			}
 	};
 
 	class EIDPacket : public Packet {
@@ -224,10 +219,6 @@ namespace hexabus {
 			{
 				visitor.visit(*this);
 			}
-
-			Packet* clone() const {
-				return new QueryPacket(*this);
-			}
 	};
 
 	class EndpointQueryPacket : public EIDPacket {
@@ -239,10 +230,6 @@ namespace hexabus {
 			virtual void accept(PacketVisitor& visitor) const
 			{
 				visitor.visit(*this);
-			}
-
-			Packet* clone() const {
-				return new EndpointQueryPacket(*this);
 			}
 	};
 
@@ -339,10 +326,6 @@ namespace hexabus {
 			{
 				visitor.visit(*this);
 			}
-
-			Packet* clone() const {
-				return new InfoPacket(*this);
-			}
 	};
 
 	template<typename TValue>
@@ -355,10 +338,6 @@ namespace hexabus {
 			virtual void accept(PacketVisitor& visitor) const
 			{
 				visitor.visit(*this);
-			}
-
-			Packet* clone() const {
-				return new ReportPacket(*this);
 			}
 	};
 
@@ -385,10 +364,6 @@ namespace hexabus {
 			{
 				visitor.visit(*this);
 			}
-
-			Packet* clone() const {
-				return new ProxyInfoPacket(*this);
-			}
 	};
 
 	template<typename TValue>
@@ -402,10 +377,6 @@ namespace hexabus {
 			{
 				visitor.visit(*this);
 			}
-
-			Packet* clone() const {
-				return new WritePacket(*this);
-			}
 	};
 
 	class EndpointInfoPacket : public ValuePacket<std::string> {
@@ -417,10 +388,6 @@ namespace hexabus {
 			virtual void accept(PacketVisitor& visitor) const
 			{
 				visitor.visit(*this);
-			}
-
-			Packet* clone() const {
-				return new EndpointInfoPacket(*this);
 			}
 	};
 
@@ -434,10 +401,6 @@ namespace hexabus {
 			{
 				visitor.visit(*this);
 			}
-
-			Packet* clone() const {
-				return new EndpointReportPacket(*this);
-			}
 	};
 
 	class AckPacket : public Packet, public CausedPacket {
@@ -449,10 +412,6 @@ namespace hexabus {
 			virtual void accept(PacketVisitor& visitor) const
 			{
 				visitor.visit(*this);
-			}
-
-			Packet* clone() const {
-				return new AckPacket(*this);
 			}
 	};
 
@@ -470,10 +429,6 @@ namespace hexabus {
 			virtual void accept(PacketVisitor& visitor) const
 			{
 				visitor.visit(*this);
-			}
-
-			Packet* clone() const {
-				return new PropertyQueryPacket(*this);
 			}
 	};
 
@@ -493,10 +448,6 @@ namespace hexabus {
 			{
 				visitor.visit(*this);
 			}
-
-			Packet* clone() const {
-				return new PropertyWritePacket(*this);
-			}
 	};
 
 	template<typename TValue>
@@ -514,11 +465,219 @@ namespace hexabus {
 			{
 				visitor.visit(*this);
 			}
-
-			Packet* clone() const {
-				return new PropertyReportPacket(*this);
-			}
 	};
+
+
+
+	namespace detail {
+		template<bool FailOnIncomplete, typename... Actions>
+		class DispatchVisitor : public PacketVisitor {
+		private:
+			std::tuple<Actions*...> _actions;
+
+			template<typename Action, typename P, typename = decltype(std::declval<Action>()(std::declval<P>()))>
+			static constexpr bool matchesDirect(int) { return true; }
+			template<typename Action, typename P>
+			static constexpr bool matchesDirect(void*) { return false; }
+
+			template<typename Action, template<typename> class PT>
+			static constexpr bool matchesIndirect()
+			{
+				return matchesDirect<Action, PT<bool>>(0) ||
+					matchesDirect<Action, PT<uint8_t>>(0) ||
+					matchesDirect<Action, PT<uint16_t>>(0) ||
+					matchesDirect<Action, PT<uint32_t>>(0) ||
+					matchesDirect<Action, PT<uint64_t>>(0) ||
+					matchesDirect<Action, PT<int8_t>>(0) ||
+					matchesDirect<Action, PT<int16_t>>(0) ||
+					matchesDirect<Action, PT<int32_t>>(0) ||
+					matchesDirect<Action, PT<int64_t>>(0) ||
+					matchesDirect<Action, PT<float>>(0) ||
+					matchesDirect<Action, PT<std::string>>(0) ||
+					matchesDirect<Action, PT<std::array<uint8_t, 16>>>(0) ||
+					matchesDirect<Action, PT<std::array<uint8_t, 65>>>(0);
+			}
+
+			template<typename P>
+			void invoke(const P&, std::integral_constant<unsigned, sizeof...(Actions)>, int)
+			{
+			}
+
+			template<typename P, unsigned Idx>
+			auto invoke(const P& p, std::integral_constant<unsigned, Idx> idx, int)
+				-> typename std::conditional<
+					true,
+					void,
+					decltype(std::declval<typename std::tuple_element<Idx, std::tuple<Actions..., void>>::type>()(p))>::type
+			{
+				(*std::get<Idx>(_actions))(p);
+			}
+
+			template<typename P, unsigned Idx>
+			void invoke(const P& p, std::integral_constant<unsigned, Idx> idx, void*)
+			{
+				typedef typename std::tuple_element<Idx, std::tuple<Actions...>>::type action_t;
+				static_assert(
+					matchesDirect<action_t, ErrorPacket>(0) ||
+					matchesDirect<action_t, QueryPacket>(0) ||
+					matchesDirect<action_t, EndpointQueryPacket>(0) ||
+					matchesDirect<action_t, EndpointInfoPacket>(0) ||
+					matchesDirect<action_t, EndpointReportPacket>(0) ||
+					matchesDirect<action_t, AckPacket>(0) ||
+					matchesDirect<action_t, PropertyQueryPacket>(0) ||
+					matchesIndirect<action_t, InfoPacket>() ||
+					matchesIndirect<action_t, WritePacket>() ||
+					matchesIndirect<action_t, ProxyInfoPacket>() ||
+					matchesIndirect<action_t, PropertyWritePacket>() ||
+					matchesIndirect<action_t, PropertyReportPacket>(),
+					"Action not callable for any packet type");
+
+				static_assert(!(FailOnIncomplete && Idx + 1 == sizeof...(Actions)), "Incomplete match");
+				invoke(p, std::integral_constant<unsigned, Idx + 1>(), 0);
+			}
+
+			template<typename P>
+			void invoke(const P& p)
+			{
+				invoke(p, std::integral_constant<unsigned, 0>(), 0);
+			}
+
+		public:
+			DispatchVisitor(Actions&... actions)
+				: _actions(&actions...)
+			{}
+
+			virtual void visit(const ErrorPacket& packet) { invoke(packet); }
+			virtual void visit(const QueryPacket& packet) { invoke(packet); }
+			virtual void visit(const EndpointQueryPacket& packet) { invoke(packet); }
+			virtual void visit(const EndpointInfoPacket& packet) { invoke(packet); }
+			virtual void visit(const EndpointReportPacket& packet) { invoke(packet); }
+			virtual void visit(const AckPacket& packet) { invoke(packet); }
+			virtual void visit(const PropertyQueryPacket& packet) { invoke(packet); }
+
+			virtual void visit(const InfoPacket<bool>& packet) { invoke(packet); }
+			virtual void visit(const InfoPacket<uint8_t>& packet) { invoke(packet); }
+			virtual void visit(const InfoPacket<uint16_t>& packet) { invoke(packet); }
+			virtual void visit(const InfoPacket<uint32_t>& packet) { invoke(packet); }
+			virtual void visit(const InfoPacket<uint64_t>& packet) { invoke(packet); }
+			virtual void visit(const InfoPacket<int8_t>& packet) { invoke(packet); }
+			virtual void visit(const InfoPacket<int16_t>& packet) { invoke(packet); }
+			virtual void visit(const InfoPacket<int32_t>& packet) { invoke(packet); }
+			virtual void visit(const InfoPacket<int64_t>& packet) { invoke(packet); }
+			virtual void visit(const InfoPacket<float>& packet) { invoke(packet); }
+			virtual void visit(const InfoPacket<std::string>& packet) { invoke(packet); }
+			virtual void visit(const InfoPacket<std::array<uint8_t, 16> >& packet) { invoke(packet); }
+			virtual void visit(const InfoPacket<std::array<uint8_t, 65> >& packet) { invoke(packet); }
+
+			virtual void visit(const WritePacket<bool>& packet) { invoke(packet); }
+			virtual void visit(const WritePacket<uint8_t>& packet) { invoke(packet); }
+			virtual void visit(const WritePacket<uint16_t>& packet) { invoke(packet); }
+			virtual void visit(const WritePacket<uint32_t>& packet) { invoke(packet); }
+			virtual void visit(const WritePacket<uint64_t>& packet) { invoke(packet); }
+			virtual void visit(const WritePacket<int8_t>& packet) { invoke(packet); }
+			virtual void visit(const WritePacket<int16_t>& packet) { invoke(packet); }
+			virtual void visit(const WritePacket<int32_t>& packet) { invoke(packet); }
+			virtual void visit(const WritePacket<int64_t>& packet) { invoke(packet); }
+			virtual void visit(const WritePacket<float>& packet) { invoke(packet); }
+			virtual void visit(const WritePacket<std::string>& packet) { invoke(packet); }
+			virtual void visit(const WritePacket<std::array<uint8_t, 16> >& packet) { invoke(packet); }
+			virtual void visit(const WritePacket<std::array<uint8_t, 65> >& packet) { invoke(packet); }
+
+			virtual void visit(const ReportPacket<bool>& packet) { invoke(packet); }
+			virtual void visit(const ReportPacket<uint8_t>& packet) { invoke(packet); }
+			virtual void visit(const ReportPacket<uint16_t>& packet) { invoke(packet); }
+			virtual void visit(const ReportPacket<uint32_t>& packet) { invoke(packet); }
+			virtual void visit(const ReportPacket<uint64_t>& packet) { invoke(packet); }
+			virtual void visit(const ReportPacket<int8_t>& packet) { invoke(packet); }
+			virtual void visit(const ReportPacket<int16_t>& packet) { invoke(packet); }
+			virtual void visit(const ReportPacket<int32_t>& packet) { invoke(packet); }
+			virtual void visit(const ReportPacket<int64_t>& packet) { invoke(packet); }
+			virtual void visit(const ReportPacket<float>& packet) { invoke(packet); }
+			virtual void visit(const ReportPacket<std::string>& packet) { invoke(packet); }
+			virtual void visit(const ReportPacket<std::array<uint8_t, 16> >& packet) { invoke(packet); }
+			virtual void visit(const ReportPacket<std::array<uint8_t, 65> >& packet) { invoke(packet); }
+
+			virtual void visit(const ProxyInfoPacket<bool>& packet) { invoke(packet); }
+			virtual void visit(const ProxyInfoPacket<uint8_t>& packet) { invoke(packet); }
+			virtual void visit(const ProxyInfoPacket<uint16_t>& packet) { invoke(packet); }
+			virtual void visit(const ProxyInfoPacket<uint32_t>& packet) { invoke(packet); }
+			virtual void visit(const ProxyInfoPacket<uint64_t>& packet) { invoke(packet); }
+			virtual void visit(const ProxyInfoPacket<int8_t>& packet) { invoke(packet); }
+			virtual void visit(const ProxyInfoPacket<int16_t>& packet) { invoke(packet); }
+			virtual void visit(const ProxyInfoPacket<int32_t>& packet) { invoke(packet); }
+			virtual void visit(const ProxyInfoPacket<int64_t>& packet) { invoke(packet); }
+			virtual void visit(const ProxyInfoPacket<float>& packet) { invoke(packet); }
+			virtual void visit(const ProxyInfoPacket<std::string>& packet) { invoke(packet); }
+			virtual void visit(const ProxyInfoPacket<std::array<uint8_t, 16> >& packet) { invoke(packet); }
+			virtual void visit(const ProxyInfoPacket<std::array<uint8_t, 65> >& packet) { invoke(packet); }
+
+			virtual void visit(const PropertyWritePacket<bool>& packet) { invoke(packet); }
+			virtual void visit(const PropertyWritePacket<uint8_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyWritePacket<uint16_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyWritePacket<uint32_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyWritePacket<uint64_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyWritePacket<int8_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyWritePacket<int16_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyWritePacket<int32_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyWritePacket<int64_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyWritePacket<float>& packet) { invoke(packet); }
+			virtual void visit(const PropertyWritePacket<std::string>& packet) { invoke(packet); }
+			virtual void visit(const PropertyWritePacket<std::array<uint8_t, 16> >& packet) { invoke(packet); }
+			virtual void visit(const PropertyWritePacket<std::array<uint8_t, 65> >& packet) { invoke(packet); }
+
+			virtual void visit(const PropertyReportPacket<bool>& packet) { invoke(packet); }
+			virtual void visit(const PropertyReportPacket<uint8_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyReportPacket<uint16_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyReportPacket<uint32_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyReportPacket<uint64_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyReportPacket<int8_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyReportPacket<int16_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyReportPacket<int32_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyReportPacket<int64_t>& packet) { invoke(packet); }
+			virtual void visit(const PropertyReportPacket<float>& packet) { invoke(packet); }
+			virtual void visit(const PropertyReportPacket<std::string>& packet) { invoke(packet); }
+			virtual void visit(const PropertyReportPacket<std::array<uint8_t, 16> >& packet) { invoke(packet); }
+			virtual void visit(const PropertyReportPacket<std::array<uint8_t, 65> >& packet) { invoke(packet); }
+
+			virtual void visitPacket(const Packet& packet)
+			{
+				packet.accept(*this);
+			}
+		};
+	}
+
+	template<typename... Actions>
+	inline void dispatch(const Packet& packet, Actions&&... actions)
+	{
+		detail::DispatchVisitor<false, typename std::decay<Actions>::type...> visitor(actions...);
+		packet.accept(visitor);
+	}
+
+	template<typename... Actions>
+	inline void dispatchAll(const Packet& packet, Actions&&... actions)
+	{
+		detail::DispatchVisitor<true, typename std::decay<Actions>::type...> visitor(actions...);
+		packet.accept(visitor);
+	}
+
+	namespace detail {
+		struct CloneAction {
+			Packet::Ptr result;
+
+			template<typename P>
+			void operator()(const P& packet)
+			{
+				result.reset(new auto(packet));
+			}
+		};
+	}
+
+	inline Packet::Ptr clone(const Packet& packet)
+	{
+		detail::CloneAction ca;
+		dispatchAll(packet, ca);
+		return ca.result;
+	}
 
 };
 

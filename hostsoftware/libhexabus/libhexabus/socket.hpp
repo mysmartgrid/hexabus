@@ -94,14 +94,14 @@ namespace hexabus {
 				boost::posix_time::ptime lastUpdate;
 				uint16_t seqNum;
 				uint16_t rSeqNum;
-				std::queue< std::pair<boost::shared_ptr<const Packet>, on_packet_transmitted_callback_t> > sendQueue;
+				std::queue< std::pair<Packet::Ptr, on_packet_transmitted_callback_t> > sendQueue;
 				uint16_t retrans_count;
 				uint16_t want_ack_for;
 				bool isUlAck;
 				uint16_t UlAckState;
 				bool doReset;
 				boost::asio::deadline_timer timeout_timer;
-				std::pair<boost::shared_ptr<const Packet>, on_packet_transmitted_callback_t> currentPacket;
+				std::pair<Packet::Ptr, on_packet_transmitted_callback_t> currentPacket;
 			};
 
 		private:
