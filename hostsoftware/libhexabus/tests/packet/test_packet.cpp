@@ -20,7 +20,7 @@
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 #define PACK_STR_S "teststring"
 #define PACK_ADDR_B PACK_16B
-#define PACK_ADDR_S boost::asio::ip::address_v6({{ PACK_16B }})
+#define PACK_ADDR_S boost::asio::ip::address_v6(boost::asio::ip::address_v6::bytes_type{{ PACK_16B }})
 #define PACK_U8(u) (u)
 #define PACK_U16(u) (((u) >> 8) & 0xFF), ((u) & 0xFF)
 #define PACK_U32(u) PACK_U16((u) >> 16), PACK_U16((u) & 0xFFFF)
