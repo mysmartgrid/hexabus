@@ -1,8 +1,10 @@
-
+# -*- mode: cmake; -*-
 # bernd.loerwald@itwm.fraunhofer.de
 # update by kai.krueger@itwm.fraunhofer.de
+get_filename_component(_currentDir "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
-include(Tools.cmake)
+include(${_currentDir}/Tools.cmake)
+include(${_currentDir}/CTestGIT.cmake)
 FindOS(OS_NAME OS_VERSION)
 
 # cdash / ctest information ########################################################
@@ -25,12 +27,11 @@ site_name(CTEST_SITE)
 
 my_ctest_setup()
 
-
 # find and submit subproject list ##################################################
 set(CTEST_PROJECT_SUBPROJECTS)
 list(APPEND CTEST_PROJECT_SUBPROJECTS "libhexabus")
-list(APPEND CTEST_PROJECT_SUBPROJECTS "hba")
-list(APPEND CTEST_PROJECT_SUBPROJECTS "hbc")
+#list(APPEND CTEST_PROJECT_SUBPROJECTS "hba")
+#list(APPEND CTEST_PROJECT_SUBPROJECTS "hbc")
 list(APPEND CTEST_PROJECT_SUBPROJECTS "hbt")
 list(APPEND CTEST_PROJECT_SUBPROJECTS "hexinfo")
 list(APPEND CTEST_PROJECT_SUBPROJECTS "network-autoconfig")
@@ -90,7 +91,6 @@ else()
   set_if_exists (CLN_HOME ${_baseDir}/usr)
   set_if_exists (CPPNETLIB_HOME ${EXTERNAL_SOFTWARE}/cpp-netlib_boost/${BOOST_VERSION}/)
   set_if_exists (SQLITE3_HOME ${EXTERNAL_SOFTWARE}/sqlite/3.8.5)
-  set_if_exists (JSON_HOME ${_baseDir}/usr)
 
 endif()
 set_if_exists (LIBKLIO_HOME "${BUILD_TMP_DIR}/libklio/${TESTING_MODEL}/install-${CTEST_BUILD_NAME_BASE}")
@@ -100,6 +100,9 @@ endif()
 if(NOT LIBKLIO_HOME)
   set_if_exists (LIBKLIO_HOME "${BUILD_TMP_DIR}/libklio/${TESTING_MODEL}/install-${CTEST_BUILD_NAME_MASTER}")
 endif()
+if(NOT LIBKLIO_HOME)
+  set_if_exists (LIBKLIO_HOME "${BUILD_TMP_DIR}/libklio/Nightly/install-${CTEST_BUILD_NAME_DEVEL}")
+endif()
 
 set_if_exists (LIBMYSMARTGRID_HOME "${BUILD_TMP_DIR}/libmysmartgrid/${TESTING_MODEL}/install-${CTEST_BUILD_NAME_BASE}")
 if(NOT LIBMYSMARTGRID_HOME)
@@ -108,13 +111,15 @@ endif()
 if(NOT LIBMYSMARTGRID_HOME)
   set_if_exists (LIBMYSMARTGRID_HOME "${BUILD_TMP_DIR}/libmysmartgrid/${TESTING_MODEL}/install-${CTEST_BUILD_NAME_MASTER}")
 endif()
-set(CMAKE_INCLUDE_PATH ${LIBMYSMARTGRID_HOME}/include)
+if(NOT LIBMYSMARTGRID_HOME)
+  set_if_exists (LIBMYSMARTGRID_HOME "${BUILD_TMP_DIR}/libmysmartgrid/Nightly/install-${CTEST_BUILD_NAME_DEVEL}")
+endif()
+
 
 # cmake options ####################################################################
 
 set (CTEST_BUILD_FLAGS "-k -j ${PARALLEL_JOBS}")
 set (CTEST_CMAKE_GENERATOR "Unix Makefiles")
-
 
 # prepare binary directory (clear, write initial cache) ############################
 
@@ -130,8 +135,11 @@ endif()
 # prepare source directory (do initial checkout, switch branch) ####################
 find_program (CTEST_GIT_COMMAND NAMES git)
 
-if (NOT EXISTS ${CTEST_SOURCE_DIRECTORY}/.git)
-  set (CTEST_CHECKOUT_COMMAND "${CTEST_GIT_COMMAND} clone -b ${GIT_BRANCH} ${URL} ${CTEST_SOURCE_DIRECTORY}")
+message("check for sourcedir: {CTEST_SOURCE_DIRECTORY}")
+if (NOT EXISTS ${CTEST_SOURCE_DIRECTORY} AND NOT EXISTS ${CTEST_SOURCE_DIRECTORY}/.git)
+  #set (CTEST_CHECKOUT_COMMAND "${CTEST_GIT_COMMAND} clone -b ${GIT_BRANCH} ${URL} ${CTEST_SOURCE_DIRECTORY}")
+  message("===> clone repository")
+  git_clone(${GIT_BRANCH} ${URL})
   set (first_checkout 1)
 else()
   set (first_checkout 0)
@@ -140,43 +148,49 @@ if(FORCE_CONTINUOUS)
   set (first_checkout 1)
 endif()
 
-
 # do testing #######################################################################
 set (UPDATE_RETURN_VALUE 0)
 set(firstLoop TRUE)
 
+message("========== ========== RUN BUILD ========== ==========")
+message("Running next loop...")
+set(firstLoop 1)
+
 if("${TESTING_MODEL}" STREQUAL "Continuous")
+
   while (${CTEST_ELAPSED_TIME} LESS ${CTEST_CONTINUOUS_RUN_TIME})
     message("========== ========== RUN BUILD ========== ==========")
     message("Running next loop...")
 
-    ctest_start (${TESTING_MODEL})
+    git_fetch()
+    git_revision_list(revision_list)
+    message("===========> Revlist: ${revision_list}")
 
-    ctest_update (RETURN_VALUE UPDATE_RETURN_VALUE)
-    message("Update returned: ${UPDATE_RETURN_VALUE}")
-
-
-    if ("${UPDATE_RETURN_VALUE}" GREATER 0  OR  firstLoop OR first_checkout)
+    if(firstLoop) 
+      ctest_start (${TESTING_MODEL})
+      ctest_update (SOURCE ${CTEST_SOURCE_DIRECTORY} RETURN_VALUE UPDATE_RETURN_VALUE)
+      message("Update returned: ${UPDATE_RETURN_VALUE}")
       run_build()
       set(firstLoop FALSE)
-      set(first_checkout 0)
     endif()
 
-    ctest_sleep( ${CTEST_CONTINUOUS_SLEEP} ) # ${START_TIME} 300 ${CTEST_ELAPSED_TIME})
+    foreach(rev ${revision_list})
+      message("Build revision ${rev}")
+      set(CTEST_GIT_UPDATE_CUSTOM ${CTEST_GIT_COMMAND} merge ${rev})
+
+      ctest_start (${TESTING_MODEL})
+      ctest_update (SOURCE ${CTEST_SOURCE_DIRECTORY} RETURN_VALUE UPDATE_RETURN_VALUE)
+      message("Update returned: ${UPDATE_RETURN_VALUE}")
+
+      if ("${UPDATE_RETURN_VALUE}" GREATER 0  OR  firstLoop OR first_checkout)
+	run_build()
+	set(firstLoop FALSE)
+	set(first_checkout 0)
+      endif()
+    endforeach()
+    ctest_sleep( 120 )
   endwhile()
 else()
-  ctest_start (${TESTING_MODEL})
-
-  ctest_update (RETURN_VALUE UPDATE_RETURN_VALUE)
-  message("Update returned: ${UPDATE_RETURN_VALUE}")
-
-  run_build()
 endif()
-
-
-#file (REMOVE_RECURSE "${CTEST_INSTALL_DIRECTORY}")
-#if (NOT "${TESTING_MODEL}" STREQUAL "Continuous")
-#  file (REMOVE_RECURSE "${CTEST_BINARY_DIRECTORY}")
-#endif()
 
 return (${LAST_RETURN_VALUE})

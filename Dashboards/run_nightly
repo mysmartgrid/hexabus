@@ -10,6 +10,7 @@ echo "Running ctest"
 dir=${HOME}/hexabus/Dashboards
 TEST_SCRIPT="${dir}/do_test.cmake,TESTING_MODEL=Nightly"
 TOOLCHAIN_rasp3="/home/projects/msgrid/x-tools/arm-unknown-linux-gnueabi/Toolchain-RaspberryPi.cmake"
+TOOLCHAIN_rasp3="/home/projects/msgrid/x-tools/gcc-linaro-arm-linux-gnueabihf-raspbian/Toolchain-RaspberryPi.cmake"
 TOOLCHAIN_AVR="/usr/local/OpenWrt-SDK-ar71xx-for-Linux-x86_64-gcc-4.3.3+cs_uClibc-0.9.30.1/staging_dir/host/Modules/Toolchain-OpenWRT.cmake"
 
 ${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=clang,BOOST_VERSION=1.54,GIT_BRANCH=master,CTEST_PUSH_PACKAGES=1
@@ -39,11 +40,11 @@ do
       ${CTEST} -V -VV -S ${TEST_SCRIPT},GIT_BRANCH=${branch},BOOST_VERSION=1.54,CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_rasp3}
   fi
 
-  for toolchain in `find ${HOME}/x-tools/ -name Toolchain-RaspberryPi.cmake`
-  do
-     echo "Compiling with toolchain ${toolchain}"
+#  for toolchain in `find ${HOME}/x-tools/ -name Toolchain-RaspberryPi.cmake`
+#  do
+#     echo "Compiling with toolchain ${toolchain}"
      #${CTEST} -V -VV -S ${TEST_SCRIPT},COMPILER=gcc,GIT_BRANCH=${branch},BOOST_VERSION=1.53,CMAKE_TOOLCHAIN_FILE=${toolchain}
      #${CTEST} -V -VV -S ${dir}/LibKlioNightly.cmake,_git_branch=${branch},_toolchain_file=${toolchain}
      #${CTEST} -V -VV -S ${dir}/LibKlioCoverage.cmake,_git_branch=${branch},_toolchain_file=${toolchain}
-  done
+#  done
 done
