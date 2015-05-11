@@ -42,7 +42,7 @@ set(CPACK_PACKAGE_VERSION_MAJOR ${V_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${V_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${V_PATCH})
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.8.0), libc6 (>= 2.13)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6 (>= 4.7.0), libc6 (>= 2.13)")
 
 set(CPACK_PACKAGE_EXECUTABLES "hexinfo" "Hexabus device discovery and info tool")
 set(CPACK_SOURCE_STRIP_FILES "")
