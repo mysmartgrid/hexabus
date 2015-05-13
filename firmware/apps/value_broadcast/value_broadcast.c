@@ -58,12 +58,18 @@ static void broadcast_value_ptr(void* data)
 	broadcast_value(*(uint32_t*) data);
 }
 
+struct broadcast_info {
+	uint32_t eid;
+	bool include_self;
+};
+
 static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, void* data)
 {
 	struct hxb_value val;
 	enum hxb_error_code err;
 
-	uint32_t eid = *((uint32_t*) data);
+	struct broadcast_info* info = data;
+	uint32_t eid = info->eid;
 
 	// link binary blobs and strings
 	val.v_string = buffer->p_128string.value;
@@ -75,7 +81,8 @@ static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, voi
 	buffer->value_header.eid = eid;
 	buffer->value_header.datatype = val.datatype;
 
-	broadcast_to_self(&val, eid);
+	if (info->include_self)
+		broadcast_to_self(&val, eid);
 
 	syslog(LOG_DEBUG, "Broadcasting EID %ld, datatype %d", eid, val.datatype);
 
@@ -113,8 +120,16 @@ static enum hxb_error_code broadcast_generator(union hxb_packet_any* buffer, voi
 
 void broadcast_value(uint32_t eid)
 {
-	udp_handler_send_generated(NULL, 0, &broadcast_generator, &eid);
+	struct broadcast_info info = { eid, 1 };
+	udp_handler_send_generated(NULL, 0, &broadcast_generator, &info);
 }
+
+void broadcast_value_to_others_only(uint32_t eid)
+{
+	struct broadcast_info info = { eid, 0 };
+	udp_handler_send_generated(NULL, 0, &broadcast_generator, &info);
+}
+
 /*---------------------------------------------------------------------------*/
 static void
 print_local_addresses(void)

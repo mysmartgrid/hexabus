@@ -124,9 +124,8 @@ enum hxb_error_code endpoint_write(uint32_t eid, const struct hxb_envelope* env)
 				return HXB_ERR_DATATYPE;
 			} else {
 				enum hxb_error_code error = ep.write(env);
-				if(error == 0) {
-					broadcast_value(eid);
-				}
+				if (error == 0)
+					broadcast_value_to_others_only(eid);
 				return error;
 			}
 		} else {
