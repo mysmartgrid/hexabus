@@ -359,7 +359,7 @@ var moduleWrapper = function(globalScope) {
 			},
 			'last_value': {
 				enumerable: true,
-				get: function() { return last_value; },
+				get: function() { return Math.round(last_value * 1000) / 1000; },
 				set: onServer(function(val) {
 					last_value = val;
 					//Takes also care of calling propagateUpdate

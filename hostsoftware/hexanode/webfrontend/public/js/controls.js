@@ -277,7 +277,9 @@ angular.module('controls', [
 					};
 
 					scope.valueClick = function() {
-						element.popover("toggle");
+						if(scope.endpoint.associated !== undefined) {
+							element.popover("toggle");
+						}
 					};
 
 					scope.control.focus = function() {
