@@ -12,12 +12,14 @@ angular.module('hexanode')
 	$scope.current_view = {};
 	$scope.hide_unitless = true;
 
+	var ignored_eids = [7];
+
 	var getEndpointsByFunction = function(fun) {
 		var endpoints = [];
 
 		$scope.devicetree.forEach(function(device) {
 			device.forEachEndpoint(function(endpoint) {
-				if(endpoint.function == fun) {
+				if(endpoint.function == fun && ignored_eids.indexOf(endpoint.eid) < 0){
 					endpoints.push(endpoint.id);
 				}
 			});
