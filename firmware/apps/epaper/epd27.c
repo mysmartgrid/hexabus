@@ -32,10 +32,7 @@ void SPI_put(uint8_t c) {
 }
 
 void epd27_wait_cog_ready(void) {
-	while ((1 << EPD_PIN_BUSY) == 
-      (EPD_INPUT_PORT_BUSY & (1<<EPD_PIN_BUSY))) {
-    ;;
-	}
+  while(EPD_INPUT_PORT_BUSY & (1<<EPD_PIN_BUSY)) {}
 }
 
 void epd27_cs_low(void) {
@@ -90,11 +87,11 @@ static void epd27_pwm_acquire(void) {
   EPD_PORT_PWM |= (1 << EPD_PIN_PWM);
   EPD_DDR_PWM |= (1 << EPD_PIN_PWM);
   EPD_PORT_PWM &= ~(1 << EPD_PIN_PWM);
-  // PWM is PD5, which is OC0B. Use hardware PWM, see 
+  // PWM is PD5, which is OC0B. Use hardware PWM, see
   // http://www.mikrocontroller.net/articles/AVR_PWM
   //DDRB |= (1<<OCR0B); // Port OC1B mit angeschlossener LED als Ausgang
   TCCR0A = (1<<WGM11) | (1<<WGM10) | (1<<COM0B1); // PWM, phase correct, 8 bit.
-  OCR0B = 128-1; // Duty cycle 50% (Anm. ob 128 oder 127 bitte prüfen) 
+  OCR0B = 128-1; // Duty cycle 50% (Anm. ob 128 oder 127 bitte prüfen)
 }
 
 static void epd27_pwm_release()
@@ -121,8 +118,8 @@ void epd27_init()
 	EPD_DDR_RESET |= (1 << EPD_PIN_RESET);
 
 	// Configure input pins.
-	EPD_PORT_BUSY &= ~(1 << EPD_PIN_BUSY); 
-	EPD_DDR_BUSY &= ~(1 << EPD_PIN_BUSY); 
+	EPD_PORT_BUSY &= ~(1 << EPD_PIN_BUSY);
+	EPD_DDR_BUSY &= ~(1 << EPD_PIN_BUSY);
 
 	// set initial values - all low.
 	EPD_PORT_RESET &= ~(1 << EPD_PIN_RESET);
@@ -144,7 +141,7 @@ void epd27_release()
 }
 
 
-void epd27_image_transfersection(uint16_t startline, uint16_t endline, 
+void epd27_image_transfersection(uint16_t startline, uint16_t endline,
     struct at45_page_t* page, EPD_stage stage) {
   uint8_t line_data[BYTES_PER_LINE];
  // long stage_time = epd27_get_factored_stage_time();
@@ -168,7 +165,7 @@ void epd27_image_transfersection(uint16_t startline, uint16_t endline,
 void epd27_image_at45(uint16_t pageindex, EPD_stage stage) {
   struct at45_page_t* page = malloc(sizeof(uint8_t [AT45_PAGE_SIZE]));
   // for all pages:
-  for( uint16_t curpage_idx = pageindex; 
+  for( uint16_t curpage_idx = pageindex;
       curpage_idx < (pageindex + PAGES_PER_SCREEN); curpage_idx+= 1) {
     // 1. get from at45
     memset(page, 0x00, AT45_PAGE_SIZE);
@@ -459,7 +456,7 @@ int epd27_temperature_to_factor_10x(int temperature) {
 
 // single line display - very low-level
 // also has to handle AVR progmem
-void epd27_line(uint16_t line, const uint8_t *data, 
+void epd27_line(uint16_t line, const uint8_t *data,
     uint8_t fixed_value, bool read_progmem, EPD_stage stage) {
   // charge pump voltage levels
   spi_delay10us_send(CU8(0x70, 0x04), 2);
@@ -472,7 +469,6 @@ void epd27_line(uint16_t line, const uint8_t *data,
   _delay_us(10);
 
   // CS low
-  //digitalWrite(this->EPD_Pin_EPD_CS, LOW);
   epd27_cs_low();
   SPI_put_wait(0x72);
 
@@ -503,7 +499,7 @@ void epd27_line(uint16_t line, const uint8_t *data,
       SPI_put_wait(pixels);
     } else {
       SPI_put_wait(fixed_value);
-    }	
+    }
   }
 
   // scan line
@@ -555,7 +551,6 @@ void epd27_line(uint16_t line, const uint8_t *data,
   }
 
   // CS high
-  //digitalWrite(this->EPD_Pin_EPD_CS, HIGH);
   epd27_cs_high();
 
   // output data to panel

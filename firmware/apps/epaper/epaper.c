@@ -47,9 +47,11 @@ static int16_t find_page_index(uint8_t temp, uint8_t hum)
 	}
 }
 
+static uint8_t volatile saved_sreg;
+
 static void acquire(void)
 {
-	cli();
+	saved_sreg = SREG; cli();
 	epd27_acquire();
 	at45_acquire();
 }
@@ -58,7 +60,7 @@ static void release(void)
 {
 	at45_release();
 	epd27_release();
-	sei();
+	SREG = saved_sreg;
 }
 
 static int16_t old_idx = -1;
@@ -101,7 +103,7 @@ void epaper_update_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes
 		return;
 
 	acquire();
-	
+
 	static int16_t skipped_update_idx = -1;
 
 	// clamp temperature to first out-of-range values, as those are rendered
@@ -130,7 +132,7 @@ void epaper_update_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes
 		goto end;
 	}
 
-	if (old_idx != screen_idx 
+	if (old_idx != screen_idx
 			&& ((diff >= 10*60)
 				|| (last_update_at == 0)
 				|| (skipped_update_idx != -1 && skipped_update_idx != screen_idx))) {
