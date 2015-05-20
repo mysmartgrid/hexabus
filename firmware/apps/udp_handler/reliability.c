@@ -115,7 +115,11 @@ void enqueue_sm_reset() {
 		.p_u8.value = STM_STATE_RUNNING
 	};
 
+#if VALUE_BROADCAST_RELIABLE
 	enqueue_packet(&udp_master_addr, HXB_PORT, (union hxb_packet_any*) &packet_sm_control);
+#else
+	do_udp_send(&udp_master_addr, HXB_PORT, (union hxb_packet_any*) &packet_sm_control);
+#endif
 }
 
 enum hxb_error_code ul_ack_received(const uip_ipaddr_t* toaddr, uint16_t port, uint16_t seq_num) {
