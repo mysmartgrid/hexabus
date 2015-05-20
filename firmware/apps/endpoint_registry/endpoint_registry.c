@@ -6,6 +6,8 @@
 #include "nvm.h"
 #include "endpoints.h"
 
+#include "value_broadcast.h"
+
 #define LOG_LEVEL ENDPOINT_REGISTRY_DEBUG
 #include "syslog.h"
 
@@ -127,7 +129,10 @@ enum hxb_error_code endpoint_write(uint32_t eid, const struct hxb_envelope* env)
 			} else if (ep.datatype != env->value.datatype) {
 				return HXB_ERR_DATATYPE;
 			} else {
-				return ep.write(env);
+				enum hxb_error_code error = ep.write(env);
+				if (error == 0)
+					broadcast_value_to_others_only(eid);
+				return error;
 			}
 		} else {
 			return HXB_ERR_UNKNOWNEID;
