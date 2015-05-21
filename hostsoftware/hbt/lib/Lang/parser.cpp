@@ -699,6 +699,12 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 					return new CPValue(t->loc, str(id), t->val.first);
 			}];
 
+		classArgument.name("class argument");
+		classArgument =
+			expr[fwd >= [] (ptr<Expr> e) {
+				return new CAExpr(e);
+			}];
+
 		machine_class =
 			(
 				tok.word.machine
@@ -727,12 +733,12 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				>> omit[tok.colon | expected(":")]
 				> identifier
 				> omit[tok.lparen | expected("(")]
-				> -(expr % tok.comma)
+				> -(classArgument % tok.comma)
 				> omit[
 					(tok.rparen | expected(")"))
 					>> (tok.semicolon | expected(";"))
 				]
-			)[fwd >= [this] (range& r, Identifier* name, Identifier* class_, std::vector<ptr<Expr>>* args) {
+			)[fwd >= [this] (range& r, Identifier* name, Identifier* class_, std::vector<ptr<ClassArgument>>* args) {
 				return new MachineInstantiation(locOf(r), std::move(*name), *class_, move(args));
 			}]
 			| (
@@ -785,11 +791,11 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 				>> omit[tok.colon | expected(":")]
 				> identifier
 				> omit[tok.lparen | expected("(")]
-				> -(expr % tok.comma)
+				> -(classArgument % tok.comma)
 				> omit[tok.rparen | expected(")")]
 				> omit[tok.semicolon | expected(";")]
 			)[fwd >= [this] (range& r, Identifier* name, Identifier* dev, Identifier* class_,
-					std::vector<ptr<Expr>>* args) {
+					std::vector<ptr<ClassArgument>>* args) {
 				return new BehaviourInstantiation(locOf(r), *name, *dev, *class_, move(args));
 			}]
 			| (
@@ -1018,6 +1024,7 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 	rule<opt<locd<std::pair<Type, ptr<Expr>>>>()> datatype;
 	rule<opt<Identifier>()> identifier;
 	rule<ptr<ClassParameter>()> classParam;
+	rule<ptr<ClassArgument>()> classArgument;
 
 	rule<> unexpected;
 

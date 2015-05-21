@@ -927,6 +927,42 @@ public:
 };
 
 
+class ClassArgument {
+public:
+	enum class Kind {
+		Expr,
+	};
+
+private:
+	Kind _kind;
+
+protected:
+	ClassArgument(Kind kind)
+		: _kind(kind)
+	{}
+
+public:
+	Kind kind() const { return _kind; }
+
+	virtual ~ClassArgument() {}
+};
+
+class CAExpr : public ClassArgument {
+private:
+	std::unique_ptr<Expr> _expr;
+
+public:
+	CAExpr(std::unique_ptr<Expr> expr)
+		: ClassArgument(Kind::Expr), _expr(std::move(expr))
+	{}
+
+	Expr& expr()
+	{
+		return *_expr;
+	}
+};
+
+
 
 class MachineBody {
 private:
@@ -990,20 +1026,20 @@ class MachineInstantiation : public ProgramPart, public Declaration {
 private:
 	Identifier _name;
 	Identifier _instanceOf;
-	std::vector<std::unique_ptr<Expr>> _arguments;
+	std::vector<std::unique_ptr<ClassArgument>> _arguments;
 
 	MachineClass* _class;
 	std::unique_ptr<MachineDefinition> _instantiation;
 
 public:
 	MachineInstantiation(const SourceLocation& sloc, const Identifier& name, const Identifier& instanceOf,
-			std::vector<std::unique_ptr<Expr>> arguments)
+			std::vector<std::unique_ptr<ClassArgument>> arguments)
 		: ProgramPart(sloc), _name(name), _instanceOf(instanceOf), _arguments(std::move(arguments)), _class(nullptr)
 	{}
 
 	const Identifier& name() const { return _name; }
 	const Identifier& instanceOf() const { return _instanceOf; }
-	std::vector<std::unique_ptr<Expr>>& arguments() { return _arguments; }
+	std::vector<std::unique_ptr<ClassArgument>>& arguments() { return _arguments; }
 
 	const std::string& identifier() const override { return name().name(); }
 	const SourceLocation& sloc() const override { return ProgramPart::sloc(); }
@@ -1098,14 +1134,14 @@ private:
 	Identifier _name;
 	Identifier _device;
 	Identifier _instanceOf;
-	std::vector<std::unique_ptr<Expr>> _arguments;
+	std::vector<std::unique_ptr<ClassArgument>> _arguments;
 
 	BehaviourClass* _class;
 	std::unique_ptr<BehaviourDefinition> _instantiation;
 
 public:
 	BehaviourInstantiation(const SourceLocation& sloc, const Identifier& name, const Identifier& device,
-			const Identifier& instanceOf, std::vector<std::unique_ptr<Expr>> arguments)
+			const Identifier& instanceOf, std::vector<std::unique_ptr<ClassArgument>> arguments)
 		: ProgramPart(sloc), _name(name), _device(device), _instanceOf(instanceOf),
 		  _arguments(std::move(arguments)), _class(nullptr)
 	{}
@@ -1113,7 +1149,7 @@ public:
 	const Identifier& name() const { return _name; }
 	const Identifier& device() const { return _device; }
 	const Identifier& instanceOf() const { return _instanceOf; }
-	std::vector<std::unique_ptr<Expr>>& arguments() { return _arguments; }
+	std::vector<std::unique_ptr<ClassArgument>>& arguments() { return _arguments; }
 
 	const std::string& identifier() const override { return name().name(); }
 	const SourceLocation& sloc() const override { return ProgramPart::sloc(); }

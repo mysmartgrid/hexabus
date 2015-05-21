@@ -80,7 +80,7 @@ private:
 
 	bool declareClassParams(std::vector<std::unique_ptr<ClassParameter>>& params, bool forbidContextualIdentifiers);
 	bool instantiateClassParams(const SourceLocation& sloc, const Identifier& className,
-			std::vector<std::unique_ptr<ClassParameter>>& params, std::vector<std::unique_ptr<Expr>>& args);
+			std::vector<std::unique_ptr<ClassParameter>>& params, std::vector<std::unique_ptr<ClassArgument>>& args);
 
 public:
 	SemanticVisitor(DiagnosticOutput& diagOut);

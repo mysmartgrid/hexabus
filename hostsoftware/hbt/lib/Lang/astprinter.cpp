@@ -527,6 +527,23 @@ void ASTPrinter::printClassParams(std::vector<std::unique_ptr<ClassParameter>>& 
 	}
 }
 
+void ASTPrinter::printClassArguments(std::vector<std::unique_ptr<ClassArgument>>& args)
+{
+	unsigned count = 0;
+	for (auto& a : args) {
+		if (count++)
+			out << ", ";
+		switch (a->kind()) {
+		case ClassArgument::Kind::Expr:
+			static_cast<CAExpr&>(*a).expr().accept(*this);
+			break;
+
+		default:
+			hbt_unreachable("bad class argument kind");
+		}
+	}
+}
+
 void ASTPrinter::visit(MachineClass& m)
 {
 	out << "machine class " << m.name().name() << "(";
@@ -544,14 +561,7 @@ void ASTPrinter::visit(MachineDefinition& m)
 void ASTPrinter::visit(MachineInstantiation& m)
 {
 	out << "machine " << m.name().name() << " : " << m.instanceOf().name() << "(";
-
-	unsigned count = 0;
-	for (auto& arg : m.arguments()) {
-		if (count++)
-			out << ", ";
-		arg->accept(*this);
-	}
-
+	printClassArguments(m.arguments());
 	out << ");";
 }
 
@@ -629,14 +639,7 @@ void ASTPrinter::visit(BehaviourDefinition& b)
 void ASTPrinter::visit(BehaviourInstantiation& b)
 {
 	out << "behaviour " << b.name().name() << " on " << b.device().name() << ": " << b.instanceOf().name() << "(";
-
-	unsigned count = 0;
-	for (auto& arg : b.arguments()) {
-		if (count++)
-			out << ", ";
-		arg->accept(*this);
-	}
-
+	printClassArguments(b.arguments());
 	out << ");";
 }
 

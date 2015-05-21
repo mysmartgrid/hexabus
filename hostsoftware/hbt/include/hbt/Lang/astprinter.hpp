@@ -24,6 +24,7 @@ private:
 	void printMachineBody(MachineBody& m);
 	void printBehaviourBody(Behaviour& m);
 	void printClassParams(std::vector<std::unique_ptr<ClassParameter>>& params);
+	void printClassArguments(std::vector<std::unique_ptr<ClassArgument>>& args);
 
 public:
 	ASTPrinter(std::ostream& out)

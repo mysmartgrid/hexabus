@@ -1351,7 +1351,7 @@ void SemanticVisitor::visit(MachineDefinition& m)
 
 bool SemanticVisitor::instantiateClassParams(const SourceLocation& sloc, const Identifier& className,
 		std::vector<std::unique_ptr<ClassParameter>>& params,
-		std::vector<std::unique_ptr<Expr>>& args)
+		std::vector<std::unique_ptr<ClassArgument>>& args)
 {
 	if (params.size() != args.size()) {
 		diags.print(invalidClassArgCount(sloc, className, args.size(), params.size()));
@@ -1364,31 +1364,32 @@ bool SemanticVisitor::instantiateClassParams(const SourceLocation& sloc, const I
 	auto previousErrorCount = diags.errorCount();
 
 	for (; ait != aend; ++ait, ++pit) {
-		auto& arg = *ait;
 		auto& param = *pit;
 
 		switch (param->kind()) {
 		case ClassParameter::Kind::Value: {
+			auto& arg = dynamic_cast<CAExpr&>(**ait).expr();
 			auto& cpv = static_cast<CPValue&>(*param);
 			if (cpv.typeSource()) {
 				if (!resolveType(*cpv.typeSource()))
 					continue;
 				cpv.type(cpv.typeSource()->type());
 			}
-			arg->accept(*this);
-			if (!arg->isConstexpr()) {
-				diags.print(classArgumentInvalid(arg->sloc(), cpv));
-			} else if (!isContextuallyConvertibleTo(*arg, cpv.type())) {
-				diags.print(invalidImplicitConversion(arg->sloc(), arg->type(), cpv.type()));
+			arg.accept(*this);
+			if (!arg.isConstexpr()) {
+				diags.print(classArgumentInvalid(arg.sloc(), cpv));
+			} else if (!isContextuallyConvertibleTo(arg, cpv.type())) {
+				diags.print(invalidImplicitConversion(arg.sloc(), arg.type(), cpv.type()));
 			} else {
-				classParams.insert({ cpv.name(), { cpv, arg.get() } });
+				classParams.insert({ cpv.name(), { cpv, &arg } });
 				currentScope->insert(*param);
 			}
 			break;
 		}
 
-		case ClassParameter::Kind::Device:
-			if (auto id = dynamic_cast<IdentifierExpr*>(arg.get())) {
+		case ClassParameter::Kind::Device: {
+			auto& arg = dynamic_cast<CAExpr&>(**ait).expr();
+			if (auto id = dynamic_cast<IdentifierExpr*>(&arg)) {
 				auto se = currentScope->resolve(id->name());
 				auto dev = dynamic_cast<Device*>(se);
 
@@ -1401,12 +1402,14 @@ bool SemanticVisitor::instantiateClassParams(const SourceLocation& sloc, const I
 					currentScope->insert(*param);
 				}
 			} else {
-				diags.print(classArgumentInvalid(arg->sloc(), *param));
+				diags.print(classArgumentInvalid(arg.sloc(), *param));
 			}
 			break;
+		}
 
-		case ClassParameter::Kind::Endpoint:
-			if (auto id = dynamic_cast<IdentifierExpr*>(arg.get())) {
+		case ClassParameter::Kind::Endpoint: {
+			auto& arg = dynamic_cast<CAExpr&>(**ait).expr();
+			if (auto id = dynamic_cast<IdentifierExpr*>(&arg)) {
 				auto se = currentScope->resolve(id->name());
 				auto ep = dynamic_cast<Endpoint*>(se);
 
@@ -1418,9 +1421,9 @@ bool SemanticVisitor::instantiateClassParams(const SourceLocation& sloc, const I
 					classParams.insert({ param->name(), { *param, nullptr, ep } });
 					currentScope->insert(*param);
 				}
-			} else if (auto epe = dynamic_cast<EndpointExpr*>(arg.get())) {
+			} else if (auto epe = dynamic_cast<EndpointExpr*>(&arg)) {
 				if (epe->path().size() != 2) {
-					diags.print(classArgumentInvalid(arg->sloc(), *param));
+					diags.print(classArgumentInvalid(arg.sloc(), *param));
 					break;
 				}
 
@@ -1436,9 +1439,10 @@ bool SemanticVisitor::instantiateClassParams(const SourceLocation& sloc, const I
 				classParams.insert({ param->name(), { *param, epe->behaviour(), &sep } });
 				currentScope->insert(*param);
 			} else {
-				diags.print(classArgumentInvalid(arg->sloc(), *param));
+				diags.print(classArgumentInvalid(arg.sloc(), *param));
 			}
 			break;
+		}
 
 		default:
 			throw "invalid class parameter type";
