@@ -20,7 +20,6 @@ private:
 	struct ClassParamInstance {
 		ClassParameter& parameter;
 		const bool hasValue;
-		bool used;
 
 		union {
 			Expr* value;
@@ -32,19 +31,19 @@ private:
 		};
 
 		ClassParamInstance(ClassParameter& cp)
-			: parameter(cp), hasValue(false), used(false)
+			: parameter(cp), hasValue(false)
 		{}
 
 		ClassParamInstance(ClassParameter& cp, Expr* value)
-			: parameter(cp), hasValue(true), used(false), value(value)
+			: parameter(cp), hasValue(true), value(value)
 		{}
 
 		ClassParamInstance(ClassParameter& cp, Device* device)
-			: parameter(cp), hasValue(true), used(false), device(device)
+			: parameter(cp), hasValue(true), device(device)
 		{}
 
 		ClassParamInstance(ClassParameter& cp, Declaration* behaviour, EndpointDeclaration* ep)
-			: parameter(cp), hasValue(true), used(false), ep{behaviour, ep}
+			: parameter(cp), hasValue(true), ep{behaviour, ep}
 		{}
 	};
 

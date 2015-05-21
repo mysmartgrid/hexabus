@@ -496,7 +496,7 @@ void SemanticVisitor::visit(IdentifierExpr& i)
 	if (auto* cpv = dynamic_cast<CPValue*>(se)) {
 		auto& cp = classParams.at(i.name());
 
-		cp.used = true;
+		cpv->used(true);
 		i.type(cpv->type());
 		i.isConstexpr(true);
 
@@ -756,7 +756,7 @@ Declaration* SemanticVisitor::resolveDevice(EndpointExpr& e)
 		if (cpit != classParams.end()) {
 			auto& cpi = cpit->second;
 
-			cpi.used = true;
+			cpd->used(true);
 			if (cpi.hasValue)
 				return complete(cpd, cpi.device);
 		}
@@ -875,7 +875,7 @@ Declaration* SemanticVisitor::resolveEndpointExpr(EndpointExpr& e, bool incomple
 		if (cpit != classParams.end()) {
 			auto& cpi = cpit->second;
 
-			cpi.used = true;
+			cpe->used(true);
 			if (cpi.hasValue)
 				return complete(cpe, cpi.ep.behaviour, cpi.ep.endpoint);
 		}
@@ -1330,9 +1330,9 @@ void SemanticVisitor::visit(MachineClass& m)
 	if (declareClassParams(m.parameters(), false)) {
 		checkMachineBody(m);
 
-		for (auto& param : classParams) {
-			if (!param.second.used)
-				diags.print(classParamUnused(param.second.parameter));
+		for (auto& param : m.parameters()) {
+			if (!param->used())
+				diags.print(classParamUnused(*param));
 		}
 	}
 
@@ -1547,9 +1547,9 @@ void SemanticVisitor::visit(BehaviourClass& b)
 	if (declareClassParams(b.parameters(), true)) {
 		checkBehaviourBody(b, nullptr);
 
-		for (auto& param : classParams) {
-			if (!param.second.used)
-				diags.print(classParamUnused(param.second.parameter));
+		for (auto& param : b.parameters()) {
+			if (!param->used())
+				diags.print(classParamUnused(*param));
 		}
 	}
 

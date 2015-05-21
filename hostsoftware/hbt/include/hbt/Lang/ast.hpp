@@ -874,10 +874,11 @@ private:
 	SourceLocation _sloc;
 	std::string _name;
 	Kind _kind;
+	bool _used;
 
 protected:
 	ClassParameter(const SourceLocation& sloc, const std::string& name, Kind kind)
-		: _sloc(sloc), _name(name), _kind(kind)
+		: _sloc(sloc), _name(name), _kind(kind), _used(false)
 	{}
 
 public:
@@ -887,6 +888,9 @@ public:
 	const std::string& name() const { return _name; }
 	const std::string& identifier() const override { return _name; }
 	Kind kind() const { return _kind; }
+	bool used() const { return _used; }
+
+	void used(bool u) { _used = u; }
 };
 
 class CPValue : public ClassParameter {
