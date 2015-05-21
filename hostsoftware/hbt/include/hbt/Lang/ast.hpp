@@ -931,6 +931,9 @@ class ClassArgument {
 public:
 	enum class Kind {
 		Expr,
+		Device,
+		Endpoint,
+		SyntheticEndpoint,
 	};
 
 private:
@@ -959,6 +962,57 @@ public:
 	Expr& expr()
 	{
 		return *_expr;
+	}
+};
+
+class CADevice : public ClassArgument {
+private:
+	Device* _device;
+
+public:
+	CADevice(Device* device)
+		: ClassArgument(Kind::Device), _device(device)
+	{}
+
+	Device& device()
+	{
+		return *_device;
+	}
+};
+
+class CAEndpoint : public ClassArgument {
+private:
+	Endpoint* _endpoint;
+
+public:
+	CAEndpoint(Endpoint* endpoint)
+		: ClassArgument(Kind::Endpoint), _endpoint(endpoint)
+	{}
+
+	Endpoint& endpoint()
+	{
+		return *_endpoint;
+	}
+};
+
+class CASyntheticEndpoint : public ClassArgument {
+private:
+	Declaration* _behaviour;
+	SyntheticEndpoint* _ep;
+
+public:
+	CASyntheticEndpoint(Declaration* behaviour, SyntheticEndpoint* ep)
+		: ClassArgument(Kind::SyntheticEndpoint), _behaviour(behaviour), _ep(ep)
+	{}
+
+	Declaration& behaviour()
+	{
+		return *_behaviour;
+	}
+
+	SyntheticEndpoint& endpoint()
+	{
+		return *_ep;
 	}
 };
 

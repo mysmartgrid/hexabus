@@ -17,44 +17,13 @@ namespace lang {
 
 class SemanticVisitor : public ASTVisitor {
 private:
-	struct ClassParamInstance {
-		ClassParameter& parameter;
-		const bool hasValue;
-
-		union {
-			Expr* value;
-			Device* device;
-			struct {
-				Declaration* behaviour;
-				EndpointDeclaration* endpoint;
-			} ep;
-		};
-
-		ClassParamInstance(ClassParameter& cp)
-			: parameter(cp), hasValue(false)
-		{}
-
-		ClassParamInstance(ClassParameter& cp, Expr* value)
-			: parameter(cp), hasValue(true), value(value)
-		{}
-
-		ClassParamInstance(ClassParameter& cp, Device* device)
-			: parameter(cp), hasValue(true), device(device)
-		{}
-
-		ClassParamInstance(ClassParameter& cp, Declaration* behaviour, EndpointDeclaration* ep)
-			: parameter(cp), hasValue(true), ep{behaviour, ep}
-		{}
-	};
-
-private:
 	DiagnosticOutput& diags;
 
 	std::map<uint32_t, Endpoint*> endpointsByEID;
 
 	std::map<std::string, State*> knownStates;
 
-	std::map<std::string, ClassParamInstance> classParams;
+	std::map<std::string, ClassArgument*> classParams;
 
 	Scope globalScope;
 	Scope* currentScope;

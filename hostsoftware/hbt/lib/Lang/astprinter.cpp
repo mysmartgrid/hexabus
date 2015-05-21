@@ -538,8 +538,18 @@ void ASTPrinter::printClassArguments(std::vector<std::unique_ptr<ClassArgument>>
 			static_cast<CAExpr&>(*a).expr().accept(*this);
 			break;
 
-		default:
-			hbt_unreachable("bad class argument kind");
+		case ClassArgument::Kind::Device:
+			out << static_cast<CADevice&>(*a).device().name().name();
+			break;
+
+		case ClassArgument::Kind::Endpoint:
+			out << static_cast<CAEndpoint&>(*a).endpoint().name().name();
+			break;
+
+		case ClassArgument::Kind::SyntheticEndpoint:
+			out << static_cast<CASyntheticEndpoint&>(*a).behaviour().identifier() << "."
+				<< static_cast<CASyntheticEndpoint&>(*a).endpoint().name().name();
+			break;
 		}
 	}
 }
