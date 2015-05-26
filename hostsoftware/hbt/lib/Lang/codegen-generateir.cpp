@@ -603,19 +603,21 @@ void StmtCG::visit(AssignStmt& a)
 
 void StmtCG::visit(WriteStmt& w)
 {
-	if (w.target().device() != cgc.forDev)
-		return;
+	for (auto* dev : w.target().devices()) {
+		if (dev != cgc.forDev)
+			continue;
 
-	if (auto* ep = dynamic_cast<Endpoint*>(w.target().endpoint())) {
-		auto* val = eval(w.value(), ep->type());
-		_inBlock->append(ir::WriteInsn(ep->eid(), val));
-		return;
+		if (auto* ep = dynamic_cast<Endpoint*>(w.target().endpoint())) {
+			auto* val = eval(w.value(), ep->type());
+			_inBlock->append(ir::WriteInsn(ep->eid(), val));
+			return;
+		}
+
+		auto& sep = dynamic_cast<SyntheticEndpoint&>(*w.target().endpoint());
+		CGContext nested = cgc;
+		nested.valueForDecl[&sep] = eval(w.value(), sep.type());
+		_inBlock = StmtCG::run(nested, _inBlock, *sep.write()).finalBlock();
 	}
-
-	auto& sep = dynamic_cast<SyntheticEndpoint&>(*w.target().endpoint());
-	CGContext nested = cgc;
-	nested.valueForDecl[&sep] = eval(w.value(), sep.type());
-	_inBlock = StmtCG::run(nested, _inBlock, *sep.write()).finalBlock();
 }
 
 void StmtCG::visit(IfStmt& i)
@@ -799,19 +801,24 @@ static ir::BasicBlock* emitOnBlock(CGContext& cgc, OnExprBlock* on, ir::BasicBlo
 
 static ir::BasicBlock* emitOnBlock(CGContext& cgc, OnUpdateBlock* on, ir::BasicBlock* block)
 {
-	const Device* dev = static_cast<Device*>(on->endpoint().device());
 	const Endpoint* ep = static_cast<Endpoint*>(on->endpoint().endpoint());
 
 	auto* matches = cgc.newBlock();
 	auto* cont = cgc.newBlock();
 
-	auto* cmpIP = dev == cgc.forDev
-		? block->append(ir::CompareIPInsn(cgc.newName(), 0, 16, {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}))
-		: block->append(ir::CompareIPInsn(cgc.newName(), 0, 16, dev->address()));
 	auto* eid = block->append(ir::LoadIntInsn(cgc.newName(), ir::Type::UInt32, ep->eid()));
 	auto* srcEID = block->append(ir::LoadSpecialInsn(cgc.newName(), ir::Type::UInt32, ir::SpecialVal::SourceEID));
 	auto* cmpEID = block->append(ir::ArithmeticInsn(cgc.newName(), ir::Type::Bool, ir::ArithOp::Eq, eid, srcEID));
-	auto* cmp = block->append(ir::ArithmeticInsn(cgc.newName(), ir::Type::Bool, ir::ArithOp::And, cmpIP, cmpEID));
+	auto* cmp = cmpEID;
+
+	for (const auto* devdecl : on->endpoint().devices()) {
+		auto* dev = static_cast<const Device*>(devdecl);
+		auto* cmpIP = dev == cgc.forDev
+			? block->append(ir::CompareIPInsn(cgc.newName(), 0, 16, {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}))
+			: block->append(ir::CompareIPInsn(cgc.newName(), 0, 16, dev->address()));
+		cmp = block->append(ir::ArithmeticInsn(cgc.newName(), ir::Type::Bool, ir::ArithOp::And, cmpIP, cmp));
+	}
+
 	block->append(ir::SwitchInsn(cmp, ir::SwitchInsn::labels_type{ { 1, matches } }, cont));
 
 	auto cg = StmtCG::run(cgc, matches, on->block());

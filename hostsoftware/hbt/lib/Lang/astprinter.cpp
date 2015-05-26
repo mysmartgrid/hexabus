@@ -521,6 +521,7 @@ void ASTPrinter::printClassParams(std::vector<std::unique_ptr<ClassParameter>>& 
 		}
 
 		case ClassParameter::Kind::Device: out << "device "; break;
+		case ClassParameter::Kind::DeviceList: out << "device[] "; break;
 		case ClassParameter::Kind::Endpoint: out << "endpoint "; break;
 		}
 		out << p->name();
@@ -538,9 +539,33 @@ void ASTPrinter::printClassArguments(std::vector<std::unique_ptr<ClassArgument>>
 			static_cast<CAExpr&>(*a).expr().accept(*this);
 			break;
 
+		case ClassArgument::Kind::IdList: {
+			unsigned count = 0;
+			out << '[';
+			for (const auto& id : static_cast<CAIdList&>(*a).ids()) {
+				if (count++)
+					out << ", ";
+				out << id.name();
+			}
+			out << ']';
+			break;
+		}
+
 		case ClassArgument::Kind::Device:
 			out << static_cast<CADevice&>(*a).device().name().name();
 			break;
+
+		case ClassArgument::Kind::DeviceList: {
+			unsigned count = 0;
+			out << '[';
+			for (const auto* dev : static_cast<CADeviceList&>(*a).devices()) {
+				if (count++)
+					out << ", ";
+				out << dev->name().name();
+			}
+			out << ']';
+			break;
+		}
 
 		case ClassArgument::Kind::Endpoint:
 			out << static_cast<CAEndpoint&>(*a).endpoint().name().name();

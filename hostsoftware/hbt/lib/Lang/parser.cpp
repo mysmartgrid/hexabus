@@ -62,6 +62,8 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 		add(rparen = R"(\))");
 		add(lbrace = R"(\{)");
 		add(rbrace = R"(\})");
+		add(lbracket = R"(\[)");
+		add(rbracket = R"(\])");
 
 		add(op.notequal = "!=");
 		add(op.not_ = "!");
@@ -129,6 +131,7 @@ struct tokenizer : boost::spirit::lex::lexer<Lexer> {
 		lparen, rparen, lbrace, rbrace,
 		ident, string,
 		colon, comma, semicolon, dot,
+		lbracket, rbracket,
 		linecomment, blockcomment, unterminated_blockcomment, whitespace,
 		any;
 
@@ -686,7 +689,10 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 		classParam.name("class parameter");
 		classParam =
-			(tok.word.device > tok.ident)[fwd >= [this] (range& r, range& id) {
+			(tok.word.device >> omit[tok.lbracket > tok.rbracket] > tok.ident)[fwd >= [this] (range& r, range& id) {
+				return new CPDeviceList(locOf(r), str(id));
+			}]
+			| (tok.word.device > tok.ident)[fwd >= [this] (range& r, range& id) {
 				return new CPDevice(locOf(r), str(id));
 			}]
 			| (tok.word.endpoint > tok.ident)[fwd >= [this] (range& r, range& id) {
@@ -701,7 +707,14 @@ struct grammar : qi::grammar<It, std::list<std::unique_ptr<ProgramPart>>(), whit
 
 		classArgument.name("class argument");
 		classArgument =
-			expr[fwd >= [] (ptr<Expr> e) {
+			(
+				tok.lbracket
+				>> -(identifier % tok.comma)
+				> omit[tok.rbracket | expected("identifier")]
+			)[fwd >= [this] (range& l, std::vector<opt<Identifier>>* ids) {
+				return new CAIdList(locOf(l), unpack(ids));
+			}]
+			| expr[fwd >= [] (ptr<Expr> e) {
 				return new CAExpr(e);
 			}];
 

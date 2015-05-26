@@ -1,0 +1,14 @@
+endpoint e0(1) : bool (broadcast, write);
+
+device d1(::2) : e0;
+device d2(::3) : e0;
+
+machine class c(device[] dev) {
+	state init {
+		on update from dev.e0 {
+			dev.e0 = true;
+		}
+	}
+};
+
+machine m : c([d1, d2]);

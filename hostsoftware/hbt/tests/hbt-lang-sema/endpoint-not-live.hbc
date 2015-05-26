@@ -11,7 +11,7 @@ machine m {
 
 machine class c(device d, endpoint e) {
 	state s {
-		on (d.e) { //#expect: error: endpoint d.e (aka dev.ep) is not live
+		on (d.e) { //#expect: error: endpoint d.e is not live
 		}
 	}
 };

@@ -55,8 +55,9 @@ struct CollectVisitor : ASTVisitor {
 
 void CollectVisitor::visit(WriteStmt& w)
 {
-	auto* dev = static_cast<const Device*>(w.target().device());
-	machines[dev].insert(currentMachine);
+	auto& devs = w.target().devices();
+	for (auto* dev : devs)
+		machines[static_cast<const Device*>(dev)].insert(currentMachine);
 }
 
 void CollectVisitor::visit(IfStmt& i)

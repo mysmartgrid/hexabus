@@ -392,25 +392,24 @@ class EndpointExpr : public Expr {
 private:
 	std::vector<Identifier> _path;
 	bool _deviceIdIsIncomplete, _endpointIdIsIncomplete;
-	Declaration* _device;
+	std::vector<Declaration*> _devices;
 	Declaration* _behaviour;
 	Declaration* _endpoint;
 
 public:
 	EndpointExpr(const SourceLocation& sloc, std::vector<Identifier> path, Type type)
 		: Expr(sloc, type), _path(std::move(path)), _deviceIdIsIncomplete(false),
-		  _endpointIdIsIncomplete(false), _device(nullptr), _behaviour(nullptr),
-		  _endpoint(nullptr)
+		  _endpointIdIsIncomplete(false), _behaviour(nullptr), _endpoint(nullptr)
 	{}
 
 	const std::vector<Identifier>& path() const { return _path; }
 	bool deviceIdIsIncomplete() const { return _deviceIdIsIncomplete; }
 	bool endpointIdIsIncomplete() const { return _endpointIdIsIncomplete; }
-	Declaration* device() { return _device; }
+	const std::vector<Declaration*>& devices() { return _devices; }
 	Declaration* behaviour() { return _behaviour; }
 	Declaration* endpoint() { return _endpoint; }
 
-	void device(Declaration* d) { _device = d; }
+	void devices(std::vector<Declaration*> d) { _devices = std::move(d); }
 	void behaviour(Declaration* b) { _behaviour = b; }
 	void endpoint(Declaration* e) { _endpoint = e; }
 
@@ -867,6 +866,7 @@ public:
 	enum class Kind {
 		Value,
 		Device,
+		DeviceList,
 		Endpoint,
 	};
 
@@ -919,6 +919,13 @@ public:
 	{}
 };
 
+class CPDeviceList : public ClassParameter {
+public:
+	CPDeviceList(const SourceLocation& sloc, const std::string& name)
+		: ClassParameter(sloc, name, Kind::DeviceList)
+	{}
+};
+
 class CPEndpoint : public ClassParameter {
 public:
 	CPEndpoint(const SourceLocation& sloc, const std::string& name)
@@ -931,21 +938,25 @@ class ClassArgument {
 public:
 	enum class Kind {
 		Expr,
+		IdList,
 		Device,
+		DeviceList,
 		Endpoint,
 		SyntheticEndpoint,
 	};
 
 private:
 	Kind _kind;
+	SourceLocation _sloc;
 
 protected:
-	ClassArgument(Kind kind)
-		: _kind(kind)
+	ClassArgument(Kind kind, SourceLocation sloc)
+		: _kind(kind), _sloc(std::move(sloc))
 	{}
 
 public:
 	Kind kind() const { return _kind; }
+	const SourceLocation& sloc() const { return _sloc; }
 
 	virtual ~ClassArgument() {}
 };
@@ -956,7 +967,7 @@ private:
 
 public:
 	CAExpr(std::unique_ptr<Expr> expr)
-		: ClassArgument(Kind::Expr), _expr(std::move(expr))
+		: ClassArgument(Kind::Expr, expr->sloc()), _expr(std::move(expr))
 	{}
 
 	Expr& expr()
@@ -965,13 +976,28 @@ public:
 	}
 };
 
+class CAIdList : public ClassArgument {
+private:
+	std::vector<Identifier> _ids;
+
+public:
+	CAIdList(SourceLocation sloc, std::vector<Identifier> ids)
+		: ClassArgument(Kind::IdList, std::move(sloc)), _ids(std::move(ids))
+	{}
+
+	std::vector<Identifier>& ids()
+	{
+		return _ids;
+	}
+};
+
 class CADevice : public ClassArgument {
 private:
 	Device* _device;
 
 public:
-	CADevice(Device* device)
-		: ClassArgument(Kind::Device), _device(device)
+	CADevice(SourceLocation sloc, Device* device)
+		: ClassArgument(Kind::Device, std::move(sloc)), _device(device)
 	{}
 
 	Device& device()
@@ -980,13 +1006,28 @@ public:
 	}
 };
 
+class CADeviceList : public ClassArgument {
+private:
+	std::vector<Device*> _devices;
+
+public:
+	CADeviceList(SourceLocation sloc, std::vector<Device*> devices)
+		: ClassArgument(Kind::DeviceList, std::move(sloc)), _devices(std::move(devices))
+	{}
+
+	std::vector<Device*>& devices()
+	{
+		return _devices;
+	}
+};
+
 class CAEndpoint : public ClassArgument {
 private:
 	Endpoint* _endpoint;
 
 public:
-	CAEndpoint(Endpoint* endpoint)
-		: ClassArgument(Kind::Endpoint), _endpoint(endpoint)
+	CAEndpoint(SourceLocation sloc, Endpoint* endpoint)
+		: ClassArgument(Kind::Endpoint, std::move(sloc)), _endpoint(endpoint)
 	{}
 
 	Endpoint& endpoint()
@@ -1001,8 +1042,8 @@ private:
 	SyntheticEndpoint* _ep;
 
 public:
-	CASyntheticEndpoint(Declaration* behaviour, SyntheticEndpoint* ep)
-		: ClassArgument(Kind::SyntheticEndpoint), _behaviour(behaviour), _ep(ep)
+	CASyntheticEndpoint(SourceLocation sloc, Declaration* behaviour, SyntheticEndpoint* ep)
+		: ClassArgument(Kind::SyntheticEndpoint, std::move(sloc)), _behaviour(behaviour), _ep(ep)
 	{}
 
 	Declaration& behaviour()

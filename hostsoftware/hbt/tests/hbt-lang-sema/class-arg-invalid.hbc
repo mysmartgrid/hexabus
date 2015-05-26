@@ -6,6 +6,14 @@ machine class c(device dev, endpoint ep, bool v) {
 	}
 };
 
+machine class c2(device[] dev, endpoint ep, bool v) {
+	state init {
+		always {
+			dev.ep = v;
+		}
+	}
+};
+
 endpoint ep(0) : bool (write);
 device dev(::) : ep;
 
@@ -14,3 +22,9 @@ machine m2 : c(c, ep, true); //#expect: error: identifier 'c' does not name a de
 machine m3 : c(dev, c, true); //#expect: error: identifier 'c' does not name an endpoint
 machine m4 : c(0, ep, true); //#expect: error: expected device name for class parameter dev
 machine m5 : c(dev, 0, true); //#expect: error: expected endpoint name for class parameter ep
+machine m6 : c(dev, [dev], true); //#expect: error: expected endpoint name for class parameter ep
+
+machine m7 : c2(dev, ep, true); //#expect: error: expected device name list for class parameter dev
+machine m8 : c2([], ep, true); //#expect: error: device name list may not be empty
+machine m9 : c2([undeclared], ep, true); //#expect: error: use of undeclared identifier 'undeclared'
+machine m10 : c2([ep], ep, true); //#expect: error: identifier 'ep' does not name a device

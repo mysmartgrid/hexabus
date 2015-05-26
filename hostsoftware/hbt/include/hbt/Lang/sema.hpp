@@ -42,7 +42,7 @@ private:
 	bool checkBehaviourBody(Behaviour& b, Device* dev);
 	bool resolveType(Expr& e);
 
-	Declaration* resolveDevice(EndpointExpr& e);
+	bool resolveDevices(EndpointExpr& e);
 	Declaration* resolveEndpointExpr(EndpointExpr& e, bool incompletePath);
 
 	EndpointDeclaration* checkEndpointExpr(EndpointExpr& e, bool forRead);

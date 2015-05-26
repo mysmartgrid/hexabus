@@ -16,6 +16,7 @@ static std::string cptDeclStr(ClassParameter::Kind k)
 	switch (k) {
 	case ClassParameter::Kind::Value: return "integer constant expression";
 	case ClassParameter::Kind::Device: return "device name";
+	case ClassParameter::Kind::DeviceList: return "device name list";
 	case ClassParameter::Kind::Endpoint: return "endpoint name";
 	default: throw "invalid class parameter type";
 	}
@@ -105,21 +106,21 @@ static std::string endpointPath(EndpointExpr& e, bool full)
 	return path;
 }
 
-static std::string endpointName(EndpointExpr& e, bool full)
+static std::string endpointName(EndpointExpr& e, const Identifier* dev)
 {
 	std::string name;
-	if (full)
-		name = e.device()->identifier() + '.';
+	if (dev)
+		name = dev->name() + '.';
 	if (e.behaviour())
 		name += e.behaviour()->identifier() + '.';
 	name += e.endpoint()->identifier();
 	return name;
 }
 
-static Diagnostic endpointPropertyMismatch(EndpointExpr& e, const std::string& prop, bool full)
+static Diagnostic endpointPropertyMismatch(EndpointExpr& e, const std::string& prop, const Identifier* dev = nullptr)
 {
-	std::string path = endpointPath(e, full);
-	std::string name = endpointName(e, full);
+	std::string path = endpointPath(e, dev != nullptr);
+	std::string name = endpointName(e, dev);
 	std::string aka = path == name ? "" : " (aka " + name + ")";
 
 	return { DiagnosticKind::Error, &e.sloc(), str(format("endpoint %1%%2% %3%") % path % aka % prop) };
@@ -127,35 +128,35 @@ static Diagnostic endpointPropertyMismatch(EndpointExpr& e, const std::string& p
 
 static Diagnostic endpointNotReadable(EndpointExpr& e)
 {
-	return endpointPropertyMismatch(e, "cannot be read", false);
+	return endpointPropertyMismatch(e, "cannot be read");
 }
 
 static Diagnostic endpointNotWritable(EndpointExpr& e)
 {
-	return endpointPropertyMismatch(e, "cannot be written", false);
+	return endpointPropertyMismatch(e, "cannot be written");
 }
 
 static Diagnostic endpointNotLive(EndpointExpr& e)
 {
-	return endpointPropertyMismatch(e, "is not live", true);
+	return { DiagnosticKind::Error, &e.sloc(), str(format("endpoint %1% is not live") % endpointPath(e, &e.path()[0])) };
 }
 
-static Diagnostic memberReferenceAmbiguous(EndpointExpr& e)
+static Diagnostic memberReferenceAmbiguous(EndpointExpr& e, Device& dev)
 {
-	return endpointPropertyMismatch(e, "is ambiguous", true);
+	return endpointPropertyMismatch(e, "is ambiguous", &dev.name());
 }
 
-static Diagnostic deviceDoesNotHave(EndpointExpr& e)
+static Diagnostic deviceDoesNotHave(EndpointExpr& e, Device& dev)
 {
 	auto epPath = endpointPath(e, false);
-	auto epName = endpointName(e, false);
+	auto epName = endpointName(e, nullptr);
 	auto epPart = epPath == epName
 		? epPath
 		: str(format("%1% (aka %2%)") % epPath % epName);
 
-	auto& devPart = e.device()->identifier() == e.path().front().name()
+	auto& devPart = dev.name().name() == e.path().front().name()
 		? e.path().front().name()
-		: str(format("%1% (aka %2%)") % e.path().front().name() % e.device()->identifier());
+		: str(format("%1% (aka %2%)") % e.path().front().name() % dev.name().name());
 
 	return { DiagnosticKind::Error, &e.sloc(), str(format("device %1% does not implement endpoint %2%") % devPart % epPart) };
 }
@@ -246,6 +247,15 @@ static Diagnostic classArgumentInvalid(const SourceLocation& sloc, const ClassPa
 		str(format("expected %1% for class parameter %2%")
 			% cptDeclStr(cp.kind())
 			% cp.name())
+	};
+}
+
+static Diagnostic deviceListEmpty(const SourceLocation& sloc)
+{
+	return {
+		DiagnosticKind::Error,
+		&sloc,
+		"device name list may not be empty"
 	};
 }
 
@@ -724,12 +734,12 @@ void SemanticVisitor::visit(ConditionalExpr& c)
 		c.constexprValue(c.condition().constexprValue() != 0 ? c.ifTrue().constexprValue() : c.ifFalse().constexprValue());
 }
 
-Declaration* SemanticVisitor::resolveDevice(EndpointExpr& e)
+bool SemanticVisitor::resolveDevices(EndpointExpr& e)
 {
 	auto complete = [&] (Declaration* decl, Device* dev) {
-		e.device(dev ? dev : decl);
+		e.devices({dev ? dev : decl});
 		e.deviceIdIsIncomplete(!dev);
-		return dev;
+		return dev != nullptr;
 	};
 
 	auto* decl = currentScope->resolve(e.path().at(0).name());
@@ -760,6 +770,22 @@ Declaration* SemanticVisitor::resolveDevice(EndpointExpr& e)
 		return complete(cpd, nullptr);
 	}
 
+	if (auto* cpdl = dynamic_cast<CPDeviceList*>(decl)) {
+		cpdl->used(true);
+
+		auto it = classParams.find(e.path()[0].name());
+		if (it == classParams.end())
+			return complete(cpdl, nullptr);
+
+		std::vector<Declaration*> devs;
+		for (auto* dev : dynamic_cast<CADeviceList&>(*it->second).devices())
+			devs.push_back(dev);
+
+		e.devices(std::move(devs));
+		e.deviceIdIsIncomplete(false);
+		return true;
+	}
+
 	diags.print(
 		identifierIsNoDevice(e.path()[0]),
 		declaredHere(decl->sloc()));
@@ -775,19 +801,26 @@ Declaration* SemanticVisitor::resolveEndpointExpr(EndpointExpr& e, bool incomple
 		e.endpointIdIsIncomplete(!ep);
 
 		if (!incompletePath && ep) {
-			if (auto* dev = dynamic_cast<Device*>(e.device())) {
+			for (auto* devdec : e.devices()) {
+				if (!devdec)
+					continue;
+
+				auto* dev = dynamic_cast<Device*>(devdec);
+				if (!dev)
+					continue;
+
 				auto* bh = dynamic_cast<BehaviourDefinition*>(b);
 				if (auto* bc = dynamic_cast<BehaviourClass*>(b)) {
 					if (dev->behaviourClasses().count(bc) == 1) {
 						bh = dev->behaviourClasses().find(bc)->second;
 					} else {
-						diags.print(memberReferenceAmbiguous(e));
+						diags.print(memberReferenceAmbiguous(e, *dev));
 						return nullptr;
 					}
 				}
 				if (bh) {
 					if (!dev->behaviours().count(bh)) {
-						diags.print(deviceDoesNotHave(e));
+						diags.print(deviceDoesNotHave(e, *dev));
 						return nullptr;
 					}
 					b = bh;
@@ -797,7 +830,7 @@ Declaration* SemanticVisitor::resolveEndpointExpr(EndpointExpr& e, bool incomple
 						});
 					ep = epit->get();
 				} else if (!dev->endpoints().count(ep->identifier())) {
-					diags.print(deviceDoesNotHave(e));
+					diags.print(deviceDoesNotHave(e, *dev));
 					return nullptr;
 				}
 			}
@@ -897,7 +930,7 @@ EndpointDeclaration* SemanticVisitor::checkEndpointExpr(EndpointExpr& e, bool fo
 	auto checkAccess = [&] (EndpointDeclaration* resolved) {
 		if (forRead && !isResolvingType) {
 			if (auto* ep = dynamic_cast<Endpoint*>(resolved)) {
-				if (!liveEndpoint || liveEndpoint->endpoint() != ep || liveEndpoint->device() != e.device()) {
+				if (!liveEndpoint || liveEndpoint->endpoint() != ep || liveEndpoint->devices() != e.devices()) {
 					diags.print(endpointNotLive(e));
 					return false;
 				}
@@ -926,12 +959,11 @@ EndpointDeclaration* SemanticVisitor::checkEndpointExpr(EndpointExpr& e, bool fo
 		return true;
 	};
 
-	resolveDevice(e);
+	resolveDevices(e);
 	resolveEndpointExpr(e, false);
 	if (e.isIncomplete())
 		return nullptr;
 
-	auto* dev = dynamic_cast<Device*>(e.device());
 	auto* ep = dynamic_cast<EndpointDeclaration*>(e.endpoint());
 
 	if (!ep || !checkAccess(ep))
@@ -1365,7 +1397,12 @@ bool SemanticVisitor::instantiateClassParams(const SourceLocation& sloc, const I
 
 		switch (param.kind()) {
 		case ClassParameter::Kind::Value: {
-			auto& expr = dynamic_cast<CAExpr&>(*arg).expr();
+			auto* caexpr = dynamic_cast<CAExpr*>(arg.get());
+			if (!caexpr) {
+				diags.print(classArgumentInvalid(arg->sloc(), param));
+				break;
+			}
+			auto& expr = caexpr->expr();
 			auto& cpv = static_cast<CPValue&>(param);
 			if (cpv.typeSource()) {
 				if (!resolveType(*cpv.typeSource()))
@@ -1385,7 +1422,12 @@ bool SemanticVisitor::instantiateClassParams(const SourceLocation& sloc, const I
 		}
 
 		case ClassParameter::Kind::Device: {
-			auto& expr = dynamic_cast<CAExpr&>(*arg).expr();
+			auto* caexpr = dynamic_cast<CAExpr*>(arg.get());
+			if (!caexpr) {
+				diags.print(classArgumentInvalid(arg->sloc(), param));
+				break;
+			}
+			auto& expr = caexpr->expr();
 			auto* id = dynamic_cast<IdentifierExpr*>(&expr);
 			if (!id) {
 				diags.print(classArgumentInvalid(expr.sloc(), param));
@@ -1401,14 +1443,50 @@ bool SemanticVisitor::instantiateClassParams(const SourceLocation& sloc, const I
 				diags.print(identifierIsNoDevice(Identifier(id->sloc(), id->name())));
 				break;
 			}
-			arg.reset(new CADevice(dev));
+			arg.reset(new CADevice(expr.sloc(), dev));
+			classParams.emplace(param.name(), arg.get());
+			currentScope->insert(param);
+			break;
+		}
+
+		case ClassParameter::Kind::DeviceList: {
+			auto* calist = dynamic_cast<CAIdList*>(arg.get());
+			if (!calist) {
+				diags.print(classArgumentInvalid(arg->sloc(), param));
+				break;
+			}
+			auto& ids = calist->ids();
+			if (ids.empty()) {
+				diags.print(deviceListEmpty(calist->sloc()));
+				break;
+			}
+			std::vector<Device*> devs;
+			for (const auto& id : ids) {
+				auto* se = currentScope->resolve(id.name());
+				if (!se) {
+					diags.print(undeclaredIdentifier(id));
+					continue;
+				}
+				auto* dev = dynamic_cast<Device*>(se);
+				if (!dev) {
+					diags.print(identifierIsNoDevice(id));
+					continue;
+				}
+				devs.push_back(dev);
+			}
+			arg.reset(new CADeviceList(calist->sloc(), std::move(devs)));
 			classParams.emplace(param.name(), arg.get());
 			currentScope->insert(param);
 			break;
 		}
 
 		case ClassParameter::Kind::Endpoint: {
-			auto& expr = dynamic_cast<CAExpr&>(*arg).expr();
+			auto* caexpr = dynamic_cast<CAExpr*>(arg.get());
+			if (!caexpr) {
+				diags.print(classArgumentInvalid(arg->sloc(), param));
+				break;
+			}
+			auto& expr = caexpr->expr();
 			if (auto* id = dynamic_cast<IdentifierExpr*>(&expr)) {
 				auto* se = currentScope->resolve(id->name());
 				if (!se) {
@@ -1420,7 +1498,7 @@ bool SemanticVisitor::instantiateClassParams(const SourceLocation& sloc, const I
 					diags.print(identifierIsNoEndpoint(Identifier(id->sloc(), id->name())));
 					break;
 				}
-				arg.reset(new CAEndpoint(ep));
+				arg.reset(new CAEndpoint(id->sloc(), ep));
 				classParams.emplace(param.name(), arg.get());
 				currentScope->insert(param);
 				break;
@@ -1435,19 +1513,19 @@ bool SemanticVisitor::instantiateClassParams(const SourceLocation& sloc, const I
 					break;
 
 				if (auto* ep = dynamic_cast<Endpoint*>(epe->endpoint())) {
-					arg.reset(new CAEndpoint(ep));
+					arg.reset(new CAEndpoint(epe->sloc(), ep));
 					classParams.emplace(param.name(), arg.get());
 					currentScope->insert(param);
 				} else {
 					auto& sep = dynamic_cast<SyntheticEndpoint&>(*epe->endpoint());
-					arg.reset(new CASyntheticEndpoint(epe->behaviour(), &sep));
+					arg.reset(new CASyntheticEndpoint(epe->sloc(), epe->behaviour(), &sep));
 					classParams.emplace(param.name(), arg.get());
 					currentScope->insert(param);
 				}
 
 				break;
 			}
-			diags.print(classArgumentInvalid(expr.sloc(), param));
+			diags.print(classArgumentInvalid(caexpr->sloc(), param));
 			break;
 		}
 
