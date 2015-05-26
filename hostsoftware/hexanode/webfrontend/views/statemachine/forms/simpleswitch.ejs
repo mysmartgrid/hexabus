@@ -1,73 +1,19 @@
 <form role="form" name="simpleSwitchForm" novalidate>
 	<div class="form-group" data-ng-class="{'has-success': simpleSwitchForm.$valid}">
 		<label for="switchdevice" class="control-label" data-localize="wizard.state-machine.choose-switch-device">Choose switch device</label>
-		<select class="form-control" name="switchDevice" data-ng-model="simpleSwitch.switchDevice" data-ng-options="value.ip as value.name for (key,value) in simpleSwitch.actors" data-ng-required="true">
-		</select>
+		<div data-device-selector="device-selector" class="form-control" name="device" data-model="simpleSwitch.switchDevice"
+			data-device-list="simpleSwitch.actors" data-required="true">
+		</div>
 	</div>
 	<div class="form-group"
-		data-ng-class="{'has-success': simpleSwitch.buttonsOn.length > 0 && simpleSwitchForm.$valid, 'has-error' : simpleSwitchForm.$error.duplicateButtonOn}">
+		data-ng-class="{'has-success': simpleSwitchForm.$valid}">
 		<label class="control-label" data-localize="wizard.state-machine.add-on-buttons">Add buttons for truning the device on</label>
-		<div data-ng-repeat="button in simpleSwitch.buttonsOn">
-			<div class="row">
-				<div class="col-xs-1">
-				<!-- Just a placeholder -->
-				</div>
-				<div class="col-xs-5">
-					<select class="form-control" data-ng-model="button.id" 
-						data-ng-options="key as value.name for (key,value) in simpleSwitch.buttons"  
-						data-ng-required="true"
-						data-ng-change="simpleSwitch.validateForm()">
-					</select>
-				</div>
-				<div class="col-xs-2">
-					<button type="button" class="btn btn-danger" data-ng-click="simpleSwitch.removeButtonOn(button)" data-ng-disabled="busy">
-						<span class="glyphicon glyphicon-remove"></i>
-					</button>
-				</div>
-			</div>
-			<br/>
-		</div>
-		<p class="help-block" data-ng-show="simpleSwitchForm.$error.duplicateButtonOn" data-localize="wizard.state-machine.errors.disjoint-buttons">
-			Use each button only once.
-		</p>
+			<select class="form-control" data-ng-model="simpleSwitch.button"
+				data-ng-options="key as value.name for (key,value) in simpleSwitch.buttons"  
+				data-ng-required="true">
+			</select>
 	</div>
 	</br>
-	<button data-ng-disabled="busy || (simpleSwitch.buttonsOn.length >= simpleSwitch.buttonCount)" class="btn btn-success"
-		data-localize="wizard.state-machine.add-button" data-ng-click="simpleSwitch.addButtonOn()">Add Button</button><br/>
-	<br/>
-	
-	<div class="form-group"
-		data-ng-class="{'has-success': simpleSwitch.buttonsOff.length > 0 && simpleSwitchForm.$valid, 'has-error' : simpleSwitchForm.$error.duplicateButtonOff}">
-		<label class="control-label" data-localize="wizard.state-machine.add-off-buttons">Add buttons for turning the device off</label>
-		<div data-ng-repeat="button in simpleSwitch.buttonsOff">
-			<div class="row">
-				<div class="col-xs-1">
-				<!-- Just a placeholder -->
-				</div>
-				<div class="col-xs-5">
-					<select class="form-control" data-ng-model="button.id" 
-						data-ng-options="key as value.name for (key,value) in simpleSwitch.buttons"  
-						data-ng-required="true"
-						data-ng-change="simpleSwitch.validateForm()">
-					</select>
-				</div>
-				<div class="col-xs-2">
-					<button type="button" class="btn btn-danger" data-ng-click="simpleSwitch.removeButtonOff(button)" data-ng-disabled="busy">
-						<span class="glyphicon glyphicon-remove"></i>
-					</button>
-				</div>
-			</div>
-			<br/>
-		</div>
-		<p class="help-block" data-ng-show="simpleSwitchForm.$error.duplicateButtonOff" data-localize="wizard.state-machine.errors.disjoint-buttons">
-			Use each button only once.
-		</p>
-	</div>
-	</br>
-	<button data-ng-disabled="busy || (simpleSwitch.buttonsOff.length >= simpleSwitch.buttonCount)" class="btn btn-success"
-		data-localize="wizard.state-machine.add-button" data-ng-click="simpleSwitch.addButtonOff()">Add Button</button><br/>
-	<br/>
-
 	<button class="btn btn-success"
 		data-ng-disabled="simpleSwitchForm.$invalid || simpleSwitch.buttonsOn.length + simpleSwitch.buttonsOff.length == 0" 
 		data-localize="wizard.state-machine.upload" data-ng-click="simpleSwitch.upload()">Upload</button>

@@ -152,7 +152,7 @@
 				"compiling-failed": "Die Statemachine konnte nicht kompiliert werden.",
 				"uploading-failed": "Das Hochladen des Schaltprogramms auf {device} ist fehlgeschlagen.",
 				"deleting-temporary-files-failed": "Die temporäre Datei {file} konnte nicht gelöscht werden.",
-				"disjoint-buttons": "Bitte jeden Taster nur einmal in dieser Liste verwerden."
+				"disjoint-buttons": "Bitte jeden Taster nur einmal in dieser Liste verwerden.",
 				"statemachinebuilder-busy": "Es wird bereits ein anderes Schaltprogramm hochgeladen."
 			},
 			"choose": "Bitte wählen Sie eine Vorlage aus.",
@@ -168,11 +168,10 @@
 			"choose-usage-threshold": "Bitte den Verbrauchschwellwert auswählen.",
 			"choose-on-timeout": "Bitte die maximale Zeitspanne in Minuten die das Gerät angeschaltet sein soll eingeben.",
 			"choose-consumer": "Bitte den zu schaltenden Vebraucher auswählen.",
-			"choose-switch-device": "Bitte das zu schaltende Gerät auswählen.",
 			"add-on-buttons": "Bitte die Taster hinzufügen, die das Gerät anschalten.",
 			"add-off-buttons": "Bitte die Taster hinzufügen, die das Gerät ausschalten.",
 			"add-button": "Taster hinzufügen",
-			"default-statemachine": "Demokoffer zurücksetzen"
+			"default-statemachine": "Demokoffer zurücksetzen",
 			"choose-on-delay": "Bitte die minimale Zeitspanne in Minuten die das Gerät angeschaltet sein soll eingeben.",
 			"choose-off-delay": "Bitte die minimale Zeitspanne in Minuten die das Gerät ausgeschaltet sein soll eingeben.",
 			"choose-switch-device": "Bitte den zu schaltenden Vebraucher auswählen.",

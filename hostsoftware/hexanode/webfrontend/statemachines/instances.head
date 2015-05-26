@@ -6,4 +6,5 @@ include "../standbykiller.hbh";
 include "../simpleswitch.hbh";
 include "../productionthreshold.hbh";
 include "../threshold.hbh";
+include "../demo.hbh";
 

@@ -13,6 +13,7 @@ var ThresholdStatemachine = require('./threshold').ThresholdStatemachine;
 var StandbyKillerStatemachine = require('./standbykiller').StandbyKillerStatemachine;
 var MasterSlaveStatemachine = require('./masterslave').MasterSlaveStatemachine;
 var ProductionThresholdStatemachine = require('./productionthreshold').ProductionThresholdStatemachine;
+var DemoPlug = require('./demo').DemoPlug;
 
 
 var machineTypes = {
@@ -20,7 +21,8 @@ var machineTypes = {
 	'Threshold' : ThresholdStatemachine,
 	'Standbykiller' : StandbyKillerStatemachine,
 	'MasterSlave' : MasterSlaveStatemachine,
-	'ProductionThreshold' : ProductionThresholdStatemachine
+	'ProductionThreshold' : ProductionThresholdStatemachine,
+	'DemoPlug' : DemoPlug
 };
 
 
@@ -54,6 +56,8 @@ exports.statemachineFromJson = function(json, devicetree) {
 	}
 
 	if(machineTypes[json.machineClass] === undefined) {
+		console.log(machineTypes);
+		console.log(json.machineClass);
 		throw new Error("Unknown machine class " + json.machineClass);
 	}
 

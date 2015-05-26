@@ -257,7 +257,7 @@ var Hexabus = function() {
 						var json = JSON.parse(packet);
 						if(json.error === undefined) {
 							this.emit('packet', json);
-							//console.log(json);
+							//debug(json);
 						}
 						else {
 							debug(json);
@@ -274,6 +274,7 @@ var Hexabus = function() {
 				juiceConnection.on('close', function() {
 					juiceConnection = null;
 				});
+
 
 				callback();
 			}
@@ -302,21 +303,23 @@ var Hexabus = function() {
 
 		this.on('packet', function(packet) {
 			//console.log(packet);
-			packet = packet.packet;
-			if(packet.type == 'info') {
-				if(devicetree.devices[packet.from.ip] === undefined ||
-					devicetree.devices[packet.from.ip].endpoints[packet.eid] === undefined) {
+			if(packet.packet !== undefined) {
+				packet = packet.packet;
+				if(packet.type == 'info') {
+					if(devicetree.devices[packet.from.ip] === undefined ||
+						devicetree.devices[packet.from.ip].endpoints[packet.eid] === undefined) {
 
-					console.log('Unknown device or endpoint:' + packet.from.ip + ' ' + packet.eid);
+						console.log('Unknown device or endpoint:' + packet.from.ip + ' ' + packet.eid);
 
-					this.update_devicetree(devicetree,function(error) {
-						if(error !== undefined) {
-							console.log('Could not update device tree: ' + error.toString());
-						}
-					});
-				}
-				else {
-					devicetree.devices[packet.from.ip].endpoints[packet.eid].last_value = packet.value;
+						this.update_devicetree(devicetree,function(error) {
+							if(error !== undefined) {
+								console.log('Could not update device tree: ' + error.toString());
+							}
+						});
+					}
+					else {
+						devicetree.devices[packet.from.ip].endpoints[packet.eid].last_value = packet.value;
+					}
 				}
 			}
 		}.bind(this));

@@ -292,6 +292,106 @@ angular.module('hexanode')
 	stateMachineForms.push($scope.threshold);
 
 
+	/*
+ 	* Simple switch statemachine
+ 	*/
+	$scope.simpleSwitch = {};
+	$scope.simpleSwitch.buttons = {};
+	$scope.simpleSwitch.actors = [];
+
+	var makeButton = function(ip, eid, name, value) {
+		$scope.simpleSwitch.buttons[ip + '.' + eid + '#' + value] = {'ip' : ip,
+																'eid' : eid,
+																'name': name,
+																'value':  value};
+
+		//console.log("Button: " + name + " - " + ip + '.' + eid + ' = ' + value);
+	};
+
+	$scope.simpleSwitch.updateDevices = function() {
+		$scope.simpleSwitch.buttons = {};
+		for(var ip in $scope.devicetree.devices) {
+			var device = $scope.devicetree.devices[ip];
+			for(var eid in device.endpoints) {
+				var endpoint = device.endpoints[eid];
+				if(eid == 25) {
+					makeButton(device.ip, 25, 'Hexanode - Midipad Button 1', 36);
+					makeButton(device.ip, 25, 'Hexanode - Midipad Button 2', 37);
+					makeButton(device.ip, 25, 'Hexanode - Midipad Button 3', 40);
+					makeButton(device.ip, 25, 'Hexanode - Midipad Button 4', 41);
+				}
+				else if(endpoint.function == "sensor" && endpoint.type == "Bool") {
+					makeButton(device.ip, endpoint.eid, device.name + " - " + endpoint.description, 'true');
+				}
+			}
+		}
+
+		$scope.simpleSwitch.actors = $scope.devicetree.getDevicesWithEndpoint([1]);
+	}
+
+	$scope.simpleSwitch.resetForm = function() {
+		$scope.simpleSwitch.button = Object.keys($scope.simpleSwitch.buttons)[0];
+
+		$scope.simpleSwitch.switchDevice = $scope.simpleSwitch.actors[Object.keys($scope.simpleSwitch.actors)[0]].ip;
+	};
+
+
+	$scope.simpleSwitch.upload = function() {
+		var statemachine = [{
+			name: generateRandomName(),
+			machineClass: 'SimpleSwitch',
+			config: {
+				buttonDev: $scope.simpleSwitch.buttons[$scope.simpleSwitch.button].ip,
+				button: $scope.simpleSwitch.buttons[$scope.simpleSwitch.button].eid,
+				value: $scope.simpleSwitch.buttons[$scope.simpleSwitch.button].value,
+				relaisDev: $scope.simpleSwitch.switchDevice,
+				relais: 1
+			}
+		}];
+		uploadStatemachines(statemachine);
+	};
+	stateMachineForms.push($scope.simpleSwitch);
+
+
+	/*
+	 * Demokoffer defaults
+	 */
+	$scope.demo = {};
+	$scope.demo.upload = function() {
+		var midiIp = 'fd90:c86:2858:7a04:6a05:caff:fe19:9d62';//'fd00:9::50:c4ff:fe04:2cf';
+		var washingIp = 'fd90:c86:2858:7a05:50:c4ff:fe04:82cf';//'fd00:9::50:c4ff:fe04:8162';
+		var lampIp = 'fd90:c86:2858:7a05:50:c4ff:fe04:8341';//'fd00:9::50:c4ff:fe04:8264';
+
+		var statemachines = [{
+			name: 'Waschmaschine',
+			machineClass: 'DemoPlug',
+			config: {
+				device: washingIp,
+				relais: 1,
+				button: 4,
+				midi: midiIp,
+				buttonPressed: 25,
+				onButton: 36,
+				offButton: 40
+			}
+		},
+		{
+			name: 'Leuchte',
+			machineClass: 'DemoPlug',
+			config: {
+				device: lampIp,
+				relais: 1,
+				button: 4,
+				midi: midiIp,
+				buttonPressed: 25,
+				onButton: 37,
+				offButton: 41
+			}
+		}]
+		uploadStatemachines(statemachines);
+	}
+
+
 	Socket.on('devicetree_init', function(json) {
 		$scope.devicetree = new window.DeviceTree(json);
 

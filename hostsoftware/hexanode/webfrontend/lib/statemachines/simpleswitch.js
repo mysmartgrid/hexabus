@@ -6,7 +6,7 @@ var expectMembers = require('./common').expectMembers;
 exports.SimpleSwitchStatemachine = function(name, config, devicetree) {
 	Statemachine.call(this, name, 'SimpleSwitch', config, devicetree);
 
-	expectMembers(this.config, ['buttonDev', 'button', 'relaisDev', 'relais']);
+	expectMembers(this.config, ['buttonDev', 'button', 'value', 'relaisDev', 'relais']);
 
 	var buttonDev = this.getDeviceName(this.config.buttonDev);
 	var button = this.getEndpointName(this.config.buttonDev, this.config.button);
@@ -24,6 +24,7 @@ exports.SimpleSwitchStatemachine = function(name, config, devicetree) {
 	this.getInstanceLine = function() {
 		return this.generateInstanceLine([buttonDev,
 											button,
+											this.config.value,
 											relaisDev,
 											relais]);
 	};

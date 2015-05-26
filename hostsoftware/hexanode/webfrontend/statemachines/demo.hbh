@@ -1,0 +1,52 @@
+machine class DemoPlug(device dev,
+		endpoint relais,
+		endpoint button,
+		device midi,
+		endpoint buttonPressed,
+		typeof(midi.buttonPressed) btnOn,
+		typeof(midi.buttonPressed) btnOff) {
+
+	state init {
+		always {
+			dev.relais = false;
+			goto switched_off;
+		}
+	}
+
+	state switched_on {
+		on update from midi.buttonPressed {
+			if (midi.buttonPressed == btnOn) {
+				dev.relais = false;
+				goto switched_off;
+			}
+		}
+		on update from dev.relais {
+			if (dev.relais == false) {
+				goto switched_off;
+			}
+		}
+		on update from dev.button {
+			dev.relais = false;
+			goto switched_off;
+		}
+	}
+
+	state switched_off {
+		on update from midi.buttonPressed {
+			if (midi.buttonPressed == btnOff) {
+				dev.relais = true;
+				goto switched_on;
+			}
+		}
+		on update from dev.relais {
+			if (dev.relais == true) {
+				goto switched_on;
+			}
+		}
+		on update from dev.button {
+			dev.relais = true;
+			goto switched_on;
+		}
+	}
+};
+
