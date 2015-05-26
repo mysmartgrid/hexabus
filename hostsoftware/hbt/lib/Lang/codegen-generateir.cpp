@@ -809,16 +809,21 @@ static ir::BasicBlock* emitOnBlock(CGContext& cgc, OnUpdateBlock* on, ir::BasicB
 	auto* eid = block->append(ir::LoadIntInsn(cgc.newName(), ir::Type::UInt32, ep->eid()));
 	auto* srcEID = block->append(ir::LoadSpecialInsn(cgc.newName(), ir::Type::UInt32, ir::SpecialVal::SourceEID));
 	auto* cmpEID = block->append(ir::ArithmeticInsn(cgc.newName(), ir::Type::Bool, ir::ArithOp::Eq, eid, srcEID));
-	auto* cmp = cmpEID;
+
+	const ir::Value* cmpIP = nullptr;
 
 	for (const auto* devdecl : on->endpoint().devices()) {
 		auto* dev = static_cast<const Device*>(devdecl);
-		auto* cmpIP = dev == cgc.forDev
+		auto* cmpCurIP = dev == cgc.forDev
 			? block->append(ir::CompareIPInsn(cgc.newName(), 0, 16, {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}))
 			: block->append(ir::CompareIPInsn(cgc.newName(), 0, 16, dev->address()));
-		cmp = block->append(ir::ArithmeticInsn(cgc.newName(), ir::Type::Bool, ir::ArithOp::And, cmpIP, cmp));
+		if (cmpIP)
+			cmpIP = block->append(ir::ArithmeticInsn(cgc.newName(), ir::Type::Bool, ir::ArithOp::Or, cmpIP, cmpCurIP));
+		else
+			cmpIP = cmpCurIP;
 	}
 
+	auto *cmp = block->append(ir::ArithmeticInsn(cgc.newName(), ir::Type::Bool, ir::ArithOp::And, cmpIP, cmpEID));
 	block->append(ir::SwitchInsn(cmp, ir::SwitchInsn::labels_type{ { 1, matches } }, cont));
 
 	auto cg = StmtCG::run(cgc, matches, on->block());
