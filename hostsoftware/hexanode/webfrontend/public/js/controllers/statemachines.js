@@ -358,9 +358,9 @@ angular.module('hexanode')
 	 */
 	$scope.demo = {};
 	$scope.demo.upload = function() {
-		var midiIp = 'fd90:c86:2858:7a04:6a05:caff:fe19:9d62';//'fd00:9::50:c4ff:fe04:2cf';
-		var washingIp = 'fd90:c86:2858:7a05:50:c4ff:fe04:82cf';//'fd00:9::50:c4ff:fe04:8162';
-		var lampIp = 'fd90:c86:2858:7a05:50:c4ff:fe04:8341';//'fd00:9::50:c4ff:fe04:8264';
+		var midiIp = 'fd00:9::50:c4ff:fe04:2cf';
+		var washingIp = 'fd00:9::50:c4ff:fe04:8162';
+		var lampIp = 'fd00:9::50:c4ff:fe04:8264';
 
 		var statemachines = [{
 			name: 'Waschmaschine',
