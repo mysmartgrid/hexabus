@@ -259,6 +259,11 @@ static Diagnostic deviceListEmpty(const SourceLocation& sloc)
 	};
 }
 
+static Diagnostic duplicateDeviceInList(const Identifier& dup)
+{
+	return { DiagnosticKind::Error, &dup.sloc(), str(format("duplicate entry '%1%' in device list") % dup.name()) };
+}
+
 static Diagnostic constexprInvokesUB(const Expr& b)
 {
 	return { DiagnosticKind::Error, &b.sloc(), "evaluation of constant expression invokes undefined behaviour" };
@@ -1461,6 +1466,7 @@ bool SemanticVisitor::instantiateClassParams(const SourceLocation& sloc, const I
 				break;
 			}
 			std::vector<Device*> devs;
+			std::set<std::string> entries;
 			for (const auto& id : ids) {
 				auto* se = currentScope->resolve(id.name());
 				if (!se) {
@@ -1470,6 +1476,10 @@ bool SemanticVisitor::instantiateClassParams(const SourceLocation& sloc, const I
 				auto* dev = dynamic_cast<Device*>(se);
 				if (!dev) {
 					diags.print(identifierIsNoDevice(id));
+					continue;
+				}
+				if (!entries.insert(id.name()).second) {
+					diags.print(duplicateDeviceInList(id));
 					continue;
 				}
 				devs.push_back(dev);

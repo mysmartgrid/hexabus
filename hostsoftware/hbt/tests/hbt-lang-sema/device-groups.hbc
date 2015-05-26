@@ -11,4 +11,5 @@ machine class c(device[] dev) {
 	}
 };
 
-machine m : c([d1, d2]);
+machine m1 : c([d1, d2]);
+machine m2 : c([d1, d2, d2]); //#expect: error: duplicate entry 'd2' in device list
