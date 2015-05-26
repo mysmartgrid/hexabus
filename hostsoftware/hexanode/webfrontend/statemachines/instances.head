@@ -1,0 +1,9 @@
+include "../../data/endpoints.hbh";
+include "../../data/devices.hbh";
+
+include "../masterslave.hbh";
+include "../standbykiller.hbh";
+include "../simpleswitch.hbh";
+include "../productionthreshold.hbh";
+include "../threshold.hbh";
+

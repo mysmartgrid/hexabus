@@ -1,0 +1,13 @@
+v0.7
+====
+- New state machine format
+- Added state machine support in hexanode
+- Added hexalisten (replaces hexaswitch -c listen)
+- Added hexajuice (universal json interface component)
+- Added hexasend (hexaswitch without listen)
+
+v0.6
+====
+- Removed Hexabus-USB firmware
+- Added STM32 support
+- Now using contiki 2.7

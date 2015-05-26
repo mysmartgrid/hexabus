@@ -13,36 +13,33 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 	});
 
 	app.get('/wizard/current', function(req, res) {
-		var config = hexabus.read_current_config();
-		hexabus.get_activation_code(function(err, activation_code) {
-			config.activation_code = activation_code;
+		hexabus.read_current_config(function(config) {
+			hexabus.get_activation_code(function(err, activation_code) {
+				config.activation_code = activation_code;
 
-			hexabus.get_heartbeat_state(function(err, state) {
-				config.active_nav = 'configuration';
+				hexabus.get_heartbeat_state(function(err, state) {
+					config.active_nav = 'configuration';
 
-				if (err) {
-					config.heartbeat_ok = false;
-					config.heartbeat_code = 0;
-					config.heartbeat_messages = [err];
-					config.heartbeat_state = "";
-				} else {
-					config.heartbeat_ok = state.code == 0;
-					config.heartbeat_code = state.code;
-					config.heartbeat_messages = state.messages;
-					config.heartbeat_state = state;
-				}
+					if (err) {
+						config.heartbeat_ok = false;
+						config.heartbeat_code = 0;
+						config.heartbeat_messages = [err];
+						config.heartbeat_state = "";
+					} else {
+						config.heartbeat_ok = state.code === 0;
+						config.heartbeat_code = state.code;
+						config.heartbeat_messages = state.messages;
+						config.heartbeat_state = state;
+					}
 
-				res.render('wizard/current.ejs', config);
+					res.render('wizard/current.ejs', config);
+				});
 			});
 		});
 	});
 
 	app.post('/wizard/reset', function(req, res) {
-		try {
-			fs.unlinkSync(devicetree_file);
-		} catch (e) {
-		}
-		open_config();
+		devicetree.reset();
 
 		var wizard = new Wizard();
 		wizard.deconfigure_network(function(err) {
@@ -104,11 +101,13 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 				case '3': return 'msg';
 				default: return 'reset';
 			}
-		}
+		};
+
+		var current_step = getCurrentStep(wizard_step);
+
 		switch(req.params.step) {
 			case "new":
-				if(wizard_step!=undefined) {
-					var current_step = getCurrentStep(wizard_step);
+				if(wizard_step !== undefined) {
 					res.render('wizard/' + current_step  + '.ejs', { active_nav: 'configuration', error: 'gt_error' });
 				} else {
 					nconf.set('wizard_step', '1');
@@ -117,8 +116,7 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 				}
 				return;
 			case "connection":
-				var current_step = getCurrentStep(wizard_step);
-				if(wizard_step==undefined) {
+				if(wizard_step === undefined) {
 					nconf.set('wizard_step', '1');
 					nconf.save();
 					res.render('wizard/new.ejs', { active_nav: 'configuration', error: 'lt_error' });
@@ -130,8 +128,7 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 				}
 				return;
 			case "activation":
-				var current_step = getCurrentStep(wizard_step);
-				if(wizard_step==undefined) {
+				if(wizard_step === undefined) {
 					nconf.set('wizard_step', '1');
 					nconf.save();
 					res.render('wizard/new.ejs', { active_nav: 'configuration', error: 'lt_error' });
@@ -144,8 +141,7 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 				}
 				return;
 			case "msg":
-				var current_step = getCurrentStep(wizard_step);
-				if(wizard_step==undefined) {
+				if(wizard_step === undefined) {
 					nconf.set('wizard_step', '1');
 					nconf.save();
 					res.render('wizard/new.ejs', { active_nav: 'configuration', error: 'lt_error' });
@@ -158,8 +154,7 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 				}
 				return;
 			case "success":
-				var current_step = getCurrentStep(wizard_step);
-				if(wizard_step==undefined) {
+				if(wizard_step === undefined) {
 					nconf.set('wizard_step', '1');
 					nconf.save();
 					res.render('wizard/new.ejs', { active_nav: 'configuration', error: 'lt_error' });
@@ -177,4 +172,49 @@ module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
 		res.render('wizard/' + req.params.step  + '.ejs', { active_nav: 'configuration' });
 	});
 
-}
+};
+
+module.exports.socketioSetup = function(on, emit, hexabus, devicetree) {
+	
+	on('upgrade', function() {
+		var wizard = new Wizard();
+
+		wizard.upgrade(function(error) {
+			emit('upgrade_completed', { msg: error });
+		});
+	});
+
+	on('wizard_configure', function() {
+		var wizard = new Wizard();
+
+		wizard.configure_network(function(progress) {
+			emit('wizard_configure_step', progress);
+		});
+	});
+
+	on('wizard_register', function() {
+		var wizard = new Wizard();
+
+		wizard.registerMSG(function(progress) {
+			emit('wizard_register_step', progress);
+		});
+	});
+
+	on('get_activation_code', function() {
+		var wizard = new Wizard();
+
+		wizard.getActivationCode(function(data) {
+			emit('activation_code', data);
+		});
+	});
+
+	on('devices_add', function() {
+		var wizard = new Wizard();
+		
+		console.log('Adding Device');
+
+		wizard.addDevice(devicetree, hexabus, function(msg) {
+			emit('device_found', msg);
+		});
+	});
+};

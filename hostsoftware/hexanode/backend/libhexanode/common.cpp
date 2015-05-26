@@ -18,11 +18,12 @@
  *
  */
 #include "common.hpp"
+#include "config.h"
 #include <sstream>
 
 using namespace hexanode;
 
-const std::string VersionInfo::get_version() {
+std::string VersionInfo::get_version() {
   std::ostringstream oss;
   oss << LIBHEXANODE_VERSION_MAJOR << "." << LIBHEXANODE_VERSION_MINOR << "." << LIBHEXANODE_VERSION_PATCH;
   return oss.str();

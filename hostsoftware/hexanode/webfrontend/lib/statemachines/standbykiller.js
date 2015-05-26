@@ -1,50 +1,41 @@
-var validator = require('validator');
-var common = require('./common');
-var validationError = common.validationError;
-var StatemachineBuilder = common.StatemachineBuilder;
+'use strict';
 
+var Statemachine = require('./common').Statemachine;
+var expectMembers = require('./common').expectMembers;
+var setMachineClass = require('./common').setMachineClass;
 
-exports.validateInput = function(msg) {
-	if(!msg.hasOwnProperty('threshold') || !validator.isInt(msg.threshold)) {
-		return new validationError('threshold-invalid', 'The value for threshold is not a valid integer.');
-	}
+exports.StandbyKillerStatemachine = function(name, config, devicetree) {
+	Statemachine.call(this, name, 'Standbykiller', config, devicetree);
 
-	if(msg.threshold < 1 || msg.threshold > 4294967295) {
-		return new validationError('threshold-nut-of-range', 'The value for threshold should be at least 1 and at most 4294967295.');
-	}
+	expectMembers(this.config, ['dev',
+								'meter',
+								'relais',
+								'button',
+								'threshold',
+								'timeout']);
 
-	if(!msg.hasOwnProperty('timeout') || !validator.isInt(msg.timeout)) {
-		return new validationError('timeout-invalid', 'The value for timeout is not a valid integer.');
-	}
+	var dev = this.getDeviceName(this.config.dev);
+	var meter = this.getEndpointName(this.config.dev, this.config.meter);
+	var relais = this.getEndpointName(this.config.dev, this.config.relais);
+	var button = this.getEndpointName(this.config.dev, this.config.button);
+	var threshold = this.config.threshold;
+	var timeout = this.config.timeout * 60;
 
-	if(msg.timeout < 1 || msg.timeout > 4294967295) {
-		return new validationError('timeout-out-of-range', 'The value for timeout should be at least 1 and at most 4294967295.');
-	}
+	this.getUsedDevices = function() {
+		return [this.config.dev];
+	};
 
-	if(!msg.hasOwnProperty('device') || !msg.device.hasOwnProperty('ip') || !validator.isIP(msg.device.ip,6)) {
-		return new validationError('device-ip-not-valid', 'The IPv6 address of device is invalid.');
-	}
+	this.getWrittenEndpoints = function() {
+		return [this.config.dev + '.' + this.config.relais];
+	};
+
+	this.getInstanceLine = function() {
+		return this.generateInstanceLine([dev,
+											meter,
+											relais,
+											button,
+											threshold,
+											timeout]);
+	};
 };
-
-
-exports.buildMachine = function(msg, progressCallback, callback) {
-	var smb = new StatemachineBuilder();
-
-	console.log('Building standbykiller');
-
-	smb.onProgress(progressCallback);
-
-	smb.addTargetFile('standbykiller/standbykiller.hbh', 'standbykiller.hbh', { 'ip' : msg.device.ip});
-	smb.addTargetFile('standbykiller/standbykiller.hbc', 'standbykiller.hbc', {'threshold' : msg.threshold, 'timeout' : msg.timeout});
-	smb.addDevice('standbykiller',true);
-
-	smb.setCompileTarget('standbykiller.hbc');
-
-	smb.buildStatemachine(function(err) {
-		if(!err) {
-			callback(true);
-		} else {
-			console.log(err);
-			callback(false, err);
-	}});
-};
+exports.StandbyKillerStatemachine.prototype = Object.create(Statemachine.prototype);

@@ -20,7 +20,6 @@
 #include "device.hpp"
 
 #include <boost/lexical_cast.hpp>
-#include <boost/ref.hpp>
 
 #include <libhexabus/filtering.hpp>
 
@@ -35,7 +34,7 @@ bool isWrite(const Packet& packet, const boost::asio::ip::udp::endpoint& from)
 	return packet.type() == HXB_PTYPE_WRITE;
 }
 
-bool dummy_write_handler(const boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH>& value)
+bool dummy_write_handler(const std::array<uint8_t, 65>& value)
 {
 	return true;
 }
@@ -88,12 +87,12 @@ Device::Device(boost::asio::io_service& io, const std::vector<std::string>& inte
 
 	_handle_broadcasts(boost::system::error_code());
 
-	TypedEndpointFunctions<uint8_t>::Ptr smcontrolEP(new TypedEndpointFunctions<uint8_t>(EP_SM_CONTROL, "Statemachine control"));
+	TypedEndpointFunctions<uint8_t>::Ptr smcontrolEP(new TypedEndpointFunctions<uint8_t>(EP_SM_CONTROL, "Statemachine control", false));
 	smcontrolEP->onRead(boost::bind(&Device::_handle_smcontrolquery, this));
 	smcontrolEP->onWrite(boost::bind(&Device::_handle_smcontrolwrite, this, _1));
 	addEndpoint(smcontrolEP);
 	//dummy endpoint to let _handle_descquery knows we can handle statemachine upload
-	TypedEndpointFunctions<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >::Ptr smupreceiverEP(new TypedEndpointFunctions<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >(EP_SM_UP_RECEIVER, "Statemachine upload receiver"));
+	TypedEndpointFunctions<std::array<uint8_t, 65> >::Ptr smupreceiverEP(new TypedEndpointFunctions<std::array<uint8_t, 65> >(EP_SM_UP_RECEIVER, "Statemachine upload receiver", false));
 	smupreceiverEP->onWrite(&dummy_write_handler);
 	addEndpoint(smupreceiverEP);
 }
@@ -292,7 +291,7 @@ bool Device::_handle_smcontrolwrite(uint8_t value)
 
 void Device::_handle_smupload(hexabus::Socket* socket, const Packet& p, const boost::asio::ip::udp::endpoint& from)
 {
-	const WritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >* write = dynamic_cast<const WritePacket<boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> >*>(&p);
+	const WritePacket<std::array<uint8_t, 65> >* write = dynamic_cast<const WritePacket<std::array<uint8_t, 65> >*>(&p);
 	if ( !write ) {
 		try {
 			socket->send(InfoPacket<bool>(EP_SM_UP_ACKNAK, false), from);
@@ -303,7 +302,7 @@ void Device::_handle_smupload(hexabus::Socket* socket, const Packet& p, const bo
 		}
 		return;
 	}
-	const boost::array<char, HXB_65BYTES_PACKET_BUFFER_LENGTH> data = write->value();
+	const std::array<uint8_t, 65> data = write->value();
 	if ( data[0] == 0 )
 	{
 		std::string name = "";
@@ -338,6 +337,9 @@ void Device::_handle_broadcasts(const boost::system::error_code& error)
 	{
 		for ( std::map<uint32_t, const EndpointFunctions::Ptr>::iterator epIt = _endpoints.begin(), end = _endpoints.end(); epIt != end; ++epIt )
 		{
+			if ( !epIt->second->is_readable() || !epIt->second->broadcast() )
+				continue;
+
 			try {
 				Packet::Ptr p = epIt->second->handle_query();
 				if ( p && p->type() != HXB_PTYPE_ERROR )
@@ -353,7 +355,13 @@ void Device::_handle_broadcasts(const boost::system::error_code& error)
 						}
 					}
 				} else {
-					throw;
+					std::stringstream oss;
+					oss << "Unable to generate broadcast packet";
+					if (p) {
+						ErrorPacket* pe = (ErrorPacket*) p.get();
+						oss << " (" << (int) pe->code() << ")";
+					}
+					throw hexabus::GenericException(oss.str());
 				}
 			} catch ( const GenericException& error ) {
 				std::stringstream oss;

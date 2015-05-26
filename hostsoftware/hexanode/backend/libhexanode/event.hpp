@@ -7,7 +7,6 @@ namespace hexanode {
   typedef uint16_t event_payload_t;
   class Event {
     public:
-      typedef boost::shared_ptr<Event> Ptr;
       Event (event_payload_t payload) : _payload(payload) {};
       virtual ~Event() {};
       event_payload_t payload() { return _payload; };

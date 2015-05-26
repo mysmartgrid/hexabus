@@ -77,6 +77,8 @@
 #define EP_DIMMER_MODE             80L
 #define EP_DIMMER_BRIGHTNESS       81L
 
+#define EP_LOCALTIME               129L
+
 
 
 #endif // ENDPOINTS_H_

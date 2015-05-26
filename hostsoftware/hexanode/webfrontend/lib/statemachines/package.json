@@ -2,6 +2,7 @@
 	"name": "statemachine",
 	"main": "statemachines.js",
 	"dependencies": {
-		"validator": "*"
+		"async": "*",
+		"nconf" : "*"
 	}
 }

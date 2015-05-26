@@ -1,5 +1,0 @@
-device standbykiller {
-  ip <%= ip %>;
-  eids { 1, 2, 4 }
-}
-   

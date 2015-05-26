@@ -4,25 +4,28 @@ var application_root = __dirname,
 	connect = require('connect'),
 	validator = require('validator'),
 	app = module.exports = express(),
-	server=require("http").createServer(app),
-	io = require('socket.io').listen(server),
+	server=require('http').Server(app),
+	io = require('socket.io')(server),
 	DeviceTree = require("./lib/devicetree"),
 	Hexabus = require("./lib/hexabus"),
 	hexabus = new Hexabus(),
 	Wizard = require("./lib/wizard"),
-	statemachines = require("./lib/statemachines"),
-	ApiController = require("./controllers/api"),
 	WizardController = require("./controllers/wizard"),
 	ViewsController = require("./controllers/views"),
+	HexabusServer = require("./controllers/hexabusserver"),
 	StatemachineController = require("./controllers/statemachine"),
 	fs = require("fs"),
+	debug = require('./lib/debug'),
 	nconf=require('nconf');
 
 nconf.env().argv().file({file: 'config.json'});
+
 // Setting default values
 nconf.defaults({
-  'port': '3000',
-	'config': '.'
+	'debug' : false,
+	'port': '3000',
+	'data': 'data',
+	'hxb-interfaces' : 'usb0,eth0'
 });
 server.listen(nconf.get('port'));
 
@@ -39,58 +42,63 @@ if (nconf.get('uid')) {
 	process.setuid(uid);
 }
 
-var configDir = nconf.get('config');
-var devicetree_file = configDir + '/devicetree.json';
+
+
+
+// Load Devicetree
+var dataDir = nconf.get('data');
+if(!fs.existsSync(dataDir)) {
+	fs.mkdir(dataDir);
+}
+
+var devicetree_file = path.join(dataDir,'devicetree.json');
 
 var devicetree;
-
-function open_config() {
-	try {
-		devicetree = new DeviceTree(fs.existsSync(devicetree_file) ? devicetree_file : undefined);
-	} catch (e) {
-		console.log(e);
-		devicetree = new DeviceTree();
+try {
+	if(fs.existsSync(devicetree_file)) {
+		var jsonTree = JSON.parse(fs.readFileSync(devicetree_file));
+		devicetree = new DeviceTree(jsonTree);
+	}
+	else {
+		throw 'File: ' + devicetree_file + ' does not exist';
 	}
 }
-open_config();
+catch(e) {
+	console.log(e);
+	devicetree = new DeviceTree();
+}
 
-var enumerate_network = function(cb) {
-	cb = cb || Object;
-	hexabus.enumerate_network(function(dev) {
-		if (dev.done) {
-			cb();
-		} else if (dev.error) {
-			console.log(dev.error);
-		} else {
-			dev = dev.device;
-			for (var key in dev.endpoints) {
-				var ep = dev.endpoints[key];
-				ep.name = ep.name || dev.name;
-				if (ep.function == "sensor") {
-					ep.minvalue = 0;
-					ep.maxvalue = 100;
-				}
-				if ((!devicetree.devices[dev.ip] || !devicetree.devices[dev.ip].endpoints[ep.eid]) && !hexabus.is_ignored_endpoint(dev.ip, ep.eid)) {
-					devicetree.add_endpoint(dev.ip, ep.eid, ep);
-				}
-				else if(devicetree.devices[dev.ip] && devicetree.devices[dev.ip].endpoints[ep.eid] && !hexabus.is_ignored_endpoint(dev.ip, ep.eid)) {
-					devicetree.devices[dev.ip].endpoints[ep.eid].update();
-				}
-			}
+
+// Set up timer to regularily enumerate the network
+var enumerate_network = function() {
+	hexabus.update_devicetree(devicetree, function(error) {
+		if(error !== undefined) {
+			console.log('Error updating devicetree');
+			console.log(error);
 		}
 	});
 };
-
 enumerate_network();
-
 setInterval(enumerate_network, 60 * 60 * 1000);
 
+hexabus.connect(function() {
+	debug('Got connection, trying to listen');
+	nconf.get('hxb-interfaces').split(',').forEach(hexabus.listen.bind(hexabus));
+});
+hexabus.updateEndpointValues(devicetree);
+
+// Setup timer to regularily save the devictree to disk (just in case)
 var save_devicetree = function(cb) {
-	devicetree.save(devicetree_file, cb);
+	fs.writeFile(devicetree_file, JSON.stringify(devicetree, null, '\t'), function(err) {
+		if (cb) {
+			cb(err);
+		}
+	});
+	debug('Saved Devicetree');
 };
+setInterval(save_devicetree, 2 * 60 * 1000);
 
-setInterval(save_devicetree, 10 * 60 * 1000);
-
+// We also need to save the devicetree if we are killed
 process.on('SIGINT', function() {
 	save_devicetree(process.exit);
 });
@@ -99,15 +107,13 @@ process.on('SIGTERM', function() {
 	save_devicetree(process.exit);
 });
 
+StatemachineController.setup(devicetree);
+
 console.log("Using configuration: ");
 console.log(" - port: " + nconf.get('port'));
-console.log(" - config dir: " + nconf.get('config'));
-
-if (nconf.get('socket-debug') !== undefined) {
-	io.set('log level', nconf.get('socket-debug'));
-} else {
-	io.set('log level', 1);
-}
+console.log(" - data dir: " + nconf.get('data'));
+console.log(" - hxb-interfaces: " + nconf.get('hxb-interfaces'));
+console.log(" - debug: " + nconf.get('debug'));
 
 
 // see http://stackoverflow.com/questions/4600952/node-js-ejs-example
@@ -115,7 +121,7 @@ if (nconf.get('socket-debug') !== undefined) {
 app.configure(function () {
   app.set('views', __dirname + '/views');
   app.set('view engine', 'ejs');
-//  app.use(connect.logger('dev'));
+//	app.use(connect.logger('dev'));
   app.use(express.urlencoded());
   app.use(express.json());
   app.use(express.methodOverride());
@@ -124,11 +130,17 @@ app.configure(function () {
   app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 });
 
-ApiController.expressSetup(app, nconf, hexabus, devicetree);
+/*
+ * Initialize the different controllers.
+ */
 WizardController.expressSetup(app, nconf, hexabus, devicetree);
 ViewsController.expressSetup(app, nconf, hexabus, devicetree);
 StatemachineController.expressSetup(app, nconf, hexabus, devicetree);
 
+/*
+ * The overview page.
+ * This page may redirect to /wizzard/new in case hexanode has not yet been configured.
+ */
 app.get('/', function(req, res) {
 		var wizard = new Wizard();
 		if (wizard.is_finished()) {
@@ -141,48 +153,129 @@ app.get('/', function(req, res) {
 		}
 });
 
+/*
+ * The about page for displaying some rudimentary version info.
+ */
 app.get('/about', function(req, res) {
 	res.render('about.ejs', { active_nav: 'about' });
 });
 
 
+/*
+ * Make the devicetree.js file accessable to the browser.
+ * Note: The file is written in special way to be executed by nodejs as well as by a browsers javascript engine.
+ */
+app.get('/commonjs/devicetree.js', function(req, res) {
+	res.sendfile(path.join(application_root, 'lib/devicetree/devicetree.js'));
+});
 
 
+/*
+ * Socket.io setup
+ */
+io.on('connection', function (socket) {
+	debug("Registering new client.");
 
-var sensor_is_old = function(ep) {
-	//console.log("Age for " + ep.name + " : " + ep.age);
-	return ep.age >= 60; //60 * 60 * 1000;
-};
-
-setInterval(function() {
-	devicetree.forEach(function(device) {
-		device.forEachEndpoint(function(ep) {
-			if (ep.function == "sensor" && ep.eid != 4 && ep.eid != 1 && sensor_is_old(ep)) {
-				devicetree.emit('ep_timeout', { ep: ep });
-			}
-		});
-	});
-}, 1000);
-
-io.sockets.on('connection', function (socket) {
-	console.log("Registering new client.");
-
+	// Simple wrapper around socket.on that provides better exception handling.
 	var on = function(ev, cb) {
 		socket.on(ev, function(data) {
 			try {
 				cb(data);
 			} catch (e) {
+				console.log('error in socket.io handler: ' + e);
 				socket.emit('_error_', e);
 			}
 		});
 	};
 
+	/*
+	 * Since socket.broadcast sends a message to every socket except the one it is called on,
+	 * this wrapper is required to do a real broadcast.
+	 */
 	var broadcast = function(ev, data) {
 		socket.broadcast.emit(ev, data);
 		socket.emit(ev, data);
 	};
 
+	// Shorthand for socket.emit
 	var emit = socket.emit.bind(socket);
+
+	// A hexabusserver to handle hexabus_... messages
+	var hexabusServer = new HexabusServer(socket, hexabus, devicetree);
+
+	// Setup handlers for statemachine messages
+	StatemachineController.socketioSetup(socket, hexabus, devicetree);
+
+	// Setup handler needed by the wizzard pages
+	WizardController.socketioSetup(on, emit, hexabus, devicetree);
+
+
+	/*
+	 * Setup handlers for devicetree synchronization.
+	 *
+	 * Since the devicetree aims to be agnostic towards the communication channel
+	 * used to synchronize its instances, there is no specialized setup method for socket.io.
+	 */
+
+	/*
+	 * Send the full devicetree to initialize a new browserside instance.
+	 */
+	on('devicetree_request_init', function() {
+		emit('devicetree_init', devicetree.toJSON());
+	});
+
+	/*
+	 * Apply a browerside update to the serverside instance and propagate it to all other browserside instances.
+	 *
+	 * If applying the update locally fails the update is not propagated.
+	 * Instead an error message is send backt to the browserside instance.
+	 */
+	socket.on('devicetree_update', function(update) {
+		try {
+			devicetree.applyUpdate(update);
+			socket.broadcast.emit('devicetree_update', update);
+		}
+		catch(error) {
+			socket.emit('devicetree_error', error);
+		}
+	});
+
+
+	/*
+	 * Apply a browserside deletion to the serverside instance and propagate it to all other browserside instances.
+	 *
+	 * If applying the deletion locally fails the deletion is not propagated.
+	 * Instead an error message is send backt to the browserside instance.
+	 */
+	socket.on('devicetree_delete', function(update) {
+		try {
+			devicetree.applyDeletion(update);
+			socket.broadcast.emit('devicetree_delete', update);
+		}
+		catch(error) {
+			socket.emit('devicetree_error', error);
+		}
+	});
+
+
+	/*
+	 * Propagate a serverside devicetree update to all browserside instances.
+	 */
+	devicetree.on('update',function(update) {
+		emit('devicetree_update', update);
+	});
+
+	/*
+	 * Propagate a serverside devicetree deletion to all browserside instances.
+	 */
+	devicetree.on('delete',function(deletion) {
+		emit('devicetree_delete', deletion);
+	});
+
+
+	/*
+	 * Send an update for the mysmartgrid heartbeat state to browser.
+	 */
 	var health_update_timeout;
 	var send_health_update = function() {
 		health_update_timeout = setTimeout(send_health_update, 60 * 1000);
@@ -191,219 +284,8 @@ io.sockets.on('connection', function (socket) {
 			emit('health_update', ((err || state.code !== 0) && wizard.is_finished()));
 		});
 	};
-
 	send_health_update();
 
-	var broadcast_ep = function(ep) {
-		broadcast('ep_metadata', ep);
-	};
-	var send_ep_update = function(ep) {
-		emit('ep_update', { ep: ep.id, device: ep.device.ip, value: ep.last_value, last_update: ep.last_update });
-	};
-
-	var devicetree_events = {
-		endpoint_new_value: function(ep) {
-			if (ep.function == "sensor" || ep.function == "actor") {
-				send_ep_update(ep);
-			}
-		},
-		endpoint_new: function(ep) {
-			if (ep.function == "sensor" || ep.function == "actor") {
-				emit('ep_new', ep);
-			}
-		},
-		device_renamed: function(dev) {
-			dev.forEachEndpoint(broadcast_ep);
-		},
-		ep_timeout: function(msg) {
-			emit('ep_timeout', msg);
-		}
-	};
-
-	for (var ev in devicetree_events) {
-		devicetree.on(ev, devicetree_events[ev]);
-	}
-	on('disconnect', function() {
-		for (var ev in devicetree_events) {
-			devicetree.removeListener(ev, devicetree_events[ev]);
-		}
-		clearTimeout(health_update_timeout);
-	});
-
-	on('ep_request_metadata', function(id) {
-		var ep = devicetree.endpoint_by_id(id);
-		if (ep) {
-			emit('ep_metadata', ep);
-			/*if (ep.last_value != undefined) {
-				send_ep_update(ep);
-			}*/
-		}
-	});
-	on('device_rename', function(msg) {
-		var device = devicetree.devices[msg.device];
-		if (!device) {
-			emit('device_rename_error', { device: msg.device, error: 'Device not found' });
-			return;
-		}
-		if (!msg.name) {
-			emit('device_rename_error', { device: msg.device, error: 'No name given' });
-			return;
-		}
-
-		hexabus.rename_device(msg.device, msg.name, function(err) {
-			if (err) {
-				emit('device_rename_error', { device: msg.device, error: err });
-				return;
-			}
-			device.name = msg.name;
-		});
-	});
-	on('ep_change_metadata', function(msg) {
-		var ep = devicetree.endpoint_by_id(msg.id);
-		if (ep) {
-			["minvalue", "maxvalue"].forEach(function(key) {
-				ep[key] = (msg.data[key] !== undefined) ? msg.data[key] : ep[key];
-			});
-			save_devicetree();
-			broadcast_ep(ep);
-		}
-	});
-
-	on('ep_set', function(msg) {
-		hexabus.write_endpoint(msg.ip, msg.eid, msg.type, msg.value, function(err) {
-			if (err) {
-				console.log(err);
-			} else {
-				var ep = devicetree.endpoint_by_id(msg.id);
-				if (ep) {
-					ep.last_value = msg.value;
-				} else {
-					console.log("Endpoint not found");
-				}
-			}
-		});
-	});
-
-	on('upgrade', function() {
-		var wizard = new Wizard();
-
-		wizard.upgrade(function(error) {
-			emit('upgrade_completed', { msg: error });
-		});
-	});
-
-	on('wizard_configure', function() {
-		var wizard = new Wizard();
-
-		wizard.configure_network(function(progress) {
-			emit('wizard_configure_step', progress);
-		});
-	});
-
-	on('wizard_register', function() {
-		var wizard = new Wizard();
-
-		wizard.registerMSG(function(progress) {
-			emit('wizard_register_step', progress);
-		});
-	});
-
-	on('get_activation_code', function() {
-		var wizard = new Wizard();
-
-		wizard.getActivationCode(function(data) {
-			emit('activation_code', data);
-		});
-	});
-
-	on('devices_add', function() {
-		var wizard = new Wizard();
-
-		wizard.addDevice(devicetree, function(msg) {
-			emit('device_found', msg);
-		});
-	});
-
-	on('device_remove', function(msg) {
-		try {
-			devicetree.remove(msg.device);
-			save_devicetree();
-			broadcast('device_removed', msg);
-		} catch (e) {
-			console.log({ msg: msg, error: e });
-		}
-	});
-
-	on('devices_enumerate', function() {
-		enumerate_network(function() {
-			emit('devices_enumerate_done');
-		});
-	});
-
-	var busy = false;
-
-	var sendError = function(error) {
-		emit('sm_uploaded', {sucess: false, error: error});
-	};
-
-	var buildStatemachine = function(msg, statemachineModule) {
-		console.log(msg);
-		if(!busy) {
-			
-			console.log("Validating data");
-
-			var error = statemachineModule.validateInput(msg);
-			console.log(error);
-			if(error) {
-				console.log("Validation failed");
-				console.log(error);
-				sendError(error);
-				return;
-			}
-
-			console.log("Data passed validation");
-
-			busy = true;
-			statemachineModule.buildMachine(msg,
-				function(msg) {
-					emit('sm_progress', msg);
-				},
-				function(success, error) {
-					console.log(error);
-					busy = false;
-					emit('sm_uploaded', {success: success, error: error});
-			});
-		}
-	};
-
-	on('master_slave_sm', function(msg) {
-		buildStatemachine(msg,statemachines.masterSlave);
-	});
-
-	on('standbykiller_sm', function(msg) {
-		buildStatemachine(msg,statemachines.standbyKiller);
-	});
-
-	on('productionthreshold_sm', function(msg) {
-		buildStatemachine(msg,statemachines.productionThreshold);
-	});
-	
-	on('simpleswitch_sm', function(msg) {
-		buildStatemachine(msg,statemachines.simpleSwitch);
-	});
-
-	on('demo_sm', function(msg) {
-		buildStatemachine(msg,statemachines.demoKoffer);
-	});
-
+	// Reset the browserside sate
 	emit('clear_state');
-
-	devicetree.forEach(function(device) {
-		device.forEachEndpoint(function(ep) {
-			emit('ep_metadata', ep);
-			if (ep.last_value) {
-				send_ep_update(ep);
-			}
-		});
-	});
 });

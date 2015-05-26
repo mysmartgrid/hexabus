@@ -1,0 +1,19 @@
+endpoint ep(0) : bool (broadcast);
+
+device dev(::) : ep;
+
+machine m {
+	state s {
+		on (dev.ep) { //#expect: error: endpoint dev.ep is not live
+		}
+	}
+};
+
+machine class c(device d, endpoint e) {
+	state s {
+		on (d.e) { //#expect: error: endpoint d.e (aka dev.ep) is not live
+		}
+	}
+};
+
+machine m2 : c(dev, ep); //#expect: hint: instantiated from here

@@ -1,0 +1,2 @@
+device dev(::) : dev; //#expect: error: identifier 'dev' does not name an endpoint
+                      //#expect+: declared here

@@ -134,12 +134,12 @@
 			"upload": "Hochladen",
 			"upload-success": "Hochladen erfolgreich abgeschlossen.",
 			"progress": {
-				"reading": "Lade Vorlage.",
-				"rendering" : "Fülle Vorlage aus.",
-				"compiling" : "Kompliere Schaltprogramm.",
-				"assembling" : "Erzeuge Binärdaten.", 
+				"collecting-statemachines": "Bereite Schaltprogrammliste vor",
+				"collecting-devices": "Bereite Geräteliste vor",
+				"generating-instance": "Erzeuge Schaltprogram {done} von {count}: {machine}",
+				"compiling-statemachines": "Kompilere Schaltprograme",
 				"uploading": "Hochladen des Schaltprogramms {done} von {count} : {device}.",
-				"deleting" : "Lösche temporäre Dateien."
+				"deleting-temporary-files": "Lösche temporäre Dateien"
 			},
 			"errors": {
 				"no-valid-number": "Eingabe ist keine gültige Zahl.",
@@ -148,13 +148,12 @@
 				"number-max-u32-minutes": "Der Wert muss kleiner als 71582788 sein.",
 				"disjoint-devices" : "Jedes Gerät kann nur in einer Funktion verwenden werden.",
 				"no-slaves": "Es muss mindestens ein Gerät als slave ausgewählt werden.",
-				"opening-template-failed": "Die Vorlage {file} konnte nicht geöffnet werden.",
-				"writing-file-failed": "Die Datei {file} konnte nicht geschrieben werden.",
+				"creating-intance-file-failed": "Die Schaltprogrammdatei konnte nicht geschrieben werden.",
 				"compiling-failed": "Die Statemachine konnte nicht kompiliert werden.",
-				"assembling-failed": "Das Erzeugen der Binärdaten für {device} schlug fehl.",
 				"uploading-failed": "Das Hochladen des Schaltprogramms auf {device} ist fehlgeschlagen.",
 				"deleting-temporary-files-failed": "Die temporäre Datei {file} konnte nicht gelöscht werden.",
 				"disjoint-buttons": "Bitte jeden Taster nur einmal in dieser Liste verwerden."
+				"statemachinebuilder-busy": "Es wird bereits ein anderes Schaltprogramm hochgeladen."
 			},
 			"choose": "Bitte wählen Sie eine Vorlage aus.",
 			"choose-master": "Bitte wählen Sie das Master-Gerät aus.",
@@ -174,6 +173,10 @@
 			"add-off-buttons": "Bitte die Taster hinzufügen, die das Gerät ausschalten.",
 			"add-button": "Taster hinzufügen",
 			"default-statemachine": "Demokoffer zurücksetzen"
+			"choose-on-delay": "Bitte die minimale Zeitspanne in Minuten die das Gerät angeschaltet sein soll eingeben.",
+			"choose-off-delay": "Bitte die minimale Zeitspanne in Minuten die das Gerät ausgeschaltet sein soll eingeben.",
+			"choose-switch-device": "Bitte den zu schaltenden Vebraucher auswählen.",
+			"choose-meter-device": "Bitte das Messgerät auswählen."
 		}
 	},
 	"upgrade": {

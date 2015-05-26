@@ -13,6 +13,7 @@
 namespace po = boost::program_options;
 namespace ba = boost::asio;
 namespace pt = boost::posix_time;
+namespace g = boost::gregorian;
 
 bool verbose = false;
 
@@ -29,10 +30,10 @@ enum ErrorCode {
 };
 
 void sendTime(const boost::system::error_code& e, ba::deadline_timer& t, unsigned int delay, hexabus::Socket& network, ba::ip::address_v6& hxb_broadcast_address) {
-	pt::ptime currentTime(pt::second_clock::local_time());
+	pt::time_duration currentTime = pt::second_clock::local_time() - pt::ptime(g::date(1970, 1, 1), pt::time_duration(0, 0, 0, 0));
 
 	try {
-		network.send(hexabus::InfoPacket<pt::ptime>(0, currentTime), hxb_broadcast_address);
+		network.send(hexabus::InfoPacket<uint64_t>(0, currentTime.total_seconds()), hxb_broadcast_address);
 	} catch (const hexabus::NetworkException& e) {
 		std::cerr << "Could not send packet to " << hxb_broadcast_address << ": " << e.code().message() << std::endl;
 	}

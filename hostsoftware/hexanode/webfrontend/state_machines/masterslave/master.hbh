@@ -1,4 +1,0 @@
-device master {
-  ip <%= masterip %>;
-  eids { 1, 2, 4 }
-}

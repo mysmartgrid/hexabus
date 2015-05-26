@@ -21,43 +21,12 @@
 #ifndef LIBHEXABUS_COMMON_HPP
 #define LIBHEXABUS_COMMON_HPP 1
 
-/* Include TR1 shared ptrs in a portable way. */
-#include <cstddef> // for __GLIBCXX__
-#ifdef __GLIBCXX__
-#  include <tr1/memory>
-#else
-#  ifdef __IBMCPP__
-#    define __IBMCPP_TR1__
-#  endif
-#  include <memory>
-#endif
-
-#include <boost/shared_ptr.hpp>
-
-//#define ENABLE_LOGGING 0
-#include <config.h>
-
-#ifdef ENABLE_LOGGING
-#include <iostream>
-#define LOG(msg) std::cout << msg << std::endl;
-#else
-#define LOG(msg)
-#endif
-
-#include <stdint.h>
 #include <string>
 
 namespace hexanode {
   class VersionInfo {
     public:
-      typedef boost::shared_ptr<VersionInfo> Ptr;
-      VersionInfo () {};
-      virtual ~VersionInfo() {};
-      const std::string get_version();
-
-    private:
-      VersionInfo (const VersionInfo& original);
-      VersionInfo& operator= (const VersionInfo& rhs);
+      std::string get_version();
   };
 };
 

@@ -5,9 +5,7 @@ set -e
 if [ "x$1" = "xpurge" ]
 then
 	svc -d /etc/service/hexabus_msg_bridge
-	svc -d /etc/service/hexanode-backend
 	rm -rf /etc/service/hexabus_msg_bridge
-	rm -rf /etc/service/hexanode-backend
 
 	userdel hexabus
 

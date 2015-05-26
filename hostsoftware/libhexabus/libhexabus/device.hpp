@@ -20,6 +20,8 @@
 #ifndef LIBHEXABUS_DEVICE_HPP
 #define LIBHEXABUS_DEVICE_HPP 1
 
+#include <functional>
+
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/deadline_timer.hpp>
 
@@ -30,35 +32,40 @@
 namespace hexabus {
 	class EndpointFunctions {
 		public:
-			typedef std::tr1::shared_ptr<EndpointFunctions> Ptr;
+			typedef std::shared_ptr<EndpointFunctions> Ptr;
 			uint32_t eid() const { return _eid; }
 			std::string name() const { return _name; }
 			uint8_t datatype() const { return _datatype; }
+			bool broadcast() const { return _broadcast; }
 
 			virtual hexabus::Packet::Ptr handle_query() const = 0;
 			virtual uint8_t handle_write(const hexabus::Packet& p) const = 0;
+			virtual bool is_readable() const = 0;
+			virtual bool is_writable() const = 0;
 
 		protected:
-			EndpointFunctions(uint32_t eid, const std::string& name, uint8_t datatype)
+			EndpointFunctions(uint32_t eid, const std::string& name, uint8_t datatype, bool broadcast = true)
 				: _eid(eid)
 				, _name(name)
 				, _datatype(datatype)
+				, _broadcast(broadcast)
 			{}
 
 		private:
 			uint32_t _eid;
 			std::string _name;
 			uint8_t _datatype;
+			bool _broadcast;
 	};
 
 	template<typename TValue>
 	class TypedEndpointFunctions : public EndpointFunctions {
 		public:
-			typedef std::tr1::shared_ptr<TypedEndpointFunctions<TValue> > Ptr;
-			typedef boost::function<TValue ()> endpoint_read_fn_t;
-			typedef boost::function<bool (const TValue& value)> endpoint_write_fn_t;
-			TypedEndpointFunctions(uint32_t eid, const std::string& name)
-				: EndpointFunctions(eid, name, calculateDatatype())
+			typedef std::shared_ptr<TypedEndpointFunctions<TValue> > Ptr;
+			typedef std::function<TValue ()> endpoint_read_fn_t;
+			typedef std::function<bool (const TValue& value)> endpoint_write_fn_t;
+			TypedEndpointFunctions(uint32_t eid, const std::string& name, bool broadcast = true)
+				: EndpointFunctions(eid, name, calculateDatatype(), broadcast)
 			{}
 
 			boost::signals2::connection onRead(
@@ -74,8 +81,16 @@ namespace hexabus {
 				return result;
 			}
 
+			virtual bool is_readable() const {
+				return _read.num_slots() > 0;
+			}
+
+			virtual bool is_writable() const {
+				return _write.num_slots() > 0;
+			}
+
 			virtual hexabus::Packet::Ptr handle_query() const {
-				if ( _read.num_slots() < 1 )
+				if ( !is_readable() )
 					return Packet::Ptr(new ErrorPacket(HXB_ERR_UNKNOWNEID));
 
 				boost::optional<TValue> value = _read();
@@ -89,7 +104,7 @@ namespace hexabus {
 			virtual uint8_t handle_write(const hexabus::Packet& p) const {
 				const WritePacket<TValue>* write = dynamic_cast<const WritePacket<TValue>*>(&p);
 				if ( write != NULL ) {
-					if ( _write.num_slots() < 1 ) {
+					if ( !is_writable() ) {
 						return HXB_ERR_WRITEREADONLY;
 					}
 
@@ -115,40 +130,17 @@ namespace hexabus {
 			boost::signals2::signal<TValue ()> _read;
 			boost::signals2::signal<bool (const TValue&)> _write;
 
-			BOOST_STATIC_ASSERT_MSG((
-				boost::is_same<TValue, bool>::value
-					|| boost::is_same<TValue, uint8_t>::value
-					|| boost::is_same<TValue, uint32_t>::value
-					|| boost::is_same<TValue, float>::value
-					|| boost::is_same<TValue, std::string>::value
-					|| boost::is_same<TValue, boost::posix_time::ptime>::value
-					|| boost::is_same<TValue, boost::posix_time::time_duration>::value
-					|| boost::is_same<TValue, boost::array<char, 16> >::value
-					|| boost::is_same<TValue, boost::array<char, 65> >::value),
-				"I don't know how to handle that type");
-
 			static uint8_t calculateDatatype()
 			{
-				return boost::is_same<TValue, bool>::value ? HXB_DTYPE_BOOL :
-					boost::is_same<TValue, uint8_t>::value ? HXB_DTYPE_UINT8 :
-					boost::is_same<TValue, uint32_t>::value ? HXB_DTYPE_UINT32 :
-					boost::is_same<TValue, float>::value ? HXB_DTYPE_FLOAT :
-					boost::is_same<TValue, std::string>::value ? HXB_DTYPE_128STRING :
-					boost::is_same<TValue, boost::posix_time::ptime>::value ? HXB_DTYPE_DATETIME :
-					boost::is_same<TValue, boost::posix_time::time_duration>::value ? HXB_DTYPE_TIMESTAMP :
-					boost::is_same<TValue, boost::array<char, 16> >::value
-						? HXB_DTYPE_16BYTES :
-					boost::is_same<TValue, boost::array<char, 65> >::value
-						? HXB_DTYPE_65BYTES :
-					(throw "BUG: Unknown datatype!", HXB_DTYPE_UNDEFINED);
+				return InfoPacket<TValue>(0, TValue(), 0).datatype();
 			}
 	};
 
 	class Device {
 		public:
-			typedef boost::function<std::string ()> read_name_fn_t;
-			typedef boost::function<void (const std::string& name)> write_name_fn_t;
-			typedef boost::function<void (const GenericException& error)> async_error_fn_t;
+			typedef std::function<std::string ()> read_name_fn_t;
+			typedef std::function<void (const std::string& name)> write_name_fn_t;
+			typedef std::function<void (const GenericException& error)> async_error_fn_t;
 			Device(boost::asio::io_service& io, const std::vector<std::string>& interfaces, const std::vector<std::string>& addresses, int interval = 60);
 			~Device();
 			void addEndpoint(const EndpointFunctions::Ptr ep);

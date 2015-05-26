@@ -4,3 +4,4 @@ config.json
 devicetree.json
 *.swp
 *.swo
+data
