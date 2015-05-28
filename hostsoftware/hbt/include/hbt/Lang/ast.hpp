@@ -734,11 +734,13 @@ private:
 	std::vector<std::unique_ptr<DeclarationStmt>> _variables;
 	std::vector<std::unique_ptr<OnBlock>> _onBlocks;
 	unsigned _id;
+	bool _entered, _left;
 
 public:
 	State(const SourceLocation& sloc, const Identifier& name, std::vector<std::unique_ptr<DeclarationStmt>> variables,
 			decltype(_onBlocks) onBlocks)
-		: _sloc(sloc), _name(name), _variables(std::move(variables)), _onBlocks(std::move(onBlocks))
+		: _sloc(sloc), _name(name), _variables(std::move(variables)), _onBlocks(std::move(onBlocks)), _id(0), _entered(false),
+		  _left(false)
 	{}
 
 	const SourceLocation& sloc() const { return _sloc; }
@@ -746,8 +748,12 @@ public:
 	const std::vector<std::unique_ptr<DeclarationStmt>>& variables() const { return _variables; }
 	std::vector<std::unique_ptr<OnBlock>>& onBlocks() { return _onBlocks; }
 	unsigned id() const { return _id; }
+	bool entered() const { return _entered; }
+	bool left() const { return _left; }
 
 	void id(unsigned u) { _id = u; }
+	void entered(bool b) { _entered = b; }
+	void left(bool b) { _left = b; }
 };
 
 

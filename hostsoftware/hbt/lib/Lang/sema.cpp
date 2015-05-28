@@ -381,6 +381,15 @@ static Diagnostic exprBlockNotAllowedHere(const OnBlock& block)
 	return { DiagnosticKind::Error, &block.sloc(), "on (expr) block not allowed after always or exit blocks" };
 }
 
+static Diagnostic stateIsUnreachable(const State& state)
+{
+	return {
+		DiagnosticKind::Warning,
+		&state.sloc(),
+		str(format("state %1% is unreachable") % state.name().name()),
+	};
+}
+
 
 
 static bool fitsIntoConstexprType(Expr& e, Type t)
@@ -439,8 +448,8 @@ public:
 
 
 SemanticVisitor::SemanticVisitor(DiagnosticOutput& diagOut)
-	: diags(diagOut), currentScope(&globalScope), liveEndpoint(nullptr), gotoExclusionScope(nullptr), behaviourDevice(nullptr),
-	  isResolvingType(false), inBehaviour(false)
+	: diags(diagOut), currentScope(&globalScope), currentState(nullptr), liveEndpoint(nullptr), gotoExclusionScope(nullptr),
+	  behaviourDevice(nullptr), isResolvingType(false), inBehaviour(false)
 {
 	globalScope.insert(*BuiltinFunction::second());
 	globalScope.insert(*BuiltinFunction::minute());
@@ -1157,6 +1166,8 @@ void SemanticVisitor::visit(GotoStmt& g)
 	}
 
 	g.target(knownStates[g.state().name()]);
+	g.target()->entered(true);
+	currentState->left(true);
 }
 
 void SemanticVisitor::visit(OnSimpleBlock& o)
@@ -1237,6 +1248,15 @@ void SemanticVisitor::visit(Device& d)
 void SemanticVisitor::checkState(State& s)
 {
 	StackedScope stateScope(currentScope);
+
+	currentState = &s;
+	struct onExit {
+		std::function<void()> op;
+		~onExit() { op(); }
+	} _ = { [&] { this->currentState = nullptr; } };
+
+	if (!s.entered() && s.id() != 0)
+		diags.print(stateIsUnreachable(s));
 
 	for (auto& var : s.variables())
 		var->accept(*this);

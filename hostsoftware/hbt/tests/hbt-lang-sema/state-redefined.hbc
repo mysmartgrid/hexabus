@@ -1,4 +1,5 @@
 machine m {
 	state a {} //#expect: hint: previously declared here
 	state a {} //#expect: error: redefinition of state a
+	           //#expect+: warning: state a is unreachable
 };

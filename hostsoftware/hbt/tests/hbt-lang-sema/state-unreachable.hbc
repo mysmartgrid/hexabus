@@ -1,0 +1,5 @@
+machine m {
+	state init {
+	}
+	state dead {} //#expect: warning: state dead is unreachable
+};

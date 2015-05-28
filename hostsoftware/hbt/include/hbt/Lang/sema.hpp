@@ -27,6 +27,7 @@ private:
 
 	Scope globalScope;
 	Scope* currentScope;
+	State* currentState;
 
 	EndpointExpr* liveEndpoint;
 
