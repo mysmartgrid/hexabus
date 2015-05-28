@@ -1103,15 +1103,12 @@ void MachineCG::emitStateGlue()
 		for (auto* block : exitedBlocks)
 			block->append(ir::JumpInsn(changeAfterExit));
 
-		if (newStateSources.empty()) {
-			exitChange->append(ir::JumpInsn(changeAfterExit));
-			changeAfterExit->append(ir::JumpInsn(_machineTail));
-		} else {
-			auto next = exitChange->append(ir::PhiInsn("%" + prefix + ".newstate", ir::Type::UInt32, std::move(newStateSources)));
-			exitChange->append(ir::SwitchInsn(curState, std::move(stateExitLabels), changeAfterExit));
-			changeAfterExit->append(ir::StoreInsn(stateVar, next));
-			changeAfterExit->append(ir::SwitchInsn(next, std::move(stateEntryLabels), _machineTail));
-		}
+		auto next = exitChange->append(ir::PhiInsn("%" + prefix + ".newstate", ir::Type::UInt32, std::move(newStateSources)));
+		exitChange->append(ir::SwitchInsn(curState, std::move(stateExitLabels), changeAfterExit));
+		changeAfterExit->append(ir::StoreInsn(stateVar, next));
+		changeAfterExit->append(ir::SwitchInsn(next, std::move(stateEntryLabels), _machineTail));
+	} else {
+		exitChange->append(ir::ReturnInsn());
 	}
 }
 
@@ -1126,9 +1123,6 @@ void MachineCG::run()
 
 	emitOnInit();
 	emitStateGlue();
-
-	if (exitChange->instructions().empty())
-		exitChange->append(ir::ReturnInsn());
 }
 
 
