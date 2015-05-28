@@ -931,6 +931,11 @@ void StateCG::emitOnBlocks(IRBlock& irDesc, std::vector<Block*>& blocks, std::st
 
 void StateCG::emitOnEntry()
 {
+	if (!_state.entered()) {
+		_onEntryIR = { nullptr, nullptr };
+		return;
+	}
+
 	emitOnBlocks(_onEntryIR, onEntryBlocks, "entry");
 
 	NameGenerator ng(prefix + ".entryVarSet");
@@ -947,6 +952,11 @@ void StateCG::emitOnEntry()
 
 void StateCG::emitOnExit()
 {
+	if (!_state.left()) {
+		_onExitIR = { nullptr, nullptr };
+		return;
+	}
+
 	emitOnBlocks(_onExitIR, onExitBlocks, "exit");
 
 	NameGenerator ng(prefix + ".exit");
@@ -1037,10 +1047,9 @@ void MachineCG::emitOnInit()
 
 void MachineCG::emitStateGlue()
 {
-	auto changeAfterExit = mb.newBlock(prefix + ".changeState2");
-
 	ir::SwitchInsn::labels_type stateLabels, stateEntryLabels, stateExitLabels;
 	ir::PhiInsn::sources_type newStateSources;
+	std::set<ir::BasicBlock*> exitedBlocks;
 
 	for (auto& state : states) {
 		auto stateHead = mb.newBlock(str(boost::format("%1%.%2%.head") % prefix % state.state().id()));
@@ -1062,18 +1071,22 @@ void MachineCG::emitStateGlue()
 		// packet and the exitStay jump is taken if no update block matches the packet
 		state.onUpdateIR().exitStay->append(ir::JumpInsn(state.onExprIR().entry));
 
-		// Some as updateIR
+		// Same as updateIR
 		state.onExprIR().exitStay->append(ir::JumpInsn(state.alwaysIR().entry));
 
 		// same as onPeriodicIR
 		if (state.alwaysIR().exitStay)
 			state.alwaysIR().exitStay->append(ir::JumpInsn(_machineTail));
 
-		stateEntryLabels.insert({ state.state().id(), state.onEntryIR().entry });
-		stateExitLabels.insert({ state.state().id(), state.onExitIR().entry });
+		if (state.state().left()) {
+			stateExitLabels.insert({ state.state().id(), state.onExitIR().entry });
+			exitedBlocks.insert(state.onExitIR().exitStay);
+		}
 
-		state.onExitIR().exitStay->append(ir::JumpInsn(changeAfterExit));
-		state.onEntryIR().exitStay->append(ir::JumpInsn(_machineTail));
+		if (state.state().entered()) {
+			stateEntryLabels.insert({ state.state().id(), state.onEntryIR().entry });
+			state.onEntryIR().exitStay->append(ir::JumpInsn(_machineTail));
+		}
 
 		newStateSources.insert(state.nextStates().begin(), state.nextStates().end());
 	}
@@ -1084,14 +1097,21 @@ void MachineCG::emitStateGlue()
 	stateLabels.erase(states.back().state().id());
 	_machineHead->append(ir::SwitchInsn(curState, std::move(stateLabels), lastPossibleState));
 
-	if (newStateSources.empty()) {
-		exitChange->append(ir::JumpInsn(changeAfterExit));
-		changeAfterExit->append(ir::JumpInsn(_machineTail));
-	} else {
-		auto next = exitChange->append(ir::PhiInsn("%" + prefix + ".newstate", ir::Type::UInt32, std::move(newStateSources)));
-		exitChange->append(ir::SwitchInsn(curState, std::move(stateExitLabels), changeAfterExit));
-		changeAfterExit->append(ir::StoreInsn(stateVar, next));
-		changeAfterExit->append(ir::SwitchInsn(next, std::move(stateEntryLabels), _machineTail));
+	if (!exitedBlocks.empty()) {
+		auto changeAfterExit = mb.newBlock(prefix + ".changeState2");
+
+		for (auto* block : exitedBlocks)
+			block->append(ir::JumpInsn(changeAfterExit));
+
+		if (newStateSources.empty()) {
+			exitChange->append(ir::JumpInsn(changeAfterExit));
+			changeAfterExit->append(ir::JumpInsn(_machineTail));
+		} else {
+			auto next = exitChange->append(ir::PhiInsn("%" + prefix + ".newstate", ir::Type::UInt32, std::move(newStateSources)));
+			exitChange->append(ir::SwitchInsn(curState, std::move(stateExitLabels), changeAfterExit));
+			changeAfterExit->append(ir::StoreInsn(stateVar, next));
+			changeAfterExit->append(ir::SwitchInsn(next, std::move(stateEntryLabels), _machineTail));
+		}
 	}
 }
 
@@ -1106,6 +1126,9 @@ void MachineCG::run()
 
 	emitOnInit();
 	emitStateGlue();
+
+	if (exitChange->instructions().empty())
+		exitChange->append(ir::ReturnInsn());
 }
 
 
