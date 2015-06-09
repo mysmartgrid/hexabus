@@ -2,5 +2,6 @@
 	"eqeqeq" : false,
 	"eqnull" : true,
 	"undef" : true,
-	"node" : true
+	"node" : true,
+	"quotemark" : "single"
 }

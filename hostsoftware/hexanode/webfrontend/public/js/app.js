@@ -2,7 +2,8 @@
 angular.module('hexanode', [
 	'ng-socket',
 	'gauges',
-	'controls'
+	'controls',
+	'schemaForm'
 ])
 //Create a hexabusclient service  (see https://docs.angularjs.org/guide/providers)
 .service('HexabusClient', ['Socket', window.HexabusClient])

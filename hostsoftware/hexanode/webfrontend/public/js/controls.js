@@ -455,6 +455,7 @@ angular.module('controls', [
 			return {
 				post: function(scope, element, attrs, controller) {
 					scope.$watch('deviceList', function(deviceList) {
+						deviceList = deviceList || [];
 						var inList = deviceList.some(function(dev) {
 							return dev.ip === scope.model;
 						});

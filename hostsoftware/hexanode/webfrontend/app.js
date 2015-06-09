@@ -170,6 +170,11 @@ app.get('/commonjs/devicetree.js', function(req, res) {
 	res.sendfile(path.join(application_root, 'lib/devicetree/devicetree.js'));
 });
 
+app.get('/schemas/:schema', function(req, res) {
+	var schemaRoot = path.join(application_root, 'lib/statemachines/schemas/');
+	res.sendfile(path.join(schemaRoot, req.param('schema') + '.json'));
+});
+
 
 /*
  * Socket.io setup

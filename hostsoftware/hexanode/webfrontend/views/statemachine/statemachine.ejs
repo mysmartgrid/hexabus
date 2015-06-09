@@ -1,10 +1,4 @@
 <% include ../header %>
-<script>
-	known_hexabus_devices = <%- JSON.stringify(devices) %>;
-</script>
-
-
-
 <div class="container" data-ng-controller="stateMachine">
 
 	<div class="alert alert-info" data-ng-show="progressAlert.show">
@@ -39,7 +33,24 @@
 				<span data-localize="wizard.state-machine.upload-success">Upload sucessfull !</span>
 			</div>
 		</div>
+	</div>
 
+	<div>
+		<h3>Statemachines</h3>
+		<table class="table table-hover">
+			<tr data-ng-repeat="machine in devicetree.statemachines">
+				<th>
+					<i>{{machine.name}}</i><br/>
+					{{machine.machineClass}}<br/>
+				</th>
+				<td>
+					<p class="comment-pre">{{machine.comment}}</p>
+					<p data-ng-repeat="device in getUsedDevices(machine)">{{device.name}} <i>({{device.ip}})</i></p>
+				</td>
+				<td>
+				</td>
+			</tr>
+		</table>
 	</div>
 
 
@@ -47,29 +58,19 @@
 		<h3 data-localize="wizard.state-machine.new">New state machine</h3>
 		<div class="form-group">
 			<label class="control-label" data-localize="wizard.state-machine.choose">Choose a ... from below.</label>
-			<select class="form-control" data-ng-model="machineProp" data-ng-disabled="busy" data-ng-change="resetForms()">
-				<option value="threshold">Threshold</option>
-				<option value="master_slave">Master/Slave</option>
-				<option value="standbykiller">Standbykiller</option>
-				<option value="production_threshold">Production Treshold</option>
+			<select class="form-control" data-ng-model="machineClass" data-ng-disabled="busy" data-ng-change="changeClass()">
+				<option value="Threshold">Threshold</option>
+				<option value="MasterSlave">Master/Slave</option>
+				<option value="Standbykiller">Standbykiller</option>
+				<option value="ProductionThreshold">Production Treshold</option>
 			</select>
 		</div>
 	</div>
 
-	<div class="well" data-ng-show="machineProp=='master_slave'">
-		<% include forms/masterslave %>
-	</div>
 
-	<div data-ng-show="machineProp=='standbykiller'" class="well">
-		<% include forms/standbykiller %>
-	</div>
-
-	<div data-ng-show="machineProp=='production_threshold'" class="well">
-		<% include forms/productionthreshold %>
-	</div>
-
-	<div data-ng-show="machineProp=='threshold'" class="well">
-		<% include forms/threshold %>
+	<div data-ng-show="machineClass" class="well">
+		<form role="form" name="machineForm" data-sf-schema="schema" data-sf-form="form" data-sf-model="model" data-ng-submit="submit()">
+		</form>
 	</div>
 
 </div>

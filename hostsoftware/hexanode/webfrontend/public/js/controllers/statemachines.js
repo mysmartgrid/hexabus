@@ -1,13 +1,288 @@
+angular.module('schemaForm')
+.config(['schemaFormProvider', 'schemaFormDecoratorsProvider', 'sfPathProvider',
+	function(schemaFormProvider, schemaFormDecoratorsProvider, sfPathProvider) {
+		 schemaFormDecoratorsProvider.addMapping(
+  			'bootstrapDecorator',
+  			'devicepicker',
+  			'/js/devicepicker.html');
+}]);
 angular.module('hexanode')
-.controller('stateMachine', ['$scope', 'Socket', 'DeviceTree', 'Lang', function($scope, Socket, DeviceTree, Lang) {
+.controller('stateMachine', ['$scope', '$http', 'Socket', 'DeviceTree', 'Lang', function($scope, $http, Socket, DeviceTree, Lang) {
 	var uuid = window.uuid;
+
+	var translation = Lang.pack['wizard']['state-machine'];
+
+	var addCommonFields = function(json) {
+		var start = [
+				{
+					key: 'name',
+					title: translation['name'],
+					description: translation['choose-name'],
+					feedback: false,
+				},
+				{
+					key : 'comment',
+					title: translation['comment'],
+					description: translation['choose-comment'],
+					type: 'textarea',
+					feedback: false,
+				},
+			];
+
+		var end = [
+				{
+					type: 'submit',
+					title: 'Upload'
+				}
+		];
+
+		return start.concat(json).concat(end);
+	};
+
+
+	var statemachineClasses = {
+		Standbykiller: {
+			getUsedDevices : function(machine) {
+				return [machine.config.dev].map(getDeviceForIp);
+			},
+			form: addCommonFields([
+				{
+					key: 'config.dev',
+					title: translation['device'],
+					description: translation['choose-device'],
+					type: 'devicepicker',
+					devices: [],
+					updateDevices: function() {
+						return DeviceTree.getDevicesWithEndpoint([1,2]);
+					},
+					feedback: false,
+				},
+				{
+					key : 'config.threshold',
+					title: translation['threshold'],
+					description: translation['choose-threshold'],
+					feedback: false,
+				},
+				{
+					key : 'config.timeout',
+					title: translation['timeout'],
+					description: translation['choose-timeout'],
+					feedback: false,
+				}
+			]),
+		},
+
+		MasterSlave: {
+			getUsedDevices: function(machine) {
+				return [machine.config.master, machine.config.slave].map(getDeviceForIp);
+			},
+
+			form: addCommonFields([
+				{
+					key: 'config.master',
+					title: translation['master-device'],
+					description: translation['choose-device'],
+					type: 'devicepicker',
+					devices: [],
+					updateDevices: function() {
+						return DeviceTree.getDevicesWithEndpoint([2]);
+					},
+					feedback: false,
+				},
+				{
+					key : 'config.threshold',
+					title: translation['threshold'],
+					description: translation['choose-threshold'],
+					feedback: false,
+				},
+				{
+					key: 'config.slave',
+					title: translation['slave-device'],
+					description: translation['choose-device'],
+					type: 'devicepicker',
+					devices: [],
+					updateDevices: function() {
+						return DeviceTree.getDevicesWithEndpoint([1]);
+					},
+					feedback: false,
+				},
+			])
+		},
+
+		Threshold: {
+			getUsedDevices: function(machine) {
+				return [machine.config.meterDev, machine.config.switchDev].map(getDeviceForIp);
+			},
+			form: addCommonFields([
+				{
+					key: 'config.meterDev',
+					title: translation['meter-device'],
+					description: translation['choose-device'],
+					type: 'devicepicker',
+					devices: [],
+					updateDevices: function() {
+						return DeviceTree.getDevicesWithEndpoint([2]);
+					},
+					feedback: false,
+				},
+				{
+					key: 'config.switchDev',
+					title: translation['switch-device'],
+					description: translation['choose-device'],
+					type: 'devicepicker',
+					devices: [],
+					updateDevices: function() {
+						return DeviceTree.getDevicesWithEndpoint([1,4]);
+					},
+					feedback: false,
+				},
+
+				{
+					key : 'config.threshold',
+					title: translation['threshold'],
+					description: translation['choose-threshold'],
+					feedback: false,
+				},
+				{
+					key : 'config.minOnTime',
+					title: translation['timeout-min-on'],
+					description: translation['choose-timeout-min-on'],
+					feedback: false,
+				},
+				{
+					key : 'config.minOffTime',
+					title: translation['timeout-min-off'],
+					description: translation['choose-timeout-min-off'],
+					feedback: false,
+				}
+
+			]),
+		},
+
+		ProductionThreshold: {
+			getUsedDevices: function(machine) {
+				return [machine.config.producer, machine.config.consumer].map(getDeviceForIp);
+			},
+
+			form: addCommonFields([
+				{
+					key: 'config.producer',
+					title: translation['producer-device'],
+					description: translation['choose-device'],
+					type: 'devicepicker',
+					devices: [],
+					updateDevices: function() {
+						return DeviceTree.getDevicesWithEndpoint([2]);
+					},
+					feedback: false,
+				},
+				{
+					key : 'config.prodThreshold',
+					title: translation['production-threshold'],
+					description: translation['choose-threshold'],
+					feedback: false,
+				},
+				{
+					key: 'config.consumer',
+					title: translation['consumer-device'],
+					description: translation['choose-device'],
+					type: 'devicepicker',
+					devices: [],
+					updateDevices: function() {
+						return DeviceTree.getDevicesWithEndpoint([1,2,4]);
+					},
+					feedback: false,
+				},
+				{
+					key : 'config.conThreshold',
+					title: translation['consumption-threshold'],
+					description: translation['choose-threshold'],
+					feedback: false,
+				},
+				{
+					key : 'config.onTimeout',
+					title: translation['timeout-max-on'],
+					description: translation['choose-timeout-max-on'],
+					feedback: false,
+				},
+				{
+					key : 'config.offTimeout',
+					title: translation['timeout-max-off'],
+					description: translation['choose-timeout-max-off'],
+					feedback: false,
+				}
+			])
+		}
+	};
+
+
+	var localizeSchema = function(schema) {
+		var localized;
+		if(schema.type === 'object') {
+			localized = {
+				type: 'object',
+				required: schema.required,
+				properties: {}
+			};
+
+			for(var key in schema.properties) {
+				localized.properties[key] = localizeSchema(schema.properties[key]);
+			}
+		}
+		else {
+			localized = schema;
+			if(schema.localizedValidationMessage !== undefined ||
+				translation[schema.localizedValidationMessage] !== undefined) {
+					localized.validationMessage = translation[schema.localizedValidationMessage];
+					delete localized.localizedValidationMessage;
+			}
+		}
+
+		return localized;
+	};
+
+
+	var applyToClass = function(machineClass) {
+		return function(res){
+          	statemachineClasses[machineClass].schema = localizeSchema(res.data);
+        };
+	};
+
+	for(var machineClass in statemachineClasses) {
+		$http.get('schemas/'+machineClass)
+       		.then(applyToClass(machineClass));
+	}
+
+	var updateDevices = function() {
+		for(var index in $scope.form) {
+			if($scope.form[index].updateDevices !== undefined) {
+				$scope.form[index].devices = $scope.form[index].updateDevices();
+			}
+		}
+	};
+	DeviceTree.on('changeApplied', updateDevices);
+
+
+	var getDeviceForIp = function(ip) {
+		if($scope.devicetree.devices[ip] === undefined) {
+			throw Error('Unkonwn device ' + ip);
+		}
+		return $scope.devicetree.devices[ip];
+	};
+
+	var getMachineClass = function(machine) {
+		if(statemachineClasses[machine.machineClass] === undefined) {
+			throw Error('Unkonwn Machine class ' + machine.machineClass);
+		}
+		return statemachineClasses[machine.machineClass];
+	};
+
+	$scope.getUsedDevices = function(machine) {
+		return getMachineClass(machine).getUsedDevices(machine);
+	};
 
 	$scope.errorClass = function(error) {
 		return error ? 'has-error' : 'has-success';
-	};
-
-	var generateRandomName = function() {
-		return 'sm_' + Math.floor(Math.random() * 10000000).toString(36);
 	};
 
 	var hideAlerts = function() {
@@ -16,37 +291,19 @@ angular.module('hexanode')
 		$scope.successAlert.show = false;
 	};
 
-	var stateMachineForms = [];
-
-	$scope.resetForms = function() {
-		for(var i in stateMachineForms) {
-			stateMachineForms[i].resetForm();
-		}
-
-		hideAlerts();
-	};
-
-	$scope.updateDevices = function() {
-		for(var i in stateMachineForms) {
-			stateMachineForms[i].updateDevices();
-		}
-		console.log('Updated devicelists');
-	};
-
-	var localizeMessage = function(data,type) {
-		var localizedMessages = Lang.pack["wizard"]["state-machine"][type] || {};
-		if(data.localization in localizedMessages) {
-			var message = localizedMessages[data.localization];
+	var localizeMessage = function(data) {
+		if(data.localization in translation) {
+			var message = translation[data.localization];
 			for(var name in data.extras) {
 				console.log(name + ' replace with ' + data.extras[name]);
 				message = message.replace('{' + name + '}', data.extras[name]);
 			}
 			if(data.msg !== undefined) {
-				console.log("Internal message: " + data.msg);
+				console.log('Internal message: ' + data.msg);
 			}
 			return message;
 		}
-		console.log("Missing translation: " + type + " " + data.localization);
+		console.log('Missing translation: ' + data.localization);
 		return data.msg;
 	};
 
@@ -59,14 +316,33 @@ angular.module('hexanode')
 		}
 		else {
 			$scope.errorAlert.show = true;
-			$scope.errorAlert.text = localizeMessage(data.error,'errors');
+			$scope.errorAlert.text = localizeMessage(data.error);
+		}
+	};
+
+	$scope.form = {};
+	$scope.schema = {};
+	$scope.model = {};
+
+	$scope.changeClass = function() {
+		$scope.schema = statemachineClasses[$scope.machineClass].schema;
+		$scope.form = statemachineClasses[$scope.machineClass].form;
+		updateDevices();
+	};
+
+	$scope.submit = function() {
+
+		$scope.$broadcast('schemaFormValidate');
+
+		if($scope.machineForm.$valid) {
+			uploadStatemachines([$scope.model]);
 		}
 	};
 
 	var statemachineProgress = function(data) {
 		hideAlerts();
 		$scope.progressAlert.show = true;
-		$scope.progressAlert.text = localizeMessage(data, 'progress');
+		$scope.progressAlert.text = localizeMessage(data);
 		if('done' in data.extras && 'count' in data.extras) {
 			$scope.progressAlert.percent = data.extras.done / data.extras.count * 100.0;
 		}
@@ -82,8 +358,9 @@ angular.module('hexanode')
 
 		console.log(error);
 		$scope.errorAlert.show = true;
-		$scope.errorAlert.text = "Internal Error: " + error;
+		$scope.errorAlert.text = 'Internal Error: ' + error;
 	});
+
 
 	var uploadStatemachines = function(statemachines) {
 		hideAlerts();
@@ -99,207 +376,7 @@ angular.module('hexanode')
 	$scope.busy = false;
 
 
-/*
- * Master slave statemachine
- */
-	$scope.masterSlave = {};
-	$scope.masterSlave.masterDevices = [];
-	$scope.masterSlave.slaveDevices = [];
-	$scope.masterSlave.slaves = [];
-
-	$scope.masterSlave.validateForm = function() {
-		var usedIPs = [];
-		$scope.masterSlaveForm.$setValidity('disjointDevices',true);
-		$scope.masterSlaveForm.$setValidity('undefinedDevices',true);
-		usedIPs.push($scope.masterSlave.master);
-		for(var slave in $scope.masterSlave.slaves) {
-			if($scope.masterSlave.slaves[slave].ip === undefined) {
-				$scope.masterSlaveForm.$setValidity('undefinedDevices',false);
-			}
-			if(usedIPs.indexOf($scope.masterSlave.slaves[slave].ip) > -1) {
-				$scope.masterSlaveForm.$setValidity('disjointDevices',false);
-			}
-			usedIPs.push($scope.masterSlave.slaves[slave].ip);
-		}
-	};
-
-	$scope.masterSlave.resetForm = function() {
-		$scope.masterSlave.master = $scope.masterSlave.masterDevices[0].ip;
-		$scope.masterSlave.threshold = 10;
-		$scope.masterSlave.slaves = [];
-		$scope.masterSlave.validateForm();
-	};
-
-	$scope.masterSlave.updateDevices = function() {
-		$scope.masterSlave.masterDevices = $scope.devicetree.getDevicesWithEndpoint([2]);
-		$scope.masterSlave.slaveDevices = $scope.devicetree.getDevicesWithEndpoint([1,4]);
-
-		$scope.masterSlave.validateForm();
-	};
-
-	$scope.masterSlave.addSlave = function() {
-		$scope.masterSlave.slaves.push({ip: $scope.masterSlave.slaveDevices[0].ip});
-		$scope.masterSlave.validateForm();
-	};
-
-	$scope.masterSlave.removeSlave = function(slave) {
-		var i = $scope.masterSlave.slaves.indexOf(slave);
-		if(i > -1) {
-			$scope.masterSlave.slaves.splice(i,1);
-		}
-		$scope.masterSlave.validateForm();
-	};
-
-	$scope.masterSlave.upload = function() {
-		var statemachines = [];
-
-		for(var slave in $scope.masterSlave.slaves) {
-			var statemachine = {
-				id: null,
-				name: generateRandomName(),
-				machineClass: 'MasterSlave',
-				comment: 'No comment',
-				config: {
-					master: $scope.masterSlave.master,
-					meter: 2,
-					threshold : $scope.masterSlave.threshold,
-					slave: $scope.masterSlave.slaves[slave].ip,
-					relais: 1
-				}
-			};
-			statemachines.push(statemachine);
-		}
-		uploadStatemachines(statemachines);
-	};
-
-	stateMachineForms.push($scope.masterSlave);
-
-/*
- * Stanbykiller statemachine
- */
-	$scope.standbyKiller = {};
-	$scope.standbyKiller.devices = [];
-
-	$scope.standbyKiller.updateDevices = function() {
-		$scope.standbyKiller.devices = $scope.devicetree.getDevicesWithEndpoint([2]);
-	};
-
-	$scope.standbyKiller.upload = function() {
-		var statemachine = [{
-			id: null,
-			name: generateRandomName(),
-			machineClass: 'Standbykiller',
-			comment: 'No comment',
-			config: {
-				dev: $scope.standbyKiller.device,
-				meter: 2,
-				relais : 1,
-				threshold : $scope.standbyKiller.threshold,
-				button : 4,
-				timeout : $scope.standbyKiller.timeout
-			},
-		}];
-		uploadStatemachines(statemachine);
-	};
-
-	$scope.standbyKiller.resetForm = function() {
-		$scope.standbyKiller.device = $scope.standbyKiller.devices[0].ip;
-		$scope.standbyKiller.threshold = 10;
-		$scope.standbyKiller.timeout = 25;
-	};
-
-	stateMachineForms.push($scope.standbyKiller);
-
-
-/*
- * Production threshold statemachine
- */
-	$scope.productionThreshold = {};
-	$scope.productionThreshold.producerDevices = [];
-	$scope.productionThreshold.consumerDevices = [];
-
-
-	$scope.productionThreshold.updateDevices = function() {
-		$scope.productionThreshold.producerDevices = $scope.devicetree.getDevicesWithEndpoint([2]);
-		$scope.productionThreshold.consumerDevices = $scope.devicetree.getDevicesWithEndpoint([1,2,4]);
-	};
-
-
-	$scope.productionThreshold.resetForm = function() {
-		$scope.productionThreshold.producer = $scope.productionThreshold.producerDevices[0].ip;
-		$scope.productionThreshold.productionThreshold = 10;
-		$scope.productionThreshold.offTimeout = 30;
-		$scope.productionThreshold.usageThreshold = 10;
-		$scope.productionThreshold.onTimeout = 30;
-		$scope.productionThreshold.consumer = $scope.productionThreshold.consumerDevices[0].ip;
-	};
-
-	$scope.productionThreshold.upload = function() {
-			var statemachine = [{
-			id: null,
-			name: generateRandomName(),
-			machineClass: 'ProductionThreshold',
-			comment: 'No comment',
-			config: {
-				producer: $scope.productionThreshold.producer,
-				prodMeter: 2,
-				prodThreshold: $scope.productionThreshold.productionThreshold,
-				consumer: $scope.productionThreshold.consumer,
-				conMeter: 2,
-				conThreshold: $scope.productionThreshold.usageThreshold,
-				conRelais: 1,
-				conButton: 4,
-				onTimeout: $scope.productionThreshold.onTimeout,
-				offTimeout: $scope.productionThreshold.offTimeout
-			},
-		}];
-		uploadStatemachines(statemachine);
-	};
-
-	stateMachineForms.push($scope.productionThreshold);
-
-/*
- * Threshold statemachine
- */
-	$scope.threshold = {};
-	$scope.threshold.meterDevices = [];
-	$scope.threshold.switchDevices = [];
-
-	$scope.threshold.updateDevices = function() {
-		$scope.threshold.meterDevices = $scope.devicetree.getDevicesWithEndpoint([2]);
-		$scope.threshold.switchDevices = $scope.devicetree.getDevicesWithEndpoint([1]);
-	};
-
-	$scope.threshold.resetForm = function() {
-		$scope.threshold.meterDevice = $scope.threshold.meterDevices[0].ip;
-		$scope.threshold.threshold = 25;
-		$scope.threshold.offDelay = 5;
-		$scope.threshold.onDelay = 5;
-		$scope.threshold.switchDevice = $scope.threshold.switchDevices[0].ip;
-	};
-
-	$scope.threshold.upload = function() {
-		var statemachine = [{
-			id: null,
-			name: generateRandomName(),
-			machineClass: 'Threshold',
-			comment: 'No comment',
-			config: {
-				meterDev: $scope.threshold.meterDevice,
-				meter: 2,
-				threshold : $scope.threshold.threshold,
-				switchDev: $scope.threshold.switchDevice,
-				relais : 1,
-				button : 4,
-				minOnTime : $scope.threshold.onDelay,
-				minOffTime : $scope.threshold.offDelay
-			},
-		}];
-		uploadStatemachines(statemachine);
-	};
-	stateMachineForms.push($scope.threshold);
-
 	$scope.devicetree = DeviceTree;
-	DeviceTree.on('changeApplied', 	$scope.updateDevices);
+	//DeviceTree.on('changeApplied', );
 }]);
 

@@ -1,0 +1,111 @@
+{
+	"type": "object",
+	"properties": {
+		"id": {
+			"type": "string",
+			"default": null
+		},
+		"machineClass": {
+			"type": "string",
+			"default": "ProductionThreshold"
+		},
+		"name": {
+			"type": "string",
+			"validationMessage": "Name is required."
+		},
+		"comment": {
+			"type": "string",
+			"default": ""
+		},
+		"config": {
+			"type": "object",
+			"properties": {
+				"producer": {
+					"type": "string",
+					"validationMessage": "Producer device is required",
+					"localizedValidationMessage": "choose-device"
+				},
+
+				"prodMeter": {
+					"type": "integer",
+					"default": 2
+				},
+
+				"prodThreshold": {
+					"type": "integer",
+					"default": 25,
+					"minimum": 1,
+					"maximum": 3600,
+					"validationMessage": "Production threshold has to be a valid integer.",
+					"localizedValidationMessage": "no-u32number-watt"
+				},
+
+				"consumer": {
+					"type": "string",
+					"validationMessage": "Producer device is required",
+					"localizedValidationMessage": "choose-device"
+				},
+
+				"conMeter": {
+					"type": "integer",
+					"default": 2
+				},
+
+				"conThreshold": {
+					"type": "integer",
+					"default": 25,
+					"minimum": 1,
+					"maximum": 3600,
+					"validationMessage": "Consumption threshold has to be a valid integer.",
+					"localizedValidationMessage": "no-u32number-watt"
+				},
+
+				"conRelais": {
+					"type": "integer",
+					"default": 1
+				},
+
+				"conButton": {
+					"type": "integer",
+					"default": 4
+				},
+
+				"onTimeout": {
+					"type": "integer",
+					"default": 5,
+					"minimum": 1,
+					"maximum": 600000,
+					"validationMessage": "onTimeout has to be a valid integer",
+					"localizedValidationMessage": "no-u32number-minutes"
+				},
+
+				"offTimeout": {
+					"type": "integer",
+					"default": 5,
+					"minimum": 1,
+					"maximum": 600000,
+					"validationMessage": "OffTimeout has to be a valid integer",
+					"localizedValidationMessage": "no-u32number-minutes"
+				}
+
+			},
+			"required": [
+				"producer",
+				"prodMeter",
+				"prodThreshold",
+				"consumer",
+				"conMeter",
+				"conThreshold",
+				"conRelais",
+				"conButton",
+				"onTimeout",
+				"offTimeout"
+			]
+		}
+	},
+	"required": [
+		"name",
+		"config"
+	]
+}
+

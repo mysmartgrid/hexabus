@@ -1,0 +1,88 @@
+{
+	"type": "object",
+	"properties": {
+		"id": {
+			"type": "string",
+			"default": null
+		},
+		"machineClass": {
+			"type": "string",
+			"default": "Threshold"
+		},
+		"name": {
+			"type": "string",
+			"validationMessage": "Name is required."
+		},
+		"comment": {
+			"type": "string",
+			"default": ""
+		},
+		"config": {
+			"type": "object",
+			"properties": {
+				"meterDev": {
+					"type": "string",
+					"validationMessage": "MeterDevice is required",
+					"localizedValidationMessage": "choose-device"
+				},
+				"switchDev": {
+					"type": "string",
+					"validationMessage": "SwitchDevice is required",
+					"localizedValidationMessage": "choose-device"
+				},
+				"meter": {
+					"type": "integer",
+					"default": 2
+				},
+				"relais": {
+					"type": "integer",
+					"default": 1
+				},
+				"threshold": {
+					"type": "integer",
+					"default": 25,
+					"minimum": 1,
+					"maximum": 3600,
+					"validationMessage": "Threshold has to be a valid integer.",
+					"localizedValidationMessage": "no-u32number-watt"
+				},
+				"button": {
+					"type": "integer",
+					"default": 4
+				},
+				"minOnTime": {
+					"type": "integer",
+					"default": 5,
+					"minimum": 1,
+					"maximum": 600000,
+					"validationMessage": "minOnTime has to be a valid integer",
+					"localizedValidationMessage": "no-u32number-minutes"
+				},
+				"minOffTime": {
+					"type": "integer",
+					"default": 5,
+					"minimum": 1,
+					"maximum": 600000,
+					"validationMessage": "minOffTime has to be a valid integer",
+					"localizedValidationMessage": "no-u32number-minutes"
+				}
+
+			},
+			"required": [
+				"meterDev",
+				"switchDev",
+				"meter",
+				"relais",
+				"threshold",
+				"button",
+				"minOnTime",
+				"minOffTime"
+			]
+		}
+	},
+	"required": [
+		"name",
+		"config"
+	]
+}
+

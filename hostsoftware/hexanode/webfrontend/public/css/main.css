@@ -82,3 +82,7 @@ tr.device-list-helper-row td {
 .vis-bool-switch .make-switch {
 	width: 100%;
 }
+
+.comment-pre {
+	white-space: pre;
+}

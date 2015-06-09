@@ -1,0 +1,73 @@
+{
+	"type": "object",
+	"properties": {
+		"id": {
+			"type": "string",
+			"default": null
+		},
+		"machineClass": {
+			"type": "string",
+			"default": "Standbykiller"
+		},
+		"name": {
+			"type": "string",
+			"validationMessage": "Name is required.",
+			"localizedValidationMessage": "name-error"
+		},
+		"comment": {
+			"type": "string",
+			"default": ""
+		},
+		"config": {
+			"type": "object",
+			"properties": {
+				"dev": {
+					"type": "string",
+					"validationMessage": "Device is required",
+					"localizedValidationMessage": "choose-device"
+				},
+				"meter": {
+					"type": "integer",
+					"default": 2
+				},
+				"relais": {
+					"type": "integer",
+					"default": 1
+				},
+				"threshold": {
+					"type": "integer",
+					"default": 25,
+					"minimum": 1,
+					"maximum": 3600,
+					"validationMessage": "Threshold has to be a valid integer.",
+					"localizedValidationMessage": "no-u32number-watt"
+				},
+				"button": {
+					"type": "integer",
+					"default": 4
+				},
+				"timeout": {
+					"type": "integer",
+					"default": 5,
+					"minimum": 1,
+					"maximum": 600000,
+					"validationMessage": "Timeout has to be a valid integer",
+					"localizedValidationMessage": "no-u32number-minutes"
+				}
+			},
+			"required": [
+				"dev",
+				"meter",
+				"relais",
+				"threshold",
+				"button",
+				"timeout"
+			]
+		}
+	},
+	"required": [
+		"name",
+		"config"
+	]
+}
+
