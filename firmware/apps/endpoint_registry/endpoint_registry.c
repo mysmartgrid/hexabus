@@ -186,7 +186,7 @@ static uint32_t property_id(struct endpoint_property_registry_entry* entry)
 	return pd.propid;
 }
 
-void _property_register(const struct endpoint_property_descriptor* epp, struct endpoint_property_registry_entry* chain_link)
+void _property_register(const struct endpoint_property_descriptor* epp, struct endpoint_property_registry_entry* chain_link, void (*function)(struct hxb_value*, bool))
 {
 	struct endpoint_property_descriptor epp_copy;
 	memcpy_from_rodata(&epp_copy, epp, sizeof(epp_copy));
@@ -223,53 +223,60 @@ void _property_register(const struct endpoint_property_descriptor* epp, struct e
 	}
 #endif
 
-	chain_link->value = next_nvm_addr;
+	if(epp_copy.is_function == 0) {
+		uintptr_t nvm_addr_inc = 0;
 
-	switch(epp_copy.datatype) {
-		case HXB_DTYPE_BOOL:
-		case HXB_DTYPE_UINT8:
-			next_nvm_addr+=sizeof(uint8_t);
-			break;
-		case HXB_DTYPE_UINT16:
-			next_nvm_addr+=sizeof(uint16_t);
-			break;
-		case HXB_DTYPE_UINT32:
-			next_nvm_addr+=sizeof(uint32_t);
-			break;
-		case HXB_DTYPE_UINT64:
-			next_nvm_addr+=sizeof(uint64_t);
-			break;
-		case HXB_DTYPE_SINT8:
-			next_nvm_addr+=sizeof(int8_t);
-			break;
-		case HXB_DTYPE_SINT16:
-			next_nvm_addr+=sizeof(int16_t);
-			break;
-		case HXB_DTYPE_SINT32:
-			next_nvm_addr+=sizeof(int32_t);
-			break;
-		case HXB_DTYPE_SINT64:
-			next_nvm_addr+=sizeof(int64_t);
-			break;
-		case HXB_DTYPE_FLOAT:
-			next_nvm_addr+=sizeof(float);
-			break;
-		case HXB_DTYPE_128STRING:
-			next_nvm_addr+=HXB_PROPERTY_STRING_LENGTH+1;
-			break;
-		case HXB_DTYPE_65BYTES:
-			next_nvm_addr+=65;
-			break;
-		case HXB_DTYPE_16BYTES:
-			next_nvm_addr+=16;
-			break;
-		default:
+		switch(epp_copy.datatype) {
+			case HXB_DTYPE_BOOL:
+			case HXB_DTYPE_UINT8:
+				nvm_addr_inc = sizeof(uint8_t);
+				break;
+			case HXB_DTYPE_UINT16:
+				nvm_addr_inc = sizeof(uint16_t);
+				break;
+			case HXB_DTYPE_UINT32:
+				nvm_addr_inc = sizeof(uint32_t);
+				break;
+			case HXB_DTYPE_UINT64:
+				nvm_addr_inc = sizeof(uint64_t);
+				break;
+			case HXB_DTYPE_SINT8:
+				nvm_addr_inc = sizeof(int8_t);
+				break;
+			case HXB_DTYPE_SINT16:
+				nvm_addr_inc = sizeof(int16_t);
+				break;
+			case HXB_DTYPE_SINT32:
+				nvm_addr_inc = sizeof(int32_t);
+				break;
+			case HXB_DTYPE_SINT64:
+				nvm_addr_inc = sizeof(int64_t);
+				break;
+			case HXB_DTYPE_FLOAT:
+				nvm_addr_inc = sizeof(float);
+				break;
+			case HXB_DTYPE_128STRING:
+				nvm_addr_inc = HXB_PROPERTY_STRING_LENGTH+1;
+				break;
+			case HXB_DTYPE_65BYTES:
+				nvm_addr_inc = 65;
+				break;
+			case HXB_DTYPE_16BYTES:
+				nvm_addr_inc = 16;
+				break;
+			default:
+				return;
+		}
+
+		if(((next_nvm_addr+nvm_addr_inc)-nvm_addr(endpoint_properties)) > nvm_size(endpoint_properties)) {
+			syslog(LOG_ERR, "Could not register property: Not enough memory.");
 			return;
-	}
+		}
 
-	if((next_nvm_addr-nvm_addr(endpoint_properties)) > nvm_size(endpoint_properties)) {
-		syslog(LOG_ERR, "Could not register property: Not enough memory.");
-		return;
+		chain_link->value.addr = next_nvm_addr + nvm_addr_inc;
+		next_nvm_addr += nvm_addr_inc;
+	} else {
+		chain_link->value.func = function;
 	}
 
 	chain_link->descriptor = epp;
@@ -290,7 +297,7 @@ static bool find_property(uint32_t eid, uint32_t propid, struct endpoint_propert
 	return false;
 }
 
-enum hxb_error_code endpoint_property_write(uint32_t eid, uint32_t propid, const struct hxb_value* value)
+enum hxb_error_code endpoint_property_write(uint32_t eid, uint32_t propid, struct hxb_value* value)
 {
 	if(propid == 0) {
 		return HXB_ERR_WRITEREADONLY;
@@ -300,49 +307,53 @@ enum hxb_error_code endpoint_property_write(uint32_t eid, uint32_t propid, const
 			if (epp.desc.datatype != value->datatype) {
 				return HXB_ERR_DATATYPE;
 			} else {
-				switch(value->datatype) {
-					case HXB_DTYPE_BOOL:
-						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_bool), sizeof(uint8_t));
-						break;
-					case HXB_DTYPE_UINT8:
-						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_u8), sizeof(uint8_t));
-						break;
-					case HXB_DTYPE_UINT16:
-						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_u16), sizeof(uint16_t));
-						break;
-					case HXB_DTYPE_UINT32:
-						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_u32), sizeof(uint32_t));
-						break;
-					case HXB_DTYPE_UINT64:
-						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_u64), sizeof(uint64_t));
-						break;
-					case HXB_DTYPE_SINT8:
-						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_s8), sizeof(int8_t));
-						break;
-					case HXB_DTYPE_SINT16:
-						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_s16), sizeof(int16_t));
-						break;
-					case HXB_DTYPE_SINT32:
-						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_s32), sizeof(int32_t));
-						break;
-					case HXB_DTYPE_SINT64:
-						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_s64), sizeof(int64_t));
-						break;
-					case HXB_DTYPE_FLOAT:
-						nvm_write_block_at(epp.value, (unsigned char*) &(value->v_float), sizeof(float));
-						break;
-					case HXB_DTYPE_128STRING:
-						value->v_string[HXB_PROPERTY_STRING_LENGTH] =  '\0';
-						nvm_write_block_at(epp.value, (unsigned char*) value->v_string, HXB_PROPERTY_STRING_LENGTH);
-						break;
-					case HXB_DTYPE_65BYTES:
-						nvm_write_block_at(epp.value, (unsigned char*) value->v_binary, 65);
-						break;
-					case HXB_DTYPE_16BYTES:
-						nvm_write_block_at(epp.value, (unsigned char*) value->v_binary, 16);
-						break;
-					default:
-						return HXB_ERR_DATATYPE;
+				if(epp.desc.is_function) {
+					epp.value.func(value, true);
+				} else {
+					switch(value->datatype) {
+						case HXB_DTYPE_BOOL:
+							nvm_write_block_at(epp.value.addr, (unsigned char*) &(value->v_bool), sizeof(uint8_t));
+							break;
+						case HXB_DTYPE_UINT8:
+							nvm_write_block_at(epp.value.addr, (unsigned char*) &(value->v_u8), sizeof(uint8_t));
+							break;
+						case HXB_DTYPE_UINT16:
+							nvm_write_block_at(epp.value.addr, (unsigned char*) &(value->v_u16), sizeof(uint16_t));
+							break;
+						case HXB_DTYPE_UINT32:
+							nvm_write_block_at(epp.value.addr, (unsigned char*) &(value->v_u32), sizeof(uint32_t));
+							break;
+						case HXB_DTYPE_UINT64:
+							nvm_write_block_at(epp.value.addr, (unsigned char*) &(value->v_u64), sizeof(uint64_t));
+							break;
+						case HXB_DTYPE_SINT8:
+							nvm_write_block_at(epp.value.addr, (unsigned char*) &(value->v_s8), sizeof(int8_t));
+							break;
+						case HXB_DTYPE_SINT16:
+							nvm_write_block_at(epp.value.addr, (unsigned char*) &(value->v_s16), sizeof(int16_t));
+							break;
+						case HXB_DTYPE_SINT32:
+							nvm_write_block_at(epp.value.addr, (unsigned char*) &(value->v_s32), sizeof(int32_t));
+							break;
+						case HXB_DTYPE_SINT64:
+							nvm_write_block_at(epp.value.addr, (unsigned char*) &(value->v_s64), sizeof(int64_t));
+							break;
+						case HXB_DTYPE_FLOAT:
+							nvm_write_block_at(epp.value.addr, (unsigned char*) &(value->v_float), sizeof(float));
+							break;
+						case HXB_DTYPE_128STRING:
+							value->v_string[HXB_PROPERTY_STRING_LENGTH] =  '\0';
+							nvm_write_block_at(epp.value.addr, (unsigned char*) value->v_string, HXB_PROPERTY_STRING_LENGTH);
+							break;
+						case HXB_DTYPE_65BYTES:
+							nvm_write_block_at(epp.value.addr, (unsigned char*) value->v_binary, 65);
+							break;
+						case HXB_DTYPE_16BYTES:
+							nvm_write_block_at(epp.value.addr, (unsigned char*) value->v_binary, 16);
+							break;
+						default:
+							return HXB_ERR_DATATYPE;
+					}
 				}
 				return HXB_ERR_SUCCESS;
 			}
@@ -388,48 +399,52 @@ enum hxb_error_code endpoint_property_read(uint32_t eid, uint32_t propid, struct
 		struct endpoint_property_value_descriptor epp;
 		if (find_property(eid, propid, &epp)) {
 			value->datatype = epp.desc.datatype;
-			switch(value->datatype) {
-				case HXB_DTYPE_BOOL:
-					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_bool), sizeof(uint8_t));
-					break;
-				case HXB_DTYPE_UINT8:
-					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_u8), sizeof(uint8_t));
-					break;
-				case HXB_DTYPE_UINT16:
-					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_u16), sizeof(uint16_t));
-					break;
-				case HXB_DTYPE_UINT32:
-					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_u32), sizeof(uint32_t));
-					break;
-				case HXB_DTYPE_UINT64:
-					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_u64), sizeof(uint64_t));
-					break;
-				case HXB_DTYPE_SINT8:
-					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_s8), sizeof(int8_t));
-					break;
-				case HXB_DTYPE_SINT16:
-					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_s16), sizeof(int16_t));
-					break;
-				case HXB_DTYPE_SINT32:
-					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_s32), sizeof(int32_t));
-					break;
-				case HXB_DTYPE_SINT64:
-					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_s64), sizeof(int64_t));
-					break;
-				case HXB_DTYPE_FLOAT:
-					nvm_read_block_at(epp.value, (unsigned char*) &(value->v_float), sizeof(float));
-					break;
-				case HXB_DTYPE_128STRING:
-					nvm_read_block_at(epp.value, (unsigned char*) value->v_string, HXB_PROPERTY_STRING_LENGTH);
-					break;
-				case HXB_DTYPE_65BYTES:
-					nvm_read_block_at(epp.value, (unsigned char*) value->v_binary, 65);
-					break;
-				case HXB_DTYPE_16BYTES:
-					nvm_read_block_at(epp.value, (unsigned char*) value->v_binary, 16);
-					break;
-				default:
-					return HXB_ERR_DATATYPE;
+			if(epp.desc.is_function) {
+				epp.value.func(value, false);
+			} else {
+				switch(value->datatype) {
+					case HXB_DTYPE_BOOL:
+						nvm_read_block_at(epp.value.addr, (unsigned char*) &(value->v_bool), sizeof(uint8_t));
+						break;
+					case HXB_DTYPE_UINT8:
+						nvm_read_block_at(epp.value.addr, (unsigned char*) &(value->v_u8), sizeof(uint8_t));
+						break;
+					case HXB_DTYPE_UINT16:
+						nvm_read_block_at(epp.value.addr, (unsigned char*) &(value->v_u16), sizeof(uint16_t));
+						break;
+					case HXB_DTYPE_UINT32:
+						nvm_read_block_at(epp.value.addr, (unsigned char*) &(value->v_u32), sizeof(uint32_t));
+						break;
+					case HXB_DTYPE_UINT64:
+						nvm_read_block_at(epp.value.addr, (unsigned char*) &(value->v_u64), sizeof(uint64_t));
+						break;
+					case HXB_DTYPE_SINT8:
+						nvm_read_block_at(epp.value.addr, (unsigned char*) &(value->v_s8), sizeof(int8_t));
+						break;
+					case HXB_DTYPE_SINT16:
+						nvm_read_block_at(epp.value.addr, (unsigned char*) &(value->v_s16), sizeof(int16_t));
+						break;
+					case HXB_DTYPE_SINT32:
+						nvm_read_block_at(epp.value.addr, (unsigned char*) &(value->v_s32), sizeof(int32_t));
+						break;
+					case HXB_DTYPE_SINT64:
+						nvm_read_block_at(epp.value.addr, (unsigned char*) &(value->v_s64), sizeof(int64_t));
+						break;
+					case HXB_DTYPE_FLOAT:
+						nvm_read_block_at(epp.value.addr, (unsigned char*) &(value->v_float), sizeof(float));
+						break;
+					case HXB_DTYPE_128STRING:
+						nvm_read_block_at(epp.value.addr, (unsigned char*) value->v_string, HXB_PROPERTY_STRING_LENGTH);
+						break;
+					case HXB_DTYPE_65BYTES:
+						nvm_read_block_at(epp.value.addr, (unsigned char*) value->v_binary, 65);
+						break;
+					case HXB_DTYPE_16BYTES:
+						nvm_read_block_at(epp.value.addr, (unsigned char*) value->v_binary, 16);
+						break;
+					default:
+						return HXB_ERR_DATATYPE;
+				}
 			}
 			return HXB_ERR_SUCCESS;
 		} else {

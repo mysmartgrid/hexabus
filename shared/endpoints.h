@@ -85,5 +85,6 @@
 #define EP_PROP_MIN                2UL
 #define EP_PROP_MAX                3UL
 #define EP_PROP_DEFAULT_SATE       4UL
+#define EP_PROP_VERSION            10UL
 
 #endif // ENDPOINTS_H_

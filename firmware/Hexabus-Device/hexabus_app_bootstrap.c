@@ -40,6 +40,8 @@
 #include "shutter.h"
 #include "temperature.h"
 
+static const char version_string[] RODATA = CONTIKI_VERSION_STRING;
+
 static void init_socket_apps(void)
 {
 	relay_init();
@@ -189,8 +191,21 @@ static void hexabus_bootstrap_start_processes()
 	start_stm_processes();
 }
 
+void prop_func_version(struct hxb_value* value, bool is_write)
+{
+	if(!is_write)
+		strncpy_from_rodata(value->v_string, version_string, HXB_PROPERTY_STRING_LENGTH);
+}
+
+void hexabus_bootstrap_register_properties()
+{
+	ENDPOINT_PROPERTY_REGISTER(HXB_DTYPE_128STRING, EP_DEVICE_DESCRIPTOR, EP_PROP_NAME);
+	ENDPOINT_PROPERTY_FUNCTION_REGISTER(HXB_DTYPE_128STRING, EP_DEVICE_DESCRIPTOR, EP_PROP_VERSION, &prop_func_version);
+}
+
 void hexabus_app_bootstrap()
 {
 	hexabus_bootstrap_init_apps();
+	hexabus_bootstrap_register_properties();
 	hexabus_bootstrap_start_processes();
 }
