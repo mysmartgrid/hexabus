@@ -132,7 +132,6 @@ var HexabusServer = function(socket, hexabus, devicetree) {
 				cb({'success' : false, 'error' : error.toString()});
 			}
 			else {
-				ep.last_value = data.value;
 				cb({'success' : true});
 			}
 		});
