@@ -1,4 +1,4 @@
-machine class ProductionThreshold(device producer, 
+machine class ProductionThreshold(device producer,
 									endpoint prodMeter,
 									typeof(producer.prodMeter) prodThreshold,
 									device consumer,
@@ -6,10 +6,10 @@ machine class ProductionThreshold(device producer,
 									typeof(consumer.conMeter) conThreshold,
 									endpoint conRelais,
 									endpoint conButton,
-									uint16 onTimeout,
-									uint16 offTimeout) {
+									uint32 onTimeout,
+									uint32 offTimeout) {
 
-	uint8 samplesNeeded = 5;
+	uint8 samplesNeeded = 3;
 
 	state init {
 		always {
@@ -24,7 +24,7 @@ machine class ProductionThreshold(device producer,
 		on entry {
 			consumer.conRelais = true;
 		}
-		
+
 		on update from consumer.conMeter {
 			if(consumer.conMeter >= conThreshold) {
 				samples = 0;
@@ -40,7 +40,7 @@ machine class ProductionThreshold(device producer,
 		on update from consumer.conButton {
 			goto offState;
 		}
-	
+
 		on periodic {
 			if(now() - onSince > onTimeout) {
 				goto offState;
@@ -51,7 +51,7 @@ machine class ProductionThreshold(device producer,
 	state offState {
 		uint8 samples = 0;
 		uint64 offSince = now();
-		
+
 		on entry {
 			consumer.conRelais = false;
 		}
@@ -68,12 +68,12 @@ machine class ProductionThreshold(device producer,
 				goto onState;
 			}
 		}
-		
+
 		on update from consumer.conButton {
 			goto onState;
 		}
 
-		
+
 		on periodic {
 			if(now() - offSince > offTimeout) {
 				goto onState;

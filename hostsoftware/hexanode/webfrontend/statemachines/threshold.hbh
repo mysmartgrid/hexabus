@@ -4,10 +4,10 @@ machine class Threshold(device meterDevice,
 						device switchDevice,
 						endpoint relais,
 						endpoint button,
-						uint16 minOnTime,
-						uint16 minOffTime) {
+						uint32 minOnTime,
+						uint32 minOffTime) {
 
-	uint8 samplesNeeded = 5;
+	uint8 samplesNeeded = 3;
 
 	state init {
 		always {

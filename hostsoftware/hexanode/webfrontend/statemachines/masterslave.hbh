@@ -1,8 +1,8 @@
 
-machine class MasterSlave(device master, 
-						endpoint powermeter, 
-						typeof(master.powermeter) threshold, 
-						device slave, 
+machine class MasterSlave(device master,
+						endpoint powermeter,
+						typeof(master.powermeter) threshold,
+						device slave,
 						endpoint relais) {
 
 	state slave_init {
@@ -10,8 +10,8 @@ machine class MasterSlave(device master,
 				goto slave_off;
 		}
 	}
-	
-	
+
+
 	state slave_off {
 
 		on entry {
