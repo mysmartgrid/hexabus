@@ -57,7 +57,7 @@ class RetryingPacketSender {
 
 		void armTimer()
 		{
-			timeout.expires_from_now(boost::posix_time::seconds(1));
+			timeout.expires_from_now(boost::posix_time::seconds(3));
 			timeout.async_wait(boost::bind(&RetryingPacketSender::onTimeout, this, _1));
 		}
 
