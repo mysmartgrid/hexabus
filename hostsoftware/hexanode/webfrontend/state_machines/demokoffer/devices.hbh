@@ -1,6 +1,6 @@
 device hexanode {
   # The IP of the machine on which hexanode is running.
-  ip fd00:9::50:c4ff:fe04:26a;
+  ip fd00:9::1;
   eids {0, 1, 2, 4, 9, 10, 11, 12, 24, 25 }
 }
 

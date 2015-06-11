@@ -358,7 +358,7 @@ angular.module('hexanode')
 	 */
 	$scope.demo = {};
 	$scope.demo.upload = function() {
-		var midiIp = 'fd00:9::50:c4ff:fe04:2cf';
+		var midiIp = 'fd00:9::1';
 		var washingIp = 'fd00:9::50:c4ff:fe04:8162';
 		var lampIp = 'fd00:9::50:c4ff:fe04:8264';
 
