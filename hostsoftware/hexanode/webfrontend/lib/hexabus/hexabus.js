@@ -22,7 +22,7 @@ var Hexabus = function() {
 		if (!addr.valid) {
 			cb({ error: "Invalid address" });
 		} else {
-			var command = "hexaupload --ip " + addr.canonicalForm() + " --rename '" + newName.replace("'", "''") + "'";
+			var command = "hexaupload -r 30 --ip " + addr.canonicalForm() + " --rename '" + newName.replace("'", "''") + "'";
 			exec(command, function(error, stdout, stderr) {
 				if (error && cb) {
 					cb(error);
