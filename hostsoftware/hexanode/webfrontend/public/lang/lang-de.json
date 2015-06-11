@@ -130,6 +130,11 @@
 			"scanning": "Suche nach Geräten im Netzwerk"
 		},
 		"state-machine": {
+			"simple-switch-machine": "Einfacher Schalter",
+			"threshold-machine": "Schwellwertschalter",
+			"master-slave-machine": "Master-Slave-Steckdose",
+			"standbykiller-machine": "Standbykiller-Steckdose",
+			"production-threshold-machine": "Produktionsabhängiger Schalter",
 			"new": "Neues Schaltprogramm",
 			"upload": "Hochladen",
 			"upload-success": "Hochladen erfolgreich abgeschlossen.",
