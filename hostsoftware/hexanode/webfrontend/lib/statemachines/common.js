@@ -1,17 +1,5 @@
 'use strict';
 
-
-
-exports.expectMembers = function(obj, members) {
-	console.log(obj);
-	for(var index in members) {
-		if(obj[members[index]] === undefined) {
-			console.trace();
-			throw new Error("Expected member " + members[index]);
-		}
-	}
-};
-
 exports.Statemachine = function(id, name, machineClass, comment, config, devicetree) {
 
 	Object.defineProperties(this, {

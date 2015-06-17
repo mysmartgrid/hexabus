@@ -1,16 +1,9 @@
 'use strict';
 
 var Statemachine = require('./common').Statemachine;
-var expectMembers = require('./common').expectMembers;
 
 exports.MasterSlaveStatemachine = function(id, name, comment, config, devicetree) {
 	Statemachine.call(this, id, name, 'MasterSlave', comment, config, devicetree);
-
-	expectMembers(this.config, ['master',
-								'meter',
-								'threshold',
-								'slave',
-								'relais']);
 
 	var master = this.getDeviceName(this.config.master);
 	var slave = this.getDeviceName(this.config.slave);
@@ -19,7 +12,7 @@ exports.MasterSlaveStatemachine = function(id, name, comment, config, devicetree
 	var threshold = this.config.threshold;
 
 	this.getUsedDevices = function() {
-		return [this.config.slave];
+		return [this.config.master, this.config.slave];
 	};
 
 	this.getWrittenEndpoints = function() {

@@ -1,21 +1,9 @@
 'use strict';
 
 var Statemachine = require('./common').Statemachine;
-var expectMembers = require('./common').expectMembers;
 
 exports.ProductionThresholdStatemachine = function(id, name, comment, config, devicetree) {
 	Statemachine.call(this, id, name, 'ProductionThreshold', comment, config, devicetree);
-
-	expectMembers(this.config, ['producer',
-								'prodMeter',
-								'prodThreshold',
-								'consumer',
-								'conMeter',
-								'conThreshold',
-								'conRelais',
-								'conButton',
-								'onTimeout',
-								'offTimeout']);
 
 	var master = this.getDeviceName(this.config.producer);
 	var prodMeter = this.getEndpointName(this.config.producer, this.config.prodMeter);
@@ -37,9 +25,6 @@ exports.ProductionThresholdStatemachine = function(id, name, comment, config, de
 	};
 
 	this.getInstanceLine = function() {
-
-
-
 		return this.generateInstanceLine([master,
 											prodMeter,
 											prodThreshold,

@@ -2,13 +2,13 @@
 
 var async = require('async');
 var fs = require('fs');
+var tv4 = require('tv4');
 var execFile = require('child_process').execFile;
 var nconf = require('nconf');
 var path = require('path');
 var uuid = require('node-uuid');
 
 var debug = require('../debug.js');
-var expectMembers = require('./common').expectMembers;
 
 var SimpleSwitchStatemachine = require('./simpleswitch').SimpleSwitchStatemachine;
 var ThresholdStatemachine = require('./threshold').ThresholdStatemachine;
@@ -24,6 +24,12 @@ var machineTypes = {
 	'MasterSlave' : MasterSlaveStatemachine,
 	'ProductionThreshold' : ProductionThresholdStatemachine
 };
+
+
+var jsonSchemas = {};
+for(var type in machineTypes) {
+	jsonSchemas[type] = require('./schemas/' + type + '.json');
+}
 
 
 var statemachineFromDevicetree = function(id, devicetree) {
@@ -48,12 +54,6 @@ var statemachineFromDevicetree = function(id, devicetree) {
 exports.statemachineFromDevicetree = statemachineFromDevicetree;
 
 exports.statemachineFromJson = function(json, devicetree) {
-	expectMembers(json, ['id',
-						'name',
-						'machineClass',
-						'comment',
-						'config']);
-
 
 	if(devicetree === undefined) {
 		throw new Error("devicetree parameter is missing");
@@ -65,6 +65,10 @@ exports.statemachineFromJson = function(json, devicetree) {
 
 	if(json.id === null) {
 		json.id = uuid.v4();
+	}
+
+	if(!tv4.validate(json, jsonSchemas[json.machineClass])) {
+		throw new Error("Valitation of json failed at " + tv4.error.dataPath + " with: " + tv4.error.message); 
 	}
 
 	return new machineTypes[json.machineClass](json.id, json.name, json.comment, json.config, devicetree);

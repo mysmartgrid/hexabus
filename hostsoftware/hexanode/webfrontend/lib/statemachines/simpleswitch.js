@@ -1,12 +1,9 @@
 'use strict';
 
 var Statemachine = require('./common').Statemachine;
-var expectMembers = require('./common').expectMembers;
 
 exports.SimpleSwitchStatemachine = function(id, name, comment, config, devicetree) {
 	Statemachine.call(this, id, name, 'SimpleSwitch', comment, config, devicetree);
-
-	expectMembers(this.config, ['buttonDev', 'button', 'relaisDev', 'relais']);
 
 	var buttonDev = this.getDeviceName(this.config.buttonDev);
 	var button = this.getEndpointName(this.config.buttonDev, this.config.button);

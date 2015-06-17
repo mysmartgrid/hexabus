@@ -1,19 +1,9 @@
 'use strict';
 
 var Statemachine = require('./common').Statemachine;
-var expectMembers = require('./common').expectMembers;
 
 exports.ThresholdStatemachine = function(id, name, comment, config, devicetree) {
 	Statemachine.call(this, id, name, 'Threshold', comment, config, devicetree);
-
-	expectMembers(this.config, ['meterDev',
-								'meter',
-								'threshold',
-								'switchDev',
-								'relais',
-								'button',
-								'minOnTime',
-								'minOffTime']);
 
 	var meterDev = this.getDeviceName(this.config.meterDev);
 	var meter = this.getEndpointName(this.config.meterDev, this.config.meter);
