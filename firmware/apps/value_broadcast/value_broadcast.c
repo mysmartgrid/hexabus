@@ -26,6 +26,10 @@
 #define LOG_LEVEL VALUE_BROADCAST_DEBUG
 #include "syslog.h"
 
+#if HEXASENSE_ENABLE
+extern void toggle_led3();
+#endif
+
 #define SEND_INTERVAL CLOCK_SECOND * VALUE_BROADCAST_AUTO_INTERVAL
 #define SEND_TIME (random_rand() % (SEND_INTERVAL))
 
@@ -169,7 +173,7 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
 	static struct etimer periodic;
 	static uint32_t auto_eids[] = { VALUE_BROADCAST_AUTO_EIDS };
 	static struct ctimer backoff_timer[sizeof(auto_eids) / sizeof(auto_eids[0])];
-
+  
 	PROCESS_BEGIN();
 
 	PROCESS_PAUSE();
@@ -183,6 +187,10 @@ PROCESS_THREAD(value_broadcast_process, ev, data)
 		PROCESS_YIELD();
 
 		if (etimer_expired(&periodic)) {
+#if HEXASENSE_ENABLE
+      toggle_led3();
+#endif
+      
 			etimer_reset(&periodic);
 
 			uint8_t i;

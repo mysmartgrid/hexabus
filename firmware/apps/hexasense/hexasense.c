@@ -13,6 +13,7 @@
 static uint8_t button_state = 0;
 
 static const char ep_state[] PROGMEM = "HexaSense button state";
+static bool _state_led3 = false;
 
 enum hxb_error_code read_state(struct hxb_value* value)
 {
@@ -27,6 +28,18 @@ ENDPOINT_DESCRIPTOR endpoint_hexasense_state = {
 	.read = read_state,
 	.write = 0
 };
+
+void toggle_led3() {
+  if(_state_led3) {
+    _state_led3=false;
+    HEXASENSE_LED3_PORT &= ~(1 << HEXASENSE_LED3_PIN);
+    //printf_rofmt(ROSTR("Set live..\n"));
+  }
+  else {
+    HEXASENSE_LED3_PORT |= 1 << HEXASENSE_LED3_PIN;
+    _state_led3=true;
+  }
+}
 
 
 static void button1_pressed(uint8_t button, uint8_t released, uint16_t pressed_ticks)
@@ -86,12 +99,12 @@ PROCESS_THREAD(hexasense_feedback_process, ev, data)
 		if (button_state) {
 			HEXASENSE_LED1_PORT &= ~(1 << HEXASENSE_LED1_PIN);
 			HEXASENSE_LED2_PORT &= ~(1 << HEXASENSE_LED2_PIN);
-			HEXASENSE_LED3_PORT &= ~(1 << HEXASENSE_LED3_PIN);
+			//HEXASENSE_LED3_PORT &= ~(1 << HEXASENSE_LED3_PIN);
 			etimer_set(&timer, CLOCK_CONF_SECOND / 20);
 			PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
 			HEXASENSE_LED1_PORT |= 1 << HEXASENSE_LED1_PIN;
 			HEXASENSE_LED2_PORT |= 1 << HEXASENSE_LED2_PIN;
-			HEXASENSE_LED3_PORT |= 1 << HEXASENSE_LED3_PIN;
+			//HEXASENSE_LED3_PORT |= 1 << HEXASENSE_LED3_PIN;
 			etimer_set(&timer, 3 * CLOCK_CONF_SECOND);
 			PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
 		} else {
@@ -113,6 +126,7 @@ void hexasense_init()
 	HEXASENSE_LED1_PORT |= 1 << HEXASENSE_LED1_PIN;
 	HEXASENSE_LED2_PORT |= 1 << HEXASENSE_LED2_PIN;
 	HEXASENSE_LED3_PORT |= 1 << HEXASENSE_LED3_PIN;
+  HEXASENSE_LED3_PORT &= ~(1 << HEXASENSE_LED3_PIN);
 
 	HEXASENSE_BUTTON1_DDR &= ~(1 << HEXASENSE_BUTTON1_PIN);
 	HEXASENSE_BUTTON1_PORT |= (1 << HEXASENSE_BUTTON1_PIN);
@@ -126,4 +140,3 @@ void hexasense_init()
 
 	process_start(&hexasense_feedback_process, NULL);
 }
-

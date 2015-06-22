@@ -24,5 +24,6 @@
 PROCESS_NAME(hexasense_feedback_process);
 
 void hexasense_init(void);
+void toggle_led3();
 
 #endif
