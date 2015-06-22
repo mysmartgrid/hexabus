@@ -13,7 +13,8 @@
 #include "net/netstack.h"
 #include "net/queuebuf.h"
 #include "net/uip.h"
-#include "rf230bb.h"
+#nclude "rf230bb.h"
+#include "health.h"
 
 #if WEBSERVER
 #include "httpd-fs.h"
@@ -51,7 +52,7 @@ static void set_device_addrs()
 	memcpy(&uip_lladdr.addr, addr.u8, 8);
 	rf230_set_pan_addr(nvm_read_u16(pan_id), nvm_read_u16(pan_addr), addr.u8);
 	rf230_set_channel(RF_CHANNEL);
-
+ 
 	mac_dst_pan_id = nvm_read_u16(pan_id);
 	mac_src_pan_id = mac_dst_pan_id;
 
@@ -77,6 +78,7 @@ static void init_crypto()
 static void initialize()
 {
 	platform_init();
+	PRINTF("\n*******Booting starting initialisation.\n");
 
 	watchdog_init();
 	watchdog_start();
@@ -87,6 +89,7 @@ static void initialize()
 
 	leds_on(LEDS_ALL);
 	clock_delay_usec(50000);
+	watchdog_periodic();
 	leds_off(LEDS_ALL);
 
 	PRINTF("\n*******Booting %s*******\n", CONTIKI_VERSION_STRING);
@@ -113,13 +116,19 @@ static void initialize()
 #if UIP_CONF_ROUTER
 	PRINTF("Routing Enabled\n");
 #endif
+	PRINTF("process_start\n");
 
 	process_start(&tcpip_process, NULL);
+	watchdog_periodic();
 
+	PRINTF("rf230_generate_random_byte\n");
 	random_init((rf230_generate_random_byte() << 8) | rf230_generate_random_byte());
-
+	watchdog_periodic();
+  
+	PRINTF("app_bootstrap\n");
 	hexabus_app_bootstrap();
-
+	watchdog_periodic();
+	PRINTF("app_bootstrap - done\n");
 	{
 		char buf[nvm_size(domain_name) + 1] = {};
 		nvm_read_block(domain_name, buf, nvm_size(domain_name));
@@ -131,6 +140,8 @@ static void initialize()
 		PRINTF("%s online\n", buf);
 #endif
 	}
+	watchdog_periodic();
+	PRINTF("initialization done\n");
 }
 
 int main()
