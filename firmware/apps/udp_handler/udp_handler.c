@@ -131,7 +131,7 @@ BITS_CONV(64)
 
 static size_t prepare_for_send(union hxb_packet_any* packet)
 {
-	size_t len;
+	size_t len=0;
 
 	strncpy(packet->header.magic, HXB_HEADER, strlen(HXB_HEADER));
 	packet->header.flags = 0;

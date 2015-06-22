@@ -12,7 +12,7 @@
 #include "udp_handler.h"
 #include "state_machine.h"
 
-#if WEBSERVER
+#if WEBSERVER_ENABLE
 #include "httpd-fs.h"
 #include "httpd-cgi.h"
 #include "webserver-nogui.h"
@@ -45,12 +45,16 @@
 
 static void init_socket_apps(void)
 {
+#if RELAY_ENABLE
 	relay_init();
+#endif /* RELAY_ENABLE */
 
+#if METERING_POWER
 	metering_stop();
 	metering_init();
 	metering_start();
-
+#endif /* METERING_POWER */
+  
 #if I2C_ENABLE
 	i2c_init();
 #endif
@@ -126,7 +130,9 @@ static void start_socket_processes(void)
 
 static void init_stm_apps(void)
 {
+#if METERING_POWER
 	metering_cs5463_init();
+#endif /* METERING_POWER */
 	dimmer_init();
 }
 
@@ -186,7 +192,7 @@ static void hexabus_bootstrap_start_processes()
 
 	process_start(&button_pressed_process, NULL);
 
-#if WEBSERVER
+#if WEBSERVER_ENABLE
 	process_start(&webserver_nogui_process, NULL);
 #endif
 

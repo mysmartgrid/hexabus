@@ -146,6 +146,7 @@ int provisioning_slave(void) {
 			packetbuf_set_datalen(0);
 			clock_wait(CLOCK_SECOND / 2);
 			length = rf230_read(packetbuf_dataptr(), PACKETBUF_SIZE);
+			PRINTF("provisioning: recv=%d\n", length);
 			provisioning_leds();
 			//parse frame
 			if (length > 0) {
@@ -155,13 +156,17 @@ int provisioning_slave(void) {
 		} while(packetbuf_datalen() != sizeof(struct provisioning_m_t) || strncmp((char*)packetbuf_dataptr(), PROVISIONING_HEADER, sizeof(PROVISIONING_HEADER)));
 	// timer expired
 	if(clock_time() - time > CLOCK_SECOND * PROV_TIMEOUT_SOCKET) {
+	        PRINTF("provisioning: terminated, oldid=%x\n", old_pan_id);
 		mac_dst_pan_id = old_pan_id;
 		mac_src_pan_id = old_pan_id;
 		rf230_set_pan_addr(old_pan_id, 0, NULL);
 		bootloader_mode = 0;
 		encryption_enabled = tmp_enc;
 		//indicate normal operation
+#if RELAY_ENABLE
 		relay_leds();
+#endif /* RELAY_ENABLE */
+		PRINTF("provisioning: terminated\n");
 		return -1;
 
 	} else {
@@ -187,7 +192,9 @@ int provisioning_slave(void) {
 		bootloader_mode = 0;
 		encryption_enabled = tmp_enc;
 		//indicate normal operation
-		relay_leds();
+#if RELAY_ENABLE
+		relay_leds();	
+#endif /* RELAY_ENABLE */
 		return 0;
 	}
 }

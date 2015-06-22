@@ -33,8 +33,10 @@
  * $Id: httpd-cfs.c,v 1.2 2010/10/19 18:29:05 adamdunkels Exp $
  */
 
-#include <string.h>
+#include <string.h
+#include "hexabus_config.h"
 
+#if WEBSERVER_ENABLE
 #include "contiki-net.h"
 
 #include "webserver.h"
@@ -242,3 +244,4 @@ httpd_init(void)
   memb_init(&conns);
 }
 /*---------------------------------------------------------------------------*/
+#endif /* WEBSERVER_ENABLE */

@@ -42,7 +42,7 @@
 #include "endpoint_registry.h"
 #include "nvm.h"
 
-
+#if RELAY_ENABLE
 /** \brief This is a file internal variable that contains the default state of the relay.
  *
  */
@@ -202,3 +202,4 @@ void relay_init(void)
 	ENDPOINT_REGISTER(endpoint_relay);
 #endif
 }
+#endif /* RELAY_ENABLE */

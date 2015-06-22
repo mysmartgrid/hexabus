@@ -38,13 +38,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "hexabus_config.h"
+#if WEBSERVER_ENABLE
+
 #include "contiki-net.h"
 
 #include "webserver-nogui.h"
 #include "httpd-fs.h"
 #include "httpd-cgi.h"
 #include "httpd.h"
-#include "hexabus_config.h"
 
 #include "relay.h"
 #include "state_machine.h"
@@ -541,10 +543,12 @@ PT_THREAD(handle_input(struct httpd_state *s))
 			PSOCK_READTO(&s->sin, ISO_equal);
 			//check for relay_default_state
 			PSOCK_READTO(&s->sin, ISO_amper);
+#if RELAY_ENABLE
 			if(s->inputbuf[0] == '1')
-				set_relay_default(0);
+      		set_relay_default(0);
 			else if (s->inputbuf[0] == '0')
 				set_relay_default(1);
+#endif /* RELAY_ENABLE */
 
 #if S0_ENABLE
 			PSOCK_READTO(&s->sin, ISO_equal);
@@ -569,7 +573,9 @@ PT_THREAD(handle_input(struct httpd_state *s))
 				if (s->inputbuf[i]==0) break;
 			}
 
+#if RELAY_ENABLE
 			relay_toggle();
+#endif /* RELAY_ENABLE */
 
 	} else {
 			PSOCK_CLOSE_EXIT(&s->sin);
@@ -657,3 +663,4 @@ httpd_appcall(void *state)
 		httpd_cgi_init();
 	}
 	/*---------------------------------------------------------------------------*/
+#endif /* WEBSERVER_ENABLE */

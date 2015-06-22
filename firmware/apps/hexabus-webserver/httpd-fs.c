@@ -33,6 +33,9 @@
  * $Id: httpd-fs.c,v 1.4 2009/07/24 15:41:52 dak664 Exp $
  */
 
+#include "hexabus_config.h"
+
+#if WEBSERVER_ENABLE
 #include "contiki-net.h"
 #include "httpd.h"
 #include "httpd-fs.h"
@@ -135,3 +138,4 @@ httpd_fs_count(char *name)
 }
 #endif /* HTTPD_FS_STATISTICS */
 /*-----------------------------------------------------------------------------------*/
+#endif /* WEBSERVER_ENABLE */

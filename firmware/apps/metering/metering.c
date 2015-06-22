@@ -47,6 +47,7 @@
 #include "value_broadcast.h"
 #include "nvm.h"
 
+#if METERING_POWER
 //local variables
 static clock_time_t clock_old;
 static clock_time_t metering_pulse_period = 0;
@@ -391,3 +392,4 @@ ISR(ANALOG_COMP_vect)
 }
 #endif // METERING_ENERGY_PERSISTENT
 
+#endif /* METERING_POWER */

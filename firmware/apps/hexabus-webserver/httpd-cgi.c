@@ -49,6 +49,7 @@
 
 #include "hexabus_config.h"
 
+#if WEBSERVER_ENABLE
 #include "contiki-net.h"
 #include "httpd.h"
 #include "httpd-cgi.h"
@@ -415,12 +416,15 @@ generate_socket_readings(void *arg)
   static const char httpd_cgi_datetime[] HTTPD_STRING_ATTR = "<em>Current Date and Time:</em> %s <br>";
 	numprinted=0;
 
-  //N:
+#if METERING_POWER && RELAY_ENABLE
+//N:
   if(relay_get_state()==0)
 	  numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor1, metering_get_power());
   else
 	  numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor1, 0);
+#endif /* METERING_POWER  && RELAY_ENABLE */
 
+#if RELAY_ENABLE
   //N:
   if(relay_get_state()==0)
 	  numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor2, "ON");
@@ -433,6 +437,7 @@ generate_socket_readings(void *arg)
 	  numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor3, "Toggle Off");
   else
 	  numprinted+=httpd_snprintf((char *)uip_appdata+numprinted, uip_mss()-numprinted, httpd_cgi_sensor3, "Toggle On");
+#endif /* RELAY_ENABLE */
 
   // Add Temperature
  // char buffer[10];
@@ -639,3 +644,4 @@ uint8_t httpd_cgi_sprint_ip6(uip_ip6addr_t addr, char * result)
     return (result - starting);
         }
 
+#endif /* WEBSERVER_ENABLE */

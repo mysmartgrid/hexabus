@@ -35,7 +35,9 @@
 
 #include <string.h>
 #include <stdio.h>
+#include "hexabus_config.h"
 
+#if WEBSERVER_ENABLE
 #include "contiki.h"
 #include "sys/log.h"
 
@@ -92,3 +94,4 @@ webserver_log(char *msg)
   log_message(msg, "");
 }
 /*---------------------------------------------------------------------------*/
+#endif /* WEBSERVER_ENABLE */

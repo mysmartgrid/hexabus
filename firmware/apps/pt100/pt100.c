@@ -3,6 +3,8 @@
 #include "endpoints.h"
 #include "hexabus_config.h"
 
+#if defined(PT100_ENABLE) && PT100_ENABLE==1
+
 #define LOG_LEVEL PT100_DEBUG
 #include "syslog.h"
 
@@ -122,3 +124,4 @@ void pt100_init()
 
 	adc_init();
 }
+#endif /* defined(PT100_ENABLE) && PT100_ENABLE */

@@ -16,7 +16,7 @@
 #include "rf230bb.h"
 #include "health.h"
 
-#if WEBSERVER
+#if WEBSERVER_ENABLE
 #include "httpd-fs.h"
 #endif
 
@@ -88,7 +88,7 @@ static void initialize()
 #if HAVE(EMOS)
 	PRINTF("firmware compiled for EMOS.\n");
 #endif
-
+  
 	watchdog_init();
 	watchdog_start();
 
@@ -142,7 +142,7 @@ static void initialize()
 		char buf[nvm_size(domain_name) + 1] = {};
 		nvm_read_block(domain_name, buf, nvm_size(domain_name));
 
-#if WEBSERVER
+#if WEBSERVER_ENABLE
 		unsigned size = httpd_fs_get_size();
 		PRINTF("%s online with %u byte web content\n", buf, size);
 #else
