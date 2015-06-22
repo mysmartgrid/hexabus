@@ -13,7 +13,7 @@
 #include "net/netstack.h"
 #include "net/queuebuf.h"
 #include "net/uip.h"
-#nclude "rf230bb.h"
+#include "rf230bb.h"
 #include "health.h"
 
 #if WEBSERVER
