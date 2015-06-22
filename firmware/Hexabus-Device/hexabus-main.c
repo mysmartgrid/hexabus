@@ -79,6 +79,15 @@ static void initialize()
 {
 	platform_init();
 	PRINTF("\n*******Booting starting initialisation.\n");
+#if HAVE(PLUG)
+	PRINTF("firmware compiled for PLUG.\n");
+#endif
+#if HAVE(PLUGPLUS)
+	PRINTF("firmware compiled for PLUG+.\n");
+#endif
+#if HAVE(EMOS)
+	PRINTF("firmware compiled for EMOS.\n");
+#endif
 
 	watchdog_init();
 	watchdog_start();
