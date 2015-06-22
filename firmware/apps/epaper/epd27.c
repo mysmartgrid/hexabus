@@ -45,7 +45,7 @@ void epd27_cs_high(void) {
 
 void SPI_put_wait(uint8_t c) {
 	SPI_put(c);
-  epd27_wait_cog_ready();
+	epd27_wait_cog_ready();
 }
 
 void SPI_send(const uint8_t *buffer, uint16_t length) {
@@ -163,14 +163,14 @@ void epd27_image_transfersection(uint16_t startline, uint16_t endline,
 }
 
 void epd27_image_at45(uint16_t pageindex, EPD_stage stage) {
-  struct at45_page_t* page = malloc(sizeof(uint8_t [AT45_PAGE_SIZE]));
+  struct at45_page_t page;
   // for all pages:
   for( uint16_t curpage_idx = pageindex;
       curpage_idx < (pageindex + PAGES_PER_SCREEN); curpage_idx+= 1) {
     // 1. get from at45
-    memset(page, 0x00, AT45_PAGE_SIZE);
-    if (! at45_read_page(page, curpage_idx)) {
-      free(page);
+    memset(&page, 0x00, sizeof(struct at45_page_t));
+    if (! at45_read_page(&page, curpage_idx)) {
+      //free(page);
       return;
     } else {
       //uart_puts_P("\r\nPage ");
@@ -189,10 +189,10 @@ void epd27_image_at45(uint16_t pageindex, EPD_stage stage) {
       //uart_puts_P(" Endline: ");
       //itoa(endline, conversion_buffer, 10);
       //uart_puts(conversion_buffer);
-      epd27_image_transfersection(startline, endline, page, stage);
+      epd27_image_transfersection(startline, endline, &page, stage);
     }
   }
-  free(page);
+  //free(page);
 }
 
 
@@ -556,7 +556,4 @@ void epd27_line(uint16_t line, const uint8_t *data,
   // output data to panel
   spi_delay10us_send(CU8(0x70, 0x02), 2);
   spi_delay10us_send(CU8(0x72, 0x2f), 2);
-
 }
-
-

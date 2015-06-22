@@ -9,8 +9,8 @@
 #include <stdio.h>
 
 uint8_t index_get_entry( struct index_entry_t* entry, uint16_t index) {
-  struct at45_page_t* page = malloc(sizeof(uint8_t [AT45_PAGE_SIZE]));
-  memset(page, 0x00, AT45_PAGE_SIZE);
+	struct at45_page_t* page = malloc(sizeof(struct at45_page_t));
+	memset(page, 0x00, sizeof(struct at45_page_t));
   //char conversion_buffer[50];
 
   /* Calculate offset of the index-th entry */
@@ -52,11 +52,11 @@ uint8_t index_get_entry( struct index_entry_t* entry, uint16_t index) {
 
 uint8_t index_find_entry(struct index_entry_t* entry, uint8_t temp, uint8_t hum)
 {
-  struct at45_page_t* page = malloc(sizeof(uint8_t [AT45_PAGE_SIZE]));
+	struct at45_page_t* page = malloc(sizeof(struct at45_page_t));
 	uint8_t result;
 
 	for (uint16_t index_page = 0; ; index_page++) {
-		memset(page, 0x00, sizeof(*page));
+		memset(page, 0x00, sizeof(struct at45_page_t));
 		if (!at45_read_page(page, index_page)) {
 			result = AT45_FAILURE;
 			goto exit;
@@ -111,7 +111,7 @@ uint16_t index_get_special_screen(uint8_t id)
 	static uint16_t first_special_screen = 0;
 
 	if (!first_special_screen) {
-		struct at45_page_t* page = malloc(sizeof(uint8_t [AT45_PAGE_SIZE]));
+		struct at45_page_t* page = malloc(sizeof(struct at45_page_t));
 		uint16_t last_page = 0;
 
 		for (uint16_t index_page = 0; ; index_page++) {

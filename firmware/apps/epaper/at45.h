@@ -43,5 +43,16 @@ uint8_t at45_write_from_buf_1(uint16_t addr_page);
 void at45_read_from_buf_1(uint8_t * dst, uint16_t count, uint16_t addr);
 void at45_write_to_buf_1(const uint8_t *src, uint16_t count, uint16_t addr);
 
+/** This macro will protect the following code from interrupts.*/
+//#define EP_ENTER_CRITICAL_REGION( ) {uint8_t volatile saved_sreg = SREG; cli( )
+#define EP_ENTER_CRITICAL_REGION( ) { \
+    uint8_t volatile saved_sreg = SREG; cli( ); 
+
+/** This macro must always be used in conjunction with EP_ENTER_CRITICAL_REGION
+    so that interrupts are enabled again.*/
+//#define EP_LEAVE_CRITICAL_REGION( ) SREG = saved_sreg; sei(); }
+#define EP_LEAVE_CRITICAL_REGION( ) SREG = saved_sreg; sei(); \
+  }
+
 #endif /* AT45_H */
 

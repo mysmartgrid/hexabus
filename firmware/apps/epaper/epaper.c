@@ -23,6 +23,7 @@
 
 #include "endpoints.h"
 
+
 PROCESS_NAME(epaper_process);
 PROCESS(epaper_process, "HexaBus EPaper display");
 
@@ -51,7 +52,6 @@ static uint8_t volatile saved_sreg;
 
 static void acquire(void)
 {
-	saved_sreg = SREG; cli();
 	epd27_acquire();
 	at45_acquire();
 }
@@ -60,7 +60,6 @@ static void release(void)
 {
 	at45_release();
 	epd27_release();
-	SREG = saved_sreg;
 }
 
 static int16_t old_idx = -1;
@@ -84,6 +83,7 @@ static void display_page(uint8_t board_temp, uint16_t idx)
 
 void epaper_display_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes_hum)
 {
+  EP_ENTER_CRITICAL_REGION();
 	acquire();
 	int16_t idx = find_page_index(mes_temp, mes_hum);
 	if (idx < 0) {
@@ -93,6 +93,7 @@ void epaper_display_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t me
 		display_page(board_temp, idx);
 	}
 	release();
+  EP_LEAVE_CRITICAL_REGION();
 }
 
 static uint32_t last_update_at = 0;
@@ -102,6 +103,7 @@ void epaper_update_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes
 	if (!allow_auto_display)
 		return;
 
+  EP_ENTER_CRITICAL_REGION();
 	acquire();
 
 	static int16_t skipped_update_idx = -1;
@@ -149,6 +151,7 @@ void epaper_update_measurement(uint8_t board_temp, uint8_t mes_temp, uint8_t mes
 
 end:
 	release();
+  EP_LEAVE_CRITICAL_REGION();
 }
 
 static uint8_t current_temperature = 0xff;
@@ -186,6 +189,7 @@ void epaper_handle_input(struct hxb_value* val, uint32_t eid)
 
 void epaper_display_special(enum epaper_special_screen screen)
 {
+  EP_ENTER_CRITICAL_REGION();
 	acquire();
 
 	// this works well enough as a "force redraw" flag
@@ -204,6 +208,7 @@ void epaper_display_special(enum epaper_special_screen screen)
 
 end:
 	release();
+  EP_LEAVE_CRITICAL_REGION();
 }
 
 
