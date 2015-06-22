@@ -22,7 +22,9 @@ _DEBUG options should be set to:
 #define ENDPOINT_REGISTRY_DEBUG 0
 
 // WebServer
+#define WEBSERVER_ENABLE 0
 #define WEBSERVER_DEBUG 0
+#define HEXABUS_BOOTSTRAP_DEBUG 0
 
 // Memory debugger process
 #define MEMORY_DEBUGGER_ENABLE 0
