@@ -211,7 +211,7 @@ var moduleWrapper = function(globalScope) {
 				get: function() { return last_update; }
 			},
 			'age': {
-				get: function() { return unix_ts() - this.last_update; }
+				get: function() { return unix_ts() - emitter.timeOffset - this.last_update; }
 			}
 		});
 
@@ -369,7 +369,7 @@ var moduleWrapper = function(globalScope) {
 			},
 			'age': {
 				get: function() {
-					return unix_ts() - this.last_update;
+					return unix_ts() - emitter.timeOffset - this.last_update;
 				}
 			},
 			'associated': {
@@ -664,8 +664,13 @@ var moduleWrapper = function(globalScope) {
 		var devices = {};
 		var views = {};
 		var statemachines = {};
+		var timeOffset = 0;
 
 		this.applyUpdate = function(update) {
+			if(update.serverTime !== undefined) {
+				timeOffset = unix_ts() - update.serverTime;
+			}
+
 			if(update.devices !== undefined) {
 				if(isServerDeviceTree) {
 					throw 'Can not update devices subtree on server side.';
@@ -734,6 +739,7 @@ var moduleWrapper = function(globalScope) {
 		};
 
 		this.propagateUpdate = function(update) {
+			update.serverTime = unix_ts();
 			this.emit('update', update);
 		};
 
@@ -874,6 +880,7 @@ var moduleWrapper = function(globalScope) {
 			}
 		});
 
+
 		Object.defineProperties(this, {
 			devices: {
 				get: function() {
@@ -888,6 +895,11 @@ var moduleWrapper = function(globalScope) {
 			statemachines: {
 				get: function() {
 					return statemachines;
+				}
+			},
+			timeOffset: {
+				get: function() {
+					return timeOffset;
 				}
 			}
 		});
