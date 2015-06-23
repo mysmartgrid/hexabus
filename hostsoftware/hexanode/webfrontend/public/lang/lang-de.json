@@ -142,7 +142,7 @@
 			"collecting-devices": "Bereite Geräteliste vor",
 			"generating-instance": "Erzeuge Schaltprogram {done} von {count}: {machine}",
 			"compiling-statemachines": "Kompilere Schaltprograme",
-			"uploading": "Hochladen des Schaltprogramms {done} von {count} : {device}.",
+			"uploading": "Aktualisieren des Schaltprogramms {done} von {count} : {device}.",
 			"deleting-temporary-files": "Lösche temporäre Dateien",
 			"name-error": "Ein Name ist zwingend erforderlich.",
 			"device-error": "Es muss ein Gerät ausgewählt werden.",

@@ -144,15 +144,7 @@ exports.StatemachineBuilder = function(devicetree) {
 
 		setProgress('collecting-devices');
 
-		var hashSet = {};
-		for(var machineIndex in statemachines) {
-			var devices = statemachines[machineIndex].getUsedDevices();
-			for(var devIndex in devices) {
-				hashSet[devices[devIndex]] = true;
-			}
-		}
-
-		deviceIps = Object.keys(hashSet);
+		deviceIps = Object.keys(devicetree.devices);
 		callback();
 	};
 
@@ -196,20 +188,38 @@ exports.StatemachineBuilder = function(devicetree) {
 
 	var uploadStatemachines = function(callback) {
 		var uploadStatemachine = function(ip, callback) {
-			console.log(buildDir + '/' + devicetree.devices[ip].sm_name);
+			var statemachineFile = buildDir + '/' + devicetree.devices[ip].sm_name;
+
 			setProgress('uploading',  { 'device' : devicetree.devices[ip].sm_name, 
 										'done' : deviceIps.indexOf(ip) + 1,
 										'count' : deviceIps.length});
-			execFile('hexaupload',
-				['--ip', ip, '--program', buildDir + '/' + devicetree.devices[ip].sm_name], 
+
+			if(fs.existsSync(statemachineFile)) {
+				debug('Uploading ' + devicetree.devices[ip].sm_name);
+				execFile('hexaupload',
+					['--ip', ip, '--program', statemachineFile],
+					function(error, stdout, stderr) {
+						if(error) {
+							callback(localizeError('uploading-failed', stdout, {'device': devicetree.devices[ip].name}));
+						}
+						else {
+							callback();
+						}
+				});
+			}
+			else {
+				debug('Clearing ' + devicetree.devices[ip].sm_name);
+				execFile('hexaupload',
+				['--ip', ip, '--clear'],
 				function(error, stdout, stderr) {
 					if(error) {
-						callback(localizeError('uploading-failed', stdout, {'device': devicetree.devices[ip].name}));
+						callback(localizeError('clearing-failed', stdout, {'device': devicetree.devices[ip].name}));
 					}
 					else {
 						callback();
 					}
-			});
+				});
+			}
 		};
 
 		async.mapSeries(deviceIps, uploadStatemachine, callback);
@@ -219,7 +229,7 @@ exports.StatemachineBuilder = function(devicetree) {
 	var cleanupFiles = function(callback) {
 		setProgress('deleting-temporary-files');
 		var deleteFile = function(file, callback) {
-			fs.unlink(file, function(error) {
+			fs.unlink(buildDir + '/' + file, function(error) {
 				if(error && error.code !== 'ENOENT') {
 					callback(localizeError('deleting-temporary-files-failed', error, {'file': file}));	
 				}
@@ -229,9 +239,10 @@ exports.StatemachineBuilder = function(devicetree) {
 			});
 		};
 
-		//var devFiles = deviceIps.map(function(ip) { return devicetree.devices[ip].sm_name; });
+		var devFiles = deviceIps.map(function(ip) { return devicetree.devices[ip].sm_name; });
+		devFiles.push('instances.hbc');
 
-		//async.map(devFiles, deleteFile, callback);
+		async.map(devFiles, deleteFile, callback);
 		callback();
 	};
 
