@@ -159,9 +159,8 @@
 			"choose": "Bitte wählen Sie eine Vorlage aus.",
 			"choose-master": "Bitte wählen Sie das Master-Gerät aus.",
 			"choose-threshold": "Bitte wählen Sie einen Schwellwert aus.",
-			"add-slaves": "Bitte wählen Sie die Slave-Geräte aus.",
-			"add-slave": "Slave-Gerät hinzufügen",
 			"choose-device": "Bitte wählen Sie ein Gerät aus.",
+			"choose-unique-device": "Bitte wählen Sie ein nocht nicht verwendetes Gerät aus.",
 			"choose-timeout": "Bitte wählen Sie eine Zeitbeschränkung aus.",
 			"device" : "Gerät",
 			"switch-device": "Schaltendes Gerät",
@@ -185,7 +184,9 @@
 			"timeout-max-off" : "Maximalzeit die das Gerät ausgeschaltet sein soll (in Minuten)",
 			"choose-timeout-max-off": "Bitte die maximale Zeitspanne in Minuten die das Gerät ausgeschaltet sein soll eingeben.",
 			"master-device": "Master Gerät",
-			"slave-device": "Slave Gerät"
+			"slave-device": "Slave Gerät",
+			"slave-devices": "Slave Geräte",
+			"add-slave-device" : "Slave Gerät hinzufügen"
 		}
 	},
 	"upgrade": {

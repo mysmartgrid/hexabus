@@ -53,6 +53,7 @@ var statemachineFromDevicetree = function(id, devicetree) {
 };
 exports.statemachineFromDevicetree = statemachineFromDevicetree;
 
+
 exports.statemachineFromJson = function(json, devicetree) {
 
 	if(devicetree === undefined) {
@@ -82,7 +83,7 @@ exports.findConflictingStatemachines = function(statemachine, devicetree) {
 	for(var id in devicetree.statemachines) {
 		var otherEndpoints = statemachineFromDevicetree(id, devicetree).getWrittenEndpoints();
 		for(var index in endpoints) {
-			if(otherEndpoints.indexOf(endpoints[index]) !== -1) {
+			if(otherEndpoints.indexOf(endpoints[index]) !== -1 && conflicts.indexOf(id) === -1) {
 				conflicts.push(id);
 			}
 		}
@@ -228,9 +229,10 @@ exports.StatemachineBuilder = function(devicetree) {
 			});
 		};
 
-		var devFiles = deviceIps.map(function(ip) { return devicetree.devices[ip].sm_name; });
+		//var devFiles = deviceIps.map(function(ip) { return devicetree.devices[ip].sm_name; });
 
-		async.map(devFiles, deleteFile, callback);
+		//async.map(devFiles, deleteFile, callback);
+		callback();
 	};
 
 	var busy = false;

@@ -24,6 +24,10 @@ exports.Statemachine = function(id, name, machineClass, comment, config, devicet
 		}
 	});
 
+	this.unpackDeviceGroup = function(group) {
+		return group.map(function(dev) { return dev.device; });
+	};
+
 	this.getDeviceName = function(ip) {
 		if(devicetree.devices[ip] === undefined) {
 			throw new Error("Unknown device " + ip);
@@ -42,6 +46,39 @@ exports.Statemachine = function(id, name, machineClass, comment, config, devicet
 
 		return 	devicetree.devices[ip].endpoints[eid].sm_name;
 	};
+
+	this.getDeviceGroup = function(devs) {
+		if(devs.length < 1) {
+			throw new Error("Could not look up devices names for empty device group");
+		}
+
+		devs = this.unpackDeviceGroup(devs);
+
+		var names = devs.map(function(dev) {
+			return this.getDeviceName(dev);
+		}.bind(this));
+
+		return '[' + names.join(', ') + ']';
+	};
+
+	this.getEndpointNameForGroup = function(devs, eid) {
+		if(devs.length < 1) {
+			throw new Error("Could not look up endpoint name for empty device group");
+		}
+
+		devs = this.unpackDeviceGroup(devs);
+
+		var epName = this.getEndpointName(devs[0], eid);
+		var allIdentical = devs.every(function(dev) {
+			return this.getEndpointName(dev, eid) === epName;
+		}.bind(this));
+
+		if(!allIdentical) {
+			throw new Error("Found more then one name for eid " + eid);
+		}
+
+		return epName;
+	}
 
 	this.getUsedDevices = function() {
 		throw new Error("Missing implementation for getUsedDevices");

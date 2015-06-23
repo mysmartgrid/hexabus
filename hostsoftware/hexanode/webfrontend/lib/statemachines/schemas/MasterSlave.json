@@ -38,10 +38,21 @@
 					"validationMessage": "Threshold has to be a valid integer.",
 					"localizedValidationMessage": "no-u32number-watt"
 				},
-				"slave": {
-					"type": "string",
-					"validationMessage": "Device is required",
-					"localizedValidationMessage": "choose-device"
+				"slaves": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"device": {
+								"type" : "string",
+								"validationMessage": "Device is required",
+								"localizedValidationMessage": "choose-unique-device"
+							}
+						},
+						"required": [
+							"device"
+						]
+					}
 				},
 				"relais": {
 					"type": "integer",
@@ -52,7 +63,7 @@
 				"master",
 				"meter",
 				"threshold",
-				"slave",
+				"slaves",
 				"relais"
 			]
 		}

@@ -74,14 +74,14 @@ angular.module('hexanode')
 
 		MasterSlave: {
 			getUsedDevices: function(machine) {
-				return [machine.config.master, machine.config.slave].map(getDeviceForIp);
+				return [machine.config.master].concat(unpackDeviceGroup(machine.config.slaves)).map(getDeviceForIp);
 			},
 
 			form: addCommonFields([
 				{
 					key: 'config.master',
 					title: translation['master-device'],
-					description: translation['choose-device'],
+					description: translation['choose-unique-device'],
 					type: 'devicepicker',
 					devices: [],
 					updateDevices: function() {
@@ -96,17 +96,48 @@ angular.module('hexanode')
 					feedback: false,
 				},
 				{
-					key: 'config.slave',
-					title: translation['slave-device'],
-					description: translation['choose-device'],
-					type: 'devicepicker',
-					devices: [],
-					updateDevices: function() {
-						return DeviceTree.getDevicesWithEndpoint([1]);
+					title: translation['slave-devices'],
+					key: 'config.slaves',
+					add: translation['add-slave-device'],
+					remove: 'delete',
+					style: {
+						add: 'btn-primary',
+						remove: 'btn-danger'
 					},
-					feedback: false,
+					items: [
+						{
+							key: 'config.slaves[].device',
+							title: translation['slave-device'],
+							description: translation['choose-unique-device'] + 'desc',
+							type: 'devicepicker',
+							devices: [],
+							updateDevices: function() {
+								return DeviceTree.getDevicesWithEndpoint([1]);
+							},
+							feedback: false,
+						}
+					]
 				},
-			])
+			]),
+
+			validate: function() {
+
+				var usedDevices = [];
+				usedDevices.push($scope.model.config.master);
+
+				for(var index in $scope.model.config.slaves) {
+					var ip = $scope.model.config.slaves[index].device;
+					console.log(ip);
+					console.log(usedDevices);
+					if(usedDevices.indexOf(ip) !== -1) {
+						$scope.$broadcast('schemaForm.error.config.slaves.' + index + '.device', 'duplicate', '', false);
+					}
+					else {
+						$scope.$broadcast('schemaForm.error.config.slaves.' + index + '.device', 'duplicate', '', true);
+					}
+					usedDevices.push(ip);
+				}
+			}
 		},
 
 		Threshold: {
@@ -229,6 +260,16 @@ angular.module('hexanode')
 				localized.properties[key] = localizeSchema(schema.properties[key]);
 			}
 		}
+		else if(schema.type == 'array') {
+			localized = {
+				type: 'array',
+				items: {}
+			};
+
+			localized.items= localizeSchema(schema.items);
+
+			console.log(localized);
+		}
 		else {
 			localized = schema;
 			if(schema.localizedValidationMessage !== undefined ||
@@ -258,10 +299,18 @@ angular.module('hexanode')
 			if($scope.form[index].updateDevices !== undefined) {
 				$scope.form[index].devices = $scope.form[index].updateDevices();
 			}
+			if($scope.form[index].items !== undefined) {
+				for(var itemIndex in $scope.form[index].items) {
+					$scope.form[index].items[itemIndex].devices = $scope.form[index].items[itemIndex].updateDevices();
+				}
+			}
 		}
 	};
 	DeviceTree.on('changeApplied', updateDevices);
 
+	var unpackDeviceGroup = function(group) {
+		return group.map(function(dev) { return dev.device; });
+	};
 
 	var getDeviceForIp = function(ip) {
 		if($scope.devicetree.devices[ip] === undefined) {
@@ -333,6 +382,10 @@ angular.module('hexanode')
 	$scope.submit = function() {
 
 		$scope.$broadcast('schemaFormValidate');
+
+		if(statemachineClasses[$scope.machineClass].validate !== undefined) {
+			statemachineClasses[$scope.machineClass].validate();
+		}
 
 		if($scope.machineForm.$valid) {
 			uploadStatemachines([$scope.model]);
