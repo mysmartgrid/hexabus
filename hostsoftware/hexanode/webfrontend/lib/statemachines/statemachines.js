@@ -197,7 +197,7 @@ exports.StatemachineBuilder = function(devicetree) {
 			if(fs.existsSync(statemachineFile)) {
 				debug('Uploading ' + devicetree.devices[ip].sm_name);
 				execFile('hexaupload',
-					['--ip', ip, '--program', statemachineFile],
+					['--ip', ip, '--retry', 10, '--program', statemachineFile],
 					function(error, stdout, stderr) {
 						if(error) {
 							callback(localizeError('uploading-failed', stdout, {'device': devicetree.devices[ip].name}));
@@ -210,7 +210,7 @@ exports.StatemachineBuilder = function(devicetree) {
 			else {
 				debug('Clearing ' + devicetree.devices[ip].sm_name);
 				execFile('hexaupload',
-				['--ip', ip, '--clear'],
+				['--ip', ip, '--retry', 10, '--clear'],
 				function(error, stdout, stderr) {
 					if(error) {
 						callback(localizeError('clearing-failed', stdout, {'device': devicetree.devices[ip].name}));

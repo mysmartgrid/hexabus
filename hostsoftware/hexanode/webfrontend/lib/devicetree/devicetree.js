@@ -617,7 +617,7 @@ var moduleWrapper = function(globalScope) {
 				},
 				set: onServer(function(newName) {
 					name = newName;
-					this.propgateUpdate();
+					this.propagateUpdate();
 				})
 			},
 
@@ -635,7 +635,7 @@ var moduleWrapper = function(globalScope) {
 				},
 				set: onServer(function(newComment) {
 					comment = newComment;
-					this.propgateUpdate();
+					this.propagateUpdate();
 				})
 			},
 

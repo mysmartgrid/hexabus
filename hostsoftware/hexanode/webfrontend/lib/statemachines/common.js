@@ -78,7 +78,7 @@ exports.Statemachine = function(id, name, machineClass, comment, config, devicet
 		}
 
 		return epName;
-	}
+	};
 
 	this.getUsedDevices = function() {
 		throw new Error("Missing implementation for getUsedDevices");
@@ -104,6 +104,8 @@ exports.Statemachine = function(id, name, machineClass, comment, config, devicet
 			devicetree.addStatemachine(name, this.machineClass, comment, config);
 		}
 		else {
+			devicetree.statemachines[id].name = name;
+			devicetree.statemachines[id].comment = comment;
 			devicetree.statemachines[id].updateConfig(config);
 		}
 	};

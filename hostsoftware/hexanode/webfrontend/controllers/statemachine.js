@@ -8,7 +8,7 @@ var builder = {};
 
 module.exports.setup = function(devicetree) {
 	builder = new StatemachineBuilder(devicetree);
-}
+};
 
 
 module.exports.expressSetup = function(app, nconf, hexabus, devicetree) {
@@ -64,6 +64,16 @@ module.exports.socketioSetup = function(socket, hexabus, devicetree) {
 
 			statemachine.saveToDevicetree();
 		}
+
+		console.log('Starting builder');
+		builder.build(cb, function(msg) {
+			socket.emit('statemachine_progress', msg);
+		});
+	});
+
+
+	on('remove_statemachine', function(machineId, cb) {
+		devicetree.removeStatemachine(machineId);
 
 		console.log('Starting builder');
 		builder.build(cb, function(msg) {

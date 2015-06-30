@@ -155,8 +155,6 @@ var HexabusServer = function(socket, hexabus, devicetree) {
 			}
 		});
 	});
-
-
 };
 
 

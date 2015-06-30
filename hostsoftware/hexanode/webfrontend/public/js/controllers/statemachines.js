@@ -362,6 +362,8 @@ angular.module('hexanode')
 
 		if(data.success) {
 			$scope.successAlert.show = true;
+			$scope.machineClass = undefined;
+			$scope.model = {};
 		}
 		else {
 			$scope.errorAlert.show = true;
@@ -374,6 +376,7 @@ angular.module('hexanode')
 	$scope.model = {};
 
 	$scope.changeClass = function() {
+		$scope.model = {};
 		$scope.schema = statemachineClasses[$scope.machineClass].schema;
 		$scope.form = statemachineClasses[$scope.machineClass].form;
 		updateDevices();
@@ -390,6 +393,10 @@ angular.module('hexanode')
 		if($scope.machineForm.$valid) {
 			uploadStatemachines([$scope.model]);
 		}
+	};
+
+	$scope.retryLastUpload = function() {
+		uploadStatemachines();
 	};
 
 	var statemachineProgress = function(data) {
@@ -414,12 +421,28 @@ angular.module('hexanode')
 		$scope.errorAlert.text = 'Internal Error: ' + error;
 	});
 
-
 	var uploadStatemachines = function(statemachines) {
 		hideAlerts();
 		$scope.busy = true;
 
 		Socket.emit('update_statemachines', statemachines, statemachineUploaded);
+	};
+
+	$scope.removeStatemachine = function(statemachineId) {
+		hideAlerts();
+		$scope.busy = true;
+
+		Socket.emit('remove_statemachine', statemachineId, statemachineUploaded);
+	};
+
+	$scope.editStatemachine = function(statemachineId) {
+		$scope.model = angular.copy($scope.devicetree.statemachines[statemachineId]);
+		$scope.machineClass = $scope.model.machineClass;
+		$scope.model.id = statemachineId;
+
+		$scope.schema = statemachineClasses[$scope.machineClass].schema;
+		$scope.form = statemachineClasses[$scope.machineClass].form;
+		updateDevices();
 	};
 
 	$scope.progressAlert = {show : false, text : '', percent : 0};

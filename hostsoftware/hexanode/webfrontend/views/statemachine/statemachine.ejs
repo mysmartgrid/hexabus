@@ -18,7 +18,20 @@
 	</div>
 
 	<div class="alert alert-danger" data-ng-show="errorAlert.show">
-		{{errorAlert.text}}
+		<div class="row">
+			<div class="col-md-2">
+				<img src="img/hexapus_ups.png"/>
+			</div>
+			<div class="col-md-10">
+				<br/>
+				<br/>
+				<p class="text-center">
+					{{errorAlert.text}}<br/>
+					<br/>
+					<a class="btn btn-warning" data-ng-click="retryLastUpload()"><span class="glyphicon glyphicon-repeat"></span> Retry</a>
+				</p>
+			</div>
+		</div>
 	</div>
 
 	<div class="alert alert-success" data-ng-show="successAlert.show">
@@ -48,6 +61,8 @@
 					<p data-ng-repeat="device in getUsedDevices(machine)">{{device.name}} <i>({{device.ip}})</i></p>
 				</td>
 				<td>
+					<button type="button" class="btn btn-primary"data-ng-click="editStatemachine(machine.id)"><span class="glyphicon glyphicon-pencil"></span></button>
+					<button type="button" class="btn btn-danger" data-ng-click="removeStatemachine(machine.id)"><span class="glyphicon glyphicon-trash"></span></button>			
 				</td>
 			</tr>
 		</table>
@@ -81,7 +96,7 @@
 
 	<br/>
 
-	{{form[4].items[0].devices.length }}
+	{{form | json }}
 
 </div>
 
