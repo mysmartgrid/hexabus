@@ -18,7 +18,7 @@ _DEBUG options should be set to:
 // options common to all incarnations of Hexabus devices
 #define UDP_HANDLER_DEBUG LOG_DEBUG
 
-#define ENDPOINT_REGISTRY_DEBUG 0
+#define ENDPOINT_REGISTRY_DEBUG LOG_DEBUG
 
 // Memory debugger process
 #define MEMORY_DEBUGGER_ENABLE 0
@@ -38,8 +38,8 @@ _DEBUG options should be set to:
 #define DATETIME_SERVICE_DEBUG 0
 
 // state_machine
-#define STATE_MACHINE_ENABLE 0
-#define STATE_MACHINE_DEBUG 0
+#define STATE_MACHINE_ENABLE 1
+#define STATE_MACHINE_DEBUG LOG_DEBUG
 
 // state machine uploading via Hexabus packets
 #define SM_UPLOAD_ENABLE 1
@@ -55,7 +55,7 @@ _DEBUG options should be set to:
 #define HXB_PROFILE_PRESSURESENSOR  6
 #define HXB_PROFILE_JUNCTION_DIMMER 7
 
-#define HXB_DEVICE_PROFILE   HXB_PROFILE_PLUG
+#define HXB_DEVICE_PROFILE   HXB_PROFILE_PLUGPLUS
 
 #define HAVE(x) (HXB_DEVICE_PROFILE == HXB_PROFILE_ ## x)
 
@@ -68,7 +68,7 @@ _DEBUG options should be set to:
 // value_broadcast
 #define VALUE_BROADCAST_ENABLE 1
 #define VALUE_BROADCAST_DEBUG 0
-#define VALUE_BROADCAST_RELIABLE 0
+#define VALUE_BROADCAST_RELIABLE 1
 #define VALUE_BROADCAST_AUTO_INTERVAL 20 // Timeout in seconds
 #if HAVE(PLUG)
  #define VALUE_BROADCAST_AUTO_EIDS EP_POWER_SWITCH

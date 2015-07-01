@@ -24,6 +24,8 @@ struct hxb_nvm_layout {
 	uint16_t bootloader_crc;
 	uint8_t first_run;
 
+	uint8_t pgm_checksum[16];
+
 	uint8_t encryption_key[16];
 
 	char domain_name[30];
@@ -37,7 +39,7 @@ struct hxb_nvm_layout {
 	struct hxb_sm_nvm_layout sm;
 
 	/* use the remaining space for properties (EEP_SIZE - trailer - leader)*/
-	uint8_t endpoint_properties[EEP_SIZE - 8 - (69 + sizeof(struct hxb_sm_nvm_layout))];
+	uint8_t endpoint_properties[EEP_SIZE - 8 - (85 + sizeof(struct hxb_sm_nvm_layout))];
 
 	uint32_t energy_metering_pulses;
 	uint32_t energy_metering_pulses_total;
@@ -46,6 +48,7 @@ struct hxb_nvm_layout {
 static inline void eeprom_layout_size_static_assert(void)
 {
 	char bug_on[1 - 2 * !(sizeof(struct hxb_nvm_layout) == EEP_SIZE)];
+	(void) bug_on;
 }
 
 #define nvm_addr(field) (offsetof(struct hxb_nvm_layout, field))
