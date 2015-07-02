@@ -664,6 +664,13 @@ var moduleWrapper = function(globalScope) {
 			emitter.propagateUpdate(update);
 		});
 
+		this.applyUpdate = function(update) {
+			name = update.name;
+			comment = update.comment;
+			machineClass = update.machineClass;
+			config = update.config;
+		};
+
 		if(id === undefined ||
 			name === undefined ||
 			machineClass === undefined ||
