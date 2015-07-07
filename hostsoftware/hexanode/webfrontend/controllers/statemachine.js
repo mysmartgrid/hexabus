@@ -57,9 +57,9 @@ module.exports.socketioSetup = function(socket, hexabus, devicetree) {
 			var statemachine = statemachineFromJson(statemachineJson[machine], devicetree);
 			var conflicts = findConflictingStatemachines(statemachine, devicetree);
 
-			for(var index in conflicts) {
-				console.log('Deleting conflicting statemachine: ' + conflicts[index]);
-				devicetree.removeStatemachine(conflicts[index]);
+			if(conflicts.length > 0) {
+				cb({success: false, conflicts: conflicts});
+				return;
 			}
 
 			statemachine.saveToDevicetree();

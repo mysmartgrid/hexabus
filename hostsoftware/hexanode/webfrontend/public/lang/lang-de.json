@@ -137,7 +137,7 @@
 			"production-threshold-machine": "Produktionsabhängiger Schalter",
 			"new": "Neues Schaltprogramm",
 			"upload": "Hochladen",
-			"upload-success": "Hochladen erfolgreich abgeschlossen.",
+			"upload-success": "Aktualisierung erfolgreich abgeschlossen.",
 			"collecting-statemachines": "Bereite Schaltprogrammliste vor",
 			"collecting-devices": "Bereite Geräteliste vor",
 			"generating-instance": "Erzeuge Schaltprogram {done} von {count}: {machine}",
@@ -186,7 +186,9 @@
 			"master-device": "Master Gerät",
 			"slave-device": "Slave Gerät",
 			"slave-devices": "Slave Geräte",
-			"add-slave-device" : "Slave Gerät hinzufügen"
+			"add-slave-device" : "Slave Gerät hinzufügen",
+			"conflict" : "Das Schaltprogramm versucht ein Gerät zu benutzen welches vom Schaltprogramm {other} benutzt wird. Bitte löschen sie das andere Schaltprogramm oder ändern sie die benutzten Geräte entsprechend.",
+			"delete" : "Löschen"
 		}
 	},
 	"upgrade": {

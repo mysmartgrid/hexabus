@@ -338,6 +338,7 @@ angular.module('hexanode')
 		$scope.progressAlert.show = false;
 		$scope.errorAlert.show = false;
 		$scope.successAlert.show = false;
+		$scope.conflictAlert.show = false;
 	};
 
 	var localizeMessage = function(data) {
@@ -362,8 +363,12 @@ angular.module('hexanode')
 
 		if(data.success) {
 			$scope.successAlert.show = true;
-			$scope.machineClass = undefined;
-			$scope.model = {};
+		}
+		else if(data.conflicts !== undefined) {
+			var conflict = data.conflicts[0];
+			$scope.conflictAlert.show = true;
+			$scope.conflictAlert.text = translation['conflict'].replace('{other}', DeviceTree.statemachines[conflict].name);
+			$scope.conflictAlert.conflict = conflict;
 		}
 		else {
 			$scope.errorAlert.show = true;
@@ -376,6 +381,7 @@ angular.module('hexanode')
 	$scope.model = {};
 
 	$scope.changeClass = function() {
+		$scope.machineForm.$setPristine();
 		$scope.model = {};
 		$scope.schema = statemachineClasses[$scope.machineClass].schema;
 		$scope.form = statemachineClasses[$scope.machineClass].form;
@@ -446,6 +452,7 @@ angular.module('hexanode')
 	};
 
 	$scope.progressAlert = {show : false, text : '', percent : 0};
+	$scope.conflictAlert = {show : false, test : ''};
 	$scope.errorAlert = {show: false, text : ''};
 	$scope.successAlert = {show: false };
 

@@ -34,6 +34,27 @@
 		</div>
 	</div>
 
+	<div class="alert alert-warning" data-ng-show="conflictAlert.show">
+		<div class="row">
+			<div class="col-md-2">
+				<img src="img/hexapus_ups.png"/>
+			</div>
+			<div class="col-md-10">
+				<br/>
+				<br/>
+				<p class="text-center">
+					{{conflictAlert.text}}
+					<br/>
+					<br/>
+					<a class="btn btn-danger" data-ng-click="removeStatemachine(conflictAlert.conflict)">
+						<span class="glyphicon glyphicon-trash"></span>
+						<span data-localize="wizard.state-machine.delete">Delete</span>
+					</a>
+				</p>
+			</div>
+		</div>
+	</div>
+
 	<div class="alert alert-success" data-ng-show="successAlert.show">
 		<div class="row">
 			<div class="col-md-2">

@@ -81,10 +81,12 @@ exports.findConflictingStatemachines = function(statemachine, devicetree) {
 	var endpoints  = statemachine.getWrittenEndpoints();
 
 	for(var id in devicetree.statemachines) {
-		var otherEndpoints = statemachineFromDevicetree(id, devicetree).getWrittenEndpoints();
-		for(var index in endpoints) {
-			if(otherEndpoints.indexOf(endpoints[index]) !== -1 && conflicts.indexOf(id) === -1) {
-				conflicts.push(id);
+		if(id !== statemachine.id) {
+			var otherEndpoints = statemachineFromDevicetree(id, devicetree).getWrittenEndpoints();
+			for(var index in endpoints) {
+				if(otherEndpoints.indexOf(endpoints[index]) !== -1 && conflicts.indexOf(id) === -1) {
+					conflicts.push(id);
+				}
 			}
 		}
 	}
