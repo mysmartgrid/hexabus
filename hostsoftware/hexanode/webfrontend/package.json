@@ -11,7 +11,7 @@
     "ejs": "0.8.5",
     "socket.io": "1.1.0",
     "CBuffer": "0.1.4",
-    "request": "2.33.0",
+    "request": "2.47.0",
     "nconf": "0.6.9",
     "cookie-signature": "1.0.1",
     "buffer-crc32": "0.2.1",
