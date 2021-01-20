@@ -9,7 +9,7 @@
     "express": "3.4.8",
     "connect": "2.7.9",
     "ejs": "0.8.5",
-    "socket.io": "1.1.0",
+    "socket.io": "2.4.0",
     "CBuffer": "0.1.4",
     "request": "2.33.0",
     "nconf": "0.6.9",
